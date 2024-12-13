@@ -191,14 +191,14 @@ public func setEntityKinetics(entityId: EntityID) {
 func registerDefaultComponents(entityId: EntityID, meshes:[Mesh]) {
     //if let meshValue = meshDictionary[name] {
     registerComponent(entityId: entityId, componentType: RenderComponent.self)
-    registerComponent(entityId: entityId, componentType: TransformComponent.self)
+    registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
 
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         handleError(.noRenderComponent, entityId)
         return
     }
 
-    guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return
     }

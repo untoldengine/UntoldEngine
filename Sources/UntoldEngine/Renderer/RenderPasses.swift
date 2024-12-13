@@ -220,7 +220,7 @@ enum RenderPasses {
         // send info for each entity that conforms to shadows
 
         // Create a component query for entities with both Transform and Render components
-        let transformId = getComponentId(for: TransformComponent.self)
+        let transformId = getComponentId(for: LocalTransformComponent.self)
         let renderId = getComponentId(for: RenderComponent.self)
         let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
@@ -232,7 +232,7 @@ enum RenderPasses {
                 continue
             }
             
-            guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+            guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
                 handleError(.noTransformComponent, entityId)
                 continue
             }
@@ -450,7 +450,7 @@ enum RenderPasses {
 
         // Create a component query for entities with both Transform and Render components
 
-        let transformId = getComponentId(for: TransformComponent.self)
+        let transformId = getComponentId(for: LocalTransformComponent.self)
         let renderId = getComponentId(for: RenderComponent.self)
         let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
@@ -462,7 +462,7 @@ enum RenderPasses {
                 continue
             }
             
-            guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+            guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
                 handleError(.noTransformComponent, entityId)
                 continue
             }

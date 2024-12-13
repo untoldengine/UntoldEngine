@@ -229,7 +229,7 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
         return
     }
 
-    guard scene.get(component: TransformComponent.self, for: entityId) != nil else {
+    guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else {
         handleError(.noTransformComponent, entityId)
         return
     }
@@ -510,7 +510,7 @@ public func avoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceR
         return
     }
 
-    guard scene.get(component: TransformComponent.self, for: entityId) != nil else {
+    guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else {
         handleError(.noTransformComponent, entityId)
         return
     }
@@ -519,7 +519,7 @@ public func avoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceR
     let currentPosition = getPosition(entityId: entityId)
 
     for obstacleId in obstacles {
-        guard scene.get(component: TransformComponent.self, for: obstacleId) != nil else {
+        guard scene.get(component: LocalTransformComponent.self, for: obstacleId) != nil else {
             handleError(.noTransformComponent, obstacleId)
             continue
         }

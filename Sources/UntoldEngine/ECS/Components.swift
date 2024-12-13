@@ -11,7 +11,7 @@ import Metal
 import MetalKit
 import simd
 
-public class TransformComponent: Component {
+public class LocalTransformComponent: Component {
     
     var localSpace: simd_float4x4 = .identity
     

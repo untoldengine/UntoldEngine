@@ -158,7 +158,7 @@ private func eulerIntegration(deltaTime: Float) {
     // all all the forces for the entity
     let kineticId = getComponentId(for: KineticComponent.self)
     let physicsId = getComponentId(for: PhysicsComponents.self)
-    let transformId = getComponentId(for: TransformComponent.self)
+    let transformId = getComponentId(for: LocalTransformComponent.self)
 
     let entities = queryEntitiesWithComponentIds([kineticId, physicsId, transformId], in: scene)
 
@@ -167,7 +167,7 @@ private func eulerIntegration(deltaTime: Float) {
             continue
         }
 
-        guard let transform = scene.get(component: TransformComponent.self, for: entity) else {
+        guard let transform = scene.get(component: LocalTransformComponent.self, for: entity) else {
             continue
         }
         
