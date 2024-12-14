@@ -157,7 +157,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         // calculate delta time for frame
         calculateDeltaTime()
-
+        traverseSceneGraph()
         // process Input - Handle user input before updating game states
         if gameMode == true {
             handleInputCallback?() // if game mode
@@ -187,7 +187,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     func handleSceneInput() {
-        
+
         if gameMode == true {
             return
         }
@@ -195,11 +195,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         if inputSystem.keyState.leftMousePressed {
             camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
         }
-        
-        if inputSystem.mouseActive{
+
+        if inputSystem.mouseActive {
             camera.orbitAround(inputSystem.panDelta * 0.005)
         }
-        
+
         let input = (w: inputSystem.keyState.wPressed, a: inputSystem.keyState.aPressed, s: inputSystem.keyState.sPressed, d: inputSystem.keyState.dPressed, q: inputSystem.keyState.qPressed, e: inputSystem.keyState.ePressed)
 
         camera.moveCameraWithInput(input: input, speed: 5, deltaTime: 0.1)

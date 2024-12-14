@@ -37,7 +37,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case noPhysicsComponent = 1028
     case noKineticComponent = 1029
     case noRenderComponent = 1030
-    case noTransformComponent = 1031
+    case noLocalTransformComponent = 1031
     case noSkeletonComponent = 1032
     case noAnimationComponent = 1033
     case noAnimationBind = 1034
@@ -51,6 +51,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case failedToGetComponentPointer = 1042
     case valueisNaN = 1043
     case textureFailedLoading = 1044
+    case noWorldTransformComponent = 1045
+    case noScenegraphComponent = 1046
 
     public var description: String {
         switch self {
@@ -110,8 +112,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Does not have a Physics component. Call setEntityKinetics()"
         case .noKineticComponent:
             return "Does not have a Kinetic component. Call setEntityKinetics()"
-        case .noTransformComponent:
-            return "Does not have a Transform component"
+        case .noLocalTransformComponent:
+            return "Does not have a Local Transform component"
         case .noRenderComponent:
             return "Does not have a Render component"
         case .noSkeletonComponent:
@@ -140,6 +142,10 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "value is NaN"
         case .textureFailedLoading:
             return "Failed to load texture"
+        case .noWorldTransformComponent:
+            return "Does not have a World Transform component"
+        case .noScenegraphComponent:
+            return "Does not have a scenegraph component"
         }
     }
 }
@@ -151,10 +157,11 @@ public func handleError(_ error: ErrorHandlingSystem) {
 public func handleError(_ error: ErrorHandlingSystem, _ entityId: EntityID) {
     
     guard let name=getEntityName(entityId: entityId)else{
+        Logger.logError(message: "\(error.rawValue): \(error.description) for \(entityId)")
         return
     }
     handleError(error,name)
-//    Logger.logError(message: "\(error.rawValue): \(error.description) for \(entityId)")
+    
 }
 
 public func handleError(_ error: ErrorHandlingSystem, _ name: String) {

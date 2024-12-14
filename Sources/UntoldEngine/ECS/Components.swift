@@ -11,26 +11,25 @@ import Metal
 import MetalKit
 import simd
 
-public class TransformComponent: Component {
-    var localSpace: simd_float4x4
-    var xRot: Float
-    var yRot: Float
-    var zRot: Float
-
-    var minBox: simd_float3!
-    var maxBox: simd_float3!
-
-    var scale: simd_float3!
+public class LocalTransformComponent: Component {
+    
+    var space: simd_float4x4 = .identity
+    
+    var boundingBox: (min: simd_float3, max: simd_float3)!
+    
     var flipCoord: Bool = false
     
-    var forwardVector: simd_float3=simd_float3(0.0,0.0,1.0) // +z
-
     public required init() {
-        // Initialize default values
-        localSpace = matrix4x4Identity()
-        xRot = 0.0
-        yRot = 0.0
-        zRot = 0.0
+       
+    }
+}
+
+public class WorldTransformComponent: Component {
+    
+    var space: simd_float4x4 = .identity
+    
+    public required init() {
+       
     }
 }
 
@@ -93,5 +92,14 @@ public class LightComponent: Component {
 
     var lightType: LightType?
 
+    public required init() {}
+}
+
+public class ScenegraphComponent: Component{
+    
+    var parent:EntityID = .invalid
+    var level: Int = 0 // level 0 means no parent
+    var children:[EntityID] = []
+    
     public required init() {}
 }
