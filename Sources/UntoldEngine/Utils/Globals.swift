@@ -15,6 +15,10 @@ public typealias EntityID = UInt64
 public typealias EntityIndex = UInt32
 public typealias EntityVersion = UInt32
 
+extension EntityID {
+    static let invalid: EntityID = .max
+}
+
 var componentCounter = 0
 
 let MAX_COMPONENTS = 64

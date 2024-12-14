@@ -52,6 +52,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case valueisNaN = 1043
     case textureFailedLoading = 1044
     case noWorldTransformComponent = 1045
+    case noScenegraphComponent = 1046
 
     public var description: String {
         switch self {
@@ -143,6 +144,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Failed to load texture"
         case .noWorldTransformComponent:
             return "Does not have a World Transform component"
+        case .noScenegraphComponent:
+            return "Does not have a scenegraph component"
         }
     }
 }
@@ -154,10 +157,11 @@ public func handleError(_ error: ErrorHandlingSystem) {
 public func handleError(_ error: ErrorHandlingSystem, _ entityId: EntityID) {
     
     guard let name=getEntityName(entityId: entityId)else{
+        Logger.logError(message: "\(error.rawValue): \(error.description) for \(entityId)")
         return
     }
     handleError(error,name)
-//    Logger.logError(message: "\(error.rawValue): \(error.description) for \(entityId)")
+    
 }
 
 public func handleError(_ error: ErrorHandlingSystem, _ name: String) {

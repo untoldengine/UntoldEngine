@@ -94,3 +94,12 @@ public class LightComponent: Component {
 
     public required init() {}
 }
+
+public class ScenegraphComponent: Component{
+    
+    var parent:EntityID = .invalid
+    var level: Int = 0 // level 0 means no parent
+    var children:[EntityID] = []
+    
+    public required init() {}
+}

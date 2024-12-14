@@ -9,31 +9,6 @@
 import Foundation
 import simd
 
-public func updateTransformSystem(){
-    
-    let localTransformId = getComponentId(for: LocalTransformComponent.self)
-    let worldTransformId = getComponentId(for: WorldTransformComponent.self)
-    
-    let entities = queryEntitiesWithComponentIds([localTransformId,worldTransformId], in: scene)
-
-    for entity in entities {
-        
-        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entity) else {
-            handleError(.noLocalTransformComponent, entity)
-            continue
-        }
-        
-        guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entity) else {
-            handleError(.noWorldTransformComponent, entity)
-            continue
-        }
-        
-        // set them to equal for now
-        worldTransformComponent.space = localTransformComponent.space
-        
-    }
-}
-
 public func getLocalPosition(entityId: EntityID) -> simd_float3 {
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
