@@ -15,7 +15,6 @@ struct Mesh {
     var spaceUniform: MTLBuffer!
 
     init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip: Bool) {
-        
         modelMDLMesh = modelIOMesh
 
         // Transform to adjust orientation
@@ -29,7 +28,7 @@ struct Mesh {
         name = modelIOMesh.parent?.name ?? "Unnamed"
 
         // Set bounding box dimensions
-        boundingBox=(min: modelIOMesh.boundingBox.minBounds, max: modelIOMesh.boundingBox.maxBounds)
+        boundingBox = (min: modelIOMesh.boundingBox.minBounds, max: modelIOMesh.boundingBox.maxBounds)
 
         // Create tangents if the mesh has texture coordinates
         if hasTextureCoordinates(mesh: modelIOMesh) {
@@ -42,12 +41,12 @@ struct Mesh {
 
         // Apply vertex descriptor for Metal layout compatibility
         modelIOMesh.vertexDescriptor = vertexDescriptor
-        
+
         // allocate buffer
         spaceUniform = renderInfo.device.makeBuffer(
             length: MemoryLayout<Uniforms>.stride, options: [MTLResourceOptions.storageModeShared]
         )
-        
+
         // Create MetalKit mesh
         modelIOMesh.vertexDescriptor = vertexDescriptor
         var localMetalKitMesh: MTKMesh
@@ -56,7 +55,7 @@ struct Mesh {
         } catch {
             fatalError("Failed to create MTKMesh: \(error)")
         }
-        self.metalKitMesh = localMetalKitMesh
+        metalKitMesh = localMetalKitMesh
 
         // Process submeshes locally before assigning
         let processedSubmeshes: [SubMesh] = modelIOMesh.submeshes?.compactMap { mdlSubmesh in
@@ -69,15 +68,14 @@ struct Mesh {
             )
         } ?? []
 
-        self.submeshes = processedSubmeshes
+        submeshes = processedSubmeshes
     }
 
     // Load meshes from a file URL
-    static func loadMeshes( url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, flip: Bool ) -> [Mesh] {
-        
+    static func loadMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, flip: Bool) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
-        
+
         let textureLoader = TextureLoader(device: device)
 
         return asset.childObjects(of: MDLObject.self).flatMap {
@@ -86,8 +84,7 @@ struct Mesh {
     }
 
     // Recursively find and create Mesh objects from ModelIO hierarchy
-    static func makeMeshes( object: MDLObject, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip: Bool ) -> [Mesh] {
-        
+    static func makeMeshes(object: MDLObject, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip: Bool) -> [Mesh] {
         var meshes = [Mesh]()
 
         if let mdlMesh = object as? MDLMesh {
@@ -107,11 +104,11 @@ struct Mesh {
         // Start with infinity bounds to ensure proper min/max comparisons
         var combinedMin = simd_float3(Float.infinity, Float.infinity, Float.infinity)
         var combinedMax = simd_float3(-Float.infinity, -Float.infinity, -Float.infinity)
-        
+
         for mesh in meshes {
             let meshMin = mesh.boundingBox.min
             let meshMax = mesh.boundingBox.max
-            
+
             // Update combined bounds
             combinedMin = simd_float3(
                 min(combinedMin.x, meshMin.x),
@@ -124,7 +121,7 @@ struct Mesh {
                 max(combinedMax.z, meshMax.z)
             )
         }
-        
+
         return (min: combinedMin, max: combinedMax)
     }
 }
@@ -139,16 +136,15 @@ struct SubMesh {
 
     init(modelIOSubmesh: MDLSubmesh, metalKitSubmesh: MTKSubmesh, textureLoader: TextureLoader, name: String) {
         self.metalKitSubmesh = metalKitSubmesh
-        
+
         // Fallback to an empty material if none is provided
         if let mdlMaterial = modelIOSubmesh.material {
-            self.material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: name)
+            material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: name)
         } else {
-            self.material = nil
+            material = nil
         }
     }
 }
-
 
 struct Material {
     var baseColor: MTLTexture?
@@ -193,7 +189,7 @@ struct Material {
         normal = textureLoader.loadTexture(from: mdlMaterial.property(with: .tangentSpaceNormal), isSRGB: false, outputURL: &normalURL, mapType: "Normal map", assetName: name)
         roughness = textureLoader.loadTexture(from: mdlMaterial.property(with: .roughness), isSRGB: false, outputURL: &roughnessURL, mapType: "Roughness map", assetName: name)
         metallic = textureLoader.loadTexture(from: mdlMaterial.property(with: .metallic), isSRGB: false, outputURL: &metallicURL, mapType: "Metallic map", assetName: name)
-                
+
         baseColorValue = mdlMaterial.property(with: .baseColor)?.float4Value ?? baseColorValue
         roughnessValue = mdlMaterial.property(with: .roughness)?.floatValue ?? roughnessValue
         metallicValue = mdlMaterial.property(with: .metallic)?.floatValue ?? metallicValue
@@ -209,37 +205,33 @@ struct Material {
     }
 }
 
-
 struct TextureLoader {
-    
     let device: MTLDevice
 
     func loadTexture(from property: MDLMaterialProperty?, isSRGB: Bool, outputURL: inout URL?, mapType: String, assetName: String) -> MTLTexture? {
-        
         guard let url = property?.urlValue else {
-            let errorMessage: String = "\(mapType) for \(assetName)"
-            handleError(.textureMissing,errorMessage)
+            let errorMessage = "\(mapType) for \(assetName)"
+            handleError(.textureMissing, errorMessage)
             return nil
         }
         outputURL = url
-        
+
         let options: [MTKTextureLoader.Option: Any] = [
             .textureUsage: MTLTextureUsage.shaderRead.rawValue,
             .textureStorageMode: MTLStorageMode.private.rawValue,
             .SRGB: isSRGB,
         ]
         let loader = MTKTextureLoader(device: device)
-        
+
         do {
             let texture = try loader.newTexture(URL: url, options: options)
             return texture
         } catch {
-            let errorMessage: String = "\((property?.urlValue!.absoluteString)!) for \(assetName)"
-            handleError(.textureFailedLoading,errorMessage)
+            let errorMessage = "\((property?.urlValue!.absoluteString)!) for \(assetName)"
+            handleError(.textureFailedLoading, errorMessage)
             return nil
         }
     }
-
 
     func loadDefaultColorTexture(color: simd_float4) -> MTLTexture? {
         // Generate a 1x1 texture with a solid color

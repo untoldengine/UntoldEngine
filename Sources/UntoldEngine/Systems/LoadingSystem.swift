@@ -19,4 +19,3 @@ public func getResourceURL(forResource resourceName: String, withExtension ext: 
     // If not found in Bundle.module, check Bundle.main
     return Bundle.main.url(forResource: resourceName, withExtension: ext)
 }
-

@@ -8,8 +8,8 @@
 import AppKit
 import Cocoa
 import Foundation
-import simd
 import GameController
+import simd
 
 public struct KeyState {
     public var wPressed = false
@@ -28,7 +28,7 @@ public struct KeyState {
     // Add more key states as needed
 }
 
-public struct GamePadState{
+public struct GamePadState {
     public var aPressed = false
     public var bPressed = false
     public var leftThumbStickActive = false
@@ -82,15 +82,14 @@ public class InputSystem {
 
     var pinchDelta: simd_float3 = .init(0.0, 0.0, 0.0)
     var previousScale: CGFloat = 1.0
-    
+
     public var currentGamepad: GCExtendedGamepad?
 
     init() {
         setupGameController()
     }
-    
-    private func setupGameController(){
-        
+
+    private func setupGameController() {
         // Listen for controllers being connected
         NotificationCenter.default.addObserver(
             self,
@@ -112,42 +111,37 @@ public class InputSystem {
             print("Controller discovery completed.")
         }
     }
-    
+
     @objc private func controllerDidConnect(_ notification: Notification) {
-            guard let controller = notification.object as? GCController else { return }
-            print("Controller connected: \(controller.vendorName ?? "Unknown Controller")")
+        guard let controller = notification.object as? GCController else { return }
+        print("Controller connected: \(controller.vendorName ?? "Unknown Controller")")
 
-            if let gamepad = controller.extendedGamepad {
-                currentGamepad = gamepad
-                configureGamepadHandlers(gamepad)
-            }else {
-                print("Connected controller does not support extendedGamepad")
-            }
-        
-        
+        if let gamepad = controller.extendedGamepad {
+            currentGamepad = gamepad
+            configureGamepadHandlers(gamepad)
+        } else {
+            print("Connected controller does not support extendedGamepad")
+        }
+    }
+
+    @objc private func controllerDidDisconnect(_ notification: Notification) {
+        guard let controller = notification.object as? GCController else { return }
+        print("Controller disconnected: \(controller.vendorName ?? "Unknown Controller")")
+
+        if currentGamepad === controller.extendedGamepad {
+            currentGamepad = nil
+        }
+    }
+
+    private func configureGamepadHandlers(_ gamepad: GCExtendedGamepad) {
+        gamepad.leftThumbstick.valueChangedHandler = { _, _, _ in
+            // print("Left thumbstick moved: \(xValue), \(yValue)")
         }
 
-        @objc private func controllerDidDisconnect(_ notification: Notification) {
-            guard let controller = notification.object as? GCController else { return }
-            print("Controller disconnected: \(controller.vendorName ?? "Unknown Controller")")
-
-            if currentGamepad === controller.extendedGamepad {
-                currentGamepad = nil
-            }
+        gamepad.rightThumbstick.valueChangedHandler = { _, _, _ in
+            // print("Right thumbstick moved: \(xValue), \(yValue)")
         }
 
-        private func configureGamepadHandlers(_ gamepad: GCExtendedGamepad) {
-            gamepad.leftThumbstick.valueChangedHandler = { _, xValue, yValue in
-               // print("Left thumbstick moved: \(xValue), \(yValue)")
-                
-            }
-
-            gamepad.rightThumbstick.valueChangedHandler = { _, xValue, yValue in
-                //print("Right thumbstick moved: \(xValue), \(yValue)")
-                
-            }
-            
-            
 //            gamepad.leftTrigger.valueChangedHandler = { _, value in
 //                print("Left trigger pressed: \(value)")
 //
@@ -158,15 +152,14 @@ public class InputSystem {
 //
 //            }
 
-            gamepad.buttonA.pressedChangedHandler = { _, _, isPressed in
-                self.gamePadState.aPressed = isPressed
-            }
-
-            gamepad.buttonB.pressedChangedHandler = { _, _, isPressed in
-                self.gamePadState.bPressed = isPressed
-                
-            }
+        gamepad.buttonA.pressedChangedHandler = { _, _, isPressed in
+            self.gamePadState.aPressed = isPressed
         }
+
+        gamepad.buttonB.pressedChangedHandler = { _, _, isPressed in
+            self.gamePadState.bPressed = isPressed
+        }
+    }
 
     public func setupGestureRecognizers(view: NSView) {
         // Pinch gesture
@@ -175,9 +168,9 @@ public class InputSystem {
 
         // Pan gesture
         let panGesture = NSPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-        
+
         view.addGestureRecognizer(panGesture)
-        
+
         // Click gesture
         let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
         view.addGestureRecognizer(clickGesture)
@@ -355,7 +348,7 @@ public class InputSystem {
         mouseY += mouseDeltaY
 
         panDelta = simd_float2(Float(mouseDeltaX), Float(mouseDeltaY))
-        
+
         if mouseDeltaX != 0.0 || mouseDeltaY != 0.0 {
             // mouse is active
             mouseActive = true
@@ -443,5 +436,4 @@ public class InputSystem {
         // Control key
         keyState.ctrlPressed = event.modifierFlags.contains(.control)
     }
-
 }

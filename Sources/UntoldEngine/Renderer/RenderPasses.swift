@@ -226,47 +226,46 @@ enum RenderPasses {
 
         // Iterate over the entities found by the component query
         for entityId in entities {
-            
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
                 continue
             }
-            
+
             guard let transformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
                 handleError(.noWorldTransformComponent, entityId)
                 continue
             }
-            
-            for mesh in renderComponent.mesh{
+
+            for mesh in renderComponent.mesh {
                 // update uniforms
                 var modelUniforms = Uniforms()
-                
+
                 var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
-                
+
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
-                
+
                 let viewMatrix: simd_float4x4 = camera.viewSpace
-                
+
                 let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
-                
+
                 let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
-                
+
                 let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
-                
+
                 let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
-                
+
                 modelUniforms.modelViewMatrix = modelViewMatrix
-                
+
                 modelUniforms.normalMatrix = normalMatrix
-                
+
                 modelUniforms.viewMatrix = viewMatrix
-                
+
                 modelUniforms.modelMatrix = modelMatrix
-                
+
                 modelUniforms.cameraPosition = camera.localPosition
-                
+
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
-                
+
                 if let modelUniformBuffer = mesh.spaceUniform {
                     modelUniformBuffer.contents().copyMemory(
                         from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
@@ -275,7 +274,7 @@ enum RenderPasses {
                     handleError(.bufferAllocationFailed, "Model Uniform buffer")
                     return
                 }
-                
+
                 renderEncoder.setVertexBuffer(
                     mesh.spaceUniform, offset: 0, index: Int(ShadowBufferIndices.shadowModelUniform.rawValue)
                 )
@@ -295,15 +294,12 @@ enum RenderPasses {
                     )
                 }
             }
-            
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
 
         renderEncoder.popDebugGroup()
         renderEncoder.endEncoding()
- 
- 
     }
 
     static let modelExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -456,47 +452,46 @@ enum RenderPasses {
 
         // Iterate over the entities found by the component query
         for entityId in entities {
-            
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
                 continue
             }
-            
+
             guard let transformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
                 handleError(.noWorldTransformComponent, entityId)
                 continue
             }
-            
-            for mesh in renderComponent.mesh{
+
+            for mesh in renderComponent.mesh {
                 // update uniforms
                 var modelUniforms = Uniforms()
-                
+
                 var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
-                
+
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
-                
+
                 let viewMatrix: simd_float4x4 = camera.viewSpace
-                
+
                 let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
-                
+
                 let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
-                
+
                 let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
-                
+
                 let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
-                
+
                 modelUniforms.modelViewMatrix = modelViewMatrix
-                
+
                 modelUniforms.normalMatrix = normalMatrix
-                
+
                 modelUniforms.viewMatrix = viewMatrix
-                
+
                 modelUniforms.modelMatrix = modelMatrix
-                
+
                 modelUniforms.cameraPosition = camera.localPosition
-                
+
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
-                
+
                 if let modelUniformBuffer = mesh.spaceUniform {
                     modelUniformBuffer.contents().copyMemory(
                         from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
@@ -505,73 +500,70 @@ enum RenderPasses {
                     handleError(.bufferAllocationFailed, "Model Uniform buffer")
                     return
                 }
-                
+
                 renderEncoder.setVertexBuffer(
                     mesh.spaceUniform, offset: 0, index: Int(ModelPassBufferIndices.modelPassUniformIndex.rawValue)
                 )
-                
+
                 renderEncoder.setFragmentBuffer(
                     mesh.spaceUniform, offset: 0, index: Int(ModelPassBufferIndices.modelPassUniformIndex.rawValue)
                 )
-                
+
                 // check if it has skeleton component
                 var hasArmature = false
-                
+
                 if let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) {
-                    
                     hasArmature = true
-                    
                 }
-                
+
                 renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(ModelPassBufferIndices.modelPassHasArmature.rawValue))
-                
-                
+
                 renderEncoder.setVertexBuffer(
                     mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)].buffer,
                     offset: 0, index: Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)
                 )
-                
+
                 renderEncoder.setVertexBuffer(
                     mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)].buffer,
                     offset: 0, index: Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)
                 )
-                
+
                 renderEncoder.setVertexBuffer(
                     mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)].buffer, offset: 0,
                     index: Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)
                 )
-                
+
                 renderEncoder.setVertexBuffer(
                     mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)].buffer,
                     offset: 0, index: Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)
                 )
-                
+
                 renderEncoder.setVertexBuffer(
                     mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)].buffer,
                     offset: 0, index: Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)
                 )
-                
+
                 renderEncoder.setVertexBuffer(
                     mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)].buffer,
                     offset: 0, index: Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)
                 )
-                
+
                 renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(ModelPassBufferIndices.modelPassJointMatrixIndex.rawValue))
-                
+
                 for subMesh in mesh.submeshes {
                     // set base texture
                     renderEncoder.setFragmentTexture(
                         subMesh.material?.baseColor, index: Int(ModelPassBufferIndices.modelBaseTextureIndex.rawValue)
                     )
-                    
+
                     renderEncoder.setFragmentTexture(
                         subMesh.material?.roughness, index: Int(ModelPassBufferIndices.modelRoughnessTextureIndex.rawValue)
                     )
-                    
+
                     renderEncoder.setFragmentTexture(
                         subMesh.material?.metallic, index: Int(ModelPassBufferIndices.modelMetallicTextureIndex.rawValue)
                     )
-                    
+
                     var materialParameters = MaterialParametersUniform()
                     materialParameters.specular = subMesh.material!.specular
                     materialParameters.specularTint = subMesh.material!.specularTint
@@ -587,29 +579,29 @@ enum RenderPasses {
                     materialParameters.ior = subMesh.material!.ior
                     materialParameters.edgeTint = subMesh.material!.edgeTint
                     materialParameters.interactWithLight = subMesh.material!.interactWithLight
-                    
+
                     materialParameters.hasTexture = simd_int4(
                         Int32(subMesh.material!.hasBaseMap == true ? 1 : 0),
                         Int32(subMesh.material!.hasRoughMap == true ? 1 : 0),
                         Int32(subMesh.material!.hasMetalMap == true ? 1 : 0),
                         0
                     )
-                    
+
                     renderEncoder.setFragmentBytes(
                         &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
                         index: Int(ModelPassBufferIndices.modelDisneyParameterIndex.rawValue)
                     )
-                    
+
                     var hasNormal: Bool = ((subMesh.material?.normal) != nil)
                     renderEncoder.setFragmentBytes(
                         &hasNormal, length: MemoryLayout<Bool>.stride,
                         index: Int(ModelPassBufferIndices.modelHasNormalTextureIndex.rawValue)
                     )
-                    
+
                     renderEncoder.setFragmentTexture(
                         subMesh.material?.normal, index: Int(ModelPassBufferIndices.modelNormalTextureIndex.rawValue)
                     )
-                    
+
                     renderEncoder.drawIndexedPrimitives(
                         type: subMesh.metalKitSubmesh.primitiveType,
                         indexCount: subMesh.metalKitSubmesh.indexCount,
@@ -619,9 +611,8 @@ enum RenderPasses {
                     )
                 }
             }
-            
         }
-           
+
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
         renderEncoder.popDebugGroup()
         renderEncoder.endEncoding()

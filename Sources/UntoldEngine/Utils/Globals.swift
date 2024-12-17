@@ -41,7 +41,7 @@ var textureResources = TextureResources()
 var entityMeshMap: [EntityID: [Mesh]] = [:] // Holds all meshes loaded
 
 var entityNameMap: [String: EntityID] = [:]
-var entityDictionary: [EntityID: String] = [:] //links entity Id to names
+var entityDictionary: [EntityID: String] = [:] // links entity Id to names
 
 // Timing properties
 var timeSinceLastUpdatePreviousTime: TimeInterval!

@@ -18,17 +18,15 @@ func createPipeline(
     vertexDescriptor: MTLVertexDescriptor?,
     colorFormats: [MTLPixelFormat],
     depthFormat: MTLPixelFormat,
-    depthCompareFunction: MTLCompareFunction = .lessEqual,
-    depthEnabled: Bool = true,
+    depthCompareFunction _: MTLCompareFunction = .lessEqual,
+    depthEnabled _: Bool = true,
     blendEnabled: Bool = false,
     name: String
 ) -> RenderPipeline? {
-
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     let depthStateDescriptor = MTLDepthStencilDescriptor()
 
     do {
-
         let vertexFunction = renderInfo.library.makeFunction(name: vertexShader)!
         pipelineDescriptor.vertexFunction = vertexFunction
 
@@ -280,7 +278,7 @@ func initRenderPassDescriptors() {
         colorAttachments: [
             (textureResources.colorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
             (textureResources.normalMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.positionMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0))
+            (textureResources.positionMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
         depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
     )
@@ -344,7 +342,6 @@ func initTextureResources() {
 }
 
 func initIBLResources() {
-
     let width = Int(renderInfo.viewPort.x)
     let height = Int(renderInfo.viewPort.y)
 
@@ -399,7 +396,6 @@ func initIBLResources() {
 }
 
 func createShadowVertexDescriptor() -> MTLVertexDescriptor {
-
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -421,7 +417,6 @@ func createShadowVertexDescriptor() -> MTLVertexDescriptor {
 }
 
 func createGridVertexDescriptor() -> MTLVertexDescriptor {
-
     let vertexDescriptor = MTLVertexDescriptor()
 
     // set position
@@ -502,7 +497,6 @@ func createModelVertexDescriptor() -> MTLVertexDescriptor? {
 }
 
 func createGeometryVertexDescriptor() -> MTLVertexDescriptor {
-
     // tell the gpu how data is organized
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -519,7 +513,6 @@ func createGeometryVertexDescriptor() -> MTLVertexDescriptor {
 }
 
 func createCompositeVertexDescriptor() -> MTLVertexDescriptor {
-
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -544,7 +537,6 @@ func createCompositeVertexDescriptor() -> MTLVertexDescriptor {
 }
 
 func createPreCompositeVertexDescriptor() -> MTLVertexDescriptor {
-
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -569,7 +561,6 @@ func createPreCompositeVertexDescriptor() -> MTLVertexDescriptor {
 }
 
 func createDebugVertexDescriptor() -> MTLVertexDescriptor {
-
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -594,7 +585,6 @@ func createDebugVertexDescriptor() -> MTLVertexDescriptor {
 }
 
 func createPostProcessVertexDescriptor() -> MTLVertexDescriptor {
-
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -619,7 +609,6 @@ func createPostProcessVertexDescriptor() -> MTLVertexDescriptor {
 }
 
 func createIBLPreFilterVertexDescriptor() -> MTLVertexDescriptor {
-
     let vertexDescriptor = MTLVertexDescriptor()
 
     vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
@@ -643,7 +632,6 @@ func createIBLPreFilterVertexDescriptor() -> MTLVertexDescriptor {
 }
 
 func createEnvironmentVertexDescriptor() -> MTLVertexDescriptor {
-
     // tell the gpu how data is organized
     let vertexDescriptor = MTLVertexDescriptor()
 
