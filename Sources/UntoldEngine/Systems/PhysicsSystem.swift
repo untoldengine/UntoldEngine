@@ -18,7 +18,7 @@ public func setMass(entityId: EntityID, mass: Float) {
     physics.mass = mass
 }
 
-public func getMass(entityId: EntityID)->Float {
+public func getMass(entityId: EntityID) -> Float {
     // retrieve physics component
     guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
@@ -37,8 +37,7 @@ public func setGravityScale(entityId: EntityID, gravityScale: Float) {
     kinetic.gravityScale = gravityScale
 }
 
-public func getVelocity(entityId: EntityID)->simd_float3 {
-
+public func getVelocity(entityId: EntityID) -> simd_float3 {
     guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
@@ -56,24 +55,24 @@ public func updatePhysicsSystem(deltaTime: Float) {
 private func addGravity(gravity: simd_float3) {
     let kineticId = getComponentId(for: KineticComponent.self)
     let physicsId = getComponentId(for: PhysicsComponents.self)
-    
-    let entities = queryEntitiesWithComponentIds([kineticId,physicsId], in: scene)
+
+    let entities = queryEntitiesWithComponentIds([kineticId, physicsId], in: scene)
 
     for entity in entities {
         guard let kinetic = scene.get(component: KineticComponent.self, for: entity) else {
             handleError(.noKineticComponent, entity)
             continue
         }
-        
+
         if isPhysicsComponentPaused(entityId: entity) {
             continue
         }
-        
+
         guard isValid(gravity) else {
-            handleError(.valueisNaN,"Gravity", entity)
+            handleError(.valueisNaN, "Gravity", entity)
             return
         }
-        
+
         // add gravity
         kinetic.addForce(gravity * kinetic.gravityScale)
     }
@@ -92,7 +91,7 @@ private func accumulateForces(deltaTime _: Float) {
         guard let kinetic = scene.get(component: KineticComponent.self, for: entity) else {
             continue
         }
-        
+
         if isPhysicsComponentPaused(entityId: entity) {
             continue
         }
@@ -116,9 +115,9 @@ public func applyForce(entityId: EntityID, force: simd_float3) {
         handleError(.noKineticComponent, entityId)
         return
     }
-    
+
     guard isValid(force) else {
-        handleError(.valueisNaN,"Force",entityId)
+        handleError(.valueisNaN, "Force", entityId)
         return
     }
 
@@ -130,7 +129,7 @@ public func clearForces(entityId: EntityID) {
         handleError(.noKineticComponent, entityId)
         return
     }
-    
+
     kinetic.clearForces()
 }
 
@@ -140,7 +139,7 @@ public func pausePhysicsComponent(entityId: EntityID, isPaused: Bool) {
         handleError(.noPhysicsComponent, entityId)
         return
     }
-    
+
     physicsComponent.pause = isPaused
 }
 
@@ -150,7 +149,7 @@ public func isPhysicsComponentPaused(entityId: EntityID) -> Bool {
         handleError(.noPhysicsComponent, entityId)
         return false
     }
-    
+
     return physicsComponent.pause
 }
 
@@ -170,7 +169,7 @@ private func eulerIntegration(deltaTime: Float) {
         guard let transform = scene.get(component: LocalTransformComponent.self, for: entity) else {
             continue
         }
-        
+
         if isPhysicsComponentPaused(entityId: entity) {
             continue
         }

@@ -19,7 +19,6 @@ public func registerComponent<T: Component>(entityId: EntityID, componentType: T
 }
 
 public func destroyEntity(entityId: EntityID) {
-
     scene.destroyEntity(entityId)
 }
 
@@ -67,7 +66,6 @@ public func setEntitySkeleton(entityId: EntityID, filename: String, withExtensio
         asset.childObjects(of: MDLSkeleton.self) as? [MDLSkeleton] ?? []
 
     if skeletons.first == nil {
-
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
             handleError(.noRenderComponent, entityId)
             return
