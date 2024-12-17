@@ -67,8 +67,8 @@ public func getForwardAxisVector(entityId: EntityID) -> simd_float3 {
 
     var forward = simd_float3(
         localTransformComponent.space.columns.2.x,
-        localTransformComponent.space.columns.2.z,
-        -localTransformComponent.space.columns.2.y
+        localTransformComponent.space.columns.2.y,
+        localTransformComponent.space.columns.2.z
     )
 
     forward = normalize(forward)
@@ -85,8 +85,8 @@ public func getRightAxisVector(entityId: EntityID) -> simd_float3 {
 
     var right = simd_float3(
         localTransformComponent.space.columns.0.x,
-        localTransformComponent.space.columns.0.z,
-        -localTransformComponent.space.columns.0.y
+        localTransformComponent.space.columns.0.y,
+        localTransformComponent.space.columns.0.z
     )
 
     right = normalize(right)
@@ -103,8 +103,8 @@ public func getUpAxisVector(entityId: EntityID) -> simd_float3 {
 
     var up = simd_float3(
         localTransformComponent.space.columns.1.x,
-        localTransformComponent.space.columns.1.z,
-        -localTransformComponent.space.columns.1.y
+        localTransformComponent.space.columns.1.y,
+        localTransformComponent.space.columns.1.z
     )
 
     up = normalize(up)
