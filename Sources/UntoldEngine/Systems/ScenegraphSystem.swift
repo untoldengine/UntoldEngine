@@ -49,9 +49,16 @@ public func setParent(childId: EntityID, parentId: EntityID) {
         return
     }
     
-    let currentLevel = scenegraphComponent.level
+    guard let parentScenegraphComponent = scene.get(component: ScenegraphComponent.self, for: parentId) else {
+        handleError(.noScenegraphComponent, parentId)
+        return
+    }
+    
+    let currentLevel = parentScenegraphComponent.level
     scenegraphComponent.parent = parentId
     scenegraphComponent.level = currentLevel + 1
+    
+    parentScenegraphComponent.children.append(childId)
     
     // propagate level changes to descendants
     updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
