@@ -155,30 +155,27 @@ public func handleError(_ error: ErrorHandlingSystem) {
 }
 
 public func handleError(_ error: ErrorHandlingSystem, _ entityId: EntityID) {
-    
-    guard let name=getEntityName(entityId: entityId)else{
+    guard let name = getEntityName(entityId: entityId) else {
         Logger.logError(message: "\(error.rawValue): \(error.description) for \(entityId)")
         return
     }
-    handleError(error,name)
-    
+    handleError(error, name)
 }
 
 public func handleError(_ error: ErrorHandlingSystem, _ name: String) {
     Logger.logError(message: "\(error.rawValue): \(error.description) for \(name)")
 }
 
-public func handleError(_ error: ErrorHandlingSystem, _ argument:String,  _ name: String) {
+public func handleError(_ error: ErrorHandlingSystem, _ argument: String, _ name: String) {
     Logger.logError(message: "\(error.rawValue): \(argument) \(error.description) for \(name)")
 }
 
-public func handleError(_ error: ErrorHandlingSystem, _ argument:String,  _ entityId: EntityID) {
-    
-    guard let name=getEntityName(entityId: entityId)else{
+public func handleError(_ error: ErrorHandlingSystem, _ argument: String, _ entityId: EntityID) {
+    guard let name = getEntityName(entityId: entityId) else {
         return
     }
-    handleError(error,argument,name)
-    //Logger.logError(message: "\(error.rawValue): \(error.description) for argument \(argument) for \(entityId)")
+    handleError(error, argument, name)
+    // Logger.logError(message: "\(error.rawValue): \(error.description) for argument \(argument) for \(entityId)")
 }
 
 // warnings

@@ -13,13 +13,11 @@ import simd
 import Spatial
 
 public class UntoldRenderer: NSObject, MTKViewDelegate {
-
     public let metalView: MTKView
     public var gameUpdateCallback: ((_ deltaTime: Float) -> Void)?
     public var handleInputCallback: (() -> Void)?
 
     override public init() {
-
         // Initialize the metal view
         metalView = MTKView()
 
@@ -27,7 +25,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     public static func create() -> UntoldRenderer? {
-
         let renderer = UntoldRenderer()
 
         guard let device = MTLCreateSystemDefaultDevice() else {
@@ -187,7 +184,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     func handleSceneInput() {
-
         if gameMode == true {
             return
         }

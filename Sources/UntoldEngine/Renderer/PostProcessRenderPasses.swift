@@ -82,7 +82,7 @@ func executeIBLPreFilterPass(uCommandBuffer: MTLCommandBuffer, _ envTexture: MTL
         // set your encoder here
         if let renderEncoder = uCommandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) {
             renderEncoder.setRenderPipelineState(iblPrefilterPipeline.pipelineState!)
-            
+
             renderEncoder.pushDebugGroup("IBL Pre-Filter Pass")
             renderEncoder.label = "IBL Pre-Filter Pass"
 

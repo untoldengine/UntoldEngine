@@ -133,7 +133,7 @@ public struct Camera {
         var delU: Float = 0.0 // movement along the right axis (xAxis)
         var delN: Float = 0.0 // movement along the forward axis (zAxis)
         var delV: Float = 0.0 // movement along the up axis (yAxis)
-        
+
         if input.w {
             delN -= speed * deltaTime // Move forward
         }
@@ -149,11 +149,11 @@ public struct Camera {
         if input.d {
             delU += speed * deltaTime // Move right
         }
-        
+
         if input.q {
             delV += speed * deltaTime // Move up
         }
-        
+
         if input.e {
             delV -= speed * deltaTime // Move down
         }
@@ -182,7 +182,7 @@ public struct Camera {
         // Recompute view matrix to update the orientation vectors
         updateViewMatrix()
     }
-    
+
     public func follow(
         entityId: EntityID,
         offset: simd_float3,

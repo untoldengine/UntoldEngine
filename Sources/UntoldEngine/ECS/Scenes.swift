@@ -121,14 +121,12 @@ public struct Scene {
 
         return nil
     }
-    
-    func getAllEntities()->[EntityID]{
-        
+
+    func getAllEntities() -> [EntityID] {
         return entities.compactMap { entityDesc in
             entityDesc.freed ? nil : entityDesc.entityId
         }
     }
-    
 
     // data
     var componentPool: [Int: ComponentPool] = [:]
