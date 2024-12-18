@@ -1,0 +1,15 @@
+name: Lint
+
+on:
+  pull_request:
+    branches:
+      - master
+      - develop
+
+jobs:
+  Lint:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: SwiftFormat
+        run: swiftformat --lint . --reporter github-actions-log
