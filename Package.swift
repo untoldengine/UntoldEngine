@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "UntoldEngine",
     platforms: [
-        .macOS(.v10_15)
+        .macOS(.v10_15),
     ],
     products: [
         // Create a library product for the engine
@@ -17,7 +17,7 @@ let package = Package(
         .executable(
             name: "UntoldEngineTestApp",
             targets: ["UntoldEngineTestApp"]
-        )
+        ),
     ],
     targets: [
         // Define the library target with the engine code
@@ -30,12 +30,12 @@ let package = Package(
             resources: [
                 // Include all Metal files in the Shaders directory
                 .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
-                .process("Shaders"), 
+                .process("Shaders"),
                 .process("Resources/Models"),
-                .process("Resources/HDR")
+                .process("Resources/HDR"),
             ],
             swiftSettings: [
-                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"])
+                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
             ]
         ),
         // Define the executable target for testing, which depends on the library
@@ -43,7 +43,7 @@ let package = Package(
             name: "UntoldEngineTestApp",
             dependencies: ["UntoldEngine"],
             swiftSettings: [
-                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"])
+                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
             ]
         ),
         // Add a test target for unit tests
@@ -51,6 +51,6 @@ let package = Package(
             name: "UntoldEngineTests",
             dependencies: ["UntoldEngine"],
             path: "Tests/UntoldEngineTests"
-        )
+        ),
     ]
 )
