@@ -3,16 +3,15 @@ import UntoldEngine
 
 // GameScene is where you would initialize your game and write the game logic.
 class GameScene {
-    
     let redPlayer: EntityID
-    let bluePlayer : EntityID
+    let bluePlayer: EntityID
     let stadium: EntityID
-    
+
     let path = [
         simd_float3(0.0, 0.0, 0.0),
         simd_float3(5.0, 0.0, 0.0),
         simd_float3(5.0, 0.0, 5.0),
-        simd_float3(0.0, 0.0, 5.0)
+        simd_float3(0.0, 0.0, 5.0),
     ]
 
     init() {
@@ -23,10 +22,10 @@ class GameScene {
         )
 
         // You can load the assets in bulk as shown here.
-        
+
         // create an entity id for the stadium
         stadium = createEntity()
-    
+
         // this function loads the usdc file and sets the mesh model to the entity
         setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
 
@@ -73,13 +72,13 @@ class GameScene {
         lightingSystem.addPointLight(entityID: pointEntity, light: point)
     }
 
-    func update(deltaTime : Float) {
+    func update(deltaTime: Float) {
         // Steer towards the z direction. The entity must have
         // a kinetic component.
-        steerTo(entityId: redPlayer, targetPosition: simd_float3(0.0,0.0,5.0), maxSpeed: 2.0, deltaTime: deltaTime)
-        
+        steerTo(entityId: redPlayer, targetPosition: simd_float3(0.0, 0.0, 5.0), maxSpeed: 2.0, deltaTime: deltaTime)
+
         // rotate character
-        rotateBy(entityId: bluePlayer, angle: 1.0, axis: simd_float3(0.0,1.0,0.0))
+        rotateBy(entityId: bluePlayer, angle: 1.0, axis: simd_float3(0.0, 1.0, 0.0))
     }
 
     func handleInput() {}
@@ -104,7 +103,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         window.title = "Untold Engine v0.2"
         window.center()
-        
 
         // Step 2. Initialize the renderer and connect metal content
         guard let renderer = UntoldRenderer.create() else {
@@ -131,7 +129,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
-        return true
+        true
     }
 }
 
