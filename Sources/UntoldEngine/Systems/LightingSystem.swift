@@ -62,15 +62,15 @@ public struct LightingSystem {
     }
 
     func getDirectionalLight(entityID: EntityID) -> DirectionalLight? {
-        return dirLight[entityID]
+        dirLight[entityID]
     }
 
     func getPointLight(entityID: EntityID) -> PointLight? {
-        return pointLight[entityID]
+        pointLight[entityID]
     }
 
     func getAreaLight(entityID: EntityID) -> AreaLight? {
-        return areaLight[entityID]
+        areaLight[entityID]
     }
 
     mutating func updateDirectionalLight(

@@ -925,7 +925,7 @@ enum RenderPasses {
     }
 
     static func executePostProcess(_ pipeline: RenderPipeline) -> (MTLCommandBuffer) -> Void {
-        return { commandBuffer in
+        { commandBuffer in
 
             if !pipeline.success {
                 handleError(.pipelineStateNulled, "Post Process Pipeline")
@@ -983,7 +983,7 @@ enum RenderPasses {
     }
 
     static func executeTonemapPass(_ pipeline: RenderPipeline) -> (MTLCommandBuffer) -> Void {
-        return { commandBuffer in
+        { commandBuffer in
 
             if !pipeline.success {
                 handleError(.pipelineStateNulled, "Tone-mapping Pipeline")

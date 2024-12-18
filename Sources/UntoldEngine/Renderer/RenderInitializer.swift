@@ -30,7 +30,7 @@ func createPipeline(
         let vertexFunction = renderInfo.library.makeFunction(name: vertexShader)!
         pipelineDescriptor.vertexFunction = vertexFunction
 
-        if let fragmentShader = fragmentShader {
+        if let fragmentShader {
             let fragmentFunction = renderInfo.library.makeFunction(name: fragmentShader)!
             pipelineDescriptor.fragmentFunction = fragmentFunction
         }
@@ -139,18 +139,18 @@ func configureAttachment(
     clearColor: MTLClearColor? = nil,
     clearDepth: Double? = nil
 ) {
-    guard let descriptor = descriptor else { return }
+    guard let descriptor else { return }
     descriptor.texture = texture
     descriptor.loadAction = loadAction
     descriptor.storeAction = storeAction
 
     // Handle clear color for color attachments
-    if let colorDescriptor = descriptor as? MTLRenderPassColorAttachmentDescriptor, let clearColor = clearColor {
+    if let colorDescriptor = descriptor as? MTLRenderPassColorAttachmentDescriptor, let clearColor {
         colorDescriptor.clearColor = clearColor
     }
 
     // Handle clear depth for depth attachments
-    if let depthDescriptor = descriptor as? MTLRenderPassDepthAttachmentDescriptor, let clearDepth = clearDepth {
+    if let depthDescriptor = descriptor as? MTLRenderPassDepthAttachmentDescriptor, let clearDepth {
         depthDescriptor.clearDepth = clearDepth
     }
 }

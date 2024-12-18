@@ -19,7 +19,7 @@ enum LoadHDRError: Error {
     case textureCreationFailed
 }
 
-public func hasComponent<T>(entity: EntityDesc, componentType: T.Type) -> Bool {
+public func hasComponent(entity: EntityDesc, componentType: (some Any).Type) -> Bool {
     let componentId = getComponentId(for: componentType)
 
     return entity.mask.test(componentId)
@@ -49,7 +49,7 @@ public func loadTexture(
 }
 
 public func loadImage(_ textureName: String, from directory: URL? = nil) throws -> URL {
-    if let directory = directory {
+    if let directory {
         let fileURL = directory.appendingPathComponent(textureName)
         if FileManager.default.fileExists(atPath: fileURL.path) {
             return fileURL
@@ -188,7 +188,7 @@ public func basicFollow(_ entityId: EntityID, _ offset: simd_float3, _: Float) {
 }
 
 public func getKeyFromValue(forValue value: EntityID, in dictionary: [String: EntityID]) -> String? {
-    return dictionary.first { $0.value == value }?.key
+    dictionary.first { $0.value == value }?.key
 }
 
 public func hasTextureCoordinates(mesh: MDLMesh) -> Bool {
@@ -322,17 +322,17 @@ func updateBoundingBoxBuffer(min: SIMD3<Float>, max: SIMD3<Float>) {
 }
 
 func isValid(_ vector: SIMD3<Float>) -> Bool {
-    return !vector.x.isNaN && !vector.y.isNaN && !vector.z.isNaN
+    !vector.x.isNaN && !vector.y.isNaN && !vector.z.isNaN
 }
 
 func isValid(_ value: Float) -> Bool {
-    return !value.isNaN
+    !value.isNaN
 }
 
 func getEntityName(entityId: EntityID) -> String? {
-    return entityDictionary[entityId]
+    entityDictionary[entityId]
 }
 
 public func lerp(start: simd_float3, end: simd_float3, t: Float) -> simd_float3 {
-    return start * (1.0 - t) + end * t
+    start * (1.0 - t) + end * t
 }

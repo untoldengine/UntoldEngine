@@ -12,7 +12,7 @@ import Foundation
 var componentIDs = [ObjectIdentifier: Int]()
 
 // Function to get or create a component ID for a specific type
-public func getComponentId<T>(for type: T.Type) -> Int {
+public func getComponentId(for type: (some Any).Type) -> Int {
     let typeId = ObjectIdentifier(type)
     if let id = componentIDs[typeId] {
         return id
@@ -46,14 +46,14 @@ public struct ComponentPool {
     }
 
     public func get(_ index: Int) -> UnsafeMutableRawPointer? {
-        guard let data = data else { return nil }
+        guard let data else { return nil }
         // get component at desired index
         return data.advanced(by: index * elementSize)
     }
 
     // Add a new component to the pool at a specified index
     public mutating func add<T: Component>(component: T, at index: Int) {
-        guard let data = data else { fatalError("Data in ComponentPool is nil.") }
+        guard let data else { fatalError("Data in ComponentPool is nil.") }
         let componentPointer = data.advanced(by: index * elementSize).assumingMemoryBound(to: T.self)
         componentPointer.initialize(to: component)
     }
@@ -70,7 +70,7 @@ public struct ComponentMask {
 
     // Resets the bit at a specific index to false
     public mutating func reset(_ index: Int? = nil) {
-        if let index = index, index < MAX_COMPONENTS {
+        if let index, index < MAX_COMPONENTS {
             bits[index] = false
         } else if index == nil {
             bits = [Bool](repeating: false, count: MAX_COMPONENTS)
@@ -85,6 +85,6 @@ public struct ComponentMask {
 
     // Checks if this ComponentMask contains all the components in the specified `otherMask`.
     func contains(_ otherMask: ComponentMask) -> Bool {
-        return zip(bits, otherMask.bits).allSatisfy { $0 || !$1 }
+        zip(bits, otherMask.bits).allSatisfy { $0 || !$1 }
     }
 }

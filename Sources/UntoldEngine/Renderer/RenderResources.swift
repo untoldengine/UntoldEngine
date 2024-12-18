@@ -107,7 +107,7 @@ public struct AccelStructResources {
     var instanceTransforms: [MTLPackedFloat4x3] = []
     var accelerationStructIndex: [UInt32] = []
     var entityIDIndex: [EntityID] = []
-    var instanceAccelerationStructure: MTLAccelerationStructure? = nil
-    var instanceBuffer: MTLBuffer? = nil
+    var instanceAccelerationStructure: MTLAccelerationStructure?
+    var instanceBuffer: MTLBuffer?
     var mask: [Int32] = []
 }
