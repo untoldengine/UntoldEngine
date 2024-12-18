@@ -125,7 +125,7 @@ public struct Camera {
     }
 
     public func getPosition() -> simd_float3 {
-        return simd_float3(viewSpace.columns.3.x, viewSpace.columns.3.y, viewSpace.columns.3.z)
+        simd_float3(viewSpace.columns.3.x, viewSpace.columns.3.y, viewSpace.columns.3.z)
     }
 
     public mutating func moveCameraWithInput(input: (w: Bool, a: Bool, s: Bool, d: Bool, q: Bool, e: Bool), speed: Float, deltaTime: Float) {

@@ -123,7 +123,7 @@ public struct Scene {
     }
 
     func getAllEntities() -> [EntityID] {
-        return entities.compactMap { entityDesc in
+        entities.compactMap { entityDesc in
             entityDesc.freed ? nil : entityDesc.entityId
         }
     }
@@ -147,5 +147,5 @@ func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Scene) -> 
     return scene.entities.filter { entity in
         // Use bitwise AND to check if the entity has all required components
         entity.mask.contains(requiredMask)
-    }.map { $0.entityId }
+    }.map(\.entityId)
 }

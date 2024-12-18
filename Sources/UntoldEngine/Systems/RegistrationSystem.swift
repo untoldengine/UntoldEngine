@@ -11,10 +11,10 @@ import Foundation
 import MetalKit
 
 public func createEntity() -> EntityID {
-    return scene.newEntity()
+    scene.newEntity()
 }
 
-public func registerComponent<T: Component>(entityId: EntityID, componentType: T.Type) {
+public func registerComponent(entityId: EntityID, componentType: (some Component).Type) {
     _ = scene.assign(to: entityId, component: componentType)
 }
 
@@ -216,5 +216,5 @@ func associateMeshesToEntity(entityId: EntityID, meshes: [Mesh]) {
 }
 
 func getMeshesForEntity(entityId: EntityID) -> [Mesh]? {
-    return entityMeshMap[entityId]
+    entityMeshMap[entityId]
 }

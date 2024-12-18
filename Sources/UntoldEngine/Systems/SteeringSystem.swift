@@ -11,7 +11,7 @@ import simd
 var entityWaypointIndices: [EntityID: Int] = [:]
 
 func getWaypointIndex(for entityId: EntityID) -> Int {
-    return entityWaypointIndices[entityId] ?? 0 // Default to the first waypoint
+    entityWaypointIndices[entityId] ?? 0 // Default to the first waypoint
 }
 
 func setWaypointIndex(for entityId: EntityID, index: Int) {

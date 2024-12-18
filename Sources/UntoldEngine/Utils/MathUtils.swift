@@ -12,11 +12,11 @@ public typealias quaternion = vector_float4
 
 // trig
 public func degreesToRadians(degrees: Float) -> Float {
-    return degrees * .pi / 180.0
+    degrees * .pi / 180.0
 }
 
 public func radiansToDegrees(radians: Float) -> Float {
-    return radians * 180.0 / .pi
+    radians * 180.0 / .pi
 }
 
 public func safeACos(x: inout Double) -> Double {
@@ -39,21 +39,21 @@ public func convertToPositiveAngle(degrees: inout Double) -> Double {
 }
 
 public func areEqualAbs(_ uNumber1: Float, _ uNumber2: Float, uEpsilon: Float) -> Bool {
-    return abs(uNumber1 - uNumber2) <= uEpsilon
+    abs(uNumber1 - uNumber2) <= uEpsilon
 }
 
 public func areEqualRel(_ uNumber1: Float, _ uNumber2: Float, uEpsilon: Float) -> Bool {
-    return abs(uNumber1 - uNumber2) <= uEpsilon * max(abs(uNumber1), abs(uNumber2))
+    abs(uNumber1 - uNumber2) <= uEpsilon * max(abs(uNumber1), abs(uNumber2))
 }
 
 public func areEqual(_ uNumber1: Float, _ uNumber2: Float, uEpsilon: Float) -> Bool {
-    return abs(uNumber1 - uNumber2) <= uEpsilon * max(1.0, max(abs(uNumber1), abs(uNumber2)))
+    abs(uNumber1 - uNumber2) <= uEpsilon * max(1.0, max(abs(uNumber1), abs(uNumber2)))
 }
 
 // Generic matrix math utility functions
 
 public func matrix4x4Identity() -> matrix_float4x4 {
-    return matrix_float4x4(
+    matrix_float4x4(
         columns: (
             vector_float4(1, 0, 0, 0),
             vector_float4(0, 1, 0, 0),
@@ -179,7 +179,7 @@ public func extractEulerAngles(from matrix: matrix_float4x4) -> (pitch: Float, y
 public func matrix4x4Translation(_ translationX: Float, _ translationY: Float, _ translationZ: Float)
     -> matrix_float4x4
 {
-    return matrix_float4x4.init(
+    matrix_float4x4.init(
         columns: (
             vector_float4(1, 0, 0, 0),
             vector_float4(0, 1, 0, 0),
@@ -189,7 +189,7 @@ public func matrix4x4Translation(_ translationX: Float, _ translationY: Float, _
 }
 
 public func matrix4x4Scale(_ scaleX: Float, _ scaleY: Float, _ scaleZ: Float) -> matrix_float4x4 {
-    return matrix_float4x4.init(
+    matrix_float4x4.init(
         columns: (
             vector_float4(scaleX, 0, 0, 0),
             vector_float4(0, scaleY, 0, 0),
@@ -207,7 +207,7 @@ public func matrix3x3_upper_left(_ m: matrix_float4x4) -> matrix_float3x3 {
 }
 
 public func matrix_float4x4_from_double4x4(_ m: simd_double4x4) -> matrix_float4x4 {
-    return matrix_float4x4.init(
+    matrix_float4x4.init(
         columns: (
             simd_make_float4(
                 Float(m.columns.0.x), Float(m.columns.0.y), Float(m.columns.0.z), Float(m.columns.0.w)
@@ -260,7 +260,7 @@ public func matrix_look_at_right_hand(_ eye: simd_float3, _ target: simd_float3,
 public func matrix_ortho_right_hand(
     _ left: Float, _ right: Float, _ bottom: Float, _ top: Float, _ nearZ: Float, farZ: Float
 ) -> simd_float4x4 {
-    return matrix_float4x4.init(
+    matrix_float4x4.init(
         columns: (
             vector_float4(2.0 / (right - left), 0.0, 0.0, 0.0),
             vector_float4(0.0, 2.0 / (top - bottom), 0.0, 0.0),
@@ -273,15 +273,15 @@ public func matrix_ortho_right_hand(
 }
 
 public func quaternion_identity() -> quaternion {
-    return quaternion(0.0, 0.0, 0.0, 1.0)
+    quaternion(0.0, 0.0, 0.0, 1.0)
 }
 
 public func quaternion_normalize(q: quaternion) -> quaternion {
-    return simd_normalize(q)
+    simd_normalize(q)
 }
 
 public func quaternion_conjugate(q: quaternion) -> quaternion {
-    return quaternion(-q.x, -q.y, -q.z, q.w)
+    quaternion(-q.x, -q.y, -q.z, q.w)
 }
 
 public func quaternion_multiply(q0: quaternion, q1: quaternion) -> quaternion {
@@ -509,7 +509,7 @@ public func rayIntersectPlane(
 
 extension simd_float4x4 {
     static var identity: simd_float4x4 {
-        return matrix_identity_float4x4
+        matrix_identity_float4x4
     }
 
     init(translation: float3) {

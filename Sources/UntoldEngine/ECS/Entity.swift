@@ -18,9 +18,9 @@ public func createEntityId(_ index: EntityIndex, _ version: EntityVersion) -> En
 
 public func getEntityIndex(_ index: EntityID) -> EntityIndex {
     // shift down 32 so we get rid of the version and return index
-    return EntityIndex(index >> 32)
+    EntityIndex(index >> 32)
 }
 
 public func getEntityVersion(_ index: EntityID) -> EntityVersion {
-    return EntityVersion(UInt32(index & 0xFFFF_FFFF))
+    EntityVersion(UInt32(index & 0xFFFF_FFFF))
 }

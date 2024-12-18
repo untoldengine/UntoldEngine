@@ -25,7 +25,7 @@ class Skeleton {
     }
 
     static func computeParentIndices(for jointPaths: [String]) -> [Int?] {
-        return jointPaths.enumerated().map { _, jointPath in
+        jointPaths.enumerated().map { _, jointPath in
             let parentPath = URL(fileURLWithPath: jointPath)
                 .deletingLastPathComponent()
                 .relativePath
@@ -35,7 +35,7 @@ class Skeleton {
 
     /// Maps external joint paths to indices in the skeleton's joint paths
     func mapJoints(from jointPaths: [String]) -> [Int] {
-        return jointPaths.compactMap { self.jointPaths.firstIndex(of: $0) }
+        jointPaths.compactMap { self.jointPaths.firstIndex(of: $0) }
     }
 
     /// Updates the skeleton's world pose based on animation data
@@ -146,7 +146,7 @@ struct Skin {
 
     /// Binds the Metal buffer and returns a typed pointer
     private static func bindBuffer(_ buffer: MTLBuffer, jointCount: Int) -> UnsafeMutablePointer<simd_float4x4>? {
-        return buffer.contents().bindMemory(to: simd_float4x4.self, capacity: jointCount)
+        buffer.contents().bindMemory(to: simd_float4x4.self, capacity: jointCount)
     }
 }
 
@@ -162,14 +162,14 @@ struct Animation {
 
     /// Retrieves the interpolated translation value at the specified time
     func getTranslation(at time: Float) -> simd_float3? {
-        return interpolateKeyframes(translations, at: time) { a, b, t in
+        interpolateKeyframes(translations, at: time) { a, b, t in
             a + (b - a) * t
         }
     }
 
     /// Retrieves the interpolated rotation value at the specified time
     func getRotation(at time: Float) -> simd_quatf? {
-        return interpolateKeyframes(rotations, at: time, interpolate: simd_slerp)
+        interpolateKeyframes(rotations, at: time, interpolate: simd_slerp)
     }
 
     // MARK: - Private Helpers
@@ -280,7 +280,7 @@ class AnimationClip {
         jointIndex: Int,
         jointCount: Int
     ) -> [Keyframe<Value>] {
-        return times.enumerated().map { index, time in
+        times.enumerated().map { index, time in
             let startIndex = index * jointCount
             let endIndex = startIndex + jointCount
             let jointValues = Array(values[startIndex ..< endIndex])

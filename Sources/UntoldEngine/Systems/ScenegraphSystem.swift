@@ -85,7 +85,7 @@ public func updateDescendantLevels(childId: EntityID, level: Int) {
 }
 
 func getEntitiesWithLevel(level: Int) -> [EntityID] {
-    return scene.entities.compactMap { entityDesc in
+    scene.entities.compactMap { entityDesc in
         guard
             !entityDesc.freed, // Exclude freed entities
             let hierarchy = scene.get(component: ScenegraphComponent.self, for: entityDesc.entityId),
