@@ -47,7 +47,7 @@ public func getVelocity(entityId: EntityID) -> simd_float3 {
 }
 
 public func updatePhysicsSystem(deltaTime: Float) {
-    addGravity(gravity: simd_float3(0.0, -9.0, 0.0)) // add gravity
+    addGravity(gravity: simd_float3(0.0, -9.8, 0.0)) // add gravity
     accumulateForces(deltaTime: deltaTime) // Apply accumulated forces to acceleration
     eulerIntegration(deltaTime: deltaTime) // Update velocity and position
 }
