@@ -34,7 +34,7 @@
   - [Controls](#controls)
 - [Core API Functions](#Core-API-Functions)
 - [Creating a quick game](#Create-your-first-game-with-the-Untold-Engine)
-- [Deep Dive into the engine](#Deep-dive-into-the-engine)
+- [Core Systems of the Untold Engine](#Core-Systems-of-the-Untold-Engine)
 - [Roadmap](#roadmap)
 - [Support](#support)
 - [Project assistance](#project-assistance)
