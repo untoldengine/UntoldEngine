@@ -201,7 +201,7 @@ class GameScene {
 1. Click Run in Xcode to launch your game.
 2. You should see a scene like this:
 
-![players](images/gamescene1.png)
+![players](../images/gamescene1.png)
 
 3. Press P to enter Game Mode and interact with the scene.
 
