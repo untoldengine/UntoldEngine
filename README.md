@@ -33,7 +33,7 @@
   - [Installation](#installation)
   - [Controls](#controls)
 - [Core API Functions](#Core-API-Functions)
-- [Creating a quick game](#Creating-a-quick-game)
+- [Creating a quick game](#Create-your-first-game-with-the-Untold-Engine)
 - [Deep Dive into the engine](#Deep-dive-into-the-engine)
 - [Roadmap](#roadmap)
 - [Support](#support)
@@ -174,6 +174,8 @@ Assign a parent entity to a child entity
 setParent(childId: myChildEntity, parentId: myParentEntity) 
 ```
 
+---
+
 ### An Example: Creating a Player Character
 
 Here’s how the API comes together to build a fully interactive player character:
@@ -198,6 +200,8 @@ setEntityAnimations(entityId: player, filename: "runningAnimation", withExtensio
 // Step 6: Play an animation
 changeAnimation(entityId: player, name: "walking")
 ```
+
+---
 
 ## Core Systems of the Untold Engine
 
