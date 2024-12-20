@@ -1,6 +1,6 @@
 # Importing USDC files for your game
 
-The Untold Engine supports .usdc files, making it easy to import 3D models and scenes into your game. This tutorial will guide you through the correct export settings in Blender, adding files to your project, and loading them into your game.
+The Untold Engine supports .usdc files, making it easy to import 3D models and scenes into your game. This page will guide you through the correct export settings in Blender, adding files to your project, and loading them into your game.
 
 ---
 
@@ -45,6 +45,3 @@ Exporting models with animations require that you also export its rig/armature. 
 Similarly, to export an animation, make sure Animation is selected.
 
 ![animation](../images/animationexportblender.png)
-
-Next: [Creating a game entity](CreatingAnEntity.md)
-Previous: [Getting Started](GettingStarted.md)

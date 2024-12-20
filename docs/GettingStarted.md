@@ -1,167 +1,71 @@
-# Getting Started
+# Getting Started with Untold Engine
 
-Welcome to the **Untold Engine**! Follow these steps to set up your first macOS game project and get the engine running.
-
----
-
-## Step 1: Create a macOS Game in Xcode
-
-1. Open Xcode and navigate to:  
-   **File → New → Project**.
-
-2. Select **Game** under the macOS platform.
-
-3. Click **Next** and provide a name for your game (e.g., "MyRacingGame").
-
-4. Make sure to set:
-   - **Language**: Swift  
-   - **Game Technology**: Metal  
-
-5. Click **Finish** to create your project.
+Welcome to the Untold Engine! This guide will introduce you to the core systems of the engine and provide links to detailed tutorials for each. If you’re ready to set up your first macOS project, follow the link at the end to the Creating a macOS Game guide.
 
 ---
 
-## Step 2: Remove Default Files
+## Core Systems of the Untold Engine
 
-When Xcode creates your game project, it generates some default files that are not needed for the Untold Engine. Delete the following files:
+The Untold Engine is built on a modular design, allowing you to utilize powerful systems for game development. Here’s an overview of each system:
 
-- `GameViewController.swift`  
-- `Renderer.swift`  
-- `Shaders.metal`  
-- `ShaderTypes.h`
-
-To remove them:
-1. Right-click each file in the **Project Navigator**.
-2. Select **Delete** and confirm.
-
----
-
-## Step 3: Add the Untold Engine as a Package Dependency
-
-To include the Untold Engine in your project:
-
-1. Open your Xcode project (e.g., "MyRacingGame").  
-2. Go to: **File → Add Packages...**  
-3. In the search field, enter the Untold Engine repository URL:  
-   `https://github.com/untoldengine/UntoldEngine.git`  
-4. Xcode will fetch the package. Select the appropriate version or branch (e.g., `main`) and click **Add Package**.  
-5. Choose the target (e.g., your macOS game project) and click **Add Package**.
-
----
-
-## Step 4: Add Boilerplate Code to the AppDelegate
-
-Now that the package is added, you can import the Untold Engine into your Swift files. The boilerplate code below initializes the engine and sets up a basic game scene.
-
-### Update `AppDelegate.swift`
-
-Now, you will need to modify the AppDelegate file. We are going to do the following:
-
-    - Create a window
-    - Initialize the Untold Engine
-    - Create a game scene
-
-Replace the contents of `AppDelegate.swift` with the following:
-
-```swift
-import Cocoa
-import UntoldEngine
-import MetalKit
-
-// The GameScene class is where you will declare and define your game logic.
-class GameScene {
-    init() {
-        // Initialize game assets and logic here
-    }
-
-    func update(deltaTime: Float) {
-        // Game update logic
-    }
-
-    func handleInput() {
-        // Input handling logic
-    }
-}
-
-@main
-class AppDelegate: NSObject, NSApplicationDelegate {
-    var window: NSWindow!
-    var renderer: UntoldRenderer!
-    var gameScene: GameScene!
-
-        func applicationDidFinishLaunching(_: Notification) {
-        print("Launching Untold Engine v0.2")
-
-        // Step 1. Create and configure the window
-        window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1280, height: 720),
-            styleMask: [.titled, .closable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-
-        window.title = "Untold Engine v0.2"
-        window.center()
-        
-
-        // Step 2. Initialize the renderer and connect metal content
-        guard let renderer = UntoldRenderer.create() else {
-            print("Failed to initialize the renderer.")
-            return
-        }
-
-        window.contentView = renderer.metalView
-
-        self.renderer = renderer
-
-        renderer.initResources()
-
-        // Step 3. Create the game scene and connect callbacks
-        gameScene = GameScene()
-        renderer.setupCallbacks(
-            gameUpdate: { [weak self] deltaTime in self?.gameScene.update(deltaTime: deltaTime) },
-            handleInput: { [weak self] in self?.gameScene.handleInput() }
-        )
-
-        window.makeKeyAndOrderFront(nil)
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
-        return true
-    }
-    
-    func applicationWillTerminate(_ aNotification: Notification) {
-        // Cleanup logic here
-    }
-    
-}
-
-```
-    
-## Step 5: Run Your Game
-
-1. Build and run your project in Xcode.
-
-2. If everything was done correctly, you should see a window with a grid once you hit "Run".
-
-![untoldenginegrid](../images/UntoldEngineGrid.png)
+1. Registration System
+    - Handles the creation of entities and components.
+    - Provides helper functions to set up components required by other systems.
+    - Learn more: [Registration System](UsingRegistrationSystem.md)
+2. Rendering System
+    - Displays 3D models and supports Physically Based Rendering (PBR) for realistic visuals.
+    - Works with lighting and shading to bring scenes to life.
+    - Learn more: [Rendering System](UsingRenderingSystem.md)
+3. Transform System
+    - Manages entity positions, rotations, and scales.
+    - Supports local and world transformations for hierarchical relationships.
+    - Learn more: [Transform System](UsingTransformSystem.md)
+4. Physics System
+    - Simulates realistic movement with support for forces and gravity.
+    - Prepares entities for collision detection.
+    - Learn more: [Physics System](UsingPhysicsSystem.md)
+5. Steering System
+    - Provides intelligent movement behaviors, such as seeking, fleeing, and path-following.
+    - Works seamlessly with the Physics System for smooth motion.
+    - Learn more: [Steering System](UsingSteeringSystem.md)
+6. Input System
+    - Captures keyboard and mouse inputs to control entities or trigger actions.
+    - Learn more: [Input System](UsingInputSystem.md)
+7. Animation System
+    - Animates rigged models using skeletal animations and blend trees.
+    - Learn more: [Animation System](UsingAnimationSystem.md)
 
 ---
 
-## Common Issues
+## Next Steps: Setting Up a macOS Project
 
-### ShaderType.h not found
+To start building games with the Untold Engine on macOS, you’ll need to set up a new project in Xcode and integrate the engine.
 
-Xcode may fail stating that it can't find a ShaderType.h file. If that is the case, simply go to your build settings, search for "bridging". Head over to 'Objective-C Bridging Header' and make sure to remove the path as shown in the image below
+### Follow the detailed guide here: [Create a macOS Game in Xcode](creategamemacos.md)
+This guide includes:
 
-![bridgeheader](../images/bridgingheader.png)
+- Creating a new macOS game project in Xcode.
+- Integrating the Untold Engine package.
+- Setting up the boilerplate code for your game.
 
-### Linker issues
+---
 
-Xcode may fail stating linker issues. If that is so, make sure to add the "Untold Engine" framework to **Link Binary With Libraries** under the **Build Phases** section.
+## Frequently Asked Questions (FAQ)
 
-![linkerissue](../images/linkerissue.png)
+What programming language does the engine use?
+The Untold Engine is written in Swift, and you will use Swift for game development.
 
-Next: [Importing USDC Files](Importing-USD-Files.md)
+Is the engine cross-platform?
+Currently, the engine is optimized for macOS but has plans for cross-platform support.
+
+Can I contribute to the engine?
+Yes! Contributions are welcome. Check out the Contribution Guidelines for more details.
+
+---
+## Ready to Start?
+
+Explore the individual system tutorials above or jump straight into creating your first game:
+
+[Create a macOS Game in Xcode](creategamemacos)
+
+Let us know if you encounter any issues—happy game developing!

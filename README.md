@@ -119,6 +119,12 @@ Toggle between Edit Mode and Play Mode with the **P** key to seamlessly explore 
 
 ---
 
+## Create your first game with the Untold Engine
+
+To create a game with the Untold Engine, follow the steps outined here: [Create a MacOS Game](docs/CreateMacOSGame.md)
+
+---
+
 ## Core API Functions
 
 The Untold Engine API is designed to make game development straightforward and efficient. Its key strength lies in its clear and consistent naming conventions, enabling developers to focus on building their game logic without worrying about complex engine details.
@@ -160,6 +166,14 @@ You provide an animation file and name it for easy reference.
 setEntityAnimations(entityId: myEntity, filename: "walkAnimation", withExtension: "usdc", name: "walking")
 ```
 
+5. setParent()
+
+Assign a parent entity to a child entity
+
+```swift
+setParent(childId: myChildEntity, parentId: myParentEntity) 
+```
+
 ### An Example: Creating a Player Character
 
 Here’s how the API comes together to build a fully interactive player character:
@@ -185,237 +199,36 @@ setEntityAnimations(entityId: player, filename: "runningAnimation", withExtensio
 changeAnimation(entityId: player, name: "walking")
 ```
 
-## Creating a quick game
-
-### Step 1 Create a macOS game in Xcode
-
-- Open Xcode: File → New → Project.
-- Select Command Line Tool under macOS.
-- Click Next, name your game, and choose Swift as the language.
-
-![createterminalgame](images/createproject.gif)
-
-### Step 2: Add the Untold Engine as a Package Dependency
-
-- Go to: File → Add Packages...
-
-- Enter the repository URL:
-
-https://github.com/untoldengine/UntoldEngine.git 
-
-- Select the appropriate version or branch (e.g., main) and click Add Package.
-
-![addpackage](images/addPackage.gif)
-
----
-
-### Step 3: Add boiler plate code to the AppDelegate
-
-#### Main Setup
-
-1. Open main.swift and import the required modules:
-
-```swift
-import Cocoa
-import MetalKit
-import UntoldEngine
-```
-
-![importmodules](images/importheader.gif)
-
-2. Modify the appDelegate to perform the following:
-
-    - Create a window
-    - Initialize the Untold Engine
-    - Create a game scene
-    
-This process is shown below. Copy the code below:
-
-```swift
-class AppDelegate: NSObject, NSApplicationDelegate {
-    var window: NSWindow!
-    var renderer: UntoldRenderer!
-    var gameScene: GameScene!
-
-        func applicationDidFinishLaunching(_: Notification) {
-        print("Launching Untold Engine v0.2")
-
-        // Step 1. Create and configure the window
-        window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1280, height: 720),
-            styleMask: [.titled, .closable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-
-        window.title = "Untold Engine v0.2"
-        window.center()
-        
-
-        // Step 2. Initialize the renderer and connect metal content
-        guard let renderer = UntoldRenderer.create() else {
-            print("Failed to initialize the renderer.")
-            return
-        }
-
-        window.contentView = renderer.metalView
-
-        self.renderer = renderer
-
-        renderer.initResources()
-
-        // Step 3. Create the game scene and connect callbacks
-        gameScene = GameScene()
-        renderer.setupCallbacks(
-            gameUpdate: { [weak self] deltaTime in self?.gameScene.update(deltaTime: deltaTime) },
-            handleInput: { [weak self] in self?.gameScene.handleInput() }
-        )
-
-        window.makeKeyAndOrderFront(nil)
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
-    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
-        return true
-    }
-}
-
-// Entry point
-
-let app = NSApplication.shared
-let delegate = AppDelegate()
-app.delegate = delegate
-
-app.run()
-```
-
-![appdelegatecode](images/addappdelegatecode.gif)
-
-#### Add the GameScene Class
-
-Add the GameScene class to main.swift:
-
-```swift
-class GameScene {
-
-    init() {
-        
-    }
-    
-    func update(deltaTime: Float) {
-
-    }
-
-    func handleInput() {
-
-    }
-
-}
-```
-![addgamescene](images/addgamesceneclass.gif)
-
-If everything was done correctly, you should see a window with a grid once you hit "Run".
-
-![untoldenginegrid](/images/launchgame.gif)
-
----
-
-### Adding game entities
-
-Here’s how to load assets, create entities, and link models:
-
-```swift
-
-class GameScene{
-
-    init(){
-
-        // set camera to look at point
-        camera.lookAt(
-            eye: simd_float3(0.0, 7.0, 15.0), target: simd_float3(0.0, 0.0, 0.0),
-            up: simd_float3(0.0, 1.0, 0.0)
-        )
-
-        // create an entity id for the stadium
-        let stadium = createEntity()
-    
-        // this function loads the usdc file and sets the mesh model to the entity
-        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
-    
-        // create an entity id for the blue player
-        let bluePlayer = createEntity()
-
-        // this function loads the usdc file and sets the mesh model to the entity
-        setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
-
-        // translate the entity
-        translateBy(entityId: bluePlayer, position: simd_float3(3.0, 0.0, 0.0))
-
-        // let's create another entity Id
-        let redPlayer = createEntity()
-
-        // load the usdc file and link the model to the entity
-        setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc", flip: false)
-
-        // load and link the animation to the entity. You should give a name to the animation
-        setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
-
-        // set the animation to play. You reference the animaitons by name
-        changeAnimation(entityId: redPlayer, name: "running")
-
-        // enable physics/kinetics on the entity
-        setEntityKinetics(entityId: redPlayer)
-
-    }
-
-}
-
-```
-### Adding a Sunlight Entity
-
-And finally, let's add a Sun light entity.
-
-```swift
-class GameScene{
-
-    init(){
-
-        // ... other initializations ...
-        
-        // Create an entity for the directional light
-        let sunEntity: EntityID = createEntity()
-
-        // Create the directional light instance
-        let sun: DirectionalLight = DirectionalLight()
-
-        // Add the entity and the light to the lighting system
-        lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
-
-    }
-
-}
-```
-
-Click on Run and you should see the following:
-
-![players](images/gamescene1.png)
-
-To enter Game Mode, press **P**.
-
----
-
-## Deep Dive into the engine
-
-The following articles can help you get a deeper understanding on how to use the Untold Engine for your game.
-
-- [Getting Started](docs/GettingStarted.md)
-- [Loading assets](docs/Importing-USD-Files.md)
-- [Creating a game entity](docs/CreatingAnEntity.md)
-- [Adding Light to your game](docs/AddingLighttoyourgame.md)
-- [Detecting User Inputs](docs/DetectingUserInputs.md)
-- [Enabling Physics](docs/physics.md)
-- [Enabling Animation](docs/animation.md)
+## Core Systems of the Untold Engine
+
+The Untold Engine is built on a modular design, allowing you to utilize powerful systems for game development. Here’s an overview of each system:
+
+1. Registration System
+    - Handles the creation of entities and components.
+    - Provides helper functions to set up components required by other systems.
+    - Learn more: [Registration System](UsingRegistrationSystem.md)
+2. Rendering System
+    - Displays 3D models and supports Physically Based Rendering (PBR) for realistic visuals.
+    - Works with lighting and shading to bring scenes to life.
+    - Learn more: [Rendering System](UsingRenderingSystem.md)
+3. Transform System
+    - Manages entity positions, rotations, and scales.
+    - Supports local and world transformations for hierarchical relationships.
+    - Learn more: [Transform System](UsingTransformSystem.md)
+4. Physics System
+    - Simulates realistic movement with support for forces and gravity.
+    - Prepares entities for collision detection.
+    - Learn more: [Physics System](UsingPhysicsSystem.md)
+5. Steering System
+    - Provides intelligent movement behaviors, such as seeking, fleeing, and path-following.
+    - Works seamlessly with the Physics System for smooth motion.
+    - Learn more: [Steering System](UsingSteeringSystem.md)
+6. Input System
+    - Captures keyboard and mouse inputs to control entities or trigger actions.
+    - Learn more: [Input System](UsingInputSystem.md)
+7. Animation System
+    - Animates rigged models using skeletal animations and blend trees.
+    - Learn more: [Animation System](UsingAnimationSystem.md)
 
 ---
 
@@ -449,17 +262,69 @@ Together, we can make Untold Engine **better**!
 
 ---
 
-## Contributing
+## Contributing Guidelines
 
-Since this project has barely been released as an open-source, I am not taking Pull-Request yet. I want to complete the documentation and write more tutorials before allowing Pull-Request.
+I'm excited to have you contribute to the Untold Engine! To maintain consistency and quality, please follow these guidelines when submitting a pull request (PR). Submissions that do not adhere to these guidelines will not be approved.
 
-If you want to help out, I would appreciate if you could report back any bugs you encounter. Make sure to report them at our [Github issues](https://github.com/untoldengine/UntoldEngine/issues), so we all have access to them.
+### Required Contributions for New System Support
 
-Thank you.
+When adding new features or systems to the Untold Engine, your PR must include the following:
 
-Once I feel that the documentation is ready, I will allow Pull-Request.
+1. Unit Tests
+- Requirement: All new systems must include XCTests to validate their functionality.
+- Why: Tests ensure stability and prevent regressions when making future changes.
+- Example: Provide unit tests that cover edge cases, typical use cases, and failure scenarios.
+
+2. How-To Guide
+- Requirement: Every new system must include a how-to guide explaining its usage.
+- Why: This helps users understand how to integrate and utilize the feature effectively.
+- Format: Use the structure outlined below to ensure consistency and clarity.
 
 ---
+
+### How-To Guide Format
+
+Your guide must follow this structure:
+
+1. Introduction
+
+- Briefly explain the feature and its purpose.
+- Describe what problem it solves or what value it adds.
+
+2. Why Use It
+
+- Provide real-world examples or scenarios where the feature is useful.
+- Explain the benefits of using the feature in these contexts.
+
+3. Step-by-Step Implementation
+
+- Break down the setup process into clear, actionable steps.
+- Include well-commented code snippets for each step.
+
+4. What Happens Behind the Scenes
+
+- Provide technical insights into how the system works internally (if relevant).
+- Explain any significant impacts on performance or functionality.
+
+5. Tips and Best Practices
+
+- Share advice for effective usage.
+- Highlight common pitfalls and how to avoid them.
+
+6. Running the Feature
+
+- Explain how to test or interact with the feature after setup.
+
+---
+
+### Additional Notes
+
+- Use concise and user-friendly language.
+- Ensure all code examples are complete, tested, and follow the engine’s coding conventions.
+- PRs must be documented in the /Documentation folder, with guides in markdown format.
+
+---
+Thank you for contributing to the Untold Engine! Following these guidelines will ensure that your work aligns with the project's goals and provides value to users.
 
 ## License
 
