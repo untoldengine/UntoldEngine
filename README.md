@@ -29,9 +29,6 @@
 
 - [About](#about)
 - [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Controls](#controls)
 - [High-Level API Overview](#High-Level-API-Overview)
 - [Core Systems of the Untold Engine](#Core-Systems-of-the-Untold-Engine)
 - [Roadmap](#roadmap)
@@ -169,7 +166,11 @@ See the [Contribution Guidelines](docs/ContributionGuidelines.md) for details.
 
 This project is licensed under the **LGPL v2.1**.
 
-This means that if you develop a game using the Untold Engine, you do not need to open source your game. However, if you create a derivative of the Untold Engine, then you must apply the rules stated in the LGPL v2.1. That is, you must open source the derivative work.
+### What Does This Mean for You?
+- **Developing a Game**: You can use the Untold Engine to build your game without needing to open source your game’s code.
+- **Modifying the Engine**: If you make changes to the engine itself, those changes must be open-sourced under the LGPL v2.1.
+
+For more details, see the full license text [here](https://www.gnu.org/licenses/lgpl-2.1.html).
 
 ---
 
