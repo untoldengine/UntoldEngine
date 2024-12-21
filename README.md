@@ -32,8 +32,7 @@
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
   - [Controls](#controls)
-- [Core API Functions](#Core-API-Functions)
-- [Creating a quick game](#Create-your-first-game-with-the-Untold-Engine)
+- [High-Level API Overview](#High-Level-API-Overview)
 - [Core Systems of the Untold Engine](#Core-Systems-of-the-Untold-Engine)
 - [Roadmap](#roadmap)
 - [Support](#support)
@@ -118,88 +117,77 @@ In **Play Mode**, the scene comes to life! You will experience:
 Toggle between Edit Mode and Play Mode with the **P** key to seamlessly explore or interact with the scene.
 
 ---
+## High-Level API Overview
 
-## Create your first game with the Untold Engine
-
-To create a game with the Untold Engine, follow the steps outined here: [Create a MacOS Game](docs/CreateMacOSGame.md)
-
----
-
-## Core API Functions
-
-The Untold Engine API is designed to make game development straightforward and efficient. Its key strength lies in its clear and consistent naming conventions, enabling developers to focus on building their game logic without worrying about complex engine details.
-
-At its core, the API revolves around the Entity-Component-System (ECS) architecture, where you create entities and enhance them with components like meshes, physics, collisions, and animations. Let's break down the most commonly used API functions.
-
-1. createEntity()
-
-This function generates a new entity.
-Think of it as creating a "placeholder" object in your game world.
+The Untold Engine simplifies game development with a clean and intuitive API. Below is an example of how to use its core systems to create a basic game scene:
 
 ```swift
-let myEntity = createEntity()
+class GameScene {
+
+    init() {
+
+        // Step 1: Configure the Camera
+        camera.lookAt(
+            eye: simd_float3(0.0, 7.0, 15.0), // Camera position
+            target: simd_float3(0.0, 0.0, 0.0), // Look-at target
+            up: simd_float3(0.0, 1.0, 0.0) // Up direction
+        )
+
+        // Step 2: Create a Stadium Entity
+        let stadium = createEntity()
+        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
+
+        // Step 3: Create a Blue Player Entity
+        let bluePlayer = createEntity()
+        setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
+        translateBy(entityId: bluePlayer, position: simd_float3(3.0, 0.0, 0.0)) // Adjust position
+
+        // Step 4: Create a Red Player Entity with Animation
+        let redPlayer = createEntity()
+        setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc", flip: false)
+        setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
+        changeAnimation(entityId: redPlayer, name: "running") // Start animation
+
+        // Step 5: Enable Physics on the Red Player
+        setEntityKinetics(entityId: redPlayer)
+        
+        // Step 6: Create an Entity for the Sun
+        let sunEntity: EntityID = createEntity()
+
+        // Step 7: Create a Directional Light Instance
+        let sun: DirectionalLight = DirectionalLight()
+
+        // Step 8: Add the Light to the Lighting System
+        lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
+    }
+}
 ```
 
-2. setEntityMesh()
+### High-Level Breakdown
 
-Attach a visual representation (a model) to your entity.
-This is where your 3D model comes to life.
+This example demonstrates the following key features of the Untold Engine:
 
-```swift
-setEntityMesh(entityId: myEntity, filename: "myModel", withExtension: "usdc")
-```
+1. Camera Setup:
+    - Use the lookAt method to position and orient the camera, specifying the eye position, the target to look at, and the up direction.
+2. Creating and Managing Entities:
+    - Create entities for objects in your scene, such as a stadium, players, and lights, using the createEntity() function.
+3. Loading and Assigning Meshes:
+    - Load .usdc model files using setEntityMesh() and link them to entities for rendering.
+4. Transformations:
+    - Move entities in the scene using translateBy() to adjust their positions.
+5. Animations:
+    - Assign animations to entities using setEntityAnimations() and control them by name with changeAnimation().
+6. Physics:
+    - Enable physics behaviors like movement and collisions for entities with setEntityKinetics().
+7. Lighting:
+    - Create a directional light (e.g., sunlight) and add it to the lighting system using addDirectionalLight().
+    
+### What You’ll See
+When you run this code:
 
-3. setEntityKinetics()
-
-Enable physics for your entity, allowing it to move, fall, or be affected by forces.
-
-```swift
-setEntityKinetics(entityId: myEntity)
-```
-
-4. setEntityAnimation()
-
-Add animations to your entity.
-You provide an animation file and name it for easy reference.
-
-```swift
-setEntityAnimations(entityId: myEntity, filename: "walkAnimation", withExtension: "usdc", name: "walking")
-```
-
-5. setParent()
-
-Assign a parent entity to a child entity
-
-```swift
-setParent(childId: myChildEntity, parentId: myParentEntity) 
-```
-
----
-
-### An Example: Creating a Player Character
-
-Here’s how the API comes together to build a fully interactive player character:
-
-```swift
-// Step 1: Create the entity
-let player = createEntity()
-
-// Step 2: Attach a mesh to represent the player visually
-setEntityMesh(entityId: player, filename: "playerModel", withExtension: "usdc")
-
-// Step 3: Enable physics for movement and gravity
-setEntityKinetics(entityId: player)
-
-// Step 4: Add collision detection for interacting with the world
-setEntityCollision(entityId: player)
-
-// Step 5: Add animations for walking and running
-setEntityAnimations(entityId: player, filename: "walkingAnimation", withExtension: "usdc", name: "walking")
-setEntityAnimations(entityId: player, filename: "runningAnimation", withExtension: "usdc", name: "running")
-
-// Step 6: Play an animation
-changeAnimation(entityId: player, name: "walking")
-```
+- A camera is set up to view the scene.
+- A stadium and two players (one animated) appear in the game window.
+- Sunlight illuminates the scene, creating realistic lighting effects.
 
 ---
 
@@ -263,6 +251,20 @@ If you want to say **thank you** or/and support active development of Untold Eng
 - Write interesting articles about the project on [Dev.to](https://dev.to/), [Medium](https://medium.com/) or your personal blog.
 
 Together, we can make Untold Engine **better**!
+
+---
+
+## Contributing
+
+We welcome contributions to the Untold Engine! Whether you're fixing a bug, adding a feature, improving documentation, or building tutorials, your help makes the engine better for everyone.
+
+### How to Contribute
+
+1. **Report Issues**: Found a bug or have a feature request? [Create an issue](https://github.com/untoldengine/UntoldEngine/issues).
+2. **Fix Bugs**: Check out our [Issues](https://github.com/untoldengine/UntoldEngine/issues) labeled with `good first issue` or `help wanted`.
+3. **Add Features**: Have an idea for a new feature? Start by opening an issue to discuss it with the community.
+4. **Improve Documentation**: Help improve the documentation to make it more beginner-friendly.
+5. **Write Tutorials**: Share your knowledge by creating how-to guides or example projects.
 
 ---
 
