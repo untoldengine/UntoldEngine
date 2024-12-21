@@ -3,8 +3,8 @@ import UntoldEngine
 
 // GameScene is where you would initialize your game and write the game logic.
 class GameScene {
-    let redPlayer: EntityID
-    let bluePlayer: EntityID
+    let hollandPlayer: EntityID
+    let argentinePlayer: EntityID
     let stadium: EntityID
 
     let path = [
@@ -27,31 +27,31 @@ class GameScene {
         stadium = createEntity()
 
         // this function loads the usdc file and sets the mesh model to the entity
-        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
+        setEntityMesh(entityId: stadium, filename: "soccerStadium", withExtension: "usdc")
 
         // create an entity id for the blue player
-        bluePlayer = createEntity()
+        argentinePlayer = createEntity()
 
         // this function loads the usdc file and sets the mesh model to the entity
-        setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
+        setEntityMesh(entityId: argentinePlayer, filename: "argentinePlayer", withExtension: "usdc")
 
         // translate the entity
-        translateBy(entityId: bluePlayer, position: simd_float3(3.0, 0.0, 0.0))
+        translateBy(entityId: argentinePlayer, position: simd_float3(3.0, 0.0, 0.0))
 
         // let's create another entity Id
-        redPlayer = createEntity()
+        hollandPlayer = createEntity()
 
         // load the usdc file and link the model to the entity
-        setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc", flip: false)
+        setEntityMesh(entityId: hollandPlayer, filename: "hollandPlayer", withExtension: "usdc", flip: false)
 
         // load and link the animation to the entity. You should give a name to the animation
-        setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
+        setEntityAnimations(entityId: hollandPlayer, filename: "running", withExtension: "usdc", name: "running")
 
         // set the animation to play. You reference the animaitons by name
-        changeAnimation(entityId: redPlayer, name: "running")
+        changeAnimation(entityId: hollandPlayer, name: "running")
 
         // enable physics/kinetics on the entity
-        setEntityKinetics(entityId: redPlayer)
+        setEntityKinetics(entityId: hollandPlayer)
 
         // You can also set a directional light. Notice that you need to create an entity first.
         let sunEntity: EntityID = createEntity()
@@ -75,10 +75,10 @@ class GameScene {
     func update(deltaTime: Float) {
         // Steer towards the z direction. The entity must have
         // a kinetic component.
-        steerTo(entityId: redPlayer, targetPosition: simd_float3(0.0, 0.0, 5.0), maxSpeed: 2.0, deltaTime: deltaTime)
+        steerTo(entityId: hollandPlayer, targetPosition: simd_float3(0.0, 0.0, 5.0), maxSpeed: 2.0, deltaTime: deltaTime)
 
         // rotate character
-        rotateBy(entityId: bluePlayer, angle: 1.0, axis: simd_float3(0.0, 1.0, 0.0))
+        rotateBy(entityId: argentinePlayer, angle: 1.0, axis: simd_float3(0.0, 1.0, 0.0))
     }
 
     func handleInput() {}
