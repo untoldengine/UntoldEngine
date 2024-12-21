@@ -123,7 +123,11 @@ Learn more about these systems in the [Core Systems Guide](docs/CoreSystems.md).
 
 ## Visuals
 
-| ![Alt text](images/camera.png) | ![Alt text](images/f1car.png) | ![Alt text](images/walkman.png) |
+Here are some examples of what the Untold Engine can do, showing its progress and current features in action.
+
+![Alt text](images/camera.png)
+![Alt text](images/f1car.png)
+![Alt text](images/city.png)
 
 ---
 
