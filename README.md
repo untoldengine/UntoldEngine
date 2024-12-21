@@ -123,7 +123,7 @@ Learn more about these systems in the [Core Systems Guide](docs/CoreSystems.md).
 
 ## Visuals
 
-| ![Alt text](/docs/camera.png) | ![Alt text](/docs/f1car.png) | ![Alt text](/docs/walkman.png) |
+| ![Alt text](images/camera.png) | ![Alt text](images/f1car.png) | ![Alt text](images/walkman.png) |
 
 ---
 
