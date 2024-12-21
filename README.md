@@ -89,11 +89,10 @@ To begin using the Untold Engine, you’ll need:
 
 ### Running the Untold Engine
 
-Ready to explore the Untold Engine? Start by setting up your environment and running the engine:
-
-    - **Full Setup Guide**: Follow the step-by-step instructions in [Running the Untold Engine](docs/Installation.md).
+Ready to explore the Untold Engine? Follow the step-by-step instructions in [Running the Untold Engine](docs/Installation.md).
 
 ---
+
 ## High-Level API Overview
 
 The Untold Engine offers an intuitive API for game development. Here's a quick look:
