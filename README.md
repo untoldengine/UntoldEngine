@@ -48,7 +48,31 @@
 
 ## About
 
-The Untold Engine is a 3D game engine for macOS/iOS devices, written in Swift and powered by Metal as its graphics library. Its primary goal is to simplify game development by providing an intuitive, easy-to-use API.
+> "A Swift-based 3D game engine designed for simplicity and creativity on macOS and iOS."
+
+The Untold Engine is an open-source 3D game engine under active development, designed for macOS and iOS platforms. Written in Swift and powered by Metal, its goal is to simplify game creation with a clean, intuitive API. While the engine already supports many core systems like rendering, physics, and animation, there’s still much to build and improve.
+
+### Current Features:
+
+- Simple API: Focused on ease of use, even for those new to game development.
+- Core Systems: Includes foundational systems for entity registration, rendering, physics, and more.
+- Metal Integration: Leverages Apple’s graphics API for efficient rendering.
+
+### The Journey Ahead:
+
+The Untold Engine is a work in progress, with ambitious goals to:
+
+- Expand physics capabilities with collision detection.
+- Enhance PBR rendering for more realistic visuals.
+- Add new features to make game development a breeze.
+
+### Why Try the Untold Engine?
+
+- For Learners: A great way to explore game development with an engine that prioritizes simplicity.
+- For Game Developers: An opportunity to contribute to an open-source project and shape its future.
+- For Apple Developers: A Swift and Metal-based engine that feels at home on macOS and iOS.
+
+The engine is far from complete, but with every iteration, it gets closer to being an amazing tool for developers. By trying it out, contributing, or sharing your feedback, you can help make the Untold Engine better for everyone.
 
 Author: [Harold Serrano](http://www.haroldserrano.com)
 
@@ -63,164 +87,39 @@ To begin using the Untold Engine, you’ll need:
 - An Apple computer.
 - The latest version of Xcode, which you can download from the App Store.
 
-### Installation
+### Running the Untold Engine
 
-Follow these steps to set up and run the Untold Engine:
+Ready to explore the Untold Engine? Start by setting up your environment and running the engine:
 
-1. Clone the Repository
-
-```bash
-git clone https://github.com/untoldengine/UntoldEngine
-
-cd UntoldEngine
-```
-
-2. Open the Swift Package
-
-```bash
-open Package.swift
-```
-3. Configure the Scheme in Xcode
-
-- In Xcode, select the "UntoldEngineTestApp" scheme.
-- Set "My Mac" as the target device.
-
-![xcodescheme](images/selectingscheme.gif)
-
-4. Click on Run
-
-You should see models being rendered.
-
-![gamesceneimage](images/gamescene1.png)
-
-### Controls
-
-The Untold Engine provides two distinct modes for interaction: **Edit Mode** and **Play Mode**. You can switch between these modes at any time by pressing the **P** key.
-
-#### **Edit Mode**
-In **Edit Mode**, you can navigate the scene and adjust the environment with ease using the following controls:
-
-- **Orbit**: Click and drag to rotate the view around the scene.
-- **Move**: 
-  - Use the **W**, **A**, **S**, and **D** keys to move forward, backward, left, and right.
-  - Use the **Q** and **E** keys to move vertically (up and down).
-- **Zoom**: Pinch to zoom in or out for a closer or wider view.
-
-
-
-#### **Play Mode**
-In **Play Mode**, the scene comes to life! You will experience:
-
-- Animated characters performing actions.
-- Physics simulations running dynamically.
-
-Toggle between Edit Mode and Play Mode with the **P** key to seamlessly explore or interact with the scene.
+    - **Full Setup Guide**: Follow the step-by-step instructions in [Running the Untold Engine](docs/Installation.md).
 
 ---
 ## High-Level API Overview
 
-The Untold Engine simplifies game development with a clean and intuitive API. Below is an example of how to use its core systems to create a basic game scene:
+The Untold Engine offers an intuitive API for game development. Here's a quick look:
 
 ```swift
-class GameScene {
-
-    init() {
-
-        // Step 1: Configure the Camera
-        camera.lookAt(
-            eye: simd_float3(0.0, 7.0, 15.0), // Camera position
-            target: simd_float3(0.0, 0.0, 0.0), // Look-at target
-            up: simd_float3(0.0, 1.0, 0.0) // Up direction
-        )
-
-        // Step 2: Create a Stadium Entity
-        let stadium = createEntity()
-        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
-
-        // Step 3: Create a Blue Player Entity
-        let bluePlayer = createEntity()
-        setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
-        translateBy(entityId: bluePlayer, position: simd_float3(3.0, 0.0, 0.0)) // Adjust position
-
-        // Step 4: Create a Red Player Entity with Animation
-        let redPlayer = createEntity()
-        setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc", flip: false)
-        setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
-        changeAnimation(entityId: redPlayer, name: "running") // Start animation
-
-        // Step 5: Enable Physics on the Red Player
-        setEntityKinetics(entityId: redPlayer)
-        
-        // Step 6: Create an Entity for the Sun
-        let sunEntity: EntityID = createEntity()
-
-        // Step 7: Create a Directional Light Instance
-        let sun: DirectionalLight = DirectionalLight()
-
-        // Step 8: Add the Light to the Lighting System
-        lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
-    }
-}
+let stadium = createEntity()
+setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
+translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
 ```
 
-### High-Level Breakdown
-
-This example demonstrates the following key features of the Untold Engine:
-
-1. Camera Setup:
-    - Use the lookAt method to position and orient the camera, specifying the eye position, the target to look at, and the up direction.
-2. Creating and Managing Entities:
-    - Create entities for objects in your scene, such as a stadium, players, and lights, using the createEntity() function.
-3. Loading and Assigning Meshes:
-    - Load .usdc model files using setEntityMesh() and link them to entities for rendering.
-4. Transformations:
-    - Move entities in the scene using translateBy() to adjust their positions.
-5. Animations:
-    - Assign animations to entities using setEntityAnimations() and control them by name with changeAnimation().
-6. Physics:
-    - Enable physics behaviors like movement and collisions for entities with setEntityKinetics().
-7. Lighting:
-    - Create a directional light (e.g., sunlight) and add it to the lighting system using addDirectionalLight().
-    
-### What You’ll See
-When you run this code:
-
-- A camera is set up to view the scene.
-- A stadium and two players (one animated) appear in the game window.
-- Sunlight illuminates the scene, creating realistic lighting effects.
+For a complete breakdown of the API, see [API Overview](docs/APIOverview.md).
 
 ---
 
 ## Core Systems of the Untold Engine
 
-The Untold Engine is built on a modular design, allowing you to utilize powerful systems for game development. Here’s an overview of each system:
+The Untold Engine is powered by modular systems that simplify game development:
 
-1. Registration System
-    - Handles the creation of entities and components.
-    - Provides helper functions to set up components required by other systems.
-    - Learn more: [Registration System](/docs/UsingRegistrationSystem.md)
-2. Rendering System
-    - Displays 3D models and supports Physically Based Rendering (PBR) for realistic visuals.
-    - Works with lighting and shading to bring scenes to life.
-    - Learn more: [Rendering System](/docs/UsingRenderingSystem.md)
-3. Transform System
-    - Manages entity positions, rotations, and scales.
-    - Supports local and world transformations for hierarchical relationships.
-    - Learn more: [Transform System](/docs/UsingTransformSystem.md)
-4. Physics System
-    - Simulates realistic movement with support for forces and gravity.
-    - Prepares entities for collision detection.
-    - Learn more: [Physics System](/docs/UsingPhysicsSystem.md)
-5. Steering System
-    - Provides intelligent movement behaviors, such as seeking, fleeing, and path-following.
-    - Works seamlessly with the Physics System for smooth motion.
-    - Learn more: [Steering System](/docs/UsingSteeringSystem.md)
-6. Input System
-    - Captures keyboard and mouse inputs to control entities or trigger actions.
-    - Learn more: [Input System](/docs/UsingInputSystem.md)
-7. Animation System
-    - Animates rigged models using skeletal animations and blend trees.
-    - Learn more: [Animation System](/docs/UsingAnimationSystem.md)
+- **Rendering System**: Render 3D models with support for PBR and custom shaders.
+- **Physics System**: Simulate gravity, forces, and movement.
+- **Animation System**: Add life to your models with skeletal animations.
+- **Input System**: Capture keyboard and mouse interactions.
+- **Steering System**: Implement intelligent behaviors like path-following.
+- **Transform System**: Manage entity positions, rotations, and scales.
+
+Learn more about these systems in the [Core Systems Guide](docs/CoreSystems.md).
 
 ---
 
@@ -256,81 +155,16 @@ Together, we can make Untold Engine **better**!
 
 ## Contributing
 
-We welcome contributions to the Untold Engine! Whether you're fixing a bug, adding a feature, improving documentation, or building tutorials, your help makes the engine better for everyone.
+We welcome contributions to the Untold Engine! Here’s how you can help:
 
-### How to Contribute
+1. **Fix Bugs**: Review open issues labeled [help wanted](https://github.com/untoldengine/UntoldEngine/issues?q=label%3Ahelp+wanted).
+2. **Improve Features**: Enhance existing systems, such as adding collision detection to the physics system.
+3. **Create Tutorials**: Write how-to guides or share examples to help other developers.
+4. **Expand the Engine**: Suggest and implement new features like AI systems or advanced shaders.
 
-1. **Report Issues**: Found a bug or have a feature request? [Create an issue](https://github.com/untoldengine/UntoldEngine/issues).
-2. **Fix Bugs**: Check out our [Issues](https://github.com/untoldengine/UntoldEngine/issues) labeled with `good first issue` or `help wanted`.
-3. **Add Features**: Have an idea for a new feature? Start by opening an issue to discuss it with the community.
-4. **Improve Documentation**: Help improve the documentation to make it more beginner-friendly.
-5. **Write Tutorials**: Share your knowledge by creating how-to guides or example projects.
-
----
-
-## Contributing Guidelines
-
-I'm excited to have you contribute to the Untold Engine! To maintain consistency and quality, please follow these guidelines when submitting a pull request (PR). Submissions that do not adhere to these guidelines will not be approved.
-
-### Required Contributions for New System Support
-
-When adding new features or systems to the Untold Engine, your PR must include the following:
-
-1. Unit Tests
-- Requirement: All new systems must include XCTests to validate their functionality.
-- Why: Tests ensure stability and prevent regressions when making future changes.
-- Example: Provide unit tests that cover edge cases, typical use cases, and failure scenarios.
-
-2. How-To Guide
-- Requirement: Every new system must include a how-to guide explaining its usage.
-- Why: This helps users understand how to integrate and utilize the feature effectively.
-- Format: Use the structure outlined below to ensure consistency and clarity.
+See the [Contribution Guidelines](docs/ContributionGuidelines.md) for details.
 
 ---
-
-### How-To Guide Format
-
-Your guide must follow this structure:
-
-1. Introduction
-
-- Briefly explain the feature and its purpose.
-- Describe what problem it solves or what value it adds.
-
-2. Why Use It
-
-- Provide real-world examples or scenarios where the feature is useful.
-- Explain the benefits of using the feature in these contexts.
-
-3. Step-by-Step Implementation
-
-- Break down the setup process into clear, actionable steps.
-- Include well-commented code snippets for each step.
-
-4. What Happens Behind the Scenes
-
-- Provide technical insights into how the system works internally (if relevant).
-- Explain any significant impacts on performance or functionality.
-
-5. Tips and Best Practices
-
-- Share advice for effective usage.
-- Highlight common pitfalls and how to avoid them.
-
-6. Running the Feature
-
-- Explain how to test or interact with the feature after setup.
-
----
-
-### Additional Notes
-
-- Use concise and user-friendly language.
-- Ensure all code examples are complete, tested, and follow the engine’s coding conventions.
-- PRs must be documented in the /Documentation folder, with guides in markdown format.
-
----
-Thank you for contributing to the Untold Engine! Following these guidelines will ensure that your work aligns with the project's goals and provides value to users.
 
 ## License
 
@@ -339,18 +173,4 @@ This project is licensed under the **LGPL v2.1**.
 This means that if you develop a game using the Untold Engine, you do not need to open source your game. However, if you create a derivative of the Untold Engine, then you must apply the rules stated in the LGPL v2.1. That is, you must open source the derivative work.
 
 ---
-
-## Common Issues
-
-### ShaderType.h not found
-
-Xcode may fail stating that it can't find a ShaderType.h file. If that is the case, simply go to your build settings, search for "bridging". Head over to 'Objective-C Bridging Header' and make sure to remove the path as shown in the image below
-
-![bridgeheader](images/bridgingheader.png)
-
-### Linker issues
-
-Xcode may fail stating linker issues. If that is so, make sure to add the "Untold Engine" framework to **Link Binary With Libraries** under the **Build Phases** section.
-
-![linkerissue](images/linkerissue.png)
 
