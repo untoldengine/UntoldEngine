@@ -11,11 +11,11 @@ import MetalKit
 import ModelIO
 
 public func getResourceURL(forResource resourceName: String, withExtension ext: String) -> URL? {
-    // First, check Bundle.module for the resource
-    if let url = Bundle.module.url(forResource: resourceName, withExtension: ext) {
-        return url
+    // First, check Bundle.main for the resourc
+    if let mainBundleUrl = Bundle.main.url(forResource: resourceName, withExtension: ext) {
+        return mainBundleUrl
     }
 
-    // If not found in Bundle.module, check Bundle.main
-    return Bundle.main.url(forResource: resourceName, withExtension: ext)
+    // else search in bundle module
+    return Bundle.module.url(forResource: resourceName, withExtension: ext)
 }
