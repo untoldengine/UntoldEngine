@@ -140,6 +140,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 ---
 
+### Importing Assets
+
+To import assets such as models, textures, animations, etc, follow the steps in [Importing Asset Files For Your Game](ImportingAssetFiles.md)
+
+---
+
 ### Troubleshooting
 
 ShaderType.h Not Found

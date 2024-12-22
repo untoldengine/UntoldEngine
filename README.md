@@ -86,9 +86,15 @@ To begin using the Untold Engine, you’ll need:
 - An Apple computer.
 - The latest version of Xcode, which you can download from the App Store.
 
-### Running the Untold Engine
+### Running the Untold Engine - (Quick Run)
 
 Ready to explore the Untold Engine? Follow the step-by-step instructions in [Running the Untold Engine](docs/Installation.md).
+
+### Creating a game with the Untold Engine - (Game Developers)
+
+If you want to get your hands dirty and start developing with the Untold Engine, or simply just to get a feel for it, Follow the step-by-step instrunctions in [Create a Mac OS Game](docs/CreateMacOSGame.md)
+
+> Note: For your convinience, I created a game template ready for you to use. See the link above
 
 ---
 
