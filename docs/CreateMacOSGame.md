@@ -1,6 +1,8 @@
 # Create a macOS Game in Xcode
 
-This guide walks you through creating a macOS game project using Xcode and integrating the Untold Engine. By the end, you’ll have a basic setup to start building your game.
+For your convinience, I have created a game template that is ready for you to use. Simply [clone the template](https://github.com/untoldengine/UntoldEngine-Game-Template) and you will be ready to go. 
+
+However, if you want to create the project yourself,  follow the guide below:
 
 ---
 
@@ -135,75 +137,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 2. If everything is set up correctly, you’ll see a window with a grid rendered by the Untold Engine.
 
 ![untoldenginegrid](../images/UntoldEngineGrid.png)
-
----
-
-### Adding Game Entities
-To build a scene in the Untold Engine, you’ll load assets, create entities, and link models using the Registration, Rendering, Animation, and Physics systems. Below is a step-by-step example to set up your game scene.
-
-```swift
-class GameScene {
-
-    init() {
-
-        // Step 1: Configure the Camera
-        camera.lookAt(
-            eye: simd_float3(0.0, 7.0, 15.0), // Camera position
-            target: simd_float3(0.0, 0.0, 0.0), // Look-at target
-            up: simd_float3(0.0, 1.0, 0.0) // Up direction
-        )
-
-        // Step 2: Create a Stadium Entity
-        let stadium = createEntity()
-        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
-
-        // Step 3: Create a Blue Player Entity
-        let bluePlayer = createEntity()
-        setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
-        translateBy(entityId: bluePlayer, position: simd_float3(3.0, 0.0, 0.0)) // Adjust position
-
-        // Step 4: Create a Red Player Entity with Animation
-        let redPlayer = createEntity()
-        setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc", flip: false)
-        setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
-        changeAnimation(entityId: redPlayer, name: "running") // Start animation
-
-        // Step 5: Enable Physics on the Red Player
-        setEntityKinetics(entityId: redPlayer)
-    }
-}
-```
-### Adding a Sunlight Entity
-
-To illuminate your scene, add a Directional Light that acts as sunlight:
-
-```swift
-class GameScene {
-
-    init() {
-
-        // ... other initializations ...
-
-        // Step 1: Create an Entity for the Sun
-        let sunEntity: EntityID = createEntity()
-
-        // Step 2: Create a Directional Light Instance
-        let sun: DirectionalLight = DirectionalLight()
-
-        // Step 3: Add the Light to the Lighting System
-        lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
-    }
-}
-```
----
-
-### Final Steps: Running Your Game
-1. Click Run in Xcode to launch your game.
-2. You should see a scene like this:
-
-![players](../images/gamescene1.png)
-
-3. Press P to enter Game Mode and interact with the scene.
 
 ---
 
