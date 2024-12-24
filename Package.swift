@@ -13,11 +13,6 @@ let package = Package(
             name: "UntoldEngine",
             targets: ["UntoldEngine"]
         ),
-        // Executable for testing
-        .executable(
-            name: "UntoldEngineTestApp",
-            targets: ["UntoldEngineTestApp"]
-        ),
         // Executable for the demo game
         .executable(
             name: "DemoGame",
@@ -43,15 +38,6 @@ let package = Package(
                 .process("Resources/Models"),
                 .process("Resources/HDR"),
             ],
-            swiftSettings: [
-                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
-            ]
-        ),
-        // Executable target for testing
-        .executableTarget(
-            name: "UntoldEngineTestApp",
-            dependencies: ["UntoldEngine"],
-            path: "Sources/UntoldEngineTestApp",
             swiftSettings: [
                 .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
             ]
