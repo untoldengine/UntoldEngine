@@ -3,85 +3,117 @@ import UntoldEngine
 
 // GameScene is where you would initialize your game and write the game logic.
 class GameScene {
+    // Declare entity IDs for the red player and ball
     let hollandPlayer: EntityID
-    let argentinePlayer: EntityID
-    let stadium: EntityID
-
-    let path = [
-        simd_float3(0.0, 0.0, 0.0),
-        simd_float3(5.0, 0.0, 0.0),
-        simd_float3(5.0, 0.0, 5.0),
-        simd_float3(0.0, 0.0, 5.0),
-    ]
+    let ball: EntityID
+    let playerSpeed: Float = 2.0
+    var startMoving: Bool = false // Tracks if the player is moving
 
     init() {
-        // set camera to look at point
+        // Step 1: Configure the Camera
         camera.lookAt(
-            eye: simd_float3(0.0, 7.0, 15.0), target: simd_float3(0.0, 0.0, 0.0),
-            up: simd_float3(0.0, 1.0, 0.0)
+            eye: simd_float3(0.0, 7.0, 15.0), // Camera position
+            target: simd_float3(0.0, 0.0, 0.0), // Look-at target
+            up: simd_float3(0.0, 1.0, 0.0) // Up direction
         )
 
-        // You can load the assets in bulk as shown here.
-
-        // create an entity id for the stadium
-        stadium = createEntity()
-
-        // this function loads the usdc file and sets the mesh model to the entity
+        // Step 2: Create a Stadium Entity
+        let stadium = createEntity()
         setEntityMesh(entityId: stadium, filename: "soccerStadium", withExtension: "usdc")
 
-        // create an entity id for the blue player
-        argentinePlayer = createEntity()
-
-        // this function loads the usdc file and sets the mesh model to the entity
-        setEntityMesh(entityId: argentinePlayer, filename: "argentinePlayer", withExtension: "usdc")
-
-        // translate the entity
-        translateBy(entityId: argentinePlayer, position: simd_float3(3.0, 0.0, 0.0))
-
-        // let's create another entity Id
+        // Step 3: Create a Red Player Entity with Animation
         hollandPlayer = createEntity()
-
-        // load the usdc file and link the model to the entity
         setEntityMesh(entityId: hollandPlayer, filename: "hollandPlayer", withExtension: "usdc", flip: false)
 
-        // load and link the animation to the entity. You should give a name to the animation
-        setEntityAnimations(entityId: hollandPlayer, filename: "running", withExtension: "usdc", name: "running")
+        // Load animations for the red player
+        setEntityAnimations(entityId: hollandPlayer, filename: "hollandRunningAnim", withExtension: "usdc", name: "hollandRunning")
+        setEntityAnimations(entityId: hollandPlayer, filename: "hollandIdleAnim", withExtension: "usdc", name: "hollandIdle")
 
-        // set the animation to play. You reference the animaitons by name
-        changeAnimation(entityId: hollandPlayer, name: "running")
+        // Start with the idle animation
+        changeAnimation(entityId: hollandPlayer, name: "hollandIdle")
 
-        // enable physics/kinetics on the entity
+        // Enable physics for the red player
         setEntityKinetics(entityId: hollandPlayer)
 
-        // You can also set a directional light. Notice that you need to create an entity first.
+        // Step 4: Create a Ball Entity
+        ball = createEntity()
+        setEntityMesh(entityId: ball, filename: "ball", withExtension: "usdc")
+
+        // Position the ball above the ground
+        translateBy(entityId: ball, position: simd_float3(0.0, 0.6, 1.0))
+
+        // Step 5: Assign the Ball as a Child of the Player
+        setParent(childId: ball, parentId: hollandPlayer)
+
+        // Step 6: Create a Sun Entity for Directional Lighting
         let sunEntity: EntityID = createEntity()
 
-        // Then you create a directional light
+        // Create the directional light instance
         let sun = DirectionalLight()
 
-        // and finally, you add the entity and the directional light to the ligthting system.
+        // Add the light to the lighting system
         lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
-
-        // Same logic goes when you want to create an point light.
-        let pointEntity: EntityID = createEntity()
-
-        var point = PointLight()
-
-        point.position = simd_float3(1.0, 1.0, 0.0)
-
-        lightingSystem.addPointLight(entityID: pointEntity, light: point)
     }
 
     func update(deltaTime: Float) {
-        // Steer towards the z direction. The entity must have
-        // a kinetic component.
-        steerTo(entityId: hollandPlayer, targetPosition: simd_float3(0.0, 0.0, 5.0), maxSpeed: 2.0, deltaTime: deltaTime)
+        // Skip logic if not in game mode
+        if gameMode == false {
+            return
+        }
 
-        // rotate character
-        rotateBy(entityId: argentinePlayer, angle: 1.0, axis: simd_float3(0.0, 1.0, 0.0))
+        // Handle idle animation and physics pause
+        if !startMoving {
+            changeAnimation(entityId: hollandPlayer, name: "hollandIdle")
+            pausePhysicsComponent(entityId: hollandPlayer, isPaused: true)
+            return
+        } else {
+            changeAnimation(entityId: hollandPlayer, name: "hollandRunning")
+            pausePhysicsComponent(entityId: hollandPlayer, isPaused: false)
+        }
+
+        // Compute new position based on input
+        var newPosition = getPosition(entityId: hollandPlayer)
+
+        if inputSystem.keyState.wPressed {
+            newPosition.z += 1.0
+        }
+
+        if inputSystem.keyState.sPressed {
+            newPosition.z -= 1.0
+        }
+
+        if inputSystem.keyState.aPressed {
+            newPosition.x -= 1.0
+        }
+
+        if inputSystem.keyState.dPressed {
+            newPosition.x += 1.0
+        }
+
+        // Steer the player to the new position
+        steerTo(entityId: hollandPlayer, targetPosition: newPosition, maxSpeed: playerSpeed, deltaTime: deltaTime, turnSpeed: 5.0)
+
+        // Rotate the ball around its local right axis
+        rotateBy(entityId: ball, angle: 5.0, axis: getRightAxisVector(entityId: ball))
     }
 
-    func handleInput() {}
+    func handleInput() {
+        // Skip logic if not in game mode
+        if gameMode == false {
+            return
+        }
+
+        // Update the startMoving flag based on input
+        if inputSystem.keyState.aPressed == false,
+           inputSystem.keyState.wPressed == false,
+           inputSystem.keyState.sPressed == false,
+           inputSystem.keyState.dPressed == false
+        {
+            startMoving = false
+        } else {
+            startMoving = true
+        }
+    }
 }
 
 // AppDelegate: Boiler plate code -- Handles everything – Renderer, Metal setup, and GameScene initialization
