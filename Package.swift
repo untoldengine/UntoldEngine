@@ -8,27 +8,36 @@ let package = Package(
         .macOS(.v10_15),
     ],
     products: [
-        // Create a library product for the engine
+        // Library product for the engine
         .library(
             name: "UntoldEngine",
             targets: ["UntoldEngine"]
         ),
-        // Create an executable product for testing
+        // Executable for testing
         .executable(
             name: "UntoldEngineTestApp",
             targets: ["UntoldEngineTestApp"]
         ),
+        // Executable for the demo game
+        .executable(
+            name: "DemoGame",
+            targets: ["DemoGame"]
+        ),
+        // Executable for the starter template
+        .executable(
+            name: "StarterGame",
+            targets: ["StarterGame"]
+        ),
     ],
     targets: [
-        // Define the library target with the engine code
+        // Library target with the engine code
         .target(
             name: "UntoldEngine",
             dependencies: [],
             path: "Sources/UntoldEngine",
-            exclude: [
-            ],
+            exclude: [],
             resources: [
-                // Include all Metal files in the Shaders directory
+                // Include all Metal files and other resources
                 .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
                 .process("Shaders"),
                 .process("Resources/Models"),
@@ -38,15 +47,40 @@ let package = Package(
                 .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
             ]
         ),
-        // Define the executable target for testing, which depends on the library
+        // Executable target for testing
         .executableTarget(
             name: "UntoldEngineTestApp",
             dependencies: ["UntoldEngine"],
+            path: "Sources/UntoldEngineTestApp",
             swiftSettings: [
                 .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
             ]
         ),
-        // Add a test target for unit tests
+        // Executable target for the demo game
+        .executableTarget(
+            name: "DemoGame",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/DemoGame",
+            resources: [
+                .process("Resources"), // Resources specific to the demo game
+            ],
+            swiftSettings: [
+                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
+            ]
+        ),
+        // Executable target for the starter template
+        .executableTarget(
+            name: "StarterGame",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/StarterGame",
+            resources: [
+                .process("Resources"), // Resources specific to the starter game
+            ],
+            swiftSettings: [
+                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
+            ]
+        ),
+        // Test target for unit tests
         .testTarget(
             name: "UntoldEngineTests",
             dependencies: ["UntoldEngine"],
