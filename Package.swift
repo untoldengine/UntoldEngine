@@ -36,6 +36,7 @@ let package = Package(
                 .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
                 .process("Shaders"),
                 .process("Resources/Models"),
+                .process("Resources/Animations"),
                 .process("Resources/HDR"),
             ],
             swiftSettings: [
