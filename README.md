@@ -90,11 +90,9 @@ To begin using the Untold Engine, you’ll need:
 
 Ready to explore the Untold Engine? Follow the step-by-step instructions in [Running the Untold Engine](docs/Installation.md).
 
-### Creating a game with the Untold Engine - (Game Developers)
+### Choose your starting path
 
-If you want to get your hands dirty and start developing with the Untold Engine, Follow the step-by-step instrunctions in [Create a Mac OS Game](docs/CreateMacOSGame.md)
-
-> Note: For your convinience, I created a game template ready for you to use. See the link above
+I’ve designed three different ways for you to [Get Started](Onboarding.md) with the Untold Engine. Whether you just want to explore or are ready to make your own game.
 
 ---
 
