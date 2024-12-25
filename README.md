@@ -92,7 +92,7 @@ Ready to explore the Untold Engine? Follow the step-by-step instructions in [Run
 
 ### Choose your starting path
 
-I’ve designed three different ways for you to [Get Started](Onboarding.md) with the Untold Engine. Whether you just want to explore or are ready to make your own game.
+I’ve designed three different ways for you to [Get Started](docs/Onboarding.md) with the Untold Engine. Whether you just want to explore or are ready to make your own game.
 
 ---
 
