@@ -17,10 +17,10 @@ open Package.swift
 ```
 3. Configure the Scheme in Xcode
 
-- In Xcode, select the "UntoldEngineTestApp" scheme.
+- In Xcode, select the "DemoGame" scheme.
 - Set "My Mac" as the target device.
 
-![xcodescheme](../images/selectingscheme.gif)
+![xcodescheme](../images/choosedemogame.gif)
 
 4. Click on Run
 
