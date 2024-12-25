@@ -15,9 +15,9 @@ Want to see what the Untold Engine can do without any setup? The Demo Game is fo
     - Click "p" to toggle between game mode and edit mode
     - Use "WASD" keys to move the player around
 
-Take a look at the GameScene class in main.swift (inside Sources/DemoGame) to see how the game is set up and get a feel for the Untold Engine API
+Take a look at the GameScene class in main.swift (inside Sources/DemoGame) to see how the game is set up and get a feel for the Untold Engine API.
 
-[DemoGame](../images/choosedemogame.gif)
+![DemoGame](../images/choosedemogame.gif)
 
 
 ## Starter Game – Experiment and Learn
@@ -34,7 +34,7 @@ If you want to tinker and get hands-on, the Starter Game is perfect. It’s a ba
     
 Take a look at the GameScene class in main.swift (inside Sources/StarterGame) and start adding your own ideas—models, animations, or gameplay logic. The sky’s the limit!
 
-[StarterGame](../images/choosestartergame.gif)
+![StarterGame](../images/choosestartergame.gif)
 
 ## Xcode Template Game – Build Your Masterpiece
 
