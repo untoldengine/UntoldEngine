@@ -44,7 +44,7 @@ What’s Included:
     - A fully set-up Xcode project that’s ready to roll.
     - Easy integration with your own assets or code.
 
-How to Start: Check out the step-by-step guide in [Create a Mac OS Game](docs/Installation.md), and you’ll be on your way in no time.
+How to Start: Check out the step-by-step guide in [Create a Mac OS Game](CreateMacOSGame.md), and you’ll be on your way in no time.
 
 ---
 
