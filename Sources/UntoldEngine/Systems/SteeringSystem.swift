@@ -18,7 +18,7 @@ func setWaypointIndex(for entityId: EntityID, index: Int) {
     entityWaypointIndices[entityId] = index
 }
 
-func distanceFromPath(for entityId: EntityID, path: [simd_float3]) -> Float? {
+public func distanceFromPath(for entityId: EntityID, path: [simd_float3]) -> Float? {
     if path.isEmpty {
         return nil
     }
