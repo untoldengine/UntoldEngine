@@ -18,29 +18,31 @@ func setWaypointIndex(for entityId: EntityID, index: Int) {
     entityWaypointIndices[entityId] = index
 }
 
-public func distanceFromPath(for entityId: EntityID, path: [simd_float3]) -> Float? {
-    if path.isEmpty {
+public func getDistanceFromPath(for entityId: EntityID, path: [simd_float3]) -> Float? {
+    // Return nil if the path is empty
+    guard !path.isEmpty else {
         return nil
     }
 
-    let currentWaypointIndex = getWaypointIndex(for: entityId)
+    // Ensure the current waypoint index is valid
+    var currentWaypointIndex = max(0, getWaypointIndex(for: entityId) - 1)
     let nextWaypointIndex = (currentWaypointIndex + 1) % path.count
 
-    let waypointVector = path[nextWaypointIndex] - path[currentWaypointIndex]
-    let position = getPosition(entityId: entityId) - path[currentWaypointIndex]
+    // Extract relevant points
+    let entityPosition = getPosition(entityId: entityId)
+    let startPoint = path[currentWaypointIndex]
+    let endPoint = path[nextWaypointIndex]
 
-    // Magnitude squared
-    let waypointMagnitudeSquared = dot(waypointVector, waypointVector)
+    // Compute the direction vector and normalize it
+    let direction = simd_normalize(endPoint - startPoint)
 
-    // Project position vector onto waypoint vector
-    let dotProduct = dot(position, waypointVector)
-    let projectionScale = dotProduct / waypointMagnitudeSquared
+    // Project the entity's position onto the line segment
+    let offset = entityPosition - startPoint
+    let projection = dot(offset, direction)
+    let closestPointOnPath = startPoint + projection * direction
 
-    let projectedVector = simd_float3(waypointVector.x * projectionScale, waypointVector.y * projectionScale, waypointVector.z * projectionScale)
-
-    let perpendicularVector = position - projectedVector
-
-    return length(perpendicularVector)
+    // Compute the distance from the entity's position to the closest point
+    return distance(entityPosition, closestPointOnPath)
 }
 
 // Low-Level Steering Behaviors
