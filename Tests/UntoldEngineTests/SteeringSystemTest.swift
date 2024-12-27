@@ -174,4 +174,77 @@ final class SteeringSystemTests: XCTestCase {
         let newPosition = getPosition(entityId: entityId)
         XCTAssertNotEqual(newPosition, simd_float3(radius, 0, 0)) // Position changes around the orbit
     }
+
+    func testGetDistanceFromPath() {
+        // Mock EntityID and its position
+        let entityId: EntityID = 1
+        let mockPosition = simd_float3(2, 0, 0)
+
+        // Mock path
+        let path: [simd_float3] = [
+            simd_float3(0, 0, 0), // Waypoint 1
+            simd_float3(5, 0, 0), // Waypoint 2
+        ]
+
+        // Mock functions
+        func getWaypointIndex(for _: EntityID) -> Int {
+            return 1 // Simulate that the entity is closest to the first waypoint
+        }
+
+        func getPosition(entityId _: EntityID) -> simd_float3 {
+            return mockPosition
+        }
+
+        // Run the function
+        let distance = getDistanceFromPath(for: entityId, path: path)
+
+        // Expected result: perpendicular distance from (2,0,0) to the line segment (0,0,0) -> (5,0,0) is 0
+        let expectedDistance: Float = 0.0
+
+        // Assert the results
+        XCTAssertNotNil(distance, "Distance should not be nil for a valid path.")
+        XCTAssertEqual(distance, expectedDistance, "Distance should be accurately calculated.")
+    }
+
+    func testEmptyPathReturnsNil() {
+        let entityId: EntityID = 1
+        let path: [simd_float3] = []
+
+        // Run the function
+        let distance = getDistanceFromPath(for: entityId, path: path)
+
+        // Assert the results
+        XCTAssertNil(distance, "Distance should be nil for an empty path.")
+    }
+
+    func testInvalidWaypointIndexHandledGracefully() {
+        // Mock EntityID and its position
+        let entityId: EntityID = 1
+        let mockPosition = simd_float3(2, 0, 0)
+
+        // Mock path
+        let path: [simd_float3] = [
+            simd_float3(0, 0, 0), // Waypoint 1
+            simd_float3(5, 0, 0), // Waypoint 2
+        ]
+
+        // Mock functions
+        func getWaypointIndex(for _: EntityID) -> Int {
+            return -10 // Simulate an invalid negative waypoint index
+        }
+
+        func getPosition(entityId _: EntityID) -> simd_float3 {
+            return mockPosition
+        }
+
+        // Run the function
+        let distance = getDistanceFromPath(for: entityId, path: path)
+
+        // Expected result: Still calculates distance properly from clamped waypoint index
+        let expectedDistance: Float = 0.0
+
+        // Assert the results
+        XCTAssertNotNil(distance, "Distance should not be nil for a valid path.")
+        XCTAssertEqual(distance, expectedDistance, "Distance should be accurately calculated.")
+    }
 }
