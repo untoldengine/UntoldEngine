@@ -188,11 +188,11 @@ final class SteeringSystemTests: XCTestCase {
 
         // Mock functions
         func getWaypointIndex(for _: EntityID) -> Int {
-            return 1 // Simulate that the entity is closest to the first waypoint
+            1 // Simulate that the entity is closest to the first waypoint
         }
 
         func getPosition(entityId _: EntityID) -> simd_float3 {
-            return mockPosition
+            mockPosition
         }
 
         // Run the function
@@ -230,11 +230,11 @@ final class SteeringSystemTests: XCTestCase {
 
         // Mock functions
         func getWaypointIndex(for _: EntityID) -> Int {
-            return -10 // Simulate an invalid negative waypoint index
+            -10 // Simulate an invalid negative waypoint index
         }
 
         func getPosition(entityId _: EntityID) -> simd_float3 {
-            return mockPosition
+            mockPosition
         }
 
         // Run the function
