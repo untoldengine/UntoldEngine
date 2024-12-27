@@ -58,6 +58,7 @@ Your guide must follow this structure:
 - Use concise and user-friendly language.
 - Ensure all code examples are complete, tested, and follow the engine’s coding conventions.
 - PRs must be documented in the /Documentation folder, with guides in markdown format.
+- Make sure your code follows the [formatting guidelines](Formatting.md).
 
 ---
 Thank you for contributing to the Untold Engine! Following these guidelines will ensure that your work aligns with the project's goals and provides value to users.
