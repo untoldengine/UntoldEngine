@@ -261,7 +261,7 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
 ///   - targetPosition: The position to move towards.
 ///   - maxSpeed: The maximum speed of the entity.
 ///   - deltaTime: The elapsed time for the current frame.
-public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
+public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, weight: Float = 1.0) {
     if gameMode == false {
         return
     }
@@ -278,7 +278,7 @@ public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: F
     }
 
     // Use the seek behavior to calculate the steering velocity adjustment
-    let steeringAdjustment = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed)
+    let steeringAdjustment = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed) * weight
 
     // Convert the velocity adjustment into a force for the physics system
     if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
@@ -435,7 +435,7 @@ public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: F
     }
 }
 
-public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, waypointThreshold: Float = 0.5) {
+public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, waypointThreshold: Float = 0.5, weight: Float = 1.0) {
     if gameMode == false {
         return
     }
@@ -469,7 +469,7 @@ public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float,
     }
 
     // Seek toward the current waypoint
-    let seekForce = seek(entityId: entityId, targetPosition: targetWaypoint, maxSpeed: maxSpeed)
+    let seekForce = seek(entityId: entityId, targetPosition: targetWaypoint, maxSpeed: maxSpeed) * weight
 
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
