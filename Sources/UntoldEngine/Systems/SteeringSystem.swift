@@ -18,6 +18,31 @@ func setWaypointIndex(for entityId: EntityID, index: Int) {
     entityWaypointIndices[entityId] = index
 }
 
+func distanceFromPath(for entityId: EntityID, path: [simd_float3]) -> Float? {
+    if path.isEmpty {
+        return nil
+    }
+
+    let currentWaypointIndex = getWaypointIndex(for: entityId)
+    let nextWaypointIndex = (currentWaypointIndex + 1) % path.count
+
+    let waypointVector = path[nextWaypointIndex] - path[currentWaypointIndex]
+    let position = getPosition(entityId: entityId) - path[currentWaypointIndex]
+
+    // Magnitude squared
+    let waypointMagnitudeSquared = dot(waypointVector, waypointVector)
+
+    // Project position vector onto waypoint vector
+    let dotProduct = dot(position, waypointVector)
+    let projectionScale = dotProduct / waypointMagnitudeSquared
+
+    let projectedVector = simd_float3(waypointVector.x * projectionScale, waypointVector.y * projectionScale, waypointVector.z * projectionScale)
+
+    let perpendicularVector = position - projectedVector
+
+    return length(perpendicularVector)
+}
+
 // Low-Level Steering Behaviors
 
 func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float) -> simd_float3 {
