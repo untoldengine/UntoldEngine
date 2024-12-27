@@ -25,7 +25,7 @@ public func getDistanceFromPath(for entityId: EntityID, path: [simd_float3]) -> 
     }
 
     // Ensure the current waypoint index is valid
-    var currentWaypointIndex = max(0, getWaypointIndex(for: entityId) - 1)
+    let currentWaypointIndex = max(0, getWaypointIndex(for: entityId) - 1)
     let nextWaypointIndex = (currentWaypointIndex + 1) % path.count
 
     // Extract relevant points
