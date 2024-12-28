@@ -210,7 +210,7 @@ struct TextureLoader {
 
     func loadTexture(from property: MDLMaterialProperty?, isSRGB: Bool, outputURL: inout URL?, mapType _: String, assetName: String) -> MTLTexture? {
         // Check if the property exists but its URL is nil
-        guard let property = property else {
+        guard let property else {
             // If the property does not exist, silently return nil
             return nil
         }
