@@ -208,12 +208,18 @@ struct Material {
 struct TextureLoader {
     let device: MTLDevice
 
-    func loadTexture(from property: MDLMaterialProperty?, isSRGB: Bool, outputURL: inout URL?, mapType: String, assetName: String) -> MTLTexture? {
-        guard let url = property?.urlValue else {
-            let errorMessage = "\(mapType) for \(assetName)"
-            handleError(.textureMissing, errorMessage)
+    func loadTexture(from property: MDLMaterialProperty?, isSRGB: Bool, outputURL: inout URL?, mapType _: String, assetName: String) -> MTLTexture? {
+        // Check if the property exists but its URL is nil
+        guard let property = property else {
+            // If the property does not exist, silently return nil
             return nil
         }
+
+        guard let url = property.urlValue else {
+            // If the url is nil, it means the usd file does not have a url. silently return nil
+            return nil
+        }
+
         outputURL = url
 
         let options: [MTKTextureLoader.Option: Any] = [
@@ -227,7 +233,7 @@ struct TextureLoader {
             let texture = try loader.newTexture(URL: url, options: options)
             return texture
         } catch {
-            let errorMessage = "\((property?.urlValue!.absoluteString)!) for \(assetName)"
+            let errorMessage = "\((property.urlValue!.absoluteString)) for \(assetName)"
             handleError(.textureFailedLoading, errorMessage)
             return nil
         }
