@@ -48,9 +48,6 @@ let package = Package(
             name: "DemoGame",
             dependencies: ["UntoldEngine"],
             path: "Sources/DemoGame",
-            resources: [
-                .process("Resources"), // Resources specific to the demo game
-            ],
             swiftSettings: [
                 .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
             ]
@@ -60,9 +57,6 @@ let package = Package(
             name: "StarterGame",
             dependencies: ["UntoldEngine"],
             path: "Sources/StarterGame",
-            resources: [
-                .process("Resources"), // Resources specific to the starter game
-            ],
             swiftSettings: [
                 .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
             ]
