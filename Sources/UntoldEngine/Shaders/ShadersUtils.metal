@@ -117,7 +117,8 @@ float artistFriendlyF0(float r, float g,float theta){
     return 0.5*(rs+rp);
 }
 
-//BRDF
+// BRDF - If you are new to BRDF implementation, this article provides a great intro: https://boksajak.github.io/files/CrashCourseBRDF.pdf
+
 float3 fresnelSchlick(float cosTheta,float3 F0){
     return F0+(1.0-F0)*pow(1.0-cosTheta, 5.0);
 }
@@ -145,7 +146,8 @@ float geometricSmith(float NoV, float NoL,float roughness){
     return g1GGXSchlick(NoL,roughness)*g1GGXSchlick(NoV,roughness);
 }
 
-// Cook-Torrance BRDF function
+// Cook-Torrance BRDF function - Implementation explanation can be found here: https://graphicscompendium.com/gamedev/15-pbr
+
 float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap){
 
     float roughness=(materialParam.hasTexture.y==1)?roughnessMap:materialParam.roughness;
@@ -224,7 +226,7 @@ float3 blinnBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, 
 
 }
 
-//IBL
+//IBL: Refer to https://www.youtube.com/watch?v=MkFS6lw6aEs&t=1882s
 
 float2 equirectUVFromCubeDirection(float3 v){
 
