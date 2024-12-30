@@ -44,7 +44,8 @@ float mod(float x, float y);
 
 void transformToLogDepth(thread simd_float4 &position, float far);
 
-//BRDF
+//BRDF - Great intro: https://boksajak.github.io/files/CrashCourseBRDF.pdf 
+
 float3 fresnelSchlick(float cosTheta,float3 F0);
 
 float distributionGGX(float NoH,float roughness);
@@ -53,7 +54,7 @@ float g1GGXSchlick(float NoV, float roughness);
 
 float geometricSmith(float NoV, float NoL,float roughness);
 
-// Cook-Torrance BRDF function
+// Cook-Torrance BRDF function - Refer to https://graphicscompendium.com/gamedev/15-pbr
 float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap);
 
 float3 blinnBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float shininess);
@@ -80,7 +81,8 @@ float artistFriendlyF0(float r, float g,float theta);
 
 float3 artistFriendlF0Vector(float f0);
 
-//IBL
+//IBL - Refer to: https://www.youtube.com/watch?v=MkFS6lw6aEs&t=1882s
+
 float2 directionToSphericalEnvmap(float3 dir);
 
 float3x3 getNormalSpace(float3 normal);
