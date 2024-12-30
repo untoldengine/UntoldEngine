@@ -6,6 +6,7 @@
 //  Created by Harold Serrano on 5/29/23.
 //
 
+import CShaderTypes
 import Foundation
 import MetalKit
 import simd
@@ -400,18 +401,18 @@ func createShadowVertexDescriptor() -> MTLVertexDescriptor {
     let vertexDescriptor = MTLVertexDescriptor()
 
     // set position
-    vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].format =
+    vertexDescriptor.attributes[Int(shadowPassModelPositionIndex.rawValue)].format =
         MTLVertexFormat.float4
-    vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].bufferIndex = Int(
-        ShadowBufferIndices.shadowModelPositionIndex.rawValue)
-    vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].offset = 0
+    vertexDescriptor.attributes[Int(shadowPassModelPositionIndex.rawValue)].bufferIndex = Int(
+        shadowPassModelPositionIndex.rawValue)
+    vertexDescriptor.attributes[Int(shadowPassModelPositionIndex.rawValue)].offset = 0
 
     // stride
-    vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stride =
+    vertexDescriptor.layouts[Int(shadowPassModelPositionIndex.rawValue)].stride =
         MemoryLayout<simd_float4>.stride
-    vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stepFunction =
+    vertexDescriptor.layouts[Int(shadowPassModelPositionIndex.rawValue)].stepFunction =
         MTLVertexStepFunction.perVertex
-    vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stepRate = 1
+    vertexDescriptor.layouts[Int(shadowPassModelPositionIndex.rawValue)].stepRate = 1
 
     return vertexDescriptor
 }
@@ -435,58 +436,58 @@ func createModelVertexDescriptor() -> MTLVertexDescriptor? {
     // tell the gpu how data is organized
     vertexDescriptor.model = MDLVertexDescriptor()
 
-    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)] = MDLVertexAttribute(
+    vertexDescriptor.model.attributes[Int(modelPassVerticesIndex.rawValue)] = MDLVertexAttribute(
         name: MDLVertexAttributePosition,
         format: .float4,
         offset: 0,
-        bufferIndex: Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)
+        bufferIndex: Int(modelPassVerticesIndex.rawValue)
     )
 
-    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)] = MDLVertexAttribute(
+    vertexDescriptor.model.attributes[Int(modelPassNormalIndex.rawValue)] = MDLVertexAttribute(
         name: MDLVertexAttributeNormal,
         format: .float4,
         offset: 0,
-        bufferIndex: Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)
+        bufferIndex: Int(modelPassNormalIndex.rawValue)
     )
 
-    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)] = MDLVertexAttribute(
+    vertexDescriptor.model.attributes[Int(modelPassUVIndex.rawValue)] = MDLVertexAttribute(
         name: MDLVertexAttributeTextureCoordinate,
         format: .float2,
         offset: 0,
-        bufferIndex: Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)
+        bufferIndex: Int(modelPassUVIndex.rawValue)
     )
 
-    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)] = MDLVertexAttribute(
+    vertexDescriptor.model.attributes[Int(modelPassTangentIndex.rawValue)] = MDLVertexAttribute(
         name: MDLVertexAttributeTangent, format: .float4, offset: 0,
-        bufferIndex: Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)
+        bufferIndex: Int(modelPassTangentIndex.rawValue)
     )
 
-    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)] = MDLVertexAttribute(
+    vertexDescriptor.model.attributes[Int(modelPassJointIdIndex.rawValue)] = MDLVertexAttribute(
         name: MDLVertexAttributeJointIndices, format: .uShort4, offset: 0,
-        bufferIndex: Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)
+        bufferIndex: Int(modelPassJointIdIndex.rawValue)
     )
 
-    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)] = MDLVertexAttribute(
+    vertexDescriptor.model.attributes[Int(modelPassJointWeightsIndex.rawValue)] = MDLVertexAttribute(
         name: MDLVertexAttributeJointWeights, format: .float4, offset: 0,
-        bufferIndex: Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)
+        bufferIndex: Int(modelPassJointWeightsIndex.rawValue)
     )
 
-    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)] = MDLVertexBufferLayout(
+    vertexDescriptor.model.layouts[Int(modelPassVerticesIndex.rawValue)] = MDLVertexBufferLayout(
         stride: MemoryLayout<simd_float4>.stride)
 
-    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)] = MDLVertexBufferLayout(
+    vertexDescriptor.model.layouts[Int(modelPassNormalIndex.rawValue)] = MDLVertexBufferLayout(
         stride: MemoryLayout<simd_float4>.stride)
 
-    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)] = MDLVertexBufferLayout(
+    vertexDescriptor.model.layouts[Int(modelPassUVIndex.rawValue)] = MDLVertexBufferLayout(
         stride: MemoryLayout<simd_float2>.stride)
 
-    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)] = MDLVertexBufferLayout(
+    vertexDescriptor.model.layouts[Int(modelPassTangentIndex.rawValue)] = MDLVertexBufferLayout(
         stride: MemoryLayout<simd_float4>.stride)
 
-    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)] = MDLVertexBufferLayout(
+    vertexDescriptor.model.layouts[Int(modelPassJointIdIndex.rawValue)] = MDLVertexBufferLayout(
         stride: MemoryLayout<simd_ushort4>.stride)
 
-    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)] = MDLVertexBufferLayout(
+    vertexDescriptor.model.layouts[Int(modelPassJointWeightsIndex.rawValue)] = MDLVertexBufferLayout(
         stride: MemoryLayout<simd_float4>.stride)
 
     guard let vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor.model) else {
@@ -636,17 +637,17 @@ func createEnvironmentVertexDescriptor() -> MTLVertexDescriptor {
     let vertexDescriptor = MTLVertexDescriptor()
 
     // set position
-    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassPositionIndex.rawValue)].format = MTLVertexFormat.float3
-    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassPositionIndex.rawValue)].offset = 0
+    vertexDescriptor.attributes[Int(envPassPositionIndex.rawValue)].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[Int(envPassPositionIndex.rawValue)].offset = 0
 
-    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].format = MTLVertexFormat.float3
-    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].bufferIndex = 0
-    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].offset =
+    vertexDescriptor.attributes[Int(envPassNormalIndex.rawValue)].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[Int(envPassNormalIndex.rawValue)].bufferIndex = 0
+    vertexDescriptor.attributes[Int(envPassNormalIndex.rawValue)].offset =
         MemoryLayout<simd_float3>.stride
 
-    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].format = MTLVertexFormat.float2
-    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].bufferIndex = 0
-    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].offset =
+    vertexDescriptor.attributes[Int(envPassUVIndex.rawValue)].format = MTLVertexFormat.float2
+    vertexDescriptor.attributes[Int(envPassUVIndex.rawValue)].bufferIndex = 0
+    vertexDescriptor.attributes[Int(envPassUVIndex.rawValue)].offset =
         2 * MemoryLayout<simd_float3>.stride
 
     vertexDescriptor.layouts[0].stride =

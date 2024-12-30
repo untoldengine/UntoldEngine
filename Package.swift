@@ -27,14 +27,21 @@ let package = Package(
     targets: [
         // Library target with the engine code
         .target(
+            name: "CShaderTypes",
+            path: "Sources/CShaderTypes",
+            publicHeadersPath: ".",
+            cSettings: [
+                .headerSearchPath("."),
+            ]
+        ),
+        .target(
             name: "UntoldEngine",
-            dependencies: [],
+            dependencies: ["CShaderTypes"],
             path: "Sources/UntoldEngine",
-            exclude: [],
+            exclude: ["Shaders"],
             resources: [
                 // Include all Metal files and other resources
                 .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
-                .process("Shaders"),
                 .process("Resources/Models"),
                 .process("Resources/Animations"),
                 .process("Resources/HDR"),

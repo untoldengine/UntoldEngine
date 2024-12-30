@@ -1,4 +1,5 @@
 
+import CShaderTypes
 import Foundation
 import MetalKit
 import simd
