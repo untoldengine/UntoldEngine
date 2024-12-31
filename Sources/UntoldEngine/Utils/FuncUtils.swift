@@ -294,6 +294,60 @@ func generateHDR(_ hdrName: String, from directory: URL? = nil) {
     }
 }
 
+public func textureToCGImage(texture: MTLTexture) -> CGImage? {
+    let width = texture.width
+    let height = texture.height
+    let bytesPerPixel = 8 // 16-bit float per channel (4  channels: RGBA)
+    let alignment = 256
+    let unalignedBytesPerRow = width * bytesPerPixel
+    let bytesPerRow = ((unalignedBytesPerRow + alignment - 1) / alignment) * alignment // align to 256 bytes
+    let dataSize = bytesPerRow * height
+
+    // Allocate memory to store pixel data
+    let rawData = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 1)
+    defer { rawData.deallocate() }
+
+    // Copy texture data into the buffer
+    let region = MTLRegionMake2D(0, 0, width, height)
+    texture.getBytes(rawData, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
+
+    // Create a CGImage from the raw pixel data
+    let colorSpace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
+    let bitmapInfo: CGBitmapInfo = [
+        .floatComponents,
+        CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+        CGBitmapInfo(rawValue: CGImageByteOrderInfo.order16Little.rawValue),
+    ]
+
+    guard let context = CGContext(
+        data: rawData,
+        width: width,
+        height: height,
+        bitsPerComponent: 16, // 16 bits per channel
+        bytesPerRow: unalignedBytesPerRow, // Use unaligned row size
+        space: colorSpace,
+        bitmapInfo: bitmapInfo.rawValue
+    ) else { return nil }
+
+    return context.makeImage()
+}
+
+public func saveCGImageToDisk(_ image: CGImage, fileName: String, directory: URL = FileManager.default.temporaryDirectory) {
+    let url = directory.appendingPathComponent(fileName).appendingPathExtension("png")
+    guard let destination = CGImageDestinationCreateWithURL(url as CFURL, kUTTypePNG, 1, nil) else {
+        print("Failed to create image destination")
+        return
+    }
+
+    CGImageDestinationAddImage(destination, image, nil)
+
+    if CGImageDestinationFinalize(destination) {
+        print("Saved image to \(url.path)")
+    } else {
+        print("Failed to save image")
+    }
+}
+
 func updateBoundingBoxBuffer(min: SIMD3<Float>, max: SIMD3<Float>) {
     let vertices: [SIMD4<Float>] = [
         // Bottom face

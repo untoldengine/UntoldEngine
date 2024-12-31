@@ -53,6 +53,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case textureFailedLoading = 1044
     case noWorldTransformComponent = 1045
     case noScenegraphComponent = 1046
+    case failedToConvertImageToTexture = 1047
 
     public var description: String {
         switch self {
@@ -146,6 +147,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Does not have a World Transform component"
         case .noScenegraphComponent:
             return "Does not have a scenegraph component"
+        case .failedToConvertImageToTexture:
+            return "Unable to convert image to texture"
         }
     }
 }
