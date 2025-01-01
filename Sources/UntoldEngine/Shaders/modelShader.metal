@@ -186,8 +186,10 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     // Base color
     float4 inBaseColor = (materialParameter.hasTexture.x == 1) ? baseColor.sample(s, st) : materialParameter.baseColor;
-    inBaseColor.rgb = max(inBaseColor.rgb, float3(0.01)); // Avoid black base color
-
+    
+    // Avoid black base color
+    inBaseColor = (computeLuma(inBaseColor.rgb)<=0.01)?float4(float3(0.1),1.0):inBaseColor;
+    
     //normal map is in Tangent space
     float3 normalMap=normalize(normalTexture.sample(normalSampler, st).rgb);
     //[0,1] to [-1,1]
