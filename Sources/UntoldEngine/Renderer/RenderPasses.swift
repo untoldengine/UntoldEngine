@@ -825,6 +825,25 @@ enum RenderPasses {
         let windowWidth: Float = renderInfo.viewPort.x
         let windowHeight: Float = renderInfo.viewPort.y
 
+        var textureArray: [MTLTexture] = []
+        if currentDebugSelection == DebugSelection.normalOutput {
+            if let colorTexture = renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture {
+                textureArray.append(colorTexture)
+            }
+            if let normalTexture = renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture {
+                textureArray.append(normalTexture)
+            }
+            if let positionTexture = renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture {
+                textureArray.append(positionTexture)
+            }
+
+        } else if currentDebugSelection == DebugSelection.iblOutput {
+            textureArray.append(textureResources.environmentTexture!)
+            textureArray.append(textureResources.irradianceMap!)
+            textureArray.append(textureResources.specularMap!)
+            textureArray.append(textureResources.iblBRDFMap!)
+        }
+
         // Define viewports
         var viewPortsArray: [MTLViewport] = [
             MTLViewport(
@@ -866,34 +885,35 @@ enum RenderPasses {
         renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
+        renderEncoder.setFragmentBytes(&currentDebugSelection, length: MemoryLayout<Int>.stride, index: 2)
+
         for i in 0 ..< 4 {
             var currentViewport: Int = i
 
             renderEncoder.setVertexBytes(&currentViewport, length: MemoryLayout<Int>.stride, index: 5)
 
-            if i == 0 {
-                renderEncoder.setFragmentTexture(
-                    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-                        .texture, index: 0
-                )
-            } else if i == 1 {
-                renderEncoder.setFragmentTexture(
-                    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-                        .texture, index: 0
-                )
-            } else if i == 2 {
-                renderEncoder.setFragmentTexture(
-                    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-                        .texture, index: 0
-                )
-            } else if i == 3 {
-                renderEncoder.setFragmentTexture(
-                    renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture, index: 1
-                )
+            switch i {
+            case 0:
+                renderEncoder.setFragmentTexture(textureArray[0], index: 0)
+            case 1:
+                renderEncoder.setFragmentTexture(textureArray[1], index: 0)
+            case 2:
+                renderEncoder.setFragmentTexture(textureArray[2], index: 0)
+            case 3:
+
+                if currentDebugSelection == .iblOutput {
+                    renderEncoder.setFragmentTexture(textureArray[3], index: 0)
+
+                } else if currentDebugSelection == .normalOutput {
+                    renderEncoder.setFragmentTexture(
+                        renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture, index: 1
+                    )
+                }
+            default:
+                break
             }
 
             // set the draw command
-
             renderEncoder.drawIndexedPrimitives(
                 type: .triangle,
                 indexCount: 6,
