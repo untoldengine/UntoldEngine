@@ -23,14 +23,14 @@ vertex VertexDebugOutput vertexDebugShader(VertexCompositeIn in [[stage_in]],
 
 fragment float4 fragmentDebugShader(VertexDebugOutput vertexOut [[stage_in]],
                                     texture2d<float> finalTexture[[texture(0)]],
-                                    depth2d<float> depthTexture [[texture(1)]]){
+                                    depth2d<float> depthTexture [[texture(1)]],
+                                    constant int &debugSelection [[buffer(2)]]){
 
     constexpr sampler s(min_filter::linear,mag_filter::linear);
     ushort2 texelCoordinates=ushort2(vertexOut.uvCoords.x*depthTexture.get_width(),vertexOut.uvCoords.y*depthTexture.get_height());
 
 
-    if(vertexOut.viewport==3){
-    //return depthTexture.sample(s,vertexOut.uvCoords);
+    if(vertexOut.viewport==3 && debugSelection == 0){
         return depthTexture.read(texelCoordinates);
     }
 

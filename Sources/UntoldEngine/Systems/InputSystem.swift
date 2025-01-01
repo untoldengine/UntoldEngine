@@ -62,6 +62,9 @@ public class InputSystem {
     let kVK_ANSI_Q: UInt16 = 12
     let kVK_ANSI_E: UInt16 = 14
 
+    let kVK_ANSI_1: UInt16 = 18
+    let kVK_ANSI_2: UInt16 = 19
+
     public var keyState = KeyState()
     public var gamePadState = GamePadState()
 
@@ -396,6 +399,10 @@ public class InputSystem {
             keyState.qPressed = true
         case kVK_ANSI_E:
             keyState.ePressed = true
+        case kVK_ANSI_1:
+            break
+        case kVK_ANSI_2:
+            break
         default:
             break
         }
@@ -417,13 +424,16 @@ public class InputSystem {
             keyState.ePressed = false
         case kVK_ANSI_P:
             gameMode = !gameMode
-        // visualDebug = !visualDebug
         case kVK_ANSI_R:
             break
         // hotReload = !hotReload
         case kVK_ANSI_L:
-            break
-        // gameMode = !gameMode
+            visualDebug = !visualDebug
+            currentDebugSelection = DebugSelection.normalOutput
+        case kVK_ANSI_1:
+            currentDebugSelection = DebugSelection.normalOutput
+        case kVK_ANSI_2:
+            currentDebugSelection = DebugSelection.iblOutput
         default:
             break
         }
