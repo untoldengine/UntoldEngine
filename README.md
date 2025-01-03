@@ -120,6 +120,7 @@ The Untold Engine is powered by modular systems that simplify game development:
 - **Input System**: Capture keyboard and mouse interactions.
 - **Steering System**: Implement intelligent behaviors like path-following.
 - **Transform System**: Manage entity positions, rotations, and scales.
+- **Shaders**: Add or modify shaders to fit your game's stye.
 
 Learn more about these systems in the [Core Systems Guide](docs/CoreSystems.md).
 

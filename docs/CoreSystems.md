@@ -28,3 +28,6 @@ The Untold Engine is built on a modular design, allowing you to utilize powerful
 7. Animation System
     - Animates rigged models using skeletal animations and blend trees.
     - Learn more: [Animation System](../docs/UsingAnimationSystem.md)
+8. Shaders
+    - Add or modify shaders to fit your game's theme.
+    - Learn more: [Shaders](../docs/shaders.md)
