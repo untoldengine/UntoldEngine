@@ -28,7 +28,7 @@ float computeShadow(float4 shadowCoords, depth2d<float> shadowTexture){
     //left corner
     proj.y=1.0-proj.y;
 
-    float closestDepth=shadowTexture.sample(shadowSampler,proj.xy);
+    //float closestDepth=shadowTexture.sample(shadowSampler,proj.xy);
     float currenDepthFromLight=proj.z;
     
     for(int i=0;i<9;i++){
@@ -142,7 +142,7 @@ vertex VertexOutModel vertexModelShader(
     // Compute TBN
     simd_float3 T = normalize(uniforms.normalMatrix * in.tangent.xyz);
     simd_float3 N = normalize(uniforms.normalMatrix * normals.xyz);
-    simd_float3 B = cross(N, T) * in.tangent.w;
+    //simd_float3 B = cross(N, T) * in.tangent.w;
 
     out.tangent = float4(T, in.tangent.w);
     out.tbNormal = N;

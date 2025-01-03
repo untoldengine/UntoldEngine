@@ -25,11 +25,13 @@ func executePostProcess(postProcessPipeline: RenderPipeline, uCommandBuffer: MTL
     renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
 
+    let pipelineName: String = postProcessPipeline.name!
+
     // set your encoder here
     guard
         let renderEncoder = uCommandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
     else {
-        handleError(.renderPassCreationFailed, "Post Process \(postProcessPipeline.name) Pass")
+        handleError(.renderPassCreationFailed, "Post Process \(pipelineName) Pass")
         return
     }
 
