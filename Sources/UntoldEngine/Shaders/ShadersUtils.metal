@@ -226,7 +226,8 @@ float3 blinnBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, 
 
 }
 
-//IBL: Refer to https://www.youtube.com/watch?v=MkFS6lw6aEs&t=1882s
+//IBL: Refer to https://www.youtube.com/watch?v=MkFS6lw6aEs&t=1882s and https://www.mathematik.uni-marburg.de/~thormae/lectures/graphics1/graphics_10_2_eng_web.html#24 
+
 
 float2 equirectUVFromCubeDirection(float3 v){
 
