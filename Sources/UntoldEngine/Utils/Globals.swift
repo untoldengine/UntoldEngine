@@ -52,8 +52,8 @@ var frameCount: Int = 0
 var timePassedSinceLastFrame: Float = 0.0
 
 // Frustum info
-let far: Float = 10000
-let near: Float = 0.01
+let far: Float = 500
+let near: Float = 1.0
 let fov: Float = 65.0
 
 // Shadow max parameters
