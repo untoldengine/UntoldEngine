@@ -512,7 +512,7 @@ extension simd_float4x4 {
         matrix_identity_float4x4
     }
 
-    init(translation: float3) {
+    init(translation: simd_float3) {
         let matrix = float4x4(
             [1, 0, 0, 0],
             [0, 1, 0, 0],

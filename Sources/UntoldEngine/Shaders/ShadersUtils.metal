@@ -164,7 +164,7 @@ float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal
 
 
     float VoH = max(dot(viewDir, halfVector), 0.001);
-    float LoH = max(dot(incomingLightDir, halfVector), 0.001);
+    //float LoH = max(dot(incomingLightDir, halfVector), 0.001);
     float NoH = max(dot(surfaceNormal, halfVector), 0.001);
 
     float fr=artistFriendlyF0(diffuseColor.r, edgeTint.x, VoH);

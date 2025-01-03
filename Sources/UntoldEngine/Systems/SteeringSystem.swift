@@ -155,11 +155,6 @@ public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float)
 }
 
 public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float) -> simd_float3 {
-    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        handleError(.noPhysicsComponent, entityId)
-        return simd_float3(0.0, 0.0, 0.0)
-    }
-
     guard let physicsThreatComponent = scene.get(component: PhysicsComponents.self, for: threatEntity) else {
         handleError(.noPhysicsComponent, threatEntity)
         return simd_float3(0.0, 0.0, 0.0)
