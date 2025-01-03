@@ -332,6 +332,49 @@ public func textureToCGImage(texture: MTLTexture) -> CGImage? {
     return context.makeImage()
 }
 
+public func depthTextureToCGImage(texture: MTLTexture) -> CGImage? {
+    let width = texture.width
+    let height = texture.height
+    let bytesPerPixel = 4 // 32-bit float
+    let alignment = 256
+    let unalignedBytesPerRow = width * bytesPerPixel
+    let bytesPerRow = ((unalignedBytesPerRow + alignment - 1) / alignment) * alignment
+    let dataSize = bytesPerRow * height
+
+    // Allocate memory to store pixel data
+    let rawData = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 1)
+    defer { rawData.deallocate() }
+
+    // Copy texture data into the buffer
+    let region = MTLRegionMake2D(0, 0, width, height)
+    texture.getBytes(rawData, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
+
+    // Convert depth values to grayscale
+    var convertedData = [UInt8](repeating: 0, count: width * height)
+    let floatData = rawData.bindMemory(to: Float.self, capacity: width * height)
+
+    for i in 0 ..< width * height {
+        let depthValue = floatData[i]
+        // Normalize depth values to [0, 255] for visualization
+        let normalizedValue = UInt8(min(max(depthValue * 255.0, 0.0), 255.0))
+        convertedData[i] = normalizedValue
+    }
+
+    // Create a grayscale CGImage for depth texture
+    guard let colorSpace = CGColorSpace(name: CGColorSpace.linearGray),
+          let context = CGContext(
+              data: &convertedData,
+              width: width,
+              height: height,
+              bitsPerComponent: 8, // 8 bits per channel for grayscale
+              bytesPerRow: width, // 1 byte per pixel
+              space: colorSpace,
+              bitmapInfo: CGImageAlphaInfo.none.rawValue
+          ) else { return nil }
+
+    return context.makeImage()
+}
+
 public func saveCGImageToDisk(_ image: CGImage, fileName: String, directory: URL = FileManager.default.temporaryDirectory) {
     let url = directory.appendingPathComponent(fileName).appendingPathExtension("png")
     guard let destination = CGImageDestinationCreateWithURL(url as CFURL, kUTTypePNG, 1, nil) else {
