@@ -352,11 +352,15 @@ final class RendererTests: XCTestCase {
         // Compare images
         let (averageDifference, diffImage) = compareImages(finalImage, referenceImage)
 
+        guard let diffFinalImage = diffImage else {
+            XCTFail("Unable to produce a final diff image")
+            return
+        }
         saveResultToDisk(finalImage, "\(targetName)Test")
 
         saveResultToDisk(referenceImage, "\(targetName)Reference")
 
-        saveResultToDisk(diffImage!, "\(targetName)Diff")
+        saveResultToDisk(diffFinalImage, "\(targetName)Diff")
 
         XCTAssert(averageDifference < tolerance, "Images are not similar enough. Difference: \(averageDifference)")
     }
