@@ -157,64 +157,156 @@ final class RendererTests: XCTestCase {
         wait(for: [expectation], timeout: 2.0)
     }
 
-    func testRenderer() {
-        // Ensure renderer and metalview are properly initialized
+    func testColorTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
 
-        // Manually trigger the draw call
         renderer.draw(in: renderer.metalView)
 
-        let expectation = XCTestExpectation(description: "Render graph execution delay")
+        let expectation = XCTestExpectation(description: "ColorTarget test")
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            // Test different render targets
-
             self.testRenderTarget(
                 targetName: "ColorTarget",
                 texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
             )
+            expectation.fulfill()
+        }
 
+        wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testNormalTarget() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "NormalTarget test")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testRenderTarget(
                 targetName: "NormalTarget",
                 texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture!
             )
+            expectation.fulfill()
+        }
 
+        wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testPositionTarget() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "PositionTarget test")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testRenderTarget(
                 targetName: "PositionTarget",
                 texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture!
             )
+            expectation.fulfill()
+        }
 
+        wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testIrradianceIBL() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "IrradianceIBL test")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testRenderTarget(
                 targetName: "IrradianceIBL",
                 texture: textureResources.irradianceMap!
             )
+            expectation.fulfill()
+        }
 
+        wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testSpecularIBL() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "SpecularIBL test")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testRenderTarget(
                 targetName: "SpecularIBL",
                 texture: textureResources.specularMap!
             )
+            expectation.fulfill()
+        }
 
+        wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testBRDFIBL() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "BRDFIBL test")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testRenderTarget(
                 targetName: "BRDFIBL",
                 texture: textureResources.iblBRDFMap!
             )
+            expectation.fulfill()
+        }
 
+        wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testCompositeColorTarget() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "CompositeColorTarget test")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testRenderTarget(
                 targetName: "CompositeColorTarget",
                 texture: renderInfo.renderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
             )
+            expectation.fulfill()
+        }
 
+        wait(for: [expectation], timeout: 2.0)
+    }
+
+    func testDepthTarget() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "DepthTarget test")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.testRenderTarget(
                 targetName: "DepthTarget",
                 texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
                 isDepthTexture: true
             )
-
             expectation.fulfill()
         }
 
-        // Wait for the execution
         wait(for: [expectation], timeout: 2.0)
     }
 
