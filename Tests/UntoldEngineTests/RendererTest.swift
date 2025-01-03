@@ -144,6 +144,12 @@ final class RendererTests: XCTestCase {
                 texture: renderInfo.renderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
             )
 
+            self.testGenerateRenderTarget(
+                targetName: "DepthTarget",
+                texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
+                isDepthTexture: true
+            )
+
             expectation.fulfill()
         }
 
@@ -199,6 +205,12 @@ final class RendererTests: XCTestCase {
                 texture: renderInfo.renderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
             )
 
+            self.testRenderTarget(
+                targetName: "DepthTarget",
+                texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
+                isDepthTexture: true
+            )
+
             expectation.fulfill()
         }
 
@@ -206,33 +218,49 @@ final class RendererTests: XCTestCase {
         wait(for: [expectation], timeout: 2.0)
     }
 
-    private func testGenerateRenderTarget(targetName: String, texture: MTLTexture) {
+    private func testGenerateRenderTarget(targetName: String, texture: MTLTexture, isDepthTexture: Bool = false) {
+        var renderImage: CGImage?
+
+        if isDepthTexture {
+            renderImage = depthTextureToCGImage(texture: texture)
+        } else {
+            renderImage = textureToCGImage(texture: texture)
+        }
+
         // Get rendered image from the target
-        guard let renderImage = textureToCGImage(texture: texture) else {
+        guard let image = renderImage else {
             XCTFail("\(targetName): Renderer should produce an output image")
             return
         }
 
-        saveResultToDisk(renderImage, "\(targetName)Reference")
+        saveResultToDisk(image, "\(targetName)Reference")
     }
 
-    private func testRenderTarget(targetName: String, texture: MTLTexture, tolerance: Float = 1e-4) {
+    private func testRenderTarget(targetName: String, texture: MTLTexture, tolerance: Float = 1e-4, isDepthTexture: Bool = false) {
         // Load reference image
         guard let referenceImage = loadReferenceImage(refImageName: targetName + "Reference") else {
             XCTFail("\(targetName): Reference Image not generated")
             return
         }
 
+        var renderImage: CGImage?
+
+        if isDepthTexture {
+            renderImage = depthTextureToCGImage(texture: texture)
+        } else {
+            renderImage = textureToCGImage(texture: texture)
+        }
+
         // Get rendered image from the target
-        guard let renderImage = textureToCGImage(texture: texture) else {
+        guard let finalImage = renderImage else {
             XCTFail("\(targetName): Renderer should produce an output image")
             return
         }
 
         // Compare images
-        let (averageDifference, diffImage) = compareImages(renderImage, referenceImage)
+        let (averageDifference, diffImage) = compareImages(finalImage, referenceImage)
 
-        saveResultToDisk(renderImage, "\(targetName)Test")
+        saveResultToDisk(finalImage, "\(targetName)Test")
 
         saveResultToDisk(referenceImage, "\(targetName)Reference")
 
@@ -353,6 +381,105 @@ final class RendererTests: XCTestCase {
             bytesPerRow: width * 4, // 4 channels (RGBA)
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ) else {
+            print("Failed to create context for difference image.")
+            return (averageDifference, nil)
+        }
+
+        let diffImage = diffContext.makeImage()
+        return (averageDifference, diffImage)
+    }
+
+    private func compareDepthImages(_ image1: CGImage, _ image2: CGImage) -> (averageDifference: Float, diffImage: CGImage?) {
+        guard image1.width == image2.width, image1.height == image2.height else {
+            print("Image dimensions do not match.")
+            return (0.0, nil) // Completely dissimilar, no difference image
+        }
+
+        let width = image1.width
+        let height = image1.height
+        let bytesPerPixel = 4 // 32-bit float per channel (1 channel: Grayscale)
+        let alignment = 256
+        let unalignedBytesPerRow = width * bytesPerPixel
+        let bytesPerRow = ((unalignedBytesPerRow + alignment - 1) / alignment) * alignment
+        let dataSize = bytesPerRow * height
+
+        // Allocate memory for the raw data
+        let rawData1 = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 1)
+        let rawData2 = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 1)
+        var diffData = [UInt8](repeating: 0, count: width * height) // Output as 8-bit grayscale for visualization
+
+        defer {
+            rawData1.deallocate()
+            rawData2.deallocate()
+        }
+
+        let bitmapInfo: CGBitmapInfo = [
+            .floatComponents,
+            CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
+            CGBitmapInfo(rawValue: CGImageByteOrderInfo.order32Little.rawValue),
+        ]
+
+        // Create contexts for the input images
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.linearGray),
+              let context1 = CGContext(
+                  data: rawData1,
+                  width: width,
+                  height: height,
+                  bitsPerComponent: 32, // 32 bits per channel
+                  bytesPerRow: unalignedBytesPerRow,
+                  space: colorSpace,
+                  bitmapInfo: bitmapInfo.rawValue
+              ),
+              let context2 = CGContext(
+                  data: rawData2,
+                  width: width,
+                  height: height,
+                  bitsPerComponent: 32, // 32 bits per channel
+                  bytesPerRow: unalignedBytesPerRow,
+                  space: colorSpace,
+                  bitmapInfo: bitmapInfo.rawValue
+              )
+        else {
+            print("Failed to create contexts for input images.")
+            return (0.0, nil)
+        }
+
+        // Draw the input images into the contexts
+        context1.draw(image1, in: CGRect(x: 0, y: 0, width: width, height: height))
+        context2.draw(image2, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        // Access pixel data for comparison
+        let pixelData1 = rawData1.bindMemory(to: Float.self, capacity: width * height)
+        let pixelData2 = rawData2.bindMemory(to: Float.self, capacity: width * height)
+
+        // Calculate the absolute difference for each pixel and normalize for visualization
+        var totalDifference: Float = 0.0
+        let pixelCount = width * height
+
+        for i in 0 ..< pixelCount {
+            let depth1 = pixelData1[i]
+            let depth2 = pixelData2[i]
+            let diff = abs(depth1 - depth2)
+            totalDifference += diff
+
+            // Normalize depth difference to [0, 255] for visualization
+            let normalizedDiff = UInt8(min(diff * 255.0, 255.0))
+            diffData[i] = normalizedDiff
+        }
+
+        // Normalize the total difference
+        let averageDifference = totalDifference / Float(pixelCount)
+
+        // Create a grayscale CGImage from the difference data
+        guard let diffContext = CGContext(
+            data: &diffData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8, // 8 bits per channel for grayscale
+            bytesPerRow: width, // 1 byte per pixel
+            space: CGColorSpace(name: CGColorSpace.linearGray)!,
+            bitmapInfo: CGImageAlphaInfo.none.rawValue
         ) else {
             print("Failed to create context for difference image.")
             return (averageDifference, nil)
