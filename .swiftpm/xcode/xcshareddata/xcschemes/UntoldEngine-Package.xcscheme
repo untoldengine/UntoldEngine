@@ -82,6 +82,26 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "UntoldEngineRenderTest"
+               BuildableName = "UntoldEngineRenderTest"
+               BlueprintName = "UntoldEngineRenderTest"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "UntoldEngineRenderTests"
+               BuildableName = "UntoldEngineRenderTests"
+               BlueprintName = "UntoldEngineRenderTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
