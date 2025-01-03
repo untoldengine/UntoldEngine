@@ -75,5 +75,11 @@ let package = Package(
             dependencies: ["UntoldEngine"],
             path: "Tests/UntoldEngineTests"
         ),
+        // Render-specific test target
+        .testTarget(
+            name: "UntoldEngineRenderTests",
+            dependencies: ["UntoldEngine"],
+            path: "Tests/UntoldEngineRenderTests"
+        ),
     ]
 )
