@@ -42,6 +42,8 @@ let package = Package(
             resources: [
                 // Include all Metal files and other resources
                 .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
+                .process("UntoldEngineKernels/UntoldEngineKernels.air"),
+                .process("UntoldEngineKernels/UntoldEngineKernels.metal"),
                 .process("Resources/Models"),
                 .process("Resources/Animations"),
                 .process("Resources/HDR"),
