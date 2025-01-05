@@ -19,12 +19,6 @@ enum LoadHDRError: Error {
     case textureCreationFailed
 }
 
-public func hasComponent(entity: EntityDesc, componentType: (some Any).Type) -> Bool {
-    let componentId = getComponentId(for: componentType)
-
-    return entity.mask.test(componentId)
-}
-
 public func loadTexture(
     device: MTLDevice,
     textureName: String
