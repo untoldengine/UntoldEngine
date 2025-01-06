@@ -1,6 +1,6 @@
 # How to install the Untold Engine
 
-Follow these steps to set up and run the Untold Engine. Or if you are a visual learner, you can watch this [video tutorial](https://youtu.be/mcCya2YjXG4):
+Follow these steps to set up and run the Untold Engine. Or if you are a visual learner, you can watch this [video tutorial](https://youtu.be/rfxQU4MZEAg):
 
 1. Clone the Repository
 
