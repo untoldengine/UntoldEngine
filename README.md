@@ -94,6 +94,16 @@ Ready to explore the Untold Engine? Follow the step-by-step instructions in [Run
 
 I’ve designed three different ways for you to [Get Started](docs/Onboarding.md) with the Untold Engine. Whether you just want to explore or are ready to make your own game.
 
+### Video Tutorials
+
+I have uploaded video tutorials to help you get started with the Untold Engine. Enjoy
+
+1. [How to install the Untold Engine](https://youtu.be/rfxQU4MZEAg)
+2. [Best learning path to use the Untold Engine](https://youtu.be/LXmwCZD8o5Y)
+3. [How to render a model](https://youtu.be/kj6i6btb9c0)
+4. [How to animate a model](https://youtu.be/Du23BsQmwO8)
+5. [How to enable the Physics System](https://youtu.be/biScvPvccI4)
+
 ---
 
 ## High-Level API Overview
