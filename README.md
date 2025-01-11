@@ -98,11 +98,11 @@ I’ve designed three different ways for you to [Get Started](docs/Onboarding.md
 
 I have uploaded video tutorials to help you get started with the Untold Engine. Enjoy
 
-1. [How to install the Untold Engine](https://youtu.be/rfxQU4MZEAg)
-2. [Best learning path to use the Untold Engine](https://youtu.be/LXmwCZD8o5Y)
-3. [How to render a model](https://youtu.be/kj6i6btb9c0)
-4. [How to animate a model](https://youtu.be/Du23BsQmwO8)
-5. [How to enable the Physics System](https://youtu.be/biScvPvccI4)
+1. [How to Install the Untold Engine: Quick Start Guide](https://youtu.be/tAAOzIMQD_Q)
+2. [Untold Engine Onboarding: The Best Learning Path for Beginners](https://youtu.be/h6OgCbM3V1Y)
+3. [Rendering with the Untold Engine - A Beginner’s Guide](https://youtu.be/kj6i6btb9c0)
+4. [Animating in  the Untold Engine - A Beginner’s Guide](https://youtu.be/Du23BsQmwO8)
+5. [Moving Characters in the Untold Engine: A Beginner's Guide](https://youtu.be/biScvPvccI4)
 
 ---
 
