@@ -28,9 +28,16 @@ public func updateAnimationSystem(deltaTime: Float) {
             continue
         }
 
+        if isAnimationComponentPaused(entityId: entity) {
+            continue
+        }
+
+        animationComponent.currentTime += deltaTime
+
         guard let animationClip = animationComponent.currentAnimation else { return }
+
         skeletonComponent.skeleton.updateWorldPose(
-            at: currentGlobalTime,
+            at: animationComponent.currentTime,
             animationClip: animationClip
         )
 
@@ -43,7 +50,25 @@ public func updateAnimationSystem(deltaTime: Float) {
     }
 }
 
-public func changeAnimation(entityId: EntityID, name: String) {
+public func pauseAnimationComponent(entityId: EntityID, isPaused: Bool) {
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    animationComponent.pause = isPaused
+}
+
+public func isAnimationComponentPaused(entityId: EntityID) -> Bool {
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+        handleError(.noAnimationComponent, entityId)
+        return true
+    }
+
+    return animationComponent.pause
+}
+
+public func changeAnimation(entityId: EntityID, name: String, withPause: Bool = false) {
     guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
         print("Entity \(entityId) does not have an animation component.")
         return
@@ -55,4 +80,5 @@ public func changeAnimation(entityId: EntityID, name: String) {
     }
 
     animationComponent.currentAnimation = animationClip
+    animationComponent.pause = withPause
 }

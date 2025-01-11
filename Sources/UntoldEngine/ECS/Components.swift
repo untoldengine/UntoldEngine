@@ -73,6 +73,8 @@ public class SkeletonComponent: Component {
 public class AnimationComponent: Component {
     var animationClips: [String: AnimationClip] = [:]
     var currentAnimation: AnimationClip?
+    var pause: Bool = false
+    var currentTime: Float = 0.0
     public required init() {}
 }
 
