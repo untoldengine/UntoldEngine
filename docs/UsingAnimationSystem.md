@@ -42,7 +42,7 @@ setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "us
 
 ---
 
-### Step 4: Play the Animation
+### Step 4: Set the Animation to play
 
 Trigger the animation by referencing its name. This will set the animation to play on the entity.
 
@@ -51,6 +51,14 @@ changeAnimation(entityId: redPlayer, name: "running")
 ```
 
 ---
+
+### Step 5. Pause the animation (Optional)
+
+To pause the current animation, simply call the following function. The animation component will be paused for the current entity.
+
+```swift
+pauseAnimationComponent(entityId: redPlayer, isPaused: true)
+```
 
 ## What Happens Behind the Scenes?
 
