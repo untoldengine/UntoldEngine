@@ -61,6 +61,41 @@ public func setParent(childId: EntityID, parentId: EntityID) {
     updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
 }
 
+public func removeParent(childId: EntityID) {
+    // get current child level
+    guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: childId) else {
+        handleError(.noScenegraphComponent, childId)
+        return
+    }
+
+    // does it have a parent?
+    let currentLevel = scenegraphComponent.level
+
+    // if current level is equal to zero, it means it doesn't have a parent, there is nothing to unlink
+    if currentLevel == 0 {
+        return
+    }
+
+    // if it does have a parent, get the parent Id
+    let parentId: EntityID = scenegraphComponent.parent
+
+    // update the child info
+    scenegraphComponent.parent = .invalid
+    scenegraphComponent.level = currentLevel - 1
+
+    // Remove the child from the parent list
+    guard let parentScenegraphComponent = scene.get(component: ScenegraphComponent.self, for: parentId) else {
+        handleError(.noScenegraphComponent, parentId)
+        return
+    }
+
+    // remove all instances of childId
+    parentScenegraphComponent.children.removeAll { $0 == childId }
+
+    // update all child descendants
+    updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
+}
+
 public func getEntitiesWithParent(parentId: EntityID) -> [EntityID] {
     guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: parentId) else {
         handleError(.noScenegraphComponent, parentId)

@@ -50,6 +50,26 @@ final class SceneGraphTests: XCTestCase {
         let childScenegraph = scene.get(component: ScenegraphComponent.self, for: childEntity)
         XCTAssertEqual(childScenegraph?.parent, rootEntity)
         XCTAssertEqual(childScenegraph?.level, 1)
+
+        let parentScenegraph = scene.get(component: ScenegraphComponent.self, for: rootEntity)
+        let index = parentScenegraph?.children[0]
+        XCTAssertEqual(index, childEntity)
+    }
+
+    func testUnsetParent() {
+        // set relationship
+        setParent(childId: childEntity, parentId: rootEntity)
+
+        // unset relationship
+        removeParent(childId: childEntity)
+
+        let childScenegraph = scene.get(component: ScenegraphComponent.self, for: childEntity)
+        XCTAssertEqual(childScenegraph?.parent, .invalid)
+        XCTAssertEqual(childScenegraph?.level, 0)
+
+        let parentScenegraph = scene.get(component: ScenegraphComponent.self, for: rootEntity)
+
+        XCTAssertEqual(parentScenegraph?.children.isEmpty, true)
     }
 
     func testPropagateLevelToDescendants() {
@@ -58,6 +78,16 @@ final class SceneGraphTests: XCTestCase {
 
         let grandchildScenegraph = scene.get(component: ScenegraphComponent.self, for: grandchildEntity)
         XCTAssertEqual(grandchildScenegraph?.level, 2)
+    }
+
+    func testPropagateLevelToDescendantsAfteUnsetParent() {
+        setParent(childId: grandchildEntity, parentId: childEntity)
+        setParent(childId: childEntity, parentId: rootEntity)
+
+        removeParent(childId: childEntity)
+
+        let grandchildScenegraph = scene.get(component: ScenegraphComponent.self, for: grandchildEntity)
+        XCTAssertEqual(grandchildScenegraph?.level, 1)
     }
 
     // MARK: - World Transform Update Tests
