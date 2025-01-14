@@ -92,6 +92,12 @@ public class AnimationComponent: Component {
     var pause: Bool = false
     var currentTime: Float = 0.0
     public required init() {}
+
+    func cleanUp() {
+        animationClips.removeAll()
+        currentAnimation?.cleanUp()
+        currentAnimation = nil
+    }
 }
 
 public class LightComponent: Component {

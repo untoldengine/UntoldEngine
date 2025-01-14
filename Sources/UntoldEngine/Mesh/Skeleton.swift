@@ -250,6 +250,11 @@ class AnimationClip {
         }
     }
 
+    func cleanUp() {
+        jointPaths.removeAll()
+        jointAnimation.removeAll()
+    }
+
     /// Retrieves the interpolated pose for a joint at a specific time
     func getPose(at time: Float, jointPath: String) -> float4x4? {
         guard let animation = jointAnimation[jointPath] else { return nil }
