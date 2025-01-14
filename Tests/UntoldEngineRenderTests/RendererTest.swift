@@ -310,6 +310,29 @@ final class RendererTests: XCTestCase {
         wait(for: [expectation], timeout: 2.0)
     }
 
+    func testUnregisterEntityMesh() {
+        // Create na entity
+        let entityId = createEntity()
+
+        setEntityMesh(entityId: entityId, filename: "hollandPlayer", withExtension: "usdc")
+
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+            handleError(.noRenderComponent, entityId)
+            return
+        }
+
+        guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
+            handleError(.noSkeletonComponent, entityId)
+            return
+        }
+
+        unregisterEntityMesh(entityId: entityId)
+
+        XCTAssertEqual(0, renderComponent.mesh.count, "Mesh should be empty")
+        XCTAssertNil(skeletonComponent.skeleton, "Skeleton should be nil")
+        XCTAssertNil(getMeshesForEntity(entityId: entityId), "Entity-Mesh map should be nil")
+    }
+
     private func testGenerateRenderTarget(targetName: String, texture: MTLTexture, isDepthTexture: Bool = false) {
         var renderImage: CGImage?
 
