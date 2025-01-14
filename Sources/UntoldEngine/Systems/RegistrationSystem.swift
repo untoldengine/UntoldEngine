@@ -52,6 +52,30 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
     setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
 }
 
+public func unregisterEntityMesh(entityId: EntityID) {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        handleError(.noRenderComponent)
+        return
+    }
+
+    guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
+        handleError(.noSkeletonComponent)
+        return
+    }
+
+    // clean up buffers
+    renderComponent.cleanUp()
+    skeletonComponent.cleanUp()
+
+    scene.remove(component: RenderComponent.self, from: entityId)
+    scene.remove(component: WorldTransformComponent.self, from: entityId)
+    scene.remove(component: LocalTransformComponent.self, from: entityId)
+    scene.remove(component: SkeletonComponent.self, from: entityId)
+
+    // deassocate entity to mesh
+    deassociateMeshesToEntity(entityId: entityId)
+}
+
 public func setEntitySkeleton(entityId: EntityID, filename: String, withExtension: String) {
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
         handleError(.filenameNotFound, filename)
@@ -185,7 +209,6 @@ public func setEntityKinetics(entityId: EntityID) {
 // register Render and Transform components
 
 func registerDefaultComponents(entityId: EntityID, meshes: [Mesh]) {
-    // if let meshValue = meshDictionary[name] {
     registerComponent(entityId: entityId, componentType: RenderComponent.self)
     registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
     registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
@@ -213,6 +236,10 @@ func registerDefaultComponents(entityId: EntityID, meshes: [Mesh]) {
 
 func associateMeshesToEntity(entityId: EntityID, meshes: [Mesh]) {
     entityMeshMap[entityId] = meshes
+}
+
+func deassociateMeshesToEntity(entityId: EntityID) {
+    entityMeshMap.removeValue(forKey: entityId)
 }
 
 func getMeshesForEntity(entityId: EntityID) -> [Mesh]? {

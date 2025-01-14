@@ -72,6 +72,13 @@ struct Mesh {
         submeshes = processedSubmeshes
     }
 
+    mutating func cleanUp() {
+        spaceUniform = nil
+        submeshes.removeAll()
+        skin?.cleanUp()
+        skin = nil
+    }
+
     // Load meshes from a file URL
     static func loadMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, flip: Bool) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)

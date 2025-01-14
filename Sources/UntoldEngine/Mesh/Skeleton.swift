@@ -8,10 +8,10 @@
 import MetalKit
 
 class Skeleton {
-    let parentIndices: [Int?]
-    let jointPaths: [String]
-    let bindTransform: [simd_float4x4]
-    let restTransform: [simd_float4x4]
+    var parentIndices: [Int?]
+    var jointPaths: [String]
+    var bindTransform: [simd_float4x4]
+    var restTransform: [simd_float4x4]
     var currentPose: [simd_float4x4]
 
     init?(mdlSkeleton: MDLSkeleton?) {
@@ -22,6 +22,19 @@ class Skeleton {
         bindTransform = mdlSkeleton.jointBindTransforms.float4x4Array
         restTransform = mdlSkeleton.jointRestTransforms.float4x4Array
         currentPose = restTransform
+    }
+
+//    func cleanUp(){
+//        parentIndices.removeAll()
+//        jointPaths.removeAll()
+//        bindTransform.removeAll()
+//        restTransform.removeAll()
+//        currentPose.removeAll()
+//    }
+
+    deinit {
+        // ARC will release resources automatically
+        print("Skeleton deallocated")
     }
 
     static func computeParentIndices(for jointPaths: [String]) -> [Int?] {
@@ -90,7 +103,7 @@ class Skeleton {
 struct Skin {
     var jointPaths: [String] = []
     var skinToSkeletonMap: [Int] = [] // Maps skin joints to skeleton joints
-    var jointTransformsBuffer: MTLBuffer // Buffer holding joint transforms
+    var jointTransformsBuffer: MTLBuffer! // Buffer holding joint transforms
 
     /// Initializes a Skin object with an animation bind component and a skeleton
     init?(animationBindComponent: MDLAnimationBindComponent?, skeleton: Skeleton?) {
@@ -117,6 +130,13 @@ struct Skin {
         }
 
         jointTransformsBuffer = buffer
+    }
+
+    /// Clean up
+    mutating func cleanUp() {
+        jointTransformsBuffer = nil
+        jointPaths.removeAll()
+        skinToSkeletonMap.removeAll()
     }
 
     /// Updates the joint transform matrices in the buffer using the skeleton's current pose

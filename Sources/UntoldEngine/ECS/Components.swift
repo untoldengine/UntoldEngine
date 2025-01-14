@@ -33,6 +33,18 @@ public class RenderComponent: Component {
     public required init() {
         mesh = []
     }
+
+    func cleanUp() {
+        for index in 0 ..< mesh.count {
+            mesh[index].cleanUp()
+        }
+
+        mesh.removeAll()
+    }
+
+    deinit {
+        cleanUp()
+    }
 }
 
 public class PhysicsComponents: Component {
@@ -68,6 +80,10 @@ public class SkeletonComponent: Component {
     var skeleton: Skeleton!
 
     public required init() {}
+
+    func cleanUp() {
+        skeleton = nil
+    }
 }
 
 public class AnimationComponent: Component {
