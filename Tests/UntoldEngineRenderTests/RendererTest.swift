@@ -326,7 +326,7 @@ final class RendererTests: XCTestCase {
             return
         }
 
-        unregisterEntityMesh(entityId: entityId)
+        removeEntityMesh(entityId: entityId)
 
         XCTAssertEqual(0, renderComponent.mesh.count, "Mesh should be empty")
         XCTAssertNil(skeletonComponent.skeleton, "Skeleton should be nil")
@@ -345,8 +345,8 @@ final class RendererTests: XCTestCase {
             return
         }
 
-        unregisterEntityMesh(entityId: entityId)
-        removeAnimationComponent(entityId: entityId)
+        removeEntityMesh(entityId: entityId)
+        removeEntityAnimations(entityId: entityId)
 
         XCTAssertNil(animationComponent.currentAnimation, "Current Animation should be Nil")
         XCTAssertEqual(animationComponent.animationClips.count, 0, "animation clips should be 0")

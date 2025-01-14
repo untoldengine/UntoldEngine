@@ -52,7 +52,7 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
     setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
 }
 
-public func unregisterEntityMesh(entityId: EntityID) {
+public func removeEntityMesh(entityId: EntityID) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         handleError(.noRenderComponent)
         return
@@ -196,7 +196,7 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
     addClips(to: animationComponent)
 }
 
-public func removeAnimationComponent(entityId: EntityID) {
+public func removeEntityAnimations(entityId: EntityID) {
     guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
         handleError(.noAnimationComponent, entityId)
         return
