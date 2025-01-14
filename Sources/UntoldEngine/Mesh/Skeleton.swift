@@ -24,18 +24,7 @@ class Skeleton {
         currentPose = restTransform
     }
 
-//    func cleanUp(){
-//        parentIndices.removeAll()
-//        jointPaths.removeAll()
-//        bindTransform.removeAll()
-//        restTransform.removeAll()
-//        currentPose.removeAll()
-//    }
-
-    deinit {
-        // ARC will release resources automatically
-        print("Skeleton deallocated")
-    }
+    deinit {}
 
     static func computeParentIndices(for jointPaths: [String]) -> [Int?] {
         jointPaths.enumerated().map { _, jointPath in
