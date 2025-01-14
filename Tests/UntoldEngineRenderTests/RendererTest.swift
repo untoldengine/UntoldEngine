@@ -310,7 +310,7 @@ final class RendererTests: XCTestCase {
         wait(for: [expectation], timeout: 2.0)
     }
 
-    func testUnregisterEntityMesh() {
+    func testRemoveEntityMesh() {
         // Create na entity
         let entityId = createEntity()
 
@@ -333,7 +333,7 @@ final class RendererTests: XCTestCase {
         XCTAssertNil(getMeshesForEntity(entityId: entityId), "Entity-Mesh map should be nil")
     }
 
-    func testRemoveAnimationComponent() {
+    func testRemoveEntityAnimations() {
         // Create na entity
         let entityId = createEntity()
 
