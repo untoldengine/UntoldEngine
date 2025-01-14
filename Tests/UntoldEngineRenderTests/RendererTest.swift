@@ -352,6 +352,24 @@ final class RendererTests: XCTestCase {
         XCTAssertEqual(animationComponent.animationClips.count, 0, "animation clips should be 0")
     }
 
+    func testRemoveEntityKinetics() {
+        // Create na entity
+        let entityId = createEntity()
+
+        setEntityMesh(entityId: entityId, filename: "hollandPlayer", withExtension: "usdc")
+        setEntityKinetics(entityId: entityId)
+
+        guard let kineticComponent = scene.get(component: KineticComponent.self, for: entityId) else {
+            handleError(.noKineticComponent, entityId)
+            return
+        }
+
+        removeEntityMesh(entityId: entityId)
+        removeEntityKinetics(entityId: entityId)
+
+        XCTAssertEqual(kineticComponent.forces.count, 0, "All forces should be removed")
+    }
+
     private func testGenerateRenderTarget(targetName: String, texture: MTLTexture, isDepthTexture: Bool = false) {
         var renderImage: CGImage?
 

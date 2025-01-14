@@ -216,6 +216,22 @@ public func setEntityKinetics(entityId: EntityID) {
     }
 }
 
+public func removeEntityKinetics(entityId: EntityID) {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    guard let kineticComponent = scene.get(component: KineticComponent.self, for: entityId) else {
+        handleError(.noKineticComponent, entityId)
+        return
+    }
+
+    kineticComponent.clearForces()
+    scene.remove(component: KineticComponent.self, from: entityId)
+    scene.remove(component: PhysicsComponents.self, from: entityId)
+}
+
 // register Render and Transform components
 
 func registerDefaultComponents(entityId: EntityID, meshes: [Mesh]) {
