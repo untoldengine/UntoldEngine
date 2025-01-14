@@ -217,11 +217,6 @@ public func setEntityKinetics(entityId: EntityID) {
 }
 
 public func removeEntityKinetics(entityId: EntityID) {
-    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        handleError(.noPhysicsComponent, entityId)
-        return
-    }
-
     guard let kineticComponent = scene.get(component: KineticComponent.self, for: entityId) else {
         handleError(.noKineticComponent, entityId)
         return
