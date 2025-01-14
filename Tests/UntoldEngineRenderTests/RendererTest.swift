@@ -333,6 +333,25 @@ final class RendererTests: XCTestCase {
         XCTAssertNil(getMeshesForEntity(entityId: entityId), "Entity-Mesh map should be nil")
     }
 
+    func testRemoveAnimationComponent() {
+        // Create na entity
+        let entityId = createEntity()
+
+        setEntityMesh(entityId: entityId, filename: "hollandPlayer", withExtension: "usdc")
+        setEntityAnimations(entityId: entityId, filename: "hollandIdleAnim", withExtension: "usdc", name: "idle")
+
+        guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+            handleError(.noAnimationComponent, entityId)
+            return
+        }
+
+        unregisterEntityMesh(entityId: entityId)
+        removeAnimationComponent(entityId: entityId)
+
+        XCTAssertNil(animationComponent.currentAnimation, "Current Animation should be Nil")
+        XCTAssertEqual(animationComponent.animationClips.count, 0, "animation clips should be 0")
+    }
+
     private func testGenerateRenderTarget(targetName: String, texture: MTLTexture, isDepthTexture: Bool = false) {
         var renderImage: CGImage?
 

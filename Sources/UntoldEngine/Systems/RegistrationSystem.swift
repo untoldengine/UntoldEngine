@@ -196,6 +196,16 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
     addClips(to: animationComponent)
 }
 
+public func removeAnimationComponent(entityId: EntityID) {
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    animationComponent.cleanUp()
+    scene.remove(component: AnimationComponent.self, from: entityId)
+}
+
 public func setEntityKinetics(entityId: EntityID) {
     if let _ = scene.get(component: PhysicsComponents.self, for: entityId) {
         registerComponent(entityId: entityId, componentType: KineticComponent.self)
