@@ -62,4 +62,17 @@ final class ECSTests: XCTestCase {
         let newVersion = getEntityVersion(newEntityId)
         XCTAssertEqual(newVersion, initialVersion + 1, "Entity version should be incremented")
     }
+
+    func testHasComponent() {
+        let entityId = createEntity()
+
+        _ = scene.assign(to: entityId, component: RenderComponent.self)
+
+        XCTAssertTrue(hasComponent(entityId: entityId, componentType: RenderComponent.self), "Should have component")
+
+        // remove component
+        scene.remove(component: RenderComponent.self, from: entityId)
+
+        XCTAssertFalse(hasComponent(entityId: entityId, componentType: RenderComponent.self), "Should not have component")
+    }
 }

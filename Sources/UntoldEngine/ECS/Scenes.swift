@@ -150,8 +150,12 @@ func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Scene) -> 
     }.map(\.entityId)
 }
 
-func hasComponent(entity: EntityDesc, componentType: (some Any).Type) -> Bool {
+func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> Bool {
+    let entityIndex: EntityIndex = getEntityIndex(entityId)
+
+    let entityMask = scene.entities[Int(entityIndex)].mask
+
     let componentId = getComponentId(for: componentType)
 
-    return entity.mask.test(componentId)
+    return entityMask.test(componentId)
 }
