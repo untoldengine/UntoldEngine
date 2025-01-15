@@ -331,6 +331,12 @@ final class RendererTests: XCTestCase {
         XCTAssertEqual(0, renderComponent.mesh.count, "Mesh should be empty")
         XCTAssertNil(skeletonComponent.skeleton, "Skeleton should be nil")
         XCTAssertNil(getMeshesForEntity(entityId: entityId), "Entity-Mesh map should be nil")
+
+        // test if components have been removed
+        XCTAssertFalse(hasComponent(entityId: entityId, componentType: RenderComponent.self))
+        XCTAssertFalse(hasComponent(entityId: entityId, componentType: LocalTransformComponent.self))
+        XCTAssertFalse(hasComponent(entityId: entityId, componentType: WorldTransformComponent.self))
+        XCTAssertFalse(hasComponent(entityId: entityId, componentType: SkeletonComponent.self))
     }
 
     func testRemoveEntityAnimations() {
@@ -350,6 +356,9 @@ final class RendererTests: XCTestCase {
 
         XCTAssertNil(animationComponent.currentAnimation, "Current Animation should be Nil")
         XCTAssertEqual(animationComponent.animationClips.count, 0, "animation clips should be 0")
+
+        // test if component have been removed
+        XCTAssertFalse(hasComponent(entityId: entityId, componentType: AnimationComponent.self))
     }
 
     func testRemoveEntityKinetics() {
@@ -368,6 +377,10 @@ final class RendererTests: XCTestCase {
         removeEntityKinetics(entityId: entityId)
 
         XCTAssertEqual(kineticComponent.forces.count, 0, "All forces should be removed")
+
+        // test if components have been removed
+        XCTAssertFalse(hasComponent(entityId: entityId, componentType: PhysicsComponents.self))
+        XCTAssertFalse(hasComponent(entityId: entityId, componentType: KineticComponent.self))
     }
 
     private func testGenerateRenderTarget(targetName: String, texture: MTLTexture, isDepthTexture: Bool = false) {

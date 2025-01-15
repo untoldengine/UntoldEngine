@@ -164,23 +164,13 @@ final class SceneGraphTests: XCTestCase {
         setParent(childId: grandchildEntity, parentId: childEntity)
         setParent(childId: childEntity, parentId: rootEntity)
 
-        let childEntityIndex = getEntityIndex(childEntity)
-        let grandChildEntityIndex = getEntityIndex(grandchildEntity)
-
         let parentScenegraph = scene.get(component: ScenegraphComponent.self, for: rootEntity)
 
         removeEntity(entityId: childEntity, containsResources: false)
 
         XCTAssertEqual(parentScenegraph?.children.count, 0, "Children count should be zero")
 
-        let componentId: Int = getComponentId(for: ScenegraphComponent.self)
-
-        let childComponentMask = scene.entities[Int(childEntityIndex)].mask
-
-        XCTAssertFalse(childComponentMask.test(componentId), "Component should be set to false for child")
-
-        let grandChildComponentMask = scene.entities[Int(grandChildEntityIndex)].mask
-
-        XCTAssertFalse(grandChildComponentMask.test(componentId), "Component should be set to false for grand child")
+        XCTAssertFalse(hasComponent(entityId: childEntity, componentType: ScenegraphComponent.self))
+        XCTAssertFalse(hasComponent(entityId: grandchildEntity, componentType: ScenegraphComponent.self))
     }
 }
