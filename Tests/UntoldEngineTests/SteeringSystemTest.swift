@@ -110,7 +110,7 @@ final class SteeringSystemTests: XCTestCase {
         updateTransformSystem(entityId: targetEntityId)
 
         let steering = pursuit(entityId: entityId, targetEntity: targetEntityId, maxSpeed: maxSpeed)
-        let expectedPrediction = simd_float3(6, 0, 0)
+
         let expectedSteering = simd_float3(5, 0, 0) // Target future position
 
         XCTAssertEqual(steering, expectedSteering)
