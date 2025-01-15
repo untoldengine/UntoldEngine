@@ -58,22 +58,21 @@ public func removeEntityMesh(entityId: EntityID) {
         return
     }
 
+    renderComponent.cleanUp()
+    scene.remove(component: RenderComponent.self, from: entityId)
+    scene.remove(component: WorldTransformComponent.self, from: entityId)
+    scene.remove(component: LocalTransformComponent.self, from: entityId)
+
+    // deassocate entity to mesh
+    deassociateMeshesToEntity(entityId: entityId)
+
     guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
         handleError(.noSkeletonComponent)
         return
     }
 
-    // clean up buffers
-    renderComponent.cleanUp()
     skeletonComponent.cleanUp()
-
-    scene.remove(component: RenderComponent.self, from: entityId)
-    scene.remove(component: WorldTransformComponent.self, from: entityId)
-    scene.remove(component: LocalTransformComponent.self, from: entityId)
     scene.remove(component: SkeletonComponent.self, from: entityId)
-
-    // deassocate entity to mesh
-    deassociateMeshesToEntity(entityId: entityId)
 }
 
 public func setEntitySkeleton(entityId: EntityID, filename: String, withExtension: String) {
@@ -225,6 +224,48 @@ public func removeEntityKinetics(entityId: EntityID) {
     kineticComponent.clearForces()
     scene.remove(component: KineticComponent.self, from: entityId)
     scene.remove(component: PhysicsComponents.self, from: entityId)
+}
+
+public func removeEntity(entityId: EntityID, containsResources: Bool = true) {
+    guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: entityId) else {
+        handleError(.noScenegraphComponent)
+        return
+    }
+
+    let childrenId = scenegraphComponent.children
+
+    for childId in childrenId {
+        removeEntity(entityId: childId, containsResources: containsResources)
+    }
+
+    // we need to unlink parent from main entity
+    if scenegraphComponent.parent != .invalid {
+        // get the parent for the entity
+        guard let parentScenegraphComponent = scene.get(component: ScenegraphComponent.self, for: scenegraphComponent.parent) else {
+            handleError(.noScenegraphComponent)
+            return
+        }
+
+        // remove entity from parent's list
+        parentScenegraphComponent.children.removeAll { $0 == entityId }
+    }
+
+    scenegraphComponent.children.removeAll()
+    scenegraphComponent.parent = .invalid
+    scenegraphComponent.level = 0
+    scene.remove(component: ScenegraphComponent.self, from: entityId)
+
+    if containsResources == true {
+        cleanUpEntityResources(entityId: entityId)
+    }
+}
+
+func cleanUpEntityResources(entityId: EntityID) {
+    removeEntityMesh(entityId: entityId)
+    removeEntityAnimations(entityId: entityId)
+    removeEntityKinetics(entityId: entityId)
+
+    destroyEntity(entityId: entityId)
 }
 
 // register Render and Transform components
