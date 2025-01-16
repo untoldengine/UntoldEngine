@@ -39,11 +39,8 @@ class GameScene {
         ball = createEntity()
         setEntityMesh(entityId: ball, filename: "ball", withExtension: "usdc")
 
-        // Position the ball above the ground
-        translateBy(entityId: ball, position: simd_float3(0.0, 0.6, 1.0))
-
         // Step 5: Assign the Ball as a Child of the Player
-        setParent(childId: ball, parentId: hollandPlayer)
+        setParent(childId: ball, parentId: hollandPlayer, offset: simd_float3(0.0, 0.6, 1.0))
 
         // Step 6: Create a Sun Entity for Directional Lighting
         let sunEntity: EntityID = createEntity()

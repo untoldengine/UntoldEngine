@@ -39,7 +39,7 @@ func updateTransformSystem(entityId: EntityID) {
     }
 }
 
-public func setParent(childId: EntityID, parentId: EntityID) {
+public func setParent(childId: EntityID, parentId: EntityID, offset: simd_float3 = simd_float3(0.0, 0.0, 0.0)) {
     // get current child level
     guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: childId) else {
         handleError(.noScenegraphComponent, childId)
@@ -50,6 +50,14 @@ public func setParent(childId: EntityID, parentId: EntityID) {
         handleError(.noScenegraphComponent, parentId)
         return
     }
+
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: childId) else {
+        handleError(.noLocalTransformComponent, childId)
+        return
+    }
+
+    // set position the entity will be with respect to the parent
+    localTransformComponent.space.columns.3 = simd_float4(offset, 1.0)
 
     let currentLevel = parentScenegraphComponent.level
     scenegraphComponent.parent = parentId
@@ -67,6 +75,19 @@ public func removeParent(childId: EntityID) {
         handleError(.noScenegraphComponent, childId)
         return
     }
+
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: childId) else {
+        handleError(.noLocalTransformComponent, childId)
+        return
+    }
+
+    guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: childId) else {
+        handleError(.noWorldTransformComponent, childId)
+        return
+    }
+
+    // set the current local tranform of the ball to the world transform before the detachment
+    localTransformComponent.space = worldTransformComponent.space
 
     // does it have a parent?
     let currentLevel = scenegraphComponent.level
