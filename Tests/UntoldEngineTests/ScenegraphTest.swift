@@ -45,27 +45,44 @@ final class SceneGraphTests: XCTestCase {
     // MARK: - Parent-Child Relationship Tests
 
     func testSetParent() {
-        setParent(childId: childEntity, parentId: rootEntity)
+        setParent(childId: childEntity, parentId: rootEntity, offset: simd_float3(2.0, 1.0, 4.0))
 
         let childScenegraph = scene.get(component: ScenegraphComponent.self, for: childEntity)
         XCTAssertEqual(childScenegraph?.parent, rootEntity)
         XCTAssertEqual(childScenegraph?.level, 1)
+
+        let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: childEntity)
+
+        XCTAssertEqual(localTransformComponent?.space.columns.3.x, 2.0, "local x transformation should be equal to x-offset")
+        XCTAssertEqual(localTransformComponent?.space.columns.3.y, 1.0, "local y transformation should be equal to y-offset")
+        XCTAssertEqual(localTransformComponent?.space.columns.3.z, 4.0, "local z transformation should be equal to z-offset")
 
         let parentScenegraph = scene.get(component: ScenegraphComponent.self, for: rootEntity)
         let index = parentScenegraph?.children[0]
         XCTAssertEqual(index, childEntity)
     }
 
-    func testUnsetParent() {
+    func testRemoveParent() {
         // set relationship
         setParent(childId: childEntity, parentId: rootEntity)
+
+        let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: childEntity)
+
+        worldTransformComponent?.space.columns.3 = simd_float4(2.0, 1.0, 4.0, 1.0)
 
         // unset relationship
         removeParent(childId: childEntity)
 
+        let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: childEntity)
+
         let childScenegraph = scene.get(component: ScenegraphComponent.self, for: childEntity)
         XCTAssertEqual(childScenegraph?.parent, .invalid)
         XCTAssertEqual(childScenegraph?.level, 0)
+
+        // Test if local transformation was set to world transformation
+        XCTAssertEqual(localTransformComponent?.space.columns.3.x, 2.0, "local x transformation should be equal to x-offset")
+        XCTAssertEqual(localTransformComponent?.space.columns.3.y, 1.0, "local y transformation should be equal to y-offset")
+        XCTAssertEqual(localTransformComponent?.space.columns.3.z, 4.0, "local z transformation should be equal to z-offset")
 
         let parentScenegraph = scene.get(component: ScenegraphComponent.self, for: rootEntity)
 
@@ -116,7 +133,7 @@ final class SceneGraphTests: XCTestCase {
         rootLocalTransformComponent?.space = rootLocalTransform
         childLocalTransformComponent?.space = childLocalTransform
 
-        setParent(childId: childEntity, parentId: rootEntity)
+        setParent(childId: childEntity, parentId: rootEntity, offset: simd_float3(0, 1, 0))
 
         updateTransformSystem(entityId: rootEntity)
         updateTransformSystem(entityId: childEntity)
@@ -145,8 +162,8 @@ final class SceneGraphTests: XCTestCase {
         childLocalTransformComponent?.space = childTransform
         grandChildLocalTransformComponent?.space = grandchildTransform
 
-        setParent(childId: childEntity, parentId: rootEntity)
-        setParent(childId: grandchildEntity, parentId: childEntity)
+        setParent(childId: childEntity, parentId: rootEntity, offset: simd_float3(0, 1, 0))
+        setParent(childId: grandchildEntity, parentId: childEntity, offset: simd_float3(0, 0, 1))
 
         traverseSceneGraph()
 
