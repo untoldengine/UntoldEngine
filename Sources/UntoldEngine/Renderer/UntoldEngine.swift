@@ -66,9 +66,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         do {
             let mainLibrary = try renderInfo.device.makeLibrary(URL: libraryURL)
             renderInfo.library = mainLibrary
-            print("Found Untold Engine metallib")
+            Logger.log(message: "Found Untold Engine metallib")
         } catch {
-            print("Failed to load metallib: \(error)")
+            Logger.logError(message: "Failed to load metallib: \(error)")
         }
 
         return renderer
