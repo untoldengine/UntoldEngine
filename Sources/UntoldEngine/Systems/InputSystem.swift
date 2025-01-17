@@ -18,7 +18,7 @@ public struct KeyState {
     public var dPressed = false
     public var qPressed = false
     public var ePressed = false
-    var spacePressed = false
+    public var spacePressed = false
     public var shiftPressed = false
     public var ctrlPressed = false
     var altPressed = false
@@ -64,6 +64,8 @@ public class InputSystem {
 
     let kVK_ANSI_1: UInt16 = 18
     let kVK_ANSI_2: UInt16 = 19
+
+    let kVK_ANSI_Space: UInt16 = 49
 
     public var keyState = KeyState()
     public var gamePadState = GamePadState()
@@ -395,6 +397,8 @@ public class InputSystem {
             keyState.dPressed = true
         case kVK_ANSI_S:
             keyState.sPressed = true
+        case kVK_ANSI_Space:
+            keyState.spacePressed = true
         case kVK_ANSI_Q:
             keyState.qPressed = true
         case kVK_ANSI_E:
@@ -418,6 +422,8 @@ public class InputSystem {
             keyState.dPressed = false
         case kVK_ANSI_S:
             keyState.sPressed = false
+        case kVK_ANSI_Space:
+            keyState.spacePressed = false
         case kVK_ANSI_Q:
             keyState.qPressed = false
         case kVK_ANSI_E:
