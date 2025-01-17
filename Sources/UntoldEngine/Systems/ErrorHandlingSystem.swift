@@ -178,7 +178,6 @@ public func handleError(_ error: ErrorHandlingSystem, _ argument: String, _ enti
         return
     }
     handleError(error, argument, name)
-    // Logger.logError(message: "\(error.rawValue): \(error.description) for argument \(argument) for \(entityId)")
 }
 
 // warnings
