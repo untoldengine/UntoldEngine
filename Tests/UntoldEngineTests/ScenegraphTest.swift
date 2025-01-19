@@ -177,13 +177,13 @@ final class SceneGraphTests: XCTestCase {
         XCTAssertEqual(grandchildWorld, expectedGrandchildWorld)
     }
 
-    func testRemoveEntity() {
+    func testRemoveEntityScenegraph() {
         setParent(childId: grandchildEntity, parentId: childEntity)
         setParent(childId: childEntity, parentId: rootEntity)
 
         let parentScenegraph = scene.get(component: ScenegraphComponent.self, for: rootEntity)
 
-        removeEntity(entityId: childEntity, containsResources: false)
+        removeEntityScenegraph(entityId: childEntity)
 
         XCTAssertEqual(parentScenegraph?.children.count, 0, "Children count should be zero")
 

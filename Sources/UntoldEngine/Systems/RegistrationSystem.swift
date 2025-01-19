@@ -19,6 +19,12 @@ public func registerComponent(entityId: EntityID, componentType: (some Component
 }
 
 public func destroyEntity(entityId: EntityID) {
+    // Remove any resources linked to entity
+    removeEntityMesh(entityId: entityId)
+    removeEntityAnimations(entityId: entityId)
+    removeEntityKinetics(entityId: entityId)
+    removeEntityScenegraph(entityId: entityId)
+
     scene.destroyEntity(entityId)
 }
 
@@ -226,7 +232,7 @@ func removeEntityKinetics(entityId: EntityID) {
     scene.remove(component: PhysicsComponents.self, from: entityId)
 }
 
-public func removeEntity(entityId: EntityID, containsResources: Bool = true) {
+func removeEntityScenegraph(entityId: EntityID) {
     guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: entityId) else {
         handleError(.noScenegraphComponent)
         return
@@ -235,7 +241,7 @@ public func removeEntity(entityId: EntityID, containsResources: Bool = true) {
     let childrenId = scenegraphComponent.children
 
     for childId in childrenId {
-        removeEntity(entityId: childId, containsResources: containsResources)
+        removeEntityScenegraph(entityId: childId)
     }
 
     // we need to unlink parent from main entity
@@ -254,18 +260,6 @@ public func removeEntity(entityId: EntityID, containsResources: Bool = true) {
     scenegraphComponent.parent = .invalid
     scenegraphComponent.level = 0
     scene.remove(component: ScenegraphComponent.self, from: entityId)
-
-    if containsResources == true {
-        cleanUpEntityResources(entityId: entityId)
-    }
-}
-
-func cleanUpEntityResources(entityId: EntityID) {
-    removeEntityMesh(entityId: entityId)
-    removeEntityAnimations(entityId: entityId)
-    removeEntityKinetics(entityId: entityId)
-
-    destroyEntity(entityId: entityId)
 }
 
 // register Render and Transform components
