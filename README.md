@@ -99,10 +99,11 @@ I’ve designed three different ways for you to [Get Started](docs/Onboarding.md
 I have uploaded video tutorials to help you get started with the Untold Engine. Enjoy
 
 1. [How to Install the Untold Engine: Quick Start Guide](https://youtu.be/tAAOzIMQD_Q)
-2. [Untold Engine Onboarding: The Best Learning Path for Beginners](https://youtu.be/h6OgCbM3V1Y)
-3. [Rendering with the Untold Engine - A Beginner’s Guide](https://youtu.be/kj6i6btb9c0)
-4. [Animating in  the Untold Engine - A Beginner’s Guide](https://youtu.be/Du23BsQmwO8)
-5. [Moving Characters in the Untold Engine: A Beginner's Guide](https://youtu.be/biScvPvccI4)
+2. [Getting Started with the Untold Engine: A Simple Beginner's Guide](https://youtu.be/jzl56O06ulc)
+3. [Untold Engine Onboarding: The Best Learning Path for Beginners](https://youtu.be/h6OgCbM3V1Y)
+4. [Rendering with the Untold Engine - A Beginner’s Guide](https://youtu.be/kj6i6btb9c0)
+5. [Animating in  the Untold Engine - A Beginner’s Guide](https://youtu.be/Du23BsQmwO8)
+6. [Moving Characters in the Untold Engine: A Beginner's Guide](https://youtu.be/biScvPvccI4)
 
 ---
 
