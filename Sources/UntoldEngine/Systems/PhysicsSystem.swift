@@ -49,7 +49,7 @@ public func getVelocity(entityId: EntityID) -> simd_float3 {
 public func updatePhysicsSystem(deltaTime: Float) {
     addGravity(gravity: simd_float3(0.0, -9.8, 0.0)) // add gravity
     accumulateForces(deltaTime: deltaTime) // Apply accumulated forces to acceleration
-    eulerIntegration(deltaTime: deltaTime) // Update velocity and position
+    rungeKuttaIntegration(deltaTime: deltaTime) // Update velocity and position
 }
 
 private func addGravity(gravity: simd_float3) {
@@ -151,6 +151,43 @@ public func isPhysicsComponentPaused(entityId: EntityID) -> Bool {
     }
 
     return physicsComponent.pause
+}
+
+private func rungeKuttaIntegration(deltaTime: Float) {
+    // all all the forces for the entity
+    let kineticId = getComponentId(for: KineticComponent.self)
+    let physicsId = getComponentId(for: PhysicsComponents.self)
+    let transformId = getComponentId(for: LocalTransformComponent.self)
+
+    let entities = queryEntitiesWithComponentIds([kineticId, physicsId, transformId], in: scene)
+
+    for entity in entities {
+        guard let physics = scene.get(component: PhysicsComponents.self, for: entity) else {
+            continue
+        }
+
+        guard let transform = scene.get(component: LocalTransformComponent.self, for: entity) else {
+            continue
+        }
+
+        if isPhysicsComponentPaused(entityId: entity) {
+            continue
+        }
+
+        let k1: simd_float3 = (physics.acceleration) * deltaTime
+        let k2: simd_float3 = (physics.acceleration + k1 * 0.5) * deltaTime
+        let k3: simd_float3 = (physics.acceleration + k2 * 0.5) * deltaTime
+        let k4: simd_float3 = (physics.acceleration + k3) * deltaTime
+
+        // update velocity based on acceleration
+        physics.velocity = physics.velocity + (k1 + k2 + k3 + k4) * (rungaKuttaCorrectionCoefficient / 6)
+
+        // update position based on velocity
+        var position = getPosition(entityId: entity)
+        position += physics.velocity * deltaTime
+
+        transform.space.columns.3 = simd_float4(position.x, position.y, position.z, 1.0)
+    }
 }
 
 private func eulerIntegration(deltaTime: Float) {
