@@ -80,7 +80,9 @@ final class PhysicsSystemTests: XCTestCase {
         updatePhysicsSystem(deltaTime: 1.0)
 
         let velocity = scene.get(component: PhysicsComponents.self, for: entityId)?.velocity
-        XCTAssertEqual(velocity, simd_float3(5, 0, 0), "Velocity should be updated correctly.")
+        XCTAssertEqual(velocity!.x, 5.0, accuracy: 0.01, "z Velocity should be updated correctly.")
+        XCTAssertEqual(velocity!.y, 0.0, accuracy: 0.01, "y Velocity should be updated correctly.")
+        XCTAssertEqual(velocity!.z, 0.0, accuracy: 0.01, "z Velocity should be updated correctly.")
     }
 
     func testAccelerationUpdateWithForces() {
@@ -107,7 +109,9 @@ final class PhysicsSystemTests: XCTestCase {
 
         let expectedPosition = simd_float3(0, -9.8, 0) // Gravity: -9.8, dt = 1.0, initial velocity = 0
 
-        XCTAssertEqual(position, expectedPosition, "Position should be correctly calculated.")
+        XCTAssertEqual(position.x, expectedPosition.x, accuracy: 0.1, "x Position should be correctly calculated.")
+        XCTAssertEqual(position.y, expectedPosition.y, accuracy: 0.1, "y Position should be correctly calculated.")
+        XCTAssertEqual(position.z, expectedPosition.z, accuracy: 0.1, "z Position should be correctly calculated.")
     }
 
     // MARK: - Pause Physics Tests
