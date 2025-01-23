@@ -154,4 +154,4 @@ enum DebugSelection: Int {
 var currentDebugSelection: DebugSelection = .normalOutput
 
 // Physics system
-var rungaKuttaCorrectionCoefficient: Float = 0.585
+var rungaKuttaCorrectionCoefficient: Float = 1.0
