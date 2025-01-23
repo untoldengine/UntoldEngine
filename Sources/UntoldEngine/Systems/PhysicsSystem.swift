@@ -174,17 +174,23 @@ private func rungeKuttaIntegration(deltaTime: Float) {
             continue
         }
 
+        // update velocity based on acceleration
         let k1: simd_float3 = (physics.acceleration) * deltaTime
         let k2: simd_float3 = (physics.acceleration + k1 * 0.5) * deltaTime
         let k3: simd_float3 = (physics.acceleration + k2 * 0.5) * deltaTime
         let k4: simd_float3 = (physics.acceleration + k3) * deltaTime
 
-        // update velocity based on acceleration
-        physics.velocity = physics.velocity + (k1 + k2 + k3 + k4) * (rungaKuttaCorrectionCoefficient / 6)
+        physics.velocity = physics.velocity + (k1 + 2.0 * k2 + 2.0 * k3 + k4) * (rungaKuttaCorrectionCoefficient / 6)
 
         // update position based on velocity
         var position = getPosition(entityId: entity)
-        position += physics.velocity * deltaTime
+
+        let k1x: simd_float3 = (physics.velocity) * deltaTime
+        let k2x: simd_float3 = (physics.velocity + k1x * 0.5) * deltaTime
+        let k3x: simd_float3 = (physics.velocity + k2x * 0.5) * deltaTime
+        let k4x: simd_float3 = (physics.velocity + k3x) * deltaTime
+
+        position = position + (k1x + 2.0 * k2x + 2.0 * k3x + k4x) * (rungaKuttaCorrectionCoefficient / 6)
 
         transform.space.columns.3 = simd_float4(position.x, position.y, position.z, 1.0)
     }
