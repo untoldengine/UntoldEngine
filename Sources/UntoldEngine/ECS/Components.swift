@@ -48,16 +48,17 @@ public class RenderComponent: Component {
 }
 
 public class PhysicsComponents: Component {
-    var mass: Float
-    var velocity: simd_float3
-    var acceleration: simd_float3
+    var mass: Float = 1.0
+    var centerOfMass: simd_float3 = .zero
+    var velocity: simd_float3 = .zero
+    var acceleration: simd_float3 = .zero
+    var inertiaTensorType: InertiaTensorType = .spherical
+    var momentOfInertiaTensor: simd_float3x3 = .init(diagonal: simd_float3(1.0, 1.0, 1.0))
+    var inverseMomentOfInertiaTensor: simd_float3x3 = .init(diagonal: simd_float3(1.0, 1.0, 1.0))
     var pause: Bool = false
+    var inertiaTensorComputed: Bool = false
 
-    public required init() {
-        mass = 1.0
-        velocity = simd_float3(0.0, 0.0, 0.0)
-        acceleration = simd_float3(0.0, 0.0, 0.0)
-    }
+    public required init() {}
 }
 
 public class KineticComponent: Component {

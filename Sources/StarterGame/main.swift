@@ -17,7 +17,7 @@ class GameScene {
 
         // Step 2: Create a Red Player Entity with Animation
         player = createEntity()
-        setEntityMesh(entityId: player, filename: "hollandPlayer", withExtension: "usdc", flip: false)
+        setEntityMesh(entityId: player, filename: "adidasball", withExtension: "usdc")
 
         // Add animations or physics components to the player
 

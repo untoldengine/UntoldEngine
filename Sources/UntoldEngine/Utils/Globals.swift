@@ -155,3 +155,9 @@ var currentDebugSelection: DebugSelection = .normalOutput
 
 // Physics system
 var rungaKuttaCorrectionCoefficient: Float = 1.0
+
+enum InertiaTensorType: Int {
+    case cubic
+    case spherical
+    case cylindrical
+}
