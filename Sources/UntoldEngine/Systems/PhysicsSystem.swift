@@ -229,3 +229,87 @@ private func eulerIntegration(deltaTime: Float) {
         transform.space.columns.3.z = position.z
     }
 }
+
+func computeInertiaTensor(entityId: EntityID) {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+
+    if physicsComponent.inertiaTensorComputed {
+        return
+    }
+
+    var tensor: simd_float3x3 = .init(diagonal: simd_float3(1.0, 1.0, 1.0))
+
+    var Ixx: Float = 0.0
+    var Iyy: Float = 0.0
+    var Izz: Float = 0.0
+
+    var Ixy: Float = 0.0
+    var Ixz: Float = 0.0
+    var Iyz: Float = 0.0
+
+    // get body dimensions
+    var uX: Float = abs(localTransformComponent.boundingBox.1.x - localTransformComponent.boundingBox.0.x)
+    var uY: Float = abs(localTransformComponent.boundingBox.1.y - localTransformComponent.boundingBox.0.y)
+    var uZ: Float = abs(localTransformComponent.boundingBox.1.z - localTransformComponent.boundingBox.0.z)
+
+    if physicsComponent.inertiaTensorType == .spherical {
+        uX = uX / 2.0
+        uY = uY / 2.0
+        uZ = uZ / 2.0
+
+        // Inertia Tensor for spherical bodies
+        Ixx = (2 * uX * uX) * physicsComponent.mass / 5.0
+        Iyy = (2 * uX * uX) * physicsComponent.mass / 5.0
+        Izz = (2 * uX * uX) * physicsComponent.mass / 5.0
+
+        Ixy = physicsComponent.mass * (physicsComponent.centerOfMass.x * physicsComponent.centerOfMass.y)
+        Ixz = physicsComponent.mass * (physicsComponent.centerOfMass.x * physicsComponent.centerOfMass.z)
+        Iyz = physicsComponent.mass * (physicsComponent.centerOfMass.y * physicsComponent.centerOfMass.z)
+
+    } else if physicsComponent.inertiaTensorType == .cylindrical {
+        uX = uX / 2.0
+
+        Ixx = (3 * uX * uX + uY * uY) * physicsComponent.mass / 12.0
+        Iyy = (3 * uX * uX + uY * uY) * physicsComponent.mass / 12.0
+        Izz = (uX * uX) * physicsComponent.mass / 2.0
+
+        Ixy = physicsComponent.mass * (physicsComponent.centerOfMass.x * physicsComponent.centerOfMass.y)
+        Ixz = physicsComponent.mass * (physicsComponent.centerOfMass.x * physicsComponent.centerOfMass.z)
+        Iyz = physicsComponent.mass * (physicsComponent.centerOfMass.y * physicsComponent.centerOfMass.z)
+
+    } else {
+        // Inertia Tensor for cubic bodies
+        Ixx = (uY * uY + uZ * uZ) * physicsComponent.mass / 12.0
+        Iyy = (uX * uX + uZ * uZ) * physicsComponent.mass / 12.0
+        Izz = (uX * uX + uY * uY) * physicsComponent.mass / 12.0
+
+        Ixy = physicsComponent.mass * (physicsComponent.centerOfMass.x * physicsComponent.centerOfMass.y)
+        Ixz = physicsComponent.mass * (physicsComponent.centerOfMass.x * physicsComponent.centerOfMass.z)
+        Iyz = physicsComponent.mass * (physicsComponent.centerOfMass.y * physicsComponent.centerOfMass.z)
+    }
+
+    tensor.columns.0.x = Ixx
+    tensor.columns.1.y = Iyy
+    tensor.columns.2.z = Izz
+
+    tensor.columns.1.x = -Ixy
+    tensor.columns.2.x = -Ixz
+    tensor.columns.2.y = Iyz
+
+    tensor.columns.0.y = -Ixy
+    tensor.columns.0.z = -Ixz
+    tensor.columns.1.z = -Iyz
+
+    physicsComponent.momentOfInertiaTensor = tensor
+    physicsComponent.inverseMomentOfInertiaTensor = tensor.inverse
+
+    physicsComponent.inertiaTensorComputed = true
+}
