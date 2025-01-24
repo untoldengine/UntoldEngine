@@ -131,4 +131,74 @@ final class PhysicsSystemTests: XCTestCase {
         pausePhysicsComponent(entityId: entityId, isPaused: false)
         XCTAssertFalse(isPhysicsComponentPaused(entityId: entityId), "Physics component should be unpaused.")
     }
+
+    func testSphereMomentInertia() {
+        guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+            handleError(.noPhysicsComponent, entityId)
+            return
+        }
+
+        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+            handleError(.noLocalTransformComponent, entityId)
+            return
+        }
+
+        physicsComponent.mass = 1.0
+
+        localTransformComponent.boundingBox = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
+
+        computeInertiaTensor(entityId: entityId)
+
+        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.0.x, 2.0 / 5.0, accuracy: 0.001, "x tensor component should match")
+        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.1.y, 2.0 / 5.0, accuracy: 0.001, "y tensor component should match")
+        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.2.z, 2.0 / 5.0, accuracy: 0.001, "z tensor component should match")
+    }
+
+    func testCylinderMomentInertia() {
+        guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+            handleError(.noPhysicsComponent, entityId)
+            return
+        }
+
+        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+            handleError(.noLocalTransformComponent, entityId)
+            return
+        }
+
+        physicsComponent.inertiaTensorType = .cylindrical
+
+        physicsComponent.mass = 1.0
+
+        localTransformComponent.boundingBox = (min: simd_float3(-1.0, -2.0, -1.0), max: simd_float3(1.0, 2.0, 1.0))
+
+        computeInertiaTensor(entityId: entityId)
+
+        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.0.x, 19.0 / 12.0, accuracy: 0.001, "x tensor component should match")
+        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.1.y, 19.0 / 12.0, accuracy: 0.001, "y tensor component should match")
+        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.2.z, 0.5, accuracy: 0.001, "z tensor component should match")
+    }
+
+    func testCubicMomentInertia() {
+        guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+            handleError(.noPhysicsComponent, entityId)
+            return
+        }
+
+        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+            handleError(.noLocalTransformComponent, entityId)
+            return
+        }
+
+        physicsComponent.inertiaTensorType = .cubic
+
+        physicsComponent.mass = 1.0
+
+        localTransformComponent.boundingBox = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
+
+        computeInertiaTensor(entityId: entityId)
+
+        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.0.x, 8.0 / 12.0, accuracy: 0.001, "x tensor component should match")
+        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.1.y, 8.0 / 12.0, accuracy: 0.001, "y tensor component should match")
+        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.2.z, 8.0 / 12.0, accuracy: 0.001, "z tensor component should match")
+    }
 }
