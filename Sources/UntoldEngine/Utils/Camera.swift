@@ -34,7 +34,7 @@ public struct Camera {
         yAxis = upDirectionVector(from: rotation)
         zAxis = forwardDirectionVector(from: rotation)
 
-        viewSpace = getMatrix4x4(from: rotation)
+        viewSpace = getMatrix4x4FromQuaternion(q: rotation)
 
         viewSpace.columns.3 = simd_float4(
             -simd_dot(xAxis, localPosition),
