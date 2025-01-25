@@ -99,7 +99,7 @@ final class PhysicsSystemTests: XCTestCase {
         XCTAssertEqual(acceleration, simd_float3(5, 0, 0), "Acceleration should be correctly calculated.")
     }
 
-    func testPositionnUpdateWithForces() {
+    func testPositionUpdateWithForces() {
         setMass(entityId: entityId, mass: 2.0)
 
         var t: Float = 0.1
@@ -200,5 +200,99 @@ final class PhysicsSystemTests: XCTestCase {
         XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.0.x, 8.0 / 12.0, accuracy: 0.001, "x tensor component should match")
         XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.1.y, 8.0 / 12.0, accuracy: 0.001, "y tensor component should match")
         XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.2.z, 8.0 / 12.0, accuracy: 0.001, "z tensor component should match")
+    }
+
+//    func testAngularAcceleration(){
+//
+//        guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+//            handleError(.noPhysicsComponent, entityId)
+//            return
+//        }
+//
+//        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+//            handleError(.noLocalTransformComponent, entityId)
+//            return
+//        }
+//
+//        physicsComponent.mass = 2.0
+//
+//        localTransformComponent.boundingBox = (min: simd_float3(-2.0, -2.0, -2.0), max: simd_float3(2.0, 2.0, 2.0))
+//
+//        computeInertiaTensor(entityId: entityId)
+//
+//        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.0.x, 3.2, accuracy: 0.001, "x tensor component should match")
+//        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.1.y, 3.2, accuracy: 0.001, "y tensor component should match")
+//        XCTAssertEqual(physicsComponent.momentOfInertiaTensor.columns.2.z, 3.2, accuracy: 0.001, "z tensor component should match")
+//
+//        applyMoment(entityId: entityId, force: simd_float3(1.0,0.0,0.0), at: simd_float3(0.0,2.0,0.0))
+//
+//        accumulateMoment(deltaTime: 0.1)
+//
+//        XCTAssertEqual(physicsComponent.angularAcceleration.x, 0.0, accuracy: 0.001, "x acceleration component should match")
+//        XCTAssertEqual(physicsComponent.angularAcceleration.y, 0.0, accuracy: 0.001, "y acceleration component should match")
+//        XCTAssertEqual(physicsComponent.angularAcceleration.z, -0.625, accuracy: 0.001, "z acceleration component should match")
+//
+//    }
+
+    func testAngularVelocityUpdate() {
+        guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+            handleError(.noPhysicsComponent, entityId)
+            return
+        }
+
+        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+            handleError(.noLocalTransformComponent, entityId)
+            return
+        }
+
+        physicsComponent.mass = 2.0
+
+        localTransformComponent.boundingBox = (min: simd_float3(-2.0, -2.0, -2.0), max: simd_float3(2.0, 2.0, 2.0))
+
+        var t: Float = 0.1
+        while t < 1.0 {
+            applyMoment(entityId: entityId, force: simd_float3(1.0, 0.0, 0.0), at: simd_float3(0.0, 2.0, 0.0))
+            updatePhysicsSystem(deltaTime: 0.1)
+            t += 0.1
+        }
+
+        XCTAssertEqual(physicsComponent.angularVelocity.x, 0.0, accuracy: 0.3, "x velocity component should match")
+        XCTAssertEqual(physicsComponent.angularVelocity.y, 0.0, accuracy: 0.3, "y velocity component should match")
+        XCTAssertEqual(physicsComponent.angularVelocity.z, -0.625, accuracy: 0.3, "z velocity component should match")
+    }
+
+    func testOrientationUpdate() {
+        guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+            handleError(.noPhysicsComponent, entityId)
+            return
+        }
+
+        guard let transform = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+            handleError(.noLocalTransformComponent, entityId)
+            return
+        }
+
+        physicsComponent.mass = 2.0
+
+        transform.boundingBox = (min: simd_float3(-2.0, -2.0, -2.0), max: simd_float3(2.0, 2.0, 2.0))
+
+        var t: Float = 0.1
+        while t < 1.0 {
+            applyMoment(entityId: entityId, force: simd_float3(1.0, 0.0, 0.0), at: simd_float3(0.0, 2.0, 0.0))
+            updatePhysicsSystem(deltaTime: 0.1)
+            t += 0.1
+        }
+
+        XCTAssertEqual(transform.space.columns.0.x, 0.9878, accuracy: 0.3, "component should match")
+        XCTAssertEqual(transform.space.columns.0.y, 0.1556, accuracy: 0.3, "component should match")
+        XCTAssertEqual(transform.space.columns.0.z, 0.0, accuracy: 0.3, "component should match")
+
+        XCTAssertEqual(transform.space.columns.1.x, -0.1556, accuracy: 0.3, "component should match")
+        XCTAssertEqual(transform.space.columns.1.y, 0.9878, accuracy: 0.3, "component should match")
+        XCTAssertEqual(transform.space.columns.1.z, 0.0, accuracy: 0.3, "component should match")
+
+        XCTAssertEqual(transform.space.columns.2.x, 0.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(transform.space.columns.2.y, 0.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(transform.space.columns.2.z, 1.0, accuracy: 0.3, "component should match")
     }
 }

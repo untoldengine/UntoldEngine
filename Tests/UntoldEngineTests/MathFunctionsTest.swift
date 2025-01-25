@@ -206,7 +206,7 @@ final class MathFunctionsTests: XCTestCase {
         XCTAssertEqual(euler.roll, 60.0, accuracy: 0.001, "pitch should be equal")
     }
 
-    func testGetMatrix() {
+    func testGetMatrix4x4FromQuaternion() {
         var q: quaternion = quaternion_identity()
         q.x = 0.2005621
         q.y = 0.3919038

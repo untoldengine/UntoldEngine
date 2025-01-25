@@ -49,6 +49,7 @@ public func getVelocity(entityId: EntityID) -> simd_float3 {
 public func updatePhysicsSystem(deltaTime: Float) {
     addGravity(gravity: simd_float3(0.0, -9.8, 0.0)) // add gravity
     accumulateForces(deltaTime: deltaTime) // Apply accumulated forces to acceleration
+    accumulateMoment(deltaTime: deltaTime)
     rungeKuttaIntegration(deltaTime: deltaTime) // Update velocity and position
 }
 
@@ -110,6 +111,40 @@ private func accumulateForces(deltaTime _: Float) {
     }
 }
 
+private func accumulateMoment(deltaTime _: Float) {
+    let kineticId = getComponentId(for: KineticComponent.self)
+    let physicsId = getComponentId(for: PhysicsComponents.self)
+    let entities = queryEntitiesWithComponentIds([kineticId, physicsId], in: scene)
+
+    for entity in entities {
+        guard let physics = scene.get(component: PhysicsComponents.self, for: entity) else {
+            continue
+        }
+
+        guard let kinetic = scene.get(component: KineticComponent.self, for: entity) else {
+            continue
+        }
+
+        if isPhysicsComponentPaused(entityId: entity) {
+            continue
+        }
+
+        computeInertiaTensor(entityId: entity)
+
+        // sum up all moments
+        var totalMoment = simd_float3(0.0, 0.0, 0.0)
+        for moment in kinetic.moments {
+            totalMoment += moment
+        }
+
+        // Calculate angular acceleration based on accumulated forces
+        physics.angularAcceleration = physics.inverseMomentOfInertiaTensor * (totalMoment - cross(physics.angularVelocity, physics.momentOfInertiaTensor * physics.angularVelocity))
+
+        // clear moments after applying them
+        kinetic.clearMoments()
+    }
+}
+
 public func applyForce(entityId: EntityID, force: simd_float3) {
     guard let kinetic = scene.get(component: KineticComponent.self, for: entityId) else {
         handleError(.noKineticComponent, entityId)
@@ -124,6 +159,31 @@ public func applyForce(entityId: EntityID, force: simd_float3) {
     kinetic.addForce(force)
 }
 
+public func applyMoment(entityId: EntityID, force: simd_float3, at point: simd_float3) {
+    guard let kinetic = scene.get(component: KineticComponent.self, for: entityId) else {
+        handleError(.noKineticComponent, entityId)
+        return
+    }
+
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    guard isValid(force) else {
+        handleError(.valueisNaN, "Force", entityId)
+        return
+    }
+
+    // calculate lever arm
+    let r = point - physics.centerOfMass
+
+    // calculate torque
+    let torque = simd_cross(r, force)
+
+    kinetic.addMoment(torque)
+}
+
 public func clearForces(entityId: EntityID) {
     guard let kinetic = scene.get(component: KineticComponent.self, for: entityId) else {
         handleError(.noKineticComponent, entityId)
@@ -131,6 +191,15 @@ public func clearForces(entityId: EntityID) {
     }
 
     kinetic.clearForces()
+}
+
+public func clearMoment(entityId: EntityID) {
+    guard let kinetic = scene.get(component: KineticComponent.self, for: entityId) else {
+        handleError(.noKineticComponent, entityId)
+        return
+    }
+
+    kinetic.clearMoments()
 }
 
 /// pause physics component for entity
@@ -193,6 +262,37 @@ private func rungeKuttaIntegration(deltaTime: Float) {
         position = position + (k1x + 2.0 * k2x + 2.0 * k3x + k4x) * (rungaKuttaCorrectionCoefficient / 6)
 
         transform.space.columns.3 = simd_float4(position.x, position.y, position.z, 1.0)
+
+        // update angular velocity and orientation
+        let k1av: simd_float3 = (physics.angularAcceleration) * deltaTime
+        let k2av: simd_float3 = (physics.angularAcceleration + k1av * 0.5) * deltaTime
+        let k3av: simd_float3 = (physics.angularAcceleration + k2av * 0.5) * deltaTime
+        let k4av: simd_float3 = (physics.angularAcceleration + k3av) * deltaTime
+
+        // update angular velocity
+        physics.angularVelocity = physics.angularVelocity + (k1av + 2.0 * k2av + 2.0 * k3av + k4av) * (rungaKuttaCorrectionCoefficient / 6)
+
+        // update orientation
+        var orientationMatrix: simd_float3x3 = getLocalOrientation(entityId: entity)
+        var orientationQuaternion = transformMatrix3nToQuaternion(m: orientationMatrix)
+        let eulerAngles = transformQuaternionToEulerAngles(q: orientationQuaternion)
+
+        var orientation = simd_float3(eulerAngles.pitch, eulerAngles.yaw, eulerAngles.roll)
+
+        let k1ax: simd_float3 = (physics.angularVelocity) * deltaTime
+        let k2ax: simd_float3 = (physics.angularVelocity + k1ax * 0.5) * deltaTime
+        let k3ax: simd_float3 = (physics.angularVelocity + k2ax * 0.5) * deltaTime
+        let k4ax: simd_float3 = (physics.angularVelocity + k3ax) * deltaTime
+
+        orientation = orientation + (k1ax + 2.0 * k2ax + 2.0 * k3ax + k4ax) * (rungaKuttaCorrectionCoefficient / 6)
+
+        orientationQuaternion = transformEulerAnglesToQuaternion(pitch: orientation.x, yaw: orientation.y, roll: orientation.z)
+
+        orientationMatrix = transformQuaternionToMatrix3x3(q: orientationQuaternion)
+
+        transform.space.columns.0 = simd_float4(orientationMatrix.columns.0, 0.0)
+        transform.space.columns.1 = simd_float4(orientationMatrix.columns.1, 0.0)
+        transform.space.columns.2 = simd_float4(orientationMatrix.columns.2, 0.0)
     }
 }
 
