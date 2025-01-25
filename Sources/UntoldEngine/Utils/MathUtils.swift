@@ -28,14 +28,14 @@ public func safeACos(x: inout Double) -> Double {
     return acos(x)
 }
 
-public func convertToPositiveAngle(degrees: inout Double) -> Double {
-    degrees = fmod(degrees, 360.0)
+public func convertToPositiveAngle(degrees: Float) -> Float {
+    var angle: Float = fmod(degrees, 360.0)
 
-    if degrees < 0.0 {
-        degrees += 360.0
+    if angle < 0.0 {
+        angle += 360.0
     }
 
-    return degrees
+    return angle
 }
 
 public func areEqualAbs(_ uNumber1: Float, _ uNumber2: Float, uEpsilon: Float) -> Bool {
@@ -383,6 +383,251 @@ public func rotateVectorUsingQuaternion(q: quaternion, v: simd_float3) -> simd_f
 
     return v
 }
+
+public func transformQuaternionToMatrix3x3(q: quaternion) -> matrix_float3x3 {
+    /*
+     // 3x3 matrix - column major. X vector is 0, 1, 2, etc.
+     //    0    3    6
+     //    1    4    7
+     //    2    5    8
+
+     */
+
+    var m = simd_float3x3.init(diagonal: simd_float3(1.0, 1.0, 1.0))
+
+    m.columns.0.x = 2 * (q.w * q.w + q.x * q.x) - 1
+    m.columns.1.x = 2 * (q.x * q.y - q.w * q.z)
+    m.columns.2.x = 2 * (q.x * q.z + q.w * q.y)
+
+    m.columns.0.y = 2 * (q.x * q.y + q.w * q.z)
+    m.columns.1.y = 2 * (q.w * q.w + q.y * q.y) - 1
+    m.columns.2.y = 2 * (q.y * q.z - q.w * q.x)
+
+    m.columns.0.z = 2 * (q.x * q.z - q.w * q.y)
+    m.columns.1.z = 2 * (q.y * q.z + q.w * q.x)
+    m.columns.2.z = 2 * (q.w * q.w + q.z * q.z) - 1
+
+    return m
+}
+
+public func transformMatrix3nToQuaternion(m: matrix_float3x3) -> quaternion {
+    // 3x3 matrix - column major. X vector is 0, 1, 2, etc.
+    //    0    3    6
+    //    1    4    7
+    //    2    5    8
+
+    // calculate the sum of the diagonal elements
+    let trace: Float = m.columns.0.x + m.columns.1.y + m.columns.2.z
+    var q: quaternion = quaternion_identity()
+
+    if trace > 0 { // s=4*qw
+        q.w = 0.5 * sqrt(1 + trace)
+        let S: Float = 0.25 / q.w
+
+        q.x = S * (m.columns.1.z - m.columns.2.y)
+        q.y = S * (m.columns.2.x - m.columns.0.z)
+        q.z = S * (m.columns.0.y - m.columns.1.x)
+
+    } else if m.columns.0.x > m.columns.1.y, m.columns.0.x > m.columns.2.z { // s=4*qx
+        q.x = 0.5 * sqrt(1 + m.columns.0.x - m.columns.1.y - m.columns.2.z)
+        let X: Float = 0.25 / q.x
+
+        q.y = X * (m.columns.1.x + m.columns.0.y)
+        q.z = X * (m.columns.2.x + m.columns.0.z)
+        q.w = X * (m.columns.1.z - m.columns.2.y)
+
+    } else if m.columns.1.y > m.columns.2.z { // s=4*qy
+        q.y = 0.5 * sqrt(1 - m.columns.0.x + m.columns.1.y - m.columns.2.z)
+        let Y: Float = 0.25 / q.y
+        q.x = Y * (m.columns.1.x + m.columns.0.y)
+        q.z = Y * (m.columns.2.y + m.columns.1.z)
+        q.w = Y * (m.columns.2.x - m.columns.0.z)
+
+    } else { // s=4*qz
+        q.z = 0.5 * sqrt(1 - m.columns.0.x - m.columns.1.y + m.columns.2.z)
+        let Z: Float = 0.25 / q.z
+        q.x = Z * (m.columns.2.x + m.columns.0.z)
+        q.y = Z * (m.columns.2.y + m.columns.1.z)
+        q.w = Z * (m.columns.0.y - m.columns.1.x)
+    }
+
+    return q
+}
+
+public func transformQuaternionToEulerAngles(q: quaternion) -> (pitch: Float, yaw: Float, roll: Float) {
+    // 3x3 matrix - column major. X vector is 0, 1, 2, etc.
+    //    0    3    6
+    //    1    4    7
+    //    2    5    8
+
+    var x: Float = 0.0
+    var y: Float = 0.0
+    var z: Float = 0.0
+
+    var test: Float = 2 * (q.x * q.z - q.w * q.y)
+
+    if test != 1, test != -1 {
+        x = atan2(q.y * q.z + q.w * q.x, 0.5 - (q.x * q.x + q.y * q.y))
+        y = asin(-2 * (q.x * q.z - q.w * q.y))
+        z = atan2(q.x * q.y + q.w * q.z, 0.5 - (q.y * q.y + q.z * q.z))
+
+    } else if test == 1 {
+        z = atan2(q.x * q.y + q.w * q.z, 0.5 - (q.y * q.y + q.z * q.z))
+        y = -.pi / 2.0
+        x = -z + atan2(q.x * q.y - q.w * q.z, q.x * q.z + q.w * q.y)
+
+    } else if test == -1 {
+        z = atan2(q.x * q.y + q.w * q.z, 0.5 - (q.y * q.y + q.z * q.z))
+        y = .pi / 2.0
+        x = z + atan2(q.x * q.y - q.w * q.z, q.x * q.z + q.w * q.y)
+    }
+
+    x = radiansToDegrees(radians: x)
+    y = radiansToDegrees(radians: y)
+    z = radiansToDegrees(radians: z)
+
+    return (pitch: x, yaw: y, roll: z)
+}
+
+public func transformEulerAnglesToQuaternion(pitch: Float, yaw: Float, roll: Float) -> quaternion {
+    var x: Float = convertToPositiveAngle(degrees: pitch)
+    var y: Float = convertToPositiveAngle(degrees: yaw)
+    var z: Float = convertToPositiveAngle(degrees: roll)
+
+    x = degreesToRadians(degrees: x)
+    y = degreesToRadians(degrees: y)
+    z = degreesToRadians(degrees: z)
+
+    x = x / 2.0
+    y = y / 2.0
+    z = z / 2.0
+
+    var q: quaternion = quaternion_identity()
+
+    q.w = cos(z) * cos(y) * cos(x) + sin(z) * sin(y) * sin(x)
+    q.x = cos(z) * cos(y) * sin(x) - sin(z) * sin(y) * cos(x)
+    q.y = cos(z) * sin(y) * cos(x) + sin(z) * cos(y) * sin(x)
+    q.z = sin(z) * cos(y) * cos(x) - cos(z) * sin(y) * sin(x)
+
+    return q
+}
+
+/*
+
+ void U4DQuaternion::transformEulerAnglesToQuaternion(float x,float y, float z){
+
+     U4DTrigonometry trigonometry;
+
+     x=trigonometry.convertToPositiveAngle(x);
+     y=trigonometry.convertToPositiveAngle(y);
+     z=trigonometry.convertToPositiveAngle(z);
+
+     x=trigonometry.degreesToRad(x);
+     y=trigonometry.degreesToRad(y);
+     z=trigonometry.degreesToRad(z);
+
+     x=x/2.0;
+     y=y/2.0;
+     z=z/2.0;
+
+     s=cos(z)*cos(y)*cos(x)+sin(z)*sin(y)*sin(x);
+     v.x=cos(z)*cos(y)*sin(x)-sin(z)*sin(y)*cos(x);
+     v.y=cos(z)*sin(y)*cos(x)+sin(z)*cos(y)*sin(x);
+     v.z=sin(z)*cos(y)*cos(x)-cos(z)*sin(y)*sin(x);
+
+ }
+
+ U4DVector3n U4DQuaternion::transformQuaternionToEulerAngles(){
+
+     // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
+     //    0    3    6
+     //    1    4    7
+     //    2    5    8
+
+     float x=0.0;
+     float y=0.0;
+     float z=0.0;
+
+     float test=2*(v.x*v.z-s*v.y);
+
+     if (test!=1 && test!=-1) {
+
+         x=atan2(v.y*v.z + s*v.x, 0.5-(v.x*v.x+v.y*v.y));
+         y=asin(-2*(v.x*v.z-s*v.y));
+         z=atan2(v.x*v.y+s*v.z, 0.5-(v.y*v.y+v.z*v.z));
+
+     }else if (test==1){
+         z=atan2(v.x*v.y+s*v.z, 0.5-(v.y*v.y+v.z*v.z));
+         y=-M_PI/2.0;
+         x=-z+atan2(v.x*v.y-s*v.z, v.x*v.z+s*v.y);
+
+     }else if(test==-1){
+
+         z=atan2(v.x*v.y+s*v.z, 0.5-(v.y*v.y+v.z*v.z));
+         y=M_PI/2.0;
+         x=z+atan2(v.x*v.y-s*v.z, v.x*v.z+s*v.y);
+
+     }
+
+     U4DTrigonometry trigonometry;
+
+     x=trigonometry.radToDegrees(x);
+     y=trigonometry.radToDegrees(y);
+     z=trigonometry.radToDegrees(z);
+
+     U4DVector3n euler(x,y,z);
+
+     return euler;
+ }
+
+ void U4DQuaternion::transformMatrix3nToQuaternion(U4DMatrix3n &uMatrix){
+
+     // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
+     //    0    3    6
+     //    1    4    7
+     //    2    5    8
+
+     //calculate the sum of the diagonal elements
+
+     float trace=uMatrix.matrixData[0]+uMatrix.matrixData[4]+uMatrix.matrixData[8];
+
+     if (trace>0) {      //s=4*qw
+
+         s=0.5*sqrt(1+trace);
+         float S=0.25/s;
+
+         v.x=S*(uMatrix.matrixData[5]-uMatrix.matrixData[7]);
+         v.y=S*(uMatrix.matrixData[6]-uMatrix.matrixData[2]);
+         v.z=S*(uMatrix.matrixData[1]-uMatrix.matrixData[3]);
+
+     }else if(uMatrix.matrixData[0]>uMatrix.matrixData[4] && uMatrix.matrixData[0]>uMatrix.matrixData[8]){ //s=4*qx
+
+         v.x=0.5*sqrt(1+uMatrix.matrixData[0]-uMatrix.matrixData[4]-uMatrix.matrixData[8]);
+         float X=0.25/v.x;
+
+         v.y=X*(uMatrix.matrixData[3]+uMatrix.matrixData[1]);
+         v.z=X*(uMatrix.matrixData[6]+uMatrix.matrixData[2]);
+         s=X*(uMatrix.matrixData[5]-uMatrix.matrixData[7]);
+
+     }else if(uMatrix.matrixData[4]>uMatrix.matrixData[8]){ //s=4*qy
+
+         v.y=0.5*sqrt(1-uMatrix.matrixData[0]+uMatrix.matrixData[4]-uMatrix.matrixData[8]);
+         float Y=0.25/v.y;
+         v.x=Y*(uMatrix.matrixData[3]+uMatrix.matrixData[1]);
+         v.z=Y*(uMatrix.matrixData[7]+uMatrix.matrixData[5]);
+         s=Y*(uMatrix.matrixData[6]-uMatrix.matrixData[2]);
+
+     }else{ //s=4*qz
+
+         v.z=0.5*sqrt(1-uMatrix.matrixData[0]-uMatrix.matrixData[4]+uMatrix.matrixData[8]);
+         float Z=0.25/v.z;
+         v.x=Z*(uMatrix.matrixData[6]+uMatrix.matrixData[2]);
+         v.y=Z*(uMatrix.matrixData[7]+uMatrix.matrixData[5]);
+         s=Z*(uMatrix.matrixData[1]-uMatrix.matrixData[3]);
+     }
+
+ }
+ */
 
 public func makeAABB(uOrigin: simd_float3, uHalfWidth: simd_float3) -> [simd_float3] {
     // compute the min and max of the aabb
