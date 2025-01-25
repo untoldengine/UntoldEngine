@@ -14,7 +14,7 @@ import simd
 public class LocalTransformComponent: Component {
     var space: simd_float4x4 = .identity
 
-    var boundingBox: (min: simd_float3, max: simd_float3)!
+    var boundingBox: (min: simd_float3, max: simd_float3) = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
 
     var flipCoord: Bool = false
 
@@ -51,7 +51,9 @@ public class PhysicsComponents: Component {
     var mass: Float = 1.0
     var centerOfMass: simd_float3 = .zero
     var velocity: simd_float3 = .zero
+    var angularVelocity: simd_float3 = .zero
     var acceleration: simd_float3 = .zero
+    var angularAcceleration: simd_float3 = .zero
     var inertiaTensorType: InertiaTensorType = .spherical
     var momentOfInertiaTensor: simd_float3x3 = .init(diagonal: simd_float3(1.0, 1.0, 1.0))
     var inverseMomentOfInertiaTensor: simd_float3x3 = .init(diagonal: simd_float3(1.0, 1.0, 1.0))
@@ -63,6 +65,7 @@ public class PhysicsComponents: Component {
 
 public class KineticComponent: Component {
     var forces: [simd_float3] = []
+    var moments: [simd_float3] = []
 
     var gravityScale: Float = 0.0
 
@@ -74,6 +77,14 @@ public class KineticComponent: Component {
 
     public func clearForces() {
         forces.removeAll()
+    }
+
+    public func addMoment(_ moment: simd_float3) {
+        moments.append(moment)
+    }
+
+    public func clearMoments() {
+        moments.removeAll()
     }
 }
 
