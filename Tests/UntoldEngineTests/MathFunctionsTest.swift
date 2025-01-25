@@ -205,4 +205,26 @@ final class MathFunctionsTests: XCTestCase {
         XCTAssertEqual(euler.yaw, 30.0, accuracy: 0.001, "pitch should be equal")
         XCTAssertEqual(euler.roll, 60.0, accuracy: 0.001, "pitch should be equal")
     }
+
+    func testGetMatrix() {
+        var q: quaternion = quaternion_identity()
+        q.x = 0.2005621
+        q.y = 0.3919038
+        q.z = 0.3604234
+        q.w = 0.8223632
+
+        let m: simd_float4x4 = getMatrix4x4FromQuaternion(q: q)
+
+        XCTAssertEqual(m.columns.0.x, 0.4330127, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.0.y, 0.7500000, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.0.z, -0.5000000, accuracy: 0.001, "component should be equal")
+
+        XCTAssertEqual(m.columns.1.x, -0.4355958, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.1.y, 0.6597396, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.1.z, 0.6123725, accuracy: 0.001, "component should be equal")
+
+        XCTAssertEqual(m.columns.2.x, 0.7891491, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.2.y, -0.0473672, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.2.z, 0.6123725, accuracy: 0.001, "component should be equal")
+    }
 }

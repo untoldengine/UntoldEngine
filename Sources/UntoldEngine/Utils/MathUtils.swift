@@ -62,7 +62,7 @@ public func matrix4x4Identity() -> matrix_float4x4 {
         ))
 }
 
-public func getMatrix4x4(from q: quaternion) -> matrix_float4x4 {
+public func getMatrix4x4FromQuaternion(q: quaternion) -> matrix_float4x4 {
     let xx: Float = q.x * q.x
     let xy: Float = q.x * q.y
     let xz: Float = q.x * q.z
@@ -146,34 +146,6 @@ public func matrix4x4Rotation(pitch: Float, yaw: Float, roll: Float) -> matrix_f
     let col4 = vector_float4(0, 0, 0, 1)
 
     return matrix_float4x4(columns: (col1, col2, col3, col4))
-}
-
-public func extractEulerAngles(from matrix: matrix_float4x4) -> (pitch: Float, yaw: Float, roll: Float) {
-    let m = matrix.columns
-
-    let pitch: Float
-    let yaw: Float
-    let roll: Float
-
-    if m.0.z < 1 {
-        if m.0.z > -1 {
-            yaw = atan2(-m.0.z, m.0.x)
-            pitch = asin(m.0.z)
-            roll = atan2(-m.1.z, m.2.z)
-        } else {
-            // m.0.z == -1
-            yaw = -atan2(m.2.x, m.1.x)
-            pitch = -.pi / 2
-            roll = 0
-        }
-    } else {
-        // m.0.z == 1
-        yaw = atan2(m.2.x, m.1.x)
-        pitch = .pi / 2
-        roll = 0
-    }
-
-    return (pitch, yaw, roll)
 }
 
 public func matrix4x4Translation(_ translationX: Float, _ translationY: Float, _ translationZ: Float)
@@ -464,7 +436,7 @@ public func transformQuaternionToEulerAngles(q: quaternion) -> (pitch: Float, ya
     var y: Float = 0.0
     var z: Float = 0.0
 
-    var test: Float = 2 * (q.x * q.z - q.w * q.y)
+    let test: Float = 2 * (q.x * q.z - q.w * q.y)
 
     if test != 1, test != -1 {
         x = atan2(q.y * q.z + q.w * q.x, 0.5 - (q.x * q.x + q.y * q.y))
@@ -511,123 +483,6 @@ public func transformEulerAnglesToQuaternion(pitch: Float, yaw: Float, roll: Flo
 
     return q
 }
-
-/*
-
- void U4DQuaternion::transformEulerAnglesToQuaternion(float x,float y, float z){
-
-     U4DTrigonometry trigonometry;
-
-     x=trigonometry.convertToPositiveAngle(x);
-     y=trigonometry.convertToPositiveAngle(y);
-     z=trigonometry.convertToPositiveAngle(z);
-
-     x=trigonometry.degreesToRad(x);
-     y=trigonometry.degreesToRad(y);
-     z=trigonometry.degreesToRad(z);
-
-     x=x/2.0;
-     y=y/2.0;
-     z=z/2.0;
-
-     s=cos(z)*cos(y)*cos(x)+sin(z)*sin(y)*sin(x);
-     v.x=cos(z)*cos(y)*sin(x)-sin(z)*sin(y)*cos(x);
-     v.y=cos(z)*sin(y)*cos(x)+sin(z)*cos(y)*sin(x);
-     v.z=sin(z)*cos(y)*cos(x)-cos(z)*sin(y)*sin(x);
-
- }
-
- U4DVector3n U4DQuaternion::transformQuaternionToEulerAngles(){
-
-     // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
-     //    0    3    6
-     //    1    4    7
-     //    2    5    8
-
-     float x=0.0;
-     float y=0.0;
-     float z=0.0;
-
-     float test=2*(v.x*v.z-s*v.y);
-
-     if (test!=1 && test!=-1) {
-
-         x=atan2(v.y*v.z + s*v.x, 0.5-(v.x*v.x+v.y*v.y));
-         y=asin(-2*(v.x*v.z-s*v.y));
-         z=atan2(v.x*v.y+s*v.z, 0.5-(v.y*v.y+v.z*v.z));
-
-     }else if (test==1){
-         z=atan2(v.x*v.y+s*v.z, 0.5-(v.y*v.y+v.z*v.z));
-         y=-M_PI/2.0;
-         x=-z+atan2(v.x*v.y-s*v.z, v.x*v.z+s*v.y);
-
-     }else if(test==-1){
-
-         z=atan2(v.x*v.y+s*v.z, 0.5-(v.y*v.y+v.z*v.z));
-         y=M_PI/2.0;
-         x=z+atan2(v.x*v.y-s*v.z, v.x*v.z+s*v.y);
-
-     }
-
-     U4DTrigonometry trigonometry;
-
-     x=trigonometry.radToDegrees(x);
-     y=trigonometry.radToDegrees(y);
-     z=trigonometry.radToDegrees(z);
-
-     U4DVector3n euler(x,y,z);
-
-     return euler;
- }
-
- void U4DQuaternion::transformMatrix3nToQuaternion(U4DMatrix3n &uMatrix){
-
-     // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
-     //    0    3    6
-     //    1    4    7
-     //    2    5    8
-
-     //calculate the sum of the diagonal elements
-
-     float trace=uMatrix.matrixData[0]+uMatrix.matrixData[4]+uMatrix.matrixData[8];
-
-     if (trace>0) {      //s=4*qw
-
-         s=0.5*sqrt(1+trace);
-         float S=0.25/s;
-
-         v.x=S*(uMatrix.matrixData[5]-uMatrix.matrixData[7]);
-         v.y=S*(uMatrix.matrixData[6]-uMatrix.matrixData[2]);
-         v.z=S*(uMatrix.matrixData[1]-uMatrix.matrixData[3]);
-
-     }else if(uMatrix.matrixData[0]>uMatrix.matrixData[4] && uMatrix.matrixData[0]>uMatrix.matrixData[8]){ //s=4*qx
-
-         v.x=0.5*sqrt(1+uMatrix.matrixData[0]-uMatrix.matrixData[4]-uMatrix.matrixData[8]);
-         float X=0.25/v.x;
-
-         v.y=X*(uMatrix.matrixData[3]+uMatrix.matrixData[1]);
-         v.z=X*(uMatrix.matrixData[6]+uMatrix.matrixData[2]);
-         s=X*(uMatrix.matrixData[5]-uMatrix.matrixData[7]);
-
-     }else if(uMatrix.matrixData[4]>uMatrix.matrixData[8]){ //s=4*qy
-
-         v.y=0.5*sqrt(1-uMatrix.matrixData[0]+uMatrix.matrixData[4]-uMatrix.matrixData[8]);
-         float Y=0.25/v.y;
-         v.x=Y*(uMatrix.matrixData[3]+uMatrix.matrixData[1]);
-         v.z=Y*(uMatrix.matrixData[7]+uMatrix.matrixData[5]);
-         s=Y*(uMatrix.matrixData[6]-uMatrix.matrixData[2]);
-
-     }else{ //s=4*qz
-
-         v.z=0.5*sqrt(1-uMatrix.matrixData[0]-uMatrix.matrixData[4]+uMatrix.matrixData[8]);
-         float Z=0.25/v.z;
-         v.x=Z*(uMatrix.matrixData[6]+uMatrix.matrixData[2]);
-         v.y=Z*(uMatrix.matrixData[7]+uMatrix.matrixData[5]);
-         s=Z*(uMatrix.matrixData[1]-uMatrix.matrixData[3]);
-     }
-
- }
- */
 
 public func makeAABB(uOrigin: simd_float3, uHalfWidth: simd_float3) -> [simd_float3] {
     // compute the min and max of the aabb
