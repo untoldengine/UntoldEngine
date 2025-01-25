@@ -39,10 +39,10 @@ final class MathFunctionsTests: XCTestCase {
 
     func testConvertToPositiveAngle() {
         var angle1 = -450.0
-        XCTAssertEqual(convertToPositiveAngle(degrees: &angle1), 270.0, accuracy: 0.0001)
+        XCTAssertEqual(convertToPositiveAngle(degrees: Float(angle1)), 270.0, accuracy: 0.0001)
 
         var angle2 = 720.0
-        XCTAssertEqual(convertToPositiveAngle(degrees: &angle2), 0.0, accuracy: 0.0001)
+        XCTAssertEqual(convertToPositiveAngle(degrees: Float(angle2)), 0.0, accuracy: 0.0001)
     }
 
     // MARK: - Float Equality
@@ -141,5 +141,68 @@ final class MathFunctionsTests: XCTestCase {
         let result = rayIntersectPlane(rayOrigin: rayOrigin, rayDir: rayDir, planeNormal: planeNormal, planeOrigin: planeOrigin)
         XCTAssertTrue(result.intersects)
         XCTAssertEqual(result.intersection, simd_float3(0, 0, -5))
+    }
+
+    // MARK: quaternion conversions
+
+    // reference this site for testing- https://www.andre-gaschler.com/rotationconverter/
+    // I tested rotation ZYX - euler angles 45.0,30.0,60.0
+    func testQuatToMatrix() {
+        var q: quaternion = quaternion_identity()
+        q.x = 0.2005621
+        q.y = 0.3919038
+        q.z = 0.3604234
+        q.w = 0.8223632
+
+        let m = transformQuaternionToMatrix3x3(q: q)
+
+        XCTAssertEqual(m.columns.0.x, 0.4330127, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.0.y, 0.7500000, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.0.z, -0.5000000, accuracy: 0.001, "component should be equal")
+
+        XCTAssertEqual(m.columns.1.x, -0.4355958, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.1.y, 0.6597396, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.1.z, 0.6123725, accuracy: 0.001, "component should be equal")
+
+        XCTAssertEqual(m.columns.2.x, 0.7891491, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.2.y, -0.0473672, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.2.z, 0.6123725, accuracy: 0.001, "component should be equal")
+    }
+
+    func testMatrixToQuat() {
+        let col0 = simd_float3(0.4330127, 0.7500000, -0.5000000)
+        let col1 = simd_float3(-0.4355958, 0.6597396, 0.6123725)
+        let col2 = simd_float3(0.7891491, -0.0473672, 0.6123725)
+
+        let m = simd_float3x3.init(col0, col1, col2)
+
+        let q: quaternion = transformMatrix3nToQuaternion(m: m)
+
+        XCTAssertEqual(q.w, 0.8223632, accuracy: 0.001, "w-component should be equal")
+        XCTAssertEqual(q.x, 0.2005621, accuracy: 0.001, "x-component should be equal")
+        XCTAssertEqual(q.y, 0.3919038, accuracy: 0.001, "y-component should be equal")
+        XCTAssertEqual(q.z, 0.3604234, accuracy: 0.001, "z-component should be equal")
+    }
+
+    func testEulerToQuaternion() {
+        let q: quaternion = transformEulerAnglesToQuaternion(pitch: 45.0, yaw: 30.0, roll: 60.0)
+
+        XCTAssertEqual(q.x, 0.2005621, accuracy: 0.001, "x-component should be equal")
+        XCTAssertEqual(q.y, 0.3919038, accuracy: 0.001, "y-component should be equal")
+        XCTAssertEqual(q.z, 0.3604234, accuracy: 0.001, "z-component should be equal")
+        XCTAssertEqual(q.w, 0.8223632, accuracy: 0.001, "w-component should be equal")
+    }
+
+    func testQuaternionToEuler() {
+        var q: quaternion = quaternion_identity()
+        q.x = 0.2005621
+        q.y = 0.3919038
+        q.z = 0.3604234
+        q.w = 0.8223632
+
+        let euler = transformQuaternionToEulerAngles(q: q)
+        XCTAssertEqual(euler.pitch, 45.0, accuracy: 0.001, "pitch should be equal")
+        XCTAssertEqual(euler.yaw, 30.0, accuracy: 0.001, "pitch should be equal")
+        XCTAssertEqual(euler.roll, 60.0, accuracy: 0.001, "pitch should be equal")
     }
 }
