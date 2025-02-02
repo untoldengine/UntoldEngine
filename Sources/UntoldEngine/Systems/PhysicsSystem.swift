@@ -349,25 +349,18 @@ private func rungeKuttaIntegration(deltaTime: Float) {
         // update angular velocity
         physics.angularVelocity = physics.angularVelocity + angularAccelerationDelta
 
-        // update orientation
-        let k1ax: simd_float3 = (physics.angularVelocity) * deltaTime
-        let k2ax: simd_float3 = (physics.angularVelocity + k1ax * 0.5) * deltaTime
-        let k3ax: simd_float3 = (physics.angularVelocity + k2ax * 0.5) * deltaTime
-        let k4ax: simd_float3 = (physics.angularVelocity + k3ax) * deltaTime
-
-        let angularVelocityDelta = (k1ax + 2.0 * k2ax + 2.0 * k3ax + k4ax) * rungeFactor
-
         var orientationMatrix: simd_float3x3 = getLocalOrientation(entityId: entity)
-        var orientationQuaternion = transformMatrix3nToQuaternion(m: orientationMatrix)
-        let eulerAngles = transformQuaternionToEulerAngles(q: orientationQuaternion)
 
-        var orientation = simd_float3(eulerAngles.pitch, eulerAngles.yaw, eulerAngles.roll)
+        let k1r = orientationMatrix * skewMatrix(omega: physics.angularVelocity) * deltaTime
+        let k2r = (orientationMatrix + k1r * 0.5) * skewMatrix(omega: physics.angularVelocity + 0.5 * physics.angularVelocity * deltaTime) * deltaTime
+        let k3r = (orientationMatrix + k2r * 0.5) * skewMatrix(omega: physics.angularVelocity + 0.5 * physics.angularVelocity * deltaTime) * deltaTime
+        let k4r = (orientationMatrix + k3r) * skewMatrix(omega: physics.angularVelocity + physics.angularVelocity * deltaTime) * deltaTime
 
-        orientation = orientation + angularVelocityDelta
+        let rotationDelta = (k1r + 2.0 * k2r + 2.0 * k3r + k4r) * rungeFactor
 
-        orientationQuaternion = transformEulerAnglesToQuaternion(pitch: orientation.x, yaw: orientation.y, roll: orientation.z)
+        orientationMatrix += rotationDelta
 
-        orientationMatrix = transformQuaternionToMatrix3x3(q: orientationQuaternion)
+        orientationMatrix = orthonormalize(orientationMatrix)
 
         transform.space.columns.0 = simd_float4(orientationMatrix.columns.0, 0.0)
         transform.space.columns.1 = simd_float4(orientationMatrix.columns.1, 0.0)
@@ -407,6 +400,22 @@ private func eulerIntegration(deltaTime: Float) {
         transform.space.columns.3.y = position.y
         transform.space.columns.3.z = position.z
     }
+}
+
+// Compute skew-symmetric matrix for angular velocity
+func skewMatrix(omega: simd_float3) -> simd_float3x3 {
+    return simd_float3x3(simd_float3(0.0, -omega.z, omega.y),
+                         simd_float3(omega.z, 0.0, -omega.x),
+                         simd_float3(-omega.y, omega.x, 0.0))
+}
+
+// Helper function to ensure the rotation matrix remains orthonormal
+func orthonormalize(_ R: simd_float3x3) -> simd_float3x3 {
+    var u = R.columns
+    u.0 = normalize(u.0)
+    u.1 = normalize(u.1 - dot(u.1, u.0) * u.0)
+    u.2 = cross(u.0, u.1) // Ensure right-handed basis
+    return simd_float3x3(u.0, u.1, u.2)
 }
 
 func computeInertiaTensor(entityId: EntityID) {
