@@ -622,3 +622,8 @@ extension simd_float4x4 {
         self = matrix
     }
 }
+
+func safeNormalize(_ vector: simd_float3) -> simd_float3 {
+    let length = simd.length(vector)
+    return length > 0 ? vector / length : vector
+}

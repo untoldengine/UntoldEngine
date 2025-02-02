@@ -57,6 +57,7 @@ public class PhysicsComponents: Component {
     var inertiaTensorType: InertiaTensorType = .spherical
     var momentOfInertiaTensor: simd_float3x3 = .init(diagonal: simd_float3(1.0, 1.0, 1.0))
     var inverseMomentOfInertiaTensor: simd_float3x3 = .init(diagonal: simd_float3(1.0, 1.0, 1.0))
+    var dragCoefficients: simd_float2 = .zero
     var pause: Bool = false
     var inertiaTensorComputed: Bool = false
 

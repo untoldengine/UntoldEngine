@@ -28,6 +28,24 @@ public func getMass(entityId: EntityID) -> Float {
     return physics.mass
 }
 
+public func setDragCoefficient(entityId: EntityID, coefficients: simd_float2) {
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    physics.dragCoefficients = coefficients
+}
+
+public func getDragCoefficient(entityId: EntityID) -> simd_float2 {
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return simd_float2(0.0, 0.0)
+    }
+
+    return physics.dragCoefficients
+}
+
 public func setGravityScale(entityId: EntityID, gravityScale: Float) {
     guard let kinetic = scene.get(component: KineticComponent.self, for: entityId) else {
         handleError(.noKineticComponent, entityId)
@@ -48,6 +66,7 @@ public func getVelocity(entityId: EntityID) -> simd_float3 {
 
 public func updatePhysicsSystem(deltaTime: Float) {
     addGravity(gravity: simd_float3(0.0, -9.8, 0.0)) // add gravity
+    accumulateDrag(deltaTime: deltaTime)
     accumulateForces(deltaTime: deltaTime) // Apply accumulated forces to acceleration
     accumulateMoment(deltaTime: deltaTime)
     rungeKuttaIntegration(deltaTime: deltaTime) // Update velocity and position
@@ -142,6 +161,57 @@ private func accumulateMoment(deltaTime _: Float) {
 
         // clear moments after applying them
         kinetic.clearMoments()
+    }
+}
+
+func accumulateDrag(deltaTime _: Float) {
+    let kineticId = getComponentId(for: KineticComponent.self)
+    let physicsId = getComponentId(for: PhysicsComponents.self)
+    let entities = queryEntitiesWithComponentIds([kineticId, physicsId], in: scene)
+
+    for entity in entities {
+        guard let physics = scene.get(component: PhysicsComponents.self, for: entity) else {
+            continue
+        }
+
+        guard let kinetic = scene.get(component: KineticComponent.self, for: entity) else {
+            continue
+        }
+
+        if isPhysicsComponentPaused(entityId: entity) {
+            continue
+        }
+
+        let dragCoeff = physics.dragCoefficients
+        let k1: Float = dragCoeff.x
+        let k2: Float = dragCoeff.y
+
+        var linearDrag: simd_float3
+        var forceDragCoeff: Float
+
+        linearDrag = physics.velocity
+        forceDragCoeff = simd.length(linearDrag)
+
+        forceDragCoeff = k1 * forceDragCoeff + k2 * forceDragCoeff * forceDragCoeff
+
+        linearDrag = safeNormalize(linearDrag)
+        linearDrag *= -forceDragCoeff
+
+        kinetic.addForce(linearDrag)
+
+        // moment
+        var angularDrag: simd_float3
+        var momentDragCoeff: Float
+
+        angularDrag = physics.angularVelocity
+        momentDragCoeff = simd.length(angularDrag)
+
+        momentDragCoeff = k1 * momentDragCoeff + k2 * momentDragCoeff * momentDragCoeff
+
+        angularDrag = safeNormalize(angularDrag)
+        angularDrag *= -momentDragCoeff
+
+        kinetic.addMoment(angularDrag)
     }
 }
 
