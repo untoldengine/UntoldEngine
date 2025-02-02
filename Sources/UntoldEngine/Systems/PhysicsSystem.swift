@@ -313,13 +313,17 @@ private func rungeKuttaIntegration(deltaTime: Float) {
             continue
         }
 
+        let rungeFactor: Float = 1.0 / 6.0
+
         // update velocity based on acceleration
         let k1v: simd_float3 = (physics.acceleration) * deltaTime
         let k2v: simd_float3 = (physics.acceleration + k1v * 0.5) * deltaTime
         let k3v: simd_float3 = (physics.acceleration + k2v * 0.5) * deltaTime
         let k4v: simd_float3 = (physics.acceleration + k3v) * deltaTime
 
-        physics.velocity = physics.velocity + (k1v + 2.0 * k2v + 2.0 * k3v + k4v) * (rungaKuttaCorrectionCoefficient / 6)
+        let velocityDelta = (k1v + 2.0 * k2v + 2.0 * k3v + k4v) * rungeFactor
+
+        physics.velocity = physics.velocity + velocityDelta
 
         // update position based on velocity
         var position = getLocalPosition(entityId: entity)
@@ -329,7 +333,8 @@ private func rungeKuttaIntegration(deltaTime: Float) {
         let k3x: simd_float3 = (physics.velocity + k2x * 0.5) * deltaTime
         let k4x: simd_float3 = (physics.velocity + k3x) * deltaTime
 
-        position = position + (k1x + 2.0 * k2x + 2.0 * k3x + k4x) * (rungaKuttaCorrectionCoefficient / 6)
+        let positionDelta = (k1x + 2.0 * k2x + 2.0 * k3x + k4x) * rungeFactor
+        position = position + positionDelta
 
         transform.space.columns.3 = simd_float4(position.x, position.y, position.z, 1.0)
 
@@ -339,8 +344,10 @@ private func rungeKuttaIntegration(deltaTime: Float) {
         let k3av: simd_float3 = (physics.angularAcceleration + k2av * 0.5) * deltaTime
         let k4av: simd_float3 = (physics.angularAcceleration + k3av) * deltaTime
 
+        let angularVelocityDelta = (k1av + 2.0 * k2av + 2.0 * k3av + k4av) * rungeFactor
+
         // update angular velocity
-        physics.angularVelocity = physics.angularVelocity + (k1av + 2.0 * k2av + 2.0 * k3av + k4av) * (rungaKuttaCorrectionCoefficient / 6)
+        physics.angularVelocity = physics.angularVelocity + angularVelocityDelta
 
         // update orientation
         var orientationMatrix: simd_float3x3 = getLocalOrientation(entityId: entity)
@@ -354,7 +361,8 @@ private func rungeKuttaIntegration(deltaTime: Float) {
         let k3ax: simd_float3 = (physics.angularVelocity + k2ax * 0.5) * deltaTime
         let k4ax: simd_float3 = (physics.angularVelocity + k3ax) * deltaTime
 
-        orientation = orientation + (k1ax + 2.0 * k2ax + 2.0 * k3ax + k4ax) * (rungaKuttaCorrectionCoefficient / 6)
+        let orientationDelta = (k1ax + 2.0 * k2ax + 2.0 * k3ax + k4ax) * rungeFactor
+        orientation = orientation + orientationDelta
 
         orientationQuaternion = transformEulerAnglesToQuaternion(pitch: orientation.x, yaw: orientation.y, roll: orientation.z)
 
