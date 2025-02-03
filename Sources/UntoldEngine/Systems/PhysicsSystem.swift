@@ -70,6 +70,7 @@ public func updatePhysicsSystem(deltaTime: Float) {
     accumulateForces(deltaTime: deltaTime) // Apply accumulated forces to acceleration
     accumulateMoment(deltaTime: deltaTime)
     rungeKuttaIntegration(deltaTime: deltaTime) // Update velocity and position
+    clearAllAccumulateForces()
 }
 
 private func addGravity(gravity: simd_float3) {
@@ -124,9 +125,6 @@ private func accumulateForces(deltaTime _: Float) {
 
         // Calculate acceleration based on accumulated forces
         physics.acceleration = totalForce / physics.mass
-
-        // clear forces after applying them
-        kinetic.clearForces()
     }
 }
 
@@ -158,9 +156,6 @@ private func accumulateMoment(deltaTime _: Float) {
 
         // Calculate angular acceleration based on accumulated forces
         physics.angularAcceleration = physics.inverseMomentOfInertiaTensor * (totalMoment - cross(physics.angularVelocity, physics.momentOfInertiaTensor * physics.angularVelocity))
-
-        // clear moments after applying them
-        kinetic.clearMoments()
     }
 }
 
@@ -212,6 +207,22 @@ func accumulateDrag(deltaTime _: Float) {
         angularDrag *= -momentDragCoeff
 
         kinetic.addMoment(angularDrag)
+    }
+}
+
+func clearAllAccumulateForces() {
+    let kineticId = getComponentId(for: KineticComponent.self)
+    let physicsId = getComponentId(for: PhysicsComponents.self)
+    let entities = queryEntitiesWithComponentIds([kineticId, physicsId], in: scene)
+
+    for entity in entities {
+        guard let kinetic = scene.get(component: KineticComponent.self, for: entity) else {
+            continue
+        }
+
+        kinetic.clearForces()
+
+        kinetic.clearMoments()
     }
 }
 
