@@ -38,10 +38,10 @@ final class MathFunctionsTests: XCTestCase {
     }
 
     func testConvertToPositiveAngle() {
-        var angle1 = -450.0
+        let angle1 = -450.0
         XCTAssertEqual(convertToPositiveAngle(degrees: Float(angle1)), 270.0, accuracy: 0.0001)
 
-        var angle2 = 720.0
+        let angle2 = 720.0
         XCTAssertEqual(convertToPositiveAngle(degrees: Float(angle2)), 0.0, accuracy: 0.0001)
     }
 
@@ -95,21 +95,11 @@ final class MathFunctionsTests: XCTestCase {
 
     // MARK: - Quaternion Tests
 
-    func testQuaternionIdentity() {
-        XCTAssertEqual(quaternion_identity(), quaternion(0, 0, 0, 1))
-    }
-
-    func testQuaternionNormalize() {
-        let q = quaternion(1, 1, 1, 1)
-        let normalized = quaternion_normalize(q: q)
-        XCTAssertEqual(simd_length(normalized), 1.0, accuracy: 0.0001)
-    }
-
     func testQuaternionMultiply() {
-        let q1 = quaternion(0, 0, 0, 1)
-        let q2 = quaternion(1, 0, 0, 0)
-        let result = quaternion_multiply(q0: q1, q1: q2)
-        XCTAssertEqual(result, quaternion(1, 0, 0, 0))
+        let q1 = simd_quatf(ix: 0, iy: 0, iz: 0, r: 1)
+        let q2 = simd_quatf(ix: 1, iy: 0, iz: 0, r: 0)
+        let result = simd_mul(q1, q2)
+        XCTAssertEqual(result, simd_quatf(ix: 1, iy: 0, iz: 0, r: 0))
     }
 
     func testQuaternionLookAt() {
@@ -117,7 +107,7 @@ final class MathFunctionsTests: XCTestCase {
         let target = simd_float3(0, 0, -1)
         let up = simd_float3(0, 1, 0)
         let q = quaternion_lookAt(eye: eye, target: target, up: up)
-        XCTAssertEqual(q.w, 1, accuracy: 0.0001)
+        XCTAssertEqual(q.real, 1, accuracy: 0.0001)
     }
 
     // MARK: - Ray Tests
@@ -148,11 +138,11 @@ final class MathFunctionsTests: XCTestCase {
     // reference this site for testing- https://www.andre-gaschler.com/rotationconverter/
     // I tested rotation ZYX - euler angles 45.0,30.0,60.0
     func testQuatToMatrix() {
-        var q: quaternion = quaternion_identity()
-        q.x = 0.2005621
-        q.y = 0.3919038
-        q.z = 0.3604234
-        q.w = 0.8223632
+        var q = simd_quatf()
+        q.vector.x = 0.2005621
+        q.vector.y = 0.3919038
+        q.vector.z = 0.3604234
+        q.real = 0.8223632
 
         let m = transformQuaternionToMatrix3x3(q: q)
 
@@ -176,29 +166,29 @@ final class MathFunctionsTests: XCTestCase {
 
         let m = simd_float3x3.init(col0, col1, col2)
 
-        let q: quaternion = transformMatrix3nToQuaternion(m: m)
+        let q: simd_quatf = transformMatrix3nToQuaternion(m: m)
 
-        XCTAssertEqual(q.w, 0.8223632, accuracy: 0.001, "w-component should be equal")
-        XCTAssertEqual(q.x, 0.2005621, accuracy: 0.001, "x-component should be equal")
-        XCTAssertEqual(q.y, 0.3919038, accuracy: 0.001, "y-component should be equal")
-        XCTAssertEqual(q.z, 0.3604234, accuracy: 0.001, "z-component should be equal")
+        XCTAssertEqual(q.real, 0.8223632, accuracy: 0.001, "w-component should be equal")
+        XCTAssertEqual(q.vector.x, 0.2005621, accuracy: 0.001, "x-component should be equal")
+        XCTAssertEqual(q.vector.y, 0.3919038, accuracy: 0.001, "y-component should be equal")
+        XCTAssertEqual(q.vector.z, 0.3604234, accuracy: 0.001, "z-component should be equal")
     }
 
     func testEulerToQuaternion() {
-        let q: quaternion = transformEulerAnglesToQuaternion(pitch: 45.0, yaw: 30.0, roll: 60.0)
+        let q: simd_quatf = transformEulerAnglesToQuaternion(pitch: 45.0, yaw: 30.0, roll: 60.0)
 
-        XCTAssertEqual(q.x, 0.2005621, accuracy: 0.001, "x-component should be equal")
-        XCTAssertEqual(q.y, 0.3919038, accuracy: 0.001, "y-component should be equal")
-        XCTAssertEqual(q.z, 0.3604234, accuracy: 0.001, "z-component should be equal")
-        XCTAssertEqual(q.w, 0.8223632, accuracy: 0.001, "w-component should be equal")
+        XCTAssertEqual(q.vector.x, 0.2005621, accuracy: 0.001, "x-component should be equal")
+        XCTAssertEqual(q.vector.y, 0.3919038, accuracy: 0.001, "y-component should be equal")
+        XCTAssertEqual(q.vector.z, 0.3604234, accuracy: 0.001, "z-component should be equal")
+        XCTAssertEqual(q.real, 0.8223632, accuracy: 0.001, "w-component should be equal")
     }
 
     func testQuaternionToEuler() {
-        var q: quaternion = quaternion_identity()
-        q.x = 0.2005621
-        q.y = 0.3919038
-        q.z = 0.3604234
-        q.w = 0.8223632
+        var q = simd_quatf()
+        q.vector.x = 0.2005621
+        q.vector.y = 0.3919038
+        q.vector.z = 0.3604234
+        q.real = 0.8223632
 
         let euler = transformQuaternionToEulerAngles(q: q)
         XCTAssertEqual(euler.pitch, 45.0, accuracy: 0.001, "pitch should be equal")
@@ -207,11 +197,11 @@ final class MathFunctionsTests: XCTestCase {
     }
 
     func testGetMatrix4x4FromQuaternion() {
-        var q: quaternion = quaternion_identity()
-        q.x = 0.2005621
-        q.y = 0.3919038
-        q.z = 0.3604234
-        q.w = 0.8223632
+        var q = simd_quatf()
+        q.vector.x = 0.2005621
+        q.vector.y = 0.3919038
+        q.vector.z = 0.3604234
+        q.real = 0.8223632
 
         let m: simd_float4x4 = getMatrix4x4FromQuaternion(q: q)
 
@@ -236,5 +226,71 @@ final class MathFunctionsTests: XCTestCase {
         XCTAssertEqual(v.x, 0.0, accuracy: 0.001, "x component should be equal")
         XCTAssertEqual(v.y, 0.0, accuracy: 0.001, "y component should be equal")
         XCTAssertEqual(v.z, 0.0, accuracy: 0.001, "z component should be equal")
+    }
+
+    func testForwardDirection_IdentityQuaternion() {
+        let q = simd_quatf(real: 1, imag: simd_float3(0, 0, 0)) // Identity quaternion
+        let forward = forwardDirectionVector(from: q)
+        XCTAssertEqual(forward, simd_float3(0, 0, 1))
+    }
+
+    func testUpDirection_IdentityQuaternion() {
+        let q = simd_quatf(real: 1, imag: simd_float3(0, 0, 0)) // Identity quaternion
+        let up = upDirectionVector(from: q)
+        XCTAssertEqual(up, simd_float3(0, 1, 0))
+    }
+
+    func testRightDirection_IdentityQuaternion() {
+        let q = simd_quatf(real: 1, imag: simd_float3(0, 0, 0)) // Identity quaternion
+        let right = rightDirectionVector(from: q)
+        XCTAssertEqual(right, simd_float3(1, 0, 0))
+    }
+
+    func testForwardDirection_90DegreesAroundY() {
+        let q = simd_quatf(angle: .pi / 2, axis: simd_float3(0, 1, 0))
+        let forward = forwardDirectionVector(from: q)
+        let expected = simd_float3(-1, 0, 0)
+
+        // XCTAssertEqual(forward, expected, accuracy: 0.001)
+        XCTAssertEqual(forward.x, expected.x, accuracy: 0.001, "x-component should be equal")
+        XCTAssertEqual(forward.y, expected.y, accuracy: 0.001, "y-component should be equal")
+        XCTAssertEqual(forward.z, expected.z, accuracy: 0.001, "z-component should be equal")
+    }
+
+    func testUpDirection_90DegreesAroundX() {
+        let q = simd_quatf(angle: .pi / 2, axis: simd_float3(1, 0, 0))
+        let up = upDirectionVector(from: q)
+        let expected = simd_float3(0, 0, -1)
+
+        XCTAssertEqual(up.x, expected.x, accuracy: 0.001)
+        XCTAssertEqual(up.y, expected.y, accuracy: 0.001)
+        XCTAssertEqual(up.z, expected.z, accuracy: 0.001)
+    }
+
+    func testRightDirection_90DegreesAroundZ() {
+        let q = simd_quatf(angle: .pi / 2, axis: simd_float3(0, 0, 1))
+        let right = rightDirectionVector(from: q)
+        let expected = simd_float3(0, -1, 0)
+        XCTAssertEqual(right.x, expected.x, accuracy: 0.001)
+        XCTAssertEqual(right.y, expected.y, accuracy: 0.001)
+        XCTAssertEqual(right.z, expected.z, accuracy: 0.001)
+    }
+
+    func testForwardDirection_Normalized() {
+        let q = simd_quatf(angle: .pi / 3, axis: simd_float3(0, 1, 0))
+        let forward = forwardDirectionVector(from: q)
+        XCTAssertEqual(length(forward), 1.0, accuracy: 1e-5)
+    }
+
+    func testUpDirection_Normalized() {
+        let q = simd_quatf(angle: .pi / 3, axis: simd_float3(1, 0, 0))
+        let up = upDirectionVector(from: q)
+        XCTAssertEqual(length(up), 1.0, accuracy: 1e-5)
+    }
+
+    func testRightDirection_Normalized() {
+        let q = simd_quatf(angle: .pi / 3, axis: simd_float3(0, 0, 1))
+        let right = rightDirectionVector(from: q)
+        XCTAssertEqual(length(right), 1.0, accuracy: 1e-5)
     }
 }

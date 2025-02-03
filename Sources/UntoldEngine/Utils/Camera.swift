@@ -28,7 +28,7 @@ public struct Camera {
     public mutating func updateViewMatrix() {
         // if you are new to this: see this: http://www.songho.ca/opengl/gl_anglestoaxes.html
 
-        rotation = quaternion_normalize(q: rotation)
+        rotation = simd_normalize(rotation)
 
         xAxis = rightDirectionVector(from: rotation)
         yAxis = upDirectionVector(from: rotation)
@@ -52,8 +52,8 @@ public struct Camera {
         var direction: simd_float3 = simd_normalize(target)
 
         // rot about yaw first
-        let rotationX: quaternion = getRotationQuaternion(
-            axis: simd_float3(0.0, 1.0, 0.0), radians: uPosition.x
+        let rotationX: simd_quatf = getRotationQuaternion(
+            axis: simd_float3(0.0, 1.0, 0.0), angle: uPosition.x
         )
         direction = rotateVectorUsingQuaternion(q: rotationX, v: direction)
         var newUpAxis = rotateVectorUsingQuaternion(q: rotationX, v: yAxis)
@@ -66,7 +66,7 @@ public struct Camera {
         rightAxis = simd_normalize(rightAxis)
 
         // then rotate about right axis
-        let rotationY: quaternion = getRotationQuaternion(axis: rightAxis, radians: uPosition.y)
+        let rotationY: simd_quatf = getRotationQuaternion(axis: rightAxis, angle: uPosition.y)
         direction = rotateVectorUsingQuaternion(q: rotationY, v: direction)
         newUpAxis = rotateVectorUsingQuaternion(q: rotationY, v: newUpAxis)
 
@@ -81,8 +81,9 @@ public struct Camera {
 
     // Returns a right-handed matrix which looks from a point (the "eye") at a target point, given the up vector.
     public mutating func lookAt(eye: simd_float3, target: simd_float3, up: simd_float3) {
-        rotation = quaternion_normalize(
-            q: quaternion_conjugate(q: quaternion_lookAt(eye: eye, target: target, up: up)))
+        let q0 = quaternion_lookAt(eye: eye, target: target, up: up)
+        let q1 = simd_conjugate(q0)
+        rotation = simd_normalize(q1)
 
         localPosition = eye
 
@@ -93,16 +94,16 @@ public struct Camera {
         let rotationAngleX: Float = uDelta.x * 0.01
         let rotationAngleY: Float = uDelta.y * 0.01
 
-        let rotationX: quaternion = getRotationQuaternion(
-            axis: simd_float3(0.0, 1.0, 0.0), radians: rotationAngleX
+        let rotationX: simd_quatf = getRotationQuaternion(
+            axis: simd_float3(0.0, 1.0, 0.0), angle: rotationAngleX
         )
-        let rotationY: quaternion = getRotationQuaternion(
-            axis: simd_float3(1.0, 0.0, 0.0), radians: rotationAngleY
+        let rotationY: simd_quatf = getRotationQuaternion(
+            axis: simd_float3(1.0, 0.0, 0.0), angle: rotationAngleY
         )
 
-        let newRotation: quaternion = quaternion_multiply(q0: rotationY, q1: rotation)
+        let newRotation: simd_quatf = simd_mul(rotationY, rotation)
 
-        rotation = quaternion_multiply(q0: newRotation, q1: rotationX)
+        rotation = simd_mul(newRotation, rotationX)
 
         updateViewMatrix()
     }
@@ -168,16 +169,16 @@ public struct Camera {
         let rotationAngleX = yaw * sensitivity
         let rotationAngleY = pitch * sensitivity
 
-        let rotationX: quaternion = getRotationQuaternion(
-            axis: simd_float3(0.0, 1.0, 0.0), radians: rotationAngleX
+        let rotationX: simd_quatf = getRotationQuaternion(
+            axis: simd_float3(0.0, 1.0, 0.0), angle: rotationAngleX
         )
-        let rotationY: quaternion = getRotationQuaternion(
-            axis: simd_float3(1.0, 0.0, 0.0), radians: rotationAngleY
+        let rotationY: simd_quatf = getRotationQuaternion(
+            axis: simd_float3(1.0, 0.0, 0.0), angle: rotationAngleY
         )
 
-        let newRotation: quaternion = quaternion_multiply(q0: rotationY, q1: rotation)
+        let newRotation: simd_quatf = simd_mul(rotationY, rotation)
 
-        rotation = quaternion_multiply(q0: newRotation, q1: rotationX)
+        rotation = simd_mul(newRotation, rotationX)
 
         // Recompute view matrix to update the orientation vectors
         updateViewMatrix()
@@ -243,7 +244,7 @@ public struct Camera {
     public var zAxis: simd_float3 = .init(0.0, 0.0, 0.0)
 
     // quaternion
-    var rotation: quaternion = quaternion_identity()
+    var rotation: simd_quatf = .init()
     var localOrientation: simd_float3 = .init(0.0, 0.0, 0.0)
     var localPosition: simd_float3 = .init(0.0, 0.0, 0.0)
     var orbitTarget: simd_float3 = .init(0.0, 0.0, 0.0)

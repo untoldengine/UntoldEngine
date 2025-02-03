@@ -8,8 +8,6 @@
 import Foundation
 import simd
 
-public typealias quaternion = vector_float4
-
 // trig
 public func degreesToRadians(degrees: Float) -> Float {
     degrees * .pi / 180.0
@@ -62,16 +60,16 @@ public func matrix4x4Identity() -> matrix_float4x4 {
         ))
 }
 
-public func getMatrix4x4FromQuaternion(q: quaternion) -> matrix_float4x4 {
-    let xx: Float = q.x * q.x
-    let xy: Float = q.x * q.y
-    let xz: Float = q.x * q.z
-    let xw: Float = q.x * q.w
-    let yy: Float = q.y * q.y
-    let yz: Float = q.y * q.z
-    let yw: Float = q.y * q.w
-    let zz: Float = q.z * q.z
-    let zw: Float = q.z * q.w
+public func getMatrix4x4FromQuaternion(q: simd_quatf) -> matrix_float4x4 {
+    let xx: Float = q.vector.x * q.vector.x
+    let xy: Float = q.vector.x * q.vector.y
+    let xz: Float = q.vector.x * q.vector.z
+    let xw: Float = q.vector.x * q.real
+    let yy: Float = q.vector.y * q.vector.y
+    let yz: Float = q.vector.y * q.vector.z
+    let yw: Float = q.vector.y * q.real
+    let zz: Float = q.vector.z * q.vector.z
+    let zw: Float = q.vector.z * q.real
 
     // indices are m<column><row>
     let m00: Float = 1 - 2 * (yy + zz)
@@ -244,119 +242,89 @@ public func matrix_ortho_right_hand(
         ))
 }
 
-public func quaternion_identity() -> quaternion {
-    quaternion(0.0, 0.0, 0.0, 1.0)
-}
-
-public func quaternion_normalize(q: quaternion) -> quaternion {
-    simd_normalize(q)
-}
-
-public func quaternion_conjugate(q: quaternion) -> quaternion {
-    quaternion(-q.x, -q.y, -q.z, q.w)
-}
-
-public func quaternion_multiply(q0: quaternion, q1: quaternion) -> quaternion {
-    var q: quaternion = quaternion_identity()
-
-    q.x = q0.w * q1.x + q0.x * q1.w + q0.y * q1.z - q0.z * q1.y
-    q.y = q0.w * q1.y - q0.x * q1.z + q0.y * q1.w + q0.z * q1.x
-    q.z = q0.w * q1.z + q0.x * q1.y - q0.y * q1.x + q0.z * q1.w
-    q.w = q0.w * q1.w - q0.x * q1.x - q0.y * q1.y - q0.z * q1.z
-
-    return q
-}
-
-public func quaternion_lookAt(eye: simd_float3, target: simd_float3, up: simd_float3) -> quaternion {
+public func quaternion_lookAt(eye: simd_float3, target: simd_float3, up: simd_float3) -> simd_quatf {
     let forward: simd_float3 = simd_normalize(eye - target)
     let right: simd_float3 = simd_normalize(simd_cross(up, forward))
     let newUp: simd_float3 = simd_cross(forward, right)
 
-    var q: quaternion = quaternion_identity()
+    var q = simd_quatf()
 
     let trace: Float = right.x + newUp.y + forward.z
 
     if trace > 0.0 {
         let s: Float = 0.5 / sqrt(trace + 1.0)
-        q.w = 0.25 / s
-        q.x = (newUp.z - forward.y) * s
-        q.y = (forward.x - right.z) * s
-        q.z = (right.y - newUp.x) * s
+        q.real = 0.25 / s
+        q.vector.x = (newUp.z - forward.y) * s
+        q.vector.y = (forward.x - right.z) * s
+        q.vector.z = (right.y - newUp.x) * s
     } else {
         if right.x > newUp.y, right.x > forward.z {
             let s: Float = 2.0 * sqrt(1.0 + right.x - newUp.y - forward.z)
-            q.w = (newUp.z - forward.y) / s
-            q.x = 0.25 * s
-            q.y = (newUp.x + right.y) / s
-            q.z = (forward.x + right.z) / s
+            q.real = (newUp.z - forward.y) / s
+            q.vector.x = 0.25 * s
+            q.vector.y = (newUp.x + right.y) / s
+            q.vector.z = (forward.x + right.z) / s
 
         } else if newUp.y > forward.z {
             let s: Float = 2.0 * sqrt(1.0 + newUp.y - right.x - forward.z)
-            q.w = (forward.x - right.z) / s
-            q.x = (newUp.x + right.y) / s
-            q.y = 0.25 * s
-            q.z = (forward.y + newUp.z) / s
+            q.real = (forward.x - right.z) / s
+            q.vector.x = (newUp.x + right.y) / s
+            q.vector.y = 0.25 * s
+            q.vector.z = (forward.y + newUp.z) / s
 
         } else {
             let s: Float = 2.0 * sqrt(1.0 + forward.z - right.x - newUp.y)
-            q.w = (right.y - newUp.x) / s
-            q.x = (forward.x + right.z) / s
-            q.y = (forward.y + newUp.z) / s
-            q.z = 0.25 * s
+            q.real = (right.y - newUp.x) / s
+            q.vector.x = (forward.x + right.z) / s
+            q.vector.y = (forward.y + newUp.z) / s
+            q.vector.z = 0.25 * s
         }
     }
 
     return q
 }
 
-public func getRotationQuaternion(axis: simd_float3, radians: Float) -> quaternion {
-    let t: Float = radians * 0.5
-    return quaternion(x: axis.x * sinf(t), y: axis.y * sinf(t), z: axis.z * sinf(t), w: cosf(t))
+public func getRotationQuaternion(axis: simd_float3, angle: Float) -> simd_quatf {
+    return simd_quatf.init(angle: angle, axis: axis)
 }
 
-public func forwardDirectionVector(from q: quaternion) -> simd_float3 {
+public func forwardDirectionVector(from q: simd_quatf) -> simd_float3 {
     var direction = simd_float3(0.0, 0.0, 0.0)
-    direction.x = 2.0 * (q.x * q.z - q.w * q.y)
-    direction.y = 2.0 * (q.y * q.z + q.w * q.x)
-    direction.z = 1.0 - 2.0 * ((q.x * q.x) + (q.y * q.y))
+    direction.x = 2.0 * (q.vector.x * q.vector.z - q.real * q.vector.y)
+    direction.y = 2.0 * (q.vector.y * q.vector.z + q.real * q.vector.x)
+    direction.z = 1.0 - 2.0 * ((q.vector.x * q.vector.x) + (q.vector.y * q.vector.y))
 
     direction = simd_normalize(direction)
     return direction
 }
 
-public func upDirectionVector(from q: quaternion) -> simd_float3 {
+public func upDirectionVector(from q: simd_quatf) -> simd_float3 {
     var direction = simd_float3(0.0, 0.0, 0.0)
-    direction.x = 2.0 * (q.x * q.y + q.w * q.z)
-    direction.y = 1.0 - 2.0 * ((q.x * q.x) + (q.z * q.z))
-    direction.z = 2.0 * (q.y * q.z - q.w * q.x)
-
-    direction = simd_normalize(direction)
-    // Negate for a right-handed coordinate system
-    return direction
-}
-
-public func rightDirectionVector(from q: quaternion) -> simd_float3 {
-    var direction = simd_float3(0.0, 0.0, 0.0)
-    direction.x = 1.0 - 2.0 * ((q.y * q.y) + (q.z * q.z))
-    direction.y = 2.0 * (q.x * q.y - q.w * q.z)
-    direction.z = 2.0 * (q.x * q.z + q.w * q.y)
+    direction.x = 2.0 * (q.vector.x * q.vector.y + q.real * q.vector.z)
+    direction.y = 1.0 - 2.0 * ((q.vector.x * q.vector.x) + (q.vector.z * q.vector.z))
+    direction.z = 2.0 * (q.vector.y * q.vector.z - q.real * q.vector.x)
 
     direction = simd_normalize(direction)
     // Negate for a right-handed coordinate system
     return direction
 }
 
-public func rotateVectorUsingQuaternion(q: quaternion, v: simd_float3) -> simd_float3 {
-    let qp = simd_float3(q.x, q.y, q.z)
-    let w: Float = q.w
+public func rightDirectionVector(from q: simd_quatf) -> simd_float3 {
+    var direction = simd_float3(0.0, 0.0, 0.0)
+    direction.x = 1.0 - 2.0 * ((q.vector.y * q.vector.y) + (q.vector.z * q.vector.z))
+    direction.y = 2.0 * (q.vector.x * q.vector.y - q.real * q.vector.z)
+    direction.z = 2.0 * (q.vector.x * q.vector.z + q.real * q.vector.y)
 
-    let v: simd_float3 =
-        2.0 * simd_dot(qp, v) * qp + ((w * w) - simd_dot(qp, qp)) * v + 2 * w * simd_cross(qp, v)
-
-    return v
+    direction = simd_normalize(direction)
+    // Negate for a right-handed coordinate system
+    return direction
 }
 
-public func transformQuaternionToMatrix3x3(q: quaternion) -> matrix_float3x3 {
+public func rotateVectorUsingQuaternion(q: simd_quatf, v: simd_float3) -> simd_float3 {
+    return simd_act(q, v)
+}
+
+public func transformQuaternionToMatrix3x3(q: simd_quatf) -> matrix_float3x3 {
     /*
      // 3x3 matrix - column major. X vector is 0, 1, 2, etc.
      //    0    3    6
@@ -367,22 +335,22 @@ public func transformQuaternionToMatrix3x3(q: quaternion) -> matrix_float3x3 {
 
     var m = simd_float3x3.init(diagonal: simd_float3(1.0, 1.0, 1.0))
 
-    m.columns.0.x = 2 * (q.w * q.w + q.x * q.x) - 1
-    m.columns.1.x = 2 * (q.x * q.y - q.w * q.z)
-    m.columns.2.x = 2 * (q.x * q.z + q.w * q.y)
+    m.columns.0.x = 2 * (q.real * q.real + q.vector.x * q.vector.x) - 1
+    m.columns.1.x = 2 * (q.vector.x * q.vector.y - q.real * q.vector.z)
+    m.columns.2.x = 2 * (q.vector.x * q.vector.z + q.real * q.vector.y)
 
-    m.columns.0.y = 2 * (q.x * q.y + q.w * q.z)
-    m.columns.1.y = 2 * (q.w * q.w + q.y * q.y) - 1
-    m.columns.2.y = 2 * (q.y * q.z - q.w * q.x)
+    m.columns.0.y = 2 * (q.vector.x * q.vector.y + q.real * q.vector.z)
+    m.columns.1.y = 2 * (q.real * q.real + q.vector.y * q.vector.y) - 1
+    m.columns.2.y = 2 * (q.vector.y * q.vector.z - q.real * q.vector.x)
 
-    m.columns.0.z = 2 * (q.x * q.z - q.w * q.y)
-    m.columns.1.z = 2 * (q.y * q.z + q.w * q.x)
-    m.columns.2.z = 2 * (q.w * q.w + q.z * q.z) - 1
+    m.columns.0.z = 2 * (q.vector.x * q.vector.z - q.real * q.vector.y)
+    m.columns.1.z = 2 * (q.vector.y * q.vector.z + q.real * q.vector.x)
+    m.columns.2.z = 2 * (q.real * q.real + q.vector.z * q.vector.z) - 1
 
     return m
 }
 
-public func transformMatrix3nToQuaternion(m: matrix_float3x3) -> quaternion {
+public func transformMatrix3nToQuaternion(m: matrix_float3x3) -> simd_quatf {
     // 3x3 matrix - column major. X vector is 0, 1, 2, etc.
     //    0    3    6
     //    1    4    7
@@ -390,43 +358,43 @@ public func transformMatrix3nToQuaternion(m: matrix_float3x3) -> quaternion {
 
     // calculate the sum of the diagonal elements
     let trace: Float = m.columns.0.x + m.columns.1.y + m.columns.2.z
-    var q: quaternion = quaternion_identity()
+    var q = simd_quatf()
 
     if trace > 0 { // s=4*qw
-        q.w = 0.5 * sqrt(1 + trace)
-        let S: Float = 0.25 / q.w
+        q.real = 0.5 * sqrt(1 + trace)
+        let S: Float = 0.25 / q.real
 
-        q.x = S * (m.columns.1.z - m.columns.2.y)
-        q.y = S * (m.columns.2.x - m.columns.0.z)
-        q.z = S * (m.columns.0.y - m.columns.1.x)
+        q.vector.x = S * (m.columns.1.z - m.columns.2.y)
+        q.vector.y = S * (m.columns.2.x - m.columns.0.z)
+        q.vector.z = S * (m.columns.0.y - m.columns.1.x)
 
     } else if m.columns.0.x > m.columns.1.y, m.columns.0.x > m.columns.2.z { // s=4*qx
-        q.x = 0.5 * sqrt(1 + m.columns.0.x - m.columns.1.y - m.columns.2.z)
-        let X: Float = 0.25 / q.x
+        q.vector.x = 0.5 * sqrt(1 + m.columns.0.x - m.columns.1.y - m.columns.2.z)
+        let X: Float = 0.25 / q.vector.x
 
-        q.y = X * (m.columns.1.x + m.columns.0.y)
-        q.z = X * (m.columns.2.x + m.columns.0.z)
-        q.w = X * (m.columns.1.z - m.columns.2.y)
+        q.vector.y = X * (m.columns.1.x + m.columns.0.y)
+        q.vector.z = X * (m.columns.2.x + m.columns.0.z)
+        q.vector.w = X * (m.columns.1.z - m.columns.2.y)
 
     } else if m.columns.1.y > m.columns.2.z { // s=4*qy
-        q.y = 0.5 * sqrt(1 - m.columns.0.x + m.columns.1.y - m.columns.2.z)
-        let Y: Float = 0.25 / q.y
-        q.x = Y * (m.columns.1.x + m.columns.0.y)
-        q.z = Y * (m.columns.2.y + m.columns.1.z)
-        q.w = Y * (m.columns.2.x - m.columns.0.z)
+        q.vector.y = 0.5 * sqrt(1 - m.columns.0.x + m.columns.1.y - m.columns.2.z)
+        let Y: Float = 0.25 / q.vector.y
+        q.vector.x = Y * (m.columns.1.x + m.columns.0.y)
+        q.vector.z = Y * (m.columns.2.y + m.columns.1.z)
+        q.real = Y * (m.columns.2.x - m.columns.0.z)
 
     } else { // s=4*qz
-        q.z = 0.5 * sqrt(1 - m.columns.0.x - m.columns.1.y + m.columns.2.z)
-        let Z: Float = 0.25 / q.z
-        q.x = Z * (m.columns.2.x + m.columns.0.z)
-        q.y = Z * (m.columns.2.y + m.columns.1.z)
-        q.w = Z * (m.columns.0.y - m.columns.1.x)
+        q.vector.z = 0.5 * sqrt(1 - m.columns.0.x - m.columns.1.y + m.columns.2.z)
+        let Z: Float = 0.25 / q.vector.z
+        q.vector.x = Z * (m.columns.2.x + m.columns.0.z)
+        q.vector.y = Z * (m.columns.2.y + m.columns.1.z)
+        q.vector.w = Z * (m.columns.0.y - m.columns.1.x)
     }
 
     return q
 }
 
-public func transformQuaternionToEulerAngles(q: quaternion) -> (pitch: Float, yaw: Float, roll: Float) {
+public func transformQuaternionToEulerAngles(q: simd_quatf) -> (pitch: Float, yaw: Float, roll: Float) {
     // 3x3 matrix - column major. X vector is 0, 1, 2, etc.
     //    0    3    6
     //    1    4    7
@@ -436,22 +404,22 @@ public func transformQuaternionToEulerAngles(q: quaternion) -> (pitch: Float, ya
     var y: Float = 0.0
     var z: Float = 0.0
 
-    let test: Float = 2 * (q.x * q.z - q.w * q.y)
+    let test: Float = 2 * (q.vector.x * q.vector.z - q.real * q.vector.y)
 
     if test != 1, test != -1 {
-        x = atan2(q.y * q.z + q.w * q.x, 0.5 - (q.x * q.x + q.y * q.y))
-        y = asin(-2 * (q.x * q.z - q.w * q.y))
-        z = atan2(q.x * q.y + q.w * q.z, 0.5 - (q.y * q.y + q.z * q.z))
+        x = atan2(q.vector.y * q.vector.z + q.real * q.vector.x, 0.5 - (q.vector.x * q.vector.x + q.vector.y * q.vector.y))
+        y = asin(-2 * (q.vector.x * q.vector.z - q.real * q.vector.y))
+        z = atan2(q.vector.x * q.vector.y + q.real * q.vector.z, 0.5 - (q.vector.y * q.vector.y + q.vector.z * q.vector.z))
 
     } else if test == 1 {
-        z = atan2(q.x * q.y + q.w * q.z, 0.5 - (q.y * q.y + q.z * q.z))
+        z = atan2(q.vector.x * q.vector.y + q.real * q.vector.z, 0.5 - (q.vector.y * q.vector.y + q.vector.z * q.vector.z))
         y = -.pi / 2.0
-        x = -z + atan2(q.x * q.y - q.w * q.z, q.x * q.z + q.w * q.y)
+        x = -z + atan2(q.vector.x * q.vector.y - q.real * q.vector.z, q.vector.x * q.vector.z + q.real * q.vector.y)
 
     } else if test == -1 {
-        z = atan2(q.x * q.y + q.w * q.z, 0.5 - (q.y * q.y + q.z * q.z))
+        z = atan2(q.vector.x * q.vector.y + q.real * q.vector.z, 0.5 - (q.vector.y * q.vector.y + q.vector.z * q.vector.z))
         y = .pi / 2.0
-        x = z + atan2(q.x * q.y - q.w * q.z, q.x * q.z + q.w * q.y)
+        x = z + atan2(q.vector.x * q.vector.y - q.real * q.vector.z, q.vector.x * q.vector.z + q.real * q.vector.y)
     }
 
     x = radiansToDegrees(radians: x)
@@ -461,7 +429,7 @@ public func transformQuaternionToEulerAngles(q: quaternion) -> (pitch: Float, ya
     return (pitch: x, yaw: y, roll: z)
 }
 
-public func transformEulerAnglesToQuaternion(pitch: Float, yaw: Float, roll: Float) -> quaternion {
+public func transformEulerAnglesToQuaternion(pitch: Float, yaw: Float, roll: Float) -> simd_quatf {
     var x: Float = convertToPositiveAngle(degrees: pitch)
     var y: Float = convertToPositiveAngle(degrees: yaw)
     var z: Float = convertToPositiveAngle(degrees: roll)
@@ -474,12 +442,12 @@ public func transformEulerAnglesToQuaternion(pitch: Float, yaw: Float, roll: Flo
     y = y / 2.0
     z = z / 2.0
 
-    var q: quaternion = quaternion_identity()
+    var q = simd_quatf()
 
-    q.w = cos(z) * cos(y) * cos(x) + sin(z) * sin(y) * sin(x)
-    q.x = cos(z) * cos(y) * sin(x) - sin(z) * sin(y) * cos(x)
-    q.y = cos(z) * sin(y) * cos(x) + sin(z) * cos(y) * sin(x)
-    q.z = sin(z) * cos(y) * cos(x) - cos(z) * sin(y) * sin(x)
+    q.real = cos(z) * cos(y) * cos(x) + sin(z) * sin(y) * sin(x)
+    q.vector.x = cos(z) * cos(y) * sin(x) - sin(z) * sin(y) * cos(x)
+    q.vector.y = cos(z) * sin(y) * cos(x) + sin(z) * cos(y) * sin(x)
+    q.vector.z = sin(z) * cos(y) * cos(x) - cos(z) * sin(y) * sin(x)
 
     return q
 }
