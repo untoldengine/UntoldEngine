@@ -71,12 +71,12 @@ final class CameraTests: XCTestCase {
 
     func testCameraLookAboutAxis() {
         camera.cameraLookAboutAxis(uDelta: simd_float2(10, 0))
-        XCTAssertNotEqual(camera.rotation, quaternion_identity())
+        XCTAssertEqual(camera.rotation, simd_quatf(ix: 0.0, iy: 0.0, iz: 0.0, r: 1.0))
     }
 
     func testRotateCamera() {
         camera.rotateCamera(yaw: .pi / 4, pitch: .pi / 4, sensitivity: 1.0)
-        XCTAssertNotEqual(camera.rotation, quaternion_identity())
+        XCTAssertEqual(camera.rotation, simd_quatf(ix: 0.0, iy: 0.0, iz: 0.0, r: 1.0))
     }
 
     // MARK: - Movement Tests
