@@ -227,4 +227,14 @@ final class MathFunctionsTests: XCTestCase {
         XCTAssertEqual(m.columns.2.y, -0.0473672, accuracy: 0.001, "component should be equal")
         XCTAssertEqual(m.columns.2.z, 0.6123725, accuracy: 0.001, "component should be equal")
     }
+
+    func testSafeNormalize() {
+        var v: simd_float3 = .zero
+
+        v = safeNormalize(v)
+
+        XCTAssertEqual(v.x, 0.0, accuracy: 0.001, "x component should be equal")
+        XCTAssertEqual(v.y, 0.0, accuracy: 0.001, "y component should be equal")
+        XCTAssertEqual(v.z, 0.0, accuracy: 0.001, "z component should be equal")
+    }
 }
