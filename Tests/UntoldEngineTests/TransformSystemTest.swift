@@ -100,7 +100,8 @@ final class TransformSystemTests: XCTestCase {
         rotateTo(entityId: entityId, angle: angle, axis: axis)
 
         let result = getLocalOrientation(entityId: entityId)
-        let expectedMatrix = matrix3x3_upper_left(matrix4x4Rotation(radians: degreesToRadians(degrees: angle), axis: axis))
+
+        let expectedMatrix = transformQuaternionToMatrix3x3(q: simd_quatf(angle: degreesToRadians(degrees: angle), axis: axis))
 
         XCTAssertEqual(result, expectedMatrix)
     }
