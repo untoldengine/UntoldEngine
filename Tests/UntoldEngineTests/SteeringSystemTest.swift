@@ -153,7 +153,9 @@ final class SteeringSystemTests: XCTestCase {
         let orientation = getOrientation(entityId: entityId)
         let expectedForward = simd_float3(1, 0, 0)
 
-        XCTAssertEqual(orientation.columns.2, expectedForward)
+        XCTAssertEqual(orientation.columns.2.x, expectedForward.x, accuracy: 0.001)
+        XCTAssertEqual(orientation.columns.2.y, expectedForward.y, accuracy: 0.001)
+        XCTAssertEqual(orientation.columns.2.z, expectedForward.z, accuracy: 0.001)
     }
 
     // MARK: - Orbit Test

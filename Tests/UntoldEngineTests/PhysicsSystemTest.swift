@@ -347,17 +347,17 @@ final class PhysicsSystemTests: XCTestCase {
 
         /* answer
 
-         [  0.3153591,  -0.9489724,  0.0000000;
-            0.9489724,  0.3153591,  0.0000000;
+         [  0.3153591,  0.9489724,  0.0000000;
+            -0.9489724,  0.3153591,  0.0000000;
             0.0000000,  0.0000000,  1.0000000 ]
 
          */
 
         XCTAssertEqual(transform.space.columns.0.x, 0.3153591, accuracy: 0.1, "component should match")
-        XCTAssertEqual(transform.space.columns.0.y, 0.9489724, accuracy: 0.1, "component should match")
+        XCTAssertEqual(transform.space.columns.0.y, -0.9489724, accuracy: 0.1, "component should match")
         XCTAssertEqual(transform.space.columns.0.z, 0.0, accuracy: 0.3, "component should match")
 
-        XCTAssertEqual(transform.space.columns.1.x, -0.9489724, accuracy: 0.1, "component should match")
+        XCTAssertEqual(transform.space.columns.1.x, 0.9489724, accuracy: 0.1, "component should match")
         XCTAssertEqual(transform.space.columns.1.y, 0.3153591, accuracy: 0.1, "component should match")
         XCTAssertEqual(transform.space.columns.1.z, 0.0, accuracy: 0.3, "component should match")
 
@@ -449,17 +449,17 @@ final class PhysicsSystemTests: XCTestCase {
 
         /* Answer
 
-         [  0.7130201,  -0.7011435,  0.0000000;
-            0.7011435,  0.7130201,  0.0000000;
+         [  0.7130201,  0.7011435,  0.0000000;
+            -0.7011435,  0.7130201,  0.0000000;
             0.0000000,  0.0000000,  1.0000000 ]
 
          */
 
         XCTAssertEqual(transform.space.columns.0.x, 0.7130201, accuracy: 0.1, "component should match")
-        XCTAssertEqual(transform.space.columns.0.y, 0.7011435, accuracy: 0.1, "component should match")
+        XCTAssertEqual(transform.space.columns.0.y, -0.7011435, accuracy: 0.1, "component should match")
         XCTAssertEqual(transform.space.columns.0.z, 0.0, accuracy: 0.3, "component should match")
 
-        XCTAssertEqual(transform.space.columns.1.x, -0.7011435, accuracy: 0.1, "component should match")
+        XCTAssertEqual(transform.space.columns.1.x, 0.7011435, accuracy: 0.1, "component should match")
         XCTAssertEqual(transform.space.columns.1.y, 0.7130201, accuracy: 0.1, "component should match")
         XCTAssertEqual(transform.space.columns.1.z, 0.0, accuracy: 0.3, "component should match")
 

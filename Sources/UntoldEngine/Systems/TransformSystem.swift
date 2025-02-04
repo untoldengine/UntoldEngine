@@ -155,15 +155,16 @@ public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
         return
     }
 
-    let m: simd_float4x4 = matrix4x4Rotation(radians: degreesToRadians(degrees: angle), axis: axis)
+    let q = simd_quatf(angle: degreesToRadians(degrees: angle), axis: axis)
+    let m: simd_float3x3 = transformQuaternionToMatrix3x3(q: q)
 
-    localTransformComponent.space.columns.0 = m.columns.0
-    localTransformComponent.space.columns.1 = m.columns.1
-    localTransformComponent.space.columns.2 = m.columns.2
+    localTransformComponent.space.columns.0 = simd_float4(m.columns.0, 0.0)
+    localTransformComponent.space.columns.1 = simd_float4(m.columns.1, 0.0)
+    localTransformComponent.space.columns.2 = simd_float4(m.columns.2, 0.0)
 
     if localTransformComponent.flipCoord == true {
-        localTransformComponent.space.columns.2 = m.columns.1
-        localTransformComponent.space.columns.1 = m.columns.2
+        localTransformComponent.space.columns.2 = simd_float4(m.columns.1, 0.0)
+        localTransformComponent.space.columns.1 = simd_float4(m.columns.2, 0.0)
     }
 }
 
@@ -183,14 +184,20 @@ public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
         return
     }
 
-    // new matrix
-    var m: simd_float3x3 = matrix3x3_upper_left(
-        matrix4x4Rotation(radians: degreesToRadians(degrees: angle), axis: axis))
-
     // previous matrix
-    let p = matrix3x3_upper_left(localTransformComponent.space)
+    let previusM: simd_float3x3 = matrix3x3_upper_left(localTransformComponent.space)
 
-    m = matrix_multiply(m, p)
+    // transform to quat
+    let pq: simd_quatf = transformMatrix3nToQuaternion(m: previusM)
+
+    // new desired rotation
+    let q = simd_quatf.init(angle: degreesToRadians(degrees: angle), axis: axis)
+
+    // new rotation
+    let newQ = simd_mul(q, pq)
+
+    // update matrix
+    let m: simd_float3x3 = transformQuaternionToMatrix3x3(q: newQ)
 
     localTransformComponent.space.columns.0 = simd_float4(m.columns.0, localTransformComponent.space.columns.0.w)
     localTransformComponent.space.columns.1 = simd_float4(m.columns.1, localTransformComponent.space.columns.1.w)
@@ -203,9 +210,13 @@ public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
         return
     }
 
-    localTransformComponent.space.columns.0 = rotation.columns.0
-    localTransformComponent.space.columns.1 = rotation.columns.1
-    localTransformComponent.space.columns.2 = rotation.columns.2
+    let rotUpperLeft = matrix3x3_upper_left(rotation)
+    let q = simd_quatf(rotUpperLeft)
+    let m: simd_float3x3 = transformQuaternionToMatrix3x3(q: q)
+
+    localTransformComponent.space.columns.0 = simd_float4(m.columns.0, 0.0)
+    localTransformComponent.space.columns.1 = simd_float4(m.columns.1, 0.0)
+    localTransformComponent.space.columns.2 = simd_float4(m.columns.2, 0.0)
 }
 
 // public func combineRotations(entityId: EntityID) {

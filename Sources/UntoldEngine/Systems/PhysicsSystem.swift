@@ -360,22 +360,23 @@ private func rungeKuttaIntegration(deltaTime: Float) {
         // update angular velocity
         physics.angularVelocity = physics.angularVelocity + angularAccelerationDelta
 
-        var orientationMatrix: simd_float3x3 = getLocalOrientation(entityId: entity)
+        let orientationMatrix: simd_float3x3 = getLocalOrientation(entityId: entity)
+        var mQuat: simd_quatf = transformMatrix3nToQuaternion(m: orientationMatrix)
 
-        let k1r = orientationMatrix * skewMatrix(omega: physics.angularVelocity) * deltaTime
-        let k2r = (orientationMatrix + k1r * 0.5) * skewMatrix(omega: physics.angularVelocity + 0.5 * physics.angularVelocity * deltaTime) * deltaTime
-        let k3r = (orientationMatrix + k2r * 0.5) * skewMatrix(omega: physics.angularVelocity + 0.5 * physics.angularVelocity * deltaTime) * deltaTime
-        let k4r = (orientationMatrix + k3r) * skewMatrix(omega: physics.angularVelocity + physics.angularVelocity * deltaTime) * deltaTime
+        let k1q = quaternionDerivative(q: mQuat, omega: physics.angularVelocity) * deltaTime
+        let k2q = quaternionDerivative(q: mQuat + k1q * 0.5, omega: physics.angularVelocity) * deltaTime
+        let k3q = quaternionDerivative(q: mQuat + k2q * 0.5, omega: physics.angularVelocity) * deltaTime
+        let k4q = quaternionDerivative(q: mQuat + k3q, omega: physics.angularVelocity) * deltaTime
 
-        let rotationDelta = (k1r + 2.0 * k2r + 2.0 * k3r + k4r) * rungeFactor
+        mQuat += (k1q + 2.0 * k2q + 2.0 * k3q + k4q) * rungeFactor
 
-        orientationMatrix += rotationDelta
+        mQuat = simd_normalize(mQuat)
 
-        orientationMatrix = orthonormalize(orientationMatrix)
+        let m: simd_float3x3 = transformQuaternionToMatrix3x3(q: mQuat)
 
-        transform.space.columns.0 = simd_float4(orientationMatrix.columns.0, 0.0)
-        transform.space.columns.1 = simd_float4(orientationMatrix.columns.1, 0.0)
-        transform.space.columns.2 = simd_float4(orientationMatrix.columns.2, 0.0)
+        transform.space.columns.0 = simd_float4(m.columns.0, 0.0)
+        transform.space.columns.1 = simd_float4(m.columns.1, 0.0)
+        transform.space.columns.2 = simd_float4(m.columns.2, 0.0)
     }
 }
 
@@ -427,6 +428,11 @@ func orthonormalize(_ R: simd_float3x3) -> simd_float3x3 {
     u.1 = normalize(u.1 - dot(u.1, u.0) * u.0)
     u.2 = cross(u.0, u.1) // Ensure right-handed basis
     return simd_float3x3(u.0, u.1, u.2)
+}
+
+func quaternionDerivative(q: simd_quatf, omega: simd_float3) -> simd_quatf {
+    let omegaQuat = simd_quatf(ix: omega.x, iy: omega.y, iz: omega.z, r: 0.0)
+    return 0.5 * q * omegaQuat
 }
 
 func computeInertiaTensor(entityId: EntityID) {
