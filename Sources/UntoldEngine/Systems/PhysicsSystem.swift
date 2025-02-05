@@ -260,7 +260,7 @@ public func applyMoment(entityId: EntityID, force: simd_float3, at point: simd_f
     let r = point - physics.centerOfMass
 
     // calculate torque
-    let torque = simd_cross(r, force)
+    let torque = getOrientation(entityId: entityId).inverse * simd_cross(r, force)
 
     kinetic.addMoment(torque)
 }
