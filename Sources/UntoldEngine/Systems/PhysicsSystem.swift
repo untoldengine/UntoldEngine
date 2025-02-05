@@ -254,6 +254,24 @@ public func clearMoment(entityId: EntityID) {
     kinetic.clearMoments()
 }
 
+public func clearAngularVelocity(entityId: EntityID) {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    physicsComponent.angularVelocity = .zero
+}
+
+public func clearVelocity(entityId: EntityID) {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    physicsComponent.velocity = .zero
+}
+
 /// pause physics component for entity
 public func pausePhysicsComponent(entityId: EntityID, isPaused: Bool) {
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
