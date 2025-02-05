@@ -421,9 +421,7 @@ func computeInertiaTensor(entityId: EntityID) {
     var Iyz: Float = 0.0
 
     // get body dimensions
-    var uX: Float = abs(localTransformComponent.boundingBox.1.x - localTransformComponent.boundingBox.0.x)
-    var uY: Float = abs(localTransformComponent.boundingBox.1.y - localTransformComponent.boundingBox.0.y)
-    var uZ: Float = abs(localTransformComponent.boundingBox.1.z - localTransformComponent.boundingBox.0.z)
+    var (uX, uY, uZ) = getDimension(entityId: entityId)
 
     if physicsComponent.inertiaTensorType == .spherical {
         uX = uX / 2.0

@@ -427,3 +427,16 @@ func getEntityName(entityId: EntityID) -> String? {
 public func lerp(start: simd_float3, end: simd_float3, t: Float) -> simd_float3 {
     start * (1.0 - t) + end * t
 }
+
+public func getDimension(entityId: EntityID) -> (width: Float, height: Float, depth: Float) {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return (width: 0, height: 0, depth: 0)
+    }
+
+    let x: Float = abs(localTransformComponent.boundingBox.1.x - localTransformComponent.boundingBox.0.x)
+    let y: Float = abs(localTransformComponent.boundingBox.1.y - localTransformComponent.boundingBox.0.y)
+    let z: Float = abs(localTransformComponent.boundingBox.1.z - localTransformComponent.boundingBox.0.z)
+
+    return (width: x, height: y, depth: z)
+}
