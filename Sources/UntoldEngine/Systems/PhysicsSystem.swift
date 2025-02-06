@@ -392,35 +392,9 @@ private func eulerIntegration(deltaTime: Float) {
     }
 }
 
-// Compute skew-symmetric matrix for angular velocity
-func skewMatrix(omega: simd_float3) -> simd_float3x3 {
-    return simd_float3x3(simd_float3(0.0, -omega.z, omega.y),
-                         simd_float3(omega.z, 0.0, -omega.x),
-                         simd_float3(-omega.y, omega.x, 0.0))
-}
-
-// Helper function to ensure the rotation matrix remains orthonormal
-func orthonormalize(_ R: simd_float3x3) -> simd_float3x3 {
-    var u = R.columns
-    u.0 = normalize(u.0)
-    u.1 = normalize(u.1 - dot(u.1, u.0) * u.0)
-    u.2 = cross(u.0, u.1) // Ensure right-handed basis
-    return simd_float3x3(u.0, u.1, u.2)
-}
-
-func quaternionDerivative(q: simd_quatf, omega: simd_float3) -> simd_quatf {
-    let omegaQuat = simd_quatf(ix: omega.x, iy: omega.y, iz: omega.z, r: 0.0)
-    return 0.5 * q * omegaQuat
-}
-
 func computeInertiaTensor(entityId: EntityID) {
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
-        return
-    }
-
-    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
-        handleError(.noLocalTransformComponent, entityId)
         return
     }
 

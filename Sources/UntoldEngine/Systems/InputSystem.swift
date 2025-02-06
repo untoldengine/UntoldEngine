@@ -280,8 +280,8 @@ public class InputSystem {
         }
     }
 
-    public func handleClickGesture(_ gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
-        let currentPanLocation = gestureRecognizer.location(in: view)
+    public func handleClickGesture(_: NSClickGestureRecognizer, in _: NSView) {
+        // let currentPanLocation = gestureRecognizer.location(in: view)
     }
 
     public func handlePanGesture(_ gestureRecognizer: NSPanGestureRecognizer, in view: NSView) {

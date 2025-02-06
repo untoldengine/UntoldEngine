@@ -440,3 +440,8 @@ public func getDimension(entityId: EntityID) -> (width: Float, height: Float, de
 
     return (width: x, height: y, depth: z)
 }
+
+func quaternionDerivative(q: simd_quatf, omega: simd_float3) -> simd_quatf {
+    let omegaQuat = simd_quatf(ix: omega.x, iy: omega.y, iz: omega.z, r: 0.0)
+    return 0.5 * q * omegaQuat
+}
