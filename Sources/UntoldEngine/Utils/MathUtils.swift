@@ -285,7 +285,8 @@ public func quaternion_lookAt(eye: simd_float3, target: simd_float3, up: simd_fl
 }
 
 public func getRotationQuaternion(axis: simd_float3, angle: Float) -> simd_quatf {
-    return simd_quatf.init(angle: angle, axis: axis)
+    let q: simd_quatf = .init(angle: angle, axis: axis)
+    return q
 }
 
 public func forwardDirectionVector(from q: simd_quatf) -> simd_float3 {
@@ -321,7 +322,8 @@ public func rightDirectionVector(from q: simd_quatf) -> simd_float3 {
 }
 
 public func rotateVectorUsingQuaternion(q: simd_quatf, v: simd_float3) -> simd_float3 {
-    return simd_act(q, v)
+    let vec: simd_float3 = simd_act(q, v)
+    return vec
 }
 
 public func transformQuaternionToMatrix3x3(q: simd_quatf) -> matrix_float3x3 {
