@@ -46,3 +46,23 @@ swiftformat .
 ```
 
 This will recursively format all Swift files in the current directory and its subdirectories.
+
+### Format files with a Swift version
+
+To format all Swift files in your project with a Swift version (I'm currently using 5.7):
+
+1. Navigate to your project directory in the terminal.
+
+2. Run the following command:
+
+```bash
+swiftformat --swiftversion 5.7 .
+```
+
+### Lint files
+
+To lint all files, you can run the following command
+
+```bash
+swiftformat --swiftversion 5.7 --lint .
+```
