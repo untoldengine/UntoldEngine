@@ -292,17 +292,17 @@ public func steerSeek(entityId: EntityID, targetPosition: simd_float3, maxSpeed:
         return
     }
 
-    // Use the seek behavior to calculate the steering velocity adjustment
-    let steeringAdjustment = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed) * weight
-
-    // Convert the velocity adjustment into a force for the physics system
-    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
-        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
-        applyForce(entityId: entityId, force: steeringForce)
-    } else {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
         return
     }
+
+    // Use the seek behavior to calculate the steering velocity adjustment
+    let finalVelocity = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed) * weight
+
+    // Convert the velocity adjustment into a force for the physics system
+    let steeringForce = (finalVelocity * physicsComponent.mass) / deltaTime
+    applyForce(entityId: entityId, force: steeringForce)
 
     // Align orientation to face the target
     let currentPosition = getPosition(entityId: entityId)
