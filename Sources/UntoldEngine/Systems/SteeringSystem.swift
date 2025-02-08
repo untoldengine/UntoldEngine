@@ -365,6 +365,62 @@ public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: F
     }
 }
 
+public func steerWithWASD(entityId: EntityID, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, weight: Float = 1.0) {
+    if gameMode == false {
+        return
+    }
+
+    if isPhysicsComponentPaused(entityId: entityId) {
+        return
+    }
+
+    // Check for invalid deltaTime
+    guard deltaTime > 0 else {
+        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
+        return
+    }
+
+    let currentPosition = getPosition(entityId: entityId)
+    var targetPosition = currentPosition
+
+    if inputSystem.keyState.wPressed {
+        targetPosition.z += 1.0
+    }
+
+    if inputSystem.keyState.sPressed {
+        targetPosition.z -= 1.0
+    }
+
+    if inputSystem.keyState.aPressed {
+        targetPosition.x -= 1.0
+    }
+
+    if inputSystem.keyState.dPressed {
+        targetPosition.x += 1.0
+    }
+
+    // Use the seek behavior to calculate the steering velocity adjustment
+    let finalVelocity = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed) * weight
+
+    // Convert the velocity adjustment into a force for the physics system
+    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
+        let steeringForce = (finalVelocity * physicsComponent.mass) / deltaTime
+        applyForce(entityId: entityId, force: steeringForce)
+    } else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    // Align orientation to face the target
+
+    let targetDirection = normalize(targetPosition - currentPosition)
+
+    let velocity = getVelocity(entityId: entityId)
+    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
+        alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
+    }
+}
+
 public func steerAway(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
     if gameMode == false {
         return
