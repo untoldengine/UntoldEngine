@@ -276,7 +276,7 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
 // High Level Steering Behaviors
 
 // movement helper functions
-public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, weight: Float = 1.0) {
+public func steerSeek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, weight: Float = 1.0) {
     if gameMode == false {
         return
     }
@@ -314,7 +314,7 @@ public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: F
     }
 }
 
-public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, slowingRadius: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
+public func steerArrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, slowingRadius: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
     if gameMode == false {
         return
     }
@@ -407,7 +407,7 @@ public func steerWithWASD(entityId: EntityID, maxSpeed: Float, deltaTime: Float,
     }
 }
 
-public func steerAway(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
+public func steerFlee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
     if gameMode == false {
         return
     }
@@ -494,7 +494,7 @@ public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: F
     }
 }
 
-public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, waypointThreshold: Float = 0.5, weight: Float = 1.0) {
+public func steerFollowPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, waypointThreshold: Float = 0.5, weight: Float = 1.0) {
     if gameMode == false {
         return
     }
@@ -547,7 +547,7 @@ public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float,
     }
 }
 
-public func avoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceRadius: Float, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
+public func steerAvoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceRadius: Float, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
     if gameMode == false {
         return
     }
