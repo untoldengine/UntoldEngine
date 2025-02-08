@@ -276,13 +276,6 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
 // High Level Steering Behaviors
 
 // movement helper functions
-
-/// Moves an entity towards a target position at a specified speed.
-/// - Parameters:
-///   - entityId: The ID of the entity to move.
-///   - targetPosition: The position to move towards.
-///   - maxSpeed: The maximum speed of the entity.
-///   - deltaTime: The elapsed time for the current frame.
 public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, weight: Float = 1.0) {
     if gameMode == false {
         return
@@ -321,13 +314,6 @@ public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: F
     }
 }
 
-/// Moves an entity towards a target position at a specified speed, slowing down as it approaches the target.
-/// - Parameters:
-///   - entityId: The ID of the entity to move.
-///   - targetPosition: The position to move towards.
-///   - maxSpeed: The maximum speed of the entity.
-///   - slowingRadius: The radius within which the entity slows down as it approaches the target.
-///   - deltaTime: The elapsed time for the current frame.
 public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, slowingRadius: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
     if gameMode == false {
         return
@@ -343,17 +329,17 @@ public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: F
         return
     }
 
-    // Use the arrive behavior to calculate the steering velocity adjustment
-    let steeringAdjustment = arrive(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed, slowingRadius: slowingRadius)
-
-    // Convert the velocity adjustment into a force for the physics system
-    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
-        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
-        applyForce(entityId: entityId, force: steeringForce)
-    } else {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
         return
     }
+
+    // Use the arrive behavior to calculate the steering velocity adjustment
+    let finalVelocity = arrive(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed, slowingRadius: slowingRadius)
+
+    // Convert the velocity adjustment into a force for the physics system
+    let steeringForce = (finalVelocity * physicsComponent.mass) / deltaTime
+    applyForce(entityId: entityId, force: steeringForce)
 
     // Align orientation to face the target
     let currentPosition = getPosition(entityId: entityId)
@@ -380,6 +366,11 @@ public func steerWithWASD(entityId: EntityID, maxSpeed: Float, deltaTime: Float,
         return
     }
 
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
     let currentPosition = getPosition(entityId: entityId)
     var targetPosition = currentPosition
 
@@ -403,13 +394,8 @@ public func steerWithWASD(entityId: EntityID, maxSpeed: Float, deltaTime: Float,
     let finalVelocity = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed) * weight
 
     // Convert the velocity adjustment into a force for the physics system
-    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
-        let steeringForce = (finalVelocity * physicsComponent.mass) / deltaTime
-        applyForce(entityId: entityId, force: steeringForce)
-    } else {
-        handleError(.noPhysicsComponent, entityId)
-        return
-    }
+    let steeringForce = (finalVelocity * physicsComponent.mass) / deltaTime
+    applyForce(entityId: entityId, force: steeringForce)
 
     // Align orientation to face the target
 
@@ -436,17 +422,17 @@ public func steerAway(entityId: EntityID, threatPosition: simd_float3, maxSpeed:
         return
     }
 
-    // Use the flee behavior to calculate the steering velocity adjustment
-    let steeringAdjustment = flee(entityId: entityId, threatPosition: threatPosition, maxSpeed: maxSpeed)
-
-    // Convert the velocity adjustment into a force for the physics system
-    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
-        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
-        applyForce(entityId: entityId, force: steeringForce)
-    } else {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
         return
     }
+
+    // Use the flee behavior to calculate the steering velocity adjustment
+    let finalVelocity = flee(entityId: entityId, threatPosition: threatPosition, maxSpeed: maxSpeed)
+
+    // Convert the velocity adjustment into a force for the physics system
+    let steeringForce = (finalVelocity * physicsComponent.mass) / deltaTime
+    applyForce(entityId: entityId, force: steeringForce)
 
     // Align orientation to face away from the threat
     let currentPosition = getPosition(entityId: entityId)
@@ -485,16 +471,11 @@ public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: F
     }
 
     // Use the pursuit behavior to calculate the steering velocity adjustment
-    let steeringAdjustment = pursuit(entityId: entityId, targetEntity: targetEntity, maxSpeed: maxSpeed)
+    let finalVelocity = pursuit(entityId: entityId, targetEntity: targetEntity, maxSpeed: maxSpeed)
 
     // Convert the velocity adjustment into a force for the physics system
-    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
-        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
-        applyForce(entityId: entityId, force: steeringForce)
-    } else {
-        handleError(.noPhysicsComponent, entityId)
-        return
-    }
+    let steeringForce = (finalVelocity * physicsComponent.mass) / deltaTime
+    applyForce(entityId: entityId, force: steeringForce)
 
     // Align orientation to face the predicted target position
     let position = getPosition(entityId: entityId)
@@ -547,7 +528,7 @@ public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float,
     }
 
     // Seek toward the current waypoint
-    let seekForce = seek(entityId: entityId, targetPosition: targetWaypoint, maxSpeed: maxSpeed) * weight
+    let finalVelocity = seek(entityId: entityId, targetPosition: targetWaypoint, maxSpeed: maxSpeed) * weight
 
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
@@ -555,7 +536,7 @@ public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float,
     }
 
     // Apply the force for movement
-    applyForce(entityId: entityId, force: (seekForce * physicsComponent.mass) / deltaTime)
+    applyForce(entityId: entityId, force: (finalVelocity * physicsComponent.mass) / deltaTime)
 
     // Retrieve the entity's current velocity
     let velocity = getVelocity(entityId: entityId)
