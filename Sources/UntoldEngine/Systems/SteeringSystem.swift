@@ -308,10 +308,7 @@ public func steerSeek(entityId: EntityID, targetPosition: simd_float3, maxSpeed:
     let currentPosition = getPosition(entityId: entityId)
     let targetDirection = normalize(targetPosition - currentPosition)
 
-    let velocity = getVelocity(entityId: entityId)
-    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
-        alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
-    }
+    alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
 public func steerArrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, slowingRadius: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
@@ -345,10 +342,7 @@ public func steerArrive(entityId: EntityID, targetPosition: simd_float3, maxSpee
     let currentPosition = getPosition(entityId: entityId)
     let targetDirection = normalize(targetPosition - currentPosition)
 
-    let velocity = getVelocity(entityId: entityId)
-    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
-        alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
-    }
+    alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
 public func steerWithWASD(entityId: EntityID, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, weight: Float = 1.0) {
@@ -401,10 +395,7 @@ public func steerWithWASD(entityId: EntityID, maxSpeed: Float, deltaTime: Float,
 
     let targetDirection = normalize(targetPosition - currentPosition)
 
-    let velocity = getVelocity(entityId: entityId)
-    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
-        alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
-    }
+    alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
 public func steerFlee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
@@ -439,10 +430,7 @@ public func steerFlee(entityId: EntityID, threatPosition: simd_float3, maxSpeed:
     let threatDirection = normalize(threatPosition - currentPosition)
     let fleeDirection = -threatDirection
 
-    let velocity = getVelocity(entityId: entityId)
-    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
-        alignOrientation(entityId: entityId, targetDirection: fleeDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
-    }
+    alignOrientation(entityId: entityId, targetDirection: fleeDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
 public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
@@ -488,10 +476,7 @@ public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: F
     let predictionTime = (relativeHeading > 0.95) ? (length(toTarget) / maxSpeed) : 0.5
     let futurePosition = targetPosition + physicsTargetComponent.velocity * predictionTime
 
-    let velocity = getVelocity(entityId: entityId)
-    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
-        alignOrientation(entityId: entityId, targetDirection: futurePosition, deltaTime: deltaTime, turnSpeed: turnSpeed)
-    }
+    alignOrientation(entityId: entityId, targetDirection: futurePosition, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
 public func steerFollowPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, waypointThreshold: Float = 0.5, weight: Float = 1.0) {
@@ -538,13 +523,7 @@ public func steerFollowPath(entityId: EntityID, path: [simd_float3], maxSpeed: F
     // Apply the force for movement
     applyForce(entityId: entityId, force: finalVelocity * physicsComponent.mass)
 
-    // Retrieve the entity's current velocity
-    let velocity = getVelocity(entityId: entityId)
-
-    // Align the entity's orientation to its movement direction
-    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
-        alignOrientation(entityId: entityId, targetDirection: targetWaypoint, deltaTime: deltaTime, turnSpeed: turnSpeed)
-    }
+    alignOrientation(entityId: entityId, targetDirection: targetWaypoint, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
 public func steerAvoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceRadius: Float, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
@@ -599,7 +578,5 @@ public func steerAvoidObstacles(entityId: EntityID, obstacles: [EntityID], avoid
 
     // Align the entity's orientation to its movement direction
     let velocity = getVelocity(entityId: entityId)
-    if length(velocity) > 0 {
-        alignOrientation(entityId: entityId, targetDirection: normalize(velocity), deltaTime: deltaTime, turnSpeed: turnSpeed)
-    }
+    alignOrientation(entityId: entityId, targetDirection: normalize(velocity), deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
