@@ -481,4 +481,39 @@ final class SteeringSystemTests: XCTestCase {
 
         XCTAssertGreaterThan(finalDistanceToObstacle, avoidanceRadius, "Entity should be outside the avoidance radius")
     }
+
+    func testSteerWASD() {
+        translateTo(entityId: entityId, position: simd_float3(0.0, 0.0, 0.0))
+
+        clearVelocity(entityId: entityId)
+
+        let targetPosition = simd_float3(1.0, 0.0, 0.0)
+
+        let deltaTime: Float = 0.01
+
+        var t: Float = 0.0
+
+        let maxSimulationTime: Float = 10.0
+
+        inputSystem.keyState.dPressed = true
+
+        while t < maxSimulationTime {
+            steerWithWASD(entityId: entityId, maxSpeed: maxSpeed, deltaTime: deltaTime)
+            updatePhysicsSystem(deltaTime: deltaTime)
+
+            t += deltaTime
+
+            // check if the entity is close enough to the target
+            let position = getLocalPosition(entityId: entityId)
+            if distance(position, targetPosition) < 0.1 {
+                break
+            }
+        }
+
+        let finalPosition = getLocalPosition(entityId: entityId)
+
+        XCTAssertEqual(finalPosition.x, targetPosition.x, accuracy: 0.1, "x Position should be correctly calculated.")
+        XCTAssertEqual(finalPosition.y, targetPosition.y, accuracy: 0.1, "y Position should be correctly calculated.")
+        XCTAssertEqual(finalPosition.z, targetPosition.z, accuracy: 0.1, "z Position should be correctly calculated.")
+    }
 }
