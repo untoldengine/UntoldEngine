@@ -371,7 +371,7 @@ public func steerWithWASD(entityId: EntityID, maxSpeed: Float, deltaTime: Float,
         return
     }
 
-    let currentPosition = getPosition(entityId: entityId)
+    let currentPosition = getLocalPosition(entityId: entityId)
     var targetPosition = currentPosition
 
     if inputSystem.keyState.wPressed {
