@@ -447,5 +447,7 @@ func quaternionDerivative(q: simd_quatf, omega: simd_float3) -> simd_quatf {
 }
 
 public func isWASDPressed() -> Bool {
-    return inputSystem.keyState.aPressed || inputSystem.keyState.wPressed || inputSystem.keyState.sPressed || inputSystem.keyState.dPressed
+    let isPressed: Bool = inputSystem.keyState.aPressed || inputSystem.keyState.wPressed || inputSystem.keyState.sPressed || inputSystem.keyState.dPressed
+
+    return isPressed
 }
