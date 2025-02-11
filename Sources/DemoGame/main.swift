@@ -7,7 +7,6 @@ class GameScene {
     let hollandPlayer: EntityID
     let ball: EntityID
     let playerSpeed: Float = 2.0
-    var startMoving: Bool = false // Tracks if the player is moving
 
     init() {
         // Step 1: Configure the Camera
@@ -59,13 +58,14 @@ class GameScene {
         }
 
         // Handle idle animation and physics pause
-        if !startMoving {
+        if isWASDPressed() {
+            changeAnimation(entityId: hollandPlayer, name: "hollandRunning")
+            pausePhysicsComponent(entityId: hollandPlayer, isPaused: false)
+
+        } else {
             changeAnimation(entityId: hollandPlayer, name: "hollandIdle")
             pausePhysicsComponent(entityId: hollandPlayer, isPaused: true)
             return
-        } else {
-            changeAnimation(entityId: hollandPlayer, name: "hollandRunning")
-            pausePhysicsComponent(entityId: hollandPlayer, isPaused: false)
         }
 
         // Compute new position based on input
@@ -88,7 +88,7 @@ class GameScene {
         }
 
         // Steer the player to the new position
-        steerTo(entityId: hollandPlayer, targetPosition: newPosition, maxSpeed: playerSpeed, deltaTime: deltaTime, turnSpeed: 5.0)
+        steerSeek(entityId: hollandPlayer, targetPosition: newPosition, maxSpeed: playerSpeed, deltaTime: deltaTime, turnSpeed: 5.0)
 
         // Rotate the ball around its local right axis
         rotateBy(entityId: ball, angle: 5.0, axis: getRightAxisVector(entityId: ball))
@@ -98,17 +98,6 @@ class GameScene {
         // Skip logic if not in game mode
         if gameMode == false {
             return
-        }
-
-        // Update the startMoving flag based on input
-        if inputSystem.keyState.aPressed == false,
-           inputSystem.keyState.wPressed == false,
-           inputSystem.keyState.sPressed == false,
-           inputSystem.keyState.dPressed == false
-        {
-            startMoving = false
-        } else {
-            startMoving = true
         }
     }
 }
