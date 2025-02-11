@@ -1,0 +1,60 @@
+name: Automatic Versioning
+
+on:
+  push:
+    branches:
+      - master  # Change this if needed
+
+jobs:
+  versioning:
+    name: Determine Next Version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest tag
+        id: latest-tag
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0 || echo v0.0.0)
+          echo "Latest tag: $latest_tag"
+          echo "::set-output name=tag::$latest_tag"
+
+      - name: Determine version bump
+        id: version-bump
+        run: |
+          latest_version="${{ steps.latest-tag.outputs.tag }}"
+          commit_message=$(git log -1 --pretty=%B)
+
+          major=$(echo $latest_version | cut -d. -f1 | sed 's/v//')
+          minor=$(echo $latest_version | cut -d. -f2)
+          patch=$(echo $latest_version | cut -d. -f3)
+
+          if [[ "$commit_message" == *"[API Change]"* ]]; then
+            new_version="v$((major + 1)).0.0"
+          elif [[ "$commit_message" == *"[Feature]"* ]]; then
+            new_version="v$major.$((minor + 1)).0"
+          elif [[ "$commit_message" == *"[Patch]"* ]]; then
+            new_version="v$major.$minor.$((patch + 1))"
+          else
+            echo "No versioning keyword found. Skipping tagging."
+            exit 0
+          fi
+
+          echo "New version: $new_version"
+          echo "::set-output name=new_version::$new_version"
+
+      - name: Create new Git tag
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git tag ${{ steps.version-bump.outputs.new_version }}
+          git push origin ${{ steps.version-bump.outputs.new_version }}
+
+      - name: Trigger Release Workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: Release Engine
+          token: ${{ secrets.GITHUB_TOKEN }}
+
