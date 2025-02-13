@@ -55,7 +55,7 @@ Your guide must follow this structure:
 
 ### Additional Notes
 
-- Use concise and user-friendly language.
+- Make sure to follow the [versioning guidelines](versioning.md).
 - Ensure all code examples are complete, tested, and follow the engine’s coding conventions.
 - PRs must be documented in the /Documentation folder, with guides in markdown format.
 - Make sure your code follows the [formatting guidelines](Formatting.md).
