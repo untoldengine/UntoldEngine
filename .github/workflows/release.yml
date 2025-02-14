@@ -1,0 +1,42 @@
+name: Release Engine
+
+on:
+  push:
+    tags:
+      - "v*"  # Only trigger on version tags (e.g., v1.0.0)
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest tag
+        id: latest-tag
+        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          previous_tag=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+          if [[ -z "$previous_tag" ]]; then
+            echo "No previous tag found, showing all commits."
+            git log --pretty=format:"- %s" > changelog.txt
+          else
+            echo "Generating changelog from $previous_tag to ${{ steps.latest-tag.outputs.tag }}"
+            git log $previous_tag..HEAD --pretty=format:"- %s" > changelog.txt
+          fi
+          echo "::set-output name=changelog::$(cat changelog.txt)"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.latest-tag.outputs.tag }}
+          release_name: "Release ${{ steps.latest-tag.outputs.tag }}"
+          body: "${{ steps.changelog.outputs.changelog }}"
+          draft: false
+          prerelease: false
+
