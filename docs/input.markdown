@@ -1,3 +1,10 @@
+---
+layout: page
+title: Input
+permalink: /input/
+nav_order: 10
+---
+
 # Using the Input System in Untold Engine
 
 The Input System in the Untold Engine allows you to detect user inputs, such as keystrokes and mouse movements, to control entities and interact with the game. This guide will explain how to use the Input System effectively.
@@ -95,4 +102,5 @@ func moveCar(entityId: EntityID, dt: Float) {
 - Debouncing: If you want to execute an action only once per key press, track the key's previous state to avoid repeated triggers.
 - Game Mode Check: Always ensure the game is in the appropriate mode (e.g., Game Mode) before processing inputs.
 - Smooth Movement: Use dt (delta time) to ensure frame-rate-independent movement.
+
 

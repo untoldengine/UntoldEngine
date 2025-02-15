@@ -62,3 +62,7 @@ UntoldEngine4D/.DS_Store
 Sources/UntoldEngine/UntoldEngineKernels/UntoldEngineKernels.air
 
 # Sources/UntoldEngine/UntoldEngineKernels/UntoldEngineKernels.metal
+
+docs/_site/
+docs/.jekyll-cache/
+

@@ -1,3 +1,10 @@
+---
+layout: page
+title: Transformation
+permalink: /transformation/
+nav_order: 8
+---
+
 # Using the Transform System in Untold Engine
 
 The Transform System is a core part of the Untold Engine, responsible for managing the position, rotation, and scale of entities. It provides both local transformations (relative to a parent entity) and world transformations (absolute in the scene).
@@ -121,3 +128,4 @@ rotateTo(entityId: entity, rotation: simd_float4x4( /* matrix values */ ))
 - Combine Translations and Rotations:
     - Use translateTo or rotateTo to set an entity’s absolute position or rotation.
     - Use translateBy or rotateBy for incremental adjustments.
+

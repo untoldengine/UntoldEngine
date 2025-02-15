@@ -1,3 +1,10 @@
+---
+layout: page
+title: Contribution
+permalink: /contribution/
+nav_order: 36
+---
+
 # Contributing Guidelines
 
 I'm excited to have you contribute to the Untold Engine! To maintain consistency and quality, please follow these guidelines when submitting a pull request (PR). Submissions that do not adhere to these guidelines will not be approved.
@@ -55,10 +62,10 @@ Your guide must follow this structure:
 
 ### Additional Notes
 
-- Make sure to follow the [versioning guidelines](versioning.md).
+- Make sure to follow the [versioning guidelines]({% link versioning.markdown %}).
 - Ensure all code examples are complete, tested, and follow the engine’s coding conventions.
 - PRs must be documented in the /Documentation folder, with guides in markdown format.
-- Make sure your code follows the [formatting guidelines](Formatting.md).
+- Make sure your code follows the [formatting guidelines]({% link formatting.markdown %}).
 
 ---
 Thank you for contributing to the Untold Engine! Following these guidelines will ensure that your work aligns with the project's goals and provides value to users.
