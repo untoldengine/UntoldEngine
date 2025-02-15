@@ -1,3 +1,10 @@
+---
+layout: page
+title: Rendering
+permalink: /rendering/
+nav_order: 7
+---
+
 # Enabling Rendering System in Untold Engine
 
 The Rendering System in the Untold Engine is responsible for displaying your models on the screen. It supports advanced features such as Physically Based Rendering (PBR) for realistic visuals and multiple types of lights to illuminate your scenes.
@@ -81,7 +88,8 @@ point.position = simd_float3(1.0, 1.0, 0.0)
 lightingSystem.addPointLight(entityID: pointEntity, light: point)
 ```
 
->>> Tip: Use directional lights for large, outdoor scenes and point lights for localized lighting effects, such as lamps or torches.
+> Tip: Use directional lights for large, outdoor scenes and point lights for localized lighting effects, such as lamps or torches.
+
 ---
 
 ## What Happens Behind the Scenes?
@@ -127,3 +135,4 @@ Once everything is set up:
 1. Run the project.
 2. Your model will appear in the game window, illuminated by the configured lights.
 3. If the model is not visible or appears flat, revisit the lighting and texture setup to ensure everything is loaded correctly.
+

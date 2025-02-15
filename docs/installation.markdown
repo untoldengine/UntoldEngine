@@ -1,3 +1,10 @@
+---
+layout: page
+title: Installation
+permalink: /installation/
+nav_order: 4
+---
+
 # How to install the Untold Engine
 
 Follow these steps to set up and run the Untold Engine.
@@ -50,4 +57,5 @@ In **Play Mode**, the scene comes to life! You will experience:
 - Physics simulations running dynamically.
 
 Toggle between Edit Mode and Play Mode with the **P** key to seamlessly explore or interact with the scene.
+
 

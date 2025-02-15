@@ -1,3 +1,10 @@
+---
+layout: page
+title: Physics
+permalink: /physics/
+nav_order: 11
+---
+
 # Enabling Physics System in Untold Engine
 
 The physics system in the Untold Engine enables realistic simulations such as gravity, forces, and dynamic interactions. While collision support is still under development, this guide will walk you through adding physics to your entities.
@@ -100,3 +107,4 @@ Once you've set up physics, run the project to see it in action:
 2. Press "P" to enter Game Mode:
 - Gravity and forces will affect the entity.
 - If forces are applied, you’ll see dynamic motion in real time.
+

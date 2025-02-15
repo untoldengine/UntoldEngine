@@ -1,3 +1,10 @@
+---
+layout: page
+title: Common Issues
+permalink: /commonissues/
+nav_order: 35
+---
+
 # Common Issues
 
 ### ShaderType.h not found
