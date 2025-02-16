@@ -1,10 +1,3 @@
----
-layout: page
-title: Versioning
-permalink: /versioning/
-nav_order: 38
----
-
 #  Versioning
 
 To help us identity the purpose of your commits, make sure to use the following tags in your commit messages. The tags will also automatically increment the the current version when pushed to github.

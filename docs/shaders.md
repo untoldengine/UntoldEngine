@@ -1,10 +1,3 @@
----
-layout: page
-title: Shaders
-permalink: /shaders/
-nav_order: 15
----
-
 # Working with Shaders
 
 Untold Engine's shaders are now open source and can be modified to suit your needs. All Metal shader files are compiled into a single ".metallib" file, which is then used by the Untold Engine. Here's how to work with shaders in the Untold Engine:

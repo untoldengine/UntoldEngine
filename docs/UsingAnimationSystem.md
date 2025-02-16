@@ -1,10 +1,3 @@
----
-layout: page
-title: Animation
-permalink: /animation/
-nav_order: 9
----
-
 #  Enabling Animation in Untold Engine
 
 The Untold Engine simplifies adding animations to your rigged models, allowing for lifelike movement and dynamic interactions. This guide will show you how to set up and play animations for a rigged model.
@@ -36,7 +29,7 @@ Load your rigged model’s .usdc file and link it to the entity. This step ensur
 ```swift
 setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc", flip: false)
 ```
-> Note: If your model renders with the wrong orientation, set the flip parameter to false.
+>>> Note: If your model renders with the wrong orientation, set the flip parameter to false.
 
 ---
 
@@ -92,4 +85,3 @@ Once the animation is set up:
 - Name Animations Clearly: Use descriptive names like "running" or "jumping" to make it easier to manage multiple animations.
 - Debug Orientation Issues: If the model’s animation appears misaligned, revisit the flip parameter or check the model’s export settings.
 - Combine Animations: For complex behaviors, load multiple animations (e.g., walking, idle, jumping) and switch between them dynamically.
-

@@ -1,10 +1,3 @@
----
-layout: page
-title: Scenegraph
-permalink: /scenegraph/
-nav_order: 12
----
-
 #  Adding Parent-Child Relationships in Untold Engine
 
 The Untold Engine includes a Scene Graph data structure, designed to manage hierarchical transformations efficiently. This enables parent-child relationships between entities, where a child's transformation (position, rotation, scale) is relative to its parent. For example, a car's wheels (children) move and rotate relative to the car body (parent).
@@ -38,5 +31,4 @@ setParent(childId: childEntity, parentId: parentEntity)
 
 2. Independent Local Transformations:
 - While the child inherits the parent's transformations, it can also have its own independent local transformations, such as offset positions or rotations relative to the parent.
-
 

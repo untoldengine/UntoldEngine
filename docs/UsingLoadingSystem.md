@@ -1,13 +1,6 @@
----
-layout: page
-title: Importing Assets
-permalink: /importingassets/
-nav_order: 17
----
+# Importing USDC files for your game
 
-# Importing Asset files for your game
-
-The Untold Engine supports .usdc files, making it easy to import 3D models and scenes into your game. This tutorial will guide you through the correct export settings in Blender, adding files to your project, and loading them into your game.
+The Untold Engine supports .usdc files, making it easy to import 3D models and scenes into your game. This page will guide you through the correct export settings in Blender, adding files to your project, and loading them into your game.
 
 ---
 
@@ -26,8 +19,6 @@ The Untold Engine requires all files to be of type usdc. To export your model or
 To ensure proper export of .usdc files from Blender:
 
 1. Check the "Relative Paths" Option during export. This ensures that all referenced assets, such as textures, are correctly linked relative to the .usdc file.
-
-> Note: If you are testing out the engine, make sure the "Relative Path" is unchecked.
 
 ![usdcfileproperties](../images/modelexportblender.png)
 
@@ -54,4 +45,3 @@ Exporting models with animations require that you also export its rig/armature. 
 Similarly, to export an animation, make sure Animation is selected.
 
 ![animation](../images/animationexportblender.png)
-
