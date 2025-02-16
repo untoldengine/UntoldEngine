@@ -1,6 +1,7 @@
 name: Release Engine
 
 on:
+  workflow_dispatch: # Allows manual triggering
   push:
     tags:
       - "v*"  # Only trigger on version tags (e.g., v1.0.0)
