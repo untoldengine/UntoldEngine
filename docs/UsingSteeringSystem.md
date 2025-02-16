@@ -21,18 +21,18 @@ Examples:
 1. Steer Toward a Target Position:
 
 ```swift
-steerTo(entityId: entity, targetPosition: targetPosition, maxSpeed: 5.0, deltaTime: 0.016)
+steerSeek(entityId: entity, targetPosition: targetPosition, maxSpeed: 5.0, deltaTime: 0.016)
 ```
 2. Steer Away from a Threat:
 
 ```swift
-steerAway(entityId: entity, threatPosition: threatPosition, maxSpeed: 5.0, deltaTime: 0.016)
+steerFlee(entityId: entity, threatPosition: threatPosition, maxSpeed: 5.0, deltaTime: 0.016)
 ```
 
 3. Follow a Path: Guide an entity along a series of waypoints.
 
 ```swift
-followPath(entityId: entity, path: waypoints, maxSpeed: 5.0, deltaTime: 0.016)
+steerFollowPath(entityId: entity, path: waypoints, maxSpeed: 5.0, deltaTime: 0.016)
 ```
 4. Pursue a Moving Target:
 
@@ -43,7 +43,19 @@ steerPursuit(entityId: chaserEntity, targetEntity: targetEntity, maxSpeed: 5.0, 
 5. Avoid Obstacles:
 
 ```swift
-avoidObstacles(entityId: entity, obstacles: obstacleEntities, avoidanceRadius: 2.0, maxSpeed: 5.0, deltaTime: 0.016)
+steerAvoidObstacles(entityId: entity, obstacles: obstacleEntities, avoidanceRadius: 2.0, maxSpeed: 5.0, deltaTime: 0.016)
+```
+
+6. Steer Toward a Target Position (with Arrive):
+
+```swift
+steerArrive(entityId: entity, targetPosition: targetPosition, maxSpeed: 5.0, deltaTime: 0.016)
+```
+
+7. Steer using WASD keys
+
+```swift
+steerWithWASD(entityId: entity, maxSpeed: 5.0, deltaTime: 0.016)
 ```
 
 ---
