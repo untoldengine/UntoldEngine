@@ -1,10 +1,3 @@
----
-layout: page
-title: Create Mac Game
-permalink: /createmacgame/
-nav_order: 18
----
-
 # Create a macOS Game in Xcode
 
 For your convinience, I have created a game template that is ready for you to use. Simply [clone the template](https://github.com/untoldengine/UntoldEngine-Game-Template) and you will be ready to go. 
@@ -149,7 +142,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 ### Importing Assets
 
-To import assets such as models, textures, animations, etc, follow the steps in [Importing Asset Files For Your Game]({% link importingassets.markdown %})
+To import assets such as models, textures, animations, etc, follow the steps in [Importing Asset Files For Your Game](ImportingAssetFiles.md)
 
 ---
 
@@ -170,4 +163,3 @@ Cause: The Untold Engine framework is not linked correctly.
 Solution: Ensure the "Untold Engine" framework is added to Link Binary With Libraries under the Build Phases section.
 
 ![linkerissue](../images/linkerissue.png)
-

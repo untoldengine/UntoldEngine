@@ -1,13 +1,6 @@
----
-layout: page
-title: Onboarding
-permalink: /onboarding/
-nav_order: 4
----
-
 #  Choose your starting path
 
-I’ve designed three different ways for you to get started with the Untold Engine. Whether you just want to explore or are ready to make your own game, we’ve got you covered. Before you begin, make sure to [follow the installation guide]({% link installation.markdown %}).
+I’ve designed three different ways for you to get started with the Untold Engine. Whether you just want to explore or are ready to make your own game, we’ve got you covered. Before you begin, make sure to [clone the Untold Engine](Installation.md).
 
 
 ## Demo Game – Jump Right In

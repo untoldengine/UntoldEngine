@@ -1,10 +1,3 @@
----
-layout: page
-title: ECS-Registration
-permalink: /registration/
-nav_order: 6
----
-
 #  Using the Registration System in Untold Engine
 
 The Registration System in the Untold Engine is an integral part of its Entity-Component-System (ECS) architecture. It provides core functionalities to manage entities and components, such as:
@@ -83,5 +76,3 @@ This ensures the entity is properly removed from all systems.
 - Default components like RenderComponent, TransformComponent, and ScenegraphComponent are added automatically for rendering.
 3. System Setup:
 - Specialized functions like setEntityMesh or setEntitySkeleton handle specific setups, ensuring the entity is ready for rendering or animation.
-
-
