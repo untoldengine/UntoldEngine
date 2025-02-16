@@ -31,7 +31,7 @@
 - [About](#about)
 - [Getting Started](#getting-started)
 - [High-Level API Overview](#High-Level-API-Overview)
-- [Core Systems of the Untold Engine](#Core-Systems-of-the-Untold-Engine)
+- [Using the Untold Engine](#Using-the-Untold-Engine)
 - [Visuals](#visuals)
 - [Roadmap](#roadmap)
 - [Support](#support)
@@ -121,19 +121,18 @@ For a complete breakdown of the API, see [API Overview](docs/APIOverview.md).
 
 ---
 
-## Core Systems of the Untold Engine
+## Using the Untold Engine
 
 The Untold Engine is powered by modular systems that simplify game development:
 
-- **Rendering System**: Render 3D models with support for PBR and custom shaders.
-- **Physics System**: Simulate gravity, forces, and movement.
-- **Animation System**: Add life to your models with skeletal animations.
-- **Input System**: Capture keyboard and mouse interactions.
-- **Steering System**: Implement intelligent behaviors like path-following.
-- **Transform System**: Manage entity positions, rotations, and scales.
-- **Shaders**: Add or modify shaders to fit your game's stye.
-
-Learn more about these systems in the [Core Systems Guide](docs/CoreSystems.md).
+- [Registration System](../docs/UsingRegistrationSystem.md): Handles the creation of entities and components
+- [Rendering System](../docs/UsingRenderingSystem.md): Render 3D models with support for PBR and custom shaders.
+- [Physics System](../docs/UsingPhysicsSystem.md): Simulate gravity, forces, and movement.
+- [Animation System](../docs/UsingAnimationSystem.md): Add life to your models with skeletal animations.
+- [Input System](../docs/UsingInputSystem.md): Capture keyboard and mouse interactions.
+- [Steering System](../docs/UsingSteeringSystem.md): Implement intelligent behaviors like path-following.
+- [Transform System](../docs/UsingTransformSystem.md): Manage entity positions, rotations, and scales.
+- [Shaders](../docs/shaders.md): Add or modify shaders to fit your game's stye.
 
 ---
 
