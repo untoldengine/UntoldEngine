@@ -115,10 +115,13 @@ The Untold Engine offers an intuitive API for game development. Here's a quick l
 let stadium = createEntity()
 setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
 translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
+
+let player = createEntity()
+setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdc", flip: false)
+setEntityAnimations(entityId: player, filename: "running", withExtension: "usdc", name: "running")
+changeAnimation(entityId: player, name: "running") // Start animation
+setEntityKinetics(entityId: player) // Enable Physics System
 ```
-
-For a complete breakdown of the API, see [API Overview](docs/APIOverview.md).
-
 ---
 
 ## Using the Untold Engine
