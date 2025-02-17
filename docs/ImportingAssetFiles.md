@@ -10,14 +10,19 @@ There are two primary ways to use the engine:
 
 The process to import assets differ depending if you are using the engine as either standalone or in your game project. 
 
-If you are:
-    - Using the engine as standalone, Follow these steps (#How-to-export-assets-using-the-engine-as-standalone)
-    - Using the engine in your game project, Follow these steps (#How-to-export-assets-using-your-game-project)
+Choose how you are using the engine for the proper step-by-step instructions:
+
+- [How to export assets using the engine as standalone](#How-to-export-assets-using-the-engine-as-standalone)
+- [How to export assets using your game project](#How-to-export-assets-using-your-game-project)
+
+
 ---
 
 ## Requirements
 
 Make sure to use Blender 4.2.3 or later
+
+---
 
 ## How to export assets using the engine as standalone
 
@@ -61,6 +66,7 @@ UntoldEngine/Sources/UntoldEngine/Resources/Animations/
 
 Once you hit export, the model should show up in the Resources/Animations folder.
 
+---
 
 ## How to export assets using your game project
 
