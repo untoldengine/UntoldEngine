@@ -147,6 +147,7 @@ The Untold Engine is powered by modular systems that simplify game development. 
 - [Scenegraph](docs/UsingScenegraph.md): Enables parent-child relationships between entities
 - [Shaders](docs/shaders.md): Add or modify shaders to fit your game's stye.
 
+- [Importing Assets](docs/ImportingAssetFiles.md): Importing assets into your game project
 ---
 
 ## Visuals
