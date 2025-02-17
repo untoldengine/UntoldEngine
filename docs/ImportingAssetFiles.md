@@ -8,15 +8,18 @@ There are two primary ways to use the engine:
 - **Integrating the Engine into Your Game Project** – Perfect for game developers who want to build a game using the engine. This requires adding the engine as a Swift Package Dependency in a game project.
 
 
-The process to import assets differ depending if you are using the engine as either standalone or in your game project. Please refer to the proper section below.
+The process to import assets differ depending if you are using the engine as either standalone or in your game project. 
 
+If you are:
+    - Using the engine as standalone, Follow these steps (#How-to-export-assets-using-the-engine-as-standalone)
+    - Using the engine in your game project, Follow these steps (#How-to-export-assets-using-your-game-project)
 ---
 
 ## Requirements
 
 Make sure to use Blender 4.2.3 or later
 
-## How to export a file to USDC (engine standalone)
+## How to export assets using the engine as standalone
 
 The Untold Engine requires all files to be of type usdc. To export your model or scene from Blender, click on File->Export->USD
 
@@ -59,7 +62,7 @@ UntoldEngine/Sources/UntoldEngine/Resources/Animations/
 Once you hit export, the model should show up in the Resources/Animations folder.
 
 
-## How to export a file to USDC (your game project)
+## How to export assets using your game project
 
 The Untold Engine requires all files to be of type usdc. To export your model or scene from Blender, click on File->Export->USD
 
