@@ -81,6 +81,8 @@ Author: [Harold Serrano](http://www.haroldserrano.com)
 
 The Untold Engine is a game engine designed to be integrated into your game projects. It is distributed as a Swift Package using Swift Package Manager (SPM) for easy integration and maintenance.
 
+There are two primary ways to use the engine:
+
 - Running the Engine Standalone – Ideal for contributors and developers who want to explore, modify, or contribute to the engine itself. This mode allows you to test the engine independently using its built-in demo assets and functionalities.
 - Integrating the Engine into Your Game Project – Perfect for game developers who want to build a game using the engine. This requires adding the engine as a Swift Package Dependency in a game project.
 
