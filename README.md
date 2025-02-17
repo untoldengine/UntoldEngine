@@ -83,8 +83,8 @@ The Untold Engine is a game engine designed to be integrated into your game proj
 
 There are two primary ways to use the engine:
 
-- Running the Engine Standalone – Ideal for contributors and developers who want to explore, modify, or contribute to the engine itself. This mode allows you to test the engine independently using its built-in demo assets and functionalities.
-- Integrating the Engine into Your Game Project – Perfect for game developers who want to build a game using the engine. This requires adding the engine as a Swift Package Dependency in a game project.
+- **Running the Engine Standalone** – Ideal for contributors and developers who want to explore, modify, or contribute to the engine itself. This mode allows you to test the engine independently using its built-in demo assets and functionalities.
+- **Integrating the Engine into Your Game Project** – Perfect for game developers who want to build a game using the engine. This requires adding the engine as a Swift Package Dependency in a game project.
 
 ### Prerequisites
 
@@ -93,10 +93,10 @@ To begin using the Untold Engine, you’ll need:
 - An Apple computer.
 - The latest version of Xcode, which you can download from the App Store.
 
-### **Running the Untold Engine Standalone** (For Contributors & Engine Developers)
+### Running the Untold Engine Standalone (For Contributors & Engine Developers)
 If you want to explore, modify, or contribute to the engine, you can run it independently with its built-in demo features. Follow the step-by-step guide in [Running the Untold Engine](docs/Installation.md).
 
-### **Integrating the Untold Engine into Your Game Project** (For Game Developers)
+### Integrating the Untold Engine into Your Game Project (For Game Developers)
 To use the Untold Engine in your own game, you must add it as a Swift Package Dependency in your project. Follow the step-by-step guide in [Create a Mac OS Game](docs/CreateMacOSGame.md).
 
 ### Choose your starting path
