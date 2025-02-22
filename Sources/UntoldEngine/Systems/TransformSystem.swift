@@ -55,6 +55,34 @@ public func getOrientation(entityId: EntityID) -> simd_float3x3 {
     return matrix3x3_upper_left(worldTransformComponent.space)
 }
 
+public func getLocalOrientationEuler(entityId: EntityID) -> (pitch: Float, yaw: Float, roll: Float) {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return (0.0, 0.0, 0.0)
+    }
+
+    let m = matrix3x3_upper_left(localTransformComponent.space)
+    let q = transformMatrix3nToQuaternion(m: m)
+
+    let euler = transformQuaternionToEulerAngles(q: q)
+
+    return (euler.pitch, euler.yaw, euler.roll)
+}
+
+public func getOrientationEuler(entityId: EntityID) -> (pitch: Float, yaw: Float, roll: Float) {
+    guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+        handleError(.noWorldTransformComponent, entityId)
+        return (0.0, 0.0, 0.0)
+    }
+
+    let m = matrix3x3_upper_left(worldTransformComponent.space)
+    let q = transformMatrix3nToQuaternion(m: m)
+
+    let euler = transformQuaternionToEulerAngles(q: q)
+
+    return (euler.pitch, euler.yaw, euler.roll)
+}
+
 public func getForwardAxisVector(entityId: EntityID) -> simd_float3 {
     // get the transform for the entity
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
@@ -212,6 +240,21 @@ public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
 
     let rotUpperLeft = matrix3x3_upper_left(rotation)
     let q = simd_quatf(rotUpperLeft)
+    let m: simd_float3x3 = transformQuaternionToMatrix3x3(q: q)
+
+    localTransformComponent.space.columns.0 = simd_float4(m.columns.0, 0.0)
+    localTransformComponent.space.columns.1 = simd_float4(m.columns.1, 0.0)
+    localTransformComponent.space.columns.2 = simd_float4(m.columns.2, 0.0)
+}
+
+public func rotateTo(entityId: EntityID, pitch: Float, yaw: Float, roll: Float) {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+
+    let q = transformEulerAnglesToQuaternion(pitch: pitch, yaw: yaw, roll: roll)
+
     let m: simd_float3x3 = transformQuaternionToMatrix3x3(q: q)
 
     localTransformComponent.space.columns.0 = simd_float4(m.columns.0, 0.0)
