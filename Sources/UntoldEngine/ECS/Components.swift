@@ -111,6 +111,10 @@ public class AnimationComponent: Component {
         currentAnimation?.cleanUp()
         currentAnimation = nil
     }
+
+    func getAllAnimationClips() -> [String] {
+        return Array(animationClips.keys)
+    }
 }
 
 public class LightComponent: Component {

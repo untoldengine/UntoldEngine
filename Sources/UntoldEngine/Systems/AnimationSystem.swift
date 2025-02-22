@@ -82,3 +82,12 @@ public func changeAnimation(entityId: EntityID, name: String, withPause: Bool = 
     animationComponent.currentAnimation = animationClip
     animationComponent.pause = withPause
 }
+
+public func getAllAnimationClips(entityId: EntityID) -> [String] {
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+        print("Entity \(entityId) does not have an animation component.")
+        return []
+    }
+
+    return animationComponent.getAllAnimationClips()
+}
