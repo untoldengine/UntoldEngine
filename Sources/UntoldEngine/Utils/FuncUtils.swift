@@ -420,10 +420,6 @@ func isValid(_ value: Float) -> Bool {
     !value.isNaN
 }
 
-func getEntityName(entityId: EntityID) -> String? {
-    entityDictionary[entityId]
-}
-
 public func lerp(start: simd_float3, end: simd_float3, t: Float) -> simd_float3 {
     start * (1.0 - t) + end * t
 }

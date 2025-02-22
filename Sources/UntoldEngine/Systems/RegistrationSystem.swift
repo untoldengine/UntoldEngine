@@ -24,6 +24,7 @@ public func destroyEntity(entityId: EntityID) {
     removeEntityAnimations(entityId: entityId)
     removeEntityKinetics(entityId: entityId)
     removeEntityScenegraph(entityId: entityId)
+    removeEntityName(entityId: entityId)
 
     scene.destroyEntity(entityId)
 }
@@ -300,4 +301,16 @@ func deassociateMeshesToEntity(entityId: EntityID) {
 
 func getMeshesForEntity(entityId: EntityID) -> [Mesh]? {
     entityMeshMap[entityId]
+}
+
+func setEntityName(entityId: EntityID, name: String) {
+    entityNameMap[entityId] = name
+}
+
+func getEntityName(entityId: EntityID) -> String? {
+    entityNameMap[entityId]
+}
+
+func removeEntityName(entityId: EntityID) {
+    entityNameMap.removeValue(forKey: entityId)
 }
