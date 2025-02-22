@@ -115,6 +115,10 @@ public class AnimationComponent: Component {
     func getAllAnimationClips() -> [String] {
         return Array(animationClips.keys)
     }
+
+    func removeAnimationClip(animation: String) {
+        animationClips.removeValue(forKey: animation)
+    }
 }
 
 public class LightComponent: Component {
