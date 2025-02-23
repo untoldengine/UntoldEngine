@@ -113,7 +113,7 @@ public class AnimationComponent: Component {
     }
 
     func getAllAnimationClips() -> [String] {
-        return Array(animationClips.keys)
+        Array(animationClips.keys)
     }
 
     func removeAnimationClip(animation: String) {
