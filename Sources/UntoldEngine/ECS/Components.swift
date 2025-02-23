@@ -116,8 +116,8 @@ public class AnimationComponent: Component {
         Array(animationClips.keys)
     }
 
-    func removeAnimationClip(animation: String) {
-        animationClips.removeValue(forKey: animation)
+    func removeAnimationClip(animationClip: String) {
+        animationClips.removeValue(forKey: animationClip)
     }
 }
 

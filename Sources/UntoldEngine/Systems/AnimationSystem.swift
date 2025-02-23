@@ -91,3 +91,12 @@ public func getAllAnimationClips(entityId: EntityID) -> [String] {
 
     return animationComponent.getAllAnimationClips()
 }
+
+public func removeAnimationClip(entityId: EntityID, animationClip: String) {
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    animationComponent.removeAnimationClip(animationClip: animationClip)
+}
