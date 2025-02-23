@@ -303,11 +303,11 @@ func getMeshesForEntity(entityId: EntityID) -> [Mesh]? {
     entityMeshMap[entityId]
 }
 
-func setEntityName(entityId: EntityID, name: String) {
+public func setEntityName(entityId: EntityID, name: String) {
     entityNameMap[entityId] = name
 }
 
-func getEntityName(entityId: EntityID) -> String? {
+public func getEntityName(entityId: EntityID) -> String? {
     entityNameMap[entityId]
 }
 
