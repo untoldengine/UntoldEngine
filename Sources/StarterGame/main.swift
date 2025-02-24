@@ -18,6 +18,9 @@ class GameScene {
 
         // Step 2: Create a Red Player Entity with Animation
         player = createEntity()
+
+        setEntityName(entityId: player, name: "player")
+
         setEntityMesh(entityId: player, filename: "hollandPlayer", withExtension: "usdc", flip: false)
 
         // Add animations or physics components to the player
@@ -26,6 +29,8 @@ class GameScene {
 
         // Lighting
         let sunEntity: EntityID = createEntity()
+
+        setEntityName(entityId: sunEntity, name: "light")
 
         // Create the directional light instance
         let sun = DirectionalLight()
