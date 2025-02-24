@@ -1,5 +1,6 @@
 
 import MetalKit
+import SwiftUI
 import UntoldEngine
 
 // GameScene is where you would initialize your game and write the game logic.
@@ -91,6 +92,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             gameUpdate: { [weak self] deltaTime in self?.gameScene.update(deltaTime: deltaTime) },
             handleInput: { [weak self] in self?.gameScene.handleInput() }
         )
+
+        if enableEditor {
+            if #available(macOS 12.0, *) {
+                let hostingView = NSHostingView(rootView: EditorView(mtkView: renderer.metalView))
+                window.contentView = hostingView
+            } else {
+                // Fallback on earlier versions
+            }
+        }
 
         window.makeKeyAndOrderFront(nil)
         NSApp.setActivationPolicy(.regular)

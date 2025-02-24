@@ -159,3 +159,7 @@ enum InertiaTensorType: Int {
     case spherical
     case cylindrical
 }
+
+// Editor
+
+public var enableEditor: Bool = true
