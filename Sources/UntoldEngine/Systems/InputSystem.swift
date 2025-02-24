@@ -181,6 +181,16 @@ public class InputSystem {
         view.addGestureRecognizer(clickGesture)
     }
 
+    private func shouldHandleKey(_: NSEvent) -> Bool {
+        if let firstResponder = NSApp.keyWindow?.firstResponder {
+            if firstResponder is NSTextView {
+                return false // allow normal text input
+            }
+        }
+
+        return true // handle the key event
+    }
+
     public func setupEventMonitors() {
         NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
             self?.handleFlagsChanged(event)
@@ -188,13 +198,19 @@ public class InputSystem {
         }
 
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            self?.keyPressed(event.keyCode)
-            return nil // Mark event as handled
+            if self?.shouldHandleKey(event) == true {
+                self?.keyPressed(event.keyCode)
+                return nil // Mark event as handled
+            }
+            return event // Pass event to the system
         }
 
         NSEvent.addLocalMonitorForEvents(matching: .keyUp) { [weak self] event in
-            self?.keyReleased(event.keyCode)
-            return nil // Mark event as handled
+            if self?.shouldHandleKey(event) == true {
+                self?.keyReleased(event.keyCode)
+                return nil // Mark event as handled
+            }
+            return event
         }
 
         NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
