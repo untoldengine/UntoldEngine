@@ -142,7 +142,7 @@ func createComponentMask(for components: [Int]) -> ComponentMask {
     return mask
 }
 
-func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Scene) -> [EntityID] {
+public func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Scene) -> [EntityID] {
     let requiredMask = createComponentMask(for: componentTypes)
     return scene.entities.filter { entity in
         // Use bitwise AND to check if the entity has all required components
@@ -158,4 +158,17 @@ func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> Bool {
     let componentId = getComponentId(for: componentType)
 
     return entityMask.test(componentId)
+}
+
+// Custom System registry
+var customSystems: [(Float) -> Void] = []
+
+public func registerCustomSystem(_ system: @escaping (Float) -> Void) {
+    customSystems.append(system)
+}
+
+public func updateCustomSystems(deltaTime: Float) {
+    for system in customSystems {
+        system(deltaTime)
+    }
 }
