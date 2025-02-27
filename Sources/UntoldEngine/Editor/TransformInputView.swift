@@ -44,3 +44,38 @@ struct TransformInputView: View {
         }
     }
 }
+
+@available(macOS 12.0, *)
+struct NumberInputView: View {
+    let label: String
+    @Binding var transform: Float
+    @State private var tempValues: String = "0"
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(label)
+                .font(.headline)
+
+            HStack {
+                TextField("", text: Binding(
+                    get: { tempValues },
+                    set: { tempValues = $0 }
+                ))
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .frame(width: 60)
+                .onChange(of: transform) { newValue in
+                    tempValues = String(newValue) // Update when entity changes
+                }
+                .onSubmit {
+                    if let newValue = Float(tempValues) {
+                        transform = newValue
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .onAppear {
+            tempValues = String(transform)
+        }
+    }
+}
