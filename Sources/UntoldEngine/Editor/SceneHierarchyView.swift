@@ -11,8 +11,8 @@ import SwiftUI
 struct SceneHierarchyView: View {
     @ObservedObject var selectionManager: SelectionManager
     var entityList: [EntityID]
-    var onAddEntity: () -> Void
-    var onRemoveEntity: () -> Void
+    var onAddEntity_Editor: () -> Void
+    var onRemoveEntity_Editor: () -> Void
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -34,7 +34,7 @@ struct SceneHierarchyView: View {
 
             HStack {
                 // Add Entity Button
-                Button(action: onAddEntity) {
+                Button(action: onAddEntity_Editor) {
                     HStack {
                         Image(systemName: "plus")
                             .foregroundColor(.white)
@@ -47,7 +47,7 @@ struct SceneHierarchyView: View {
 
                 // Remove Entity Button
 
-                Button(action: onRemoveEntity) {
+                Button(action: onRemoveEntity_Editor) {
                     HStack {
                         Image(systemName: "minus")
                             .foregroundColor(.white)

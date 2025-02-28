@@ -13,7 +13,6 @@ public struct EditorView: View {
     var mtkView: MTKView
 
     @State private var editor_entities: [EntityID] = scene.getAllEntities()
-
     @StateObject private var selectionManager = SelectionManager()
     @State private var assets: [String: [Asset]] = [:]
     @State private var isPlaying = false
@@ -32,7 +31,7 @@ public struct EditorView: View {
             Divider()
             HStack {
                 VStack {
-                    SceneHierarchyView(selectionManager: selectionManager, entityList: editor_entities, onAddEntity: editor_addNewEntity, onRemoveEntity: editor_removeEntity)
+                    SceneHierarchyView(selectionManager: selectionManager, entityList: editor_entities, onAddEntity_Editor: editor_addNewEntity, onRemoveEntity_Editor: editor_removeEntity)
                         .frame(minWidth: 250, maxWidth: 250)
 
 //                    AssetBrowserView(assets: $assets)
@@ -40,7 +39,7 @@ public struct EditorView: View {
                 }
 
                 SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
-                InspectorView(selectionManager: selectionManager, assets: assets, onAddMesh: editor_addNewMesh, onAddName: editor_addName, onAddAnimation: editor_addAnimation)
+                InspectorView(selectionManager: selectionManager, onAddName_Editor: editor_addName)
             }
         }
     }
@@ -80,40 +79,9 @@ public struct EditorView: View {
         setEntityName(entityId: entity, name: getEntityName(entityId: entity) ?? "No name")
     }
 
-    private func editor_addNewMesh() {
-        guard let url = editor_openFilePicker() else { return }
-
-        guard let entityId = selectionManager.selectedEntity else {
-            print("No entity is selected.") // Handle case where no entity is selected
-            return
-        }
-        setEntityMesh(entityId: entityId, filename: url, withExtension: "usdc")
-    }
-
-    private func editor_addAnimation() {
-        guard let url = editor_openFilePicker() else { return }
-
-        guard let entityId = selectionManager.selectedEntity else {
-            print("No entity is selected.") // Handle case where no entity is selected
-            return
-        }
-
-        setEntityAnimations(entityId: entityId, filename: url, withExtension: "usdc", name: url)
-        changeAnimation(entityId: entityId, name: url)
-    }
-
     private func editor_handlePlayToggle(_ isPlaying: Bool) {
         print(isPlaying ? "Entering Play Mode..." : "Stopping Play Mode...")
         self.isPlaying = isPlaying
         gameMode = !gameMode
-    }
-
-    func editor_openFilePicker() -> String? {
-        let panel = NSOpenPanel()
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
-
-        return panel.runModal() == .OK ? panel.urls.first?.deletingPathExtension().lastPathComponent : nil
     }
 }
