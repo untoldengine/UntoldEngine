@@ -305,6 +305,7 @@ func getMeshesForEntity(entityId: EntityID) -> [Mesh]? {
 
 public func setEntityName(entityId: EntityID, name: String) {
     entityNameMap[entityId] = name
+    reverseEntityNameMap[name] = entityId
 }
 
 public func getEntityName(entityId: EntityID) -> String? {
@@ -312,5 +313,13 @@ public func getEntityName(entityId: EntityID) -> String? {
 }
 
 func removeEntityName(entityId: EntityID) {
+    if let name: String = getEntityName(entityId: entityId) {
+        reverseEntityNameMap.removeValue(forKey: name)
+    }
+
     entityNameMap.removeValue(forKey: entityId)
+}
+
+public func findEntity(name: String) -> EntityID? {
+    reverseEntityNameMap[name]
 }
