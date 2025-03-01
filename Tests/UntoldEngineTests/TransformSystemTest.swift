@@ -114,4 +114,34 @@ final class TransformSystemTests: XCTestCase {
         let updatedMatrix = getLocalOrientation(entityId: entityId)
         XCTAssertNotEqual(updatedMatrix, simd_float3x3(1)) // Ensure it updated
     }
+
+    func testGetLocalOrientationEuler() {
+        let angle: Float = 45.0
+        let axis = simd_float3(0, 1, 0)
+        rotateTo(entityId: entityId, angle: angle, axis: axis)
+
+        let result = getLocalOrientationEuler(entityId: entityId)
+
+        XCTAssertEqual(result.pitch, 0.0, accuracy: 0.01)
+        XCTAssertEqual(result.yaw, radiansToDegrees(radians: 0.7853981), accuracy: 0.01)
+        XCTAssertEqual(result.roll, 0.0, accuracy: 0.01)
+    }
+
+    func testRotateToEuler() {
+        rotateTo(entityId: entityId, pitch: 45.0, yaw: 60.0, roll: 30.0)
+
+        let m = getLocalOrientation(entityId: entityId)
+
+        XCTAssertEqual(m.columns.0.x, 0.4330127, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.0.y, 0.2500000, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.0.z, -0.8660254, accuracy: 0.001, "component should be equal")
+
+        XCTAssertEqual(m.columns.1.x, 0.1767767, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.1.y, 0.9185587, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.1.z, 0.3535534, accuracy: 0.001, "component should be equal")
+
+        XCTAssertEqual(m.columns.2.x, 0.8838835, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.2.y, -0.3061862, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.2.z, 0.3535534, accuracy: 0.001, "component should be equal")
+    }
 }

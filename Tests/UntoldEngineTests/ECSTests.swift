@@ -75,4 +75,14 @@ final class ECSTests: XCTestCase {
 
         XCTAssertFalse(hasComponent(entityId: entityId, componentType: RenderComponent.self), "Should not have component")
     }
+
+    func testSetGetName() {
+        let entityId = createEntity()
+        let entityId2 = createEntity()
+
+        setEntityName(entityId: entityId2, name: "untold")
+        let result = getEntityName(entityId: entityId2)!
+
+        XCTAssertEqual("untold", result, "Strings do not match")
+    }
 }

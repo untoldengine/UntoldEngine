@@ -75,7 +75,7 @@ final class CameraTests: XCTestCase {
     }
 
     func testRotateCamera() {
-        camera.rotateCamera(yaw: .pi / 4, pitch: .pi / 4, sensitivity: 1.0)
+        camera.rotateCamera(pitch: .pi / 4, yaw: .pi / 4, sensitivity: 1.0)
         XCTAssertEqual(camera.rotation, simd_quatf(ix: 0.0, iy: 0.0, iz: 0.0, r: 1.0))
     }
 
