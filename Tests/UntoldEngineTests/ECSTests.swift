@@ -85,4 +85,29 @@ final class ECSTests: XCTestCase {
 
         XCTAssertEqual("untold", result, "Strings do not match")
     }
+
+    func testRemoveEntityName() {
+        let entityId = createEntity()
+
+        setEntityName(entityId: entityId, name: "untold")
+
+        XCTAssertEqual(entityNameMap.count, 1, "map should contain one item")
+
+        removeEntityName(entityId: entityId)
+
+        XCTAssertEqual(entityNameMap.count, 0, "map should contain no items")
+    }
+
+    func testFindEntity() {
+        let childEntityId = createEntity()
+        let entityId = createEntity()
+
+        setEntityName(entityId: entityId, name: "untold")
+
+        let resultId = findEntity(name: "untold")
+        let wrongId = findEntity(name: "untold2")
+
+        XCTAssertEqual(entityId, resultId, "entities should match")
+        XCTAssertNotEqual(entityId, wrongId, "entities should not match")
+    }
 }
