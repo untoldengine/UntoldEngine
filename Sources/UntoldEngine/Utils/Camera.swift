@@ -164,7 +164,7 @@ public struct Camera {
     }
 
     // Function to rotate the camera based on mouse movement
-    public mutating func rotateCamera(yaw: Float, pitch: Float, sensitivity: Float) {
+    public mutating func rotateCamera(pitch: Float, yaw: Float, sensitivity: Float = 1.0) {
         // Calculate rotation angles (scaled by sensitivity)
         let rotationAngleX = yaw * sensitivity
         let rotationAngleY = pitch * sensitivity
