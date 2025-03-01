@@ -42,6 +42,8 @@ var entityMeshMap: [EntityID: [Mesh]] = [:] // Holds all meshes loaded
 
 var entityNameMap: [EntityID: String] = [:] // links entity Id to names
 
+var reverseEntityNameMap: [String: EntityID] = [:]
+
 // Timing properties
 var timeSinceLastUpdatePreviousTime: TimeInterval!
 public var timeSinceLastUpdate: Float!
