@@ -8,7 +8,7 @@ struct Asset: Identifiable {
     let path: URL
 }
 
-@available(macOS 12.0, *)
+@available(macOS 13.0, *)
 public struct EditorView: View {
     var mtkView: MTKView
 
@@ -34,6 +34,8 @@ public struct EditorView: View {
                     SceneHierarchyView(selectionManager: selectionManager, entityList: editor_entities, onAddEntity_Editor: editor_addNewEntity, onRemoveEntity_Editor: editor_removeEntity)
                         .frame(minWidth: 250, maxWidth: 250)
 
+                    CameraView()
+                        .frame(minWidth: 250, maxWidth: 250)
 //                    AssetBrowserView(assets: $assets)
 //                        .frame(minWidth: 250, maxWidth: 250)
                 }
@@ -42,6 +44,7 @@ public struct EditorView: View {
                 InspectorView(selectionManager: selectionManager, onAddName_Editor: editor_addName)
             }
         }
+        .background(Color(red: 40.0 / 255, green: 44.0 / 255, blue: 52.0 / 255, opacity: 0.5))
     }
 
     private func editor_handleSave() {

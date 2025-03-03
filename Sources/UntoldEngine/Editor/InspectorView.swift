@@ -8,7 +8,7 @@
 import simd
 import SwiftUI
 
-@available(macOS 12.0, *)
+@available(macOS 13.0, *)
 public struct ComponentOption_Editor: Identifiable {
     public let id: Int
     public let name: String
@@ -32,7 +32,7 @@ func openFilePicker() -> String? {
     return panel.runModal() == .OK ? panel.urls.first?.deletingPathExtension().lastPathComponent : nil
 }
 
-@available(macOS 12.0, *)
+@available(macOS 13.0, *)
 private func onAddMesh_Editor(entityId: EntityID) {
     guard let url = openFilePicker() else { return }
 
@@ -50,12 +50,12 @@ private func onAddKinetics_Editor(entityId: EntityID) {
     setEntityKinetics(entityId: entityId)
 }
 
-@available(macOS 12.0, *)
+@available(macOS 13.0, *)
 public func addComponent_Editor(componentOption: ComponentOption_Editor) {
     availableComponents_Editor.append(componentOption)
 }
 
-@available(macOS 12.0, *)
+@available(macOS 13.0, *)
 var availableComponents_Editor: [ComponentOption_Editor] = [
     ComponentOption_Editor(id: getComponentId(for: RenderComponent.self), name: "Render Component", type: RenderComponent.self, view: { selectedId, _ in
         AnyView(
@@ -90,14 +90,14 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     let orientationEuler = getLocalOrientationEuler(entityId: entityId)
                     let orientationVector = simd_float3(orientationEuler.pitch, orientationEuler.yaw, orientationEuler.roll)
 
-                    TransformInputView(label: "Position", transform: Binding(
+                    TextInputVectorView(label: "Position", value: Binding(
                         get: { position },
                         set: { newPosition in
                             translateTo(entityId: entityId, position: newPosition)
                             refreshView()
                         }))
 
-                    TransformInputView(label: "Orientation", transform: Binding(
+                    TextInputVectorView(label: "Orientation", value: Binding(
                         get: { orientationVector },
                         set: { newOrientation in
                             rotateTo(entityId: entityId, pitch: newOrientation.x, yaw: newOrientation.y, roll: newOrientation.z)
@@ -174,7 +174,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
 
                     if hasComponent(entityId: entityId, componentType: KineticComponent.self) {
                         let mass = getMass(entityId: entityId)
-                        NumberInputView(label: "Mass", transform: Binding(
+                        TextInputNumberView(label: "Mass", value: Binding(
                             get: { mass },
                             set: { newMass in
                                 setMass(entityId: entityId, mass: newMass)
@@ -187,7 +187,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
     }),
 ]
 
-@available(macOS 12.0, *)
+@available(macOS 13.0, *)
 struct InspectorView: View {
     @ObservedObject var selectionManager: SelectionManager
     var onAddName_Editor: () -> Void
@@ -256,7 +256,6 @@ struct InspectorView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(minWidth: 200, maxWidth: 250)
-        .background(Color.black.opacity(0.05))
         .padding()
         .sheet(isPresented: $showComponentSelection) {
             VStack {
@@ -276,6 +275,7 @@ struct InspectorView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
+                .scrollContentBackground(.hidden) // Hides system background
 
                 Button("Cancel") {
                     showComponentSelection = false
@@ -283,6 +283,7 @@ struct InspectorView: View {
                 .padding()
             }
             .frame(width: 300, height: 300)
+            .background(Color(red: 40.0 / 255, green: 44.0 / 255, blue: 52.0 / 255, opacity: 0.5))
         }
     }
 

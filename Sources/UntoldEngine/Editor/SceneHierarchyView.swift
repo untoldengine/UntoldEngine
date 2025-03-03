@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-@available(macOS 11.0, *)
+@available(macOS 13.0, *)
 struct SceneHierarchyView: View {
     @ObservedObject var selectionManager: SelectionManager
     var entityList: [EntityID]
@@ -29,6 +29,7 @@ struct SceneHierarchyView: View {
                         selectionManager.selectEntity(entityId: entityId)
                     }
             }
+            .scrollContentBackground(.hidden) // Hides system background
 
             Spacer() // Pushes the "+" button to the bottom
 
@@ -72,15 +73,15 @@ struct EntityRow: View {
 
     var body: some View {
         HStack {
-            Image(systemName: isSelected ? "cube.fill" : "cube") // A cube icon
-                .foregroundColor(isSelected ? .blue : .gray)
+//            Image(systemName: isSelected ? "cube.fill" : "cube") // A cube icon
+//                .foregroundColor(isSelected ? .blue : .gray)
 
             Text(entityName) // show entity name
                 .fontWeight(isSelected ? .bold : .regular)
                 .foregroundColor(isSelected ? .blue : .primary)
         }
         .padding(5)
-        .background(isSelected ? Color.blue.opacity(0.2) : Color.clear) // Highlight selected entity
-        .cornerRadius(5)
+        // .background(isSelected ? Color.blue.opacity(0.2) : Color.clear) // Highlight selected entity
+        // .cornerRadius(5)
     }
 }
