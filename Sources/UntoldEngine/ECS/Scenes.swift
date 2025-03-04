@@ -160,6 +160,24 @@ func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> Bool {
     return entityMask.test(componentId)
 }
 
+func getAllEntityComponents(entityId: EntityID) -> [Any.Type] {
+    let entityIndex: EntityIndex = getEntityIndex(entityId)
+    let entityMask = scene.entities[Int(entityIndex)].mask
+
+    var components: [Any.Type] = []
+
+    for (_, typeInfo) in componentIDs {
+        let componentId = typeInfo.id
+
+        // check if the entity's mask includes this component
+        if entityMask.test(componentId) {
+            components.append(typeInfo.type)
+        }
+    }
+
+    return components
+}
+
 // Custom System registry
 var customSystems: [(Float) -> Void] = []
 

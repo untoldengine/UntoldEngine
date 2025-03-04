@@ -77,7 +77,7 @@ final class ECSTests: XCTestCase {
     }
 
     func testSetGetName() {
-        let entityId = createEntity()
+        let _ = createEntity()
         let entityId2 = createEntity()
 
         setEntityName(entityId: entityId2, name: "untold")
@@ -99,7 +99,7 @@ final class ECSTests: XCTestCase {
     }
 
     func testFindEntity() {
-        let childEntityId = createEntity()
+        let _ = createEntity()
         let entityId = createEntity()
 
         setEntityName(entityId: entityId, name: "untold")
@@ -109,5 +109,22 @@ final class ECSTests: XCTestCase {
 
         XCTAssertEqual(entityId, resultId, "entities should match")
         XCTAssertNotEqual(entityId, wrongId, "entities should not match")
+    }
+
+    func testGetAllEntityComponents() {
+        let entityId = createEntity()
+
+        registerComponent(entityId: entityId, componentType: RenderComponent.self)
+        registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
+
+        var components: [Any.Type] = []
+
+        components = getAllEntityComponents(entityId: entityId)
+
+        XCTAssertEqual(ObjectIdentifier(components.first!), ObjectIdentifier(LocalTransformComponent.self), "Types should match")
+
+        XCTAssertEqual(ObjectIdentifier(components.last!), ObjectIdentifier(RenderComponent.self), "Types should match")
+
+        XCTAssertEqual(components.count, 2, "Entity should have two components")
     }
 }
