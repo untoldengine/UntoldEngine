@@ -8,18 +8,25 @@
 
 import Foundation
 
+struct TypeInfo {
+    var id: Int
+    let type: Any.Type
+}
+
 // Global dictionary to store component IDs for each type
-var componentIDs = [ObjectIdentifier: Int]()
+var componentIDs = [ObjectIdentifier: TypeInfo]()
 
 // Function to get or create a component ID for a specific type
 public func getComponentId(for type: (some Any).Type) -> Int {
     let typeId = ObjectIdentifier(type)
-    if let id = componentIDs[typeId] {
-        return id
+
+    if let typeInfo = componentIDs[typeId] {
+        return typeInfo.id
     } else {
         let id = componentCounter
         componentCounter += 1
-        componentIDs[typeId] = id
+
+        componentIDs[typeId] = TypeInfo(id: id, type: type)
         return id
     }
 }
