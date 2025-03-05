@@ -57,7 +57,7 @@ public func addComponent_Editor(componentOption: ComponentOption_Editor) {
 
 @available(macOS 13.0, *)
 var availableComponents_Editor: [ComponentOption_Editor] = [
-    ComponentOption_Editor(id: getComponentId(for: RenderComponent.self), name: "Render Component", type: RenderComponent.self, view: { selectedId, _ in
+    ComponentOption_Editor(id: getComponentId(for: RenderComponent.self), name: "Render Component", type: RenderComponent.self, view: { selectedId, refreshView in
         AnyView(
             VStack {
                 if let entityId = selectedId {
@@ -66,6 +66,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     HStack {
                         Button(action: {
                             onAddMesh_Editor(entityId: entityId)
+                            refreshView()
                         }) {
                             HStack {
                                 Image(systemName: "plus")
@@ -188,6 +189,46 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
 ]
 
 @available(macOS 13.0, *)
+func mergeEntityComponents(
+    selectedEntity: EntityID?,
+    editor_entityComponents: [EntityID: [ObjectIdentifier: ComponentOption_Editor]],
+    editor_availableComponents: [ComponentOption_Editor]
+) -> [ObjectIdentifier: ComponentOption_Editor] {
+    guard let entityId = selectedEntity else { return [:] }
+
+    var mergedComponents = editor_entityComponents[entityId] ?? [:]
+
+    let existingComponentIDs: [Int] = getAllEntityComponentsIds(entityId: entityId)
+
+    let matchingComponents = editor_availableComponents.filter { existingComponentIDs.contains($0.id) }
+
+    for match in matchingComponents {
+        let key = ObjectIdentifier(match.type)
+
+        if mergedComponents[key] == nil {
+            mergedComponents[key] = match
+        }
+    }
+
+    return mergedComponents
+}
+
+@available(macOS 13.0, *)
+func sortEntityComponents(componentOption_Editor: [ObjectIdentifier: ComponentOption_Editor]) -> [ComponentOption_Editor] {
+    let sortedComponents = Array(componentOption_Editor.values).sorted { lhs, rhs in
+        let order: [String: Int] = [
+            "Render Component": 1,
+            "Transform Component": 2,
+            "Animation Component": 3,
+            "Kinetic Component": 4,
+        ]
+        return (order[lhs.name] ?? Int.max) < (order[rhs.name] ?? Int.max)
+    }
+
+    return sortedComponents
+}
+
+@available(macOS 13.0, *)
 struct InspectorView: View {
     @ObservedObject var selectionManager: SelectionManager
     var onAddName_Editor: () -> Void
@@ -219,22 +260,21 @@ struct InspectorView: View {
                         }
 
                         Divider()
+                        if let entityId = selectionManager.selectedEntity {
+                            let mergedComponents = mergeEntityComponents(
+                                selectedEntity: entityId,
+                                editor_entityComponents: editor_entityComponents,
+                                editor_availableComponents: availableComponents_Editor
+                            )
 
-                        if let editor_components = editor_entityComponents[entityId] {
-                            let sortedComponents = Array(editor_components.values).sorted { lhs, rhs in
-                                let order: [String: Int] = [
-                                    "Render Component": 1,
-                                    "Transform Component": 2,
-                                    "Animation Component": 3,
-                                    "Kinetic Component": 4,
-                                ]
-                                return (order[lhs.name] ?? Int.max) < (order[rhs.name] ?? Int.max)
-                            }
+                            let sortedComponents = sortEntityComponents(componentOption_Editor: mergedComponents)
 
                             ForEach(sortedComponents, id: \.id) { editor_component in
                                 editor_component.view(entityId, refreshView)
                                 Divider()
                             }
+                        } else {
+                            Text("No entity selected").foregroundColor(.gray)
                         }
                     }
                 }
