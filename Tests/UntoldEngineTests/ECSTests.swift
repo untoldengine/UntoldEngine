@@ -111,7 +111,7 @@ final class ECSTests: XCTestCase {
         XCTAssertNotEqual(entityId, wrongId, "entities should not match")
     }
 
-    func testGetAllEntityComponents() {
+    func testGetAllEntityComponentTypes() {
         let entityId = createEntity()
 
         registerComponent(entityId: entityId, componentType: RenderComponent.self)
@@ -119,12 +119,27 @@ final class ECSTests: XCTestCase {
 
         var components: [Any.Type] = []
 
-        components = getAllEntityComponents(entityId: entityId)
+        components = getAllEntityComponentsTypes(entityId: entityId)
 
         XCTAssertEqual(ObjectIdentifier(components.first!), ObjectIdentifier(LocalTransformComponent.self), "Types should match")
 
         XCTAssertEqual(ObjectIdentifier(components.last!), ObjectIdentifier(RenderComponent.self), "Types should match")
 
         XCTAssertEqual(components.count, 2, "Entity should have two components")
+    }
+
+    func testGetAllEntityComponentIds() {
+        let entityId = createEntity()
+
+        registerComponent(entityId: entityId, componentType: RenderComponent.self)
+        registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
+
+        var componentIds: [Int] = []
+
+        componentIds = getAllEntityComponentsIds(entityId: entityId)
+
+        XCTAssertEqual(componentIds.last, getComponentId(for: LocalTransformComponent.self), "Ids should match")
+
+        XCTAssertEqual(componentIds.first, getComponentId(for: RenderComponent.self), "Ids should match")
     }
 }
