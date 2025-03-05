@@ -160,7 +160,7 @@ func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> Bool {
     return entityMask.test(componentId)
 }
 
-func getAllEntityComponents(entityId: EntityID) -> [Any.Type] {
+func getAllEntityComponentsTypes(entityId: EntityID) -> [Any.Type] {
     let entityIndex: EntityIndex = getEntityIndex(entityId)
     let entityMask = scene.entities[Int(entityIndex)].mask
 
@@ -176,6 +176,22 @@ func getAllEntityComponents(entityId: EntityID) -> [Any.Type] {
     }
 
     return components
+}
+
+func getAllEntityComponentsIds(entityId: EntityID) -> [Int] {
+    var componentIdsArray: [Int] = []
+
+    let componentTypes: [Any.Type] = getAllEntityComponentsTypes(entityId: entityId)
+
+    for componentType in componentTypes {
+        let typeId = ObjectIdentifier(componentType)
+
+        if let typeInfo = componentIDs[typeId] {
+            componentIdsArray.append(typeInfo.id)
+        }
+    }
+
+    return componentIdsArray
 }
 
 // Custom System registry
