@@ -24,7 +24,7 @@ public struct EditorView: View {
     public var body: some View {
         VStack {
             ToolbarView(
-                onSave: editor_handleSave,
+                selectionManager: selectionManager, onSave: editor_handleSave,
                 onLoad: editor_handleLoad,
                 onPlayToggled: { isPlaying in editor_handlePlayToggle(isPlaying) }
             )
@@ -55,6 +55,8 @@ public struct EditorView: View {
     private func editor_handleLoad() {
         if let sceneData = loadScene() {
             deserializeScene(sceneData: sceneData)
+            editor_entities = scene.getAllEntities()
+            selectionManager.objectWillChange.send()
         }
     }
 

@@ -9,6 +9,7 @@ import SwiftUI
 
 @available(macOS 12.0, *)
 struct ToolbarView: View {
+    @ObservedObject var selectionManager: SelectionManager
     var onSave: () -> Void
     var onLoad: () -> Void
     var onPlayToggled: (Bool) -> Void // Now tracks Play Mode
