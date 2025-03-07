@@ -48,11 +48,14 @@ public struct EditorView: View {
     }
 
     private func editor_handleSave() {
-        print("Saving Scene...")
+        let sceneData: SceneData = serializeScene()
+        saveScene(sceneData: sceneData)
     }
 
     private func editor_handleLoad() {
-        print("Loading Scene...")
+        if let sceneData = loadScene() {
+            deserializeScene(sceneData: sceneData)
+        }
     }
 
     private func editor_addNewEntity() {
@@ -61,6 +64,8 @@ public struct EditorView: View {
         let name = "Entity \(scene.getAllEntities().count)"
         setEntityName(entityId: entityId, name: name)
         editor_entities = scene.getAllEntities()
+
+        registerComponent(entityId: entityId, componentType: InEditorComponent.self)
     }
 
     private func editor_removeEntity() {
@@ -69,6 +74,7 @@ public struct EditorView: View {
             return
         }
 
+        scene.remove(component: InEditorComponent.self, from: entityId)
         destroyEntity(entityId: entityId)
         editor_entities = scene.getAllEntities()
     }

@@ -57,6 +57,13 @@ private func onAddAnimation_Editor(entityId: EntityID) {
 
     setEntityAnimations(entityId: entityId, filename: filename, withExtension: withExtension, name: filename)
     changeAnimation(entityId: entityId, name: filename)
+
+    guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) else {
+        handleError(.noInEditorComponent)
+        return
+    }
+
+    inEditorComponent.animationsFilenames.append(url)
 }
 
 private func onAddKinetics_Editor(entityId: EntityID) {

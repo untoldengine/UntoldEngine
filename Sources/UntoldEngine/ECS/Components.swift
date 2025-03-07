@@ -140,3 +140,10 @@ public class ScenegraphComponent: Component {
 
     public required init() {}
 }
+
+public class InEditorComponent: Component {
+    var meshFilename: URL = .init(fileURLWithPath: "")
+    var animationsFilenames: [URL] = []
+
+    public required init() {}
+}
