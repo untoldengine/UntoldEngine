@@ -65,7 +65,7 @@ struct SceneHierarchyView: View {
     }
 }
 
-@available(macOS 11.0, *)
+@available(macOS 13.0, *)
 struct EntityRow: View {
     let entityID: EntityID
     let entityName: String
@@ -73,15 +73,10 @@ struct EntityRow: View {
 
     var body: some View {
         HStack {
-//            Image(systemName: isSelected ? "cube.fill" : "cube") // A cube icon
-//                .foregroundColor(isSelected ? .blue : .gray)
-
             Text(entityName) // show entity name
                 .fontWeight(isSelected ? .bold : .regular)
                 .foregroundColor(isSelected ? .blue : .primary)
         }
         .padding(5)
-        // .background(isSelected ? Color.blue.opacity(0.2) : Color.clear) // Highlight selected entity
-        // .cornerRadius(5)
     }
 }

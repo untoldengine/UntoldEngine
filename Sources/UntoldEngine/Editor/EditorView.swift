@@ -89,7 +89,6 @@ public struct EditorView: View {
     }
 
     private func editor_handlePlayToggle(_ isPlaying: Bool) {
-        print(isPlaying ? "Entering Play Mode..." : "Stopping Play Mode...")
         self.isPlaying = isPlaying
         gameMode = !gameMode
     }
