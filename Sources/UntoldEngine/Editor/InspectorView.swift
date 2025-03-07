@@ -23,27 +23,40 @@ public struct ComponentOption_Editor: Identifiable {
     }
 }
 
-func openFilePicker() -> String? {
+func openFilePicker() -> URL? {
     let panel = NSOpenPanel()
     panel.allowsMultipleSelection = false
     panel.canChooseDirectories = false
     panel.canChooseFiles = true
 
-    return panel.runModal() == .OK ? panel.urls.first?.deletingPathExtension().lastPathComponent : nil
+    return panel.runModal() == .OK ? panel.urls.first : nil
 }
 
 @available(macOS 13.0, *)
 private func onAddMesh_Editor(entityId: EntityID) {
     guard let url = openFilePicker() else { return }
 
-    setEntityMesh(entityId: entityId, filename: url, withExtension: "usdc")
+    let filename = url.deletingPathExtension().lastPathComponent
+    let withExtension = url.pathExtension
+
+    setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension)
+
+    guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) else {
+        handleError(.noInEditorComponent)
+        return
+    }
+
+    inEditorComponent.meshFilename = url
 }
 
 private func onAddAnimation_Editor(entityId: EntityID) {
     guard let url = openFilePicker() else { return }
 
-    setEntityAnimations(entityId: entityId, filename: url, withExtension: "usdc", name: url)
-    changeAnimation(entityId: entityId, name: url)
+    let filename = url.deletingPathExtension().lastPathComponent
+    let withExtension = url.pathExtension
+
+    setEntityAnimations(entityId: entityId, filename: filename, withExtension: withExtension, name: filename)
+    changeAnimation(entityId: entityId, name: filename)
 }
 
 private func onAddKinetics_Editor(entityId: EntityID) {
