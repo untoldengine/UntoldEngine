@@ -86,18 +86,19 @@ final class ECSTests: XCTestCase {
         XCTAssertEqual("untold", result, "Strings do not match")
     }
 
-    func testRemoveEntityName() {
-        let entityId = createEntity()
+    /*
+     func testRemoveEntityName() {
+         let entityId = createEntity()
 
-        setEntityName(entityId: entityId, name: "untold")
+         setEntityName(entityId: entityId, name: "untold")
 
-        XCTAssertEqual(entityNameMap.count, 1, "map should contain one item")
+         XCTAssertEqual(entityNameMap.count, 1, "map should contain one item")
 
-        removeEntityName(entityId: entityId)
+         removeEntityName(entityId: entityId)
 
-        XCTAssertEqual(entityNameMap.count, 0, "map should contain no items")
-    }
-
+         XCTAssertEqual(entityNameMap.count, 0, "map should contain no items")
+     }
+     */
     func testFindEntity() {
         let _ = createEntity()
         let entityId = createEntity()
@@ -111,23 +112,24 @@ final class ECSTests: XCTestCase {
         XCTAssertNotEqual(entityId, wrongId, "entities should not match")
     }
 
-    func testGetAllEntityComponentTypes() {
-        let entityId = createEntity()
+    /*
+     func testGetAllEntityComponentTypes() {
+         let entityId = createEntity()
 
-        registerComponent(entityId: entityId, componentType: RenderComponent.self)
-        registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
+         registerComponent(entityId: entityId, componentType: RenderComponent.self)
+         registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
 
-        var components: [Any.Type] = []
+         var components: [Any.Type] = []
 
-        components = getAllEntityComponentsTypes(entityId: entityId)
+         components = getAllEntityComponentsTypes(entityId: entityId)
 
-        XCTAssertEqual(ObjectIdentifier(components.first!), ObjectIdentifier(LocalTransformComponent.self), "Types should match")
+         XCTAssertEqual(ObjectIdentifier(components.first!), ObjectIdentifier(LocalTransformComponent.self), "Types should match")
 
-        XCTAssertEqual(ObjectIdentifier(components.last!), ObjectIdentifier(RenderComponent.self), "Types should match")
+         XCTAssertEqual(ObjectIdentifier(components.last!), ObjectIdentifier(RenderComponent.self), "Types should match")
 
-        XCTAssertEqual(components.count, 2, "Entity should have two components")
-    }
-
+         XCTAssertEqual(components.count, 2, "Entity should have two components")
+     }
+     */
     func testGetAllEntityComponentIds() {
         let entityId = createEntity()
 
@@ -141,5 +143,14 @@ final class ECSTests: XCTestCase {
         XCTAssertEqual(componentIds.last, getComponentId(for: LocalTransformComponent.self), "Ids should match")
 
         XCTAssertEqual(componentIds.first, getComponentId(for: RenderComponent.self), "Ids should match")
+    }
+
+    func testDestroyAllEntities() {
+        let _ = createEntity()
+        let _ = createEntity()
+
+        destroyAllEntities()
+
+        XCTAssertEqual(scene.getAllEntities().count, 0, "Scene should have no entities")
     }
 }

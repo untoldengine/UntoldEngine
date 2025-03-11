@@ -29,6 +29,12 @@ public func destroyEntity(entityId: EntityID) {
     scene.destroyEntity(entityId)
 }
 
+public func destroyAllEntities() {
+    for entity in scene.getAllEntities() {
+        destroyEntity(entityId: entity)
+    }
+}
+
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true) {
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
         handleError(.filenameNotFound, filename)
