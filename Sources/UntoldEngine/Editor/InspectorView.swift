@@ -254,6 +254,7 @@ struct InspectorView: View {
     var onAddName_Editor: () -> Void
     @State private var showComponentSelection = false
     @State private var editor_entityComponents: [EntityID: [ObjectIdentifier: ComponentOption_Editor]] = [:]
+    @FocusState private var isNameTextFieldFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -273,9 +274,11 @@ struct InspectorView: View {
                             ))
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .padding()
+                            .focused($isNameTextFieldFocused)
                             .onSubmit {
                                 onAddName_Editor()
                                 refreshView()
+                                isNameTextFieldFocused = false
                             }
                         }
 
