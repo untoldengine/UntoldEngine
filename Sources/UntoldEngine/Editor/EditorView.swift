@@ -54,6 +54,7 @@ public struct EditorView: View {
 
     private func editor_handleLoad() {
         if let sceneData = loadScene() {
+            destroyAllEntities()
             deserializeScene(sceneData: sceneData)
             editor_entities = scene.getAllEntities()
             selectionManager.objectWillChange.send()
