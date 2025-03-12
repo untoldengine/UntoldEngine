@@ -117,6 +117,16 @@ func deserializeScene(sceneData: SceneData) {
     for sceneDataEntity in sceneData.entities {
         let entity = createEntity()
 
+        registerComponent(entityId: entity, componentType: InEditorComponent.self)
+
+        guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entity) else {
+            handleError(.noInEditorComponent)
+            continue
+        }
+
+        inEditorComponent.meshFilename = sceneDataEntity.meshFileName
+        inEditorComponent.animationsFilenames = sceneDataEntity.animations
+
         if sceneDataEntity.hasRenderingComponent == true {
             setEntityName(entityId: entity, name: sceneDataEntity.name)
 
