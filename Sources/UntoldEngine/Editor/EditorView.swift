@@ -64,7 +64,7 @@ public struct EditorView: View {
     private func editor_addNewEntity() {
         let entityId = createEntity()
 
-        let name = "Entity \(scene.getAllEntities().count)"
+        let name = generateEntityName()
         setEntityName(entityId: entityId, name: name)
         editor_entities = scene.getAllEntities()
 
