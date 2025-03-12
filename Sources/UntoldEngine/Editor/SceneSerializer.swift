@@ -129,9 +129,9 @@ func deserializeScene(sceneData: SceneData) {
         inEditorComponent.meshFilename = sceneDataEntity.meshFileName
         inEditorComponent.animationsFilenames = sceneDataEntity.animations
 
-        if sceneDataEntity.hasRenderingComponent == true {
-            setEntityName(entityId: entity, name: sceneDataEntity.name)
+        setEntityName(entityId: entity, name: sceneDataEntity.name)
 
+        if sceneDataEntity.hasRenderingComponent == true {
             let meshFileName = sceneDataEntity.meshFileName.deletingPathExtension().lastPathComponent
             let meshFileNameExt = sceneDataEntity.meshFileName.pathExtension
 
