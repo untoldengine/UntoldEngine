@@ -71,7 +71,9 @@ func saveScene(sceneData: SceneData) {
     let savePanel = NSSavePanel()
     savePanel.title = "Save Scene"
     savePanel.allowedContentTypes = [UTType.json]
-    savePanel.nameFieldStringValue = "scene.json"
+    savePanel.nameFieldStringValue = "untitled.json"
+    savePanel.canCreateDirectories = true
+    savePanel.isExtensionHidden = false
 
     savePanel.begin { result in
         if result == .OK, let url = savePanel.url {
