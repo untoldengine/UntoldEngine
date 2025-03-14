@@ -25,7 +25,7 @@ public func destroyEntity(entityId: EntityID) {
     removeEntityKinetics(entityId: entityId)
     removeEntityScenegraph(entityId: entityId)
     removeEntityName(entityId: entityId)
-
+    removeEntityLight(entityId: entityId)
     scene.destroyEntity(entityId)
 }
 
@@ -237,6 +237,15 @@ func removeEntityKinetics(entityId: EntityID) {
     kineticComponent.clearForces()
     scene.remove(component: KineticComponent.self, from: entityId)
     scene.remove(component: PhysicsComponents.self, from: entityId)
+}
+
+func removeEntityLight(entityId: EntityID) {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent, entityId)
+        return
+    }
+
+    scene.remove(component: LightComponent.self, from: entityId)
 }
 
 func removeEntityScenegraph(entityId: EntityID) {
