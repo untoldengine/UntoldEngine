@@ -124,7 +124,7 @@ public class AnimationComponent: Component {
 public enum LightType: String, CaseIterable {
     case directional
     case point
-    // case area
+    case area
     case none
 }
 
