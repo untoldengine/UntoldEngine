@@ -66,10 +66,6 @@ private func onAddAnimation_Editor(entityId: EntityID) {
     inEditorComponent.animationsFilenames.append(url)
 }
 
-private func onAddKinetics_Editor(entityId: EntityID) {
-    setEntityKinetics(entityId: entityId)
-}
-
 @available(macOS 13.0, *)
 public func addComponent_Editor(componentOption: ComponentOption_Editor) {
     availableComponents_Editor.append(componentOption)
@@ -105,7 +101,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
     ComponentOption_Editor(id: getComponentId(for: LocalTransformComponent.self), name: "Transform Component", type: LocalTransformComponent.self, view: { selectedEntityId, refreshView in
         AnyView(
             VStack {
-                Text("Transform")
+                Text("Transform Properties")
                 if let entityId = selectedEntityId {
                     let position = getLocalPosition(entityId: entityId)
                     let orientationEuler = getLocalOrientationEuler(entityId: entityId)
@@ -132,7 +128,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
         AnyView(
             VStack {
                 if let entityId = selectedId {
-                    Text("Animation")
+                    Text("Animation Properties")
                     // List of currently linked animations
                     let animationClips: [String] = getAllAnimationClips(entityId: entityId)
 
@@ -179,19 +175,6 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             VStack {
                 if let entityId = selectedId {
                     Text("Kinetic System")
-                    Button(action: {
-                        onAddKinetics_Editor(entityId: entityId)
-                        refreshView()
-                    }) {
-                        HStack {
-                            Image(systemName: "plus")
-                                .foregroundColor(.white)
-                            Text("Add Properties")
-                        }
-
-                    }.buttonStyle(PlainButtonStyle())
-                        .padding(.vertical, 4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     if hasComponent(entityId: entityId, componentType: KineticComponent.self) {
                         let mass = getMass(entityId: entityId)
@@ -201,6 +184,78 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                 setMass(entityId: entityId, mass: newMass)
                                 refreshView()
                             }))
+                    }
+                }
+            }
+        )
+    }),
+    ComponentOption_Editor(id: getComponentId(for: LightComponent.self), name: "Light Component", type: LightComponent.self, view: { selectedId, refreshView in
+        AnyView(
+            VStack {
+                if let entityId = selectedId {
+                    Text("Light Property")
+
+                    if hasComponent(entityId: entityId, componentType: LightComponent.self) {
+                        VStack {
+                            let color: simd_float3 = getLightColor(entityId: entityId)
+                            let attenuation: simd_float3 = getLightAttenuation(entityId: entityId)
+                            let intensity: Float = getLightIntensity(entityId: entityId)
+                            let radius: Float = getLightRadius(entityId: entityId)
+
+                            let lightTypes = ["directional", "point"]
+
+                            let currentLightType = getLightType(entityId: entityId)
+
+                            Picker("Light Type", selection: Binding(
+                                get: { currentLightType },
+                                set: { newType in
+                                    if let lightTypeEnum = LightType(rawValue: newType) {
+                                        updateLightType(entityId: entityId, type: lightTypeEnum)
+                                        refreshView()
+                                    }
+                                }
+                            )) {
+                                ForEach(lightTypes, id: \.self) { type in
+                                    Text(type.capitalized).tag(type)
+                                }
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            TextInputVectorView(label: "Color", value: Binding(
+                                get: { color },
+                                set: { newColor in
+                                    updateLightColor(entityId: entityId, color: newColor)
+                                    refreshView()
+
+                                }))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            TextInputVectorView(label: "Attenuation", value: Binding(
+                                get: { getLightAttenuation(entityId: entityId) },
+                                set: { newAttenuation in
+                                    updateLightAttenuation(entityId: entityId, attenuation: newAttenuation)
+                                    refreshView()
+
+                                }))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            TextInputNumberView(label: "Intensity", value: Binding(
+                                get: { intensity },
+                                set: { newIntensity in
+                                    updateLightIntensity(entityId: entityId, intensity: newIntensity)
+                                    refreshView()
+                                }))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            TextInputNumberView(label: "Radius", value: Binding(
+                                get: { radius },
+                                set: { newRadius in
+                                    updateLightRadius(entityId: entityId, radius: newRadius)
+                                    refreshView()
+                                }))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
                 }
             }
@@ -363,6 +418,12 @@ struct InspectorView: View {
 
             // Add component to the entity-specific dictionary
             editor_entityComponents[entityId]?[key] = component
+
+            if key == ObjectIdentifier(LightComponent.self) {
+                createLight(entityId: entityId, lightType: .directional)
+            } else if key == ObjectIdentifier(KineticComponent.self) {
+                setEntityKinetics(entityId: entityId)
+            }
         }
     }
 
