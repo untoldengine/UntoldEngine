@@ -48,6 +48,20 @@ public func createLight(entityId: EntityID, lightType: LightType) {
     lightComponent.lightType = lightType
 }
 
+public func createLight(entityId: EntityID, lightType: String) {
+    var type: LightType = .directional
+
+    if lightType == "directional" {
+        type = .directional
+    } else if lightType == "point" {
+        type = .point
+    } else if lightType == "area" {
+        type = .area
+    }
+
+    createLight(entityId: entityId, lightType: type)
+}
+
 func getLightParameters() -> LightParameters {
     var lightDirection = simd_float3(0.0, 1.0, 0.0)
     var lightIntensity: Float = 0.0
