@@ -55,6 +55,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case noScenegraphComponent = 1046
     case failedToConvertImageToTexture = 1047
     case noInEditorComponent = 1048
+    case noLightComponent = 1049
 
     public var description: String {
         switch self {
@@ -152,6 +153,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Unable to convert image to texture"
         case .noInEditorComponent:
             return "Does not have an InEditor component"
+        case .noLightComponent:
+            return "Does not have a Light component"
         }
     }
 }

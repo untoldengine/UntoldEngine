@@ -351,23 +351,7 @@ enum RenderPasses {
         )
 
         // Compute Lighting
-
-        var lightDirection = simd_float3(0.0, 1.0, 0.0)
-        var lightIntensity: Float = 0.0
-        var lightColor = simd_float3(0.0, 0.0, 0.0)
-        if let directionalLightID = lightingSystem.dirLight.keys.first,
-           let directionalLight: DirectionalLight = lightingSystem.getDirectionalLight(
-               entityID: directionalLightID)
-        {
-            lightDirection = directionalLight.direction
-            lightIntensity = directionalLight.intensity
-            lightColor = directionalLight.color
-        }
-
-        var lightParams = LightParameters()
-        lightParams.direction = lightDirection
-        lightParams.intensity = lightIntensity
-        lightParams.color = lightColor
+        var lightParams = getLightParameters()
 
         renderEncoder.setFragmentBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(modelPassLightParamsIndex.rawValue))
 
@@ -397,14 +381,13 @@ enum RenderPasses {
         )
 
         if let pointLightBuffer = bufferResources.pointLightBuffer {
-            // if lightingSystem.currentPointLightCount != lightingSystem.pointLight.count {
-            let pointLightArray = Array(lightingSystem.pointLight.values)
+            let pointLightArray = Array(getPointLights())
 
             pointLightArray.withUnsafeBufferPointer { bufferPointer in
                 guard let baseAddress = bufferPointer.baseAddress else { return }
                 pointLightBuffer.contents().copyMemory(
                     from: baseAddress,
-                    byteCount: MemoryLayout<PointLight>.stride * lightingSystem.pointLight.count
+                    byteCount: MemoryLayout<PointLight>.stride * getPointLightCount()
                 )
             }
 
@@ -417,7 +400,7 @@ enum RenderPasses {
             bufferResources.pointLightBuffer, offset: 0, index: Int(modelPassPointLightsIndex.rawValue)
         )
 
-        var pointLightCount: Int = lightingSystem.pointLight.count
+        var pointLightCount: Int = getPointLightCount()
 
         renderEncoder.setFragmentBytes(
             &pointLightCount, length: MemoryLayout<Int>.stride,

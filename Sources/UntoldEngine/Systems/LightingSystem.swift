@@ -6,25 +6,22 @@
 //  Created by Harold Serrano on 5/29/23.
 //
 
+import CShaderTypes
 import Foundation
 import simd
 
 public struct DirectionalLight {
-    public var direction: simd_float3 = .init(1.0, 1.0, 1.0)
-    public var color: simd_float3 = .init(1.0, 1.0, 1.0)
-    public var intensity: Float = 1.0
-
-    public init() {}
+    var direction: simd_float3 = .init(1.0, 1.0, 1.0)
+    var color: simd_float3 = .init(1.0, 1.0, 1.0)
+    var intensity: Float = 1.0
 }
 
 public struct PointLight {
-    public var position: simd_float3 = .init(0.0, 1.0, 0.0)
-    public var color: simd_float3 = .init(1.0, 0.0, 0.0)
-    public var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // constant, linera, quadratic -> (x, y, z, max range)
-    public var intensity: Float = 1.0
-    public var radius: Float = 1.0
-
-    public init() {}
+    var position: simd_float3 = .init(0.0, 1.0, 0.0)
+    var color: simd_float3 = .init(1.0, 0.0, 0.0)
+    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // constant, linera, quadratic -> (x, y, z, max range)
+    var intensity: Float = 1.0
+    var radius: Float = 1.0
 }
 
 public struct AreaLight {
@@ -39,83 +36,205 @@ public struct AreaLight {
     // var twoSided: Bool = false                               // Whether the light emits from both sides
 }
 
-public struct LightingSystem {
-    var dirLight: [EntityID: DirectionalLight] = [:]
-    var pointLight: [EntityID: PointLight] = [:]
-    var areaLight: [EntityID: AreaLight] = [:]
+public func createLight(entityId: EntityID, lightType: LightType) {
+    registerComponent(entityId: entityId, componentType: LightComponent.self)
+    registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
 
-    var activeAreaLightID: EntityID?
-
-    init() {}
-
-    public mutating func addDirectionalLight(entityID: EntityID, light: DirectionalLight) {
-        dirLight[entityID] = light
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
     }
 
-    public mutating func addPointLight(entityID: EntityID, light: PointLight) {
-        pointLight[entityID] = light
-    }
+    lightComponent.lightType = lightType
+}
 
-    mutating func addAreaLight(entityID: EntityID, light: AreaLight) {
-        activeAreaLightID = entityID
-        areaLight[entityID] = light
-    }
+func getLightParameters() -> LightParameters {
+    var lightDirection = simd_float3(0.0, 1.0, 0.0)
+    var lightIntensity: Float = 0.0
+    var lightColor = simd_float3(0.0, 0.0, 0.0)
 
-    func getDirectionalLight(entityID: EntityID) -> DirectionalLight? {
-        dirLight[entityID]
-    }
+    let lightComponentID = getComponentId(for: LightComponent.self)
+    let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
 
-    func getPointLight(entityID: EntityID) -> PointLight? {
-        pointLight[entityID]
-    }
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID], in: scene)
 
-    func getAreaLight(entityID: EntityID) -> AreaLight? {
-        areaLight[entityID]
-    }
-
-    mutating func updateDirectionalLight(
-        entityID: EntityID, newDirection: simd_float3, newColor: simd_float3, newIntensity: Float
-    ) {
-        if var light = dirLight[entityID] {
-            light.direction = newDirection
-            light.color = newColor
-            light.intensity = newIntensity
-            dirLight[entityID] = light
-        }
-    }
-
-    mutating func updatePointLight(
-        entityID: EntityID, newPosition: simd_float3, newColor: simd_float3, newIntensity: Float,
-        newRadius: Float
-    ) {
-        if var light = pointLight[entityID] {
-            light.position = newPosition
-            light.color = newColor
-            light.intensity = newIntensity
-            light.radius = newRadius
-            pointLight[entityID] = light
-        }
-    }
-
-    mutating func removeLight(entityID: EntityID) {
-        dirLight.removeValue(forKey: entityID)
-        pointLight.removeValue(forKey: entityID)
-        // spot light goes here too
-    }
-
-    func checkCurrentEntityLightType(entityID: EntityID) {
-        guard let l = scene.get(component: LightComponent.self, for: entityID) else { return }
-
-        if case .directional = l.lightType {
-//      lightingSystem.activeDirectionalLightID = entityID
+    for entity in lightEntities {
+        guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
+            handleError(.noLightComponent)
+            continue
         }
 
-        if case .point = l.lightType {
-            //     lightingSystem.activePointLightID = entityID
+        if lightComponent.lightType != .directional {
+            continue
         }
 
-        if case .area = l.lightType {
-            lightingSystem.activeAreaLightID = entityID
-        }
+        let orientationEuler = getLocalOrientationEuler(entityId: entity)
+        let orientation = simd_float3(orientationEuler.pitch, orientationEuler.yaw, orientationEuler.roll)
+
+        lightDirection = orientation
+        lightIntensity = 1.0
+        lightColor = lightComponent.color
     }
+
+    var lightParameter = LightParameters()
+    lightParameter.direction = lightDirection
+    lightParameter.intensity = lightIntensity
+    lightParameter.color = lightColor
+
+    return lightParameter
+}
+
+func updateLightColor(entityId: EntityID, color: simd_float3) {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    lightComponent.color = color
+}
+
+func getLightColor(entityId: EntityID) -> simd_float3 {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return .zero
+    }
+
+    return lightComponent.color
+}
+
+func updateLightAttenuation(entityId: EntityID, attenuation: simd_float3) {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    lightComponent.attenuation = simd_float4(attenuation.x, attenuation.y, attenuation.z, 0.0)
+}
+
+func getLightAttenuation(entityId: EntityID) -> simd_float3 {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return .zero
+    }
+
+    return simd_float3(lightComponent.attenuation.x, lightComponent.attenuation.y, lightComponent.attenuation.z)
+}
+
+func updateLightIntensity(entityId: EntityID, intensity: Float) {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    lightComponent.intensity = intensity
+}
+
+func getLightIntensity(entityId: EntityID) -> Float {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return 0.0
+    }
+
+    return lightComponent.intensity
+}
+
+func updateLightRadius(entityId: EntityID, radius: Float) {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    lightComponent.radius = radius
+}
+
+func getLightRadius(entityId: EntityID) -> Float {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return 0.0
+    }
+
+    return lightComponent.radius
+}
+
+func getPointLightCount() -> Int {
+    let lightComponentID = getComponentId(for: LightComponent.self)
+
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID], in: scene)
+
+    var pointCount = 0
+
+    for entity in lightEntities {
+        guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
+            handleError(.noLightComponent)
+            continue
+        }
+
+        if lightComponent.lightType != .point {
+            continue
+        }
+
+        pointCount += 1
+    }
+
+    return pointCount
+}
+
+func getPointLights() -> [PointLight] {
+    var pointLights: [PointLight] = []
+
+    let lightComponentID = getComponentId(for: LightComponent.self)
+    let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
+
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID], in: scene)
+
+    for entity in lightEntities {
+        guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
+            handleError(.noLightComponent)
+            continue
+        }
+
+        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entity) else {
+            handleError(.noLocalTransformComponent)
+            continue
+        }
+
+        if lightComponent.lightType != .point {
+            continue
+        }
+
+        var pointLight = PointLight()
+        pointLight.position = getLocalPosition(entityId: entity)
+        pointLight.color = lightComponent.color
+        pointLight.attenuation = lightComponent.attenuation
+        pointLight.intensity = lightComponent.intensity
+        pointLight.radius = lightComponent.radius
+
+        pointLights.append(pointLight)
+    }
+
+    return pointLights
+}
+
+func getLightType(entityId: EntityID) -> String {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return "none"
+    }
+
+    if lightComponent.lightType == .directional {
+        return "directional"
+    } else if lightComponent.lightType == .point {
+        return "point"
+    }
+
+    return "none"
+}
+
+func updateLightType(entityId: EntityID, type: LightType) {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    lightComponent.lightType = type
 }

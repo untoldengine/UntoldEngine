@@ -121,14 +121,20 @@ public class AnimationComponent: Component {
     }
 }
 
-public class LightComponent: Component {
-    enum LightType {
-        case point(PointLight)
-        case directional(DirectionalLight)
-        case area(AreaLight)
-    }
+public enum LightType: String, CaseIterable {
+    case directional
+    case point
+    // case area
+    case none
+}
 
+public class LightComponent: Component {
     var lightType: LightType?
+
+    var color: simd_float3 = .one
+    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // constant, linera, quadratic -> (x, y, z, max range)
+    var intensity: Float = 1.0
+    var radius: Float = 1.0
 
     public required init() {}
 }

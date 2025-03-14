@@ -17,11 +17,27 @@ struct ShadowSystem {
         let width: Float = shadowMaxWidth
         let height: Float = shadowMaxHeight
 
-        if let directionalLightID = lightingSystem.dirLight.keys.first,
-           let directionalLight: DirectionalLight = lightingSystem.getDirectionalLight(
-               entityID: directionalLightID)
-        {
-            let lightPosition = targetPoint + normalize(directionalLight.direction) * 100
+        // search for the dir light entity
+        let lightComponentID = getComponentId(for: LightComponent.self)
+        let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
+
+        let entities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID], in: scene)
+
+        for entity in entities {
+            guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
+                handleError(.noLightComponent)
+                continue
+            }
+
+            if lightComponent.lightType != .directional {
+                continue
+            }
+
+            let orientationEuler = getLocalOrientationEuler(entityId: entity)
+
+            let orientation = simd_float3(orientationEuler.pitch, orientationEuler.yaw, orientationEuler.roll)
+
+            let lightPosition = targetPoint + normalize(orientation) * 100
 
             let viewMatrix: simd_float4x4 = matrix_look_at_right_hand(
                 lightPosition, simd_float3(0.0, 0.0, 0.0), simd_float3(0.0, 1.0, 0.0)
@@ -32,9 +48,6 @@ struct ShadowSystem {
                     -width / 2.0, width / 2.0, -height / 2.0, height / 2.0, near, farZ: far
                 ), viewMatrix
             )
-
-        } else {
-            dirLightSpaceMatrix = nil
         }
     }
 
