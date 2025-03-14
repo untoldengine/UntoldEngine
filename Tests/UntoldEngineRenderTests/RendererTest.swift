@@ -711,11 +711,12 @@ final class RendererTests: XCTestCase {
 
         let sunEntity: EntityID = createEntity()
 
+        createLight(entityId: sunEntity, lightType: .directional)
         // Create the directional light instance
-        let sun = DirectionalLight()
+        // let sun = DirectionalLight()
 
         // Add the light to the lighting system
-        lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
+        // lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
 
         renderEnvironment = true
 
