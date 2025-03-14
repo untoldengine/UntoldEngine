@@ -14,6 +14,14 @@ struct SceneData: Codable {
     var entities: [EntityData] = []
 }
 
+struct LightData: Codable {
+    var type: String = "directional"
+    var color: simd_float3 = .one
+    var attenuation: simd_float3 = .zero
+    var radius: Float = 1.0
+    var intensity: Float = 1.0
+}
+
 struct EntityData: Codable {
     var name: String = ""
     var meshFileName: URL = .init(fileURLWithPath: "")
@@ -22,43 +30,69 @@ struct EntityData: Codable {
     var scale: simd_float3 = .one
     var animations: [URL] = []
     var mass: Float = .init(1.0)
+    var lightData: LightData? = nil
     var hasRenderingComponent: Bool = false
     var hasAnimationComponent: Bool = false
     var hasLocalTransformComponent: Bool = false
     var hasKineticComponent: Bool = false
+    var hasLightComponent: Bool = false
 }
 
 func serializeScene() -> SceneData {
     var sceneData = SceneData()
 
-    for entity in scene.getAllEntities() {
-        guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entity) else {
+    for entityId in scene.getAllEntities() {
+        guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) else {
             continue
         }
 
         var entityData = EntityData()
 
-        entityData.name = getEntityName(entityId: entity)!
+        entityData.name = getEntityName(entityId: entityId)!
 
-        entityData.position = getLocalPosition(entityId: entity)
-        let eulerRotation = getLocalOrientationEuler(entityId: entity)
-        entityData.eulerRotation = simd_float3(eulerRotation.pitch, eulerRotation.yaw, eulerRotation.roll)
-
-        entityData.mass = getMass(entityId: entity)
-
+        // Rendering properties
         let meshPath: URL = inEditorComponent.meshFilename
 
         entityData.meshFileName = meshPath
 
+        entityData.hasRenderingComponent = hasComponent(entityId: entityId, componentType: RenderComponent.self)
+
+        // Transform properties
+        entityData.position = getLocalPosition(entityId: entityId)
+
+        let eulerRotation = getLocalOrientationEuler(entityId: entityId)
+        entityData.eulerRotation = simd_float3(eulerRotation.pitch, eulerRotation.yaw, eulerRotation.roll)
+
+        entityData.hasLocalTransformComponent = hasComponent(entityId: entityId, componentType: LocalTransformComponent.self)
+
+        // Animation properties
         entityData.animations = inEditorComponent.animationsFilenames
 
-        entityData.hasRenderingComponent = hasComponent(entityId: entity, componentType: RenderComponent.self)
+        entityData.hasAnimationComponent = hasComponent(entityId: entityId, componentType: AnimationComponent.self)
 
-        entityData.hasLocalTransformComponent = hasComponent(entityId: entity, componentType: LocalTransformComponent.self)
+        // Kinetic properties
+        entityData.mass = getMass(entityId: entityId)
 
-        entityData.hasAnimationComponent = hasComponent(entityId: entity, componentType: AnimationComponent.self)
+        entityData.hasKineticComponent = hasComponent(entityId: entityId, componentType: KineticComponent.self)
 
-        entityData.hasKineticComponent = hasComponent(entityId: entity, componentType: KineticComponent.self)
+        // Light properties
+        let hasLight: Bool = hasComponent(entityId: entityId, componentType: LightComponent.self)
+
+        if hasLight {
+            entityData.hasLightComponent = hasLight
+
+            entityData.lightData = LightData()
+
+            entityData.lightData?.type = getLightType(entityId: entityId)
+
+            entityData.lightData?.color = getLightColor(entityId: entityId)
+
+            entityData.lightData?.radius = getLightRadius(entityId: entityId)
+
+            entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
+
+            entityData.lightData?.attenuation = getLightAttenuation(entityId: entityId)
+        }
 
         sceneData.entities.append(entityData)
     }
@@ -136,12 +170,6 @@ func deserializeScene(sceneData: SceneData) {
             let meshFileNameExt = sceneDataEntity.meshFileName.pathExtension
 
             setEntityMesh(entityId: entity, filename: meshFileName, withExtension: meshFileNameExt)
-
-            translateTo(entityId: entity, position: sceneDataEntity.position)
-
-            let euler = sceneDataEntity.eulerRotation
-
-            rotateTo(entityId: entity, pitch: euler.x, yaw: euler.y, roll: euler.z)
         }
 
         if sceneDataEntity.hasAnimationComponent == true {
@@ -164,6 +192,35 @@ func deserializeScene(sceneData: SceneData) {
             }
 
             physicsComponent.mass = sceneDataEntity.mass
+        }
+
+        if sceneDataEntity.hasLightComponent == true {
+            if let light = sceneDataEntity.lightData {
+                let type: String = light.type
+                let color: simd_float3 = light.color
+                let attenuation: simd_float3 = light.attenuation
+                let radius: Float = light.radius
+                let intensity: Float = light.intensity
+
+                createLight(entityId: entity, lightType: type)
+
+                guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
+                    handleError(.noLightComponent)
+                    continue
+                }
+
+                lightComponent.color = color
+                lightComponent.radius = radius
+                lightComponent.intensity = intensity
+                lightComponent.attenuation = simd_float4(attenuation.x, attenuation.y, attenuation.z, 1.0)
+            }
+        }
+        if sceneDataEntity.hasLocalTransformComponent == true {
+            translateTo(entityId: entity, position: sceneDataEntity.position)
+
+            let euler = sceneDataEntity.eulerRotation
+
+            rotateTo(entityId: entity, pitch: euler.x, yaw: euler.y, roll: euler.z)
         }
     }
 }
