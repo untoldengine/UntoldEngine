@@ -18,10 +18,6 @@ public class LocalTransformComponent: Component {
 
     var flipCoord: Bool = false
 
-    var xRot: Float = 0.0
-    var yRot: Float = 0.0
-    var zRot: Float = 0.0
-
     public required init() {}
 }
 
