@@ -422,7 +422,14 @@ struct InspectorView: View {
             editor_entityComponents[entityId]?[key] = component
 
             if key == ObjectIdentifier(LightComponent.self) {
+                let startingDirection = simd_float3(10.0, 10.0, 10.0)
+
                 createLight(entityId: entityId, lightType: .directional)
+                rotateTo(entityId: entityId, pitch: startingDirection.x, yaw: startingDirection.y, roll: startingDirection.z)
+
+                if let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) {
+                    inEditorComponent.orientation = startingDirection
+                }
             } else if key == ObjectIdentifier(KineticComponent.self) {
                 setEntityKinetics(entityId: entityId)
             }
