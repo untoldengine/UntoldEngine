@@ -58,10 +58,11 @@ func serializeScene() -> SceneData {
         entityData.hasRenderingComponent = hasComponent(entityId: entityId, componentType: RenderComponent.self)
 
         // Transform properties
-        entityData.position = getLocalPosition(entityId: entityId)
+        entityData.position = inEditorComponent.position
 
-        let eulerRotation = getLocalOrientationEuler(entityId: entityId)
-        entityData.eulerRotation = simd_float3(eulerRotation.pitch, eulerRotation.yaw, eulerRotation.roll)
+        let eulerRotation = inEditorComponent.orientation
+
+        entityData.eulerRotation = simd_float3(eulerRotation.x, eulerRotation.y, eulerRotation.z)
 
         entityData.hasLocalTransformComponent = hasComponent(entityId: entityId, componentType: LocalTransformComponent.self)
 
@@ -216,6 +217,9 @@ func deserializeScene(sceneData: SceneData) {
             }
         }
         if sceneDataEntity.hasLocalTransformComponent == true {
+            inEditorComponent.position = sceneDataEntity.position
+            inEditorComponent.orientation = sceneDataEntity.eulerRotation
+
             translateTo(entityId: entity, position: sceneDataEntity.position)
 
             let euler = sceneDataEntity.eulerRotation

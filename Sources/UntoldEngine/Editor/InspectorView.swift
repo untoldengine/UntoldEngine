@@ -103,21 +103,23 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             VStack {
                 Text("Transform Properties")
                 if let entityId = selectedEntityId {
-                    let position = getLocalPosition(entityId: entityId)
-                    let orientationEuler = getLocalOrientationEuler(entityId: entityId)
-                    let orientationVector = simd_float3(orientationEuler.pitch, orientationEuler.yaw, orientationEuler.roll)
+                    let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId)
+                    var orientation = inEditorComponent?.orientation
+                    var position = inEditorComponent?.position
 
                     TextInputVectorView(label: "Position", value: Binding(
-                        get: { position },
+                        get: { position! },
                         set: { newPosition in
                             translateTo(entityId: entityId, position: newPosition)
+                            inEditorComponent?.position = newPosition
                             refreshView()
                         }))
 
                     TextInputVectorView(label: "Orientation", value: Binding(
-                        get: { orientationVector },
+                        get: { orientation! },
                         set: { newOrientation in
                             rotateTo(entityId: entityId, pitch: newOrientation.x, yaw: newOrientation.y, roll: newOrientation.z)
+                            inEditorComponent?.orientation = newOrientation
                             refreshView()
                         }))
                 }

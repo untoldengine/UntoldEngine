@@ -18,6 +18,10 @@ public class LocalTransformComponent: Component {
 
     var flipCoord: Bool = false
 
+    var xRot: Float = 0.0
+    var yRot: Float = 0.0
+    var zRot: Float = 0.0
+
     public required init() {}
 }
 
@@ -150,6 +154,7 @@ public class ScenegraphComponent: Component {
 public class InEditorComponent: Component {
     var meshFilename: URL = .init(fileURLWithPath: "")
     var animationsFilenames: [URL] = []
-
+    var position: simd_float3 = .zero
+    var orientation: simd_float3 = .zero
     public required init() {}
 }
