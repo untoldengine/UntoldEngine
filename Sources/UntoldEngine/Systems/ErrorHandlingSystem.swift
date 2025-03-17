@@ -56,6 +56,9 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case failedToConvertImageToTexture = 1047
     case noInEditorComponent = 1048
     case noLightComponent = 1049
+    case noActiveCamera = 1050
+    case noGameCamera = 1051
+    case noSceneCamera = 1052
 
     public var description: String {
         switch self {
@@ -155,6 +158,12 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Does not have an InEditor component"
         case .noLightComponent:
             return "Does not have a Light component"
+        case .noActiveCamera:
+            return "Active camera is invalid"
+        case .noGameCamera:
+            return "Game camera is missing"
+        case .noSceneCamera:
+            return "Scene camera is missing"
         }
     }
 }

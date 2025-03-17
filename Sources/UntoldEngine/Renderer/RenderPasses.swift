@@ -24,7 +24,12 @@ enum RenderPasses {
 
         let modelMatrix = simd_float4x4.init(1.0)
 
-        var viewMatrix: simd_float4x4 = camera.viewSpace
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+        var viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+
         viewMatrix = viewMatrix.inverse
         let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
@@ -95,6 +100,11 @@ enum RenderPasses {
             return
         }
 
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
         let encoderDescriptor = renderInfo.renderPassDescriptor!
 
         encoderDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1)
@@ -123,7 +133,7 @@ enum RenderPasses {
         environmentConstants.modelMatrix = matrix4x4Identity()
         environmentConstants.environmentRotation = matrix4x4Identity()
         environmentConstants.projectionMatrix = renderInfo.perspectiveSpace
-        environmentConstants.viewMatrix = camera.viewSpace
+        environmentConstants.viewMatrix = cameraComponent.viewSpace
 
         // remove the translational part of the view matrix to make the environment stay "infinitely" far away
         environmentConstants.viewMatrix.columns.3 = simd_float4(0.0, 0.0, 0.0, 1.0)
@@ -199,6 +209,11 @@ enum RenderPasses {
             return
         }
 
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
         renderEncoder.label = "Shadow Pass"
         renderEncoder.pushDebugGroup("Shadow Pass")
         renderEncoder.setRenderPipelineState(shadowPipeline.pipelineState!)
@@ -245,7 +260,7 @@ enum RenderPasses {
 
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
 
-                let viewMatrix: simd_float4x4 = camera.viewSpace
+                let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 
                 let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
@@ -263,7 +278,7 @@ enum RenderPasses {
 
                 modelUniforms.modelMatrix = modelMatrix
 
-                modelUniforms.cameraPosition = camera.localPosition
+                modelUniforms.cameraPosition = cameraComponent.localPosition
 
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
@@ -309,7 +324,10 @@ enum RenderPasses {
             handleError(.pipelineStateNulled, modelPipeline.name!)
             return
         }
-
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
             .loadAction = .clear
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
@@ -437,7 +455,7 @@ enum RenderPasses {
 
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
 
-                let viewMatrix: simd_float4x4 = camera.viewSpace
+                let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 
                 let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
@@ -455,7 +473,7 @@ enum RenderPasses {
 
                 modelUniforms.modelMatrix = modelMatrix
 
-                modelUniforms.cameraPosition = camera.localPosition
+                modelUniforms.cameraPosition = cameraComponent.localPosition
 
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 

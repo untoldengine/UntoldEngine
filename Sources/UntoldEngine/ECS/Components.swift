@@ -147,6 +147,33 @@ public class ScenegraphComponent: Component {
     public required init() {}
 }
 
+public class CameraComponent: Component {
+    var fov: Float = 65.0
+    var nearClip: Float = 0.1
+    var farClip: Float = 1000.0
+
+    public var viewSpace = simd_float4x4.init(1.0)
+    public var xAxis: simd_float3 = .init(0.0, 0.0, 0.0)
+    public var yAxis: simd_float3 = .init(0.0, 0.0, 0.0)
+    public var zAxis: simd_float3 = .init(0.0, 0.0, 0.0)
+
+    // quaternion
+    var rotation: simd_quatf = .init()
+    var localOrientation: simd_float3 = .init(0.0, 0.0, 0.0)
+    var localPosition: simd_float3 = .init(0.0, 0.0, 0.0)
+    var orbitTarget: simd_float3 = .init(0.0, 0.0, 0.0)
+
+    var eye: simd_float3 = .zero
+    var up: simd_float3 = .zero
+    var target: simd_float3 = .zero
+
+    public required init() {}
+}
+
+public class SceneCameraComponent: Component {
+    public required init() {}
+}
+
 public class InEditorComponent: Component {
     var meshFilename: URL = .init(fileURLWithPath: "")
     var animationsFilenames: [URL] = []

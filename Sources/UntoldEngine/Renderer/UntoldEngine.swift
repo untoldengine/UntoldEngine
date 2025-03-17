@@ -189,16 +189,21 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             return
         }
 
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
         if inputSystem.keyState.leftMousePressed {
-            camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
+            setOrbitOffset(entityId: findSceneCamera(), uTargetOffset: length(cameraComponent.localPosition))
         }
 
         if inputSystem.mouseActive {
-            camera.orbitAround(inputSystem.panDelta * 0.005)
+            orbitAround(entityId: findSceneCamera(), uPosition: inputSystem.panDelta * 0.005)
         }
 
         let input = (w: inputSystem.keyState.wPressed, a: inputSystem.keyState.aPressed, s: inputSystem.keyState.sPressed, d: inputSystem.keyState.dPressed, q: inputSystem.keyState.qPressed, e: inputSystem.keyState.ePressed)
 
-        camera.moveCameraWithInput(input: input, speed: 5, deltaTime: 0.1)
+        moveCameraWithInput(entityId: findSceneCamera(), input: input, speed: 1, deltaTime: 0.1)
     }
 }

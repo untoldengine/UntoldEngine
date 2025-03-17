@@ -176,9 +176,14 @@ public func basicFollow(_ entityId: EntityID, _ offset: simd_float3, _: Float) {
         t.space.columns.3.z
     )
 
+    guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+        handleError(.noActiveCamera)
+        return
+    }
+
     // update camera position based on target position
-    camera.localPosition = position + offset
-    camera.updateViewMatrix()
+    cameraComponent.localPosition = position + offset
+    updateCameraViewMatrix(entityId: getMainCamera())
 }
 
 public func getKeyFromValue(forValue value: EntityID, in dictionary: [String: EntityID]) -> String? {

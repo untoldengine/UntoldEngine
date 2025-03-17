@@ -31,6 +31,12 @@ public func destroyEntity(entityId: EntityID) {
 
 public func destroyAllEntities() {
     for entity in scene.getAllEntities() {
+        // scene and game camera along with main light should not be destroyed
+
+        if hasComponent(entityId: entity, componentType: SceneCameraComponent.self) || hasComponent(entityId: entity, componentType: CameraComponent.self) {
+            continue
+        }
+
         destroyEntity(entityId: entity)
     }
 }
