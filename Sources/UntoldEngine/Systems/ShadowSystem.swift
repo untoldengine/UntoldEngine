@@ -23,6 +23,9 @@ struct ShadowSystem {
 
         let entities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID], in: scene)
 
+        // clear the space matrix on every pass
+        dirLightSpaceMatrix = nil
+
         for entity in entities {
             guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
                 handleError(.noLightComponent)
