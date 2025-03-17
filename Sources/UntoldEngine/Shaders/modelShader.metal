@@ -100,7 +100,7 @@ float4 computePointLightContribution(constant PointLightUniform &light,
 
     float attenuation=calculateAttenuation(lightDistance, light.attenuation, light.radius);
 
-    float4 lightContribution=float4(lightBRDF*attenuation+ambient*light.color.rgb*attenuation,1.0);
+    float4 lightContribution=float4(lightBRDF*attenuation*light.intensity+ambient*light.color.rgb*attenuation,1.0);
  
     return lightContribution;
 }
