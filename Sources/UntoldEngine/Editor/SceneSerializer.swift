@@ -51,6 +51,7 @@ func serializeScene() -> SceneData {
 
     for entityId in getAllGameEntities() {
         guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) else {
+            handleError(.noInEditorComponent, entityId)
             continue
         }
 
@@ -264,6 +265,8 @@ func deserializeScene(sceneData: SceneData) {
                 cameraComponent.eye = eye
                 cameraComponent.target = target
                 cameraComponent.up = up
+
+                cameraLookAt(entityId: entity, eye: eye, target: target, up: up)
             }
         }
     }
