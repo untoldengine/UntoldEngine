@@ -161,7 +161,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
         case .noActiveCamera:
             return "Active camera is invalid"
         case .noGameCamera:
-            return "Game camera is missing"
+            return "Game camera is missing. Add an entity and add a Camera component to it."
         case .noSceneCamera:
             return "Scene camera is missing"
         }

@@ -263,6 +263,42 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             }
         )
     }),
+    ComponentOption_Editor(id: getComponentId(for: CameraComponent.self), name: "Camera Component", type: CameraComponent.self, view: { selectedId, refreshView in
+        AnyView(
+            VStack {
+                if let entityId = selectedId {
+                    Text("Camera System")
+
+                    if hasComponent(entityId: entityId, componentType: CameraComponent.self) {
+                        let eye: simd_float3 = getCameraEye(entityId: entityId)
+                        let up: simd_float3 = getCameraUp(entityId: entityId)
+                        let target: simd_float3 = getCameraTarget(entityId: entityId)
+
+                        TextInputVectorView(label: "Eye", value: Binding(
+                            get: { eye },
+                            set: { newEye in
+                                cameraLookAt(entityId: findGameCamera(), eye: newEye, target: target, up: up)
+                                refreshView()
+                            }))
+
+                        TextInputVectorView(label: "Up", value: Binding(
+                            get: { up },
+                            set: { newUp in
+                                cameraLookAt(entityId: findGameCamera(), eye: eye, target: target, up: newUp)
+                                refreshView()
+                            }))
+
+                        TextInputVectorView(label: "Target", value: Binding(
+                            get: { target },
+                            set: { newTarget in
+                                cameraLookAt(entityId: findGameCamera(), eye: eye, target: newTarget, up: up)
+                                refreshView()
+                            }))
+                    }
+                }
+            }
+        )
+    }),
 ]
 
 @available(macOS 13.0, *)
@@ -422,16 +458,12 @@ struct InspectorView: View {
             editor_entityComponents[entityId]?[key] = component
 
             if key == ObjectIdentifier(LightComponent.self) {
-                let startingDirection = simd_float3(10.0, 10.0, 10.0)
-
                 createLight(entityId: entityId, lightType: .directional)
-                rotateTo(entityId: entityId, pitch: startingDirection.x, yaw: startingDirection.y, roll: startingDirection.z)
 
-                if let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) {
-                    inEditorComponent.orientation = startingDirection
-                }
             } else if key == ObjectIdentifier(KineticComponent.self) {
                 setEntityKinetics(entityId: entityId)
+            } else if key == ObjectIdentifier(CameraComponent.self) {
+                createGameCamera(entityId: entityId)
             }
         }
     }

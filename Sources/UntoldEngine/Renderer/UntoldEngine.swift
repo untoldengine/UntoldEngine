@@ -91,17 +91,21 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         initRenderPassDescriptors()
         initIBLResources()
 
-        lightingSystem = LightingSystem()
         shadowSystem = ShadowSystem()
-        camera = Camera()
 
         inputSystem.setupGestureRecognizers(view: metalView)
         inputSystem.setupEventMonitors()
 
-        camera.lookAt(
-            eye: simd_float3(0.0, 6.0, 15.0), target: simd_float3(0.0, 2.0, 0.0),
-            up: simd_float3(0.0, 1.0, 0.0)
-        )
+        let sceneCamera = createEntity()
+        createSceneCamera(entityId: sceneCamera)
+
+        let gameCamera = createEntity()
+        setEntityName(entityId: gameCamera, name: "Game Camera")
+        createGameCamera(entityId: gameCamera)
+
+        let light = createEntity()
+        setEntityName(entityId: light, name: "Main Light")
+        createLight(entityId: light, lightType: .directional)
 
         Logger.log(message: "Untold Engine Starting")
     }
@@ -142,6 +146,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     public func draw(in view: MTKView) {
+        if getMainCamera() == .invalid {
+            handleError(.noGameCamera)
+            return
+        }
+
         // call the update call before the render
         frameCount += 1
 

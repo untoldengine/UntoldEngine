@@ -37,11 +37,7 @@ public func findGameCamera() -> EntityID {
             return entityId
         }
     }
-
-    // if main game camera was not found, then create one
-    let gameCamera = createEntity()
-    createGameCamera(entityId: gameCamera)
-    return gameCamera
+    return .invalid
 }
 
 func createSceneCamera(entityId: EntityID) {
@@ -56,7 +52,6 @@ func createSceneCamera(entityId: EntityID) {
 }
 
 func createGameCamera(entityId: EntityID) {
-    setEntityName(entityId: entityId, name: "Game Camera")
     registerComponent(entityId: entityId, componentType: CameraComponent.self)
     registerComponent(entityId: entityId, componentType: InEditorComponent.self)
 
