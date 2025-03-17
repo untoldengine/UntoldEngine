@@ -22,6 +22,12 @@ struct LightData: Codable {
     var intensity: Float = 1.0
 }
 
+struct CameraData: Codable {
+    var eye: simd_float3 = .zero
+    var target: simd_float3 = .zero
+    var up: simd_float3 = .init(0.0, 1.0, 0.0)
+}
+
 struct EntityData: Codable {
     var name: String = ""
     var meshFileName: URL = .init(fileURLWithPath: "")
@@ -31,17 +37,19 @@ struct EntityData: Codable {
     var animations: [URL] = []
     var mass: Float = .init(1.0)
     var lightData: LightData? = nil
+    var cameraData: CameraData? = nil
     var hasRenderingComponent: Bool = false
     var hasAnimationComponent: Bool = false
     var hasLocalTransformComponent: Bool = false
     var hasKineticComponent: Bool = false
     var hasLightComponent: Bool = false
+    var hasCameraComponent: Bool = false
 }
 
 func serializeScene() -> SceneData {
     var sceneData = SceneData()
 
-    for entityId in scene.getAllEntities() {
+    for entityId in getAllGameEntities() {
         guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) else {
             continue
         }
@@ -93,6 +101,19 @@ func serializeScene() -> SceneData {
             entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
 
             entityData.lightData?.attenuation = getLightAttenuation(entityId: entityId)
+        }
+
+        // Camera properties
+        let hasCamera: Bool = hasComponent(entityId: entityId, componentType: CameraComponent.self)
+
+        if hasCamera {
+            entityData.hasCameraComponent = hasCamera
+
+            entityData.cameraData = CameraData()
+
+            entityData.cameraData?.eye = getCameraEye(entityId: entityId)
+            entityData.cameraData?.target = getCameraTarget(entityId: entityId)
+            entityData.cameraData?.up = getCameraUp(entityId: entityId)
         }
 
         sceneData.entities.append(entityData)
@@ -225,6 +246,25 @@ func deserializeScene(sceneData: SceneData) {
             let euler = sceneDataEntity.eulerRotation
 
             rotateTo(entityId: entity, pitch: euler.x, yaw: euler.y, roll: euler.z)
+        }
+
+        if sceneDataEntity.hasCameraComponent == true {
+            if let camera = sceneDataEntity.cameraData {
+                let eye = camera.eye
+                let target = camera.target
+                let up = camera.up
+
+                createGameCamera(entityId: entity)
+
+                guard let cameraComponent = scene.get(component: CameraComponent.self, for: entity) else {
+                    handleError(.noGameCamera)
+                    continue
+                }
+
+                cameraComponent.eye = eye
+                cameraComponent.target = target
+                cameraComponent.up = up
+            }
         }
     }
 }
