@@ -20,7 +20,7 @@ extension EntityID {
 }
 
 var componentCounter = 0
-
+var globalEntityCounter: UInt32 = 0
 let MAX_COMPONENTS = 64
 let MAX_ENTITIES = 1000
 

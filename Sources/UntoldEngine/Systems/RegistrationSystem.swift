@@ -11,7 +11,8 @@ import Foundation
 import MetalKit
 
 public func createEntity() -> EntityID {
-    scene.newEntity()
+    globalEntityCounter += 1
+    return scene.newEntity()
 }
 
 public func registerComponent(entityId: EntityID, componentType: (some Component).Type) {
@@ -37,6 +38,7 @@ public func destroyAllEntities() {
         }
 
         destroyEntity(entityId: entity)
+        globalEntityCounter = 0
     }
 }
 

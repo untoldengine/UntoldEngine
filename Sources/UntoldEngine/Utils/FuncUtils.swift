@@ -443,13 +443,7 @@ public func isWASDPressed() -> Bool {
 }
 
 func generateEntityName() -> String {
-    let timestamp = Int(Date().timeIntervalSince1970 * 1000) // Convert to milliseconds
-    let hexTimestamp = String(timestamp, radix: 16, uppercase: true) // Convert to hex
-
-    // Extract the last 5 characters
-    let shortID = hexTimestamp.suffix(5)
-
-    return "Entity_\(shortID)"
+    return "Entity_\(globalEntityCounter)"
 }
 
 public func getAllGameEntities() -> [EntityID] {
