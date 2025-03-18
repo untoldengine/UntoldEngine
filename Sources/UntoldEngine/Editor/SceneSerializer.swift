@@ -42,8 +42,8 @@ struct EntityData: Codable {
     var hasAnimationComponent: Bool = false
     var hasLocalTransformComponent: Bool = false
     var hasKineticComponent: Bool = false
-    var hasLightComponent: Bool = false
-    var hasCameraComponent: Bool = false
+    var hasLightComponent: Bool?
+    var hasCameraComponent: Bool?
 }
 
 func serializeScene() -> SceneData {
