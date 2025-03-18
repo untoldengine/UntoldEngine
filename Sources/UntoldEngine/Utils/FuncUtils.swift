@@ -462,3 +462,17 @@ func generateEntityName() -> String {
 
     return "Entity_\(shortID)"
 }
+
+public func getAllGameEntities() -> [EntityID] {
+    var entityList: [EntityID] = []
+    let entities: [EntityID] = scene.getAllEntities()
+
+    for entityId in entities {
+        if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) {
+            continue
+        }
+        entityList.append(entityId)
+    }
+
+    return entityList
+}

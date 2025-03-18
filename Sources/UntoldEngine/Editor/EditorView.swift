@@ -12,7 +12,7 @@ struct Asset: Identifiable {
 public struct EditorView: View {
     var mtkView: MTKView
 
-    @State private var editor_entities: [EntityID] = scene.getAllEntities()
+    @State private var editor_entities: [EntityID] = getAllGameEntities()
     @StateObject private var selectionManager = SelectionManager()
     @State private var assets: [String: [Asset]] = [:]
     @State private var isPlaying = false
@@ -34,9 +34,7 @@ public struct EditorView: View {
                     SceneHierarchyView(selectionManager: selectionManager, entityList: editor_entities, onAddEntity_Editor: editor_addNewEntity, onRemoveEntity_Editor: editor_removeEntity)
                         .frame(minWidth: 250, maxWidth: 250)
 
-                    CameraView()
-                        .frame(minWidth: 250, maxWidth: 250)
-//                    AssetBrowserView(assets: $assets)
+//                    CameraView()
 //                        .frame(minWidth: 250, maxWidth: 250)
                 }
 
@@ -56,7 +54,7 @@ public struct EditorView: View {
         if let sceneData = loadScene() {
             destroyAllEntities()
             deserializeScene(sceneData: sceneData)
-            editor_entities = scene.getAllEntities()
+            editor_entities = getAllGameEntities()
             selectionManager.objectWillChange.send()
         }
     }
@@ -66,7 +64,7 @@ public struct EditorView: View {
 
         let name = generateEntityName()
         setEntityName(entityId: entityId, name: name)
-        editor_entities = scene.getAllEntities()
+        editor_entities = getAllGameEntities()
 
         registerComponent(entityId: entityId, componentType: InEditorComponent.self)
     }
@@ -79,7 +77,7 @@ public struct EditorView: View {
 
         scene.remove(component: InEditorComponent.self, from: entityId)
         destroyEntity(entityId: entityId)
-        editor_entities = scene.getAllEntities()
+        editor_entities = getAllGameEntities()
     }
 
     private func editor_addName() {
