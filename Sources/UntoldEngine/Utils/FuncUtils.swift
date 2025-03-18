@@ -124,17 +124,6 @@ public func loadHDR(_ textureName: String, from directory: URL? = nil) throws ->
     return texture
 }
 
-// public func readBuffer<T>(from metalBuffer: MTLBuffer, dataType: T.Type) -> [T] {
-//    let count = metalBuffer.length / MemoryLayout<T>.size
-//    let pointer = metalBuffer.contents().bindMemory(to: T.self, capacity: count)
-//    return Array(UnsafeBufferPointer(start: pointer, count: count))
-// }
-
-public func readBuffer(from metalBuffer: MTLBuffer, count: Int) -> [PointLight] {
-    let pointer = metalBuffer.contents().bindMemory(to: PointLight.self, capacity: count)
-    return Array(UnsafeBufferPointer(start: pointer, count: count))
-}
-
 public func readArrayOfStructsFromFile<T: Codable>(filePath: URL) -> [T]? {
     do {
         let jsonData = try Data(contentsOf: filePath)
