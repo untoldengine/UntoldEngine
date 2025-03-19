@@ -44,10 +44,10 @@ struct SceneHierarchyView: View {
                 }
                 .buttonStyle(PlainButtonStyle()) // Remove default button style
                 .padding(.vertical, 4)
-                .frame(maxWidth: .infinity, alignment: .leading) // Align with list items
+
+                Spacer()
 
                 // Remove Entity Button
-
                 Button(action: onRemoveEntity_Editor) {
                     HStack {
                         Image(systemName: "minus")
@@ -57,7 +57,6 @@ struct SceneHierarchyView: View {
                 }
                 .buttonStyle(PlainButtonStyle()) // Remove default button style
                 .padding(.vertical, 4)
-                .frame(maxWidth: .infinity, alignment: .leading) // Align with list items
             }
         }
         .frame(minWidth: 200, maxWidth: 250)
@@ -73,9 +72,11 @@ struct EntityRow: View {
 
     var body: some View {
         HStack {
+            Image(systemName: "cube")
+                .foregroundColor(isSelected ? .blue : .primary)
             Text(entityName) // show entity name
                 .fontWeight(isSelected ? .bold : .regular)
-                .foregroundColor(isSelected ? .blue : .primary)
+                .foregroundColor(isSelected ? .white : .primary)
         }
         .padding(5)
     }

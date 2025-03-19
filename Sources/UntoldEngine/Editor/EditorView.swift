@@ -42,7 +42,7 @@ public struct EditorView: View {
                 InspectorView(selectionManager: selectionManager, onAddName_Editor: editor_addName)
             }
         }
-        .background(Color(red: 40.0 / 255, green: 44.0 / 255, blue: 52.0 / 255, opacity: 0.5))
+        .background(Color.black.opacity(0.1))
     }
 
     private func editor_handleSave() {

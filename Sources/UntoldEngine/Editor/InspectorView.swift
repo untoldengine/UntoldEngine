@@ -208,20 +208,24 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
 
                             let currentLightType = getLightType(entityId: entityId)
 
-                            Picker("Light Type", selection: Binding(
-                                get: { currentLightType },
-                                set: { newType in
-                                    if let lightTypeEnum = LightType(rawValue: newType) {
-                                        updateLightType(entityId: entityId, type: lightTypeEnum)
-                                        refreshView()
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Light Type")
+                                    .font(.headline) // optional styling
+                                Picker("", selection: Binding(
+                                    get: { currentLightType },
+                                    set: { newType in
+                                        if let lightTypeEnum = LightType(rawValue: newType) {
+                                            updateLightType(entityId: entityId, type: lightTypeEnum)
+                                            refreshView()
+                                        }
+                                    }
+                                )) {
+                                    ForEach(lightTypes, id: \.self) { type in
+                                        Text(type.capitalized).tag(type)
                                     }
                                 }
-                            )) {
-                                ForEach(lightTypes, id: \.self) { type in
-                                    Text(type.capitalized).tag(type)
-                                }
+                                .pickerStyle(SegmentedPickerStyle())
                             }
-                            .pickerStyle(MenuPickerStyle())
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                             TextInputVectorView(label: "Color", value: Binding(
@@ -241,22 +245,23 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
 
                                 }))
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                            HStack {
+                                TextInputNumberView(label: "Intensity", value: Binding(
+                                    get: { intensity },
+                                    set: { newIntensity in
+                                        updateLightIntensity(entityId: entityId, intensity: newIntensity)
+                                        refreshView()
+                                    }))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                            TextInputNumberView(label: "Intensity", value: Binding(
-                                get: { intensity },
-                                set: { newIntensity in
-                                    updateLightIntensity(entityId: entityId, intensity: newIntensity)
-                                    refreshView()
-                                }))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                            TextInputNumberView(label: "Radius", value: Binding(
-                                get: { radius },
-                                set: { newRadius in
-                                    updateLightRadius(entityId: entityId, radius: newRadius)
-                                    refreshView()
-                                }))
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                TextInputNumberView(label: "Radius", value: Binding(
+                                    get: { radius },
+                                    set: { newRadius in
+                                        updateLightRadius(entityId: entityId, radius: newRadius)
+                                        refreshView()
+                                    }))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
                         }
                     }
                 }
@@ -395,21 +400,22 @@ struct InspectorView: View {
                     }
                 }
                 .frame(maxHeight: .infinity) // Ensure ScrollView takes available space
+
+                Button(action: { showComponentSelection = true }) {
+                    HStack {
+                        Image(systemName: "Plus")
+                            .foregroundColor(.white)
+                        Text("Add Components")
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             } else {
                 Text("No entity selected")
                     .foregroundColor(.gray)
             }
-
-            Button(action: { showComponentSelection = true }) {
-                HStack {
-                    Image(systemName: "Plus")
-                        .foregroundColor(.white)
-                    Text("Add Components")
-                }
-            }
-            .buttonStyle(PlainButtonStyle())
-            .padding(.vertical, 4)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(minWidth: 200, maxWidth: 250)
         .padding()
@@ -439,7 +445,7 @@ struct InspectorView: View {
                 .padding()
             }
             .frame(width: 300, height: 300)
-            .background(Color(red: 40.0 / 255, green: 44.0 / 255, blue: 52.0 / 255, opacity: 0.5))
+            .background(Color.black.opacity(0.1))
         }
     }
 
