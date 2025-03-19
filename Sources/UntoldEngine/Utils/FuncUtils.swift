@@ -443,7 +443,7 @@ public func isWASDPressed() -> Bool {
 }
 
 func generateEntityName() -> String {
-    return "Entity_\(globalEntityCounter)"
+    "Entity_\(globalEntityCounter)"
 }
 
 public func getAllGameEntities() -> [EntityID] {
