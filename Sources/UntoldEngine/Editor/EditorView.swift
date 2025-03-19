@@ -31,11 +31,18 @@ public struct EditorView: View {
             Divider()
             HStack {
                 VStack {
-                    SceneHierarchyView(selectionManager: selectionManager, entityList: editor_entities, onAddEntity_Editor: editor_addNewEntity, onRemoveEntity_Editor: editor_removeEntity)
-                        .frame(minWidth: 250, maxWidth: 250)
+                    TabView {
+                        SceneHierarchyView(selectionManager: selectionManager, entityList: editor_entities, onAddEntity_Editor: editor_addNewEntity, onRemoveEntity_Editor: editor_removeEntity)
+                            .tabItem {
+                                Label("Scene", systemImage: "cube")
+                            }
 
-//                    CameraView()
-//                        .frame(minWidth: 250, maxWidth: 250)
+                        EnvironmentView()
+                            .tabItem {
+                                Label("Environment", systemImage: "sun.max")
+                            }
+                    }
+                    .frame(minWidth: 200, maxWidth: 200)
                 }
 
                 SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
