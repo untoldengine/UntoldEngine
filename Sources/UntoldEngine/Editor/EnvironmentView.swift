@@ -20,9 +20,9 @@ func addIBL() {
 
 @available(macOS 12.0, *)
 struct EnvironmentView: View {
-    @State private var isIBLEnabled: Bool = true
-    @State private var isShowEnvironment: Bool = false
-    @State private var intensity: Float = ambientIntensity
+    @State private var enableApplyIBL: Bool = false
+    @State private var enableRenderEnvironment: Bool = false
+    @State private var intensity: Float = 1.0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -45,13 +45,13 @@ struct EnvironmentView: View {
             }
             .buttonStyle(PlainButtonStyle())
 
-            Toggle("Enable IBL", isOn: $isIBLEnabled)
-                .onChange(of: isIBLEnabled) { newValue in
+            Toggle("Apply IBL", isOn: $enableApplyIBL)
+                .onChange(of: enableApplyIBL) { newValue in
                     applyIBL = newValue
                 }
 
-            Toggle("Show IBL Environment", isOn: $isShowEnvironment)
-                .onChange(of: isShowEnvironment) { newValue in
+            Toggle("Render Environment", isOn: $enableRenderEnvironment)
+                .onChange(of: enableRenderEnvironment) { newValue in
                     renderEnvironment = newValue
                 }
 
@@ -66,5 +66,10 @@ struct EnvironmentView: View {
         .padding(12)
         .background(Color.black.opacity(0.05))
         .cornerRadius(8)
+        .onAppear {
+            enableApplyIBL = applyIBL
+            enableRenderEnvironment = renderEnvironment
+            intensity = ambientIntensity
+        }
     }
 }

@@ -12,6 +12,7 @@ import UniformTypeIdentifiers
 
 struct SceneData: Codable {
     var entities: [EntityData] = []
+    var environment: EnvironmentData? = nil
 }
 
 struct LightData: Codable {
@@ -26,6 +27,13 @@ struct CameraData: Codable {
     var eye: simd_float3 = .zero
     var target: simd_float3 = .zero
     var up: simd_float3 = .init(0.0, 1.0, 0.0)
+}
+
+struct EnvironmentData: Codable {
+    var applyIBL: Bool? = nil
+    var renderEnvironment: Bool? = nil
+    var hdr: String? = nil
+    var ambientIntensity: Float? = nil
 }
 
 struct EntityData: Codable {
@@ -120,6 +128,14 @@ func serializeScene() -> SceneData {
         sceneData.entities.append(entityData)
     }
 
+    // load environment data
+    sceneData.environment = EnvironmentData()
+
+    sceneData.environment?.hdr = hdrURL
+    sceneData.environment?.ambientIntensity = ambientIntensity
+    sceneData.environment?.applyIBL = applyIBL
+    sceneData.environment?.renderEnvironment = renderEnvironment
+
     return sceneData
 }
 
@@ -173,6 +189,15 @@ func loadScene() -> SceneData? {
 }
 
 func deserializeScene(sceneData: SceneData) {
+    if let env = sceneData.environment {
+        applyIBL = env.applyIBL ?? false
+        renderEnvironment = env.renderEnvironment ?? false
+        ambientIntensity = env.ambientIntensity ?? 0.44
+
+        hdrURL = env.hdr ?? "photostudio.hdr"
+        generateHDR(hdrURL)
+    }
+
     for sceneDataEntity in sceneData.entities {
         let entity = createEntity()
 

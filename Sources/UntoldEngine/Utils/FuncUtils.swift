@@ -270,6 +270,7 @@ func generateHDR(_ hdrName: String, from directory: URL? = nil) {
         specMipMapCommandBuffer.addCompletedHandler { (_ commandBuffer) in
 
             iblSuccessful = true
+            hdrURL = hdrName
             // print("IBL Pre-Filters created successfully")
         }
 
