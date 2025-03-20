@@ -62,6 +62,7 @@ public struct EditorView: View {
             destroyAllEntities()
             deserializeScene(sceneData: sceneData)
             editor_entities = getAllGameEntities()
+            selectionManager.selectedEntity = nil
             selectionManager.objectWillChange.send()
         }
     }
