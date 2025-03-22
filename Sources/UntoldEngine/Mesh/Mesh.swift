@@ -91,6 +91,19 @@ struct Mesh {
         }
     }
 
+    static func loadSceneMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [[Mesh]] {
+        let bufferAllocator = MTKMeshBufferAllocator(device: device)
+        let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
+
+        let textureLoader = TextureLoader(device: device)
+
+        let meshGroups: [[Mesh]] = asset.childObjects(of: MDLObject.self).map {
+            makeMeshes(object: $0, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: true)
+        }
+
+        return meshGroups
+    }
+
     // Recursively find and create Mesh objects from ModelIO hierarchy
     static func makeMeshes(object: MDLObject, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip: Bool) -> [Mesh] {
         var meshes = [Mesh]()
