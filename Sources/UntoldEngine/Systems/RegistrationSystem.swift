@@ -68,8 +68,48 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
 
     registerDefaultComponents(entityId: entityId, meshes: meshes)
 
+    if let meshName = meshes.first?.name {
+        setEntityName(entityId: entityId, name: meshName)
+    }
     // look for any skeletons in asset
     setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+}
+
+public func loadScene(filename: String, withExtension: String) {
+    guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
+        handleError(.filenameNotFound, filename)
+        return
+    }
+
+    if url.pathExtension == "dae" {
+        handleError(.fileTypeNotSupported, url.pathExtension)
+        return
+    }
+
+    var meshes = [[Mesh]]()
+
+    meshes = Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
+
+    if meshes.isEmpty {
+        handleError(.assetDataMissing, filename)
+        return
+    }
+
+    for mesh in meshes {
+        if mesh.count > 0 {
+            let entityId = createEntity()
+            associateMeshesToEntity(entityId: entityId, meshes: mesh)
+
+            registerDefaultComponents(entityId: entityId, meshes: mesh)
+
+            if let meshName = mesh.first?.name {
+                setEntityName(entityId: entityId, name: meshName)
+            }
+            // look for any skeletons in asset
+            setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+            registerComponent(entityId: entityId, componentType: InEditorComponent.self)
+        }
+    }
 }
 
 func removeEntityMesh(entityId: EntityID) {

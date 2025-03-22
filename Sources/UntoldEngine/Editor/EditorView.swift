@@ -25,7 +25,7 @@ public struct EditorView: View {
         VStack {
             ToolbarView(
                 selectionManager: selectionManager, onSave: editor_handleSave,
-                onLoad: editor_handleLoad,
+                onLoad: editor_handleLoad, onOpenUSDScene: editor_loadUSDScene,
                 onPlayToggled: { isPlaying in editor_handlePlayToggle(isPlaying) }
             )
             Divider()
@@ -65,6 +65,18 @@ public struct EditorView: View {
             selectionManager.selectedEntity = nil
             selectionManager.objectWillChange.send()
         }
+    }
+
+    private func editor_loadUSDScene() {
+        guard let url = openFilePicker() else { return }
+
+        let filename = url.deletingPathExtension().lastPathComponent
+        let withExtension = url.pathExtension
+
+        loadScene(filename: filename, withExtension: withExtension)
+        editor_entities = getAllGameEntities()
+        selectionManager.selectedEntity = nil
+        selectionManager.objectWillChange.send()
     }
 
     private func editor_addNewEntity() {
