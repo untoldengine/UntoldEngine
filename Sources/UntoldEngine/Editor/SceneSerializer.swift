@@ -38,7 +38,7 @@ struct EnvironmentData: Codable {
 
 struct EntityData: Codable {
     var name: String = ""
-    var meshFileName: URL = .init(fileURLWithPath: "")
+    var assetURL: URL = .init(fileURLWithPath: "")
     var position: simd_float3 = .zero
     var eulerRotation: simd_float3 = .zero
     var scale: simd_float3 = .one
@@ -68,9 +68,9 @@ func serializeScene() -> SceneData {
         entityData.name = getEntityName(entityId: entityId)!
 
         // Rendering properties
-        let meshPath: URL = inEditorComponent.meshFilename
+        let meshPath: URL = inEditorComponent.assetURL
 
-        entityData.meshFileName = meshPath
+        entityData.assetURL = meshPath
 
         entityData.hasRenderingComponent = hasComponent(entityId: entityId, componentType: RenderComponent.self)
 
@@ -208,14 +208,14 @@ func deserializeScene(sceneData: SceneData) {
             continue
         }
 
-        inEditorComponent.meshFilename = sceneDataEntity.meshFileName
+        inEditorComponent.assetURL = sceneDataEntity.assetURL
         inEditorComponent.animationsFilenames = sceneDataEntity.animations
 
         setEntityName(entityId: entity, name: sceneDataEntity.name)
 
         if sceneDataEntity.hasRenderingComponent == true {
-            let meshFileName = sceneDataEntity.meshFileName.deletingPathExtension().lastPathComponent
-            let meshFileNameExt = sceneDataEntity.meshFileName.pathExtension
+            let meshFileName = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
+            let meshFileNameExt = sceneDataEntity.assetURL.pathExtension
 
             setEntityMesh(entityId: entity, filename: meshFileName, withExtension: meshFileNameExt)
         }

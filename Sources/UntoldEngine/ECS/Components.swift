@@ -175,7 +175,9 @@ public class SceneCameraComponent: Component {
 }
 
 public class InEditorComponent: Component {
-    var meshFilename: URL = .init(fileURLWithPath: "")
+    var assetURL: URL = .init(fileURLWithPath: "")
+    var assetName: String = ""
+    var entityName: String = ""
     var animationsFilenames: [URL] = []
     var position: simd_float3 = .zero
     var orientation: simd_float3 = .zero

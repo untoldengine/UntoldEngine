@@ -46,7 +46,7 @@ private func onAddMesh_Editor(entityId: EntityID) {
         return
     }
 
-    inEditorComponent.meshFilename = url
+    inEditorComponent.assetURL = url
 }
 
 private func onAddAnimation_Editor(entityId: EntityID) {
