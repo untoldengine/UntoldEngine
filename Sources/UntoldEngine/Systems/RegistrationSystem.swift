@@ -348,7 +348,7 @@ func registerDefaultComponents(entityId: EntityID, meshes: [Mesh]) {
 
     let boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
 
-    transformComponent.space = .identity
+    transformComponent.space = meshes[0].worldSpace
     transformComponent.boundingBox = boundingBox
     transformComponent.flipCoord = meshes[0].flipCoord
 }

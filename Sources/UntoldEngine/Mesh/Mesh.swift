@@ -8,7 +8,8 @@ struct Mesh {
     let metalKitMesh: MTKMesh
     var submeshes: [SubMesh] = []
     var modelMDLMesh: MDLMesh
-    var localSpace: simd_float4x4
+    var localSpace: simd_float4x4 = .identity
+    var worldSpace: simd_float4x4 = .identity
     var name: String
     var boundingBox: (min: simd_float3, max: simd_float3)
     var flipCoord: Bool = false
@@ -25,7 +26,7 @@ struct Mesh {
         flipCoord = flip
 
         // Set local transform matrix and name
-        localSpace = modelIOMesh.parent?.transform?.matrix ?? .identity
+        worldSpace = modelIOMesh.parent?.transform?.matrix ?? .identity
         name = modelIOMesh.parent?.name ?? "Unnamed"
 
         // Set bounding box dimensions
