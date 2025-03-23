@@ -27,6 +27,7 @@ public func destroyEntity(entityId: EntityID) {
     removeEntityScenegraph(entityId: entityId)
     removeEntityName(entityId: entityId)
     removeEntityLight(entityId: entityId)
+    removeEntityEditor(entityId: entityId)
     scene.destroyEntity(entityId)
 }
 
@@ -107,7 +108,6 @@ public func loadScene(filename: String, withExtension: String) {
             }
             // look for any skeletons in asset
             setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
-            registerComponent(entityId: entityId, componentType: InEditorComponent.self)
         }
     }
 }
@@ -265,6 +265,15 @@ func removeEntityAnimations(entityId: EntityID) {
     scene.remove(component: AnimationComponent.self, from: entityId)
 }
 
+func removeEntityEditor(entityId: EntityID) {
+    guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) else {
+        handleError(.noInEditorComponent, entityId)
+        return
+    }
+
+    scene.remove(component: InEditorComponent.self, from: entityId)
+}
+
 public func setEntityKinetics(entityId: EntityID) {
     if let _ = scene.get(component: PhysicsComponents.self, for: entityId) {
         registerComponent(entityId: entityId, componentType: KineticComponent.self)
@@ -332,6 +341,7 @@ func registerDefaultComponents(entityId: EntityID, meshes: [Mesh]) {
     registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
     registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
     registerComponent(entityId: entityId, componentType: ScenegraphComponent.self)
+    registerComponent(entityId: entityId, componentType: InEditorComponent.self)
 
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         handleError(.noRenderComponent, entityId)
@@ -343,6 +353,11 @@ func registerDefaultComponents(entityId: EntityID, meshes: [Mesh]) {
         return
     }
 
+    guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) else {
+        handleError(.noInEditorComponent, entityId)
+        return
+    }
+
     renderComponent.mesh = meshes
     entityMeshMap[entityId] = meshes
 
@@ -351,6 +366,10 @@ func registerDefaultComponents(entityId: EntityID, meshes: [Mesh]) {
     transformComponent.space = meshes[0].worldSpace
     transformComponent.boundingBox = boundingBox
     transformComponent.flipCoord = meshes[0].flipCoord
+
+    inEditorComponent.position = getLocalPosition(entityId: entityId)
+    let euler = getLocalOrientationEuler(entityId: entityId)
+    inEditorComponent.orientation = simd_float3(euler.pitch, euler.yaw, euler.roll)
 }
 
 func associateMeshesToEntity(entityId: EntityID, meshes: [Mesh]) {
