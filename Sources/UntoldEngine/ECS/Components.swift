@@ -29,6 +29,8 @@ public class WorldTransformComponent: Component {
 
 public class RenderComponent: Component {
     var mesh: [Mesh]
+    var assetURL: URL = .init(fileURLWithPath: "")
+    var assetName: String = ""
 
     public required init() {
         mesh = []
@@ -102,6 +104,7 @@ public class SkeletonComponent: Component {
 public class AnimationComponent: Component {
     var animationClips: [String: AnimationClip] = [:]
     var currentAnimation: AnimationClip?
+    var animationsFilenames: [URL] = []
     var pause: Bool = false
     var currentTime: Float = 0.0
     public required init() {}
@@ -175,10 +178,6 @@ public class SceneCameraComponent: Component {
 }
 
 public class InEditorComponent: Component {
-    var assetURL: URL = .init(fileURLWithPath: "")
-    var assetName: String = ""
-    var entityName: String = ""
-    var animationsFilenames: [URL] = []
     var position: simd_float3 = .zero
     var orientation: simd_float3 = .zero
     public required init() {}

@@ -37,7 +37,8 @@ struct EnvironmentData: Codable {
 }
 
 struct EntityData: Codable {
-    var name: String = ""
+    var name: String = "" // entity name
+    var assetName: String = "" // asset name in 3D software
     var assetURL: URL = .init(fileURLWithPath: "")
     var position: simd_float3 = .zero
     var eulerRotation: simd_float3 = .zero
@@ -58,33 +59,34 @@ func serializeScene() -> SceneData {
     var sceneData = SceneData()
 
     for entityId in getAllGameEntities() {
-        guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) else {
-            handleError(.noInEditorComponent, entityId)
-            continue
-        }
-
         var entityData = EntityData()
 
         entityData.name = getEntityName(entityId: entityId)!
 
+        if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+            entityData.assetName = renderComponent.assetName
+
+            entityData.assetURL = renderComponent.assetURL
+        }
+
         // Rendering properties
-        let meshPath: URL = inEditorComponent.assetURL
-
-        entityData.assetURL = meshPath
-
         entityData.hasRenderingComponent = hasComponent(entityId: entityId, componentType: RenderComponent.self)
 
         // Transform properties
-        entityData.position = inEditorComponent.position
+        if let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) {
+            entityData.position = inEditorComponent.position
 
-        let eulerRotation = inEditorComponent.orientation
+            let eulerRotation = inEditorComponent.orientation
 
-        entityData.eulerRotation = simd_float3(eulerRotation.x, eulerRotation.y, eulerRotation.z)
+            entityData.eulerRotation = simd_float3(eulerRotation.x, eulerRotation.y, eulerRotation.z)
+        }
 
         entityData.hasLocalTransformComponent = hasComponent(entityId: entityId, componentType: LocalTransformComponent.self)
 
         // Animation properties
-        entityData.animations = inEditorComponent.animationsFilenames
+        if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+            entityData.animations = animationComponent.animationsFilenames
+        }
 
         entityData.hasAnimationComponent = hasComponent(entityId: entityId, componentType: AnimationComponent.self)
 
@@ -199,25 +201,14 @@ func deserializeScene(sceneData: SceneData) {
     }
 
     for sceneDataEntity in sceneData.entities {
-        let entity = createEntity()
+        let entityId = createEntity()
 
-        registerComponent(entityId: entity, componentType: InEditorComponent.self)
-
-        guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entity) else {
-            handleError(.noInEditorComponent)
-            continue
-        }
-
-        inEditorComponent.assetURL = sceneDataEntity.assetURL
-        inEditorComponent.animationsFilenames = sceneDataEntity.animations
-
-        setEntityName(entityId: entity, name: sceneDataEntity.name)
+        setEntityName(entityId: entityId, name: sceneDataEntity.name)
 
         if sceneDataEntity.hasRenderingComponent == true {
-            let meshFileName = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
-            let meshFileNameExt = sceneDataEntity.assetURL.pathExtension
-
-            setEntityMesh(entityId: entity, filename: meshFileName, withExtension: meshFileNameExt)
+            let filename = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
+            let withExtension = sceneDataEntity.assetURL.pathExtension
+            setEntityMesh(entityId: entityId, fromAssetNamed: sceneDataEntity.assetName, filename: filename, withExtension: withExtension)
         }
 
         if sceneDataEntity.hasAnimationComponent == true {
@@ -225,16 +216,20 @@ func deserializeScene(sceneData: SceneData) {
                 let animationFilename = animations.deletingPathExtension().lastPathComponent
                 let animationFilenameExt = animations.pathExtension
 
-                setEntityAnimations(entityId: entity, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
 
-                changeAnimation(entityId: entity, name: animationFilename)
+                changeAnimation(entityId: entityId, name: animationFilename)
+            }
+
+            if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                animationComponent.animationsFilenames = sceneDataEntity.animations
             }
         }
 
         if sceneDataEntity.hasKineticComponent == true {
-            setEntityKinetics(entityId: entity)
+            setEntityKinetics(entityId: entityId)
 
-            guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entity) else {
+            guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
                 handleError(.noPhysicsComponent)
                 continue
             }
@@ -250,9 +245,9 @@ func deserializeScene(sceneData: SceneData) {
                 let radius: Float = light.radius
                 let intensity: Float = light.intensity
 
-                createLight(entityId: entity, lightType: type)
+                createLight(entityId: entityId, lightType: type)
 
-                guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
+                guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
                     handleError(.noLightComponent)
                     continue
                 }
@@ -264,14 +259,16 @@ func deserializeScene(sceneData: SceneData) {
             }
         }
         if sceneDataEntity.hasLocalTransformComponent == true {
-            inEditorComponent.position = sceneDataEntity.position
-            inEditorComponent.orientation = sceneDataEntity.eulerRotation
-
-            translateTo(entityId: entity, position: sceneDataEntity.position)
+            translateTo(entityId: entityId, position: sceneDataEntity.position)
 
             let euler = sceneDataEntity.eulerRotation
 
-            rotateTo(entityId: entity, pitch: euler.x, yaw: euler.y, roll: euler.z)
+            rotateTo(entityId: entityId, pitch: euler.x, yaw: euler.y, roll: euler.z)
+        }
+
+        if let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) {
+            inEditorComponent.position = sceneDataEntity.position
+            inEditorComponent.orientation = sceneDataEntity.eulerRotation
         }
 
         if sceneDataEntity.hasCameraComponent == true {
@@ -280,9 +277,9 @@ func deserializeScene(sceneData: SceneData) {
                 let target = camera.target
                 let up = camera.up
 
-                createGameCamera(entityId: entity)
+                createGameCamera(entityId: entityId)
 
-                guard let cameraComponent = scene.get(component: CameraComponent.self, for: entity) else {
+                guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
                     handleError(.noGameCamera)
                     continue
                 }
@@ -291,7 +288,7 @@ func deserializeScene(sceneData: SceneData) {
                 cameraComponent.target = target
                 cameraComponent.up = up
 
-                cameraLookAt(entityId: entity, eye: eye, target: target, up: up)
+                cameraLookAt(entityId: entityId, eye: eye, target: target, up: up)
             }
         }
     }

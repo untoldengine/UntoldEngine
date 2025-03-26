@@ -43,8 +43,15 @@ public func destroyAllEntities() {
     }
 }
 
-public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true) {
-    guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
+private func setEntityMeshCommon(
+    entityId: EntityID,
+    filename: String,
+    withExtension: String,
+    flip _: Bool,
+    meshLoader: (URL) -> [Mesh],
+    entityName _: String?
+) {
+    guard let url = getResourceURL(forResource: filename, withExtension: withExtension) else {
         handleError(.filenameNotFound, filename)
         return
     }
@@ -54,11 +61,7 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
         return
     }
 
-    var meshes = [Mesh]()
-
-    meshes = Mesh.loadMeshes(
-        url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: flip
-    )
+    let meshes = meshLoader(url)
 
     if meshes.isEmpty {
         handleError(.assetDataMissing, filename)
@@ -66,14 +69,38 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
     }
 
     associateMeshesToEntity(entityId: entityId, meshes: meshes)
+    registerDefaultComponents(entityId: entityId, meshes: meshes, url: url, assetName: meshes.first!.assetName)
+    setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
 
-    registerDefaultComponents(entityId: entityId, meshes: meshes)
-
-    if let meshName = meshes.first?.name {
+    if let meshName = meshes.first?.assetName {
         setEntityName(entityId: entityId, name: meshName)
     }
-    // look for any skeletons in asset
-    setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+}
+
+public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true) {
+    setEntityMeshCommon(
+        entityId: entityId,
+        filename: filename,
+        withExtension: withExtension,
+        flip: flip,
+        meshLoader: { url in
+            Mesh.loadMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: flip)
+        },
+        entityName: nil
+    )
+}
+
+public func setEntityMesh(entityId: EntityID, fromAssetNamed: String, filename: String, withExtension: String, flip: Bool = true) {
+    setEntityMeshCommon(
+        entityId: entityId,
+        filename: filename,
+        withExtension: withExtension,
+        flip: flip,
+        meshLoader: { url in
+            Mesh.loadMeshWithName(name: fromAssetNamed, url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
+        },
+        entityName: fromAssetNamed
+    )
 }
 
 public func loadScene(filename: String, withExtension: String) {
@@ -99,13 +126,15 @@ public func loadScene(filename: String, withExtension: String) {
     for mesh in meshes {
         if mesh.count > 0 {
             let entityId = createEntity()
+
             associateMeshesToEntity(entityId: entityId, meshes: mesh)
 
-            registerDefaultComponents(entityId: entityId, meshes: mesh)
+            registerDefaultComponents(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
 
-            if let meshName = mesh.first?.name {
-                setEntityName(entityId: entityId, name: meshName)
+            if let assetName = getAssetName(entityId: entityId) {
+                setEntityName(entityId: entityId, name: assetName)
             }
+
             // look for any skeletons in asset
             setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
         }
@@ -336,7 +365,7 @@ func removeEntityScenegraph(entityId: EntityID) {
 
 // register Render and Transform components
 
-func registerDefaultComponents(entityId: EntityID, meshes: [Mesh]) {
+func registerDefaultComponents(entityId: EntityID, meshes: [Mesh], url: URL, assetName: String) {
     registerComponent(entityId: entityId, componentType: RenderComponent.self)
     registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
     registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
@@ -359,6 +388,8 @@ func registerDefaultComponents(entityId: EntityID, meshes: [Mesh]) {
     }
 
     renderComponent.mesh = meshes
+    renderComponent.assetName = assetName
+    renderComponent.assetURL = url
     entityMeshMap[entityId] = meshes
 
     let boundingBox = Mesh.computeMeshBoundingBox(for: meshes)

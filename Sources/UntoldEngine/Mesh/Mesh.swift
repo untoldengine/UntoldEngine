@@ -10,7 +10,7 @@ struct Mesh {
     var modelMDLMesh: MDLMesh
     var localSpace: simd_float4x4 = .identity
     var worldSpace: simd_float4x4 = .identity
-    var name: String
+    var assetName: String
     var boundingBox: (min: simd_float3, max: simd_float3)
     var flipCoord: Bool = false
     var skin: Skin?
@@ -27,7 +27,7 @@ struct Mesh {
 
         // Set local transform matrix and name
         worldSpace = modelIOMesh.parent?.transform?.matrix ?? .identity
-        name = modelIOMesh.parent?.name ?? "Unnamed"
+        assetName = modelIOMesh.parent?.name ?? "Unnamed"
 
         // Set bounding box dimensions
         boundingBox = (min: modelIOMesh.boundingBox.minBounds, max: modelIOMesh.boundingBox.maxBounds)
@@ -66,7 +66,7 @@ struct Mesh {
                 modelIOSubmesh: mdlSubmesh,
                 metalKitSubmesh: localMetalKitMesh.submeshes.first!, // Use localMetalKitMesh instead of self.metalKitMesh
                 textureLoader: textureLoader,
-                name: name
+                name: assetName
             )
         } ?? []
 
@@ -103,6 +103,32 @@ struct Mesh {
         }
 
         return meshGroups
+    }
+
+    static func loadMeshWithName(name: String, url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [Mesh] {
+        let bufferAllocator = MTKMeshBufferAllocator(device: device)
+        let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
+
+        let textureLoader = TextureLoader(device: device)
+
+        let topLevelObjects = asset.childObjects(of: MDLObject.self)
+
+        for mdlObject in topLevelObjects {
+            if mdlObject.name == name {
+                var meshGroup: [Mesh] = []
+
+                for child in mdlObject.children.objects {
+                    if let mesh = child as? MDLMesh {
+                        let meshes = makeMeshes(object: mesh, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: renderInfo.device, flip: true)
+                        meshGroup.append(contentsOf: meshes)
+                    }
+                }
+
+                return meshGroup
+            }
+        }
+
+        return []
     }
 
     // Recursively find and create Mesh objects from ModelIO hierarchy

@@ -40,13 +40,6 @@ private func onAddMesh_Editor(entityId: EntityID) {
     let withExtension = url.pathExtension
 
     setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension)
-
-    guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) else {
-        handleError(.noInEditorComponent)
-        return
-    }
-
-    inEditorComponent.assetURL = url
 }
 
 private func onAddAnimation_Editor(entityId: EntityID) {
@@ -58,12 +51,12 @@ private func onAddAnimation_Editor(entityId: EntityID) {
     setEntityAnimations(entityId: entityId, filename: filename, withExtension: withExtension, name: filename)
     changeAnimation(entityId: entityId, name: filename)
 
-    guard let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) else {
-        handleError(.noInEditorComponent)
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+        handleError(.noAnimationComponent)
         return
     }
 
-    inEditorComponent.animationsFilenames.append(url)
+    animationComponent.animationsFilenames.append(url)
 }
 
 @available(macOS 13.0, *)

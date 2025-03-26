@@ -93,3 +93,12 @@ func updateRenderingSystem(in view: MTKView) {
         commandBuffer.commit()
     }
 }
+
+func getAssetName(entityId: EntityID) -> String? {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        handleError(.noRenderComponent)
+        return nil
+    }
+
+    return renderComponent.mesh.first!.assetName
+}
