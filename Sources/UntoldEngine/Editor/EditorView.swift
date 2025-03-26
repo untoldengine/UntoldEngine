@@ -85,8 +85,6 @@ public struct EditorView: View {
         let name = generateEntityName()
         setEntityName(entityId: entityId, name: name)
         editor_entities = getAllGameEntities()
-
-        registerComponent(entityId: entityId, componentType: InEditorComponent.self)
     }
 
     private func editor_removeEntity() {
@@ -95,7 +93,6 @@ public struct EditorView: View {
             return
         }
 
-        scene.remove(component: InEditorComponent.self, from: entityId)
         destroyEntity(entityId: entityId)
         editor_entities = getAllGameEntities()
     }

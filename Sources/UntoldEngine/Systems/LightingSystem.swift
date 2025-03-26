@@ -39,7 +39,6 @@ public struct AreaLight {
 public func createLight(entityId: EntityID, lightType: LightType) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
     registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
-    registerComponent(entityId: entityId, componentType: InEditorComponent.self)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -50,8 +49,8 @@ public func createLight(entityId: EntityID, lightType: LightType) {
         let startingDirection = simd_float3(10.0, 10.0, 10.0)
         rotateTo(entityId: entityId, pitch: startingDirection.x, yaw: startingDirection.y, roll: startingDirection.z)
 
-        if let inEditorComponent = scene.get(component: InEditorComponent.self, for: entityId) {
-            inEditorComponent.orientation = startingDirection
+        if let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) {
+            localTransformComponent.tempOrientation = startingDirection
         }
     }
 

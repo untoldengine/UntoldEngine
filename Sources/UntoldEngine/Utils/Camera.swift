@@ -44,7 +44,6 @@ func createSceneCamera(entityId: EntityID) {
     setEntityName(entityId: entityId, name: "Scene Camera")
     registerComponent(entityId: entityId, componentType: CameraComponent.self)
     registerComponent(entityId: entityId, componentType: SceneCameraComponent.self)
-    registerComponent(entityId: entityId, componentType: InEditorComponent.self)
 
     cameraLookAt(entityId: entityId,
                  eye: simd_float3(0.0, 6.0, 15.0), target: simd_float3(0.0, 2.0, 0.0),
@@ -53,7 +52,6 @@ func createSceneCamera(entityId: EntityID) {
 
 func createGameCamera(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: CameraComponent.self)
-    registerComponent(entityId: entityId, componentType: InEditorComponent.self)
 
     cameraLookAt(entityId: entityId,
                  eye: simd_float3(0.0, 6.0, 15.0), target: simd_float3(0.0, 2.0, 0.0),

@@ -18,6 +18,9 @@ public class LocalTransformComponent: Component {
 
     var flipCoord: Bool = false
 
+    var tempPosition: simd_float3 = .zero
+    var tempOrientation: simd_float3 = .zero
+
     public required init() {}
 }
 
@@ -174,11 +177,5 @@ public class CameraComponent: Component {
 }
 
 public class SceneCameraComponent: Component {
-    public required init() {}
-}
-
-public class InEditorComponent: Component {
-    var position: simd_float3 = .zero
-    var orientation: simd_float3 = .zero
     public required init() {}
 }
