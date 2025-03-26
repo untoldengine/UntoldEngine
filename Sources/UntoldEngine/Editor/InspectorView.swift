@@ -438,7 +438,9 @@ struct InspectorView: View {
                 .padding()
             }
             .frame(width: 300, height: 300)
-            .background(Color.black.opacity(0.1))
+            .background(
+                Color.editorBackground.ignoresSafeArea()
+            )
         }
     }
 

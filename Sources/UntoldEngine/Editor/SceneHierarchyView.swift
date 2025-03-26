@@ -60,7 +60,7 @@ struct SceneHierarchyView: View {
             }
         }
         .frame(minWidth: 200, maxWidth: 250)
-        .background(Color.black.opacity(0.05))
+        .background(Color.editorBackground.ignoresSafeArea())
     }
 }
 

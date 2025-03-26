@@ -37,7 +37,10 @@ struct ToolbarView: View {
             ToolbarButton(iconName: "square.and.arrow.up", action: onSave, tooltip: "Export json Scene")
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 8) // ⬇️ Reduce toolbar height
+        .padding(.vertical, 8) //
+        .background(
+            Color.editorBackground.ignoresSafeArea()
+        )
     }
 }
 

@@ -49,7 +49,9 @@ public struct EditorView: View {
                 InspectorView(selectionManager: selectionManager, onAddName_Editor: editor_addName)
             }
         }
-        .background(Color.black.opacity(0.1))
+        .background(
+            Color.editorBackground.ignoresSafeArea()
+        )
     }
 
     private func editor_handleSave() {
