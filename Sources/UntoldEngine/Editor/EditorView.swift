@@ -86,6 +86,7 @@ public struct EditorView: View {
 
         let name = generateEntityName()
         setEntityName(entityId: entityId, name: name)
+        registerDefaultComponents(entityId: entityId)
         editor_entities = getAllGameEntities()
     }
 

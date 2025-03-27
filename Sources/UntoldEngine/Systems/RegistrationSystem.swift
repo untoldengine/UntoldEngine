@@ -68,7 +68,7 @@ private func setEntityMeshCommon(
     }
 
     associateMeshesToEntity(entityId: entityId, meshes: meshes)
-    registerDefaultComponents(entityId: entityId, meshes: meshes, url: url, assetName: meshes.first!.assetName)
+    registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: meshes.first!.assetName)
     setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
 
     if let meshName = meshes.first?.assetName {
@@ -128,7 +128,7 @@ public func loadScene(filename: String, withExtension: String) {
 
             associateMeshesToEntity(entityId: entityId, meshes: mesh)
 
-            registerDefaultComponents(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
+            registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
 
             if let assetName = getAssetName(entityId: entityId) {
                 setEntityName(entityId: entityId, name: assetName)
@@ -354,12 +354,14 @@ func removeEntityScenegraph(entityId: EntityID) {
 }
 
 // register Render and Transform components
-
-func registerDefaultComponents(entityId: EntityID, meshes: [Mesh], url: URL, assetName: String) {
-    registerComponent(entityId: entityId, componentType: RenderComponent.self)
+func registerDefaultComponents(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
     registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
     registerComponent(entityId: entityId, componentType: ScenegraphComponent.self)
+}
+
+func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, assetName: String) {
+    registerComponent(entityId: entityId, componentType: RenderComponent.self)
 
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         handleError(.noRenderComponent, entityId)
