@@ -38,7 +38,7 @@ struct AssetBrowserView: View {
                         }
                         .padding(.vertical, 6)
                         .padding(.horizontal, 12)
-                        .background(Color.blue)
+                        .background(Color.gray)
                         .foregroundColor(.white)
                         .cornerRadius(8)
                         .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)

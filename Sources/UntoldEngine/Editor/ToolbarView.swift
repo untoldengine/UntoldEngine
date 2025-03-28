@@ -39,7 +39,7 @@ struct ToolbarView: View {
                 }
                 .padding(.vertical, 6)
                 .padding(.horizontal, 12)
-                .background(isPlaying ? Color.red : Color.green)
+                .background(isPlaying ? Color.red : Color.blue)
                 .cornerRadius(6)
                 .shadow(color: Color.black.opacity(0.2), radius: 3, x: 0, y: 1)
             }
@@ -75,7 +75,7 @@ struct ToolbarButton: View {
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(.white)
                 .padding(6)
-                .background(Color.blue)
+                .background(Color.gray)
                 .cornerRadius(6)
                 .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
         }

@@ -103,7 +103,7 @@ struct EntityRow: View {
             Spacer()
         }
         .padding(8)
-        .background(isSelected ? Color.blue.opacity(0.8) : Color.clear)
+        .background(isSelected ? Color.gray.opacity(0.8) : Color.clear)
         .cornerRadius(6)
     }
 }

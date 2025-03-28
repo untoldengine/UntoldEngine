@@ -55,7 +55,7 @@ struct EnvironmentView: View {
                 }
                 .padding(.vertical, 4)
                 .padding(.horizontal, 8)
-                .background(Color.blue)
+                .background(Color.gray)
                 .foregroundColor(.white)
                 .cornerRadius(6)
             }
