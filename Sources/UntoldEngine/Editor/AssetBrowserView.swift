@@ -167,7 +167,6 @@ struct AssetBrowserView: View {
 
     private func selectAsset(_ asset: Asset) {
         selectedAsset = asset
-        print("Selected asset: \(asset.name) from \(asset.category) with URL \(asset.path)")
     }
 }
 
