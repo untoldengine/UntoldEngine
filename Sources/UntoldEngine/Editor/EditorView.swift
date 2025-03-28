@@ -98,6 +98,7 @@ public struct EditorView: View {
 
         destroyEntity(entityId: entityId)
         editor_entities = getAllGameEntities()
+        selectionManager.selectedEntity = nil
     }
 
     private func editor_addName() {
