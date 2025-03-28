@@ -100,11 +100,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         createSceneCamera(entityId: sceneCamera)
 
         let gameCamera = createEntity()
-        setEntityName(entityId: gameCamera, name: "Game Camera")
+        setEntityName(entityId: gameCamera, name: "Main Camera")
         createGameCamera(entityId: gameCamera)
 
         let light = createEntity()
-        setEntityName(entityId: light, name: "Main Light")
+        setEntityName(entityId: light, name: "Directional Light")
         createLight(entityId: light, lightType: .directional)
 
         Logger.log(message: "Untold Engine Starting")
