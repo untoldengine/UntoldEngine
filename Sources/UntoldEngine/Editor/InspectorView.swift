@@ -13,9 +13,9 @@ public struct ComponentOption_Editor: Identifiable {
     public let id: Int
     public let name: String
     public let type: Any.Type
-    public let view: (EntityID?, @escaping () -> Void) -> AnyView
+    public let view: (EntityID?, Asset?, @escaping () -> Void) -> AnyView
 
-    public init(id: Int, name: String, type: Any.Type, view: @escaping (EntityID?, @escaping () -> Void) -> AnyView) {
+    public init(id: Int, name: String, type: Any.Type, view: @escaping (EntityID?, Asset?, @escaping () -> Void) -> AnyView) {
         self.id = id
         self.name = name
         self.type = type
@@ -33,9 +33,7 @@ func openFilePicker() -> URL? {
 }
 
 @available(macOS 13.0, *)
-private func onAddMesh_Editor(entityId: EntityID) {
-    guard let url = openFilePicker() else { return }
-
+private func onAddMesh_Editor(entityId: EntityID, url: URL) {
     let filename = url.deletingPathExtension().lastPathComponent
     let withExtension = url.pathExtension
 
@@ -66,32 +64,53 @@ public func addComponent_Editor(componentOption: ComponentOption_Editor) {
 
 @available(macOS 13.0, *)
 var availableComponents_Editor: [ComponentOption_Editor] = [
-    ComponentOption_Editor(id: getComponentId(for: RenderComponent.self), name: "Render Component", type: RenderComponent.self, view: { selectedId, refreshView in
+    ComponentOption_Editor(id: getComponentId(for: RenderComponent.self), name: "Render Component", type: RenderComponent.self, view: { selectedId, asset, refreshView in
         AnyView(
             VStack {
                 if let entityId = selectedId {
-                    Text("Rendering")
+                    Text("Mesh")
 
-                    HStack {
+                    HStack(spacing: 12) {
+                        if let assetName = asset?.name {
+                            Text(assetName)
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.secondary.opacity(0.1))
+                                .cornerRadius(6)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+
                         Button(action: {
-                            onAddMesh_Editor(entityId: entityId)
+                            if let assetPath = asset?.path {
+                                onAddMesh_Editor(entityId: entityId, url: assetPath)
+                            }
                             refreshView()
                         }) {
-                            HStack {
-                                Image(systemName: "plus")
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus.circle.fill")
                                     .foregroundColor(.white)
-                                Text("Add Mesh")
+                                Text("Assign")
+                                    .fontWeight(.semibold)
                             }
-
-                        }.buttonStyle(PlainButtonStyle())
-                            .padding(.vertical, 4)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
+                    .padding(8)
+                    .background(Color.secondary.opacity(0.05))
+                    .cornerRadius(8)
                 }
             }
         )
     }),
-    ComponentOption_Editor(id: getComponentId(for: LocalTransformComponent.self), name: "Transform Component", type: LocalTransformComponent.self, view: { selectedEntityId, refreshView in
+    ComponentOption_Editor(id: getComponentId(for: LocalTransformComponent.self), name: "Transform Component", type: LocalTransformComponent.self, view: { selectedEntityId, _, refreshView in
         AnyView(
             VStack {
                 Text("Transform Properties")
@@ -119,7 +138,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             } // end vstack
         )
     }),
-    ComponentOption_Editor(id: getComponentId(for: AnimationComponent.self), name: "Animation Component", type: AnimationComponent.self, view: { selectedId, refreshView in
+    ComponentOption_Editor(id: getComponentId(for: AnimationComponent.self), name: "Animation Component", type: AnimationComponent.self, view: { selectedId, _, refreshView in
         AnyView(
             VStack {
                 if let entityId = selectedId {
@@ -165,7 +184,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             }
         )
     }),
-    ComponentOption_Editor(id: getComponentId(for: KineticComponent.self), name: "Kinetic Component", type: KineticComponent.self, view: { selectedId, refreshView in
+    ComponentOption_Editor(id: getComponentId(for: KineticComponent.self), name: "Kinetic Component", type: KineticComponent.self, view: { selectedId, _, refreshView in
         AnyView(
             VStack {
                 if let entityId = selectedId {
@@ -184,7 +203,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             }
         )
     }),
-    ComponentOption_Editor(id: getComponentId(for: LightComponent.self), name: "Light Component", type: LightComponent.self, view: { selectedId, refreshView in
+    ComponentOption_Editor(id: getComponentId(for: LightComponent.self), name: "Light Component", type: LightComponent.self, view: { selectedId, _, refreshView in
         AnyView(
             VStack {
                 if let entityId = selectedId {
@@ -261,7 +280,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             }
         )
     }),
-    ComponentOption_Editor(id: getComponentId(for: CameraComponent.self), name: "Camera Component", type: CameraComponent.self, view: { selectedId, refreshView in
+    ComponentOption_Editor(id: getComponentId(for: CameraComponent.self), name: "Camera Component", type: CameraComponent.self, view: { selectedId, _, refreshView in
         AnyView(
             VStack {
                 if let entityId = selectedId {
@@ -346,6 +365,7 @@ struct InspectorView: View {
     @State private var showComponentSelection = false
     @State private var editor_entityComponents: [EntityID: [ObjectIdentifier: ComponentOption_Editor]] = [:]
     @FocusState private var isNameTextFieldFocused: Bool
+    @Binding var selectedAsset: Asset?
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -384,7 +404,7 @@ struct InspectorView: View {
                             let sortedComponents = sortEntityComponents(componentOption_Editor: mergedComponents)
 
                             ForEach(sortedComponents, id: \.id) { editor_component in
-                                editor_component.view(entityId, refreshView)
+                                editor_component.view(entityId, selectedAsset, refreshView)
                                 Divider()
                             }
                         } else {

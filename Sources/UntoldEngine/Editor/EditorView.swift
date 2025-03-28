@@ -1,11 +1,11 @@
 import MetalKit
 import SwiftUI
 
-struct Asset: Identifiable {
-    let id = UUID()
-    let name: String
-    let category: String
-    let path: URL
+public struct Asset: Identifiable {
+    public let id = UUID()
+    public let name: String
+    public let category: String
+    public let path: URL
 }
 
 @available(macOS 13.0, *)
@@ -15,6 +15,7 @@ public struct EditorView: View {
     @State private var editor_entities: [EntityID] = getAllGameEntities()
     @StateObject private var selectionManager = SelectionManager()
     @State private var assets: [String: [Asset]] = [:]
+    @State private var selectedAsset: Asset? = nil
     @State private var isPlaying = false
 
     public init(mtkView: MTKView) {
@@ -25,7 +26,7 @@ public struct EditorView: View {
         VStack {
             ToolbarView(
                 selectionManager: selectionManager, onSave: editor_handleSave,
-                onLoad: editor_handleLoad, onOpenUSDScene: editor_loadUSDScene,
+                onLoad: editor_handleLoad,
                 onPlayToggled: { isPlaying in editor_handlePlayToggle(isPlaying) }
             )
             Divider()
@@ -45,8 +46,12 @@ public struct EditorView: View {
                     .frame(minWidth: 200, maxWidth: 200)
                 }
 
-                SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
-                InspectorView(selectionManager: selectionManager, onAddName_Editor: editor_addName)
+                VStack {
+                    SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
+
+                    AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset)
+                }
+                InspectorView(selectionManager: selectionManager, onAddName_Editor: editor_addName, selectedAsset: $selectedAsset)
             }
         }
         .background(
