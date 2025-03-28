@@ -12,37 +12,56 @@ struct ToolbarView: View {
     @ObservedObject var selectionManager: SelectionManager
     var onSave: () -> Void
     var onLoad: () -> Void
-    var onOpenUSDScene: () -> Void
-    var onPlayToggled: (Bool) -> Void // Now tracks Play Mode
+    var onPlayToggled: (Bool) -> Void
 
-    @State private var isPlaying = false // 🔄 Track Play Mode
+    @State private var isPlaying = false
 
     var body: some View {
-        HStack(spacing: 10) {
-            ToolbarButton(iconName: "square.and.arrow.down", action: onLoad, tooltip: "Import json Scene")
+        HStack(spacing: 12) {
+            // MARK: - Import Button
 
-            ToolbarButton(iconName: "photo.artframe", action: onOpenUSDScene, tooltip: "Load USD Scene")
-            Spacer()
+            ToolbarButton(iconName: "square.and.arrow.down", action: onLoad, tooltip: "Import JSON Scene")
+
+            // MARK: - Play/Pause Button
+
             Button(action: {
                 isPlaying.toggle()
                 onPlayToggled(isPlaying)
             }) {
-                Image(systemName: isPlaying ? "pause" : "play")
-                    .font(.title2)
-                    .padding(8)
+                HStack(spacing: 6) {
+                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                    Text(isPlaying ? "Pause" : "Play")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white)
+                        .fontWeight(.semibold)
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .background(isPlaying ? Color.red : Color.green)
+                .cornerRadius(6)
+                .shadow(color: Color.black.opacity(0.2), radius: 3, x: 0, y: 1)
             }
             .buttonStyle(PlainButtonStyle())
-            .help(isPlaying ? "Stop Scene" : "Play Scene")
-            Spacer()
-            ToolbarButton(iconName: "square.and.arrow.up", action: onSave, tooltip: "Export json Scene")
+            .help(isPlaying ? "Pause Scene" : "Play Scene")
+
+            // MARK: - Export Button
+
+            ToolbarButton(iconName: "square.and.arrow.up", action: onSave, tooltip: "Export JSON Scene")
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 8) //
+        .padding(.vertical, 6)
         .background(
-            Color.editorBackground.ignoresSafeArea()
+            Color.secondary.opacity(0.1)
+                .ignoresSafeArea()
         )
+        .cornerRadius(8)
+        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
     }
 }
+
+// MARK: - Toolbar Button Component
 
 @available(macOS 13.0, *)
 struct ToolbarButton: View {
@@ -53,8 +72,12 @@ struct ToolbarButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: iconName)
-                .font(.title2)
-                .padding(8)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.white)
+                .padding(6)
+                .background(Color.blue)
+                .cornerRadius(6)
+                .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
         .buttonStyle(PlainButtonStyle())
         .help(tooltip)

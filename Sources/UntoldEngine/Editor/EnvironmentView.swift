@@ -25,47 +25,91 @@ struct EnvironmentView: View {
     @State private var intensity: Float = 1.0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Environment Settings")
-                .font(.headline)
-                .padding(.bottom, 8)
+        VStack(alignment: .leading, spacing: 8) {
+            // MARK: - Header
 
-            // Add IBL
+            HStack(spacing: 6) {
+                Image(systemName: "leaf.arrow.triangle.circlepath")
+                    .foregroundColor(.accentColor)
+                    .font(.system(size: 14)) // Smaller icon
+                Text("Environment Settings")
+                    .font(.headline) // Smaller title
+                    .foregroundColor(.primary)
+            }
+            .padding(.bottom, 6)
+
+            Divider()
+
+            // MARK: - Add IBL Button (Compact)
+
             Button(action: {
                 addIBL()
             }) {
-                HStack {
-                    Image(systemName: "plus")
+                HStack(spacing: 6) {
+                    Image(systemName: "plus.circle.fill")
                         .foregroundColor(.white)
+                        .font(.system(size: 12)) // Smaller icon
                     Text("Add IBL")
+                        .font(.system(size: 12))
+                        .fontWeight(.semibold)
                 }
-                .padding(6)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
                 .background(Color.blue)
-                .cornerRadius(6.0)
+                .foregroundColor(.white)
+                .cornerRadius(6)
             }
             .buttonStyle(PlainButtonStyle())
 
-            Toggle("Apply IBL", isOn: $enableApplyIBL)
+            Divider()
+
+            // MARK: - IBL and Environment Toggles (Compact)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Toggle(isOn: $enableApplyIBL) {
+                    Label("Apply IBL", systemImage: enableApplyIBL ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 12))
+                }
+                .toggleStyle(SwitchToggleStyle())
+                .scaleEffect(0.85) // Make toggle smaller
                 .onChange(of: enableApplyIBL) { newValue in
                     applyIBL = newValue
                 }
 
-            Toggle("Render Environment", isOn: $enableRenderEnvironment)
+                Toggle(isOn: $enableRenderEnvironment) {
+                    Label("Render Environment", systemImage: enableRenderEnvironment ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 12))
+                }
+                .toggleStyle(SwitchToggleStyle())
+                .scaleEffect(0.85)
                 .onChange(of: enableRenderEnvironment) { newValue in
                     renderEnvironment = newValue
                 }
+            }
 
-            TextInputNumberView(label: "Ambient Intensity", value: Binding(
-                get: { intensity },
-                set: { newIntensity in
-                    ambientIntensity = newIntensity
-                    intensity = newIntensity
-                }))
-                .frame(maxWidth: .infinity, alignment: .leading)
+            Divider()
+
+            // MARK: - Ambient Intensity Slider (Compact)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Ambient Intensity")
+                    .font(.system(size: 12))
+                    .foregroundColor(.primary)
+
+                TextInputNumberView(label: "Intensity", value: Binding(
+                    get: { intensity },
+                    set: { newIntensity in
+                        ambientIntensity = newIntensity
+                        intensity = newIntensity
+                    }
+                ))
+                .frame(maxWidth: 80) // Make the input field smaller
+            }
         }
-        .padding(12)
-        .background(Color.black.opacity(0.05))
+        .padding(8) // Reduce padding
+        .background(Color.secondary.opacity(0.1))
         .cornerRadius(8)
+        .shadow(color: Color.black.opacity(0.1), radius: 3, x: 0, y: 1)
         .onAppear {
             enableApplyIBL = applyIBL
             enableRenderEnvironment = renderEnvironment

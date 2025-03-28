@@ -15,54 +15,75 @@ struct SceneHierarchyView: View {
     var onRemoveEntity_Editor: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading) {
-            Text("Scene Graph")
-                .font(.headline)
-
-            List(entityList, id: \.self) { entityId in
-
-                EntityRow(entityID: entityId,
-                          entityName: getEntityName(entityId: entityId) ?? "No name",
-                          isSelected: entityId == selectionManager.selectedEntity)
-                    .contentShape(Rectangle()) // Ensure full row is clickable
-                    .onTapGesture {
-                        selectionManager.selectEntity(entityId: entityId)
-                    }
-            }
-            .scrollContentBackground(.hidden) // Hides system background
-
-            Spacer() // Pushes the "+" button to the bottom
+        VStack(alignment: .leading, spacing: 8) {
+            // MARK: - Header with Add/Remove Buttons
 
             HStack {
-                // Add Entity Button
-                Button(action: onAddEntity_Editor) {
-                    HStack {
-                        Image(systemName: "plus")
-                            .foregroundColor(.white)
-                        Text("Add Entity")
-                    }
-                }
-                .buttonStyle(PlainButtonStyle()) // Remove default button style
-                .padding(.vertical, 4)
+                Image(systemName: "diagram.tree")
+                    .foregroundColor(.accentColor)
+                Text("Scene Graph")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
 
                 Spacer()
 
+                // Add Entity Button
+                Button(action: onAddEntity_Editor) {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundColor(.blue)
+                        .font(.system(size: 18))
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help("Add Entity")
+
                 // Remove Entity Button
                 Button(action: onRemoveEntity_Editor) {
-                    HStack {
-                        Image(systemName: "minus")
-                            .foregroundColor(.white)
-                        Text("Remove Entity")
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundColor(.red)
+                        .font(.system(size: 18))
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help("Remove Selected Entity")
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.secondary.opacity(0.1))
+            .cornerRadius(8)
+
+            // MARK: - Entity List
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(entityList, id: \.self) { entityId in
+                        EntityRow(
+                            entityID: entityId,
+                            entityName: getEntityName(entityId: entityId) ?? "No Name",
+                            isSelected: entityId == selectionManager.selectedEntity
+                        )
+                        .contentShape(Rectangle()) // Full row is clickable
+                        .onTapGesture {
+                            selectionManager.selectEntity(entityId: entityId)
+                        }
                     }
                 }
-                .buttonStyle(PlainButtonStyle()) // Remove default button style
-                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
             }
+            .scrollContentBackground(.hidden)
+            .frame(maxHeight: 300)
+            .background(Color.secondary.opacity(0.05))
+            .cornerRadius(8)
+
+            Spacer() // Pushes content to the top
         }
         .frame(minWidth: 200, maxWidth: 250)
+        .padding(8)
         .background(Color.editorBackground.ignoresSafeArea())
+        .cornerRadius(12)
     }
 }
+
+// MARK: - Entity Row
 
 @available(macOS 13.0, *)
 struct EntityRow: View {
@@ -71,13 +92,18 @@ struct EntityRow: View {
     let isSelected: Bool
 
     var body: some View {
-        HStack {
-            Image(systemName: "cube")
-                .foregroundColor(isSelected ? .blue : .primary)
-            Text(entityName) // show entity name
+        HStack(spacing: 8) {
+            Image(systemName: "cube.fill")
+                .foregroundColor(isSelected ? .white : .gray)
+
+            Text(entityName)
                 .fontWeight(isSelected ? .bold : .regular)
                 .foregroundColor(isSelected ? .white : .primary)
+
+            Spacer()
         }
-        .padding(5)
+        .padding(8)
+        .background(isSelected ? Color.blue.opacity(0.8) : Color.clear)
+        .cornerRadius(6)
     }
 }
