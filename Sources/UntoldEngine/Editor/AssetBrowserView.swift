@@ -7,10 +7,30 @@
 
 import SwiftUI
 
+enum AssetCategory: String, CaseIterable {
+    case models = "Models"
+    case animations = "Animations"
+    case materials = "Materials"
+
+    // Optional: Add computed property for icons or other info
+    var iconName: String {
+        switch self {
+        case .models:
+            return "cube.fill"
+        case .animations:
+            return "film"
+        case .materials:
+            return "paintpalette"
+        }
+    }
+}
+
 @available(macOS 13.0, *)
 struct AssetBrowserView: View {
     @Binding var assets: [String: [Asset]]
     @Binding var selectedAsset: Asset?
+    @State private var selectedCategory: String? = "Models" // Default category
+    @State private var selectedAssetName: String?
     @State private var basePath: URL? = nil
 
     var body: some View {
@@ -28,7 +48,7 @@ struct AssetBrowserView: View {
 
                     Spacer()
 
-                    // Nicer "Set Base Path" Button
+                    // Set Base Path Button
                     Button(action: selectResourceDirectory) {
                         HStack(spacing: 6) {
                             Image(systemName: "externaldrive.fill.badge.plus")
@@ -66,28 +86,46 @@ struct AssetBrowserView: View {
                         .padding(.bottom, 5)
                 }
 
-                // MARK: - Asset List
+                // MARK: - Sidebar and Asset List Layout
 
-                ScrollView(.vertical, showsIndicators: true) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(assets.keys.sorted(), id: \.self) { category in
-                            VStack(alignment: .leading, spacing: 4) {
-                                // Category Name
+                HStack(spacing: 8) {
+                    // MARK: - Sidebar
+
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(AssetCategory.allCases, id: \.self) { category in
                                 HStack {
-                                    Image(systemName: "folder.fill")
-                                        .foregroundColor(.yellow)
-                                    Text(category)
+                                    // Image(systemName: selectedCategory == category.rawValue ? "folder.fill" : "folder")
+                                    // .foregroundColor(selectedCategory == category.rawValue ? .blue : .gray)
+                                    Text(category.rawValue)
                                         .font(.system(size: 14, weight: .bold, design: .monospaced))
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(selectedCategory == category.rawValue ? .blue : .primary)
                                 }
-                                .padding(.top, 5)
-                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 8)
+                                .background(selectedCategory == category.rawValue ? Color.blue.opacity(0.1) : Color.clear)
+                                .cornerRadius(6)
+                                .onTapGesture {
+                                    selectedCategory = category.rawValue // Use enum rawValue
+                                }
+                            }
+                        }
+                        .padding(8)
+                    }
 
-                                // Asset List
-                                ForEach(assets[category] ?? []) { asset in
+                    .frame(width: 120)
+                    .background(Color.secondary.opacity(0.05))
+                    .cornerRadius(8)
+
+                    // MARK: - Asset List
+
+                    ScrollView(.vertical, showsIndicators: true) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            if let selectedCategory, let categoryAssets = assets[selectedCategory] {
+                                ForEach(categoryAssets) { asset in
                                     HStack {
-                                        Image(systemName: "cube.fill")
-                                            .foregroundColor(.gray)
+                                        // Image(systemName: "cube.fill")
+                                        //  .foregroundColor(.gray)
 
                                         Text(asset.name)
                                             .font(.system(size: 14, weight: .regular, design: .monospaced))
@@ -96,36 +134,38 @@ struct AssetBrowserView: View {
                                     }
                                     .padding(.vertical, 6)
                                     .padding(.horizontal, 10)
-                                    .background(Color.secondary.opacity(0.1))
+                                    .background(
+                                        selectedAssetName == asset.name ? Color.secondary.opacity(0.1) : Color.clear
+                                    )
                                     .cornerRadius(6)
                                     .onTapGesture {
                                         selectAsset(asset)
                                     }
-                                    .onHover { isHovering in
-                                        if isHovering {
-                                            NSCursor.pointingHand.set()
-                                        } else {
-                                            NSCursor.arrow.set()
-                                        }
-                                    }
                                 }
+                            } else {
+                                Text("No assets available")
+                                    .foregroundColor(.gray)
+                                    .padding()
                             }
                         }
+                        .padding(.horizontal, 8)
                     }
-                    .padding(.horizontal, 8)
+                    .frame(maxHeight: 300)
+                    .background(Color.secondary.opacity(0.05))
+                    .cornerRadius(8)
                 }
                 .frame(maxHeight: 300)
-                .background(Color.secondary.opacity(0.05))
-                .cornerRadius(8)
             }
             .padding(10)
         }
-        .frame(maxHeight: 180)
+        .frame(maxHeight: 200)
         .onAppear(perform: loadAssets)
         .onChange(of: basePath) { _ in
             loadAssets()
         }
     }
+
+    // MARK: - Select Resource Directory
 
     private func selectResourceDirectory() {
         let panel = NSOpenPanel()
@@ -139,33 +179,37 @@ struct AssetBrowserView: View {
         }
     }
 
+    // MARK: - Load Assets
+
     private func loadAssets() {
         guard let basePath else { return }
 
-        let categories = ["Models", "Animations", "Materials"] // Only relevant folders
         var groupedAssets: [String: [Asset]] = [:]
 
-        for category in categories {
+        for category in AssetCategory.allCases {
             var categoryPath = basePath.appendingPathComponent("Assets")
-            categoryPath = categoryPath.appendingPathComponent(category)
+            categoryPath = categoryPath.appendingPathComponent(category.rawValue)
 
             if let files = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil) {
                 let filteredAssets = files.compactMap { file -> Asset? in
                     guard file.pathExtension == "usdc" else { return nil }
                     return Asset(name: file.deletingPathExtension().lastPathComponent,
-                                 category: category,
+                                 category: category.rawValue, // Use enum rawValue
                                  path: file)
                 }
 
                 if !filteredAssets.isEmpty {
-                    groupedAssets[category] = filteredAssets
+                    groupedAssets[category.rawValue] = filteredAssets
                 }
             }
         }
         assets = groupedAssets
     }
 
+    // MARK: - Select Asset
+
     private func selectAsset(_ asset: Asset) {
         selectedAsset = asset
+        selectedAssetName = asset.name
     }
 }

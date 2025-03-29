@@ -40,9 +40,7 @@ private func onAddMesh_Editor(entityId: EntityID, url: URL) {
     setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension)
 }
 
-private func onAddAnimation_Editor(entityId: EntityID) {
-    guard let url = openFilePicker() else { return }
-
+private func onAddAnimation_Editor(entityId: EntityID, url: URL) {
     let filename = url.deletingPathExtension().lastPathComponent
     let withExtension = url.pathExtension
 
@@ -71,19 +69,20 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     Text("Mesh")
 
                     HStack(spacing: 12) {
-                        if let assetName = asset?.name {
-                            Text(assetName)
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.secondary.opacity(0.1))
-                                .cornerRadius(6)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-
+//                        if let assetName = asset?.name {
+//                            Text(assetName)
+//                                .font(.subheadline)
+//                                .foregroundColor(.primary)
+//                                .padding(.horizontal, 8)
+//                                .padding(.vertical, 4)
+//                                .background(Color.secondary.opacity(0.1))
+//                                .cornerRadius(6)
+//                                .frame(maxWidth: .infinity, alignment: .leading)
+//                        }
+                        Text(getAssetURLString(entityId: entityId) ?? " ")
                         Button(action: {
-                            if let assetPath = asset?.path {
+                            let selectedCategory: AssetCategory = .models
+                            if let assetPath = asset?.path, selectedCategory.rawValue == asset?.category {
                                 onAddMesh_Editor(entityId: entityId, url: assetPath)
                             }
                             refreshView()
@@ -92,7 +91,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                 Image(systemName: "plus.circle.fill")
                                     .foregroundColor(.white)
                                 Text("Assign")
-                                    .fontWeight(.semibold)
+                                    .fontWeight(.regular)
                             }
                             .padding(.vertical, 8)
                             .padding(.horizontal, 12)
@@ -138,7 +137,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             } // end vstack
         )
     }),
-    ComponentOption_Editor(id: getComponentId(for: AnimationComponent.self), name: "Animation Component", type: AnimationComponent.self, view: { selectedId, _, refreshView in
+    ComponentOption_Editor(id: getComponentId(for: AnimationComponent.self), name: "Animation Component", type: AnimationComponent.self, view: { selectedId, asset, refreshView in
         AnyView(
             VStack {
                 if let entityId = selectedId {
@@ -163,23 +162,34 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                         }
                     }
                     .frame(height: 100)
+                    .scrollContentBackground(.hidden) // Hide default background
+                    .background(Color.gray.opacity(0.3)) // Apply a dark background
+                    .cornerRadius(8) // Optional: Add corner radius for a sleek look
                 }
 
                 // Add animation UI
                 HStack {
                     Button(action: {
-                        onAddAnimation_Editor(entityId: selectedId!)
+                        let selectedCategory: AssetCategory = .animations
+                        if let assetPath = asset?.path, selectedCategory.rawValue == asset?.category {
+                            onAddAnimation_Editor(entityId: selectedId!, url: assetPath)
+                        }
                         refreshView()
                     }) {
                         HStack {
-                            Image(systemName: "plus")
+                            Image(systemName: "plus.circle.fill")
                                 .foregroundColor(.white)
-                            Text("Add Animation")
+                            Text("Assign")
+                                .fontWeight(.regular)
                         }
-
-                    }.buttonStyle(PlainButtonStyle())
-                        .padding(.vertical, 4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color.gray)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
         )
