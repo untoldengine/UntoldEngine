@@ -11,7 +11,25 @@ import MetalKit
 import ModelIO
 
 public func getResourceURL(forResource resourceName: String, withExtension ext: String) -> URL? {
-    // First, check Bundle.main for the resourc
+    if let basePath = assetBasePath {
+        let assetMeshPath = basePath
+            .appendingPathComponent("Assets")
+            .appendingPathComponent("Models")
+            .appendingPathComponent("\(resourceName).\(ext)")
+        if FileManager.default.fileExists(atPath: assetMeshPath.path) {
+            return assetMeshPath
+        }
+
+        let assetAnimationPath = basePath
+            .appendingPathComponent("Assets")
+            .appendingPathComponent("Animations")
+            .appendingPathComponent("\(resourceName).\(ext)")
+        if FileManager.default.fileExists(atPath: assetAnimationPath.path) {
+            return assetAnimationPath
+        }
+    }
+
+    // check Bundle.main for the resourc
     if let mainBundleUrl = Bundle.main.url(forResource: resourceName, withExtension: ext) {
         return mainBundleUrl
     }
