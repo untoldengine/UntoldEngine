@@ -70,10 +70,6 @@ private func setEntityMeshCommon(
     associateMeshesToEntity(entityId: entityId, meshes: meshes)
     registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: meshes.first!.assetName)
     setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
-
-    if let meshName = meshes.first?.assetName {
-        setEntityName(entityId: entityId, name: meshName)
-    }
 }
 
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true) {
