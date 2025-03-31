@@ -283,6 +283,8 @@ struct TextureLoader {
         } catch {
             let errorMessage = "\((property.urlValue!.absoluteString)) for \(assetName)"
             handleError(.textureFailedLoading, errorMessage)
+            print("Error loading texture: \(error.localizedDescription)")
+
             return nil
         }
     }
