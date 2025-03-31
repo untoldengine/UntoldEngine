@@ -310,7 +310,7 @@ func removeEntityKinetics(entityId: EntityID) {
 }
 
 func removeEntityLight(entityId: EntityID) {
-    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+    guard scene.get(component: LightComponent.self, for: entityId) != nil else {
         handleError(.noLightComponent, entityId)
         return
     }
@@ -358,14 +358,14 @@ func registerSceneGraphComponent(entityId: EntityID) {
 }
 
 func removeEntityTransforms(entityId: EntityID) {
-    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else {
         handleError(.noLocalTransformComponent, entityId)
         return
     }
 
     scene.remove(component: LocalTransformComponent.self, from: entityId)
 
-    guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+    guard scene.get(component: WorldTransformComponent.self, for: entityId) != nil else {
         handleError(.noWorldTransformComponent, entityId)
         return
     }
