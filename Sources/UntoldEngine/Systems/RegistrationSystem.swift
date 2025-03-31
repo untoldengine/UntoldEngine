@@ -22,6 +22,7 @@ public func registerComponent(entityId: EntityID, componentType: (some Component
 public func destroyEntity(entityId: EntityID) {
     // Remove any resources linked to entity
     removeEntityMesh(entityId: entityId)
+    removeEntityTransforms(entityId: entityId)
     removeEntityAnimations(entityId: entityId)
     removeEntityKinetics(entityId: entityId)
     removeEntityScenegraph(entityId: entityId)
@@ -144,8 +145,6 @@ func removeEntityMesh(entityId: EntityID) {
 
     renderComponent.cleanUp()
     scene.remove(component: RenderComponent.self, from: entityId)
-    scene.remove(component: WorldTransformComponent.self, from: entityId)
-    scene.remove(component: LocalTransformComponent.self, from: entityId)
 
     // deassocate entity to mesh
     deassociateMeshesToEntity(entityId: entityId)
@@ -349,11 +348,29 @@ func removeEntityScenegraph(entityId: EntityID) {
     scene.remove(component: ScenegraphComponent.self, from: entityId)
 }
 
-// register Render and Transform components
-func registerDefaultComponents(entityId: EntityID) {
+func registerTransformComponent(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
     registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
+}
+
+func registerSceneGraphComponent(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: ScenegraphComponent.self)
+}
+
+func removeEntityTransforms(entityId: EntityID) {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+
+    scene.remove(component: LocalTransformComponent.self, from: entityId)
+
+    guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+        handleError(.noWorldTransformComponent, entityId)
+        return
+    }
+
+    scene.remove(component: WorldTransformComponent.self, from: entityId)
 }
 
 func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, assetName: String) {
