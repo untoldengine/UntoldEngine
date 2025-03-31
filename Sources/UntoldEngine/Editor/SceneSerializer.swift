@@ -204,7 +204,8 @@ func deserializeScene(sceneData: SceneData) {
         let entityId = createEntity()
 
         setEntityName(entityId: entityId, name: sceneDataEntity.name)
-        registerDefaultComponents(entityId: entityId)
+        registerTransformComponent(entityId: entityId)
+        registerSceneGraphComponent(entityId: entityId)
         if sceneDataEntity.hasRenderingComponent == true {
             let filename = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
             let withExtension = sceneDataEntity.assetURL.pathExtension
