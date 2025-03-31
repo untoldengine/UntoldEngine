@@ -59,6 +59,9 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case noActiveCamera = 1050
     case noGameCamera = 1051
     case noSceneCamera = 1052
+    case invalidTextureData = 1053
+    case unrecognizedTextureFormat = 1054
+    case unsupportedCompressedFormat = 1055
 
     public var description: String {
         switch self {
@@ -164,6 +167,12 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Game camera is missing. Add an entity and add a Camera component to it."
         case .noSceneCamera:
             return "Scene camera is missing"
+        case .invalidTextureData:
+            return "Invalid texture data"
+        case .unrecognizedTextureFormat:
+            return "Unrecognized file format"
+        case .unsupportedCompressedFormat:
+            return "Unsupported compressed format"
         }
     }
 }
