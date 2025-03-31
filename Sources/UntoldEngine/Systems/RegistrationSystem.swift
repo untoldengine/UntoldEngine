@@ -374,6 +374,9 @@ func removeEntityTransforms(entityId: EntityID) {
 }
 
 func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, assetName: String) {
+    // check if a render component already exist. If so, remove it and clean up its mesh
+    removeEntityMesh(entityId: entityId)
+
     registerComponent(entityId: entityId, componentType: RenderComponent.self)
 
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
