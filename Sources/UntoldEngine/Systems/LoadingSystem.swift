@@ -27,6 +27,15 @@ public func getResourceURL(forResource resourceName: String, withExtension ext: 
         if FileManager.default.fileExists(atPath: assetAnimationPath.path) {
             return assetAnimationPath
         }
+
+        let assetMaterialPath = basePath
+            .appendingPathComponent("Assets")
+            .appendingPathComponent("Models")
+            .appendingPathComponent("textures")
+            .appendingPathComponent("\(resourceName).\(ext)")
+        if FileManager.default.fileExists(atPath: assetMaterialPath.path) {
+            return assetMaterialPath
+        }
     }
 
     // check Bundle.main for the resourc
