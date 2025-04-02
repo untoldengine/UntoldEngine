@@ -303,11 +303,17 @@ public class InputSystem {
     public func handlePanGesture(_ gestureRecognizer: NSPanGestureRecognizer, in view: NSView) {
         let currentPanLocation = gestureRecognizer.translation(in: view)
 
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
         switch gestureRecognizer.state {
         case .began:
             // Store the initial touch location and perform any initial setup
             initialPanLocation = currentPanLocation
             currentPanGestureState = .began
+            setOrbitOffset(entityId: findSceneCamera(), uTargetOffset: length(cameraComponent.localPosition))
 
         case .changed:
             // Calculate the deltas from the initial touch location
@@ -333,6 +339,7 @@ public class InputSystem {
             panDelta = simd_float2(Float(deltaX), Float(deltaY))
             currentPanGestureState = .changed
             initialPanLocation = currentPanLocation
+            orbitAround(entityId: findSceneCamera(), uPosition: inputSystem.panDelta * 0.005)
 
         case .ended, .cancelled, .failed:
 
@@ -367,8 +374,6 @@ public class InputSystem {
 
         mouseX += mouseDeltaX
         mouseY += mouseDeltaY
-
-        panDelta = simd_float2(Float(mouseDeltaX), Float(mouseDeltaY))
 
         if mouseDeltaX != 0.0 || mouseDeltaY != 0.0 {
             // mouse is active
