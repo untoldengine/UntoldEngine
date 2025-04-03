@@ -60,11 +60,12 @@ struct Mesh {
         metalKitMesh = localMetalKitMesh
 
         // Process submeshes locally before assigning
-        let processedSubmeshes: [SubMesh] = modelIOMesh.submeshes?.compactMap { mdlSubmesh in
-            guard let mdlSubmesh = mdlSubmesh as? MDLSubmesh else { return nil }
+        let processedSubmeshes: [SubMesh] = modelIOMesh.submeshes?.enumerated().compactMap { index, element in
+            guard let mdlSubmesh = element as? MDLSubmesh else { return nil }
+            guard index < localMetalKitMesh.submeshes.count else { return nil }
             return SubMesh(
                 modelIOSubmesh: mdlSubmesh,
-                metalKitSubmesh: localMetalKitMesh.submeshes.first!, // Use localMetalKitMesh instead of self.metalKitMesh
+                metalKitSubmesh: localMetalKitMesh.submeshes[index],
                 textureLoader: textureLoader,
                 name: assetName
             )
