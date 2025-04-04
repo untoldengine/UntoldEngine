@@ -68,6 +68,14 @@ private func setEntityMeshCommon(
         return
     }
 
+    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+        registerTransformComponent(entityId: entityId)
+    }
+
+    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+        registerSceneGraphComponent(entityId: entityId)
+    }
+
     associateMeshesToEntity(entityId: entityId, meshes: meshes)
     registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: meshes.first!.assetName)
     setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
