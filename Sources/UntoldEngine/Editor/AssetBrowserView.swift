@@ -12,7 +12,6 @@ enum AssetCategory: String, CaseIterable {
     case animations = "Animations"
     case materials = "Materials"
 
-    // Optional: Add computed property for icons or other info
     var iconName: String {
         switch self {
         case .models:
@@ -45,6 +44,20 @@ struct AssetBrowserView: View {
                         .font(.title2)
                         .bold()
                         .foregroundColor(.primary)
+
+                    Button(action: importAsset) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "plus.circle")
+                                .foregroundColor(.white)
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)
+                        .background(Color.gray)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
+                    }
+                    .buttonStyle(PlainButtonStyle())
 
                     Spacer()
 
@@ -95,8 +108,8 @@ struct AssetBrowserView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(AssetCategory.allCases, id: \.self) { category in
                                 HStack {
-                                    // Image(systemName: selectedCategory == category.rawValue ? "folder.fill" : "folder")
-                                    // .foregroundColor(selectedCategory == category.rawValue ? .blue : .gray)
+                                    Image(systemName: selectedCategory == category.rawValue ? "folder.fill" : "folder")
+                                        .foregroundColor(selectedCategory == category.rawValue ? .blue : .gray)
                                     Text(category.rawValue)
                                         .font(.system(size: 14, weight: .bold, design: .monospaced))
                                         .foregroundColor(selectedCategory == category.rawValue ? .blue : .primary)
@@ -124,10 +137,10 @@ struct AssetBrowserView: View {
                             if let selectedCategory, let categoryAssets = assets[selectedCategory] {
                                 ForEach(categoryAssets) { asset in
                                     HStack {
-                                        // Image(systemName: "cube.fill")
-                                        //  .foregroundColor(.gray)
-
-                                        Text(asset.name)
+                                        Image(systemName: "cube.fill")
+                                            .foregroundColor(.gray)
+                                        let assetName: String = asset.name + "." + asset.path.pathExtension
+                                        Text(assetName)
                                             .font(.system(size: 14, weight: .regular, design: .monospaced))
 
                                         Spacer()
@@ -179,20 +192,65 @@ struct AssetBrowserView: View {
         }
     }
 
+    private func importAsset() {
+        let openPanel = NSOpenPanel()
+        openPanel.allowedFileTypes = ["usdc", "obj", "png"]
+        openPanel.canChooseDirectories = false
+        openPanel.allowsMultipleSelection = false
+
+        guard let path = assetBasePath else {
+            return
+        }
+
+        if openPanel.runModal() == .OK, let sourceURL = openPanel.url {
+            let fileManager = FileManager.default
+
+            var destinationURL = path.appendingPathComponent("Assets")
+
+            if selectedCategory == "Models" {
+                destinationURL = destinationURL.appendingPathComponent("Models")
+
+            } else if selectedCategory == "Animations" {
+                destinationURL = destinationURL.appendingPathComponent("Animations")
+
+            } else if selectedCategory == "Materials" {
+                destinationURL = destinationURL.appendingPathComponent("Materials")
+            }
+
+            destinationURL = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
+
+            if !fileManager.fileExists(atPath: destinationURL.path) {
+                do {
+                    try fileManager.copyItem(at: sourceURL, to: destinationURL)
+                    loadAssets()
+                } catch {
+                    print("Error copying file: \(error)")
+                }
+            } else {
+                print("File already exists at destination.")
+            }
+
+            // Optional: trigger model reload or update Asset Browser list here
+        }
+    }
+
     // MARK: - Load Assets
 
     private func loadAssets() {
-        guard let basePath else { return }
+        guard let assetBasePath else { return }
+
+        basePath = assetBasePath
 
         var groupedAssets: [String: [Asset]] = [:]
 
         for category in AssetCategory.allCases {
-            var categoryPath = basePath.appendingPathComponent("Assets")
+            var categoryPath = basePath!.appendingPathComponent("Assets")
             categoryPath = categoryPath.appendingPathComponent(category.rawValue)
 
             if let files = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil) {
                 let filteredAssets = files.compactMap { file -> Asset? in
-                    guard file.pathExtension == "usdc" else { return nil }
+                    let allowedExtensions: Set<String> = ["usdc", "obj", "png"]
+                    guard allowedExtensions.contains(file.pathExtension) else { return nil }
                     return Asset(name: file.deletingPathExtension().lastPathComponent,
                                  category: category.rawValue, // Use enum rawValue
                                  path: file)
