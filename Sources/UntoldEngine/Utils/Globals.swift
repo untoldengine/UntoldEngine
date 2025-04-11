@@ -163,4 +163,4 @@ enum InertiaTensorType: Int {
 // Editor
 
 public var enableEditor: Bool = true
-var assetBasePath: URL?
+public var assetBasePath: URL?
