@@ -14,7 +14,7 @@ public func getResourceURL(forResource resourceName: String, withExtension ext: 
     if let basePath = assetBasePath {
         let assetMeshPath = basePath
             .appendingPathComponent("Assets")
-            .appendingPathComponent("Imported")
+            .appendingPathComponent("Models")
             .appendingPathComponent("\(resourceName).\(ext)")
         if FileManager.default.fileExists(atPath: assetMeshPath.path) {
             return assetMeshPath
@@ -22,6 +22,7 @@ public func getResourceURL(forResource resourceName: String, withExtension ext: 
 
         let assetAnimationPath = basePath
             .appendingPathComponent("Assets")
+            .appendingPathComponent("Animations")
             .appendingPathComponent("\(resourceName).\(ext)")
         if FileManager.default.fileExists(atPath: assetAnimationPath.path) {
             return assetAnimationPath
@@ -29,7 +30,8 @@ public func getResourceURL(forResource resourceName: String, withExtension ext: 
 
         let assetMaterialPath = basePath
             .appendingPathComponent("Assets")
-            .appendingPathComponent("Imported")
+            .appendingPathComponent("Models")
+            .appendingPathComponent("textures")
             .appendingPathComponent("\(resourceName).\(ext)")
         if FileManager.default.fileExists(atPath: assetMaterialPath.path) {
             return assetMaterialPath

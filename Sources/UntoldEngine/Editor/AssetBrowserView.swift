@@ -194,7 +194,7 @@ struct AssetBrowserView: View {
 
     private func importAsset() {
         let openPanel = NSOpenPanel()
-        openPanel.allowedFileTypes = ["usdc", "obj", "mtl", "png"]
+        openPanel.allowedFileTypes = ["usdc", "obj", "png"]
         openPanel.canChooseDirectories = false
         openPanel.allowsMultipleSelection = false
 
@@ -205,7 +205,17 @@ struct AssetBrowserView: View {
         if openPanel.runModal() == .OK, let sourceURL = openPanel.url {
             let fileManager = FileManager.default
 
-            var destinationURL = path.appendingPathComponent("Assets/Imported")
+            var destinationURL = path.appendingPathComponent("Assets")
+
+            if selectedCategory == "Models" {
+                destinationURL = destinationURL.appendingPathComponent("Models")
+
+            } else if selectedCategory == "Animations" {
+                destinationURL = destinationURL.appendingPathComponent("Animations")
+
+            } else if selectedCategory == "Materials" {
+                destinationURL = destinationURL.appendingPathComponent("Materials")
+            }
 
             destinationURL = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
 
@@ -231,37 +241,26 @@ struct AssetBrowserView: View {
 
         basePath = assetBasePath
 
-        let importPath = basePath!.appendingPathComponent("Assets/Imported")
-
-        // Initialize empty grouped assets
         var groupedAssets: [String: [Asset]] = [:]
 
-        if let files = try? FileManager.default.contentsOfDirectory(at: importPath, includingPropertiesForKeys: nil) {
-            for file in files {
-                let ext = file.pathExtension.lowercased()
+        for category in AssetCategory.allCases {
+            var categoryPath = basePath!.appendingPathComponent("Assets")
+            categoryPath = categoryPath.appendingPathComponent(category.rawValue)
 
-                // Categorize by file extension
-                let category: AssetCategory? = {
-                    switch ext {
-                    case "obj", "usdc": return .models
-                    case "png", "jpg", "jpeg": return .materials
-                    case "mtl": return .none // optional: handle separately if needed
-                    default: return nil
-                    }
-                }()
+            if let files = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil) {
+                let filteredAssets = files.compactMap { file -> Asset? in
+                    let allowedExtensions: Set<String> = ["usdc", "obj", "png"]
+                    guard allowedExtensions.contains(file.pathExtension) else { return nil }
+                    return Asset(name: file.deletingPathExtension().lastPathComponent,
+                                 category: category.rawValue, // Use enum rawValue
+                                 path: file)
+                }
 
-                guard let validCategory = category else { continue }
-
-                let asset = Asset(
-                    name: file.deletingPathExtension().lastPathComponent,
-                    category: validCategory.rawValue,
-                    path: file
-                )
-
-                groupedAssets[validCategory.rawValue, default: []].append(asset)
+                if !filteredAssets.isEmpty {
+                    groupedAssets[category.rawValue] = filteredAssets
+                }
             }
         }
-
         assets = groupedAssets
     }
 
