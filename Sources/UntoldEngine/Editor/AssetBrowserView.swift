@@ -10,7 +10,6 @@ import SwiftUI
 enum AssetCategory: String, CaseIterable {
     case models = "Models"
     case animations = "Animations"
-    case materials = "Materials"
 
     var iconName: String {
         switch self {
@@ -18,8 +17,6 @@ enum AssetCategory: String, CaseIterable {
             return "cube.fill"
         case .animations:
             return "film"
-        case .materials:
-            return "paintpalette"
         }
     }
 }
@@ -31,6 +28,12 @@ struct AssetBrowserView: View {
     @State private var selectedCategory: String? = "Models" // Default category
     @State private var selectedAssetName: String?
     @State private var basePath: URL? = nil
+    // @State private var currentFolderPath: URL? = nil
+    @State private var folderPathStack: [URL] = []
+
+    private var currentFolderPath: URL? {
+        folderPathStack.last
+    }
 
     var body: some View {
         ZStack {
@@ -134,31 +137,51 @@ struct AssetBrowserView: View {
 
                     ScrollView(.vertical, showsIndicators: true) {
                         VStack(alignment: .leading, spacing: 8) {
-                            if let selectedCategory, let categoryAssets = assets[selectedCategory] {
-                                ForEach(categoryAssets) { asset in
-                                    HStack {
-                                        Image(systemName: "cube.fill")
-                                            .foregroundColor(.gray)
-                                        let assetName: String = asset.name + "." + asset.path.pathExtension
-                                        Text(assetName)
-                                            .font(.system(size: 14, weight: .regular, design: .monospaced))
+                            if let selectedCategory {
+                                // Show breadcrumb if inside folders
+                                if !folderPathStack.isEmpty {
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 4) {
+                                            Button("Assets") {
+                                                folderPathStack = []
+                                            }
 
-                                        Spacer()
-                                    }
-                                    .padding(.vertical, 6)
-                                    .padding(.horizontal, 10)
-                                    .background(
-                                        selectedAssetName == asset.name ? Color.secondary.opacity(0.1) : Color.clear
-                                    )
-                                    .cornerRadius(6)
-                                    .onTapGesture {
-                                        selectAsset(asset)
+                                            ForEach(Array(folderPathStack.enumerated()), id: \.element) { index, url in
+                                                Text(">")
+                                                Button(url.lastPathComponent) {
+                                                    folderPathStack = Array(folderPathStack.prefix(upTo: index + 1))
+                                                }
+                                            }
+                                        }
+                                        .font(.caption)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 4)
+                                        .background(Color.secondary.opacity(0.05))
+                                        .cornerRadius(6)
                                     }
                                 }
-                            } else {
-                                Text("No assets available")
-                                    .foregroundColor(.gray)
-                                    .padding()
+
+                                // Show either folder contents or top-level categories
+                                if let currentFolderPath = currentFolderPath {
+                                    folderContentsView(for: currentFolderPath)
+                                } else {
+                                    if let categoryAssets = assets[selectedCategory] {
+                                        ForEach(categoryAssets) { asset in
+                                            assetRow(asset)
+                                                .onTapGesture {
+                                                    if asset.isFolder {
+                                                        folderPathStack.append(asset.path)
+                                                    } else {
+                                                        selectAsset(asset)
+                                                    }
+                                                }
+                                        }
+                                    } else {
+                                        Text("No assets available")
+                                            .foregroundColor(.gray)
+                                            .padding()
+                                    }
+                                }
                             }
                         }
                         .padding(.horizontal, 8)
@@ -194,9 +217,9 @@ struct AssetBrowserView: View {
 
     private func importAsset() {
         let openPanel = NSOpenPanel()
-        openPanel.allowedFileTypes = ["usdc", "obj", "png"]
+        openPanel.allowedFileTypes = ["usdc", "png"]
         openPanel.canChooseDirectories = false
-        openPanel.allowsMultipleSelection = false
+        openPanel.allowsMultipleSelection = true
 
         guard let path = assetBasePath else {
             return
@@ -212,25 +235,40 @@ struct AssetBrowserView: View {
 
             } else if selectedCategory == "Animations" {
                 destinationURL = destinationURL.appendingPathComponent("Animations")
-
-            } else if selectedCategory == "Materials" {
-                destinationURL = destinationURL.appendingPathComponent("Materials")
             }
 
-            destinationURL = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
+            // if this is a model, make a subfolder using the base name
+            let baseName = sourceURL.deletingPathExtension().lastPathComponent
+            let modelFolder = destinationURL.appendingPathComponent(baseName)
 
-            if !fileManager.fileExists(atPath: destinationURL.path) {
-                do {
-                    try fileManager.copyItem(at: sourceURL, to: destinationURL)
-                    loadAssets()
-                } catch {
-                    print("Error copying file: \(error)")
+            do {
+                // Create Model folder
+                if !fileManager.fileExists(atPath: modelFolder.path) {
+                    try fileManager.createDirectory(at: modelFolder, withIntermediateDirectories: true)
                 }
-            } else {
-                print("File already exists at destination.")
-            }
 
-            // Optional: trigger model reload or update Asset Browser list here
+                // copy usdc file
+                let finalModelPath = modelFolder.appendingPathComponent(sourceURL.lastPathComponent)
+
+                if !fileManager.fileExists(atPath: finalModelPath.path) {
+                    try fileManager.copyItem(at: sourceURL, to: finalModelPath)
+                }
+
+                // copy texture folder
+                let textureFolderSource = sourceURL.deletingLastPathComponent().appendingPathComponent("textures")
+                let textureFolderDest = modelFolder.appendingPathComponent("textures")
+
+                var isDir: ObjCBool = false
+                if fileManager.fileExists(atPath: textureFolderSource.path, isDirectory: &isDir), isDir.boolValue {
+                    if !fileManager.fileExists(atPath: textureFolderDest.path) {
+                        try fileManager.copyItem(at: textureFolderSource, to: textureFolderDest)
+                    }
+                }
+
+                loadAssets()
+            } catch {
+                print("Error copying file: \(error)")
+            }
         }
     }
 
@@ -247,21 +285,91 @@ struct AssetBrowserView: View {
             var categoryPath = basePath!.appendingPathComponent("Assets")
             categoryPath = categoryPath.appendingPathComponent(category.rawValue)
 
-            if let files = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil) {
-                let filteredAssets = files.compactMap { file -> Asset? in
-                    let allowedExtensions: Set<String> = ["usdc", "obj", "png"]
-                    guard allowedExtensions.contains(file.pathExtension) else { return nil }
-                    return Asset(name: file.deletingPathExtension().lastPathComponent,
-                                 category: category.rawValue, // Use enum rawValue
-                                 path: file)
-                }
+            if category == .models {
+                if let folders = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
+                    let folderAssets = folders.compactMap { folder -> Asset? in
+                        var isDir: ObjCBool = false
+                        guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDir), isDir.boolValue else {
+                            return nil
+                        }
 
-                if !filteredAssets.isEmpty {
-                    groupedAssets[category.rawValue] = filteredAssets
+                        return Asset(name: folder.lastPathComponent, category: category.rawValue, path: folder, isFolder: true)
+                    }
+                    groupedAssets[category.rawValue] = folderAssets
+                }
+            } else {
+                if let files = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil) {
+                    let filteredAssets = files.compactMap { file -> Asset? in
+                        let allowedExtensions: Set<String> = ["usdc", "obj", "png"]
+                        guard allowedExtensions.contains(file.pathExtension) else { return nil }
+                        return Asset(name: file.deletingPathExtension().lastPathComponent,
+                                     category: category.rawValue, // Use enum rawValue
+                                     path: file)
+                    }
+
+                    if !filteredAssets.isEmpty {
+                        groupedAssets[category.rawValue] = filteredAssets
+                    }
                 }
             }
         }
         assets = groupedAssets
+    }
+
+    @ViewBuilder
+    private func assetRow(_ asset: Asset) -> some View {
+        HStack {
+            Image(systemName: asset.isFolder ? "folder.fill" : "cube.fill")
+                .foregroundColor(.gray)
+            Text(asset.name)
+                .font(.system(size: 14, weight: .regular, design: .monospaced))
+            Spacer()
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(
+            selectedAssetName == asset.name ? Color.secondary.opacity(0.1) : Color.clear
+        )
+        .cornerRadius(6)
+    }
+
+    @ViewBuilder
+    private func folderContentsView(for folder: URL) -> some View {
+        if let contents = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
+            let items = contents.compactMap { item -> Asset? in
+                var isDir: ObjCBool = false
+                if FileManager.default.fileExists(atPath: item.path, isDirectory: &isDir) {
+                    if isDir.boolValue {
+                        return Asset(name: item.lastPathComponent, category: selectedCategory ?? "", path: item, isFolder: true)
+                    } else {
+                        let allowedExtensions: Set<String> = ["usdc", "obj", "png"]
+                        guard allowedExtensions.contains(item.pathExtension) else { return nil }
+
+                        return Asset(name: item.lastPathComponent,
+                                     category: selectedCategory ?? "",
+                                     path: item)
+                    }
+                }
+                return nil
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(items) { asset in
+                    assetRow(asset)
+                        .onTapGesture {
+                            if asset.isFolder {
+                                folderPathStack.append(asset.path)
+                            } else {
+                                selectAsset(asset)
+                            }
+                        }
+                }
+            }
+        } else {
+            Text("Folder is empty or inaccessible.")
+                .foregroundColor(.gray)
+                .padding()
+        }
     }
 
     // MARK: - Select Asset

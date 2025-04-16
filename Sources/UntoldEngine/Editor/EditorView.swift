@@ -6,6 +6,7 @@ public struct Asset: Identifiable {
     public let name: String
     public let category: String
     public let path: URL
+    var isFolder: Bool = false
 }
 
 @available(macOS 13.0, *)
