@@ -117,7 +117,7 @@ public func removeParent(childId: EntityID) {
     updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
 }
 
-public func getEntitiesWithParent(parentId: EntityID) -> [EntityID] {
+public func getEntityChildren(parentId: EntityID) -> [EntityID] {
     guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: parentId) else {
         handleError(.noScenegraphComponent, parentId)
         return [] // not sure about this
@@ -127,7 +127,7 @@ public func getEntitiesWithParent(parentId: EntityID) -> [EntityID] {
 }
 
 public func updateDescendantLevels(childId: EntityID, level: Int) {
-    let children = getEntitiesWithParent(parentId: childId)
+    let children = getEntityChildren(parentId: childId)
     for descendant in children {
         // get current child level
         guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: descendant) else {
