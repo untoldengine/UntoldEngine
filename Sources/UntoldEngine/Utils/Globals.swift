@@ -52,14 +52,13 @@ var timePassedSinceLastFrame: Float = 0.0
 
 // Frustum info
 let far: Float = 500
-let near: Float = 1.0
+let near: Float = 0.01
 let fov: Float = 65.0
 
 // Shadow max parameters
 let shadowMaxWidth: Float = 300.0
 let shadowMaxHeight: Float = 300.0
 
-@available(macOS 11.0, *)
 var accelStructResources = AccelStructResources()
 
 // pipelines
@@ -164,3 +163,5 @@ enum InertiaTensorType: Int {
 
 public var enableEditor: Bool = true
 public var assetBasePath: URL?
+
+var activeEntity: EntityID = .invalid
