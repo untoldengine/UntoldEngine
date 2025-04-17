@@ -603,68 +603,72 @@ enum RenderPasses {
         renderEncoder.endEncoding()
     }
 
-    static let highlightExecution: (MTLCommandBuffer) -> Void = { _ in
+    static let highlightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        // if selectedModel == false {
-        //   return
-        // }
-        //
-        // if geometryPipeline.success == false {
-        //   handleError(.pipelineStateNulled, geometryPipeline.name!)
-        //   return
-        // }
-        //
-        // renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-        //   .loadAction = .load
-        // renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-        //   .loadAction = .load
-        // renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-        //   .loadAction = .load
-        //
-        // renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
-        //
-        // let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor!
-        //
-        // guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
-        // else {
-        //
-        //   handleError(.renderPassCreationFailed, "Highlight Pass")
-        //
-        //   return
-        // }
-        //
-        // renderEncoder.label = "Highlight Pass"
-        //
-        // renderEncoder.pushDebugGroup("Highlight Pass")
-        //
-        // renderEncoder.setRenderPipelineState(geometryPipeline.pipelineState!)
-        //
-        // renderEncoder.setDepthStencilState(geometryPipeline.depthState)
-        //
-        // renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
-        //
-        // renderEncoder.setCullMode(.back)
-        //
-        // renderEncoder.setFrontFacing(.counterClockwise)
-        //
-        // if let t = scene.get(component: Transform.self, for: activeEntity) {
-        //
-        //   renderEncoder.setVertexBuffer(bufferResources.boundingBoxBuffer, offset: 0, index: 0)
-        //
-        //   renderEncoder.setVertexBytes(
-        //     &camera.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 1)
-        //   renderEncoder.setVertexBytes(
-        //     &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2)
-        //   renderEncoder.setVertexBytes(
-        //     &t.localSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 3)
-        //   renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: boundingBoxVertexCount)
-        //
-        // }
-        //
-        // renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        // renderEncoder.popDebugGroup()
-        // renderEncoder.endEncoding()
-        //
+        if selectedModel == false {
+            return
+        }
+
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        if geometryPipeline.success == false {
+            handleError(.pipelineStateNulled, geometryPipeline.name!)
+            return
+        }
+
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+            .loadAction = .load
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+            .loadAction = .load
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+            .loadAction = .load
+
+        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+
+        let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor!
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "Highlight Pass")
+
+            return
+        }
+
+        renderEncoder.label = "Highlight Pass"
+
+        renderEncoder.pushDebugGroup("Highlight Pass")
+
+        renderEncoder.setRenderPipelineState(geometryPipeline.pipelineState!)
+
+        renderEncoder.setDepthStencilState(geometryPipeline.depthState)
+
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setCullMode(.back)
+
+        renderEncoder.setFrontFacing(.counterClockwise)
+
+        if let t = scene.get(component: WorldTransformComponent.self, for: activeEntity) {
+            renderEncoder.setVertexBuffer(bufferResources.boundingBoxBuffer, offset: 0, index: 0)
+
+            renderEncoder.setVertexBytes(
+                &cameraComponent.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 1
+            )
+            renderEncoder.setVertexBytes(
+                &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2
+            )
+            renderEncoder.setVertexBytes(
+                &t.space, length: MemoryLayout<matrix_float4x4>.stride, index: 3
+            )
+            renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: boundingBoxVertexCount)
+        }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
     }
 
     static let compositeExecution: (MTLCommandBuffer) -> Void = { commandBuffer in

@@ -28,6 +28,6 @@ vertex GeometryOutModel vertexGeometryShader(GeometryInModel in [[stage_in]],
 fragment float4 fragmentGeometryShader(VertexOutModel in [[stage_in]]){
 
 
-    return float4(1.0,0.0,0.0,1.0);
+    return float4(1.0,1.0,1.0,1.0);
 
 }
