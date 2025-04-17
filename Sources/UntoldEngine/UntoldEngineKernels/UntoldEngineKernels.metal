@@ -13,3 +13,5 @@ using namespace metal;
 #include "../Shaders/postprocessShader.metal"
 #include "../Shaders/tonemapShader.metal"
 #include "../Shaders/preCompShader.metal"
+
+#include "../Shaders/raymodelIntersect.metal"
