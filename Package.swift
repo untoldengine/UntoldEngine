@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "UntoldEngine",
     platforms: [
-        .macOS(.v10_15),
+        .macOS(.v13),
     ],
     products: [
         // Library product for the engine
