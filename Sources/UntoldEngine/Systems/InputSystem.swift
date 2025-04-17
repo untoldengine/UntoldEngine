@@ -238,7 +238,7 @@ public class InputSystem {
     }
 
     @objc func handleClick(_ gestureRecognizer: NSClickGestureRecognizer) {
-        print("Click detected at: \(gestureRecognizer.location(in: gestureRecognizer.view))")
+        handleClickGesture(gestureRecognizer: gestureRecognizer, in: gestureRecognizer.view!)
     }
 
     public func handleMouseScroll(_ event: NSEvent) {
@@ -296,8 +296,56 @@ public class InputSystem {
         }
     }
 
-    public func handleClickGesture(_: NSClickGestureRecognizer, in _: NSView) {
-        // let currentPanLocation = gestureRecognizer.location(in: view)
+    public func handleClickGesture(gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        let currentLocation = gestureRecognizer.location(in: view)
+
+        let currentCGPoint = simd_float2(Float(currentLocation.x), Float(currentLocation.y))
+
+        let rayDirection: simd_float3 = rayDirectionInWorldSpace(uMouseLocation: currentCGPoint, uViewPortDim: simd_float2(Float(view.bounds.width), Float(view.bounds.height)), uPerspectiveSpace: renderInfo.perspectiveSpace, uViewSpace: cameraComponent.viewSpace)
+
+        var anyIntersect = false
+
+        if let rtxCommandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
+            executeRayVsModelHit(rtxCommandBuffer, cameraComponent.localPosition, rayDirection)
+
+            rtxCommandBuffer.addCompletedHandler { commandBuffer in
+                if let error = commandBuffer.error {
+                    // Handle error if any
+                    print("Command buffer completed with error: \(error)")
+                } else {
+                    // intersectAny=true
+                    if let data = bufferResources.rayModelInstanceBuffer?.contents().assumingMemoryBound(to: Int32.self) {
+                        let value = data.pointee
+
+                        if value != -1 {
+                            activeEntity = accelStructResources.entityIDIndex[Int(value)]
+
+                            anyIntersect = true
+                        }
+                    }
+                }
+
+                // cleanUpAccelStructures()
+            }
+
+            rtxCommandBuffer.commit()
+            rtxCommandBuffer.waitUntilCompleted()
+        }
+
+        if anyIntersect {
+            selectedModel = true
+
+            guard let t = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
+            updateBoundingBoxBuffer(min: t.boundingBox.min, max: t.boundingBox.max)
+
+        } else {
+            selectedModel = false
+        }
     }
 
     public func handlePanGesture(_ gestureRecognizer: NSPanGestureRecognizer, in view: NSView) {
