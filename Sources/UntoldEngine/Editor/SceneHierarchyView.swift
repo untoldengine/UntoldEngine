@@ -57,7 +57,7 @@ struct SceneHierarchyView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(entityList, id: \.self) { entityId in
                         EntityRow(
-                            entityID: entityId,
+                            entityid: entityId,
                             entityName: getEntityName(entityId: entityId) ?? "No Name",
                             isSelected: entityId == selectionManager.selectedEntity
                         )
@@ -87,7 +87,7 @@ struct SceneHierarchyView: View {
 
 @available(macOS 13.0, *)
 struct EntityRow: View {
-    let entityID: EntityID
+    let entityid: EntityID
     let entityName: String
     let isSelected: Bool
 
