@@ -11,8 +11,10 @@ protocol SelectionDelegate: AnyObject {
     func didSelectEntity(_ entityId: EntityID)
 }
 
-class EditorController: SelectionDelegate {
+class EditorController: SelectionDelegate, ObservableObject {
     let selectionManager: SelectionManager
+    @Published var activeMode: TransformManipulationMode = .none
+    @Published var activeAxis: TransformAxis = .none
 
     init(selectionManager: SelectionManager) {
         self.selectionManager = selectionManager

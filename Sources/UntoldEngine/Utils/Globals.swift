@@ -164,3 +164,16 @@ public var enableEditor: Bool = true
 public var assetBasePath: URL?
 
 var activeEntity: EntityID = .invalid
+var editorController: EditorController?
+
+// Transform Manipulation mode
+enum TransformManipulationMode {
+    case translate
+    case rotate
+    case scale
+    case none
+}
+
+enum TransformAxis {
+    case x, y, z, none
+}
