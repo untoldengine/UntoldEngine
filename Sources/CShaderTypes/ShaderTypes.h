@@ -141,4 +141,18 @@ typedef struct{
     float intensity;
 }LightParameters;
 
+typedef enum{
+    rayModelAccelStructIndex,
+    rayModelBufferInstanceIndex,
+    rayModelOriginIndex,
+    rayModelDirectionIndex,
+    rayModelInstanceHitIndex,
+}RayModelBufferIndices;
+
+//Ray tracing structs
+#define GEOMETRY_MASK_TRIANGLE 1
+#define GEOMETRY_MASK_SPHERE   2
+#define GEOMETRY_MASK_LIGHT    4
+
+
 #endif /* ShaderTypes_h */
