@@ -90,6 +90,8 @@ public class InputSystem {
 
     public var currentGamepad: GCExtendedGamepad?
 
+    weak var selectionDelegate: SelectionDelegate?
+
     init() {
         setupGameController()
     }
@@ -324,6 +326,8 @@ public class InputSystem {
                             activeEntity = accelStructResources.entityIDIndex[Int(value)]
                             guard let t = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
                             updateBoundingBoxBuffer(min: t.boundingBox.min, max: t.boundingBox.max)
+
+                            self.selectionDelegate?.didSelectEntity(activeEntity)
                         }
                     }
                 }

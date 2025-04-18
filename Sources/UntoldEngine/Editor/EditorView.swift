@@ -21,6 +21,9 @@ public struct EditorView: View {
 
     public init(mtkView: MTKView) {
         self.mtkView = mtkView
+        let sharedSelectionManager = SelectionManager()
+        _selectionManager = StateObject(wrappedValue: sharedSelectionManager)
+        editorController = EditorController(selectionManager: sharedSelectionManager)
     }
 
     public var body: some View {
