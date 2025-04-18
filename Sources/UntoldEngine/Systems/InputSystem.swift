@@ -308,8 +308,6 @@ public class InputSystem {
 
         let rayDirection: simd_float3 = rayDirectionInWorldSpace(uMouseLocation: currentCGPoint, uViewPortDim: simd_float2(Float(view.bounds.width), Float(view.bounds.height)), uPerspectiveSpace: renderInfo.perspectiveSpace, uViewSpace: cameraComponent.viewSpace)
 
-        var anyIntersect = false
-
         if let rtxCommandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
             executeRayVsModelHit(rtxCommandBuffer, cameraComponent.localPosition, rayDirection)
 
@@ -324,27 +322,17 @@ public class InputSystem {
 
                         if value != -1 {
                             activeEntity = accelStructResources.entityIDIndex[Int(value)]
-
-                            anyIntersect = true
+                            guard let t = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
+                            updateBoundingBoxBuffer(min: t.boundingBox.min, max: t.boundingBox.max)
                         }
                     }
                 }
 
-                // cleanUpAccelStructures()
+                cleanUpAccelStructures()
             }
 
             rtxCommandBuffer.commit()
             rtxCommandBuffer.waitUntilCompleted()
-        }
-
-        if anyIntersect {
-            selectedModel = true
-
-            guard let t = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
-            updateBoundingBoxBuffer(min: t.boundingBox.min, max: t.boundingBox.max)
-
-        } else {
-            selectedModel = false
         }
     }
 

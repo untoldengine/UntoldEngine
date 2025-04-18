@@ -135,7 +135,6 @@ var ambientIntensity: Float = 0.44
 
 // hightlight
 let boundingBoxVertexCount = 24
-var selectedModel: Bool = false
 
 var envRotationAngle: Float = 0
 public var hdrURL: String = "photostudio.hdr"

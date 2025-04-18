@@ -605,7 +605,7 @@ enum RenderPasses {
 
     static let highlightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        if selectedModel == false {
+        if activeEntity == .invalid {
             return
         }
 
