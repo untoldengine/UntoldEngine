@@ -191,7 +191,7 @@ func createInstanceAccelerationStructures() {
     )
 }
 
-func initRayTracingCompute() {
+func initRayPickerCompute() {
     // create ray vs model pipeline
     // create kernel
     guard

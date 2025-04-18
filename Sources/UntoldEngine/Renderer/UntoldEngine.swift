@@ -107,6 +107,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         setEntityName(entityId: light, name: "Directional Light")
         createLight(entityId: light, lightType: .directional)
 
+        // initialize ray vs model pipeline
+        initRayPickerCompute()
+
         Logger.log(message: "Untold Engine Starting")
     }
 
