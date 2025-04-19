@@ -18,8 +18,9 @@ public class LocalTransformComponent: Component {
 
     var flipCoord: Bool = false
 
-    var tempPosition: simd_float3 = .zero
-    var tempOrientation: simd_float3 = .zero
+    var rotationX: Float = 0
+    var rotationY: Float = 0
+    var rotationZ: Float = 0
 
     public required init() {}
 }
