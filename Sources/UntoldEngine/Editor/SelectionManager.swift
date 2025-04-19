@@ -26,6 +26,12 @@ class EditorController: SelectionDelegate, ObservableObject {
             self.selectionManager.selectEntity(entityId: entityId)
         }
     }
+
+    func refreshInspector() {
+        DispatchQueue.main.async {
+            self.selectionManager.objectWillChange.send()
+        }
+    }
 }
 
 class SelectionManager: ObservableObject {
