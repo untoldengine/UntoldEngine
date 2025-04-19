@@ -51,8 +51,7 @@ enum RenderPasses {
         // create the encoder
 
         let encoderDescriptor = renderInfo.renderPassDescriptor!
-
-        encoderDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1)
+        encoderDescriptor.colorAttachments[0].clearColor = mtkBackgroundColor
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
         encoderDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
 

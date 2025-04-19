@@ -177,3 +177,7 @@ enum TransformManipulationMode {
 enum TransformAxis {
     case x, y, z, none
 }
+
+// mtk view color
+// Graphite Gray
+let mtkBackgroundColor = MTLClearColorMake(40.0 / 255.0, 40.0 / 255.0, 45.0 / 255.0, 1.0)
