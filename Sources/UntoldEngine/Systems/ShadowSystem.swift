@@ -36,11 +36,17 @@ struct ShadowSystem {
                 continue
             }
 
-            let orientationEuler = getLocalOrientationEuler(entityId: entity)
+            let axisOfRotation = getAxisRotations(entityId: entity)
 
-            let orientation = simd_float3(orientationEuler.pitch, orientationEuler.yaw, orientationEuler.roll)
+            let rotX = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.x), axis: [1, 0, 0])
+            let rotY = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.y), axis: [0, 1, 0])
+            let rotZ = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.z), axis: [0, 0, 1])
 
-            let lightPosition = targetPoint + normalize(orientation) * 100
+            let rotationMatrix = rotZ * rotY * rotX
+
+            let forward = normalize(simd_mul(rotationMatrix, simd_float4(0, 0, -1, 0)))
+
+            let lightPosition = targetPoint - simd_float3(forward.x, forward.y, forward.z) * 100
 
             let viewMatrix: simd_float4x4 = matrix_look_at_right_hand(
                 lightPosition, simd_float3(0.0, 0.0, 0.0), simd_float3(0.0, 1.0, 0.0)
