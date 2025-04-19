@@ -46,12 +46,9 @@ public func createLight(entityId: EntityID, lightType: LightType) {
     }
 
     if lightType == .directional {
-        let startingDirection = simd_float3(10.0, 10.0, 10.0)
-        rotateTo(entityId: entityId, pitch: startingDirection.x, yaw: startingDirection.y, roll: startingDirection.z)
+        setAxisRotations(entityId: entityId, rotX: 45.0, rotY: 45.0, rotZ: 45.0)
 
-        if let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) {
-            localTransformComponent.tempOrientation = startingDirection
-        }
+        applyAxisRotations(entityId: entityId)
     }
 
     lightComponent.lightType = lightType

@@ -41,7 +41,7 @@ struct EntityData: Codable {
     var assetName: String = "" // asset name in 3D software
     var assetURL: URL = .init(fileURLWithPath: "")
     var position: simd_float3 = .zero
-    var eulerRotation: simd_float3 = .zero
+    var axisOfRotations: simd_float3 = .zero
     var scale: simd_float3 = .one
     var animations: [URL] = []
     var mass: Float = .init(1.0)
@@ -74,11 +74,11 @@ func serializeScene() -> SceneData {
 
         // Transform properties
         if let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) {
-            entityData.position = localTransformComponent.tempPosition
+            entityData.position = getLocalPosition(entityId: entityId)
 
-            let eulerRotation = localTransformComponent.tempOrientation
+            let axisOfRotations = getAxisRotations(entityId: entityId)
 
-            entityData.eulerRotation = simd_float3(eulerRotation.x, eulerRotation.y, eulerRotation.z)
+            entityData.axisOfRotations = axisOfRotations
         }
 
         entityData.hasLocalTransformComponent = hasComponent(entityId: entityId, componentType: LocalTransformComponent.self)
@@ -262,14 +262,11 @@ func deserializeScene(sceneData: SceneData) {
         if sceneDataEntity.hasLocalTransformComponent == true {
             translateTo(entityId: entityId, position: sceneDataEntity.position)
 
-            let euler = sceneDataEntity.eulerRotation
+            let axisOfRotation = sceneDataEntity.axisOfRotations
 
-            rotateTo(entityId: entityId, pitch: euler.x, yaw: euler.y, roll: euler.z)
-        }
+            setAxisRotations(entityId: entityId, rotX: axisOfRotation.x, rotY: axisOfRotation.y, rotZ: axisOfRotation.z)
 
-        if let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) {
-            localTransformComponent.tempPosition = sceneDataEntity.position
-            localTransformComponent.tempOrientation = sceneDataEntity.eulerRotation
+            applyAxisRotations(entityId: entityId)
         }
 
         if sceneDataEntity.hasCameraComponent == true {

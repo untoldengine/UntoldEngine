@@ -407,10 +407,6 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
     transformComponent.space = meshes[0].worldSpace
     transformComponent.boundingBox = boundingBox
     transformComponent.flipCoord = meshes[0].flipCoord
-
-    transformComponent.tempPosition = getLocalPosition(entityId: entityId)
-    let euler = getLocalOrientationEuler(entityId: entityId)
-    transformComponent.tempOrientation = simd_float3(euler.pitch, euler.yaw, euler.roll)
 }
 
 func associateMeshesToEntity(entityId: EntityID, meshes: [Mesh]) {

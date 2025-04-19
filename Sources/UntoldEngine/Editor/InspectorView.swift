@@ -115,22 +115,23 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                 Text("Transform Properties")
                 if let entityId = selectedEntityId {
                     let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
-                    var orientation = localTransformComponent?.tempOrientation
-                    var position = localTransformComponent?.tempPosition
+                    var position = getLocalPosition(entityId: entityId)
+                    var orientation = simd_float3(localTransformComponent!.rotationX, localTransformComponent!.rotationY, localTransformComponent!.rotationZ)
 
                     TextInputVectorView(label: "Position", value: Binding(
-                        get: { position! },
+                        get: { position },
                         set: { newPosition in
                             translateTo(entityId: entityId, position: newPosition)
-                            localTransformComponent?.tempPosition = newPosition
                             refreshView()
                         }))
 
                     TextInputVectorView(label: "Orientation", value: Binding(
-                        get: { orientation! },
+                        get: { orientation },
                         set: { newOrientation in
-                            rotateTo(entityId: entityId, pitch: newOrientation.x, yaw: newOrientation.y, roll: newOrientation.z)
-                            localTransformComponent?.tempOrientation = newOrientation
+                            localTransformComponent?.rotationX = newOrientation.x
+                            localTransformComponent?.rotationY = newOrientation.y
+                            localTransformComponent?.rotationZ = newOrientation.z
+                            applyAxisRotations(entityId: entityId)
                             refreshView()
                         }))
                 }
