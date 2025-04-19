@@ -48,6 +48,12 @@ enum PinchGestureState {
     case ended
 }
 
+enum CameraControlMode {
+    case idle
+    case orbiting
+    case moving
+}
+
 public class InputSystem {
     // key codes
     let kVK_ANSI_W: UInt16 = 13
@@ -73,6 +79,8 @@ public class InputSystem {
     // Current state of the pan gesture
     var currentPanGestureState: PanGestureState?
     var currentPinchGestureState: PinchGestureState?
+
+    var cameraControlMode: CameraControlMode = .idle
 
     // Mouse states
     var mouseX: Float = 0.0
@@ -354,7 +362,7 @@ public class InputSystem {
             initialPanLocation = currentPanLocation
             currentPanGestureState = .began
             setOrbitOffset(entityId: findSceneCamera(), uTargetOffset: length(cameraComponent.localPosition))
-
+            cameraControlMode = .orbiting
         case .changed:
             // Calculate the deltas from the initial touch location
             var deltaX = currentPanLocation.x - initialPanLocation.x
@@ -380,14 +388,13 @@ public class InputSystem {
             currentPanGestureState = .changed
             initialPanLocation = currentPanLocation
             orbitAround(entityId: findSceneCamera(), uPosition: inputSystem.panDelta * 0.005)
-
         case .ended, .cancelled, .failed:
 
             // reset
             panDelta = simd_float2(0, 0)
             initialPanLocation = nil
             currentPanGestureState = .ended
-
+            cameraControlMode = .idle
         default:
             break
         }
