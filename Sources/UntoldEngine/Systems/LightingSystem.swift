@@ -46,9 +46,7 @@ public func createLight(entityId: EntityID, lightType: LightType) {
     }
 
     if lightType == .directional {
-        setAxisRotations(entityId: entityId, rotX: 45.0, rotY: 45.0, rotZ: 45.0)
-
-        applyAxisRotations(entityId: entityId)
+        applyAxisRotations(entityId: entityId, axis: simd_float3(45.0, 45.0, 45.0))
     }
 
     lightComponent.lightType = lightType

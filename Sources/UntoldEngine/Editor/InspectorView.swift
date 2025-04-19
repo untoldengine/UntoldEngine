@@ -128,10 +128,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     TextInputVectorView(label: "Orientation", value: Binding(
                         get: { orientation },
                         set: { newOrientation in
-                            localTransformComponent?.rotationX = newOrientation.x
-                            localTransformComponent?.rotationY = newOrientation.y
-                            localTransformComponent?.rotationZ = newOrientation.z
-                            applyAxisRotations(entityId: entityId)
+                            applyAxisRotations(entityId: entityId, axis: newOrientation)
                             refreshView()
                         }))
                 }

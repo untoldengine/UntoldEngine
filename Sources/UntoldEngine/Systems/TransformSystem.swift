@@ -262,17 +262,6 @@ public func rotateTo(entityId: EntityID, pitch: Float, yaw: Float, roll: Float) 
     localTransformComponent.space.columns.2 = simd_float4(m.columns.2, 0.0)
 }
 
-public func setAxisRotations(entityId: EntityID, rotX: Float, rotY: Float, rotZ: Float) {
-    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
-        handleError(.noLocalTransformComponent, entityId)
-        return
-    }
-
-    localTransformComponent.rotationX = rotX
-    localTransformComponent.rotationY = rotY
-    localTransformComponent.rotationZ = rotZ
-}
-
 public func getAxisRotations(entityId: EntityID) -> simd_float3 {
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
@@ -282,11 +271,15 @@ public func getAxisRotations(entityId: EntityID) -> simd_float3 {
     return simd_float3(localTransformComponent.rotationX, localTransformComponent.rotationY, localTransformComponent.rotationZ)
 }
 
-public func applyAxisRotations(entityId: EntityID) {
+public func applyAxisRotations(entityId: EntityID, axis: simd_float3) {
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
         return
     }
+
+    localTransformComponent.rotationX = axis.x
+    localTransformComponent.rotationY = axis.y
+    localTransformComponent.rotationZ = axis.z
 
     // Generate Rotation
     let rotXMatrix: simd_float4x4 = matrix4x4Rotation(
