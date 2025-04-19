@@ -52,7 +52,7 @@ public struct EditorView: View {
 
                 VStack {
                     SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
-
+                    TransformManipulationToolbar(controller: editorController!)
                     AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset)
                 }
                 InspectorView(selectionManager: selectionManager, onAddName_Editor: editor_addName, selectedAsset: $selectedAsset)
