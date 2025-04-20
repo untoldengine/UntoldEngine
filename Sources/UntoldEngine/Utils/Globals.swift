@@ -76,6 +76,8 @@ var tonemappingPipeline = RenderPipeline()
 var geometryPipeline = RenderPipeline()
 var rayCompositePipeline = RenderPipeline()
 
+var outlinePipeline = RenderPipeline()
+
 var rayTracingPipeline = ComputePipeline()
 var rayModelIntersectPipeline = ComputePipeline()
 var clearRayTracingPipeline = ComputePipeline()
