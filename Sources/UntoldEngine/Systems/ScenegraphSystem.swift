@@ -126,6 +126,15 @@ public func getEntityChildren(parentId: EntityID) -> [EntityID] {
     return scenegraphComponent.children
 }
 
+public func getEntityParent(entityId: EntityID) -> EntityID? {
+    guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: entityId) else {
+        handleError(.noScenegraphComponent, entityId)
+        return nil
+    }
+
+    return scenegraphComponent.parent
+}
+
 public func updateDescendantLevels(childId: EntityID, level: Int) {
     let children = getEntityChildren(parentId: childId)
     for descendant in children {
