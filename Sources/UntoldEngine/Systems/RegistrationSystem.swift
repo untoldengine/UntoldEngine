@@ -48,7 +48,7 @@ private func setEntityMeshCommon(
     filename: String,
     withExtension: String,
     flip _: Bool,
-    meshLoader: (URL) -> [Mesh],
+    meshLoader: (URL) -> [[Mesh]],
     entityName _: String?
 ) {
     guard let url = getResourceURL(forResource: filename, withExtension: withExtension) else {
@@ -68,17 +68,47 @@ private func setEntityMeshCommon(
         return
     }
 
-    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-        registerTransformComponent(entityId: entityId)
-    }
+    let nonEmptyMeshes = meshes.filter { !$0.isEmpty }
 
-    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-        registerSceneGraphComponent(entityId: entityId)
-    }
+    if nonEmptyMeshes.count == 1 {
+        let mesh = nonEmptyMeshes[0]
 
-    associateMeshesToEntity(entityId: entityId, meshes: meshes)
-    registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: meshes.first!.assetName)
-    setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+            registerTransformComponent(entityId: entityId)
+        }
+
+        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+            registerSceneGraphComponent(entityId: entityId)
+        }
+
+        associateMeshesToEntity(entityId: entityId, meshes: mesh)
+        registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
+        setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+
+    } else if nonEmptyMeshes.count > 1 {
+        for mesh in nonEmptyMeshes {
+            let childEntityId = createEntity()
+
+            if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
+                registerTransformComponent(entityId: childEntityId)
+            }
+
+            if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
+                registerSceneGraphComponent(entityId: childEntityId)
+            }
+
+            associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
+
+            registerRenderComponent(entityId: childEntityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
+
+            setEntityName(entityId: childEntityId, name: mesh.first!.assetName)
+
+            setParent(childId: childEntityId, parentId: entityId)
+
+            // look for any skeletons in asset
+            setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
+        }
+    }
 }
 
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true) {
@@ -88,23 +118,23 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
         withExtension: withExtension,
         flip: flip,
         meshLoader: { url in
-            Mesh.loadMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: flip)
+            Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
         },
         entityName: nil
     )
 }
 
-public func setEntityMesh(entityId: EntityID, fromAssetNamed: String, filename: String, withExtension: String, flip: Bool = true) {
-    setEntityMeshCommon(
-        entityId: entityId,
-        filename: filename,
-        withExtension: withExtension,
-        flip: flip,
-        meshLoader: { url in
-            Mesh.loadMeshWithName(name: fromAssetNamed, url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
-        },
-        entityName: fromAssetNamed
-    )
+public func setEntityMesh(entityId _: EntityID, fromAssetNamed _: String, filename _: String, withExtension _: String, flip _: Bool = true) {
+//    setEntityMeshCommon(
+//        entityId: entityId,
+//        filename: filename,
+//        withExtension: withExtension,
+//        flip: flip,
+//        meshLoader: { url in
+//            Mesh.loadMeshWithName(name: fromAssetNamed, url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
+//        },
+//        entityName: fromAssetNamed
+//    )
 }
 
 public func loadScene(filename: String, withExtension: String) {
@@ -131,13 +161,19 @@ public func loadScene(filename: String, withExtension: String) {
         if mesh.count > 0 {
             let entityId = createEntity()
 
+            if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+                registerTransformComponent(entityId: entityId)
+            }
+
+            if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+                registerSceneGraphComponent(entityId: entityId)
+            }
+
             associateMeshesToEntity(entityId: entityId, meshes: mesh)
 
             registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
 
-            if let assetName = getAssetName(entityId: entityId) {
-                setEntityName(entityId: entityId, name: assetName)
-            }
+            setEntityName(entityId: entityId, name: mesh.first!.assetName)
 
             // look for any skeletons in asset
             setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
