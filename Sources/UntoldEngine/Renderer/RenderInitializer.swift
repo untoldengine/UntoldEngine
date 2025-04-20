@@ -656,6 +656,24 @@ func createEnvironmentVertexDescriptor() -> MTLVertexDescriptor {
     return vertexDescriptor
 }
 
+func createOutlineVertexDescriptor() -> MTLVertexDescriptor? {
+    // tell the gpu how data is organized
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    vertexDescriptor.attributes[Int(modelPassVerticesIndex.rawValue)].format = MTLVertexFormat.float4
+    vertexDescriptor.attributes[Int(modelPassVerticesIndex.rawValue)].bufferIndex = Int(modelPassVerticesIndex.rawValue)
+    vertexDescriptor.attributes[Int(modelPassVerticesIndex.rawValue)].offset = 0
+
+    vertexDescriptor.attributes[Int(modelPassNormalIndex.rawValue)].format = MTLVertexFormat.float4
+    vertexDescriptor.attributes[Int(modelPassNormalIndex.rawValue)].bufferIndex = Int(modelPassNormalIndex.rawValue)
+    vertexDescriptor.attributes[Int(modelPassNormalIndex.rawValue)].offset = 0
+
+    vertexDescriptor.layouts[Int(modelPassVerticesIndex.rawValue)].stride = MemoryLayout<simd_float4>.stride
+    vertexDescriptor.layouts[Int(modelPassNormalIndex.rawValue)].stride = MemoryLayout<simd_float4>.stride
+
+    return vertexDescriptor
+}
+
 func initRenderPipelines() {
     // Grid Pipeline
     if let gridPipe = createPipeline(
@@ -707,6 +725,20 @@ func initRenderPipelines() {
         name: "Geometry Pipeline"
     ) {
         geometryPipeline = geometryPipe
+    }
+
+    // Outline Pipeline
+    if let outlinePipe = createPipeline(
+        vertexShader: "vertexOutlineShader",
+        fragmentShader: "fragmentOutlineShader",
+        vertexDescriptor: createOutlineVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .lessEqual,
+        depthEnabled: true,
+        name: "Outline Pipeline"
+    ) {
+        outlinePipeline = outlinePipe
     }
 
     if let compositePipe = createPipeline(

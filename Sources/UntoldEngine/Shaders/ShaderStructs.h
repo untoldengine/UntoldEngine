@@ -140,4 +140,16 @@ typedef struct
 
 } FragmentModelOut;
 
+typedef struct{
+
+    float4 position [[attribute(modelPassVerticesIndex)]];
+    float4 normals [[attribute(modelPassNormalIndex)]];
+    
+}VertexInOutline;
+
+typedef struct{
+    float4 position [[position]];
+    float3 normal;
+}VertexOutOutline;
+
 #endif /* ShaderStructs_h */

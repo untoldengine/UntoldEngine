@@ -602,6 +602,141 @@ enum RenderPasses {
         renderEncoder.endEncoding()
     }
 
+    static let outlineExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+
+        if activeEntity == .invalid {
+            return
+        }
+
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        if outlinePipeline.success == false {
+            handleError(.pipelineStateNulled, outlinePipeline.name!)
+            return
+        }
+
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+            .loadAction = .load
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+            .loadAction = .load
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+            .loadAction = .load
+
+        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+
+        let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor!
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "Outline Pass")
+
+            return
+        }
+
+        renderEncoder.label = "Outline Pass"
+
+        renderEncoder.pushDebugGroup("Outline Pass")
+
+        renderEncoder.setRenderPipelineState(outlinePipeline.pipelineState!)
+
+        renderEncoder.setDepthStencilState(outlinePipeline.depthState)
+
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setCullMode(.front)
+
+        renderEncoder.setFrontFacing(.counterClockwise)
+
+        // Send model info to outline here
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: activeEntity) else {
+            handleError(.noRenderComponent, activeEntity)
+            return
+        }
+
+        guard let transformComponent = scene.get(component: WorldTransformComponent.self, for: activeEntity) else {
+            handleError(.noWorldTransformComponent, activeEntity)
+            return
+        }
+
+        for mesh in renderComponent.mesh {
+            // update uniforms
+            var modelUniforms = Uniforms()
+
+            var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
+
+            let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+
+            let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+
+            let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
+
+            let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
+
+            let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
+
+            modelUniforms.modelViewMatrix = modelViewMatrix
+
+            modelUniforms.normalMatrix = normalMatrix
+
+            modelUniforms.viewMatrix = viewMatrix
+
+            modelUniforms.modelMatrix = modelMatrix
+
+            modelUniforms.cameraPosition = cameraComponent.localPosition
+
+            modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+            if let modelUniformBuffer = mesh.spaceUniform {
+                modelUniformBuffer.contents().copyMemory(
+                    from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
+                )
+            } else {
+                handleError(.bufferAllocationFailed, "Model Uniform buffer")
+                return
+            }
+
+            renderEncoder.setVertexBuffer(
+                mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
+            )
+
+            renderEncoder.setFragmentBuffer(
+                mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
+            )
+
+            renderEncoder.setVertexBuffer(
+                mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
+                offset: 0, index: Int(modelPassVerticesIndex.rawValue)
+            )
+
+            renderEncoder.setVertexBuffer(
+                mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
+                offset: 0, index: Int(modelPassVerticesIndex.rawValue)
+            )
+
+            renderEncoder.setVertexBuffer(
+                mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer,
+                offset: 0, index: Int(modelPassNormalIndex.rawValue)
+            )
+
+            for subMesh in mesh.submeshes {
+                renderEncoder.drawIndexedPrimitives(
+                    type: subMesh.metalKitSubmesh.primitiveType,
+                    indexCount: subMesh.metalKitSubmesh.indexCount,
+                    indexType: subMesh.metalKitSubmesh.indexType,
+                    indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                    indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset
+                )
+            }
+        }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
+    }
+
     static let highlightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
         if activeEntity == .invalid {
