@@ -19,8 +19,8 @@ func createPipeline(
     vertexDescriptor: MTLVertexDescriptor?,
     colorFormats: [MTLPixelFormat],
     depthFormat: MTLPixelFormat,
-    depthCompareFunction _: MTLCompareFunction = .lessEqual,
-    depthEnabled _: Bool = true,
+    depthCompareFunction: MTLCompareFunction = .lessEqual,
+    depthEnabled: Bool = true,
     blendEnabled: Bool = false,
     name: String
 ) -> RenderPipeline? {
@@ -54,8 +54,8 @@ func createPipeline(
 
         pipelineDescriptor.depthAttachmentPixelFormat = depthFormat
 
-        depthStateDescriptor.depthCompareFunction = .lessEqual
-        depthStateDescriptor.isDepthWriteEnabled = true
+        depthStateDescriptor.depthCompareFunction = depthCompareFunction
+        depthStateDescriptor.isDepthWriteEnabled = depthEnabled
 
         let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: pipelineDescriptor)
         let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)
