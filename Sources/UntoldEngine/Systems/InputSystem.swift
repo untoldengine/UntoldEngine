@@ -71,6 +71,11 @@ public class InputSystem {
     let kVK_ANSI_1: UInt16 = 18
     let kVK_ANSI_2: UInt16 = 19
 
+    let kVK_ANSI_G: UInt16 = 5
+    let kVK_ANSI_X: UInt16 = 7
+    let kVK_ANSI_Y: UInt16 = 16
+    let kVK_ANSI_Z: UInt16 = 6
+
     let kVK_ANSI_Space: UInt16 = 49
 
     public var keyState = KeyState()
@@ -351,6 +356,14 @@ public class InputSystem {
     public func handlePanGesture(_ gestureRecognizer: NSPanGestureRecognizer, in view: NSView) {
         let currentPanLocation = gestureRecognizer.translation(in: view)
 
+        guard let editorController else {
+            return
+        }
+
+        if editorController.activeMode != .none {
+            return
+        }
+
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
             handleError(.noActiveCamera)
             return
@@ -471,6 +484,23 @@ public class InputSystem {
             keyState.qPressed = true
         case kVK_ANSI_E:
             keyState.ePressed = true
+//        case kVK_ANSI_G:
+//            print("G pressed")
+        case kVK_ANSI_X:
+            guard let editorController else {
+                return
+            }
+            editorController.activeAxis = .x
+        case kVK_ANSI_Y:
+            guard let editorController else {
+                return
+            }
+            editorController.activeAxis = .y
+        case kVK_ANSI_Z:
+            guard let editorController else {
+                return
+            }
+            editorController.activeAxis = .z
         case kVK_ANSI_1:
             break
         case kVK_ANSI_2:

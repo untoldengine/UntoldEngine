@@ -249,6 +249,10 @@ public func moveCameraWithInput(entityId: EntityID, input: (w: Bool, a: Bool, s:
         return
     }
 
+    if inputSystem.cameraControlMode == .orbiting {
+        return
+    }
+
     // calculate movement deltas based on input
     var delU: Float = 0.0 // movement along the right axis (xAxis)
     var delN: Float = 0.0 // movement along the forward axis (zAxis)
