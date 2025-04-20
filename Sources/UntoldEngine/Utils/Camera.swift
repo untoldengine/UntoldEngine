@@ -46,7 +46,7 @@ func createSceneCamera(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: SceneCameraComponent.self)
 
     cameraLookAt(entityId: entityId,
-                 eye: simd_float3(0.0, 6.0, 15.0), target: simd_float3(0.0, 2.0, 0.0),
+                 eye: simd_float3(0.0, 1.0, 4.0), target: simd_float3(0.0, 0.0, -2.0),
                  up: simd_float3(0.0, 1.0, 0.0))
 }
 
@@ -54,7 +54,7 @@ func createGameCamera(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: CameraComponent.self)
 
     cameraLookAt(entityId: entityId,
-                 eye: simd_float3(0.0, 6.0, 15.0), target: simd_float3(0.0, 2.0, 0.0),
+                 eye: simd_float3(0.0, 1.0, 4.0), target: simd_float3(0.0, 0.0, -2.0),
                  up: simd_float3(0.0, 1.0, 0.0))
 }
 
