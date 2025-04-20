@@ -71,10 +71,10 @@ float4 computeGrid(float3 uFragPos,float uScale){
     //x-axis
     if(uFragPos.z>-minimumz && uFragPos.z<minimumz) color.x=1.0;
 
-//    float planeScale=3.2;
-//
-//    if(uFragPos.x<-planeScale || uFragPos.x>planeScale) return simd_float4(0.0);
-//    if(uFragPos.z<-planeScale || uFragPos.z>planeScale) return simd_float4(0.0);
+    float planeScale=2.0;
+
+    if(uFragPos.x<-planeScale || uFragPos.x>planeScale) return simd_float4(0.0);
+    if(uFragPos.z<-planeScale || uFragPos.z>planeScale) return simd_float4(0.0);
     return color;
 }
 
@@ -130,6 +130,7 @@ fragment FragmentOut fragmentGridShader(VertexOutput vertexOut [[stage_in]], con
     finalColor.color=(computeGrid(fragPosition, 5.0)+computeGrid(fragPosition, 1.0))*float(t>0);
 
     finalColor.color.a*=fading;
+    //finalColor.color = float4(0.2235,0.2235,0.2235,1.0);
     return finalColor;
 
 }
