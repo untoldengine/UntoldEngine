@@ -34,6 +34,21 @@ class EditorController: SelectionDelegate, ObservableObject {
     }
 }
 
+class SceneGraphModel: ObservableObject {
+    @Published var childrenMap: [EntityID: [EntityID]] = [:]
+
+    func refreshHierarchy() {
+        let allEntities = getAllGameEntities()
+        childrenMap = Dictionary(grouping: allEntities) {
+            getEntityParent(entityId: $0) ?? .invalid
+        }
+    }
+
+    func getChildren(entityId: EntityID?) -> [EntityID] {
+        childrenMap[entityId ?? .invalid] ?? []
+    }
+}
+
 class SelectionManager: ObservableObject {
     @Published var selectedEntity: EntityID? = nil
 

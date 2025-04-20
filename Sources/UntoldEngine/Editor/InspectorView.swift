@@ -369,6 +369,7 @@ func sortEntityComponents(componentOption_Editor: [ObjectIdentifier: ComponentOp
 @available(macOS 13.0, *)
 struct InspectorView: View {
     @ObservedObject var selectionManager: SelectionManager
+    @ObservedObject var sceneGraphModel: SceneGraphModel
     var onAddName_Editor: () -> Void
     @State private var showComponentSelection = false
     @State private var editor_entityComponents: [EntityID: [ObjectIdentifier: ComponentOption_Editor]] = [:]
@@ -499,5 +500,6 @@ struct InspectorView: View {
 
     private func refreshView() {
         selectionManager.objectWillChange.send()
+        sceneGraphModel.refreshHierarchy()
     }
 }

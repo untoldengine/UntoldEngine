@@ -15,6 +15,7 @@ public struct EditorView: View {
 
     @State private var editor_entities: [EntityID] = getAllGameEntities()
     @StateObject private var selectionManager = SelectionManager()
+    @StateObject private var sceneGraphModel = SceneGraphModel()
     @State private var assets: [String: [Asset]] = [:]
     @State private var selectedAsset: Asset? = nil
     @State private var isPlaying = false
@@ -37,7 +38,7 @@ public struct EditorView: View {
             HStack {
                 VStack {
                     TabView {
-                        SceneHierarchyView(selectionManager: selectionManager, entityList: editor_entities, onAddEntity_Editor: editor_addNewEntity, onRemoveEntity_Editor: editor_removeEntity)
+                        SceneHierarchyView(selectionManager: selectionManager, sceneGraphModel: sceneGraphModel, entityList: editor_entities, onAddEntity_Editor: editor_addNewEntity, onRemoveEntity_Editor: editor_removeEntity)
                             .tabItem {
                                 Label("Scene", systemImage: "cube")
                             }
@@ -55,12 +56,14 @@ public struct EditorView: View {
                     TransformManipulationToolbar(controller: editorController!)
                     AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset)
                 }
-                InspectorView(selectionManager: selectionManager, onAddName_Editor: editor_addName, selectedAsset: $selectedAsset)
+                InspectorView(selectionManager: selectionManager, sceneGraphModel: sceneGraphModel, onAddName_Editor: editor_addName, selectedAsset: $selectedAsset)
             }
         }
         .background(
-            Color.editorBackground.ignoresSafeArea()
-        )
+            Color.editorBackground.ignoresSafeArea())
+        .onAppear {
+            sceneGraphModel.refreshHierarchy()
+        }
     }
 
     private func editor_handleSave() {
@@ -98,6 +101,7 @@ public struct EditorView: View {
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
         editor_entities = getAllGameEntities()
+        sceneGraphModel.refreshHierarchy()
     }
 
     private func editor_removeEntity() {
@@ -106,9 +110,15 @@ public struct EditorView: View {
             return
         }
 
+        for childId in getEntityChildren(parentId: entityId) {
+            destroyEntity(entityId: childId)
+        }
+
         destroyEntity(entityId: entityId)
+
         editor_entities = getAllGameEntities()
         selectionManager.selectedEntity = nil
+        sceneGraphModel.refreshHierarchy()
     }
 
     private func editor_addName() {
