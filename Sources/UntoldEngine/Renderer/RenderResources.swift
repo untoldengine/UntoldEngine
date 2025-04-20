@@ -101,7 +101,6 @@ public struct TextureResources {
     var rayTracingAccumTexture: [MTLTexture] = []
 }
 
-@available(macOS 11.0, *)
 public struct AccelStructResources {
     var primitiveAccelerationStructures: [MTLAccelerationStructure] = []
     var instanceTransforms: [MTLPackedFloat4x3] = []

@@ -83,7 +83,6 @@ import SwiftUI
  }
  */
 
-@available(macOS 12.0, *)
 struct TextInputVectorView: View {
     let label: String
     @Binding var value: SIMD3<Float>
@@ -123,7 +122,6 @@ struct TextInputVectorView: View {
     }
 }
 
-@available(macOS 12.0, *)
 struct TextInputNumberView: View {
     let label: String
     @Binding var value: Float
