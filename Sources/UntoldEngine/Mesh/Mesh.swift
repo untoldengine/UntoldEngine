@@ -258,36 +258,65 @@ struct TextureLoader {
     let device: MTLDevice
 
     func loadTexture(from property: MDLMaterialProperty?, isSRGB: Bool, outputURL: inout URL?, mapType _: String, assetName: String) -> MTLTexture? {
-        // Check if the property exists but its URL is nil
         guard let property else {
-            // If the property does not exist, silently return nil
-            return nil
+            return nil // No property? Skip silently.
         }
 
-        guard let url = property.urlValue else {
-            // If the url is nil, it means the usd file does not have a url. silently return nil
-            return nil
-        }
-
-        outputURL = url
+        let loader = MTKTextureLoader(device: device)
 
         let options: [MTKTextureLoader.Option: Any] = [
             .textureUsage: MTLTextureUsage.shaderRead.rawValue,
             .textureStorageMode: MTLStorageMode.private.rawValue,
             .SRGB: isSRGB,
         ]
-        let loader = MTKTextureLoader(device: device)
 
-        do {
-            let texture = try loader.newTexture(URL: url, options: options)
-            return texture
-        } catch {
-            let errorMessage = "\((property.urlValue!.absoluteString)) for \(assetName)"
-            handleError(.textureFailedLoading, errorMessage)
-            print("Error loading texture: \(error.localizedDescription)")
+        // First try the original URL
+        if let url = property.urlValue {
+            do {
+                let texture = try loader.newTexture(URL: url, options: options)
+                outputURL = url
+                return texture
+            } catch {
+                let errorMessage = "\(url.absoluteString) for \(assetName)"
+                handleError(.textureFailedLoading, errorMessage)
+                print("Error loading texture from urlValue: \(error.localizedDescription)")
+            }
+        }
 
+        // Fallback logic using relative path string
+        guard let stringValue = property.stringValue else {
+            handleError(.textureFailedLoading, "Missing texture path string for \(assetName)")
             return nil
         }
+
+        let baseTextureName = NSString(string: stringValue).lastPathComponent
+
+        let fallbackNames = [
+            "Assets/Imported/Textures/\(baseTextureName)",
+            "Assets/Imported/textures/\(baseTextureName)",
+            "Assets/Imported/\(baseTextureName)",
+        ]
+
+        for name in fallbackNames {
+            guard let fallbackURL = assetBasePath?.appendingPathComponent(name) else {
+                continue
+            }
+
+            if FileManager.default.fileExists(atPath: fallbackURL.path) {
+                do {
+                    let texture = try loader.newTexture(URL: fallbackURL, options: options)
+                    outputURL = fallbackURL
+                    return texture
+                } catch {
+                    let errorMessage = "\(fallbackURL.lastPathComponent) for \(assetName)"
+                    handleError(.textureFailedLoading, errorMessage)
+                    print("Fallback texture load failed: \(error.localizedDescription)")
+                }
+            }
+        }
+
+        handleError(.textureFailedLoading, "All attempts failed for \(assetName)")
+        return nil
     }
 
     func loadDefaultColorTexture(color: simd_float4) -> MTLTexture? {
