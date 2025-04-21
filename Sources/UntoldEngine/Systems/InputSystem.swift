@@ -327,6 +327,7 @@ public class InputSystem {
             return
         }
 
+        var anyIntersect = false
         if let rtxCommandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
             executeRayVsModelHit(rtxCommandBuffer, cameraComponent.localPosition, rayDirection)
 
@@ -335,16 +336,12 @@ public class InputSystem {
                     // Handle error if any
                     print("Command buffer completed with error: \(error)")
                 } else {
-                    // intersectAny=true
                     if let data = bufferResources.rayModelInstanceBuffer?.contents().assumingMemoryBound(to: Int32.self) {
                         let value = data.pointee
 
                         if value != -1 {
                             activeEntity = accelStructResources.entityIDIndex[Int(value)]
-                            guard let t = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
-                            updateBoundingBoxBuffer(min: t.boundingBox.min, max: t.boundingBox.max)
-
-                            self.selectionDelegate?.didSelectEntity(activeEntity)
+                            anyIntersect = true
                         }
                     }
                 }
@@ -354,6 +351,15 @@ public class InputSystem {
 
             rtxCommandBuffer.commit()
             rtxCommandBuffer.waitUntilCompleted()
+        }
+
+        if anyIntersect {
+            guard let t = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
+            updateBoundingBoxBuffer(min: t.boundingBox.min, max: t.boundingBox.max)
+
+            selectionDelegate?.didSelectEntity(activeEntity)
+        } else {
+            activeEntity = .invalid
         }
     }
 
