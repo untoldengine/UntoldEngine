@@ -8,7 +8,6 @@
 import simd
 import SwiftUI
 
-@available(macOS 13.0, *)
 public struct ComponentOption_Editor: Identifiable {
     public let id: Int
     public let name: String
@@ -32,7 +31,6 @@ func openFilePicker() -> URL? {
     return panel.runModal() == .OK ? panel.urls.first : nil
 }
 
-@available(macOS 13.0, *)
 private func onAddMesh_Editor(entityId: EntityID, url: URL) {
     let filename = url.deletingPathExtension().lastPathComponent
     let withExtension = url.pathExtension
@@ -55,12 +53,10 @@ private func onAddAnimation_Editor(entityId: EntityID, url: URL) {
     animationComponent.animationsFilenames.append(url)
 }
 
-@available(macOS 13.0, *)
 public func addComponent_Editor(componentOption: ComponentOption_Editor) {
     availableComponents_Editor.append(componentOption)
 }
 
-@available(macOS 13.0, *)
 var availableComponents_Editor: [ComponentOption_Editor] = [
     ComponentOption_Editor(id: getComponentId(for: RenderComponent.self), name: "Render Component", type: RenderComponent.self, view: { selectedId, asset, refreshView in
         AnyView(
@@ -326,7 +322,6 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
     }),
 ]
 
-@available(macOS 13.0, *)
 func mergeEntityComponents(
     selectedEntity: EntityID?,
     editor_entityComponents: [EntityID: [ObjectIdentifier: ComponentOption_Editor]],
@@ -351,7 +346,6 @@ func mergeEntityComponents(
     return mergedComponents
 }
 
-@available(macOS 13.0, *)
 func sortEntityComponents(componentOption_Editor: [ObjectIdentifier: ComponentOption_Editor]) -> [ComponentOption_Editor] {
     let sortedComponents = Array(componentOption_Editor.values).sorted { lhs, rhs in
         let order: [String: Int] = [
@@ -366,7 +360,6 @@ func sortEntityComponents(componentOption_Editor: [ObjectIdentifier: ComponentOp
     return sortedComponents
 }
 
-@available(macOS 13.0, *)
 struct InspectorView: View {
     @ObservedObject var selectionManager: SelectionManager
     @ObservedObject var sceneGraphModel: SceneGraphModel

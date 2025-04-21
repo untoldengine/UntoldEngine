@@ -9,7 +9,6 @@ public struct Asset: Identifiable {
     var isFolder: Bool = false
 }
 
-@available(macOS 13.0, *)
 public struct EditorView: View {
     var mtkView: MTKView
 

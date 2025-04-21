@@ -21,7 +21,6 @@ enum AssetCategory: String, CaseIterable {
     }
 }
 
-@available(macOS 13.0, *)
 struct AssetBrowserView: View {
     @Binding var assets: [String: [Asset]]
     @Binding var selectedAsset: Asset?

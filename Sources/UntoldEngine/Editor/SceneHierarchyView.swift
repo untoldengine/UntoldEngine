@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@available(macOS 13.0, *)
 struct SceneHierarchyView: View {
     @ObservedObject var selectionManager: SelectionManager
     @ObservedObject var sceneGraphModel: SceneGraphModel
@@ -85,7 +84,6 @@ struct SceneHierarchyView: View {
 
 // MARK: - Entity Row
 
-@available(macOS 13.0, *)
 struct EntityRow: View {
     let entityid: EntityID
     let entityName: String

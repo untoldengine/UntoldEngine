@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@available(macOS 13.0, *)
 struct ToolbarView: View {
     @ObservedObject var selectionManager: SelectionManager
     var onSave: () -> Void
@@ -63,7 +62,6 @@ struct ToolbarView: View {
 
 // MARK: - Toolbar Button Component
 
-@available(macOS 13.0, *)
 struct ToolbarButton: View {
     let iconName: String
     let action: () -> Void

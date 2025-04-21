@@ -141,7 +141,6 @@ func serializeScene() -> SceneData {
     return sceneData
 }
 
-@available(macOS 13.0, *)
 func saveScene(sceneData: SceneData) {
     let savePanel = NSSavePanel()
     savePanel.title = "Save Scene"
@@ -167,7 +166,6 @@ func saveScene(sceneData: SceneData) {
     }
 }
 
-@available(macOS 13.0, *)
 func loadScene() -> SceneData? {
     let openPanel = NSOpenPanel()
     openPanel.title = "Open Scene"
