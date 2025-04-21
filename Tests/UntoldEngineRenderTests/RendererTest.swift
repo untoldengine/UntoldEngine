@@ -699,11 +699,9 @@ final class RendererTests: XCTestCase {
     }
 
     private func initializeAssets() {
-        camera.lookAt(
-            eye: simd_float3(0.0, 0.5, 4.0), // Camera position
-            target: simd_float3(0.0, 0.0, 0.0), // Look-at target
-            up: simd_float3(0.0, 1.0, 0.0) // Up direction
-        )
+        let sceneCamera = createEntity()
+        createSceneCamera(entityId: sceneCamera)
+        cameraLookAt(entityId: sceneCamera, eye: simd_float3(0.0, 0.5, 4.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
 
         let helmet: EntityID = createEntity()
 
