@@ -55,7 +55,12 @@ class SelectionManager: ObservableObject {
     init() {}
 
     func selectEntity(entityId: EntityID) {
-        print("entity has been selected \(entityId)")
         selectedEntity = entityId
+
+        if hasComponent(entityId: entityId, componentType: RenderComponent.self), hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) {
+            activeEntity = entityId
+        } else {
+            activeEntity = .invalid
+        }
     }
 }
