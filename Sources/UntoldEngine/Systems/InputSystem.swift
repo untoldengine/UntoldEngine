@@ -323,6 +323,10 @@ public class InputSystem {
 
         let rayDirection: simd_float3 = rayDirectionInWorldSpace(uMouseLocation: currentCGPoint, uViewPortDim: simd_float2(Float(view.bounds.width), Float(view.bounds.height)), uPerspectiveSpace: renderInfo.perspectiveSpace, uViewSpace: cameraComponent.viewSpace)
 
+        if getAllGameEntitiesWithMeshes().count == 0 {
+            return
+        }
+
         if let rtxCommandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
             executeRayVsModelHit(rtxCommandBuffer, cameraComponent.localPosition, rayDirection)
 

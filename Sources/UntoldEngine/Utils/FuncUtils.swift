@@ -460,3 +460,16 @@ public func getAllGameEntities() -> [EntityID] {
 
     return entityList
 }
+
+public func getAllGameEntitiesWithMeshes() -> [EntityID] {
+    var entityList: [EntityID] = []
+    let transformId = getComponentId(for: WorldTransformComponent.self)
+    let renderId = getComponentId(for: RenderComponent.self)
+    let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
+
+    for entityId in entities {
+        entityList.append(entityId)
+    }
+
+    return entityList
+}
