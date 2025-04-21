@@ -77,6 +77,7 @@ public struct EditorView: View {
             editor_entities = getAllGameEntities()
             selectionManager.selectedEntity = nil
             selectionManager.objectWillChange.send()
+            sceneGraphModel.refreshHierarchy()
         }
     }
 

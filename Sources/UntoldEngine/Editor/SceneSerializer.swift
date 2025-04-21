@@ -207,7 +207,7 @@ func deserializeScene(sceneData: SceneData) {
         if sceneDataEntity.hasRenderingComponent == true {
             let filename = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
             let withExtension = sceneDataEntity.assetURL.pathExtension
-            setEntityMesh(entityId: entityId, fromAssetNamed: sceneDataEntity.assetName, filename: filename, withExtension: withExtension)
+            setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension)
         }
 
         if sceneDataEntity.hasAnimationComponent == true {
