@@ -114,20 +114,25 @@ final class ECSTests: XCTestCase {
     }
 
     func testGetAllEntityComponentTypes() {
+        // Arrange
         let entityId = createEntity()
-
         registerComponent(entityId: entityId, componentType: RenderComponent.self)
         registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
 
-        var components: [Any.Type] = []
+        // Act
+        let components = getAllEntityComponentsTypes(entityId: entityId)
 
-        components = getAllEntityComponentsTypes(entityId: entityId)
+        // Assert
+        XCTAssertEqual(components.count, 2, "Expected entity to have 2 components")
 
-//         XCTAssertEqual(ObjectIdentifier(components.first!), ObjectIdentifier(LocalTransformComponent.self), "Types should match")
-//
-//         XCTAssertEqual(ObjectIdentifier(components.last!), ObjectIdentifier(RenderComponent.self), "Types should match")
+        let expectedTypes: Set<ObjectIdentifier> = [
+            ObjectIdentifier(RenderComponent.self),
+            ObjectIdentifier(LocalTransformComponent.self),
+        ]
 
-        XCTAssertEqual(components.count, 2, "Entity should have two components")
+        let actualTypes = Set(components.map { ObjectIdentifier($0) })
+
+        XCTAssertEqual(actualTypes, expectedTypes, "Returned component types do not match expected types")
     }
 
     func testGetAllEntityComponentIds() {
