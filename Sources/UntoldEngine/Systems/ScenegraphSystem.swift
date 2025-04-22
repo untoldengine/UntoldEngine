@@ -57,7 +57,7 @@ public func setParent(childId: EntityID, parentId: EntityID, offset: simd_float3
     }
 
     // set position the entity will be with respect to the parent
-    localTransformComponent.space.columns.3 = simd_float4(offset, 1.0)
+    localTransformComponent.space.columns.3 += simd_float4(offset, 0.0)
 
     let currentLevel = parentScenegraphComponent.level
     scenegraphComponent.parent = parentId

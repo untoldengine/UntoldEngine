@@ -428,7 +428,7 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
         return
     }
 
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
         return
     }
@@ -440,9 +440,9 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
 
     let boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
 
-    transformComponent.space = meshes[0].worldSpace
-    transformComponent.boundingBox = boundingBox
-    transformComponent.flipCoord = meshes[0].flipCoord
+    localTransformComponent.space = meshes[0].worldSpace
+    localTransformComponent.boundingBox = boundingBox
+    localTransformComponent.flipCoord = meshes[0].flipCoord
 }
 
 func associateMeshesToEntity(entityId: EntityID, meshes: [Mesh]) {

@@ -441,7 +441,7 @@ enum RenderPasses {
                 continue
             }
 
-            guard let transformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+            guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
                 handleError(.noWorldTransformComponent, entityId)
                 continue
             }
@@ -450,7 +450,7 @@ enum RenderPasses {
                 // update uniforms
                 var modelUniforms = Uniforms()
 
-                var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
+                var modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
 
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
 
@@ -656,7 +656,7 @@ enum RenderPasses {
             return
         }
 
-        guard let transformComponent = scene.get(component: WorldTransformComponent.self, for: activeEntity) else {
+        guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: activeEntity) else {
             handleError(.noWorldTransformComponent, activeEntity)
             return
         }
@@ -665,7 +665,7 @@ enum RenderPasses {
             // update uniforms
             var modelUniforms = Uniforms()
 
-            var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
+            var modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
 
             let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 
