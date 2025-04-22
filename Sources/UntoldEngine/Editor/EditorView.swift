@@ -117,6 +117,7 @@ public struct EditorView: View {
         destroyEntity(entityId: entityId)
 
         editor_entities = getAllGameEntities()
+        activeEntity = .invalid
         selectionManager.selectedEntity = nil
         sceneGraphModel.refreshHierarchy()
     }
