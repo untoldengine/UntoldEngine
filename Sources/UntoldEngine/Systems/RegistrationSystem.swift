@@ -183,7 +183,6 @@ public func loadScene(filename: String, withExtension: String) {
 
 func removeEntityMesh(entityId: EntityID) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        handleError(.noRenderComponent)
         return
     }
 

@@ -96,7 +96,6 @@ func updateRenderingSystem(in view: MTKView) {
 
 func getAssetURLString(entityId: EntityID) -> String? {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        handleError(.noRenderComponent)
         return nil
     }
 

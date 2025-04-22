@@ -62,6 +62,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case invalidTextureData = 1053
     case unrecognizedTextureFormat = 1054
     case unsupportedCompressedFormat = 1055
+    case noMeshAssigned = 1056
 
     public var description: String {
         switch self {
@@ -173,6 +174,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Unrecognized file format"
         case .unsupportedCompressedFormat:
             return "Unsupported compressed format"
+        case .noMeshAssigned:
+            return "No mesh has been assigned for"
         }
     }
 }
