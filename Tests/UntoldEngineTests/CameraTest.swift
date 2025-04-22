@@ -11,11 +11,16 @@ import XCTest
 
 final class CameraTests: XCTestCase {
     var camera: EntityID!
+    var sceneCamera: EntityID!
 
     override func setUp() {
         super.setUp()
         camera = createEntity()
         createGameCamera(entityId: camera)
+
+        sceneCamera = createEntity()
+        createSceneCamera(entityId: sceneCamera)
+
         Logger.logLevel = .none
     }
 
@@ -132,5 +137,13 @@ final class CameraTests: XCTestCase {
             return
         }
         XCTAssertEqual(cameraComponent.localPosition.z, -1.0, accuracy: 0.1)
+    }
+
+    func testGetMainCamera() {
+        XCTAssertEqual(findGameCamera(), camera, "Could not find Main camera")
+    }
+
+    func testGetSceneCamera() {
+        XCTAssertEqual(findSceneCamera(), sceneCamera, "Could not find Scene camera")
     }
 }
