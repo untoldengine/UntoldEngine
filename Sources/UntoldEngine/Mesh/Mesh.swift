@@ -283,39 +283,39 @@ struct TextureLoader {
             }
         }
 
-        // Fallback logic using relative path string
-        guard let stringValue = property.stringValue else {
-            handleError(.textureFailedLoading, "Missing texture path string for \(assetName)")
-            return nil
-        }
+        /* Leaving this for reference
+         // Fallback logic using relative path string
+         guard let stringValue = property.stringValue else {
+             handleError(.textureFailedLoading, "Missing texture path string for \(assetName)")
+             return nil
+         }
 
-        let baseTextureName = NSString(string: stringValue).lastPathComponent
+         let baseTextureName = NSString(string: stringValue).lastPathComponent
 
-        let fallbackNames = [
-            "Assets/Imported/Textures/\(baseTextureName)",
-            "Assets/Imported/textures/\(baseTextureName)",
-            "Assets/Imported/\(baseTextureName)",
-        ]
+         let fallbackNames = [
+             "Assets/Imported/Textures/\(baseTextureName)",
+             "Assets/Imported/textures/\(baseTextureName)",
+             "Assets/Imported/\(baseTextureName)",
+         ]
 
-        for name in fallbackNames {
-            guard let fallbackURL = assetBasePath?.appendingPathComponent(name) else {
-                continue
-            }
+         for name in fallbackNames {
+             guard let fallbackURL = assetBasePath?.appendingPathComponent(name) else {
+                 continue
+             }
 
-            if FileManager.default.fileExists(atPath: fallbackURL.path) {
-                do {
-                    let texture = try loader.newTexture(URL: fallbackURL, options: options)
-                    outputURL = fallbackURL
-                    return texture
-                } catch {
-                    let errorMessage = "\(fallbackURL.lastPathComponent) for \(assetName)"
-                    handleError(.textureFailedLoading, errorMessage)
-                    print("Fallback texture load failed: \(error.localizedDescription)")
-                }
-            }
-        }
-
-        handleError(.textureFailedLoading, "All attempts failed for \(assetName)")
+             if FileManager.default.fileExists(atPath: fallbackURL.path) {
+                 do {
+                     let texture = try loader.newTexture(URL: fallbackURL, options: options)
+                     outputURL = fallbackURL
+                     return texture
+                 } catch {
+                     let errorMessage = "\(fallbackURL.lastPathComponent) for \(assetName)"
+                     handleError(.textureFailedLoading, errorMessage)
+                     print("Fallback texture load failed: \(error.localizedDescription)")
+                 }
+             }
+         }
+         */
         return nil
     }
 
