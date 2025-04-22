@@ -144,4 +144,21 @@ final class TransformSystemTests: XCTestCase {
         XCTAssertEqual(m.columns.2.y, -0.3061862, accuracy: 0.001, "component should be equal")
         XCTAssertEqual(m.columns.2.z, 0.3535534, accuracy: 0.001, "component should be equal")
     }
+
+    func testApplyAxisRotation() {
+        applyAxisRotations(entityId: entityId, axis: simd_float3(45.0, 0.0, 0.0))
+        let m = getLocalOrientation(entityId: entityId)
+
+        XCTAssertEqual(m.columns.0.x, 1.0, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.0.y, 0.0, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.0.z, 0.0, accuracy: 0.001, "component should be equal")
+
+        XCTAssertEqual(m.columns.1.x, 0.0, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.1.y, 0.7071068, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.1.z, 0.7071068, accuracy: 0.001, "component should be equal")
+
+        XCTAssertEqual(m.columns.2.x, 0.0, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.2.y, -0.7071068, accuracy: 0.001, "component should be equal")
+        XCTAssertEqual(m.columns.2.z, 0.7071068, accuracy: 0.001, "component should be equal")
+    }
 }

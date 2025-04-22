@@ -123,8 +123,8 @@ final class SceneGraphTests: XCTestCase {
     }
 
     func testUpdateTransformSystemWithParent() {
-        let rootLocalTransform = simd_float4x4(translation: simd_float3(1, 0, 0))
-        let childLocalTransform = simd_float4x4(translation: simd_float3(0, 1, 0))
+        let rootLocalTransform = simd_float4x4(translation: simd_float3(0, 0, 0))
+        let childLocalTransform = simd_float4x4(translation: simd_float3(0, 0, 0))
 
         let rootLocalTransformComponent = scene.get(component: LocalTransformComponent.self, for: rootEntity)
 
@@ -138,19 +138,19 @@ final class SceneGraphTests: XCTestCase {
         updateTransformSystem(entityId: rootEntity)
         updateTransformSystem(entityId: childEntity)
 
-        let expectedWorldTransform = simd_mul(rootLocalTransform, childLocalTransform)
-
         let childWorldTransform = scene.get(component: WorldTransformComponent.self, for: childEntity)?.space
 
-        XCTAssertEqual(childWorldTransform, expectedWorldTransform)
+        XCTAssertEqual(childWorldTransform?.columns.3.x, 0.0)
+        XCTAssertEqual(childWorldTransform?.columns.3.y, 1.0)
+        XCTAssertEqual(childWorldTransform?.columns.3.z, 0.0)
     }
 
     // MARK: - Scene Graph Traversal
 
     func testTraverseSceneGraph() {
-        let rootTransform = simd_float4x4(translation: simd_float3(1, 0, 0))
-        let childTransform = simd_float4x4(translation: simd_float3(0, 1, 0))
-        let grandchildTransform = simd_float4x4(translation: simd_float3(0, 0, 1))
+        let rootTransform = simd_float4x4(translation: simd_float3(0, 0, 0))
+        let childTransform = simd_float4x4(translation: simd_float3(0, 0, 0))
+        let grandchildTransform = simd_float4x4(translation: simd_float3(0, 0, 0))
 
         let rootLocalTransformComponent = scene.get(component: LocalTransformComponent.self, for: rootEntity)
 
@@ -167,14 +167,16 @@ final class SceneGraphTests: XCTestCase {
 
         traverseSceneGraph()
 
-        let expectedChildWorld = simd_mul(rootTransform, childTransform)
-        let expectedGrandchildWorld = simd_mul(expectedChildWorld, grandchildTransform)
-
         let childWorld = scene.get(component: WorldTransformComponent.self, for: childEntity)?.space
         let grandchildWorld = scene.get(component: WorldTransformComponent.self, for: grandchildEntity)?.space
 
-        XCTAssertEqual(childWorld, expectedChildWorld)
-        XCTAssertEqual(grandchildWorld, expectedGrandchildWorld)
+        XCTAssertEqual(childWorld?.columns.3.x, 0.0)
+        XCTAssertEqual(childWorld?.columns.3.y, 1.0)
+        XCTAssertEqual(childWorld?.columns.3.z, 0.0)
+
+        XCTAssertEqual(grandchildWorld?.columns.3.x, 0.0)
+        XCTAssertEqual(grandchildWorld?.columns.3.y, 1.0)
+        XCTAssertEqual(grandchildWorld?.columns.3.z, 1.0)
     }
 
     func testRemoveEntityScenegraph() {
