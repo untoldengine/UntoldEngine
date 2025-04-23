@@ -46,7 +46,7 @@ private func onAddAnimation_Editor(entityId: EntityID, url: URL) {
     changeAnimation(entityId: entityId, name: filename)
 
     guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
-        handleError(.noAnimationComponent)
+        handleError(.noAnimationComponent, entityId)
         return
     }
 

@@ -70,12 +70,12 @@ public func isAnimationComponentPaused(entityId: EntityID) -> Bool {
 
 public func changeAnimation(entityId: EntityID, name: String, withPause: Bool = false) {
     guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
-        print("Entity \(entityId) does not have an animation component.")
+        handleError(.noAnimationComponent, entityId)
         return
     }
 
     guard let animationClip = animationComponent.animationClips[name] else {
-        print("Animation clip with name '\(name)' does not exist for entity \(entityId).")
+        handleError(.noAnimationClip, name, entityId)
         return
     }
 
@@ -85,7 +85,6 @@ public func changeAnimation(entityId: EntityID, name: String, withPause: Bool = 
 
 public func getAllAnimationClips(entityId: EntityID) -> [String] {
     guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
-        print("Entity \(entityId) does not have an animation component.")
         return []
     }
 

@@ -63,6 +63,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case unrecognizedTextureFormat = 1054
     case unsupportedCompressedFormat = 1055
     case noMeshAssigned = 1056
+    case noAnimationClip = 1057
 
     public var description: String {
         switch self {
@@ -119,9 +120,9 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
         case .normalTextureMissing:
             return "Normal Texture is missing"
         case .noPhysicsComponent:
-            return "Does not have a Physics component. Call setEntityKinetics()"
+            return "Does not have a Physics component."
         case .noKineticComponent:
-            return "Does not have a Kinetic component. Call setEntityKinetics()"
+            return "Does not have a Kinetic component."
         case .noLocalTransformComponent:
             return "Does not have a Local Transform component"
         case .noRenderComponent:
@@ -129,7 +130,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
         case .noSkeletonComponent:
             return "Does not have a Skeleton component"
         case .noAnimationComponent:
-            return "Does not have an Animation component. Call setEntityAnimations()"
+            return "Does not have an Animation component."
         case .noAnimationBind:
             return "Missing animation bind component or skeleton."
         case .jointBufferFailed:
@@ -176,6 +177,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Unsupported compressed format"
         case .noMeshAssigned:
             return "No mesh has been assigned for"
+        case .noAnimationClip:
+            return "Animation clip with name exists for"
         }
     }
 }
