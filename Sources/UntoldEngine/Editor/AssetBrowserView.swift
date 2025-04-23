@@ -162,7 +162,7 @@ struct AssetBrowserView: View {
                                 }
 
                                 // Show either folder contents or top-level categories
-                                if let currentFolderPath = currentFolderPath {
+                                if let currentFolderPath {
                                     folderContentsView(for: currentFolderPath)
                                 } else {
                                     if let categoryAssets = assets[selectedCategory] {
