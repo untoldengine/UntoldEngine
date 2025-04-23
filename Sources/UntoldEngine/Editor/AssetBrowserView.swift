@@ -254,13 +254,15 @@ struct AssetBrowserView: View {
                 }
 
                 // copy texture folder
-                let textureFolderSource = sourceURL.deletingLastPathComponent().appendingPathComponent("textures")
-                let textureFolderDest = modelFolder.appendingPathComponent("textures")
+                if selectedCategory == "Models" {
+                    let textureFolderSource = sourceURL.deletingLastPathComponent().appendingPathComponent("textures")
+                    let textureFolderDest = modelFolder.appendingPathComponent("textures")
 
-                var isDir: ObjCBool = false
-                if fileManager.fileExists(atPath: textureFolderSource.path, isDirectory: &isDir), isDir.boolValue {
-                    if !fileManager.fileExists(atPath: textureFolderDest.path) {
-                        try fileManager.copyItem(at: textureFolderSource, to: textureFolderDest)
+                    var isDir: ObjCBool = false
+                    if fileManager.fileExists(atPath: textureFolderSource.path, isDirectory: &isDir), isDir.boolValue {
+                        if !fileManager.fileExists(atPath: textureFolderDest.path) {
+                            try fileManager.copyItem(at: textureFolderSource, to: textureFolderDest)
+                        }
                     }
                 }
 
@@ -284,32 +286,16 @@ struct AssetBrowserView: View {
             var categoryPath = basePath!.appendingPathComponent("Assets")
             categoryPath = categoryPath.appendingPathComponent(category.rawValue)
 
-            if category == .models {
-                if let folders = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
-                    let folderAssets = folders.compactMap { folder -> Asset? in
-                        var isDir: ObjCBool = false
-                        guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDir), isDir.boolValue else {
-                            return nil
-                        }
-
-                        return Asset(name: folder.lastPathComponent, category: category.rawValue, path: folder, isFolder: true)
-                    }
-                    groupedAssets[category.rawValue] = folderAssets
-                }
-            } else {
-                if let files = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil) {
-                    let filteredAssets = files.compactMap { file -> Asset? in
-                        let allowedExtensions: Set<String> = ["usdc", "obj", "png"]
-                        guard allowedExtensions.contains(file.pathExtension) else { return nil }
-                        return Asset(name: file.deletingPathExtension().lastPathComponent,
-                                     category: category.rawValue, // Use enum rawValue
-                                     path: file)
+            if let folders = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
+                let folderAssets = folders.compactMap { folder -> Asset? in
+                    var isDir: ObjCBool = false
+                    guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDir), isDir.boolValue else {
+                        return nil
                     }
 
-                    if !filteredAssets.isEmpty {
-                        groupedAssets[category.rawValue] = filteredAssets
-                    }
+                    return Asset(name: folder.lastPathComponent, category: category.rawValue, path: folder, isFolder: true)
                 }
+                groupedAssets[category.rawValue] = folderAssets
             }
         }
         assets = groupedAssets
