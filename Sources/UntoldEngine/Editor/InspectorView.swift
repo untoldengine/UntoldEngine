@@ -43,7 +43,7 @@ private func onAddAnimation_Editor(entityId: EntityID, url: URL) {
     let withExtension = url.pathExtension
 
     setEntityAnimations(entityId: entityId, filename: filename, withExtension: withExtension, name: filename)
-    changeAnimation(entityId: entityId, name: filename)
+    // changeAnimation(entityId: entityId, name: filename)
 
     guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
         handleError(.noAnimationComponent, entityId)
@@ -65,16 +65,6 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     Text("Mesh")
 
                     HStack(spacing: 12) {
-//                        if let assetName = asset?.name {
-//                            Text(assetName)
-//                                .font(.subheadline)
-//                                .foregroundColor(.primary)
-//                                .padding(.horizontal, 8)
-//                                .padding(.vertical, 4)
-//                                .background(Color.secondary.opacity(0.1))
-//                                .cornerRadius(6)
-//                                .frame(maxWidth: .infinity, alignment: .leading)
-//                        }
                         Text(getAssetURLString(entityId: entityId) ?? " ")
                         Button(action: {
                             let selectedCategory: AssetCategory = .models
