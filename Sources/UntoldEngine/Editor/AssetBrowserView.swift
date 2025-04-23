@@ -122,6 +122,7 @@ struct AssetBrowserView: View {
                                 .cornerRadius(6)
                                 .onTapGesture {
                                     selectedCategory = category.rawValue // Use enum rawValue
+                                    folderPathStack = [] // reset folder navigation when switching category
                                 }
                             }
                         }
