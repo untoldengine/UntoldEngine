@@ -278,6 +278,11 @@ public func setEntitySkin(entityId: EntityID, mdlMesh: MDLMesh) {
 }
 
 public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String, name: String) {
+    guard scene.get(component: SkeletonComponent.self, for: entityId) != nil else {
+        handleError(.noSkeletonComponent, entityId)
+        return
+    }
+
     // Helper function to add animation clips
     func addClips(to animationComponent: AnimationComponent) {
         for assetAnimation in assetAnimations {
