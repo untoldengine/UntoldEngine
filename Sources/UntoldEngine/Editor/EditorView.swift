@@ -76,6 +76,7 @@ public struct EditorView: View {
             deserializeScene(sceneData: sceneData)
             editor_entities = getAllGameEntities()
             selectionManager.selectedEntity = nil
+            activeEntity = .invalid
             selectionManager.objectWillChange.send()
             sceneGraphModel.refreshHierarchy()
         }
@@ -90,6 +91,7 @@ public struct EditorView: View {
         loadScene(filename: filename, withExtension: withExtension)
         editor_entities = getAllGameEntities()
         selectionManager.selectedEntity = nil
+        activeEntity = .invalid
         selectionManager.objectWillChange.send()
     }
 
