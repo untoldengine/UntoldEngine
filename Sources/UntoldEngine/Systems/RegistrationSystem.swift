@@ -481,3 +481,12 @@ func removeEntityName(entityId: EntityID) {
 public func findEntity(name: String) -> EntityID? {
     reverseEntityNameMap[name]
 }
+
+var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
+var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
+
+public func encodeCustomComponent<T: Codable>(type: T.Type, serialize: @escaping (EntityID) -> Data?, deserialize: @escaping (EntityID, Data) -> Void) {
+    let key = ObjectIdentifier(type)
+    customComponentEncoderMap[key] = serialize
+    customComponentDecoderMap[String(describing: type)] = deserialize
+}
