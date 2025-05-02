@@ -13,12 +13,14 @@ public struct ComponentOption_Editor: Identifiable {
     public let name: String
     public let type: Any.Type
     public let view: (EntityID?, Asset?, @escaping () -> Void) -> AnyView
+    public let onAdd: ((EntityID) -> Void)?
 
-    public init(id: Int, name: String, type: Any.Type, view: @escaping (EntityID?, Asset?, @escaping () -> Void) -> AnyView) {
+    public init(id: Int, name: String, type: Any.Type, view: @escaping (EntityID?, Asset?, @escaping () -> Void) -> AnyView, onAdd: ((EntityID) -> Void)? = nil) {
         self.id = id
         self.name = name
         self.type = type
         self.view = view
+        self.onAdd = onAdd
     }
 }
 
@@ -314,12 +316,11 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
 
 func mergeEntityComponents(
     selectedEntity: EntityID?,
-    editor_entityComponents: [EntityID: [ObjectIdentifier: ComponentOption_Editor]],
     editor_availableComponents: [ComponentOption_Editor]
 ) -> [ObjectIdentifier: ComponentOption_Editor] {
     guard let entityId = selectedEntity else { return [:] }
 
-    var mergedComponents = editor_entityComponents[entityId] ?? [:]
+    var mergedComponents = EditorComponentsState.shared.components[entityId] ?? [:]
 
     let existingComponentIDs: [Int] = getAllEntityComponentsIds(entityId: entityId)
 
@@ -353,9 +354,10 @@ func sortEntityComponents(componentOption_Editor: [ObjectIdentifier: ComponentOp
 struct InspectorView: View {
     @ObservedObject var selectionManager: SelectionManager
     @ObservedObject var sceneGraphModel: SceneGraphModel
+    @ObservedObject var editorComponentsState = EditorComponentsState.shared
     var onAddName_Editor: () -> Void
     @State private var showComponentSelection = false
-    @State private var editor_entityComponents: [EntityID: [ObjectIdentifier: ComponentOption_Editor]] = [:]
+    // @State private var editor_entityComponents: [EntityID: [ObjectIdentifier: ComponentOption_Editor]] = [:]
     @FocusState private var isNameTextFieldFocused: Bool
     @Binding var selectedAsset: Asset?
 
@@ -389,7 +391,6 @@ struct InspectorView: View {
                         if let entityId = selectionManager.selectedEntity {
                             let mergedComponents = mergeEntityComponents(
                                 selectedEntity: entityId,
-                                editor_entityComponents: editor_entityComponents,
                                 editor_availableComponents: availableComponents_Editor
                             )
 
@@ -463,12 +464,14 @@ struct InspectorView: View {
 
         if let component = availableComponents_Editor.first(where: { ObjectIdentifier($0.type) == key }) {
             // Ensure the entity has an entry in the dictionary
-            if editor_entityComponents[entityId] == nil {
-                editor_entityComponents[entityId] = [:]
+            if editorComponentsState.components[entityId] == nil {
+                editorComponentsState.components[entityId] = [:]
             }
 
             // Add component to the entity-specific dictionary
-            editor_entityComponents[entityId]?[key] = component
+            editorComponentsState.components[entityId]?[key] = component
+
+            component.onAdd?(entityId)
 
             if key == ObjectIdentifier(LightComponent.self) {
                 createLight(entityId: entityId, lightType: .directional)

@@ -49,6 +49,12 @@ class SceneGraphModel: ObservableObject {
     }
 }
 
+class EditorComponentsState: ObservableObject {
+    static let shared = EditorComponentsState()
+
+    @Published var components: [EntityID: [ObjectIdentifier: ComponentOption_Editor]] = [:]
+}
+
 class SelectionManager: ObservableObject {
     @Published var selectedEntity: EntityID? = nil
 
