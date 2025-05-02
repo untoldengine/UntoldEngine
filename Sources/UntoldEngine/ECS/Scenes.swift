@@ -32,7 +32,7 @@ public struct Scene {
             handleError(.entityMissing)
             return
         }
-        let newId = createEntityId(EntityIndex(UInt32.max), getEntityVersion(entityId) + 1)
+        let newId = createEntityId(EntityIndex(UInt32.max), getEntityVersion(entityId))
         entities[Int(entityIndex)].entityId = newId
         entities[Int(entityIndex)].mask.reset()
         entities[Int(entityIndex)].freed = true
