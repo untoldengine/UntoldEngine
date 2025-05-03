@@ -485,8 +485,25 @@ public func findEntity(name: String) -> EntityID? {
 var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
 var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
 
-public func encodeCustomComponent<T: Codable>(type: T.Type, serialize: @escaping (EntityID) -> Data?, deserialize: @escaping (EntityID, Data) -> Void) {
+public func encodeCustomComponent<T: Codable>(
+    type: T.Type,
+    editorMetadata: ComponentOption_Editor? = nil,
+    serialize: @escaping (EntityID) -> Data?,
+    deserialize: @escaping (EntityID, Data) -> Void
+) {
     let key = ObjectIdentifier(type)
+
     customComponentEncoderMap[key] = serialize
-    customComponentDecoderMap[String(describing: type)] = deserialize
+
+    customComponentDecoderMap[String(describing: type)] = { entityId, data in
+        deserialize(entityId, data)
+
+        // Inject editor metadata if available
+        if let editorMeta = editorMetadata {
+            if EditorComponentsState.shared.components[entityId] == nil {
+                EditorComponentsState.shared.components[entityId] = [:]
+            }
+            EditorComponentsState.shared.components[entityId]?[key] = editorMeta
+        }
+    }
 }
