@@ -49,10 +49,14 @@ class SceneGraphModel: ObservableObject {
     }
 }
 
-class EditorComponentsState: ObservableObject {
-    static let shared = EditorComponentsState()
+public class EditorComponentsState: ObservableObject {
+    public static let shared = EditorComponentsState()
 
-    @Published var components: [EntityID: [ObjectIdentifier: ComponentOption_Editor]] = [:]
+    @Published public var components: [EntityID: [ObjectIdentifier: ComponentOption_Editor]] = [:]
+
+    func clear() {
+        components.removeAll()
+    }
 }
 
 class SelectionManager: ObservableObject {

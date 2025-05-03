@@ -73,6 +73,7 @@ public struct EditorView: View {
     private func editor_handleLoad() {
         if let sceneData = loadScene() {
             destroyAllEntities()
+            EditorComponentsState.shared.clear()
             deserializeScene(sceneData: sceneData)
             editor_entities = getAllGameEntities()
             selectionManager.selectedEntity = nil

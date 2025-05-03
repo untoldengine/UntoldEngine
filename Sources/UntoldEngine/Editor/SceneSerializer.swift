@@ -53,6 +53,8 @@ struct EntityData: Codable {
     var hasKineticComponent: Bool = false
     var hasLightComponent: Bool?
     var hasCameraComponent: Bool?
+
+    var customComponents: [String: Data]? = nil
 }
 
 func serializeScene() -> SceneData {
@@ -126,6 +128,29 @@ func serializeScene() -> SceneData {
             entityData.cameraData?.target = getCameraTarget(entityId: entityId)
             entityData.cameraData?.up = getCameraUp(entityId: entityId)
         }
+
+        // custom component
+        var customComponents: [String: Data] = [:]
+        for (key, editorComponent) in EditorComponentsState.shared.components[entityId] ?? [:] {
+            if key == ObjectIdentifier(RenderComponent.self) ||
+                key == ObjectIdentifier(LocalTransformComponent.self) ||
+                key == ObjectIdentifier(AnimationComponent.self) ||
+                key == ObjectIdentifier(LightComponent.self) ||
+                key == ObjectIdentifier(CameraComponent.self) ||
+                key == ObjectIdentifier(KineticComponent.self)
+            {
+                continue
+            }
+
+            if let serializeFunc = customComponentEncoderMap[key] {
+                if let jsonData = serializeFunc(entityId) {
+                    let typeName = String(describing: editorComponent.type)
+                    customComponents[typeName] = jsonData
+                }
+            }
+        }
+
+        entityData.customComponents = customComponents
 
         sceneData.entities.append(entityData)
     }
@@ -283,6 +308,15 @@ func deserializeScene(sceneData: SceneData) {
                 cameraComponent.up = up
 
                 cameraLookAt(entityId: entityId, eye: eye, target: target, up: up)
+            }
+        }
+
+        // custom components
+        if let customComponents = sceneDataEntity.customComponents {
+            for (typeName, jsonData) in customComponents {
+                if let deserializeFunc = customComponentDecoderMap[typeName] {
+                    deserializeFunc(entityId, jsonData)
+                }
             }
         }
     }
