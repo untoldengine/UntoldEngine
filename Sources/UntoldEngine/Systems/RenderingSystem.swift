@@ -93,11 +93,3 @@ func updateRenderingSystem(in view: MTKView) {
         commandBuffer.commit()
     }
 }
-
-func getAssetURLString(entityId: EntityID) -> String? {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return nil
-    }
-
-    return renderComponent.assetURL.deletingPathExtension().lastPathComponent
-}
