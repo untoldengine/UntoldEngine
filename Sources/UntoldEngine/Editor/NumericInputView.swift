@@ -83,13 +83,18 @@ import SwiftUI
  }
  */
 
-struct TextInputVectorView: View {
+public struct TextInputVectorView: View {
     let label: String
     @Binding var value: SIMD3<Float>
     @State private var tempValues: [String] = ["0", "0", "0"]
     @FocusState private var focusedField: Int?
 
-    var body: some View {
+    public init(label: String, value: Binding<SIMD3<Float>>) {
+        self.label = label
+        _value = value
+    }
+
+    public var body: some View {
         VStack(alignment: .leading) {
             Text(label)
                 .font(.headline)
@@ -122,12 +127,18 @@ struct TextInputVectorView: View {
     }
 }
 
-struct TextInputNumberView: View {
+public struct TextInputNumberView: View {
     let label: String
     @Binding var value: Float
     @State private var tempValues: String = "0"
     @FocusState private var focusedField: Int?
-    var body: some View {
+
+    public init(label: String, value: Binding<Float>) {
+        self.label = label
+        _value = value
+    }
+
+    public var body: some View {
         VStack(alignment: .leading) {
             Text(label)
                 .font(.headline)
