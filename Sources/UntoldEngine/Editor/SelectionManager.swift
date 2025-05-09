@@ -59,6 +59,12 @@ public class EditorComponentsState: ObservableObject {
     }
 }
 
+public class EditorAssetBasePath: ObservableObject {
+    public static let shared = EditorAssetBasePath()
+
+    @Published public var basePath: URL? = assetBasePath
+}
+
 class SelectionManager: ObservableObject {
     @Published var selectedEntity: EntityID? = nil
 

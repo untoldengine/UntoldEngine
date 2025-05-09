@@ -13,6 +13,7 @@ import UniformTypeIdentifiers
 struct SceneData: Codable {
     var entities: [EntityData] = []
     var environment: EnvironmentData? = nil
+    var assetBasePath: URL? = nil
 }
 
 struct LightData: Codable {
@@ -75,7 +76,7 @@ func serializeScene() -> SceneData {
         entityData.hasRenderingComponent = hasComponent(entityId: entityId, componentType: RenderComponent.self)
 
         // Transform properties
-        if let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) {
+        if scene.get(component: LocalTransformComponent.self, for: entityId) != nil {
             entityData.position = getLocalPosition(entityId: entityId)
 
             let axisOfRotations = getAxisRotations(entityId: entityId)
@@ -163,6 +164,9 @@ func serializeScene() -> SceneData {
     sceneData.environment?.applyIBL = applyIBL
     sceneData.environment?.renderEnvironment = renderEnvironment
 
+    // save asset base path
+    sceneData.assetBasePath = assetBasePath
+
     return sceneData
 }
 
@@ -222,6 +226,9 @@ func deserializeScene(sceneData: SceneData) {
         hdrURL = env.hdr ?? "photostudio.hdr"
         generateHDR(hdrURL)
     }
+
+    assetBasePath = sceneData.assetBasePath
+    EditorAssetBasePath.shared.basePath = assetBasePath
 
     for sceneDataEntity in sceneData.entities {
         let entityId = createEntity()

@@ -26,8 +26,7 @@ struct AssetBrowserView: View {
     @Binding var selectedAsset: Asset?
     @State private var selectedCategory: String? = "Models" // Default category
     @State private var selectedAssetName: String?
-    @State private var basePath: URL? = nil
-    // @State private var currentFolderPath: URL? = nil
+    @ObservedObject var editorBaseAssetPath = EditorAssetBasePath.shared
     @State private var folderPathStack: [URL] = []
 
     private var currentFolderPath: URL? {
@@ -87,7 +86,7 @@ struct AssetBrowserView: View {
 
                 // MARK: - Path Indicator
 
-                if let resourceDir = basePath {
+                if let resourceDir = editorBaseAssetPath.basePath {
                     Text("Current Path: \(resourceDir.lastPathComponent)")
                         .font(.caption)
                         .foregroundColor(.green)
@@ -196,7 +195,7 @@ struct AssetBrowserView: View {
         }
         .frame(maxHeight: 200)
         .onAppear(perform: loadAssets)
-        .onChange(of: basePath) { _ in
+        .onChange(of: editorBaseAssetPath.basePath) { _ in
             loadAssets()
         }
     }
@@ -211,7 +210,7 @@ struct AssetBrowserView: View {
 
         if panel.runModal() == .OK, let selectedURL = panel.urls.first {
             assetBasePath = selectedURL
-            basePath = selectedURL
+            EditorAssetBasePath.shared.basePath = assetBasePath
         }
     }
 
@@ -277,14 +276,12 @@ struct AssetBrowserView: View {
     // MARK: - Load Assets
 
     private func loadAssets() {
-        guard let assetBasePath else { return }
-
-        basePath = assetBasePath
+        guard assetBasePath != nil else { return }
 
         var groupedAssets: [String: [Asset]] = [:]
 
         for category in AssetCategory.allCases {
-            var categoryPath = basePath!.appendingPathComponent("Assets")
+            var categoryPath = EditorAssetBasePath.shared.basePath!.appendingPathComponent("Assets")
             categoryPath = categoryPath.appendingPathComponent(category.rawValue)
 
             if let folders = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
