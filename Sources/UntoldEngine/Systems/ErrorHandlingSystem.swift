@@ -64,6 +64,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case unsupportedCompressedFormat = 1055
     case noMeshAssigned = 1056
     case noAnimationClip = 1057
+    case invalidDeltaTime = 1058
 
     public var description: String {
         switch self {
@@ -179,6 +180,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "No mesh has been assigned for"
         case .noAnimationClip:
             return "Animation clip with name exists for"
+        case .invalidDeltaTime:
+            return "deltaTime is zero or negative, skipping movement for entity"
         }
     }
 }

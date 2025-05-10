@@ -288,7 +288,7 @@ public func steerSeek(entityId: EntityID, targetPosition: simd_float3, maxSpeed:
     // Check for invalid deltaTime
 
     guard deltaTime > 0 else {
-        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
+        handleError(.invalidDeltaTime, entityId)
         return
     }
 
@@ -322,7 +322,7 @@ public func steerArrive(entityId: EntityID, targetPosition: simd_float3, maxSpee
 
     // Check for invalid deltaTime
     guard deltaTime > 0 else {
-        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
+        handleError(.invalidDeltaTime, entityId)
         return
     }
 
@@ -356,7 +356,7 @@ public func steerWithWASD(entityId: EntityID, maxSpeed: Float, deltaTime: Float,
 
     // Check for invalid deltaTime
     guard deltaTime > 0 else {
-        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
+        handleError(.invalidDeltaTime, entityId)
         return
     }
 
@@ -409,7 +409,7 @@ public func steerFlee(entityId: EntityID, threatPosition: simd_float3, maxSpeed:
 
     // Check for invalid deltaTime
     guard deltaTime > 0 else {
-        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
+        handleError(.invalidDeltaTime, entityId)
         return
     }
 
@@ -454,7 +454,7 @@ public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: F
 
     // Check for invalid deltaTime
     guard deltaTime > 0 else {
-        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
+        handleError(.invalidDeltaTime, entityId)
         return
     }
 
