@@ -370,7 +370,7 @@ public class InputSystem {
             return
         }
 
-        if editorController.activeMode != .none {
+        if editorController.activeMode != .none, activeEntity != .invalid {
             return
         }
 
