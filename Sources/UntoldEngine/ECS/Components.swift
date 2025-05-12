@@ -167,7 +167,7 @@ public class CameraComponent: Component {
     // quaternion
     var rotation: simd_quatf = .init()
     var localOrientation: simd_float3 = .init(0.0, 0.0, 0.0)
-    var localPosition: simd_float3 = .init(0.0, 0.0, 0.0)
+    public var localPosition: simd_float3 = .init(0.0, 0.0, 0.0)
     var orbitTarget: simd_float3 = .init(0.0, 0.0, 0.0)
 
     var eye: simd_float3 = .zero
