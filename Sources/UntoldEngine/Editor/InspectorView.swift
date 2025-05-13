@@ -93,6 +93,28 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     .padding(8)
                     .background(Color.secondary.opacity(0.05))
                     .cornerRadius(8)
+
+                    if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+                        Text("Material Preview")
+                            .font(.subheadline)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                ForEach(["Base Color", "Roughness", "Metallic", "Normal"], id: \.self) { type in
+                                    if let url = getMateralTextureURL(entityId: entityId, type: type), let image = NSImage(contentsOf: url) {
+                                        VStack {
+                                            Image(nsImage: image)
+                                                .resizable()
+                                                .frame(width: 64, height: 64)
+                                                .cornerRadius(4)
+                                            Text(type)
+                                                .font(.caption)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         )
