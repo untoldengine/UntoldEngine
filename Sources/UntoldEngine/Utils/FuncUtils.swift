@@ -481,3 +481,19 @@ func getAssetURLString(entityId: EntityID) -> String? {
 
     return renderComponent.assetURL.deletingPathExtension().lastPathComponent
 }
+
+func getMateralTextureURL(entityId: EntityID, type: String) -> URL? {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return nil
+    }
+
+    let material = renderComponent.mesh.first?.submeshes.first?.material
+
+    switch type {
+    case "Base Color": return material?.baseColorURL
+    case "Roughness": return material?.roughnessURL
+    case "Metallic": return material?.metallicURL
+    case "Normal": return material?.normalURL
+    default: return nil
+    }
+}
