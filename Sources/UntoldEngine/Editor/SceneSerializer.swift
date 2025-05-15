@@ -38,6 +38,8 @@ struct EnvironmentData: Codable {
 }
 
 struct EntityData: Codable {
+    var uuid: UUID = .init() // Unique identifier for this entity
+    var parentUUID: UUID? = nil // UUID of the parent entity, if any
     var name: String = "" // entity name
     var assetName: String = "" // asset name in 3D software
     var assetURL: URL = .init(fileURLWithPath: "")
@@ -60,9 +62,24 @@ struct EntityData: Codable {
 
 func serializeScene() -> SceneData {
     var sceneData = SceneData()
+    var entityIdToUUID: [EntityID: UUID] = [:]
+
+    // assign UUIDs
+    for entityId in getAllGameEntities() {
+        let uuid = UUID()
+        entityIdToUUID[entityId] = uuid
+    }
 
     for entityId in getAllGameEntities() {
         var entityData = EntityData()
+
+        // assign uuid
+        entityData.uuid = entityIdToUUID[entityId]!
+
+        // parent uuid (if any)
+        if let parentId = getEntityParent(entityId: entityId) {
+            entityData.parentUUID = entityIdToUUID[parentId]
+        }
 
         entityData.name = getEntityName(entityId: entityId)!
 
@@ -218,6 +235,8 @@ func loadScene() -> SceneData? {
 }
 
 func deserializeScene(sceneData: SceneData) {
+    var uuidToEntityMap: [UUID: EntityID] = [:]
+
     if let env = sceneData.environment {
         applyIBL = env.applyIBL ?? false
         renderEnvironment = env.renderEnvironment ?? false
@@ -233,13 +252,15 @@ func deserializeScene(sceneData: SceneData) {
     for sceneDataEntity in sceneData.entities {
         let entityId = createEntity()
 
+        uuidToEntityMap[sceneDataEntity.uuid] = entityId
+
         setEntityName(entityId: entityId, name: sceneDataEntity.name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
         if sceneDataEntity.hasRenderingComponent == true {
             let filename = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
             let withExtension = sceneDataEntity.assetURL.pathExtension
-            setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension)
+            setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
         }
 
         if sceneDataEntity.hasAnimationComponent == true {
@@ -292,9 +313,10 @@ func deserializeScene(sceneData: SceneData) {
         if sceneDataEntity.hasLocalTransformComponent == true {
             translateTo(entityId: entityId, position: sceneDataEntity.position)
 
-            let axisOfRotation = sceneDataEntity.axisOfRotations
-
-            applyAxisRotations(entityId: entityId, axis: axisOfRotation)
+            // TODO: Uncomment this section once the rotation is correct
+//            let axisOfRotation = sceneDataEntity.axisOfRotations
+//
+//            applyAxisRotations(entityId: entityId, axis: axisOfRotation)
         }
 
         if sceneDataEntity.hasCameraComponent == true {
@@ -326,5 +348,17 @@ func deserializeScene(sceneData: SceneData) {
                 }
             }
         }
+    }
+
+    // secon pass: rebuild hierarchy
+    for sceneDataEntity in sceneData.entities {
+        guard let childId = uuidToEntityMap[sceneDataEntity.uuid],
+              let parentUUID = sceneDataEntity.parentUUID,
+              let parentId = uuidToEntityMap[parentUUID]
+        else {
+            continue
+        }
+
+        setParent(childId: childId, parentId: parentId)
     }
 }
