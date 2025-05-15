@@ -314,9 +314,9 @@ func deserializeScene(sceneData: SceneData) {
             translateTo(entityId: entityId, position: sceneDataEntity.position)
 
             // TODO: Uncomment this section once the rotation is correct
-//            let axisOfRotation = sceneDataEntity.axisOfRotations
-//
-//            applyAxisRotations(entityId: entityId, axis: axisOfRotation)
+            let axisOfRotation = sceneDataEntity.axisOfRotations
+
+            applyAxisRotations(entityId: entityId, axis: axisOfRotation)
         }
 
         if sceneDataEntity.hasCameraComponent == true {
