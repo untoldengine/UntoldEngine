@@ -132,7 +132,20 @@ public func getEntityParent(entityId: EntityID) -> EntityID? {
         return nil
     }
 
+    if scenegraphComponent.parent == .invalid {
+        return nil
+    }
+
     return scenegraphComponent.parent
+}
+
+public func isParent(entityId: EntityID) -> Bool {
+    guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: entityId) else {
+        handleError(.noScenegraphComponent, entityId)
+        return false
+    }
+
+    return scenegraphComponent.children.count > 0
 }
 
 public func updateDescendantLevels(childId: EntityID, level: Int) {
