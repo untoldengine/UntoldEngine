@@ -443,6 +443,15 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
     let boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
 
     localTransformComponent.space = meshes[0].worldSpace
+
+    // calculate the rotation axis
+    let quaternion = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(meshes[0].worldSpace))
+    let euler = transformQuaternionToEulerAngles(q: quaternion)
+
+    localTransformComponent.rotationX = euler.pitch
+    localTransformComponent.rotationY = euler.yaw
+    localTransformComponent.rotationZ = euler.roll
+
     localTransformComponent.boundingBox = boundingBox
     localTransformComponent.flipCoord = meshes[0].flipCoord
 }
