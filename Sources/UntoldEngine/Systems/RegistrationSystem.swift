@@ -49,7 +49,8 @@ private func setEntityMeshCommon(
     withExtension: String,
     flip _: Bool,
     meshLoader: (URL) -> [[Mesh]],
-    entityName _: String?
+    entityName _: String?,
+    assetName: String?
 ) {
     guard let url = getResourceURL(forResource: filename, withExtension: withExtension) else {
         handleError(.filenameNotFound, filename)
@@ -68,7 +69,16 @@ private func setEntityMeshCommon(
         return
     }
 
-    let nonEmptyMeshes = meshes.filter { !$0.isEmpty }
+    var nonEmptyMeshes = meshes.filter { !$0.isEmpty }
+
+    if let assetNameExist = assetName {
+        if let matchedMesh = nonEmptyMeshes.first(where: { $0.first?.assetName == assetNameExist }) {
+            nonEmptyMeshes = [matchedMesh]
+        } else {
+            handleError(.assetDataMissing, "No mesh with asset name \(assetNameExist)")
+            return
+        }
+    }
 
     if nonEmptyMeshes.count == 1 {
         let mesh = nonEmptyMeshes[0]
@@ -111,7 +121,7 @@ private func setEntityMeshCommon(
     }
 }
 
-public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true) {
+public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true) {
     setEntityMeshCommon(
         entityId: entityId,
         filename: filename,
@@ -120,21 +130,9 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
         meshLoader: { url in
             Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
         },
-        entityName: nil
+        entityName: nil,
+        assetName: assetName
     )
-}
-
-public func setEntityMesh(entityId _: EntityID, fromAssetNamed _: String, filename _: String, withExtension _: String, flip _: Bool = true) {
-//    setEntityMeshCommon(
-//        entityId: entityId,
-//        filename: filename,
-//        withExtension: withExtension,
-//        flip: flip,
-//        meshLoader: { url in
-//            Mesh.loadMeshWithName(name: fromAssetNamed, url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
-//        },
-//        entityName: fromAssetNamed
-//    )
 }
 
 public func loadScene(filename: String, withExtension: String) {
@@ -485,8 +483,8 @@ public func findEntity(name: String) -> EntityID? {
 var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
 var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
 
-public func encodeCustomComponent<T: Codable>(
-    type: T.Type,
+public func encodeCustomComponent(
+    type: (some Codable).Type,
     editorMetadata: ComponentOption_Editor? = nil,
     serialize: @escaping (EntityID) -> Data?,
     deserialize: @escaping (EntityID, Data) -> Void
