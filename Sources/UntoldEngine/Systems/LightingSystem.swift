@@ -38,7 +38,18 @@ public struct AreaLight {
 
 public func createLight(entityId: EntityID, lightType: LightType) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
-    registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
+    registerTransformComponent(entityId: entityId)
+    registerSceneGraphComponent(entityId: entityId)
+
+    setEntityMesh(entityId: entityId, filename: "dirLightMesh", withExtension: "usdc")
+
+    guard let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent)
+        return
+    }
+
+    localTransform.boundingBox.min = simd_float3(repeating: -0.1)
+    localTransform.boundingBox.max = simd_float3(repeating: 0.1)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
