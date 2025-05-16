@@ -827,22 +827,7 @@ enum RenderPasses {
                                                 indexBuffer: bufferResources.quadIndexBuffer!,
                                                 indexBufferOffset: 0)
         }
-        /*
-         if let t = scene.get(component: WorldTransformComponent.self, for: activeEntity) {
-             renderEncoder.setVertexBuffer(bufferResources.boundingBoxBuffer, offset: 0, index: 0)
 
-             renderEncoder.setVertexBytes(
-                 &cameraComponent.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 1
-             )
-             renderEncoder.setVertexBytes(
-                 &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2
-             )
-             renderEncoder.setVertexBytes(
-                 &t.space, length: MemoryLayout<matrix_float4x4>.stride, index: 3
-             )
-             renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: boundingBoxVertexCount)
-         }
-         */
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
         renderEncoder.popDebugGroup()
         renderEncoder.endEncoding()
