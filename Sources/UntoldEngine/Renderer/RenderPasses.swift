@@ -446,6 +446,10 @@ enum RenderPasses {
                 continue
             }
 
+            if let lightComponent = scene.get(component: LightComponent.self, for: entityId) {
+                continue
+            }
+
             for mesh in renderComponent.mesh {
                 // update uniforms
                 var modelUniforms = Uniforms()
@@ -651,7 +655,7 @@ enum RenderPasses {
         renderEncoder.setFrontFacing(.counterClockwise)
 
         // Send model info to outline here
-        if let renderComponent = scene.get(component: RenderComponent.self, for: activeEntity), scene.get(component: LightComponent.self, for: activeEntity) != nil {
+        if let renderComponent = scene.get(component: RenderComponent.self, for: activeEntity), scene.get(component: LightComponent.self, for: activeEntity) == nil {
             let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: activeEntity)
 
             for mesh in renderComponent.mesh {
