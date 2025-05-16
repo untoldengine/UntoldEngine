@@ -5,38 +5,99 @@ import UntoldEngine
 
 // GameScene is where you would initialize your game and write the game logic.
 class GameScene {
-    // Declare entity IDs
-    let player: EntityID
-
     init() {
-        // Step 1: Configure the Camera
-        camera.lookAt(
-            eye: simd_float3(0.0, 7.0, 15.0), // Camera position
-            target: simd_float3(0.0, 0.0, 0.0), // Look-at target
-            up: simd_float3(0.0, 1.0, 0.0) // Up direction
+        // assetBasePath = URL(fileURLWithPath: "/Users/haroldserrano/Desktop/MyGreatGame")
+
+        // register custom systems. do not delete
+        // registerCustomSystem(ballSystemUpdate)
+
+        registerCustomSystem(dribblingSystemUpdate)
+        addComponent_Editor(componentOption: DribblingComponent_Editor)
+
+        registerCustomSystem(ballSystemUpdate)
+        addComponent_Editor(componentOption: BallComponent_Editor)
+
+        registerCustomSystem(cameraFollowUpdate)
+        addComponent_Editor(componentOption: CameraFollowComponent_Editor)
+//        encodeCustomComponent(
+//            type: PlayerComponent.self,
+//            serialize: { entityId in
+//                guard let playerComponent = scene.get(component: PlayerComponent.self, for: entityId) else { return nil }
+//                return try? JSONEncoder().encode(playerComponent)
+//            },
+//            deserialize: { entityId, data in
+//                if let decoded = try? JSONDecoder().decode(PlayerComponent.self, from: data) {
+//                    registerComponent(entityId: entityId, componentType: PlayerComponent.self)
+//                    if let playerComponent = scene.get(component: PlayerComponent.self, for: entityId) {
+//                        playerComponent.maxSpeed = decoded.maxSpeed
+//                        playerComponent.kickSpeed = decoded.kickSpeed
+//                        playerComponent.direction = decoded.direction
+//                    }
+//
+//                    // Register with the editor
+//                    let key = ObjectIdentifier(PlayerComponent.self)
+//                    if EditorComponentsState.shared.components[entityId] == nil {
+//                        EditorComponentsState.shared.components[entityId] = [:]
+//                    }
+//                    EditorComponentsState.shared.components[entityId]?[key] = PlayerComponent_Editor
+//                }
+//            }
+//        )
+
+        encodeCustomComponent(
+            type: DribblinComponent.self,
+            editorMetadata: DribblingComponent_Editor,
+            serialize: { entityId in
+                guard let playerComponent = scene.get(component: DribblinComponent.self, for: entityId) else { return nil }
+                return try? JSONEncoder().encode(playerComponent)
+            },
+            deserialize: { entityId, data in
+                if let decoded = try? JSONDecoder().decode(DribblinComponent.self, from: data) {
+                    registerComponent(entityId: entityId, componentType: DribblinComponent.self)
+                    if let playerComponent = scene.get(component: DribblinComponent.self, for: entityId) {
+                        playerComponent.maxSpeed = decoded.maxSpeed
+                        playerComponent.kickSpeed = decoded.kickSpeed
+                        playerComponent.direction = decoded.direction
+                    }
+                }
+            }
         )
 
-        // Step 2: Create a Red Player Entity with Animation
-        player = createEntity()
+        encodeCustomComponent(
+            type: BallComponent.self,
+            editorMetadata: BallComponent_Editor,
+            serialize: { entityId in
+                guard let ballComponent = scene.get(component: BallComponent.self, for: entityId) else { return nil }
+                return try? JSONEncoder().encode(ballComponent)
+            },
+            deserialize: { entityId, data in
+                if let decoded = try? JSONDecoder().decode(BallComponent.self, from: data) {
+                    registerComponent(entityId: entityId, componentType: BallComponent.self)
+                    if let ballComponent = scene.get(component: BallComponent.self, for: entityId) {
+                        // save data here
+                    }
+                }
+            }
+        )
 
-        setEntityName(entityId: player, name: "player")
-
-        setEntityMesh(entityId: player, filename: "hollandPlayer", withExtension: "usdc", flip: false)
-
-        // Add animations or physics components to the player
-
-        // Add other assets
-
-        // Lighting
-        let sunEntity: EntityID = createEntity()
-
-        setEntityName(entityId: sunEntity, name: "light")
-
-        // Create the directional light instance
-        let sun = DirectionalLight()
-
-        // Add the light to the lighting system
-        lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
+        encodeCustomComponent(
+            type: CameraFollowComponent.self,
+            editorMetadata: CameraFollowComponent_Editor,
+            serialize: { entityId in
+                guard let cameraFollowComponent = scene.get(component: CameraFollowComponent.self, for: entityId) else { return nil }
+                return try? JSONEncoder().encode(cameraFollowComponent)
+            },
+            deserialize: { entityId, data in
+                if let decoded = try? JSONDecoder().decode(CameraFollowComponent.self, from: data) {
+                    registerComponent(entityId: entityId, componentType: CameraFollowComponent.self)
+                    if let cameraFollowComponent = scene.get(component: CameraFollowComponent.self, for: entityId) {
+                        // save data here
+                        cameraFollowComponent.targetName = decoded.targetName
+                        cameraFollowComponent.offset = decoded.offset
+                    }
+                }
+            }
+        )
     }
 
     func update(deltaTime _: Float) {
@@ -44,9 +105,6 @@ class GameScene {
         if gameMode == false {
             return
         }
-
-        // Update the game state here
-        // Example: Move the player based on input
     }
 
     func handleInput() {
@@ -99,7 +157,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         if enableEditor {
-            if #available(macOS 12.0, *) {
+            if #available(macOS 13.0, *) {
                 let hostingView = NSHostingView(rootView: EditorView(mtkView: renderer.metalView))
                 window.contentView = hostingView
             } else {
