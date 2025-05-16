@@ -651,84 +651,78 @@ enum RenderPasses {
         renderEncoder.setFrontFacing(.counterClockwise)
 
         // Send model info to outline here
-        guard let renderComponent = scene.get(component: RenderComponent.self, for: activeEntity) else {
-            handleError(.noRenderComponent, activeEntity)
-            return
-        }
+        if let renderComponent = scene.get(component: RenderComponent.self, for: activeEntity), scene.get(component: LightComponent.self, for: activeEntity) != nil {
+            let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: activeEntity)
 
-        guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: activeEntity) else {
-            handleError(.noWorldTransformComponent, activeEntity)
-            return
-        }
+            for mesh in renderComponent.mesh {
+                // update uniforms
+                var modelUniforms = Uniforms()
 
-        for mesh in renderComponent.mesh {
-            // update uniforms
-            var modelUniforms = Uniforms()
+                var modelMatrix = simd_mul(worldTransformComponent!.space, mesh.localSpace)
 
-            var modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
+                let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 
-            let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
-            let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+                let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
 
-            let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
+                let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
 
-            let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
+                let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
 
-            let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
+                modelUniforms.modelViewMatrix = modelViewMatrix
 
-            modelUniforms.modelViewMatrix = modelViewMatrix
+                modelUniforms.normalMatrix = normalMatrix
 
-            modelUniforms.normalMatrix = normalMatrix
+                modelUniforms.viewMatrix = viewMatrix
 
-            modelUniforms.viewMatrix = viewMatrix
+                modelUniforms.modelMatrix = modelMatrix
 
-            modelUniforms.modelMatrix = modelMatrix
+                modelUniforms.cameraPosition = cameraComponent.localPosition
 
-            modelUniforms.cameraPosition = cameraComponent.localPosition
+                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-            modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+                if let modelUniformBuffer = mesh.spaceUniform {
+                    modelUniformBuffer.contents().copyMemory(
+                        from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
+                    )
+                } else {
+                    handleError(.bufferAllocationFailed, "Model Uniform buffer")
+                    return
+                }
 
-            if let modelUniformBuffer = mesh.spaceUniform {
-                modelUniformBuffer.contents().copyMemory(
-                    from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
+                renderEncoder.setVertexBuffer(
+                    mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
                 )
-            } else {
-                handleError(.bufferAllocationFailed, "Model Uniform buffer")
-                return
-            }
 
-            renderEncoder.setVertexBuffer(
-                mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
-            )
-
-            renderEncoder.setFragmentBuffer(
-                mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
-            )
-
-            renderEncoder.setVertexBuffer(
-                mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
-                offset: 0, index: Int(modelPassVerticesIndex.rawValue)
-            )
-
-            renderEncoder.setVertexBuffer(
-                mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
-                offset: 0, index: Int(modelPassVerticesIndex.rawValue)
-            )
-
-            renderEncoder.setVertexBuffer(
-                mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer,
-                offset: 0, index: Int(modelPassNormalIndex.rawValue)
-            )
-
-            for subMesh in mesh.submeshes {
-                renderEncoder.drawIndexedPrimitives(
-                    type: subMesh.metalKitSubmesh.primitiveType,
-                    indexCount: subMesh.metalKitSubmesh.indexCount,
-                    indexType: subMesh.metalKitSubmesh.indexType,
-                    indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
-                    indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset
+                renderEncoder.setFragmentBuffer(
+                    mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
                 )
+
+                renderEncoder.setVertexBuffer(
+                    mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
+                    offset: 0, index: Int(modelPassVerticesIndex.rawValue)
+                )
+
+                renderEncoder.setVertexBuffer(
+                    mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
+                    offset: 0, index: Int(modelPassVerticesIndex.rawValue)
+                )
+
+                renderEncoder.setVertexBuffer(
+                    mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer,
+                    offset: 0, index: Int(modelPassNormalIndex.rawValue)
+                )
+
+                for subMesh in mesh.submeshes {
+                    renderEncoder.drawIndexedPrimitives(
+                        type: subMesh.metalKitSubmesh.primitiveType,
+                        indexCount: subMesh.metalKitSubmesh.indexCount,
+                        indexType: subMesh.metalKitSubmesh.indexType,
+                        indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset
+                    )
+                }
             }
         }
 
