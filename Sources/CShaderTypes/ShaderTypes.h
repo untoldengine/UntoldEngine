@@ -149,6 +149,14 @@ typedef enum{
     rayModelInstanceHitIndex,
 }RayModelBufferIndices;
 
+typedef enum{
+    lightVisualPassPositionIndex,
+    lightVisualPassUVIndex,
+    lightVisualPassViewMatrixIndex,
+    lightVisualPassProjMatrixIndex,
+    lightVisualPassModelMatrixIndex,
+}LightVisualBufferIndices;
+
 //Ray tracing structs
 #define GEOMETRY_MASK_TRIANGLE 1
 #define GEOMETRY_MASK_SPHERE   2

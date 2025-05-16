@@ -49,6 +49,24 @@ public func createLight(entityId: EntityID, lightType: LightType) {
         applyAxisRotations(entityId: entityId, axis: simd_float3(45.0, 45.0, 45.0))
     }
 
+    ["directional": "directional_light_icon_256x256",
+     "point": "point_light_icon_256x256"]
+        .forEach { type, name in
+            do {
+                let texture = try loadTexture(device: renderInfo.device, textureName: name, withExtension: "png")
+                switch type {
+                case "directional":
+                    lightComponent.texture.directional = texture
+                case "point":
+                    lightComponent.texture.point = texture
+                default:
+                    break
+                }
+            } catch {
+                handleError(.textureMissing)
+            }
+        }
+
     lightComponent.lightType = lightType
 }
 

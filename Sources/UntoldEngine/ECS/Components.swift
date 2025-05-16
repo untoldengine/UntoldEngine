@@ -132,10 +132,15 @@ public enum LightType: String, CaseIterable {
     case directional
     case point
     case area
-    case none
+}
+
+public class LightTexture {
+    var directional: MTLTexture?
+    var point: MTLTexture?
 }
 
 public class LightComponent: Component {
+    var texture: LightTexture = .init()
     var lightType: LightType?
 
     var color: simd_float3 = .one

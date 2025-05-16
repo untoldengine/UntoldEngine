@@ -48,6 +48,7 @@ let package = Package(
                 .process("Resources/Animations"),
                 .process("Resources/HDR"),
                 .process("Resources/ReferenceImages"),
+                .process("Resources/textures"),
             ],
             swiftSettings: [
                 .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),

@@ -14,5 +14,5 @@ using namespace metal;
 #include "../Shaders/tonemapShader.metal"
 #include "../Shaders/preCompShader.metal"
 #include "../Shaders/OutlineShader.metal"
-
+#include "../Shaders/LightVisualShader.metal"
 #include "../Shaders/raymodelIntersect.metal"

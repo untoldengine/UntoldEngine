@@ -21,7 +21,8 @@ enum LoadHDRError: Error {
 
 public func loadTexture(
     device: MTLDevice,
-    textureName: String
+    textureName: String,
+    withExtension: String
 ) throws -> MTLTexture {
     /// Load texture data with optimal parameters for sampling
 
@@ -34,8 +35,7 @@ public func loadTexture(
 
     var url: URL?
 
-    if let imageURL = Bundle.main.url(forResource: textureName, withExtension: nil) {
-        // Use imageURL here
+    if let imageURL = getResourceURL(forResource: textureName, withExtension: withExtension) {
         url = imageURL
     }
 

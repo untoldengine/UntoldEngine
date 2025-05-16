@@ -46,8 +46,14 @@ func updateRenderingSystem(in view: MTKView) {
 
             graph[modelPass.id] = modelPass
 
+            let lightVisPass = RenderPass(
+                id: "lightVis", dependencies: ["model"], execute: RenderPasses.lightVisualPass
+            )
+
+            graph[lightVisPass.id] = lightVisPass
+
             let outlinePass = RenderPass(
-                id: "outline", dependencies: ["model"], execute: RenderPasses.outlineExecution
+                id: "outline", dependencies: ["lightVis"], execute: RenderPasses.outlineExecution
             )
 
             graph[outlinePass.id] = outlinePass

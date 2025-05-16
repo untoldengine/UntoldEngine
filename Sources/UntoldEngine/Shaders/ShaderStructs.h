@@ -101,7 +101,15 @@ typedef struct{
     float4 position [[position]];
 }GeometryOutModel;
 
+typedef struct{
+    float3 position [[attribute(lightVisualPassPositionIndex)]];
+    float2 uv [[attribute(lightVisualPassUVIndex)]];
+}LightVisualInModel;
 
+typedef struct{
+    float4 position [[position]];
+    float2 uvCoords;
+}LightVisualOutModel;
 
 typedef struct
 {

@@ -74,6 +74,7 @@ var postProcessPipeline = RenderPipeline()
 var lightingPipeline = RenderPipeline()
 var tonemappingPipeline = RenderPipeline()
 var geometryPipeline = RenderPipeline()
+var lightVisualPipeline = RenderPipeline()
 var rayCompositePipeline = RenderPipeline()
 
 var outlinePipeline = RenderPipeline()

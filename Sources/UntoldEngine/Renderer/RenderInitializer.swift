@@ -513,6 +513,30 @@ func createGeometryVertexDescriptor() -> MTLVertexDescriptor {
     return vertexDescriptor
 }
 
+func createLightVisualVertexDescriptor() -> MTLVertexDescriptor {
+    // tell the gpu how data is organized
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    // set position
+    vertexDescriptor.attributes[Int(lightVisualPassPositionIndex.rawValue)].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[Int(lightVisualPassPositionIndex.rawValue)].bufferIndex = Int(lightVisualPassPositionIndex.rawValue)
+    vertexDescriptor.attributes[Int(lightVisualPassPositionIndex.rawValue)].offset = 0
+
+    vertexDescriptor.attributes[Int(lightVisualPassUVIndex.rawValue)].format = MTLVertexFormat.float2
+    vertexDescriptor.attributes[Int(lightVisualPassUVIndex.rawValue)].bufferIndex = Int(lightVisualPassUVIndex.rawValue)
+    vertexDescriptor.attributes[Int(lightVisualPassUVIndex.rawValue)].offset = 0
+
+    vertexDescriptor.layouts[Int(lightVisualPassPositionIndex.rawValue)].stride = MemoryLayout<simd_float3>.stride
+    vertexDescriptor.layouts[Int(lightVisualPassPositionIndex.rawValue)].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[Int(lightVisualPassPositionIndex.rawValue)].stepRate = 1
+
+    vertexDescriptor.layouts[Int(lightVisualPassUVIndex.rawValue)].stride = MemoryLayout<simd_float2>.stride
+    vertexDescriptor.layouts[Int(lightVisualPassUVIndex.rawValue)].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[Int(lightVisualPassUVIndex.rawValue)].stepRate = 1
+
+    return vertexDescriptor
+}
+
 func createCompositeVertexDescriptor() -> MTLVertexDescriptor {
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
@@ -725,6 +749,19 @@ func initRenderPipelines() {
         name: "Geometry Pipeline"
     ) {
         geometryPipeline = geometryPipe
+    }
+
+    // Light Visual Pipeline
+    if let lightVisual = createPipeline(
+        vertexShader: "vertexLightVisualShader",
+        fragmentShader: "fragmentLightVisualShader",
+        vertexDescriptor: createLightVisualVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: true,
+        name: "Light Visual Pipeline"
+    ) {
+        lightVisualPipeline = lightVisual
     }
 
     // Outline Pipeline

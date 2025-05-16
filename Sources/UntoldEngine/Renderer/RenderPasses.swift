@@ -737,6 +737,117 @@ enum RenderPasses {
         renderEncoder.endEncoding()
     }
 
+    static let lightVisualPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        if lightVisualPipeline.success == false {
+            handleError(.pipelineStateNulled, lightVisualPipeline.name!)
+            return
+        }
+
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+            .loadAction = .load
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+            .loadAction = .load
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+            .loadAction = .load
+
+        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+
+        let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor!
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "Light Visual Pass")
+
+            return
+        }
+
+        renderEncoder.label = "Light Visual Pass"
+
+        renderEncoder.pushDebugGroup("Light Visual Pass")
+
+        renderEncoder.setRenderPipelineState(lightVisualPipeline.pipelineState!)
+
+        renderEncoder.setDepthStencilState(lightVisualPipeline.depthState)
+
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setCullMode(.back)
+
+        renderEncoder.setFrontFacing(.counterClockwise)
+
+        let transformId = getComponentId(for: LocalTransformComponent.self)
+        let lightId = getComponentId(for: LightComponent.self)
+        let entities = queryEntitiesWithComponentIds([transformId, lightId], in: scene)
+
+        // Iterate over the entities found by the component query
+        for entityId in entities {
+            guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+                handleError(.noLocalTransformComponent, entityId)
+                continue
+            }
+
+            guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+                handleError(.noLightComponent, entityId)
+                continue
+            }
+
+            renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+            renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+
+            renderEncoder.setVertexBytes(
+                &cameraComponent.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2
+            )
+
+            renderEncoder.setVertexBytes(
+                &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 3
+            )
+
+            renderEncoder.setVertexBytes(
+                &localTransformComponent.space, length: MemoryLayout<matrix_float4x4>.stride, index: 4
+            )
+
+            switch lightComponent.lightType {
+            case .directional:
+                renderEncoder.setFragmentTexture(lightComponent.texture.directional, index: 0)
+            case .point:
+                renderEncoder.setFragmentTexture(lightComponent.texture.point, index: 0)
+            default:
+                break
+            }
+
+            renderEncoder.drawIndexedPrimitives(type: .triangle,
+                                                indexCount: quadIndices.count,
+                                                indexType: .uint16,
+                                                indexBuffer: bufferResources.quadIndexBuffer!,
+                                                indexBufferOffset: 0)
+        }
+        /*
+         if let t = scene.get(component: WorldTransformComponent.self, for: activeEntity) {
+             renderEncoder.setVertexBuffer(bufferResources.boundingBoxBuffer, offset: 0, index: 0)
+
+             renderEncoder.setVertexBytes(
+                 &cameraComponent.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 1
+             )
+             renderEncoder.setVertexBytes(
+                 &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2
+             )
+             renderEncoder.setVertexBytes(
+                 &t.space, length: MemoryLayout<matrix_float4x4>.stride, index: 3
+             )
+             renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: boundingBoxVertexCount)
+         }
+         */
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
+    }
+
     static let highlightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
         if activeEntity == .invalid {
