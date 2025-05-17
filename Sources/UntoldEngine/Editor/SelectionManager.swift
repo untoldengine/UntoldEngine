@@ -9,6 +9,7 @@ import Foundation
 
 protocol SelectionDelegate: AnyObject {
     func didSelectEntity(_ entityId: EntityID)
+    func resetActiveAxis()
 }
 
 class EditorController: SelectionDelegate, ObservableObject {
@@ -25,6 +26,10 @@ class EditorController: SelectionDelegate, ObservableObject {
         DispatchQueue.main.async {
             self.selectionManager.selectEntity(entityId: entityId)
         }
+    }
+
+    func resetActiveAxis() {
+        activeAxis = .none
     }
 
     func refreshInspector() {

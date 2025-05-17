@@ -213,47 +213,49 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             return
         }
 
-        switch (editorController.activeMode, editorController.activeAxis) {
-        // Translate
-        case (.translate, .x) where inputSystem.mouseActive:
-            translateBy(entityId: activeEntity, position: simd_float3(inputSystem.mouseDeltaX * 0.01, 0.0, 0.0))
-            editorController.refreshInspector()
+        if inputSystem.keyState.shiftPressed {
+            switch (editorController.activeMode, editorController.activeAxis) {
+            // Translate
+            case (.translate, .x) where inputSystem.mouseActive:
+                translateBy(entityId: activeEntity, position: simd_float3(inputSystem.mouseDeltaX * 0.01, 0.0, 0.0))
+                editorController.refreshInspector()
 
-        case (.translate, .y) where inputSystem.mouseActive:
-            translateBy(entityId: activeEntity, position: simd_float3(0.0, -inputSystem.mouseDeltaY * 0.01, 0.0))
-            editorController.refreshInspector()
+            case (.translate, .y) where inputSystem.mouseActive:
+                translateBy(entityId: activeEntity, position: simd_float3(0.0, -inputSystem.mouseDeltaY * 0.01, 0.0))
+                editorController.refreshInspector()
 
-        case (.translate, .z) where inputSystem.mouseActive:
-            translateBy(entityId: activeEntity, position: simd_float3(0.0, 0.0, inputSystem.mouseDeltaY * 0.01))
-            editorController.refreshInspector()
+            case (.translate, .z) where inputSystem.mouseActive:
+                translateBy(entityId: activeEntity, position: simd_float3(0.0, 0.0, inputSystem.mouseDeltaY * 0.01))
+                editorController.refreshInspector()
 
-        // Orientation
-        case (.rotate, .x) where inputSystem.mouseActive:
-            var axisOfRotation = getAxisRotations(entityId: activeEntity)
-            axisOfRotation.x += inputSystem.mouseDeltaY
+            // Orientation
+            case (.rotate, .x) where inputSystem.mouseActive:
+                var axisOfRotation = getAxisRotations(entityId: activeEntity)
+                axisOfRotation.x += inputSystem.mouseDeltaY
 
-            applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
-            editorController.refreshInspector()
+                applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
+                editorController.refreshInspector()
 
-        case (.rotate, .y) where inputSystem.mouseActive:
+            case (.rotate, .y) where inputSystem.mouseActive:
 
-            var axisOfRotation = getAxisRotations(entityId: activeEntity)
-            axisOfRotation.y += inputSystem.mouseDeltaX
+                var axisOfRotation = getAxisRotations(entityId: activeEntity)
+                axisOfRotation.y += inputSystem.mouseDeltaX
 
-            applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
+                applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
 
-            editorController.refreshInspector()
+                editorController.refreshInspector()
 
-        case (.rotate, .z) where inputSystem.mouseActive:
+            case (.rotate, .z) where inputSystem.mouseActive:
 
-            var axisOfRotation = getAxisRotations(entityId: activeEntity)
-            axisOfRotation.z += inputSystem.mouseDeltaY
+                var axisOfRotation = getAxisRotations(entityId: activeEntity)
+                axisOfRotation.z += inputSystem.mouseDeltaY
 
-            applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
-            editorController.refreshInspector()
+                applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
+                editorController.refreshInspector()
 
-        default:
-            break
+            default:
+                break
+            }
         }
     }
 }

@@ -359,6 +359,7 @@ public class InputSystem {
             updateBoundingBoxBuffer(min: t.boundingBox.min, max: t.boundingBox.max)
 
             selectionDelegate?.didSelectEntity(activeEntity)
+            selectionDelegate?.resetActiveAxis()
         } else {
             activeEntity = .invalid
         }
