@@ -192,8 +192,9 @@ public class InputSystem {
         view.addGestureRecognizer(panGesture)
 
         // Click gesture
-        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
-        view.addGestureRecognizer(clickGesture)
+        let rightClickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleRightClick(_:)))
+        view.addGestureRecognizer(rightClickGesture)
+        rightClickGesture.buttonMask = 0x2 // 0x1 = left, 0x2 = right, 0x4 = middle
     }
 
     private func shouldHandleKey(_: NSEvent) -> Bool {
@@ -252,8 +253,8 @@ public class InputSystem {
         handlePanGesture(gestureRecognizer, in: gestureRecognizer.view!)
     }
 
-    @objc func handleClick(_ gestureRecognizer: NSClickGestureRecognizer) {
-        handleClickGesture(gestureRecognizer: gestureRecognizer, in: gestureRecognizer.view!)
+    @objc func handleRightClick(_ gestureRecognizer: NSClickGestureRecognizer) {
+        handleRightClickGesture(gestureRecognizer: gestureRecognizer, in: gestureRecognizer.view!)
     }
 
     public func handleMouseScroll(_ event: NSEvent) {
@@ -311,7 +312,7 @@ public class InputSystem {
         }
     }
 
-    public func handleClickGesture(gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
+    public func handleRightClickGesture(gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
             handleError(.noActiveCamera)
             return
