@@ -372,7 +372,7 @@ public class InputSystem {
             return
         }
 
-        if editorController.activeMode != .none, activeEntity != .invalid {
+        if editorController.activeMode != .none, activeEntity != .invalid, keyState.shiftPressed {
             return
         }
 
