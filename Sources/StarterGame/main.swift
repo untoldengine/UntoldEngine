@@ -6,8 +6,6 @@ import UntoldEngine
 // GameScene is where you would initialize your game and write the game logic.
 class GameScene {
     init() {
-        // assetBasePath = URL(fileURLWithPath: "/Users/haroldserrano/Desktop/MyGreatGame")
-
         // register custom systems. do not delete
         // registerCustomSystem(ballSystemUpdate)
 

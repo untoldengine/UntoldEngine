@@ -254,7 +254,7 @@ public class InputSystem {
     }
 
     @objc func handleRightClick(_ gestureRecognizer: NSClickGestureRecognizer) {
-        handleRightClickGesture(gestureRecognizer: gestureRecognizer, in: gestureRecognizer.view!)
+        doMousePicking(gestureRecognizer: gestureRecognizer, in: gestureRecognizer.view!)
     }
 
     public func handleMouseScroll(_ event: NSEvent) {
@@ -312,7 +312,7 @@ public class InputSystem {
         }
     }
 
-    public func handleRightClickGesture(gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
+    public func doMousePicking(gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
             handleError(.noActiveCamera)
             return
