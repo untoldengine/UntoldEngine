@@ -410,7 +410,9 @@ public func transformQuaternionToEulerAngles(q: simd_quatf) -> (pitch: Float, ya
 
     if test != 1, test != -1 {
         x = atan2(q.vector.y * q.vector.z + q.real * q.vector.x, 0.5 - (q.vector.x * q.vector.x + q.vector.y * q.vector.y))
-        y = asin(-2 * (q.vector.x * q.vector.z - q.real * q.vector.y))
+        let raw = -2 * (q.vector.x * q.vector.z - q.real * q.vector.y)
+        let clamped = simd_clamp(raw, -1.0, 1.0)
+        y = asin(clamped)
         z = atan2(q.vector.x * q.vector.y + q.real * q.vector.z, 0.5 - (q.vector.y * q.vector.y + q.vector.z * q.vector.z))
 
     } else if test == 1 {
