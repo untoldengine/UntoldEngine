@@ -49,7 +49,7 @@ public func createLight(entityId: EntityID, lightType: LightType) {
     }
 
     if lightType == .directional {
-        applyAxisRotations(entityId: entityId, axis: simd_float3(45.0, 45.0, 45.0))
+        applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, 0.0, -45.0))
     }
 
     ["directional": "directional_light_icon_256x256",
