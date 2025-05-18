@@ -71,7 +71,7 @@ final class LightSystemTest: XCTestCase {
         lightComponent.radius = 1.0
         lightComponent.intensity = 1.0
 
-        let lightParameters: LightParameters = getLightParameters()
+        let lightParameters: LightParameters = getDirectionalLightParameters()
 
         let orientationEuler = getLocalOrientationEuler(entityId: entityId)
         let orientation = simd_float3(orientationEuler.pitch, orientationEuler.yaw, orientationEuler.roll)
