@@ -17,7 +17,6 @@ struct SceneData: Codable {
 }
 
 struct LightData: Codable {
-    var type: String = "directional"
     var color: simd_float3 = .one
     var attenuation: simd_float3 = .zero
     var radius: Float = 1.0
@@ -54,7 +53,8 @@ struct EntityData: Codable {
     var hasAnimationComponent: Bool = false
     var hasLocalTransformComponent: Bool = false
     var hasKineticComponent: Bool = false
-    var hasLightComponent: Bool?
+    var hasDirLightComponent: Bool?
+    var hasPointLightComponent: Bool?
     var hasCameraComponent: Bool?
 
     var customComponents: [String: Data]? = nil
@@ -115,15 +115,30 @@ func serializeScene() -> SceneData {
 
         entityData.hasKineticComponent = hasComponent(entityId: entityId, componentType: KineticComponent.self)
 
-        // Light properties
-        let hasLight: Bool = hasComponent(entityId: entityId, componentType: LightComponent.self)
+        // Dir Light properties
+        let hasDirLight: Bool = hasComponent(entityId: entityId, componentType: DirectionalLightComponent.self)
 
-        if hasLight {
-            entityData.hasLightComponent = hasLight
+        if hasDirLight {
+            entityData.hasDirLightComponent = hasDirLight
 
             entityData.lightData = LightData()
 
-            entityData.lightData?.type = getLightType(entityId: entityId)
+            entityData.lightData?.color = getLightColor(entityId: entityId)
+
+            entityData.lightData?.radius = getLightRadius(entityId: entityId)
+
+            entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
+
+            entityData.lightData?.attenuation = getLightAttenuation(entityId: entityId)
+        }
+
+        // Point Light properties
+        let hasPointLight: Bool = hasComponent(entityId: entityId, componentType: PointLightComponent.self)
+
+        if hasPointLight {
+            entityData.hasPointLightComponent = hasPointLight
+
+            entityData.lightData = LightData()
 
             entityData.lightData?.color = getLightColor(entityId: entityId)
 
@@ -289,15 +304,12 @@ func deserializeScene(sceneData: SceneData) {
             physicsComponent.mass = sceneDataEntity.mass
         }
 
-        if sceneDataEntity.hasLightComponent == true {
+        if sceneDataEntity.hasDirLightComponent == true {
             if let light = sceneDataEntity.lightData {
-                let type: String = light.type
                 let color: simd_float3 = light.color
-                let attenuation: simd_float3 = light.attenuation
-                let radius: Float = light.radius
                 let intensity: Float = light.intensity
 
-                createLight(entityId: entityId, lightType: type)
+                createDirLight(entityId: entityId)
 
                 guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
                     handleError(.noLightComponent)
@@ -305,11 +317,36 @@ func deserializeScene(sceneData: SceneData) {
                 }
 
                 lightComponent.color = color
-                lightComponent.radius = radius
                 lightComponent.intensity = intensity
-                lightComponent.attenuation = simd_float4(attenuation.x, attenuation.y, attenuation.z, 1.0)
             }
         }
+
+        if sceneDataEntity.hasPointLightComponent == true {
+            if let light = sceneDataEntity.lightData {
+                let color: simd_float3 = light.color
+                let attenuation: simd_float3 = light.attenuation
+                let radius: Float = light.radius
+                let intensity: Float = light.intensity
+
+                createPointLight(entityId: entityId)
+
+                guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+                    handleError(.noLightComponent)
+                    continue
+                }
+
+                guard let pointlightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
+                    handleError(.noPointLightComponent)
+                    continue
+                }
+
+                lightComponent.color = color
+                lightComponent.intensity = intensity
+                pointlightComponent.radius = radius
+                pointlightComponent.attenuation = simd_float4(attenuation.x, attenuation.y, attenuation.z, 1.0)
+            }
+        }
+
         if sceneDataEntity.hasLocalTransformComponent == true {
             translateTo(entityId: entityId, position: sceneDataEntity.position)
 
