@@ -368,7 +368,7 @@ enum RenderPasses {
         )
 
         // Compute Lighting
-        var lightParams = getLightParameters()
+        var lightParams = getDirectionalLightParameters()
 
         renderEncoder.setFragmentBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(modelPassLightParamsIndex.rawValue))
 

@@ -18,7 +18,7 @@ struct ShadowSystem {
         let height: Float = shadowMaxHeight
 
         // search for the dir light entity
-        let lightComponentID = getComponentId(for: LightComponent.self)
+        let lightComponentID = getComponentId(for: DirectionalLightComponent.self)
         let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
 
         let entities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID], in: scene)
@@ -27,12 +27,8 @@ struct ShadowSystem {
         dirLightSpaceMatrix = nil
 
         for entity in entities {
-            guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
-                handleError(.noLightComponent)
-                continue
-            }
-
-            if lightComponent.lightType != .directional {
+            guard let lightComponent = scene.get(component: DirectionalLightComponent.self, for: entity) else {
+                handleError(.noDirLightComponent)
                 continue
             }
 

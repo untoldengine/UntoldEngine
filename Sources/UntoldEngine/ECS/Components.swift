@@ -132,6 +132,7 @@ public enum LightType: String, CaseIterable {
     case directional
     case point
     case area
+    case spotlight
 }
 
 public class LightTexture {
@@ -144,9 +145,34 @@ public class LightComponent: Component {
     var lightType: LightType?
 
     var color: simd_float3 = .one
-    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // constant, linera, quadratic -> (x, y, z, max range)
     var intensity: Float = 1.0
+
+    public required init() {}
+}
+
+public class DirectionalLightComponent: Component {
+    public required init() {}
+}
+
+public class PointLightComponent: Component {
+    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // (constant, linear, quadratic)->x,y,z
     var radius: Float = 1.0
+
+    public required init() {}
+}
+
+public class SpotLightComponent: Component {
+    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0)
+    var radius: Float = 1.0
+    var innerCone: Float = 20.0
+    var outerCone: Float = 30.0
+    var direction: simd_float3 = .init(0, -1, 0)
+
+    public required init() {}
+}
+
+public class AreaLightComponent: Component {
+    var size: simd_float2 = .init(1.0, 1.0)
 
     public required init() {}
 }

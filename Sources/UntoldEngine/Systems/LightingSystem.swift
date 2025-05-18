@@ -36,8 +36,36 @@ public struct AreaLight {
     // var twoSided: Bool = false                               // Whether the light emits from both sides
 }
 
-public func createLight(entityId: EntityID, lightType: LightType) {
+public func createDirLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
+    registerComponent(entityId: entityId, componentType: DirectionalLightComponent.self)
+    registerTransformComponent(entityId: entityId)
+    registerSceneGraphComponent(entityId: entityId)
+
+    setEntityMesh(entityId: entityId, filename: "dirLightMesh", withExtension: "usdc")
+
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    lightComponent.lightType = .directional
+
+    applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, 0.0, -45.0))
+
+    do {
+        let texture = try loadTexture(device: renderInfo.device, textureName: "directional_light_icon_256x256", withExtension: "png")
+
+        lightComponent.texture.directional = texture
+
+    } catch {
+        handleError(.textureMissing)
+    }
+}
+
+public func createPointLight(entityId: EntityID) {
+    registerComponent(entityId: entityId, componentType: LightComponent.self)
+    registerComponent(entityId: entityId, componentType: PointLightComponent.self)
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
@@ -48,54 +76,28 @@ public func createLight(entityId: EntityID, lightType: LightType) {
         return
     }
 
-    if lightType == .directional {
-        applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, 0.0, -45.0))
+    lightComponent.lightType = .point
+
+    do {
+        let texture = try loadTexture(device: renderInfo.device, textureName: "point_light_icon_256x256", withExtension: "png")
+
+        lightComponent.texture.point = texture
+
+    } catch {
+        handleError(.textureMissing)
     }
-
-    ["directional": "directional_light_icon_256x256",
-     "point": "point_light_icon_256x256"]
-        .forEach { type, name in
-            do {
-                let texture = try loadTexture(device: renderInfo.device, textureName: name, withExtension: "png")
-                switch type {
-                case "directional":
-                    lightComponent.texture.directional = texture
-                case "point":
-                    lightComponent.texture.point = texture
-                default:
-                    break
-                }
-            } catch {
-                handleError(.textureMissing)
-            }
-        }
-
-    lightComponent.lightType = lightType
 }
 
-public func createLight(entityId: EntityID, lightType: String) {
-    var type: LightType = .directional
-
-    if lightType == "directional" {
-        type = .directional
-    } else if lightType == "point" {
-        type = .point
-    } else if lightType == "area" {
-        type = .area
-    }
-
-    createLight(entityId: entityId, lightType: type)
-}
-
-func getLightParameters() -> LightParameters {
+func getDirectionalLightParameters() -> LightParameters {
     var lightDirection = simd_float3(0.0, 1.0, 0.0)
     var lightIntensity: Float = 0.0
     var lightColor = simd_float3(0.0, 0.0, 0.0)
 
     let lightComponentID = getComponentId(for: LightComponent.self)
+    let dirLightComponentID = getComponentId(for: DirectionalLightComponent.self)
     let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
 
-    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID], in: scene)
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, dirLightComponentID, localTransformComponentID], in: scene)
 
     for entity in lightEntities {
         guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
@@ -103,7 +105,8 @@ func getLightParameters() -> LightParameters {
             continue
         }
 
-        if lightComponent.lightType != .directional {
+        guard scene.get(component: DirectionalLightComponent.self, for: entity) != nil else {
+            handleError(.noDirLightComponent)
             continue
         }
 
@@ -147,7 +150,22 @@ func updateLightAttenuation(entityId: EntityID, attenuation: simd_float3) {
         return
     }
 
-    lightComponent.attenuation = simd_float4(attenuation.x, attenuation.y, attenuation.z, 0.0)
+    if lightComponent.lightType == .point {
+        guard let pointLightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
+            handleError(.noPointLightComponent)
+            return
+        }
+
+        pointLightComponent.attenuation = simd_float4(attenuation.x, attenuation.y, attenuation.z, 0.0)
+
+    } else if lightComponent.lightType == .spotlight {
+        guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+            handleError(.noSpotLightComponent)
+            return
+        }
+
+        spotLightComponent.attenuation = simd_float4(attenuation.x, attenuation.y, attenuation.z, 0.0)
+    }
 }
 
 func getLightAttenuation(entityId: EntityID) -> simd_float3 {
@@ -156,7 +174,24 @@ func getLightAttenuation(entityId: EntityID) -> simd_float3 {
         return .zero
     }
 
-    return simd_float3(lightComponent.attenuation.x, lightComponent.attenuation.y, lightComponent.attenuation.z)
+    if lightComponent.lightType == .point {
+        guard let pointLightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
+            handleError(.noPointLightComponent)
+            return .zero
+        }
+
+        return simd_float3(pointLightComponent.attenuation.x, pointLightComponent.attenuation.y, pointLightComponent.attenuation.z)
+
+    } else if lightComponent.lightType == .spotlight {
+        guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+            handleError(.noSpotLightComponent)
+            return .zero
+        }
+
+        return simd_float3(spotLightComponent.attenuation.x, spotLightComponent.attenuation.y, spotLightComponent.attenuation.z)
+    }
+
+    return .zero
 }
 
 func updateLightIntensity(entityId: EntityID, intensity: Float) {
@@ -183,7 +218,22 @@ func updateLightRadius(entityId: EntityID, radius: Float) {
         return
     }
 
-    lightComponent.radius = radius
+    if lightComponent.lightType == .point {
+        guard let pointLightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
+            handleError(.noPointLightComponent)
+            return
+        }
+
+        pointLightComponent.radius = radius
+
+    } else if lightComponent.lightType == .spotlight {
+        guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+            handleError(.noSpotLightComponent)
+            return
+        }
+
+        spotLightComponent.radius = radius
+    }
 }
 
 func getLightRadius(entityId: EntityID) -> Float {
@@ -192,23 +242,36 @@ func getLightRadius(entityId: EntityID) -> Float {
         return 0.0
     }
 
-    return lightComponent.radius
+    if lightComponent.lightType == .point {
+        guard let pointLightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
+            handleError(.noPointLightComponent)
+            return 0.0
+        }
+
+        return pointLightComponent.radius
+
+    } else if lightComponent.lightType == .spotlight {
+        guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+            handleError(.noSpotLightComponent)
+            return 0.0
+        }
+
+        return spotLightComponent.radius
+    }
+
+    return 0.0
 }
 
 func getPointLightCount() -> Int {
-    let lightComponentID = getComponentId(for: LightComponent.self)
+    let lightComponentID = getComponentId(for: PointLightComponent.self)
 
     let lightEntities = queryEntitiesWithComponentIds([lightComponentID], in: scene)
 
     var pointCount = 0
 
     for entity in lightEntities {
-        guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
+        guard scene.get(component: PointLightComponent.self, for: entity) != nil else {
             handleError(.noLightComponent)
-            continue
-        }
-
-        if lightComponent.lightType != .point {
             continue
         }
 
@@ -222,9 +285,10 @@ func getPointLights() -> [PointLight] {
     var pointLights: [PointLight] = []
 
     let lightComponentID = getComponentId(for: LightComponent.self)
+    let pointLightComponentID = getComponentId(for: PointLightComponent.self)
     let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
 
-    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID], in: scene)
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID, pointLightComponentID], in: scene)
 
     for entity in lightEntities {
         guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
@@ -232,21 +296,22 @@ func getPointLights() -> [PointLight] {
             continue
         }
 
-        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entity) else {
-            handleError(.noLocalTransformComponent)
+        guard let pointLightComponent = scene.get(component: PointLightComponent.self, for: entity) else {
+            handleError(.noPointLightComponent)
             continue
         }
 
-        if lightComponent.lightType != .point {
+        guard scene.get(component: LocalTransformComponent.self, for: entity) != nil else {
+            handleError(.noLocalTransformComponent)
             continue
         }
 
         var pointLight = PointLight()
         pointLight.position = getLocalPosition(entityId: entity)
         pointLight.color = lightComponent.color
-        pointLight.attenuation = lightComponent.attenuation
+        pointLight.attenuation = pointLightComponent.attenuation
         pointLight.intensity = lightComponent.intensity
-        pointLight.radius = lightComponent.radius
+        pointLight.radius = pointLightComponent.radius
 
         pointLights.append(pointLight)
     }

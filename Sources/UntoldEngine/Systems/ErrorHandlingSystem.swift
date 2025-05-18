@@ -65,6 +65,10 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case noMeshAssigned = 1056
     case noAnimationClip = 1057
     case invalidDeltaTime = 1058
+    case noDirLightComponent = 1059
+    case noPointLightComponent = 1060
+    case noSpotLightComponent = 1061
+    case noAreaLightComponent = 1062
 
     public var description: String {
         switch self {
@@ -182,6 +186,14 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Animation clip with name exists for"
         case .invalidDeltaTime:
             return "deltaTime is zero or negative, skipping movement for entity"
+        case .noDirLightComponent:
+            return "Does not have a Directional Light Component"
+        case .noPointLightComponent:
+            return "Does not have a Point Light Component"
+        case .noSpotLightComponent:
+            return "Does not have a Spot Light Component"
+        case .noAreaLightComponent:
+            return "Does not have a Area Light Component"
         }
     }
 }
