@@ -221,42 +221,75 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             }
         )
     }),
-    ComponentOption_Editor(id: getComponentId(for: LightComponent.self), name: "Light Component", type: LightComponent.self, view: { selectedId, _, refreshView in
+    ComponentOption_Editor(id: getComponentId(for: DirectionalLightComponent.self), name: "Dir Light Component", type: DirectionalLightComponent.self, view: { selectedId, _, refreshView in
         AnyView(
             VStack {
                 if let entityId = selectedId {
                     Text("Light Property")
 
-                    if hasComponent(entityId: entityId, componentType: LightComponent.self) {
+                    if hasComponent(entityId: entityId, componentType: DirectionalLightComponent.self) {
+                        VStack {
+                            let color: simd_float3 = getLightColor(entityId: entityId)
+                            // let attenuation: simd_float3 = getLightAttenuation(entityId: entityId)
+                            let intensity: Float = getLightIntensity(entityId: entityId)
+                            // let radius: Float = getLightRadius(entityId: entityId)
+
+                            // let lightTypes = ["directional", "point"]
+
+                            // let currentLightType = getLightType(entityId: entityId)
+
+                            TextInputVectorView(label: "Color", value: Binding(
+                                get: { color },
+                                set: { newColor in
+                                    updateLightColor(entityId: entityId, color: newColor)
+                                    refreshView()
+
+                                }))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+//                            TextInputVectorView(label: "Attenuation", value: Binding(
+//                                get: { getLightAttenuation(entityId: entityId) },
+//                                set: { newAttenuation in
+//                                    updateLightAttenuation(entityId: entityId, attenuation: newAttenuation)
+//                                    refreshView()
+//
+//                                }))
+//                                .frame(maxWidth: .infinity, alignment: .leading)
+                            // HStack {
+                            TextInputNumberView(label: "Intensity", value: Binding(
+                                get: { intensity },
+                                set: { newIntensity in
+                                    updateLightIntensity(entityId: entityId, intensity: newIntensity)
+                                    refreshView()
+                                }))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+//                                TextInputNumberView(label: "Radius", value: Binding(
+//                                    get: { radius },
+//                                    set: { newRadius in
+//                                        updateLightRadius(entityId: entityId, radius: newRadius)
+//                                        refreshView()
+//                                    }))
+//                                    .frame(maxWidth: .infinity, alignment: .leading)
+//                            }
+                        }
+                    }
+                }
+            }
+        )
+    }),
+    ComponentOption_Editor(id: getComponentId(for: PointLightComponent.self), name: "Point Light Component", type: PointLightComponent.self, view: { selectedId, _, refreshView in
+        AnyView(
+            VStack {
+                if let entityId = selectedId {
+                    Text("Light Property")
+
+                    if hasComponent(entityId: entityId, componentType: PointLightComponent.self) {
                         VStack {
                             let color: simd_float3 = getLightColor(entityId: entityId)
                             let attenuation: simd_float3 = getLightAttenuation(entityId: entityId)
                             let intensity: Float = getLightIntensity(entityId: entityId)
                             let radius: Float = getLightRadius(entityId: entityId)
-
-                            let lightTypes = ["directional", "point"]
-
-                            let currentLightType = getLightType(entityId: entityId)
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Light Type")
-                                    .font(.headline) // optional styling
-                                Picker("", selection: Binding(
-                                    get: { currentLightType },
-                                    set: { newType in
-                                        if let lightTypeEnum = LightType(rawValue: newType) {
-                                            updateLightType(entityId: entityId, type: lightTypeEnum)
-                                            refreshView()
-                                        }
-                                    }
-                                )) {
-                                    ForEach(lightTypes, id: \.self) { type in
-                                        Text(type.capitalized).tag(type)
-                                    }
-                                }
-                                .pickerStyle(SegmentedPickerStyle())
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
 
                             TextInputVectorView(label: "Color", value: Binding(
                                 get: { color },
@@ -495,9 +528,10 @@ struct InspectorView: View {
 
             component.onAdd?(entityId)
 
-            if key == ObjectIdentifier(LightComponent.self) {
-                createLight(entityId: entityId, lightType: .directional)
-
+            if key == ObjectIdentifier(DirectionalLightComponent.self) {
+                createDirLight(entityId: entityId)
+            } else if key == ObjectIdentifier(PointLightComponent.self) {
+                createPointLight(entityId: entityId)
             } else if key == ObjectIdentifier(KineticComponent.self) {
                 setEntityKinetics(entityId: entityId)
             } else if key == ObjectIdentifier(CameraComponent.self) {
