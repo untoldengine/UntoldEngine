@@ -230,13 +230,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     if hasComponent(entityId: entityId, componentType: DirectionalLightComponent.self) {
                         VStack {
                             let color: simd_float3 = getLightColor(entityId: entityId)
-                            // let attenuation: simd_float3 = getLightAttenuation(entityId: entityId)
                             let intensity: Float = getLightIntensity(entityId: entityId)
-                            // let radius: Float = getLightRadius(entityId: entityId)
-
-                            // let lightTypes = ["directional", "point"]
-
-                            // let currentLightType = getLightType(entityId: entityId)
 
                             TextInputVectorView(label: "Color", value: Binding(
                                 get: { color },
@@ -247,15 +241,6 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                 }))
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
-//                            TextInputVectorView(label: "Attenuation", value: Binding(
-//                                get: { getLightAttenuation(entityId: entityId) },
-//                                set: { newAttenuation in
-//                                    updateLightAttenuation(entityId: entityId, attenuation: newAttenuation)
-//                                    refreshView()
-//
-//                                }))
-//                                .frame(maxWidth: .infinity, alignment: .leading)
-                            // HStack {
                             TextInputNumberView(label: "Intensity", value: Binding(
                                 get: { intensity },
                                 set: { newIntensity in
@@ -263,15 +248,6 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                     refreshView()
                                 }))
                                 .frame(maxWidth: .infinity, alignment: .leading)
-
-//                                TextInputNumberView(label: "Radius", value: Binding(
-//                                    get: { radius },
-//                                    set: { newRadius in
-//                                        updateLightRadius(entityId: entityId, radius: newRadius)
-//                                        refreshView()
-//                                    }))
-//                                    .frame(maxWidth: .infinity, alignment: .leading)
-//                            }
                         }
                     }
                 }
