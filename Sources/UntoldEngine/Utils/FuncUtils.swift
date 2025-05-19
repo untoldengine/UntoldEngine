@@ -497,3 +497,49 @@ func getMateralTextureURL(entityId: EntityID, type: String) -> URL? {
     default: return nil
     }
 }
+
+func getMaterialRoughness(entityId: EntityID) -> Float {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return .zero
+    }
+
+    guard let material = renderComponent.mesh.first?.submeshes.first?.material else {
+        return .zero
+    }
+
+    return material.roughnessValue
+}
+
+func updateMaterialRoughness(entityId: EntityID, roughness: Float) {
+    guard var renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
+
+    material.roughnessValue = roughness
+    renderComponent.mesh[0].submeshes[0].material = material
+}
+
+func getMaterialMetallic(entityId: EntityID) -> Float {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return .zero
+    }
+
+    guard let material = renderComponent.mesh.first?.submeshes.first?.material else {
+        return .zero
+    }
+
+    return material.metallicValue
+}
+
+func updateMaterialMetallic(entityId: EntityID, metallic: Float) {
+    guard var renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
+
+    material.metallicValue = metallic
+    renderComponent.mesh[0].submeshes[0].material = material
+}

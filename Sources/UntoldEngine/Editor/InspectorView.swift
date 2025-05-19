@@ -95,8 +95,9 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     .cornerRadius(8)
 
                     if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
-                        Text("Material Preview")
-                            .font(.subheadline)
+                        Text("Material Properties")
+                            .font(.headline)
+                            .padding(.bottom, 4)
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
@@ -113,6 +114,63 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                     }
                                 }
                             }
+                        }
+                        Divider()
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(alignment: .center, spacing: 24) {
+                                // Base Color Picker
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Base Color")
+                                        .font(.caption)
+                                    // .foregroundColor(.secondary)
+
+                                    ColorPicker("", selection: Binding(
+                                        get: { colorFromSimd(getMaterialBaseColor(entityId: entityId)) },
+                                        set: { newColor in updateMaterialColor(entityId: entityId, color: newColor) }
+                                    ))
+                                    .labelsHidden()
+                                }
+
+                                // Roughness Input
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Roughness")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+
+                                    TextInputNumberView(
+                                        label: "",
+                                        value: Binding(
+                                            get: { getMaterialRoughness(entityId: entityId) },
+                                            set: { newValue in
+                                                updateMaterialRoughness(entityId: entityId, roughness: newValue)
+                                                refreshView()
+                                            }
+                                        )
+                                    )
+                                    .frame(width: 80)
+                                }
+
+                                // Metallic Input
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Metallic")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+
+                                    TextInputNumberView(
+                                        label: "",
+                                        value: Binding(
+                                            get: { getMaterialMetallic(entityId: entityId) },
+                                            set: { newValue in
+                                                updateMaterialMetallic(entityId: entityId, metallic: newValue)
+                                                refreshView()
+                                            }
+                                        )
+                                    )
+                                    .frame(width: 80)
+                                }
+                            }
+                            .padding()
+                            .cornerRadius(8)
                         }
                     }
                 }
@@ -520,4 +578,47 @@ struct InspectorView: View {
         selectionManager.objectWillChange.send()
         sceneGraphModel.refreshHierarchy()
     }
+}
+
+func colorFromSimd(_ vec: simd_float4) -> Color {
+    Color(red: Double(vec.x), green: Double(vec.y), blue: Double(vec.z), opacity: Double(vec.w))
+}
+
+func simdFromColor(_ color: Color) -> simd_float4 {
+    var red: CGFloat = 0
+    var green: CGFloat = 0
+    var blue: CGFloat = 0
+    var alpha: CGFloat = 1
+
+    #if os(macOS)
+        NSColor(color).usingColorSpace(.deviceRGB)?.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+    #else
+        UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+    #endif
+
+    return simd_float4(Float(red), Float(green), Float(blue), Float(alpha))
+}
+
+func updateMaterialColor(entityId: EntityID, color: Color) {
+    // Convert SwiftUI.Color to internal format and update material
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
+
+    material.baseColorValue = simdFromColor(color)
+    renderComponent.mesh[0].submeshes[0].material = material
+}
+
+func getMaterialBaseColor(entityId: EntityID) -> simd_float4 {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return .zero
+    }
+
+    guard let material = renderComponent.mesh.first?.submeshes.first?.material else {
+        return .zero
+    }
+
+    return material.baseColorValue
 }
