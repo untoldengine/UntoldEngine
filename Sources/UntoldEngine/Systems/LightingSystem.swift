@@ -51,7 +51,7 @@ public func createDirLight(entityId: EntityID) {
 
     lightComponent.lightType = .directional
 
-    applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, 0.0, -45.0))
+    applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, -45.0, 0.0))
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "directional_light_icon_256x256", withExtension: "png")
@@ -110,10 +110,16 @@ func getDirectionalLightParameters() -> LightParameters {
             continue
         }
 
-        let orientationEuler = getLocalOrientationEuler(entityId: entity)
-        let orientation = simd_float3(orientationEuler.pitch, orientationEuler.yaw, orientationEuler.roll)
+        let axisOfRotation = getAxisRotations(entityId: entity)
 
-        lightDirection = orientation
+        let rotX = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.x), axis: [1, 0, 0])
+        let rotY = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.y), axis: [0, 1, 0])
+        let rotZ = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.z), axis: [0, 0, 1])
+
+        let rotationMatrix = rotZ * rotY * rotX
+        let forward = normalize(simd_mul(rotationMatrix, simd_float4(0, 0, 1, 0)))
+
+        lightDirection = simd_float3(forward.x, forward.y, forward.z)
         lightIntensity = lightComponent.intensity
         lightColor = lightComponent.color
     }
