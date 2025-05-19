@@ -17,9 +17,9 @@ public struct DirectionalLight {
 }
 
 public struct PointLight {
+    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // constant, linera, quadratic -> (x, y, z, max range)
     var position: simd_float3 = .init(0.0, 1.0, 0.0)
     var color: simd_float3 = .init(1.0, 0.0, 0.0)
-    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // constant, linera, quadratic -> (x, y, z, max range)
     var intensity: Float = 1.0
     var radius: Float = 1.0
 }

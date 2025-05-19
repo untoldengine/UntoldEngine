@@ -34,9 +34,9 @@ typedef struct
 
 
 typedef struct{
-    simd_float4 position;
-    simd_float4 color;
     simd_float4 attenuation;
+    simd_float3 position;
+    simd_float3 color;
     float intensity;
     float radius;
 }PointLightUniform;
