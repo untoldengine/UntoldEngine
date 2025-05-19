@@ -51,7 +51,7 @@ public func createDirLight(entityId: EntityID) {
 
     lightComponent.lightType = .directional
 
-    applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, -45.0, 0.0))
+    applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, 45.0, 0.0))
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "directional_light_icon_256x256", withExtension: "png")
