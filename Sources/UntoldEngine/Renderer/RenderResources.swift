@@ -54,6 +54,9 @@ public struct BufferResources {
     // Point Lights
     var pointLightBuffer: MTLBuffer?
 
+    // Spot lights
+    var spotLightBuffer: MTLBuffer?
+
     var gridUniforms: MTLBuffer?
     var gridVertexBuffer: MTLBuffer?
 

@@ -397,6 +397,7 @@ enum RenderPasses {
             index: Int(modelPassIBLParamIndex.rawValue)
         )
 
+        // point lights
         if let pointLightBuffer = bufferResources.pointLightBuffer {
             let pointLightArray = Array(getPointLights())
 
@@ -424,6 +425,35 @@ enum RenderPasses {
             index: Int(modelPassPointLightsCountIndex.rawValue)
         )
 
+        // spot light
+        if let spotLightBuffer = bufferResources.spotLightBuffer {
+            let spotLightArray = Array(getSpotLights())
+
+            spotLightArray.withUnsafeBufferPointer { bufferPointer in
+                guard let baseAddress = bufferPointer.baseAddress else { return }
+                spotLightBuffer.contents().copyMemory(
+                    from: baseAddress,
+                    byteCount: MemoryLayout<SpotLight>.stride * getSpotLightCount()
+                )
+            }
+
+        } else {
+            handleError(.bufferAllocationFailed, bufferResources.spotLightBuffer!.label!)
+            return
+        }
+
+        renderEncoder.setFragmentBuffer(
+            bufferResources.spotLightBuffer, offset: 0, index: Int(modelPassSpotLightsIndex.rawValue)
+        )
+
+        var spotLightCount: Int = getSpotLightCount()
+
+        renderEncoder.setFragmentBytes(
+            &spotLightCount, length: MemoryLayout<Int>.stride,
+            index: Int(modelPassSpotLightsCountIndex.rawValue)
+        )
+
+        // shadow map
         renderEncoder.setFragmentTexture(
             textureResources.shadowMap, index: Int(modelPassShadowTextureIndex.rawValue)
         )
@@ -815,6 +845,8 @@ enum RenderPasses {
                 renderEncoder.setFragmentTexture(lightComponent.texture.directional, index: 0)
             case .point:
                 renderEncoder.setFragmentTexture(lightComponent.texture.point, index: 0)
+            case .spotlight:
+                renderEncoder.setFragmentTexture(lightComponent.texture.spot, index: 0)
             default:
                 break
             }

@@ -24,6 +24,16 @@ public struct PointLight {
     var radius: Float = 1.0
 }
 
+public struct SpotLight {
+    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // constant, linera, quadratic -> (x, y, z, max range)
+    var direction: simd_float3 = .init(1.0, 1.0, 1.0)
+    var position: simd_float3 = .init(0.0, 1.0, 0.0)
+    var color: simd_float3 = .init(1.0, 0.0, 0.0)
+    var intensity: Float = 1.0
+    var innerCone: Float = 0.0
+    var outerCone: Float = 0.0
+}
+
 public struct AreaLight {
     var position: simd_float3 = .init(0.0, 0.0, 0.0) // Center position of the area light
     var color: simd_float3 = .init(1.0, 1.0, 1.0) // Light color
@@ -82,6 +92,31 @@ public func createPointLight(entityId: EntityID) {
         let texture = try loadTexture(device: renderInfo.device, textureName: "point_light_icon_256x256", withExtension: "png")
 
         lightComponent.texture.point = texture
+
+    } catch {
+        handleError(.textureMissing)
+    }
+}
+
+public func createSpotLight(entityId: EntityID) {
+    registerComponent(entityId: entityId, componentType: LightComponent.self)
+    registerComponent(entityId: entityId, componentType: SpotLightComponent.self)
+    registerTransformComponent(entityId: entityId)
+    registerSceneGraphComponent(entityId: entityId)
+
+    setEntityMesh(entityId: entityId, filename: "spotlightmesh", withExtension: "usdc")
+
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    lightComponent.lightType = .spotlight
+
+    do {
+        let texture = try loadTexture(device: renderInfo.device, textureName: "spot_light_icon_256x256", withExtension: "png")
+
+        lightComponent.texture.spot = texture
 
     } catch {
         handleError(.textureMissing)
@@ -287,6 +322,25 @@ func getPointLightCount() -> Int {
     return pointCount
 }
 
+func getSpotLightCount() -> Int {
+    let lightComponentID = getComponentId(for: SpotLightComponent.self)
+
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID], in: scene)
+
+    var spotPointCount = 0
+
+    for entity in lightEntities {
+        guard scene.get(component: SpotLightComponent.self, for: entity) != nil else {
+            handleError(.noSpotLightComponent)
+            continue
+        }
+
+        spotPointCount += 1
+    }
+
+    return spotPointCount
+}
+
 func getPointLights() -> [PointLight] {
     var pointLights: [PointLight] = []
 
@@ -347,4 +401,90 @@ func updateLightType(entityId: EntityID, type: LightType) {
     }
 
     lightComponent.lightType = type
+}
+
+func getSpotLights() -> [SpotLight] {
+    var spotLights: [SpotLight] = []
+
+    let lightComponentID = getComponentId(for: LightComponent.self)
+    let spotLightComponentID = getComponentId(for: SpotLightComponent.self)
+    let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
+
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID, spotLightComponentID], in: scene)
+
+    for entity in lightEntities {
+        guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
+            handleError(.noLightComponent)
+            continue
+        }
+
+        guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entity) else {
+            handleError(.noSpotLightComponent)
+            continue
+        }
+
+        guard scene.get(component: LocalTransformComponent.self, for: entity) != nil else {
+            handleError(.noLocalTransformComponent)
+            continue
+        }
+
+        // get orientation
+        let axisOfRotation = getAxisRotations(entityId: entity)
+
+        let rotX = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.x), axis: [1, 0, 0])
+        let rotY = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.y), axis: [0, 1, 0])
+        let rotZ = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.z), axis: [0, 0, 1])
+
+        let rotationMatrix = rotZ * rotY * rotX
+        let forward = normalize(simd_mul(rotationMatrix, simd_float4(0, 0, -1, 0)))
+
+        var spotLight = SpotLight()
+        spotLight.direction = simd_float3(forward.x, forward.y, forward.z)
+        spotLight.position = getLocalPosition(entityId: entity)
+        spotLight.color = lightComponent.color
+        spotLight.attenuation = spotLightComponent.attenuation
+        spotLight.intensity = lightComponent.intensity
+        spotLight.innerCone = degreesToRadians(degrees: spotLightComponent.innerCone)
+        spotLight.outerCone = degreesToRadians(degrees: spotLightComponent.outerCone)
+
+        spotLights.append(spotLight)
+    }
+
+    return spotLights
+}
+
+func getLightInnerCone(entityId: EntityID) -> Float {
+    guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+        handleError(.noSpotLightComponent)
+        return 0.0
+    }
+
+    return spotLightComponent.innerCone
+}
+
+func getLightOuterCone(entityId: EntityID) -> Float {
+    guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+        handleError(.noSpotLightComponent)
+        return 0.0
+    }
+
+    return spotLightComponent.outerCone
+}
+
+func updateLightInnerCone(entityId: EntityID, innerCone: Float) {
+    guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+        handleError(.noSpotLightComponent)
+        return
+    }
+
+    spotLightComponent.innerCone = innerCone
+}
+
+func updateLightOuterCone(entityId: EntityID, outerCone: Float) {
+    guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+        handleError(.noSpotLightComponent)
+        return
+    }
+
+    spotLightComponent.outerCone = outerCone
 }

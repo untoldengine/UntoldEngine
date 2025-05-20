@@ -138,6 +138,7 @@ public enum LightType: String, CaseIterable {
 public class LightTexture {
     var directional: MTLTexture?
     var point: MTLTexture?
+    var spot: MTLTexture?
 }
 
 public class LightComponent: Component {
@@ -164,8 +165,8 @@ public class PointLightComponent: Component {
 public class SpotLightComponent: Component {
     var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0)
     var radius: Float = 1.0
-    var innerCone: Float = 20.0
-    var outerCone: Float = 30.0
+    var innerCone: Float = 5.0
+    var outerCone: Float = 10.0
     var direction: simd_float3 = .init(0, -1, 0)
 
     public required init() {}

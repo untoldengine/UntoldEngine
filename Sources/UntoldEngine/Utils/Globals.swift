@@ -25,7 +25,7 @@ let MAX_COMPONENTS = 64
 let MAX_ENTITIES = 1000
 
 var maxNumPointLights: Int = 100
-
+var maxNumSpotLights: Int = 100
 public var scene: Scene = .init()
 public var inputSystem = InputSystem()
 var shadowSystem: ShadowSystem!

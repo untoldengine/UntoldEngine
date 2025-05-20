@@ -234,6 +234,15 @@ func initBufferResources() {
         )
     }
 
+    // Initialize Spot Light Buffer
+    func initSpotLightBuffer() {
+        bufferResources.spotLightBuffer = createEmptyBuffer(
+            device: renderInfo.device,
+            length: MemoryLayout<SpotLight>.stride * maxNumSpotLights,
+            label: "Spot Lights"
+        )
+    }
+
     // Initialize Bounding Box Buffer
     func initBoundingBoxBuffer() {
         bufferResources.boundingBoxBuffer = createEmptyBuffer(
@@ -259,6 +268,7 @@ func initBufferResources() {
     initGridBuffers()
     initCompositeBuffers()
     initPointLightBuffer()
+    initSpotLightBuffer()
     initBoundingBoxBuffer()
     initRTXAccumulationBuffer()
 }

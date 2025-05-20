@@ -41,6 +41,16 @@ typedef struct{
     float radius;
 }PointLightUniform;
 
+typedef struct{
+    simd_float4 attenuation;
+    simd_float3 direction;
+    simd_float3 position;
+    simd_float3 color;
+    float intensity;
+    float innerCone;
+    float outerCone;
+}SpotLightUniform;
+
 typedef enum{
     gridPassPositionIndex,
     gridPassUniformIndex,
@@ -72,7 +82,9 @@ typedef enum{
     modelPassIBLParamIndex,
     modelPassIBLRotationAngleIndex,
     modelPassJointTransformIndex,
-    modelPassHasArmature
+    modelPassHasArmature,
+    modelPassSpotLightsIndex,
+    modelPassSpotLightsCountIndex
 }ModelPassBufferIndices;
 
 typedef enum{
