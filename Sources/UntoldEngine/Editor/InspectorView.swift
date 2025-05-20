@@ -365,6 +365,67 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             }
         )
     }),
+    ComponentOption_Editor(id: getComponentId(for: SpotLightComponent.self), name: "Spot Light Component", type: SpotLightComponent.self, view: { selectedId, _, refreshView in
+        AnyView(
+            VStack {
+                if let entityId = selectedId {
+                    Text("Light Property")
+
+                    if hasComponent(entityId: entityId, componentType: SpotLightComponent.self) {
+                        VStack {
+                            let color: simd_float3 = getLightColor(entityId: entityId)
+                            let attenuation: simd_float3 = getLightAttenuation(entityId: entityId)
+                            let intensity: Float = getLightIntensity(entityId: entityId)
+                            let innerCone: Float = getLightInnerCone(entityId: entityId)
+                            let outerCone: Float = getLightOuterCone(entityId: entityId)
+                            TextInputVectorView(label: "Color", value: Binding(
+                                get: { color },
+                                set: { newColor in
+                                    updateLightColor(entityId: entityId, color: newColor)
+                                    refreshView()
+
+                                }))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            TextInputVectorView(label: "Attenuation", value: Binding(
+                                get: { getLightAttenuation(entityId: entityId) },
+                                set: { newAttenuation in
+                                    updateLightAttenuation(entityId: entityId, attenuation: newAttenuation)
+                                    refreshView()
+
+                                }))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            HStack {
+                                TextInputNumberView(label: "Intensity", value: Binding(
+                                    get: { intensity },
+                                    set: { newIntensity in
+                                        updateLightIntensity(entityId: entityId, intensity: newIntensity)
+                                        refreshView()
+                                    }))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                TextInputNumberView(label: "Inner Cone", value: Binding(
+                                    get: { innerCone },
+                                    set: { newInnerCone in
+                                        updateLightInnerCone(entityId: entityId, innerCone: newInnerCone)
+                                        refreshView()
+                                    }))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                TextInputNumberView(label: "Outer Cone", value: Binding(
+                                    get: { outerCone },
+                                    set: { newOuterCone in
+                                        updateLightOuterCone(entityId: entityId, outerCone: newOuterCone)
+                                        refreshView()
+                                    }))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    }
+                }
+            }
+        )
+    }),
     ComponentOption_Editor(id: getComponentId(for: CameraComponent.self), name: "Camera Component", type: CameraComponent.self, view: { selectedId, _, refreshView in
         AnyView(
             VStack {
@@ -566,6 +627,8 @@ struct InspectorView: View {
                 createDirLight(entityId: entityId)
             } else if key == ObjectIdentifier(PointLightComponent.self) {
                 createPointLight(entityId: entityId)
+            } else if key == ObjectIdentifier(SpotLightComponent.self) {
+                createSpotLight(entityId: entityId)
             } else if key == ObjectIdentifier(KineticComponent.self) {
                 setEntityKinetics(entityId: entityId)
             } else if key == ObjectIdentifier(CameraComponent.self) {
