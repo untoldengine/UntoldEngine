@@ -321,8 +321,8 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     if hasComponent(entityId: entityId, componentType: PointLightComponent.self) {
                         VStack {
                             let color: simd_float3 = getLightColor(entityId: entityId)
-                            let attenuation: simd_float3 = getLightAttenuation(entityId: entityId)
                             let intensity: Float = getLightIntensity(entityId: entityId)
+                            let falloff: Float = getLightFalloff(entityId: entityId)
                             let radius: Float = getLightRadius(entityId: entityId)
 
                             TextInputVectorView(label: "Color", value: Binding(
@@ -334,19 +334,19 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                 }))
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                            TextInputVectorView(label: "Attenuation", value: Binding(
-                                get: { getLightAttenuation(entityId: entityId) },
-                                set: { newAttenuation in
-                                    updateLightAttenuation(entityId: entityId, attenuation: newAttenuation)
-                                    refreshView()
-
-                                }))
-                                .frame(maxWidth: .infinity, alignment: .leading)
                             HStack {
-                                TextInputNumberView(label: "Intensity", value: Binding(
+                                TextInputNumberView(label: "Brighness", value: Binding(
                                     get: { intensity },
                                     set: { newIntensity in
                                         updateLightIntensity(entityId: entityId, intensity: newIntensity)
+                                        refreshView()
+                                    }))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                TextInputNumberView(label: "Falloff", value: Binding(
+                                    get: { falloff },
+                                    set: { newFalloff in
+                                        updateLightFalloff(entityId: entityId, falloff: newFalloff)
                                         refreshView()
                                     }))
                                     .frame(maxWidth: .infinity, alignment: .leading)
