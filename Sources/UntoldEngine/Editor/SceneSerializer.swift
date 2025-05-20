@@ -18,9 +18,10 @@ struct SceneData: Codable {
 
 struct LightData: Codable {
     var color: simd_float3 = .one
-    var attenuation: simd_float3 = .zero
     var radius: Float = 1.0
     var intensity: Float = 1.0
+    var falloff: Float = 0.5
+    var coneAngle: Float = 30.0
 }
 
 struct CameraData: Codable {
@@ -55,6 +56,7 @@ struct EntityData: Codable {
     var hasKineticComponent: Bool = false
     var hasDirLightComponent: Bool?
     var hasPointLightComponent: Bool?
+    var hasSpotLightComponent: Bool?
     var hasCameraComponent: Bool?
 
     var customComponents: [String: Data]? = nil
@@ -125,11 +127,7 @@ func serializeScene() -> SceneData {
 
             entityData.lightData?.color = getLightColor(entityId: entityId)
 
-            entityData.lightData?.radius = getLightRadius(entityId: entityId)
-
             entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
-
-            entityData.lightData?.attenuation = getLightAttenuation(entityId: entityId)
         }
 
         // Point Light properties
@@ -146,7 +144,26 @@ func serializeScene() -> SceneData {
 
             entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
 
-            entityData.lightData?.attenuation = getLightAttenuation(entityId: entityId)
+            entityData.lightData?.falloff = getLightFalloff(entityId: entityId)
+        }
+
+        // Spot light properties
+        let hasSpotLight: Bool = hasComponent(entityId: entityId, componentType: SpotLightComponent.self)
+
+        if hasSpotLight {
+            entityData.hasSpotLightComponent = hasSpotLight
+
+            entityData.lightData = LightData()
+
+            entityData.lightData?.color = getLightColor(entityId: entityId)
+
+            entityData.lightData?.radius = getLightRadius(entityId: entityId)
+
+            entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
+
+            entityData.lightData?.falloff = getLightFalloff(entityId: entityId)
+
+            entityData.lightData?.coneAngle = getLightConeAngle(entityId: entityId)
         }
 
         // Camera properties
@@ -324,9 +341,9 @@ func deserializeScene(sceneData: SceneData) {
         if sceneDataEntity.hasPointLightComponent == true {
             if let light = sceneDataEntity.lightData {
                 let color: simd_float3 = light.color
-                let attenuation: simd_float3 = light.attenuation
                 let radius: Float = light.radius
                 let intensity: Float = light.intensity
+                let falloff: Float = light.falloff
 
                 createPointLight(entityId: entityId)
 
@@ -343,7 +360,35 @@ func deserializeScene(sceneData: SceneData) {
                 lightComponent.color = color
                 lightComponent.intensity = intensity
                 pointlightComponent.radius = radius
-                pointlightComponent.attenuation = simd_float4(attenuation.x, attenuation.y, attenuation.z, 1.0)
+                pointlightComponent.falloff = falloff
+            }
+        }
+
+        if sceneDataEntity.hasSpotLightComponent == true {
+            if let light = sceneDataEntity.lightData {
+                let color: simd_float3 = light.color
+                let radius: Float = light.radius
+                let intensity: Float = light.intensity
+                let falloff: Float = light.falloff
+                let coneAngle: Float = light.coneAngle
+
+                createSpotLight(entityId: entityId)
+
+                guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+                    handleError(.noLightComponent)
+                    continue
+                }
+
+                guard let spotlightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+                    handleError(.noSpotLightComponent)
+                    continue
+                }
+
+                lightComponent.color = color
+                lightComponent.intensity = intensity
+                spotlightComponent.radius = radius
+                spotlightComponent.falloff = falloff
+                spotlightComponent.coneAngle = coneAngle
             }
         }
 
