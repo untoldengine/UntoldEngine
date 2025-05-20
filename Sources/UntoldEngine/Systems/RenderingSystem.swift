@@ -52,20 +52,20 @@ func updateRenderingSystem(in view: MTKView) {
 
             graph[lightVisPass.id] = lightVisPass
 
-            let outlinePass = RenderPass(
-                id: "outline", dependencies: ["lightvis"], execute: RenderPasses.outlineExecution
+//            let outlinePass = RenderPass(
+//                id: "outline", dependencies: ["lightvis"], execute: RenderPasses.outlineExecution
+//            )
+//
+//            graph[outlinePass.id] = outlinePass
+
+            let hightlightPass = RenderPass(
+                id: "highlight", dependencies: ["lightvis"], execute: RenderPasses.highlightExecution
             )
 
-            graph[outlinePass.id] = outlinePass
-
-            let lightOutlinePass = RenderPass(
-                id: "lightoutline", dependencies: ["outline"], execute: RenderPasses.highlightExecution
-            )
-
-            graph[lightOutlinePass.id] = lightOutlinePass
+            graph[hightlightPass.id] = hightlightPass
 
             let tonemapPass = RenderPass(
-                id: "tonemap", dependencies: ["lightoutline"],
+                id: "tonemap", dependencies: ["highlight"],
                 execute: RenderPasses.executeTonemapPass(tonemappingPipeline)
             )
 

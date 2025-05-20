@@ -911,21 +911,24 @@ enum RenderPasses {
 
         renderEncoder.setFrontFacing(.counterClockwise)
 
-        if let lightComponent = scene.get(component: LightComponent.self, for: activeEntity) {
-            if let t = scene.get(component: LocalTransformComponent.self, for: activeEntity) {
-                renderEncoder.setVertexBuffer(bufferResources.boundingBoxBuffer, offset: 0, index: 0)
+        if let t = scene.get(component: LocalTransformComponent.self, for: activeEntity), scene.get(component: RenderComponent.self, for: activeEntity) != nil {
+            renderEncoder.setVertexBytes(
+                &cameraComponent.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 1
+            )
+            renderEncoder.setVertexBytes(
+                &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2
+            )
+            renderEncoder.setVertexBytes(
+                &t.space, length: MemoryLayout<matrix_float4x4>.stride, index: 3
+            )
 
-                renderEncoder.setVertexBytes(
-                    &cameraComponent.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 1
-                )
-                renderEncoder.setVertexBytes(
-                    &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2
-                )
-                renderEncoder.setVertexBytes(
-                    &t.space, length: MemoryLayout<matrix_float4x4>.stride, index: 3
-                )
-                renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: boundingBoxVertexCount)
-            }
+            var scale: Float = 1.2
+
+            renderEncoder.setVertexBytes(&scale, length: MemoryLayout<Float>.stride, index: 4)
+
+            renderEncoder.setVertexBuffer(bufferResources.boundingBoxBuffer, offset: 0, index: 0)
+
+            renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: boundingBoxVertexCount)
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
