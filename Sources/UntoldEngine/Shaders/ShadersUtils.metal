@@ -62,12 +62,12 @@ void transformToLogDepth(thread simd_float4 &position, float far){
 
 }
 
-float calculateAttenuation(float distance, simd_float4 attenuation, float radius){
+float calculateAttenuation(float distance, simd_float4 attenuation){
     
     // Scale the attenuation factors based on the radius
-    float scaledConstant = attenuation.x / radius;
-    float scaledLinear = attenuation.y / radius;
-    float scaledQuadratic = attenuation.z / (radius * radius);
+    float scaledConstant = attenuation.x;
+    float scaledLinear = attenuation.y;
+    float scaledQuadratic = attenuation.z;
 
     return 1.0 / (scaledConstant + scaledLinear * distance + scaledQuadratic * (distance * distance));
 }

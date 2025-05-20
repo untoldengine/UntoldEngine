@@ -98,7 +98,7 @@ float4 computePointLightContribution(constant PointLightUniform &light,
 
     float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, light.color.rgb, float3(1.0), materialParameter,roughness,metallic);
 
-    float attenuation=calculateAttenuation(lightDistance, light.attenuation, light.radius);
+    float attenuation=calculateAttenuation(lightDistance, light.attenuation);
 
     float4 lightContribution=float4(lightBRDF*attenuation*light.intensity,1.0);
  
@@ -119,7 +119,7 @@ float4 computeSpotLightContribution(constant SpotLightUniform &light,
     float3 spotDirection = normalize(light.direction.xyz);
     float lightDistance=length(light.position.xyz-verticesInWorldSpace.xyz);
     
-    float attenuation=calculateAttenuation(lightDistance, light.attenuation, 1.0);
+    float attenuation=calculateAttenuation(lightDistance, light.attenuation);
     
     float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, light.color.rgb, float3(1.0), materialParameter,roughness,metallic);
     
