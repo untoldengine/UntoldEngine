@@ -100,7 +100,34 @@ float4 computePointLightContribution(constant PointLightUniform &light,
 
     float attenuation=calculateAttenuation(lightDistance, light.attenuation, light.radius);
 
-    float4 lightContribution=float4(lightBRDF*attenuation*light.intensity+ambient*light.color.rgb*attenuation,1.0);
+    float4 lightContribution=float4(lightBRDF*attenuation*light.intensity,1.0);
+ 
+    return lightContribution;
+}
+
+float4 computeSpotLightContribution(constant SpotLightUniform &light,
+                                     float4 verticesInWorldSpace,
+                                     float3 viewVector,
+                                     float3 normalMap,
+                                     float3 ambient,
+                                     constant MaterialParametersUniform &materialParameter,
+                                     float roughness,
+                                     float metallic
+                                     ){
+    
+    float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
+    float3 spotDirection = normalize(light.direction.xyz);
+    float lightDistance=length(light.position.xyz-verticesInWorldSpace.xyz);
+    
+    float attenuation=calculateAttenuation(lightDistance, light.attenuation, 1.0);
+    
+    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, light.color.rgb, float3(1.0), materialParameter,roughness,metallic);
+    
+    float theta = dot(-lightDirection, spotDirection); // cosine of angle between light dir and spot dir
+    float epsilon = cos(light.innerCone) - cos(light.outerCone);
+    float coneFalloff = clamp((theta-cos(light.outerCone))/epsilon, 0.0, 1.0);
+    
+    float4 lightContribution=float4(lightBRDF*attenuation*coneFalloff*light.intensity,1.0);
  
     return lightContribution;
 }
@@ -156,6 +183,8 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                     constant LightParameters &lights [[buffer(modelPassLightParamsIndex)]],
                                     constant PointLightUniform *pointLights [[buffer(modelPassPointLightsIndex)]],
                                     constant int *pointLightsCount [[buffer(modelPassPointLightsCountIndex)]],
+                                    constant SpotLightUniform *spotLights [[buffer(modelPassSpotLightsIndex)]],
+                                    constant int *spotLightsCount [[buffer(modelPassSpotLightsCountIndex)]],
                                   depth2d<float> shadowTexture[[texture(modelPassShadowTextureIndex)]],
                                   texture2d<float> baseColor [[texture(modelPassBaseTextureIndex)]],
                                   texture2d<float> roughnessTexture [[texture(modelPassRoughnessTextureIndex)]],
@@ -250,6 +279,22 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     }
 
     color+=pointColor;
+    
+    // Compute spot light contribution
+    float4 spotLightColor = simd_float4(0.0);
+    
+    for(int i=0; i<spotLightsCount[0]; i++){
+        spotLightColor += computeSpotLightContribution(spotLights[i],
+                                                       verticesInWorldSpace,
+                                                       viewVector,
+                                                       normalMap.xyz,
+                                                       ambient,
+                                                       materialParameter,
+                                                       roughness,
+                                                       metallic);
+    }
+    
+    color += spotLightColor;
 
     //compute shadow
     float shadow = computeShadow(in.shadowCoords, shadowTexture);
