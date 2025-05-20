@@ -158,6 +158,7 @@ public class DirectionalLightComponent: Component {
 public class PointLightComponent: Component {
     var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // (constant, linear, quadratic)->x,y,z
     var radius: Float = 1.0
+    var falloff: Float = 0.0
 
     public required init() {}
 }
@@ -168,6 +169,7 @@ public class SpotLightComponent: Component {
     var innerCone: Float = 5.0
     var outerCone: Float = 10.0
     var direction: simd_float3 = .init(0, -1, 0)
+    var falloff: Float = 0.0
 
     public required init() {}
 }

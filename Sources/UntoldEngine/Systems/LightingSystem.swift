@@ -303,6 +303,56 @@ func getLightRadius(entityId: EntityID) -> Float {
     return 0.0
 }
 
+func getLightFalloff(entityId: EntityID) -> Float {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return 0.0
+    }
+
+    if lightComponent.lightType == .point {
+        guard let pointLightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
+            handleError(.noPointLightComponent)
+            return 0.0
+        }
+
+        return pointLightComponent.falloff
+
+    } else if lightComponent.lightType == .spotlight {
+        guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+            handleError(.noSpotLightComponent)
+            return 0.0
+        }
+
+        return spotLightComponent.falloff
+    }
+
+    return 0.0
+}
+
+func updateLightFalloff(entityId: EntityID, falloff: Float) {
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    if lightComponent.lightType == .point {
+        guard let pointLightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
+            handleError(.noPointLightComponent)
+            return
+        }
+
+        pointLightComponent.falloff = falloff
+
+    } else if lightComponent.lightType == .spotlight {
+        guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+            handleError(.noSpotLightComponent)
+            return
+        }
+
+        spotLightComponent.falloff = falloff
+    }
+}
+
 func getPointLightCount() -> Int {
     let lightComponentID = getComponentId(for: PointLightComponent.self)
 
@@ -369,7 +419,12 @@ func getPointLights() -> [PointLight] {
         var pointLight = PointLight()
         pointLight.position = getLocalPosition(entityId: entity)
         pointLight.color = lightComponent.color
-        pointLight.attenuation = pointLightComponent.attenuation
+
+        let linear: Float = simd_mix(0.1, 0.0, pointLightComponent.falloff)
+        let quadratic: Float = simd_mix(0.0, 1.0 / (pointLightComponent.radius * pointLightComponent.radius), pointLightComponent.falloff)
+        let constant: Float = 1.0
+
+        pointLight.attenuation = simd_float4(constant, linear, quadratic, 0.0)
         pointLight.intensity = lightComponent.intensity
         pointLight.radius = pointLightComponent.radius
 
