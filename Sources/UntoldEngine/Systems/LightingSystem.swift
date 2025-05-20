@@ -497,10 +497,17 @@ func getSpotLights() -> [SpotLight] {
         spotLight.direction = simd_float3(forward.x, forward.y, forward.z)
         spotLight.position = getLocalPosition(entityId: entity)
         spotLight.color = lightComponent.color
-        spotLight.attenuation = spotLightComponent.attenuation
+
+        let linear: Float = simd_mix(0.1, 0.0, spotLightComponent.falloff)
+        let quadratic: Float = simd_mix(0.0, 1.0 / (spotLightComponent.radius * spotLightComponent.radius), spotLightComponent.falloff)
+        let constant: Float = 1.0
+
+        spotLight.attenuation = simd_float4(constant, linear, quadratic, 0.0)
         spotLight.intensity = lightComponent.intensity
-        spotLight.innerCone = degreesToRadians(degrees: spotLightComponent.innerCone)
-        spotLight.outerCone = degreesToRadians(degrees: spotLightComponent.outerCone)
+
+        spotLight.outerCone = degreesToRadians(degrees: spotLightComponent.coneAngle)
+        let edgeSoftness = simd_mix(1.0, 10.0, spotLightComponent.falloff) // values 1 and 10 are emperically chosen. You can tweek these values
+        spotLight.innerCone = spotLight.outerCone - degreesToRadians(degrees: edgeSoftness)
 
         spotLights.append(spotLight)
     }
@@ -542,4 +549,22 @@ func updateLightOuterCone(entityId: EntityID, outerCone: Float) {
     }
 
     spotLightComponent.outerCone = outerCone
+}
+
+func getLightConeAngle(entityId: EntityID) -> Float {
+    guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+        handleError(.noSpotLightComponent)
+        return 0.0
+    }
+
+    return spotLightComponent.coneAngle
+}
+
+func updateLightConeAngle(entityId: EntityID, coneAngle: Float) {
+    guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+        handleError(.noSpotLightComponent)
+        return
+    }
+
+    spotLightComponent.coneAngle = coneAngle
 }
