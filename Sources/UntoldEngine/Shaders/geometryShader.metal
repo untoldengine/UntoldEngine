@@ -15,11 +15,19 @@ using namespace metal;
 vertex GeometryOutModel vertexGeometryShader(GeometryInModel in [[stage_in]],
                                           constant matrix_float4x4 &viewMatrix [[buffer((1))]],
                                           constant matrix_float4x4 &projectionMatrix [[buffer((2))]],
-                                          constant matrix_float4x4 &modelMatrix [[buffer((3))]]){
+                                          constant matrix_float4x4 &modelMatrix [[buffer((3))]],
+                                             constant float &scale [[buffer(4)]]){
 
     GeometryOutModel out;
-
-    out.position = projectionMatrix * viewMatrix * modelMatrix * in.position;
+    matrix_float4x4 scaleMatrix = matrix_float4x4(scale,0.0,0.0,0.0,
+                          0.0,scale,0.0,0.0,
+                          0.0,0.0,scale,0.0,
+                          0.0,0.0,0.0,1.0);
+    
+    float4 scaledPosition = scaleMatrix*in.position;
+    
+    
+    out.position = projectionMatrix * viewMatrix * modelMatrix * scaledPosition;
 
 
     return out;
