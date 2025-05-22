@@ -11,80 +11,187 @@ import Foundation
 import XCTest
 
 final class LightSystemTest: XCTestCase {
-    var entityId: EntityID!
+    var renderer: UntoldRenderer!
+    var window: NSWindow!
 
     // MARK: - Setup and Teardown
 
     override func setUp() {
         super.setUp()
+        let windowWidth = 1280
+        let windowHeight = 720
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
 
-        entityId = createEntity()
+        window.title = "Test Window"
+
+        // Initialize the renderer
+        guard let renderer = UntoldRenderer.create() else {
+            XCTFail("Failed to initialize the renderer.")
+            return
+        }
+
+        window.contentView = renderer.metalView
+
+        self.renderer = renderer
+
+        // Initialize resources
+        self.renderer.initResources()
     }
 
     override func tearDown() {
-        destroyEntity(entityId: entityId)
         super.tearDown()
     }
 
     // MARK: - Light Tests
 
-    func testCreateLight() {
-        createLight(entityId: entityId, lightType: .directional)
+    func testDirectionalLight() {
+        let entityId: EntityID = createEntity()
+
+        createDirLight(entityId: entityId)
 
         XCTAssertTrue(hasComponent(entityId: entityId, componentType: LightComponent.self), "Should have a Light component")
+
+        XCTAssertTrue(hasComponent(entityId: entityId, componentType: DirectionalLightComponent.self), "Should have a Directional Light component")
+
+        destroyEntity(entityId: entityId)
     }
 
-    func testCreateDirectionalLight() {
-        createLight(entityId: entityId, lightType: .directional)
+    func testPointLight() {
+        let entityId: EntityID = createEntity()
+
+        createPointLight(entityId: entityId)
+
+        XCTAssertTrue(hasComponent(entityId: entityId, componentType: LightComponent.self), "Should have a Light component")
+
+        XCTAssertTrue(hasComponent(entityId: entityId, componentType: PointLightComponent.self), "Should have a Point Light component")
+
+        destroyEntity(entityId: entityId)
+    }
+
+    func testSpotLight() {
+        let entityId: EntityID = createEntity()
+
+        createSpotLight(entityId: entityId)
+
+        XCTAssertTrue(hasComponent(entityId: entityId, componentType: LightComponent.self), "Should have a Light component")
+
+        XCTAssertTrue(hasComponent(entityId: entityId, componentType: SpotLightComponent.self), "Should have a Spot Light component")
+
+        destroyEntity(entityId: entityId)
+    }
+
+    func testGetDirLightParameters() {
+        let entityId: EntityID = createEntity()
+
+        createDirLight(entityId: entityId)
 
         guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
             handleError(.noLightComponent, entityId)
             return
         }
 
-        XCTAssertEqual(lightComponent.lightType, .directional, "Light should be directional")
-    }
-
-    func testCreatePointLight() {
-        createLight(entityId: entityId, lightType: .point)
-
-        guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
-            handleError(.noLightComponent, entityId)
+        guard scene.get(component: DirectionalLightComponent.self, for: entityId) != nil else {
+            handleError(.noDirLightComponent, entityId)
             return
         }
-
-        XCTAssertEqual(lightComponent.lightType, .point, "Light should be point")
-    }
-
-    func testGetLightParameters() {
-        createLight(entityId: entityId, lightType: .directional)
-
-        guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
-            handleError(.noLightComponent, entityId)
-            return
-        }
-
-        rotateTo(entityId: entityId, pitch: 1.0, yaw: -1.0, roll: 1.0)
-
-        lightComponent.color = .one
-        lightComponent.attenuation = .one
-        lightComponent.radius = 1.0
-        lightComponent.intensity = 1.0
 
         let lightParameters: LightParameters = getDirectionalLightParameters()
 
-        let orientationEuler = getLocalOrientationEuler(entityId: entityId)
-        let orientation = simd_float3(orientationEuler.pitch, orientationEuler.yaw, orientationEuler.roll)
-
         XCTAssertEqual(lightParameters.color, .one, "color should be all 1's")
         XCTAssertEqual(lightParameters.intensity, 1.0, "intensity should be 1")
-        XCTAssertEqual(lightParameters.direction.x, orientation.x, "Pitch should match")
-        XCTAssertEqual(lightParameters.direction.y, orientation.y, "Yaw should match")
-        XCTAssertEqual(lightParameters.direction.z, orientation.z, "Roll should match")
+        XCTAssertEqual(lightParameters.direction.x, 0.5, "Rotation about X axis should match")
+        XCTAssertEqual(lightParameters.direction.y, 0.70710677, "Rotation about Y axis should match")
+        XCTAssertEqual(lightParameters.direction.z, 0.5, accuracy: 0.001, "Rotation about Z axis should match")
+
+        destroyEntity(entityId: entityId)
+    }
+
+    func testPointLightParameters() {
+        let entityId: EntityID = createEntity()
+
+        createPointLight(entityId: entityId)
+
+        guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+            handleError(.noLightComponent, entityId)
+            return
+        }
+
+        guard scene.get(component: PointLightComponent.self, for: entityId) != nil else {
+            handleError(.noPointLightComponent, entityId)
+            return
+        }
+
+        let pointLightParameter: [PointLight] = getPointLights()
+
+        XCTAssertEqual(pointLightParameter[0].intensity, 1.0, "intensity should be 1")
+        XCTAssertEqual(pointLightParameter[0].attenuation.x, 1.0, "constant should be 1")
+        XCTAssertEqual(pointLightParameter[0].attenuation.y, 0.05, "linear should be 1")
+        XCTAssertEqual(pointLightParameter[0].attenuation.z, 0.5, "quadratic should be 1")
+        XCTAssertEqual(pointLightParameter[0].radius, 1.0, "radius should be 1")
+
+        destroyEntity(entityId: entityId)
+    }
+
+    func testSpotPointLightParameters() {
+        let entityId: EntityID = createEntity()
+
+        createSpotLight(entityId: entityId)
+
+        guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+            handleError(.noLightComponent, entityId)
+            return
+        }
+
+        guard scene.get(component: SpotLightComponent.self, for: entityId) != nil else {
+            handleError(.noSpotLightComponent, entityId)
+            return
+        }
+
+        let spotLightParameter: [SpotLight] = getSpotLights()
+
+        XCTAssertEqual(spotLightParameter[0].intensity, 1.0, "intensity should be 1")
+        XCTAssertEqual(spotLightParameter[0].attenuation.x, 1.0, "constant should be 1")
+        XCTAssertEqual(spotLightParameter[0].attenuation.y, 0.05, "linear should be 1")
+        XCTAssertEqual(spotLightParameter[0].attenuation.z, 0.5, "quadratic should be 1")
+        XCTAssertEqual(spotLightParameter[0].outerCone, 0.523, accuracy: 0.001, "outer cone should be 1")
+        XCTAssertEqual(spotLightParameter[0].innerCone, 0.427, accuracy: 0.001, "inner cone should be 1")
+
+        XCTAssertEqual(spotLightParameter[0].direction.x, 0.0, "Rotation about X axis should match")
+        XCTAssertEqual(spotLightParameter[0].direction.y, -1.0, "Rotation about Y axis should match")
+        XCTAssertEqual(spotLightParameter[0].direction.z, 0.0, accuracy: 0.001, "Rotation about Z axis should match")
+
+        destroyEntity(entityId: entityId)
+    }
+
+    func testGetPointLightCount() {
+        let entityId0: EntityID = createEntity()
+        let entityId1: EntityID = createEntity()
+
+        createPointLight(entityId: entityId0)
+        createPointLight(entityId: entityId1)
+
+        XCTAssertEqual(getPointLightCount(), 2, "There should be two point lights")
+
+        destroyEntity(entityId: entityId0)
+        destroyEntity(entityId: entityId1)
+    }
+
+    func testGetSpotLightCount() {
+        let entityId0: EntityID = createEntity()
+        let entityId1: EntityID = createEntity()
+
+        createSpotLight(entityId: entityId0)
+        createSpotLight(entityId: entityId1)
+
+        XCTAssertEqual(getSpotLightCount(), 2, "There should be two point lights")
+
+        destroyEntity(entityId: entityId0)
+        destroyEntity(entityId: entityId1)
     }
 
     func testGetLightColor() {
-        createLight(entityId: entityId, lightType: .directional)
+        let entityId: EntityID = createEntity()
+        createDirLight(entityId: entityId)
 
         guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
             handleError(.noLightComponent, entityId)
@@ -94,36 +201,12 @@ final class LightSystemTest: XCTestCase {
         lightComponent.color = .one
 
         XCTAssertEqual(lightComponent.color, .one, "color should be all 1's")
-    }
-
-    func testGetLightAttenuation() {
-        createLight(entityId: entityId, lightType: .directional)
-
-        guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
-            handleError(.noLightComponent, entityId)
-            return
-        }
-
-        lightComponent.attenuation = .one
-
-        XCTAssertEqual(lightComponent.attenuation, .one, "attenuation should be all 1's")
-    }
-
-    func testGetLightRadius() {
-        createLight(entityId: entityId, lightType: .directional)
-
-        guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
-            handleError(.noLightComponent, entityId)
-            return
-        }
-
-        lightComponent.radius = 1.0
-
-        XCTAssertEqual(lightComponent.radius, 1.0, "Radius should be 1")
+        destroyEntity(entityId: entityId)
     }
 
     func testGetLightIntensity() {
-        createLight(entityId: entityId, lightType: .directional)
+        let entityId: EntityID = createEntity()
+        createDirLight(entityId: entityId)
 
         guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
             handleError(.noLightComponent, entityId)
@@ -133,13 +216,6 @@ final class LightSystemTest: XCTestCase {
         lightComponent.intensity = 1.0
 
         XCTAssertEqual(lightComponent.intensity, 1.0, "Intensity should be all 1's")
-    }
-
-    func testGetPointLightCount() {
-        createLight(entityId: entityId, lightType: .point)
-        createLight(entityId: createEntity(), lightType: .point)
-        createLight(entityId: createEntity(), lightType: .directional)
-
-        XCTAssertEqual(getPointLightCount(), 2, "There should be two point lights")
+        destroyEntity(entityId: entityId)
     }
 }
