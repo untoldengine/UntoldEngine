@@ -541,8 +541,7 @@ public class InputSystem {
         case kVK_ANSI_P:
             gameMode = !gameMode
         case kVK_ANSI_R:
-            break
-        // hotReload = !hotReload
+            hotReload = !hotReload
         case kVK_ANSI_L:
             visualDebug = !visualDebug
             currentDebugSelection = DebugSelection.normalOutput

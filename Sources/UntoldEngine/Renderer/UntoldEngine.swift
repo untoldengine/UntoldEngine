@@ -158,7 +158,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         if hotReload {
             // updateRayKernelPipeline()
-            // updateShadersAndPipeline()
+            updateShadersAndPipeline()
 
             hotReload = false
         }
