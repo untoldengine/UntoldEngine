@@ -541,10 +541,16 @@ public class InputSystem {
         case kVK_ANSI_P:
             gameMode = !gameMode
         case kVK_ANSI_R:
-            hotReload = !hotReload
+
+            if keyState.shiftPressed {
+                hotReload = !hotReload
+            }
         case kVK_ANSI_L:
-            visualDebug = !visualDebug
-            currentDebugSelection = DebugSelection.normalOutput
+            if keyState.shiftPressed {
+                hotReload = !hotReload
+                visualDebug = !visualDebug
+                currentDebugSelection = DebugSelection.normalOutput
+            }
         case kVK_ANSI_1:
             currentDebugSelection = DebugSelection.normalOutput
         case kVK_ANSI_2:
