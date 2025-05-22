@@ -24,8 +24,16 @@ let pipelineConfigs: [String: ShaderPipelineConfig] = [
         vertexFunctionName: "vertexModelShader",
         fragmentFunctionName: "fragmentModelShader",
         vertexDescriptor: MTKMetalVertexDescriptorFromModelIO(vertexDescriptor.model),
-        colorPixelFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float], depthPixelFormat: renderInfo.depthPixelFormat
+        colorPixelFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthPixelFormat: renderInfo.depthPixelFormat
     ),
+    "tonemapping": ShaderPipelineConfig(
+        pipelineName: "Tone-mapping Pipeline",
+        vertexFunctionName: "vertexTonemappingShader",
+        fragmentFunctionName: "fragmentTonemappingShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorPixelFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthPixelFormat: renderInfo.depthPixelFormat),
 ]
 
 func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: inout RenderPipeline) {
@@ -75,6 +83,7 @@ func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: 
 func updateShadersAndPipeline() {
     if let library = loadMetalLibraryFromUserSelection() {
         reloadPipeline(named: "model", with: library, pipe: &modelPipeline)
+        reloadPipeline(named: "tonemapping", with: library, pipe: &tonemappingPipeline)
     }
 }
 
