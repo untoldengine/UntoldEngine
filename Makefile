@@ -9,6 +9,10 @@ all: compile-shaders build
 compile-shaders:
 	sh ./buildkernels.sh
 
+# hot reload
+hot-reload-shaders:
+	sh ./buildkernels-hotreload.sh
+
 # Build the Swift package
 
 build:
