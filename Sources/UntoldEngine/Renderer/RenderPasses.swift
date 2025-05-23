@@ -1300,9 +1300,20 @@ enum RenderPasses {
             )
 
             renderEncoder.setFragmentBytes(
-                &toneMapOperator, length: MemoryLayout<Int>.stride,
+                &ToneMappingParams.shared.toneMapOperator, length: MemoryLayout<Int>.stride,
                 index: Int(toneMapPassToneMappingIndex.rawValue)
             )
+
+            renderEncoder.setFragmentBytes(
+                &ToneMappingParams.shared.exposure, length: MemoryLayout<Float>.stride,
+                index: Int(toneMapPassExposureIndex.rawValue)
+            )
+
+            renderEncoder.setFragmentBytes(
+                &ToneMappingParams.shared.gamma, length: MemoryLayout<Float>.stride,
+                index: Int(toneMapPassGammaIndex.rawValue)
+            )
+
             // set the draw command
             renderEncoder.drawIndexedPrimitives(
                 type: .triangle,

@@ -98,6 +98,8 @@ typedef enum{
 typedef enum{
     toneMapPassColorTextureIndex,
     toneMapPassToneMappingIndex,
+    toneMapPassExposureIndex,
+    toneMapPassGammaIndex,
 }ToneMapPassBufferIndices;
 
 

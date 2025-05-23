@@ -130,8 +130,6 @@ var visualDebug: Bool = false
 public var gameMode: Bool = false
 var hotReload: Bool = false
 
-var toneMapOperator: Int = 0
-
 var applyIBL: Bool = true
 var renderEnvironment: Bool = false
 var ambientIntensity: Float = 0.44
@@ -184,3 +182,11 @@ enum TransformAxis {
 // mtk view color
 // Graphite Gray
 let mtkBackgroundColor = MTLClearColorMake(40.0 / 255.0, 40.0 / 255.0, 45.0 / 255.0, 1.0)
+
+class ToneMappingParams: ObservableObject {
+    static let shared = ToneMappingParams()
+
+    @Published var exposure: Float = 1.0
+    @Published var toneMapOperator: Int = 0
+    @Published var gamma: Float = 2.2
+}
