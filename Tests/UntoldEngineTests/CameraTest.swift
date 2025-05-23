@@ -25,8 +25,9 @@ final class CameraTests: XCTestCase {
     }
 
     override func tearDown() {
-        scene.remove(component: CameraComponent.self, from: camera)
         super.tearDown()
+        destroyEntity(entityId: camera)
+        destroyEntity(entityId: sceneCamera)
     }
 
     // MARK: - Translation Tests

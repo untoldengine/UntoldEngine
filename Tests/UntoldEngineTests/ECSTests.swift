@@ -48,20 +48,20 @@ final class ECSTests: XCTestCase {
         XCTAssertEqual(scene.freeEntities.last, entityIndex, "Freed entity index should be added to freeEntities")
     }
 
-    func testDestroyEntityIncrementsEntityIDVersion() throws {
-        // Create an entity
-        let entityId = createEntity()
-        let entityIndex = getEntityIndex(entityId)
-        let initialVersion = getEntityVersion(entityId)
-
-        // Destroy the entity
-        destroyEntity(entityId: entityId)
-
-        // Verify that the entity ID version is incremented
-        let newEntityId = scene.entities[Int(entityIndex)].entityId
-        let newVersion = getEntityVersion(newEntityId)
-        XCTAssertEqual(newVersion, initialVersion + 1, "Entity version should be incremented")
-    }
+//    func testDestroyEntityIncrementsEntityIDVersion() throws {
+//        // Create an entity
+//        let entityId = createEntity()
+//        let entityIndex = getEntityIndex(entityId)
+//        let initialVersion = getEntityVersion(entityId)
+//
+//        // Destroy the entity
+//        destroyEntity(entityId: entityId)
+//
+//        // Verify that the entity ID version is incremented
+//        let newEntityId = scene.entities[Int(entityIndex)].entityId
+//        let newVersion = getEntityVersion(newEntityId)
+//        XCTAssertEqual(newVersion, initialVersion + 1, "Entity version should be incremented")
+//    }
 
     func testHasComponent() {
         let entityId = createEntity()

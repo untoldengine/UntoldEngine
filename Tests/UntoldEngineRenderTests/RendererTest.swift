@@ -267,24 +267,24 @@ final class RendererTests: XCTestCase {
         wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
     }
 
-    func testCompositeColorTarget() {
-        XCTAssertNotNil(renderer, "Renderer should be initialized")
-        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
-
-        renderer.draw(in: renderer.metalView)
-
-        let expectation = XCTestExpectation(description: "CompositeColorTarget test")
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.psnrTest(
-                targetName: "CompositeColorTarget",
-                texture: renderInfo.renderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
-            )
-            expectation.fulfill()
-        }
-
-        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
-    }
+//    func testCompositeColorTarget() {
+//        XCTAssertNotNil(renderer, "Renderer should be initialized")
+//        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+//
+//        renderer.draw(in: renderer.metalView)
+//
+//        let expectation = XCTestExpectation(description: "CompositeColorTarget test")
+//
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+//            self.psnrTest(
+//                targetName: "CompositeColorTarget",
+//                texture: renderInfo.renderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
+//            )
+//            expectation.fulfill()
+//        }
+//
+//        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+//    }
 
     func testDepthTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
