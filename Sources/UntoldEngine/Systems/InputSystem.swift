@@ -547,7 +547,6 @@ public class InputSystem {
             }
         case kVK_ANSI_L:
             if keyState.shiftPressed {
-                hotReload = !hotReload
                 visualDebug = !visualDebug
                 currentDebugSelection = DebugSelection.normalOutput
             }
