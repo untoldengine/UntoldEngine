@@ -22,17 +22,20 @@ vertex VertexCompositeOutput vertexTonemappingShader(VertexCompositeIn in [[stag
 
 fragment float4 fragmentTonemappingShader(VertexCompositeOutput vertexOut [[stage_in]],
                                     texture2d<float> baseColor [[texture(toneMapPassColorTextureIndex)]],
-                                    constant int &toneMapOperator[[buffer((toneMapPassToneMappingIndex))]]){
+                                    constant int &toneMapOperator[[buffer((toneMapPassToneMappingIndex))]],
+                                          constant float &exposure[[buffer(toneMapPassExposureIndex)]],
+                                          constant float &gamma[[buffer(toneMapPassGammaIndex)]]){
 
     constexpr sampler s(min_filter::nearest, mag_filter::nearest); // Use for base color and normal maps
 
     float4 color=baseColor.sample(s, vertexOut.uvCoords);
 
+    color.rgb *= exposure;
+    
     if(toneMapOperator==1){
         // Apply Uncharted2 Tone Mapping
         color.rgb = filmicToneMapping(color.rgb);
 
-        return color;
     }
 
     if(toneMapOperator==2){
@@ -40,14 +43,14 @@ fragment float4 fragmentTonemappingShader(VertexCompositeOutput vertexOut [[stag
         // Apply Reinhard Tone Mapping
         color.rgb = reinhardToneMapping(color.rgb);
 
-        return color;
+    }else{
+        
+        // Apply ACES Filmic Tone Mapping
+        color.rgb = ACESFilmicToneMapping(color.rgb);
     }
-
-    // Apply ACES Filmic Tone Mapping
-    color.rgb = ACESFilmicToneMapping(color.rgb);
-
+    
+    color = pow(color,1.0/gamma);
+    
     return color;
-
-
 
 }
