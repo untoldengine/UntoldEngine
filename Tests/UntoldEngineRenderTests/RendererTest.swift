@@ -391,11 +391,11 @@ final class RendererTests: XCTestCase {
 
             if process.terminationStatus == 0 {
             } else {
-                XCTFail("\(targetName): PSNR test failed. Value: \(output)")
+                XCTFail("\(targetName): ❌ PSNR test failed. Value: \(output)")
             }
 
         } catch {
-            XCTFail("\(targetName): Failed to run PSNR comparison – \(error)")
+            XCTFail("\(targetName): ❌ Failed to run PSNR comparison – \(error)")
         }
     }
 
