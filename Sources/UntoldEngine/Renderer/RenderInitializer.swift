@@ -129,6 +129,9 @@ func createTexture(
 
     let texture = device.makeTexture(descriptor: descriptor)
     texture?.label = label
+    
+    DebugTextureRegistry.register(name: label, texture: texture!)
+    
     return texture
 }
 
@@ -348,6 +351,17 @@ func initTextureResources() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget],
+        storageMode: .shared
+    )
+    
+    // Tone Map debug texture
+    textureResources.toneMapDebugTexture = createTexture(
+        device: renderInfo.device,
+        label: "Tonemap Debug Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
 }

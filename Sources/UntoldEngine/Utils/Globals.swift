@@ -188,5 +188,13 @@ class ToneMappingParams: ObservableObject {
 
     @Published var exposure: Float = 1.0
     @Published var toneMapOperator: Int = 0
-    @Published var gamma: Float = 2.2
+    @Published var gamma: Float = 1.0 // original = 2.2
 }
+
+class DebugSettings: ObservableObject {
+    static let shared = DebugSettings()
+
+    @Published var selectedName: String = ""
+    @Published var debugEnabled: Bool = true
+}
+

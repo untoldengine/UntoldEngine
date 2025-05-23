@@ -102,6 +102,9 @@ public struct TextureResources {
     var rayTracingRandomTexture: MTLTexture?
     var rayTracingDestTextureArray: MTLTexture?
     var rayTracingAccumTexture: [MTLTexture] = []
+    
+    // debugger textures
+    var toneMapDebugTexture: MTLTexture?
 }
 
 public struct AccelStructResources {

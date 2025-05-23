@@ -1092,106 +1092,23 @@ enum RenderPasses {
 
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
-        let windowWidth: Float = renderInfo.viewPort.x
-        let windowHeight: Float = renderInfo.viewPort.y
-
-        var textureArray: [MTLTexture] = []
-        if currentDebugSelection == DebugSelection.normalOutput {
-            if let colorTexture = renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture {
-                textureArray.append(colorTexture)
-            }
-            if let normalTexture = renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture {
-                textureArray.append(normalTexture)
-            }
-            if let positionTexture = renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture {
-                textureArray.append(positionTexture)
-            }
-
-        } else if currentDebugSelection == DebugSelection.iblOutput {
-            textureArray.append(textureResources.environmentTexture!)
-            textureArray.append(textureResources.irradianceMap!)
-            textureArray.append(textureResources.specularMap!)
-            textureArray.append(textureResources.iblBRDFMap!)
-        }
-
-        // Define viewports
-        var viewPortsArray: [MTLViewport] = [
-            MTLViewport(
-                originX: 0, originY: 0, width: Double(windowWidth) / 2, height: Double(windowHeight) / 2,
-                znear: 0.0, zfar: 1.0
-            ),
-            MTLViewport(
-                originX: Double(windowWidth) / 2, originY: 0, width: Double(windowWidth) / 2,
-                height: Double(windowHeight) / 2, znear: 0.0, zfar: 1.0
-            ),
-            MTLViewport(
-                originX: 0, originY: Double(windowHeight) / 2, width: Double(windowWidth) / 2,
-                height: Double(windowHeight) / 2, znear: 0.0, zfar: 1.0
-            ),
-            MTLViewport(
-                originX: Double(windowWidth) / 2, originY: Double(windowHeight) / 2,
-                width: Double(windowWidth) / 2, height: Double(windowHeight) / 2, znear: 0.0, zfar: 1.0
-            ),
-        ]
-
-        // Define scissor rects
-        var scissorRectsArray: [MTLScissorRect] = [
-            MTLScissorRect(x: 0, y: 0, width: Int(windowWidth) / 2, height: Int(windowHeight) / 2),
-            MTLScissorRect(
-                x: Int(windowWidth) / 2, y: 0, width: Int(windowWidth) / 2, height: Int(windowHeight) / 2
-            ),
-            MTLScissorRect(
-                x: 0, y: Int(windowHeight) / 2, width: Int(windowWidth) / 2, height: Int(windowHeight) / 2
-            ),
-            MTLScissorRect(
-                x: Int(windowWidth) / 2, y: Int(windowHeight) / 2, width: Int(windowWidth) / 2,
-                height: Int(windowHeight) / 2
-            ),
-        ]
-
-        renderEncoder.setViewports(viewPortsArray)
-        renderEncoder.setScissorRects(scissorRectsArray)
-
         renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
-        renderEncoder.setFragmentBytes(&currentDebugSelection, length: MemoryLayout<Int>.stride, index: 2)
+        let selectedTextureName = DebugSettings.shared.selectedName
 
-        for i in 0 ..< 4 {
-            var currentViewport: Int = i
-
-            renderEncoder.setVertexBytes(&currentViewport, length: MemoryLayout<Int>.stride, index: 5)
-
-            switch i {
-            case 0:
-                renderEncoder.setFragmentTexture(textureArray[0], index: 0)
-            case 1:
-                renderEncoder.setFragmentTexture(textureArray[1], index: 0)
-            case 2:
-                renderEncoder.setFragmentTexture(textureArray[2], index: 0)
-            case 3:
-
-                if currentDebugSelection == .iblOutput {
-                    renderEncoder.setFragmentTexture(textureArray[3], index: 0)
-
-                } else if currentDebugSelection == .normalOutput {
-                    renderEncoder.setFragmentTexture(
-                        renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture, index: 1
-                    )
-                }
-            default:
-                break
-            }
-
-            // set the draw command
-            renderEncoder.drawIndexedPrimitives(
-                type: .triangle,
-                indexCount: 6,
-                indexType: .uint16,
-                indexBuffer: bufferResources.quadIndexBuffer!,
-                indexBufferOffset: 0
-            )
+        if let debugTexture = DebugTextureRegistry.get(byName: selectedTextureName) {
+            renderEncoder.setFragmentTexture(debugTexture, index: 0)
         }
+        
+        // set the draw command
+        renderEncoder.drawIndexedPrimitives(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
         renderEncoder.popDebugGroup()
@@ -1326,6 +1243,27 @@ enum RenderPasses {
             renderEncoder.updateFence(renderInfo.fence, after: .fragment)
             renderEncoder.popDebugGroup()
             renderEncoder.endEncoding()
+            
+            guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
+                print("Failed to create blit encoder")
+                return
+            }
+            
+            blitEncoder.waitForFence(renderInfo.fence)
+            
+            blitEncoder.copy(from: textureResources.colorMap!,
+                              sourceSlice: 0,
+                              sourceLevel: 0,
+                              sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+                              sourceSize: MTLSize(width: Int(textureResources.toneMapDebugTexture!.width), height: Int(textureResources.toneMapDebugTexture!.height), depth: 1),
+                              to: textureResources.toneMapDebugTexture!,
+                              destinationSlice: 0,
+                              destinationLevel: 0,
+                              destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
+            blitEncoder.endEncoding()
+            
+            blitEncoder.updateFence(renderInfo.fence)
+            
         }
     }
 }
