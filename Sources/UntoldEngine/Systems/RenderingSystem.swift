@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 11/11/24.
 //  Copyright © 2024 Untold Engine Studios. All rights reserved.
-
+import CShaderTypes
 import Foundation
 import MetalKit
 
@@ -66,7 +66,7 @@ func updateRenderingSystem(in view: MTKView) {
 
             let tonemapPass = RenderPass(
                 id: "tonemap", dependencies: ["highlight"],
-                execute: RenderPasses.executeTonemapPass(tonemappingPipeline)
+                execute: tonemapRenderPass
             )
 
             graph[tonemapPass.id] = tonemapPass
@@ -105,3 +105,23 @@ func updateRenderingSystem(in view: MTKView) {
         commandBuffer.commit()
     }
 }
+
+// Post process passes
+
+let tonemapRenderPass = RenderPasses.executePostProcess(tonemappingPipeline, debugTexture: textureResources.toneMapDebugTexture!, customization: { encoder in
+    encoder.setFragmentBytes(
+        &ToneMappingParams.shared.toneMapOperator, length: MemoryLayout<Int>.stride,
+        index: Int(toneMapPassToneMappingIndex.rawValue)
+    )
+
+    encoder.setFragmentBytes(
+        &ToneMappingParams.shared.exposure, length: MemoryLayout<Float>.stride,
+        index: Int(toneMapPassExposureIndex.rawValue)
+    )
+
+    encoder.setFragmentBytes(
+        &ToneMappingParams.shared.gamma, length: MemoryLayout<Float>.stride,
+        index: Int(toneMapPassGammaIndex.rawValue)
+    )
+
+})

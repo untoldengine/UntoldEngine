@@ -1100,7 +1100,7 @@ enum RenderPasses {
         if let debugTexture = DebugTextureRegistry.get(byName: selectedTextureName) {
             renderEncoder.setFragmentTexture(debugTexture, index: 0)
         }
-        
+
         // set the draw command
         renderEncoder.drawIndexedPrimitives(
             type: .triangle,
@@ -1115,7 +1115,9 @@ enum RenderPasses {
         renderEncoder.endEncoding()
     }
 
-    static func executePostProcess(_ pipeline: RenderPipeline) -> (MTLCommandBuffer) -> Void {
+    static func executePostProcess(_ pipeline: RenderPipeline, debugTexture: MTLTexture,
+                                   customization: @escaping (_ encoder: MTLRenderCommandEncoder) -> Void) -> (MTLCommandBuffer) -> Void
+    {
         { commandBuffer in
 
             if !pipeline.success {
@@ -1158,6 +1160,8 @@ enum RenderPasses {
                     .texture, index: 0
             )
 
+            // Pass in individual post-process values
+            customization(renderEncoder)
             // set the draw command
             renderEncoder.drawIndexedPrimitives(
                 type: .triangle,
@@ -1170,100 +1174,26 @@ enum RenderPasses {
             renderEncoder.updateFence(renderInfo.fence, after: .fragment)
             renderEncoder.popDebugGroup()
             renderEncoder.endEncoding()
-        }
-    }
 
-    static func executeTonemapPass(_ pipeline: RenderPipeline) -> (MTLCommandBuffer) -> Void {
-        { commandBuffer in
-
-            if !pipeline.success {
-                handleError(.pipelineStateNulled, "Tone-mapping Pipeline")
-                return
-            }
-
-            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-                .loadAction = .load
-            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-                .loadAction = .load
-            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-                .loadAction = .load
-
-            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
-
-            let renderPassDescriptor = renderInfo.offscreenRenderPassDescriptor!
-
-            // set your encoder here
-            guard
-                let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
-            else {
-                handleError(.renderPassCreationFailed, "Tonemapping \(pipeline.name!) Pass")
-                return
-            }
-
-            renderEncoder.label = "Tone-mapping Pass"
-
-            renderEncoder.pushDebugGroup("Tone-mapping Pass")
-
-            renderEncoder.setRenderPipelineState(pipeline.pipelineState!)
-
-            renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
-
-            renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
-            renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
-
-            renderEncoder.setFragmentTexture(
-                renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-                    .texture, index: Int(toneMapPassColorTextureIndex.rawValue)
-            )
-
-            renderEncoder.setFragmentBytes(
-                &ToneMappingParams.shared.toneMapOperator, length: MemoryLayout<Int>.stride,
-                index: Int(toneMapPassToneMappingIndex.rawValue)
-            )
-
-            renderEncoder.setFragmentBytes(
-                &ToneMappingParams.shared.exposure, length: MemoryLayout<Float>.stride,
-                index: Int(toneMapPassExposureIndex.rawValue)
-            )
-
-            renderEncoder.setFragmentBytes(
-                &ToneMappingParams.shared.gamma, length: MemoryLayout<Float>.stride,
-                index: Int(toneMapPassGammaIndex.rawValue)
-            )
-
-            // set the draw command
-            renderEncoder.drawIndexedPrimitives(
-                type: .triangle,
-                indexCount: 6,
-                indexType: .uint16,
-                indexBuffer: bufferResources.quadIndexBuffer!,
-                indexBufferOffset: 0
-            )
-
-            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-            renderEncoder.popDebugGroup()
-            renderEncoder.endEncoding()
-            
             guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
                 print("Failed to create blit encoder")
                 return
             }
-            
+
             blitEncoder.waitForFence(renderInfo.fence)
-            
+
             blitEncoder.copy(from: textureResources.colorMap!,
-                              sourceSlice: 0,
-                              sourceLevel: 0,
-                              sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-                              sourceSize: MTLSize(width: Int(textureResources.toneMapDebugTexture!.width), height: Int(textureResources.toneMapDebugTexture!.height), depth: 1),
-                              to: textureResources.toneMapDebugTexture!,
-                              destinationSlice: 0,
-                              destinationLevel: 0,
-                              destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
+                             sourceSlice: 0,
+                             sourceLevel: 0,
+                             sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+                             sourceSize: MTLSize(width: Int(debugTexture.width), height: Int(debugTexture.height), depth: 1),
+                             to: debugTexture,
+                             destinationSlice: 0,
+                             destinationLevel: 0,
+                             destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
             blitEncoder.endEncoding()
-            
+
             blitEncoder.updateFence(renderInfo.fence)
-            
         }
     }
 }
