@@ -36,7 +36,6 @@ struct VertexCompositeOutput{
 struct VertexDebugOutput{
     float4 position [[position]];
     float2 uvCoords;
-    uint viewport [[viewport_array_index]];
 };
 
 struct IBLFragmentOut{
