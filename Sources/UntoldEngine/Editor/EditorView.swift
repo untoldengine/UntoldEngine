@@ -42,10 +42,14 @@ public struct EditorView: View {
                                 Label("Scene", systemImage: "cube")
                             }
 
-                        EnvironmentView()
-                            .tabItem {
-                                Label("Environment", systemImage: "sun.max")
-                            }
+                        VStack(alignment: .leading) {
+                            EnvironmentView()
+                            Divider()
+                            ToneMappingEditorView()
+                        }
+                        .tabItem {
+                            Label("Environment", systemImage: "sun.max")
+                        }
                     }
                     .frame(minWidth: 200, maxWidth: 200)
                 }

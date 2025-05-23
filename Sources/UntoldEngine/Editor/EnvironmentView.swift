@@ -117,3 +117,33 @@ struct EnvironmentView: View {
         }
     }
 }
+
+struct ToneMappingEditorView: View {
+    @ObservedObject var settings = ToneMappingParams.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Tone Mapping").font(.headline)
+
+            HStack {
+                Text("Exposure")
+                Slider(value: $settings.exposure, in: 0.1...5.0)
+                Text(String(format: "%.2f", settings.exposure))
+            }
+
+            Picker("Operator", selection: $settings.toneMapOperator) {
+                Text("ACES").tag(0)
+                Text("Filmic").tag(1)
+                Text("Reinhard").tag(2)
+            }
+            .pickerStyle(SegmentedPickerStyle())
+
+            HStack {
+                Text("Gamma")
+                Slider(value: $settings.gamma, in: 1.0...3.0)
+                Text(String(format: "%.2f", settings.gamma))
+            }
+        }
+        .padding()
+    }
+}
