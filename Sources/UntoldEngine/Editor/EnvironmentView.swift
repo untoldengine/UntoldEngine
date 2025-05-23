@@ -127,7 +127,7 @@ struct ToneMappingEditorView: View {
 
             HStack {
                 Text("Exposure")
-                Slider(value: $settings.exposure, in: 0.1...5.0)
+                Slider(value: $settings.exposure, in: 0.1 ... 5.0)
                 Text(String(format: "%.2f", settings.exposure))
             }
 
@@ -140,8 +140,25 @@ struct ToneMappingEditorView: View {
 
             HStack {
                 Text("Gamma")
-                Slider(value: $settings.gamma, in: 1.0...3.0)
+                Slider(value: $settings.gamma, in: 1.0 ... 3.0)
                 Text(String(format: "%.2f", settings.gamma))
+            }
+        }
+        .padding()
+    }
+}
+
+struct DebuggerEditorView: View {
+    @ObservedObject var settings = DebugSettings.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Debugger ").font(.headline)
+
+            Picker("Debug Texture", selection: $settings.selectedName) {
+                ForEach(DebugTextureRegistry.allNames(), id: \.self) { name in
+                    Text(name)
+                }
             }
         }
         .padding()
