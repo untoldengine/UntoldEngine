@@ -296,6 +296,18 @@ func initRenderPassDescriptors() {
         ],
         depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
     )
+    
+    // Offscreen Render Pass
+    renderInfo.postProcessRenderPassDescriptor = createRenderPassDescriptor(
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        colorAttachments: [
+            (textureResources.toneMapDebugTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.normalMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.positionMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+        ],
+        depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
+    )
 }
 
 func initTextureResources() {
@@ -358,6 +370,17 @@ func initTextureResources() {
     textureResources.toneMapDebugTexture = createTexture(
         device: renderInfo.device,
         label: "Tonemap Debug Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+    
+    // Blur Map debug texture
+    textureResources.blurDebugTextures = createTexture(
+        device: renderInfo.device,
+        label: "Blur Debug Texture",
         pixelFormat: renderInfo.colorPixelFormat,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
@@ -839,18 +862,6 @@ func initRenderPipelines() {
         debuggerPipeline = debugPipe
     }
 
-    if let postProcessPipe = createPipeline(
-        vertexShader: "vertexPostProcessShader",
-        fragmentShader: "fragmentPostProcessShader",
-        vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
-        depthFormat: renderInfo.depthPixelFormat,
-        depthEnabled: false,
-        name: "Post-Process Pipeline"
-    ) {
-        postProcessPipeline = postProcessPipe
-    }
-
     if let tonePipe = createPipeline(
         vertexShader: "vertexTonemappingShader",
         fragmentShader: "fragmentTonemappingShader",
@@ -861,6 +872,18 @@ func initRenderPipelines() {
         name: "Tone-mapping Pipeline"
     ) {
         tonemappingPipeline = tonePipe
+    }
+    
+    if let blurPipe = createPipeline(
+        vertexShader: "vertexBlurShader",
+        fragmentShader: "fragmentBlurShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Tone-mapping Pipeline"
+    ) {
+        blurPipeline = blurPipe
     }
 
     if let environmentPipe = createPipeline(

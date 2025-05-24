@@ -1127,14 +1127,10 @@ enum RenderPasses {
 
             renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
                 .loadAction = .load
-            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-                .loadAction = .load
-            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-                .loadAction = .load
 
-            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
-
-            let renderPassDescriptor = renderInfo.offscreenRenderPassDescriptor!
+            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
+            
+            let renderPassDescriptor = renderInfo.postProcessRenderPassDescriptor!
 
             // set your encoder here
             guard
@@ -1182,7 +1178,7 @@ enum RenderPasses {
 
             blitEncoder.waitForFence(renderInfo.fence)
 
-            blitEncoder.copy(from: textureResources.colorMap!,
+            blitEncoder.copy(from: renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture!,
                              sourceSlice: 0,
                              sourceLevel: 0,
                              sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),

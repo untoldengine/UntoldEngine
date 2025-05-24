@@ -21,7 +21,7 @@ public struct RenderInfo {
     var textureLoader: MTKTextureLoader!
     var renderPassDescriptor: MTLRenderPassDescriptor!
     var offscreenRenderPassDescriptor: MTLRenderPassDescriptor!
-    var offscreenPaintLightingRenderPass: MTLRenderPassDescriptor!
+    var postProcessRenderPassDescriptor: MTLRenderPassDescriptor!
     var shadowRenderPassDescriptor: MTLRenderPassDescriptor!
     var iblOffscreenRenderPassDescriptor: MTLRenderPassDescriptor!
     var colorPixelFormat: MTLPixelFormat!
@@ -105,6 +105,7 @@ public struct TextureResources {
     
     // debugger textures
     var toneMapDebugTexture: MTLTexture?
+    var blurDebugTextures: MTLTexture?
 }
 
 public struct AccelStructResources {
