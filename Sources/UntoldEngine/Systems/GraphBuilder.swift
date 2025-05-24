@@ -9,12 +9,16 @@
 import Foundation
 import Metal
 
+enum GraphError: Error {
+    case cycleDetected(String)
+}
+
 struct RenderPass {
     let id: String
     var dependencies: [String]
-    var execute: (MTLCommandBuffer) -> Void
+    var execute: ((MTLCommandBuffer) -> Void)?
 
-    init(id: String, dependencies: [String], execute: @escaping (MTLCommandBuffer) -> Void) {
+    init(id: String, dependencies: [String], execute: ((MTLCommandBuffer) -> Void)?) {
         self.id = id
         self.dependencies = dependencies
         self.execute = execute
@@ -25,38 +29,40 @@ func executeGraph(
     _: [String: RenderPass], _ sortedPasses: [RenderPass], _ commandBuffer: MTLCommandBuffer
 ) {
     for pass in sortedPasses {
-        pass.execute(commandBuffer)
+        pass.execute?(commandBuffer)
     }
 }
 
-func topologicalSortGraph(graph: [String: RenderPass]) -> [RenderPass] {
-    var sortedPasses = [RenderPass]() // This array will hold the sorted nodes (render passes).
-    var visited = Set<String>() // A set to track which nodes have been visited.
+// Creates a Directed Acyclic (non-cyclical) Graph
+func topologicalSortGraph(graph: [String: RenderPass]) throws -> [RenderPass] {
+    var sortedPasses = [RenderPass]()
+    var visited = Set<String>()
+    var visiting = Set<String>() // Tracks nodes in the current recursion stack
 
-    // Nested function to perform depth-first search from a given node.
-    func visit(_ pass: RenderPass) {
+    func visit(_ pass: RenderPass) throws {
+        if visiting.contains(pass.id) {
+            throw GraphError.cycleDetected("Cycle detected at node \(pass.id)")
+        }
         if visited.contains(pass.id) {
-            return // If the node has already been visited, return immediately.
+            return
         }
 
-        visited.insert(pass.id) // Mark the node as visited.
+        visiting.insert(pass.id)
 
-        // Visit all the dependencies of the current node before adding the node itself.
         for dependency in pass.dependencies {
             if let depPass = graph[dependency] {
-                visit(depPass) // Recursive call for each dependency.
+                try visit(depPass)
             }
         }
 
-        // After visiting dependencies, add the current node to the sorted list.
+        visiting.remove(pass.id)
+        visited.insert(pass.id)
         sortedPasses.append(pass)
     }
 
-    // Iterate over each node in the graph and apply the visit function.
     for (_, pass) in graph {
-        visit(pass)
+        try visit(pass)
     }
 
-    // return sorted passes
     return sortedPasses
 }

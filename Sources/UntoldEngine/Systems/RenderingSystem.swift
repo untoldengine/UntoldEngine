@@ -92,7 +92,7 @@ func updateRenderingSystem(in view: MTKView) {
             }
 
             // sorted it
-            let sortedPasses = topologicalSortGraph(graph: graph)
+            let sortedPasses = try! topologicalSortGraph(graph: graph)
 
             // execute it
             executeGraph(graph, sortedPasses, commandBuffer)
@@ -124,4 +124,10 @@ let tonemapRenderPass = RenderPasses.executePostProcess(tonemappingPipeline, deb
         index: Int(toneMapPassGammaIndex.rawValue)
     )
 
+})
+
+let blurRenderPass = RenderPasses.executePostProcess(blurPipeline, debugTexture: textureResources.blurDebugTextures!, customization: { encoder in
+
+    var direction = simd_float2(1.0, 0.0)
+    encoder.setFragmentBytes(&direction, length: MemoryLayout<simd_float2>.stride, index: 0)
 })
