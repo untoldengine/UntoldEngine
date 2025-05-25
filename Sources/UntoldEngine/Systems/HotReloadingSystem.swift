@@ -16,6 +16,9 @@ struct ShaderPipelineConfig {
     let vertexDescriptor: MTLVertexDescriptor?
     let colorPixelFormats: [MTLPixelFormat]
     let depthPixelFormat: MTLPixelFormat?
+    let depthComparison: MTLCompareFunction?
+    let depthEnabled: Bool?
+    let blendEnabled: Bool?
 }
 
 let pipelineConfigs: [String: ShaderPipelineConfig] = [
@@ -25,15 +28,36 @@ let pipelineConfigs: [String: ShaderPipelineConfig] = [
         fragmentFunctionName: "fragmentModelShader",
         vertexDescriptor: MTKMetalVertexDescriptorFromModelIO(vertexDescriptor.model),
         colorPixelFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
-        depthPixelFormat: renderInfo.depthPixelFormat
+        depthPixelFormat: renderInfo.depthPixelFormat,
+        depthComparison: .lessEqual,
+        depthEnabled: true,
+        blendEnabled: false
     ),
+
     "tonemapping": ShaderPipelineConfig(
         pipelineName: "Tone-mapping Pipeline",
         vertexFunctionName: "vertexTonemappingShader",
         fragmentFunctionName: "fragmentTonemappingShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
         colorPixelFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
-        depthPixelFormat: renderInfo.depthPixelFormat),
+        depthPixelFormat: renderInfo.depthPixelFormat,
+        depthComparison: nil,
+        depthEnabled: false,
+        blendEnabled: false
+
+    ),
+
+    "blur": ShaderPipelineConfig(
+        pipelineName: "Blur Pipeline",
+        vertexFunctionName: "vertexBlurShader",
+        fragmentFunctionName: "fragmentBlurShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorPixelFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthPixelFormat: renderInfo.depthPixelFormat,
+        depthComparison: nil,
+        depthEnabled: false,
+        blendEnabled: false
+    ),
 ]
 
 func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: inout RenderPipeline) {
@@ -55,7 +79,17 @@ func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: 
     descriptor.vertexDescriptor = config.vertexDescriptor
 
     for (index, format) in config.colorPixelFormats.enumerated() {
-        descriptor.colorAttachments[index].pixelFormat = format
+        let attachment = descriptor.colorAttachments[index]
+        attachment?.pixelFormat = format
+        if config.blendEnabled == true {
+            attachment?.isBlendingEnabled = true
+            attachment?.rgbBlendOperation = .add
+            attachment?.sourceRGBBlendFactor = .sourceAlpha
+            attachment?.destinationRGBBlendFactor = .one
+            attachment?.alphaBlendOperation = .add
+            attachment?.sourceAlphaBlendFactor = .sourceAlpha
+            attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+        }
     }
 
     if let depthFormat = config.depthPixelFormat {
@@ -65,8 +99,14 @@ func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: 
     do {
         let newPipeline = try renderInfo.device.makeRenderPipelineState(descriptor: descriptor)
         let depthState = MTLDepthStencilDescriptor()
-        depthState.depthCompareFunction = .lessEqual
-        depthState.isDepthWriteEnabled = true
+
+        if let depthCompare = config.depthComparison {
+            depthState.depthCompareFunction = depthCompare
+        }
+
+        if let depthEnabled = config.depthEnabled {
+            depthState.isDepthWriteEnabled = depthEnabled
+        }
 
         let newDepthState = renderInfo.device.makeDepthStencilState(descriptor: depthState)
 
@@ -84,6 +124,12 @@ func updateShadersAndPipeline() {
     if let library = loadMetalLibraryFromUserSelection() {
         reloadPipeline(named: "model", with: library, pipe: &modelPipeline)
         reloadPipeline(named: "tonemapping", with: library, pipe: &tonemappingPipeline)
+
+        tonemapRenderPass = RenderPasses.executePostProcess(
+            tonemappingPipeline,
+            debugTexture: textureResources.toneMapDebugTexture!,
+            customization: toneMappingCustomization
+        )
     }
 }
 

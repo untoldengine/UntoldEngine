@@ -65,14 +65,18 @@ func updateRenderingSystem(in view: MTKView) {
             graph[hightlightPass.id] = hightlightPass
 
             let tonemapPass = RenderPass(
-                id: "tonemap", dependencies: ["highlight"],
+                id: "tonemap", dependencies: [modelPass.id],
                 execute: tonemapRenderPass
             )
 
             graph[tonemapPass.id] = tonemapPass
 
+//            let blurPass = RenderPass(id: "blur", dependencies: [hightlightPass.id], execute: blurRenderPass)
+//
+//            graph[blurPass.id] = blurPass
+
             let preCompositePass = RenderPass(
-                id: "precomp", dependencies: ["tonemap"], execute: RenderPasses.preCompositeExecution
+                id: "precomp", dependencies: [hightlightPass.id], execute: RenderPasses.preCompositeExecution
             )
 
             graph[preCompositePass.id] = preCompositePass
@@ -108,26 +112,28 @@ func updateRenderingSystem(in view: MTKView) {
 
 // Post process passes
 
-let tonemapRenderPass = RenderPasses.executePostProcess(tonemappingPipeline, debugTexture: textureResources.toneMapDebugTexture!, customization: { encoder in
+func toneMappingCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(
-        &ToneMappingParams.shared.toneMapOperator, length: MemoryLayout<Int>.stride,
+        &ToneMappingParams.shared.toneMapOperator,
+        length: MemoryLayout<Int>.stride,
         index: Int(toneMapPassToneMappingIndex.rawValue)
     )
 
     encoder.setFragmentBytes(
-        &ToneMappingParams.shared.exposure, length: MemoryLayout<Float>.stride,
+        &ToneMappingParams.shared.exposure,
+        length: MemoryLayout<Float>.stride,
         index: Int(toneMapPassExposureIndex.rawValue)
     )
 
     encoder.setFragmentBytes(
-        &ToneMappingParams.shared.gamma, length: MemoryLayout<Float>.stride,
+        &ToneMappingParams.shared.gamma,
+        length: MemoryLayout<Float>.stride,
         index: Int(toneMapPassGammaIndex.rawValue)
     )
+}
 
-})
-
-let blurRenderPass = RenderPasses.executePostProcess(blurPipeline, debugTexture: textureResources.blurDebugTextures!, customization: { encoder in
-
-    var direction = simd_float2(1.0, 0.0)
-    encoder.setFragmentBytes(&direction, length: MemoryLayout<simd_float2>.stride, index: 0)
-})
+var tonemapRenderPass = RenderPasses.executePostProcess(
+    tonemappingPipeline,
+    debugTexture: textureResources.toneMapDebugTexture!,
+    customization: toneMappingCustomization
+)
