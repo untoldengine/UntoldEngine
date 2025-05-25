@@ -16,3 +16,4 @@ using namespace metal;
 #include "../Shaders/OutlineShader.metal"
 #include "../Shaders/LightVisualShader.metal"
 #include "../Shaders/raymodelIntersect.metal"
+#include "../Shaders/ColorGradingShader.metal"
