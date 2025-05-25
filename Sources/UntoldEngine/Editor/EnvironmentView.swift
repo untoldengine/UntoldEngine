@@ -148,6 +148,29 @@ struct ToneMappingEditorView: View {
     }
 }
 
+struct ColorGradingEditorView: View {
+    @ObservedObject var settings = ColorGradingParams.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Color Grading").font(.headline)
+
+                Text("Brightness")
+            Slider(value: $settings.brightness, in: -1.0 ... 1.0)
+                Text(String(format: "%.2f", settings.brightness))
+
+                Text("Contrast")
+                Slider(value: $settings.contrast, in: 0.0 ... 2.0)
+                Text(String(format: "%.2f", settings.contrast))
+            
+            Text("Saturation")
+                Slider(value: $settings.saturation, in: 0.0 ... 2.0)
+                Text(String(format: "%.2f", settings.saturation))
+        }
+        .padding()
+    }
+}
+
 struct DebuggerEditorView: View {
     @ObservedObject var settings = DebugSettings.shared
 

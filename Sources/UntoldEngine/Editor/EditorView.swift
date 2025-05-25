@@ -46,8 +46,9 @@ public struct EditorView: View {
                             EnvironmentView()
                             Divider()
                             ToneMappingEditorView()
-//                            Divider()
-//                            DebuggerEditorView()
+                            Divider()
+                            ColorGradingEditorView()
+                            //DebuggerEditorView()
                         }
                         .tabItem {
                             Label("Environment", systemImage: "sun.max")
