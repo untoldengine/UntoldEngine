@@ -58,6 +58,18 @@ let pipelineConfigs: [String: ShaderPipelineConfig] = [
         depthEnabled: false,
         blendEnabled: false
     ),
+    
+    "colorgrading": ShaderPipelineConfig(
+        pipelineName: "Color Grading Pipeline",
+        vertexFunctionName: "vertexColorGradingShader",
+        fragmentFunctionName: "fragmentColorGradingShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorPixelFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthPixelFormat: renderInfo.depthPixelFormat,
+        depthComparison: nil,
+        depthEnabled: false,
+        blendEnabled: false
+    ),
 ]
 
 func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: inout RenderPipeline) {
@@ -124,12 +136,21 @@ func updateShadersAndPipeline() {
     if let library = loadMetalLibraryFromUserSelection() {
         reloadPipeline(named: "model", with: library, pipe: &modelPipeline)
         reloadPipeline(named: "tonemapping", with: library, pipe: &tonemappingPipeline)
-
+        reloadPipeline(named: "colorgrading", with: library, pipe: &colorGradingPipeline)
+        
         tonemapRenderPass = RenderPasses.executePostProcess(
             tonemappingPipeline,
             debugTexture: textureResources.toneMapDebugTexture!,
             customization: toneMappingCustomization
         )
+       
+        //set up color-grading here
+        colorGradingRenderPass = RenderPasses.executePostProcess(
+            colorGradingPipeline,
+            debugTexture: textureResources.colorGradingDebugTexture!,
+            customization: colorGradingCustomization
+        )
+        
     }
 }
 

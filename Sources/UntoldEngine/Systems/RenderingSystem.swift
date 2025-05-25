@@ -137,3 +137,30 @@ var tonemapRenderPass = RenderPasses.executePostProcess(
     debugTexture: textureResources.toneMapDebugTexture!,
     customization: toneMappingCustomization
 )
+
+func colorGradingCustomization(encoder: MTLRenderCommandEncoder){
+    
+    encoder.setFragmentBytes(
+        &ColorGradingParams.shared.brightness,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorGradingPassBrightnessIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &ColorGradingParams.shared.saturation,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorGradingPassSaturationIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &ColorGradingParams.shared.contrast,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorGradingPassContrastIndex.rawValue)
+    )
+}
+
+var colorGradingRenderPass = RenderPasses.executePostProcess(
+    colorGradingPipeline,
+    debugTexture: textureResources.colorGradingDebugTexture!,
+    customization: colorGradingCustomization
+)

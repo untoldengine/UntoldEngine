@@ -78,6 +78,7 @@ var rayCompositePipeline = RenderPipeline()
 
 // Post-process
 var tonemappingPipeline = RenderPipeline()
+var colorGradingPipeline = RenderPipeline()
 var blurPipeline = RenderPipeline()
 
 
@@ -193,6 +194,14 @@ class ToneMappingParams: ObservableObject {
     @Published var exposure: Float = 1.0
     @Published var toneMapOperator: Int = 0
     @Published var gamma: Float = 1.0 // original = 2.2
+}
+
+class ColorGradingParams: ObservableObject{
+    static let shared = ColorGradingParams()
+    
+    @Published var brightness: Float = 0.0
+    @Published var contrast: Float = 1.0
+    @Published var saturation: Float = 1.0
 }
 
 class DebugSettings: ObservableObject {

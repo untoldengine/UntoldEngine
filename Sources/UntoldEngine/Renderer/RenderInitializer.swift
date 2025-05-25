@@ -387,6 +387,17 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+    
+    // Color grading Map debug texture
+    textureResources.colorGradingDebugTexture = createTexture(
+        device: renderInfo.device,
+        label: "Blur Debug Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
 }
 
 func initIBLResources() {
@@ -886,6 +897,18 @@ func initRenderPipelines() {
         blurPipeline = blurPipe
     }
 
+    if let colorGradingPipe = createPipeline(
+        vertexShader: "vertexColorGradingShader",
+        fragmentShader: "fragmentColorGradingShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "ColorGrading Pipeline"
+    ) {
+        colorGradingPipeline = colorGradingPipe
+    }
+    
     if let environmentPipe = createPipeline(
         vertexShader: "vertexEnvironmentShader",
         fragmentShader: "fragmentEnvironmentShader",
