@@ -102,6 +102,12 @@ typedef enum{
     toneMapPassGammaIndex,
 }ToneMapPassBufferIndices;
 
+typedef enum{
+    colorGradingPassColorTextureIndex,
+    colorGradingPassBrightnessIndex,
+    colorGradingPassContrastIndex,
+    colorGradingPassSaturationIndex,
+}ColorGradingPassBufferIndices;
 
 typedef enum{
     shadowPassModelPositionIndex,
