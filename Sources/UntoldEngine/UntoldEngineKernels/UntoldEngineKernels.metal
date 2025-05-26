@@ -17,3 +17,5 @@ using namespace metal;
 #include "../Shaders/LightVisualShader.metal"
 #include "../Shaders/raymodelIntersect.metal"
 #include "../Shaders/ColorGradingShader.metal"
+#include "../Shaders/BlurShader.metal"
+#include "../Shaders/ColorCorrectionShader.metal"
