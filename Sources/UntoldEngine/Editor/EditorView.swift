@@ -44,17 +44,16 @@ public struct EditorView: View {
 
                         VStack(alignment: .leading) {
                             EnvironmentView()
-                            Divider()
-                            ToneMappingEditorView()
-                            Divider()
-                            ColorGradingEditorView()
-                            //DebuggerEditorView()
                         }
                         .tabItem {
                             Label("Environment", systemImage: "sun.max")
                         }
                     }
                     .frame(minWidth: 200, maxWidth: 200)
+                    
+                    PostProcessingEditorView()
+                        .frame(minWidth:200, maxWidth: 200)
+                        .padding(.horizontal, 16)
                 }
 
                 VStack {

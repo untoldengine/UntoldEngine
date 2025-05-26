@@ -208,6 +208,37 @@ struct ColorCorrectionEditorView: View {
     }
 }
 
+struct PostProcessingEditorView: View {
+    @State private var showToneMapping = false
+    @State private var showColorCorrection = false
+    @State private var showColorGrading = false
+    @State private var showDebugPostProccessTexture = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                DisclosureGroup("Tone Mapping", isExpanded: $showToneMapping) {
+                    ToneMappingEditorView()
+                }
+
+                DisclosureGroup("Color Correction", isExpanded: $showColorCorrection) {
+                    ColorCorrectionEditorView()
+                }
+
+                DisclosureGroup("Color Grading", isExpanded: $showColorGrading) {
+                    ColorGradingEditorView()
+                }
+                
+//                DisclosureGroup("Debug", isExpanded: $showDebugPostProccessTexture) {
+//                    DebuggerEditorView()
+//                }
+            }
+            .padding()
+        }
+    }
+}
+
+
 struct DebuggerEditorView: View {
     @ObservedObject var settings = DebugSettings.shared
 
