@@ -155,17 +155,54 @@ struct ColorGradingEditorView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Color Grading").font(.headline)
 
-                Text("Brightness")
+            Text("Brightness")
             Slider(value: $settings.brightness, in: -1.0 ... 1.0)
-                Text(String(format: "%.2f", settings.brightness))
+            Text(String(format: "%.2f", settings.brightness))
 
-                Text("Contrast")
-                Slider(value: $settings.contrast, in: 0.0 ... 2.0)
-                Text(String(format: "%.2f", settings.contrast))
-            
+            Text("Contrast")
+            Slider(value: $settings.contrast, in: 0.0 ... 2.0)
+            Text(String(format: "%.2f", settings.contrast))
+
             Text("Saturation")
-                Slider(value: $settings.saturation, in: 0.0 ... 2.0)
-                Text(String(format: "%.2f", settings.saturation))
+            Slider(value: $settings.saturation, in: 0.0 ... 2.0)
+            Text(String(format: "%.2f", settings.saturation))
+        }
+        .padding()
+    }
+}
+
+struct ColorCorrectionEditorView: View {
+    @ObservedObject var settings = ColorCorrectionParams.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Color Correction").font(.headline)
+
+            Text("Temperature")
+            Slider(value: $settings.temperature, in: -1.0 ... 1.0)
+            Text(String(format: "%.2f", settings.temperature))
+
+            Text("Tint")
+            Slider(value: $settings.tint, in: -1.0 ... 1.0)
+            Text(String(format: "%.2f", settings.tint))
+
+            TextInputVectorView(label: "Lift", value: Binding(
+                get: { settings.lift },
+                set: { newLift in
+                    settings.lift = newLift
+                }))
+
+            TextInputVectorView(label: "Gamma", value: Binding(
+                get: { settings.gamma },
+                set: { newGamma in
+                    settings.gamma = newGamma
+                }))
+
+            TextInputVectorView(label: "Gain", value: Binding(
+                get: { settings.gain },
+                set: { newGain in
+                    settings.gain = newGain
+                }))
         }
         .padding()
     }
