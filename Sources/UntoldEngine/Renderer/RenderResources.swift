@@ -107,6 +107,7 @@ public struct TextureResources {
     var toneMapDebugTexture: MTLTexture?
     var blurDebugTextures: MTLTexture?
     var colorGradingDebugTexture: MTLTexture?
+    var colorCorrectionDebugTexture: MTLTexture?
 }
 
 public struct AccelStructResources {

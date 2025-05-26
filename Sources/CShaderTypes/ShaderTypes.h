@@ -110,6 +110,16 @@ typedef enum{
 }ColorGradingPassBufferIndices;
 
 typedef enum{
+    colorCorrectionPassColorTextureIndex,
+    colorCorrectionPassTemperatureIndex,
+    colorCorrectionPassTintIndex,
+    colorCorrectionPassLiftIndex,
+    colorCorrectionPassGammaIndex,
+    colorCorrectionPassGainIndex
+}ColorCorrectionPassBufferIndices;
+
+
+typedef enum{
     shadowPassModelPositionIndex,
     shadowPassModelUniform,
     shadowPassLightMatrixUniform,

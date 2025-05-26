@@ -391,7 +391,18 @@ func initTextureResources() {
     // Color grading Map debug texture
     textureResources.colorGradingDebugTexture = createTexture(
         device: renderInfo.device,
-        label: "Blur Debug Texture",
+        label: "Color Grading Debug Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+    
+    // Color correction Map debug texture
+    textureResources.colorCorrectionDebugTexture = createTexture(
+        device: renderInfo.device,
+        label: "Color Correction Debug Texture",
         pixelFormat: renderInfo.colorPixelFormat,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
@@ -907,6 +918,18 @@ func initRenderPipelines() {
         name: "ColorGrading Pipeline"
     ) {
         colorGradingPipeline = colorGradingPipe
+    }
+    
+    if let colorCorrectionPipe = createPipeline(
+        vertexShader: "vertexColorCorrectionShader",
+        fragmentShader: "fragmentColorCorrectionShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Color Correction Pipeline"
+    ) {
+        colorCorrectionPipeline = colorCorrectionPipe
     }
     
     if let environmentPipe = createPipeline(

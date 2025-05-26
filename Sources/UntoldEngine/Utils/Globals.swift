@@ -79,6 +79,7 @@ var rayCompositePipeline = RenderPipeline()
 // Post-process
 var tonemappingPipeline = RenderPipeline()
 var colorGradingPipeline = RenderPipeline()
+var colorCorrectionPipeline = RenderPipeline()
 var blurPipeline = RenderPipeline()
 
 
@@ -202,6 +203,16 @@ class ColorGradingParams: ObservableObject{
     @Published var brightness: Float = 0.0
     @Published var contrast: Float = 1.0
     @Published var saturation: Float = 1.0
+}
+
+class ColorCorrectionParams: ObservableObject{
+    static let shared = ColorCorrectionParams()
+    
+    @Published var temperature: Float = 0.0 // -1.0 to 1.0 (-1.0 bluish, 0.0 neutral, +1.0 warm, yellowish/orange)
+    @Published var tint: Float = 0.0 // -1.0 to 1.0 Green (-)/Magenta (+)
+    @Published var lift: simd_float3 = .zero // RGB adjustment for shadows (0 - 2)
+    @Published var gamma: simd_float3 = .one // RGB adjustment for midtones (0.5 - 2.5)
+    @Published var gain: simd_float3 = .one // RGB adjustment for highlights (0 - 2)
 }
 
 class DebugSettings: ObservableObject {

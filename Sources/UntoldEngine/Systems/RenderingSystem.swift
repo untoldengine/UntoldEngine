@@ -65,18 +65,31 @@ func updateRenderingSystem(in view: MTKView) {
             graph[hightlightPass.id] = hightlightPass
 
             let tonemapPass = RenderPass(
-                id: "tonemap", dependencies: [modelPass.id],
+                id: "tonemap", dependencies: [hightlightPass.id],
                 execute: tonemapRenderPass
             )
 
             graph[tonemapPass.id] = tonemapPass
+            
+            let colorCorrectionPass = RenderPass(
+                id: "colorcorrection", dependencies: [tonemapPass.id], execute: colorCorrectionRenderPass
+            )
+            
+            graph[colorCorrectionPass.id] = colorCorrectionPass
+            
+            let colorgradingPass = RenderPass(
+                id: "colorgrading", dependencies: [colorCorrectionPass.id],
+                execute: colorGradingRenderPass
+            )
+
+            graph[colorgradingPass.id] = colorgradingPass
 
 //            let blurPass = RenderPass(id: "blur", dependencies: [hightlightPass.id], execute: blurRenderPass)
 //
 //            graph[blurPass.id] = blurPass
 
             let preCompositePass = RenderPass(
-                id: "precomp", dependencies: [hightlightPass.id], execute: RenderPasses.preCompositeExecution
+                id: "precomp", dependencies: [colorgradingPass.id], execute: RenderPasses.preCompositeExecution
             )
 
             graph[preCompositePass.id] = preCompositePass
@@ -164,3 +177,43 @@ var colorGradingRenderPass = RenderPasses.executePostProcess(
     debugTexture: textureResources.colorGradingDebugTexture!,
     customization: colorGradingCustomization
 )
+
+func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder){
+    
+    encoder.setFragmentBytes(
+        &ColorCorrectionParams.shared.temperature,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorCorrectionPassTemperatureIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &ColorCorrectionParams.shared.tint,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorCorrectionPassTintIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &ColorCorrectionParams.shared.lift,
+        length: MemoryLayout<simd_float3>.stride,
+        index: Int(colorCorrectionPassLiftIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &ColorCorrectionParams.shared.gamma,
+        length: MemoryLayout<simd_float3>.stride,
+        index: Int(colorCorrectionPassGammaIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &ColorCorrectionParams.shared.gain,
+        length: MemoryLayout<simd_float3>.stride,
+        index: Int(colorCorrectionPassGainIndex.rawValue)
+    )
+}
+
+var colorCorrectionRenderPass = RenderPasses.executePostProcess(
+    colorCorrectionPipeline,
+    debugTexture: textureResources.colorCorrectionDebugTexture!,
+    customization: colorCorrectionCustomization
+)
+
