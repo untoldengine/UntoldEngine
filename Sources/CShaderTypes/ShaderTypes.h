@@ -124,6 +124,11 @@ typedef enum{
 }BlurPassBufferIndices;
 
 typedef enum{
+    bloomThresholdPassCutoffIndex,
+    bloomThresholdPassIntensityIndex
+}BloomThresholdBufferIndices;
+
+typedef enum{
     shadowPassModelPositionIndex,
     shadowPassModelUniform,
     shadowPassLightMatrixUniform,

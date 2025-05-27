@@ -419,6 +419,17 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+    
+    // Bloom Threshold texture
+    textureResources.bloomThresholdTextuture = createTexture(
+        device: renderInfo.device,
+        label: "Bloom Threshold Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
 }
 
 func initIBLResources() {
@@ -940,6 +951,19 @@ func initRenderPipelines() {
         name: "Color Correction Pipeline"
     ) {
         colorCorrectionPipeline = colorCorrectionPipe
+    }
+    
+   // Bloom Threshold pipeline
+    if let bloomThresholdPipe = createPipeline(
+        vertexShader: "vertexBloomThresholdShader",
+        fragmentShader: "fragmentBloomThresholdShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Bloom Threshold Pipeline"
+    ) {
+        bloomThresholdPipeline = bloomThresholdPipe
     }
     
     if let environmentPipe = createPipeline(

@@ -242,3 +242,26 @@ func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderC
         )
     }
 }
+
+var bloomThresholdRenderPass = RenderPasses.executePostProcess(
+    bloomThresholdPipeline,
+    source: textureResources.colorCorrectionTexture!,
+    destination: textureResources.bloomThresholdTextuture!,
+    customization: bloomThresholdCustomization
+)
+
+func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
+    encoder.setFragmentBytes(
+        &BloomThresholdParams.shared.threshold,
+        length: MemoryLayout<Float>.stride,
+        index: Int(bloomThresholdPassCutoffIndex.rawValue)
+    )
+
+    encoder.setFragmentBytes(
+        &BloomThresholdParams.shared.intensity,
+        length: MemoryLayout<Float>.stride,
+        index: Int(bloomThresholdPassIntensityIndex.rawValue)
+    )
+
+}
+

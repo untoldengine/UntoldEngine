@@ -81,7 +81,7 @@ var tonemappingPipeline = RenderPipeline()
 var colorGradingPipeline = RenderPipeline()
 var colorCorrectionPipeline = RenderPipeline()
 var blurPipeline = RenderPipeline()
-
+var bloomThresholdPipeline = RenderPipeline()
 
 var outlinePipeline = RenderPipeline()
 
@@ -213,6 +213,13 @@ class ColorCorrectionParams: ObservableObject{
     @Published var lift: simd_float3 = .zero // RGB adjustment for shadows (0 - 2)
     @Published var gamma: simd_float3 = .one // RGB adjustment for midtones (0.5 - 2.5)
     @Published var gain: simd_float3 = .one // RGB adjustment for highlights (0 - 2)
+}
+
+class BloomThresholdParams: ObservableObject{
+    static let shared = BloomThresholdParams()
+    
+    @Published var threshold: Float = 1.0 // 0.0 to 5.0
+    @Published var intensity: Float = 1.0 // 0.0 to 2.0
 }
 
 class DebugSettings: ObservableObject {

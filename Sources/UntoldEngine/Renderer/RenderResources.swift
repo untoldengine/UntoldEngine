@@ -111,6 +111,7 @@ public struct TextureResources {
     var colorCorrectionTexture: MTLTexture?
     var blurTextureHor: MTLTexture?
     var blurTextureVer: MTLTexture?
+    var bloomThresholdTextuture : MTLTexture?
 }
 
 public struct AccelStructResources {
