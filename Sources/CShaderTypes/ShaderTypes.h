@@ -118,6 +118,10 @@ typedef enum{
     colorCorrectionPassGainIndex
 }ColorCorrectionPassBufferIndices;
 
+typedef enum{
+    blurPassDirectionIndex,
+    blurPassRadiusIndex,
+}BlurPassBufferIndices;
 
 typedef enum{
     shadowPassModelPositionIndex,
