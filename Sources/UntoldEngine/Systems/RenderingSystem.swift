@@ -77,11 +77,14 @@ func updateRenderingSystem(in view: MTKView) {
             )
 
             graph[colorgradingPass.id] = colorgradingPass
-
             
-            let blurPassHor = RenderPass(id: "blur_pass_hor", dependencies: [colorgradingPass.id], execute: RenderPasses.executePostProcess(
+            let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [colorCorrectionPass.id], execute: bloomThresholdRenderPass)
+
+            graph[bloomThresholdPass.id] = bloomThresholdPass
+
+            let blurPassHor = RenderPass(id: "blur_pass_hor", dependencies: [bloomThresholdPass.id], execute: RenderPasses.executePostProcess(
                 blurPipeline,
-                source: textureResources.colorGradingTexture!,
+                source: textureResources.bloomThresholdTextuture!,
                 destination: textureResources.blurTextureHor!,
                 customization: makeBlurCustomization(direction: simd_float2(1.0, 0.0), radius: 4.0)))
 
@@ -94,6 +97,10 @@ func updateRenderingSystem(in view: MTKView) {
                 customization: makeBlurCustomization(direction: simd_float2(0.0, 1.0), radius: 4.0)))
 
             graph[blurPassVer.id] = blurPassVer
+
+            let blurCompositePass = RenderPass(id: "blurComposite" , dependencies: [blurPassVer.id], execute: bloomCompositeRenderPass)  
+
+            graph[blurCompositePass.id] = blurCompositePass
 
             let preCompositePass = RenderPass(
                 id: "precomp", dependencies: [hightlightPass.id], execute: RenderPasses.preCompositeExecution
@@ -265,3 +272,21 @@ func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
 
 }
 
+var bloomCompositeRenderPass = RenderPasses.executePostProcess(
+    bloomCompositePipeline,
+    source: textureResources.blurTextureVer!,
+    destination: textureResources.bloomCompositeTexture!,
+    customization: bloomCompositeCustomization
+)
+
+func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
+    encoder.setFragmentBytes(
+        &BloomCompositeParams.shared.intensity,
+        length: MemoryLayout<Float>.stride,
+        index: Int(bloomCompositePassIntensityIndex.rawValue)
+    )
+
+
+    encoder.setFragmentTexture(textureResources.colorMap, index: 1)
+
+}

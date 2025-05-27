@@ -129,6 +129,10 @@ typedef enum{
 }BloomThresholdBufferIndices;
 
 typedef enum{
+    bloomCompositePassIntensityIndex,
+}BloomCompositeBufferIndices;
+
+typedef enum{
     shadowPassModelPositionIndex,
     shadowPassModelUniform,
     shadowPassLightMatrixUniform,

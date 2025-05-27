@@ -82,7 +82,7 @@ var colorGradingPipeline = RenderPipeline()
 var colorCorrectionPipeline = RenderPipeline()
 var blurPipeline = RenderPipeline()
 var bloomThresholdPipeline = RenderPipeline()
-
+var bloomCompositePipeline = RenderPipeline()
 var outlinePipeline = RenderPipeline()
 
 var rayTracingPipeline = ComputePipeline()
@@ -219,6 +219,12 @@ class BloomThresholdParams: ObservableObject{
     static let shared = BloomThresholdParams()
     
     @Published var threshold: Float = 1.0 // 0.0 to 5.0
+    @Published var intensity: Float = 1.0 // 0.0 to 2.0
+}
+
+class BloomCompositeParams: ObservableObject{
+    static let shared = BloomCompositeParams()
+    
     @Published var intensity: Float = 1.0 // 0.0 to 2.0
 }
 

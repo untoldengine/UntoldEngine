@@ -430,6 +430,17 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+
+    // Bloom Composite texture
+    textureResources.bloomCompositeTexture = createTexture(
+        device: renderInfo.device,
+        label: "Bloom Composite Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
 }
 
 func initIBLResources() {
@@ -966,6 +977,18 @@ func initRenderPipelines() {
         bloomThresholdPipeline = bloomThresholdPipe
     }
     
+    // Bloom Composite pipeline
+    if let bloomCompositePipe = createPipeline(
+        vertexShader: "vertexBloomCompositeShader",
+        fragmentShader: "fragmentBloomCompositeShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Bloom Composite Pipeline"
+    ) {
+        bloomCompositePipeline = bloomCompositePipe
+    }
     if let environmentPipe = createPipeline(
         vertexShader: "vertexEnvironmentShader",
         fragmentShader: "fragmentEnvironmentShader",

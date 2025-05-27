@@ -112,6 +112,7 @@ public struct TextureResources {
     var blurTextureHor: MTLTexture?
     var blurTextureVer: MTLTexture?
     var bloomThresholdTextuture : MTLTexture?
+    var bloomCompositeTexture : MTLTexture?
 }
 
 public struct AccelStructResources {
