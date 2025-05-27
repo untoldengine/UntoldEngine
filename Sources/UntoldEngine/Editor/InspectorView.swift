@@ -172,6 +172,25 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                             .padding()
                             .cornerRadius(8)
                         }
+                        
+                        // Emmissive Input
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Emmisive")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            TextInputVectorView(
+                                label: "",
+                                value: Binding(
+                                    get: { getMaterialEmmissive(entityId: entityId) },
+                                    set: { newValue in
+                                        updateMaterialEmmisive(entityId: entityId, emmissive: newValue)
+                                        refreshView()
+                                    }
+                                )
+                            )
+                            .frame(width: 80)
+                        }
                     }
                 }
             }
