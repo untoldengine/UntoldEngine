@@ -52,12 +52,6 @@ func updateRenderingSystem(in view: MTKView) {
 
             graph[lightVisPass.id] = lightVisPass
 
-//            let outlinePass = RenderPass(
-//                id: "outline", dependencies: ["lightvis"], execute: RenderPasses.outlineExecution
-//            )
-//
-//            graph[outlinePass.id] = outlinePass
-
             let hightlightPass = RenderPass(
                 id: "highlight", dependencies: ["lightvis"], execute: RenderPasses.highlightExecution
             )
@@ -65,18 +59,18 @@ func updateRenderingSystem(in view: MTKView) {
             graph[hightlightPass.id] = hightlightPass
 
             let tonemapPass = RenderPass(
-                id: "tonemap", dependencies: [hightlightPass.id],
+                id: "tonemap", dependencies: [modelPass.id],
                 execute: tonemapRenderPass
             )
 
             graph[tonemapPass.id] = tonemapPass
-            
+
             let colorCorrectionPass = RenderPass(
                 id: "colorcorrection", dependencies: [tonemapPass.id], execute: colorCorrectionRenderPass
             )
-            
+
             graph[colorCorrectionPass.id] = colorCorrectionPass
-            
+
             let colorgradingPass = RenderPass(
                 id: "colorgrading", dependencies: [colorCorrectionPass.id],
                 execute: colorGradingRenderPass
@@ -84,12 +78,25 @@ func updateRenderingSystem(in view: MTKView) {
 
             graph[colorgradingPass.id] = colorgradingPass
 
-//            let blurPass = RenderPass(id: "blur", dependencies: [hightlightPass.id], execute: blurRenderPass)
-//
-//            graph[blurPass.id] = blurPass
+            
+            let blurPassHor = RenderPass(id: "blur_pass_hor", dependencies: [colorgradingPass.id], execute: RenderPasses.executePostProcess(
+                blurPipeline,
+                source: textureResources.colorGradingTexture!,
+                destination: textureResources.blurTextureHor!,
+                customization: makeBlurCustomization(direction: simd_float2(1.0, 0.0), radius: 4.0)))
+
+            graph[blurPassHor.id] = blurPassHor
+
+            let blurPassVer = RenderPass(id: "blur_pass_ver", dependencies: [blurPassHor.id], execute: RenderPasses.executePostProcess(
+                blurPipeline,
+                source: textureResources.blurTextureHor!,
+                destination: textureResources.blurTextureVer!,
+                customization: makeBlurCustomization(direction: simd_float2(0.0, 1.0), radius: 4.0)))
+
+            graph[blurPassVer.id] = blurPassVer
 
             let preCompositePass = RenderPass(
-                id: "precomp", dependencies: [colorgradingPass.id], execute: RenderPasses.preCompositeExecution
+                id: "precomp", dependencies: [hightlightPass.id], execute: RenderPasses.preCompositeExecution
             )
 
             graph[preCompositePass.id] = preCompositePass
@@ -147,63 +154,36 @@ func toneMappingCustomization(encoder: MTLRenderCommandEncoder) {
 
 var tonemapRenderPass = RenderPasses.executePostProcess(
     tonemappingPipeline,
-    debugTexture: textureResources.toneMapDebugTexture!,
+    source: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!,
+    destination: textureResources.tonemapTexture!,
     customization: toneMappingCustomization
 )
 
-func colorGradingCustomization(encoder: MTLRenderCommandEncoder){
-    
-    encoder.setFragmentBytes(
-        &ColorGradingParams.shared.brightness,
-        length: MemoryLayout<Float>.stride,
-        index: Int(colorGradingPassBrightnessIndex.rawValue)
-    )
-    
-    encoder.setFragmentBytes(
-        &ColorGradingParams.shared.saturation,
-        length: MemoryLayout<Float>.stride,
-        index: Int(colorGradingPassSaturationIndex.rawValue)
-    )
-    
-    encoder.setFragmentBytes(
-        &ColorGradingParams.shared.contrast,
-        length: MemoryLayout<Float>.stride,
-        index: Int(colorGradingPassContrastIndex.rawValue)
-    )
-}
-
-var colorGradingRenderPass = RenderPasses.executePostProcess(
-    colorGradingPipeline,
-    debugTexture: textureResources.colorGradingDebugTexture!,
-    customization: colorGradingCustomization
-)
-
-func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder){
-    
+func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(
         &ColorCorrectionParams.shared.temperature,
         length: MemoryLayout<Float>.stride,
         index: Int(colorCorrectionPassTemperatureIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &ColorCorrectionParams.shared.tint,
         length: MemoryLayout<Float>.stride,
         index: Int(colorCorrectionPassTintIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &ColorCorrectionParams.shared.lift,
         length: MemoryLayout<simd_float3>.stride,
         index: Int(colorCorrectionPassLiftIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &ColorCorrectionParams.shared.gamma,
         length: MemoryLayout<simd_float3>.stride,
         index: Int(colorCorrectionPassGammaIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &ColorCorrectionParams.shared.gain,
         length: MemoryLayout<simd_float3>.stride,
@@ -213,7 +193,52 @@ func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder){
 
 var colorCorrectionRenderPass = RenderPasses.executePostProcess(
     colorCorrectionPipeline,
-    debugTexture: textureResources.colorCorrectionDebugTexture!,
+    source: textureResources.tonemapTexture!,
+    destination: textureResources.colorCorrectionTexture!,
     customization: colorCorrectionCustomization
 )
 
+func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
+    encoder.setFragmentBytes(
+        &ColorGradingParams.shared.brightness,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorGradingPassBrightnessIndex.rawValue)
+    )
+
+    encoder.setFragmentBytes(
+        &ColorGradingParams.shared.saturation,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorGradingPassSaturationIndex.rawValue)
+    )
+
+    encoder.setFragmentBytes(
+        &ColorGradingParams.shared.contrast,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorGradingPassContrastIndex.rawValue)
+    )
+}
+
+var colorGradingRenderPass = RenderPasses.executePostProcess(
+    colorGradingPipeline,
+    source: textureResources.colorCorrectionTexture!,
+    destination: textureResources.colorGradingTexture!,
+    customization: colorGradingCustomization
+)
+
+func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderCommandEncoder) -> Void {
+    { encoder in
+        var dir = direction
+        var r = radius
+
+        encoder.setFragmentBytes(
+            &dir,
+            length: MemoryLayout<simd_float2>.stride,
+            index: Int(blurPassDirectionIndex.rawValue)
+        )
+        encoder.setFragmentBytes(
+            &r,
+            length: MemoryLayout<Float>.stride,
+            index: Int(blurPassRadiusIndex.rawValue)
+        )
+    }
+}

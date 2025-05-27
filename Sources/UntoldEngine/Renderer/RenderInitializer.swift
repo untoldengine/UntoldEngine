@@ -302,7 +302,7 @@ func initRenderPassDescriptors() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         colorAttachments: [
-            (textureResources.toneMapDebugTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.tonemapTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
             (textureResources.normalMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
             (textureResources.positionMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
@@ -367,7 +367,7 @@ func initTextureResources() {
     )
     
     // Tone Map debug texture
-    textureResources.toneMapDebugTexture = createTexture(
+    textureResources.tonemapTexture = createTexture(
         device: renderInfo.device,
         label: "Tonemap Debug Texture",
         pixelFormat: renderInfo.colorPixelFormat,
@@ -378,9 +378,19 @@ func initTextureResources() {
     )
     
     // Blur Map debug texture
-    textureResources.blurDebugTextures = createTexture(
+    textureResources.blurTextureHor = createTexture(
         device: renderInfo.device,
-        label: "Blur Debug Texture",
+        label: "Blur Texture Hor",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+    
+    textureResources.blurTextureVer = createTexture(
+        device: renderInfo.device,
+        label: "Blur Texture Ver",
         pixelFormat: renderInfo.colorPixelFormat,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
@@ -389,7 +399,7 @@ func initTextureResources() {
     )
     
     // Color grading Map debug texture
-    textureResources.colorGradingDebugTexture = createTexture(
+    textureResources.colorGradingTexture = createTexture(
         device: renderInfo.device,
         label: "Color Grading Debug Texture",
         pixelFormat: renderInfo.colorPixelFormat,
@@ -400,7 +410,7 @@ func initTextureResources() {
     )
     
     // Color correction Map debug texture
-    textureResources.colorCorrectionDebugTexture = createTexture(
+    textureResources.colorCorrectionTexture = createTexture(
         device: renderInfo.device,
         label: "Color Correction Debug Texture",
         pixelFormat: renderInfo.colorPixelFormat,

@@ -138,16 +138,28 @@ func updateShadersAndPipeline() {
         reloadPipeline(named: "tonemapping", with: library, pipe: &tonemappingPipeline)
         reloadPipeline(named: "colorgrading", with: library, pipe: &colorGradingPipeline)
         
+        // set up tone map
         tonemapRenderPass = RenderPasses.executePostProcess(
             tonemappingPipeline,
-            debugTexture: textureResources.toneMapDebugTexture!,
+            source: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!,
+            destination: textureResources.tonemapTexture!,
             customization: toneMappingCustomization
         )
+        
+        // set up color correction
+        colorCorrectionRenderPass = RenderPasses.executePostProcess(
+            colorCorrectionPipeline,
+            source: textureResources.tonemapTexture!,
+            destination: textureResources.colorCorrectionTexture!,
+            customization: colorCorrectionCustomization
+        )
+
        
         //set up color-grading here
         colorGradingRenderPass = RenderPasses.executePostProcess(
             colorGradingPipeline,
-            debugTexture: textureResources.colorGradingDebugTexture!,
+            source: textureResources.colorCorrectionTexture!,
+            destination: textureResources.colorGradingTexture!,
             customization: colorGradingCustomization
         )
         

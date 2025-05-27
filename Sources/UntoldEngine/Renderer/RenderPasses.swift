@@ -1115,8 +1115,12 @@ enum RenderPasses {
         renderEncoder.endEncoding()
     }
 
-    static func executePostProcess(_ pipeline: RenderPipeline, debugTexture: MTLTexture,
-                                   customization: @escaping (_ encoder: MTLRenderCommandEncoder) -> Void) -> (MTLCommandBuffer) -> Void
+    static func executePostProcess(
+        _ pipeline: RenderPipeline,
+        source: MTLTexture,
+        destination: MTLTexture,
+        customization: @escaping (_ encoder: MTLRenderCommandEncoder) -> Void
+    ) -> (MTLCommandBuffer) -> Void
     {
         { commandBuffer in
 
@@ -1124,12 +1128,13 @@ enum RenderPasses {
                 handleError(.pipelineStateNulled, "Post Process Pipeline")
                 return
             }
+           
+            renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture = destination
 
-            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-                .loadAction = .load
-
-            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
-            
+            renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].loadAction = .clear
+            renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].storeAction = .store
+            //renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
+                        
             let renderPassDescriptor = renderInfo.postProcessRenderPassDescriptor!
 
             // set your encoder here
@@ -1150,11 +1155,8 @@ enum RenderPasses {
 
             renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
             renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
-
-            renderEncoder.setFragmentTexture(
-                renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-                    .texture, index: 0
-            )
+            
+            renderEncoder.setFragmentTexture(source, index: 0)
 
             // Pass in individual post-process values
             customization(renderEncoder)
@@ -1171,25 +1173,25 @@ enum RenderPasses {
             renderEncoder.popDebugGroup()
             renderEncoder.endEncoding()
 
-            guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
-                print("Failed to create blit encoder")
-                return
-            }
-
-            blitEncoder.waitForFence(renderInfo.fence)
-
-            blitEncoder.copy(from: renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture!,
-                             sourceSlice: 0,
-                             sourceLevel: 0,
-                             sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-                             sourceSize: MTLSize(width: Int(debugTexture.width), height: Int(debugTexture.height), depth: 1),
-                             to: debugTexture,
-                             destinationSlice: 0,
-                             destinationLevel: 0,
-                             destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
-            blitEncoder.endEncoding()
-
-            blitEncoder.updateFence(renderInfo.fence)
+//            guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
+//                print("Failed to create blit encoder")
+//                return
+//            }
+//
+//            blitEncoder.waitForFence(renderInfo.fence)
+//
+//            blitEncoder.copy(from: triple.activeReadTexture,
+//                             sourceSlice: 0,
+//                             sourceLevel: 0,
+//                             sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+//                             sourceSize: MTLSize(width: Int(debugTexture.width), height: Int(debugTexture.height), depth: 1),
+//                             to: debugTexture,
+//                             destinationSlice: 0,
+//                             destinationLevel: 0,
+//                             destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
+//            blitEncoder.endEncoding()
+//
+//            blitEncoder.updateFence(renderInfo.fence)
         }
     }
 }
