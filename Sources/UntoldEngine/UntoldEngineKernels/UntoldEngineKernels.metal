@@ -20,3 +20,4 @@ using namespace metal;
 #include "../Shaders/BlurShader.metal"
 #include "../Shaders/ColorCorrectionShader.metal"
 #include "../Shaders/BloomThresholdShader.metal"
+#include "../Shaders/BloomCompositeShader.metal"
