@@ -208,10 +208,31 @@ struct ColorCorrectionEditorView: View {
     }
 }
 
+struct BloomEditorView: View {
+    @ObservedObject var settings = BloomThresholdParams.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Bloom").font(.headline)
+
+            Text("Threshold")
+            Slider(value: $settings.threshold, in: 0.0 ... 5.0)
+            Text(String(format: "%.2f", settings.threshold))
+
+            Text("Intensity")
+            Slider(value: $settings.intensity, in: 0.0 ... 10.0)
+            Text(String(format: "%.2f", settings.intensity))
+
+        }
+        .padding()
+    }
+}
+
 struct PostProcessingEditorView: View {
     @State private var showToneMapping = false
     @State private var showColorCorrection = false
     @State private var showColorGrading = false
+    @State private var showBloom = false
     @State private var showDebugPostProccessTexture = false
 
     var body: some View {
@@ -229,9 +250,13 @@ struct PostProcessingEditorView: View {
                     ColorGradingEditorView()
                 }
                 
-//                DisclosureGroup("Debug", isExpanded: $showDebugPostProccessTexture) {
-//                    DebuggerEditorView()
-//                }
+                DisclosureGroup("Bloom", isExpanded: $showBloom) {
+                    BloomEditorView()
+                }
+                
+                DisclosureGroup("Debug", isExpanded: $showDebugPostProccessTexture) {
+                    DebuggerEditorView()
+                }
             }
             .padding()
         }
