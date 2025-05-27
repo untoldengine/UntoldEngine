@@ -476,10 +476,6 @@ enum RenderPasses {
                 continue
             }
 
-            if let lightComponent = scene.get(component: LightComponent.self, for: entityId) {
-                continue
-            }
-
             for mesh in renderComponent.mesh {
                 // update uniforms
                 var modelUniforms = Uniforms()
@@ -1121,21 +1117,20 @@ enum RenderPasses {
         source: MTLTexture,
         destination: MTLTexture,
         customization: @escaping (_ encoder: MTLRenderCommandEncoder) -> Void
-    ) -> (MTLCommandBuffer) -> Void
-    {
+    ) -> (MTLCommandBuffer) -> Void {
         { commandBuffer in
 
             if !pipeline.success {
                 handleError(.pipelineStateNulled, "Post Process Pipeline")
                 return
             }
-           
+
             renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture = destination
 
             renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].loadAction = .clear
             renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].storeAction = .store
-            //renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
-                        
+            // renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
+
             let renderPassDescriptor = renderInfo.postProcessRenderPassDescriptor!
 
             // set your encoder here
@@ -1156,7 +1151,7 @@ enum RenderPasses {
 
             renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
             renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
-            
+
             renderEncoder.setFragmentTexture(source, index: 0)
 
             // Pass in individual post-process values

@@ -52,7 +52,7 @@ public func createDirLight(entityId: EntityID) {
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "dirLightMesh", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "lightdirmesh", withExtension: "usdc")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)

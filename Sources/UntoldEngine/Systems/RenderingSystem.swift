@@ -46,14 +46,14 @@ func updateRenderingSystem(in view: MTKView) {
 
             graph[modelPass.id] = modelPass
 
-            let lightVisPass = RenderPass(
-                id: "lightvis", dependencies: ["model"], execute: RenderPasses.lightVisualPass
-            )
-
-            graph[lightVisPass.id] = lightVisPass
+//            let lightVisPass = RenderPass(
+//                id: "lightvis", dependencies: ["model"], execute: RenderPasses.lightVisualPass
+//            )
+//
+//            graph[lightVisPass.id] = lightVisPass
 
             let hightlightPass = RenderPass(
-                id: "highlight", dependencies: ["lightvis"], execute: RenderPasses.highlightExecution
+                id: "highlight", dependencies: [modelPass.id], execute: RenderPasses.highlightExecution
             )
 
             graph[hightlightPass.id] = hightlightPass
@@ -77,7 +77,7 @@ func updateRenderingSystem(in view: MTKView) {
             )
 
             graph[colorgradingPass.id] = colorgradingPass
-            
+
             let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [colorCorrectionPass.id], execute: bloomThresholdRenderPass)
 
             graph[bloomThresholdPass.id] = bloomThresholdPass
@@ -98,7 +98,7 @@ func updateRenderingSystem(in view: MTKView) {
 
             graph[blurPassVer.id] = blurPassVer
 
-            let blurCompositePass = RenderPass(id: "blurComposite" , dependencies: [blurPassVer.id], execute: bloomCompositeRenderPass)  
+            let blurCompositePass = RenderPass(id: "blurComposite", dependencies: [blurPassVer.id], execute: bloomCompositeRenderPass)
 
             graph[blurCompositePass.id] = blurCompositePass
 
@@ -269,7 +269,6 @@ func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Float>.stride,
         index: Int(bloomThresholdPassIntensityIndex.rawValue)
     )
-
 }
 
 var bloomCompositeRenderPass = RenderPasses.executePostProcess(
@@ -286,7 +285,5 @@ func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
         index: Int(bloomCompositePassIntensityIndex.rawValue)
     )
 
-
     encoder.setFragmentTexture(textureResources.colorMap, index: 1)
-
 }
