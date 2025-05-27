@@ -903,7 +903,7 @@ func initRenderPipelines() {
         colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
-        name: "Tone-mapping Pipeline"
+        name: "Blur Pipeline"
     ) {
         blurPipeline = blurPipe
     }
