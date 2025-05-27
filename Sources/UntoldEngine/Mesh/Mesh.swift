@@ -210,6 +210,7 @@ struct Material {
     // Default values
     var baseColorValue: simd_float4 = .init(0.0, 0.0, 0.0, 1.0)
     var edgeTint: simd_float4 = .init(0.0, 0.0, 0.0, 1.0)
+    var emissiveValue: simd_float3 = .zero
     var roughnessValue: Float = 1.0
     var metallicValue: Float = 0.0
 

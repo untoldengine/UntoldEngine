@@ -300,7 +300,11 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     float shadow = computeShadow(in.shadowCoords, shadowTexture);
     
     FragmentModelOut fragmentOut;
-    fragmentOut.color=color*(1.0-shadow);
+
+    float3 litColor = color.rgb * (1.0 - shadow);
+    float3 emissiveColor = materialParameter.emmissive; // no need for simd_float4
+
+    fragmentOut.color = float4(litColor + emissiveColor, 1.0);
     fragmentOut.normals=float4(normalMap,0.0);
     fragmentOut.positions=verticesInWorldSpace;
 

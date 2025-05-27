@@ -159,6 +159,7 @@ typedef struct{
     simd_float4 baseColor;
     simd_int4 hasTexture; //x=hasbasecolor,y=hasroughmap, z=hasmetalmap
     simd_float4 edgeTint;
+    simd_float3 emmissive;
     float roughness;
     float specular;
     float subsurface;

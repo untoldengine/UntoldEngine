@@ -543,3 +543,26 @@ func updateMaterialMetallic(entityId: EntityID, metallic: Float) {
     material.metallicValue = metallic
     renderComponent.mesh[0].submeshes[0].material = material
 }
+
+func getMaterialEmmissive(entityId: EntityID) -> simd_float3 {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return .zero
+    }
+
+    guard let material = renderComponent.mesh.first?.submeshes.first?.material else {
+        return .zero
+    }
+
+    return material.emissiveValue
+}
+
+func updateMaterialEmmisive(entityId: EntityID, emmissive: simd_float3) {
+    guard var renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
+
+    material.emissiveValue = emmissive
+    renderComponent.mesh[0].submeshes[0].material = material
+}

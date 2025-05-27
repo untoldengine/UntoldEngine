@@ -597,6 +597,7 @@ enum RenderPasses {
                     materialParameters.ior = subMesh.material!.ior
                     materialParameters.edgeTint = subMesh.material!.edgeTint
                     materialParameters.interactWithLight = subMesh.material!.interactWithLight
+                    materialParameters.emmissive = subMesh.material!.emissiveValue
 
                     materialParameters.hasTexture = simd_int4(
                         Int32(subMesh.material!.hasBaseMap == true ? 1 : 0),
