@@ -10,16 +10,12 @@
 #include "ShaderStructs.h"
 using namespace metal;
 
-constant float4 blurSamples[9] = {
-    float4(-1.0, -1.0, 0.0, 1.0 / 16.0),
-    float4(-1.0,  1.0, 0.0, 1.0 / 16.0),
-    float4( 1.0, -1.0, 0.0, 1.0 / 16.0),
-    float4( 1.0,  1.0, 0.0, 1.0 / 16.0),
-    float4( 0.0, -1.0, 0.0, 2.0 / 16.0),
-    float4(-1.0,  0.0, 0.0, 2.0 / 16.0),
-    float4( 1.0,  0.0, 0.0, 2.0 / 16.0),
-    float4( 0.0,  1.0, 0.0, 2.0 / 16.0),
-    float4( 0.0,  0.0, 0.0, 4.0 / 16.0)
+constant float2 blurSamples[5] = {
+    float2(-2.0, 0.12),
+    float2(-1.0, 0.24),
+    float2( 0.0, 0.28),
+    float2( 1.0, 0.24),
+    float2( 2.0, 0.12)
 };
 
 vertex VertexCompositeOutput vertexBlurShader(VertexCompositeIn in [[stage_in]]) {
@@ -30,7 +26,9 @@ vertex VertexCompositeOutput vertexBlurShader(VertexCompositeIn in [[stage_in]])
 }
 
 fragment float4 fragmentBlurShader(VertexCompositeOutput vertexOut [[stage_in]],
-                                   texture2d<float> finalTexture [[texture(0)]])
+                                   texture2d<float> finalTexture [[texture(0)]],
+                                   constant float2 &direction [[buffer(blurPassDirectionIndex)]],
+                                   constant float &blurRadius [[buffer(blurPassRadiusIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
 
@@ -39,10 +37,14 @@ fragment float4 fragmentBlurShader(VertexCompositeOutput vertexOut [[stage_in]],
     float2 texelSize = 1.0 / float2(width, height);
 
     float3 color = float3(0.0);
-    for (int i = 0; i < 9; i++) {
-        float2 offset = blurSamples[i].xy * texelSize;
-        color += blurSamples[i].w * finalTexture.sample(s, vertexOut.uvCoords + offset).rgb;
+    for (int i = 0; i < 5; i++) {
+        float offset = blurSamples[i].x;
+        float weight = blurSamples[i].y;
+
+        float2 sampleOffset = direction * offset * texelSize*blurRadius;
+        color += weight * finalTexture.sample(s, vertexOut.uvCoords + sampleOffset).rgb;
     }
 
     return float4(color, 1.0);
+    
 }
