@@ -228,11 +228,42 @@ struct BloomEditorView: View {
     }
 }
 
+struct VignetteEditorView: View {
+    @ObservedObject var settings = VignetteParams.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Vignette").font(.headline)
+
+            Text("Intensity")
+            Slider(value: $settings.intensity, in: 0.0 ... 1.0)
+            Text(String(format: "%.2f", settings.intensity))
+
+            Text("Radius")
+            Slider(value: $settings.radius, in: 0.0 ... 1.0)
+            Text(String(format: "%.2f", settings.radius))
+
+            Text("Softness")
+            Slider(value: $settings.softness, in: 0.0 ... 1.0)
+            Text(String(format: "%.2f", settings.softness))
+            
+//            TextInputVectorView(label: "Center", value: Binding(
+//                get: { settings.center },
+//                set: { newCenter in
+//                    settings.center = newCenter
+//                }))
+
+        }
+        .padding()
+    }
+}
+
 struct PostProcessingEditorView: View {
     @State private var showToneMapping = false
     @State private var showColorCorrection = false
     @State private var showColorGrading = false
     @State private var showBloom = false
+    @State private var showVignette = false
     @State private var showDebugPostProccessTexture = false
 
     var body: some View {
@@ -252,6 +283,10 @@ struct PostProcessingEditorView: View {
                 
                 DisclosureGroup("Bloom", isExpanded: $showBloom) {
                     BloomEditorView()
+                }
+                
+                DisclosureGroup("Vignette", isExpanded: $showVignette){
+                    VignetteEditorView()
                 }
                 
                 DisclosureGroup("Debug", isExpanded: $showDebugPostProccessTexture) {
