@@ -142,6 +142,10 @@ func buildGameModeGraph() -> RenderGraphResult {
     let colorgradingPass = RenderPass(id: "colorgrading", dependencies: [blurCompositePass.id], execute: colorGradingRenderPass)
     graph[colorgradingPass.id] = colorgradingPass
     
+    let vignettePass = RenderPass(id: "vignette", dependencies: [colorgradingPass.id], execute: vignetteRenderPass)
+    
+    graph[vignettePass.id] = vignettePass
+    
     let preCompPass = RenderPass(id: "precomp", dependencies: [colorgradingPass.id], execute: RenderPasses.preCompositeExecution)
     graph[preCompPass.id] = preCompPass
     
@@ -298,4 +302,38 @@ func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
     )
 
     encoder.setFragmentTexture(textureResources.colorCorrectionTexture, index: 1)
+}
+
+var vignetteRenderPass = RenderPasses.executePostProcess(
+    vignettePipeline,
+    source: textureResources.colorGradingTexture!,
+    destination: textureResources.vignetteTexture!,
+    customization: vignetteCustomization
+)
+
+func vignetteCustomization(encoder: MTLRenderCommandEncoder) {
+    encoder.setFragmentBytes(
+        &VignetteParams.shared.intensity,
+        length: MemoryLayout<Float>.stride,
+        index: Int(vignettePassIntensityIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &VignetteParams.shared.radius,
+        length: MemoryLayout<Float>.stride,
+        index: Int(vignettePassRadiusIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &VignetteParams.shared.softness,
+        length: MemoryLayout<Float>.stride,
+        index: Int(vignettePassSoftnessIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &VignetteParams.shared.center,
+        length: MemoryLayout<simd_float2>.stride,
+        index: Int(vignettePassCenterIndex.rawValue)
+    )
+
 }

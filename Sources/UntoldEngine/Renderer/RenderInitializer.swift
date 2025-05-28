@@ -441,6 +441,17 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+    
+    // Vignette texture
+    textureResources.vignetteTexture = createTexture(
+        device: renderInfo.device,
+        label: "Vignette Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
 }
 
 func initIBLResources() {
@@ -989,6 +1000,20 @@ func initRenderPipelines() {
     ) {
         bloomCompositePipeline = bloomCompositePipe
     }
+    
+    // vignette pipeline
+    if let vignettePipe = createPipeline(
+        vertexShader: "vertexVignetteShader",
+        fragmentShader: "fragmentVignetteShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Bloom Composite Pipeline"
+    ) {
+        vignettePipeline = vignettePipe
+    }
+    
     if let environmentPipe = createPipeline(
         vertexShader: "vertexEnvironmentShader",
         fragmentShader: "fragmentEnvironmentShader",
