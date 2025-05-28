@@ -84,7 +84,8 @@ typedef enum{
     modelPassJointTransformIndex,
     modelPassHasArmature,
     modelPassSpotLightsIndex,
-    modelPassSpotLightsCountIndex
+    modelPassSpotLightsCountIndex,
+    modelPassGameModeIndex
 }ModelPassBufferIndices;
 
 typedef enum{

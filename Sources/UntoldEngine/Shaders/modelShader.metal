@@ -196,7 +196,8 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                   texture2d<float> irradianceTexture [[texture(modelPassIBLIrradianceTextureIndex)]],
                                   texture2d<float> specularTexture [[texture(modelPassIBLSpecularTextureIndex)]],
                                   texture2d<float> iblBRDFTexture [[texture(modelPassIBLBRDFMapTextureIndex)]],
-                                  constant float &iblRotationAngle [[buffer(modelPassIBLRotationAngleIndex)]]
+                                  constant float &iblRotationAngle [[buffer(modelPassIBLRotationAngleIndex)]],
+                                  constant bool &gameMode[[buffer(modelPassGameModeIndex)]]
                                               )
 {
 
@@ -207,6 +208,8 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     //sample rougness and metallic
     constexpr sampler materialSampler(min_filter::linear, mag_filter::linear);
 
+    FragmentModelOut fragmentOut;
+    
     float2 st=in.uvCoords;
     st.y=1.0-st.y;
     
@@ -218,6 +221,12 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     
     // Avoid black base color
     inBaseColor = (computeLuma(inBaseColor.rgb)<=0.01)?float4(float3(0.1),1.0):inBaseColor;
+   
+    fragmentOut.color = inBaseColor;
+    
+    if(gameMode == false){
+        return fragmentOut;
+    }
     
     //normal map is in Tangent space
     float3 normalMap=normalize(normalTexture.sample(normalSampler, st).rgb);
@@ -299,7 +308,6 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     //compute shadow
     float shadow = computeShadow(in.shadowCoords, shadowTexture);
     
-    FragmentModelOut fragmentOut;
 
     float3 litColor = color.rgb * (1.0 - shadow);
     float3 emissiveColor = materialParameter.emmissive; // no need for simd_float4
