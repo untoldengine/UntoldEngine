@@ -84,6 +84,7 @@ var blurPipeline = RenderPipeline()
 var bloomThresholdPipeline = RenderPipeline()
 var bloomCompositePipeline = RenderPipeline()
 var vignettePipeline = RenderPipeline()
+var chromaticAberrationPipeline = RenderPipeline()
 var outlinePipeline = RenderPipeline()
 
 var rayTracingPipeline = ComputePipeline()
@@ -235,6 +236,13 @@ class VignetteParams: ObservableObject{
     @Published var intensity: Float = 0.7 // 0.0 to 1.0
     @Published var radius: Float = 0.75 // 0.5 to 1.0
     @Published var softness: Float = 0.45 // 0.0 to 1.0
+    @Published var center: simd_float2 = simd_float2(0.5,0.5) // 0-1
+}
+
+class ChromaticAberrationParams: ObservableObject{
+    static let shared = ChromaticAberrationParams()
+    
+    @Published var intensity: Float = 0.002 // 0.0 to 0.1
     @Published var center: simd_float2 = simd_float2(0.5,0.5) // 0-1
 }
 

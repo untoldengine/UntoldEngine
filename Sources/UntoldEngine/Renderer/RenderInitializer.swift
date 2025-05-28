@@ -452,6 +452,17 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+    
+    // Chromatic Aberration texture
+    textureResources.chromaticAberrationTexture = createTexture(
+        device: renderInfo.device,
+        label: "Chromatic Aberration Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
 }
 
 func initIBLResources() {
@@ -1009,9 +1020,22 @@ func initRenderPipelines() {
         colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
-        name: "Bloom Composite Pipeline"
+        name: "Vignette Pipeline"
     ) {
         vignettePipeline = vignettePipe
+    }
+    
+    // Chromatic Aberration pipeline
+    if let chromaticAberrationPipe = createPipeline(
+        vertexShader: "vertexChromaticAberrationShader",
+        fragmentShader: "fragmentChromaticAberrationShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Chromatic Aberration Pipeline"
+    ) {
+        chromaticAberrationPipeline = chromaticAberrationPipe
     }
     
     if let environmentPipe = createPipeline(

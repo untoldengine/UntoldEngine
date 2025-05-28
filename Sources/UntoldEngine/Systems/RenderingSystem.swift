@@ -146,6 +146,10 @@ func buildGameModeGraph() -> RenderGraphResult {
     
     graph[vignettePass.id] = vignettePass
     
+    let chromaticAberrationPass = RenderPass(id: "chromatic", dependencies: [vignettePass.id], execute: chromaticAberrationRenderPass)
+    
+    graph[chromaticAberrationPass.id] = chromaticAberrationPass
+    
     let preCompPass = RenderPass(id: "precomp", dependencies: [colorgradingPass.id], execute: RenderPasses.preCompositeExecution)
     graph[preCompPass.id] = preCompPass
     
@@ -336,4 +340,25 @@ func vignetteCustomization(encoder: MTLRenderCommandEncoder) {
         index: Int(vignettePassCenterIndex.rawValue)
     )
 
+}
+
+var chromaticAberrationRenderPass = RenderPasses.executePostProcess(
+    chromaticAberrationPipeline,
+    source: textureResources.vignetteTexture!,
+    destination: textureResources.chromaticAberrationTexture!,
+    customization: chromaticAberrationCustomization
+)
+
+func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
+    encoder.setFragmentBytes(
+        &ChromaticAberrationParams.shared.intensity,
+        length: MemoryLayout<Float>.stride,
+        index: Int(chromaticAberrationPassIntensityIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &ChromaticAberrationParams.shared.center,
+        length: MemoryLayout<simd_float2>.stride,
+        index: Int(chromaticAberrationPassCenterIndex.rawValue)
+    )
 }
