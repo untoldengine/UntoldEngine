@@ -41,22 +41,16 @@ func updateRenderingSystem(in view: MTKView) {
             graph[shadowPass.id] = shadowPass
 
             let modelPass = RenderPass(
-                id: "model", dependencies: ["shadow"], execute: RenderPasses.modelExecution
+                id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
             )
 
             graph[modelPass.id] = modelPass
 
-//            let lightVisPass = RenderPass(
-//                id: "lightvis", dependencies: ["model"], execute: RenderPasses.lightVisualPass
+//            let hightlightPass = RenderPass(
+//                id: "highlight", dependencies: [modelPass.id], execute: RenderPasses.highlightExecution
 //            )
 //
-//            graph[lightVisPass.id] = lightVisPass
-
-            let hightlightPass = RenderPass(
-                id: "highlight", dependencies: [modelPass.id], execute: RenderPasses.highlightExecution
-            )
-
-            graph[hightlightPass.id] = hightlightPass
+//            graph[hightlightPass.id] = hightlightPass
 
             let tonemapPass = RenderPass(
                 id: "tonemap", dependencies: [modelPass.id],
@@ -70,13 +64,6 @@ func updateRenderingSystem(in view: MTKView) {
             )
 
             graph[colorCorrectionPass.id] = colorCorrectionPass
-
-            let colorgradingPass = RenderPass(
-                id: "colorgrading", dependencies: [colorCorrectionPass.id],
-                execute: colorGradingRenderPass
-            )
-
-            graph[colorgradingPass.id] = colorgradingPass
 
             let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [colorCorrectionPass.id], execute: bloomThresholdRenderPass)
 
@@ -102,21 +89,28 @@ func updateRenderingSystem(in view: MTKView) {
 
             graph[blurCompositePass.id] = blurCompositePass
 
+            let colorgradingPass = RenderPass(
+                id: "colorgrading", dependencies: [blurCompositePass.id],
+                execute: colorGradingRenderPass
+            )
+
+            graph[colorgradingPass.id] = colorgradingPass
+
             let preCompositePass = RenderPass(
-                id: "precomp", dependencies: [hightlightPass.id], execute: RenderPasses.preCompositeExecution
+                id: "precomp", dependencies: [colorgradingPass.id], execute: RenderPasses.preCompositeExecution
             )
 
             graph[preCompositePass.id] = preCompositePass
 
             if visualDebug == false {
                 let compositePass = RenderPass(
-                    id: "composite", dependencies: ["precomp"], execute: RenderPasses.compositeExecution
+                    id: "composite", dependencies: [preCompositePass.id], execute: RenderPasses.compositeExecution
                 )
 
                 graph[compositePass.id] = compositePass
             } else {
                 let debugPass = RenderPass(
-                    id: "debug", dependencies: ["precomp"], execute: RenderPasses.debuggerExecution
+                    id: "debug", dependencies: [preCompositePass.id], execute: RenderPasses.debuggerExecution
                 )
 
                 graph[debugPass.id] = debugPass
@@ -227,7 +221,7 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
 
 var colorGradingRenderPass = RenderPasses.executePostProcess(
     colorGradingPipeline,
-    source: textureResources.colorCorrectionTexture!,
+    source: textureResources.bloomCompositeTexture!,
     destination: textureResources.colorGradingTexture!,
     customization: colorGradingCustomization
 )
@@ -285,5 +279,5 @@ func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
         index: Int(bloomCompositePassIntensityIndex.rawValue)
     )
 
-    encoder.setFragmentTexture(textureResources.colorMap, index: 1)
+    encoder.setFragmentTexture(textureResources.colorCorrectionTexture, index: 1)
 }

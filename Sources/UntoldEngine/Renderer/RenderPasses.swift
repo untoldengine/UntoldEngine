@@ -997,14 +997,16 @@ enum RenderPasses {
 
         let renderPassDescriptor = renderInfo.renderPassDescriptor!
 
+        renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture = textureResources.colorGradingTexture
+        
         // set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
 
         // clear it so that it doesn't have any effect on the final output
-        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+        renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
+        renderInfo.postProcessRenderPassDescriptor.colorAttachments[0]
             .loadAction = .load
 
         // set your encoder here
@@ -1027,7 +1029,7 @@ enum RenderPasses {
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
         renderEncoder.setFragmentTexture(
-            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture,
+            renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture,
             index: 0
         )
 
@@ -1036,7 +1038,7 @@ enum RenderPasses {
         )
 
         renderEncoder.setFragmentTexture(
-            renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture, index: 2
+            renderInfo.postProcessRenderPassDescriptor.depthAttachment.texture, index: 2
         )
 
         // set the draw command
