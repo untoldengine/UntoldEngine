@@ -134,6 +134,13 @@ typedef enum{
 }BloomCompositeBufferIndices;
 
 typedef enum{
+    vignettePassIntensityIndex,
+    vignettePassRadiusIndex,
+    vignettePassSoftnessIndex,
+    vignettePassCenterIndex
+}VignetteBufferIndices;
+
+typedef enum{
     shadowPassModelPositionIndex,
     shadowPassModelUniform,
     shadowPassLightMatrixUniform,

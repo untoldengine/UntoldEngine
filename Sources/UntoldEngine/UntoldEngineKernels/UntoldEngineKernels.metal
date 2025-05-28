@@ -21,3 +21,4 @@ using namespace metal;
 #include "../Shaders/ColorCorrectionShader.metal"
 #include "../Shaders/BloomThresholdShader.metal"
 #include "../Shaders/BloomCompositeShader.metal"
+#include "../Shaders/VignetteShader.metal"
