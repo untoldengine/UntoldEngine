@@ -20,28 +20,26 @@ vertex VertexCompositeOutput vertexColorGradingShader(VertexCompositeIn in [[sta
 }
 
 fragment float4 fragmentColorGradingShader(VertexCompositeOutput vertexOut [[stage_in]],
-                                        texture2d<float> finalTexture[[texture(0)]],
-                                        constant float &brightness[[buffer(colorGradingPassBrightnessIndex)]],
-                                        constant float &contrast[[buffer(colorGradingPassContrastIndex)]],
-                                        constant float &saturation[[buffer(colorGradingPassSaturationIndex)]]){
-
-    constexpr sampler s(min_filter::linear,mag_filter::linear);
-    
+                                           texture2d<float> finalTexture [[texture(0)]],
+                                           constant float &brightness [[buffer(colorGradingPassBrightnessIndex)]],
+                                           constant float &contrast [[buffer(colorGradingPassContrastIndex)]],
+                                           constant float &saturation [[buffer(colorGradingPassSaturationIndex)]])
+{
+    constexpr sampler s(min_filter::linear, mag_filter::linear);
     float3 color = finalTexture.sample(s, vertexOut.uvCoords).rgb;
 
-    // Apply brightness
-    color += brightness;
+    // Brightness as multiplier
+    color *= (1.0 + brightness); // brightness ∈ [-1, 1]
 
-    // Apply contrast (centered around 0.5 to preserve midtones)
-    color = (color - 0.5) * contrast + 0.5;
+    // Luminance
+    float luminance = dot(color, float3(0.299, 0.587, 0.114));
 
-    // Apply saturation
-    float luminance = dot(color, float3(0.299, 0.587, 0.114)); // Luma approximation
-    color = mix(float3(luminance), color, saturation);
+    // Contrast around luminance
+    color = mix(float3(luminance), color, contrast); // contrast ∈ [0.0, 2.0]
+
+    // Saturation
+    luminance = dot(color, float3(0.299, 0.587, 0.114)); // recompute
+    color = mix(float3(luminance), color, saturation); // saturation ∈ [0.0, 2.0]
 
     return float4(clamp(color, 0.0, 1.0), 1.0);
-
 }
-
-
-
