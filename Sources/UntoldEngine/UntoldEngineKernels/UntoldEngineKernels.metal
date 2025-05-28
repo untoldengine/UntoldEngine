@@ -22,3 +22,4 @@ using namespace metal;
 #include "../Shaders/BloomThresholdShader.metal"
 #include "../Shaders/BloomCompositeShader.metal"
 #include "../Shaders/VignetteShader.metal"
+#include "../Shaders/ChromaticShader.metal"

@@ -141,6 +141,12 @@ typedef enum{
 }VignetteBufferIndices;
 
 typedef enum{
+    chromaticAberrationPassIntensityIndex,
+    chromaticAberrationPassCenterIndex
+}ChromaticAberrationBufferIndices;
+
+
+typedef enum{
     shadowPassModelPositionIndex,
     shadowPassModelUniform,
     shadowPassLightMatrixUniform,
