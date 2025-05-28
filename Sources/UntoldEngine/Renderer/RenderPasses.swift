@@ -458,6 +458,9 @@ enum RenderPasses {
             textureResources.shadowMap, index: Int(modelPassShadowTextureIndex.rawValue)
         )
 
+        // edit mode
+        renderEncoder.setFragmentBytes(&gameMode, length: MemoryLayout<Bool>.stride, index: Int(modelPassGameModeIndex.rawValue))
+
         // Create a component query for entities with both Transform and Render components
 
         let transformId = getComponentId(for: WorldTransformComponent.self)
@@ -998,16 +1001,22 @@ enum RenderPasses {
         let renderPassDescriptor = renderInfo.renderPassDescriptor!
 
         renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture = textureResources.colorGradingTexture
-        
+
         // set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
 
         // clear it so that it doesn't have any effect on the final output
-        renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
-        renderInfo.postProcessRenderPassDescriptor.colorAttachments[0]
-            .loadAction = .load
+        if gameMode == false {
+            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[0]
+                .loadAction = .load
+        } else {
+            renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
+            renderInfo.postProcessRenderPassDescriptor.colorAttachments[0]
+                .loadAction = .load
+        }
 
         // set your encoder here
         guard
@@ -1029,17 +1038,28 @@ enum RenderPasses {
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
         renderEncoder.setFragmentTexture(
-            renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture,
-            index: 0
-        )
-
-        renderEncoder.setFragmentTexture(
             renderInfo.renderPassDescriptor.colorAttachments[0].texture, index: 1
         )
 
-        renderEncoder.setFragmentTexture(
-            renderInfo.postProcessRenderPassDescriptor.depthAttachment.texture, index: 2
-        )
+        if gameMode == false {
+            renderEncoder.setFragmentTexture(
+                renderInfo.offscreenRenderPassDescriptor.colorAttachments[0].texture,
+                index: 0
+            )
+
+            renderEncoder.setFragmentTexture(
+                renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture, index: 2
+            )
+        } else {
+            renderEncoder.setFragmentTexture(
+                renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture,
+                index: 0
+            )
+
+            renderEncoder.setFragmentTexture(
+                renderInfo.postProcessRenderPassDescriptor.depthAttachment.texture, index: 2
+            )
+        }
 
         // set the draw command
 
