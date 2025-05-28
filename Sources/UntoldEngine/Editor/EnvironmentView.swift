@@ -258,12 +258,35 @@ struct VignetteEditorView: View {
     }
 }
 
+struct ChromaticAberrationEditorView: View {
+    @ObservedObject var settings = ChromaticAberrationParams.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Chromatic Aberration").font(.headline)
+
+            Text("Intensity")
+            Slider(value: $settings.intensity, in: 0.0 ... 0.01)
+            Text(String(format: "%.4f", settings.intensity))
+
+//            TextInputVectorView(label: "Center", value: Binding(
+//                get: { settings.center },
+//                set: { newCenter in
+//                    settings.center = newCenter
+//                }))
+
+        }
+        .padding()
+    }
+}
+
 struct PostProcessingEditorView: View {
     @State private var showToneMapping = false
     @State private var showColorCorrection = false
     @State private var showColorGrading = false
     @State private var showBloom = false
     @State private var showVignette = false
+    @State private var showChromatic = false
     @State private var showDebugPostProccessTexture = false
 
     var body: some View {
@@ -287,6 +310,10 @@ struct PostProcessingEditorView: View {
                 
                 DisclosureGroup("Vignette", isExpanded: $showVignette){
                     VignetteEditorView()
+                }
+                
+                DisclosureGroup("Chromatic Aberration", isExpanded: $showChromatic){
+                    ChromaticAberrationEditorView()
                 }
                 
                 DisclosureGroup("Debug", isExpanded: $showDebugPostProccessTexture) {
