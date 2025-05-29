@@ -145,6 +145,12 @@ typedef enum{
     chromaticAberrationPassCenterIndex
 }ChromaticAberrationBufferIndices;
 
+typedef enum{
+    depthOfFieldPassFocusDistanceIndex,
+    depthOfFieldPassFocusRangeIndex,
+    depthOfFieldPassMaxBlurIndex
+}DepthOfFieldBufferIndices;
+
 
 typedef enum{
     shadowPassModelPositionIndex,
