@@ -21,10 +21,20 @@ vertex VertexDebugOutput vertexDebugShader(VertexCompositeIn in [[stage_in]]){
 
 fragment float4 fragmentDebugShader(VertexDebugOutput vertexOut [[stage_in]],
                                     texture2d<float> finalTexture[[texture(0)]],
-                                    constant int &debugSelection [[buffer(2)]]){
+                                    depth2d<float> depthTexture [[texture(1)]],
+                                    constant bool &isDepthTexture [[buffer(0)]],
+                                    constant simd_float2 &frustumPlanes [[buffer(1)]]){
 
     constexpr sampler s(min_filter::linear,mag_filter::linear);
 
+    if(isDepthTexture){
+        float near = frustumPlanes.x;
+        float far = frustumPlanes.y;
+        float rawDepth = depthTexture.sample(s, vertexOut.uvCoords);
+        float normalized = linearizeDepth(rawDepth, near, far);
+        return float4(normalized, normalized, normalized, 1.0);
+    }
+    
     return finalTexture.sample(s, vertexOut.uvCoords);
-
+    
 }

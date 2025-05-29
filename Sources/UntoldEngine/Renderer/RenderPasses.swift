@@ -1119,6 +1119,16 @@ enum RenderPasses {
         if let debugTexture = DebugTextureRegistry.get(byName: selectedTextureName) {
             renderEncoder.setFragmentTexture(debugTexture, index: 0)
         }
+        
+        var isDepthTexture: Bool = false
+        if selectedTextureName == "Depth Texture"{
+           isDepthTexture = true
+        }
+        
+        var farnear: simd_float2 = simd_float2(near, far)
+        renderEncoder.setFragmentTexture(textureResources.depthMap, index: 1)
+        renderEncoder.setFragmentBytes(&isDepthTexture, length: MemoryLayout<Bool>.stride, index: 0)
+        renderEncoder.setFragmentBytes(&farnear, length: MemoryLayout<simd_float2>.stride, index: 1)
 
         // set the draw command
         renderEncoder.drawIndexedPrimitives(

@@ -358,7 +358,7 @@ func initTextureResources() {
     // Depth Texture
     textureResources.depthMap = createTexture(
         device: renderInfo.device,
-        label: "Offscreen Depth Texture",
+        label: "Depth Texture",
         pixelFormat: renderInfo.depthPixelFormat,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
@@ -369,7 +369,7 @@ func initTextureResources() {
     // Tone Map debug texture
     textureResources.tonemapTexture = createTexture(
         device: renderInfo.device,
-        label: "Tonemap Debug Texture",
+        label: "Tonemap Texture",
         pixelFormat: renderInfo.colorPixelFormat,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),

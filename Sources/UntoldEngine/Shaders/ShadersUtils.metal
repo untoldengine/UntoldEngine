@@ -479,3 +479,16 @@ float3 reinhardToneMapping(float3 color) {
 float computeLuma(float3 color) {
     return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
 }
+
+float linearizeDepth(float depth, float near, float far){
+   
+    // Custom values for the scene
+    float sceneNear = 2.0;
+    float sceneFar = 20.0;
+    
+    float linear = near * far / (far + depth * (near - far)); // standard Z
+
+    // Normalize to 0–1 for visualization 
+    return saturate((linear - sceneNear) / (sceneFar - sceneNear));
+    
+}

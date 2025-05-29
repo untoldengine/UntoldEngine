@@ -117,4 +117,6 @@ void createBasis(float3 normal, thread float &tangent,  thread float &bitangent)
 
 float computeLuma(float3 color);
 
+float linearizeDepth(float depth, float near, float far);
+
 #endif /* ShadersUtils_h */
