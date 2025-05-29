@@ -292,11 +292,11 @@ struct DepthOfFieldEditorView: View {
             Text(String(format: "%.2f", settings.focusDistance))
 
             Text("Focus Range")
-            Slider(value: $settings.focusRange, in: 0.01 ... 0.3)
+            Slider(value: $settings.focusRange, in: 0.0 ... 10.0)
             Text(String(format: "%.4f", settings.focusRange))
 
             Text("Max Blur")
-            Slider(value: $settings.maxBlur, in: 0.005 ... 0.05)
+            Slider(value: $settings.maxBlur, in: 0.0 ... 0.05)
             Text(String(format: "%.4f", settings.maxBlur))
 
         }
