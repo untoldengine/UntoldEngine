@@ -280,6 +280,30 @@ struct ChromaticAberrationEditorView: View {
     }
 }
 
+struct DepthOfFieldEditorView: View {
+    @ObservedObject var settings = DepthOfFieldParams.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Depth of Field").font(.headline)
+
+            Text("Focus Distance")
+            Slider(value: $settings.focusDistance, in: 0.0 ... 1.0)
+            Text(String(format: "%.2f", settings.focusDistance))
+
+            Text("Focus Range")
+            Slider(value: $settings.focusRange, in: 0.01 ... 0.3)
+            Text(String(format: "%.4f", settings.focusRange))
+
+            Text("Max Blur")
+            Slider(value: $settings.maxBlur, in: 0.005 ... 0.05)
+            Text(String(format: "%.4f", settings.maxBlur))
+
+        }
+        .padding()
+    }
+}
+
 struct PostProcessingEditorView: View {
     @State private var showToneMapping = false
     @State private var showColorCorrection = false
@@ -287,6 +311,7 @@ struct PostProcessingEditorView: View {
     @State private var showBloom = false
     @State private var showVignette = false
     @State private var showChromatic = false
+    @State private var showDoF = false
     @State private var showDebugPostProccessTexture = false
 
     var body: some View {
@@ -314,6 +339,10 @@ struct PostProcessingEditorView: View {
                 
                 DisclosureGroup("Chromatic Aberration", isExpanded: $showChromatic){
                     ChromaticAberrationEditorView()
+                }
+                
+                DisclosureGroup("Depth of Field", isExpanded: $showDoF){
+                    DepthOfFieldEditorView()
                 }
                 
                 DisclosureGroup("Debug", isExpanded: $showDebugPostProccessTexture) {
