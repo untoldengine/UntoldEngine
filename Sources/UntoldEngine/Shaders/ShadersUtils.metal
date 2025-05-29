@@ -483,8 +483,8 @@ float computeLuma(float3 color) {
 float linearizeDepth(float depth, float near, float far){
    
     // Custom values for the scene
-    float sceneNear = 2.0;
-    float sceneFar = 20.0;
+    float sceneNear = 0.1;
+    float sceneFar = 50.0;
     
     float linear = near * far / (far + depth * (near - far)); // standard Z
 

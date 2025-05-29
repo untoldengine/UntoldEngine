@@ -148,7 +148,8 @@ typedef enum{
 typedef enum{
     depthOfFieldPassFocusDistanceIndex,
     depthOfFieldPassFocusRangeIndex,
-    depthOfFieldPassMaxBlurIndex
+    depthOfFieldPassMaxBlurIndex,
+    depthOfFieldPassFrustumIndex
 }DepthOfFieldBufferIndices;
 
 

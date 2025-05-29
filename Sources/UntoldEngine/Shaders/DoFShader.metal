@@ -27,16 +27,18 @@ fragment float4 fragmentDepthOfFieldShader(VertexCompositeOutput vertexOut [[sta
                                    depth2d<float> depthTexture [[texture(1)]],
                                    constant float &focusDistance[[buffer(depthOfFieldPassFocusDistanceIndex)]],
                                    constant float &focusRange[[buffer(depthOfFieldPassFocusRangeIndex)]],
-                                   constant float &maxBlur[[buffer(depthOfFieldPassMaxBlurIndex)]])
+                                   constant float &maxBlur[[buffer(depthOfFieldPassMaxBlurIndex)]],
+                                   constant float2 &frustumPlanes[[buffer(depthOfFieldPassFrustumIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
-    ushort2 texelCoordinates=ushort2(vertexOut.uvCoords.x*depthTexture.get_width(),vertexOut.uvCoords.y*depthTexture.get_height());
     
     // Get scene depth at this pixel
-    float sceneDepth = depthTexture.read(texelCoordinates);
 
+    float rawDepth = depthTexture.sample(s, vertexOut.uvCoords);
+    float linearDepth = linearizeDepth(rawDepth, frustumPlanes.x, frustumPlanes.y);
+    
     // Compute blur factor
-    float blurFactor = computeBlurAmount(sceneDepth, focusDistance, focusRange);
+    float blurFactor = computeBlurAmount(linearDepth, focusDistance, focusRange);
 
     // Sample neighborhood in a circular pattern
     float4 color = float4(0.0);
