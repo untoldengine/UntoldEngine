@@ -115,6 +115,7 @@ public struct TextureResources {
     var bloomCompositeTexture : MTLTexture?
     var vignetteTexture: MTLTexture?
     var chromaticAberrationTexture: MTLTexture?
+    var depthOfFieldTexture: MTLTexture?
 }
 
 public struct AccelStructResources {

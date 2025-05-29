@@ -1000,7 +1000,7 @@ enum RenderPasses {
 
         let renderPassDescriptor = renderInfo.renderPassDescriptor!
 
-        renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture = textureResources.chromaticAberrationTexture
+        renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture = textureResources.depthOfFieldTexture
 
         // set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
@@ -1151,7 +1151,7 @@ enum RenderPasses {
 
             renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].loadAction = .clear
             renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].storeAction = .store
-            // renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
+            renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
 
             let renderPassDescriptor = renderInfo.postProcessRenderPassDescriptor!
 

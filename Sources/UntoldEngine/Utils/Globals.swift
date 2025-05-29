@@ -85,6 +85,7 @@ var bloomThresholdPipeline = RenderPipeline()
 var bloomCompositePipeline = RenderPipeline()
 var vignettePipeline = RenderPipeline()
 var chromaticAberrationPipeline = RenderPipeline()
+var depthOfFieldPipeline = RenderPipeline()
 var outlinePipeline = RenderPipeline()
 
 var rayTracingPipeline = ComputePipeline()
@@ -244,6 +245,14 @@ class ChromaticAberrationParams: ObservableObject{
     
     @Published var intensity: Float = 0.002 // 0.0 to 0.1
     @Published var center: simd_float2 = simd_float2(0.5,0.5) // 0-1
+}
+
+class DepthOfFieldParams: ObservableObject{
+    static let shared = DepthOfFieldParams()
+    
+    @Published var focusDistance: Float = 0.5 // 0.0 to 1.0
+    @Published var focusRange: Float = 0.1 // 0.01-0.3
+    @Published var maxBlur: Float = 0.01 // 0.005-0.05
 }
 
 class DebugSettings: ObservableObject {

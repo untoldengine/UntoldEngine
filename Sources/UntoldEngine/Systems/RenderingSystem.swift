@@ -150,6 +150,11 @@ func buildGameModeGraph() -> RenderGraphResult {
     
     graph[chromaticAberrationPass.id] = chromaticAberrationPass
     
+    let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [chromaticAberrationPass.id], execute: depthOfFieldRenderPass)
+    
+    graph[depthOfFieldPass.id] = depthOfFieldPass
+
+    
     let preCompPass = RenderPass(id: "precomp", dependencies: [colorgradingPass.id], execute: RenderPasses.preCompositeExecution)
     graph[preCompPass.id] = preCompPass
     
@@ -361,4 +366,33 @@ func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<simd_float2>.stride,
         index: Int(chromaticAberrationPassCenterIndex.rawValue)
     )
+}
+
+var depthOfFieldRenderPass = RenderPasses.executePostProcess(
+    depthOfFieldPipeline,
+    source: textureResources.chromaticAberrationTexture!,
+    destination: textureResources.depthOfFieldTexture!,
+    customization: depthOfFieldCustomization
+)
+
+func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
+    encoder.setFragmentBytes(
+        &DepthOfFieldParams.shared.focusDistance,
+        length: MemoryLayout<Float>.stride,
+        index: Int(depthOfFieldPassFocusDistanceIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &DepthOfFieldParams.shared.focusRange,
+        length: MemoryLayout<Float>.stride,
+        index: Int(depthOfFieldPassFocusRangeIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &DepthOfFieldParams.shared.maxBlur,
+        length: MemoryLayout<Float>.stride,
+        index: Int(depthOfFieldPassMaxBlurIndex.rawValue)
+    )
+    
+    encoder.setFragmentTexture(textureResources.depthMap, index: 1)
 }

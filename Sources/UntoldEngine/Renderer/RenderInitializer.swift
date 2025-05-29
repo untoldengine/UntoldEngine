@@ -463,6 +463,17 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+    
+    // Depth of Field texture
+    textureResources.depthOfFieldTexture = createTexture(
+        device: renderInfo.device,
+        label: "Depth of Field Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
 }
 
 func initIBLResources() {
@@ -1036,6 +1047,19 @@ func initRenderPipelines() {
         name: "Chromatic Aberration Pipeline"
     ) {
         chromaticAberrationPipeline = chromaticAberrationPipe
+    }
+    
+    // Depth of Field pipeline
+    if let depthOfFieldPipe = createPipeline(
+        vertexShader: "vertexDepthOfFieldShader",
+        fragmentShader: "fragmentDepthOfFieldShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Depth of Field Pipeline"
+    ) {
+        depthOfFieldPipeline = depthOfFieldPipe
     }
     
     if let environmentPipe = createPipeline(
