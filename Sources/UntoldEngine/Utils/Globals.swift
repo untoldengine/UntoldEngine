@@ -250,9 +250,9 @@ class ChromaticAberrationParams: ObservableObject{
 class DepthOfFieldParams: ObservableObject{
     static let shared = DepthOfFieldParams()
     
-    @Published var focusDistance: Float = 0.5 // 0.0 to 1.0
+    @Published var focusDistance: Float = 1.0 // 0.0 to 1.0
     @Published var focusRange: Float = 0.1 // 0.01-0.3
-    @Published var maxBlur: Float = 0.01 // 0.005-0.05
+    @Published var maxBlur: Float = 0 // 0.005-0.05
 }
 
 class DebugSettings: ObservableObject {

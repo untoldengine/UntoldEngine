@@ -395,4 +395,7 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
     )
     
     encoder.setFragmentTexture(textureResources.depthMap, index: 1)
+    
+    var frustumPlanes: simd_float2 = simd_float2(near, far)
+    encoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(depthOfFieldPassFrustumIndex.rawValue))
 }
