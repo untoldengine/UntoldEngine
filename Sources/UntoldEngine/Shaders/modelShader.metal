@@ -224,10 +224,6 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
    
     fragmentOut.color = inBaseColor;
     
-    if(gameMode == false){
-        return fragmentOut;
-    }
-    
     //normal map is in Tangent space
     float3 normalMap=normalize(normalTexture.sample(normalSampler, st).rgb);
     //[0,1] to [-1,1]
