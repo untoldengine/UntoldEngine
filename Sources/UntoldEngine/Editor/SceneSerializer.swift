@@ -14,7 +14,64 @@ struct SceneData: Codable {
     var entities: [EntityData] = []
     var environment: EnvironmentData? = nil
     var assetBasePath: URL? = nil
+    var toneMapping: ToneMappingData? = nil
+    var colorGrading: ColorGradingData? = nil
+    var colorCorrection: ColorCorrectionData? = nil
+    var bloom: BloomThresholdData? = nil
+    var vignette: VignetteData? = nil
+    var chromaticAberration: ChromaticAberrationData? = nil
+    var depthOfField: DepthOfFieldData? = nil
 }
+
+struct ToneMappingData: Codable {
+
+    var exposure: Float = 1.0
+    var toneMapOperator: Int = 0
+    var gamma: Float = 1.0
+}
+
+struct ColorGradingData: Codable{
+     
+    var brightness: Float = 0.0
+    var contrast: Float = 1.0
+    var saturation: Float = 1.0
+ }
+
+struct ColorCorrectionData: Codable{
+     
+     var temperature: Float = 0.0 // -1.0 to 1.0 (-1.0 bluish, 0.0 neutral, +1.0 warm, yellowish/orange)
+     var tint: Float = 0.0 // -1.0 to 1.0 Green (-)/Magenta (+)
+     var lift: simd_float3 = .zero // RGB adjustment for shadows (0 - 2)
+     var gamma: simd_float3 = .one // RGB adjustment for midtones (0.5 - 2.5)
+     var gain: simd_float3 = .one // RGB adjustment for highlights (0 - 2)
+ }
+
+struct BloomThresholdData: Codable{
+     
+    var threshold: Float = 1.0 // 0.0 to 5.0
+    var intensity: Float = 1.0 // 0.0 to 2.0
+ }
+
+struct VignetteData: Codable{
+     
+    var intensity: Float = 0.7 // 0.0 to 1.0
+    var radius: Float = 0.75 // 0.5 to 1.0
+    var softness: Float = 0.45 // 0.0 to 1.0
+    var center: simd_float2 = simd_float2(0.5,0.5) // 0-1
+ }
+
+ struct ChromaticAberrationData: Codable{
+     
+    var intensity: Float = 0.0 // 0.0 to 0.1
+    var center: simd_float2 = simd_float2(0.5,0.5) // 0-1
+ }
+
+ struct DepthOfFieldData: Codable{
+     
+    var focusDistance: Float = 1.0 // 0.0 to 1.0
+    var focusRange: Float = 0.1 // 0.01-0.3
+    var maxBlur: Float = 0 // 0.005-0.05
+ }
 
 struct LightData: Codable {
     var color: simd_float3 = .one
@@ -206,12 +263,37 @@ func serializeScene() -> SceneData {
     }
 
     // load environment data
-    sceneData.environment = EnvironmentData()
+    sceneData.environment = EnvironmentData(applyIBL: applyIBL, renderEnvironment: renderEnvironment, hdr: hdrURL, ambientIntensity: ambientIntensity)
 
-    sceneData.environment?.hdr = hdrURL
-    sceneData.environment?.ambientIntensity = ambientIntensity
-    sceneData.environment?.applyIBL = applyIBL
-    sceneData.environment?.renderEnvironment = renderEnvironment
+    // Load post-process data
+    sceneData.toneMapping = ToneMappingData(
+        exposure: ToneMappingParams.shared.exposure,
+        toneMapOperator: ToneMappingParams.shared.toneMapOperator, 
+        gamma: ToneMappingParams.shared.gamma
+    )
+    
+    sceneData.colorCorrection = ColorCorrectionData(
+        temperature: ColorCorrectionParams.shared.temperature,
+        tint: ColorCorrectionParams.shared.tint,
+        lift: ColorCorrectionParams.shared.lift,
+        gamma: ColorCorrectionParams.shared.gamma,
+        gain: ColorCorrectionParams.shared.gain
+    )
+
+    sceneData.colorGrading = ColorGradingData(
+        brightness: ColorGradingParams.shared.brightness,
+        contrast: ColorGradingParams.shared.contrast,
+        saturation: ColorGradingParams.shared.saturation
+    )
+    
+    sceneData.bloom = BloomThresholdData(threshold: BloomThresholdParams.shared.threshold, intensity: BloomThresholdParams.shared.intensity)
+    
+    sceneData.vignette = VignetteData(intensity: VignetteParams.shared.intensity, radius: VignetteParams.shared.radius, softness: VignetteParams.shared.softness, center: VignetteParams.shared.center)
+    
+    sceneData.chromaticAberration = ChromaticAberrationData(intensity: ChromaticAberrationParams.shared.intensity, center: ChromaticAberrationParams.shared.center)
+    
+    sceneData.depthOfField = DepthOfFieldData(focusDistance: DepthOfFieldParams.shared.focusDistance, focusRange: DepthOfFieldParams.shared.focusRange, maxBlur: DepthOfFieldParams.shared.maxBlur)
+    
 
     // save asset base path
     sceneData.assetBasePath = assetBasePath
@@ -280,6 +362,50 @@ func deserializeScene(sceneData: SceneData) {
 
     assetBasePath = sceneData.assetBasePath
     EditorAssetBasePath.shared.basePath = assetBasePath
+    
+    
+    if let toneMapping = sceneData.toneMapping{
+        ToneMappingParams.shared.exposure = toneMapping.exposure
+        ToneMappingParams.shared.gamma = toneMapping.gamma
+        ToneMappingParams.shared.toneMapOperator = toneMapping.toneMapOperator
+    }
+    
+    if let colorCorrection = sceneData.colorCorrection{
+        ColorCorrectionParams.shared.temperature = colorCorrection.temperature
+        ColorCorrectionParams.shared.tint = colorCorrection.tint
+        ColorCorrectionParams.shared.lift = colorCorrection.lift
+        ColorCorrectionParams.shared.gamma = colorCorrection.gamma
+        ColorCorrectionParams.shared.gain = colorCorrection.gain
+    }
+    
+    if let colorGrading = sceneData.colorGrading{
+        ColorGradingParams.shared.brightness = colorGrading.brightness
+        ColorGradingParams.shared.contrast = colorGrading.contrast
+        ColorGradingParams.shared.saturation = colorGrading.saturation
+    }
+    
+    if let bloomThreshold = sceneData.bloom{
+        BloomThresholdParams.shared.intensity = bloomThreshold.intensity
+        BloomThresholdParams.shared.threshold = bloomThreshold.threshold
+    }
+    
+    if let vignette = sceneData.vignette{
+        VignetteParams.shared.intensity = vignette.intensity
+        VignetteParams.shared.radius = vignette.radius
+        VignetteParams.shared.softness = vignette.softness
+        VignetteParams.shared.center = vignette.center
+    }
+    
+    if let chromaticAberration = sceneData.chromaticAberration{
+        ChromaticAberrationParams.shared.intensity = chromaticAberration.intensity
+        ChromaticAberrationParams.shared.center = chromaticAberration.center
+    }
+    
+    if let depthOfField = sceneData.depthOfField{
+        DepthOfFieldParams.shared.focusDistance = depthOfField.focusDistance
+        DepthOfFieldParams.shared.focusRange = depthOfField.focusRange
+        DepthOfFieldParams.shared.maxBlur = depthOfField.maxBlur
+    }
 
     for sceneDataEntity in sceneData.entities {
         let entityId = createEntity()
