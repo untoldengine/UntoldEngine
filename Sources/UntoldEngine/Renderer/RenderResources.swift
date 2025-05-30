@@ -116,6 +116,7 @@ public struct TextureResources {
     var vignetteTexture: MTLTexture?
     var chromaticAberrationTexture: MTLTexture?
     var depthOfFieldTexture: MTLTexture?
+    var ssaoTexture: MTLTexture?
 }
 
 public struct AccelStructResources {

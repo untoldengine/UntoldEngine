@@ -399,3 +399,31 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
     var frustumPlanes: simd_float2 = simd_float2(near, far)
     encoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(depthOfFieldPassFrustumIndex.rawValue))
 }
+
+
+var ssaoRenderPass = RenderPasses.executePostProcess(
+    ssaoPipeline,
+    source: textureResources.depthOfFieldTexture!,
+    destination: textureResources.ssaoTexture!,
+    customization: ssaoCustomization
+)
+
+func ssaoCustomization(encoder: MTLRenderCommandEncoder) {
+    encoder.setFragmentBytes(
+        &SSAOParams.shared.radius,
+        length: MemoryLayout<Float>.stride,
+        index: Int(ssaoPassRadiusIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &SSAOParams.shared.bias,
+        length: MemoryLayout<Float>.stride,
+        index: Int(ssaoPassBiasIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &SSAOParams.shared.intensity,
+        length: MemoryLayout<Float>.stride,
+        index: Int(ssaoPassIntensityIndex.rawValue)
+    )
+}

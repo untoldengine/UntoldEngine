@@ -474,6 +474,17 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+    
+    // SSAO texture
+    textureResources.ssaoTexture = createTexture(
+        device: renderInfo.device,
+        label: "SSAO Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
 }
 
 func initIBLResources() {
@@ -1060,6 +1071,19 @@ func initRenderPipelines() {
         name: "Depth of Field Pipeline"
     ) {
         depthOfFieldPipeline = depthOfFieldPipe
+    }
+    
+    // SSAO pipeline
+    if let ssaoPipe = createPipeline(
+        vertexShader: "vertexSSAOShader",
+        fragmentShader: "fragmentSSAOShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "SSAO Pipeline"
+    ) {
+        ssaoPipeline = ssaoPipe
     }
     
     if let environmentPipe = createPipeline(
