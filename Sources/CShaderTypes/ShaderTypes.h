@@ -152,6 +152,11 @@ typedef enum{
     depthOfFieldPassFrustumIndex
 }DepthOfFieldBufferIndices;
 
+typedef enum{
+    ssaoPassRadiusIndex,
+    ssaoPassBiasIndex,
+    ssaoPassIntensityIndex
+}SSAOBufferIndices;
 
 typedef enum{
     shadowPassModelPositionIndex,

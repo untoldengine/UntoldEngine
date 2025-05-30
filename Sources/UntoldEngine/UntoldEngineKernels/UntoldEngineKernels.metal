@@ -24,3 +24,4 @@ using namespace metal;
 #include "../Shaders/VignetteShader.metal"
 #include "../Shaders/ChromaticShader.metal"
 #include "../Shaders/DoFShader.metal"
+#include "../Shaders/SSAOShader.metal"
