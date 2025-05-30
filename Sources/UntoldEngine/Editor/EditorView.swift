@@ -30,7 +30,7 @@ public struct EditorView: View {
         VStack {
             ToolbarView(
                 selectionManager: selectionManager, onSave: editor_handleSave,
-                onLoad: editor_handleLoad,
+                onLoad: editor_handleLoad, onCameraSave: editor_cameraSave,
                 onPlayToggled: { isPlaying in editor_handlePlayToggle(isPlaying) }
             )
             Divider()
@@ -87,6 +87,28 @@ public struct EditorView: View {
             selectionManager.objectWillChange.send()
             sceneGraphModel.refreshHierarchy()
         }
+    }
+    
+    private func editor_cameraSave(){
+       
+        let sceneCameraEntityID = findSceneCamera()
+       
+        if sceneCameraEntityID == .invalid{
+            return
+        }
+        
+        let gameCameraEntityID = findGameCamera()
+        
+        if gameCameraEntityID == .invalid{
+            return
+        }
+        
+        let eye = getCameraEye(entityId: sceneCameraEntityID)
+        let up = getCameraUp(entityId: sceneCameraEntityID)
+        let target = getCameraTarget(entityId: sceneCameraEntityID)
+       
+        cameraLookAt(entityId: gameCameraEntityID, eye: eye, target: target, up: up)
+        
     }
 
     private func editor_loadUSDScene() {

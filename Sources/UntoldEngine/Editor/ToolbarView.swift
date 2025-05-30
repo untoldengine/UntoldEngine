@@ -11,6 +11,7 @@ struct ToolbarView: View {
     @ObservedObject var selectionManager: SelectionManager
     var onSave: () -> Void
     var onLoad: () -> Void
+    var onCameraSave: () -> Void
     var onPlayToggled: (Bool) -> Void
 
     @State private var isPlaying = false
@@ -48,6 +49,8 @@ struct ToolbarView: View {
             // MARK: - Export Button
 
             ToolbarButton(iconName: "square.and.arrow.up", action: onSave, tooltip: "Export JSON Scene")
+            
+            ToolbarButton(iconName: "camera.fill", action: onCameraSave, tooltip: "Save Camera Transform")
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 6)
