@@ -244,7 +244,7 @@ class VignetteParams: ObservableObject{
 class ChromaticAberrationParams: ObservableObject{
     static let shared = ChromaticAberrationParams()
     
-    @Published var intensity: Float = 0.002 // 0.0 to 0.1
+    @Published var intensity: Float = 0.0 // 0.0 to 0.1
     @Published var center: simd_float2 = simd_float2(0.5,0.5) // 0-1
 }
 
