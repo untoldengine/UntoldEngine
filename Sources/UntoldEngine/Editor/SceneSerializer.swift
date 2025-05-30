@@ -24,54 +24,47 @@ struct SceneData: Codable {
 }
 
 struct ToneMappingData: Codable {
-
     var exposure: Float = 1.0
     var toneMapOperator: Int = 0
     var gamma: Float = 1.0
 }
 
-struct ColorGradingData: Codable{
-     
+struct ColorGradingData: Codable {
     var brightness: Float = 0.0
     var contrast: Float = 1.0
     var saturation: Float = 1.0
- }
+}
 
-struct ColorCorrectionData: Codable{
-     
-     var temperature: Float = 0.0 // -1.0 to 1.0 (-1.0 bluish, 0.0 neutral, +1.0 warm, yellowish/orange)
-     var tint: Float = 0.0 // -1.0 to 1.0 Green (-)/Magenta (+)
-     var lift: simd_float3 = .zero // RGB adjustment for shadows (0 - 2)
-     var gamma: simd_float3 = .one // RGB adjustment for midtones (0.5 - 2.5)
-     var gain: simd_float3 = .one // RGB adjustment for highlights (0 - 2)
- }
+struct ColorCorrectionData: Codable {
+    var temperature: Float = 0.0 // -1.0 to 1.0 (-1.0 bluish, 0.0 neutral, +1.0 warm, yellowish/orange)
+    var tint: Float = 0.0 // -1.0 to 1.0 Green (-)/Magenta (+)
+    var lift: simd_float3 = .zero // RGB adjustment for shadows (0 - 2)
+    var gamma: simd_float3 = .one // RGB adjustment for midtones (0.5 - 2.5)
+    var gain: simd_float3 = .one // RGB adjustment for highlights (0 - 2)
+}
 
-struct BloomThresholdData: Codable{
-     
+struct BloomThresholdData: Codable {
     var threshold: Float = 1.0 // 0.0 to 5.0
     var intensity: Float = 1.0 // 0.0 to 2.0
- }
+}
 
-struct VignetteData: Codable{
-     
+struct VignetteData: Codable {
     var intensity: Float = 0.7 // 0.0 to 1.0
     var radius: Float = 0.75 // 0.5 to 1.0
     var softness: Float = 0.45 // 0.0 to 1.0
-    var center: simd_float2 = simd_float2(0.5,0.5) // 0-1
- }
+    var center: simd_float2 = .init(0.5, 0.5) // 0-1
+}
 
- struct ChromaticAberrationData: Codable{
-     
+struct ChromaticAberrationData: Codable {
     var intensity: Float = 0.0 // 0.0 to 0.1
-    var center: simd_float2 = simd_float2(0.5,0.5) // 0-1
- }
+    var center: simd_float2 = .init(0.5, 0.5) // 0-1
+}
 
- struct DepthOfFieldData: Codable{
-     
+struct DepthOfFieldData: Codable {
     var focusDistance: Float = 1.0 // 0.0 to 1.0
     var focusRange: Float = 0.1 // 0.01-0.3
     var maxBlur: Float = 0 // 0.005-0.05
- }
+}
 
 struct LightData: Codable {
     var color: simd_float3 = .one
@@ -94,6 +87,13 @@ struct EnvironmentData: Codable {
     var ambientIntensity: Float? = nil
 }
 
+struct MaterialData: Codable {
+    var baseColorValue: simd_float4 = .zero
+    var emissive: simd_float3 = .zero
+    var roughness: Float = 1.0
+    var metallic: Float = 0.0
+}
+
 struct EntityData: Codable {
     var uuid: UUID = .init() // Unique identifier for this entity
     var parentUUID: UUID? = nil // UUID of the parent entity, if any
@@ -107,6 +107,7 @@ struct EntityData: Codable {
     var mass: Float = .init(1.0)
     var lightData: LightData? = nil
     var cameraData: CameraData? = nil
+    var materialData: MaterialData? = nil
     var hasRenderingComponent: Bool = false
     var hasAnimationComponent: Bool = false
     var hasLocalTransformComponent: Bool = false
@@ -146,6 +147,14 @@ func serializeScene() -> SceneData {
             entityData.assetName = renderComponent.assetName
 
             entityData.assetURL = renderComponent.assetURL
+
+            // material data
+            var baseColor: simd_float4 = getMaterialBaseColor(entityId: entityId)
+            var roughnessValue: Float = getMaterialRoughness(entityId: entityId)
+            var metallicValue: Float = getMaterialMetallic(entityId: entityId)
+            var emissiveValue: simd_float3 = getMaterialEmmissive(entityId: entityId)
+
+            entityData.materialData = MaterialData(baseColorValue: baseColor, emissive: emissiveValue, roughness: roughnessValue, metallic: metallicValue)
         }
 
         // Rendering properties
@@ -268,10 +277,10 @@ func serializeScene() -> SceneData {
     // Load post-process data
     sceneData.toneMapping = ToneMappingData(
         exposure: ToneMappingParams.shared.exposure,
-        toneMapOperator: ToneMappingParams.shared.toneMapOperator, 
+        toneMapOperator: ToneMappingParams.shared.toneMapOperator,
         gamma: ToneMappingParams.shared.gamma
     )
-    
+
     sceneData.colorCorrection = ColorCorrectionData(
         temperature: ColorCorrectionParams.shared.temperature,
         tint: ColorCorrectionParams.shared.tint,
@@ -285,15 +294,14 @@ func serializeScene() -> SceneData {
         contrast: ColorGradingParams.shared.contrast,
         saturation: ColorGradingParams.shared.saturation
     )
-    
+
     sceneData.bloom = BloomThresholdData(threshold: BloomThresholdParams.shared.threshold, intensity: BloomThresholdParams.shared.intensity)
-    
+
     sceneData.vignette = VignetteData(intensity: VignetteParams.shared.intensity, radius: VignetteParams.shared.radius, softness: VignetteParams.shared.softness, center: VignetteParams.shared.center)
-    
+
     sceneData.chromaticAberration = ChromaticAberrationData(intensity: ChromaticAberrationParams.shared.intensity, center: ChromaticAberrationParams.shared.center)
-    
+
     sceneData.depthOfField = DepthOfFieldData(focusDistance: DepthOfFieldParams.shared.focusDistance, focusRange: DepthOfFieldParams.shared.focusRange, maxBlur: DepthOfFieldParams.shared.maxBlur)
-    
 
     // save asset base path
     sceneData.assetBasePath = assetBasePath
@@ -362,46 +370,45 @@ func deserializeScene(sceneData: SceneData) {
 
     assetBasePath = sceneData.assetBasePath
     EditorAssetBasePath.shared.basePath = assetBasePath
-    
-    
-    if let toneMapping = sceneData.toneMapping{
+
+    if let toneMapping = sceneData.toneMapping {
         ToneMappingParams.shared.exposure = toneMapping.exposure
         ToneMappingParams.shared.gamma = toneMapping.gamma
         ToneMappingParams.shared.toneMapOperator = toneMapping.toneMapOperator
     }
-    
-    if let colorCorrection = sceneData.colorCorrection{
+
+    if let colorCorrection = sceneData.colorCorrection {
         ColorCorrectionParams.shared.temperature = colorCorrection.temperature
         ColorCorrectionParams.shared.tint = colorCorrection.tint
         ColorCorrectionParams.shared.lift = colorCorrection.lift
         ColorCorrectionParams.shared.gamma = colorCorrection.gamma
         ColorCorrectionParams.shared.gain = colorCorrection.gain
     }
-    
-    if let colorGrading = sceneData.colorGrading{
+
+    if let colorGrading = sceneData.colorGrading {
         ColorGradingParams.shared.brightness = colorGrading.brightness
         ColorGradingParams.shared.contrast = colorGrading.contrast
         ColorGradingParams.shared.saturation = colorGrading.saturation
     }
-    
-    if let bloomThreshold = sceneData.bloom{
+
+    if let bloomThreshold = sceneData.bloom {
         BloomThresholdParams.shared.intensity = bloomThreshold.intensity
         BloomThresholdParams.shared.threshold = bloomThreshold.threshold
     }
-    
-    if let vignette = sceneData.vignette{
+
+    if let vignette = sceneData.vignette {
         VignetteParams.shared.intensity = vignette.intensity
         VignetteParams.shared.radius = vignette.radius
         VignetteParams.shared.softness = vignette.softness
         VignetteParams.shared.center = vignette.center
     }
-    
-    if let chromaticAberration = sceneData.chromaticAberration{
+
+    if let chromaticAberration = sceneData.chromaticAberration {
         ChromaticAberrationParams.shared.intensity = chromaticAberration.intensity
         ChromaticAberrationParams.shared.center = chromaticAberration.center
     }
-    
-    if let depthOfField = sceneData.depthOfField{
+
+    if let depthOfField = sceneData.depthOfField {
         DepthOfFieldParams.shared.focusDistance = depthOfField.focusDistance
         DepthOfFieldParams.shared.focusRange = depthOfField.focusRange
         DepthOfFieldParams.shared.maxBlur = depthOfField.maxBlur
@@ -419,6 +426,18 @@ func deserializeScene(sceneData: SceneData) {
             let filename = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
             let withExtension = sceneDataEntity.assetURL.pathExtension
             setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
+
+            if let materialData = sceneDataEntity.materialData {
+                let baseColorValue: simd_float4 = materialData.baseColorValue
+                let roughnessValue: Float = materialData.roughness
+                let metallicValue: Float = materialData.metallic
+                let emissiveValue: simd_float3 = materialData.emissive
+
+                updateMaterialColor(entityId: entityId, color: colorFromSimd(baseColorValue))
+                updateMaterialRoughness(entityId: entityId, roughness: roughnessValue)
+                updateMaterialMetallic(entityId: entityId, metallic: metallicValue)
+                updateMaterialEmmisive(entityId: entityId, emmissive: emissiveValue)
+            }
         }
 
         if sceneDataEntity.hasAnimationComponent == true {
@@ -461,6 +480,16 @@ func deserializeScene(sceneData: SceneData) {
 
                 lightComponent.color = color
                 lightComponent.intensity = intensity
+
+                guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+                    handleError(.noRenderComponent)
+                    continue
+                }
+
+                if let materialData = sceneDataEntity.materialData {
+                    let emmissiveValue: simd_float3 = materialData.emissive
+                    updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
+                }
             }
         }
 
@@ -487,6 +516,16 @@ func deserializeScene(sceneData: SceneData) {
                 lightComponent.intensity = intensity
                 pointlightComponent.radius = radius
                 pointlightComponent.falloff = falloff
+
+                guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+                    handleError(.noRenderComponent)
+                    continue
+                }
+
+                if let materialData = sceneDataEntity.materialData {
+                    let emmissiveValue: simd_float3 = materialData.emissive
+                    updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
+                }
             }
         }
 
@@ -515,6 +554,16 @@ func deserializeScene(sceneData: SceneData) {
                 spotlightComponent.radius = radius
                 spotlightComponent.falloff = falloff
                 spotlightComponent.coneAngle = coneAngle
+
+                guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+                    handleError(.noRenderComponent)
+                    continue
+                }
+
+                if let materialData = sceneDataEntity.materialData {
+                    let emmissiveValue: simd_float3 = materialData.emissive
+                    updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
+                }
             }
         }
 
@@ -522,9 +571,9 @@ func deserializeScene(sceneData: SceneData) {
             translateTo(entityId: entityId, position: sceneDataEntity.position)
 
             // TODO: Uncomment this section once the rotation is correct
-            //let axisOfRotation = sceneDataEntity.axisOfRotations
+            // let axisOfRotation = sceneDataEntity.axisOfRotations
 
-            //applyAxisRotations(entityId: entityId, axis: axisOfRotation)
+            // applyAxisRotations(entityId: entityId, axis: axisOfRotation)
         }
 
         if sceneDataEntity.hasCameraComponent == true {
