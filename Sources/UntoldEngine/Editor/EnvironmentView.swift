@@ -304,6 +304,30 @@ struct DepthOfFieldEditorView: View {
     }
 }
 
+struct SSAOEditorView: View {
+    @ObservedObject var settings = SSAOParams.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("SSAO").font(.headline)
+
+            Text("Radius")
+            Slider(value: $settings.radius, in: 0.0 ... 2.0)
+            Text(String(format: "%.2f", settings.radius))
+
+            Text("Bias")
+            Slider(value: $settings.bias, in: 0.0 ... 0.1)
+            Text(String(format: "%.4f", settings.bias))
+
+            Text("Intensity")
+            Slider(value: $settings.intensity, in: 0.0 ... 2.0)
+            Text(String(format: "%.2f", settings.intensity))
+
+        }
+        .padding()
+    }
+}
+
 struct PostProcessingEditorView: View {
     @State private var showToneMapping = false
     @State private var showColorCorrection = false
@@ -312,6 +336,7 @@ struct PostProcessingEditorView: View {
     @State private var showVignette = false
     @State private var showChromatic = false
     @State private var showDoF = false
+    @State private var showSSAO = false
     @State private var showDebugPostProccessTexture = false
 
     var body: some View {
@@ -343,6 +368,10 @@ struct PostProcessingEditorView: View {
                 
                 DisclosureGroup("Depth of Field", isExpanded: $showDoF){
                     DepthOfFieldEditorView()
+                }
+                
+                DisclosureGroup("SSAO", isExpanded: $showSSAO){
+                    SSAOEditorView()
                 }
                 
                 DisclosureGroup("Debug", isExpanded: $showDebugPostProccessTexture) {
