@@ -442,6 +442,58 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
             }
         )
     }),
+    ComponentOption_Editor(id: getComponentId(for: AreaLightComponent.self), name: "Area Light Component", type: AreaLightComponent.self, view: { selectedId, _, refreshView in
+        AnyView(
+            VStack {
+                if let entityId = selectedId {
+                    Text("Light Property")
+
+                    if hasComponent(entityId: entityId, componentType: AreaLightComponent.self) {
+                        VStack {
+                            let color: simd_float3 = getLightColor(entityId: entityId)
+                            let intensity: Float = getLightIntensity(entityId: entityId)
+                            let (width, height, depth) = getDimension(entityId: entityId)
+                            // add area lights properties here
+                            TextInputVectorView(label: "Color", value: Binding(
+                                get: { color },
+                                set: { newColor in
+                                    updateLightColor(entityId: entityId, color: newColor)
+                                    refreshView()
+
+                                }))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            TextInputNumberView(label: "Brightness", value: Binding(
+                                get: { intensity },
+                                set: { newIntensity in
+                                    updateLightIntensity(entityId: entityId, intensity: newIntensity)
+                                    refreshView()
+                                }))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            
+//                            HStack{
+//                                TextInputNumberView(label: "Width", value: Binding(
+//                                get: { width },
+//                                set: { newWidth in
+//                                    //updateLightIntensity(entityId: entityId, intensity: newIntensity)
+//                                    //refreshView()
+//                                }))
+//                                .frame(maxWidth: .infinity, alignment: .leading)
+//                                
+//                                TextInputNumberView(label: "Length", value: Binding(
+//                                get: { height },
+//                                set: { height in
+//                                    //updateLightIntensity(entityId: entityId, intensity: newIntensity)
+//                                    //refreshView()
+//                                }))
+//                                .frame(maxWidth: .infinity, alignment: .leading)
+//                            }
+                        }
+                    }
+                }
+            }
+        )
+    }),
     ComponentOption_Editor(id: getComponentId(for: CameraComponent.self), name: "Camera Component", type: CameraComponent.self, view: { selectedId, _, refreshView in
         AnyView(
             VStack {
@@ -645,6 +697,8 @@ struct InspectorView: View {
                 createPointLight(entityId: entityId)
             } else if key == ObjectIdentifier(SpotLightComponent.self) {
                 createSpotLight(entityId: entityId)
+            } else if key == ObjectIdentifier(AreaLightComponent.self){
+                createAreaLight(entityId: entityId)
             } else if key == ObjectIdentifier(KineticComponent.self) {
                 setEntityKinetics(entityId: entityId)
             } else if key == ObjectIdentifier(CameraComponent.self) {
