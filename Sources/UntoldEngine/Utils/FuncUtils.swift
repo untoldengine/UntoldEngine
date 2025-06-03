@@ -566,3 +566,35 @@ func updateMaterialEmmisive(entityId: EntityID, emmissive: simd_float3) {
     material.emissiveValue = emmissive
     renderComponent.mesh[0].submeshes[0].material = material
 }
+
+func makeFloat4Texture(data: [simd_float4],
+                       width: Int,
+                       height: Int) -> MTLTexture? {
+    
+    guard data.count == width * height else {
+        print("Data size does not match texture dimensions.")
+        return nil
+    }
+
+    let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba32Float,
+                                                                     width: width,
+                                                                     height: height,
+                                                                     mipmapped: false)
+    textureDescriptor.usage = [.shaderRead]
+    textureDescriptor.storageMode = .shared
+
+    guard let texture = renderInfo.device.makeTexture(descriptor: textureDescriptor) else {
+        print("Failed to create texture.")
+        return nil
+    }
+
+    let bytesPerRow = width * MemoryLayout<simd_float4>.stride
+    let region = MTLRegionMake2D(0, 0, width, height)
+
+    texture.replace(region: region,
+                    mipmapLevel: 0,
+                    withBytes: data,
+                    bytesPerRow: bytesPerRow)
+
+    return texture
+}

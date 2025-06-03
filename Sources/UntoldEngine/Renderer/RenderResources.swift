@@ -56,6 +56,9 @@ public struct BufferResources {
 
     // Spot lights
     var spotLightBuffer: MTLBuffer?
+    
+    // Area light
+    var areaLightBuffer: MTLBuffer?
 
     var gridUniforms: MTLBuffer?
     var gridVertexBuffer: MTLBuffer?
@@ -117,6 +120,10 @@ public struct TextureResources {
     var chromaticAberrationTexture: MTLTexture?
     var depthOfFieldTexture: MTLTexture?
     var ssaoTexture: MTLTexture?
+
+    // Area texture ltc_1
+    var areaTextureLTCMag: MTLTexture?
+    var areaTextureLTCMat: MTLTexture?
 }
 
 public struct AccelStructResources {

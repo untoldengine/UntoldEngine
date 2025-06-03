@@ -245,6 +245,15 @@ func initBufferResources() {
             label: "Spot Lights"
         )
     }
+    
+    // Initialize Area Light Buffer
+    func initAreaLightBuffer(){
+        bufferResources.areaLightBuffer = createEmptyBuffer(
+            device: renderInfo.device,
+            length: MemoryLayout<AreaLight>.stride * maxAreaLights,
+            label: "Area Light")
+    }
+    
 
     // Initialize Bounding Box Buffer
     func initBoundingBoxBuffer() {
@@ -272,6 +281,7 @@ func initBufferResources() {
     initCompositeBuffers()
     initPointLightBuffer()
     initSpotLightBuffer()
+    initAreaLightBuffer()
     initBoundingBoxBuffer()
     initRTXAccumulationBuffer()
 }
@@ -485,6 +495,24 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+
+    // Area light textures 
+//    textureResources.areaTextureLTCMag = try? loadTexture(device: renderInfo.device, textureName: "ltc_mag", withExtension: "png")
+//
+//    textureResources.areaTextureLTCMat = try? loadTexture(device: renderInfo.device, textureName: "ltc_mat", withExtension: "png")
+    
+    let flattenedLTC1: [simd_float4] = LTC1.compactMap { row in
+        guard row.count == 4 else { return nil }
+        return simd_float4(row[0], row[1], row[2], row[3])
+    }
+    
+    let flattenedLTC2: [simd_float4] = LTC2.compactMap { row in
+        guard row.count == 4 else { return nil }
+        return simd_float4(row[0], row[1], row[2], row[3])
+    }
+
+    textureResources.areaTextureLTCMat = makeFloat4Texture(data: flattenedLTC1, width: 64, height: 64)
+    textureResources.areaTextureLTCMag = makeFloat4Texture(data: flattenedLTC2, width: 64, height: 64)
 }
 
 func initIBLResources() {

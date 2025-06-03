@@ -460,14 +460,45 @@ enum RenderPasses {
             &spotLightCount, length: MemoryLayout<Int>.stride,
             index: Int(modelPassSpotLightsCountIndex.rawValue)
         )
+        
+        // area light
+        if let areaLightBuffer = bufferResources.areaLightBuffer {
+            let areaLightArray = Array(getAreaLights())
+
+            areaLightArray.withUnsafeBufferPointer { bufferPointer in
+                guard let baseAddress = bufferPointer.baseAddress else { return }
+                areaLightBuffer.contents().copyMemory(
+                    from: baseAddress,
+                    byteCount: MemoryLayout<AreaLight>.stride * getAreaLightCount()
+                )
+            }
+
+        } else {
+            handleError(.bufferAllocationFailed, bufferResources.areaLightBuffer!.label!)
+            return
+        }
+
+        renderEncoder.setFragmentBuffer(
+            bufferResources.areaLightBuffer, offset: 0, index: Int(modelPassAreaLightsIndex.rawValue)
+        )
+
+        var areaLightCount: Int = getAreaLightCount()
+
+        renderEncoder.setFragmentBytes(
+            &areaLightCount, length: MemoryLayout<Int>.stride,
+            index: Int(modelPassAreaLightsCountIndex.rawValue)
+        )
+        
 
         // shadow map
         renderEncoder.setFragmentTexture(
             textureResources.shadowMap, index: Int(modelPassShadowTextureIndex.rawValue)
         )
-
-        // edit mode
-        renderEncoder.setFragmentBytes(&gameMode, length: MemoryLayout<Bool>.stride, index: Int(modelPassGameModeIndex.rawValue))
+        
+        // LTC Maps for Area Lights
+        renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMat, index: Int(modelPassAreaLTCMatTextureIndex.rawValue))
+        
+        renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMag, index: Int(modelPassAreaLTCMagTextureIndex.rawValue))
 
         // Create a component query for entities with both Transform and Render components
 

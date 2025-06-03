@@ -178,8 +178,12 @@ public class SpotLightComponent: Component {
 }
 
 public class AreaLightComponent: Component {
-    var size: simd_float2 = .init(1.0, 1.0)
-
+    var bounds: simd_float2 = .init(1.0, 1.0)
+    var forward: simd_float3 = .zero
+    var right: simd_float3 = .zero
+    var up: simd_float3 = .zero
+    var twoSided: Bool = false
+    
     public required init() {}
 }
 

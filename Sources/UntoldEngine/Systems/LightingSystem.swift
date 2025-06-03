@@ -37,13 +37,12 @@ public struct SpotLight {
 public struct AreaLight {
     var position: simd_float3 = .init(0.0, 0.0, 0.0) // Center position of the area light
     var color: simd_float3 = .init(1.0, 1.0, 1.0) // Light color
+    var forward: simd_float3 = simd_float3(0.0, 0.0, -1.0)    // Normal vector of the light's surface
+    var right: simd_float3 = simd_float3(1.0, 0.0, 0.0)      // Right vector defining the surface orientation
+    var up: simd_float3 = simd_float3(0.0, 1.0, 0.0)         // Up vector defining the surface orientation
+    var bounds: simd_float2 = .one
     var intensity: Float = 1.0 // Light intensity
-    //    var width: Float = 1.0                                   // Width of the area light
-    //    var height: Float = 1.0                                  // Height of the area light
-    //    var forward: simd_float3 = simd_float3(0.0, -1.0, 0.0)    // Normal vector of the light's surface
-    //    var right: simd_float3 = simd_float3(1.0, 0.0, 0.0)      // Right vector defining the surface orientation
-    //    var up: simd_float3 = simd_float3(0.0, 0.0, 1.0)         // Up vector defining the surface orientation
-    // var twoSided: Bool = false                               // Whether the light emits from both sides
+    var twoSided: Bool = false                               // Whether the light emits from both sides
 }
 
 public func createDirLight(entityId: EntityID) {
@@ -112,6 +111,31 @@ public func createSpotLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .spotlight
+
+    do {
+        let texture = try loadTexture(device: renderInfo.device, textureName: "spot_light_icon_256x256", withExtension: "png")
+
+        lightComponent.texture.spot = texture
+
+    } catch {
+        handleError(.textureMissing)
+    }
+}
+
+public func createAreaLight(entityId: EntityID) {
+    registerComponent(entityId: entityId, componentType: LightComponent.self)
+    registerComponent(entityId: entityId, componentType: AreaLightComponent.self)
+    registerTransformComponent(entityId: entityId)
+    registerSceneGraphComponent(entityId: entityId)
+
+    setEntityMesh(entityId: entityId, filename: "arealightMesh", withExtension: "usdc")
+
+    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        handleError(.noLightComponent)
+        return
+    }
+
+    lightComponent.lightType = .area
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "spot_light_icon_256x256", withExtension: "png")
@@ -567,4 +591,67 @@ func updateLightConeAngle(entityId: EntityID, coneAngle: Float) {
     }
 
     spotLightComponent.coneAngle = coneAngle
+}
+
+func getAreaLights() -> [AreaLight] {
+    var areaLights: [AreaLight] = []
+
+    let lightComponentID = getComponentId(for: LightComponent.self)
+    let areaLightComponentID = getComponentId(for: AreaLightComponent.self)
+    let localTransformComponentID = getComponentId(for: LocalTransformComponent.self)
+
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID, localTransformComponentID, areaLightComponentID], in: scene)
+
+    for entity in lightEntities {
+        guard let lightComponent = scene.get(component: LightComponent.self, for: entity) else {
+            handleError(.noLightComponent)
+            continue
+        }
+
+        guard let areaLightComponent = scene.get(component: AreaLightComponent.self, for: entity) else {
+            handleError(.noAreaLightComponent)
+            continue
+        }
+
+        guard let localTransform = scene.get(component: LocalTransformComponent.self, for: entity) else {
+            handleError(.noLocalTransformComponent)
+            continue
+        }
+
+        var areaLight = AreaLight()
+        areaLight.position = getLocalPosition(entityId: entity)
+        areaLight.color = lightComponent.color
+        areaLight.intensity = lightComponent.intensity
+        areaLight.forward = getForwardAxisVector(entityId: entity)
+        areaLight.right = getRightAxisVector(entityId: entity)
+        areaLight.up = getUpAxisVector(entityId: entity)
+        var (width, height, _) = getDimension(entityId: entity)
+        let scale:simd_float3 = localTransform.scale
+        width *= scale.x
+        height *= scale.y
+        areaLight.bounds = simd_float2(width,height)
+        areaLight.twoSided = areaLightComponent.twoSided
+        areaLights.append(areaLight)
+    }
+
+    return areaLights
+}
+
+func getAreaLightCount() -> Int {
+    let lightComponentID = getComponentId(for: AreaLightComponent.self)
+
+    let lightEntities = queryEntitiesWithComponentIds([lightComponentID], in: scene)
+
+    var areaLightCount = 0
+
+    for entity in lightEntities {
+        guard scene.get(component: AreaLightComponent.self, for: entity) != nil else {
+            handleError(.noAreaLightComponent)
+            continue
+        }
+
+        areaLightCount += 1
+    }
+
+    return areaLightCount
 }
