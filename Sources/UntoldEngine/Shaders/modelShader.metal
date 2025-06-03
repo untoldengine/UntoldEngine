@@ -131,7 +131,142 @@ float4 computeSpotLightContribution(constant SpotLightUniform &light,
  
     return lightContribution;
 }
+/*
+float3 integrateEdge(float3 v1, float3 v2, float3 n){
 
+    float x = dot(v1,v2);
+    float y = abs(x);
+
+    float a = 5.42031 + (3.12829 + 0.0902326*y)*y;
+    float b = 3.45068 + (4.18814 + y)*y;
+    float theta_sintheta = a/b;
+   
+    if(x<0.0){
+        theta_sintheta = M_PI_F*sqrt(1.0-x*x)-theta_sintheta;
+    }
+    
+    float3 u = cross(v1,v2);
+    
+    return theta_sintheta*dot(u,n);
+}
+*/
+float integrateEdge(float3 v1, float3 v2){
+    float cosTheta = dot(v1,v2);
+    float theta = acos(cosTheta);
+    float res = cross(v1, v2).z * ((theta > 0.001) ? theta/sin(theta) : 1.0);
+    
+    return res;
+}
+
+float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float3 points[4], bool twoSided){
+    
+    // constuct orthonormal basis around N
+    
+    float3 T1, T2;
+    T1 = normalize(V-N*dot(V,N));
+    T2 = cross(N, T1);
+    
+    //rotate area light in (T1,T2, N) basis
+    Minv = Minv*transpose(float3x3(T1,T2,N));
+    
+    // polygon (allocate 5 vertices for clipping)
+    float3 L[5];
+    L[0] = Minv*(points[0]-P);
+    L[1] = Minv*(points[1]-P);
+    L[2] = Minv*(points[2]-P);
+    L[3] = Minv*(points[3]-P);
+    
+    L[0] = normalize(L[0]);
+    L[1] = normalize(L[1]);
+    L[2] = normalize(L[2]);
+    L[3] = normalize(L[3]);
+   
+    // integrate
+    float sum = 0.0;
+    
+    sum += integrateEdge(L[0], L[1]);
+    sum += integrateEdge(L[1], L[2]);
+    sum += integrateEdge(L[2], L[3]);
+    sum += integrateEdge(L[3], L[0]);
+    
+    sum = twoSided ? abs(sum): max(0.0, sum);
+    
+    float3 Lo_i = float3(sum, sum, sum);
+    
+    //return Lo_i;
+    return Lo_i*2.0/M_PI_F;
+}
+
+float4 evaluateAreaLight(constant AreaLightUniform &light,
+                            float4 verticesInWorldSpace,
+                            float3 viewVector,
+                            float3 normalMap,
+                            texture2d<float> ltcMat,
+                            texture2d<float> ltcMag,
+                            constant MaterialParametersUniform &materialParameter,
+                            float roughness,
+                            float metallic
+                            ){
+    
+    constexpr sampler s(
+        min_filter::linear,
+        mag_filter::linear,
+        mip_filter::none,
+        s_address::clamp_to_edge,
+        t_address::clamp_to_edge
+    );
+
+    //float NoV = max(dot(normalMap, viewVector), 0.001);
+    
+    float theta = acos(clamp(dot(normalMap, viewVector), 0.0, 1.0));
+    float2 uv = float2(roughness, theta / (0.5 * M_PI_F));
+    uv = uv * LUT_SCALE + LUT_BIAS;
+
+    
+    float4 t = ltcMat.sample(s, uv);
+    float4 t2 = ltcMag.sample(s,uv);
+    
+    float3x3 Minv= float3x3(float3(t.x,0,t.y),
+                            float3(0,1.0,0),
+                            float3(t.z,0,t.w));
+    Minv=transpose(Minv);
+    
+    float3 P = verticesInWorldSpace.xyz;
+    
+    // Compute corners
+    float3 u = light.right * light.bounds.x;
+    float3 v = light.up * light.bounds.y;
+    float3 p0 = light.position - 0.5 * u - 0.5 * v;
+    float3 p1 = light.position + 0.5 * u - 0.5 * v;
+    float3 p2 = light.position + 0.5 * u + 0.5 * v;
+    float3 p3 = light.position - 0.5 * u + 0.5 * v;
+
+    float3 points[4];
+    points[0]=p0;
+    points[1]=p1;
+    points[2]=p2;
+    points[3]=p3;
+    
+    float3x3 identity=float3x3(float3(1.0,0.0,0.0),
+                               float3(0.0,1.0,0.0),
+                               float3(0.0,0.0,1.0));
+    float3 Lo_spec=LTC_Evaluate(normalMap.xyz, viewVector, P,Minv, points, light.twoSided);
+    
+    Lo_spec *= t2.x;
+
+    float3 Lo_diffuse = LTC_Evaluate(normalMap.xyz, viewVector, P,identity, points, light.twoSided);
+
+    float3 diffuseBRDF = computeDiffuseBRDF(normalize(light.position - P), viewVector, normalMap, light.color, float3(1.0), materialParameter, roughness, metallic);
+
+    float3 specBRDF = computeSpecBRDF(normalize(light.position - P), viewVector, normalMap, light.color, float3(1.0), materialParameter, roughness, metallic);
+
+    
+    float3 finalLight = light.intensity * (Lo_diffuse * diffuseBRDF + Lo_spec * specBRDF);
+    
+
+    return float4(finalLight, 1.0);
+    
+}
 
 vertex VertexOutModel vertexModelShader(
     VertexInModel in [[stage_in]],
@@ -196,9 +331,11 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                   texture2d<float> irradianceTexture [[texture(modelPassIBLIrradianceTextureIndex)]],
                                   texture2d<float> specularTexture [[texture(modelPassIBLSpecularTextureIndex)]],
                                   texture2d<float> iblBRDFTexture [[texture(modelPassIBLBRDFMapTextureIndex)]],
-                                  constant float &iblRotationAngle [[buffer(modelPassIBLRotationAngleIndex)]],
-                                  constant bool &gameMode[[buffer(modelPassGameModeIndex)]]
-                                              )
+                                  texture2d<float> ltcMagTexture [[texture(modelPassAreaLTCMagTextureIndex)]],
+                                  texture2d<float> ltcMatTexture [[texture(modelPassAreaLTCMatTextureIndex)]],
+                                  constant AreaLightUniform *areaLights[[buffer(modelPassAreaLightsIndex)]],
+                                  constant int *areaLightsCount [[buffer(modelPassAreaLightsCountIndex)]],
+                                  constant float &iblRotationAngle [[buffer(modelPassIBLRotationAngleIndex)]])
 {
 
     constexpr sampler s(min_filter::linear, mag_filter::linear, s_address::repeat, t_address::repeat); // Use for base color and normal maps
@@ -300,6 +437,24 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     }
     
     color += spotLightColor;
+    
+    // Compute Area Light contribution
+    simd_float4 areaLightColor = simd_float4(0.0);
+    
+    for (int i=0; i<areaLightsCount[0]; i++){
+        
+        areaLightColor += evaluateAreaLight(areaLights[i],
+                                               verticesInWorldSpace,
+                                               viewVector,
+                                               normalMap.xyz,
+                                               ltcMatTexture,
+                                               ltcMagTexture,
+                                               materialParameter,
+                                               roughness,
+                                               metallic);
+    }
+    
+    color += areaLightColor;
 
     //compute shadow
     float shadow = computeShadow(in.shadowCoords, shadowTexture);

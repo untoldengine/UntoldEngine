@@ -28,6 +28,11 @@ constant float2 poissonDisk[16]={float2( 0.282571, 0.023957 ),
     float2( 0.684194,0.167302)
 };
 
+// Used for Area Lighting
+constant float LUT_SIZE = 64.0;
+constant float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
+constant float LUT_BIAS  = 0.5/LUT_SIZE;
+
 float degreesToRadians(float degrees);
 
 float3 rotateDirection(float3 dir, float3 axis, float angle);
@@ -56,6 +61,12 @@ float geometricSmith(float NoV, float NoL,float roughness);
 
 // Cook-Torrance BRDF function - Refer to https://graphicscompendium.com/gamedev/15-pbr
 float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap);
+
+float3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap);
+
+float3 computeSpecBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap);
+
+
 
 float3 blinnBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float shininess);
 

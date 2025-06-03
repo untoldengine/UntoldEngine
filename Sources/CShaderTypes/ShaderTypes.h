@@ -51,6 +51,18 @@ typedef struct{
     float outerCone;
 }SpotLightUniform;
 
+typedef struct{
+    simd_float3 position;
+    simd_float3 color;
+    simd_float3 forward;
+    simd_float3 right;
+    simd_float3 up;
+    simd_float2 bounds;
+    float intensity;
+    bool twoSided;
+    
+}AreaLightUniform;
+
 typedef enum{
     gridPassPositionIndex,
     gridPassUniformIndex,
@@ -69,24 +81,30 @@ typedef enum{
     modelPassLightParamsIndex,
     modelPassPointLightsIndex,
     modelPassPointLightsCountIndex,
-    modelPassBaseTextureIndex,
-    modelPassRoughnessTextureIndex,
-    modelPassMetallicTextureIndex,
-    modelPassNormalTextureIndex,
-    modelPassShadowTextureIndex,
-    modelPassHasNormalTextureIndex,
     modelPassMaterialParameterIndex,
-    modelPassIBLIrradianceTextureIndex,
-    modelPassIBLSpecularTextureIndex,
-    modelPassIBLBRDFMapTextureIndex,
     modelPassIBLParamIndex,
     modelPassIBLRotationAngleIndex,
     modelPassJointTransformIndex,
     modelPassHasArmature,
     modelPassSpotLightsIndex,
     modelPassSpotLightsCountIndex,
-    modelPassGameModeIndex
+    modelPassAreaLightsIndex,
+    modelPassAreaLightsCountIndex
 }ModelPassBufferIndices;
+
+typedef enum{
+    modelPassBaseTextureIndex,
+    modelPassRoughnessTextureIndex,
+    modelPassMetallicTextureIndex,
+    modelPassNormalTextureIndex,
+    modelPassShadowTextureIndex,
+    modelPassHasNormalTextureIndex,
+    modelPassIBLIrradianceTextureIndex,
+    modelPassIBLSpecularTextureIndex,
+    modelPassIBLBRDFMapTextureIndex,
+    modelPassAreaLTCMagTextureIndex,
+    modelPassAreaLTCMatTextureIndex
+}ModelPassTextureIndices;
 
 typedef enum{
     envPassPositionIndex,

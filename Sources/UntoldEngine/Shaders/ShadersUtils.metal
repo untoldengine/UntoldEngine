@@ -165,7 +165,7 @@ float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal
 
     float VoH = max(dot(viewDir, halfVector), 0.001);
     //float LoH = max(dot(incomingLightDir, halfVector), 0.001);
-    float NoH = max(dot(surfaceNormal, halfVector), 0.001);
+    //float NoH = max(dot(surfaceNormal, halfVector), 0.001);
 
     float fr=artistFriendlyF0(diffuseColor.r, edgeTint.x, VoH);
     float fg=artistFriendlyF0(diffuseColor.g, edgeTint.y, VoH);
@@ -177,7 +177,7 @@ float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal
 
     float3 F=fresnelSchlick(VoH,f0);
     
-    float D=distributionGGX(NoH,roughness);
+    float D=g1GGXSchlick(NoV,roughness);
 
     float G=geometricSmith(NoV,NoL,roughness);
 
@@ -192,6 +192,59 @@ float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal
     return float3(max(NoL,0.001)*(diff+spec*specularColor));
 
 }
+
+float3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap) 
+{
+    
+    float metallic=(materialParam.hasTexture.z==1)?metallicMap:materialParam.metallic;
+
+    float NoL = max(dot(surfaceNormal, incomingLightDir), 0.001);
+
+    float3 rhoD = diffuseColor * (1.0 - metallic);
+    float3 diffuse = rhoD * (1.0 / M_PI_F); // Lambertian BRDF
+    
+    return float3(max(NoL,0.001)*diffuse);
+}
+                  
+                  
+float3 computeSpecBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap)
+{
+    float roughness=(materialParam.hasTexture.y==1)?roughnessMap:materialParam.roughness;
+    float metallic=(materialParam.hasTexture.z==1)?metallicMap:materialParam.metallic;
+
+    float4 edgeTint=materialParam.edgeTint;
+
+    // Compute the half vector between the incoming and view directions
+    float3 halfVector = normalize(incomingLightDir + viewDir);
+
+    //1. Calculate the geometric term (Smith's method for visibility)
+    float NoV = max(dot(surfaceNormal, viewDir), 0.001);
+    float NoL = max(dot(surfaceNormal, incomingLightDir), 0.001);
+
+
+    float VoH = max(dot(viewDir, halfVector), 0.001);
+    //float LoH = max(dot(incomingLightDir, halfVector), 0.001);
+    //float NoH = max(dot(surfaceNormal, halfVector), 0.001);
+
+    float fr=artistFriendlyF0(diffuseColor.r, edgeTint.x, VoH);
+    float fg=artistFriendlyF0(diffuseColor.g, edgeTint.y, VoH);
+    float fb=artistFriendlyF0(diffuseColor.b, edgeTint.z, VoH);
+
+    float3 f0=float3(fr, fg, fb);
+
+    f0=mix(0.04,f0,metallic);
+
+    float3 F=fresnelSchlick(VoH,f0);
+    
+    float D=g1GGXSchlick(NoV,roughness);
+
+    float G=geometricSmith(NoV,NoL,roughness);
+
+    float3 spec=(F*D*G)/(4.0*max(NoV,0.001)*max(NoL,0.001));
+
+    return float3(max(NoL,0.001)*(spec*specularColor));
+}
+                  
 
 float3 phongBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float shininess){
 
