@@ -131,71 +131,7 @@ float4 computeSpotLightContribution(constant SpotLightUniform &light,
  
     return lightContribution;
 }
-/*
-float3 integrateEdge(float3 v1, float3 v2, float3 n){
 
-    float x = dot(v1,v2);
-    float y = abs(x);
-
-    float a = 5.42031 + (3.12829 + 0.0902326*y)*y;
-    float b = 3.45068 + (4.18814 + y)*y;
-    float theta_sintheta = a/b;
-   
-    if(x<0.0){
-        theta_sintheta = M_PI_F*sqrt(1.0-x*x)-theta_sintheta;
-    }
-    
-    float3 u = cross(v1,v2);
-    
-    return theta_sintheta*dot(u,n);
-}
-*/
-float integrateEdge(float3 v1, float3 v2){
-    float cosTheta = dot(v1,v2);
-    float theta = acos(cosTheta);
-    float res = cross(v1, v2).z * ((theta > 0.001) ? theta/sin(theta) : 1.0);
-    
-    return res;
-}
-
-float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float3 points[4], bool twoSided){
-    
-    // constuct orthonormal basis around N
-    
-    float3 T1, T2;
-    T1 = normalize(V-N*dot(V,N));
-    T2 = cross(N, T1);
-    
-    //rotate area light in (T1,T2, N) basis
-    Minv = Minv*transpose(float3x3(T1,T2,N));
-    
-    // polygon (allocate 5 vertices for clipping)
-    float3 L[5];
-    L[0] = Minv*(points[0]-P);
-    L[1] = Minv*(points[1]-P);
-    L[2] = Minv*(points[2]-P);
-    L[3] = Minv*(points[3]-P);
-    
-    L[0] = normalize(L[0]);
-    L[1] = normalize(L[1]);
-    L[2] = normalize(L[2]);
-    L[3] = normalize(L[3]);
-   
-    // integrate
-    float sum = 0.0;
-    
-    sum += integrateEdge(L[0], L[1]);
-    sum += integrateEdge(L[1], L[2]);
-    sum += integrateEdge(L[2], L[3]);
-    sum += integrateEdge(L[3], L[0]);
-    
-    sum = twoSided ? abs(sum): max(0.0, sum);
-    
-    float3 Lo_i = float3(sum, sum, sum);
-    
-    //return Lo_i;
-    return Lo_i*2.0/M_PI_F;
-}
 
 float4 evaluateAreaLight(constant AreaLightUniform &light,
                             float4 verticesInWorldSpace,
@@ -256,9 +192,11 @@ float4 evaluateAreaLight(constant AreaLightUniform &light,
 
     float3 Lo_diffuse = LTC_Evaluate(normalMap.xyz, viewVector, P,identity, points, light.twoSided);
 
-    float3 diffuseBRDF = computeDiffuseBRDF(normalize(light.position - P), viewVector, normalMap, light.color, float3(1.0), materialParameter, roughness, metallic);
+    float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
+    
+    float3 diffuseBRDF = computeDiffuseBRDF(lightDirection, viewVector, normalMap, light.color, float3(1.0), materialParameter, roughness, metallic);
 
-    float3 specBRDF = computeSpecBRDF(normalize(light.position - P), viewVector, normalMap, light.color, float3(1.0), materialParameter, roughness, metallic);
+    float3 specBRDF = computeSpecBRDF(lightDirection, viewVector, normalMap, light.color, float3(1.0), materialParameter, roughness, metallic);
 
     
     float3 finalLight = light.intensity * (Lo_diffuse * diffuseBRDF + Lo_spec * specBRDF);

@@ -130,4 +130,8 @@ float computeLuma(float3 color);
 
 float linearizeDepth(float depth, float near, float far);
 
+float integrateEdge(float3 v1, float3 v2);
+
+float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float3 points[4], bool twoSided);
+
 #endif /* ShadersUtils_h */
