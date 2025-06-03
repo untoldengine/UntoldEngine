@@ -204,7 +204,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
                     var position = getLocalPosition(entityId: entityId)
                     var orientation = simd_float3(localTransformComponent!.rotationX, localTransformComponent!.rotationY, localTransformComponent!.rotationZ)
-
+                    var scale = getScale(entityId: entityId)
                     TextInputVectorView(label: "Position", value: Binding(
                         get: { position },
                         set: { newPosition in
@@ -216,6 +216,13 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                         get: { orientation },
                         set: { newOrientation in
                             applyAxisRotations(entityId: entityId, axis: newOrientation)
+                            refreshView()
+                        }))
+                    
+                    TextInputVectorView(label: "Scale", value: Binding(
+                        get: { scale },
+                        set: { newScale in
+                            scaleTo(entityId: entityId, scale: newScale)
                             refreshView()
                         }))
                 }

@@ -250,6 +250,11 @@ enum RenderPasses {
                 handleError(.noWorldTransformComponent, entityId)
                 continue
             }
+            
+            guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+                handleError(.noLocalTransformComponent, entityId)
+                continue
+            }
 
             for mesh in renderComponent.mesh {
                 // update uniforms
@@ -257,6 +262,9 @@ enum RenderPasses {
 
                 var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
 
+                let scaleMatrix = float4x4(scale: localTransformComponent.scale)
+                
+                modelMatrix = simd_mul(modelMatrix,scaleMatrix)
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
 
                 let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
@@ -478,6 +486,11 @@ enum RenderPasses {
                 handleError(.noWorldTransformComponent, entityId)
                 continue
             }
+            
+            guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+                handleError(.noLocalTransformComponent, entityId)
+                continue
+            }
 
             for mesh in renderComponent.mesh {
                 // update uniforms
@@ -485,6 +498,9 @@ enum RenderPasses {
 
                 var modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
 
+                let scaleMatrix = float4x4(scale: localTransformComponent.scale)
+                
+                modelMatrix = simd_mul(modelMatrix,scaleMatrix)
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
 
                 let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
@@ -1221,5 +1237,14 @@ enum RenderPasses {
 //
 //            blitEncoder.updateFence(renderInfo.fence)
         }
+    }
+}
+
+extension float4x4 {
+    init(scale s: SIMD3<Float>) {
+        self.init(SIMD4<Float>(s.x,   0,   0, 0),
+                  SIMD4<Float>(  0, s.y,   0, 0),
+                  SIMD4<Float>(  0,   0, s.z, 0),
+                  SIMD4<Float>(  0,   0,   0, 1))
     }
 }
