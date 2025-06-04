@@ -33,7 +33,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
         renderer.metalView.device = device
         renderer.metalView.depthStencilPixelFormat = .depth32Float
-        renderer.metalView.colorPixelFormat = .rgba16Float
+        renderer.metalView.colorPixelFormat = .bgra8Unorm_srgb
         renderer.metalView.preferredFramesPerSecond = 60
         renderer.metalView.framebufferOnly = false
         renderer.metalView.delegate = renderer
@@ -45,7 +45,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
         renderInfo.device = device
         renderInfo.commandQueue = commandQueue
-        renderInfo.colorPixelFormat = renderer.metalView.colorPixelFormat
+        renderInfo.colorPixelFormat = .rgba16Float
         renderInfo.depthPixelFormat = renderer.metalView.depthStencilPixelFormat
         renderInfo.viewPort = simd_float2(
             Float(renderer.metalView.drawableSize.width), Float(renderer.metalView.drawableSize.height)

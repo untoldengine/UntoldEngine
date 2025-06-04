@@ -877,7 +877,7 @@ func initRenderPipelines() {
         vertexShader: "vertexGridShader",
         fragmentShader: "fragmentGridShader",
         vertexDescriptor: createGridVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [.bgra8Unorm_srgb],
         depthFormat: renderInfo.depthPixelFormat,
         depthCompareFunction: MTLCompareFunction.less,
         depthEnabled: false,
@@ -955,7 +955,7 @@ func initRenderPipelines() {
         vertexShader: "vertexCompositeShader",
         fragmentShader: "fragmentCompositeShader",
         vertexDescriptor: createCompositeVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [.bgra8Unorm_srgb],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Composite Pipeline"
@@ -967,7 +967,7 @@ func initRenderPipelines() {
         vertexShader: "vertexPreCompositeShader",
         fragmentShader: "fragmentPreCompositeShader",
         vertexDescriptor: createPreCompositeVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [.bgra8Unorm_srgb],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Pre-Composite Pipeline"
