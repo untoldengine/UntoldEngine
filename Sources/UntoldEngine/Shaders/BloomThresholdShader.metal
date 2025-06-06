@@ -27,8 +27,7 @@ fragment float4 fragmentBloomThresholdShader(VertexCompositeOutput vertexOut [[s
     float3 color = finalTexture.sample(s, vertexOut.uvCoords).rgb;
 
     // Compute luminance (can use different weights, these are common)
-    float luminance = dot(color, float3(0.2126, 0.7152, 0.0722));
-
+    float luminance = getLuminance(color);
     // Apply threshold
     float bloomFactor = max((luminance - threshold), 0.0);
 

@@ -17,10 +17,19 @@ vertex VertexCompositeOutput vertexDepthOfFieldShader(VertexCompositeIn in [[sta
     return vertexOut;
 }
 
-float computeBlurAmount(float depth, float focusDistance, float focusRange) {
-    float blur = abs(depth - focusDistance) / focusRange;
-    return clamp(blur, 0.0, 1.0);
+float computeBlurAmount(float linearDepth, float focusDistance, float focusRange) {
+    float halfRange = focusRange * 0.5;
+    float distanceFromFocus = abs(linearDepth - focusDistance);
+
+    // Fully in focus if inside band
+    if (distanceFromFocus <= halfRange) {
+        return 0.0;
+    }
+
+    // Linearly increase blur beyond focus band
+    return saturate((distanceFromFocus - halfRange) / halfRange);
 }
+
 
 fragment float4 fragmentDepthOfFieldShader(VertexCompositeOutput vertexOut [[stage_in]],
                                    texture2d<float> finalTexture [[texture(0)]],

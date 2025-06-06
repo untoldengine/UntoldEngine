@@ -533,7 +533,7 @@ float computeLuma(float3 color) {
     return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
 }
 
-float linearizeDepth(float depth, float near, float far){
+float linearizeDepthForViewing(float depth, float near, float far){
    
     // Custom values for the scene
     float sceneNear = 0.1;
@@ -545,6 +545,11 @@ float linearizeDepth(float depth, float near, float far){
     return saturate((linear - sceneNear) / (sceneFar - sceneNear));
     
 }
+
+float linearizeDepth(float depth, float near, float far){
+    return near * far / (far + depth * (near - far));
+}
+
 
 /*
 float3 integrateEdge(float3 v1, float3 v2, float3 n){
@@ -610,4 +615,8 @@ float3 LTC_Evaluate(float3 N, float3 V, float3 P, float3x3 Minv, float3 points[4
     
     //return Lo_i;
     return Lo_i*2.0/M_PI_F;
+}
+
+float getLuminance(float3 color){
+    return dot(color, float3(0.299, 0.587, 0.114));
 }

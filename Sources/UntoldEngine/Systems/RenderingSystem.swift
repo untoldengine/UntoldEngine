@@ -113,47 +113,72 @@ func buildGameModeGraph() -> RenderGraphResult {
     )
     graph[modelPass.id] = modelPass
     
-    let tonemapPass = RenderPass(id: "tonemap", dependencies: [modelPass.id], execute: tonemapRenderPass)
-    graph[tonemapPass.id] = tonemapPass
     
-    let colorCorrectionPass = RenderPass(id: "colorcorrection", dependencies: [tonemapPass.id], execute: colorCorrectionRenderPass)
-    graph[colorCorrectionPass.id] = colorCorrectionPass
+    let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [modelPass.id], execute: depthOfFieldRenderPass)
     
-    let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [colorCorrectionPass.id], execute: bloomThresholdRenderPass)
+    graph[depthOfFieldPass.id] = depthOfFieldPass
+    
+    let chromaticAberrationPass = RenderPass(id: "chromatic", dependencies: [depthOfFieldPass.id], execute: chromaticAberrationRenderPass)
+    
+    graph[chromaticAberrationPass.id] = chromaticAberrationPass
+    
+    
+    let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [chromaticAberrationPass.id], execute: bloomThresholdRenderPass)
     graph[bloomThresholdPass.id] = bloomThresholdPass
+   
+    // define params for the blur pass
+    let blurPassCount = 2
+    let blurRadius: Float = 4.0
     
-    let blurPassHor = RenderPass(id: "blur_pass_hor", dependencies: [bloomThresholdPass.id], execute: RenderPasses.executePostProcess(
-        blurPipeline,
-        source: textureResources.bloomThresholdTextuture!,
-        destination: textureResources.blurTextureHor!,
-        customization: makeBlurCustomization(direction: simd_float2(1.0, 0.0), radius: 4.0)))
-    graph[blurPassHor.id] = blurPassHor
+    var previousPassID = bloomThresholdPass.id
+    var useFirstTexture: Bool = true
     
-    let blurPassVer = RenderPass(id: "blur_pass_ver", dependencies: [blurPassHor.id], execute: RenderPasses.executePostProcess(
-        blurPipeline,
-        source: textureResources.blurTextureHor!,
-        destination: textureResources.blurTextureVer!,
-        customization: makeBlurCustomization(direction: simd_float2(0.0, 1.0), radius: 4.0)))
-    graph[blurPassVer.id] = blurPassVer
+    for i in 0..<blurPassCount{
+        let horID = "blur_pass_hor_pass\(i+1)"
+        let verID = "blur_pass_ver_pass\(i+1)"
+        
+        let horSource = useFirstTexture ? textureResources.bloomThresholdTextuture! : textureResources.blurTextureVer!
+        let horDestination = textureResources.blurTextureHor!
+        
+        let horPass = RenderPass(
+            id: horID,
+            dependencies: [previousPassID],
+            execute: RenderPasses.executePostProcess(
+                blurPipeline,
+                source: horSource,
+                destination: horDestination,
+                customization: makeBlurCustomization(direction: simd_float2(1.0,0.0), radius: blurRadius)
+            )
+        )
+        
+        graph[horID] = horPass
+        
+        let verPass = RenderPass(
+            id: verID,
+            dependencies: [horID],
+            execute: RenderPasses.executePostProcess(
+                blurPipeline,
+                source: horDestination,
+                destination: textureResources.blurTextureVer!,
+                customization: makeBlurCustomization(direction: simd_float2(0.0,1.0), radius: blurRadius)))
+        
+        graph[verID] = verPass
+        
+        previousPassID = verID
+        
+        useFirstTexture = false // only use bloomthreshold texture for first iteration
+        
+    }
     
-    let blurCompositePass = RenderPass(id: "blurComposite", dependencies: [blurPassVer.id], execute: bloomCompositeRenderPass)
-    graph[blurCompositePass.id] = blurCompositePass
+    let bloomCompositePass = RenderPass(id: "bloomComposite", dependencies: [previousPassID], execute: bloomCompositeRenderPass)
+    graph[bloomCompositePass.id] = bloomCompositePass
     
-    let colorgradingPass = RenderPass(id: "colorgrading", dependencies: [blurCompositePass.id], execute: colorGradingRenderPass)
+    let colorgradingPass = RenderPass(id: "colorgrading", dependencies: [bloomCompositePass.id], execute: colorGradingRenderPass)
     graph[colorgradingPass.id] = colorgradingPass
     
     let vignettePass = RenderPass(id: "vignette", dependencies: [colorgradingPass.id], execute: vignetteRenderPass)
     
     graph[vignettePass.id] = vignettePass
-    
-    let chromaticAberrationPass = RenderPass(id: "chromatic", dependencies: [vignettePass.id], execute: chromaticAberrationRenderPass)
-    
-    graph[chromaticAberrationPass.id] = chromaticAberrationPass
-    
-    let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [chromaticAberrationPass.id], execute: depthOfFieldRenderPass)
-    
-    graph[depthOfFieldPass.id] = depthOfFieldPass
-
     
     let preCompPass = RenderPass(id: "precomp", dependencies: [colorgradingPass.id], execute: RenderPasses.preCompositeExecution)
     graph[preCompPass.id] = preCompPass
@@ -164,45 +189,8 @@ func buildGameModeGraph() -> RenderGraphResult {
 
 // Post process passes
 
-func toneMappingCustomization(encoder: MTLRenderCommandEncoder) {
-    encoder.setFragmentBytes(
-        &ToneMappingParams.shared.toneMapOperator,
-        length: MemoryLayout<Int>.stride,
-        index: Int(toneMapPassToneMappingIndex.rawValue)
-    )
-
-    encoder.setFragmentBytes(
-        &ToneMappingParams.shared.exposure,
-        length: MemoryLayout<Float>.stride,
-        index: Int(toneMapPassExposureIndex.rawValue)
-    )
-
-    encoder.setFragmentBytes(
-        &ToneMappingParams.shared.gamma,
-        length: MemoryLayout<Float>.stride,
-        index: Int(toneMapPassGammaIndex.rawValue)
-    )
-}
-
-var tonemapRenderPass = RenderPasses.executePostProcess(
-    tonemappingPipeline,
-    source: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!,
-    destination: textureResources.tonemapTexture!,
-    customization: toneMappingCustomization
-)
-
 func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder) {
-    encoder.setFragmentBytes(
-        &ColorCorrectionParams.shared.temperature,
-        length: MemoryLayout<Float>.stride,
-        index: Int(colorCorrectionPassTemperatureIndex.rawValue)
-    )
-
-    encoder.setFragmentBytes(
-        &ColorCorrectionParams.shared.tint,
-        length: MemoryLayout<Float>.stride,
-        index: Int(colorCorrectionPassTintIndex.rawValue)
-    )
+    
 
     encoder.setFragmentBytes(
         &ColorCorrectionParams.shared.lift,
@@ -231,6 +219,11 @@ var colorCorrectionRenderPass = RenderPasses.executePostProcess(
 )
 
 func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
+    
+    var exposure = powf(2.0, ColorGradingParams.shared.exposure)
+    var contrast = ColorGradingParams.shared.contrast;
+    var whiteBalanceCoeffs: simd_float3 = colorBalanceToLMSCoeffs(temperature: ColorGradingParams.shared.temperature, tint: ColorGradingParams.shared.tint)
+    
     encoder.setFragmentBytes(
         &ColorGradingParams.shared.brightness,
         length: MemoryLayout<Float>.stride,
@@ -244,10 +237,23 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
     )
 
     encoder.setFragmentBytes(
-        &ColorGradingParams.shared.contrast,
+        &contrast,
         length: MemoryLayout<Float>.stride,
         index: Int(colorGradingPassContrastIndex.rawValue)
     )
+    
+    encoder.setFragmentBytes(
+        &exposure,
+        length: MemoryLayout<Float>.stride,
+        index: Int(colorGradingPassExposureIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &whiteBalanceCoeffs,
+        length: MemoryLayout<simd_float3>.stride,
+        index: Int(colorGradingWhiteBalanceCoeffsIndex.rawValue)
+    )
+    
 }
 
 var colorGradingRenderPass = RenderPasses.executePostProcess(
@@ -277,7 +283,7 @@ func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderC
 
 var bloomThresholdRenderPass = RenderPasses.executePostProcess(
     bloomThresholdPipeline,
-    source: textureResources.colorCorrectionTexture!,
+    source: textureResources.chromaticAberrationTexture!,
     destination: textureResources.bloomThresholdTextuture!,
     customization: bloomThresholdCustomization
 )
@@ -310,7 +316,7 @@ func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
         index: Int(bloomCompositePassIntensityIndex.rawValue)
     )
 
-    encoder.setFragmentTexture(textureResources.colorCorrectionTexture, index: 1)
+    encoder.setFragmentTexture(textureResources.chromaticAberrationTexture, index: 1)
 }
 
 var vignetteRenderPass = RenderPasses.executePostProcess(
@@ -349,7 +355,7 @@ func vignetteCustomization(encoder: MTLRenderCommandEncoder) {
 
 var chromaticAberrationRenderPass = RenderPasses.executePostProcess(
     chromaticAberrationPipeline,
-    source: textureResources.vignetteTexture!,
+    source: textureResources.depthOfFieldTexture!,
     destination: textureResources.chromaticAberrationTexture!,
     customization: chromaticAberrationCustomization
 )
@@ -370,7 +376,7 @@ func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
 
 var depthOfFieldRenderPass = RenderPasses.executePostProcess(
     depthOfFieldPipeline,
-    source: textureResources.chromaticAberrationTexture!,
+    source: textureResources.colorMap!,
     destination: textureResources.depthOfFieldTexture!,
     customization: depthOfFieldCustomization
 )

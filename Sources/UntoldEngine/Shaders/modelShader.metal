@@ -273,7 +273,8 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                   texture2d<float> ltcMatTexture [[texture(modelPassAreaLTCMatTextureIndex)]],
                                   constant AreaLightUniform *areaLights[[buffer(modelPassAreaLightsIndex)]],
                                   constant int *areaLightsCount [[buffer(modelPassAreaLightsCountIndex)]],
-                                  constant float &iblRotationAngle [[buffer(modelPassIBLRotationAngleIndex)]])
+                                  constant float &iblRotationAngle [[buffer(modelPassIBLRotationAngleIndex)]],
+                                              constant bool &isLight[[buffer(modelPassIsLight)]])
 {
 
     constexpr sampler s(min_filter::linear, mag_filter::linear, s_address::repeat, t_address::repeat); // Use for base color and normal maps
@@ -293,6 +294,14 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     // Base color
     float4 inBaseColor = (materialParameter.hasTexture.x == 1) ? baseColor.sample(s, st) : materialParameter.baseColor;
+    
+    float3 emissiveColor = materialParameter.emmissive; // no need for simd_float4
+    
+    if(isLight){
+        
+        fragmentOut.color = float4(emissiveColor,1.0);
+        return fragmentOut;
+    }
     
     // Avoid black base color
     inBaseColor = (computeLuma(inBaseColor.rgb)<=0.01)?float4(float3(0.1),1.0):inBaseColor;
@@ -399,7 +408,6 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     
 
     float3 litColor = color.rgb * (1.0 - shadow);
-    float3 emissiveColor = materialParameter.emmissive; // no need for simd_float4
 
     fragmentOut.color = float4(litColor + emissiveColor, 1.0);
     fragmentOut.normals=float4(normalMap,0.0);

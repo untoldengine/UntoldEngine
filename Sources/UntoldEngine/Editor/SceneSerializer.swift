@@ -33,6 +33,9 @@ struct ColorGradingData: Codable {
     var brightness: Float = 0.0
     var contrast: Float = 1.0
     var saturation: Float = 1.0
+    var exposure: Float = 1.0
+    var temperature: Float = 0.0
+    var tint: Float = 0.0
 }
 
 struct ColorCorrectionData: Codable {
@@ -276,14 +279,11 @@ func serializeScene() -> SceneData {
 
     // Load post-process data
     sceneData.toneMapping = ToneMappingData(
-        exposure: ToneMappingParams.shared.exposure,
         toneMapOperator: ToneMappingParams.shared.toneMapOperator,
         gamma: ToneMappingParams.shared.gamma
     )
 
     sceneData.colorCorrection = ColorCorrectionData(
-        temperature: ColorCorrectionParams.shared.temperature,
-        tint: ColorCorrectionParams.shared.tint,
         lift: ColorCorrectionParams.shared.lift,
         gamma: ColorCorrectionParams.shared.gamma,
         gain: ColorCorrectionParams.shared.gain
@@ -292,7 +292,10 @@ func serializeScene() -> SceneData {
     sceneData.colorGrading = ColorGradingData(
         brightness: ColorGradingParams.shared.brightness,
         contrast: ColorGradingParams.shared.contrast,
-        saturation: ColorGradingParams.shared.saturation
+        saturation: ColorGradingParams.shared.saturation,
+        exposure: ColorGradingParams.shared.exposure,
+        temperature: ColorGradingParams.shared.temperature,
+        tint: ColorGradingParams.shared.tint
     )
 
     sceneData.bloom = BloomThresholdData(threshold: BloomThresholdParams.shared.threshold, intensity: BloomThresholdParams.shared.intensity)
@@ -364,31 +367,20 @@ func deserializeScene(sceneData: SceneData) {
         renderEnvironment = env.renderEnvironment ?? false
         ambientIntensity = env.ambientIntensity ?? 0.44
 
-        hdrURL = env.hdr ?? "photostudio.hdr"
+        hdrURL = env.hdr ?? "teatro_massimo_2k.hdr"
         generateHDR(hdrURL)
     }
 
     assetBasePath = sceneData.assetBasePath
     EditorAssetBasePath.shared.basePath = assetBasePath
 
-    if let toneMapping = sceneData.toneMapping {
-        ToneMappingParams.shared.exposure = toneMapping.exposure
-        ToneMappingParams.shared.gamma = toneMapping.gamma
-        ToneMappingParams.shared.toneMapOperator = toneMapping.toneMapOperator
-    }
-
-    if let colorCorrection = sceneData.colorCorrection {
-        ColorCorrectionParams.shared.temperature = colorCorrection.temperature
-        ColorCorrectionParams.shared.tint = colorCorrection.tint
-        ColorCorrectionParams.shared.lift = colorCorrection.lift
-        ColorCorrectionParams.shared.gamma = colorCorrection.gamma
-        ColorCorrectionParams.shared.gain = colorCorrection.gain
-    }
-
     if let colorGrading = sceneData.colorGrading {
         ColorGradingParams.shared.brightness = colorGrading.brightness
         ColorGradingParams.shared.contrast = colorGrading.contrast
         ColorGradingParams.shared.saturation = colorGrading.saturation
+        ColorGradingParams.shared.exposure = colorGrading.exposure
+        ColorGradingParams.shared.temperature = colorGrading.temperature
+        ColorGradingParams.shared.tint = colorGrading.tint
     }
 
     if let bloomThreshold = sceneData.bloom {

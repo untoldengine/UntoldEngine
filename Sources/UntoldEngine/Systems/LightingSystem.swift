@@ -61,7 +61,7 @@ public func createDirLight(entityId: EntityID) {
     lightComponent.lightType = .directional
 
     applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, 45.0, 0.0))
-
+    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0,1.0,1.0))
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "directional_light_icon_256x256", withExtension: "png")
 
@@ -86,6 +86,7 @@ public func createPointLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .point
+    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0,1.0,1.0))
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "point_light_icon_256x256", withExtension: "png")
@@ -111,6 +112,7 @@ public func createSpotLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .spotlight
+    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0,1.0,1.0))
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "spot_light_icon_256x256", withExtension: "png")
@@ -136,6 +138,7 @@ public func createAreaLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .area
+    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0,1.0,1.0))
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "spot_light_icon_256x256", withExtension: "png")

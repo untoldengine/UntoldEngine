@@ -255,6 +255,10 @@ enum RenderPasses {
                 handleError(.noLocalTransformComponent, entityId)
                 continue
             }
+            
+            if let lightComponent = scene.get(component: LightComponent.self, for: entityId){
+                continue
+            }
 
             for mesh in renderComponent.mesh {
                 // update uniforms
@@ -522,7 +526,11 @@ enum RenderPasses {
                 handleError(.noLocalTransformComponent, entityId)
                 continue
             }
-
+            
+            // is light?
+            var isLight: Bool = hasComponent(entityId: entityId, componentType: LightComponent.self)
+            renderEncoder.setFragmentBytes(&isLight, length: MemoryLayout<Bool>.stride, index: Int(modelPassIsLight.rawValue))
+            
             for mesh in renderComponent.mesh {
                 // update uniforms
                 var modelUniforms = Uniforms()
@@ -1047,7 +1055,7 @@ enum RenderPasses {
 
         let renderPassDescriptor = renderInfo.renderPassDescriptor!
 
-        renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture = textureResources.depthOfFieldTexture
+        renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture = textureResources.vignetteTexture
 
         // set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
@@ -1248,25 +1256,6 @@ enum RenderPasses {
             renderEncoder.popDebugGroup()
             renderEncoder.endEncoding()
 
-//            guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
-//                print("Failed to create blit encoder")
-//                return
-//            }
-//
-//            blitEncoder.waitForFence(renderInfo.fence)
-//
-//            blitEncoder.copy(from: triple.activeReadTexture,
-//                             sourceSlice: 0,
-//                             sourceLevel: 0,
-//                             sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-//                             sourceSize: MTLSize(width: Int(debugTexture.width), height: Int(debugTexture.height), depth: 1),
-//                             to: debugTexture,
-//                             destinationSlice: 0,
-//                             destinationLevel: 0,
-//                             destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
-//            blitEncoder.endEncoding()
-//
-//            blitEncoder.updateFence(renderInfo.fence)
         }
     }
 }

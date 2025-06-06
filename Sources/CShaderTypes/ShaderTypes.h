@@ -89,7 +89,8 @@ typedef enum{
     modelPassSpotLightsIndex,
     modelPassSpotLightsCountIndex,
     modelPassAreaLightsIndex,
-    modelPassAreaLightsCountIndex
+    modelPassAreaLightsCountIndex,
+    modelPassIsLight,
 }ModelPassBufferIndices;
 
 typedef enum{
@@ -126,6 +127,8 @@ typedef enum{
     colorGradingPassBrightnessIndex,
     colorGradingPassContrastIndex,
     colorGradingPassSaturationIndex,
+    colorGradingPassExposureIndex,
+    colorGradingWhiteBalanceCoeffsIndex
 }ColorGradingPassBufferIndices;
 
 typedef enum{

@@ -118,35 +118,6 @@ struct EnvironmentView: View {
     }
 }
 
-struct ToneMappingEditorView: View {
-    @ObservedObject var settings = ToneMappingParams.shared
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Tone Mapping").font(.headline)
-
-            HStack {
-                Text("Exposure")
-                Slider(value: $settings.exposure, in: 0.1 ... 5.0)
-                Text(String(format: "%.2f", settings.exposure))
-            }
-
-            Picker("Operator", selection: $settings.toneMapOperator) {
-                Text("ACES").tag(0)
-                Text("Filmic").tag(1)
-                Text("Reinhard").tag(2)
-            }
-            .pickerStyle(SegmentedPickerStyle())
-
-            HStack {
-                Text("Gamma")
-                Slider(value: $settings.gamma, in: 1.0 ... 3.0)
-                Text(String(format: "%.2f", settings.gamma))
-            }
-        }
-        .padding()
-    }
-}
 
 struct ColorGradingEditorView: View {
     @ObservedObject var settings = ColorGradingParams.shared
@@ -154,55 +125,59 @@ struct ColorGradingEditorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Color Grading").font(.headline)
+            
+            Text("Exposure")
+            Slider(value: $settings.exposure, in: -5.0 ... 5.0)
+            Text(String(format: "%.2f", settings.exposure))
 
             Text("Brightness")
             Slider(value: $settings.brightness, in: -1.0 ... 1.0)
             Text(String(format: "%.2f", settings.brightness))
 
             Text("Contrast")
-            Slider(value: $settings.contrast, in: 0.0 ... 2.0)
+            Slider(value: $settings.contrast, in: -5.0 ... 5.0)
             Text(String(format: "%.2f", settings.contrast))
 
             Text("Saturation")
-            Slider(value: $settings.saturation, in: 0.0 ... 2.0)
+            Slider(value: $settings.saturation, in: 0.0 ... 5.0)
             Text(String(format: "%.2f", settings.saturation))
         }
         .padding()
     }
 }
 
-struct ColorCorrectionEditorView: View {
-    @ObservedObject var settings = ColorCorrectionParams.shared
+struct WhiteBalanceEditorView: View {
+    @ObservedObject var settings = ColorGradingParams.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Color Correction").font(.headline)
+            Text("White Balance").font(.headline)
 
             Text("Temperature")
-            Slider(value: $settings.temperature, in: -1.0 ... 1.0)
+            Slider(value: $settings.temperature, in: -100.0 ... 100.0)
             Text(String(format: "%.2f", settings.temperature))
 
             Text("Tint")
-            Slider(value: $settings.tint, in: -1.0 ... 1.0)
+            Slider(value: $settings.tint, in: -100.0 ... 100.0)
             Text(String(format: "%.2f", settings.tint))
 
-            TextInputVectorView(label: "Lift", value: Binding(
-                get: { settings.lift },
-                set: { newLift in
-                    settings.lift = newLift
-                }))
-
-            TextInputVectorView(label: "Gamma", value: Binding(
-                get: { settings.gamma },
-                set: { newGamma in
-                    settings.gamma = newGamma
-                }))
-
-            TextInputVectorView(label: "Gain", value: Binding(
-                get: { settings.gain },
-                set: { newGain in
-                    settings.gain = newGain
-                }))
+//            TextInputVectorView(label: "Lift", value: Binding(
+//                get: { settings.lift },
+//                set: { newLift in
+//                    settings.lift = newLift
+//                }))
+//
+//            TextInputVectorView(label: "Gamma", value: Binding(
+//                get: { settings.gamma },
+//                set: { newGamma in
+//                    settings.gamma = newGamma
+//                }))
+//
+//            TextInputVectorView(label: "Gain", value: Binding(
+//                get: { settings.gain },
+//                set: { newGain in
+//                    settings.gain = newGain
+//                }))
         }
         .padding()
     }
@@ -220,7 +195,7 @@ struct BloomEditorView: View {
             Text(String(format: "%.2f", settings.threshold))
 
             Text("Intensity")
-            Slider(value: $settings.intensity, in: 0.0 ... 10.0)
+            Slider(value: $settings.intensity, in: 0.0 ... 100.0)
             Text(String(format: "%.2f", settings.intensity))
 
         }
@@ -288,7 +263,7 @@ struct DepthOfFieldEditorView: View {
             Text("Depth of Field").font(.headline)
 
             Text("Focus Distance")
-            Slider(value: $settings.focusDistance, in: 0.0 ... 1.0)
+            Slider(value: $settings.focusDistance, in: 0.0 ... 10.0)
             Text(String(format: "%.2f", settings.focusDistance))
 
             Text("Focus Range")
@@ -330,7 +305,7 @@ struct SSAOEditorView: View {
 
 struct PostProcessingEditorView: View {
     @State private var showToneMapping = false
-    @State private var showColorCorrection = false
+    @State private var showWhiteBalance = false
     @State private var showColorGrading = false
     @State private var showBloom = false
     @State private var showVignette = false
@@ -342,38 +317,36 @@ struct PostProcessingEditorView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                DisclosureGroup("Tone Mapping", isExpanded: $showToneMapping) {
-                    ToneMappingEditorView()
-                }
-
-                DisclosureGroup("Color Correction", isExpanded: $showColorCorrection) {
-                    ColorCorrectionEditorView()
-                }
-
-                DisclosureGroup("Color Grading", isExpanded: $showColorGrading) {
-                    ColorGradingEditorView()
-                }
                 
-                DisclosureGroup("Bloom", isExpanded: $showBloom) {
-                    BloomEditorView()
-                }
-                
-                DisclosureGroup("Vignette", isExpanded: $showVignette){
-                    VignetteEditorView()
+                DisclosureGroup("Depth of Field", isExpanded: $showDoF){
+                    DepthOfFieldEditorView()
                 }
                 
                 DisclosureGroup("Chromatic Aberration", isExpanded: $showChromatic){
                     ChromaticAberrationEditorView()
                 }
                 
-                DisclosureGroup("Depth of Field", isExpanded: $showDoF){
-                    DepthOfFieldEditorView()
+                DisclosureGroup("Bloom", isExpanded: $showBloom) {
+                    BloomEditorView()
                 }
                 
-                DisclosureGroup("SSAO", isExpanded: $showSSAO){
-                    SSAOEditorView()
+                DisclosureGroup("Color Grading", isExpanded: $showColorGrading) {
+                    ColorGradingEditorView()
                 }
                 
+                DisclosureGroup("WhiteBalance", isExpanded: $showWhiteBalance) {
+                    WhiteBalanceEditorView()
+                }
+
+                DisclosureGroup("Vignette", isExpanded: $showVignette){
+                    VignetteEditorView()
+                }
+                
+  
+//                DisclosureGroup("SSAO", isExpanded: $showSSAO){
+//                    SSAOEditorView()
+//                }
+//                
                 DisclosureGroup("Debug", isExpanded: $showDebugPostProccessTexture) {
                     DebuggerEditorView()
                 }

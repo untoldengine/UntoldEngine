@@ -27,8 +27,9 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
     constexpr sampler s(min_filter::linear,mag_filter::linear);
 
     float depth=depthTexture.sample(s, vertexOut.uvCoords);
-    if(depth==1.0) return gridTexture.sample(s, vertexOut.uvCoords);
+    //if(depth==1.0) return gridTexture.sample(s, vertexOut.uvCoords);
 
     float4 color=finalTexture.sample(s, vertexOut.uvCoords);
+    
     return color;
 }

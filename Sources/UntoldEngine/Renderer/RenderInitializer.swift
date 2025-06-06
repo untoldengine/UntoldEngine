@@ -979,7 +979,7 @@ func initRenderPipelines() {
         vertexShader: "vertexDebugShader",
         fragmentShader: "fragmentDebugShader",
         vertexDescriptor: createDebugVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [.bgra8Unorm_srgb],
         depthFormat: renderInfo.depthPixelFormat,
         depthCompareFunction: .less,
         depthEnabled: false,
@@ -1057,6 +1057,7 @@ func initRenderPipelines() {
         colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
+        blendEnabled: true,
         name: "Bloom Composite Pipeline"
     ) {
         bloomCompositePipeline = bloomCompositePipe

@@ -31,7 +31,7 @@ fragment float4 fragmentDebugShader(VertexDebugOutput vertexOut [[stage_in]],
         float near = frustumPlanes.x;
         float far = frustumPlanes.y;
         float rawDepth = depthTexture.sample(s, vertexOut.uvCoords);
-        float normalized = linearizeDepth(rawDepth, near, far);
+        float normalized = linearizeDepthForViewing(rawDepth, near, far);
         return float4(normalized, normalized, normalized, 1.0);
     }
     

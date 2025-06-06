@@ -149,7 +149,7 @@ var ambientIntensity: Float = 0.44
 let boundingBoxVertexCount = 24
 
 var envRotationAngle: Float = 0
-public var hdrURL: String = "photostudio.hdr"
+public var hdrURL: String = "teatro_massimo_2k.hdr"
 public var resourceURL: URL?
 
 var currentGlobalTime: Float = 0.0
@@ -197,7 +197,6 @@ let mtkBackgroundColor = MTLClearColorMake(40.0 / 255.0, 40.0 / 255.0, 45.0 / 25
 class ToneMappingParams: ObservableObject {
     static let shared = ToneMappingParams()
 
-    @Published var exposure: Float = 1.0
     @Published var toneMapOperator: Int = 0
     @Published var gamma: Float = 1.0 // original = 2.2
 }
@@ -208,13 +207,14 @@ class ColorGradingParams: ObservableObject{
     @Published var brightness: Float = 0.0
     @Published var contrast: Float = 1.0
     @Published var saturation: Float = 1.0
+    @Published var exposure: Float = 1.0
+    @Published var temperature: Float = 0.0 // -1.0 to 1.0 (-1.0 bluish, 0.0 neutral, +1.0 warm, yellowish/orange)
+    @Published var tint: Float = 0.0 // -1.0 to 1.0 Green (-)/Magenta (+)
 }
 
 class ColorCorrectionParams: ObservableObject{
     static let shared = ColorCorrectionParams()
     
-    @Published var temperature: Float = 0.0 // -1.0 to 1.0 (-1.0 bluish, 0.0 neutral, +1.0 warm, yellowish/orange)
-    @Published var tint: Float = 0.0 // -1.0 to 1.0 Green (-)/Magenta (+)
     @Published var lift: simd_float3 = .zero // RGB adjustment for shadows (0 - 2)
     @Published var gamma: simd_float3 = .one // RGB adjustment for midtones (0.5 - 2.5)
     @Published var gain: simd_float3 = .one // RGB adjustment for highlights (0 - 2)
@@ -223,7 +223,7 @@ class ColorCorrectionParams: ObservableObject{
 class BloomThresholdParams: ObservableObject{
     static let shared = BloomThresholdParams()
     
-    @Published var threshold: Float = 1.0 // 0.0 to 5.0
+    @Published var threshold: Float = 0.5 // 0.0 to 5.0
     @Published var intensity: Float = 1.0 // 0.0 to 2.0
 }
 
