@@ -60,6 +60,8 @@ let fov: Float = 65.0
 let shadowMaxWidth: Float = 300.0
 let shadowMaxHeight: Float = 300.0
 
+let shadowResolution: simd_int2 = simd_int2(8192,8192)
+
 var accelStructResources = AccelStructResources()
 
 // pipelines

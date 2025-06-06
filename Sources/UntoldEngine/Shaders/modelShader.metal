@@ -12,11 +12,14 @@
 
 using namespace metal;
 
-float computeShadow(float4 shadowCoords, depth2d<float> shadowTexture){
+float computeShadow(float4 shadowCoords, depth2d<float> shadowTexture, float3 normal, float3 lightDir){
     
     float shadow=0.0;
     
     constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
+    float2 texelSize = 1.0 / float2(shadowTexture.get_width(), shadowTexture.get_height());
+
+    float bias = max(0.001 * (1.0 - dot(normalize(normal), normalize(lightDir))), 0.0003);
 
     //project from Clip space to NDC
     float3 proj=shadowCoords.xyz/shadowCoords.w;
@@ -29,16 +32,15 @@ float computeShadow(float4 shadowCoords, depth2d<float> shadowTexture){
     proj.y=1.0-proj.y;
 
     //float closestDepth=shadowTexture.sample(shadowSampler,proj.xy);
-    float currenDepthFromLight=proj.z;
-    
-    for(int i=0;i<9;i++){
-
-        float pcfDepth=shadowTexture.sample(shadowSampler,proj.xy+poissonDisk[i]/700.0);
-        shadow+=currenDepthFromLight>pcfDepth?0.3:0.0;
-
-    }
-    shadow/=9.0;
-    
+    float currentDepth=proj.z;
+    int poissonSamples = 16;
+    for (int i = 0; i < poissonSamples; ++i) {
+            float2 offset = poissonDisk[i] * texelSize * 1.5;
+            float sampledDepth = shadowTexture.sample(shadowSampler, proj.xy + offset);
+            shadow += (currentDepth - bias) > sampledDepth ? 1.0 : 0.3;
+        }
+    shadow/=poissonSamples;
+    shadow = mix(0.3, 1.0, shadow);
     return shadow;
 }
 
@@ -404,7 +406,7 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     color += areaLightColor;
 
     //compute shadow
-    float shadow = computeShadow(in.shadowCoords, shadowTexture);
+    float shadow = computeShadow(in.shadowCoords, shadowTexture, normalMap, lightRayDirection);
     
 
     float3 litColor = color.rgb * (1.0 - shadow);

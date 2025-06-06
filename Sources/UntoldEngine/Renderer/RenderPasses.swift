@@ -222,7 +222,7 @@ enum RenderPasses {
 
         renderEncoder.setDepthBias(0.005, slopeScale: 1.0, clamp: 1.0)
         renderEncoder.setViewport(
-            MTLViewport(originX: 0.0, originY: 0.0, width: 1024, height: 1024, znear: 0.0, zfar: 1.0))
+            MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0))
 
         // send buffer data
         renderEncoder.setVertexBytes(

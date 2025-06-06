@@ -289,8 +289,8 @@ func initBufferResources() {
 func initRenderPassDescriptors() {
     // Shadow Render Pass
     renderInfo.shadowRenderPassDescriptor = createRenderPassDescriptor(
-        width: 1024,
-        height: 1024,
+        width: Int(shadowResolution.x),
+        height: Int(shadowResolution.y),
         colorAttachments: [(nil, .dontCare, .dontCare, nil)],
         depthAttachment: (textureResources.shadowMap, .clear, .store, 1.0)
     )
@@ -326,8 +326,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Shadow Texture",
         pixelFormat: .depth32Float,
-        width: 1024,
-        height: 1024,
+        width: Int(shadowResolution.x),
+        height: Int(shadowResolution.y),
         usage: [.shaderRead, .renderTarget],
         storageMode: .private
     )
