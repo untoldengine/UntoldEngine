@@ -13,6 +13,10 @@ struct ToolbarView: View {
     var onLoad: () -> Void
     var onCameraSave: () -> Void
     var onPlayToggled: (Bool) -> Void
+    var dirLightCreate: () -> Void
+    var pointLightCreate: () -> Void
+    var spotLightCreate: () -> Void
+    var areaLightCreate: () -> Void
 
     @State private var isPlaying = false
 
@@ -51,6 +55,15 @@ struct ToolbarView: View {
             ToolbarButton(iconName: "square.and.arrow.up", action: onSave, tooltip: "Export JSON Scene")
             
             ToolbarButton(iconName: "camera.fill", action: onCameraSave, tooltip: "Save Camera Transform")
+            
+            ToolbarButton(iconName: "sun.horizon", action: dirLightCreate, tooltip: "Directional Light")
+            
+            ToolbarButton(iconName: "lightbulb.fill", action: pointLightCreate, tooltip: "Point Light")
+            
+            ToolbarButton(iconName: "lamp.ceiling", action: spotLightCreate, tooltip: "Spot Light")
+            
+            ToolbarButton(iconName: "light.panel.fill", action: areaLightCreate, tooltip: "Area Light")
+
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 6)

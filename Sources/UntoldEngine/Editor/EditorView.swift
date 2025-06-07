@@ -31,7 +31,11 @@ public struct EditorView: View {
             ToolbarView(
                 selectionManager: selectionManager, onSave: editor_handleSave,
                 onLoad: editor_handleLoad, onCameraSave: editor_cameraSave,
-                onPlayToggled: { isPlaying in editor_handlePlayToggle(isPlaying) }
+                onPlayToggled: { isPlaying in editor_handlePlayToggle(isPlaying) },
+                dirLightCreate: editor_createDirLight,
+                pointLightCreate: editor_createPointLight,
+                spotLightCreate: editor_createSpotLight,
+                areaLightCreate: editor_createAreaLight
             )
             Divider()
             HStack {
@@ -59,7 +63,7 @@ public struct EditorView: View {
                 VStack {
                     SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
                     TransformManipulationToolbar(controller: editorController!)
-                    AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset)
+                   AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset)
                 }
                 InspectorView(selectionManager: selectionManager, sceneGraphModel: sceneGraphModel, onAddName_Editor: editor_addName, selectedAsset: $selectedAsset)
             }
@@ -165,5 +169,62 @@ public struct EditorView: View {
     private func editor_handlePlayToggle(_ isPlaying: Bool) {
         self.isPlaying = isPlaying
         gameMode = !gameMode
+    }
+    
+    private func editor_createDirLight(){
+        
+        let entityId = createEntity()
+
+        let name = generateEntityName()
+        setEntityName(entityId: entityId, name: name)
+        registerTransformComponent(entityId: entityId)
+        registerSceneGraphComponent(entityId: entityId)
+        editor_entities = getAllGameEntities()
+        sceneGraphModel.refreshHierarchy()
+        
+        createDirLight(entityId: entityId)
+        
+    }
+    
+    private func editor_createPointLight(){
+        
+        let entityId = createEntity()
+
+        let name = generateEntityName()
+        setEntityName(entityId: entityId, name: name)
+        registerTransformComponent(entityId: entityId)
+        registerSceneGraphComponent(entityId: entityId)
+        editor_entities = getAllGameEntities()
+        sceneGraphModel.refreshHierarchy()
+        
+        createPointLight(entityId: entityId)
+    }
+    
+    private func editor_createSpotLight(){
+        
+        let entityId = createEntity()
+
+        let name = generateEntityName()
+        setEntityName(entityId: entityId, name: name)
+        registerTransformComponent(entityId: entityId)
+        registerSceneGraphComponent(entityId: entityId)
+        editor_entities = getAllGameEntities()
+        sceneGraphModel.refreshHierarchy()
+        
+        createSpotLight(entityId: entityId)
+    }
+    
+    private func editor_createAreaLight(){
+        
+        let entityId = createEntity()
+
+        let name = generateEntityName()
+        setEntityName(entityId: entityId, name: name)
+        registerTransformComponent(entityId: entityId)
+        registerSceneGraphComponent(entityId: entityId)
+        editor_entities = getAllGameEntities()
+        sceneGraphModel.refreshHierarchy()
+        
+        createAreaLight(entityId: entityId)
     }
 }
