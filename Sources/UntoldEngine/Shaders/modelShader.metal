@@ -37,7 +37,7 @@ float computeShadow(float4 shadowCoords, depth2d<float> shadowTexture, float3 no
     for (int i = 0; i < poissonSamples; ++i) {
             float2 offset = poissonDisk[i] * texelSize * 1.5;
             float sampledDepth = shadowTexture.sample(shadowSampler, proj.xy + offset);
-            shadow += (currentDepth - bias) > sampledDepth ? 1.0 : 0.3;
+            shadow += (currentDepth - bias) > sampledDepth ? 0.3 : 1.0;
         }
     shadow/=poissonSamples;
     shadow = mix(0.3, 1.0, shadow);
@@ -354,6 +354,12 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     float4 color=float4(brdf*lightColor*lights.intensity+ambient*iblParam.ambientIntensity,1.0);
 
+    //compute shadow
+    float shadow = computeShadow(in.shadowCoords, shadowTexture, normalMap, lightRayDirection);
+   
+    // shadows affect directional light for now
+    color = color*shadow;
+    
     // compute point ligth contribution
     float4 pointColor=simd_float4(0.0);
 
@@ -405,13 +411,7 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     
     color += areaLightColor;
 
-    //compute shadow
-    float shadow = computeShadow(in.shadowCoords, shadowTexture, normalMap, lightRayDirection);
-    
-
-    float3 litColor = color.rgb * (1.0 - shadow);
-
-    fragmentOut.color = float4(litColor + emissiveColor, 1.0);
+    fragmentOut.color = float4(color.rgb + emissiveColor, 1.0);
     fragmentOut.normals=float4(normalMap,0.0);
     fragmentOut.positions=verticesInWorldSpace;
 
