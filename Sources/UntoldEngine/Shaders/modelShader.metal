@@ -352,7 +352,7 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     brdf=computeBRDF(lightRayDirection, viewVector, normalMap.xyz, inBaseColor.rgb, float3(1.0), materialParameter,roughness,metallic);
 
-    float4 color=float4(brdf*lightColor*lights.intensity+ambient*iblParam.ambientIntensity,1.0);
+    float4 color=float4(brdf*lightColor*lights.intensity,1.0);
 
     //compute shadow
     float shadow = computeShadow(in.shadowCoords, shadowTexture, normalMap, lightRayDirection);
@@ -411,7 +411,7 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     
     color += areaLightColor;
 
-    fragmentOut.color = float4(color.rgb + emissiveColor, 1.0);
+    fragmentOut.color = float4(color.rgb + emissiveColor + ambient*iblParam.ambientIntensity, 1.0);
     fragmentOut.normals=float4(normalMap,0.0);
     fragmentOut.positions=verticesInWorldSpace;
 
