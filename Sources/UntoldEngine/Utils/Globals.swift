@@ -209,7 +209,7 @@ class ColorGradingParams: ObservableObject{
     @Published var brightness: Float = 0.0
     @Published var contrast: Float = 1.0
     @Published var saturation: Float = 1.0
-    @Published var exposure: Float = 1.0
+    @Published var exposure: Float = 0.0
     @Published var temperature: Float = 0.0 // -1.0 to 1.0 (-1.0 bluish, 0.0 neutral, +1.0 warm, yellowish/orange)
     @Published var tint: Float = 0.0 // -1.0 to 1.0 Green (-)/Magenta (+)
 }
@@ -226,7 +226,7 @@ class BloomThresholdParams: ObservableObject{
     static let shared = BloomThresholdParams()
     
     @Published var threshold: Float = 0.5 // 0.0 to 5.0
-    @Published var intensity: Float = 1.0 // 0.0 to 2.0
+    @Published var intensity: Float = 0.0 // 0.0 to 2.0
 }
 
 class BloomCompositeParams: ObservableObject{
