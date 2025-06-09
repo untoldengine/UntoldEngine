@@ -335,7 +335,7 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     float3 viewVector=normalize(uniforms.cameraPosition-verticesInWorldSpace.xyz);
 
     //compute ibl ambient contribution
-    float3 ambient=computeIBLContribution(irradianceTexture, 
+    float3 indirectLighting=computeIBLContribution(irradianceTexture,
                                           specularTexture,
                                           iblBRDFTexture,
                                           iblRotationAngle,
@@ -369,7 +369,7 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                                     verticesInWorldSpace,
                                                     viewVector,
                                                     normalMap.xyz,
-                                                    ambient,
+                                                    indirectLighting,
                                                     materialParameter,
                                                     roughness,
                                                     metallic);
@@ -385,7 +385,7 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                                        verticesInWorldSpace,
                                                        viewVector,
                                                        normalMap.xyz,
-                                                       ambient,
+                                                       indirectLighting,
                                                        materialParameter,
                                                        roughness,
                                                        metallic);
@@ -411,7 +411,7 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     
     color += areaLightColor;
 
-    fragmentOut.color = float4(color.rgb + emissiveColor + ambient*iblParam.ambientIntensity, 1.0);
+    fragmentOut.color = float4(color.rgb + emissiveColor + indirectLighting*iblParam.ambientIntensity, 1.0);
     fragmentOut.normals=float4(normalMap,0.0);
     fragmentOut.positions=verticesInWorldSpace;
 
