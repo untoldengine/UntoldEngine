@@ -20,10 +20,21 @@ struct ModeButton: View {
 
     var body: some View {
         Button(action: {
+           
+            if gizmoActive == false{
+                return
+            }
+            
             if activeMode == mode {
                 activeMode = .none
             } else {
                 activeMode = mode
+               
+                if activeMode == .translate{
+                    createTransformGizmo()
+                }else if activeMode == .rotate{
+                    createRotateGizmo()
+                }
             }
         }) {
             HStack {
