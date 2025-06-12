@@ -598,3 +598,89 @@ func makeFloat4Texture(data: [simd_float4],
 
     return texture
 }
+
+func projectToScreenSpace(
+    position: simd_float3,
+    viewMatrix: simd_float4x4,
+    projectionMatrix: simd_float4x4,
+    viewportSize: simd_float2
+) -> simd_float3 {
+    // Convert position to clip space
+    let worldPos = simd_float4(position, 1.0)
+    let viewPos = simd_mul(viewMatrix, worldPos)
+    let clipPos = simd_mul(projectionMatrix, viewPos)
+
+    // Perform perspective divide to get NDC (Normalized Device Coordinates)
+    let ndc = clipPos / clipPos.w
+
+    // Convert from NDC [-1, 1] to screen space [0, viewportSize]
+    let screenX = (ndc.x * 0.5 + 0.5) * viewportSize.x
+    let screenY = (1.0 - (ndc.y * 0.5 + 0.5)) * viewportSize.y // flip Y for screen coords
+
+    return simd_float3(screenX, screenY, ndc.z)
+}
+
+
+func computeAxisTranslationGizmo(
+    axisWorldDir: simd_float3,
+    gizmoWorldPosition: simd_float3,
+    mouseDelta: simd_float2,
+    viewMatrix: simd_float4x4,
+    projectionMatrix: simd_float4x4,
+    viewportSize: simd_float2,
+    sensitivity: Float = 0.01
+) -> Float {
+    // Project the gizmo origin and end of axis into screen space
+    let screenOrigin = projectToScreenSpace(
+        position: gizmoWorldPosition,
+        viewMatrix: viewMatrix,
+        projectionMatrix: projectionMatrix,
+        viewportSize: viewportSize
+    )
+
+    let screenAxisEnd = projectToScreenSpace(
+        position: gizmoWorldPosition + axisWorldDir,
+        viewMatrix: viewMatrix,
+        projectionMatrix: projectionMatrix,
+        viewportSize: viewportSize
+    )
+
+    // Compute the 2D screen direction of the axis
+    let screenAxisDir = normalize(simd_float2(screenAxisEnd.x - screenOrigin.x, screenAxisEnd.y - screenOrigin.y))
+
+    // Project the mouse movement onto this direction
+    let projectedAmount = dot(mouseDelta, screenAxisDir)
+
+    return projectedAmount * sensitivity
+}
+
+func computeRotationAngleFromGizmo(
+    axis: simd_float3,
+    gizmoWorldPosition: simd_float3,
+    lastMousePos: simd_float2,
+    currentMousePos: simd_float2,
+    viewMatrix: simd_float4x4,
+    projectionMatrix: simd_float4x4,
+    viewportSize: simd_float2,
+    sensitivity: Float = 0.01
+) -> Float {
+    // Project gizmo center to screen space
+    let screenOrigin = projectToScreenSpace(
+        position: gizmoWorldPosition,
+        viewMatrix: viewMatrix,
+        projectionMatrix: projectionMatrix,
+        viewportSize: viewportSize
+    )
+
+    // Convert screen-space mouse positions to vectors relative to gizmo center
+    let prevVec = normalize(lastMousePos - simd_float2(screenOrigin.x, screenOrigin.y))
+    let currVec = normalize(currentMousePos - simd_float2(screenOrigin.x, screenOrigin.y))
+
+    // Compute signed angle between the vectors
+    let perpDot = prevVec.x * currVec.y - prevVec.y * currVec.x  // 2D cross product
+    let dotProd = simd_dot(prevVec, currVec)
+    let angle = atan2(perpDot, dotProd)
+
+    return angle * sensitivity // positive = CCW, negative = CW
+}
+

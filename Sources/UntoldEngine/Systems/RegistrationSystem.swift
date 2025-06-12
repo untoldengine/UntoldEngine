@@ -373,7 +373,7 @@ func removeEntityScenegraph(entityId: EntityID) {
     let childrenId = scenegraphComponent.children
 
     for childId in childrenId {
-        removeEntityScenegraph(entityId: childId)
+        destroyEntity(entityId: childId)
     }
 
     // we need to unlink parent from main entity

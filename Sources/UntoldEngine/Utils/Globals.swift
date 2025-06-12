@@ -79,6 +79,9 @@ var geometryPipeline = RenderPipeline()
 var lightVisualPipeline = RenderPipeline()
 var rayCompositePipeline = RenderPipeline()
 
+// gizmo
+var gizmoPipeline = RenderPipeline()
+
 // Post-process
 var tonemappingPipeline = RenderPipeline()
 var colorGradingPipeline = RenderPipeline()
@@ -274,3 +277,7 @@ class DebugSettings: ObservableObject {
     @Published var debugEnabled: Bool = true
 }
 
+// Gizmo active
+var gizmoActive: Bool = false
+var activeHitGizmoEntity: EntityID = .invalid
+var parentEntityIdGizmo: EntityID = .invalid

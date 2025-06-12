@@ -221,3 +221,7 @@ public class CameraComponent: Component {
 public class SceneCameraComponent: Component {
     public required init() {}
 }
+
+public class GizmoComponent: Component{
+    public required init() {}
+}

@@ -212,33 +212,95 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             return
         }
 
-        if inputSystem.keyState.shiftPressed {
+        if inputSystem.keyState.shiftPressed || gizmoActive{
+            
+            guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
+            handleError(.noActiveCamera)
+                return
+            }
+            
+            let d0: simd_float3 = simd_mul(matrix3x3_upper_left(cameraComponent.viewSpace), simd_float3(inputSystem.mouseDeltaX, -inputSystem.mouseDeltaY,0.0))
+                
             switch (editorController.activeMode, editorController.activeAxis) {
             // Translate
             case (.translate, .x) where inputSystem.mouseActive:
-                translateBy(entityId: activeEntity, position: simd_float3(inputSystem.mouseDeltaX * 0.01, 0.0, 0.0))
-                editorController.refreshInspector()
+               
+                /*
+                let delta: Float = simd_dot(d0, cameraComponent.xAxis)
+                
+                translateBy(entityId: activeEntity, position: simd_float3(delta*0.01, 0.0, 0.0))
+                */
+                let axisWorldDir: simd_float3 = simd_mul(getLocalOrientation(entityId: activeEntity),simd_float3(1.0,0.0,0.0))
+                
+                let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
+                
+                let translation = simd_float3(1.0,0.0,0.0) * projectedAmount
+                translateBy(entityId: activeEntity, position: translation)
+                
+                 editorController.refreshInspector()
 
             case (.translate, .y) where inputSystem.mouseActive:
-                translateBy(entityId: activeEntity, position: simd_float3(0.0, -inputSystem.mouseDeltaY * 0.01, 0.0))
+                
+                let axisWorldDir: simd_float3 = simd_mul(getLocalOrientation(entityId: activeEntity),simd_float3(0.0,1.0,0.0))
+
+                let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
+                
+                let translation = simd_float3(0.0,1.0,0.0) * projectedAmount
+                
+                translateBy(entityId: activeEntity, position: translation)
                 editorController.refreshInspector()
 
             case (.translate, .z) where inputSystem.mouseActive:
-                translateBy(entityId: activeEntity, position: simd_float3(0.0, 0.0, inputSystem.mouseDeltaY * 0.01))
+                
+                let axisWorldDir: simd_float3 = simd_mul(getLocalOrientation(entityId: activeEntity),simd_float3(0.0,0.0,1.0))
+                
+                let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
+                
+                let translation = simd_float3(0.0,0.0,1.0) * projectedAmount
+                
+                translateBy(entityId: activeEntity, position: translation)
                 editorController.refreshInspector()
 
             // Orientation
             case (.rotate, .x) where inputSystem.mouseActive:
-                var axisOfRotation = getAxisRotations(entityId: activeEntity)
-                axisOfRotation.x += inputSystem.mouseDeltaY
+                
+                let axisWorldDir: simd_float3 = simd_mul(getLocalOrientation(entityId: activeEntity),simd_float3(1.0,0.0,0.0))
+                
+                let angleDelta = computeRotationAngleFromGizmo(
+                    axis: axisWorldDir,                      // simd_float3, e.g., (0,1,0)
+                    gizmoWorldPosition: getLocalPosition(entityId: activeEntity),       // simd_float3
+                    lastMousePos: simd_float2(inputSystem.lastMouseX, inputSystem.lastMouseY),              // simd_float2 in screen coords
+                    currentMousePos: simd_float2(inputSystem.mouseX, inputSystem.mouseY),        // simd_float2 in screen coords
+                    viewMatrix: cameraComponent.viewSpace,
+                    projectionMatrix: renderInfo.perspectiveSpace,
+                    viewportSize: renderInfo.viewPort,
+                    sensitivity: 100.0
+                )
 
+                var axisOfRotation = getAxisRotations(entityId: activeEntity)
+                axisOfRotation.x -= angleDelta*10
+                
+                
                 applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
                 editorController.refreshInspector()
 
             case (.rotate, .y) where inputSystem.mouseActive:
 
+                let axisWorldDir: simd_float3 = simd_mul(getLocalOrientation(entityId: activeEntity),simd_float3(0.0,1.0,0.0))
+                
+                let angleDelta = computeRotationAngleFromGizmo(
+                    axis: axisWorldDir,
+                    gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
+                    lastMousePos: simd_float2(inputSystem.lastMouseX, inputSystem.lastMouseY),
+                    currentMousePos: simd_float2(inputSystem.mouseX, inputSystem.mouseY),
+                    viewMatrix: cameraComponent.viewSpace,
+                    projectionMatrix: renderInfo.perspectiveSpace,
+                    viewportSize: renderInfo.viewPort,
+                    sensitivity: 100.0
+                )
+
                 var axisOfRotation = getAxisRotations(entityId: activeEntity)
-                axisOfRotation.y += inputSystem.mouseDeltaX
+                axisOfRotation.y += angleDelta*10
 
                 applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
 
@@ -246,8 +308,22 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
             case (.rotate, .z) where inputSystem.mouseActive:
 
+                let axisWorldDir: simd_float3 = simd_mul(getLocalOrientation(entityId: activeEntity),simd_float3(0.0,0.0,1.0))
+                
+                let angleDelta = computeRotationAngleFromGizmo(
+                    axis: axisWorldDir,
+                    gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
+                    lastMousePos: simd_float2(inputSystem.lastMouseX, inputSystem.lastMouseY),
+                    currentMousePos: simd_float2(inputSystem.mouseX, inputSystem.mouseY),        
+                    viewMatrix: cameraComponent.viewSpace,
+                    projectionMatrix: renderInfo.perspectiveSpace,
+                    viewportSize: renderInfo.viewPort,
+                    sensitivity: 100.0
+                )
+
                 var axisOfRotation = getAxisRotations(entityId: activeEntity)
-                axisOfRotation.z += inputSystem.mouseDeltaY
+                axisOfRotation.z += angleDelta*10
+
 
                 applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
                 editorController.refreshInspector()

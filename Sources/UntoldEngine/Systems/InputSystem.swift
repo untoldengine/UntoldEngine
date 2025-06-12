@@ -90,6 +90,8 @@ public class InputSystem {
     // Mouse states
     var mouseX: Float = 0.0
     var mouseY: Float = 0.0
+    var lastMouseX: Float = 0.0
+    var lastMouseY: Float = 0.0
     var mouseDeltaX: Float = 0.0
     var mouseDeltaY: Float = 0.0
     var mouseActive: Bool = false
@@ -243,6 +245,11 @@ public class InputSystem {
             self?.leftMouseUp(event)
             return event
         }
+        
+        NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
+            self?.handleMouseScroll(event)
+            return event
+        }
     }
 
     @objc func handlePinch(_ gestureRecognizer: NSMagnificationGestureRecognizer) {
@@ -254,7 +261,7 @@ public class InputSystem {
     }
 
     @objc func handleRightClick(_ gestureRecognizer: NSClickGestureRecognizer) {
-        doMousePicking(gestureRecognizer: gestureRecognizer, in: gestureRecognizer.view!)
+        mouseRaycast(gestureRecognizer: gestureRecognizer, in: gestureRecognizer.view!)
     }
 
     public func handleMouseScroll(_ event: NSEvent) {
@@ -312,56 +319,35 @@ public class InputSystem {
         }
     }
 
-    public func doMousePicking(gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
+    public func mouseRaycast(gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
             handleError(.noActiveCamera)
             return
         }
-
+        
         let currentLocation = gestureRecognizer.location(in: view)
-
-        let currentCGPoint = simd_float2(Float(currentLocation.x), Float(currentLocation.y))
-
-        let rayDirection: simd_float3 = rayDirectionInWorldSpace(uMouseLocation: currentCGPoint, uViewPortDim: simd_float2(Float(view.bounds.width), Float(view.bounds.height)), uPerspectiveSpace: renderInfo.perspectiveSpace, uViewSpace: cameraComponent.viewSpace)
-
-        if getAllGameEntitiesWithMeshes().count == 0 {
-            return
-        }
-
-        var anyIntersect = false
-        if let rtxCommandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
-            executeRayVsModelHit(rtxCommandBuffer, cameraComponent.localPosition, rayDirection)
-
-            rtxCommandBuffer.addCompletedHandler { commandBuffer in
-                if let error = commandBuffer.error {
-                    // Handle error if any
-                    print("Command buffer completed with error: \(error)")
-                } else {
-                    if let data = bufferResources.rayModelInstanceBuffer?.contents().assumingMemoryBound(to: Int32.self) {
-                        let value = data.pointee
-
-                        if value != -1 {
-                            activeEntity = accelStructResources.entityIDIndex[Int(value)]
-                            anyIntersect = true
-                        }
-                    }
-                }
-
-                cleanUpAccelStructures()
-            }
-
-            rtxCommandBuffer.commit()
-            rtxCommandBuffer.waitUntilCompleted()
-        }
-
-        if anyIntersect {
+        
+        let (entityId, hit) = getRaycastedEntity(currentLocation: currentLocation, view: view)
+        
+        gizmoActive = false
+        removeGizmo()
+        editorController?.activeMode = .none
+        editorController?.activeAxis = .none
+        activeHitGizmoEntity = .invalid
+        if hit {
+            
+            activeEntity = entityId
+            
             guard let t = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
             updateBoundingBoxBuffer(min: t.boundingBox.min, max: t.boundingBox.max)
 
             selectionDelegate?.didSelectEntity(activeEntity)
             selectionDelegate?.resetActiveAxis()
+            
+            createTransformGizmo()
         } else {
             activeEntity = .invalid
+            removeGizmo()
         }
     }
 
@@ -375,12 +361,13 @@ public class InputSystem {
         if editorController.activeMode != .none, activeEntity != .invalid, keyState.shiftPressed {
             return
         }
+        let currentLocation = gestureRecognizer.location(in: view)
 
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
             handleError(.noActiveCamera)
             return
         }
-
+        
         switch gestureRecognizer.state {
         case .began:
             // Store the initial touch location and perform any initial setup
@@ -388,31 +375,51 @@ public class InputSystem {
             currentPanGestureState = .began
             setOrbitOffset(entityId: findSceneCamera(), uTargetOffset: length(cameraComponent.localPosition))
             cameraControlMode = .orbiting
+            
+            if gizmoActive{
+                let (hitEntityId, hit) = getRaycastedEntity(currentLocation: currentLocation, view: view)
+                
+                if hit{
+                    
+                    activeHitGizmoEntity = hitEntityId
+
+                }else{
+                        activeHitGizmoEntity = .invalid
+                        editorController.activeMode = .none
+                        editorController.activeAxis = .none
+                }
+            }
         case .changed:
-            // Calculate the deltas from the initial touch location
-            var deltaX = currentPanLocation.x - initialPanLocation.x
-            var deltaY = currentPanLocation.y - initialPanLocation.y
-
-            if abs(deltaX) < abs(deltaY) {
-                deltaX = 0.0
-            } else {
-                deltaY = 0.0
-                deltaX = -1.0 * deltaX
+            
+                processGizmoAction(entityId: activeHitGizmoEntity)
+                
+            if activeHitGizmoEntity != .invalid{
+                    return
             }
-
-            if abs(deltaX) <= 1.0 {
-                deltaX = 0.0
-            }
-
-            if abs(deltaY) <= 1.0 {
-                deltaY = 0.0
-            }
-
-            // Add your code for touch moved here
-            panDelta = simd_float2(Float(deltaX), Float(deltaY))
-            currentPanGestureState = .changed
-            initialPanLocation = currentPanLocation
-            orbitAround(entityId: findSceneCamera(), uPosition: inputSystem.panDelta * 0.005)
+                // Calculate the deltas from the initial touch location
+                var deltaX = currentPanLocation.x - initialPanLocation.x
+                var deltaY = currentPanLocation.y - initialPanLocation.y
+                
+                if abs(deltaX) < abs(deltaY) {
+                    deltaX = 0.0
+                } else {
+                    deltaY = 0.0
+                    deltaX = -1.0 * deltaX
+                }
+                
+                if abs(deltaX) <= 1.0 {
+                    deltaX = 0.0
+                }
+                
+                if abs(deltaY) <= 1.0 {
+                    deltaY = 0.0
+                }
+                
+                // Add your code for touch moved here
+                panDelta = simd_float2(Float(deltaX), Float(deltaY))
+                currentPanGestureState = .changed
+                initialPanLocation = currentPanLocation
+                orbitAround(entityId: findSceneCamera(), uPosition: inputSystem.panDelta * 0.005)
         case .ended, .cancelled, .failed:
 
             // reset
@@ -443,6 +450,9 @@ public class InputSystem {
         if abs(mouseDeltaY) <= 1.0 {
             mouseDeltaY = 0.0
         }
+        
+        lastMouseX = mouseX
+        lastMouseY = mouseY
 
         mouseX += mouseDeltaX
         mouseY += mouseDeltaY
@@ -566,4 +576,55 @@ public class InputSystem {
         // Control key
         keyState.ctrlPressed = event.modifierFlags.contains(.control)
     }
+    
+    func getRaycastedEntity(currentLocation: NSPoint, view: NSView) -> (entityId: EntityID, hit: Bool){
+   
+        var hitEntityId: EntityID = .invalid
+        var hitEntity: Bool = false
+        
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
+            handleError(.noActiveCamera)
+            return (hitEntityId, hitEntity)
+        }
+        
+        let currentCGPoint = simd_float2(Float(currentLocation.x), Float(currentLocation.y))
+
+        let rayDirection: simd_float3 = rayDirectionInWorldSpace(uMouseLocation: currentCGPoint, uViewPortDim: simd_float2(Float(view.bounds.width), Float(view.bounds.height)), uPerspectiveSpace: renderInfo.perspectiveSpace, uViewSpace: cameraComponent.viewSpace)
+
+        if getAllGameEntitiesWithMeshes().count == 0 {
+            return (hitEntityId, hitEntity)
+        }
+        
+        if let rtxCommandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
+            executeRayVsModelHit(rtxCommandBuffer, cameraComponent.localPosition, rayDirection)
+
+            rtxCommandBuffer.addCompletedHandler { commandBuffer in
+                if let error = commandBuffer.error {
+                    // Handle error if any
+                    print("Command buffer completed with error: \(error)")
+                } else {
+                    if let data = bufferResources.rayModelInstanceBuffer?.contents().assumingMemoryBound(to: Int32.self) {
+                        let value = data.pointee
+
+                        if value != -1 {
+                            hitEntityId = accelStructResources.entityIDIndex[Int(value)]
+                            hitEntity = true
+                        }
+                    }
+                }
+
+                cleanUpAccelStructures()
+            }
+
+            rtxCommandBuffer.commit()
+            rtxCommandBuffer.waitUntilCompleted()
+        }
+        
+        if (hitEntity){
+            return (hitEntityId, hitEntity)
+        }
+       
+        return (hitEntityId, hitEntity)
+    }
+
 }
