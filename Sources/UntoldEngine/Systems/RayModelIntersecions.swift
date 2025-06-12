@@ -75,8 +75,17 @@ func newAccelerationStructure(
 func createAccelerationStructures(_: Bool) {
     let transformId = getComponentId(for: WorldTransformComponent.self)
     let renderId = getComponentId(for: RenderComponent.self)
-    let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
-
+    
+    var entities: [EntityID] = []
+    
+    // only ray cast gizmo components
+    if gizmoActive{
+        let gizmoId = getComponentId(for: GizmoComponent.self)
+        entities = queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
+    }else{
+        entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
+    }
+    
     // Iterate over the entities found by the component query
     for (i, entityId) in entities.enumerated() {
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
@@ -121,7 +130,7 @@ func createAccelerationStructures(_: Bool) {
         let localSpace = MTLPackedFloat4x3(
             columns: (column0, column1, column2, column3))
 
-        var mask: Int32 = GEOMETRY_MASK_TRIANGLE
+        let mask: Int32 = GEOMETRY_MASK_TRIANGLE
 
         // 2. Create a primitive acceleration structure
         let accelerationStructureDescriptor =

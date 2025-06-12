@@ -25,6 +25,10 @@ func createTransformGizmo(){
      
     setParent(childId: parentEntityIdGizmo, parentId: activeEntity)
     
+    for child in getEntityChildren(parentId: parentEntityIdGizmo){
+        registerComponent(entityId: child, componentType: GizmoComponent.self)
+    }
+    
     gizmoActive = true
 }
 
@@ -44,6 +48,10 @@ func createRotateGizmo(){
     setEntityMesh(entityId: parentEntityIdGizmo, filename: "rotateGizmo", withExtension: "usdc")
      
     setParent(childId: parentEntityIdGizmo, parentId: activeEntity)
+    
+    for child in getEntityChildren(parentId: parentEntityIdGizmo){
+        registerComponent(entityId: child, componentType: GizmoComponent.self)
+    }
     
     gizmoActive = true
 }
@@ -87,10 +95,6 @@ func removeGizmo(){
         
         destroyEntity(entityId: parentEntityIdGizmo)
     }
-    
-//    if let xAxisGizmo: EntityID = findEntity(name: "xAxisGizmo"){
-//        destroyEntity(entityId: xAxisGizmo)
-//    }
     
     gizmoActive = false
 }
