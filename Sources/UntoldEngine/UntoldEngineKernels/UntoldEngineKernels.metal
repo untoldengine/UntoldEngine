@@ -25,3 +25,4 @@ using namespace metal;
 #include "../Shaders/ChromaticShader.metal"
 #include "../Shaders/DoFShader.metal"
 #include "../Shaders/SSAOShader.metal"
+#include "../Shaders/GizmoShader.metal"

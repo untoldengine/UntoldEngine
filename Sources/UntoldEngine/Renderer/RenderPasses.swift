@@ -527,6 +527,10 @@ enum RenderPasses {
                 continue
             }
             
+            if hasComponent(entityId: entityId, componentType: GizmoComponent.self){
+                continue
+            }
+            
             // is light?
             var isLight: Bool = hasComponent(entityId: entityId, componentType: LightComponent.self)
             renderEncoder.setFragmentBytes(&isLight, length: MemoryLayout<Bool>.stride, index: Int(modelPassIsLight.rawValue))
@@ -673,6 +677,162 @@ enum RenderPasses {
 
                     renderEncoder.setFragmentTexture(
                         subMesh.material?.normal, index: Int(modelPassNormalTextureIndex.rawValue)
+                    )
+
+                    renderEncoder.drawIndexedPrimitives(
+                        type: subMesh.metalKitSubmesh.primitiveType,
+                        indexCount: subMesh.metalKitSubmesh.indexCount,
+                        indexType: subMesh.metalKitSubmesh.indexType,
+                        indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset
+                    )
+                }
+            }
+        }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
+    }
+    
+    static let gizmoExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        
+        if  gizmoPipeline.success == false {
+            handleError(.pipelineStateNulled, gizmoPipeline.name!)
+            return
+        }
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+            .loadAction = .load
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+            .loadAction = .load
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+            .loadAction = .load
+
+        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+
+        let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor!
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "Gizmo Pass")
+
+            return
+        }
+
+        renderEncoder.label = "Gizmo Pass"
+
+        renderEncoder.pushDebugGroup("Gizmo Pass")
+
+        renderEncoder.setRenderPipelineState(gizmoPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(gizmoPipeline.depthState)
+
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        // Create a component query for entities with both Transform and Render components
+
+        let transformId = getComponentId(for: WorldTransformComponent.self)
+        let renderId = getComponentId(for: RenderComponent.self)
+        let gizmoId = getComponentId(for: GizmoComponent.self)
+        
+        let entities = queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
+
+        // Iterate over the entities found by the component query
+        for entityId in entities {
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+                handleError(.noRenderComponent, entityId)
+                continue
+            }
+
+            guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+                handleError(.noWorldTransformComponent, entityId)
+                continue
+            }
+            
+            guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+                handleError(.noLocalTransformComponent, entityId)
+                continue
+            }
+            
+            for mesh in renderComponent.mesh {
+                // update uniforms
+                var modelUniforms = Uniforms()
+
+                var modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
+
+                let scaleMatrix = float4x4(scale: localTransformComponent.scale)
+                
+                modelMatrix = simd_mul(modelMatrix,scaleMatrix)
+
+                let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+
+                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+
+                let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
+
+                let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
+
+                let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
+
+                modelUniforms.modelViewMatrix = modelViewMatrix
+
+                modelUniforms.normalMatrix = normalMatrix
+
+                modelUniforms.viewMatrix = viewMatrix
+
+                modelUniforms.modelMatrix = modelMatrix
+
+                modelUniforms.cameraPosition = cameraComponent.localPosition
+
+                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+                if let modelUniformBuffer = mesh.spaceUniform {
+                    modelUniformBuffer.contents().copyMemory(
+                        from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
+                    )
+                } else {
+                    handleError(.bufferAllocationFailed, "Gizmo Uniform buffer")
+                    return
+                }
+
+                renderEncoder.setVertexBuffer(
+                    mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
+                )
+
+                renderEncoder.setFragmentBuffer(
+                    mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
+                )
+
+                renderEncoder.setVertexBuffer(
+                    mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
+                    offset: 0, index: Int(modelPassVerticesIndex.rawValue)
+                )
+
+                for subMesh in mesh.submeshes {
+                
+                    var materialParameters = MaterialParametersUniform()
+                    materialParameters.specular = subMesh.material!.specular
+                    materialParameters.specularTint = subMesh.material!.specularTint
+                    materialParameters.subsurface = subMesh.material!.subsurface
+                    materialParameters.anisotropic = subMesh.material!.anisotropic
+                    materialParameters.sheen = subMesh.material!.sheen
+                    materialParameters.sheenTint = subMesh.material!.sheenTint
+                    materialParameters.clearCoat = subMesh.material!.clearCoat
+                    materialParameters.clearCoatGloss = subMesh.material!.clearCoatGloss
+                    materialParameters.baseColor = subMesh.material!.baseColorValue
+                    materialParameters.roughness = subMesh.material!.roughnessValue
+                    materialParameters.metallic = subMesh.material!.metallicValue
+                    materialParameters.ior = subMesh.material!.ior
+                    materialParameters.edgeTint = subMesh.material!.edgeTint
+                    materialParameters.interactWithLight = subMesh.material!.interactWithLight
+                    materialParameters.emmissive = subMesh.material!.emissiveValue
+
+                    renderEncoder.setFragmentBytes(
+                        &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
+                        index: Int(modelPassMaterialParameterIndex.rawValue)
                     )
 
                     renderEncoder.drawIndexedPrimitives(

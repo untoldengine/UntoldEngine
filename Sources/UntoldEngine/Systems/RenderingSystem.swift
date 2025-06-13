@@ -77,8 +77,12 @@ func buildEditModeGraph() -> RenderGraphResult {
     )
     graph[highlightPass.id] = highlightPass
     
+    let gizmoPass = RenderPass(id: "gizmo", dependencies: [highlightPass.id], execute: RenderPasses.gizmoExecution)
+    
+    graph[gizmoPass.id] = gizmoPass
+    
     let preCompPass = RenderPass(
-        id: "precomp", dependencies: [highlightPass.id], execute: RenderPasses.preCompositeExecution
+        id: "precomp", dependencies: [gizmoPass.id], execute: RenderPasses.preCompositeExecution
     )
     graph[preCompPass.id] = preCompPass
     

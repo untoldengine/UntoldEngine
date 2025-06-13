@@ -83,6 +83,7 @@ public struct BufferResources {
 
 public struct VertexDescriptors {
     var model: MDLVertexDescriptor!
+    var gizmo: MDLVertexDescriptor!
 }
 
 public struct TextureResources {

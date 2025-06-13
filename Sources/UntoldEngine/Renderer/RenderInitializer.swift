@@ -670,6 +670,27 @@ func createModelVertexDescriptor() -> MTLVertexDescriptor? {
     return vertexDescriptor
 }
 
+func createGizmoVertexDescriptor() -> MTLVertexDescriptor? {
+    // tell the gpu how data is organized
+    vertexDescriptor.gizmo = MDLVertexDescriptor()
+
+    vertexDescriptor.gizmo.attributes[Int(modelPassVerticesIndex.rawValue)] = MDLVertexAttribute(
+        name: MDLVertexAttributePosition,
+        format: .float4,
+        offset: 0,
+        bufferIndex: Int(modelPassVerticesIndex.rawValue)
+    )
+
+    vertexDescriptor.gizmo.layouts[Int(modelPassVerticesIndex.rawValue)] = MDLVertexBufferLayout(
+        stride: MemoryLayout<simd_float4>.stride)
+
+    guard let vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor.gizmo) else {
+        return nil
+    }
+
+    return vertexDescriptor
+}
+
 func createGeometryVertexDescriptor() -> MTLVertexDescriptor {
     // tell the gpu how data is organized
     let vertexDescriptor = MTLVertexDescriptor()
@@ -910,6 +931,20 @@ func initRenderPipelines() {
         name: "Model Pipeline"
     ) {
         modelPipeline = modelPipe
+    }
+    
+    // Gizmo Pipeline
+    if let gizmoPipe = createPipeline(
+        vertexShader: "vertexGizmoShader",
+        fragmentShader: "fragmentGizmoShader",
+        vertexDescriptor: createGizmoVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .always,
+        depthEnabled: false,
+        name: "Gizmo Pipeline"
+    ) {
+        gizmoPipeline = gizmoPipe
     }
 
     // Geometry Pipeline
