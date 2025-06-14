@@ -194,6 +194,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         let viewPortSize: simd_float2 = simd_make_float2(Float(size.width), Float(size.height))
         renderInfo.viewPort = viewPortSize
     }
+    
+    
 
     func handleSceneInput() {
         if gameMode == true {
@@ -223,11 +225,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             // Translate
             case (.translate, .x) where inputSystem.mouseActive:
                
-                /*
-                let delta: Float = simd_dot(d0, cameraComponent.xAxis)
-                
-                translateBy(entityId: activeEntity, position: simd_float3(delta*0.01, 0.0, 0.0))
-                */
                 let axisWorldDir: simd_float3 = simd_float3(1.0,0.0,0.0)
                 
                 let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
@@ -328,6 +325,54 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
                 editorController.refreshInspector()
 
+            //scale
+            case (.scale, .x) where inputSystem.mouseActive:
+                let axisWorldDir: simd_float3 = simd_float3(1.0,0.0,0.0)
+                
+                let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
+              
+                if hasComponent(entityId: activeEntity, componentType: LightComponent.self){
+                    handleLightScaleInput(projectedAmount: projectedAmount, axis:axisWorldDir)
+                }else{
+                    
+                    let scale: simd_float3 = getScale(entityId: activeEntity)
+                    let newScale: simd_float3 = simd_float3(1.0,0.0,0.0)*projectedAmount + scale;
+                    
+                    scaleTo(entityId: activeEntity, scale: newScale)
+                }
+                
+            case (.scale, .y) where inputSystem.mouseActive:
+                let axisWorldDir: simd_float3 = simd_float3(0.0,1.0,0.0)
+                
+                let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
+               
+                if hasComponent(entityId: activeEntity, componentType: LightComponent.self){
+                    handleLightScaleInput(projectedAmount: projectedAmount, axis: axisWorldDir)
+                }else{
+                    
+                    let scale: simd_float3 = getScale(entityId: activeEntity)
+                    let newScale: simd_float3 = simd_float3(0.0,1.0,0.0)*projectedAmount + scale;
+                    
+                    scaleTo(entityId: activeEntity, scale: newScale)
+                    
+                }
+                
+            case (.scale, .z) where inputSystem.mouseActive:
+                let axisWorldDir: simd_float3 = simd_float3(0.0,0.0,1.0)
+                
+                let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
+               
+                if hasComponent(entityId: activeEntity, componentType: LightComponent.self){
+                    handleLightScaleInput(projectedAmount: projectedAmount, axis: axisWorldDir)
+                }else{
+                    
+                    let scale: simd_float3 = getScale(entityId: activeEntity)
+                    let newScale: simd_float3 = simd_float3(0.0,0.0,1.0)*projectedAmount + scale;
+                    
+                    scaleTo(entityId: activeEntity, scale: newScale)
+                    
+                }
+            // default
             default:
                 break
             }

@@ -51,7 +51,7 @@ public func createDirLight(entityId: EntityID) {
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "lightdirmesh", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "dirLightMesh", withExtension: "usdc")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -658,3 +658,23 @@ func getAreaLightCount() -> Int {
 
     return areaLightCount
 }
+
+func handleLightScaleInput(projectedAmount: Float, axis: simd_float3){
+        
+        if let pointLightComponent = scene.get(component: PointLightComponent.self, for: activeEntity){
+            pointLightComponent.radius += projectedAmount
+        }
+        
+        if let spotLightComponent = scene.get(component: SpotLightComponent.self, for: activeEntity){
+            
+            spotLightComponent.coneAngle += projectedAmount*10.0
+        }
+        
+        if scene.get(component: AreaLightComponent.self, for: activeEntity) != nil{
+            let scale: simd_float3 = getScale(entityId: activeEntity)
+            let newScale: simd_float3 = axis*projectedAmount + scale;
+            
+            scaleTo(entityId: activeEntity, scale: newScale)
+        }
+            
+    }

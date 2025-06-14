@@ -259,6 +259,10 @@ enum RenderPasses {
             if let lightComponent = scene.get(component: LightComponent.self, for: entityId){
                 continue
             }
+            
+            if let gizmoComponent = scene.get(component: GizmoComponent.self, for: entityId){
+                continue
+            }
 
             for mesh in renderComponent.mesh {
                 // update uniforms

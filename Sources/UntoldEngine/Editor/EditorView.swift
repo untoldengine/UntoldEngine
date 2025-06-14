@@ -129,6 +129,9 @@ public struct EditorView: View {
     }
 
     private func editor_addNewEntity() {
+        
+        removeGizmo()
+        
         let entityId = createEntity()
 
         let name = generateEntityName()
@@ -154,6 +157,7 @@ public struct EditorView: View {
         editor_entities = getAllGameEntities()
         activeEntity = .invalid
         selectionManager.selectedEntity = nil
+        removeGizmo()
         sceneGraphModel.refreshHierarchy()
     }
 
@@ -179,10 +183,10 @@ public struct EditorView: View {
         setEntityName(entityId: entityId, name: name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
-        editor_entities = getAllGameEntities()
-        sceneGraphModel.refreshHierarchy()
         
         createDirLight(entityId: entityId)
+        editor_entities = getAllGameEntities()
+        sceneGraphModel.refreshHierarchy()
         
     }
     
@@ -194,10 +198,10 @@ public struct EditorView: View {
         setEntityName(entityId: entityId, name: name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
-        editor_entities = getAllGameEntities()
-        sceneGraphModel.refreshHierarchy()
         
         createPointLight(entityId: entityId)
+        editor_entities = getAllGameEntities()
+        sceneGraphModel.refreshHierarchy()
     }
     
     private func editor_createSpotLight(){
@@ -208,10 +212,10 @@ public struct EditorView: View {
         setEntityName(entityId: entityId, name: name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
-        editor_entities = getAllGameEntities()
-        sceneGraphModel.refreshHierarchy()
         
         createSpotLight(entityId: entityId)
+        editor_entities = getAllGameEntities()
+        sceneGraphModel.refreshHierarchy()
     }
     
     private func editor_createAreaLight(){
@@ -222,9 +226,9 @@ public struct EditorView: View {
         setEntityName(entityId: entityId, name: name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
-        editor_entities = getAllGameEntities()
-        sceneGraphModel.refreshHierarchy()
         
         createAreaLight(entityId: entityId)
+        editor_entities = getAllGameEntities()
+        sceneGraphModel.refreshHierarchy()
     }
 }

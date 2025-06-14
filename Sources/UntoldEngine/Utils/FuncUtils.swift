@@ -452,7 +452,7 @@ public func getAllGameEntities() -> [EntityID] {
     let entities: [EntityID] = scene.getAllEntities()
 
     for entityId in entities {
-        if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) {
+        if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) || hasComponent(entityId: entityId, componentType: GizmoComponent.self){
             continue
         }
         entityList.append(entityId)
@@ -468,6 +468,9 @@ public func getAllGameEntitiesWithMeshes() -> [EntityID] {
     let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
     for entityId in entities {
+        if hasComponent(entityId: entityId, componentType: GizmoComponent.self){
+            continue
+        }
         entityList.append(entityId)
     }
 

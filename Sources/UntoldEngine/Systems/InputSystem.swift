@@ -344,7 +344,7 @@ public class InputSystem {
             selectionDelegate?.didSelectEntity(activeEntity)
             selectionDelegate?.resetActiveAxis()
             
-            createTransformGizmo()
+            createGizmo(name:"translateGizmo")
         } else {
             activeEntity = .invalid
             removeGizmo()
