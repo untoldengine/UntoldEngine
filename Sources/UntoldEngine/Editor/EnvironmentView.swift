@@ -8,14 +8,17 @@
 import simd
 import SwiftUI
 
-func addIBL() {
-    guard let url = openFilePicker() else { return }
+func addIBL(asset: Asset?) {
 
-    let filename = url.lastPathComponent
-
-    let directoryURL = url.deletingLastPathComponent()
-
-    generateHDR(filename, from: directoryURL)
+    let selectedCategory: AssetCategory = .hdr
+    
+    if let asset = asset, selectedCategory.rawValue == asset.category{
+        
+        let filename = asset.path.lastPathComponent
+        let directoryURL = asset.path.deletingLastPathComponent()
+        generateHDR(filename, from: directoryURL)
+    }
+    
 }
 
 @available(macOS 12.0, *)
@@ -23,7 +26,7 @@ struct EnvironmentView: View {
     @State private var enableApplyIBL: Bool = false
     @State private var enableRenderEnvironment: Bool = false
     @State private var intensity: Float = 1.0
-
+    @Binding var selectedAsset: Asset?
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // MARK: - Header
@@ -43,7 +46,7 @@ struct EnvironmentView: View {
             // MARK: - Add IBL Button (Compact)
 
             Button(action: {
-                addIBL()
+                addIBL(asset: selectedAsset)
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "plus.circle.fill")

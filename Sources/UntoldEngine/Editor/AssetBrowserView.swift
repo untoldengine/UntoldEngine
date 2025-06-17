@@ -10,12 +10,18 @@ import SwiftUI
 enum AssetCategory: String, CaseIterable {
     case models = "Models"
     case animations = "Animations"
+    case hdr = "HDR"
+    case materials = "Materials"
 
     var iconName: String {
         switch self {
         case .models:
             return "cube.fill"
         case .animations:
+            return "film"
+        case .hdr:
+            return "film"
+        case .materials:
             return "film"
         }
     }
@@ -216,7 +222,7 @@ struct AssetBrowserView: View {
 
     private func importAsset() {
         let openPanel = NSOpenPanel()
-        openPanel.allowedFileTypes = ["usdc", "png", "jpg"]
+        openPanel.allowedFileTypes = ["usdc", "png", "jpg", "hdr"]
         openPanel.canChooseDirectories = false
         openPanel.allowsMultipleSelection = true
 
@@ -234,6 +240,10 @@ struct AssetBrowserView: View {
 
             } else if selectedCategory == "Animations" {
                 destinationURL = destinationURL.appendingPathComponent("Animations")
+            } else if selectedCategory == "HDR" {
+                destinationURL = destinationURL.appendingPathComponent("HDR")
+            } else if selectedCategory == "Materials" {
+                destinationURL = destinationURL.appendingPathComponent("Materials")
             }
 
             // if this is a model, make a subfolder using the base name
@@ -241,27 +251,35 @@ struct AssetBrowserView: View {
             let modelFolder = destinationURL.appendingPathComponent(baseName)
 
             do {
-                // Create Model folder
-                if !fileManager.fileExists(atPath: modelFolder.path) {
-                    try fileManager.createDirectory(at: modelFolder, withIntermediateDirectories: true)
-                }
+                if selectedCategory == "HDR" {
+                    // Directly copy .hdr file into HDR folder (no subfolder)
+                    let finalPath = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
+                    if !fileManager.fileExists(atPath: finalPath.path) {
+                        try fileManager.copyItem(at: sourceURL, to: finalPath)
+                    }
+                } else {
+                    // Create Model folder
+                    if !fileManager.fileExists(atPath: modelFolder.path) {
+                        try fileManager.createDirectory(at: modelFolder, withIntermediateDirectories: true)
+                    }
 
-                // copy usdc file
-                let finalModelPath = modelFolder.appendingPathComponent(sourceURL.lastPathComponent)
+                    // copy usdc file
+                    let finalModelPath = modelFolder.appendingPathComponent(sourceURL.lastPathComponent)
 
-                if !fileManager.fileExists(atPath: finalModelPath.path) {
-                    try fileManager.copyItem(at: sourceURL, to: finalModelPath)
-                }
+                    if !fileManager.fileExists(atPath: finalModelPath.path) {
+                        try fileManager.copyItem(at: sourceURL, to: finalModelPath)
+                    }
 
-                // copy texture folder
-                if selectedCategory == "Models" {
-                    let textureFolderSource = sourceURL.deletingLastPathComponent().appendingPathComponent("textures")
-                    let textureFolderDest = modelFolder.appendingPathComponent("textures")
+                    // copy texture folder
+                    if selectedCategory == "Models" {
+                        let textureFolderSource = sourceURL.deletingLastPathComponent().appendingPathComponent("textures")
+                        let textureFolderDest = modelFolder.appendingPathComponent("textures")
 
-                    var isDir: ObjCBool = false
-                    if fileManager.fileExists(atPath: textureFolderSource.path, isDirectory: &isDir), isDir.boolValue {
-                        if !fileManager.fileExists(atPath: textureFolderDest.path) {
-                            try fileManager.copyItem(at: textureFolderSource, to: textureFolderDest)
+                        var isDir: ObjCBool = false
+                        if fileManager.fileExists(atPath: textureFolderSource.path, isDirectory: &isDir), isDir.boolValue {
+                            if !fileManager.fileExists(atPath: textureFolderDest.path) {
+                                try fileManager.copyItem(at: textureFolderSource, to: textureFolderDest)
+                            }
                         }
                     }
                 }
@@ -276,28 +294,39 @@ struct AssetBrowserView: View {
     // MARK: - Load Assets
 
     private func loadAssets() {
-        guard assetBasePath != nil else { return }
+        guard let basePath = assetBasePath else { return }
 
         var groupedAssets: [String: [Asset]] = [:]
 
         for category in AssetCategory.allCases {
-            var categoryPath = EditorAssetBasePath.shared.basePath!.appendingPathComponent("Assets")
+            var categoryPath = basePath.appendingPathComponent("Assets")
             categoryPath = categoryPath.appendingPathComponent(category.rawValue)
 
-            if let folders = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
-                let folderAssets = folders.compactMap { folder -> Asset? in
-                    var isDir: ObjCBool = false
-                    guard FileManager.default.fileExists(atPath: folder.path, isDirectory: &isDir), isDir.boolValue else {
-                        return nil
-                    }
+            var categoryAssets: [Asset] = []
 
-                    return Asset(name: folder.lastPathComponent, category: category.rawValue, path: folder, isFolder: true)
+            if let contents = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
+                for item in contents {
+                    var isDir: ObjCBool = false
+                    if FileManager.default.fileExists(atPath: item.path, isDirectory: &isDir) {
+                        if isDir.boolValue {
+                            // It's a folder — valid for all categories
+                            categoryAssets.append(Asset(name: item.lastPathComponent, category: category.rawValue, path: item, isFolder: true))
+                        } else if category == .hdr {
+                            // For HDR category, also allow .hdr files directly
+                            if item.pathExtension.lowercased() == "hdr" {
+                                categoryAssets.append(Asset(name: item.lastPathComponent, category: category.rawValue, path: item, isFolder: false))
+                            }
+                        }
+                    }
                 }
-                groupedAssets[category.rawValue] = folderAssets
             }
+
+            groupedAssets[category.rawValue] = categoryAssets
         }
+
         assets = groupedAssets
     }
+
 
     @ViewBuilder
     private func assetRow(_ asset: Asset) -> some View {
@@ -325,7 +354,7 @@ struct AssetBrowserView: View {
                     if isDir.boolValue {
                         return Asset(name: item.lastPathComponent, category: selectedCategory ?? "", path: item, isFolder: true)
                     } else {
-                        let allowedExtensions: Set<String> = ["usdc", "obj", "png", "jpg"]
+                        let allowedExtensions: Set<String> = ["usdc", "png", "jpg", "hdr"]
                         guard allowedExtensions.contains(item.pathExtension) else { return nil }
 
                         return Asset(name: item.lastPathComponent,

@@ -29,6 +29,14 @@ public func getResourceURL(forResource resourceName: String, withExtension ext: 
         if FileManager.default.fileExists(atPath: assetAnimationPath.path) {
             return assetAnimationPath
         }
+        
+        let assetHDRPath = basePath
+            .appendingPathComponent("Assets")
+            .appendingPathComponent("HDR")
+            .appendingPathComponent("\(resourceName).\(ext)")
+        if FileManager.default.fileExists(atPath: assetHDRPath.path) {
+            return assetHDRPath
+        }
     }
 
     // check Bundle.main for the resourc

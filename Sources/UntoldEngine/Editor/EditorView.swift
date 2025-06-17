@@ -47,7 +47,7 @@ public struct EditorView: View {
                             }
 
                         VStack(alignment: .leading) {
-                            EnvironmentView()
+                            EnvironmentView(selectedAsset: $selectedAsset)
                         }
                         .tabItem {
                             Label("Environment", systemImage: "sun.max")
