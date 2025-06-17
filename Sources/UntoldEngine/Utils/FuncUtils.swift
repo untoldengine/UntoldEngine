@@ -35,7 +35,7 @@ public func loadTexture(
 
     var url: URL?
 
-    if let imageURL = getResourceURL(forResource: textureName, withExtension: withExtension) {
+    if let imageURL = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: nil) {
         url = imageURL
     }
 

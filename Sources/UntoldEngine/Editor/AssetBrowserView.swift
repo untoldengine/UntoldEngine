@@ -223,7 +223,7 @@ struct AssetBrowserView: View {
     private func importAsset() {
         let openPanel = NSOpenPanel()
         openPanel.allowedFileTypes = ["usdc", "png", "jpg", "hdr"]
-        openPanel.canChooseDirectories = false
+        openPanel.canChooseDirectories = (selectedCategory == "Materials")
         openPanel.allowsMultipleSelection = true
 
         guard let path = assetBasePath else {
@@ -257,7 +257,28 @@ struct AssetBrowserView: View {
                     if !fileManager.fileExists(atPath: finalPath.path) {
                         try fileManager.copyItem(at: sourceURL, to: finalPath)
                     }
-                } else {
+                } else if selectedCategory == "Materials"{
+                    if openPanel.canChooseDirectories {
+                            // Copy selected material folder
+                            let materialFolderSource = sourceURL
+                            let materialFolderDest = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
+
+                            if !fileManager.fileExists(atPath: materialFolderDest.path) {
+                                try fileManager.copyItem(at: materialFolderSource, to: materialFolderDest)  // <- this must be inside `do`
+                            }
+                        } else {
+                            // Single texture — fallback to folder + file
+                            let baseName = sourceURL.deletingPathExtension().lastPathComponent
+                            let materialFolder = destinationURL.appendingPathComponent(baseName)
+
+                            if !fileManager.fileExists(atPath: materialFolder.path) {
+                                try fileManager.createDirectory(at: materialFolder, withIntermediateDirectories: true)
+                            }
+
+                            let destFile = materialFolder.appendingPathComponent(sourceURL.lastPathComponent)
+                            try fileManager.copyItem(at: sourceURL, to: destFile)
+                        }
+                }else {
                     // Create Model folder
                     if !fileManager.fileExists(atPath: modelFolder.path) {
                         try fileManager.createDirectory(at: modelFolder, withIntermediateDirectories: true)

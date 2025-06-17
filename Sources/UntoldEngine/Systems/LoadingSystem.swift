@@ -10,7 +10,7 @@ import Foundation
 import MetalKit
 import ModelIO
 
-public func getResourceURL(forResource resourceName: String, withExtension ext: String) -> URL? {
+public func getResourceURL(forResource resourceName: String, withExtension ext: String, subResource subName: String? = nil) -> URL? {
     if let basePath = assetBasePath {
         let assetMeshPath = basePath
             .appendingPathComponent("Assets")
@@ -29,13 +29,25 @@ public func getResourceURL(forResource resourceName: String, withExtension ext: 
         if FileManager.default.fileExists(atPath: assetAnimationPath.path) {
             return assetAnimationPath
         }
-        
+
         let assetHDRPath = basePath
             .appendingPathComponent("Assets")
             .appendingPathComponent("HDR")
             .appendingPathComponent("\(resourceName).\(ext)")
         if FileManager.default.fileExists(atPath: assetHDRPath.path) {
             return assetHDRPath
+        }
+
+        // Materials
+        if let subName {
+            let assetMaterialPath = basePath
+                .appendingPathComponent("Assets")
+                .appendingPathComponent("Materials")
+                .appendingPathComponent(resourceName)
+                .appendingPathComponent("\(subName).\(ext)")
+            if FileManager.default.fileExists(atPath: assetMaterialPath.path) {
+                return assetMaterialPath
+            }
         }
     }
 
