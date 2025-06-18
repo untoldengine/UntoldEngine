@@ -34,7 +34,7 @@ struct AssetBrowserView: View {
     @State private var selectedAssetName: String?
     @ObservedObject var editorBaseAssetPath = EditorAssetBasePath.shared
     @State private var folderPathStack: [URL] = []
-
+    var editor_addEntityWithAsset: () -> Void
     private var currentFolderPath: URL? {
         folderPathStack.last
     }
@@ -257,28 +257,28 @@ struct AssetBrowserView: View {
                     if !fileManager.fileExists(atPath: finalPath.path) {
                         try fileManager.copyItem(at: sourceURL, to: finalPath)
                     }
-                } else if selectedCategory == "Materials"{
+                } else if selectedCategory == "Materials" {
                     if openPanel.canChooseDirectories {
-                            // Copy selected material folder
-                            let materialFolderSource = sourceURL
-                            let materialFolderDest = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
+                        // Copy selected material folder
+                        let materialFolderSource = sourceURL
+                        let materialFolderDest = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
 
-                            if !fileManager.fileExists(atPath: materialFolderDest.path) {
-                                try fileManager.copyItem(at: materialFolderSource, to: materialFolderDest)  // <- this must be inside `do`
-                            }
-                        } else {
-                            // Single texture — fallback to folder + file
-                            let baseName = sourceURL.deletingPathExtension().lastPathComponent
-                            let materialFolder = destinationURL.appendingPathComponent(baseName)
-
-                            if !fileManager.fileExists(atPath: materialFolder.path) {
-                                try fileManager.createDirectory(at: materialFolder, withIntermediateDirectories: true)
-                            }
-
-                            let destFile = materialFolder.appendingPathComponent(sourceURL.lastPathComponent)
-                            try fileManager.copyItem(at: sourceURL, to: destFile)
+                        if !fileManager.fileExists(atPath: materialFolderDest.path) {
+                            try fileManager.copyItem(at: materialFolderSource, to: materialFolderDest) // <- this must be inside `do`
                         }
-                }else {
+                    } else {
+                        // Single texture — fallback to folder + file
+                        let baseName = sourceURL.deletingPathExtension().lastPathComponent
+                        let materialFolder = destinationURL.appendingPathComponent(baseName)
+
+                        if !fileManager.fileExists(atPath: materialFolder.path) {
+                            try fileManager.createDirectory(at: materialFolder, withIntermediateDirectories: true)
+                        }
+
+                        let destFile = materialFolder.appendingPathComponent(sourceURL.lastPathComponent)
+                        try fileManager.copyItem(at: sourceURL, to: destFile)
+                    }
+                } else {
                     // Create Model folder
                     if !fileManager.fileExists(atPath: modelFolder.path) {
                         try fileManager.createDirectory(at: modelFolder, withIntermediateDirectories: true)
@@ -348,7 +348,6 @@ struct AssetBrowserView: View {
         assets = groupedAssets
     }
 
-
     @ViewBuilder
     private func assetRow(_ asset: Asset) -> some View {
         HStack {
@@ -389,7 +388,14 @@ struct AssetBrowserView: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(items) { asset in
                     assetRow(asset)
-                        .onTapGesture {
+                        .onTapGesture(count: 2) {
+                            if !asset.isFolder, asset.path.pathExtension == "usdc", selectedCategory == "Models" {
+                              
+                                selectAsset(asset)
+                                editor_addEntityWithAsset()
+                            }
+                        }
+                        .onTapGesture(count: 1) {
                             if asset.isFolder {
                                 folderPathStack.append(asset.path)
                             } else {

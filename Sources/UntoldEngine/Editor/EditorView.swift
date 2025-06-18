@@ -54,16 +54,16 @@ public struct EditorView: View {
                         }
                     }
                     .frame(minWidth: 200, maxWidth: 200)
-                    
+
                     PostProcessingEditorView()
-                        .frame(minWidth:200, maxWidth: 200)
+                        .frame(minWidth: 200, maxWidth: 200)
                         .padding(.horizontal, 16)
                 }
 
                 VStack {
                     SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
                     TransformManipulationToolbar(controller: editorController!)
-                   AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset)
+                    AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset, editor_addEntityWithAsset: editor_addEntityWithAsset)
                 }
                 InspectorView(selectionManager: selectionManager, sceneGraphModel: sceneGraphModel, onAddName_Editor: editor_addName, selectedAsset: $selectedAsset)
             }
@@ -92,27 +92,25 @@ public struct EditorView: View {
             sceneGraphModel.refreshHierarchy()
         }
     }
-    
-    private func editor_cameraSave(){
-       
+
+    private func editor_cameraSave() {
         let sceneCameraEntityID = findSceneCamera()
-       
-        if sceneCameraEntityID == .invalid{
+
+        if sceneCameraEntityID == .invalid {
             return
         }
-        
+
         let gameCameraEntityID = findGameCamera()
-        
-        if gameCameraEntityID == .invalid{
+
+        if gameCameraEntityID == .invalid {
             return
         }
-        
+
         let eye = getCameraEye(entityId: sceneCameraEntityID)
         let up = getCameraUp(entityId: sceneCameraEntityID)
         let target = getCameraTarget(entityId: sceneCameraEntityID)
-       
+
         cameraLookAt(entityId: gameCameraEntityID, eye: eye, target: target, up: up)
-        
     }
 
     private func editor_loadUSDScene() {
@@ -129,15 +127,15 @@ public struct EditorView: View {
     }
 
     private func editor_addNewEntity() {
-        
         removeGizmo()
-        
+
         let entityId = createEntity()
 
         let name = generateEntityName()
         setEntityName(entityId: entityId, name: name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
+        selectionManager.selectedEntity = entityId
         editor_entities = getAllGameEntities()
         sceneGraphModel.refreshHierarchy()
     }
@@ -174,61 +172,66 @@ public struct EditorView: View {
         self.isPlaying = isPlaying
         gameMode = !gameMode
     }
-    
-    private func editor_createDirLight(){
-        
+
+    private func editor_createDirLight() {
         let entityId = createEntity()
 
         let name = generateEntityName()
         setEntityName(entityId: entityId, name: name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
-        
+
         createDirLight(entityId: entityId)
         editor_entities = getAllGameEntities()
         sceneGraphModel.refreshHierarchy()
-        
     }
-    
-    private func editor_createPointLight(){
-        
+
+    private func editor_createPointLight() {
         let entityId = createEntity()
 
         let name = generateEntityName()
         setEntityName(entityId: entityId, name: name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
-        
+
         createPointLight(entityId: entityId)
         editor_entities = getAllGameEntities()
         sceneGraphModel.refreshHierarchy()
     }
-    
-    private func editor_createSpotLight(){
-        
+
+    private func editor_createSpotLight() {
         let entityId = createEntity()
 
         let name = generateEntityName()
         setEntityName(entityId: entityId, name: name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
-        
+
         createSpotLight(entityId: entityId)
         editor_entities = getAllGameEntities()
         sceneGraphModel.refreshHierarchy()
     }
-    
-    private func editor_createAreaLight(){
-        
+
+    private func editor_createAreaLight() {
         let entityId = createEntity()
 
         let name = generateEntityName()
         setEntityName(entityId: entityId, name: name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
-        
+
         createAreaLight(entityId: entityId)
         editor_entities = getAllGameEntities()
         sceneGraphModel.refreshHierarchy()
+    }
+
+    private func editor_addEntityWithAsset() {
+        
+        editor_addNewEntity()
+
+        let filename = selectedAsset?.path.deletingPathExtension().lastPathComponent
+        let withExtension = selectedAsset?.path.pathExtension
+        setEntityMesh(entityId: selectionManager.selectedEntity!, filename: filename!, withExtension: withExtension!)
+
     }
 }
