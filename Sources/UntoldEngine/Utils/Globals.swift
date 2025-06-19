@@ -60,7 +60,7 @@ let fov: Float = 65.0
 let shadowMaxWidth: Float = 300.0
 let shadowMaxHeight: Float = 300.0
 
-let shadowResolution: simd_int2 = simd_int2(8192,8192)
+let shadowResolution: simd_int2 = .init(8192, 8192)
 
 var accelStructResources = AccelStructResources()
 
@@ -217,9 +217,9 @@ class ToneMappingParams: ObservableObject {
     @Published var gamma: Float = 1.0 // original = 2.2
 }
 
-class ColorGradingParams: ObservableObject{
+class ColorGradingParams: ObservableObject {
     static let shared = ColorGradingParams()
-    
+
     @Published var brightness: Float = 0.0
     @Published var contrast: Float = 1.0
     @Published var saturation: Float = 1.0
@@ -228,54 +228,54 @@ class ColorGradingParams: ObservableObject{
     @Published var tint: Float = 0.0 // -1.0 to 1.0 Green (-)/Magenta (+)
 }
 
-class ColorCorrectionParams: ObservableObject{
+class ColorCorrectionParams: ObservableObject {
     static let shared = ColorCorrectionParams()
-    
+
     @Published var lift: simd_float3 = .zero // RGB adjustment for shadows (0 - 2)
     @Published var gamma: simd_float3 = .one // RGB adjustment for midtones (0.5 - 2.5)
     @Published var gain: simd_float3 = .one // RGB adjustment for highlights (0 - 2)
 }
 
-class BloomThresholdParams: ObservableObject{
+class BloomThresholdParams: ObservableObject {
     static let shared = BloomThresholdParams()
-    
+
     @Published var threshold: Float = 0.5 // 0.0 to 5.0
     @Published var intensity: Float = 0.0 // 0.0 to 2.0
 }
 
-class BloomCompositeParams: ObservableObject{
+class BloomCompositeParams: ObservableObject {
     static let shared = BloomCompositeParams()
-    
+
     @Published var intensity: Float = 1.0 // 0.0 to 2.0
 }
 
-class VignetteParams: ObservableObject{
+class VignetteParams: ObservableObject {
     static let shared = VignetteParams()
-    
+
     @Published var intensity: Float = 0.7 // 0.0 to 1.0
     @Published var radius: Float = 0.75 // 0.5 to 1.0
     @Published var softness: Float = 0.45 // 0.0 to 1.0
-    @Published var center: simd_float2 = simd_float2(0.5,0.5) // 0-1
+    @Published var center: simd_float2 = .init(0.5, 0.5) // 0-1
 }
 
-class ChromaticAberrationParams: ObservableObject{
+class ChromaticAberrationParams: ObservableObject {
     static let shared = ChromaticAberrationParams()
-    
+
     @Published var intensity: Float = 0.0 // 0.0 to 0.1
-    @Published var center: simd_float2 = simd_float2(0.5,0.5) // 0-1
+    @Published var center: simd_float2 = .init(0.5, 0.5) // 0-1
 }
 
-class DepthOfFieldParams: ObservableObject{
+class DepthOfFieldParams: ObservableObject {
     static let shared = DepthOfFieldParams()
-    
+
     @Published var focusDistance: Float = 1.0 // 0.0 to 1.0
     @Published var focusRange: Float = 0.1 // 0.01-0.3
     @Published var maxBlur: Float = 0 // 0.005-0.05
 }
 
-class SSAOParams: ObservableObject{
+class SSAOParams: ObservableObject {
     static let shared = SSAOParams()
-    
+
     @Published var radius: Float = 0.5 // 0.1 to 2.0 how far to sample
     @Published var bias: Float = 0.025 // 0.01-0.1 avoid self occusion
     @Published var intensity: Float = 0 // 0.5-2.0 Final multiplier

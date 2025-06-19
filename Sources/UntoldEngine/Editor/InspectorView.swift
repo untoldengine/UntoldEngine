@@ -194,7 +194,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                             .padding()
                             .cornerRadius(8)
                         }
-                        
+
                         // Emmissive Input
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Emmisive")
@@ -240,7 +240,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                             applyAxisRotations(entityId: entityId, axis: newOrientation)
                             refreshView()
                         }))
-                    
+
                     TextInputVectorView(label: "Scale", value: Binding(
                         get: { scale },
                         set: { newScale in
@@ -484,7 +484,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
 
                                 }))
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            
+
                             TextInputNumberView(label: "Brightness", value: Binding(
                                 get: { intensity },
                                 set: { newIntensity in
@@ -492,7 +492,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                     refreshView()
                                 }))
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                            
+
 //                            HStack{
 //                                TextInputNumberView(label: "Width", value: Binding(
 //                                get: { width },
@@ -501,7 +501,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
 //                                    //refreshView()
 //                                }))
 //                                .frame(maxWidth: .infinity, alignment: .leading)
-//                                
+//
 //                                TextInputNumberView(label: "Length", value: Binding(
 //                                get: { height },
 //                                set: { height in
@@ -719,7 +719,7 @@ struct InspectorView: View {
                 createPointLight(entityId: entityId)
             } else if key == ObjectIdentifier(SpotLightComponent.self) {
                 createSpotLight(entityId: entityId)
-            } else if key == ObjectIdentifier(AreaLightComponent.self){
+            } else if key == ObjectIdentifier(AreaLightComponent.self) {
                 createAreaLight(entityId: entityId)
             } else if key == ObjectIdentifier(KineticComponent.self) {
                 setEntityKinetics(entityId: entityId)
