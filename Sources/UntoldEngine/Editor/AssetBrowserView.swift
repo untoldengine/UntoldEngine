@@ -222,7 +222,7 @@ struct AssetBrowserView: View {
 
     private func importAsset() {
         let openPanel = NSOpenPanel()
-        openPanel.allowedFileTypes = ["usdc", "png", "jpg", "hdr"]
+        openPanel.allowedFileTypes = ["usdc", "png", "jpg", "hdr","tif"]
         openPanel.canChooseDirectories = (selectedCategory == "Materials")
         openPanel.allowsMultipleSelection = true
 
@@ -374,7 +374,7 @@ struct AssetBrowserView: View {
                     if isDir.boolValue {
                         return Asset(name: item.lastPathComponent, category: selectedCategory ?? "", path: item, isFolder: true)
                     } else {
-                        let allowedExtensions: Set<String> = ["usdc", "png", "jpg", "hdr"]
+                        let allowedExtensions: Set<String> = ["usdc", "png", "jpg", "hdr", "tif"]
                         guard allowedExtensions.contains(item.pathExtension) else { return nil }
 
                         return Asset(name: item.lastPathComponent,

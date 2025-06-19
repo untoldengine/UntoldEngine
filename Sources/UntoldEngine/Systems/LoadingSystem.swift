@@ -43,8 +43,8 @@ public func getResourceURL(forResource resourceName: String, withExtension ext: 
             let assetMaterialPath = basePath
                 .appendingPathComponent("Assets")
                 .appendingPathComponent("Materials")
-                .appendingPathComponent(resourceName)
-                .appendingPathComponent("\(subName).\(ext)")
+                .appendingPathComponent(subName)
+                .appendingPathComponent("\(resourceName).\(ext)")
             if FileManager.default.fileExists(atPath: assetMaterialPath.path) {
                 return assetMaterialPath
             }

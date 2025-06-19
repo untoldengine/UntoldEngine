@@ -101,20 +101,42 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
-                                ForEach(["Base Color", "Roughness", "Metallic", "Normal"], id: \.self) { type in
-                                    if let url = getMateralTextureURL(entityId: entityId, type: type), let image = NSImage(contentsOf: url) {
-                                        VStack {
-                                            Image(nsImage: image)
-                                                .resizable()
-                                                .frame(width: 64, height: 64)
-                                                .cornerRadius(4)
-                                            Text(type)
+                                ForEach(TextureType.allCases) { type in
+                                    if let url = getMateralTextureURL(entityId: entityId, type: type),
+                                       let image = NSImage(contentsOf: url)
+                                    {
+                                        VStack(spacing: 4) {
+                                            HStack(spacing: 8) {
+                                                Image(nsImage: image)
+                                                    .resizable()
+                                                    .frame(width: 64, height: 64)
+                                                    .cornerRadius(4)
+
+                                                Button(action: {
+                                                    if asset?.category == "Materials" {
+                                                        let filename = asset?.path.deletingPathExtension().lastPathComponent
+                                                        let withExtension = asset?.path.pathExtension
+                                                        let folderName = asset?.path.deletingLastPathComponent().lastPathComponent
+                                                        
+                                                        updateMaterialTexture(entityId: entityId, textureType: type, textureName: filename!, withExtension: withExtension!, subResource: folderName!)
+                                                        
+                                                        refreshView()
+                                                    }
+                                                }) {
+                                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                                        .foregroundColor(.blue)
+                                                }
+                                                .buttonStyle(BorderlessButtonStyle()) // So it looks better in HStack
+                                            }
+
+                                            Text(type.displayName)
                                                 .font(.caption)
                                         }
                                     }
                                 }
                             }
                         }
+
                         Divider()
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(alignment: .center, spacing: 24) {

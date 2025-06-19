@@ -22,6 +22,7 @@ enum LoadHDRError: Error {
 public func loadTexture(
     device: MTLDevice,
     textureName: String,
+    isSRGB: Bool = false,
     withExtension: String
 ) throws -> MTLTexture {
     /// Load texture data with optimal parameters for sampling
@@ -31,6 +32,7 @@ public func loadTexture(
     let textureLoaderOptions = [
         MTKTextureLoader.Option.textureUsage: NSNumber(value: MTLTextureUsage.shaderRead.rawValue),
         MTKTextureLoader.Option.textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
+        MTKTextureLoader.Option.SRGB: NSNumber(value: isSRGB)
     ]
 
     var url: URL?
@@ -485,7 +487,56 @@ func getAssetURLString(entityId: EntityID) -> String? {
     return renderComponent.assetURL.deletingPathExtension().lastPathComponent
 }
 
-func getMateralTextureURL(entityId: EntityID, type: String) -> URL? {
+func updateMaterialTexture(entityId: EntityID, textureType: TextureType, textureName: String, withExtension: String, subResource: String){
+    
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+    guard let material = renderComponent.mesh[0].submeshes[0].material else { return }
+
+    let textureLoader = MTKTextureLoader(device: renderInfo.device)
+
+    let textureLoaderOptions = [
+        MTKTextureLoader.Option.textureUsage: NSNumber(value: MTLTextureUsage.shaderRead.rawValue),
+        MTKTextureLoader.Option.textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
+        MTKTextureLoader.Option.SRGB: NSNumber(value: (textureType == .baseColor))
+    ]
+
+    var url: URL?
+
+    if let imageURL = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: subResource) {
+        url = imageURL
+    }
+    
+    do {
+        let texture = try textureLoader.newTexture(URL: url!, options: textureLoaderOptions)
+        var updatedMaterial = material
+        
+        switch textureType{
+            case .baseColor:
+                updatedMaterial.baseColor = texture
+                updatedMaterial.baseColorURL = url
+            case .roughness:
+                updatedMaterial.roughness = texture
+                updatedMaterial.roughnessURL = url
+            case .metallic:
+                updatedMaterial.metallic = texture
+                updatedMaterial.metallicURL = url
+            case .normal:
+                updatedMaterial.normal = texture
+                updatedMaterial.normalURL = url
+        }
+        
+        renderComponent.mesh[0].submeshes[0].material = updatedMaterial
+        print("\(textureType) textured updated succesfully.")
+    } catch {
+        handleError(.textureFailedLoading)
+    }
+    
+}
+
+func getMateralTextureURL(entityId: EntityID, type: TextureType) -> URL? {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return nil
     }
@@ -493,11 +544,10 @@ func getMateralTextureURL(entityId: EntityID, type: String) -> URL? {
     let material = renderComponent.mesh.first?.submeshes.first?.material
 
     switch type {
-    case "Base Color": return material?.baseColorURL
-    case "Roughness": return material?.roughnessURL
-    case "Metallic": return material?.metallicURL
-    case "Normal": return material?.normalURL
-    default: return nil
+    case .baseColor: return material?.baseColorURL
+    case .roughness: return material?.roughnessURL
+    case .metallic: return material?.metallicURL
+    case .normal: return material?.normalURL
     }
 }
 
@@ -514,7 +564,7 @@ func getMaterialRoughness(entityId: EntityID) -> Float {
 }
 
 func updateMaterialRoughness(entityId: EntityID, roughness: Float) {
-    guard var renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
 

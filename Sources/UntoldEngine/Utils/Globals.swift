@@ -135,11 +135,22 @@ let quadIndices: [UInt16] = [
     3, 1, 2, // Second Triangle
 ]
 
-enum TextureType {
+enum TextureType: CaseIterable, Identifiable {
     case baseColor
     case roughness
     case metallic
     case normal
+
+    var id: Self { self } // Satisfies Identifiable conformance
+
+    var displayName: String {
+        switch self {
+        case .baseColor: return "Base Color"
+        case .roughness: return "Roughness"
+        case .metallic: return "Metallic"
+        case .normal: return "Normal"
+        }
+    }
 }
 
 var visualDebug: Bool = false
