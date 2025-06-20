@@ -64,6 +64,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
         AnyView(
             VStack {
                 if let entityId = selectedId {
+                    /* Hiding the Add Mesh option for now
                     Text("Mesh")
 
                     HStack(spacing: 12) {
@@ -93,7 +94,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     .padding(8)
                     .background(Color.secondary.opacity(0.05))
                     .cornerRadius(8)
-
+                    */
                     if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
                         Text("Material Properties")
                             .font(.headline)
@@ -102,32 +103,44 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(TextureType.allCases) { type in
-                                    if let url = getMaterialTextureURL(entityId: entityId, type: type),
-                                       let image = NSImage(contentsOf: url)
-                                    {
-                                        VStack(spacing: 4) {
-                                            HStack(spacing: 8) {
+
+                                    let image: NSImage? = {
+                                        if let url = getMaterialTextureURL(entityId: entityId, type: type), let image = NSImage(contentsOf: url) {
+                                            return image
+                                        } else {
+                                            return NSImage(named: "Default Texture")
+                                        }
+                                    }()
+
+                                    VStack(spacing: 4) {
+                                        HStack(spacing: 8) {
+                                            if let image {
                                                 Image(nsImage: image)
                                                     .resizable()
-                                                    .frame(width: 64, height: 64)
+                                                    .frame(width: 32, height: 32)
                                                     .cornerRadius(4)
-
-                                                Button(action: {
-                                                    if asset?.category == "Materials" && asset?.path != nil{
-                                                        updateMaterialTexture(entityId: entityId, textureType: type, path: asset!.path)
-                                                        
-                                                        refreshView()
-                                                    }
-                                                }) {
-                                                    Image(systemName: "arrow.triangle.2.circlepath")
-                                                        .foregroundColor(.blue)
-                                                }
-                                                .buttonStyle(BorderlessButtonStyle()) // So it looks better in HStack
+                                            } else {
+                                                Image(systemName: "photo") // SF Symbol fallback if even default fails
+                                                    .resizable()
+                                                    .frame(width: 32, height: 32)
+                                                    .foregroundColor(.gray)
                                             }
 
-                                            Text(type.displayName)
-                                                .font(.caption)
+                                            Button(action: {
+                                                if asset?.category == "Materials", asset?.path != nil {
+                                                    updateMaterialTexture(entityId: entityId, textureType: type, path: asset!.path)
+
+                                                    refreshView()
+                                                }
+                                            }) {
+                                                Image(systemName: "arrow.triangle.2.circlepath")
+                                                    .foregroundColor(.blue)
+                                            }
+                                            .buttonStyle(BorderlessButtonStyle()) // So it looks better in HStack
                                         }
+
+                                        Text(type.displayName)
+                                            .font(.caption)
                                     }
                                 }
                             }
