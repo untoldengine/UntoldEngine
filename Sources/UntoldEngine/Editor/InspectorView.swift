@@ -777,11 +777,11 @@ func updateMaterialColor(entityId: EntityID, color: Color) {
 
 func getMaterialBaseColor(entityId: EntityID) -> simd_float4 {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return .zero
+        return .one
     }
 
     guard let material = renderComponent.mesh.first?.submeshes.first?.material else {
-        return .zero
+        return .one
     }
 
     return material.baseColorValue

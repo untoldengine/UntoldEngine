@@ -594,7 +594,7 @@ func getMaterialMetallic(entityId: EntityID) -> Float {
 }
 
 func updateMaterialMetallic(entityId: EntityID, metallic: Float) {
-    guard var renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
 

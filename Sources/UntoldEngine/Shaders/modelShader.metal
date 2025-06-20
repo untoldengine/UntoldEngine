@@ -295,7 +295,18 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     float3 normalVectorInWorldSpace=uniforms.normalMatrix*in.normal;
 
     // Base color
-    float4 inBaseColor = (materialParameter.hasTexture.x == 1) ? baseColor.sample(s, st) : materialParameter.baseColor;
+    
+    float4 sampledColor = baseColor.sample(s, st);
+    
+    // Detect if basecolor is all zeros
+    bool isBaseColorZero = all(materialParameter.baseColor.rgb < 0.001);
+    
+    // Fallback to white if base color is zero
+    float3 tint = isBaseColorZero ? float3(1.0) : materialParameter.baseColor.rgb;
+    
+    float4 inBaseColor = (materialParameter.hasTexture.x == 1)
+        ? float4(sampledColor.rgb * tint, sampledColor.a)
+    : float4(tint,1.0);
     
     float3 emissiveColor = materialParameter.emmissive; // no need for simd_float4
     
@@ -326,9 +337,13 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
     //convert to normal map to world space???
     normalMap=(hasNormal==false)?normalize(normalVectorInWorldSpace):normalize(TBN*normalMap);
 
-    float roughness=(materialParameter.hasTexture.y==1)?roughnessTexture.sample(materialSampler,st).r : materialParameter.roughness;
+    float roughness=(materialParameter.hasTexture.y==1)
+        ? roughnessTexture.sample(materialSampler,st).r * materialParameter.roughness
+        : materialParameter.roughness;
     
-    float metallic=(materialParameter.hasTexture.z==1) ? metallicTexture.sample(materialSampler,st).r : materialParameter.metallic;
+    float metallic=(materialParameter.hasTexture.z==1) 
+        ? metallicTexture.sample(materialSampler,st).r * materialParameter.metallic
+        : materialParameter.metallic;
 
     float3 lightColor=lights.color;
     float3 lightRayDirection=normalize(lights.direction);
