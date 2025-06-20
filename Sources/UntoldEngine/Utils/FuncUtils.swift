@@ -10,7 +10,7 @@ import CoreGraphics
 import Foundation
 import MetalKit
 
-enum LoadHDRError: Error {
+enum LoadError: Error {
     case urlCreationFailed(String)
     case imageSourceCreationFailed
     case cgImageCreationFailed
@@ -35,13 +35,12 @@ public func loadTexture(
         MTKTextureLoader.Option.SRGB: NSNumber(value: isSRGB)
     ]
 
-    var url: URL?
 
-    if let imageURL = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: nil) {
-        url = imageURL
+    guard let url = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: nil) else{
+        throw LoadError.textureCreationFailed
     }
 
-    return try textureLoader.newTexture(URL: url!, options: textureLoaderOptions)
+    return try textureLoader.newTexture(URL: url, options: textureLoaderOptions)
 }
 
 public func loadImage(_ textureName: String, from directory: URL? = nil) throws -> URL {
@@ -50,12 +49,12 @@ public func loadImage(_ textureName: String, from directory: URL? = nil) throws 
         if FileManager.default.fileExists(atPath: fileURL.path) {
             return fileURL
         } else {
-            throw LoadHDRError.urlCreationFailed(textureName)
+            throw LoadError.urlCreationFailed(textureName)
         }
     }
 
     guard let url = Bundle.module.url(forResource: textureName, withExtension: nil) else {
-        throw LoadHDRError.urlCreationFailed(textureName)
+        throw LoadError.urlCreationFailed(textureName)
     }
 
     return url
@@ -70,18 +69,18 @@ public func loadHDR(_ textureName: String, from directory: URL? = nil) throws ->
             kCFAllocatorDefault, cfURLString, CFURLPathStyle.cfurlposixPathStyle, false
         )
     else {
-        throw LoadHDRError.imageSourceCreationFailed
+        throw LoadError.imageSourceCreationFailed
     }
 
     guard let cgImageSource = CGImageSourceCreateWithURL(cfURL, nil) else {
-        throw LoadHDRError.imageSourceCreationFailed
+        throw LoadError.imageSourceCreationFailed
     }
     guard let cgImage = CGImageSourceCreateImageAtIndex(cgImageSource, 0, nil) else {
-        throw LoadHDRError.cgImageCreationFailed
+        throw LoadError.cgImageCreationFailed
     }
 
     guard let colorSpace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB) else {
-        throw LoadHDRError.colorSpaceCreationFailed
+        throw LoadError.colorSpaceCreationFailed
     }
     let bitmapInfo =
         CGImageAlphaInfo.noneSkipLast.rawValue | CGBitmapInfo.floatComponents.rawValue
@@ -97,7 +96,7 @@ public func loadHDR(_ textureName: String, from directory: URL? = nil) throws ->
             bitmapInfo: bitmapInfo
         )
     else {
-        throw LoadHDRError.bitmapContextCreationFailed
+        throw LoadError.bitmapContextCreationFailed
     }
 
     bitmapContext.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
@@ -115,7 +114,7 @@ public func loadHDR(_ textureName: String, from directory: URL? = nil) throws ->
         1 + floorf(log2f(fmaxf(Float(cgImage.width), Float(cgImage.height)))))
 
     guard let texture = renderInfo.device.makeTexture(descriptor: descriptor) else {
-        throw LoadHDRError.textureCreationFailed
+        throw LoadError.textureCreationFailed
     }
 
     texture.replace(
@@ -487,6 +486,16 @@ func getAssetURLString(entityId: EntityID) -> String? {
     return renderComponent.assetURL.deletingPathExtension().lastPathComponent
 }
 
+func updateMaterialTexture(entityId: EntityID, textureType: TextureType, path: URL){
+
+    let filename = path.deletingPathExtension().lastPathComponent
+    let withExtension = path.pathExtension
+    let folderName = path.deletingLastPathComponent().lastPathComponent
+                                                    
+    updateMaterialTexture(entityId: entityId, textureType: textureType, textureName: filename, withExtension: withExtension, subResource: folderName)
+
+}
+
 func updateMaterialTexture(entityId: EntityID, textureType: TextureType, textureName: String, withExtension: String, subResource: String){
     
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
@@ -503,14 +512,12 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
         MTKTextureLoader.Option.SRGB: NSNumber(value: (textureType == .baseColor))
     ]
 
-    var url: URL?
-
-    if let imageURL = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: subResource) {
-        url = imageURL
+    guard let url = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: subResource) else{
+        return
     }
     
     do {
-        let texture = try textureLoader.newTexture(URL: url!, options: textureLoaderOptions)
+        let texture = try textureLoader.newTexture(URL: url, options: textureLoaderOptions)
         var updatedMaterial = material
         
         switch textureType{
@@ -536,7 +543,7 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
     
 }
 
-func getMateralTextureURL(entityId: EntityID, type: TextureType) -> URL? {
+func getMaterialTextureURL(entityId: EntityID, type: TextureType) -> URL? {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return nil
     }

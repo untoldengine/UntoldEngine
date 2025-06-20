@@ -92,9 +92,13 @@ struct EnvironmentData: Codable {
 
 struct MaterialData: Codable {
     var baseColorValue: simd_float4 = .zero
-    var emissive: simd_float3 = .zero
-    var roughness: Float = 1.0
-    var metallic: Float = 0.0
+    var emissiveValue: simd_float3 = .zero
+    var roughnessValue: Float = 1.0
+    var metallicValue: Float = 0.0
+    var baseColorURL: URL? = nil
+    var roughnessURL: URL? = nil
+    var metallicURL: URL? = nil
+    var normalURL: URL? = nil
 }
 
 struct EntityData: Codable {
@@ -152,12 +156,34 @@ func serializeScene() -> SceneData {
             entityData.assetURL = renderComponent.assetURL
 
             // material data
-            var baseColor: simd_float4 = getMaterialBaseColor(entityId: entityId)
-            var roughnessValue: Float = getMaterialRoughness(entityId: entityId)
-            var metallicValue: Float = getMaterialMetallic(entityId: entityId)
-            var emissiveValue: simd_float3 = getMaterialEmmissive(entityId: entityId)
+            let baseColor: simd_float4 = getMaterialBaseColor(entityId: entityId)
+            let roughnessValue: Float = getMaterialRoughness(entityId: entityId)
+            let metallicValue: Float = getMaterialMetallic(entityId: entityId)
+            let emissiveValue: simd_float3 = getMaterialEmmissive(entityId: entityId)
 
-            entityData.materialData = MaterialData(baseColorValue: baseColor, emissive: emissiveValue, roughness: roughnessValue, metallic: metallicValue)
+            
+            var baseColorURL: URL?
+            var roughnessURL: URL?
+            var metallicURL: URL?
+            var normalURL: URL?
+            
+            if let baseColorTexture: URL = getMaterialTextureURL(entityId: entityId, type: .baseColor){
+                baseColorURL = baseColorTexture
+            }
+            
+            if let roughnessTexture: URL = getMaterialTextureURL(entityId: entityId, type: .roughness){
+                roughnessURL = roughnessTexture
+            }
+           
+            if let metallicTexture: URL = getMaterialTextureURL(entityId: entityId, type: .metallic){
+               metallicURL = metallicTexture
+            }
+            
+            if let normalTexture: URL = getMaterialTextureURL(entityId: entityId, type: .normal){
+                normalURL = normalTexture
+            }
+            
+            entityData.materialData = MaterialData(baseColorValue: baseColor, emissiveValue: emissiveValue, roughnessValue: roughnessValue, metallicValue: metallicValue, baseColorURL: baseColorURL, roughnessURL: roughnessURL, metallicURL: metallicURL, normalURL: normalURL)
         }
 
         // Rendering properties
@@ -421,14 +447,32 @@ func deserializeScene(sceneData: SceneData) {
 
             if let materialData = sceneDataEntity.materialData {
                 let baseColorValue: simd_float4 = materialData.baseColorValue
-                let roughnessValue: Float = materialData.roughness
-                let metallicValue: Float = materialData.metallic
-                let emissiveValue: simd_float3 = materialData.emissive
+                let roughnessValue: Float = materialData.roughnessValue
+                let metallicValue: Float = materialData.metallicValue
+                let emissiveValue: simd_float3 = materialData.emissiveValue
 
                 updateMaterialColor(entityId: entityId, color: colorFromSimd(baseColorValue))
                 updateMaterialRoughness(entityId: entityId, roughness: roughnessValue)
                 updateMaterialMetallic(entityId: entityId, metallic: metallicValue)
                 updateMaterialEmmisive(entityId: entityId, emmissive: emissiveValue)
+                
+                if let baseColorURL = materialData.baseColorURL{
+                    updateMaterialTexture(entityId: entityId, textureType: .baseColor, path: baseColorURL)
+                }
+                
+                if let roughnessURL = materialData.roughnessURL{
+                    updateMaterialTexture(entityId: entityId, textureType: .roughness, path: roughnessURL)
+                }
+                
+                if let metallicURL = materialData.metallicURL{
+                    updateMaterialTexture(entityId: entityId, textureType: .metallic, path: metallicURL)
+   
+                }
+                
+                if let normalURL = materialData.normalURL{
+                    updateMaterialTexture(entityId: entityId, textureType: .normal, path: normalURL)
+                }
+                
             }
         }
 
@@ -479,7 +523,7 @@ func deserializeScene(sceneData: SceneData) {
                 }
 
                 if let materialData = sceneDataEntity.materialData {
-                    let emmissiveValue: simd_float3 = materialData.emissive
+                    let emmissiveValue: simd_float3 = materialData.emissiveValue
                     updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
                 }
             }
@@ -515,7 +559,7 @@ func deserializeScene(sceneData: SceneData) {
                 }
 
                 if let materialData = sceneDataEntity.materialData {
-                    let emmissiveValue: simd_float3 = materialData.emissive
+                    let emmissiveValue: simd_float3 = materialData.emissiveValue
                     updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
                 }
             }
@@ -553,7 +597,7 @@ func deserializeScene(sceneData: SceneData) {
                 }
 
                 if let materialData = sceneDataEntity.materialData {
-                    let emmissiveValue: simd_float3 = materialData.emissive
+                    let emmissiveValue: simd_float3 = materialData.emissiveValue
                     updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
                 }
             }

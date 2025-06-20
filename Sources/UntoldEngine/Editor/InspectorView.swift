@@ -102,7 +102,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(TextureType.allCases) { type in
-                                    if let url = getMateralTextureURL(entityId: entityId, type: type),
+                                    if let url = getMaterialTextureURL(entityId: entityId, type: type),
                                        let image = NSImage(contentsOf: url)
                                     {
                                         VStack(spacing: 4) {
@@ -113,12 +113,8 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                                     .cornerRadius(4)
 
                                                 Button(action: {
-                                                    if asset?.category == "Materials" {
-                                                        let filename = asset?.path.deletingPathExtension().lastPathComponent
-                                                        let withExtension = asset?.path.pathExtension
-                                                        let folderName = asset?.path.deletingLastPathComponent().lastPathComponent
-                                                        
-                                                        updateMaterialTexture(entityId: entityId, textureType: type, textureName: filename!, withExtension: withExtension!, subResource: folderName!)
+                                                    if asset?.category == "Materials" && asset?.path != nil{
+                                                        updateMaterialTexture(entityId: entityId, textureType: type, path: asset!.path)
                                                         
                                                         refreshView()
                                                     }
