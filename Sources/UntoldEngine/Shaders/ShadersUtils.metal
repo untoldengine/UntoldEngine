@@ -150,8 +150,8 @@ float geometricSmith(float NoV, float NoL,float roughness){
 
 float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap){
 
-    float roughness=(materialParam.hasTexture.y==1)?roughnessMap:materialParam.roughness;
-    float metallic=(materialParam.hasTexture.z==1)?metallicMap:materialParam.metallic;
+    float roughness=roughnessMap;
+    float metallic=metallicMap;
 
     float4 edgeTint=materialParam.edgeTint;
 
@@ -165,7 +165,7 @@ float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal
 
     float VoH = max(dot(viewDir, halfVector), 0.001);
     //float LoH = max(dot(incomingLightDir, halfVector), 0.001);
-    //float NoH = max(dot(surfaceNormal, halfVector), 0.001);
+    float NoH = max(dot(surfaceNormal, halfVector), 0.001);
 
     float fr=artistFriendlyF0(diffuseColor.r, edgeTint.x, VoH);
     float fg=artistFriendlyF0(diffuseColor.g, edgeTint.y, VoH);
@@ -177,7 +177,7 @@ float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal
 
     float3 F=fresnelSchlick(VoH,f0);
     
-    float D=g1GGXSchlick(NoV,roughness);
+    float D=distributionGGX(NoH,roughness);
 
     float G=geometricSmith(NoV,NoL,roughness);
 

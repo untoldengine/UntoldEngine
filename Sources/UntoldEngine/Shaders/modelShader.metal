@@ -89,20 +89,19 @@ float4 computePointLightContribution(constant PointLightUniform &light,
                                      float4 verticesInWorldSpace,
                                      float3 viewVector,
                                      float3 normalMap,
-                                     float3 ambient,
                                      constant MaterialParametersUniform &materialParameter,
+                                     float3 inBaseColor,
                                      float roughness,
                                      float metallic
                                      ){
-    
     float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
     float lightDistance=length(light.position.xyz-verticesInWorldSpace.xyz);
 
-    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, light.color.rgb, float3(1.0), materialParameter,roughness,metallic);
+    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), materialParameter,roughness,metallic);
 
     float attenuation=calculateAttenuation(lightDistance, light.attenuation);
 
-    float4 lightContribution=float4(lightBRDF*attenuation*light.intensity,1.0);
+    float4 lightContribution=float4(lightBRDF*attenuation*light.intensity*light.color,1.0);
  
     return lightContribution;
 }
@@ -111,8 +110,8 @@ float4 computeSpotLightContribution(constant SpotLightUniform &light,
                                      float4 verticesInWorldSpace,
                                      float3 viewVector,
                                      float3 normalMap,
-                                     float3 ambient,
                                      constant MaterialParametersUniform &materialParameter,
+                                     float3 inBaseColor,
                                      float roughness,
                                      float metallic
                                      ){
@@ -123,13 +122,13 @@ float4 computeSpotLightContribution(constant SpotLightUniform &light,
     
     float attenuation=calculateAttenuation(lightDistance, light.attenuation);
     
-    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, light.color.rgb, float3(1.0), materialParameter,roughness,metallic);
+    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), materialParameter,roughness,metallic);
     
     float theta = dot(-lightDirection, spotDirection); // cosine of angle between light dir and spot dir
     float epsilon = cos(light.innerCone) - cos(light.outerCone);
     float coneFalloff = clamp((theta-cos(light.outerCone))/epsilon, 0.0, 1.0);
     
-    float4 lightContribution=float4(lightBRDF*attenuation*coneFalloff*light.intensity,1.0);
+    float4 lightContribution=float4(lightBRDF*attenuation*coneFalloff*light.intensity*light.color,1.0);
  
     return lightContribution;
 }
@@ -142,6 +141,7 @@ float4 evaluateAreaLight(constant AreaLightUniform &light,
                             texture2d<float> ltcMat,
                             texture2d<float> ltcMag,
                             constant MaterialParametersUniform &materialParameter,
+                            float3 inBaseColor,
                             float roughness,
                             float metallic
                             ){
@@ -196,12 +196,12 @@ float4 evaluateAreaLight(constant AreaLightUniform &light,
 
     float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
     
-    float3 diffuseBRDF = computeDiffuseBRDF(lightDirection, viewVector, normalMap, light.color, float3(1.0), materialParameter, roughness, metallic);
+    float3 diffuseBRDF = computeDiffuseBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), materialParameter, roughness, metallic);
 
-    float3 specBRDF = computeSpecBRDF(lightDirection, viewVector, normalMap, light.color, float3(1.0), materialParameter, roughness, metallic);
+    float3 specBRDF = computeSpecBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), materialParameter, roughness, metallic);
 
     
-    float3 finalLight = light.intensity * (Lo_diffuse * diffuseBRDF + Lo_spec * specBRDF);
+    float3 finalLight = light.intensity * (Lo_diffuse * diffuseBRDF + Lo_spec * specBRDF)*light.color;
     
 
     return float4(finalLight, 1.0);
@@ -384,8 +384,8 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                                     verticesInWorldSpace,
                                                     viewVector,
                                                     normalMap.xyz,
-                                                    indirectLighting,
                                                     materialParameter,
+                                                    inBaseColor.rgb,
                                                     roughness,
                                                     metallic);
     }
@@ -400,8 +400,8 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                                        verticesInWorldSpace,
                                                        viewVector,
                                                        normalMap.xyz,
-                                                       indirectLighting,
                                                        materialParameter,
+                                                       inBaseColor.rgb,
                                                        roughness,
                                                        metallic);
     }
@@ -420,6 +420,7 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                                ltcMatTexture,
                                                ltcMagTexture,
                                                materialParameter,
+                                               inBaseColor.rgb,
                                                roughness,
                                                metallic);
     }
