@@ -527,9 +527,11 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
             case .roughness:
                 updatedMaterial.roughness = texture
                 updatedMaterial.roughnessURL = url
+                updatedMaterial.roughnessValue = 1.0
             case .metallic:
                 updatedMaterial.metallic = texture
                 updatedMaterial.metallicURL = url
+                updatedMaterial.metallicValue = 1.0
             case .normal:
                 updatedMaterial.normal = texture
                 updatedMaterial.normalURL = url
