@@ -1154,7 +1154,7 @@ func initRenderPipelines() {
         vertexShader: "vertexEnvironmentShader",
         fragmentShader: "fragmentEnvironmentShader",
         vertexDescriptor: createEnvironmentVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [.bgra8Unorm_srgb],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Environment Pipeline"
