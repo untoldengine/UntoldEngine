@@ -9,9 +9,9 @@ import SwiftUI
 
 enum AssetCategory: String, CaseIterable {
     case models = "Models"
-    case animations = "Animations"
-    case hdr = "HDR"
     case materials = "Materials"
+    case hdr = "HDR"
+    case animations = "Animations"
 
     var iconName: String {
         switch self {
@@ -54,6 +54,7 @@ struct AssetBrowserView: View {
 
                     Button(action: importAsset) {
                         HStack(spacing: 6) {
+                            Text("Import Asset")
                             Image(systemName: "plus.circle")
                                 .foregroundColor(.white)
                         }

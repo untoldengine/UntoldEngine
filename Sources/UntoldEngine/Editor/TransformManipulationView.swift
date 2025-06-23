@@ -53,30 +53,45 @@ struct ModeButton: View {
 
 struct TransformManipulationToolbar: View {
     @ObservedObject var controller: EditorController
-
+    @Binding var showAssetBrowser: Bool
     var body: some View {
-        HStack(spacing: 5) {
-            ModeButton(
-                icon: "arrow.up.and.down.and.arrow.left.and.right",
-                label: "Translate",
-                mode: .translate,
-                activeMode: $controller.activeMode
-            )
-            ModeButton(
-                icon: "rotate.3d",
-                label: "Rotate",
-                mode: .rotate,
-                activeMode: $controller.activeMode
-            )
-            ModeButton(
-                icon: "arrow.up.left.and.down.right.magnifyingglass",
-                label: "Scale",
-                mode: .scale,
-                activeMode: $controller.activeMode
-            )
+        HStack {
+            // Asset browser button aligned to the left
+            Button(action: { showAssetBrowser.toggle() }) {
+                Image(systemName: "folder")
+                    .imageScale(.large)
+                    .help("Toggle Asset Browser")
+            }
+
+            Spacer() // Pushes the mode buttons to the center
+
+            // Centered mode buttons
+            HStack(spacing: 5) {
+                ModeButton(
+                    icon: "arrow.up.and.down.and.arrow.left.and.right",
+                    label: "Translate",
+                    mode: .translate,
+                    activeMode: $controller.activeMode
+                )
+                ModeButton(
+                    icon: "rotate.3d",
+                    label: "Rotate",
+                    mode: .rotate,
+                    activeMode: $controller.activeMode
+                )
+                ModeButton(
+                    icon: "arrow.up.left.and.down.right.magnifyingglass",
+                    label: "Scale",
+                    mode: .scale,
+                    activeMode: $controller.activeMode
+                )
+            }
+
+            Spacer() // Keeps the mode buttons centered
         }
+        .padding(.horizontal)
         .background(Color.secondary.opacity(0.1))
         .cornerRadius(5)
-        .frame(maxWidth: 50)
     }
+
 }

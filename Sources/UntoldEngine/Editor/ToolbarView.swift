@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ToolbarView: View {
     @ObservedObject var selectionManager: SelectionManager
+    
     var onSave: () -> Void
     var onLoad: () -> Void
     var onCameraSave: () -> Void
@@ -21,49 +22,48 @@ struct ToolbarView: View {
     @State private var isPlaying = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            // MARK: - Import Button
+        HStack {
+            Spacer() // Push content to the center
 
-            ToolbarButton(iconName: "square.and.arrow.down", action: onLoad, tooltip: "Import JSON Scene")
+            // Centered Buttons
+            HStack(spacing: 12) {
+                ToolbarButton(iconName: "square.and.arrow.down", action: onLoad, tooltip: "Import JSON Scene")
 
-            // MARK: - Play/Pause Button
-
-            Button(action: {
-                isPlaying.toggle()
-                onPlayToggled(isPlaying)
-            }) {
-                HStack(spacing: 6) {
-                    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.white)
-                    Text(isPlaying ? "Pause" : "Play")
-                        .font(.system(size: 12))
-                        .foregroundColor(.white)
-                        .fontWeight(.semibold)
+                Button(action: {
+                    isPlaying.toggle()
+                    onPlayToggled(isPlaying)
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                        Text(isPlaying ? "Pause" : "Play")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white)
+                            .fontWeight(.semibold)
+                    }
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)
+                    .background(isPlaying ? Color.red : Color.blue)
+                    .cornerRadius(6)
+                    .shadow(color: Color.black.opacity(0.2), radius: 3, x: 0, y: 1)
                 }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 12)
-                .background(isPlaying ? Color.red : Color.blue)
-                .cornerRadius(6)
-                .shadow(color: Color.black.opacity(0.2), radius: 3, x: 0, y: 1)
+                .buttonStyle(PlainButtonStyle())
+                .help(isPlaying ? "Pause Scene" : "Play Scene")
+
+                ToolbarButton(iconName: "square.and.arrow.up", action: onSave, tooltip: "Export JSON Scene")
+                ToolbarButton(iconName: "camera.fill", action: onCameraSave, tooltip: "Save Camera Transform")
             }
-            .buttonStyle(PlainButtonStyle())
-            .help(isPlaying ? "Pause Scene" : "Play Scene")
 
-            // MARK: - Export Button
+            Spacer()
 
-            ToolbarButton(iconName: "square.and.arrow.up", action: onSave, tooltip: "Export JSON Scene")
-            
-            ToolbarButton(iconName: "camera.fill", action: onCameraSave, tooltip: "Save Camera Transform")
-            
-            ToolbarButton(iconName: "sun.horizon", action: dirLightCreate, tooltip: "Directional Light")
-            
-            ToolbarButton(iconName: "lightbulb.fill", action: pointLightCreate, tooltip: "Point Light")
-            
-            ToolbarButton(iconName: "lamp.ceiling", action: spotLightCreate, tooltip: "Spot Light")
-            
-            ToolbarButton(iconName: "light.panel.fill", action: areaLightCreate, tooltip: "Area Light")
-
+            // Right-aligned Light Buttons
+            HStack(spacing: 12) {
+                ToolbarButton(iconName: "sun.horizon", action: dirLightCreate, tooltip: "Directional Light")
+                ToolbarButton(iconName: "lightbulb.fill", action: pointLightCreate, tooltip: "Point Light")
+                ToolbarButton(iconName: "lamp.ceiling", action: spotLightCreate, tooltip: "Spot Light")
+                ToolbarButton(iconName: "light.panel.fill", action: areaLightCreate, tooltip: "Area Light")
+            }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 6)
@@ -74,6 +74,7 @@ struct ToolbarView: View {
         .cornerRadius(8)
         .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
     }
+
 }
 
 // MARK: - Toolbar Button Component

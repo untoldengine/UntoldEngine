@@ -18,6 +18,7 @@ public struct EditorView: View {
     @State private var assets: [String: [Asset]] = [:]
     @State private var selectedAsset: Asset? = nil
     @State private var isPlaying = false
+    @State private var showAssetBrowser = false
 
     public init(mtkView: MTKView) {
         self.mtkView = mtkView
@@ -40,32 +41,34 @@ public struct EditorView: View {
             Divider()
             HStack {
                 VStack {
-                    TabView {
-                        SceneHierarchyView(selectionManager: selectionManager, sceneGraphModel: sceneGraphModel, entityList: editor_entities, onAddEntity_Editor: editor_addNewEntity, onRemoveEntity_Editor: editor_removeEntity)
-                            .tabItem {
-                                Label("Scene", systemImage: "cube")
-                            }
-
-                        VStack(alignment: .leading) {
-                            EnvironmentView(selectedAsset: $selectedAsset)
-                        }
-                        .tabItem {
-                            Label("Environment", systemImage: "sun.max")
-                        }
-                    }
-                    .frame(minWidth: 200, maxWidth: 200)
-
-                    PostProcessingEditorView()
-                        .frame(minWidth: 200, maxWidth: 200)
-                        .padding(.horizontal, 16)
+                    SceneHierarchyView(selectionManager: selectionManager, sceneGraphModel: sceneGraphModel, entityList: editor_entities, onAddEntity_Editor: editor_addNewEntity, onRemoveEntity_Editor: editor_removeEntity)
                 }
 
                 VStack {
                     SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
-                    TransformManipulationToolbar(controller: editorController!)
-                    AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset, editor_addEntityWithAsset: editor_addEntityWithAsset)
+                    TransformManipulationToolbar(controller: editorController!, showAssetBrowser: $showAssetBrowser)
+                    if showAssetBrowser{
+                        AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset, editor_addEntityWithAsset: editor_addEntityWithAsset)
+                    }
                 }
-                InspectorView(selectionManager: selectionManager, sceneGraphModel: sceneGraphModel, onAddName_Editor: editor_addName, selectedAsset: $selectedAsset)
+                
+                TabView {
+                    EnvironmentView(selectedAsset: $selectedAsset)
+                        .tabItem {
+                            Label("Environment", systemImage: "sun.max")
+                        }
+                    
+                        PostProcessingEditorView()
+                        .tabItem {
+                            Label("Effects", systemImage: "cube")
+                        }
+                    
+                        InspectorView(selectionManager: selectionManager, sceneGraphModel: sceneGraphModel, onAddName_Editor: editor_addName, selectedAsset: $selectedAsset)
+                        .tabItem {
+                            Label("Inspector", systemImage: "cube")
+                        }
+                }
+                .frame(minWidth: 200, maxWidth: 250)
             }
         }
         .background(

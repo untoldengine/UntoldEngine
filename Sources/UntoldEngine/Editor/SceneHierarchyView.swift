@@ -75,7 +75,7 @@ struct SceneHierarchyView: View {
 
             Spacer() // Pushes content to the top
         }
-        .frame(minWidth: 200, maxWidth: 250)
+        .frame(minWidth: 200, maxWidth: 200)
         .padding(8)
         .background(Color.editorBackground.ignoresSafeArea())
         .cornerRadius(12)
