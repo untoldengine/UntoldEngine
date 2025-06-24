@@ -430,7 +430,7 @@ public func getDimension(entityId: EntityID) -> (width: Float, height: Float, de
     let y: Float = abs(localTransformComponent.boundingBox.1.y - localTransformComponent.boundingBox.0.y)
     let z: Float = abs(localTransformComponent.boundingBox.1.z - localTransformComponent.boundingBox.0.z)
 
-    return (width: x, height: y, depth: z)
+    return (width: x*localTransformComponent.scale.x, height: y*localTransformComponent.scale.y, depth: z*localTransformComponent.scale.z)
 }
 
 func quaternionDerivative(q: simd_quatf, omega: simd_float3) -> simd_quatf {
