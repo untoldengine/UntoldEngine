@@ -629,9 +629,6 @@ func getAreaLights() -> [AreaLight] {
         areaLight.right = getRightAxisVector(entityId: entity)
         areaLight.up = getUpAxisVector(entityId: entity)
         var (width, height, _) = getDimension(entityId: entity)
-        let scale:simd_float3 = localTransform.scale
-        width *= scale.x
-        height *= scale.y
         areaLight.bounds = simd_float2(width,height)
         areaLight.twoSided = areaLightComponent.twoSided
         areaLights.append(areaLight)

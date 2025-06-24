@@ -75,6 +75,11 @@ struct LightData: Codable {
     var intensity: Float = 1.0
     var falloff: Float = 0.5
     var coneAngle: Float = 30.0
+    var forward: simd_float3 = simd_float3(0.0, 0.0, -1.0)    // Normal vector of the light's surface
+    var right: simd_float3 = simd_float3(1.0, 0.0, 0.0)      // Right vector defining the surface orientation
+    var up: simd_float3 = simd_float3(0.0, 1.0, 0.0)         // Up vector defining the surface orientation
+    var bounds: simd_float2 = .one
+    var twoSided: Bool = false
 }
 
 struct CameraData: Codable {
@@ -122,6 +127,7 @@ struct EntityData: Codable {
     var hasDirLightComponent: Bool?
     var hasPointLightComponent: Bool?
     var hasSpotLightComponent: Bool?
+    var hasAreaLightComponent: Bool?
     var hasCameraComponent: Bool?
 
     var customComponents: [String: Data]? = nil
@@ -259,6 +265,36 @@ func serializeScene() -> SceneData {
             entityData.lightData?.falloff = getLightFalloff(entityId: entityId)
 
             entityData.lightData?.coneAngle = getLightConeAngle(entityId: entityId)
+        }
+
+        // Area light properties 
+        let hasAreaLight: Bool = hasComponent(entityId: entityId, componentType: AreaLightComponent.self)
+
+        if hasAreaLight{
+            
+            entityData.hasAreaLightComponent = hasAreaLight
+            
+            entityData.lightData = LightData()
+
+            entityData.lightData?.color = getLightColor(entityId: entityId)
+
+            entityData.lightData?.intensity = getLightIntensity(entityId: entityId)
+
+            entityData.lightData?.forward = getForwardAxisVector(entityId: entityId)
+
+            entityData.lightData?.right = getRightAxisVector(entityId: entityId)
+
+            entityData.lightData?.up = getUpAxisVector(entityId: entityId)
+
+            var (width, height, _) = getDimension(entityId: entityId)
+            
+            entityData.lightData?.bounds = simd_float2(width, height)
+            
+            if let areaLightComponent = scene.get(component: AreaLightComponent.self, for: entityId){
+                
+                entityData.lightData?.twoSided = areaLightComponent.twoSided
+            }
+
         }
 
         // Camera properties
@@ -590,6 +626,49 @@ func deserializeScene(sceneData: SceneData) {
                 spotlightComponent.radius = radius
                 spotlightComponent.falloff = falloff
                 spotlightComponent.coneAngle = coneAngle
+
+                guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+                    handleError(.noRenderComponent)
+                    continue
+                }
+
+                if let materialData = sceneDataEntity.materialData {
+                    let emmissiveValue: simd_float3 = materialData.emissiveValue
+                    updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
+                }
+            }
+        }
+
+         
+        if sceneDataEntity.hasAreaLightComponent == true {
+            if let light = sceneDataEntity.lightData {
+                let color: simd_float3 = light.color
+                let intensity: Float = light.intensity
+                let forward = light.forward
+                let right = light.right
+                let up = light.up
+                let bounds = light.bounds
+                let twoSided = light.twoSided
+                
+                createAreaLight(entityId: entityId)
+
+                guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+                    handleError(.noLightComponent)
+                    continue
+                }
+
+                guard let areaLightComponent = scene.get(component: AreaLightComponent.self, for: entityId) else {
+                    handleError(.noAreaLightComponent)
+                    continue
+                }
+
+                lightComponent.color = color
+                lightComponent.intensity = intensity
+                areaLightComponent.forward = forward
+                areaLightComponent.right = right
+                areaLightComponent.up = up
+                areaLightComponent.bounds = bounds
+                areaLightComponent.twoSided = twoSided
 
                 guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
                     handleError(.noRenderComponent)
