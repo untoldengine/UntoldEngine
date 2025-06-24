@@ -41,8 +41,7 @@ float3 rotateDirection(float3 dir, float3 axis, float angle){
 
     float cosTheta=cos(angle);
     float sinTheta=sin(angle);
-
-    return dir*cosTheta+cross(axis, dir)*sinTheta+axis*dot(axis, dir)*(1.0-cosTheta);
+    return normalize(dir * cosTheta + cross(axis, dir) * sinTheta + axis * dot(axis, dir) * (1.0 - cosTheta));
 }
 float degreesToRadians(float degrees) {
     return degrees * (M_PI_F / 180.0);
@@ -470,19 +469,20 @@ float3 specularIBL(float3 F0 , float roughness, float3 N, float3 V, texture2d<fl
 
     constexpr sampler s(coord::normalized,
                         filter::linear,
-                        mip_filter::linear,
-                        address::repeat);
+                        mip_filter::none,
+                        address::clamp_to_edge);
 
     int mipCount=5;
     float NoV = clamp(dot(N, V), 0.0, 1.0);
     float3 R = reflect(-V, N);
 
     //Rotate the reflection vector
-    float3 rotatedR=rotateDirection(R, rotationAxis, rotationAngle);
+    float3 rotatedR=normalize(rotateDirection(R, rotationAxis, rotationAngle));
 
     float2 uv = equirectUVFromCubeDirection(rotatedR);
+    float mipLevel = roughness * float(mipCount - 1);
+    float3 prefilteredColor = specularMap.sample(s, uv, level(mipLevel)).rgb;
 
-    float3 prefilteredColor=specularMap.sample(s,uv,level(roughness*float(mipCount))).rgb;
 
     float4 brdfIntegration=brdfMap.sample(s,float2(NoV,roughness));
 
