@@ -192,7 +192,7 @@ func serializeScene() -> SceneData {
         // Transform properties
         if scene.get(component: LocalTransformComponent.self, for: entityId) != nil {
             entityData.position = getLocalPosition(entityId: entityId)
-
+            entityData.scale = getScale(entityId: entityId)
             let axisOfRotations = getAxisRotations(entityId: entityId)
 
             entityData.axisOfRotations = axisOfRotations
@@ -605,7 +605,7 @@ func deserializeScene(sceneData: SceneData) {
 
         if sceneDataEntity.hasLocalTransformComponent == true {
             translateTo(entityId: entityId, position: sceneDataEntity.position)
-
+            scaleTo(entityId: entityId, scale: sceneDataEntity.scale)
             // TODO: Uncomment this section once the rotation is correct
             // let axisOfRotation = sceneDataEntity.axisOfRotations
 
