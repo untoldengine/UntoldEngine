@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 enum AssetCategory: String, CaseIterable {
     case models = "Models"
@@ -223,7 +224,13 @@ struct AssetBrowserView: View {
 
     private func importAsset() {
         let openPanel = NSOpenPanel()
-        openPanel.allowedFileTypes = ["usdc", "png", "jpg", "hdr","tif"]
+        openPanel.allowedContentTypes = [
+            UTType(filenameExtension: "usdc")!,
+            UTType.png,
+            UTType.jpeg,
+            UTType(filenameExtension: "hdr")!,
+            UTType.tiff
+        ]
         openPanel.canChooseDirectories = (selectedCategory == "Materials")
         openPanel.allowsMultipleSelection = true
 
@@ -255,28 +262,32 @@ struct AssetBrowserView: View {
                 if selectedCategory == "HDR" {
                     // Directly copy .hdr file into HDR folder (no subfolder)
                     let finalPath = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
-                    if !fileManager.fileExists(atPath: finalPath.path) {
-                        try fileManager.copyItem(at: sourceURL, to: finalPath)
+                    if fileManager.fileExists(atPath: finalPath.path) {
+                        try fileManager.removeItem(at: finalPath)
                     }
+                    try fileManager.copyItem(at: sourceURL, to: finalPath)
                 } else if selectedCategory == "Materials" {
                     if openPanel.canChooseDirectories {
                         // Copy selected material folder
                         let materialFolderSource = sourceURL
                         let materialFolderDest = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
 
-                        if !fileManager.fileExists(atPath: materialFolderDest.path) {
-                            try fileManager.copyItem(at: materialFolderSource, to: materialFolderDest) // <- this must be inside `do`
+                        if fileManager.fileExists(atPath: materialFolderDest.path) {
+                            try fileManager.removeItem(at: materialFolderDest)
                         }
+                        try fileManager.copyItem(at: materialFolderSource, to: materialFolderDest)
                     } else {
                         // Single texture — fallback to folder + file
                         let baseName = sourceURL.deletingPathExtension().lastPathComponent
                         let materialFolder = destinationURL.appendingPathComponent(baseName)
 
-                        if !fileManager.fileExists(atPath: materialFolder.path) {
-                            try fileManager.createDirectory(at: materialFolder, withIntermediateDirectories: true)
+                        if fileManager.fileExists(atPath: materialFolder.path) {
+                            try fileManager.removeItem(at: materialFolder)
                         }
+                        try fileManager.createDirectory(at: materialFolder, withIntermediateDirectories: true)
 
                         let destFile = materialFolder.appendingPathComponent(sourceURL.lastPathComponent)
+                        
                         try fileManager.copyItem(at: sourceURL, to: destFile)
                     }
                 } else {
@@ -288,10 +299,10 @@ struct AssetBrowserView: View {
                     // copy usdc file
                     let finalModelPath = modelFolder.appendingPathComponent(sourceURL.lastPathComponent)
 
-                    if !fileManager.fileExists(atPath: finalModelPath.path) {
-                        try fileManager.copyItem(at: sourceURL, to: finalModelPath)
+                    if fileManager.fileExists(atPath: finalModelPath.path) {
+                        try fileManager.removeItem(at: finalModelPath)
                     }
-
+                    try fileManager.copyItem(at: sourceURL, to: finalModelPath)
                     // copy texture folder
                     if selectedCategory == "Models" {
                         let textureFolderSource = sourceURL.deletingLastPathComponent().appendingPathComponent("textures")
@@ -299,9 +310,10 @@ struct AssetBrowserView: View {
 
                         var isDir: ObjCBool = false
                         if fileManager.fileExists(atPath: textureFolderSource.path, isDirectory: &isDir), isDir.boolValue {
-                            if !fileManager.fileExists(atPath: textureFolderDest.path) {
-                                try fileManager.copyItem(at: textureFolderSource, to: textureFolderDest)
+                            if fileManager.fileExists(atPath: textureFolderDest.path) {
+                                try fileManager.removeItem(at: textureFolderDest)
                             }
+                            try fileManager.copyItem(at: textureFolderSource, to: textureFolderDest)
                         }
                     }
                 }
