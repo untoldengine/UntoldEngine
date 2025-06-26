@@ -28,10 +28,15 @@ vertex VertexCompositeOutput vertexBlurShader(VertexCompositeIn in [[stage_in]])
 fragment float4 fragmentBlurShader(VertexCompositeOutput vertexOut [[stage_in]],
                                    texture2d<float> finalTexture [[texture(0)]],
                                    constant float2 &direction [[buffer(blurPassDirectionIndex)]],
-                                   constant float &blurRadius [[buffer(blurPassRadiusIndex)]])
+                                   constant float &blurRadius [[buffer(blurPassRadiusIndex)]],
+                                   constant bool &enabled[[buffer(blurPassEnabledIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
 
+    if (!enabled){
+        return finalTexture.sample(s, vertexOut.uvCoords);
+    }
+    
     uint width = finalTexture.get_width();
     uint height = finalTexture.get_height();
     float2 texelSize = 1.0 / float2(width, height);

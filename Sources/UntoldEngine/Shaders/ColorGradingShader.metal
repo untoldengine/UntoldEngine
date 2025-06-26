@@ -105,7 +105,7 @@ fragment float4 fragmentColorGradingShader(VertexCompositeOutput vertexOut [[sta
                                            constant float &exposure [[buffer(colorGradingPassExposureIndex)]],
                                            constant float3 &whiteBalanceCoeffs[[buffer(colorGradingWhiteBalanceCoeffsIndex)]])
 {
-    constexpr sampler s(min_filter::linear, mag_filter::linear);
+    constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
     float3 color = finalTexture.sample(s, vertexOut.uvCoords).rgb;
 
     color = colorExposure(color, exposure);

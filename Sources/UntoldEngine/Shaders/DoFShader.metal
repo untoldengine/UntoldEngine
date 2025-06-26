@@ -37,9 +37,14 @@ fragment float4 fragmentDepthOfFieldShader(VertexCompositeOutput vertexOut [[sta
                                    constant float &focusDistance[[buffer(depthOfFieldPassFocusDistanceIndex)]],
                                    constant float &focusRange[[buffer(depthOfFieldPassFocusRangeIndex)]],
                                    constant float &maxBlur[[buffer(depthOfFieldPassMaxBlurIndex)]],
-                                   constant float2 &frustumPlanes[[buffer(depthOfFieldPassFrustumIndex)]])
+                                   constant float2 &frustumPlanes[[buffer(depthOfFieldPassFrustumIndex)]],
+                                           constant bool &enabled[[buffer(depthOfFieldPassEnabledIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
+    
+    if (!enabled){
+        return finalTexture.sample(s, vertexOut.uvCoords);
+    }
     
     // Get scene depth at this pixel
 

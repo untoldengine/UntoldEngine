@@ -24,10 +24,14 @@ fragment float4 fragmentSSAOShader(VertexCompositeOutput vertexOut [[stage_in]],
                                    texture2d<float> finalTexture [[texture(0)]],
                                    constant float &radius [[buffer(ssaoPassRadiusIndex)]],
                                    constant float &bias [[buffer(ssaoPassBiasIndex)]],
-                                   constant float &intensity[[buffer(ssaoPassIntensityIndex)]])
+                                   constant float &intensity[[buffer(ssaoPassIntensityIndex)]],
+                                   constant bool &enabled[[buffer(ssaoPassEnabledIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
 
+    if (!enabled){
+        return finalTexture.sample(s, vertexOut.uvCoords);
+    }
     
     float3 color = finalTexture.sample(s, vertexOut.uvCoords).rgb;
 

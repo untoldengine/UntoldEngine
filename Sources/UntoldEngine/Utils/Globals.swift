@@ -226,6 +226,7 @@ class ColorGradingParams: ObservableObject {
     @Published var exposure: Float = 0.0
     @Published var temperature: Float = 0.0 // -1.0 to 1.0 (-1.0 bluish, 0.0 neutral, +1.0 warm, yellowish/orange)
     @Published var tint: Float = 0.0 // -1.0 to 1.0 Green (-)/Magenta (+)
+    @Published var enabled: Bool = false
 }
 
 class ColorCorrectionParams: ObservableObject {
@@ -234,6 +235,7 @@ class ColorCorrectionParams: ObservableObject {
     @Published var lift: simd_float3 = .zero // RGB adjustment for shadows (0 - 2)
     @Published var gamma: simd_float3 = .one // RGB adjustment for midtones (0.5 - 2.5)
     @Published var gain: simd_float3 = .one // RGB adjustment for highlights (0 - 2)
+    @Published var enabled: Bool = false
 }
 
 class BloomThresholdParams: ObservableObject {
@@ -241,12 +243,14 @@ class BloomThresholdParams: ObservableObject {
 
     @Published var threshold: Float = 0.5 // 0.0 to 5.0
     @Published var intensity: Float = 0.0 // 0.0 to 2.0
+    @Published var enabled: Bool = false
 }
 
 class BloomCompositeParams: ObservableObject {
     static let shared = BloomCompositeParams()
 
     @Published var intensity: Float = 1.0 // 0.0 to 2.0
+    @Published var enabled: Bool = false
 }
 
 class VignetteParams: ObservableObject {
@@ -256,6 +260,7 @@ class VignetteParams: ObservableObject {
     @Published var radius: Float = 0.75 // 0.5 to 1.0
     @Published var softness: Float = 0.45 // 0.0 to 1.0
     @Published var center: simd_float2 = .init(0.5, 0.5) // 0-1
+    @Published var enabled: Bool = false
 }
 
 class ChromaticAberrationParams: ObservableObject {
@@ -263,6 +268,7 @@ class ChromaticAberrationParams: ObservableObject {
 
     @Published var intensity: Float = 0.0 // 0.0 to 0.1
     @Published var center: simd_float2 = .init(0.5, 0.5) // 0-1
+    @Published var enabled: Bool = false
 }
 
 class DepthOfFieldParams: ObservableObject {
@@ -271,6 +277,7 @@ class DepthOfFieldParams: ObservableObject {
     @Published var focusDistance: Float = 1.0 // 0.0 to 1.0
     @Published var focusRange: Float = 0.1 // 0.01-0.3
     @Published var maxBlur: Float = 0 // 0.005-0.05
+    @Published var enabled: Bool = false
 }
 
 class SSAOParams: ObservableObject {
@@ -279,6 +286,7 @@ class SSAOParams: ObservableObject {
     @Published var radius: Float = 0.5 // 0.1 to 2.0 how far to sample
     @Published var bias: Float = 0.025 // 0.01-0.1 avoid self occusion
     @Published var intensity: Float = 0 // 0.5-2.0 Final multiplier
+    @Published var enabled: Bool = false
 }
 
 class DebugSettings: ObservableObject {

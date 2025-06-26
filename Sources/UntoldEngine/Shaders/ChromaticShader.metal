@@ -20,12 +20,17 @@ vertex VertexCompositeOutput vertexChromaticAberrationShader(VertexCompositeIn i
 fragment float4 fragmentChromaticAberrationShader(VertexCompositeOutput vertexOut [[stage_in]],
                                    texture2d<float> finalTexture [[texture(0)]],
                                     constant float &intensity [[buffer(chromaticAberrationPassIntensityIndex)]],
-                                    constant simd_float2 &center[[buffer(chromaticAberrationPassCenterIndex)]])
+                                    constant simd_float2 &center[[buffer(chromaticAberrationPassCenterIndex)]],
+                                                  constant bool &enabled[[buffer(chromaticAberrationPassEnabledIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
     
     float2 uv = vertexOut.uvCoords;
    
+    if (!enabled){
+        return finalTexture.sample(s, uv);
+    }
+    
     float2 offset = normalize(uv - center) * intensity;
 
     float red   = finalTexture.sample(s, uv + offset).r;

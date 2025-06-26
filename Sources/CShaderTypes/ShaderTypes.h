@@ -128,7 +128,8 @@ typedef enum{
     colorGradingPassContrastIndex,
     colorGradingPassSaturationIndex,
     colorGradingPassExposureIndex,
-    colorGradingWhiteBalanceCoeffsIndex
+    colorGradingWhiteBalanceCoeffsIndex,
+    colorGradingPassEnabledIndex
 }ColorGradingPassBufferIndices;
 
 typedef enum{
@@ -137,46 +138,54 @@ typedef enum{
     colorCorrectionPassTintIndex,
     colorCorrectionPassLiftIndex,
     colorCorrectionPassGammaIndex,
-    colorCorrectionPassGainIndex
+    colorCorrectionPassGainIndex,
+    colorCorrectionPassEnabledIndex
 }ColorCorrectionPassBufferIndices;
 
 typedef enum{
     blurPassDirectionIndex,
     blurPassRadiusIndex,
+    blurPassEnabledIndex
 }BlurPassBufferIndices;
 
 typedef enum{
     bloomThresholdPassCutoffIndex,
-    bloomThresholdPassIntensityIndex
+    bloomThresholdPassIntensityIndex,
+    bloomThresholdPassEnabledIndex
 }BloomThresholdBufferIndices;
 
 typedef enum{
     bloomCompositePassIntensityIndex,
+    bloomCompositePassEnabledIndex
 }BloomCompositeBufferIndices;
 
 typedef enum{
     vignettePassIntensityIndex,
     vignettePassRadiusIndex,
     vignettePassSoftnessIndex,
-    vignettePassCenterIndex
+    vignettePassCenterIndex,
+    vignettePassEnabledIndex
 }VignetteBufferIndices;
 
 typedef enum{
     chromaticAberrationPassIntensityIndex,
-    chromaticAberrationPassCenterIndex
+    chromaticAberrationPassCenterIndex,
+    chromaticAberrationPassEnabledIndex
 }ChromaticAberrationBufferIndices;
 
 typedef enum{
     depthOfFieldPassFocusDistanceIndex,
     depthOfFieldPassFocusRangeIndex,
     depthOfFieldPassMaxBlurIndex,
-    depthOfFieldPassFrustumIndex
+    depthOfFieldPassFrustumIndex,
+    depthOfFieldPassEnabledIndex
 }DepthOfFieldBufferIndices;
 
 typedef enum{
     ssaoPassRadiusIndex,
     ssaoPassBiasIndex,
-    ssaoPassIntensityIndex
+    ssaoPassIntensityIndex,
+    ssaoPassEnabledIndex
 }SSAOBufferIndices;
 
 typedef enum{

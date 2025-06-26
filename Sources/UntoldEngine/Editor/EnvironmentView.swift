@@ -127,7 +127,6 @@ struct ColorGradingEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Color Grading").font(.headline)
             
             Text("Exposure")
             Slider(value: $settings.exposure, in: -5.0 ... 5.0)
@@ -154,7 +153,6 @@ struct WhiteBalanceEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("White Balance").font(.headline)
 
             Text("Temperature")
             Slider(value: $settings.temperature, in: -100.0 ... 100.0)
@@ -191,7 +189,10 @@ struct BloomEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Bloom").font(.headline)
+            
+            Toggle(isOn: $settings.enabled) {
+                Text("Enable Bloom")
+            }
 
             Text("Threshold")
             Slider(value: $settings.threshold, in: 0.0 ... 5.0)
@@ -211,7 +212,10 @@ struct VignetteEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Vignette").font(.headline)
+            
+            Toggle(isOn: $settings.enabled) {
+                Text("Enable Vignette")
+            }
 
             Text("Intensity")
             Slider(value: $settings.intensity, in: 0.0 ... 1.0)
@@ -241,7 +245,10 @@ struct ChromaticAberrationEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Chromatic Aberration").font(.headline)
+            
+            Toggle(isOn: $settings.enabled) {
+                Text("Enable Chromatic Aberration")
+            }
 
             Text("Intensity")
             Slider(value: $settings.intensity, in: 0.0 ... 0.01)
@@ -263,7 +270,10 @@ struct DepthOfFieldEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Depth of Field").font(.headline)
+            
+            Toggle(isOn: $settings.enabled) {
+                Text("Enable Depth of Field")
+            }
 
             Text("Focus Distance")
             Slider(value: $settings.focusDistance, in: 0.0 ... 10.0)
@@ -287,7 +297,10 @@ struct SSAOEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("SSAO").font(.headline)
+            
+            Toggle(isOn: $settings.enabled) {
+                Text("Enable SSAO")
+            }
 
             Text("Radius")
             Slider(value: $settings.radius, in: 0.0 ... 2.0)

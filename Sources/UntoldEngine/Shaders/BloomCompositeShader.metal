@@ -20,11 +20,16 @@ vertex VertexCompositeOutput vertexBloomCompositeShader(VertexCompositeIn in [[s
 fragment float4 fragmentBloomCompositeShader(VertexCompositeOutput vertexOut [[stage_in]],
                                    texture2d<float> finalTexture [[texture(1)]],
                                     texture2d<float> bloomTexture [[texture(0)]],
-                                    constant float &intensity [[buffer(bloomCompositePassIntensityIndex)]])
+                                    constant float &intensity [[buffer(bloomCompositePassIntensityIndex)]],
+                                             constant bool &enabled[[buffer(bloomCompositePassEnabledIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
 
     float3 originalColor = finalTexture.sample(s, vertexOut.uvCoords).rgb;
+    
+    if(!enabled){
+        return float4(originalColor,1.0);
+    }
 
     float3 bloom = bloomTexture.sample(s, vertexOut.uvCoords).rgb;
 

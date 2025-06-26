@@ -213,6 +213,12 @@ func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<simd_float3>.stride,
         index: Int(colorCorrectionPassGainIndex.rawValue)
     )
+    
+    encoder.setFragmentBytes(
+        &ColorCorrectionParams.shared.enabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(colorCorrectionPassEnabledIndex.rawValue)
+    )
 }
 
 var colorCorrectionRenderPass = RenderPasses.executePostProcess(
@@ -253,6 +259,12 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
     )
     
     encoder.setFragmentBytes(
+        &ColorGradingParams.shared.enabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(colorGradingPassEnabledIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
         &whiteBalanceCoeffs,
         length: MemoryLayout<simd_float3>.stride,
         index: Int(colorGradingWhiteBalanceCoeffsIndex.rawValue)
@@ -282,6 +294,12 @@ func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderC
             length: MemoryLayout<Float>.stride,
             index: Int(blurPassRadiusIndex.rawValue)
         )
+        
+        encoder.setFragmentBytes(
+        &BloomThresholdParams.shared.enabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(blurPassEnabledIndex.rawValue)
+    )
     }
 }
 
@@ -304,6 +322,12 @@ func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Float>.stride,
         index: Int(bloomThresholdPassIntensityIndex.rawValue)
     )
+    
+    encoder.setFragmentBytes(
+        &BloomThresholdParams.shared.enabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(bloomThresholdPassEnabledIndex.rawValue)
+    )
 }
 
 var bloomCompositeRenderPass = RenderPasses.executePostProcess(
@@ -321,6 +345,12 @@ func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
     )
 
     encoder.setFragmentTexture(textureResources.chromaticAberrationTexture, index: 1)
+    
+    encoder.setFragmentBytes(
+        &BloomThresholdParams.shared.enabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(bloomCompositePassEnabledIndex.rawValue)
+    )
 }
 
 var vignetteRenderPass = RenderPasses.executePostProcess(
@@ -354,6 +384,12 @@ func vignetteCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<simd_float2>.stride,
         index: Int(vignettePassCenterIndex.rawValue)
     )
+    
+    encoder.setFragmentBytes(
+        &VignetteParams.shared.enabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(vignettePassEnabledIndex.rawValue)
+    )
 
 }
 
@@ -375,6 +411,12 @@ func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
         &ChromaticAberrationParams.shared.center,
         length: MemoryLayout<simd_float2>.stride,
         index: Int(chromaticAberrationPassCenterIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &ChromaticAberrationParams.shared.enabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(chromaticAberrationPassEnabledIndex.rawValue)
     )
 }
 
@@ -402,6 +444,12 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
         &DepthOfFieldParams.shared.maxBlur,
         length: MemoryLayout<Float>.stride,
         index: Int(depthOfFieldPassMaxBlurIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &DepthOfFieldParams.shared.enabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(depthOfFieldPassEnabledIndex.rawValue)
     )
     
     encoder.setFragmentTexture(textureResources.depthMap, index: 1)
@@ -435,5 +483,11 @@ func ssaoCustomization(encoder: MTLRenderCommandEncoder) {
         &SSAOParams.shared.intensity,
         length: MemoryLayout<Float>.stride,
         index: Int(ssaoPassIntensityIndex.rawValue)
+    )
+    
+    encoder.setFragmentBytes(
+        &SSAOParams.shared.enabled,
+        length: MemoryLayout<Bool>.stride,
+        index: Int(ssaoPassEnabledIndex.rawValue)
     )
 }
