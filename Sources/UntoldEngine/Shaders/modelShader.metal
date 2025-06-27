@@ -281,7 +281,8 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     constexpr sampler s(min_filter::linear, mag_filter::linear, s_address::repeat, t_address::repeat); // Use for base color and normal maps
     
-    constexpr sampler normalSampler(min_filter::linear, mag_filter::linear);
+    constexpr sampler normalSampler(min_filter::linear, mag_filter::linear, mip_filter::linear, address::repeat);
+
     
     //sample rougness and metallic
     constexpr sampler materialSampler(min_filter::linear, mag_filter::linear);
