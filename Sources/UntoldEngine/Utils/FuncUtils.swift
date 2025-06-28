@@ -509,7 +509,8 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
     let textureLoaderOptions = [
         MTKTextureLoader.Option.textureUsage: NSNumber(value: MTLTextureUsage.shaderRead.rawValue),
         MTKTextureLoader.Option.textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
-        MTKTextureLoader.Option.SRGB: NSNumber(value: (textureType == .baseColor))
+        MTKTextureLoader.Option.SRGB: NSNumber(value: (textureType == .baseColor)),
+        MTKTextureLoader.Option.generateMipmaps: true
     ]
 
     guard let url = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: subResource) else{

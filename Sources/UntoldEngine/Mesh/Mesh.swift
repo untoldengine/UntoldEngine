@@ -278,6 +278,7 @@ struct TextureLoader {
             .textureUsage: MTLTextureUsage.shaderRead.rawValue,
             .textureStorageMode: MTLStorageMode.private.rawValue,
             .SRGB: isSRGB,
+            .generateMipmaps: true
         ]
 
         // First try the original URL
