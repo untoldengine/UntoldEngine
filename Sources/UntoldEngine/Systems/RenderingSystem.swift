@@ -15,7 +15,7 @@ func updateRenderingSystem(in view: MTKView) {
 
             // build a render graph
             var (graph, preCompID) = gameMode ? buildGameModeGraph() : buildEditModeGraph()
-                    
+
             if visualDebug == false {
                 let compositePass = RenderPass(
                     id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
@@ -51,7 +51,7 @@ typealias RenderGraphResult = (graph: [String: RenderPass], finalPassID: String)
 
 func buildEditModeGraph() -> RenderGraphResult {
     var graph = [String: RenderPass]()
-    
+
     let basePassID: String
     if renderEnvironment {
         let environmentPass = RenderPass(
@@ -66,32 +66,32 @@ func buildEditModeGraph() -> RenderGraphResult {
         graph[gridPass.id] = gridPass
         basePassID = gridPass.id
     }
-    
+
     let modelPass = RenderPass(
         id: "model", dependencies: [basePassID], execute: RenderPasses.modelExecution
     )
     graph[modelPass.id] = modelPass
-    
+
     let highlightPass = RenderPass(
         id: "highlight", dependencies: [modelPass.id], execute: RenderPasses.highlightExecution
     )
     graph[highlightPass.id] = highlightPass
-    
+
     let gizmoPass = RenderPass(id: "gizmo", dependencies: [highlightPass.id], execute: RenderPasses.gizmoExecution)
-    
+
     graph[gizmoPass.id] = gizmoPass
-    
+
     let preCompPass = RenderPass(
         id: "precomp", dependencies: [gizmoPass.id], execute: RenderPasses.preCompositeExecution
     )
     graph[preCompPass.id] = preCompPass
-    
+
     return (graph, preCompPass.id)
 }
 
 func buildGameModeGraph() -> RenderGraphResult {
     var graph = [String: RenderPass]()
-    
+
     let basePassID: String
     if renderEnvironment {
         let environmentPass = RenderPass(
@@ -106,44 +106,42 @@ func buildGameModeGraph() -> RenderGraphResult {
         graph[gridPass.id] = gridPass
         basePassID = gridPass.id
     }
-    
+
     let shadowPass = RenderPass(
         id: "shadow", dependencies: [basePassID], execute: RenderPasses.shadowExecution
     )
     graph[shadowPass.id] = shadowPass
-    
+
     let modelPass = RenderPass(
         id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
     )
     graph[modelPass.id] = modelPass
-    
-    
+
     let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [modelPass.id], execute: depthOfFieldRenderPass)
-    
+
     graph[depthOfFieldPass.id] = depthOfFieldPass
-    
+
     let chromaticAberrationPass = RenderPass(id: "chromatic", dependencies: [depthOfFieldPass.id], execute: chromaticAberrationRenderPass)
-    
+
     graph[chromaticAberrationPass.id] = chromaticAberrationPass
-    
-    
+
     let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [chromaticAberrationPass.id], execute: bloomThresholdRenderPass)
     graph[bloomThresholdPass.id] = bloomThresholdPass
-   
+
     // define params for the blur pass
     let blurPassCount = 2
     let blurRadius: Float = 4.0
-    
+
     var previousPassID = bloomThresholdPass.id
-    var useFirstTexture: Bool = true
-    
-    for i in 0..<blurPassCount{
-        let horID = "blur_pass_hor_pass\(i+1)"
-        let verID = "blur_pass_ver_pass\(i+1)"
-        
+    var useFirstTexture = true
+
+    for i in 0 ..< blurPassCount {
+        let horID = "blur_pass_hor_pass\(i + 1)"
+        let verID = "blur_pass_ver_pass\(i + 1)"
+
         let horSource = useFirstTexture ? textureResources.bloomThresholdTextuture! : textureResources.blurTextureVer!
         let horDestination = textureResources.blurTextureHor!
-        
+
         let horPass = RenderPass(
             id: horID,
             dependencies: [previousPassID],
@@ -151,12 +149,12 @@ func buildGameModeGraph() -> RenderGraphResult {
                 blurPipeline,
                 source: horSource,
                 destination: horDestination,
-                customization: makeBlurCustomization(direction: simd_float2(1.0,0.0), radius: blurRadius)
+                customization: makeBlurCustomization(direction: simd_float2(1.0, 0.0), radius: blurRadius)
             )
         )
-        
+
         graph[horID] = horPass
-        
+
         let verPass = RenderPass(
             id: verID,
             dependencies: [horID],
@@ -164,38 +162,36 @@ func buildGameModeGraph() -> RenderGraphResult {
                 blurPipeline,
                 source: horDestination,
                 destination: textureResources.blurTextureVer!,
-                customization: makeBlurCustomization(direction: simd_float2(0.0,1.0), radius: blurRadius)))
-        
+                customization: makeBlurCustomization(direction: simd_float2(0.0, 1.0), radius: blurRadius)
+            )
+        )
+
         graph[verID] = verPass
-        
+
         previousPassID = verID
-        
+
         useFirstTexture = false // only use bloomthreshold texture for first iteration
-        
     }
-    
+
     let bloomCompositePass = RenderPass(id: "bloomComposite", dependencies: [previousPassID], execute: bloomCompositeRenderPass)
     graph[bloomCompositePass.id] = bloomCompositePass
-    
+
     let colorgradingPass = RenderPass(id: "colorgrading", dependencies: [bloomCompositePass.id], execute: colorGradingRenderPass)
     graph[colorgradingPass.id] = colorgradingPass
-    
+
     let vignettePass = RenderPass(id: "vignette", dependencies: [colorgradingPass.id], execute: vignetteRenderPass)
-    
+
     graph[vignettePass.id] = vignettePass
-    
+
     let preCompPass = RenderPass(id: "precomp", dependencies: [colorgradingPass.id], execute: RenderPasses.preCompositeExecution)
     graph[preCompPass.id] = preCompPass
-    
+
     return (graph, preCompPass.id)
 }
-
 
 // Post process passes
 
 func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder) {
-    
-
     encoder.setFragmentBytes(
         &ColorCorrectionParams.shared.lift,
         length: MemoryLayout<simd_float3>.stride,
@@ -213,7 +209,7 @@ func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<simd_float3>.stride,
         index: Int(colorCorrectionPassGainIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &ColorCorrectionParams.shared.enabled,
         length: MemoryLayout<Bool>.stride,
@@ -229,11 +225,10 @@ var colorCorrectionRenderPass = RenderPasses.executePostProcess(
 )
 
 func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
-    
     var exposure = powf(2.0, ColorGradingParams.shared.exposure)
-    var contrast = ColorGradingParams.shared.contrast;
+    var contrast = ColorGradingParams.shared.contrast
     var whiteBalanceCoeffs: simd_float3 = colorBalanceToLMSCoeffs(temperature: ColorGradingParams.shared.temperature, tint: ColorGradingParams.shared.tint)
-    
+
     encoder.setFragmentBytes(
         &ColorGradingParams.shared.brightness,
         length: MemoryLayout<Float>.stride,
@@ -251,25 +246,24 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Float>.stride,
         index: Int(colorGradingPassContrastIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &exposure,
         length: MemoryLayout<Float>.stride,
         index: Int(colorGradingPassExposureIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &ColorGradingParams.shared.enabled,
         length: MemoryLayout<Bool>.stride,
         index: Int(colorGradingPassEnabledIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &whiteBalanceCoeffs,
         length: MemoryLayout<simd_float3>.stride,
         index: Int(colorGradingWhiteBalanceCoeffsIndex.rawValue)
     )
-    
 }
 
 var colorGradingRenderPass = RenderPasses.executePostProcess(
@@ -294,12 +288,12 @@ func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderC
             length: MemoryLayout<Float>.stride,
             index: Int(blurPassRadiusIndex.rawValue)
         )
-        
+
         encoder.setFragmentBytes(
-        &BloomThresholdParams.shared.enabled,
-        length: MemoryLayout<Bool>.stride,
-        index: Int(blurPassEnabledIndex.rawValue)
-    )
+            &BloomThresholdParams.shared.enabled,
+            length: MemoryLayout<Bool>.stride,
+            index: Int(blurPassEnabledIndex.rawValue)
+        )
     }
 }
 
@@ -322,7 +316,7 @@ func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Float>.stride,
         index: Int(bloomThresholdPassIntensityIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &BloomThresholdParams.shared.enabled,
         length: MemoryLayout<Bool>.stride,
@@ -345,7 +339,7 @@ func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
     )
 
     encoder.setFragmentTexture(textureResources.chromaticAberrationTexture, index: 1)
-    
+
     encoder.setFragmentBytes(
         &BloomThresholdParams.shared.enabled,
         length: MemoryLayout<Bool>.stride,
@@ -366,31 +360,30 @@ func vignetteCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Float>.stride,
         index: Int(vignettePassIntensityIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &VignetteParams.shared.radius,
         length: MemoryLayout<Float>.stride,
         index: Int(vignettePassRadiusIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &VignetteParams.shared.softness,
         length: MemoryLayout<Float>.stride,
         index: Int(vignettePassSoftnessIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &VignetteParams.shared.center,
         length: MemoryLayout<simd_float2>.stride,
         index: Int(vignettePassCenterIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &VignetteParams.shared.enabled,
         length: MemoryLayout<Bool>.stride,
         index: Int(vignettePassEnabledIndex.rawValue)
     )
-
 }
 
 var chromaticAberrationRenderPass = RenderPasses.executePostProcess(
@@ -406,13 +399,13 @@ func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Float>.stride,
         index: Int(chromaticAberrationPassIntensityIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &ChromaticAberrationParams.shared.center,
         length: MemoryLayout<simd_float2>.stride,
         index: Int(chromaticAberrationPassCenterIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &ChromaticAberrationParams.shared.enabled,
         length: MemoryLayout<Bool>.stride,
@@ -433,31 +426,30 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Float>.stride,
         index: Int(depthOfFieldPassFocusDistanceIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &DepthOfFieldParams.shared.focusRange,
         length: MemoryLayout<Float>.stride,
         index: Int(depthOfFieldPassFocusRangeIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &DepthOfFieldParams.shared.maxBlur,
         length: MemoryLayout<Float>.stride,
         index: Int(depthOfFieldPassMaxBlurIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &DepthOfFieldParams.shared.enabled,
         length: MemoryLayout<Bool>.stride,
         index: Int(depthOfFieldPassEnabledIndex.rawValue)
     )
-    
+
     encoder.setFragmentTexture(textureResources.depthMap, index: 1)
-    
-    var frustumPlanes: simd_float2 = simd_float2(near, far)
+
+    var frustumPlanes = simd_float2(near, far)
     encoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(depthOfFieldPassFrustumIndex.rawValue))
 }
-
 
 var ssaoRenderPass = RenderPasses.executePostProcess(
     ssaoPipeline,
@@ -472,19 +464,19 @@ func ssaoCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Float>.stride,
         index: Int(ssaoPassRadiusIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &SSAOParams.shared.bias,
         length: MemoryLayout<Float>.stride,
         index: Int(ssaoPassBiasIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &SSAOParams.shared.intensity,
         length: MemoryLayout<Float>.stride,
         index: Int(ssaoPassIntensityIndex.rawValue)
     )
-    
+
     encoder.setFragmentBytes(
         &SSAOParams.shared.enabled,
         length: MemoryLayout<Bool>.stride,

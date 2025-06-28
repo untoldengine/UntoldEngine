@@ -229,7 +229,7 @@ struct AssetBrowserView: View {
             UTType.png,
             UTType.jpeg,
             UTType(filenameExtension: "hdr")!,
-            UTType.tiff
+            UTType.tiff,
         ]
         openPanel.canChooseDirectories = (selectedCategory == "Materials")
         openPanel.allowsMultipleSelection = true
@@ -287,7 +287,7 @@ struct AssetBrowserView: View {
                         try fileManager.createDirectory(at: materialFolder, withIntermediateDirectories: true)
 
                         let destFile = materialFolder.appendingPathComponent(sourceURL.lastPathComponent)
-                        
+
                         try fileManager.copyItem(at: sourceURL, to: destFile)
                     }
                 } else {
@@ -403,7 +403,6 @@ struct AssetBrowserView: View {
                     assetRow(asset)
                         .onTapGesture(count: 2) {
                             if !asset.isFolder, asset.path.pathExtension == "usdc", selectedCategory == "Models" {
-                              
                                 selectAsset(asset)
                                 editor_addEntityWithAsset()
                             }

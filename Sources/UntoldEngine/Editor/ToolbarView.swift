@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ToolbarView: View {
     @ObservedObject var selectionManager: SelectionManager
-    
+
     var onSave: () -> Void
     var onLoad: () -> Void
     var onCameraSave: () -> Void
@@ -74,7 +74,6 @@ struct ToolbarView: View {
         .cornerRadius(8)
         .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
     }
-
 }
 
 // MARK: - Toolbar Button Component

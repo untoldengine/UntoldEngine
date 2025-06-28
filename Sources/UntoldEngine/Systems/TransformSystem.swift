@@ -262,24 +262,23 @@ public func rotateTo(entityId: EntityID, pitch: Float, yaw: Float, roll: Float) 
     localTransformComponent.space.columns.2 = simd_float4(m.columns.2, 0.0)
 }
 
-public func scaleTo(entityId: EntityID, scale: simd_float3){
+public func scaleTo(entityId: EntityID, scale: simd_float3) {
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
         return
     }
-    
+
     localTransformComponent.scale.x = scale.x
     localTransformComponent.scale.y = scale.y
     localTransformComponent.scale.z = scale.z
-    
 }
 
-public func getScale(entityId: EntityID)->simd_float3{
+public func getScale(entityId: EntityID) -> simd_float3 {
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
         return .zero
     }
-    
+
     return localTransformComponent.scale
 }
 

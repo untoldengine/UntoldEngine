@@ -32,11 +32,10 @@ public func loadTexture(
     let textureLoaderOptions = [
         MTKTextureLoader.Option.textureUsage: NSNumber(value: MTLTextureUsage.shaderRead.rawValue),
         MTKTextureLoader.Option.textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
-        MTKTextureLoader.Option.SRGB: NSNumber(value: isSRGB)
+        MTKTextureLoader.Option.SRGB: NSNumber(value: isSRGB),
     ]
 
-
-    guard let url = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: nil) else{
+    guard let url = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: nil) else {
         throw LoadError.textureCreationFailed
     }
 
@@ -430,7 +429,7 @@ public func getDimension(entityId: EntityID) -> (width: Float, height: Float, de
     let y: Float = abs(localTransformComponent.boundingBox.1.y - localTransformComponent.boundingBox.0.y)
     let z: Float = abs(localTransformComponent.boundingBox.1.z - localTransformComponent.boundingBox.0.z)
 
-    return (width: x*localTransformComponent.scale.x, height: y*localTransformComponent.scale.y, depth: z*localTransformComponent.scale.z)
+    return (width: x * localTransformComponent.scale.x, height: y * localTransformComponent.scale.y, depth: z * localTransformComponent.scale.z)
 }
 
 func quaternionDerivative(q: simd_quatf, omega: simd_float3) -> simd_quatf {
@@ -453,7 +452,7 @@ public func getAllGameEntities() -> [EntityID] {
     let entities: [EntityID] = scene.getAllEntities()
 
     for entityId in entities {
-        if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) || hasComponent(entityId: entityId, componentType: GizmoComponent.self){
+        if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) || hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
             continue
         }
         entityList.append(entityId)
@@ -469,7 +468,7 @@ public func getAllGameEntitiesWithMeshes() -> [EntityID] {
     let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
     for entityId in entities {
-        if hasComponent(entityId: entityId, componentType: GizmoComponent.self){
+        if hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
             continue
         }
         entityList.append(entityId)
@@ -486,18 +485,45 @@ func getAssetURLString(entityId: EntityID) -> String? {
     return renderComponent.assetURL.deletingPathExtension().lastPathComponent
 }
 
-func updateMaterialTexture(entityId: EntityID, textureType: TextureType, path: URL){
-
+func updateMaterialTexture(entityId: EntityID, textureType: TextureType, path: URL) {
     let filename = path.deletingPathExtension().lastPathComponent
     let withExtension = path.pathExtension
     let folderName = path.deletingLastPathComponent().lastPathComponent
-                                                    
-    updateMaterialTexture(entityId: entityId, textureType: textureType, textureName: filename, withExtension: withExtension, subResource: folderName)
 
+    updateMaterialTexture(entityId: entityId, textureType: textureType, textureName: filename, withExtension: withExtension, subResource: folderName)
 }
 
-func updateMaterialTexture(entityId: EntityID, textureType: TextureType, textureName: String, withExtension: String, subResource: String){
-    
+func removeMaterialTexture(entityId: EntityID, textureType: TextureType) {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+    guard let material = renderComponent.mesh[0].submeshes[0].material else { return }
+
+    var updatedMaterial = material
+
+    switch textureType {
+    case .baseColor:
+        updatedMaterial.baseColor = nil
+        updatedMaterial.baseColorURL = nil
+    case .roughness:
+        updatedMaterial.roughness = nil
+        updatedMaterial.roughnessURL = nil
+        updatedMaterial.roughnessValue = 1.0
+    case .metallic:
+        updatedMaterial.metallic = nil
+        updatedMaterial.metallicURL = nil
+        updatedMaterial.metallicValue = 0.0
+    case .normal:
+        updatedMaterial.normal = nil
+        updatedMaterial.normalURL = nil
+    }
+
+    renderComponent.mesh[0].submeshes[0].material = updatedMaterial
+    print("\(textureType) textured updated succesfully.")
+}
+
+func updateMaterialTexture(entityId: EntityID, textureType: TextureType, textureName: String, withExtension: String, subResource: String) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
@@ -509,41 +535,40 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
     let textureLoaderOptions = [
         MTKTextureLoader.Option.textureUsage: NSNumber(value: MTLTextureUsage.shaderRead.rawValue),
         MTKTextureLoader.Option.textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
-        MTKTextureLoader.Option.SRGB: NSNumber(value: (textureType == .baseColor)),
-        MTKTextureLoader.Option.generateMipmaps: true
+        MTKTextureLoader.Option.SRGB: NSNumber(value: textureType == .baseColor),
+        MTKTextureLoader.Option.generateMipmaps: true,
     ]
 
-    guard let url = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: subResource) else{
+    guard let url = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: subResource) else {
         return
     }
-    
+
     do {
         let texture = try textureLoader.newTexture(URL: url, options: textureLoaderOptions)
         var updatedMaterial = material
-        
-        switch textureType{
-            case .baseColor:
-                updatedMaterial.baseColor = texture
-                updatedMaterial.baseColorURL = url
-            case .roughness:
-                updatedMaterial.roughness = texture
-                updatedMaterial.roughnessURL = url
-                updatedMaterial.roughnessValue = 1.0
-            case .metallic:
-                updatedMaterial.metallic = texture
-                updatedMaterial.metallicURL = url
-                updatedMaterial.metallicValue = 1.0
-            case .normal:
-                updatedMaterial.normal = texture
-                updatedMaterial.normalURL = url
+
+        switch textureType {
+        case .baseColor:
+            updatedMaterial.baseColor = texture
+            updatedMaterial.baseColorURL = url
+        case .roughness:
+            updatedMaterial.roughness = texture
+            updatedMaterial.roughnessURL = url
+            updatedMaterial.roughnessValue = 1.0
+        case .metallic:
+            updatedMaterial.metallic = texture
+            updatedMaterial.metallicURL = url
+            updatedMaterial.metallicValue = 1.0
+        case .normal:
+            updatedMaterial.normal = texture
+            updatedMaterial.normalURL = url
         }
-        
+
         renderComponent.mesh[0].submeshes[0].material = updatedMaterial
         print("\(textureType) textured updated succesfully.")
     } catch {
         handleError(.textureFailedLoading)
     }
-    
 }
 
 func getMaterialTextureURL(entityId: EntityID, type: TextureType) -> URL? {
@@ -632,8 +657,8 @@ func updateMaterialEmmisive(entityId: EntityID, emmissive: simd_float3) {
 
 func makeFloat4Texture(data: [simd_float4],
                        width: Int,
-                       height: Int) -> MTLTexture? {
-    
+                       height: Int) -> MTLTexture?
+{
     guard data.count == width * height else {
         print("Data size does not match texture dimensions.")
         return nil
@@ -683,7 +708,6 @@ func projectToScreenSpace(
     return simd_float3(screenX, screenY, ndc.z)
 }
 
-
 func computeAxisTranslationGizmo(
     axisWorldDir: simd_float3,
     gizmoWorldPosition: simd_float3,
@@ -718,7 +742,7 @@ func computeAxisTranslationGizmo(
 }
 
 func computeRotationAngleFromGizmo(
-    axis: simd_float3,
+    axis _: simd_float3,
     gizmoWorldPosition: simd_float3,
     lastMousePos: simd_float2,
     currentMousePos: simd_float2,
@@ -740,10 +764,9 @@ func computeRotationAngleFromGizmo(
     let currVec = normalize(currentMousePos - simd_float2(screenOrigin.x, screenOrigin.y))
 
     // Compute signed angle between the vectors
-    let perpDot = prevVec.x * currVec.y - prevVec.y * currVec.x  // 2D cross product
+    let perpDot = prevVec.x * currVec.y - prevVec.y * currVec.x // 2D cross product
     let dotProd = simd_dot(prevVec, currVec)
     let angle = atan2(perpDot, dotProd)
 
     return angle * sensitivity // positive = CCW, negative = CW
 }
-

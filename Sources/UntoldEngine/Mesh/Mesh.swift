@@ -208,7 +208,7 @@ struct Material {
     var normalURL: URL?
 
     // Default values
-    var baseColorValue: simd_float4 = .init(1.0,1.0,1.0, 1.0)
+    var baseColorValue: simd_float4 = .init(1.0, 1.0, 1.0, 1.0)
     var edgeTint: simd_float4 = .init(0.0, 0.0, 0.0, 1.0)
     var emissiveValue: simd_float3 = .zero
     var roughnessValue: Float = 1.0
@@ -243,13 +243,13 @@ struct Material {
         baseColorValue = mdlMaterial.property(with: .baseColor)?.float4Value ?? baseColorValue
         roughnessValue = mdlMaterial.property(with: .roughness)?.floatValue ?? roughnessValue
         metallicValue = mdlMaterial.property(with: .metallic)?.floatValue ?? metallicValue
-        
+
         // if textures exist, the roughnessValue and MetallicValue act as modulators
-        if roughness != nil{
+        if roughness != nil {
             roughnessValue = 1.0
         }
-        
-        if metallic != nil{
+
+        if metallic != nil {
             metallicValue = 1.0
         }
 
@@ -278,7 +278,7 @@ struct TextureLoader {
             .textureUsage: MTLTextureUsage.shaderRead.rawValue,
             .textureStorageMode: MTLStorageMode.private.rawValue,
             .SRGB: isSRGB,
-            .generateMipmaps: true
+            .generateMipmaps: true,
         ]
 
         // First try the original URL

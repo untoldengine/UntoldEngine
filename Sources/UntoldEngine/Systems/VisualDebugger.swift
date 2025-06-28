@@ -21,11 +21,11 @@ class DebugTextureRegistry {
     }
 
     static func get(byName name: String) -> MTLTexture? {
-        return entries.first(where: { $0.name == name })?.texture
+        entries.first(where: { $0.name == name })?.texture
     }
 
     static func allNames() -> [String] {
-        return entries.map { $0.name }
+        entries.map(\.name)
     }
 
     static func reset() {

@@ -245,15 +245,15 @@ func initBufferResources() {
             label: "Spot Lights"
         )
     }
-    
+
     // Initialize Area Light Buffer
-    func initAreaLightBuffer(){
+    func initAreaLightBuffer() {
         bufferResources.areaLightBuffer = createEmptyBuffer(
             device: renderInfo.device,
             length: MemoryLayout<AreaLight>.stride * maxAreaLights,
-            label: "Area Light")
+            label: "Area Light"
+        )
     }
-    
 
     // Initialize Bounding Box Buffer
     func initBoundingBoxBuffer() {

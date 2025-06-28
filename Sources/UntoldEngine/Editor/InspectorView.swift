@@ -102,7 +102,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(TextureType.allCases) { type in
-                                    
+
                                     let image: NSImage? = {
                                         if let url = getMaterialTextureURL(entityId: entityId, type: type), let image = NSImage(contentsOf: url) {
                                             return image
@@ -111,33 +111,35 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                         }
                                     }()
 
-                                    VStack(spacing: 4) {
-                                        HStack(spacing: 8) {
+                                    VStack(spacing: 6) {
+                                        Button(action: {
+                                            if asset?.category == "Materials", asset?.path != nil {
+                                                updateMaterialTexture(entityId: entityId, textureType: type, path: asset!.path)
+                                                refreshView()
+                                            }
+                                        }) {
                                             if let image {
                                                 Image(nsImage: image)
                                                     .resizable()
-                                                    .frame(width: 32, height: 32)
-                                                    .cornerRadius(4)
+                                                    .frame(width: 48, height: 48)
+                                                    .cornerRadius(6)
                                             } else {
-                                                Image(systemName: "photo") // SF Symbol fallback if even default fails
+                                                Image(systemName: "photo")
                                                     .resizable()
-                                                    .frame(width: 32, height: 32)
+                                                    .frame(width: 48, height: 48)
                                                     .foregroundColor(.gray)
                                             }
-
-                                            Button(action: {
-                                                if asset?.category == "Materials", asset?.path != nil {
-                                                    updateMaterialTexture(entityId: entityId, textureType: type, path: asset!.path)
-
-                                                    refreshView()
-                                                }
-                                            }) {
-                                                Image(systemName: "arrow.triangle.2.circlepath")
-                                                    .foregroundColor(.blue)
-                                            }
-                                            .buttonStyle(BorderlessButtonStyle()) // So it looks better in HStack
-                                            
                                         }
+                                        .buttonStyle(PlainButtonStyle()) // No default button borders
+
+                                        Button(action: {
+                                            removeMaterialTexture(entityId: entityId, textureType: type)
+                                            refreshView()
+                                        }) {
+                                            Image(systemName: "minus.circle.fill")
+                                                .foregroundColor(.red)
+                                        }
+                                        .buttonStyle(BorderlessButtonStyle())
 
                                         Text(type.displayName)
                                             .font(.caption)
@@ -145,70 +147,63 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                 }
                             }
                         }
-                        
-                         Divider()
-                         HStack() {
-                                 // Base Color Picker
-                                 VStack() {
-                                     
 
-                                     ColorPicker("", selection: Binding(
-                                         get: { colorFromSimd(getMaterialBaseColor(entityId: entityId)) },
-                                         set: { newColor in updateMaterialColor(entityId: entityId, color: newColor) }
-                                     ))
-                                     .frame(width: 60)
-                                     
-                                     Text("Base Color")
-                                         .font(.caption)
-                                     // .foregroundColor(.secondary)
-                                 }
+                        Divider()
+                        HStack {
+                            // Base Color Picker
+                            VStack {
+                                ColorPicker("", selection: Binding(
+                                    get: { colorFromSimd(getMaterialBaseColor(entityId: entityId)) },
+                                    set: { newColor in updateMaterialColor(entityId: entityId, color: newColor) }
+                                ))
+                                .frame(width: 60)
 
-                                 // Roughness Input
-                                 VStack() {
-                                     
-                                     TextInputNumberView(
-                                         label: "",
-                                         value: Binding(
-                                             get: { getMaterialRoughness(entityId: entityId) },
-                                             set: { newValue in
-                                                 updateMaterialRoughness(entityId: entityId, roughness: newValue)
-                                                 refreshView()
-                                             }
-                                         )
-                                     )
-                                     .frame(width: 60)
-                                     
-                                     Text("Roughness")
-                                         .font(.caption)
-                                         .foregroundColor(.secondary)
+                                Text("Base Color")
+                                    .font(.caption)
+                                // .foregroundColor(.secondary)
+                            }
 
-                                 }
+                            // Roughness Input
+                            VStack {
+                                TextInputNumberView(
+                                    label: "",
+                                    value: Binding(
+                                        get: { getMaterialRoughness(entityId: entityId) },
+                                        set: { newValue in
+                                            updateMaterialRoughness(entityId: entityId, roughness: newValue)
+                                            refreshView()
+                                        }
+                                    )
+                                )
+                                .frame(width: 60)
 
-                                 // Metallic Input
-                                 VStack() {
-                                     
-                                     TextInputNumberView(
-                                         label: "",
-                                         value: Binding(
-                                             get: { getMaterialMetallic(entityId: entityId) },
-                                             set: { newValue in
-                                                 updateMaterialMetallic(entityId: entityId, metallic: newValue)
-                                                 refreshView()
-                                             }
-                                         )
-                                     )
-                                     .frame(width: 60)
-                                     
-                                     Text("Metallic")
-                                         .font(.caption)
-                                         .foregroundColor(.secondary)
-                                 }
+                                Text("Roughness")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
 
-                         }
-                        
+                            // Metallic Input
+                            VStack {
+                                TextInputNumberView(
+                                    label: "",
+                                    value: Binding(
+                                        get: { getMaterialMetallic(entityId: entityId) },
+                                        set: { newValue in
+                                            updateMaterialMetallic(entityId: entityId, metallic: newValue)
+                                            refreshView()
+                                        }
+                                    )
+                                )
+                                .frame(width: 60)
+
+                                Text("Metallic")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+
                         // Emmissive Input
-                        VStack() {
-                            
+                        VStack {
                             TextInputVectorView(
                                 label: "",
                                 value: Binding(
@@ -220,7 +215,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                 )
                             )
                             .frame(width: 80)
-                            
+
                             Text("Emmisive")
                                 .font(.caption)
                                 .foregroundColor(.secondary)

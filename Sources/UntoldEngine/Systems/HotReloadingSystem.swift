@@ -58,7 +58,7 @@ let pipelineConfigs: [String: ShaderPipelineConfig] = [
         depthEnabled: false,
         blendEnabled: false
     ),
-    
+
     "colorgrading": ShaderPipelineConfig(
         pipelineName: "Color Grading Pipeline",
         vertexFunctionName: "vertexColorGradingShader",
@@ -137,9 +137,9 @@ func updateShadersAndPipeline() {
         reloadPipeline(named: "model", with: library, pipe: &modelPipeline)
         reloadPipeline(named: "tonemapping", with: library, pipe: &tonemappingPipeline)
         reloadPipeline(named: "colorgrading", with: library, pipe: &colorGradingPipeline)
-        
+
         // set up tone map
-        
+
         // set up color correction
         colorCorrectionRenderPass = RenderPasses.executePostProcess(
             colorCorrectionPipeline,
@@ -148,15 +148,13 @@ func updateShadersAndPipeline() {
             customization: colorCorrectionCustomization
         )
 
-       
-        //set up color-grading here
+        // set up color-grading here
         colorGradingRenderPass = RenderPasses.executePostProcess(
             colorGradingPipeline,
             source: textureResources.colorCorrectionTexture!,
             destination: textureResources.colorGradingTexture!,
             customization: colorGradingCustomization
         )
-        
     }
 }
 

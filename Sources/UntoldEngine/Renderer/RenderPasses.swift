@@ -250,17 +250,17 @@ enum RenderPasses {
                 handleError(.noWorldTransformComponent, entityId)
                 continue
             }
-            
+
             guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
                 handleError(.noLocalTransformComponent, entityId)
                 continue
             }
-            
-            if let lightComponent = scene.get(component: LightComponent.self, for: entityId){
+
+            if let lightComponent = scene.get(component: LightComponent.self, for: entityId) {
                 continue
             }
-            
-            if let gizmoComponent = scene.get(component: GizmoComponent.self, for: entityId){
+
+            if let gizmoComponent = scene.get(component: GizmoComponent.self, for: entityId) {
                 continue
             }
 
@@ -271,8 +271,8 @@ enum RenderPasses {
                 var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
 
                 let scaleMatrix = float4x4(scale: localTransformComponent.scale)
-                
-                modelMatrix = simd_mul(modelMatrix,scaleMatrix)
+
+                modelMatrix = simd_mul(modelMatrix, scaleMatrix)
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
 
                 let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
@@ -468,7 +468,7 @@ enum RenderPasses {
             &spotLightCount, length: MemoryLayout<Int>.stride,
             index: Int(modelPassSpotLightsCountIndex.rawValue)
         )
-        
+
         // area light
         if let areaLightBuffer = bufferResources.areaLightBuffer {
             let areaLightArray = Array(getAreaLights())
@@ -496,16 +496,15 @@ enum RenderPasses {
             &areaLightCount, length: MemoryLayout<Int>.stride,
             index: Int(modelPassAreaLightsCountIndex.rawValue)
         )
-        
 
         // shadow map
         renderEncoder.setFragmentTexture(
             textureResources.shadowMap, index: Int(modelPassShadowTextureIndex.rawValue)
         )
-        
+
         // LTC Maps for Area Lights
         renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMat, index: Int(modelPassAreaLTCMatTextureIndex.rawValue))
-        
+
         renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMag, index: Int(modelPassAreaLTCMagTextureIndex.rawValue))
 
         // Create a component query for entities with both Transform and Render components
@@ -525,20 +524,20 @@ enum RenderPasses {
                 handleError(.noWorldTransformComponent, entityId)
                 continue
             }
-            
+
             guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
                 handleError(.noLocalTransformComponent, entityId)
                 continue
             }
-            
-            if hasComponent(entityId: entityId, componentType: GizmoComponent.self){
+
+            if hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
                 continue
             }
-            
+
             // is light?
             var isLight: Bool = hasComponent(entityId: entityId, componentType: LightComponent.self)
             renderEncoder.setFragmentBytes(&isLight, length: MemoryLayout<Bool>.stride, index: Int(modelPassIsLight.rawValue))
-            
+
             for mesh in renderComponent.mesh {
                 // update uniforms
                 var modelUniforms = Uniforms()
@@ -546,8 +545,8 @@ enum RenderPasses {
                 var modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
 
                 let scaleMatrix = float4x4(scale: localTransformComponent.scale)
-                
-                modelMatrix = simd_mul(modelMatrix,scaleMatrix)
+
+                modelMatrix = simd_mul(modelMatrix, scaleMatrix)
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
 
                 let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
@@ -698,10 +697,10 @@ enum RenderPasses {
         renderEncoder.popDebugGroup()
         renderEncoder.endEncoding()
     }
-    
+
     static let gizmoExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-        
-        if  gizmoPipeline.success == false {
+
+        if gizmoPipeline.success == false {
             handleError(.pipelineStateNulled, gizmoPipeline.name!)
             return
         }
@@ -741,7 +740,7 @@ enum RenderPasses {
         let transformId = getComponentId(for: WorldTransformComponent.self)
         let renderId = getComponentId(for: RenderComponent.self)
         let gizmoId = getComponentId(for: GizmoComponent.self)
-        
+
         let entities = queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
 
         // Iterate over the entities found by the component query
@@ -755,12 +754,12 @@ enum RenderPasses {
                 handleError(.noWorldTransformComponent, entityId)
                 continue
             }
-            
+
             guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
                 handleError(.noLocalTransformComponent, entityId)
                 continue
             }
-            
+
             for mesh in renderComponent.mesh {
                 // update uniforms
                 var modelUniforms = Uniforms()
@@ -768,8 +767,8 @@ enum RenderPasses {
                 var modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
 
                 let scaleMatrix = float4x4(scale: localTransformComponent.scale)
-                
-                modelMatrix = simd_mul(modelMatrix,scaleMatrix)
+
+                modelMatrix = simd_mul(modelMatrix, scaleMatrix)
 
                 let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 
@@ -816,7 +815,6 @@ enum RenderPasses {
                 )
 
                 for subMesh in mesh.submeshes {
-                
                     var materialParameters = MaterialParametersUniform()
                     materialParameters.specular = subMesh.material!.specular
                     materialParameters.specularTint = subMesh.material!.specularTint
@@ -1338,13 +1336,13 @@ enum RenderPasses {
         if let debugTexture = DebugTextureRegistry.get(byName: selectedTextureName) {
             renderEncoder.setFragmentTexture(debugTexture, index: 0)
         }
-        
-        var isDepthTexture: Bool = false
-        if selectedTextureName == "Depth Texture"{
-           isDepthTexture = true
+
+        var isDepthTexture = false
+        if selectedTextureName == "Depth Texture" {
+            isDepthTexture = true
         }
-        
-        var farnear: simd_float2 = simd_float2(near, far)
+
+        var farnear = simd_float2(near, far)
         renderEncoder.setFragmentTexture(textureResources.depthMap, index: 1)
         renderEncoder.setFragmentBytes(&isDepthTexture, length: MemoryLayout<Bool>.stride, index: 0)
         renderEncoder.setFragmentBytes(&farnear, length: MemoryLayout<simd_float2>.stride, index: 1)
@@ -1419,16 +1417,15 @@ enum RenderPasses {
             renderEncoder.updateFence(renderInfo.fence, after: .fragment)
             renderEncoder.popDebugGroup()
             renderEncoder.endEncoding()
-
         }
     }
 }
 
 extension float4x4 {
     init(scale s: SIMD3<Float>) {
-        self.init(SIMD4<Float>(s.x,   0,   0, 0),
-                  SIMD4<Float>(  0, s.y,   0, 0),
-                  SIMD4<Float>(  0,   0, s.z, 0),
-                  SIMD4<Float>(  0,   0,   0, 1))
+        self.init(SIMD4<Float>(s.x, 0, 0, 0),
+                  SIMD4<Float>(0, s.y, 0, 0),
+                  SIMD4<Float>(0, 0, s.z, 0),
+                  SIMD4<Float>(0, 0, 0, 1))
     }
 }

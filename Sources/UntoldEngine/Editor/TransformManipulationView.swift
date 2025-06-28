@@ -20,21 +20,20 @@ struct ModeButton: View {
 
     var body: some View {
         Button(action: {
-           
-            if gizmoActive == false{
+            if gizmoActive == false {
                 return
             }
-            
+
             if activeMode == mode {
                 activeMode = .none
             } else {
                 activeMode = mode
-               
-                if activeMode == .translate{
-                    createGizmo(name:"translateGizmo")
-                }else if activeMode == .rotate{
-                    createGizmo(name:"rotateGizmo")
-                }else if activeMode == .scale{
+
+                if activeMode == .translate {
+                    createGizmo(name: "translateGizmo")
+                } else if activeMode == .rotate {
+                    createGizmo(name: "rotateGizmo")
+                } else if activeMode == .scale {
                     createGizmo(name: "scaleGizmo")
                 }
             }
@@ -93,5 +92,4 @@ struct TransformManipulationToolbar: View {
         .background(Color.secondary.opacity(0.1))
         .cornerRadius(5)
     }
-
 }

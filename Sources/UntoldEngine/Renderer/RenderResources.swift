@@ -56,7 +56,7 @@ public struct BufferResources {
 
     // Spot lights
     var spotLightBuffer: MTLBuffer?
-    
+
     // Area light
     var areaLightBuffer: MTLBuffer?
 
@@ -106,17 +106,17 @@ public struct TextureResources {
     var rayTracingRandomTexture: MTLTexture?
     var rayTracingDestTextureArray: MTLTexture?
     var rayTracingAccumTexture: [MTLTexture] = []
-    
+
     // debugger textures
-    
+
     var tonemapTexture: MTLTexture?
     var blurDebugTextures: MTLTexture?
     var colorGradingTexture: MTLTexture?
     var colorCorrectionTexture: MTLTexture?
     var blurTextureHor: MTLTexture?
     var blurTextureVer: MTLTexture?
-    var bloomThresholdTextuture : MTLTexture?
-    var bloomCompositeTexture : MTLTexture?
+    var bloomThresholdTextuture: MTLTexture?
+    var bloomCompositeTexture: MTLTexture?
     var vignetteTexture: MTLTexture?
     var chromaticAberrationTexture: MTLTexture?
     var depthOfFieldTexture: MTLTexture?

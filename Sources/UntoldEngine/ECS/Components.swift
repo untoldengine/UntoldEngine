@@ -21,7 +21,7 @@ public class LocalTransformComponent: Component {
     var rotationX: Float = 0
     var rotationY: Float = 0
     var rotationZ: Float = 0
-    
+
     var scale: simd_float3 = .one
 
     public required init() {}
@@ -183,7 +183,7 @@ public class AreaLightComponent: Component {
     var right: simd_float3 = .zero
     var up: simd_float3 = .zero
     var twoSided: Bool = false
-    
+
     public required init() {}
 }
 
@@ -222,6 +222,6 @@ public class SceneCameraComponent: Component {
     public required init() {}
 }
 
-public class GizmoComponent: Component{
+public class GizmoComponent: Component {
     public required init() {}
 }

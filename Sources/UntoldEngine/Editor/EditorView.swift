@@ -47,23 +47,23 @@ public struct EditorView: View {
                 VStack {
                     SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
                     TransformManipulationToolbar(controller: editorController!, showAssetBrowser: $showAssetBrowser)
-                    if showAssetBrowser{
+                    if showAssetBrowser {
                         AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset, editor_addEntityWithAsset: editor_addEntityWithAsset)
                     }
                 }
-                
+
                 TabView {
                     EnvironmentView(selectedAsset: $selectedAsset)
                         .tabItem {
                             Label("Environment", systemImage: "sun.max")
                         }
-                    
-                        PostProcessingEditorView()
+
+                    PostProcessingEditorView()
                         .tabItem {
                             Label("Effects", systemImage: "cube")
                         }
-                    
-                        InspectorView(selectionManager: selectionManager, sceneGraphModel: sceneGraphModel, onAddName_Editor: editor_addName, selectedAsset: $selectedAsset)
+
+                    InspectorView(selectionManager: selectionManager, sceneGraphModel: sceneGraphModel, onAddName_Editor: editor_addName, selectedAsset: $selectedAsset)
                         .tabItem {
                             Label("Inspector", systemImage: "cube")
                         }
@@ -229,12 +229,10 @@ public struct EditorView: View {
     }
 
     private func editor_addEntityWithAsset() {
-        
         editor_addNewEntity()
 
         let filename = selectedAsset?.path.deletingPathExtension().lastPathComponent
         let withExtension = selectedAsset?.path.pathExtension
         setEntityMesh(entityId: selectionManager.selectedEntity!, filename: filename!, withExtension: withExtension!)
-
     }
 }

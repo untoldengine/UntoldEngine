@@ -75,9 +75,9 @@ struct LightData: Codable {
     var intensity: Float = 1.0
     var falloff: Float = 0.5
     var coneAngle: Float = 30.0
-    var forward: simd_float3 = simd_float3(0.0, 0.0, -1.0)    // Normal vector of the light's surface
-    var right: simd_float3 = simd_float3(1.0, 0.0, 0.0)      // Right vector defining the surface orientation
-    var up: simd_float3 = simd_float3(0.0, 1.0, 0.0)         // Up vector defining the surface orientation
+    var forward: simd_float3 = .init(0.0, 0.0, -1.0) // Normal vector of the light's surface
+    var right: simd_float3 = .init(1.0, 0.0, 0.0) // Right vector defining the surface orientation
+    var up: simd_float3 = .init(0.0, 1.0, 0.0) // Up vector defining the surface orientation
     var bounds: simd_float2 = .one
     var twoSided: Bool = false
 }
@@ -167,28 +167,27 @@ func serializeScene() -> SceneData {
             let metallicValue: Float = getMaterialMetallic(entityId: entityId)
             let emissiveValue: simd_float3 = getMaterialEmmissive(entityId: entityId)
 
-            
             var baseColorURL: URL?
             var roughnessURL: URL?
             var metallicURL: URL?
             var normalURL: URL?
-            
-            if let baseColorTexture: URL = getMaterialTextureURL(entityId: entityId, type: .baseColor){
+
+            if let baseColorTexture: URL = getMaterialTextureURL(entityId: entityId, type: .baseColor) {
                 baseColorURL = baseColorTexture
             }
-            
-            if let roughnessTexture: URL = getMaterialTextureURL(entityId: entityId, type: .roughness){
+
+            if let roughnessTexture: URL = getMaterialTextureURL(entityId: entityId, type: .roughness) {
                 roughnessURL = roughnessTexture
             }
-           
-            if let metallicTexture: URL = getMaterialTextureURL(entityId: entityId, type: .metallic){
-               metallicURL = metallicTexture
+
+            if let metallicTexture: URL = getMaterialTextureURL(entityId: entityId, type: .metallic) {
+                metallicURL = metallicTexture
             }
-            
-            if let normalTexture: URL = getMaterialTextureURL(entityId: entityId, type: .normal){
+
+            if let normalTexture: URL = getMaterialTextureURL(entityId: entityId, type: .normal) {
                 normalURL = normalTexture
             }
-            
+
             entityData.materialData = MaterialData(baseColorValue: baseColor, emissiveValue: emissiveValue, roughnessValue: roughnessValue, metallicValue: metallicValue, baseColorURL: baseColorURL, roughnessURL: roughnessURL, metallicURL: metallicURL, normalURL: normalURL)
         }
 
@@ -267,13 +266,12 @@ func serializeScene() -> SceneData {
             entityData.lightData?.coneAngle = getLightConeAngle(entityId: entityId)
         }
 
-        // Area light properties 
+        // Area light properties
         let hasAreaLight: Bool = hasComponent(entityId: entityId, componentType: AreaLightComponent.self)
 
-        if hasAreaLight{
-            
+        if hasAreaLight {
             entityData.hasAreaLightComponent = hasAreaLight
-            
+
             entityData.lightData = LightData()
 
             entityData.lightData?.color = getLightColor(entityId: entityId)
@@ -287,14 +285,12 @@ func serializeScene() -> SceneData {
             entityData.lightData?.up = getUpAxisVector(entityId: entityId)
 
             var (width, height, _) = getDimension(entityId: entityId)
-            
+
             entityData.lightData?.bounds = simd_float2(width, height)
-            
-            if let areaLightComponent = scene.get(component: AreaLightComponent.self, for: entityId){
-                
+
+            if let areaLightComponent = scene.get(component: AreaLightComponent.self, for: entityId) {
                 entityData.lightData?.twoSided = areaLightComponent.twoSided
             }
-
         }
 
         // Camera properties
@@ -491,24 +487,22 @@ func deserializeScene(sceneData: SceneData) {
                 updateMaterialRoughness(entityId: entityId, roughness: roughnessValue)
                 updateMaterialMetallic(entityId: entityId, metallic: metallicValue)
                 updateMaterialEmmisive(entityId: entityId, emmissive: emissiveValue)
-                
-                if let baseColorURL = materialData.baseColorURL{
+
+                if let baseColorURL = materialData.baseColorURL {
                     updateMaterialTexture(entityId: entityId, textureType: .baseColor, path: baseColorURL)
                 }
-                
-                if let roughnessURL = materialData.roughnessURL{
+
+                if let roughnessURL = materialData.roughnessURL {
                     updateMaterialTexture(entityId: entityId, textureType: .roughness, path: roughnessURL)
                 }
-                
-                if let metallicURL = materialData.metallicURL{
+
+                if let metallicURL = materialData.metallicURL {
                     updateMaterialTexture(entityId: entityId, textureType: .metallic, path: metallicURL)
-   
                 }
-                
-                if let normalURL = materialData.normalURL{
+
+                if let normalURL = materialData.normalURL {
                     updateMaterialTexture(entityId: entityId, textureType: .normal, path: normalURL)
                 }
-                
             }
         }
 
@@ -639,7 +633,6 @@ func deserializeScene(sceneData: SceneData) {
             }
         }
 
-         
         if sceneDataEntity.hasAreaLightComponent == true {
             if let light = sceneDataEntity.lightData {
                 let color: simd_float3 = light.color
@@ -649,7 +642,7 @@ func deserializeScene(sceneData: SceneData) {
                 let up = light.up
                 let bounds = light.bounds
                 let twoSided = light.twoSided
-                
+
                 createAreaLight(entityId: entityId)
 
                 guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {

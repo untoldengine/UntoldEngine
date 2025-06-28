@@ -9,16 +9,13 @@ import simd
 import SwiftUI
 
 func addIBL(asset: Asset?) {
-
     let selectedCategory: AssetCategory = .hdr
-    
-    if let asset = asset, selectedCategory.rawValue == asset.category{
-        
+
+    if let asset, selectedCategory.rawValue == asset.category {
         let filename = asset.path.lastPathComponent
         let directoryURL = asset.path.deletingLastPathComponent()
         generateHDR(filename, from: directoryURL)
     }
-    
 }
 
 @available(macOS 12.0, *)
@@ -121,13 +118,11 @@ struct EnvironmentView: View {
     }
 }
 
-
 struct ColorGradingEditorView: View {
     @ObservedObject var settings = ColorGradingParams.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            
             Text("Exposure")
             Slider(value: $settings.exposure, in: -5.0 ... 5.0)
             Text(String(format: "%.2f", settings.exposure))
@@ -153,7 +148,6 @@ struct WhiteBalanceEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-
             Text("Temperature")
             Slider(value: $settings.temperature, in: -100.0 ... 100.0)
             Text(String(format: "%.2f", settings.temperature))
@@ -189,7 +183,6 @@ struct BloomEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            
             Toggle(isOn: $settings.enabled) {
                 Text("Enable Bloom")
             }
@@ -201,7 +194,6 @@ struct BloomEditorView: View {
             Text("Intensity")
             Slider(value: $settings.intensity, in: 0.0 ... 100.0)
             Text(String(format: "%.2f", settings.intensity))
-
         }
         .padding()
     }
@@ -212,7 +204,6 @@ struct VignetteEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            
             Toggle(isOn: $settings.enabled) {
                 Text("Enable Vignette")
             }
@@ -228,13 +219,12 @@ struct VignetteEditorView: View {
             Text("Softness")
             Slider(value: $settings.softness, in: 0.0 ... 1.0)
             Text(String(format: "%.2f", settings.softness))
-            
+
 //            TextInputVectorView(label: "Center", value: Binding(
 //                get: { settings.center },
 //                set: { newCenter in
 //                    settings.center = newCenter
 //                }))
-
         }
         .padding()
     }
@@ -245,7 +235,6 @@ struct ChromaticAberrationEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            
             Toggle(isOn: $settings.enabled) {
                 Text("Enable Chromatic Aberration")
             }
@@ -259,7 +248,6 @@ struct ChromaticAberrationEditorView: View {
 //                set: { newCenter in
 //                    settings.center = newCenter
 //                }))
-
         }
         .padding()
     }
@@ -270,7 +258,6 @@ struct DepthOfFieldEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            
             Toggle(isOn: $settings.enabled) {
                 Text("Enable Depth of Field")
             }
@@ -286,7 +273,6 @@ struct DepthOfFieldEditorView: View {
             Text("Max Blur")
             Slider(value: $settings.maxBlur, in: 0.0 ... 0.05)
             Text(String(format: "%.4f", settings.maxBlur))
-
         }
         .padding()
     }
@@ -297,7 +283,6 @@ struct SSAOEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            
             Toggle(isOn: $settings.enabled) {
                 Text("Enable SSAO")
             }
@@ -313,7 +298,6 @@ struct SSAOEditorView: View {
             Text("Intensity")
             Slider(value: $settings.intensity, in: 0.0 ... 2.0)
             Text(String(format: "%.2f", settings.intensity))
-
         }
         .padding()
     }
@@ -333,36 +317,34 @@ struct PostProcessingEditorView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                
-                DisclosureGroup("Depth of Field", isExpanded: $showDoF){
+                DisclosureGroup("Depth of Field", isExpanded: $showDoF) {
                     DepthOfFieldEditorView()
                 }
-                
-                DisclosureGroup("Chromatic Aberration", isExpanded: $showChromatic){
+
+                DisclosureGroup("Chromatic Aberration", isExpanded: $showChromatic) {
                     ChromaticAberrationEditorView()
                 }
-                
+
                 DisclosureGroup("Bloom", isExpanded: $showBloom) {
                     BloomEditorView()
                 }
-                
+
                 DisclosureGroup("Color Grading", isExpanded: $showColorGrading) {
                     ColorGradingEditorView()
                 }
-                
+
                 DisclosureGroup("WhiteBalance", isExpanded: $showWhiteBalance) {
                     WhiteBalanceEditorView()
                 }
 
-                DisclosureGroup("Vignette", isExpanded: $showVignette){
+                DisclosureGroup("Vignette", isExpanded: $showVignette) {
                     VignetteEditorView()
                 }
-                
-  
+
 //                DisclosureGroup("SSAO", isExpanded: $showSSAO){
 //                    SSAOEditorView()
 //                }
-//                
+//
                 DisclosureGroup("Debug", isExpanded: $showDebugPostProccessTexture) {
                     DebuggerEditorView()
                 }
@@ -371,7 +353,6 @@ struct PostProcessingEditorView: View {
         }
     }
 }
-
 
 struct DebuggerEditorView: View {
     @ObservedObject var settings = DebugSettings.shared

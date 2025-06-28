@@ -75,17 +75,17 @@ func newAccelerationStructure(
 func createAccelerationStructures(_: Bool) {
     let transformId = getComponentId(for: WorldTransformComponent.self)
     let renderId = getComponentId(for: RenderComponent.self)
-    
+
     var entities: [EntityID] = []
-    
+
     // only ray cast gizmo components
-    if gizmoActive{
+    if gizmoActive {
         let gizmoId = getComponentId(for: GizmoComponent.self)
         entities = queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
-    }else{
+    } else {
         entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
     }
-    
+
     // Iterate over the entities found by the component query
     for (i, entityId) in entities.enumerated() {
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {

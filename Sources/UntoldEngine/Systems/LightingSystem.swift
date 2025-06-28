@@ -37,12 +37,12 @@ public struct SpotLight {
 public struct AreaLight {
     var position: simd_float3 = .init(0.0, 0.0, 0.0) // Center position of the area light
     var color: simd_float3 = .init(1.0, 1.0, 1.0) // Light color
-    var forward: simd_float3 = simd_float3(0.0, 0.0, -1.0)    // Normal vector of the light's surface
-    var right: simd_float3 = simd_float3(1.0, 0.0, 0.0)      // Right vector defining the surface orientation
-    var up: simd_float3 = simd_float3(0.0, 1.0, 0.0)         // Up vector defining the surface orientation
+    var forward: simd_float3 = .init(0.0, 0.0, -1.0) // Normal vector of the light's surface
+    var right: simd_float3 = .init(1.0, 0.0, 0.0) // Right vector defining the surface orientation
+    var up: simd_float3 = .init(0.0, 1.0, 0.0) // Up vector defining the surface orientation
     var bounds: simd_float2 = .one
     var intensity: Float = 1.0 // Light intensity
-    var twoSided: Bool = false                               // Whether the light emits from both sides
+    var twoSided: Bool = false // Whether the light emits from both sides
 }
 
 public func createDirLight(entityId: EntityID) {
@@ -61,7 +61,7 @@ public func createDirLight(entityId: EntityID) {
     lightComponent.lightType = .directional
 
     applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, 45.0, 0.0))
-    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0,1.0,1.0))
+    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0, 1.0, 1.0))
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "directional_light_icon_256x256", withExtension: "png")
 
@@ -86,7 +86,7 @@ public func createPointLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .point
-    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0,1.0,1.0))
+    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0, 1.0, 1.0))
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "point_light_icon_256x256", withExtension: "png")
@@ -112,7 +112,7 @@ public func createSpotLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .spotlight
-    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0,1.0,1.0))
+    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0, 1.0, 1.0))
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "spot_light_icon_256x256", withExtension: "png")
@@ -138,7 +138,7 @@ public func createAreaLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .area
-    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0,1.0,1.0))
+    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0, 1.0, 1.0))
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "spot_light_icon_256x256", withExtension: "png")
@@ -629,7 +629,7 @@ func getAreaLights() -> [AreaLight] {
         areaLight.right = getRightAxisVector(entityId: entity)
         areaLight.up = getUpAxisVector(entityId: entity)
         var (width, height, _) = getDimension(entityId: entity)
-        areaLight.bounds = simd_float2(width,height)
+        areaLight.bounds = simd_float2(width, height)
         areaLight.twoSided = areaLightComponent.twoSided
         areaLights.append(areaLight)
     }
@@ -656,22 +656,19 @@ func getAreaLightCount() -> Int {
     return areaLightCount
 }
 
-func handleLightScaleInput(projectedAmount: Float, axis: simd_float3){
-        
-        if let pointLightComponent = scene.get(component: PointLightComponent.self, for: activeEntity){
-            pointLightComponent.radius += projectedAmount
-        }
-        
-        if let spotLightComponent = scene.get(component: SpotLightComponent.self, for: activeEntity){
-            
-            spotLightComponent.coneAngle += projectedAmount*10.0
-        }
-        
-        if scene.get(component: AreaLightComponent.self, for: activeEntity) != nil{
-            let scale: simd_float3 = getScale(entityId: activeEntity)
-            let newScale: simd_float3 = axis*projectedAmount + scale;
-            
-            scaleTo(entityId: activeEntity, scale: newScale)
-        }
-            
+func handleLightScaleInput(projectedAmount: Float, axis: simd_float3) {
+    if let pointLightComponent = scene.get(component: PointLightComponent.self, for: activeEntity) {
+        pointLightComponent.radius += projectedAmount
     }
+
+    if let spotLightComponent = scene.get(component: SpotLightComponent.self, for: activeEntity) {
+        spotLightComponent.coneAngle += projectedAmount * 10.0
+    }
+
+    if scene.get(component: AreaLightComponent.self, for: activeEntity) != nil {
+        let scale: simd_float3 = getScale(entityId: activeEntity)
+        let newScale: simd_float3 = axis * projectedAmount + scale
+
+        scaleTo(entityId: activeEntity, scale: newScale)
+    }
+}
