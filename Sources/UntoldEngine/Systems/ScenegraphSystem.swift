@@ -33,9 +33,17 @@ func updateTransformSystem(entityId: EntityID) {
         }
 
         worldTransformComponent.space = simd_mul(parentWorldTransformComponent.space, localTransformComponent.space)
+        
+        let scaleMatrix = float4x4(scale: localTransformComponent.scale)
+        
+        worldTransformComponent.space = simd_mul(worldTransformComponent.space, scaleMatrix)
 
     } else {
         worldTransformComponent.space = localTransformComponent.space
+        
+        let scaleMatrix = float4x4(scale: localTransformComponent.scale)
+        
+        worldTransformComponent.space = simd_mul(worldTransformComponent.space, scaleMatrix)
     }
 }
 

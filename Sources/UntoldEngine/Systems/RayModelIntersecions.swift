@@ -103,9 +103,7 @@ func createAccelerationStructures(_: Bool) {
             continue
         }
 
-        let scaleMatrix = float4x4(scale: localTransformComponent.scale)
-
-        let finalTransform = simd_mul(worldTransform.space, scaleMatrix)
+        let finalTransform = worldTransform.space
 
         // 1. Create a geometry descriptor
         var geometryDescriptors: [MTLAccelerationStructureGeometryDescriptor] = []
