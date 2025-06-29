@@ -98,6 +98,15 @@ func createAccelerationStructures(_: Bool) {
             continue
         }
 
+        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+            handleError(.noLocalTransformComponent, entityId)
+            continue
+        }
+
+        let scaleMatrix = float4x4(scale: localTransformComponent.scale)
+
+        let finalTransform = simd_mul(worldTransform.space, scaleMatrix)
+
         // 1. Create a geometry descriptor
         var geometryDescriptors: [MTLAccelerationStructureGeometryDescriptor] = []
 
@@ -115,16 +124,16 @@ func createAccelerationStructures(_: Bool) {
         }
 
         let column0: MTLPackedFloat3 = MTLPackedFloat3Make(
-            worldTransform.space.columns.0.x, worldTransform.space.columns.0.y, worldTransform.space.columns.0.z
+            finalTransform.columns.0.x, finalTransform.columns.0.y, finalTransform.columns.0.z
         )
         let column1: MTLPackedFloat3 = MTLPackedFloat3Make(
-            worldTransform.space.columns.1.x, worldTransform.space.columns.1.y, worldTransform.space.columns.1.z
+            finalTransform.columns.1.x, finalTransform.columns.1.y, finalTransform.columns.1.z
         )
         let column2: MTLPackedFloat3 = MTLPackedFloat3Make(
-            worldTransform.space.columns.2.x, worldTransform.space.columns.2.y, worldTransform.space.columns.2.z
+            finalTransform.columns.2.x, finalTransform.columns.2.y, finalTransform.columns.2.z
         )
         let column3: MTLPackedFloat3 = MTLPackedFloat3Make(
-            worldTransform.space.columns.3.x, worldTransform.space.columns.3.y, worldTransform.space.columns.3.z
+            finalTransform.columns.3.x, finalTransform.columns.3.y, finalTransform.columns.3.z
         )
 
         let localSpace = MTLPackedFloat4x3(
