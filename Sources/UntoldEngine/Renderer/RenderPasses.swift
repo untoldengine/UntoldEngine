@@ -1128,15 +1128,18 @@ enum RenderPasses {
 
         renderEncoder.setFrontFacing(.counterClockwise)
 
-        if let t = scene.get(component: LocalTransformComponent.self, for: activeEntity), scene.get(component: RenderComponent.self, for: activeEntity) != nil {
+        if let worldTransform = scene.get(component: WorldTransformComponent.self, for: activeEntity), scene.get(component: RenderComponent.self, for: activeEntity) != nil {
+            
             renderEncoder.setVertexBytes(
                 &cameraComponent.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 1
             )
+            
             renderEncoder.setVertexBytes(
                 &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2
             )
+            
             renderEncoder.setVertexBytes(
-                &t.space, length: MemoryLayout<matrix_float4x4>.stride, index: 3
+                &worldTransform.space, length: MemoryLayout<matrix_float4x4>.stride, index: 3
             )
 
             var scale: Float = 1.2

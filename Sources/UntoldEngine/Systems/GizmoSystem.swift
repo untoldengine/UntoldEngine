@@ -22,7 +22,7 @@ func createGizmo(name: String) {
 
     setEntityMesh(entityId: parentEntityIdGizmo, filename: name, withExtension: "usdc")
 
-    translateTo(entityId: parentEntityIdGizmo, position: getLocalPosition(entityId: activeEntity))
+    translateTo(entityId: parentEntityIdGizmo, position: getPosition(entityId: activeEntity))
     for child in getEntityChildren(parentId: parentEntityIdGizmo) {
         registerComponent(entityId: child, componentType: GizmoComponent.self)
     }

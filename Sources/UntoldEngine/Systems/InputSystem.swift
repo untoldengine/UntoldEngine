@@ -334,11 +334,14 @@ public class InputSystem {
         editorController?.activeMode = .none
         editorController?.activeAxis = .none
         activeHitGizmoEntity = .invalid
+        
         if hit {
             activeEntity = entityId
 
-            guard let t = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
-            updateBoundingBoxBuffer(min: t.boundingBox.min, max: t.boundingBox.max)
+            guard let localTransform = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
+           
+            let scale: simd_float3 = localTransform.scale
+            updateBoundingBoxBuffer(min: localTransform.boundingBox.min*scale, max: localTransform.boundingBox.max*scale)
 
             selectionDelegate?.didSelectEntity(activeEntity)
             selectionDelegate?.resetActiveAxis()
