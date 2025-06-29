@@ -300,3 +300,4 @@ class DebugSettings: ObservableObject {
 var gizmoActive: Bool = false
 var activeHitGizmoEntity: EntityID = .invalid
 var parentEntityIdGizmo: EntityID = .invalid
+var baseGizmoSize: Float = 0.1

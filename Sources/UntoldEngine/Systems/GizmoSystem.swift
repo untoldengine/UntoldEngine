@@ -26,6 +26,15 @@ func createGizmo(name: String) {
     for child in getEntityChildren(parentId: parentEntityIdGizmo) {
         registerComponent(entityId: child, componentType: GizmoComponent.self)
     }
+    
+    let distanceToCamera = length(getCameraPosition(entityId: getMainCamera()) - getPosition(entityId: parentEntityIdGizmo))
+    
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: parentEntityIdGizmo)else{
+        handleError(.noLocalTransformComponent, parentEntityIdGizmo)
+        return
+    }
+    
+    localTransformComponent.scale = localTransformComponent.scale * distanceToCamera * baseGizmoSize
 
     gizmoActive = true
 }
