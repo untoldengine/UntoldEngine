@@ -340,8 +340,7 @@ public class InputSystem {
 
             guard let localTransform = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
            
-            let scale: simd_float3 = localTransform.scale
-            updateBoundingBoxBuffer(min: localTransform.boundingBox.min*scale, max: localTransform.boundingBox.max*scale)
+            updateBoundingBoxBuffer(min: localTransform.boundingBox.min, max: localTransform.boundingBox.max)
 
             selectionDelegate?.didSelectEntity(activeEntity)
             selectionDelegate?.resetActiveAxis()
