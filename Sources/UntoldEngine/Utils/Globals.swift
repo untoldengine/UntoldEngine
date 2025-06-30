@@ -301,3 +301,5 @@ var gizmoActive: Bool = false
 var activeHitGizmoEntity: EntityID = .invalid
 var parentEntityIdGizmo: EntityID = .invalid
 var baseGizmoSize: Float = 0.1
+
+var spawnDistance: Float = 2.0
