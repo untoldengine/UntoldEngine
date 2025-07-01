@@ -312,9 +312,7 @@ func initRenderPassDescriptors() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         colorAttachments: [
-            (textureResources.bloomCompositeTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.normalMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.positionMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.bloomCompositeTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0))
         ],
         depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
     )
@@ -1027,7 +1025,7 @@ func initRenderPipelines() {
         vertexShader: "vertexTonemappingShader",
         fragmentShader: "fragmentTonemappingShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Tone-mapping Pipeline"
@@ -1039,7 +1037,7 @@ func initRenderPipelines() {
         vertexShader: "vertexBlurShader",
         fragmentShader: "fragmentBlurShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Blur Pipeline"
@@ -1051,7 +1049,7 @@ func initRenderPipelines() {
         vertexShader: "vertexColorGradingShader",
         fragmentShader: "fragmentColorGradingShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "ColorGrading Pipeline"
@@ -1063,7 +1061,7 @@ func initRenderPipelines() {
         vertexShader: "vertexColorCorrectionShader",
         fragmentShader: "fragmentColorCorrectionShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Color Correction Pipeline"
@@ -1076,7 +1074,7 @@ func initRenderPipelines() {
         vertexShader: "vertexBloomThresholdShader",
         fragmentShader: "fragmentBloomThresholdShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Bloom Threshold Pipeline"
@@ -1089,7 +1087,7 @@ func initRenderPipelines() {
         vertexShader: "vertexBloomCompositeShader",
         fragmentShader: "fragmentBloomCompositeShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         blendEnabled: true,
@@ -1103,7 +1101,7 @@ func initRenderPipelines() {
         vertexShader: "vertexVignetteShader",
         fragmentShader: "fragmentVignetteShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Vignette Pipeline"
@@ -1116,7 +1114,7 @@ func initRenderPipelines() {
         vertexShader: "vertexChromaticAberrationShader",
         fragmentShader: "fragmentChromaticAberrationShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Chromatic Aberration Pipeline"
@@ -1129,7 +1127,7 @@ func initRenderPipelines() {
         vertexShader: "vertexDepthOfFieldShader",
         fragmentShader: "fragmentDepthOfFieldShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Depth of Field Pipeline"
@@ -1142,7 +1140,7 @@ func initRenderPipelines() {
         vertexShader: "vertexSSAOShader",
         fragmentShader: "fragmentSSAOShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "SSAO Pipeline"

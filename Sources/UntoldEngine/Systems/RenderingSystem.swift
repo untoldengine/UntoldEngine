@@ -129,7 +129,7 @@ func buildGameModeGraph() -> RenderGraphResult {
     graph[bloomThresholdPass.id] = bloomThresholdPass
 
     // define params for the blur pass
-    let blurPassCount = 2
+    let blurPassCount = BloomThresholdParams.shared.enabled ? 2:0
     let blurRadius: Float = 4.0
 
     var previousPassID = bloomThresholdPass.id
@@ -183,7 +183,7 @@ func buildGameModeGraph() -> RenderGraphResult {
 
     graph[vignettePass.id] = vignettePass
 
-    let preCompPass = RenderPass(id: "precomp", dependencies: [colorgradingPass.id], execute: RenderPasses.preCompositeExecution)
+    let preCompPass = RenderPass(id: "precomp", dependencies: [vignettePass.id], execute: RenderPasses.preCompositeExecution)
     graph[preCompPass.id] = preCompPass
 
     return (graph, preCompPass.id)
