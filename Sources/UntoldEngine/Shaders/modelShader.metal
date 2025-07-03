@@ -40,7 +40,7 @@ float computeShadow(float4 shadowCoords, depth2d<float> shadowTexture, float3 no
             shadow += (currentDepth - bias) > sampledDepth ? 0.3 : 1.0;
         }
     shadow/=poissonSamples;
-    shadow = mix(0.3, 1.0, shadow);
+    //shadow = mix(0.3, 1.0, shadow);
     return shadow;
 }
 
@@ -366,6 +366,7 @@ fragment FragmentModelOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                           roughness,
                                           metallic);
 
+    indirectLighting = ACESFilmicToneMapping(indirectLighting);
     // Compute BRDF
     float3 brdf=float3(0.0);
 
