@@ -300,6 +300,9 @@ class DebugSettings: ObservableObject {
 var gizmoActive: Bool = false
 var activeHitGizmoEntity: EntityID = .invalid
 var parentEntityIdGizmo: EntityID = .invalid
-var baseGizmoSize: Float = 0.1
+
+var baseGizmoScaleFactor: Float = 2.0
+let minGizmoScale: Float = 0.5
+let maxGizmoScale: Float = 5.0
 
 var spawnDistance: Float = 2.0

@@ -12,6 +12,10 @@ func createGizmo(name: String) {
     if parentEntityIdGizmo != .invalid {
         destroyEntity(entityId: parentEntityIdGizmo)
     }
+    
+    if activeEntity == .invalid{
+        return
+    }
 
     // create parent gizmo entity
     parentEntityIdGizmo = createEntity()
@@ -34,7 +38,15 @@ func createGizmo(name: String) {
         return
     }
     
-    localTransformComponent.scale = localTransformComponent.scale * distanceToCamera * baseGizmoSize
+    let desiredScale = baseGizmoScaleFactor / distanceToCamera
+
+    let clampedScale = simd_clamp(
+        simd_float3(repeating: desiredScale),
+        simd_float3(repeating: minGizmoScale),
+        simd_float3(repeating: maxGizmoScale)
+    )
+
+    localTransformComponent.scale = clampedScale
 
     gizmoActive = true
 }
