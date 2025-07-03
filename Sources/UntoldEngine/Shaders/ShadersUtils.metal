@@ -195,7 +195,7 @@ float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal
 float3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap) 
 {
     
-    float metallic=(materialParam.hasTexture.z==1)?metallicMap:materialParam.metallic;
+    float metallic=metallicMap;
 
     float NoL = max(dot(surfaceNormal, incomingLightDir), 0.001);
 
@@ -208,8 +208,8 @@ float3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfac
                   
 float3 computeSpecBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap)
 {
-    float roughness=(materialParam.hasTexture.y==1)?roughnessMap:materialParam.roughness;
-    float metallic=(materialParam.hasTexture.z==1)?metallicMap:materialParam.metallic;
+    float roughness=roughnessMap;
+    float metallic=metallicMap;
 
     float4 edgeTint=materialParam.edgeTint;
 
