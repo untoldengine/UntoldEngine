@@ -22,7 +22,8 @@ vertex VertexCompositeOutput vertexPreCompositeShader(VertexCompositeIn in [[sta
 fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[stage_in]],
                                         texture2d<float> finalTexture[[texture(0)]],
                                         texture2d<float> gridTexture[[texture(1)]],
-                                        depth2d<float> depthTexture [[texture(2)]]){
+                                        depth2d<float> depthTexture [[texture(2)]],
+                                        texture2d<float> gizmoTexture [[texture(3)]]){
 
     constexpr sampler s(min_filter::linear,mag_filter::linear);
 
@@ -30,6 +31,14 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
     //if(depth==1.0) return gridTexture.sample(s, vertexOut.uvCoords);
 
     float4 color=finalTexture.sample(s, vertexOut.uvCoords);
+    
+    float3 gizmoColor = gizmoTexture.sample(s, vertexOut.uvCoords).rgb;
+    
+    float gizmoLumen = getLuminance(gizmoColor);
+    
+    if(gizmoLumen > 0.1){
+        return float4(gizmoColor, 1.0);
+    }
     
     return color;
 }

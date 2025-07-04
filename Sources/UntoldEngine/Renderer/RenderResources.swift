@@ -23,6 +23,7 @@ public struct RenderInfo {
     var offscreenRenderPassDescriptor: MTLRenderPassDescriptor!
     var postProcessRenderPassDescriptor: MTLRenderPassDescriptor!
     var shadowRenderPassDescriptor: MTLRenderPassDescriptor!
+    var gizmoRenderPassDescriptor: MTLRenderPassDescriptor!
     var iblOffscreenRenderPassDescriptor: MTLRenderPassDescriptor!
     var colorPixelFormat: MTLPixelFormat!
     var depthPixelFormat: MTLPixelFormat!
@@ -125,6 +126,11 @@ public struct TextureResources {
     // Area texture ltc_1
     var areaTextureLTCMag: MTLTexture?
     var areaTextureLTCMat: MTLTexture?
+    
+    // Gizmo
+    var gizmoColorTexture: MTLTexture?
+    var gizmoDepthTexture: MTLTexture?
+    
 }
 
 public struct AccelStructResources {

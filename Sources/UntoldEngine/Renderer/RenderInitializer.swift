@@ -316,6 +316,14 @@ func initRenderPassDescriptors() {
         ],
         depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
     )
+    
+    // Gizmo Render Pass
+    renderInfo.gizmoRenderPassDescriptor = createRenderPassDescriptor(
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        colorAttachments: [(textureResources.gizmoColorTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0))],
+        depthAttachment: (textureResources.gizmoDepthTexture, .dontCare, .store, nil)
+    )
 }
 
 func initTextureResources() {
@@ -493,8 +501,29 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+   
+    // Gizmo Textures
+    textureResources.gizmoDepthTexture = createTexture(
+        device: renderInfo.device,
+        label: "Gizmo Depth Texture",
+        pixelFormat: renderInfo.depthPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .shared
+    )
+    
+    textureResources.gizmoColorTexture = createTexture(
+        device: renderInfo.device,
+        label: "Gizmo Color Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
 
-    // Area light textures 
+    // Area light textures
 //    textureResources.areaTextureLTCMag = try? loadTexture(device: renderInfo.device, textureName: "ltc_mag", withExtension: "png")
 //
 //    textureResources.areaTextureLTCMat = try? loadTexture(device: renderInfo.device, textureName: "ltc_mat", withExtension: "png")
@@ -936,10 +965,8 @@ func initRenderPipelines() {
         vertexShader: "vertexGizmoShader",
         fragmentShader: "fragmentGizmoShader",
         vertexDescriptor: createGizmoVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
-        depthCompareFunction: .always,
-        depthEnabled: false,
         name: "Gizmo Pipeline"
     ) {
         gizmoPipeline = gizmoPipe

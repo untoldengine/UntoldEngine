@@ -703,16 +703,12 @@ enum RenderPasses {
             handleError(.noActiveCamera)
             return
         }
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-            .loadAction = .load
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-            .loadAction = .load
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-            .loadAction = .load
+        renderInfo.gizmoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+            .loadAction = .clear
 
-        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+        renderInfo.gizmoRenderPassDescriptor.depthAttachment.loadAction = .clear
 
-        let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor!
+        let encoderDescriptor = renderInfo.gizmoRenderPassDescriptor!
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
@@ -727,7 +723,7 @@ enum RenderPasses {
 
         renderEncoder.setRenderPipelineState(gizmoPipeline.pipelineState!)
         renderEncoder.setDepthStencilState(gizmoPipeline.depthState)
-
+        renderEncoder.setDepthBias(0.01, slopeScale: 1.0, clamp: 0.0)
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
         // Create a component query for entities with both Transform and Render components
@@ -1223,10 +1219,14 @@ enum RenderPasses {
             renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
             renderInfo.offscreenRenderPassDescriptor.colorAttachments[0]
                 .loadAction = .load
+            
+            renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].loadAction = .load
         } else {
             renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
             renderInfo.postProcessRenderPassDescriptor.colorAttachments[0]
                 .loadAction = .load
+            
+            renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].loadAction = .clear
         }
 
         // set your encoder here
@@ -1271,6 +1271,8 @@ enum RenderPasses {
                 renderInfo.postProcessRenderPassDescriptor.depthAttachment.texture, index: 2
             )
         }
+        
+        renderEncoder.setFragmentTexture(renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].texture, index: 3)
 
         // set the draw command
 
