@@ -750,7 +750,12 @@ enum RenderPasses {
                 handleError(.noLocalTransformComponent, entityId)
                 continue
             }
+            
+            let distanceToCamera = length(getCameraPosition(entityId: getMainCamera()) - getPosition(entityId: parentEntityIdGizmo))
+    
+            let worldScale = (distanceToCamera*tan(fov*0.5)) * (gizmoDesiredScreenSize/renderInfo.viewPort.y)
 
+            localTransformComponent.scale = simd_float3(repeating: worldScale)
             for mesh in renderComponent.mesh {
                 // update uniforms
                 var modelUniforms = Uniforms()

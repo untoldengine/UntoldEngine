@@ -301,8 +301,6 @@ var gizmoActive: Bool = false
 var activeHitGizmoEntity: EntityID = .invalid
 var parentEntityIdGizmo: EntityID = .invalid
 
-var baseGizmoScaleFactor: Float = 2.0
-let minGizmoScale: Float = 0.5
-let maxGizmoScale: Float = 5.0
+let gizmoDesiredScreenSize: Float = 500.0 // pixels
 
 var spawnDistance: Float = 2.0

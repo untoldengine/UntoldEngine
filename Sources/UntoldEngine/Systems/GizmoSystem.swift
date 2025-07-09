@@ -31,23 +31,6 @@ func createGizmo(name: String) {
         registerComponent(entityId: child, componentType: GizmoComponent.self)
     }
     
-    let distanceToCamera = length(getCameraPosition(entityId: getMainCamera()) - getPosition(entityId: parentEntityIdGizmo))
-    
-    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: parentEntityIdGizmo)else{
-        handleError(.noLocalTransformComponent, parentEntityIdGizmo)
-        return
-    }
-    
-    let desiredScale = baseGizmoScaleFactor / distanceToCamera
-
-    let clampedScale = simd_clamp(
-        simd_float3(repeating: desiredScale),
-        simd_float3(repeating: minGizmoScale),
-        simd_float3(repeating: maxGizmoScale)
-    )
-
-    localTransformComponent.scale = clampedScale
-
     gizmoActive = true
 }
 
@@ -72,9 +55,6 @@ func processGizmoAction(entityId: EntityID) {
         editorController!.activeAxis = .x
         editorController!.activeMode = .rotate
     } else if getEntityName(entityId: entityId) == "zAxisRotate" {
-        if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
-            return
-        }
         editorController!.activeAxis = .z
         editorController!.activeMode = .rotate
     } else if getEntityName(entityId: entityId) == "xAxisScale" {
