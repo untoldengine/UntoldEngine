@@ -338,6 +338,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                     applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
                     
                 }
+                editorController.refreshInspector()
 
             case (.scale, .y) where inputSystem.mouseActive:
                 let axisWorldDir = simd_float3(0.0, 1.0, 0.0)
@@ -351,6 +352,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                     applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
 
                 }
+                editorController.refreshInspector()
 
             case (.scale, .z) where inputSystem.mouseActive:
                 let axisWorldDir = simd_float3(0.0, 0.0, 1.0)
@@ -364,6 +366,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                     applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
 
                 }
+                editorController.refreshInspector()
 
             // default
             default:
