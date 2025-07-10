@@ -270,11 +270,6 @@ enum RenderPasses {
 
                 var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
 
-                let scaleMatrix = float4x4(scale: localTransformComponent.scale)
-
-                modelMatrix = simd_mul(modelMatrix, scaleMatrix)
-                // modelMatrix=simd_mul(usdRotation, modelMatrix)
-
                 let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 
                 let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
