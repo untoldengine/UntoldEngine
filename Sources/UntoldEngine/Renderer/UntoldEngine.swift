@@ -217,6 +217,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 handleError(.noActiveCamera)
                 return
             }
+            
+            guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: activeEntity) else {
+                handleError(.noLocalTransformComponent)
+                return
+            }
 
             switch (editorController.activeMode, editorController.activeAxis) {
             // Translate
@@ -323,44 +328,41 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             // scale
             case (.scale, .x) where inputSystem.mouseActive:
                 let axisWorldDir = simd_float3(1.0, 0.0, 0.0)
-
+                
                 let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
 
                 if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
                     handleLightScaleInput(projectedAmount: projectedAmount, axis: axisWorldDir)
                 } else {
-                    let scale: simd_float3 = getScale(entityId: activeEntity)
-                    let newScale = simd_float3(1.0, 0.0, 0.0) * projectedAmount + scale
-
-                    scaleTo(entityId: activeEntity, scale: newScale)
+                    
+                    applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
+                    
                 }
 
             case (.scale, .y) where inputSystem.mouseActive:
                 let axisWorldDir = simd_float3(0.0, 1.0, 0.0)
-
+                
                 let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
 
                 if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
                     handleLightScaleInput(projectedAmount: projectedAmount, axis: axisWorldDir)
                 } else {
-                    let scale: simd_float3 = getScale(entityId: activeEntity)
-                    let newScale = simd_float3(0.0, 1.0, 0.0) * projectedAmount + scale
 
-                    scaleTo(entityId: activeEntity, scale: newScale)
+                    applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
+
                 }
 
             case (.scale, .z) where inputSystem.mouseActive:
                 let axisWorldDir = simd_float3(0.0, 0.0, 1.0)
-
+                
                 let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
 
                 if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
                     handleLightScaleInput(projectedAmount: projectedAmount, axis: axisWorldDir)
                 } else {
-                    let scale: simd_float3 = getScale(entityId: activeEntity)
-                    let newScale = simd_float3(0.0, 0.0, 1.0) * projectedAmount + scale
+                    
+                    applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
 
-                    scaleTo(entityId: activeEntity, scale: newScale)
                 }
 
             // default

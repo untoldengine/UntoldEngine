@@ -766,3 +766,27 @@ func computeRotationAngleFromGizmo(
 
     return angle * sensitivity // positive = CCW, negative = CW
 }
+
+func applyWorldSpaceScaleDelta(
+    entityId: EntityID,
+    worldAxis: simd_float3,
+    projectedAmount: Float
+) {
+    guard var localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+
+    // Convert world axis into the object's local space
+    let worldToLocal = simd_transpose(transformQuaternionToMatrix3x3(q: localTransform.rotation))
+    let localAxis = normalize(simd_mul(worldToLocal, worldAxis))
+
+    // Apply the projected amount to the corresponding local scale components
+    var scale = localTransform.scale
+    scale += localAxis * projectedAmount
+
+    // Optional: Clamp to prevent flipping or collapse
+    scale = simd_max(scale, simd_float3(repeating: 0.01))
+
+    scaleTo(entityId: entityId, scale: scale)
+}
