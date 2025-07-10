@@ -772,21 +772,39 @@ func applyWorldSpaceScaleDelta(
     worldAxis: simd_float3,
     projectedAmount: Float
 ) {
-    guard var localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
         return
     }
 
     // Convert world axis into the object's local space
     let worldToLocal = simd_transpose(transformQuaternionToMatrix3x3(q: localTransform.rotation))
-    let localAxis = normalize(simd_mul(worldToLocal, worldAxis))
+    let localAxisUnnormalized = simd_mul(worldToLocal, worldAxis)
+    let localAxis = normalize(localAxisUnnormalized)
 
-    // Apply the projected amount to the corresponding local scale components
+    // Determine dominant local axis component (x, y, or z)
+    let absLocalAxis = simd_abs(localAxisUnnormalized)
+    let dominantIndex: Int
+    if absLocalAxis.x > absLocalAxis.y && absLocalAxis.x > absLocalAxis.z {
+        dominantIndex = 0
+    } else if absLocalAxis.y > absLocalAxis.z {
+        dominantIndex = 1
+    } else {
+        dominantIndex = 2
+    }
+
+    // Flip projectedAmount if axis points in negative local direction
+    let dominantComponent = localAxisUnnormalized[dominantIndex]
+    let signCorrection: Float = dominantComponent < 0 ? -1.0 : 1.0
+    let signedProjectedAmount = projectedAmount * signCorrection
+
+    // Apply the corrected scale delta
     var scale = localTransform.scale
-    scale += localAxis * projectedAmount
+    scale += localAxis * signedProjectedAmount
 
-    // Optional: Clamp to prevent flipping or collapse
+    // Clamp to prevent collapse
     scale = simd_max(scale, simd_float3(repeating: 0.01))
 
     scaleTo(entityId: entityId, scale: scale)
 }
+
