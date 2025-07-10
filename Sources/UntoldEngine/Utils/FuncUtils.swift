@@ -155,16 +155,12 @@ public func basicFollow(_ entityId: EntityID, _ offset: simd_float3, _: Float) {
         return
     }
     // get the transform for the entity
-    guard let t = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         return
     }
 
-    let position = simd_float3(
-        t.space.columns.3.x,
-        t.space.columns.3.y,
-        t.space.columns.3.z
-    )
-
+    let position = localTransformComponent.position
+    
     guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
         handleError(.noActiveCamera)
         return

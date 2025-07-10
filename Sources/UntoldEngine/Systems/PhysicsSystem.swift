@@ -326,7 +326,7 @@ private func rungeKuttaIntegration(entityId: EntityID, deltaTime: Float) {
     var position = getLocalPosition(entityId: entityId)
     position = position + velocityDelta
 
-    transform.space.columns.3 = simd_float4(position.x, position.y, position.z, 1.0)
+    transform.position = simd_float3(position.x, position.y, position.z)
 
     // update angular velocity and orientation
     let k1av: simd_float3 = (physics.angularAcceleration) * deltaTime
@@ -339,8 +339,7 @@ private func rungeKuttaIntegration(entityId: EntityID, deltaTime: Float) {
     // update angular velocity
     physics.angularVelocity = physics.angularVelocity + angularAccelerationDelta
 
-    let orientationMatrix: simd_float3x3 = getLocalOrientation(entityId: entityId)
-    var mQuat: simd_quatf = transformMatrix3nToQuaternion(m: orientationMatrix)
+    var mQuat: simd_quatf = transform.rotation
 
     let k1q = quaternionDerivative(q: mQuat, omega: physics.angularVelocity) * deltaTime
     let k2q = quaternionDerivative(q: mQuat + k1q * 0.5, omega: physics.angularVelocity) * deltaTime
@@ -351,11 +350,7 @@ private func rungeKuttaIntegration(entityId: EntityID, deltaTime: Float) {
 
     mQuat = simd_normalize(mQuat)
 
-    let m: simd_float3x3 = transformQuaternionToMatrix3x3(q: mQuat)
-
-    transform.space.columns.0 = simd_float4(m.columns.0, 0.0)
-    transform.space.columns.1 = simd_float4(m.columns.1, 0.0)
-    transform.space.columns.2 = simd_float4(m.columns.2, 0.0)
+    transform.rotation = mQuat
 }
 
 private func eulerIntegration(deltaTime: Float) {
@@ -386,9 +381,8 @@ private func eulerIntegration(deltaTime: Float) {
         var position = getPosition(entityId: entity)
         position += physics.velocity * deltaTime
 
-        transform.space.columns.3.x = position.x
-        transform.space.columns.3.y = position.y
-        transform.space.columns.3.z = position.z
+        transform.position = simd_float3(position.x, position.y, position.z)
+        
     }
 }
 

@@ -442,11 +442,13 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
 
     let boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
 
-    localTransformComponent.space = meshes[0].worldSpace
-
-    // calculate the rotation axis
-    let quaternion = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(meshes[0].worldSpace))
-    let euler = transformQuaternionToEulerAngles(q: quaternion)
+    localTransformComponent.position = simd_float3(meshes[0].worldSpace.columns.3.x, meshes[0].worldSpace.columns.3.y, meshes[0].worldSpace.columns.3.z)
+    
+    localTransformComponent.scale = .one
+    
+    localTransformComponent.rotation = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(meshes[0].worldSpace))
+    
+    let euler = transformQuaternionToEulerAngles(q: localTransformComponent.rotation)
 
     localTransformComponent.rotationX = euler.pitch
     localTransformComponent.rotationY = euler.yaw

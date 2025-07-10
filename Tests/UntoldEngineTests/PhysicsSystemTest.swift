@@ -196,9 +196,9 @@ final class PhysicsSystemTests: XCTestCase {
 
         let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
 
-        let position = simd_float3(transformComponent!.space.columns.3.x,
-                                   transformComponent!.space.columns.3.y,
-                                   transformComponent!.space.columns.3.z)
+        let position = simd_float3(transformComponent!.position.x,
+                                   transformComponent!.position.y,
+                                   transformComponent!.position.z)
 
         let expectedPosition = simd_float3(2.5, 0.0, 0)
 
@@ -256,9 +256,7 @@ final class PhysicsSystemTests: XCTestCase {
 
         let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
 
-        let position = simd_float3(transformComponent!.space.columns.3.x,
-                                   transformComponent!.space.columns.3.y,
-                                   transformComponent!.space.columns.3.z)
+        let position = simd_float3(transformComponent!.position)
 
         let expectedPosition = simd_float3(2.16, 0.0, 0)
 
@@ -288,6 +286,7 @@ final class PhysicsSystemTests: XCTestCase {
         while t < 1.0 {
             applyMoment(entityId: entityId, force: simd_float3(2.0, 0.0, 0.0), at: simd_float3(0.0, 1.0, 0.0))
             updatePhysicsSystem(deltaTime: 0.001)
+            updateTransformSystem(entityId: entityId)
             t += 0.001
         }
 
@@ -315,6 +314,7 @@ final class PhysicsSystemTests: XCTestCase {
         while t < 1.0 {
             applyMoment(entityId: entityId, force: simd_float3(2.0, 0.0, 0.0), at: simd_float3(0.0, 1.0, 0.0))
             updatePhysicsSystem(deltaTime: 0.001)
+            updateTransformSystem(entityId: entityId)
             t += 0.001
         }
 
@@ -341,8 +341,9 @@ final class PhysicsSystemTests: XCTestCase {
         var t: Float = 0.0
         while t < 1.0 {
             applyMoment(entityId: entityId, force: simd_float3(2.0, 0.0, 0.0), at: simd_float3(0.0, 1.0, 0.0))
-            updatePhysicsSystem(deltaTime: 0.001)
-            t += 0.001
+            updatePhysicsSystem(deltaTime: 0.0001)
+            updateTransformSystem(entityId: entityId)
+            t += 0.0001
         }
 
         /* answer
@@ -352,18 +353,20 @@ final class PhysicsSystemTests: XCTestCase {
             0.0000000,  0.0000000,  1.0000000 ]
 
          */
+        
+        let m = transformQuaternionToMatrix3x3(q: transform.rotation)
 
-        XCTAssertEqual(transform.space.columns.0.x, 0.3153591, accuracy: 0.1, "component should match")
-        XCTAssertEqual(transform.space.columns.0.y, -0.9489724, accuracy: 0.1, "component should match")
-        XCTAssertEqual(transform.space.columns.0.z, 0.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(m.columns.0.x, 0.3153591, accuracy: 0.1, "component should match")
+        XCTAssertEqual(m.columns.0.y, -0.9489724, accuracy: 0.1, "component should match")
+        XCTAssertEqual(m.columns.0.z, 0.0, accuracy: 0.3, "component should match")
 
-        XCTAssertEqual(transform.space.columns.1.x, 0.9489724, accuracy: 0.1, "component should match")
-        XCTAssertEqual(transform.space.columns.1.y, 0.3153591, accuracy: 0.1, "component should match")
-        XCTAssertEqual(transform.space.columns.1.z, 0.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(m.columns.1.x, 0.9489724, accuracy: 0.1, "component should match")
+        XCTAssertEqual(m.columns.1.y, 0.3153591, accuracy: 0.1, "component should match")
+        XCTAssertEqual(m.columns.1.z, 0.0, accuracy: 0.3, "component should match")
 
-        XCTAssertEqual(transform.space.columns.2.x, 0.0, accuracy: 0.3, "component should match")
-        XCTAssertEqual(transform.space.columns.2.y, 0.0, accuracy: 0.3, "component should match")
-        XCTAssertEqual(transform.space.columns.2.z, 1.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(m.columns.2.x, 0.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(m.columns.2.y, 0.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(m.columns.2.z, 1.0, accuracy: 0.3, "component should match")
     }
 
     // MARK: Moment with drag
@@ -388,6 +391,7 @@ final class PhysicsSystemTests: XCTestCase {
         while t < 1.0 {
             applyMoment(entityId: entityId, force: simd_float3(2.0, 0.0, 0.0), at: simd_float3(0.0, 1.0, 0.0))
             updatePhysicsSystem(deltaTime: 0.001)
+            updateTransformSystem(entityId: entityId)
             t += 0.001
         }
 
@@ -416,6 +420,7 @@ final class PhysicsSystemTests: XCTestCase {
         while t < 1.0 {
             applyMoment(entityId: entityId, force: simd_float3(2.0, 0.0, 0.0), at: simd_float3(0.0, 1.0, 0.0))
             updatePhysicsSystem(deltaTime: 0.001)
+            updateTransformSystem(entityId: entityId)
             t += 0.001
         }
 
@@ -444,6 +449,7 @@ final class PhysicsSystemTests: XCTestCase {
         while t < 1.0 {
             applyMoment(entityId: entityId, force: simd_float3(2.0, 0.0, 0.0), at: simd_float3(0.0, 1.0, 0.0))
             updatePhysicsSystem(deltaTime: 0.001)
+            updateTransformSystem(entityId: entityId)
             t += 0.001
         }
 
@@ -454,17 +460,19 @@ final class PhysicsSystemTests: XCTestCase {
             0.0000000,  0.0000000,  1.0000000 ]
 
          */
+        
+        let m = transformQuaternionToMatrix3x3(q: transform.rotation)
 
-        XCTAssertEqual(transform.space.columns.0.x, 0.7130201, accuracy: 0.1, "component should match")
-        XCTAssertEqual(transform.space.columns.0.y, -0.7011435, accuracy: 0.1, "component should match")
-        XCTAssertEqual(transform.space.columns.0.z, 0.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(m.columns.0.x, 0.7130201, accuracy: 0.1, "component should match")
+        XCTAssertEqual(m.columns.0.y, -0.7011435, accuracy: 0.1, "component should match")
+        XCTAssertEqual(m.columns.0.z, 0.0, accuracy: 0.3, "component should match")
 
-        XCTAssertEqual(transform.space.columns.1.x, 0.7011435, accuracy: 0.1, "component should match")
-        XCTAssertEqual(transform.space.columns.1.y, 0.7130201, accuracy: 0.1, "component should match")
-        XCTAssertEqual(transform.space.columns.1.z, 0.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(m.columns.1.x, 0.7011435, accuracy: 0.1, "component should match")
+        XCTAssertEqual(m.columns.1.y, 0.7130201, accuracy: 0.1, "component should match")
+        XCTAssertEqual(m.columns.1.z, 0.0, accuracy: 0.3, "component should match")
 
-        XCTAssertEqual(transform.space.columns.2.x, 0.0, accuracy: 0.3, "component should match")
-        XCTAssertEqual(transform.space.columns.2.y, 0.0, accuracy: 0.3, "component should match")
-        XCTAssertEqual(transform.space.columns.2.z, 1.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(m.columns.2.x, 0.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(m.columns.2.y, 0.0, accuracy: 0.3, "component should match")
+        XCTAssertEqual(m.columns.2.z, 1.0, accuracy: 0.3, "component should match")
     }
 }

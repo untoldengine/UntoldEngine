@@ -12,6 +12,10 @@ import MetalKit
 import simd
 
 public class LocalTransformComponent: Component {
+    var position: simd_float3 = .zero
+    var rotation: simd_quatf = .init()
+    var scale: simd_float3 = .one
+
     var space: simd_float4x4 = .identity
 
     var boundingBox: (min: simd_float3, max: simd_float3) = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
@@ -21,8 +25,6 @@ public class LocalTransformComponent: Component {
     var rotationX: Float = 0
     var rotationY: Float = 0
     var rotationZ: Float = 0
-
-    var scale: simd_float3 = .one
 
     public required init() {}
 }

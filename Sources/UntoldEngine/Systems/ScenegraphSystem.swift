@@ -13,7 +13,7 @@ func updateTransformSystem(entityId: EntityID) {
         handleError(.noLocalTransformComponent, entityId)
         return
     }
-
+    
     guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
         handleError(.noWorldTransformComponent, entityId)
         return
@@ -23,7 +23,13 @@ func updateTransformSystem(entityId: EntityID) {
         handleError(.noScenegraphComponent, entityId)
         return
     }
+    
+    let T = matrix4x4Translation(localTransformComponent.position.x, localTransformComponent.position.y, localTransformComponent.position.z)
+    let R = getMatrix4x4FromQuaternion(q: localTransformComponent.rotation)
+    let S = matrix4x4Scale(localTransformComponent.scale.x, localTransformComponent.scale.y, localTransformComponent.scale.z)
 
+    localTransformComponent.space = T * R * S
+    
     if scenegraphComponent.parent != EntityID.invalid {
         let parent = scenegraphComponent.parent
 
@@ -34,16 +40,9 @@ func updateTransformSystem(entityId: EntityID) {
 
         worldTransformComponent.space = simd_mul(parentWorldTransformComponent.space, localTransformComponent.space)
         
-        let scaleMatrix = float4x4(scale: localTransformComponent.scale)
-        
-        worldTransformComponent.space = simd_mul(worldTransformComponent.space, scaleMatrix)
-
     } else {
         worldTransformComponent.space = localTransformComponent.space
         
-        let scaleMatrix = float4x4(scale: localTransformComponent.scale)
-        
-        worldTransformComponent.space = simd_mul(worldTransformComponent.space, scaleMatrix)
     }
 }
 
@@ -65,8 +64,8 @@ public func setParent(childId: EntityID, parentId: EntityID, offset: simd_float3
     }
 
     // set position the entity will be with respect to the parent
-    localTransformComponent.space.columns.3 += simd_float4(offset, 0.0)
-
+    localTransformComponent.position += offset
+    
     let currentLevel = parentScenegraphComponent.level
     scenegraphComponent.parent = parentId
     scenegraphComponent.level = currentLevel + 1
@@ -95,8 +94,13 @@ public func removeParent(childId: EntityID) {
     }
 
     // set the current local tranform of the ball to the world transform before the detachment
-    localTransformComponent.space = worldTransformComponent.space
-
+    
+    localTransformComponent.position = simd_float3(worldTransformComponent.space.columns.3.x, worldTransformComponent.space.columns.3.y, worldTransformComponent.space.columns.3.z)
+    
+    localTransformComponent.scale = simd_float3(worldTransformComponent.space.columns.0.x, worldTransformComponent.space.columns.1.y, worldTransformComponent.space.columns.2.z)
+    
+    localTransformComponent.rotation = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(worldTransformComponent.space))
+    
     // does it have a parent?
     let currentLevel = scenegraphComponent.level
 

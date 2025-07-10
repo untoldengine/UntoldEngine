@@ -53,9 +53,9 @@ final class SceneGraphTests: XCTestCase {
 
         let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: childEntity)
 
-        XCTAssertEqual(localTransformComponent?.space.columns.3.x, 2.0, "local x transformation should be equal to x-offset")
-        XCTAssertEqual(localTransformComponent?.space.columns.3.y, 1.0, "local y transformation should be equal to y-offset")
-        XCTAssertEqual(localTransformComponent?.space.columns.3.z, 4.0, "local z transformation should be equal to z-offset")
+        XCTAssertEqual(localTransformComponent?.position.x, 2.0, "local x transformation should be equal to x-offset")
+        XCTAssertEqual(localTransformComponent?.position.y, 1.0, "local y transformation should be equal to y-offset")
+        XCTAssertEqual(localTransformComponent?.position.z, 4.0, "local z transformation should be equal to z-offset")
 
         let parentScenegraph = scene.get(component: ScenegraphComponent.self, for: rootEntity)
         let index = parentScenegraph?.children[0]
@@ -80,9 +80,9 @@ final class SceneGraphTests: XCTestCase {
         XCTAssertEqual(childScenegraph?.level, 0)
 
         // Test if local transformation was set to world transformation
-        XCTAssertEqual(localTransformComponent?.space.columns.3.x, 2.0, "local x transformation should be equal to x-offset")
-        XCTAssertEqual(localTransformComponent?.space.columns.3.y, 1.0, "local y transformation should be equal to y-offset")
-        XCTAssertEqual(localTransformComponent?.space.columns.3.z, 4.0, "local z transformation should be equal to z-offset")
+        XCTAssertEqual(localTransformComponent?.position.x, 2.0, "local x transformation should be equal to x-offset")
+        XCTAssertEqual(localTransformComponent?.position.y, 1.0, "local y transformation should be equal to y-offset")
+        XCTAssertEqual(localTransformComponent?.position.z, 4.0, "local z transformation should be equal to z-offset")
 
         let parentScenegraph = scene.get(component: ScenegraphComponent.self, for: rootEntity)
 
@@ -110,16 +110,16 @@ final class SceneGraphTests: XCTestCase {
     // MARK: - World Transform Update Tests
 
     func testUpdateTransformSystemWithoutParent() {
-        let localTransform = simd_float4x4(translation: simd_float3(1, 2, 3))
+        let position:simd_float3 = simd_float3(1, 2, 3)
 
         let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: rootEntity)
 
-        localTransformComponent?.space = localTransform
+        localTransformComponent?.position = position
 
         updateTransformSystem(entityId: rootEntity)
 
         let worldTransform = scene.get(component: WorldTransformComponent.self, for: rootEntity)?.space
-        XCTAssertEqual(worldTransform, localTransform)
+        XCTAssertEqual(worldTransform, localTransformComponent?.space)
     }
 
     func testUpdateTransformSystemWithParent() {

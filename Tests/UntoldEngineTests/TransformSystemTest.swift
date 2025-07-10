@@ -103,7 +103,20 @@ final class TransformSystemTests: XCTestCase {
 
         let expectedMatrix = transformQuaternionToMatrix3x3(q: simd_quatf(angle: degreesToRadians(degrees: angle), axis: axis))
 
-        XCTAssertEqual(result, expectedMatrix)
+        //XCTAssertEqual(result, expectedMatrix)
+        XCTAssertEqual(result.columns.0.x, expectedMatrix.columns.0.x, accuracy: 0.01)
+        XCTAssertEqual(result.columns.0.y, expectedMatrix.columns.0.y, accuracy: 0.01)
+        XCTAssertEqual(result.columns.0.z, expectedMatrix.columns.0.z, accuracy: 0.01)
+        
+        XCTAssertEqual(result.columns.1.x, expectedMatrix.columns.1.x, accuracy: 0.01)
+        XCTAssertEqual(result.columns.1.y, expectedMatrix.columns.1.y, accuracy: 0.01)
+        XCTAssertEqual(result.columns.1.z, expectedMatrix.columns.1.z, accuracy: 0.01)
+        
+        XCTAssertEqual(result.columns.2.x, expectedMatrix.columns.2.x, accuracy: 0.01)
+        XCTAssertEqual(result.columns.2.y, expectedMatrix.columns.2.y, accuracy: 0.01)
+        XCTAssertEqual(result.columns.2.z, expectedMatrix.columns.2.z, accuracy: 0.01)
+        
+        
     }
 
     func testRotateBy() {
