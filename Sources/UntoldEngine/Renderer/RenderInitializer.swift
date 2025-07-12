@@ -983,6 +983,20 @@ func initRenderPipelines() {
     ) {
         geometryPipeline = geometryPipe
     }
+    
+    // Highlight Pipeline
+    if let highlightPipe = createPipeline(
+        vertexShader: "vertexGeometryShader",
+        fragmentShader: "fragmentGeometryShader",
+        vertexDescriptor: createGeometryVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .always,
+        depthEnabled: false,
+        name: "Highlight Pipeline"
+    ) {
+        hightlightPipeline = highlightPipe
+    }
 
     // Light Visual Pipeline
     if let lightVisual = createPipeline(

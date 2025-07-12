@@ -71,18 +71,18 @@ func buildEditModeGraph() -> RenderGraphResult {
         id: "model", dependencies: [basePassID], execute: RenderPasses.modelExecution
     )
     graph[modelPass.id] = modelPass
-
-    let highlightPass = RenderPass(
-        id: "highlight", dependencies: [modelPass.id], execute: RenderPasses.highlightExecution
+    
+    let outlinePass = RenderPass(
+        id: "outline", dependencies: [modelPass.id], execute: RenderPasses.highlightExecution
     )
-    graph[highlightPass.id] = highlightPass
+    graph[outlinePass.id] = outlinePass
 
-    let gizmoPass = RenderPass(id: "gizmo", dependencies: [highlightPass.id], execute: RenderPasses.gizmoExecution)
+    let gizmoPass = RenderPass(id: "gizmo", dependencies: [outlinePass.id], execute: RenderPasses.gizmoExecution)
 
     graph[gizmoPass.id] = gizmoPass
 
     let preCompPass = RenderPass(
-        id: "precomp", dependencies: [highlightPass.id], execute: RenderPasses.preCompositeExecution
+        id: "precomp", dependencies: [modelPass.id,gizmoPass.id], execute: RenderPasses.preCompositeExecution
     )
     graph[preCompPass.id] = preCompPass
 

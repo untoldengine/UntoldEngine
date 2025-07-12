@@ -78,7 +78,7 @@ var lightingPipeline = RenderPipeline()
 var geometryPipeline = RenderPipeline()
 var lightVisualPipeline = RenderPipeline()
 var rayCompositePipeline = RenderPipeline()
-
+var hightlightPipeline = RenderPipeline()
 // gizmo
 var gizmoPipeline = RenderPipeline()
 

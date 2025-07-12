@@ -690,6 +690,10 @@ enum RenderPasses {
 
     static let gizmoExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
+        if activeEntity == .invalid{
+            return
+        }
+        
         if gizmoPipeline.success == false {
             handleError(.pipelineStateNulled, gizmoPipeline.name!)
             return
@@ -699,10 +703,10 @@ enum RenderPasses {
             return
         }
         renderInfo.gizmoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-            .loadAction = .clear
+            .loadAction = .load
 
         renderInfo.gizmoRenderPassDescriptor.depthAttachment.loadAction = .clear
-
+        
         let encoderDescriptor = renderInfo.gizmoRenderPassDescriptor!
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
@@ -1070,7 +1074,32 @@ enum RenderPasses {
     static let highlightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
         if activeEntity == .invalid {
+            renderInfo.gizmoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+                .loadAction = .clear
+
+            renderInfo.gizmoRenderPassDescriptor.depthAttachment.loadAction = .clear
+
+            let encoderDescriptor = renderInfo.gizmoRenderPassDescriptor!
+            
+            guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+            else {
+                handleError(.renderPassCreationFailed, "Highlight Pass")
+
+                return
+            }
+
+            renderEncoder.label = "Highlight Pass"
+
+            renderEncoder.pushDebugGroup("Highlight Pass")
+            
+            renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+            
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+            
             return
+            
         }
 
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
@@ -1078,21 +1107,17 @@ enum RenderPasses {
             return
         }
 
-        if geometryPipeline.success == false {
-            handleError(.pipelineStateNulled, geometryPipeline.name!)
+        if hightlightPipeline.success == false {
+            handleError(.pipelineStateNulled, hightlightPipeline.name!)
             return
         }
+        
+        renderInfo.gizmoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+            .loadAction = .clear
 
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-            .loadAction = .load
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-            .loadAction = .load
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-            .loadAction = .load
+        renderInfo.gizmoRenderPassDescriptor.depthAttachment.loadAction = .clear
 
-        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
-
-        let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor!
+        let encoderDescriptor = renderInfo.gizmoRenderPassDescriptor!
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
@@ -1105,9 +1130,9 @@ enum RenderPasses {
 
         renderEncoder.pushDebugGroup("Highlight Pass")
 
-        renderEncoder.setRenderPipelineState(geometryPipeline.pipelineState!)
+        renderEncoder.setRenderPipelineState(hightlightPipeline.pipelineState!)
 
-        renderEncoder.setDepthStencilState(geometryPipeline.depthState)
+        renderEncoder.setDepthStencilState(hightlightPipeline.depthState)
 
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
