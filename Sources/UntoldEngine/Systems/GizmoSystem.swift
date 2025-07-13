@@ -9,12 +9,17 @@ import Foundation
 import simd
 
 func createGizmo(name: String) {
+    var gizmoName: String = name
     if parentEntityIdGizmo != .invalid {
         destroyEntity(entityId: parentEntityIdGizmo)
     }
     
     if activeEntity == .invalid{
         return
+    }
+    
+    if hasComponent(entityId: activeEntity, componentType: LightComponent.self){
+        gizmoName = "translateGizmo_light"
     }
 
     // create parent gizmo entity
@@ -24,11 +29,17 @@ func createGizmo(name: String) {
     registerSceneGraphComponent(entityId: parentEntityIdGizmo)
     registerComponent(entityId: parentEntityIdGizmo, componentType: GizmoComponent.self)
 
-    setEntityMesh(entityId: parentEntityIdGizmo, filename: name, withExtension: "usdc")
+    setEntityMesh(entityId: parentEntityIdGizmo, filename: gizmoName, withExtension: "usdc")
 
     translateTo(entityId: parentEntityIdGizmo, position: getPosition(entityId: activeEntity))
     for child in getEntityChildren(parentId: parentEntityIdGizmo) {
         registerComponent(entityId: child, componentType: GizmoComponent.self)
+    }
+    
+    if hasComponent(entityId: activeEntity, componentType: LightComponent.self){
+        let forward = getForwardAxisVector(entityId: activeEntity) * -1.0
+        let position = getPosition(entityId: parentEntityIdGizmo) + forward
+        translateTo(entityId: findEntity(name: "directionHandle")!, position: position)
     }
     
     gizmoActive = true
@@ -66,7 +77,10 @@ func processGizmoAction(entityId: EntityID) {
     } else if getEntityName(entityId: entityId) == "zAxisScale" {
         editorController!.activeAxis = .z
         editorController!.activeMode = .scale
-    } else {
+    } else if getEntityName(entityId: entityId) == "directionHandle"{
+        editorController!.activeMode = .lightRotate
+        editorController!.activeAxis = .none
+    }else {
         activeHitGizmoEntity = .invalid
         editorController?.activeMode = .none
         editorController?.activeAxis = .none

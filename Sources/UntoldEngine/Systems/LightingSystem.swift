@@ -60,7 +60,7 @@ public func createDirLight(entityId: EntityID) {
 
     lightComponent.lightType = .directional
 
-    applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, 45.0, 0.0))
+    //applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, 45.0, 0.0))
     updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0, 1.0, 1.0))
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "directional_light_icon_256x256", withExtension: "png")
@@ -172,15 +172,7 @@ func getDirectionalLightParameters() -> LightParameters {
             continue
         }
 
-        let axisOfRotation = getAxisRotations(entityId: entity)
-
-        let rotX = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.x), axis: [1, 0, 0])
-        let rotY = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.y), axis: [0, 1, 0])
-        let rotZ = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.z), axis: [0, 0, 1])
-
-        let rotationMatrix = rotZ * rotY * rotX
-        let forward = normalize(simd_mul(rotationMatrix, simd_float4(0, 0, 1, 0)))
-
+        let forward = getForwardAxisVector(entityId: entity)
         lightDirection = simd_float3(forward.x, forward.y, forward.z)
         lightIntensity = lightComponent.intensity
         lightColor = lightComponent.color
@@ -511,15 +503,7 @@ func getSpotLights() -> [SpotLight] {
         }
 
         // get orientation
-        let axisOfRotation = getAxisRotations(entityId: entity)
-
-        let rotX = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.x), axis: [1, 0, 0])
-        let rotY = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.y), axis: [0, 1, 0])
-        let rotZ = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.z), axis: [0, 0, 1])
-
-        let rotationMatrix = rotZ * rotY * rotX
-        let forward = normalize(simd_mul(rotationMatrix, simd_float4(0, 0, -1, 0)))
-
+        let forward = getForwardAxisVector(entityId: entity) * -1.0
         var spotLight = SpotLight()
         spotLight.direction = simd_float3(forward.x, forward.y, forward.z)
         spotLight.position = getLocalPosition(entityId: entity)
@@ -616,7 +600,7 @@ func getAreaLights() -> [AreaLight] {
             continue
         }
 
-        guard let localTransform = scene.get(component: LocalTransformComponent.self, for: entity) else {
+        guard scene.get(component: LocalTransformComponent.self, for: entity) != nil else {
             handleError(.noLocalTransformComponent)
             continue
         }
@@ -628,7 +612,7 @@ func getAreaLights() -> [AreaLight] {
         areaLight.forward = getForwardAxisVector(entityId: entity)
         areaLight.right = getRightAxisVector(entityId: entity)
         areaLight.up = getUpAxisVector(entityId: entity)
-        var (width, height, _) = getDimension(entityId: entity)
+        let (width, height, _) = getDimension(entityId: entity)
         areaLight.bounds = simd_float2(width, height)
         areaLight.twoSided = areaLightComponent.twoSided
         areaLights.append(areaLight)

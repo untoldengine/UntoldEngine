@@ -199,6 +199,7 @@ enum TransformManipulationMode {
     case translate
     case rotate
     case scale
+    case lightRotate
     case none
 }
 

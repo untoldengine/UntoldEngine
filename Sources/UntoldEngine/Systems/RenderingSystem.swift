@@ -66,9 +66,14 @@ func buildEditModeGraph() -> RenderGraphResult {
         graph[gridPass.id] = gridPass
         basePassID = gridPass.id
     }
+    
+    let shadowPass = RenderPass(
+        id: "shadow", dependencies: [basePassID], execute: RenderPasses.shadowExecution
+    )
+    graph[shadowPass.id] = shadowPass
 
     let modelPass = RenderPass(
-        id: "model", dependencies: [basePassID], execute: RenderPasses.modelExecution
+        id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
     )
     graph[modelPass.id] = modelPass
     

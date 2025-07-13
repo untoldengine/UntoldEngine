@@ -27,20 +27,12 @@ struct ShadowSystem {
         dirLightSpaceMatrix = nil
 
         for entity in entities {
-            guard let lightComponent = scene.get(component: DirectionalLightComponent.self, for: entity) else {
+            guard scene.get(component: DirectionalLightComponent.self, for: entity) != nil else {
                 handleError(.noDirLightComponent)
                 continue
             }
 
-            let axisOfRotation = getAxisRotations(entityId: entity)
-
-            let rotX = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.x), axis: [1, 0, 0])
-            let rotY = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.y), axis: [0, 1, 0])
-            let rotZ = matrix4x4Rotation(radians: degreesToRadians(degrees: axisOfRotation.z), axis: [0, 0, 1])
-
-            let rotationMatrix = rotZ * rotY * rotX
-
-            let forward = normalize(simd_mul(rotationMatrix, simd_float4(0, 0, -1, 0)))
+            let forward = getForwardAxisVector(entityId: entity) * -1.0
 
             let lightPosition = targetPoint - simd_float3(forward.x, forward.y, forward.z) * 100
 
