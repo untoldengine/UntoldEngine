@@ -12,10 +12,27 @@ import UntoldEngine
 
 public class DribblinComponent: Component, Codable {
     public required init() {}
-    var maxSpeed: Float = 1.0
+    var maxSpeed: Float = 5.0
     var kickSpeed: Float = 15.0
+    //var turnSpeed: Float = 10.0
     var direction: simd_float3 = .zero
 }
+
+//func getTurnSpeed(entityId: EntityID) -> Float {
+//    guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
+//        return 0.0
+//    }
+//
+//    return dribblingComponent.turnSpeed
+//}
+//
+//func setTurnSpeed(entityId: EntityID, turnSpeed: Float) {
+//    guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
+//        return
+//    }
+//
+//    dribblingComponent.turnSpeed = turnSpeed
+//}
 
 func getMaxSpeed(entityId: EntityID) -> Float {
     guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
@@ -72,6 +89,10 @@ public func dribblingSystemUpdate(deltaTime: Float) {
     guard let ball = findEntity(name: "ball") else {
         return
     }
+    
+    guard let ballComponent = scene.get(component: BallComponent.self, for: ball) else{
+        return
+    }
 
     for entity in entities {
         guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entity) else {
@@ -86,7 +107,7 @@ public func dribblingSystemUpdate(deltaTime: Float) {
             pausePhysicsComponent(entityId: entity, isPaused: true)
             return
         }
-        var newPosition = getPosition(entityId: entity)
+        var newPosition: simd_float3 = .zero
 
         if inputSystem.keyState.wPressed {
             newPosition.z += 1.0
@@ -106,9 +127,14 @@ public func dribblingSystemUpdate(deltaTime: Float) {
 
         var ballPosition: simd_float3 = getPosition(entityId: ball)
         ballPosition.y = 0.0
-//        newPosition = newPosition + ballPosition*0.1
+        //newPosition = newPosition + ballPosition*0.1
 
-        steerSeek(entityId: entity, targetPosition: newPosition, maxSpeed: dribblingComponent.maxSpeed, deltaTime: deltaTime, turnSpeed: 5.0)
+        if(simd_length(getPosition(entityId: entity) - getPosition(entityId: ball)) < 1.0){
+            ballComponent.state = .kick
+            ballComponent.velocity = simd_normalize(newPosition)
+        }
+        
+        steerSeek(entityId: entity, targetPosition: ballPosition, maxSpeed: dribblingComponent.maxSpeed, deltaTime: deltaTime, turnSpeed: 50.0)
     }
 }
 
@@ -170,6 +196,7 @@ var DribblingComponent_Editor: ComponentOption_Editor = .init(
                 if selectedId != nil {
                     var maxSpeed = getMaxSpeed(entityId: selectedId!)
                     var kickSpeed = getKickSpeed(entityId: selectedId!)
+//                    var turnSpeed = getTurnSpeed(entityId: selectedId!)
                     var playerDirection = getPlayerDirection(entityId: selectedId!)
                     Text("Dribbling Component")
                     TextInputNumberView(label: "Max Speed", value: Binding(
@@ -184,6 +211,12 @@ var DribblingComponent_Editor: ComponentOption_Editor = .init(
                             setKickSpeed(entityId: selectedId!, maxSpeed: newKickSpeed)
                             refreshView()
                         }))
+//                    TextInputNumberView(label: "Turn Speed", value: Binding(
+//                        get: { turnSpeed },
+//                        set: { newTurnSpeed in
+//                            setTurnSpeed(entityId: selectedId!, turnSpeed: newTurnSpeed)
+//                            refreshView()
+//                        }))
                     TextInputVectorView(label: "Direction", value: Binding(
                         get: { playerDirection },
                         set: { newPlayerDirection in

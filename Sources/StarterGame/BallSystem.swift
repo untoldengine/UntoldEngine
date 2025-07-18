@@ -10,13 +10,15 @@ import UntoldEngine
 
 enum BallState: Codable {
     case idle
-    case dribbling
+    case kick
+    case moving
     case decelerating
 }
 
 public class BallComponent: Component, Codable {
     var motionAccumulator: simd_float3 = .zero
-    // var state: BallState = .idle
+    var state: BallState = .idle
+    var velocity:simd_float3 = .zero
     public required init() {}
 }
 
@@ -24,46 +26,33 @@ public func ballSystemUpdate(deltaTime: Float) {
     let customId = getComponentId(for: BallComponent.self)
     let entities = queryEntitiesWithComponentIds([customId], in: scene)
 
-    guard let playerEntity: EntityID = findEntity(name: "player") else {
-        return
-    }
-
-    guard let playerComponent = scene.get(component: DribblinComponent.self, for: playerEntity) else {
-        return
-    }
-
-    let playerPosition: simd_float3 = getPosition(entityId: playerEntity)
-    let playerVelocity: simd_float3 = getVelocity(entityId: playerEntity) * playerComponent.kickSpeed
-
+   
     for entity in entities {
         guard let ballComponent = scene.get(component: BallComponent.self, for: entity) else { continue }
 
-        let ballPosition = getPosition(entityId: entity)
+        setLinearDragCoefficient(entityId: entity , coefficients: simd_float2(0.7,0.0))
+        setAngularDragCoefficient(entityId: entity, coefficients: simd_float2(0.07,0.0))
 
-        let distanceToPlayer: Float = simd_length(ballPosition - playerPosition)
-
-//        switch ballComponent.state{
-//        case .idle:
-//            if distanceToPlayer < 0.7{
-//                ballComponent.state = .dribbling
-//                applyVelocity(finalVelocity: playerVelocity, deltaTime: deltaTime, ball: entity)
-//            }
-//        case .dribbling:
-//            if distanceToPlayer >= 0.9{
-//                ballComponent.state = .decelerating
-//                decelerate(deltaTime: deltaTime, ball: entity)
-//            }
-//        case .decelerating:
-//            if(simd_length(getVelocity(entityId: entity)) < 0.1){
-//                ballComponent.state = .idle
-//            }
-//
-//        }
-        if distanceToPlayer < 1.0 {
-            applyVelocity(finalVelocity: playerVelocity, deltaTime: deltaTime, ball: entity)
-        } else {
+        switch ballComponent.state{
+        case .idle:
+            break
+            
+        case .kick:
+            ballComponent.state = .moving
+            applyVelocity(finalVelocity: ballComponent.velocity*5.0, deltaTime: deltaTime, ball: entity)
+        case .moving:
+            
+                if simd_length(getVelocity(entityId: entity)) <= 0.1 {
+                    ballComponent.state = .decelerating
+                }
+        case .decelerating:
             decelerate(deltaTime: deltaTime, ball: entity)
+            if(simd_length(getVelocity(entityId: entity)) < 0.1){
+                
+            }
+
         }
+ 
     }
 }
 
@@ -94,12 +83,12 @@ func decelerate(deltaTime: Float, ball: EntityID) {
 
     let ballDim = getDimension(entityId: ball)
     let velocity: simd_float3 = getVelocity(entityId: ball)
-    let bias: Float = 0.95
+    let bias: Float = 0.5
     let vComp: simd_float3 = velocity * (1.0 - bias)
     customComponent.motionAccumulator = customComponent.motionAccumulator * bias + vComp
 
     var force: simd_float3 = (customComponent.motionAccumulator * getMass(entityId: ball)) / deltaTime
-    force *= 0.75
+    force *= 0.15
     applyForce(entityId: ball, force: force)
 
     let upAxis = simd_float3(0.0, ballDim.depth / 2.0, 0.0)
