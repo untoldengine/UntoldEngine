@@ -143,6 +143,7 @@ public class LightTexture {
     var directional: MTLTexture?
     var point: MTLTexture?
     var spot: MTLTexture?
+    var area: MTLTexture?
 }
 
 public class LightComponent: Component {

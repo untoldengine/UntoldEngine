@@ -141,9 +141,9 @@ public func createAreaLight(entityId: EntityID) {
     updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0, 1.0, 1.0))
 
     do {
-        let texture = try loadTexture(device: renderInfo.device, textureName: "spot_light_icon_256x256", withExtension: "png")
+        let texture = try loadTexture(device: renderInfo.device, textureName: "area_light_icon_256x256", withExtension: "png")
 
-        lightComponent.texture.spot = texture
+        lightComponent.texture.area = texture
 
     } catch {
         handleError(.textureMissing)

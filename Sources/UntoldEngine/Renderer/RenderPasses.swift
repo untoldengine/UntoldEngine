@@ -528,6 +528,10 @@ enum RenderPasses {
             if hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
                 continue
             }
+            
+            if hasComponent(entityId: entityId, componentType: LightComponent.self){
+                continue
+            }
 
             // is light?
             var isLight: Bool = hasComponent(entityId: entityId, componentType: LightComponent.self)
@@ -984,19 +988,15 @@ enum RenderPasses {
             handleError(.pipelineStateNulled, lightVisualPipeline.name!)
             return
         }
-
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-            .loadAction = .load
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-            .loadAction = .load
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+        
+        renderInfo.gizmoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
             .loadAction = .load
 
-        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+        renderInfo.gizmoRenderPassDescriptor.depthAttachment.loadAction = .load
 
-        let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor!
-
-        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        let encoderDescriptor = renderInfo.gizmoRenderPassDescriptor!
+        
+       guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Light Visual Pass")
 
@@ -1055,6 +1055,8 @@ enum RenderPasses {
                 renderEncoder.setFragmentTexture(lightComponent.texture.point, index: 0)
             case .spotlight:
                 renderEncoder.setFragmentTexture(lightComponent.texture.spot, index: 0)
+            case .area:
+                renderEncoder.setFragmentTexture(lightComponent.texture.area, index: 0)
             default:
                 break
             }
@@ -1140,28 +1142,75 @@ enum RenderPasses {
 
         renderEncoder.setFrontFacing(.counterClockwise)
 
-        if let worldTransform = scene.get(component: WorldTransformComponent.self, for: activeEntity), scene.get(component: RenderComponent.self, for: activeEntity) != nil {
-            
-            renderEncoder.setVertexBytes(
-                &cameraComponent.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 1
-            )
-            
-            renderEncoder.setVertexBytes(
-                &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2
-            )
-            
-            renderEncoder.setVertexBytes(
-                &worldTransform.space, length: MemoryLayout<matrix_float4x4>.stride, index: 3
-            )
+        guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: activeEntity) else{
+            handleError(.noWorldTransformComponent)
+            return
+        }
+        
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: activeEntity) else{
+            handleError(.noRenderComponent)
+            return
+        }
+        
+        renderEncoder.setVertexBytes(
+            &cameraComponent.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 1
+        )
+        
+        renderEncoder.setVertexBytes(
+            &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2
+        )
+        
+        renderEncoder.setVertexBytes(
+            &worldTransform.space, length: MemoryLayout<matrix_float4x4>.stride, index: 3
+        )
 
-            var scale: Float = 1.2
+        var scale: simd_float3 = .one
 
-            renderEncoder.setVertexBytes(&scale, length: MemoryLayout<Float>.stride, index: 4)
 
+        if hasComponent(entityId: activeEntity, componentType: LightComponent.self){
+           
+            if let pointLightComponent = scene.get(component: PointLightComponent.self, for: activeEntity){
+                scale = simd_float3(repeating: pointLightComponent.radius)
+            }
+           
+            if let spotLightComponent = scene.get(component: SpotLightComponent.self, for: activeEntity){
+               
+                let theta = degreesToRadians(degrees: spotLightComponent.coneAngle)
+                let radius = tan(theta) * spotLightComponent.radius
+                
+                scale = simd_float3(radius, radius, spotLightComponent.radius/2.0)
+                
+            }
+            
+            renderEncoder.setVertexBytes(&scale, length: MemoryLayout<simd_float3>.stride, index: 4)
+            
+            renderEncoder.setTriangleFillMode(.lines)
+            for mesh in renderComponent.mesh {
+                renderEncoder.setVertexBuffer(
+                    mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
+                    offset: 0, index: Int(modelPassVerticesIndex.rawValue)
+                )
+                
+                for subMesh in mesh.submeshes {
+                    renderEncoder.drawIndexedPrimitives(
+                        type: subMesh.metalKitSubmesh.primitiveType,
+                        indexCount: subMesh.metalKitSubmesh.indexCount,
+                        indexType: subMesh.metalKitSubmesh.indexType,
+                        indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset
+                    )
+                }
+                
+            }
+            
+        }else{
+            scale = simd_float3(repeating: 1.2)
+            renderEncoder.setVertexBytes(&scale, length: MemoryLayout<simd_float3>.stride, index: 4)
             renderEncoder.setVertexBuffer(bufferResources.boundingBoxBuffer, offset: 0, index: 0)
-
             renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: boundingBoxVertexCount)
         }
+
+        
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
         renderEncoder.popDebugGroup()
