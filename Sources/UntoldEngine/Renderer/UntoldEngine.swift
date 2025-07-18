@@ -169,9 +169,21 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         // process Input - Handle user input before updating game states
         if gameMode == true {
             handleInputCallback?() // if game mode
-            updatePhysicsSystem(deltaTime: timeSinceLastUpdate)
+            
             updateAnimationSystem(deltaTime: timeSinceLastUpdate)
-            updateCustomSystems(deltaTime: timePassedSinceLastFrame)
+            
+            // Fixed‐timestep physics
+            physicsAccumulator += timeSinceLastUpdate
+            let maxSteps = 5
+            var steps = 0
+            while physicsAccumulator >= fixedStep && steps < maxSteps {
+                updatePhysicsSystem(deltaTime: fixedStep)
+                updateCustomSystems(deltaTime: fixedStep)
+                physicsAccumulator -= fixedStep
+                steps += 1
+            }
+            
+            
         } else {
             handleSceneInput() // if scene mode
         }

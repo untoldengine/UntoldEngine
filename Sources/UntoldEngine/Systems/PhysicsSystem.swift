@@ -28,22 +28,40 @@ public func getMass(entityId: EntityID) -> Float {
     return physics.mass
 }
 
-public func setDragCoefficient(entityId: EntityID, coefficients: simd_float2) {
+public func setLinearDragCoefficient(entityId: EntityID, coefficients: simd_float2) {
     guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
         return
     }
 
-    physics.dragCoefficients = coefficients
+    physics.linearDragCoefficients = coefficients
 }
 
-public func getDragCoefficient(entityId: EntityID) -> simd_float2 {
+public func getLinearDragCoefficient(entityId: EntityID) -> simd_float2 {
     guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
         return simd_float2(0.0, 0.0)
     }
 
-    return physics.dragCoefficients
+    return physics.linearDragCoefficients
+}
+
+public func setAngularDragCoefficient(entityId: EntityID, coefficients: simd_float2) {
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    physics.angularDragCoefficients = coefficients
+}
+
+public func getAngularDragCoefficient(entityId: EntityID) -> simd_float2 {
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return simd_float2(0.0, 0.0)
+    }
+
+    return physics.angularDragCoefficients
 }
 
 public func setGravityScale(entityId: EntityID, gravityScale: Float) {
@@ -62,6 +80,15 @@ public func getVelocity(entityId: EntityID) -> simd_float3 {
     }
 
     return physics.velocity
+}
+
+public func setVelocity(entityId: EntityID, velocity: simd_float3){
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    physicsComponent.velocity = velocity
 }
 
 public func updatePhysicsSystem(deltaTime: Float) {
@@ -154,9 +181,9 @@ func addDrag(entityId: EntityID, deltaTime _: Float) {
         return
     }
 
-    let dragCoeff = physics.dragCoefficients
-    let k1: Float = dragCoeff.x
-    let k2: Float = dragCoeff.y
+    let linearDragCoeff = physics.linearDragCoefficients
+    let k1: Float = linearDragCoeff.x
+    let k2: Float = linearDragCoeff.y
 
     var linearDrag: simd_float3
     var forceDragCoeff: Float
@@ -174,11 +201,13 @@ func addDrag(entityId: EntityID, deltaTime _: Float) {
     // moment
     var angularDrag: simd_float3
     var momentDragCoeff: Float
-
+    let angularDragCoeff = physics.angularDragCoefficients
+    let k1Theta: Float = angularDragCoeff.x
+    let k2Theta: Float = angularDragCoeff.y
     angularDrag = physics.angularVelocity
     momentDragCoeff = simd.length(angularDrag)
 
-    momentDragCoeff = k1 * momentDragCoeff + k2 * momentDragCoeff * momentDragCoeff
+    momentDragCoeff = k1Theta * momentDragCoeff + k2Theta * momentDragCoeff * momentDragCoeff
 
     angularDrag = safeNormalize(angularDrag)
     angularDrag *= -momentDragCoeff

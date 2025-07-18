@@ -305,3 +305,7 @@ var parentEntityIdGizmo: EntityID = .invalid
 let gizmoDesiredScreenSize: Float = 500.0 // pixels
 
 var spawnDistance: Float = 2.0
+
+
+let fixedStep: Float = 1.0 / 60.0
+var physicsAccumulator: Float = 0

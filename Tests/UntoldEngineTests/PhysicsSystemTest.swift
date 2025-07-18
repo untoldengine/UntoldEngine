@@ -211,7 +211,7 @@ final class PhysicsSystemTests: XCTestCase {
 
     func testLinearAccelerationWithDragForces() {
         setMass(entityId: entityId, mass: 2.0)
-        setDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.0))
+        setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.0))
 
         var t: Float = 0.0
         while t < 1.0 {
@@ -228,7 +228,7 @@ final class PhysicsSystemTests: XCTestCase {
 
     func testLinearVelocityWithDragForces() {
         setMass(entityId: entityId, mass: 2.0)
-        setDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.0))
+        setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.0))
 
         var t: Float = 0.0
         while t < 1.0 {
@@ -245,7 +245,7 @@ final class PhysicsSystemTests: XCTestCase {
 
     func testPositionWithDragForces() {
         setMass(entityId: entityId, mass: 2.0)
-        setDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.0))
+        setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.0))
 
         var t: Float = 0.0
         while t < 1.0 {
@@ -383,8 +383,8 @@ final class PhysicsSystemTests: XCTestCase {
         }
 
         physicsComponent.mass = 2.0
-        setDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
-
+        setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
+        setAngularDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9,0.9))
         localTransformComponent.boundingBox = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
 
         var t: Float = 0.0
@@ -412,8 +412,8 @@ final class PhysicsSystemTests: XCTestCase {
         }
 
         physicsComponent.mass = 2.0
-        setDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
-
+        setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
+        setAngularDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9,0.9))
         localTransformComponent.boundingBox = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
 
         var t: Float = 0.0
@@ -441,8 +441,8 @@ final class PhysicsSystemTests: XCTestCase {
         }
 
         physicsComponent.mass = 2.0
-        setDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
-
+        setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
+        setAngularDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9,0.9))
         transform.boundingBox = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
 
         var t: Float = 0.0
