@@ -129,9 +129,9 @@ func createTexture(
 
     let texture = device.makeTexture(descriptor: descriptor)
     texture?.label = label
-    
+
     DebugTextureRegistry.register(name: label, texture: texture!)
-    
+
     return texture
 }
 
@@ -306,7 +306,7 @@ func initRenderPassDescriptors() {
         ],
         depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
     )
-    
+
     // Offscreen Render Pass
     renderInfo.postProcessRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
@@ -381,7 +381,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget],
         storageMode: .shared
     )
-    
+
     // Tone Map debug texture
     textureResources.tonemapTexture = createTexture(
         device: renderInfo.device,
@@ -392,7 +392,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // Blur Map debug texture
     textureResources.blurTextureHor = createTexture(
         device: renderInfo.device,
@@ -403,7 +403,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     textureResources.blurTextureVer = createTexture(
         device: renderInfo.device,
         label: "Blur Texture Ver",
@@ -413,7 +413,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // Color grading Map debug texture
     textureResources.colorGradingTexture = createTexture(
         device: renderInfo.device,
@@ -424,7 +424,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // Color correction Map debug texture
     textureResources.colorCorrectionTexture = createTexture(
         device: renderInfo.device,
@@ -435,7 +435,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // Bloom Threshold texture
     textureResources.bloomThresholdTextuture = createTexture(
         device: renderInfo.device,
@@ -457,7 +457,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // Vignette texture
     textureResources.vignetteTexture = createTexture(
         device: renderInfo.device,
@@ -468,7 +468,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // Chromatic Aberration texture
     textureResources.chromaticAberrationTexture = createTexture(
         device: renderInfo.device,
@@ -479,7 +479,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // Depth of Field texture
     textureResources.depthOfFieldTexture = createTexture(
         device: renderInfo.device,
@@ -490,7 +490,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // SSAO texture
     textureResources.ssaoTexture = createTexture(
         device: renderInfo.device,
@@ -527,12 +527,12 @@ func initTextureResources() {
 //    textureResources.areaTextureLTCMag = try? loadTexture(device: renderInfo.device, textureName: "ltc_mag", withExtension: "png")
 //
 //    textureResources.areaTextureLTCMat = try? loadTexture(device: renderInfo.device, textureName: "ltc_mat", withExtension: "png")
-    
+
     let flattenedLTC1: [simd_float4] = LTC1.compactMap { row in
         guard row.count == 4 else { return nil }
         return simd_float4(row[0], row[1], row[2], row[3])
     }
-    
+
     let flattenedLTC2: [simd_float4] = LTC2.compactMap { row in
         guard row.count == 4 else { return nil }
         return simd_float4(row[0], row[1], row[2], row[3])
@@ -1003,7 +1003,7 @@ func initRenderPipelines() {
         vertexShader: "vertexLightVisualShader",
         fragmentShader: "fragmentLightVisualShader",
         vertexDescriptor: createLightVisualVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: true,
         name: "Light Visual Pipeline"
@@ -1073,7 +1073,7 @@ func initRenderPipelines() {
     ) {
         tonemappingPipeline = tonePipe
     }
-    
+
     if let blurPipe = createPipeline(
         vertexShader: "vertexBlurShader",
         fragmentShader: "fragmentBlurShader",
@@ -1097,7 +1097,7 @@ func initRenderPipelines() {
     ) {
         colorGradingPipeline = colorGradingPipe
     }
-    
+
     if let colorCorrectionPipe = createPipeline(
         vertexShader: "vertexColorCorrectionShader",
         fragmentShader: "fragmentColorCorrectionShader",
@@ -1109,8 +1109,8 @@ func initRenderPipelines() {
     ) {
         colorCorrectionPipeline = colorCorrectionPipe
     }
-    
-   // Bloom Threshold pipeline
+
+    // Bloom Threshold pipeline
     if let bloomThresholdPipe = createPipeline(
         vertexShader: "vertexBloomThresholdShader",
         fragmentShader: "fragmentBloomThresholdShader",
@@ -1122,7 +1122,7 @@ func initRenderPipelines() {
     ) {
         bloomThresholdPipeline = bloomThresholdPipe
     }
-    
+
     // Bloom Composite pipeline
     if let bloomCompositePipe = createPipeline(
         vertexShader: "vertexBloomCompositeShader",
@@ -1136,7 +1136,7 @@ func initRenderPipelines() {
     ) {
         bloomCompositePipeline = bloomCompositePipe
     }
-    
+
     // vignette pipeline
     if let vignettePipe = createPipeline(
         vertexShader: "vertexVignetteShader",
@@ -1149,7 +1149,7 @@ func initRenderPipelines() {
     ) {
         vignettePipeline = vignettePipe
     }
-    
+
     // Chromatic Aberration pipeline
     if let chromaticAberrationPipe = createPipeline(
         vertexShader: "vertexChromaticAberrationShader",
@@ -1162,7 +1162,7 @@ func initRenderPipelines() {
     ) {
         chromaticAberrationPipeline = chromaticAberrationPipe
     }
-    
+
     // Depth of Field pipeline
     if let depthOfFieldPipe = createPipeline(
         vertexShader: "vertexDepthOfFieldShader",
@@ -1175,7 +1175,7 @@ func initRenderPipelines() {
     ) {
         depthOfFieldPipeline = depthOfFieldPipe
     }
-    
+
     // SSAO pipeline
     if let ssaoPipe = createPipeline(
         vertexShader: "vertexSSAOShader",
@@ -1188,7 +1188,7 @@ func initRenderPipelines() {
     ) {
         ssaoPipeline = ssaoPipe
     }
-    
+
     if let environmentPipe = createPipeline(
         vertexShader: "vertexEnvironmentShader",
         fragmentShader: "fragmentEnvironmentShader",
