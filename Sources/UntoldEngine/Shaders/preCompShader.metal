@@ -23,7 +23,8 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
                                         texture2d<float> finalTexture[[texture(0)]],
                                         texture2d<float> gridTexture[[texture(1)]],
                                         depth2d<float> depthTexture [[texture(2)]],
-                                        texture2d<float> gizmoTexture [[texture(3)]]){
+                                        texture2d<float> gizmoTexture [[texture(3)]],
+                                        constant bool &isGameMode [[ buffer(3) ]]){
 
     constexpr sampler s(min_filter::linear,mag_filter::linear);
 
@@ -36,7 +37,7 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
     
     float gizmoLumen = getLuminance(gizmoColor);
     
-    if(gizmoLumen > 0.1){
+    if(!isGameMode && gizmoLumen > 0.1){
         return float4(gizmoColor, 1.0);
     }
     

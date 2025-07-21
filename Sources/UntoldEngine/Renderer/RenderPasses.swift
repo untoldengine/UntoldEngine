@@ -528,8 +528,8 @@ enum RenderPasses {
             if hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
                 continue
             }
-            
-            if hasComponent(entityId: entityId, componentType: LightComponent.self){
+
+            if hasComponent(entityId: entityId, componentType: LightComponent.self) {
                 continue
             }
 
@@ -694,10 +694,10 @@ enum RenderPasses {
 
     static let gizmoExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        if activeEntity == .invalid{
+        if activeEntity == .invalid {
             return
         }
-        
+
         if gizmoPipeline.success == false {
             handleError(.pipelineStateNulled, gizmoPipeline.name!)
             return
@@ -710,7 +710,7 @@ enum RenderPasses {
             .loadAction = .load
 
         renderInfo.gizmoRenderPassDescriptor.depthAttachment.loadAction = .clear
-        
+
         let encoderDescriptor = renderInfo.gizmoRenderPassDescriptor!
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
@@ -753,10 +753,10 @@ enum RenderPasses {
                 handleError(.noLocalTransformComponent, entityId)
                 continue
             }
-            
+
             let distanceToCamera = length(getCameraPosition(entityId: getMainCamera()) - getPosition(entityId: parentEntityIdGizmo))
-    
-            let worldScale = (distanceToCamera*tan(fov*0.5)) * (gizmoDesiredScreenSize/renderInfo.viewPort.y)
+
+            let worldScale = (distanceToCamera * tan(fov * 0.5)) * (gizmoDesiredScreenSize / renderInfo.viewPort.y)
 
             localTransformComponent.scale = simd_float3(repeating: worldScale)
             for mesh in renderComponent.mesh {
@@ -988,15 +988,15 @@ enum RenderPasses {
             handleError(.pipelineStateNulled, lightVisualPipeline.name!)
             return
         }
-        
+
         renderInfo.gizmoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
             .loadAction = .load
 
         renderInfo.gizmoRenderPassDescriptor.depthAttachment.loadAction = .load
 
         let encoderDescriptor = renderInfo.gizmoRenderPassDescriptor!
-        
-       guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Light Visual Pass")
 
@@ -1082,7 +1082,7 @@ enum RenderPasses {
             renderInfo.gizmoRenderPassDescriptor.depthAttachment.loadAction = .clear
 
             let encoderDescriptor = renderInfo.gizmoRenderPassDescriptor!
-            
+
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
             else {
                 handleError(.renderPassCreationFailed, "Highlight Pass")
@@ -1093,15 +1093,14 @@ enum RenderPasses {
             renderEncoder.label = "Highlight Pass"
 
             renderEncoder.pushDebugGroup("Highlight Pass")
-            
+
             renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
-            
+
             renderEncoder.updateFence(renderInfo.fence, after: .fragment)
             renderEncoder.popDebugGroup()
             renderEncoder.endEncoding()
-            
+
             return
-            
         }
 
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
@@ -1113,7 +1112,7 @@ enum RenderPasses {
             handleError(.pipelineStateNulled, hightlightPipeline.name!)
             return
         }
-        
+
         renderInfo.gizmoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
             .loadAction = .clear
 
@@ -1142,55 +1141,51 @@ enum RenderPasses {
 
         renderEncoder.setFrontFacing(.counterClockwise)
 
-        guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: activeEntity) else{
+        guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: activeEntity) else {
             handleError(.noWorldTransformComponent)
             return
         }
-        
-        guard let renderComponent = scene.get(component: RenderComponent.self, for: activeEntity) else{
+
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: activeEntity) else {
             handleError(.noRenderComponent)
             return
         }
-        
+
         renderEncoder.setVertexBytes(
             &cameraComponent.viewSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 1
         )
-        
+
         renderEncoder.setVertexBytes(
             &renderInfo.perspectiveSpace, length: MemoryLayout<matrix_float4x4>.stride, index: 2
         )
-        
+
         renderEncoder.setVertexBytes(
             &worldTransform.space, length: MemoryLayout<matrix_float4x4>.stride, index: 3
         )
 
         var scale: simd_float3 = .one
 
-
-        if hasComponent(entityId: activeEntity, componentType: LightComponent.self){
-           
-            if let pointLightComponent = scene.get(component: PointLightComponent.self, for: activeEntity){
+        if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
+            if let pointLightComponent = scene.get(component: PointLightComponent.self, for: activeEntity) {
                 scale = simd_float3(repeating: pointLightComponent.radius)
             }
-           
-            if let spotLightComponent = scene.get(component: SpotLightComponent.self, for: activeEntity){
-               
+
+            if let spotLightComponent = scene.get(component: SpotLightComponent.self, for: activeEntity) {
                 let theta = degreesToRadians(degrees: spotLightComponent.coneAngle)
                 let radius = tan(theta) * spotLightComponent.radius
-                
-                scale = simd_float3(radius, radius, spotLightComponent.radius/2.0)
-                
+
+                scale = simd_float3(radius, radius, spotLightComponent.radius / 2.0)
             }
-            
+
             renderEncoder.setVertexBytes(&scale, length: MemoryLayout<simd_float3>.stride, index: 4)
-            
+
             renderEncoder.setTriangleFillMode(.lines)
             for mesh in renderComponent.mesh {
                 renderEncoder.setVertexBuffer(
                     mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
                     offset: 0, index: Int(modelPassVerticesIndex.rawValue)
                 )
-                
+
                 for subMesh in mesh.submeshes {
                     renderEncoder.drawIndexedPrimitives(
                         type: subMesh.metalKitSubmesh.primitiveType,
@@ -1200,17 +1195,14 @@ enum RenderPasses {
                         indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset
                     )
                 }
-                
             }
-            
-        }else{
+
+        } else {
             scale = simd_float3(repeating: 1.2)
             renderEncoder.setVertexBytes(&scale, length: MemoryLayout<simd_float3>.stride, index: 4)
             renderEncoder.setVertexBuffer(bufferResources.boundingBoxBuffer, offset: 0, index: 0)
             renderEncoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: boundingBoxVertexCount)
         }
-
-        
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
         renderEncoder.popDebugGroup()
@@ -1293,13 +1285,13 @@ enum RenderPasses {
             renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
             renderInfo.offscreenRenderPassDescriptor.colorAttachments[0]
                 .loadAction = .load
-            
+
             renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].loadAction = .load
         } else {
             renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
             renderInfo.postProcessRenderPassDescriptor.colorAttachments[0]
                 .loadAction = .load
-            
+
             renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].loadAction = .clear
         }
 
@@ -1345,8 +1337,11 @@ enum RenderPasses {
                 renderInfo.postProcessRenderPassDescriptor.depthAttachment.texture, index: 2
             )
         }
-        
+
         renderEncoder.setFragmentTexture(renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].texture, index: 3)
+
+        var isGameMode = gameMode
+        renderEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.size, index: 3)
 
         // set the draw command
 
