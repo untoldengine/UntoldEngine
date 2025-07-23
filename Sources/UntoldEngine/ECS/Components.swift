@@ -157,6 +157,10 @@ public class LightComponent: Component {
     public required init() {}
 }
 
+public class LightDebugComponent: Component {
+    public required init() {}
+}
+
 public class DirectionalLightComponent: Component {
     public required init() {}
 }

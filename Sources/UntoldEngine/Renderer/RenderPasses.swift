@@ -528,8 +528,8 @@ enum RenderPasses {
             if hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
                 continue
             }
-
-            if hasComponent(entityId: entityId, componentType: LightComponent.self) {
+            
+            if hasComponent(entityId: entityId, componentType: LightDebugComponent.self) {
                 continue
             }
 

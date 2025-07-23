@@ -47,11 +47,12 @@ public struct AreaLight {
 
 public func createDirLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
+    registerComponent(entityId: entityId, componentType: LightDebugComponent.self)
     registerComponent(entityId: entityId, componentType: DirectionalLightComponent.self)
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "dirLightMesh", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "dir_light_debug_mesh", withExtension: "usdc")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -60,8 +61,6 @@ public func createDirLight(entityId: EntityID) {
 
     lightComponent.lightType = .directional
 
-    //applyAxisRotations(entityId: entityId, axis: simd_float3(-45.0, 45.0, 0.0))
-    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0, 1.0, 1.0))
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "directional_light_icon_256x256", withExtension: "png")
 
@@ -74,11 +73,12 @@ public func createDirLight(entityId: EntityID) {
 
 public func createPointLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
+    registerComponent(entityId: entityId, componentType: LightDebugComponent.self)
     registerComponent(entityId: entityId, componentType: PointLightComponent.self)
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "lightmesh", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "point_light_debug_mesh", withExtension: "usdc")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -86,7 +86,6 @@ public func createPointLight(entityId: EntityID) {
     }
 
     lightComponent.lightType = .point
-    updateMaterialEmmisive(entityId: entityId, emmissive: simd_float3(1.0, 1.0, 1.0))
 
     do {
         let texture = try loadTexture(device: renderInfo.device, textureName: "point_light_icon_256x256", withExtension: "png")
@@ -100,11 +99,12 @@ public func createPointLight(entityId: EntityID) {
 
 public func createSpotLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
+    registerComponent(entityId: entityId, componentType: LightDebugComponent.self)
     registerComponent(entityId: entityId, componentType: SpotLightComponent.self)
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "spotlightmesh", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "spot_light_debug_mesh", withExtension: "usdc")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -130,7 +130,7 @@ public func createAreaLight(entityId: EntityID) {
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "arealightMesh", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "area_light_debug_mesh", withExtension: "usdc")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
