@@ -87,6 +87,28 @@ func processGizmoAction(entityId: EntityID) {
     }
 }
 
+func hitGizmoToolAxis(entityId: EntityID) -> Bool{
+    if entityId == .invalid {
+        return false
+    }
+
+    let name = getEntityName(entityId: entityId)
+
+    let validNames: Set<String> = [
+        "xAxisTranslate", "yAxisTranslate", "zAxisTranslate",
+        "xAxisRotate", "yAxisRotate", "zAxisRotate",
+        "xAxisScale", "yAxisScale", "zAxisScale",
+        "directionHandle"
+    ]
+
+    if validNames.contains(name!) {
+        return true
+    } else {
+        return false
+    }
+
+}
+
 func removeGizmo() {
     if parentEntityIdGizmo != .invalid {
         destroyEntity(entityId: parentEntityIdGizmo)

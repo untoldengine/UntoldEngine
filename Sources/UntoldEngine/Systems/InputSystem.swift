@@ -329,6 +329,10 @@ public class InputSystem {
 
         let (entityId, hit) = getRaycastedEntity(currentLocation: currentLocation, view: view)
 
+        if(hitGizmoToolAxis(entityId: entityId)){
+            return
+        }
+        
         gizmoActive = false
         removeGizmo()
         editorController?.activeMode = .none
