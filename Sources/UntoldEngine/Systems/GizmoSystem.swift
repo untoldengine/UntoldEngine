@@ -10,9 +10,8 @@ import simd
 
 func createGizmo(name: String) {
     var gizmoName: String = name
-    if parentEntityIdGizmo != .invalid {
-        destroyEntity(entityId: parentEntityIdGizmo)
-    }
+    
+    removeGizmo()
     
     if activeEntity == .invalid{
         return

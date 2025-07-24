@@ -320,7 +320,7 @@ public class InputSystem {
     }
 
     public func mouseRaycast(gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
+        guard scene.get(component: CameraComponent.self, for: findSceneCamera()) != nil else {
             handleError(.noActiveCamera)
             return
         }
@@ -342,14 +342,9 @@ public class InputSystem {
         if hit {
             activeEntity = entityId
 
-            guard let localTransform = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
-           
-            updateBoundingBoxBuffer(min: localTransform.boundingBox.min, max: localTransform.boundingBox.max)
-
             selectionDelegate?.didSelectEntity(activeEntity)
             selectionDelegate?.resetActiveAxis()
 
-            createGizmo(name: "translateGizmo")
         } else {
             activeEntity = .invalid
             removeGizmo()
