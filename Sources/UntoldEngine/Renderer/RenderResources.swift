@@ -24,6 +24,7 @@ public struct RenderInfo {
     var postProcessRenderPassDescriptor: MTLRenderPassDescriptor!
     var shadowRenderPassDescriptor: MTLRenderPassDescriptor!
     var gizmoRenderPassDescriptor: MTLRenderPassDescriptor!
+    var deferredRenderPassDescriptor: MTLRenderPassDescriptor!
     var iblOffscreenRenderPassDescriptor: MTLRenderPassDescriptor!
     var colorPixelFormat: MTLPixelFormat!
     var depthPixelFormat: MTLPixelFormat!
@@ -92,9 +93,12 @@ public struct TextureResources {
     var colorMap: MTLTexture?
     var normalMap: MTLTexture?
     var positionMap: MTLTexture?
-
+    var materialMap: MTLTexture?
     var depthMap: MTLTexture?
 
+    // deferred
+    var deferredColorMap: MTLTexture?
+    
     // ibl
     var environmentTexture: MTLTexture?
     var irradianceMap: MTLTexture?

@@ -77,35 +77,45 @@ typedef enum{
     modelPassJointWeightsIndex,
     modelPassBitangentIndex,
     modelPassUniformIndex,
-    modelPassLightOrthoViewMatrixIndex,
-    modelPassLightParamsIndex,
-    modelPassPointLightsIndex,
-    modelPassPointLightsCountIndex,
     modelPassMaterialParameterIndex,
-    modelPassIBLParamIndex,
-    modelPassIBLRotationAngleIndex,
     modelPassJointTransformIndex,
     modelPassHasArmature,
-    modelPassSpotLightsIndex,
-    modelPassSpotLightsCountIndex,
-    modelPassAreaLightsIndex,
-    modelPassAreaLightsCountIndex,
-    modelPassIsLight,
 }ModelPassBufferIndices;
+
+typedef enum{
+    lightPassLightOrthoViewMatrixIndex,
+    lightPassCameraPositionIndex,
+    lightPassLightParamsIndex,
+    lightPassPointLightsIndex,
+    lightPassPointLightsCountIndex,
+    lightPassIBLParamIndex,
+    lightPassIBLRotationAngleIndex,
+    lightPassSpotLightsIndex,
+    lightPassSpotLightsCountIndex,
+    lightPassAreaLightsIndex,
+    lightPassAreaLightsCountIndex,
+}LightPassBufferIndices;
 
 typedef enum{
     modelPassBaseTextureIndex,
     modelPassRoughnessTextureIndex,
     modelPassMetallicTextureIndex,
     modelPassNormalTextureIndex,
-    modelPassShadowTextureIndex,
     modelPassHasNormalTextureIndex,
-    modelPassIBLIrradianceTextureIndex,
-    modelPassIBLSpecularTextureIndex,
-    modelPassIBLBRDFMapTextureIndex,
-    modelPassAreaLTCMagTextureIndex,
-    modelPassAreaLTCMatTextureIndex
 }ModelPassTextureIndices;
+
+typedef enum{
+    lightPassAlbedoTextureIndex,
+    lightPassNormalTextureIndex,
+    lightPassPositionTextureIndex,
+    lightPassMaterialTextureIndex,
+    lightPassShadowTextureIndex,
+    lightPassIBLIrradianceTextureIndex,
+    lightPassIBLSpecularTextureIndex,
+    lightPassIBLBRDFMapTextureIndex,
+    lightPassAreaLTCMagTextureIndex,
+    lightPassAreaLTCMatTextureIndex
+}LightPassTextureIndices;
 
 typedef enum{
     envPassPositionIndex,
@@ -208,6 +218,7 @@ typedef enum RenderTargets{
     colorTarget = 0,
     normalTarget,
     positionTarget,
+    materialTarget,
 }RenderTargets;
 
 

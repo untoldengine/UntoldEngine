@@ -26,3 +26,4 @@ using namespace metal;
 #include "../Shaders/DoFShader.metal"
 #include "../Shaders/SSAOShader.metal"
 #include "../Shaders/GizmoShader.metal"
+#include "../Shaders/LightShader.metal"

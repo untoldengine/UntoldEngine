@@ -142,10 +142,16 @@ typedef struct
 typedef struct
 {
     float4 color [[color(0)]];
-    float4 normals [[color(1)]];
-    float4 positions [[color(2)]];
 
 } FragmentModelOut;
+
+typedef struct
+{
+    float4 color [[color(0)]];
+    float4 normals [[color(1)]];
+    float4 positions [[color(2)]];
+    float4 material [[color(3)]];
+} GBufferOut;
 
 typedef struct{
 

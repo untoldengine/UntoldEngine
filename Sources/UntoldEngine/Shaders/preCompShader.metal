@@ -29,15 +29,13 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
     constexpr sampler s(min_filter::linear, mag_filter::linear);
 
     // Sample depth
-    float depth = depthTexture.sample(s, vertexOut.uvCoords);
-
-    // If nothing was rendered at this pixel (i.e., depth is 1.0), show the grid instead
-    float blendFactor = (depth == 1.0) ? 1.0 : 0.0;
-
+    //float depth = depthTexture.sample(s, vertexOut.uvCoords);
+    
     // Sample textures
     float4 gridColor = gridTexture.sample(s, vertexOut.uvCoords);
     float4 modelColor = finalTexture.sample(s, vertexOut.uvCoords);
-
+    float lumen =getLuminance(modelColor.rgb);
+    float blendFactor = (lumen == 0.0) ? 1.0 : 0.0;
     // Blend: show grid if there's no model
     float4 baseColor = mix(modelColor, gridColor, blendFactor);
 

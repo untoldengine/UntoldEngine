@@ -77,12 +77,15 @@ func buildEditModeGraph() -> RenderGraphResult {
     )
     graph[modelPass.id] = modelPass
     
+    let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id], execute: RenderPasses.lightExecution)
+    graph[lightPass.id] = lightPass
+    
     let highlightPass = RenderPass(
         id: "outline", dependencies: [modelPass.id], execute: RenderPasses.highlightExecution
     )
     graph[highlightPass.id] = highlightPass
     
-    let lightVisualsPass = RenderPass(id: "lightPass", dependencies: [highlightPass.id], execute: RenderPasses.lightVisualPass)
+    let lightVisualsPass = RenderPass(id: "lightVisualPass", dependencies: [highlightPass.id], execute: RenderPasses.lightVisualPass)
     
     graph[lightVisualsPass.id] = lightVisualsPass
 
@@ -91,7 +94,7 @@ func buildEditModeGraph() -> RenderGraphResult {
     graph[gizmoPass.id] = gizmoPass
 
     let preCompPass = RenderPass(
-        id: "precomp", dependencies: [modelPass.id,gizmoPass.id], execute: RenderPasses.preCompositeExecution
+        id: "precomp", dependencies: [modelPass.id,gizmoPass.id,lightPass.id], execute: RenderPasses.preCompositeExecution
     )
     graph[preCompPass.id] = preCompPass
 
@@ -125,8 +128,11 @@ func buildGameModeGraph() -> RenderGraphResult {
         id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
     )
     graph[modelPass.id] = modelPass
+    
+    let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id], execute: RenderPasses.lightExecution)
+    graph[lightPass.id] = lightPass
 
-    let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [modelPass.id], execute: depthOfFieldRenderPass)
+    let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [lightPass.id], execute: depthOfFieldRenderPass)
 
     graph[depthOfFieldPass.id] = depthOfFieldPass
 
@@ -424,7 +430,7 @@ func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
 
 var depthOfFieldRenderPass = RenderPasses.executePostProcess(
     depthOfFieldPipeline,
-    source: textureResources.colorMap!,
+    source: textureResources.deferredColorMap!,
     destination: textureResources.depthOfFieldTexture!,
     customization: depthOfFieldCustomization
 )

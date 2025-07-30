@@ -344,6 +344,7 @@ enum RenderPasses {
             .loadAction = .clear
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
             .loadAction = .clear
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .clear
 
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
             .storeAction = .store
@@ -351,6 +352,8 @@ enum RenderPasses {
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
             .storeAction = .store
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+            .storeAction = .store
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(materialTarget.rawValue)]
             .storeAction = .store
 
         renderInfo.offscreenRenderPassDescriptor.depthAttachment.storeAction = .store
@@ -372,135 +375,6 @@ enum RenderPasses {
         renderEncoder.setDepthStencilState(modelPipeline.depthState)
 
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
-
-        renderEncoder.setVertexBytes(
-            &shadowSystem.dirLightSpaceMatrix, length: MemoryLayout<simd_float4x4>.stride,
-            index: Int(modelPassLightOrthoViewMatrixIndex.rawValue)
-        )
-
-        // Compute Lighting
-        var lightParams = getDirectionalLightParameters()
-
-        renderEncoder.setFragmentBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(modelPassLightParamsIndex.rawValue))
-
-        renderEncoder.setFragmentBytes(
-            &envRotationAngle, length: MemoryLayout<Float>.stride,
-            index: Int(modelPassIBLRotationAngleIndex.rawValue)
-        )
-
-        // ibl
-        renderEncoder.setFragmentTexture(
-            textureResources.irradianceMap, index: Int(modelPassIBLIrradianceTextureIndex.rawValue)
-        )
-        renderEncoder.setFragmentTexture(
-            textureResources.specularMap, index: Int(modelPassIBLSpecularTextureIndex.rawValue)
-        )
-        renderEncoder.setFragmentTexture(
-            textureResources.iblBRDFMap, index: Int(modelPassIBLBRDFMapTextureIndex.rawValue)
-        )
-
-        var brdfParameters = IBLParamsUniform()
-        brdfParameters.applyIBL = applyIBL
-        brdfParameters.ambientIntensity = ambientIntensity
-
-        renderEncoder.setFragmentBytes(
-            &brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride,
-            index: Int(modelPassIBLParamIndex.rawValue)
-        )
-
-        // point lights
-        if let pointLightBuffer = bufferResources.pointLightBuffer {
-            let pointLightArray = Array(getPointLights())
-
-            pointLightArray.withUnsafeBufferPointer { bufferPointer in
-                guard let baseAddress = bufferPointer.baseAddress else { return }
-                pointLightBuffer.contents().copyMemory(
-                    from: baseAddress,
-                    byteCount: MemoryLayout<PointLight>.stride * getPointLightCount()
-                )
-            }
-
-        } else {
-            handleError(.bufferAllocationFailed, bufferResources.pointLightBuffer!.label!)
-            return
-        }
-
-        renderEncoder.setFragmentBuffer(
-            bufferResources.pointLightBuffer, offset: 0, index: Int(modelPassPointLightsIndex.rawValue)
-        )
-
-        var pointLightCount: Int = getPointLightCount()
-
-        renderEncoder.setFragmentBytes(
-            &pointLightCount, length: MemoryLayout<Int>.stride,
-            index: Int(modelPassPointLightsCountIndex.rawValue)
-        )
-
-        // spot light
-        if let spotLightBuffer = bufferResources.spotLightBuffer {
-            let spotLightArray = Array(getSpotLights())
-
-            spotLightArray.withUnsafeBufferPointer { bufferPointer in
-                guard let baseAddress = bufferPointer.baseAddress else { return }
-                spotLightBuffer.contents().copyMemory(
-                    from: baseAddress,
-                    byteCount: MemoryLayout<SpotLight>.stride * getSpotLightCount()
-                )
-            }
-
-        } else {
-            handleError(.bufferAllocationFailed, bufferResources.spotLightBuffer!.label!)
-            return
-        }
-
-        renderEncoder.setFragmentBuffer(
-            bufferResources.spotLightBuffer, offset: 0, index: Int(modelPassSpotLightsIndex.rawValue)
-        )
-
-        var spotLightCount: Int = getSpotLightCount()
-
-        renderEncoder.setFragmentBytes(
-            &spotLightCount, length: MemoryLayout<Int>.stride,
-            index: Int(modelPassSpotLightsCountIndex.rawValue)
-        )
-
-        // area light
-        if let areaLightBuffer = bufferResources.areaLightBuffer {
-            let areaLightArray = Array(getAreaLights())
-
-            areaLightArray.withUnsafeBufferPointer { bufferPointer in
-                guard let baseAddress = bufferPointer.baseAddress else { return }
-                areaLightBuffer.contents().copyMemory(
-                    from: baseAddress,
-                    byteCount: MemoryLayout<AreaLight>.stride * getAreaLightCount()
-                )
-            }
-
-        } else {
-            handleError(.bufferAllocationFailed, bufferResources.areaLightBuffer!.label!)
-            return
-        }
-
-        renderEncoder.setFragmentBuffer(
-            bufferResources.areaLightBuffer, offset: 0, index: Int(modelPassAreaLightsIndex.rawValue)
-        )
-
-        var areaLightCount: Int = getAreaLightCount()
-
-        renderEncoder.setFragmentBytes(
-            &areaLightCount, length: MemoryLayout<Int>.stride,
-            index: Int(modelPassAreaLightsCountIndex.rawValue)
-        )
-
-        // shadow map
-        renderEncoder.setFragmentTexture(
-            textureResources.shadowMap, index: Int(modelPassShadowTextureIndex.rawValue)
-        )
-
-        // LTC Maps for Area Lights
-        renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMat, index: Int(modelPassAreaLTCMatTextureIndex.rawValue))
-
-        renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMag, index: Int(modelPassAreaLTCMagTextureIndex.rawValue))
 
         // Create a component query for entities with both Transform and Render components
 
@@ -532,10 +406,6 @@ enum RenderPasses {
             if hasComponent(entityId: entityId, componentType: LightDebugComponent.self) {
                 continue
             }
-
-            // is light?
-            var isLight: Bool = hasComponent(entityId: entityId, componentType: LightComponent.self)
-            renderEncoder.setFragmentBytes(&isLight, length: MemoryLayout<Bool>.stride, index: Int(modelPassIsLight.rawValue))
 
             for mesh in renderComponent.mesh {
                 // update uniforms
@@ -686,6 +556,210 @@ enum RenderPasses {
                 }
             }
         }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
+    }
+    
+    static let lightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+
+        if !lightPipeline.success {
+            handleError(.pipelineStateNulled, lightPipeline.name!)
+            return
+        }
+        
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        let renderPassDescriptor = renderInfo.deferredRenderPassDescriptor!
+        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+        // set the states for the pipeline
+        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
+        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
+
+        // clear it so that it doesn't have any effect on the final output
+        renderInfo.deferredRenderPassDescriptor.depthAttachment.loadAction = .clear
+
+        // set your encoder here
+        guard
+            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "Light Pass")
+            return
+        }
+
+        renderEncoder.label = "Light Pass"
+
+        renderEncoder.pushDebugGroup("Light Pass")
+
+        renderEncoder.setRenderPipelineState(lightPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(lightPipeline.depthState)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+
+        
+        renderEncoder.setFragmentBytes(&cameraComponent.localPosition, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
+        
+        renderEncoder.setFragmentBytes(
+            &shadowSystem.dirLightSpaceMatrix, length: MemoryLayout<simd_float4x4>.stride,
+            index: Int(lightPassLightOrthoViewMatrixIndex.rawValue)
+        )
+       
+        //G-Buffer data
+        renderEncoder.setFragmentTexture(
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture, index: Int(lightPassAlbedoTextureIndex.rawValue)
+        )
+        
+        renderEncoder.setFragmentTexture(
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture, index: Int(lightPassNormalTextureIndex.rawValue)
+        )
+        
+        renderEncoder.setFragmentTexture(
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture, index: Int(lightPassPositionTextureIndex.rawValue)
+        )
+        
+        renderEncoder.setFragmentTexture(
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(materialTarget.rawValue)].texture, index: Int(lightPassMaterialTextureIndex.rawValue)
+        )
+        
+        // Compute Lighting
+        var lightParams = getDirectionalLightParameters()
+
+        renderEncoder.setFragmentBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(lightPassLightParamsIndex.rawValue))
+        
+        // shadow map
+        renderEncoder.setFragmentTexture(
+            textureResources.shadowMap, index: Int(lightPassShadowTextureIndex.rawValue)
+        )
+        
+        // point lights
+        if let pointLightBuffer = bufferResources.pointLightBuffer {
+            let pointLightArray = Array(getPointLights())
+
+            pointLightArray.withUnsafeBufferPointer { bufferPointer in
+                guard let baseAddress = bufferPointer.baseAddress else { return }
+                pointLightBuffer.contents().copyMemory(
+                    from: baseAddress,
+                    byteCount: MemoryLayout<PointLight>.stride * getPointLightCount()
+                )
+            }
+
+        } else {
+            handleError(.bufferAllocationFailed, bufferResources.pointLightBuffer!.label!)
+            return
+        }
+
+        renderEncoder.setFragmentBuffer(
+            bufferResources.pointLightBuffer, offset: 0, index: Int(lightPassPointLightsIndex.rawValue)
+        )
+
+        var pointLightCount: Int = getPointLightCount()
+
+        renderEncoder.setFragmentBytes(
+            &pointLightCount, length: MemoryLayout<Int>.stride,
+            index: Int(lightPassPointLightsCountIndex.rawValue)
+        )
+        
+        // spot light
+        if let spotLightBuffer = bufferResources.spotLightBuffer {
+            let spotLightArray = Array(getSpotLights())
+
+            spotLightArray.withUnsafeBufferPointer { bufferPointer in
+                guard let baseAddress = bufferPointer.baseAddress else { return }
+                spotLightBuffer.contents().copyMemory(
+                    from: baseAddress,
+                    byteCount: MemoryLayout<SpotLight>.stride * getSpotLightCount()
+                )
+            }
+
+        } else {
+            handleError(.bufferAllocationFailed, bufferResources.spotLightBuffer!.label!)
+            return
+        }
+
+        renderEncoder.setFragmentBuffer(
+            bufferResources.spotLightBuffer, offset: 0, index: Int(lightPassSpotLightsIndex.rawValue)
+        )
+
+        var spotLightCount: Int = getSpotLightCount()
+
+        renderEncoder.setFragmentBytes(
+            &spotLightCount, length: MemoryLayout<Int>.stride,
+            index: Int(lightPassSpotLightsCountIndex.rawValue)
+        )
+        
+        // area light
+        if let areaLightBuffer = bufferResources.areaLightBuffer {
+            let areaLightArray = Array(getAreaLights())
+
+            areaLightArray.withUnsafeBufferPointer { bufferPointer in
+                guard let baseAddress = bufferPointer.baseAddress else { return }
+                areaLightBuffer.contents().copyMemory(
+                    from: baseAddress,
+                    byteCount: MemoryLayout<AreaLight>.stride * getAreaLightCount()
+                )
+            }
+
+        } else {
+            handleError(.bufferAllocationFailed, bufferResources.areaLightBuffer!.label!)
+            return
+        }
+
+        renderEncoder.setFragmentBuffer(
+            bufferResources.areaLightBuffer, offset: 0, index: Int(lightPassAreaLightsIndex.rawValue)
+        )
+
+        var areaLightCount: Int = getAreaLightCount()
+
+        renderEncoder.setFragmentBytes(
+            &areaLightCount, length: MemoryLayout<Int>.stride,
+            index: Int(lightPassAreaLightsCountIndex.rawValue)
+        )
+        // LTC Maps for Area Lights
+        renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMat, index: Int(lightPassAreaLTCMatTextureIndex.rawValue))
+
+        renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMag, index: Int(lightPassAreaLTCMagTextureIndex.rawValue))
+        
+        // ibl
+        renderEncoder.setFragmentTexture(
+            textureResources.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue)
+        )
+        renderEncoder.setFragmentTexture(
+            textureResources.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue)
+        )
+        renderEncoder.setFragmentTexture(
+            textureResources.iblBRDFMap, index: Int(lightPassIBLBRDFMapTextureIndex.rawValue)
+        )
+
+        var brdfParameters = IBLParamsUniform()
+        brdfParameters.applyIBL = applyIBL
+        brdfParameters.ambientIntensity = ambientIntensity
+
+        renderEncoder.setFragmentBytes(
+            &brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride,
+            index: Int(lightPassIBLParamIndex.rawValue)
+        )
+        
+        renderEncoder.setFragmentBytes(
+            &envRotationAngle, length: MemoryLayout<Float>.stride,
+            index: Int(lightPassIBLRotationAngleIndex.rawValue)
+        )
+
+        // set the draw command
+
+        renderEncoder.drawIndexedPrimitives(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
         renderEncoder.popDebugGroup()
@@ -1283,7 +1357,7 @@ enum RenderPasses {
         // clear it so that it doesn't have any effect on the final output
         if gameMode == false {
             renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
-            renderInfo.offscreenRenderPassDescriptor.colorAttachments[0]
+            renderInfo.deferredRenderPassDescriptor.colorAttachments[0]
                 .loadAction = .load
 
             renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].loadAction = .load
@@ -1320,7 +1394,7 @@ enum RenderPasses {
 
         if gameMode == false {
             renderEncoder.setFragmentTexture(
-                renderInfo.offscreenRenderPassDescriptor.colorAttachments[0].texture,
+                renderInfo.deferredRenderPassDescriptor.colorAttachments[0].texture,
                 index: 0
             )
 

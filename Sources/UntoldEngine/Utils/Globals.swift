@@ -67,6 +67,7 @@ var accelStructResources = AccelStructResources()
 // pipelines
 var gridPipeline = RenderPipeline()
 var modelPipeline = RenderPipeline()
+var lightPipeline = RenderPipeline()
 var compositePipeline = RenderPipeline()
 var preCompositePipeline = RenderPipeline()
 var shadowPipeline = RenderPipeline()

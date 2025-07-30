@@ -303,11 +303,22 @@ func initRenderPassDescriptors() {
             (textureResources.colorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
             (textureResources.normalMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
             (textureResources.positionMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.materialMap, .clear, .store, MTLClearColorMake(0.0,0.0,0.0,0.0))
+        ],
+        depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
+    )
+    
+    // Deferred Render Pass
+    renderInfo.deferredRenderPassDescriptor = createRenderPassDescriptor(
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        colorAttachments: [
+            (textureResources.deferredColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
         depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
     )
 
-    // Offscreen Render Pass
+    // Post-Processing Render Pass
     renderInfo.postProcessRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
@@ -379,6 +390,28 @@ func initTextureResources() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget],
+        storageMode: .shared
+    )
+    
+    // Material Texture
+    textureResources.materialMap = createTexture(
+        device: renderInfo.device,
+        label: "Material Texture",
+        pixelFormat: .rgba16Float,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+    
+    // Deferred Color Texture
+    textureResources.deferredColorMap = createTexture(
+        device: renderInfo.device,
+        label: "Deferred Color Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
 
@@ -830,6 +863,30 @@ func createDebugVertexDescriptor() -> MTLVertexDescriptor {
     return vertexDescriptor
 }
 
+func createLightVertexDescriptor() -> MTLVertexDescriptor {
+    // set the vertex descriptor
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[0].offset = 0
+
+    vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
+    vertexDescriptor.attributes[1].bufferIndex = 1
+    vertexDescriptor.attributes[1].offset = 0
+
+    // stride
+    vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[0].stepRate = 1
+
+    vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
+    vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[1].stepRate = 1
+
+    return vertexDescriptor
+}
+
 func createPostProcessVertexDescriptor() -> MTLVertexDescriptor {
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
@@ -953,11 +1010,24 @@ func initRenderPipelines() {
         vertexShader: "vertexModelShader",
         fragmentShader: "fragmentModelShader",
         vertexDescriptor: createModelVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float, .rgba16Float],
         depthFormat: renderInfo.depthPixelFormat,
         name: "Model Pipeline"
     ) {
         modelPipeline = modelPipe
+    }
+    
+    // Light Pipeline
+    if let lightPipe = createPipeline(
+        vertexShader: "vertexLightShader",
+        fragmentShader: "fragmentLightShader",
+        vertexDescriptor: createLightVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Light Pipeline"
+    ) {
+        lightPipeline = lightPipe
     }
     
     // Gizmo Pipeline
