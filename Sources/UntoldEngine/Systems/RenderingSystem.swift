@@ -149,7 +149,7 @@ func buildGameModeGraph() -> RenderGraphResult {
 
     graph[chromaticAberrationPass.id] = chromaticAberrationPass
 
-    let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [chromaticAberrationPass.id], execute: bloomThresholdRenderPass)
+    let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [chromaticAberrationPass.id, modelPass.id], execute: bloomThresholdRenderPass)
     graph[bloomThresholdPass.id] = bloomThresholdPass
 
     // define params for the blur pass
@@ -346,6 +346,8 @@ func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Bool>.stride,
         index: Int(bloomThresholdPassEnabledIndex.rawValue)
     )
+    
+    encoder.setFragmentTexture(textureResources.emissiveMap, index: 1)
 }
 
 var bloomCompositeRenderPass = RenderPasses.executePostProcess(

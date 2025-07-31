@@ -19,16 +19,17 @@ vertex VertexCompositeOutput vertexBloomThresholdShader(VertexCompositeIn in [[s
 
 fragment float4 fragmentBloomThresholdShader(VertexCompositeOutput vertexOut [[stage_in]],
                                    texture2d<float> finalTexture [[texture(0)]],
+                                    texture2d<float> emissiveTexture [[texture(1)]],
                                     constant float &threshold[[buffer(bloomThresholdPassCutoffIndex)]],
                                     constant float &intensity[[buffer(bloomThresholdPassIntensityIndex)]],
                                     constant bool &enabled[[buffer(bloomThresholdPassEnabledIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
 
-    float3 color = finalTexture.sample(s, vertexOut.uvCoords).rgb;
+    float3 color = emissiveTexture.sample(s, vertexOut.uvCoords).rgb;
     
     if(!enabled){
-        return float4(color, 1.0);
+        return float4(0.0,0.0,0.0, 1.0);
     }
 
     // Compute luminance (can use different weights, these are common)

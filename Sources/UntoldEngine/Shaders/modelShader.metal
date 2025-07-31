@@ -104,7 +104,6 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
         ? float4(sampledColor.rgb * tint, sampledColor.a)
     : float4(tint,1.0);
     
-    float3 emissiveColor = materialParameter.emmissive; // no need for simd_float4
     
     // Avoid black base color
     inBaseColor = (computeLuma(inBaseColor.rgb)<=0.01)?float4(float3(0.1),1.0):inBaseColor;
@@ -137,11 +136,11 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     float4 color=inBaseColor;
 
-    gBufferOut.color = float4(color.rgb + emissiveColor, 1.0);
+    gBufferOut.color = float4(color.rgb, 1.0);
     gBufferOut.normals=float4(normalMap,0.0);
     gBufferOut.positions=verticesInWorldSpace;
     gBufferOut.material=float4(roughness, metallic, 0.0, 0.0);
-    
+    gBufferOut.emmisive = float4(materialParameter.emmissive, 1.0);
     return gBufferOut;
 
 

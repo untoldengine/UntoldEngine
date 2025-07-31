@@ -99,6 +99,7 @@ public struct TextureResources {
     var normalMap: MTLTexture?
     var positionMap: MTLTexture?
     var materialMap: MTLTexture?
+    var emissiveMap: MTLTexture?
     var depthMap: MTLTexture?
 
     // deferred

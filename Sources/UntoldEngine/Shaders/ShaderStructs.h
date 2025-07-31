@@ -151,6 +151,7 @@ typedef struct
     float4 normals [[color(1)]];
     float4 positions [[color(2)]];
     float4 material [[color(3)]];
+    float4 emmisive [[color(4)]];
 } GBufferOut;
 
 typedef struct{

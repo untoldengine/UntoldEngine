@@ -345,6 +345,7 @@ enum RenderPasses {
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
             .loadAction = .clear
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .clear
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .clear
 
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
             .storeAction = .store
@@ -355,6 +356,9 @@ enum RenderPasses {
             .storeAction = .store
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(materialTarget.rawValue)]
             .storeAction = .store
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(emissiveTarget.rawValue)]
+            .storeAction = .store
+
 
         renderInfo.offscreenRenderPassDescriptor.depthAttachment.storeAction = .store
 

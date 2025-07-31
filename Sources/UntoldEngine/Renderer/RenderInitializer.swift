@@ -303,7 +303,8 @@ func initRenderPassDescriptors() {
             (textureResources.colorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
             (textureResources.normalMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
             (textureResources.positionMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.materialMap, .clear, .store, MTLClearColorMake(0.0,0.0,0.0,0.0))
+            (textureResources.materialMap, .clear, .store, MTLClearColorMake(0.0,0.0,0.0,0.0)),
+            (textureResources.emissiveMap, .clear, .store, MTLClearColorMake(0.0,0.0,0.0,0.0))
         ],
         depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
     )
@@ -395,6 +396,17 @@ func initTextureResources() {
     textureResources.positionMap = createTexture(
         device: renderInfo.device,
         label: "Position Texture",
+        pixelFormat: .rgba16Float,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+    
+    // Emissive Texture
+    textureResources.emissiveMap = createTexture(
+        device: renderInfo.device,
+        label: "Emissive Texture",
         pixelFormat: .rgba16Float,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
@@ -1087,7 +1099,7 @@ func initRenderPipelines() {
         vertexShader: "vertexModelShader",
         fragmentShader: "fragmentModelShader",
         vertexDescriptor: createModelVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float, .rgba16Float, .rgba16Float],
         depthFormat: renderInfo.depthPixelFormat,
         name: "Model Pipeline"
     ) {

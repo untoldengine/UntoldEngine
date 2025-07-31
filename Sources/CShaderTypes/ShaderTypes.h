@@ -232,6 +232,7 @@ typedef enum RenderTargets{
     normalTarget,
     positionTarget,
     materialTarget,
+    emissiveTarget
 }RenderTargets;
 
 
