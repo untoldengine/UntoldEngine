@@ -9,6 +9,7 @@
 import CoreGraphics
 import Foundation
 import MetalKit
+import simd
 
 enum LoadError: Error {
     case urlCreationFailed(String)
@@ -806,5 +807,84 @@ func applyWorldSpaceScaleDelta(
     scale = simd_max(scale, simd_float3(repeating: 0.01))
 
     scaleTo(entityId: entityId, scale: scale)
+}
+
+func generateSSAOKernel(sampleCount: Int = 64) -> [SIMD3<Float>] {
+    var kernel: [SIMD3<Float>] = []
+
+    ssaoKernelSize = sampleCount
+    
+    for i in 0..<sampleCount {
+        var sample = SIMD3<Float>(
+            Float.random(in: -1.0...1.0),
+            Float.random(in: -1.0...1.0),
+            Float.random(in: 0.0...1.0)  // hemisphere (positive z)
+        )
+        sample = simd_normalize(sample)
+
+        // Scale samples to be more densely packed near the origin
+        let scale = Float(i) / Float(sampleCount)
+        let scaleBias = mix(0.1, 1.0, scale * scale)
+        sample *= scaleBias
+
+        kernel.append(sample)
+    }
+
+    return kernel
+}
+
+// Helper function for lerp
+func mix(_ a: Float, _ b: Float, _ t: Float) -> Float {
+    return a * (1.0 - t) + b * t
+}
+
+func generateSSAONoiseTexture(device: MTLDevice, size: Int = 4) -> MTLTexture? {
+    let noiseSize = size * size
+    var noiseData: [SIMD3<Float>] = []
+
+    for _ in 0..<noiseSize {
+        let noise = SIMD3<Float>(
+            Float.random(in: -1.0...1.0),
+            Float.random(in: -1.0...1.0),
+            0.0  // XY plane only
+        )
+        noiseData.append(simd_normalize(noise))
+    }
+
+    // Create texture descriptor
+    let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+        pixelFormat: .rgba32Float,
+        width: size,
+        height: size,
+        mipmapped: false
+    )
+    textureDescriptor.usage = [.shaderRead]
+
+    guard let texture = device.makeTexture(descriptor: textureDescriptor) else {
+        print("Failed to create SSAO noise texture.")
+        return nil
+    }
+
+    // Fill texture with noise data (padding to RGBA format)
+    var texels = [Float](repeating: 0.0, count: noiseSize * 4)
+    for i in 0..<noiseSize {
+        texels[i * 4 + 0] = noiseData[i].x
+        texels[i * 4 + 1] = noiseData[i].y
+        texels[i * 4 + 2] = noiseData[i].z
+        texels[i * 4 + 3] = 0.0  // unused alpha
+    }
+
+    texels.withUnsafeBytes { rawPtr in
+        texture.replace(
+            region: MTLRegionMake2D(0, 0, size, size),
+            mipmapLevel: 0,
+            withBytes: rawPtr.baseAddress!,
+            bytesPerRow: size * MemoryLayout<Float>.size * 4
+        )
+    }
+    
+    texture.label = "SSAO Noise Texture"
+
+    return texture
 }
 

@@ -108,6 +108,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         createDirLight(entityId: light)
         // initialize ray vs model pipeline
         initRayPickerCompute()
+        
+        // init ssao kernels
+        initSSAOResources()
 
         Logger.log(message: "Untold Engine Starting")
     }

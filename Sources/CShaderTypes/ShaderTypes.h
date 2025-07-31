@@ -94,6 +94,7 @@ typedef enum{
     lightPassSpotLightsCountIndex,
     lightPassAreaLightsIndex,
     lightPassAreaLightsCountIndex,
+    lightPassGameModeIndex
 }LightPassBufferIndices;
 
 typedef enum{
@@ -110,6 +111,7 @@ typedef enum{
     lightPassPositionTextureIndex,
     lightPassMaterialTextureIndex,
     lightPassShadowTextureIndex,
+    lightPassSSAOTextureIndex,
     lightPassIBLIrradianceTextureIndex,
     lightPassIBLSpecularTextureIndex,
     lightPassIBLBRDFMapTextureIndex,
@@ -184,19 +186,30 @@ typedef enum{
 }ChromaticAberrationBufferIndices;
 
 typedef enum{
+    ssaoPassKernelIndex,
+    ssaoPassPerspectiveSpaceIndex,
+    ssaoPassViewSpaceIndex,
+    ssaoPassKernelSizeIndex,
+    ssaoPassRadiusIndex,
+    ssaoPassBiasIndex,
+    ssaoPassIntensityIndex,
+    ssaoPassEnabledIndex,
+    ssaoPassViewPortIndex,
+}SSAOBufferIndices;
+
+typedef enum{
+    ssaoNormalMapTextureIndex,
+    ssaoPositionMapTextureIndex,
+    ssaoNoiseMapTextureIndex
+}SSAOTextureIndices;
+
+typedef enum{
     depthOfFieldPassFocusDistanceIndex,
     depthOfFieldPassFocusRangeIndex,
     depthOfFieldPassMaxBlurIndex,
     depthOfFieldPassFrustumIndex,
     depthOfFieldPassEnabledIndex
 }DepthOfFieldBufferIndices;
-
-typedef enum{
-    ssaoPassRadiusIndex,
-    ssaoPassBiasIndex,
-    ssaoPassIntensityIndex,
-    ssaoPassEnabledIndex
-}SSAOBufferIndices;
 
 typedef enum{
     shadowPassModelPositionIndex,

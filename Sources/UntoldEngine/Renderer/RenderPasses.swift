@@ -562,6 +562,174 @@ enum RenderPasses {
         renderEncoder.endEncoding()
     }
     
+    static let ssaoExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+
+        if !ssaoPipeline.success {
+            handleError(.pipelineStateNulled, ssaoPipeline.name!)
+            return
+        }
+        
+        let renderPassDescriptor = renderInfo.ssaoRenderPassDescriptor!
+        
+        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+            .loadAction = .load
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+            .loadAction = .load
+        
+        // set the states for the pipeline
+        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
+        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
+
+        // clear it so that it doesn't have any effect on the final output
+        renderInfo.ssaoRenderPassDescriptor.depthAttachment.loadAction = .clear
+        renderInfo.ssaoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].storeAction = .store
+        // set your encoder here
+        guard
+            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "SSAO Pass")
+            return
+        }
+
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+            handleError(.noActiveCamera)
+            return
+        }
+        
+        renderEncoder.label = "SSAO Pass"
+
+        renderEncoder.pushDebugGroup("SSAO Pass")
+
+        renderEncoder.setRenderPipelineState(ssaoPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(ssaoPipeline.depthState)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+
+        // pass gbufer resources
+        renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture, index: Int(ssaoNormalMapTextureIndex.rawValue))
+        
+        renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture, index: Int(ssaoPositionMapTextureIndex.rawValue))
+
+        // pass ssao resources
+                
+        if let kernelBuffer = bufferResources.ssaoKernelBuffer {
+            renderEncoder.setFragmentBuffer(kernelBuffer, offset: 0, index: Int(ssaoPassKernelIndex.rawValue))
+        }
+
+        
+        renderEncoder.setFragmentTexture(textureResources.ssaoNoiseTexture, index: Int(ssaoNoiseMapTextureIndex.rawValue))
+        
+        renderEncoder.setFragmentBytes(&ssaoKernelSize, length: MemoryLayout<Int>.stride, index: Int(ssaoPassKernelSizeIndex.rawValue))
+        
+        renderEncoder.setFragmentBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassViewPortIndex.rawValue))
+        
+        renderEncoder.setFragmentBytes(&renderInfo.perspectiveSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassPerspectiveSpaceIndex.rawValue))
+        
+        renderEncoder.setFragmentBytes(&cameraComponent.viewSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassViewSpaceIndex.rawValue))
+        
+         // ssao properties
+        renderEncoder.setFragmentBytes(
+            &SSAOParams.shared.radius,
+            length: MemoryLayout<Float>.stride,
+            index: Int(ssaoPassRadiusIndex.rawValue)
+        )
+
+        renderEncoder.setFragmentBytes(
+            &SSAOParams.shared.bias,
+            length: MemoryLayout<Float>.stride,
+            index: Int(ssaoPassBiasIndex.rawValue)
+        )
+
+//        renderEncoder.setFragmentBytes(
+//            &SSAOParams.shared.intensity,
+//            length: MemoryLayout<Float>.stride,
+//            index: Int(ssaoPassIntensityIndex.rawValue)
+//        )
+
+        renderEncoder.setFragmentBytes(
+            &SSAOParams.shared.enabled,
+            length: MemoryLayout<Bool>.stride,
+            index: Int(ssaoPassEnabledIndex.rawValue)
+        )
+        // set the draw command
+
+        renderEncoder.drawIndexedPrimitives(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
+    }
+    
+    static let ssaoBlurExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+
+        if !ssaoBlurPipeline.success {
+            handleError(.pipelineStateNulled, ssaoBlurPipeline.name!)
+            return
+        }
+        
+        let renderPassDescriptor = renderInfo.ssaoBlurRenderPassDescriptor!
+        
+        // set the states for the pipeline
+        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
+        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
+
+        // clear it so that it doesn't have any effect on the final output
+        renderInfo.ssaoBlurRenderPassDescriptor.depthAttachment.loadAction = .clear
+        renderInfo.ssaoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = .load
+
+        // set your encoder here
+        guard
+            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "SSAO Blur Pass")
+            return
+        }
+
+        renderEncoder.label = "SSAO Blur Pass"
+
+        renderEncoder.pushDebugGroup("SSAO Blur Pass")
+
+        renderEncoder.setRenderPipelineState(ssaoBlurPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(ssaoBlurPipeline.depthState)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+
+        // pass ssao resources
+        renderEncoder.setFragmentTexture(textureResources.ssaoTexture, index: 0)
+        
+        renderEncoder.setFragmentBytes(
+            &SSAOParams.shared.enabled,
+            length: MemoryLayout<Bool>.stride,
+            index: 0
+        )
+        // set the draw command
+
+        renderEncoder.drawIndexedPrimitives(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
+    }
+    
     static let lightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
         if !lightPipeline.success {
@@ -627,6 +795,9 @@ enum RenderPasses {
         renderEncoder.setFragmentTexture(
             renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(materialTarget.rawValue)].texture, index: Int(lightPassMaterialTextureIndex.rawValue)
         )
+        
+        // SSAO Blur texture
+        renderEncoder.setFragmentTexture(textureResources.ssaoBlurTexture, index: Int(lightPassSSAOTextureIndex.rawValue))
         
         // Compute Lighting
         var lightParams = getDirectionalLightParameters()
@@ -751,6 +922,9 @@ enum RenderPasses {
             index: Int(lightPassIBLRotationAngleIndex.rawValue)
         )
 
+        var isGameMode = gameMode
+        renderEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.size, index: Int(lightPassGameModeIndex.rawValue))
+        
         // set the draw command
 
         renderEncoder.drawIndexedPrimitives(

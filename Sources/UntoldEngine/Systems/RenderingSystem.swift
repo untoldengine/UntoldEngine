@@ -128,8 +128,17 @@ func buildGameModeGraph() -> RenderGraphResult {
         id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
     )
     graph[modelPass.id] = modelPass
+ 
+    let ssaoPass = RenderPass(id: "ssao", dependencies: [modelPass.id], execute: RenderPasses.ssaoExecution)
     
-    let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id], execute: RenderPasses.lightExecution)
+    graph[ssaoPass.id] = ssaoPass
+    
+    let ssaoBlurPass = RenderPass(id: "ssaoBlur", dependencies: [ssaoPass.id], execute: RenderPasses.ssaoBlurExecution)
+    
+    graph[ssaoBlurPass.id] = ssaoBlurPass
+    
+    let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id, ssaoBlurPass.id], execute: RenderPasses.lightExecution)
+    
     graph[lightPass.id] = lightPass
 
     let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [lightPass.id], execute: depthOfFieldRenderPass)
@@ -465,7 +474,7 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
     var frustumPlanes = simd_float2(near, far)
     encoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(depthOfFieldPassFrustumIndex.rawValue))
 }
-
+/*
 var ssaoRenderPass = RenderPasses.executePostProcess(
     ssaoPipeline,
     source: textureResources.depthOfFieldTexture!,
@@ -498,3 +507,4 @@ func ssaoCustomization(encoder: MTLRenderCommandEncoder) {
         index: Int(ssaoPassEnabledIndex.rawValue)
     )
 }
+*/

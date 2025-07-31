@@ -288,16 +288,16 @@ struct SSAOEditorView: View {
             }
 
             Text("Radius")
-            Slider(value: $settings.radius, in: 0.0 ... 2.0)
+            Slider(value: $settings.radius, in: 0.1 ... 1.0)
             Text(String(format: "%.2f", settings.radius))
 
-            Text("Bias")
-            Slider(value: $settings.bias, in: 0.0 ... 0.1)
-            Text(String(format: "%.4f", settings.bias))
-
-            Text("Intensity")
-            Slider(value: $settings.intensity, in: 0.0 ... 2.0)
-            Text(String(format: "%.2f", settings.intensity))
+//            Text("Bias")
+//            Slider(value: $settings.bias, in: 0.0 ... 0.1)
+//            Text(String(format: "%.4f", settings.bias))
+//
+//            Text("Intensity")
+//            Slider(value: $settings.intensity, in: 0.0 ... 2.0)
+//            Text(String(format: "%.2f", settings.intensity))
         }
         .padding()
     }
@@ -341,10 +341,10 @@ struct PostProcessingEditorView: View {
                     VignetteEditorView()
                 }
 
-//                DisclosureGroup("SSAO", isExpanded: $showSSAO){
-//                    SSAOEditorView()
-//                }
-//
+                DisclosureGroup("SSAO", isExpanded: $showSSAO){
+                    SSAOEditorView()
+                }
+
                 DisclosureGroup("Debug", isExpanded: $showDebugPostProccessTexture) {
                     DebuggerEditorView()
                 }

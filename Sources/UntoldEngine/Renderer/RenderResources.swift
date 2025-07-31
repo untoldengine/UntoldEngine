@@ -25,6 +25,8 @@ public struct RenderInfo {
     var shadowRenderPassDescriptor: MTLRenderPassDescriptor!
     var gizmoRenderPassDescriptor: MTLRenderPassDescriptor!
     var deferredRenderPassDescriptor: MTLRenderPassDescriptor!
+    var ssaoRenderPassDescriptor: MTLRenderPassDescriptor!
+    var ssaoBlurRenderPassDescriptor: MTLRenderPassDescriptor!
     var iblOffscreenRenderPassDescriptor: MTLRenderPassDescriptor!
     var colorPixelFormat: MTLPixelFormat!
     var depthPixelFormat: MTLPixelFormat!
@@ -81,6 +83,9 @@ public struct BufferResources {
 
     // ray model
     var rayModelInstanceBuffer: MTLBuffer?
+    
+    // ssao kernel
+    var ssaoKernelBuffer: MTLBuffer?
 }
 
 public struct VertexDescriptors {
@@ -98,6 +103,7 @@ public struct TextureResources {
 
     // deferred
     var deferredColorMap: MTLTexture?
+    var deferredDepthMap: MTLTexture?
     
     // ibl
     var environmentTexture: MTLTexture?
@@ -126,6 +132,9 @@ public struct TextureResources {
     var chromaticAberrationTexture: MTLTexture?
     var depthOfFieldTexture: MTLTexture?
     var ssaoTexture: MTLTexture?
+    var ssaoDepthMap: MTLTexture?
+    var ssaoBlurTexture: MTLTexture?
+    var ssaoBlurDepthTexture: MTLTexture?
 
     // Area texture ltc_1
     var areaTextureLTCMag: MTLTexture?
@@ -135,6 +144,8 @@ public struct TextureResources {
     var gizmoColorTexture: MTLTexture?
     var gizmoDepthTexture: MTLTexture?
     
+    // SSAO
+    var ssaoNoiseTexture: MTLTexture?
 }
 
 public struct AccelStructResources {

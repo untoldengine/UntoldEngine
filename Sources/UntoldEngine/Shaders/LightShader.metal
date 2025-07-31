@@ -223,6 +223,7 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                     depth2d<float> shadowTexture[[texture(lightPassShadowTextureIndex)]],
                                     texture2d<float> irradianceTexture [[texture(lightPassIBLIrradianceTextureIndex)]],
                                     texture2d<float> specularTexture [[texture(lightPassIBLSpecularTextureIndex)]],
+                                    texture2d<float> ssaoTexture [[texture(lightPassSSAOTextureIndex)]],
                                     texture2d<float> iblBRDFTexture [[texture(lightPassIBLBRDFMapTextureIndex)]],
                                     texture2d<float> ltcMagTexture [[texture(lightPassAreaLTCMagTextureIndex)]],
                                     texture2d<float> ltcMatTexture [[texture(lightPassAreaLTCMatTextureIndex)]],
@@ -236,18 +237,25 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                    constant IBLParamsUniform &iblParam [[buffer(lightPassIBLParamIndex)]],
                                   constant AreaLightUniform *areaLights[[buffer(lightPassAreaLightsIndex)]],
                                   constant int *areaLightsCount [[buffer(lightPassAreaLightsCountIndex)]],
-                                  constant float &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]]
+                                  constant float &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
+                                    constant bool &isGameMode[[buffer(lightPassGameModeIndex)]]
                                     ){
 
    // Base Color and Normal Maps: Linear filtering, mipmaps, repeat wrapping
     constexpr sampler s(min_filter::linear, mag_filter::linear, mip_filter::linear, s_address::repeat, t_address::repeat);
+    
+    constexpr sampler positionSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
+                                    s_address::clamp_to_edge, t_address::clamp_to_edge);
+    
+     constexpr sampler normalSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
+                                     s_address::clamp_to_edge, t_address::clamp_to_edge);
 
-    // Normal Maps: This is technically redundant if you're using 's' for both base color and normals,
-    // but keeping a dedicated normalSampler for clarity is fine
-    constexpr sampler normalSampler(min_filter::linear, mag_filter::linear, mip_filter::linear, address::repeat);
-
-    // Roughness and Metallic: Linear filtering, mipmaps, default to repeat wrapping
-    constexpr sampler materialSampler(min_filter::linear, mag_filter::linear, mip_filter::linear, address::repeat);
+     // Roughness and Metallic: Linear filtering, mipmaps, default to repeat wrapping
+     constexpr sampler materialSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
+                                       s_address::clamp_to_edge, t_address::clamp_to_edge);
+     
+    constexpr sampler ssaoSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
+                                    s_address::clamp_to_edge, t_address::clamp_to_edge);
 
     MaterialParametersUniform materialParameter;
     materialParameter.edgeTint = float4(0.0,0.0,0.0,0.0);
@@ -256,10 +264,15 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     // sample textures
 
     float4 albedo=albedoMap.sample(s, vertexOut.uvCoords);
-    float4 verticesInWorldSpace = positionMap.sample(s, vertexOut.uvCoords);
+    float4 verticesInWorldSpace = positionMap.sample(positionSampler, vertexOut.uvCoords);
     float3 surfaceNormal = normalMap.sample(normalSampler, vertexOut.uvCoords).xyz;
     float roughness = materialMap.sample(materialSampler, vertexOut.uvCoords).r;
     float metallic = materialMap.sample(materialSampler, vertexOut.uvCoords).g;
+    float ambientOcclusion = ssaoTexture.sample(ssaoSampler, vertexOut.uvCoords).r;
+    
+    if(!isGameMode){
+        ambientOcclusion = 1.0;
+    }
     
     float3 viewVector=normalize(cameraPosition-verticesInWorldSpace.xyz);
    
@@ -275,6 +288,8 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                               viewVector,
                                               roughness,
                                               metallic);
+    
+    indirectLighting *= ambientOcclusion*iblParam.ambientIntensity;
     
     indirectLighting = ACESFilmicToneMapping(indirectLighting);
     
@@ -345,7 +360,7 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     
     color += areaLightColor;
 
-    color = float4(color.rgb + indirectLighting*iblParam.ambientIntensity,1.0);
+    color = float4(color.rgb + indirectLighting,1.0);
     
     return color;
 

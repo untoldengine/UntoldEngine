@@ -315,7 +315,27 @@ func initRenderPassDescriptors() {
         colorAttachments: [
             (textureResources.deferredColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
+        depthAttachment: (textureResources.deferredDepthMap, .dontCare, .store, nil)
+    )
+    
+    // SSAO Render Pass
+    renderInfo.ssaoRenderPassDescriptor = createRenderPassDescriptor(
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        colorAttachments: [
+            (textureResources.ssaoTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+        ],
+        depthAttachment: (textureResources.ssaoDepthMap, .dontCare, .store, nil)
+    )
+    
+    // SSAO Blur Render Pass
+    renderInfo.ssaoBlurRenderPassDescriptor = createRenderPassDescriptor(
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        colorAttachments: [
+            (textureResources.ssaoBlurTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+        ],
+        depthAttachment: (textureResources.ssaoBlurDepthTexture, .dontCare, .store, nil)
     )
 
     // Post-Processing Render Pass
@@ -386,6 +406,39 @@ func initTextureResources() {
     textureResources.depthMap = createTexture(
         device: renderInfo.device,
         label: "Depth Texture",
+        pixelFormat: renderInfo.depthPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .shared
+    )
+    
+    // Deferred Depth Texture
+    textureResources.deferredDepthMap = createTexture(
+        device: renderInfo.device,
+        label: "Deferred Depth Texture",
+        pixelFormat: renderInfo.depthPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .shared
+    )
+    
+    // SSAO Depth Texture
+    textureResources.ssaoDepthMap = createTexture(
+        device: renderInfo.device,
+        label: "ssao Depth Texture",
+        pixelFormat: renderInfo.depthPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .shared
+    )
+    
+    // SSAO Blur Depth Texture
+    textureResources.ssaoBlurDepthTexture = createTexture(
+        device: renderInfo.device,
+        label: "ssao Blur Depth Texture",
         pixelFormat: renderInfo.depthPixelFormat,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
@@ -528,6 +581,17 @@ func initTextureResources() {
     textureResources.ssaoTexture = createTexture(
         device: renderInfo.device,
         label: "SSAO Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+    
+    // SSAO Blur texture
+    textureResources.ssaoBlurTexture = createTexture(
+        device: renderInfo.device,
+        label: "SSAO Blur Texture",
         pixelFormat: renderInfo.colorPixelFormat,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
@@ -976,6 +1040,19 @@ func createOutlineVertexDescriptor() -> MTLVertexDescriptor? {
     return vertexDescriptor
 }
 
+func initSSAOResources(){
+   
+    // init ssao kernel
+    let kernelData = generateSSAOKernel()
+    bufferResources.ssaoKernelBuffer = renderInfo.device.makeBuffer(bytes: kernelData,
+                                             length: MemoryLayout<SIMD3<Float>>.stride * kernelData.count,
+                                             options: [])
+    
+    // init ssao noise texture
+    textureResources.ssaoNoiseTexture = generateSSAONoiseTexture(device: renderInfo.device)
+    
+}
+
 func initRenderPipelines() {
     // Grid Pipeline
     if let gridPipe = createPipeline(
@@ -1257,6 +1334,18 @@ func initRenderPipelines() {
         name: "SSAO Pipeline"
     ) {
         ssaoPipeline = ssaoPipe
+    }
+    
+    if let ssaoBlurPipe = createPipeline(
+        vertexShader: "vertexSSAOBlurShader",
+        fragmentShader: "fragmentSSAOBlurShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "SSAO Blur Pipeline"
+    ) {
+        ssaoBlurPipeline = ssaoBlurPipe
     }
 
     if let environmentPipe = createPipeline(

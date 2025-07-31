@@ -94,6 +94,7 @@ var vignettePipeline = RenderPipeline()
 var chromaticAberrationPipeline = RenderPipeline()
 var depthOfFieldPipeline = RenderPipeline()
 var ssaoPipeline = RenderPipeline()
+var ssaoBlurPipeline = RenderPipeline()
 var outlinePipeline = RenderPipeline()
 
 var rayTracingPipeline = ComputePipeline()
@@ -288,7 +289,7 @@ class SSAOParams: ObservableObject {
     @Published var radius: Float = 0.5 // 0.1 to 2.0 how far to sample
     @Published var bias: Float = 0.025 // 0.01-0.1 avoid self occusion
     @Published var intensity: Float = 0 // 0.5-2.0 Final multiplier
-    @Published var enabled: Bool = false
+    @Published var enabled: Bool = true
 }
 
 class DebugSettings: ObservableObject {
@@ -310,3 +311,6 @@ var spawnDistance: Float = 2.0
 
 let fixedStep: Float = 1.0 / 60.0
 var physicsAccumulator: Float = 0
+
+// ssao kernel size
+var ssaoKernelSize: Int = 64

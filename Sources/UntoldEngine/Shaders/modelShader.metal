@@ -70,12 +70,17 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     // Base Color and Normal Maps: Linear filtering, mipmaps, repeat wrapping
     constexpr sampler s(min_filter::linear, mag_filter::linear, mip_filter::linear, s_address::repeat, t_address::repeat);
 
-    // Normal Maps: This is technically redundant if you're using 's' for both base color and normals,
-    // but keeping a dedicated normalSampler for clarity is fine
     constexpr sampler normalSampler(min_filter::linear, mag_filter::linear, mip_filter::linear, address::repeat);
 
     // Roughness and Metallic: Linear filtering, mipmaps, default to repeat wrapping
-    constexpr sampler materialSampler(min_filter::linear, mag_filter::linear, mip_filter::linear, address::repeat);
+    constexpr sampler materialSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
+                                      s_address::clamp_to_edge, t_address::clamp_to_edge);
+    
+    /*
+     constexpr sampler normalSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
+                                     s_address::clamp_to_edge, t_address::clamp_to_edge);
+
+     */
 
     GBufferOut gBufferOut;
     
