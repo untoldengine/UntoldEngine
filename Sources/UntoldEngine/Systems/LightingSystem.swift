@@ -126,6 +126,7 @@ public func createSpotLight(entityId: EntityID) {
 
 public func createAreaLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
+    registerComponent(entityId: entityId, componentType: LightDebugComponent.self)
     registerComponent(entityId: entityId, componentType: AreaLightComponent.self)
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
