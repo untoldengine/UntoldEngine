@@ -6,6 +6,11 @@ import UntoldEngine
 // GameScene is where you would initialize your game and write the game logic.
 class GameScene {
     init() {
+        
+        if let desktopURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first {
+            assetBasePath = desktopURL.appendingPathComponent("MyGreatGame")
+        }
+
         // register custom systems. do not delete
         // registerCustomSystem(ballSystemUpdate)
 
