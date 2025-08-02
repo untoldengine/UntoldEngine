@@ -242,7 +242,7 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                     ){
 
    // Base Color and Normal Maps: Linear filtering, mipmaps, repeat wrapping
-    constexpr sampler s(min_filter::linear, mag_filter::linear, mip_filter::linear, s_address::repeat, t_address::repeat);
+    constexpr sampler s(min_filter::linear, mag_filter::linear, mip_filter::linear, s_address::clamp_to_edge, t_address::clamp_to_edge);
     
     constexpr sampler positionSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
                                     s_address::clamp_to_edge, t_address::clamp_to_edge);

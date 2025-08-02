@@ -64,17 +64,20 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
                                   texture2d<float> metallicTexture [[texture(modelPassMetallicTextureIndex)]],
                                   texture2d<float> normalTexture [[texture(modelPassNormalTextureIndex)]],
                                   constant bool &hasNormal[[buffer(modelPassHasNormalTextureIndex)]],
-                                  constant MaterialParametersUniform &materialParameter [[buffer(modelPassMaterialParameterIndex)]])
+                                  constant MaterialParametersUniform &materialParameter [[buffer(modelPassMaterialParameterIndex)]],
+                                  sampler baseColorSampler [[sampler(modelPassBaseSamplerIndex)]],
+                                  sampler normalSampler [[sampler(modelPassNormalSamplerIndex)]],
+                                  sampler materialSampler [[sampler(modelPassMaterialSamplerIndex)]],
+                                  constant float &stScale [[buffer(modelPassSTScaleIndex)]])
 {
 
     // Base Color and Normal Maps: Linear filtering, mipmaps, repeat wrapping
-    constexpr sampler s(min_filter::linear, mag_filter::linear, mip_filter::linear, s_address::repeat, t_address::repeat);
 
-    constexpr sampler normalSampler(min_filter::linear, mag_filter::linear, mip_filter::linear, address::repeat);
-
-    // Roughness and Metallic: Linear filtering, mipmaps, default to repeat wrapping
-    constexpr sampler materialSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
-                                      s_address::clamp_to_edge, t_address::clamp_to_edge);
+//    constexpr sampler normalSampler(min_filter::linear, mag_filter::linear, mip_filter::linear, address::repeat);
+//
+//    // Roughness and Metallic: Linear filtering, mipmaps, default to repeat wrapping
+//    constexpr sampler materialSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
+//                                      s_address::clamp_to_edge, t_address::clamp_to_edge);
     
     /*
      constexpr sampler normalSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
@@ -84,7 +87,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     GBufferOut gBufferOut;
     
-    float2 st=in.uvCoords;
+    float2 st=in.uvCoords*stScale;
     st.y=1.0-st.y;
     
     float4 verticesInWorldSpace=uniforms.modelMatrix*in.vPosition;
@@ -92,7 +95,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     // Base color
     
-    float4 sampledColor = baseColor.sample(s, st);
+    float4 sampledColor = baseColor.sample(baseColorSampler, st);
     
     // Detect if basecolor is all zeros
     bool isBaseColorZero = all(materialParameter.baseColor.rgb < 0.001);

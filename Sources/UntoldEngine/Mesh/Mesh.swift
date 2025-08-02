@@ -195,11 +195,32 @@ struct SubMesh {
     }
 }
 
+enum WrapMode: Int, CaseIterable, Identifiable, CustomStringConvertible {
+    case clampToEdge
+    case `repeat`
+
+    var id: Int { rawValue }
+
+    var description: String {
+        switch self {
+        case .clampToEdge: return "Clamp to Edge"
+        case .repeat:      return "Repeat"
+        }
+    }
+}
+
+
+struct TextureDescriptor{
+    var texture: MTLTexture? = nil
+    var sampler: MTLSamplerState? = nil
+    var wrapMode: WrapMode = .clampToEdge
+}
+
 struct Material {
-    var baseColor: MTLTexture?
-    var roughness: MTLTexture?
-    var metallic: MTLTexture?
-    var normal: MTLTexture?
+    var baseColor: TextureDescriptor
+    var roughness: TextureDescriptor
+    var metallic: TextureDescriptor
+    var normal: TextureDescriptor
 
     // Texture URLs
     var baseColorURL: URL?
@@ -228,28 +249,33 @@ struct Material {
     var interactWithLight: Bool = true
 
     // Texture presence flags
-    var hasNormalMap: Bool { normal != nil }
-    var hasBaseMap: Bool { baseColor != nil }
-    var hasRoughMap: Bool { roughness != nil }
-    var hasMetalMap: Bool { metallic != nil }
+    var hasNormalMap: Bool { normal.texture != nil }
+    var hasBaseMap: Bool { baseColor.texture != nil }
+    var hasRoughMap: Bool { roughness.texture != nil }
+    var hasMetalMap: Bool { metallic.texture != nil }
+    
+    var stScale: Float = 1.0;
 
     init(mdlMaterial: MDLMaterial, textureLoader: TextureLoader, name: String) {
         // Load textures and set URLs
-        baseColor = textureLoader.loadTexture(from: mdlMaterial.property(with: .baseColor), isSRGB: true, outputURL: &baseColorURL, mapType: "Basecolor map", assetName: name)
-        normal = textureLoader.loadTexture(from: mdlMaterial.property(with: .tangentSpaceNormal), isSRGB: false, outputURL: &normalURL, mapType: "Normal map", assetName: name)
-        roughness = textureLoader.loadTexture(from: mdlMaterial.property(with: .roughness), isSRGB: false, outputURL: &roughnessURL, mapType: "Roughness map", assetName: name)
-        metallic = textureLoader.loadTexture(from: mdlMaterial.property(with: .metallic), isSRGB: false, outputURL: &metallicURL, mapType: "Metallic map", assetName: name)
+        baseColor = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .baseColor), isSRGB: true, outputURL: &baseColorURL, mapType: "Basecolor map", assetName: name), wrapMode: .repeat)
+        
+        normal = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .tangentSpaceNormal), isSRGB: false, outputURL: &normalURL, mapType: "Normal map", assetName: name), wrapMode: .clampToEdge)
+        
+        roughness = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .roughness), isSRGB: false, outputURL: &roughnessURL, mapType: "Roughness map", assetName: name), wrapMode: .repeat)
+        
+        metallic = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .metallic), isSRGB: false, outputURL: &metallicURL, mapType: "Metallic map", assetName: name), wrapMode: .repeat)
 
         baseColorValue = mdlMaterial.property(with: .baseColor)?.float4Value ?? baseColorValue
         roughnessValue = mdlMaterial.property(with: .roughness)?.floatValue ?? roughnessValue
         metallicValue = mdlMaterial.property(with: .metallic)?.floatValue ?? metallicValue
 
         // if textures exist, the roughnessValue and MetallicValue act as modulators
-        if roughness != nil {
+        if roughness.texture != nil {
             roughnessValue = 1.0
         }
 
-        if metallic != nil {
+        if metallic.texture != nil {
             metallicValue = 1.0
         }
 
@@ -343,3 +369,20 @@ struct TextureLoader {
         return texture
     }
 }
+
+func createTextureDescriptor(device: MTLDevice,
+                             texture: MTLTexture?,
+                             wrapMode: WrapMode) -> TextureDescriptor {
+    
+    let samplerDescriptor = MTLSamplerDescriptor()
+    samplerDescriptor.minFilter = .linear
+    samplerDescriptor.magFilter = .linear
+    samplerDescriptor.mipFilter = .linear
+    samplerDescriptor.sAddressMode = (wrapMode == .repeat) ? .repeat : .clampToEdge
+    samplerDescriptor.tAddressMode = (wrapMode == .repeat) ? .repeat : .clampToEdge
+
+    let sampler = device.makeSamplerState(descriptor: samplerDescriptor)
+
+    return TextureDescriptor(texture: texture, sampler: sampler, wrapMode: wrapMode)
+}
+

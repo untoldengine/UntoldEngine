@@ -498,18 +498,31 @@ enum RenderPasses {
                 renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
 
                 for subMesh in mesh.submeshes {
+                    
+                    var stScale: Float = subMesh.material!.stScale
+                    
+                    renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassSTScaleIndex.rawValue))
+                    
                     // set base texture
                     renderEncoder.setFragmentTexture(
-                        subMesh.material?.baseColor, index: Int(modelPassBaseTextureIndex.rawValue)
+                        subMesh.material?.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue)
                     )
+                    
+                    renderEncoder.setFragmentSamplerState(subMesh.material?.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
 
+                    // set roughness
                     renderEncoder.setFragmentTexture(
-                        subMesh.material?.roughness, index: Int(modelPassRoughnessTextureIndex.rawValue)
+                        subMesh.material?.roughness.texture, index: Int(modelPassRoughnessTextureIndex.rawValue)
                     )
+                    
+                    renderEncoder.setFragmentSamplerState(subMesh.material?.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
 
+                    // set metallic
                     renderEncoder.setFragmentTexture(
-                        subMesh.material?.metallic, index: Int(modelPassMetallicTextureIndex.rawValue)
+                        subMesh.material?.metallic.texture, index: Int(modelPassMetallicTextureIndex.rawValue)
                     )
+                    
+                    renderEncoder.setFragmentSamplerState(subMesh.material?.metallic.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
 
                     var materialParameters = MaterialParametersUniform()
                     materialParameters.specular = subMesh.material!.specular
@@ -540,15 +553,18 @@ enum RenderPasses {
                         index: Int(modelPassMaterialParameterIndex.rawValue)
                     )
 
-                    var hasNormal: Bool = ((subMesh.material?.normal) != nil)
+                    // set normal
+                    var hasNormal: Bool = ((subMesh.material?.normal.texture) != nil)
                     renderEncoder.setFragmentBytes(
                         &hasNormal, length: MemoryLayout<Bool>.stride,
                         index: Int(modelPassHasNormalTextureIndex.rawValue)
                     )
 
                     renderEncoder.setFragmentTexture(
-                        subMesh.material?.normal, index: Int(modelPassNormalTextureIndex.rawValue)
+                        subMesh.material?.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue)
                     )
+                    
+                    renderEncoder.setFragmentSamplerState(subMesh.material?.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
 
                     renderEncoder.drawIndexedPrimitives(
                         type: subMesh.metalKitSubmesh.primitiveType,

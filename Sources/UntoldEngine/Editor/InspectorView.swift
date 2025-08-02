@@ -100,38 +100,41 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                             .padding(.bottom, 4)
 
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 12) {
+                            HStack(alignment: .top, spacing: 24) {
                                 ForEach(TextureType.allCases) { type in
 
                                     let image: NSImage? = {
-                                        if let url = getMaterialTextureURL(entityId: entityId, type: type), let image = NSImage(contentsOf: url) {
-                                            return image
+                                        if let url = getMaterialTextureURL(entityId: entityId, type: type),
+                                           let img = NSImage(contentsOf: url) {
+                                            return img
                                         } else {
                                             return NSImage(named: "Default Texture")
                                         }
                                     }()
 
-                                    VStack(spacing: 6) {
+                                    VStack(alignment: .center, spacing: 8) {
+                                        // Texture preview
                                         Button(action: {
-                                            if asset?.category == "Materials", asset?.path != nil {
-                                                updateMaterialTexture(entityId: entityId, textureType: type, path: asset!.path)
+                                            if asset?.category == "Materials", let path = asset?.path {
+                                                updateMaterialTexture(entityId: entityId, textureType: type, path: path)
                                                 refreshView()
                                             }
                                         }) {
                                             if let image {
                                                 Image(nsImage: image)
                                                     .resizable()
-                                                    .frame(width: 48, height: 48)
+                                                    .frame(width: 64, height: 64)
                                                     .cornerRadius(6)
                                             } else {
                                                 Image(systemName: "photo")
                                                     .resizable()
-                                                    .frame(width: 48, height: 48)
+                                                    .frame(width: 64, height: 64)
                                                     .foregroundColor(.gray)
                                             }
                                         }
-                                        .buttonStyle(PlainButtonStyle()) // No default button borders
+                                        .buttonStyle(PlainButtonStyle())
 
+                                        // Remove texture
                                         Button(action: {
                                             removeMaterialTexture(entityId: entityId, textureType: type)
                                             refreshView()
@@ -141,11 +144,60 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                                         }
                                         .buttonStyle(BorderlessButtonStyle())
 
+                                        // Texture name
                                         Text(type.displayName)
                                             .font(.caption)
+                                            .padding(.top, 4)
+
+                                        Divider().padding(.vertical, 4)
+
+                                        // Wrap Mode
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Wrap Mode")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+
+                                            Picker("", selection: bindingForWrapMode(entityId: entityId, textureType: type, onChange: refreshView)) {
+                                                ForEach(WrapMode.allCases) { mode in
+                                                    Text(mode.description).tag(mode)
+                                                }
+                                            }
+                                            .pickerStyle(MenuPickerStyle())
+                                            .frame(maxWidth: 100)
+                                        }
                                     }
+                                    .frame(width: 100) // lock column width for consistency
                                 }
                             }
+                            .padding(.horizontal, 12)
+                        }
+
+                        
+//                            let stScaleBinding = bindingForSTScale(entityId: entityId, onChange: refreshView)
+//
+//                            HStack {
+//                                Text("Scale")
+//                                Slider(value: stScaleBinding, in: 0.0...5.0)
+//                                Text("\(String(format: "%.2f", stScaleBinding.wrappedValue))")
+//                                    .frame(width: 40, alignment: .trailing)
+//                            }
+                        
+                        HStack{
+                            Text("UV Scale")
+                                .font(.callout)
+                                .foregroundColor(.secondary)
+                            
+                            TextInputNumberView(
+                                label: "",
+                                value: Binding(
+                                    get: { getMaterialSTScale(entityId: entityId) },
+                                    set: { newValue in
+                                        updateMaterialSTScale(entityId: entityId, stScale: newValue)
+                                        refreshView()
+                                    }
+                                )
+                            )
+                            .frame(width: 60)
                         }
 
                         Divider()

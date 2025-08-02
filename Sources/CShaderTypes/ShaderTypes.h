@@ -80,6 +80,7 @@ typedef enum{
     modelPassMaterialParameterIndex,
     modelPassJointTransformIndex,
     modelPassHasArmature,
+    modelPassSTScaleIndex,
 }ModelPassBufferIndices;
 
 typedef enum{
@@ -104,6 +105,12 @@ typedef enum{
     modelPassNormalTextureIndex,
     modelPassHasNormalTextureIndex,
 }ModelPassTextureIndices;
+
+typedef enum{
+    modelPassBaseSamplerIndex,
+    modelPassNormalSamplerIndex,
+    modelPassMaterialSamplerIndex
+}ModelPassSamplerIndices;
 
 typedef enum{
     lightPassAlbedoTextureIndex,

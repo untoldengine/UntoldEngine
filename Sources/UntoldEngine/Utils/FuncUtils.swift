@@ -501,18 +501,18 @@ func removeMaterialTexture(entityId: EntityID, textureType: TextureType) {
 
     switch textureType {
     case .baseColor:
-        updatedMaterial.baseColor = nil
+        updatedMaterial.baseColor.texture = nil
         updatedMaterial.baseColorURL = nil
     case .roughness:
-        updatedMaterial.roughness = nil
+        updatedMaterial.roughness.texture = nil
         updatedMaterial.roughnessURL = nil
         updatedMaterial.roughnessValue = 1.0
     case .metallic:
-        updatedMaterial.metallic = nil
+        updatedMaterial.metallic.texture = nil
         updatedMaterial.metallicURL = nil
         updatedMaterial.metallicValue = 0.0
     case .normal:
-        updatedMaterial.normal = nil
+        updatedMaterial.normal.texture = nil
         updatedMaterial.normalURL = nil
     }
 
@@ -546,18 +546,18 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
 
         switch textureType {
         case .baseColor:
-            updatedMaterial.baseColor = texture
+            updatedMaterial.baseColor.texture = texture
             updatedMaterial.baseColorURL = url
         case .roughness:
-            updatedMaterial.roughness = texture
+            updatedMaterial.roughness.texture = texture
             updatedMaterial.roughnessURL = url
             updatedMaterial.roughnessValue = 1.0
         case .metallic:
-            updatedMaterial.metallic = texture
+            updatedMaterial.metallic.texture = texture
             updatedMaterial.metallicURL = url
             updatedMaterial.metallicValue = 1.0
         case .normal:
-            updatedMaterial.normal = texture
+            updatedMaterial.normal.texture = texture
             updatedMaterial.normalURL = url
         }
 
@@ -642,7 +642,7 @@ func getMaterialEmmissive(entityId: EntityID) -> simd_float3 {
 }
 
 func updateMaterialEmmisive(entityId: EntityID, emmissive: simd_float3) {
-    guard var renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
 
@@ -888,3 +888,85 @@ func generateSSAONoiseTexture(device: MTLDevice, size: Int = 4) -> MTLTexture? {
     return texture
 }
 
+func getMaterialSTScale(entityId: EntityID) -> Float{
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return 1.0
+    }
+
+    guard let material = renderComponent.mesh[0].submeshes[0].material else { return 1.0}
+    
+    return material.stScale
+}
+
+func updateMaterialSTScale(entityId: EntityID, stScale: Float){
+    
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+   guard var material = renderComponent.mesh.first?.submeshes.first?.material else {
+        return
+    }
+    
+    material.stScale = stScale
+    
+    renderComponent.mesh[0].submeshes[0].material = material
+
+}
+
+func getTextureWrapMode(entityId: EntityID, textureType: TextureType) -> WrapMode?{
+    
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return nil
+    }
+
+    guard let material = renderComponent.mesh[0].submeshes[0].material else { return nil}
+    
+    switch textureType {
+    case .baseColor:
+        return material.baseColor.wrapMode
+    case .normal:
+        break
+    case .roughness:
+        break
+    case .metallic:
+        break
+    }
+    
+    return nil
+}
+
+func updateTextureSampler(entityId: EntityID, textureType: TextureType, wrapMode: WrapMode){
+
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
+
+    let samplerDescriptor = MTLSamplerDescriptor()
+    samplerDescriptor.minFilter = .linear
+    samplerDescriptor.magFilter = .linear
+    samplerDescriptor.mipFilter = .linear
+    samplerDescriptor.sAddressMode = (wrapMode == .repeat) ? .repeat : .clampToEdge
+    samplerDescriptor.tAddressMode = (wrapMode == .repeat) ? .repeat : .clampToEdge
+
+    let sampler = renderInfo.device.makeSamplerState(descriptor: samplerDescriptor)
+    
+    switch textureType {
+    case .baseColor:
+        material.baseColor.sampler = sampler
+        material.baseColor.wrapMode = wrapMode
+    case .normal:
+        material.normal.sampler = sampler
+        material.normal.wrapMode = wrapMode
+    case .roughness:
+        material.roughness.sampler = sampler
+        material.roughness.wrapMode = wrapMode
+    case .metallic:
+        material.metallic.sampler = sampler
+        material.metallic.wrapMode = wrapMode
+    }
+    
+    renderComponent.mesh[0].submeshes[0].material = material
+}

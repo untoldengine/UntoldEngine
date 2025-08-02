@@ -161,7 +161,7 @@ var hotReload: Bool = false
 
 var applyIBL: Bool = true
 var renderEnvironment: Bool = false
-var ambientIntensity: Float = 0.44
+var ambientIntensity: Float = 1.0
 
 // hightlight
 let boundingBoxVertexCount = 24
