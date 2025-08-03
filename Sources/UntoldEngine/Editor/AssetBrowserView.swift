@@ -415,7 +415,7 @@ struct AssetBrowserView: View {
                             }
                             
                             if !asset.isFolder, asset.path.pathExtension == "png" || asset.path.pathExtension == "jpg" || asset.path.pathExtension == "tif", selectedCategory == "Materials"{
-                                
+                                selectAsset(asset)
                                 loadTextureType(entityId: selectionManager.selectedEntity!, assetName: asset.name, path: asset.path)
                             }
                         }
