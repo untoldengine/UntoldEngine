@@ -176,7 +176,13 @@ struct AssetBrowserView: View {
                                     if let categoryAssets = assets[selectedCategory] {
                                         ForEach(categoryAssets) { asset in
                                             assetRow(asset)
-                                                .onTapGesture {
+                                                .onTapGesture(count: 2) {
+                                                    if !asset.isFolder, selectedCategory == "HDR"{
+                                                        selectAsset(asset)
+                                                        addIBL(asset: asset)
+                                                    }
+                                                }
+                                                .onTapGesture(count: 1) {
                                                     if asset.isFolder {
                                                         folderPathStack.append(asset.path)
                                                     } else {

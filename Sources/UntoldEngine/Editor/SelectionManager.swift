@@ -71,7 +71,7 @@ public class EditorAssetBasePath: ObservableObject {
 }
 
 class SelectionManager: ObservableObject {
-    @Published var selectedEntity: EntityID? = nil
+    @Published var selectedEntity: EntityID? = .invalid
 
     init() {}
 
