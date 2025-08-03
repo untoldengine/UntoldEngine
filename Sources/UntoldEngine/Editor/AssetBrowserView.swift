@@ -34,6 +34,7 @@ struct AssetBrowserView: View {
     @State private var selectedCategory: String? = "Models" // Default category
     @State private var selectedAssetName: String?
     @ObservedObject var editorBaseAssetPath = EditorAssetBasePath.shared
+    @ObservedObject var selectionManager: SelectionManager
     @State private var folderPathStack: [URL] = []
     var editor_addEntityWithAsset: () -> Void
     private var currentFolderPath: URL? {
@@ -170,7 +171,7 @@ struct AssetBrowserView: View {
 
                                 // Show either folder contents or top-level categories
                                 if let currentFolderPath {
-                                    folderContentsView(for: currentFolderPath)
+                                    folderContentsView(for: currentFolderPath, selectionManager: selectionManager)
                                 } else {
                                     if let categoryAssets = assets[selectedCategory] {
                                         ForEach(categoryAssets) { asset in
@@ -379,7 +380,7 @@ struct AssetBrowserView: View {
     }
 
     @ViewBuilder
-    private func folderContentsView(for folder: URL) -> some View {
+    private func folderContentsView(for folder: URL, selectionManager: SelectionManager) -> some View {
         if let contents = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
             let items = contents.compactMap { item -> Asset? in
                 var isDir: ObjCBool = false
@@ -405,6 +406,11 @@ struct AssetBrowserView: View {
                             if !asset.isFolder, asset.path.pathExtension == "usdc", selectedCategory == "Models" {
                                 selectAsset(asset)
                                 editor_addEntityWithAsset()
+                            }
+                            
+                            if !asset.isFolder, asset.path.pathExtension == "png" || asset.path.pathExtension == "jpg" || asset.path.pathExtension == "tif", selectedCategory == "Materials"{
+                                
+                                loadTextureType(entityId: selectionManager.selectedEntity!, assetName: asset.name, path: asset.path)
                             }
                         }
                         .onTapGesture(count: 1) {

@@ -970,3 +970,31 @@ func updateTextureSampler(entityId: EntityID, textureType: TextureType, wrapMode
     
     renderComponent.mesh[0].submeshes[0].material = material
 }
+
+func getTextureType(from filename: String) -> TextureType? {
+    let lowercasedName = filename.lowercased()
+    
+    if lowercasedName.contains("basecolor") || lowercasedName.contains("albedo") || lowercasedName.contains("color") {
+        return .baseColor
+    } else if lowercasedName.contains("roughness") {
+        return .roughness
+    } else if lowercasedName.contains("metallic") {
+        return .metallic
+    } else if lowercasedName.contains("normalgx") || lowercasedName.contains("normaldx") || lowercasedName.contains("normal") {
+        return .normal
+    }
+
+    return nil
+}
+
+func loadTextureType(entityId: EntityID, assetName: String, path: URL){
+   
+    if entityId == .invalid{
+        return
+    }
+    
+    guard let textureType = getTextureType(from: assetName) else{
+        return
+    }
+    updateMaterialTexture(entityId: entityId, textureType: textureType, path: path)
+}

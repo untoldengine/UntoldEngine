@@ -137,7 +137,7 @@ let quadIndices: [UInt16] = [
     3, 1, 2, // Second Triangle
 ]
 
-enum TextureType: CaseIterable, Identifiable {
+enum TextureType: String, CaseIterable, Identifiable {
     case baseColor
     case roughness
     case metallic
