@@ -94,7 +94,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                     .background(Color.secondary.opacity(0.05))
                     .cornerRadius(8)
 
-                    if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+                    if let renderComponent = scene.get(component: RenderComponent.self, for: entityId), hasComponent(entityId: entityId, componentType: LightComponent.self) == false {
                         Text("Material Properties")
                             .font(.headline)
                             .padding(.bottom, 4)
