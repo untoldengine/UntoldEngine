@@ -359,7 +359,6 @@ enum RenderPasses {
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(emissiveTarget.rawValue)]
             .storeAction = .store
 
-
         renderInfo.offscreenRenderPassDescriptor.depthAttachment.storeAction = .store
 
         let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor!
@@ -406,8 +405,8 @@ enum RenderPasses {
             if hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
                 continue
             }
-            
-            if hasComponent(entityId: entityId, componentType: LightDebugComponent.self) {
+
+            if hasComponent(entityId: entityId, componentType: LightComponent.self) {
                 continue
             }
 
@@ -498,30 +497,29 @@ enum RenderPasses {
                 renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
 
                 for subMesh in mesh.submeshes {
-                    
                     var stScale: Float = subMesh.material!.stScale
-                    
+
                     renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassSTScaleIndex.rawValue))
-                    
+
                     // set base texture
                     renderEncoder.setFragmentTexture(
                         subMesh.material?.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue)
                     )
-                    
+
                     renderEncoder.setFragmentSamplerState(subMesh.material?.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
 
                     // set roughness
                     renderEncoder.setFragmentTexture(
                         subMesh.material?.roughness.texture, index: Int(modelPassRoughnessTextureIndex.rawValue)
                     )
-                    
+
                     renderEncoder.setFragmentSamplerState(subMesh.material?.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
 
                     // set metallic
                     renderEncoder.setFragmentTexture(
                         subMesh.material?.metallic.texture, index: Int(modelPassMetallicTextureIndex.rawValue)
                     )
-                    
+
                     renderEncoder.setFragmentSamplerState(subMesh.material?.metallic.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
 
                     var materialParameters = MaterialParametersUniform()
@@ -563,7 +561,7 @@ enum RenderPasses {
                     renderEncoder.setFragmentTexture(
                         subMesh.material?.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue)
                     )
-                    
+
                     renderEncoder.setFragmentSamplerState(subMesh.material?.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
 
                     renderEncoder.drawIndexedPrimitives(
@@ -581,22 +579,22 @@ enum RenderPasses {
         renderEncoder.popDebugGroup()
         renderEncoder.endEncoding()
     }
-    
+
     static let ssaoExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
         if !ssaoPipeline.success {
             handleError(.pipelineStateNulled, ssaoPipeline.name!)
             return
         }
-        
+
         let renderPassDescriptor = renderInfo.ssaoRenderPassDescriptor!
-        
+
         renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
             .loadAction = .load
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
             .loadAction = .load
-        
+
         // set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
@@ -617,7 +615,7 @@ enum RenderPasses {
             handleError(.noActiveCamera)
             return
         }
-        
+
         renderEncoder.label = "SSAO Pass"
 
         renderEncoder.pushDebugGroup("SSAO Pass")
@@ -631,27 +629,26 @@ enum RenderPasses {
 
         // pass gbufer resources
         renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture, index: Int(ssaoNormalMapTextureIndex.rawValue))
-        
+
         renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture, index: Int(ssaoPositionMapTextureIndex.rawValue))
 
         // pass ssao resources
-                
+
         if let kernelBuffer = bufferResources.ssaoKernelBuffer {
             renderEncoder.setFragmentBuffer(kernelBuffer, offset: 0, index: Int(ssaoPassKernelIndex.rawValue))
         }
 
-        
         renderEncoder.setFragmentTexture(textureResources.ssaoNoiseTexture, index: Int(ssaoNoiseMapTextureIndex.rawValue))
-        
+
         renderEncoder.setFragmentBytes(&ssaoKernelSize, length: MemoryLayout<Int>.stride, index: Int(ssaoPassKernelSizeIndex.rawValue))
-        
+
         renderEncoder.setFragmentBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassViewPortIndex.rawValue))
-        
+
         renderEncoder.setFragmentBytes(&renderInfo.perspectiveSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassPerspectiveSpaceIndex.rawValue))
-        
+
         renderEncoder.setFragmentBytes(&cameraComponent.viewSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassViewSpaceIndex.rawValue))
-        
-         // ssao properties
+
+        // ssao properties
         renderEncoder.setFragmentBytes(
             &SSAOParams.shared.radius,
             length: MemoryLayout<Float>.stride,
@@ -689,16 +686,16 @@ enum RenderPasses {
         renderEncoder.popDebugGroup()
         renderEncoder.endEncoding()
     }
-    
+
     static let ssaoBlurExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
         if !ssaoBlurPipeline.success {
             handleError(.pipelineStateNulled, ssaoBlurPipeline.name!)
             return
         }
-        
+
         let renderPassDescriptor = renderInfo.ssaoBlurRenderPassDescriptor!
-        
+
         // set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
@@ -729,7 +726,7 @@ enum RenderPasses {
 
         // pass ssao resources
         renderEncoder.setFragmentTexture(textureResources.ssaoTexture, index: 0)
-        
+
         renderEncoder.setFragmentBytes(
             &SSAOParams.shared.enabled,
             length: MemoryLayout<Bool>.stride,
@@ -749,14 +746,14 @@ enum RenderPasses {
         renderEncoder.popDebugGroup()
         renderEncoder.endEncoding()
     }
-    
+
     static let lightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
         if !lightPipeline.success {
             handleError(.pipelineStateNulled, lightPipeline.name!)
             return
         }
-        
+
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
             handleError(.noActiveCamera)
             return
@@ -791,44 +788,43 @@ enum RenderPasses {
         renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
-        
         renderEncoder.setFragmentBytes(&cameraComponent.localPosition, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
-        
+
         renderEncoder.setFragmentBytes(
             &shadowSystem.dirLightSpaceMatrix, length: MemoryLayout<simd_float4x4>.stride,
             index: Int(lightPassLightOrthoViewMatrixIndex.rawValue)
         )
-       
-        //G-Buffer data
+
+        // G-Buffer data
         renderEncoder.setFragmentTexture(
             renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture, index: Int(lightPassAlbedoTextureIndex.rawValue)
         )
-        
+
         renderEncoder.setFragmentTexture(
             renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture, index: Int(lightPassNormalTextureIndex.rawValue)
         )
-        
+
         renderEncoder.setFragmentTexture(
             renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture, index: Int(lightPassPositionTextureIndex.rawValue)
         )
-        
+
         renderEncoder.setFragmentTexture(
             renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(materialTarget.rawValue)].texture, index: Int(lightPassMaterialTextureIndex.rawValue)
         )
-        
+
         // SSAO Blur texture
         renderEncoder.setFragmentTexture(textureResources.ssaoBlurTexture, index: Int(lightPassSSAOTextureIndex.rawValue))
-        
+
         // Compute Lighting
         var lightParams = getDirectionalLightParameters()
 
         renderEncoder.setFragmentBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(lightPassLightParamsIndex.rawValue))
-        
+
         // shadow map
         renderEncoder.setFragmentTexture(
             textureResources.shadowMap, index: Int(lightPassShadowTextureIndex.rawValue)
         )
-        
+
         // point lights
         if let pointLightBuffer = bufferResources.pointLightBuffer {
             let pointLightArray = Array(getPointLights())
@@ -856,7 +852,7 @@ enum RenderPasses {
             &pointLightCount, length: MemoryLayout<Int>.stride,
             index: Int(lightPassPointLightsCountIndex.rawValue)
         )
-        
+
         // spot light
         if let spotLightBuffer = bufferResources.spotLightBuffer {
             let spotLightArray = Array(getSpotLights())
@@ -884,7 +880,7 @@ enum RenderPasses {
             &spotLightCount, length: MemoryLayout<Int>.stride,
             index: Int(lightPassSpotLightsCountIndex.rawValue)
         )
-        
+
         // area light
         if let areaLightBuffer = bufferResources.areaLightBuffer {
             let areaLightArray = Array(getAreaLights())
@@ -916,7 +912,7 @@ enum RenderPasses {
         renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMat, index: Int(lightPassAreaLTCMatTextureIndex.rawValue))
 
         renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMag, index: Int(lightPassAreaLTCMagTextureIndex.rawValue))
-        
+
         // ibl
         renderEncoder.setFragmentTexture(
             textureResources.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue)
@@ -936,7 +932,7 @@ enum RenderPasses {
             &brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride,
             index: Int(lightPassIBLParamIndex.rawValue)
         )
-        
+
         renderEncoder.setFragmentBytes(
             &envRotationAngle, length: MemoryLayout<Float>.stride,
             index: Int(lightPassIBLRotationAngleIndex.rawValue)
@@ -944,7 +940,7 @@ enum RenderPasses {
 
         var isGameMode = gameMode
         renderEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.size, index: Int(lightPassGameModeIndex.rawValue))
-        
+
         // set the draw command
 
         renderEncoder.drawIndexedPrimitives(
@@ -1434,21 +1430,26 @@ enum RenderPasses {
         var scale: simd_float3 = .one
 
         if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
+            var lightMesh: [Mesh] = []
             if let pointLightComponent = scene.get(component: PointLightComponent.self, for: activeEntity) {
                 scale = simd_float3(repeating: pointLightComponent.radius)
-            }
-
-            if let spotLightComponent = scene.get(component: SpotLightComponent.self, for: activeEntity) {
+                lightMesh = pointLightDebugMesh
+            } else if let spotLightComponent = scene.get(component: SpotLightComponent.self, for: activeEntity) {
                 let theta = degreesToRadians(degrees: spotLightComponent.coneAngle)
                 let radius = tan(theta) * spotLightComponent.radius
 
                 scale = simd_float3(radius, radius, spotLightComponent.radius / 2.0)
+                lightMesh = spotLightDebugMesh
+            } else if let areaLightComponent = scene.get(component: AreaLightComponent.self, for: activeEntity) {
+                lightMesh = areaLightDebugMesh
+            } else if let dirLightComponent = scene.get(component: DirectionalLightComponent.self, for: activeEntity) {
+                lightMesh = dirLightDebugMesh
             }
 
             renderEncoder.setVertexBytes(&scale, length: MemoryLayout<simd_float3>.stride, index: 4)
 
             renderEncoder.setTriangleFillMode(.lines)
-            for mesh in renderComponent.mesh {
+            for mesh in lightMesh {
                 renderEncoder.setVertexBuffer(
                     mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
                     offset: 0, index: Int(modelPassVerticesIndex.rawValue)

@@ -443,11 +443,11 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
     let boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
 
     localTransformComponent.position = simd_float3(meshes[0].worldSpace.columns.3.x, meshes[0].worldSpace.columns.3.y, meshes[0].worldSpace.columns.3.z)
-    
+
     localTransformComponent.scale = .one
-    
+
     localTransformComponent.rotation = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(meshes[0].worldSpace))
-    
+
     let euler = transformQuaternionToEulerAngles(q: localTransformComponent.rotation)
 
     localTransformComponent.rotationX = euler.pitch
@@ -515,4 +515,29 @@ public func encodeCustomComponent(
             EditorComponentsState.shared.components[entityId]?[key] = editorMeta
         }
     }
+}
+
+func loadRawMesh(
+    name: String,
+    filename: String,
+    withExtension: String
+) -> [Mesh] {
+    guard let url = getResourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
+        handleError(.filenameNotFound, filename)
+        return []
+    }
+
+    if url.pathExtension == "dae" {
+        handleError(.fileTypeNotSupported, url.pathExtension)
+        return []
+    }
+
+    let meshes = Mesh.loadMeshWithName(name: name, url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
+
+    if meshes.isEmpty {
+        handleError(.assetDataMissing, filename)
+        return []
+    }
+
+    return meshes
 }

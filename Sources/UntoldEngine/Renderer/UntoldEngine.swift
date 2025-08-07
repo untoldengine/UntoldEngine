@@ -108,9 +108,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         createDirLight(entityId: light)
         // initialize ray vs model pipeline
         initRayPickerCompute()
-        
+
         // init ssao kernels
         initSSAOResources()
+
+        loadLightDebugMeshes()
 
         Logger.log(message: "Untold Engine Starting")
     }
@@ -172,9 +174,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         // process Input - Handle user input before updating game states
         if gameMode == true {
             handleInputCallback?() // if game mode
-            
+
             updateAnimationSystem(deltaTime: timeSinceLastUpdate)
-            
+
             // Fixed‐timestep physics
             physicsAccumulator += timeSinceLastUpdate
             let maxSteps = 5
@@ -185,8 +187,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 physicsAccumulator -= fixedStep
                 steps += 1
             }
-            
-            
+
         } else {
             handleSceneInput() // if scene mode
         }
@@ -232,7 +233,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 handleError(.noActiveCamera)
                 return
             }
-            
+
             guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: activeEntity) else {
                 handleError(.noLocalTransformComponent)
                 return
@@ -343,50 +344,44 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             // scale
             case (.scale, .x) where inputSystem.mouseActive:
                 let axisWorldDir = simd_float3(1.0, 0.0, 0.0)
-                
+
                 let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
 
                 if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
                     handleLightScaleInput(projectedAmount: projectedAmount, axis: axisWorldDir)
                 } else {
-                    
                     applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
-                    
                 }
                 editorController.refreshInspector()
 
             case (.scale, .y) where inputSystem.mouseActive:
                 let axisWorldDir = simd_float3(0.0, 1.0, 0.0)
-                
+
                 let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
 
                 if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
                     handleLightScaleInput(projectedAmount: projectedAmount, axis: axisWorldDir)
                 } else {
-
                     applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
-
                 }
                 editorController.refreshInspector()
 
             case (.scale, .z) where inputSystem.mouseActive:
                 let axisWorldDir = simd_float3(0.0, 0.0, 1.0)
-                
+
                 let projectedAmount = computeAxisTranslationGizmo(axisWorldDir: axisWorldDir, gizmoWorldPosition: getLocalPosition(entityId: activeEntity), mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY), viewMatrix: cameraComponent.viewSpace, projectionMatrix: renderInfo.perspectiveSpace, viewportSize: renderInfo.viewPort)
 
                 if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
                     handleLightScaleInput(projectedAmount: projectedAmount, axis: axisWorldDir)
                 } else {
-                    
                     applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
-
                 }
                 editorController.refreshInspector()
-            
+
             // light direction
             case (.lightRotate, .none) where inputSystem.mouseActive:
                 let lightDirEntity = findEntity(name: "directionHandle")
-              
+
                 // compute the view-aligned plane translation
                 let cameraForward = -cameraComponent.zAxis // Assuming forward is -Z
 
@@ -410,14 +405,14 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                     axis2 = simd_float3(0, 1, 0) // Y
                 }
 
-                
                 let projected1 = computeAxisTranslationGizmo(
                     axisWorldDir: axis1,
                     gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
                     mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY),
                     viewMatrix: cameraComponent.viewSpace,
                     projectionMatrix: renderInfo.perspectiveSpace,
-                    viewportSize: renderInfo.viewPort)
+                    viewportSize: renderInfo.viewPort
+                )
 
                 let projected2 = computeAxisTranslationGizmo(
                     axisWorldDir: axis2,
@@ -425,37 +420,37 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                     mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY),
                     viewMatrix: cameraComponent.viewSpace,
                     projectionMatrix: renderInfo.perspectiveSpace,
-                    viewportSize: renderInfo.viewPort)
+                    viewportSize: renderInfo.viewPort
+                )
 
                 let translation = axis1 * projected1 + axis2 * projected2
                 translateBy(entityId: lightDirEntity!, position: translation)
 
                 let lightPos = getPosition(entityId: parentEntityIdGizmo)
                 let gizmoPos = getPosition(entityId: lightDirEntity!)
-                
+
                 // z axis
                 let zAxis = simd_normalize(gizmoPos - lightPos) * -1.0
-                
-                let worldUp = simd_float3(0.0,1.0,0.0)
+
+                let worldUp = simd_float3(0.0, 1.0, 0.0)
                 let xAxis = simd_normalize(simd_cross(worldUp, zAxis))
-                
+
                 // if zAxis is too aligned with worldUp, swicth to a different up vector
                 var finalXAxis = xAxis
-                if simd_length(xAxis) < 0.001{
-                    finalXAxis = simd_normalize(simd_cross(simd_float3(1.0,0.0,0.0), zAxis))
+                if simd_length(xAxis) < 0.001 {
+                    finalXAxis = simd_normalize(simd_cross(simd_float3(1.0, 0.0, 0.0), zAxis))
                 }
-                
+
                 // Recompute yAxis to ensure orthogonality
                 let yAxis = simd_normalize(simd_cross(zAxis, finalXAxis))
-                
+
                 // construct rotation matrix
                 let rotationMatrix = simd_float3x3(columns: (finalXAxis, yAxis, zAxis))
-                
+
                 let q = transformMatrix3nToQuaternion(m: rotationMatrix)
-                
+
                 localTransformComponent.rotation = q
-                
-                
+
             // default
             default:
                 break

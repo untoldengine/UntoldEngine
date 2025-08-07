@@ -47,12 +47,11 @@ public struct AreaLight {
 
 public func createDirLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
-    registerComponent(entityId: entityId, componentType: LightDebugComponent.self)
     registerComponent(entityId: entityId, componentType: DirectionalLightComponent.self)
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "dir_light_debug_mesh", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdc")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -73,12 +72,11 @@ public func createDirLight(entityId: EntityID) {
 
 public func createPointLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
-    registerComponent(entityId: entityId, componentType: LightDebugComponent.self)
     registerComponent(entityId: entityId, componentType: PointLightComponent.self)
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "point_light_debug_mesh", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdc")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -99,12 +97,11 @@ public func createPointLight(entityId: EntityID) {
 
 public func createSpotLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
-    registerComponent(entityId: entityId, componentType: LightDebugComponent.self)
     registerComponent(entityId: entityId, componentType: SpotLightComponent.self)
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "spot_light_debug_mesh", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdc")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -126,12 +123,11 @@ public func createSpotLight(entityId: EntityID) {
 
 public func createAreaLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
-    registerComponent(entityId: entityId, componentType: LightDebugComponent.self)
     registerComponent(entityId: entityId, componentType: AreaLightComponent.self)
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "area_light_debug_mesh", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdc")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -656,4 +652,14 @@ func handleLightScaleInput(projectedAmount: Float, axis: simd_float3) {
 
         scaleTo(entityId: activeEntity, scale: newScale)
     }
+}
+
+func loadLightDebugMeshes() {
+    spotLightDebugMesh = loadRawMesh(name: "spot_light_debug_mesh", filename: "spot_light_debug_mesh", withExtension: "usdc")
+
+    pointLightDebugMesh = loadRawMesh(name: "point_light_debug_mesh", filename: "point_light_debug_mesh", withExtension: "usdc")
+
+    areaLightDebugMesh = loadRawMesh(name: "area_light_debug_mesh", filename: "area_light_debug_mesh", withExtension: "usdc")
+
+    dirLightDebugMesh = loadRawMesh(name: "dir_light_debug_mesh", filename: "dir_light_debug_mesh", withExtension: "usdc")
 }

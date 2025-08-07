@@ -308,9 +308,14 @@ let gizmoDesiredScreenSize: Float = 500.0 // pixels
 
 var spawnDistance: Float = 2.0
 
-
 let fixedStep: Float = 1.0 / 60.0
 var physicsAccumulator: Float = 0
 
 // ssao kernel size
 var ssaoKernelSize: Int = 64
+
+// light debug meshes
+var spotLightDebugMesh: [Mesh] = []
+var pointLightDebugMesh: [Mesh] = []
+var areaLightDebugMesh: [Mesh] = []
+var dirLightDebugMesh: [Mesh] = []
