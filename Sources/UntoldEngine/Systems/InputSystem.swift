@@ -570,10 +570,18 @@ public class InputSystem {
 
     private func handleFlagsChanged(_ event: NSEvent) {
         // Shift key
-        keyState.shiftPressed = event.modifierFlags.contains(.shift)
+        if(event.modifierFlags.contains(.shift)){
+            keyState.shiftPressed = true
+        }else{
+            keyState.shiftPressed = false
+        }
 
         // Control key
-        keyState.ctrlPressed = event.modifierFlags.contains(.control)
+        if(event.modifierFlags.contains(.control)){
+            keyState.ctrlPressed = true
+        }else{
+            keyState.ctrlPressed = false
+        }
     }
 
     func getRaycastedEntity(currentLocation: NSPoint, view: NSView) -> (entityId: EntityID, hit: Bool) {
