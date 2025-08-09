@@ -39,7 +39,7 @@ Follow my [YouTube Channel](https://www.youtube.com/@HaroldSerrano) for devlogs 
 
 Here are some examples of what the Untold Engine can do, showing its progress and current features in action.
 
-![Helment](images/helment.png)
+![Helment](images/helmet.png)
 ![Room](images/room.png)
 ![Camera](images/camera.png)
 ![F1Car](images/f1car.png)
