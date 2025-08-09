@@ -220,7 +220,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         moveCameraWithInput(entityId: findSceneCamera(), input: input, speed: 1, deltaTime: 0.1)
 
-        guard let editorController else {
+        guard let editorControllerGlobal else {
             return
         }
 
@@ -239,7 +239,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 return
             }
 
-            switch (editorController.activeMode, editorController.activeAxis) {
+            switch (editorControllerGlobal.activeMode, editorControllerGlobal.activeAxis) {
             // Translate
             case (.translate, .x) where inputSystem.mouseActive:
 
@@ -250,7 +250,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 let translation = simd_float3(1.0, 0.0, 0.0) * projectedAmount
                 translateBy(entityId: activeEntity, position: translation)
                 translateBy(entityId: parentEntityIdGizmo, position: translation)
-                editorController.refreshInspector()
+                editorControllerGlobal.refreshInspector()
 
             case (.translate, .y) where inputSystem.mouseActive:
 
@@ -262,7 +262,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
                 translateBy(entityId: activeEntity, position: translation)
                 translateBy(entityId: parentEntityIdGizmo, position: translation)
-                editorController.refreshInspector()
+                editorControllerGlobal.refreshInspector()
 
             case (.translate, .z) where inputSystem.mouseActive:
 
@@ -274,7 +274,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
                 translateBy(entityId: activeEntity, position: translation)
                 translateBy(entityId: parentEntityIdGizmo, position: translation)
-                editorController.refreshInspector()
+                editorControllerGlobal.refreshInspector()
 
             // Orientation
             case (.rotate, .x) where inputSystem.mouseActive:
@@ -296,7 +296,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 axisOfRotation.x -= angleDelta * 10
 
                 applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
-                editorController.refreshInspector()
+                editorControllerGlobal.refreshInspector()
 
             case (.rotate, .y) where inputSystem.mouseActive:
 
@@ -318,7 +318,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
                 applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
 
-                editorController.refreshInspector()
+                editorControllerGlobal.refreshInspector()
 
             case (.rotate, .z) where inputSystem.mouseActive:
 
@@ -339,7 +339,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 axisOfRotation.z += angleDelta * 10
 
                 applyAxisRotations(entityId: activeEntity, axis: axisOfRotation)
-                editorController.refreshInspector()
+                editorControllerGlobal.refreshInspector()
 
             // scale
             case (.scale, .x) where inputSystem.mouseActive:
@@ -352,7 +352,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 } else {
                     applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
                 }
-                editorController.refreshInspector()
+                editorControllerGlobal.refreshInspector()
 
             case (.scale, .y) where inputSystem.mouseActive:
                 let axisWorldDir = simd_float3(0.0, 1.0, 0.0)
@@ -364,7 +364,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 } else {
                     applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
                 }
-                editorController.refreshInspector()
+                editorControllerGlobal.refreshInspector()
 
             case (.scale, .z) where inputSystem.mouseActive:
                 let axisWorldDir = simd_float3(0.0, 0.0, 1.0)
@@ -376,7 +376,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 } else {
                     applyWorldSpaceScaleDelta(entityId: activeEntity, worldAxis: axisWorldDir, projectedAmount: projectedAmount)
                 }
-                editorController.refreshInspector()
+                editorControllerGlobal.refreshInspector()
 
             // light direction
             case (.lightRotate, .none) where inputSystem.mouseActive:

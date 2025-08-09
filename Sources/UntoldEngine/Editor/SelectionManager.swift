@@ -14,8 +14,14 @@ protocol SelectionDelegate: AnyObject {
 
 class EditorController: SelectionDelegate, ObservableObject {
     let selectionManager: SelectionManager
+
     @Published var activeMode: TransformManipulationMode = .none
     @Published var activeAxis: TransformAxis = .none
+
+    // Association state
+    @Published var pendingFirst: EntityID?
+    @Published var pendingSecond: EntityID?
+    @Published var showAssociationDialog: Bool = false
 
     init(selectionManager: SelectionManager) {
         self.selectionManager = selectionManager
@@ -28,9 +34,28 @@ class EditorController: SelectionDelegate, ObservableObject {
         }
     }
 
-    func resetActiveAxis() {
-        activeAxis = .none
+    func handleAssociationPick(_ id: EntityID) {
+        if pendingFirst == nil {
+            pendingFirst = id
+        } else {
+            pendingSecond = id
+            // optionally validate pair here
+            if inputSystem.keyState.shiftPressed == true{
+                showAssociationDialog = true
+            }else{
+                resetAssociation()
+            }
+        }
+        
     }
+
+    func resetAssociation() {
+        pendingFirst = nil
+        pendingSecond = nil
+        showAssociationDialog = false
+    }
+
+    func resetActiveAxis() { activeAxis = .none }
 
     func refreshInspector() {
         DispatchQueue.main.async {
@@ -38,6 +63,7 @@ class EditorController: SelectionDelegate, ObservableObject {
         }
     }
 }
+
 
 class SceneGraphModel: ObservableObject {
     @Published var childrenMap: [EntityID: [EntityID]] = [:]

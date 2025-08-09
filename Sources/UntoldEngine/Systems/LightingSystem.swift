@@ -190,6 +190,8 @@ func updateLightColor(entityId: EntityID, color: simd_float3) {
     }
 
     lightComponent.color = color
+    
+    syncEmissiveFromLight(entityId: entityId, color: color)
 }
 
 func getLightColor(entityId: EntityID) -> simd_float3 {
@@ -663,3 +665,37 @@ func loadLightDebugMeshes() {
 
     dirLightDebugMesh = loadRawMesh(name: "dir_light_debug_mesh", filename: "dir_light_debug_mesh", withExtension: "usdc")
 }
+
+func syncEmissiveFromLight(entityId: EntityID, color: simd_float3) {
+    guard let emissiveComponent = scene.get(component: LightEmissiveMeshLinkComponent.self, for: entityId)else{
+        return
+    }
+    
+    updateMaterialEmmisive(entityId: emissiveComponent.meshEntity, emmissive: color)
+    
+}
+
+func setEmissiveAssociation(lightId: EntityID, childId: EntityID) {
+    if hasComponent(entityId: lightId, componentType: LightEmissiveMeshLinkComponent.self) {
+        guard let emissiveLinkComponent = scene.get(component: LightEmissiveMeshLinkComponent.self, for: lightId) else{
+            return
+        }
+        emissiveLinkComponent.meshEntity = childId
+    } else {
+        registerComponent(entityId: lightId, componentType: LightEmissiveMeshLinkComponent.self)
+        
+        guard let emissiveLinkComponent = scene.get(component: LightEmissiveMeshLinkComponent.self, for: lightId) else{
+            return
+        }
+        
+        emissiveLinkComponent.meshEntity = childId
+        
+        print("Emissive linkage set between \(lightId) and \(childId)")
+    }
+}
+
+func clearEmissiveMeshEntity(lightId: EntityID) {
+    scene.remove(component: LightEmissiveMeshLinkComponent.self, from: lightId)
+}
+
+

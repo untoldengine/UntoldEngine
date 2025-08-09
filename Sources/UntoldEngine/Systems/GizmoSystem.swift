@@ -50,39 +50,39 @@ func processGizmoAction(entityId: EntityID) {
     }
 
     if getEntityName(entityId: entityId) == "xAxisTranslate" {
-        editorController!.activeAxis = .x
-        editorController!.activeMode = .translate
+        editorControllerGlobal!.activeAxis = .x
+        editorControllerGlobal!.activeMode = .translate
     } else if getEntityName(entityId: entityId) == "yAxisTranslate" {
-        editorController!.activeAxis = .y
-        editorController!.activeMode = .translate
+        editorControllerGlobal!.activeAxis = .y
+        editorControllerGlobal!.activeMode = .translate
     } else if getEntityName(entityId: entityId) == "zAxisTranslate" {
-        editorController!.activeAxis = .z
-        editorController!.activeMode = .translate
+        editorControllerGlobal!.activeAxis = .z
+        editorControllerGlobal!.activeMode = .translate
     } else if getEntityName(entityId: entityId) == "yAxisRotate" {
-        editorController!.activeAxis = .y
-        editorController!.activeMode = .rotate
+        editorControllerGlobal!.activeAxis = .y
+        editorControllerGlobal!.activeMode = .rotate
     } else if getEntityName(entityId: entityId) == "xAxisRotate" {
-        editorController!.activeAxis = .x
-        editorController!.activeMode = .rotate
+        editorControllerGlobal!.activeAxis = .x
+        editorControllerGlobal!.activeMode = .rotate
     } else if getEntityName(entityId: entityId) == "zAxisRotate" {
-        editorController!.activeAxis = .z
-        editorController!.activeMode = .rotate
+        editorControllerGlobal!.activeAxis = .z
+        editorControllerGlobal!.activeMode = .rotate
     } else if getEntityName(entityId: entityId) == "xAxisScale" {
-        editorController!.activeAxis = .x
-        editorController!.activeMode = .scale
+        editorControllerGlobal!.activeAxis = .x
+        editorControllerGlobal!.activeMode = .scale
     } else if getEntityName(entityId: entityId) == "yAxisScale" {
-        editorController!.activeAxis = .y
-        editorController!.activeMode = .scale
+        editorControllerGlobal!.activeAxis = .y
+        editorControllerGlobal!.activeMode = .scale
     } else if getEntityName(entityId: entityId) == "zAxisScale" {
-        editorController!.activeAxis = .z
-        editorController!.activeMode = .scale
+        editorControllerGlobal!.activeAxis = .z
+        editorControllerGlobal!.activeMode = .scale
     } else if getEntityName(entityId: entityId) == "directionHandle"{
-        editorController!.activeMode = .lightRotate
-        editorController!.activeAxis = .none
+        editorControllerGlobal!.activeMode = .lightRotate
+        editorControllerGlobal!.activeAxis = .none
     }else {
         activeHitGizmoEntity = .invalid
-        editorController?.activeMode = .none
-        editorController?.activeAxis = .none
+        editorControllerGlobal?.activeMode = .none
+        editorControllerGlobal?.activeAxis = .none
     }
 }
 

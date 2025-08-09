@@ -19,12 +19,14 @@ public struct EditorView: View {
     @State private var selectedAsset: Asset? = nil
     @State private var isPlaying = false
     @State private var showAssetBrowser = false
-
+    @StateObject private var editorController: EditorController
     public init(mtkView: MTKView) {
         self.mtkView = mtkView
         let sharedSelectionManager = SelectionManager()
         _selectionManager = StateObject(wrappedValue: sharedSelectionManager)
-        editorController = EditorController(selectionManager: sharedSelectionManager)
+        let controller = EditorController(selectionManager: sharedSelectionManager)
+        _editorController = StateObject(wrappedValue: controller)
+       editorControllerGlobal = controller
     }
 
     public var body: some View {
@@ -46,7 +48,7 @@ public struct EditorView: View {
 
                 VStack {
                     SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
-                    TransformManipulationToolbar(controller: editorController!, showAssetBrowser: $showAssetBrowser)
+                    TransformManipulationToolbar(controller: editorController, showAssetBrowser: $showAssetBrowser)
                     if showAssetBrowser {
                         AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset, selectionManager: selectionManager, editor_addEntityWithAsset: editor_addEntityWithAsset)
                     }
@@ -75,7 +77,50 @@ public struct EditorView: View {
             Color.editorBackground.ignoresSafeArea())
         .onAppear {
             sceneGraphModel.refreshHierarchy()
+        }.sheet(
+            isPresented: Binding(
+                get: { editorController.showAssociationDialog },
+                set: { editorController.showAssociationDialog = $0 }
+            )
+        ) {
+            if let pendingFirstEntity = editorController.pendingFirst,
+               let pendingSecondEntity = editorController.pendingSecond {
+                AssociationDialog(
+                    entityA: pendingFirstEntity, entityB: pendingSecondEntity,
+                    onConfirm: { sel in
+                        // Normalize to (light, mesh) regardless of pick order
+                        let aIsLight =
+                            hasComponent(entityId: pendingFirstEntity, componentType: SpotLightComponent.self) ||
+                            hasComponent(entityId: pendingFirstEntity, componentType: PointLightComponent.self) ||
+                            hasComponent(entityId: pendingFirstEntity, componentType: AreaLightComponent.self)
+
+                        let bIsLight =
+                            hasComponent(entityId: pendingSecondEntity, componentType: SpotLightComponent.self) ||
+                            hasComponent(entityId: pendingSecondEntity, componentType: PointLightComponent.self) ||
+                            hasComponent(entityId: pendingSecondEntity, componentType: AreaLightComponent.self)
+
+                        let light = aIsLight ? pendingFirstEntity : (bIsLight ? pendingSecondEntity : .invalid)
+                        let mesh  = (light == pendingFirstEntity) ? pendingSecondEntity : pendingFirstEntity
+
+                        if sel.linkEmissive, light != .invalid {
+                            // add/update link component on the LIGHT
+                            setEmissiveAssociation(lightId: light, childId: mesh)
+                        } else if light != .invalid {
+                            // remove linkage if unchecked
+                            clearEmissiveMeshEntity(lightId: light)
+                        }
+
+                        editorController.resetAssociation()
+                    },
+                    onCancel: {
+                        editorController.resetAssociation()
+                    }
+                )
+                .frame(minWidth: 420)
+            }
         }
+
+
     }
 
     private func editor_handleSave() {

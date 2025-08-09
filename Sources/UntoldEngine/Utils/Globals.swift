@@ -194,7 +194,7 @@ public var enableEditor: Bool = true
 public var assetBasePath: URL?
 
 var activeEntity: EntityID = .invalid
-var editorController: EditorController?
+var editorControllerGlobal: EditorController?
 
 // Transform Manipulation mode
 enum TransformManipulationMode {

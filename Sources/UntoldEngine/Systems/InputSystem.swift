@@ -335,13 +335,15 @@ public class InputSystem {
         
         gizmoActive = false
         removeGizmo()
-        editorController?.activeMode = .none
-        editorController?.activeAxis = .none
+        editorControllerGlobal?.activeMode = .none
+        editorControllerGlobal?.activeAxis = .none
         activeHitGizmoEntity = .invalid
         
         if hit {
             activeEntity = entityId
 
+            editorControllerGlobal?.handleAssociationPick(activeEntity)
+            
             selectionDelegate?.didSelectEntity(activeEntity)
             selectionDelegate?.resetActiveAxis()
 
@@ -354,11 +356,11 @@ public class InputSystem {
     public func handlePanGesture(_ gestureRecognizer: NSPanGestureRecognizer, in view: NSView) {
         let currentPanLocation = gestureRecognizer.translation(in: view)
 
-        guard let editorController else {
+        guard let editorControllerGlobal else {
             return
         }
 
-        if editorController.activeMode != .none, activeEntity != .invalid, keyState.shiftPressed {
+        if editorControllerGlobal.activeMode != .none, activeEntity != .invalid, keyState.shiftPressed {
             return
         }
         let currentLocation = gestureRecognizer.location(in: view)
@@ -384,8 +386,8 @@ public class InputSystem {
 
                 } else {
                     activeHitGizmoEntity = .invalid
-                    editorController.activeMode = .none
-                    editorController.activeAxis = .none
+                    editorControllerGlobal.activeMode = .none
+                    editorControllerGlobal.activeAxis = .none
                 }
             }
         case .changed:
@@ -508,20 +510,20 @@ public class InputSystem {
 //        case kVK_ANSI_G:
 //            print("G pressed")
         case kVK_ANSI_X:
-            guard let editorController else {
+            guard let editorControllerGlobal else {
                 return
             }
-            editorController.activeAxis = .x
+            editorControllerGlobal.activeAxis = .x
         case kVK_ANSI_Y:
-            guard let editorController else {
+            guard let editorControllerGlobal else {
                 return
             }
-            editorController.activeAxis = .y
+            editorControllerGlobal.activeAxis = .y
         case kVK_ANSI_Z:
-            guard let editorController else {
+            guard let editorControllerGlobal else {
                 return
             }
-            editorController.activeAxis = .z
+            editorControllerGlobal.activeAxis = .z
         case kVK_ANSI_1:
             break
         case kVK_ANSI_2:
