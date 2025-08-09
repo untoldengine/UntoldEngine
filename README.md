@@ -33,9 +33,18 @@ Author: [Harold Serrano](http://www.haroldserrano.com)
 - ✅ Added **Depth of Field** → Cinematic focus control.
 - ✅ Finished **Bloom Threshold Fix** → More accurate light glows.
 
-## 🖼 Sneak Peek
+Follow my [YouTube Channel](https://www.youtube.com/@HaroldSerrano) for devlogs and latest updates.
 
-Follow my [YouTube Channel](https://www.youtube.com/@HaroldSerrano) for devlogs and rendering tutorials.
+## Visuals
+
+Here are some examples of what the Untold Engine can do, showing its progress and current features in action.
+
+![Helment](images/helment.png)
+![Room](images/room.png)
+![Camera](images/camera.png)
+![F1Car](images/f1car.png)
+
+
 
 ## How to Get the Engine?
 The Untold Engine isn’t publicly released yet.
