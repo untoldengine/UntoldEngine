@@ -37,4 +37,7 @@ Author: [Harold Serrano](http://www.haroldserrano.com)
 
 Follow my [YouTube Channel](https://www.youtube.com/@HaroldSerrano) for devlogs and rendering tutorials.
 
-
+## How to Get the Engine?
+The Untold Engine isn’t publicly released yet.
+I’m currently deciding on a release model that will support ongoing development while giving early access to interested developers.
+Stay tuned — updates will be shared here and on my [YouTube Channel](https://www.youtube.com/@HaroldSerrano).
