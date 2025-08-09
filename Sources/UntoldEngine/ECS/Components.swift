@@ -229,9 +229,3 @@ public class SceneCameraComponent: Component {
 public class GizmoComponent: Component {
     public required init() {}
 }
-
-public class LightEmissiveMeshLinkComponent: Component {
-    var meshEntity: EntityID = .invalid
-    public required init() {}
-}
-

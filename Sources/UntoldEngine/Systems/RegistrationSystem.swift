@@ -541,17 +541,3 @@ func loadRawMesh(
 
     return meshes
 }
-
-func associateEntities(parentId: EntityID, childId: EntityID){
-   
-    if parentId == .invalid || childId == .invalid{
-        return
-    }
-    
-    guard scene.get(component: LightComponent.self, for: parentId) != nil else{
-        return
-    }
-    
-   setEmissiveAssociation(lightId: parentId, childId: childId)
-    
-}
