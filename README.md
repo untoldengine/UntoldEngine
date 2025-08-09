@@ -21,7 +21,7 @@ The Untold Engine is a work in progress, with ambitious goals to:
 ### Why Try the Untold Engine?
 
 - For Learners: A great way to explore game development with an engine that prioritizes simplicity.
-- For Game Developers: An opportunity to contribute to an open-source project and shape its future.
+- For Game Developers: An opportunity to contribute to the project and shape its future.
 - For Apple Developers: A Swift and Metal-based engine that feels at home on macOS and iOS.
 
 The engine is far from complete, but with every iteration, it gets closer to being an amazing tool for developers. By trying it out, contributing, or sharing your feedback, you can help make the Untold Engine better for everyone.
