@@ -296,7 +296,7 @@ func serializeScene() -> SceneData {
 
             entityData.lightData?.up = getUpAxisVector(entityId: entityId)
 
-            var (width, height, _) = getDimension(entityId: entityId)
+            let (width, height, _) = getDimension(entityId: entityId)
 
             entityData.lightData?.bounds = simd_float2(width, height)
 

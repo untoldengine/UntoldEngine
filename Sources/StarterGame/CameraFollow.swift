@@ -99,7 +99,7 @@ func cameraFollow(
     // Align the camera's view direction using lookAt
     if alignWithOrientation {
         // Calculate the forward direction of the entity
-        let forward: simd_float3 = targetOrientation * simd_float3(0, 0, 1) // Forward direction in local space
+        let _: simd_float3 = targetOrientation * simd_float3(0, 0, 1) // Forward direction in local space
 
         // Determine the "up" vector (you might need to adjust this based on your engine's coordinate system)
         let up: simd_float3 = targetOrientation * simd_float3(0, 1, 0) // Transform the local up vector by the orientation

@@ -8,7 +8,7 @@
 import CShaderTypes
 import Foundation
 import MetalKit
-
+import UniformTypeIdentifiers
 struct ShaderPipelineConfig {
     let pipelineName: String
     let vertexFunctionName: String
@@ -135,33 +135,16 @@ func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: 
 func updateShadersAndPipeline() {
     if let library = loadMetalLibraryFromUserSelection() {
         reloadPipeline(named: "model", with: library, pipe: &modelPipeline)
-        reloadPipeline(named: "tonemapping", with: library, pipe: &tonemappingPipeline)
-        reloadPipeline(named: "colorgrading", with: library, pipe: &colorGradingPipeline)
-
-        // set up tone map
-
-        // set up color correction
-        colorCorrectionRenderPass = RenderPasses.executePostProcess(
-            colorCorrectionPipeline,
-            source: textureResources.tonemapTexture!,
-            destination: textureResources.colorCorrectionTexture!,
-            customization: colorCorrectionCustomization
-        )
-
-        // set up color-grading here
-        colorGradingRenderPass = RenderPasses.executePostProcess(
-            colorGradingPipeline,
-            source: textureResources.colorCorrectionTexture!,
-            destination: textureResources.colorGradingTexture!,
-            customization: colorGradingCustomization
-        )
+        
     }
 }
 
 func selectMetalLibraryFile() -> URL? {
     let openPanel = NSOpenPanel()
     openPanel.prompt = "Select .metallib file"
-    openPanel.allowedFileTypes = ["metallib"]
+    openPanel.allowedContentTypes = [
+        UTType(filenameExtension: "metallib")!
+    ]
     openPanel.allowsMultipleSelection = false
     openPanel.canChooseDirectories = false
     openPanel.canCreateDirectories = false

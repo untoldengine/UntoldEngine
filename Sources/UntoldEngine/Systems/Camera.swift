@@ -60,7 +60,7 @@ func createGameCamera(entityId: EntityID) {
 
 func resetCameraToDefaultTransform(entityId: EntityID){
   
-    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId)else {
+    guard scene.get(component: CameraComponent.self, for: entityId) != nil else {
         handleError(.noActiveCamera)
         return
     }

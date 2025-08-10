@@ -98,7 +98,7 @@ func createAccelerationStructures(_: Bool) {
             continue
         }
 
-        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else {
             handleError(.noLocalTransformComponent, entityId)
             continue
         }
