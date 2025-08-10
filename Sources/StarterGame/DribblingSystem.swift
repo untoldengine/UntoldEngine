@@ -138,54 +138,7 @@ public func dribblingSystemUpdate(deltaTime: Float) {
     }
 }
 
-/*
- public func playerSystemUpdate(deltaTime: Float) {
-     let customId = getComponentId(for: dribblingComponent.self)
-     let entities = queryEntitiesWithComponentIds([customId], in: scene)
 
-     guard let ball = findEntity(name: "ball") else { return }
-
-     let ballPosition = getPosition(entityId: ball)
-
-     for entity in entities {
-         guard let dribblingComponent = scene.get(component: dribblingComponent.self, for: entity) else { continue }
-
-         if isWASDPressed() {
-             changeAnimation(entityId: entity, name: "running")
-             pausePhysicsComponent(entityId: entity, isPaused: false)
-         } else {
-             changeAnimation(entityId: entity, name: "idle")
-             pausePhysicsComponent(entityId: entity, isPaused: true)
-             return
-         }
-
-         let playerPosition = getPosition(entityId: entity)
-         var direction = simd_float3.zero
-
-         if inputSystem.keyState.wPressed { direction.z += 1.0 }
-         if inputSystem.keyState.sPressed { direction.z -= 1.0 }
-         if inputSystem.keyState.aPressed { direction.x -= 1.0 }
-         if inputSystem.keyState.dPressed { direction.x += 1.0 }
-
-         // Normalize direction and blend with ball-seeking vector
-         if simd_length(direction) > 0 {
-             direction = simd_normalize(direction)
-
-             let toBall = simd_normalize(ballPosition - playerPosition)
-             // Blend input direction with ball direction (0.0 = no assist, 1.0 = full assist)
-             let assistFactor: Float = 0.3
-             let blended = simd_normalize(direction * (1.0 - assistFactor) + toBall * assistFactor)
-
-             let targetPosition = playerPosition + blended
-             steerSeek(entityId: entity,
-                       targetPosition: targetPosition,
-                       maxSpeed: dribblingComponent.maxSpeed,
-                       deltaTime: deltaTime,
-                       turnSpeed: 5.0)
-         }
-     }
- }
- */
 var DribblingComponent_Editor: ComponentOption_Editor = .init(
     id: getComponentId(for: DribblinComponent.self),
     name: "Dribbling Component",

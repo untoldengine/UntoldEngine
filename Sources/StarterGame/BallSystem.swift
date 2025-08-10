@@ -95,6 +95,8 @@ func decelerate(deltaTime: Float, ball: EntityID) {
     clearAngularVelocity(entityId: ball)
 }
 
+
+// Add component to the editor
 var BallComponent_Editor: ComponentOption_Editor = .init(
     id: getComponentId(for: BallComponent.self),
     name: "Ball Component",

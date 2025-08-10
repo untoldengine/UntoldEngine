@@ -490,30 +490,61 @@ func removeEntityName(entityId: EntityID) {
 public func findEntity(name: String) -> EntityID? {
     reverseEntityNameMap[name]
 }
-
+/*
 var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
 var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
 
-public func encodeCustomComponent(
-    type: (some Codable).Type,
-    editorMetadata: ComponentOption_Editor? = nil,
-    serialize: @escaping (EntityID) -> Data?,
-    deserialize: @escaping (EntityID, Data) -> Void
+public func encodeCustomComponent<T: Component & Codable>(
+    type: T.Type,
+    merge: ((inout T, T) -> Void)? = nil
 ) {
-    let key = ObjectIdentifier(type)
+    let encKey = ObjectIdentifier(type)
+    let decKey = String(describing: type)
 
-    customComponentEncoderMap[key] = serialize
+    customComponentEncoderMap[encKey] = { entityId in
+        guard let c = scene.get(component: T.self, for: entityId) else { return nil }
+        return try? JSONEncoder().encode(c)
+    }
 
-    customComponentDecoderMap[String(describing: type)] = { entityId, data in
-        deserialize(entityId, data)
+    customComponentDecoderMap[decKey] = { entityId, data in
+        guard let decoded = try? JSONDecoder().decode(T.self, from: data) else { return }
 
-        // Inject editor metadata if available
-        if let editorMeta = editorMetadata {
-            if EditorComponentsState.shared.components[entityId] == nil {
-                EditorComponentsState.shared.components[entityId] = [:]
+        if var existing = scene.assign(to: entityId, component: T.self) {
+            if let merge = merge {
+                merge(&existing, decoded)  // partial update
+            } else {
+                existing = decoded         // full replace
             }
-            EditorComponentsState.shared.components[entityId]?[key] = editorMeta
         }
+    }
+}
+*/
+
+var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
+var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
+var customComponentTypeNameById: [ObjectIdentifier: String] = [:]
+
+public func encodeCustomComponent<T: Component & Codable>(
+    type: T.Type,
+    merge: ((inout T, T) -> Void)? = nil
+) {
+    let encKey = ObjectIdentifier(type)
+    let decKey = String(describing: type)
+
+    customComponentTypeNameById[encKey] = decKey
+
+    customComponentEncoderMap[encKey] = { entityId in
+        guard let c = scene.get(component: T.self, for: entityId) else { return nil }
+        return try? JSONEncoder().encode(c)
+    }
+
+    customComponentDecoderMap[decKey] = { entityId, data in
+        guard let decoded = try? JSONDecoder().decode(T.self, from: data) else { return }
+        if var existing = scene.assign(to: entityId, component: T.self) {
+            if let merge = merge { merge(&existing, decoded) } else { existing = decoded }
+        }
+        // (Optional) If you still want editor visibility auto-restored:
+        // EditorComponentsState.shared.components[entityId, default: [:]][encKey] = <your editor metadata>
     }
 }
 

@@ -320,22 +320,12 @@ func serializeScene() -> SceneData {
 
         // custom component
         var customComponents: [String: Data] = [:]
-        for (key, editorComponent) in EditorComponentsState.shared.components[entityId] ?? [:] {
-            if key == ObjectIdentifier(RenderComponent.self) ||
-                key == ObjectIdentifier(LocalTransformComponent.self) ||
-                key == ObjectIdentifier(AnimationComponent.self) ||
-                key == ObjectIdentifier(LightComponent.self) ||
-                key == ObjectIdentifier(CameraComponent.self) ||
-                key == ObjectIdentifier(KineticComponent.self)
-            {
-                continue
-            }
 
-            if let serializeFunc = customComponentEncoderMap[key] {
-                if let jsonData = serializeFunc(entityId) {
-                    let typeName = String(describing: editorComponent.type)
-                    customComponents[typeName] = jsonData
-                }
+        // Serialize every registered custom component; the closure returns nil if the entity doesn’t have it
+        for (encKey, serialize) in customComponentEncoderMap {
+            if let data = serialize(entityId),
+               let typeName = customComponentTypeNameById[encKey] {
+                customComponents[typeName] = data
             }
         }
 

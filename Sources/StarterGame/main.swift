@@ -21,31 +21,19 @@ class GameScene {
 
         registerCustomSystem(cameraFollowUpdate)
         addComponent_Editor(componentOption: CameraFollowComponent_Editor)
-//        encodeCustomComponent(
-//            type: PlayerComponent.self,
-//            serialize: { entityId in
-//                guard let playerComponent = scene.get(component: PlayerComponent.self, for: entityId) else { return nil }
-//                return try? JSONEncoder().encode(playerComponent)
-//            },
-//            deserialize: { entityId, data in
-//                if let decoded = try? JSONDecoder().decode(PlayerComponent.self, from: data) {
-//                    registerComponent(entityId: entityId, componentType: PlayerComponent.self)
-//                    if let playerComponent = scene.get(component: PlayerComponent.self, for: entityId) {
-//                        playerComponent.maxSpeed = decoded.maxSpeed
-//                        playerComponent.kickSpeed = decoded.kickSpeed
-//                        playerComponent.direction = decoded.direction
-//                    }
-//
-//                    // Register with the editor
-//                    let key = ObjectIdentifier(PlayerComponent.self)
-//                    if EditorComponentsState.shared.components[entityId] == nil {
-//                        EditorComponentsState.shared.components[entityId] = [:]
-//                    }
-//                    EditorComponentsState.shared.components[entityId]?[key] = PlayerComponent_Editor
-//                }
-//            }
-//        )
 
+        encodeCustomComponent(type: BallComponent.self)
+        encodeCustomComponent(type: CameraFollowComponent.self)
+        encodeCustomComponent(
+            type: DribblinComponent.self,
+            merge: { current, decoded in
+                current.maxSpeed  = decoded.maxSpeed
+                current.kickSpeed = decoded.kickSpeed
+                current.direction = decoded.direction
+            }
+        )
+
+        /*
         encodeCustomComponent(
             type: DribblinComponent.self,
             editorMetadata: DribblingComponent_Editor,
@@ -65,6 +53,7 @@ class GameScene {
             }
         )
 
+        // serialize/deserialize component
         encodeCustomComponent(
             type: BallComponent.self,
             editorMetadata: BallComponent_Editor,
@@ -100,6 +89,7 @@ class GameScene {
                 }
             }
         )
+         */
         /*
          //Example: Load game
 
