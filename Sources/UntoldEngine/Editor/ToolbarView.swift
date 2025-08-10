@@ -12,6 +12,7 @@ struct ToolbarView: View {
 
     var onSave: () -> Void
     var onLoad: () -> Void
+    var onClear: () -> Void
     var onCameraSave: () -> Void
     var onPlayToggled: (Bool) -> Void
     var dirLightCreate: () -> Void
@@ -23,6 +24,11 @@ struct ToolbarView: View {
 
     var body: some View {
         HStack {
+           
+            HStack(spacing:12){
+                ToolbarButton(iconName: "clear.fill", action: onClear, tooltip: "Clear Scene")
+            }
+            
             Spacer() // Push content to the center
 
             // Centered Buttons

@@ -319,3 +319,8 @@ var spotLightDebugMesh: [Mesh] = []
 var pointLightDebugMesh: [Mesh] = []
 var areaLightDebugMesh: [Mesh] = []
 var dirLightDebugMesh: [Mesh] = []
+
+// Camera defaults
+let cameraDefaultEye: simd_float3 = simd_float3(0.0, 1.0, 4.0)
+let cameraTargetDefault: simd_float3 = simd_float3(0.0, 0.0, -2.0)
+let cameraUpDefault: simd_float3 = simd_float3(0.0, 1.0, 0.0)

@@ -31,7 +31,7 @@ public struct EditorView: View {
         VStack {
             ToolbarView(
                 selectionManager: selectionManager, onSave: editor_handleSave,
-                onLoad: editor_handleLoad, onCameraSave: editor_cameraSave,
+                onLoad: editor_handleLoad, onClear: editor_clearScene, onCameraSave: editor_cameraSave,
                 onPlayToggled: { isPlaying in editor_handlePlayToggle(isPlaying) },
                 dirLightCreate: editor_createDirLight,
                 pointLightCreate: editor_createPointLight,
@@ -94,6 +94,29 @@ public struct EditorView: View {
             selectionManager.objectWillChange.send()
             sceneGraphModel.refreshHierarchy()
         }
+    }
+
+    private func editor_clearScene() {
+        destroyAllEntities()
+        EditorComponentsState.shared.clear()
+
+        let gameCamera = createEntity()
+        setEntityName(entityId: gameCamera, name: "Main Camera")
+        createGameCamera(entityId: gameCamera)
+
+        let light = createEntity()
+        setEntityName(entityId: light, name: "Directional Light")
+        createDirLight(entityId: light)
+
+        let sceneCamera = findSceneCamera()
+
+        resetCameraToDefaultTransform(entityId: sceneCamera)
+
+        editor_entities = getAllGameEntities()
+        selectionManager.selectedEntity = nil
+        activeEntity = .invalid
+        selectionManager.objectWillChange.send()
+        sceneGraphModel.refreshHierarchy()
     }
 
     private func editor_cameraSave() {

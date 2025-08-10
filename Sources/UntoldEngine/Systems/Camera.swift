@@ -46,16 +46,27 @@ func createSceneCamera(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: SceneCameraComponent.self)
 
     cameraLookAt(entityId: entityId,
-                 eye: simd_float3(0.0, 1.0, 4.0), target: simd_float3(0.0, 0.0, -2.0),
-                 up: simd_float3(0.0, 1.0, 0.0))
+                 eye: cameraDefaultEye, target: cameraTargetDefault,
+                 up: cameraUpDefault)
 }
 
 func createGameCamera(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: CameraComponent.self)
 
     cameraLookAt(entityId: entityId,
-                 eye: simd_float3(0.0, 1.0, 4.0), target: simd_float3(0.0, 0.0, -2.0),
-                 up: simd_float3(0.0, 1.0, 0.0))
+                 eye: cameraDefaultEye, target: cameraTargetDefault,
+                 up: cameraUpDefault)
+}
+
+func resetCameraToDefaultTransform(entityId: EntityID){
+  
+    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId)else {
+        handleError(.noActiveCamera)
+        return
+    }
+    cameraLookAt(entityId: entityId,
+                 eye: cameraDefaultEye, target: cameraTargetDefault,
+                 up: cameraUpDefault)
 }
 
 public func moveCameraTo(entityId: EntityID, _ translationX: Float, _ translationY: Float, _ translationZ: Float) {
