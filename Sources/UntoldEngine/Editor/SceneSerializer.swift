@@ -21,6 +21,7 @@ struct SceneData: Codable {
     var vignette: VignetteData? = nil
     var chromaticAberration: ChromaticAberrationData? = nil
     var depthOfField: DepthOfFieldData? = nil
+    var ssao: SSAOData? = nil
 }
 
 struct ToneMappingData: Codable {
@@ -49,6 +50,7 @@ struct ColorCorrectionData: Codable {
 struct BloomThresholdData: Codable {
     var threshold: Float = 1.0 // 0.0 to 5.0
     var intensity: Float = 1.0 // 0.0 to 2.0
+    var enabled: Bool = false
 }
 
 struct VignetteData: Codable {
@@ -56,17 +58,27 @@ struct VignetteData: Codable {
     var radius: Float = 0.75 // 0.5 to 1.0
     var softness: Float = 0.45 // 0.0 to 1.0
     var center: simd_float2 = .init(0.5, 0.5) // 0-1
+    var enabled: Bool = false
 }
 
 struct ChromaticAberrationData: Codable {
     var intensity: Float = 0.0 // 0.0 to 0.1
     var center: simd_float2 = .init(0.5, 0.5) // 0-1
+    var enabled: Bool = false
 }
 
 struct DepthOfFieldData: Codable {
     var focusDistance: Float = 1.0 // 0.0 to 1.0
     var focusRange: Float = 0.1 // 0.01-0.3
     var maxBlur: Float = 0 // 0.005-0.05
+    var enabled: Bool = false
+}
+
+struct SSAOData: Codable{
+    var radius: Float = 0.5
+    var bias: Float = 0.0
+    var intensity: Float = 0.0
+    var enabled: Bool = false
 }
 
 struct LightData: Codable {
@@ -356,13 +368,15 @@ func serializeScene() -> SceneData {
         tint: ColorGradingParams.shared.tint
     )
 
-    sceneData.bloom = BloomThresholdData(threshold: BloomThresholdParams.shared.threshold, intensity: BloomThresholdParams.shared.intensity)
+    sceneData.bloom = BloomThresholdData(threshold: BloomThresholdParams.shared.threshold, intensity: BloomThresholdParams.shared.intensity, enabled: BloomThresholdParams.shared.enabled)
 
-    sceneData.vignette = VignetteData(intensity: VignetteParams.shared.intensity, radius: VignetteParams.shared.radius, softness: VignetteParams.shared.softness, center: VignetteParams.shared.center)
+    sceneData.vignette = VignetteData(intensity: VignetteParams.shared.intensity, radius: VignetteParams.shared.radius, softness: VignetteParams.shared.softness, center: VignetteParams.shared.center, enabled: VignetteParams.shared.enabled)
 
-    sceneData.chromaticAberration = ChromaticAberrationData(intensity: ChromaticAberrationParams.shared.intensity, center: ChromaticAberrationParams.shared.center)
+    sceneData.chromaticAberration = ChromaticAberrationData(intensity: ChromaticAberrationParams.shared.intensity, center: ChromaticAberrationParams.shared.center, enabled: ChromaticAberrationParams.shared.enabled)
 
-    sceneData.depthOfField = DepthOfFieldData(focusDistance: DepthOfFieldParams.shared.focusDistance, focusRange: DepthOfFieldParams.shared.focusRange, maxBlur: DepthOfFieldParams.shared.maxBlur)
+    sceneData.depthOfField = DepthOfFieldData(focusDistance: DepthOfFieldParams.shared.focusDistance, focusRange: DepthOfFieldParams.shared.focusRange, maxBlur: DepthOfFieldParams.shared.maxBlur, enabled: DepthOfFieldParams.shared.enabled)
+
+    sceneData.ssao = SSAOData(radius: SSAOParams.shared.radius, bias: SSAOParams.shared.bias, intensity: SSAOParams.shared.intensity, enabled: SSAOParams.shared.enabled)
 
     // save asset base path
     sceneData.assetBasePath = assetBasePath
@@ -459,6 +473,7 @@ func deserializeScene(sceneData: SceneData) {
     if let bloomThreshold = sceneData.bloom {
         BloomThresholdParams.shared.intensity = bloomThreshold.intensity
         BloomThresholdParams.shared.threshold = bloomThreshold.threshold
+        BloomThresholdParams.shared.enabled = bloomThreshold.enabled
     }
 
     if let vignette = sceneData.vignette {
@@ -466,17 +481,27 @@ func deserializeScene(sceneData: SceneData) {
         VignetteParams.shared.radius = vignette.radius
         VignetteParams.shared.softness = vignette.softness
         VignetteParams.shared.center = vignette.center
+        VignetteParams.shared.enabled = vignette.enabled
     }
 
     if let chromaticAberration = sceneData.chromaticAberration {
         ChromaticAberrationParams.shared.intensity = chromaticAberration.intensity
         ChromaticAberrationParams.shared.center = chromaticAberration.center
+        ChromaticAberrationParams.shared.enabled = chromaticAberration.enabled
     }
 
     if let depthOfField = sceneData.depthOfField {
         DepthOfFieldParams.shared.focusDistance = depthOfField.focusDistance
         DepthOfFieldParams.shared.focusRange = depthOfField.focusRange
         DepthOfFieldParams.shared.maxBlur = depthOfField.maxBlur
+        DepthOfFieldParams.shared.enabled = depthOfField.enabled
+    }
+    
+    if let ssao = sceneData.ssao{
+        SSAOParams.shared.radius = ssao.radius
+        SSAOParams.shared.intensity = ssao.intensity
+        SSAOParams.shared.bias = ssao.bias
+        SSAOParams.shared.enabled = ssao.enabled
     }
 
     for sceneDataEntity in sceneData.entities {
