@@ -415,7 +415,7 @@ struct RenderingEditorView: View {
         .background(Color.secondary.opacity(0.05))
         .cornerRadius(8)
 
-        if let renderComponent = scene.get(component: RenderComponent.self, for: entityId), hasComponent(entityId: entityId, componentType: LightComponent.self) == false {
+        if hasComponent(entityId: entityId, componentType: RenderComponent.self), hasComponent(entityId: entityId, componentType: LightComponent.self) == false {
             Text("Material Properties")
                 .font(.headline)
                 .padding(.bottom, 4)
@@ -595,9 +595,9 @@ struct TransformationEditorView: View {
     var body: some View {
         Text("Transform Properties")
         let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
-        var position = getLocalPosition(entityId: entityId)
-        var orientation = simd_float3(localTransformComponent!.rotationX, localTransformComponent!.rotationY, localTransformComponent!.rotationZ)
-        var scale = getScale(entityId: entityId)
+        let position = getLocalPosition(entityId: entityId)
+        let orientation = simd_float3(localTransformComponent!.rotationX, localTransformComponent!.rotationY, localTransformComponent!.rotationZ)
+        let scale = getScale(entityId: entityId)
         TextInputVectorView(label: "Position", value: Binding(
             get: { position },
             set: { newPosition in
@@ -795,7 +795,6 @@ struct SpotLightEditorView: View {
                 let color: simd_float3 = getLightColor(entityId: entityId)
                 let falloff: Float = getLightFalloff(entityId: entityId)
                 let intensity: Float = getLightIntensity(entityId: entityId)
-                let radius: Float = getLightRadius(entityId: entityId)
                 let coneAngle: Float = getLightConeAngle(entityId: entityId)
                 TextInputVectorView(label: "Color", value: Binding(
                     get: { color },
@@ -845,7 +844,6 @@ struct AreaLightEditorView: View {
             VStack {
                 let color: simd_float3 = getLightColor(entityId: entityId)
                 let intensity: Float = getLightIntensity(entityId: entityId)
-                let (width, height, depth) = getDimension(entityId: entityId)
                 // add area lights properties here
                 TextInputVectorView(label: "Color", value: Binding(
                     get: { color },
