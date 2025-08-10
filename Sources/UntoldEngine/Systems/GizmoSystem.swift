@@ -10,14 +10,14 @@ import simd
 
 func createGizmo(name: String) {
     var gizmoName: String = name
-    
+
     removeGizmo()
-    
-    if activeEntity == .invalid{
+
+    if activeEntity == .invalid {
         return
     }
-    
-    if hasComponent(entityId: activeEntity, componentType: LightComponent.self){
+
+    if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
         gizmoName = "translateGizmo_light"
     }
 
@@ -34,13 +34,13 @@ func createGizmo(name: String) {
     for child in getEntityChildren(parentId: parentEntityIdGizmo) {
         registerComponent(entityId: child, componentType: GizmoComponent.self)
     }
-    
-    if hasComponent(entityId: activeEntity, componentType: LightComponent.self){
+
+    if hasComponent(entityId: activeEntity, componentType: LightComponent.self) {
         let forward = getForwardAxisVector(entityId: activeEntity) * -1.0
         let position = getPosition(entityId: parentEntityIdGizmo) + forward
         translateTo(entityId: findEntity(name: "directionHandle")!, position: position)
     }
-    
+
     gizmoActive = true
 }
 
@@ -76,17 +76,17 @@ func processGizmoAction(entityId: EntityID) {
     } else if getEntityName(entityId: entityId) == "zAxisScale" {
         editorController!.activeAxis = .z
         editorController!.activeMode = .scale
-    } else if getEntityName(entityId: entityId) == "directionHandle"{
+    } else if getEntityName(entityId: entityId) == "directionHandle" {
         editorController!.activeMode = .lightRotate
         editorController!.activeAxis = .none
-    }else {
+    } else {
         activeHitGizmoEntity = .invalid
         editorController?.activeMode = .none
         editorController?.activeAxis = .none
     }
 }
 
-func hitGizmoToolAxis(entityId: EntityID) -> Bool{
+func hitGizmoToolAxis(entityId: EntityID) -> Bool {
     if entityId == .invalid {
         return false
     }
@@ -97,7 +97,7 @@ func hitGizmoToolAxis(entityId: EntityID) -> Bool{
         "xAxisTranslate", "yAxisTranslate", "zAxisTranslate",
         "xAxisRotate", "yAxisRotate", "zAxisRotate",
         "xAxisScale", "yAxisScale", "zAxisScale",
-        "directionHandle"
+        "directionHandle",
     ]
 
     if validNames.contains(name!) {
@@ -105,7 +105,6 @@ func hitGizmoToolAxis(entityId: EntityID) -> Bool{
     } else {
         return false
     }
-
 }
 
 func removeGizmo() {

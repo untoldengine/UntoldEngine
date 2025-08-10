@@ -81,9 +81,9 @@ class SelectionManager: ObservableObject {
         if hasComponent(entityId: entityId, componentType: RenderComponent.self), hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) {
             activeEntity = entityId
             guard let localTransform = scene.get(component: LocalTransformComponent.self, for: activeEntity) else { return }
-           
+
             updateBoundingBoxBuffer(min: localTransform.boundingBox.min, max: localTransform.boundingBox.max)
-            
+
             createGizmo(name: "translateGizmo")
         } else {
             activeEntity = .invalid

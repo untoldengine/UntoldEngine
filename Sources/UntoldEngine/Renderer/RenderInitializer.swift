@@ -303,12 +303,12 @@ func initRenderPassDescriptors() {
             (textureResources.colorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
             (textureResources.normalMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
             (textureResources.positionMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.materialMap, .clear, .store, MTLClearColorMake(0.0,0.0,0.0,0.0)),
-            (textureResources.emissiveMap, .clear, .store, MTLClearColorMake(0.0,0.0,0.0,0.0))
+            (textureResources.materialMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.emissiveMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
         depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
     )
-    
+
     // Deferred Render Pass
     renderInfo.deferredRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
@@ -318,7 +318,7 @@ func initRenderPassDescriptors() {
         ],
         depthAttachment: (textureResources.deferredDepthMap, .dontCare, .store, nil)
     )
-    
+
     // SSAO Render Pass
     renderInfo.ssaoRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
@@ -328,7 +328,7 @@ func initRenderPassDescriptors() {
         ],
         depthAttachment: (textureResources.ssaoDepthMap, .dontCare, .store, nil)
     )
-    
+
     // SSAO Blur Render Pass
     renderInfo.ssaoBlurRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
@@ -344,11 +344,11 @@ func initRenderPassDescriptors() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         colorAttachments: [
-            (textureResources.bloomCompositeTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0))
+            (textureResources.bloomCompositeTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
         depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
     )
-    
+
     // Gizmo Render Pass
     renderInfo.gizmoRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
@@ -402,7 +402,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // Emissive Texture
     textureResources.emissiveMap = createTexture(
         device: renderInfo.device,
@@ -424,7 +424,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget],
         storageMode: .shared
     )
-    
+
     // Deferred Depth Texture
     textureResources.deferredDepthMap = createTexture(
         device: renderInfo.device,
@@ -435,7 +435,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget],
         storageMode: .shared
     )
-    
+
     // SSAO Depth Texture
     textureResources.ssaoDepthMap = createTexture(
         device: renderInfo.device,
@@ -446,7 +446,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget],
         storageMode: .shared
     )
-    
+
     // SSAO Blur Depth Texture
     textureResources.ssaoBlurDepthTexture = createTexture(
         device: renderInfo.device,
@@ -457,7 +457,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget],
         storageMode: .shared
     )
-    
+
     // Material Texture
     textureResources.materialMap = createTexture(
         device: renderInfo.device,
@@ -468,7 +468,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // Deferred Color Texture
     textureResources.deferredColorMap = createTexture(
         device: renderInfo.device,
@@ -599,7 +599,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // SSAO Blur texture
     textureResources.ssaoBlurTexture = createTexture(
         device: renderInfo.device,
@@ -610,7 +610,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-   
+
     // Gizmo Textures
     textureResources.gizmoDepthTexture = createTexture(
         device: renderInfo.device,
@@ -621,7 +621,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget],
         storageMode: .shared
     )
-    
+
     textureResources.gizmoColorTexture = createTexture(
         device: renderInfo.device,
         label: "Gizmo Color Texture",
@@ -1052,17 +1052,15 @@ func createOutlineVertexDescriptor() -> MTLVertexDescriptor? {
     return vertexDescriptor
 }
 
-func initSSAOResources(){
-   
+func initSSAOResources() {
     // init ssao kernel
     let kernelData = generateSSAOKernel()
     bufferResources.ssaoKernelBuffer = renderInfo.device.makeBuffer(bytes: kernelData,
-                                             length: MemoryLayout<SIMD3<Float>>.stride * kernelData.count,
-                                             options: [])
-    
+                                                                    length: MemoryLayout<SIMD3<Float>>.stride * kernelData.count,
+                                                                    options: [])
+
     // init ssao noise texture
     textureResources.ssaoNoiseTexture = generateSSAONoiseTexture(device: renderInfo.device)
-    
 }
 
 func initRenderPipelines() {
@@ -1105,7 +1103,7 @@ func initRenderPipelines() {
     ) {
         modelPipeline = modelPipe
     }
-    
+
     // Light Pipeline
     if let lightPipe = createPipeline(
         vertexShader: "vertexLightShader",
@@ -1118,7 +1116,7 @@ func initRenderPipelines() {
     ) {
         lightPipeline = lightPipe
     }
-    
+
     // Gizmo Pipeline
     if let gizmoPipe = createPipeline(
         vertexShader: "vertexGizmoShader",
@@ -1142,7 +1140,7 @@ func initRenderPipelines() {
     ) {
         geometryPipeline = geometryPipe
     }
-    
+
     // Highlight Pipeline
     if let highlightPipe = createPipeline(
         vertexShader: "vertexGeometryShader",
@@ -1347,7 +1345,7 @@ func initRenderPipelines() {
     ) {
         ssaoPipeline = ssaoPipe
     }
-    
+
     if let ssaoBlurPipe = createPipeline(
         vertexShader: "vertexSSAOBlurShader",
         fragmentShader: "fragmentSSAOBlurShader",

@@ -353,7 +353,7 @@ final class PhysicsSystemTests: XCTestCase {
             0.0000000,  0.0000000,  1.0000000 ]
 
          */
-        
+
         let m = transformQuaternionToMatrix3x3(q: transform.rotation)
 
         XCTAssertEqual(m.columns.0.x, 0.3153591, accuracy: 0.1, "component should match")
@@ -384,7 +384,7 @@ final class PhysicsSystemTests: XCTestCase {
 
         physicsComponent.mass = 2.0
         setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
-        setAngularDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9,0.9))
+        setAngularDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
         localTransformComponent.boundingBox = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
 
         var t: Float = 0.0
@@ -413,7 +413,7 @@ final class PhysicsSystemTests: XCTestCase {
 
         physicsComponent.mass = 2.0
         setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
-        setAngularDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9,0.9))
+        setAngularDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
         localTransformComponent.boundingBox = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
 
         var t: Float = 0.0
@@ -442,7 +442,7 @@ final class PhysicsSystemTests: XCTestCase {
 
         physicsComponent.mass = 2.0
         setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
-        setAngularDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9,0.9))
+        setAngularDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.9))
         transform.boundingBox = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
 
         var t: Float = 0.0
@@ -460,7 +460,7 @@ final class PhysicsSystemTests: XCTestCase {
             0.0000000,  0.0000000,  1.0000000 ]
 
          */
-        
+
         let m = transformQuaternionToMatrix3x3(q: transform.rotation)
 
         XCTAssertEqual(m.columns.0.x, 0.7130201, accuracy: 0.1, "component should match")

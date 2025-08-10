@@ -177,7 +177,7 @@ struct AssetBrowserView: View {
                                         ForEach(categoryAssets) { asset in
                                             assetRow(asset)
                                                 .onTapGesture(count: 2) {
-                                                    if !asset.isFolder, selectedCategory == "HDR"{
+                                                    if !asset.isFolder, selectedCategory == "HDR" {
                                                         selectAsset(asset)
                                                         addIBL(asset: asset)
                                                     }
@@ -413,8 +413,8 @@ struct AssetBrowserView: View {
                                 selectAsset(asset)
                                 editor_addEntityWithAsset()
                             }
-                            
-                            if !asset.isFolder, asset.path.pathExtension == "png" || asset.path.pathExtension == "jpg" || asset.path.pathExtension == "tif", selectedCategory == "Materials"{
+
+                            if !asset.isFolder, asset.path.pathExtension == "png" || asset.path.pathExtension == "jpg" || asset.path.pathExtension == "tif", selectedCategory == "Materials" {
                                 selectAsset(asset)
                                 loadTextureType(entityId: selectionManager.selectedEntity!, assetName: asset.name, path: asset.path)
                             }

@@ -105,7 +105,8 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
 
                                     let image: NSImage? = {
                                         if let url = getMaterialTextureURL(entityId: entityId, type: type),
-                                           let img = NSImage(contentsOf: url) {
+                                           let img = NSImage(contentsOf: url)
+                                        {
                                             return img
                                         } else {
                                             return NSImage(named: "Default Texture")
@@ -172,7 +173,6 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
                             .padding(.horizontal, 12)
                         }
 
-                        
 //                            let stScaleBinding = bindingForSTScale(entityId: entityId, onChange: refreshView)
 //
 //                            HStack {
@@ -181,12 +181,12 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
 //                                Text("\(String(format: "%.2f", stScaleBinding.wrappedValue))")
 //                                    .frame(width: 40, alignment: .trailing)
 //                            }
-                        
-                        HStack{
+
+                        HStack {
                             Text("UV Scale")
                                 .font(.callout)
                                 .foregroundColor(.secondary)
-                            
+
                             TextInputNumberView(
                                 label: "",
                                 value: Binding(

@@ -329,16 +329,16 @@ public class InputSystem {
 
         let (entityId, hit) = getRaycastedEntity(currentLocation: currentLocation, view: view)
 
-        if(hitGizmoToolAxis(entityId: entityId)){
+        if hitGizmoToolAxis(entityId: entityId) {
             return
         }
-        
+
         gizmoActive = false
         removeGizmo()
         editorController?.activeMode = .none
         editorController?.activeAxis = .none
         activeHitGizmoEntity = .invalid
-        
+
         if hit {
             activeEntity = entityId
 
@@ -570,16 +570,16 @@ public class InputSystem {
 
     private func handleFlagsChanged(_ event: NSEvent) {
         // Shift key
-        if(event.modifierFlags.contains(.shift)){
+        if event.modifierFlags.contains(.shift) {
             keyState.shiftPressed = true
-        }else{
+        } else {
             keyState.shiftPressed = false
         }
 
         // Control key
-        if(event.modifierFlags.contains(.control)){
+        if event.modifierFlags.contains(.control) {
             keyState.ctrlPressed = true
-        }else{
+        } else {
             keyState.ctrlPressed = false
         }
     }

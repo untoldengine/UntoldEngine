@@ -161,7 +161,7 @@ public func basicFollow(_ entityId: EntityID, _ offset: simd_float3, _: Float) {
     }
 
     let position = localTransformComponent.position
-    
+
     guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
         handleError(.noActiveCamera)
         return
@@ -786,7 +786,7 @@ func applyWorldSpaceScaleDelta(
     // Determine dominant local axis component (x, y, or z)
     let absLocalAxis = simd_abs(localAxisUnnormalized)
     let dominantIndex: Int
-    if absLocalAxis.x > absLocalAxis.y && absLocalAxis.x > absLocalAxis.z {
+    if absLocalAxis.x > absLocalAxis.y, absLocalAxis.x > absLocalAxis.z {
         dominantIndex = 0
     } else if absLocalAxis.y > absLocalAxis.z {
         dominantIndex = 1
@@ -813,12 +813,12 @@ func generateSSAOKernel(sampleCount: Int = 64) -> [SIMD3<Float>] {
     var kernel: [SIMD3<Float>] = []
 
     ssaoKernelSize = sampleCount
-    
-    for i in 0..<sampleCount {
+
+    for i in 0 ..< sampleCount {
         var sample = SIMD3<Float>(
-            Float.random(in: -1.0...1.0),
-            Float.random(in: -1.0...1.0),
-            Float.random(in: 0.0...1.0)  // hemisphere (positive z)
+            Float.random(in: -1.0 ... 1.0),
+            Float.random(in: -1.0 ... 1.0),
+            Float.random(in: 0.0 ... 1.0) // hemisphere (positive z)
         )
         sample = simd_normalize(sample)
 
@@ -835,18 +835,18 @@ func generateSSAOKernel(sampleCount: Int = 64) -> [SIMD3<Float>] {
 
 // Helper function for lerp
 func mix(_ a: Float, _ b: Float, _ t: Float) -> Float {
-    return a * (1.0 - t) + b * t
+    a * (1.0 - t) + b * t
 }
 
 func generateSSAONoiseTexture(device: MTLDevice, size: Int = 4) -> MTLTexture? {
     let noiseSize = size * size
     var noiseData: [SIMD3<Float>] = []
 
-    for _ in 0..<noiseSize {
+    for _ in 0 ..< noiseSize {
         let noise = SIMD3<Float>(
-            Float.random(in: -1.0...1.0),
-            Float.random(in: -1.0...1.0),
-            0.0  // XY plane only
+            Float.random(in: -1.0 ... 1.0),
+            Float.random(in: -1.0 ... 1.0),
+            0.0 // XY plane only
         )
         noiseData.append(simd_normalize(noise))
     }
@@ -867,11 +867,11 @@ func generateSSAONoiseTexture(device: MTLDevice, size: Int = 4) -> MTLTexture? {
 
     // Fill texture with noise data (padding to RGBA format)
     var texels = [Float](repeating: 0.0, count: noiseSize * 4)
-    for i in 0..<noiseSize {
+    for i in 0 ..< noiseSize {
         texels[i * 4 + 0] = noiseData[i].x
         texels[i * 4 + 1] = noiseData[i].y
         texels[i * 4 + 2] = noiseData[i].z
-        texels[i * 4 + 3] = 0.0  // unused alpha
+        texels[i * 4 + 3] = 0.0 // unused alpha
     }
 
     texels.withUnsafeBytes { rawPtr in
@@ -882,46 +882,43 @@ func generateSSAONoiseTexture(device: MTLDevice, size: Int = 4) -> MTLTexture? {
             bytesPerRow: size * MemoryLayout<Float>.size * 4
         )
     }
-    
+
     texture.label = "SSAO Noise Texture"
 
     return texture
 }
 
-func getMaterialSTScale(entityId: EntityID) -> Float{
+func getMaterialSTScale(entityId: EntityID) -> Float {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return 1.0
     }
 
-    guard let material = renderComponent.mesh[0].submeshes[0].material else { return 1.0}
-    
+    guard let material = renderComponent.mesh[0].submeshes[0].material else { return 1.0 }
+
     return material.stScale
 }
 
-func updateMaterialSTScale(entityId: EntityID, stScale: Float){
-    
+func updateMaterialSTScale(entityId: EntityID, stScale: Float) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
 
-   guard var material = renderComponent.mesh.first?.submeshes.first?.material else {
+    guard var material = renderComponent.mesh.first?.submeshes.first?.material else {
         return
     }
-    
-    material.stScale = stScale
-    
-    renderComponent.mesh[0].submeshes[0].material = material
 
+    material.stScale = stScale
+
+    renderComponent.mesh[0].submeshes[0].material = material
 }
 
-func getTextureWrapMode(entityId: EntityID, textureType: TextureType) -> WrapMode?{
-    
+func getTextureWrapMode(entityId: EntityID, textureType: TextureType) -> WrapMode? {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return nil
     }
 
-    guard let material = renderComponent.mesh[0].submeshes[0].material else { return nil}
-    
+    guard let material = renderComponent.mesh[0].submeshes[0].material else { return nil }
+
     switch textureType {
     case .baseColor:
         return material.baseColor.wrapMode
@@ -932,12 +929,11 @@ func getTextureWrapMode(entityId: EntityID, textureType: TextureType) -> WrapMod
     case .metallic:
         break
     }
-    
+
     return nil
 }
 
-func updateTextureSampler(entityId: EntityID, textureType: TextureType, wrapMode: WrapMode){
-
+func updateTextureSampler(entityId: EntityID, textureType: TextureType, wrapMode: WrapMode) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
@@ -952,7 +948,7 @@ func updateTextureSampler(entityId: EntityID, textureType: TextureType, wrapMode
     samplerDescriptor.tAddressMode = (wrapMode == .repeat) ? .repeat : .clampToEdge
 
     let sampler = renderInfo.device.makeSamplerState(descriptor: samplerDescriptor)
-    
+
     switch textureType {
     case .baseColor:
         material.baseColor.sampler = sampler
@@ -967,13 +963,13 @@ func updateTextureSampler(entityId: EntityID, textureType: TextureType, wrapMode
         material.metallic.sampler = sampler
         material.metallic.wrapMode = wrapMode
     }
-    
+
     renderComponent.mesh[0].submeshes[0].material = material
 }
 
 func getTextureType(from filename: String) -> TextureType? {
     let lowercasedName = filename.lowercased()
-    
+
     if lowercasedName.contains("basecolor") || lowercasedName.contains("albedo") || lowercasedName.contains("color") {
         return .baseColor
     } else if lowercasedName.contains("roughness") {
@@ -987,13 +983,12 @@ func getTextureType(from filename: String) -> TextureType? {
     return nil
 }
 
-func loadTextureType(entityId: EntityID, assetName: String, path: URL){
-   
-    if entityId == .invalid{
+func loadTextureType(entityId: EntityID, assetName: String, path: URL) {
+    if entityId == .invalid {
         return
     }
-    
-    guard let textureType = getTextureType(from: assetName) else{
+
+    guard let textureType = getTextureType(from: assetName) else {
         return
     }
     updateMaterialTexture(entityId: entityId, textureType: textureType, path: path)

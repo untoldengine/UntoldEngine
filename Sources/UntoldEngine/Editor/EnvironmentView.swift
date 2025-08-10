@@ -341,7 +341,7 @@ struct PostProcessingEditorView: View {
                     VignetteEditorView()
                 }
 
-                DisclosureGroup("SSAO", isExpanded: $showSSAO){
+                DisclosureGroup("SSAO", isExpanded: $showSSAO) {
                     SSAOEditorView()
                 }
 

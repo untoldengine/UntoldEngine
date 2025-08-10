@@ -66,7 +66,7 @@ func buildEditModeGraph() -> RenderGraphResult {
         graph[gridPass.id] = gridPass
         basePassID = gridPass.id
     }
-    
+
     let shadowPass = RenderPass(
         id: "shadow", dependencies: [basePassID], execute: RenderPasses.shadowExecution
     )
@@ -76,17 +76,17 @@ func buildEditModeGraph() -> RenderGraphResult {
         id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
     )
     graph[modelPass.id] = modelPass
-    
+
     let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id], execute: RenderPasses.lightExecution)
     graph[lightPass.id] = lightPass
-    
+
     let highlightPass = RenderPass(
         id: "outline", dependencies: [modelPass.id], execute: RenderPasses.highlightExecution
     )
     graph[highlightPass.id] = highlightPass
-    
+
     let lightVisualsPass = RenderPass(id: "lightVisualPass", dependencies: [highlightPass.id], execute: RenderPasses.lightVisualPass)
-    
+
     graph[lightVisualsPass.id] = lightVisualsPass
 
     let gizmoPass = RenderPass(id: "gizmo", dependencies: [lightVisualsPass.id], execute: RenderPasses.gizmoExecution)
@@ -94,7 +94,7 @@ func buildEditModeGraph() -> RenderGraphResult {
     graph[gizmoPass.id] = gizmoPass
 
     let preCompPass = RenderPass(
-        id: "precomp", dependencies: [modelPass.id,gizmoPass.id,lightPass.id], execute: RenderPasses.preCompositeExecution
+        id: "precomp", dependencies: [modelPass.id, gizmoPass.id, lightPass.id], execute: RenderPasses.preCompositeExecution
     )
     graph[preCompPass.id] = preCompPass
 
@@ -128,17 +128,17 @@ func buildGameModeGraph() -> RenderGraphResult {
         id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
     )
     graph[modelPass.id] = modelPass
- 
+
     let ssaoPass = RenderPass(id: "ssao", dependencies: [modelPass.id], execute: RenderPasses.ssaoExecution)
-    
+
     graph[ssaoPass.id] = ssaoPass
-    
+
     let ssaoBlurPass = RenderPass(id: "ssaoBlur", dependencies: [ssaoPass.id], execute: RenderPasses.ssaoBlurExecution)
-    
+
     graph[ssaoBlurPass.id] = ssaoBlurPass
-    
+
     let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id, ssaoBlurPass.id], execute: RenderPasses.lightExecution)
-    
+
     graph[lightPass.id] = lightPass
 
     let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [lightPass.id], execute: depthOfFieldRenderPass)
@@ -153,7 +153,7 @@ func buildGameModeGraph() -> RenderGraphResult {
     graph[bloomThresholdPass.id] = bloomThresholdPass
 
     // define params for the blur pass
-    let blurPassCount = BloomThresholdParams.shared.enabled ? 2:0
+    let blurPassCount = BloomThresholdParams.shared.enabled ? 2 : 0
     let blurRadius: Float = 4.0
 
     var previousPassID = bloomThresholdPass.id
@@ -346,7 +346,7 @@ func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Bool>.stride,
         index: Int(bloomThresholdPassEnabledIndex.rawValue)
     )
-    
+
     encoder.setFragmentTexture(textureResources.emissiveMap, index: 1)
 }
 
@@ -476,37 +476,38 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
     var frustumPlanes = simd_float2(near, far)
     encoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(depthOfFieldPassFrustumIndex.rawValue))
 }
+
 /*
-var ssaoRenderPass = RenderPasses.executePostProcess(
-    ssaoPipeline,
-    source: textureResources.depthOfFieldTexture!,
-    destination: textureResources.ssaoTexture!,
-    customization: ssaoCustomization
-)
+ var ssaoRenderPass = RenderPasses.executePostProcess(
+     ssaoPipeline,
+     source: textureResources.depthOfFieldTexture!,
+     destination: textureResources.ssaoTexture!,
+     customization: ssaoCustomization
+ )
 
-func ssaoCustomization(encoder: MTLRenderCommandEncoder) {
-    encoder.setFragmentBytes(
-        &SSAOParams.shared.radius,
-        length: MemoryLayout<Float>.stride,
-        index: Int(ssaoPassRadiusIndex.rawValue)
-    )
+ func ssaoCustomization(encoder: MTLRenderCommandEncoder) {
+     encoder.setFragmentBytes(
+         &SSAOParams.shared.radius,
+         length: MemoryLayout<Float>.stride,
+         index: Int(ssaoPassRadiusIndex.rawValue)
+     )
 
-    encoder.setFragmentBytes(
-        &SSAOParams.shared.bias,
-        length: MemoryLayout<Float>.stride,
-        index: Int(ssaoPassBiasIndex.rawValue)
-    )
+     encoder.setFragmentBytes(
+         &SSAOParams.shared.bias,
+         length: MemoryLayout<Float>.stride,
+         index: Int(ssaoPassBiasIndex.rawValue)
+     )
 
-    encoder.setFragmentBytes(
-        &SSAOParams.shared.intensity,
-        length: MemoryLayout<Float>.stride,
-        index: Int(ssaoPassIntensityIndex.rawValue)
-    )
+     encoder.setFragmentBytes(
+         &SSAOParams.shared.intensity,
+         length: MemoryLayout<Float>.stride,
+         index: Int(ssaoPassIntensityIndex.rawValue)
+     )
 
-    encoder.setFragmentBytes(
-        &SSAOParams.shared.enabled,
-        length: MemoryLayout<Bool>.stride,
-        index: Int(ssaoPassEnabledIndex.rawValue)
-    )
-}
-*/
+     encoder.setFragmentBytes(
+         &SSAOParams.shared.enabled,
+         length: MemoryLayout<Bool>.stride,
+         index: Int(ssaoPassEnabledIndex.rawValue)
+     )
+ }
+ */

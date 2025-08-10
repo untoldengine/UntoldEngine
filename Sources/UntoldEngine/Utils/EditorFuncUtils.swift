@@ -1,6 +1,6 @@
 //
-//  File.swift
-//  
+//  EditorFuncUtils.swift
+//
 //
 //  Created by Harold Serrano on 8/1/25.
 //
@@ -12,7 +12,8 @@ func bindingForWrapMode(entityId: EntityID, textureType: TextureType, onChange: 
     Binding<WrapMode>(
         get: {
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
-                  let material = renderComponent.mesh[0].submeshes[0].material else {
+                  let material = renderComponent.mesh[0].submeshes[0].material
+            else {
                 return .clampToEdge // fallback
             }
 
@@ -38,7 +39,8 @@ func bindingForSTScale(entityId: EntityID, onChange: @escaping () -> Void) -> Bi
     Binding<Float>(
         get: {
             guard let rc = scene.get(component: RenderComponent.self, for: entityId),
-                  let material = rc.mesh[0].submeshes[0].material else {
+                  let material = rc.mesh[0].submeshes[0].material
+            else {
                 return 1.0
             }
             return material.stScale
@@ -61,4 +63,3 @@ func bindingForMaterialRoughness(entityId: EntityID, onChange: @escaping () -> V
         }
     )
 }
-

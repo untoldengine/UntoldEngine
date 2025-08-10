@@ -181,7 +181,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             physicsAccumulator += timeSinceLastUpdate
             let maxSteps = 5
             var steps = 0
-            while physicsAccumulator >= fixedStep && steps < maxSteps {
+            while physicsAccumulator >= fixedStep, steps < maxSteps {
                 updatePhysicsSystem(deltaTime: fixedStep)
                 updateCustomSystems(deltaTime: fixedStep)
                 physicsAccumulator -= fixedStep
@@ -391,11 +391,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 var axis2 = simd_float3.zero
 
                 // Determine the plane perpendicular to the dominant axis
-                if absForward.x > absForward.y && absForward.x > absForward.z {
+                if absForward.x > absForward.y, absForward.x > absForward.z {
                     // Looking down X → move in YZ plane
                     axis1 = simd_float3(0, 1, 0) // Y
                     axis2 = simd_float3(0, 0, 1) // Z
-                } else if absForward.y > absForward.x && absForward.y > absForward.z {
+                } else if absForward.y > absForward.x, absForward.y > absForward.z {
                     // Looking down Y → move in XZ plane
                     axis1 = simd_float3(1, 0, 0) // X
                     axis2 = simd_float3(0, 0, 1) // Z

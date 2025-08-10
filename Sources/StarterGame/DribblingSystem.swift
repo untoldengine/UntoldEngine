@@ -14,25 +14,25 @@ public class DribblinComponent: Component, Codable {
     public required init() {}
     var maxSpeed: Float = 5.0
     var kickSpeed: Float = 15.0
-    //var turnSpeed: Float = 10.0
+    // var turnSpeed: Float = 10.0
     var direction: simd_float3 = .zero
 }
 
-//func getTurnSpeed(entityId: EntityID) -> Float {
+// func getTurnSpeed(entityId: EntityID) -> Float {
 //    guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
 //        return 0.0
 //    }
 //
 //    return dribblingComponent.turnSpeed
-//}
+// }
 //
-//func setTurnSpeed(entityId: EntityID, turnSpeed: Float) {
+// func setTurnSpeed(entityId: EntityID, turnSpeed: Float) {
 //    guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
 //        return
 //    }
 //
 //    dribblingComponent.turnSpeed = turnSpeed
-//}
+// }
 
 func getMaxSpeed(entityId: EntityID) -> Float {
     guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
@@ -89,8 +89,8 @@ public func dribblingSystemUpdate(deltaTime: Float) {
     guard let ball = findEntity(name: "ball") else {
         return
     }
-    
-    guard let ballComponent = scene.get(component: BallComponent.self, for: ball) else{
+
+    guard let ballComponent = scene.get(component: BallComponent.self, for: ball) else {
         return
     }
 
@@ -127,13 +127,13 @@ public func dribblingSystemUpdate(deltaTime: Float) {
 
         var ballPosition: simd_float3 = getPosition(entityId: ball)
         ballPosition.y = 0.0
-        //newPosition = newPosition + ballPosition*0.1
+        // newPosition = newPosition + ballPosition*0.1
 
-        if(simd_length(getPosition(entityId: entity) - getPosition(entityId: ball)) < 1.0){
+        if simd_length(getPosition(entityId: entity) - getPosition(entityId: ball)) < 1.0 {
             ballComponent.state = .kick
             ballComponent.velocity = simd_normalize(newPosition)
         }
-        
+
         steerSeek(entityId: entity, targetPosition: ballPosition, maxSpeed: dribblingComponent.maxSpeed, deltaTime: deltaTime, turnSpeed: 50.0)
     }
 }

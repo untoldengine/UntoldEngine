@@ -83,7 +83,7 @@ public struct BufferResources {
 
     // ray model
     var rayModelInstanceBuffer: MTLBuffer?
-    
+
     // ssao kernel
     var ssaoKernelBuffer: MTLBuffer?
 }
@@ -105,7 +105,7 @@ public struct TextureResources {
     // deferred
     var deferredColorMap: MTLTexture?
     var deferredDepthMap: MTLTexture?
-    
+
     // ibl
     var environmentTexture: MTLTexture?
     var irradianceMap: MTLTexture?
@@ -140,11 +140,11 @@ public struct TextureResources {
     // Area texture ltc_1
     var areaTextureLTCMag: MTLTexture?
     var areaTextureLTCMat: MTLTexture?
-    
+
     // Gizmo
     var gizmoColorTexture: MTLTexture?
     var gizmoDepthTexture: MTLTexture?
-    
+
     // SSAO
     var ssaoNoiseTexture: MTLTexture?
 }

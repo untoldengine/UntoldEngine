@@ -74,7 +74,7 @@ struct DepthOfFieldData: Codable {
     var enabled: Bool = false
 }
 
-struct SSAOData: Codable{
+struct SSAOData: Codable {
     var radius: Float = 0.5
     var bias: Float = 0.0
     var intensity: Float = 0.0
@@ -496,8 +496,8 @@ func deserializeScene(sceneData: SceneData) {
         DepthOfFieldParams.shared.maxBlur = depthOfField.maxBlur
         DepthOfFieldParams.shared.enabled = depthOfField.enabled
     }
-    
-    if let ssao = sceneData.ssao{
+
+    if let ssao = sceneData.ssao {
         SSAOParams.shared.radius = ssao.radius
         SSAOParams.shared.intensity = ssao.intensity
         SSAOParams.shared.bias = ssao.bias

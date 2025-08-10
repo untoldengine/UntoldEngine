@@ -204,15 +204,14 @@ enum WrapMode: Int, CaseIterable, Identifiable, CustomStringConvertible {
     var description: String {
         switch self {
         case .clampToEdge: return "Clamp to Edge"
-        case .repeat:      return "Repeat"
+        case .repeat: return "Repeat"
         }
     }
 }
 
-
-struct TextureDescriptor{
-    var texture: MTLTexture? = nil
-    var sampler: MTLSamplerState? = nil
+struct TextureDescriptor {
+    var texture: MTLTexture?
+    var sampler: MTLSamplerState?
     var wrapMode: WrapMode = .clampToEdge
 }
 
@@ -253,17 +252,17 @@ struct Material {
     var hasBaseMap: Bool { baseColor.texture != nil }
     var hasRoughMap: Bool { roughness.texture != nil }
     var hasMetalMap: Bool { metallic.texture != nil }
-    
-    var stScale: Float = 1.0;
+
+    var stScale: Float = 1.0
 
     init(mdlMaterial: MDLMaterial, textureLoader: TextureLoader, name: String) {
         // Load textures and set URLs
         baseColor = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .baseColor), isSRGB: true, outputURL: &baseColorURL, mapType: "Basecolor map", assetName: name), wrapMode: .repeat)
-        
+
         normal = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .tangentSpaceNormal), isSRGB: false, outputURL: &normalURL, mapType: "Normal map", assetName: name), wrapMode: .clampToEdge)
-        
+
         roughness = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .roughness), isSRGB: false, outputURL: &roughnessURL, mapType: "Roughness map", assetName: name), wrapMode: .repeat)
-        
+
         metallic = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .metallic), isSRGB: false, outputURL: &metallicURL, mapType: "Metallic map", assetName: name), wrapMode: .repeat)
 
         baseColorValue = mdlMaterial.property(with: .baseColor)?.float4Value ?? baseColorValue
@@ -372,8 +371,8 @@ struct TextureLoader {
 
 func createTextureDescriptor(device: MTLDevice,
                              texture: MTLTexture?,
-                             wrapMode: WrapMode) -> TextureDescriptor {
-    
+                             wrapMode: WrapMode) -> TextureDescriptor
+{
     let samplerDescriptor = MTLSamplerDescriptor()
     samplerDescriptor.minFilter = .linear
     samplerDescriptor.magFilter = .linear
@@ -385,4 +384,3 @@ func createTextureDescriptor(device: MTLDevice,
 
     return TextureDescriptor(texture: texture, sampler: sampler, wrapMode: wrapMode)
 }
-

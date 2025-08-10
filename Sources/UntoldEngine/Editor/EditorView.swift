@@ -138,7 +138,7 @@ public struct EditorView: View {
         setEntityName(entityId: entityId, name: name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
-       
+
         selectionManager.selectedEntity = entityId
         editor_entities = getAllGameEntities()
         sceneGraphModel.refreshHierarchy()
@@ -235,23 +235,22 @@ public struct EditorView: View {
         let filename = selectedAsset?.path.deletingPathExtension().lastPathComponent
         let withExtension = selectedAsset?.path.pathExtension
         setEntityMesh(entityId: selectionManager.selectedEntity!, filename: filename!, withExtension: withExtension!)
-        
+
         let mainCamera = getMainCamera()
-        
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: mainCamera)else{
+
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: mainCamera) else {
             handleError(.noActiveCamera)
             return
         }
-        
+
         var forward = forwardDirectionVector(from: cameraComponent.rotation)
-        
+
         forward *= -1.0
-        
+
         let camPosition = cameraComponent.localPosition
-        
+
         let spawnPosition = camPosition + forward * spawnDistance
-        
+
         translateTo(entityId: selectionManager.selectedEntity!, position: spawnPosition)
-        
     }
 }

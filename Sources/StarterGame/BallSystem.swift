@@ -18,7 +18,7 @@ enum BallState: Codable {
 public class BallComponent: Component, Codable {
     var motionAccumulator: simd_float3 = .zero
     var state: BallState = .idle
-    var velocity:simd_float3 = .zero
+    var velocity: simd_float3 = .zero
     public required init() {}
 }
 
@@ -26,33 +26,27 @@ public func ballSystemUpdate(deltaTime: Float) {
     let customId = getComponentId(for: BallComponent.self)
     let entities = queryEntitiesWithComponentIds([customId], in: scene)
 
-   
     for entity in entities {
         guard let ballComponent = scene.get(component: BallComponent.self, for: entity) else { continue }
 
-        setLinearDragCoefficient(entityId: entity , coefficients: simd_float2(0.7,0.0))
-        setAngularDragCoefficient(entityId: entity, coefficients: simd_float2(0.07,0.0))
+        setLinearDragCoefficient(entityId: entity, coefficients: simd_float2(0.7, 0.0))
+        setAngularDragCoefficient(entityId: entity, coefficients: simd_float2(0.07, 0.0))
 
-        switch ballComponent.state{
+        switch ballComponent.state {
         case .idle:
             break
-            
         case .kick:
             ballComponent.state = .moving
-            applyVelocity(finalVelocity: ballComponent.velocity*5.0, deltaTime: deltaTime, ball: entity)
+            applyVelocity(finalVelocity: ballComponent.velocity * 5.0, deltaTime: deltaTime, ball: entity)
         case .moving:
-            
-                if simd_length(getVelocity(entityId: entity)) <= 0.1 {
-                    ballComponent.state = .decelerating
-                }
+
+            if simd_length(getVelocity(entityId: entity)) <= 0.1 {
+                ballComponent.state = .decelerating
+            }
         case .decelerating:
             decelerate(deltaTime: deltaTime, ball: entity)
-            if(simd_length(getVelocity(entityId: entity)) < 0.1){
-                
-            }
-
+            if simd_length(getVelocity(entityId: entity)) < 0.1 {}
         }
- 
     }
 }
 

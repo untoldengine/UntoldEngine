@@ -110,7 +110,7 @@ final class SceneGraphTests: XCTestCase {
     // MARK: - World Transform Update Tests
 
     func testUpdateTransformSystemWithoutParent() {
-        let position:simd_float3 = simd_float3(1, 2, 3)
+        let position = simd_float3(1, 2, 3)
 
         let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: rootEntity)
 

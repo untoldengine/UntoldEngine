@@ -82,7 +82,7 @@ public func getVelocity(entityId: EntityID) -> simd_float3 {
     return physics.velocity
 }
 
-public func setVelocity(entityId: EntityID, velocity: simd_float3){
+public func setVelocity(entityId: EntityID, velocity: simd_float3) {
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
         return
@@ -411,7 +411,6 @@ private func eulerIntegration(deltaTime: Float) {
         position += physics.velocity * deltaTime
 
         transform.position = simd_float3(position.x, position.y, position.z)
-        
     }
 }
 
