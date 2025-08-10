@@ -101,6 +101,22 @@ class GameScene {
                 }
             }
         )
+       /*
+        //Example: Load game
+        
+        let sceneURL = URL(fileURLWithPath: "Path/to/file.json")
+        
+        playSceneAt(url:sceneURL)
+        
+        // if from loading from main.bundle:
+        
+         if let sceneURL = Bundle.main.url(forResource: "file", withExtension: "json") {
+             playSceneAt(url: sceneURL)
+         } else {
+             print("Scene file not found in bundle.")
+         }
+         
+        */
     }
 
     func update(deltaTime _: Float) {

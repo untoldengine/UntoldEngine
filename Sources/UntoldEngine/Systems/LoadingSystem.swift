@@ -59,3 +59,10 @@ public func getResourceURL(forResource resourceName: String, withExtension ext: 
     // else search in bundle module
     return Bundle.module.url(forResource: resourceName, withExtension: ext)
 }
+
+public func playSceneAt(url:URL){
+    if let scene = loadGameScene(from: url){
+        destroyAllEntities()
+        deserializeScene(sceneData: scene)
+    }
+}

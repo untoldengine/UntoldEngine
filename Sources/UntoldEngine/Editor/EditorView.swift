@@ -84,7 +84,7 @@ public struct EditorView: View {
     }
 
     private func editor_handleLoad() {
-        if let sceneData = loadScene() {
+        if let sceneData = loadGameScene() {
             destroyAllEntities()
             EditorComponentsState.shared.clear()
             deserializeScene(sceneData: sceneData)

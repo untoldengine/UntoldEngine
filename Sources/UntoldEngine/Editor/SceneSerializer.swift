@@ -395,7 +395,7 @@ func saveScene(sceneData: SceneData) {
     }
 }
 
-func loadScene() -> SceneData? {
+func loadGameScene() -> SceneData? {
     let openPanel = NSOpenPanel()
     openPanel.title = "Open Scene"
     openPanel.allowedContentTypes = [UTType.json]
@@ -415,6 +415,21 @@ func loadScene() -> SceneData? {
     }
 
     return nil
+}
+
+func loadGameScene(from url: URL) -> SceneData? {
+    // Normalize to a file URL if needed
+    let fileURL = url.isFileURL ? url : URL(fileURLWithPath: url.path)
+
+    do {
+        let data = try Data(contentsOf: fileURL)
+        let scene = try JSONDecoder().decode(SceneData.self, from: data)
+        print("Scene loaded from \(fileURL.path)")
+        return scene
+    } catch {
+        print("Failed to load scene:", error)
+        return nil
+    }
 }
 
 func deserializeScene(sceneData: SceneData) {
