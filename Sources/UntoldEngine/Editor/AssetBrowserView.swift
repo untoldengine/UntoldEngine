@@ -177,10 +177,10 @@ struct AssetBrowserView: View {
                                         ForEach(categoryAssets) { asset in
                                             assetRow(asset)
                                                 .onTapGesture(count: 2) {
-                                                    if !asset.isFolder, selectedCategory == "HDR" {
-                                                        selectAsset(asset)
-                                                        addIBL(asset: asset)
-                                                    }
+//                                                    if !asset.isFolder, selectedCategory == "HDR" {
+//                                                        selectAsset(asset)
+//                                                        addIBL(asset: asset)
+//                                                    }
                                                 }
                                                 .onTapGesture(count: 1) {
                                                     if asset.isFolder {
@@ -409,15 +409,15 @@ struct AssetBrowserView: View {
                 ForEach(items) { asset in
                     assetRow(asset)
                         .onTapGesture(count: 2) {
-                            if !asset.isFolder, asset.path.pathExtension == "usdc", selectedCategory == "Models" {
-                                selectAsset(asset)
-                                editor_addEntityWithAsset()
-                            }
-
-                            if !asset.isFolder, asset.path.pathExtension == "png" || asset.path.pathExtension == "jpg" || asset.path.pathExtension == "tif", selectedCategory == "Materials" {
-                                selectAsset(asset)
-                                loadTextureType(entityId: selectionManager.selectedEntity!, assetName: asset.name, path: asset.path)
-                            }
+//                            if !asset.isFolder, asset.path.pathExtension == "usdc", selectedCategory == "Models" {
+//                                selectAsset(asset)
+//                                editor_addEntityWithAsset()
+//                            }
+//
+//                            if !asset.isFolder, asset.path.pathExtension == "png" || asset.path.pathExtension == "jpg" || asset.path.pathExtension == "tif", selectedCategory == "Materials" {
+//                                selectAsset(asset)
+//                                loadTextureType(entityId: selectionManager.selectedEntity!, assetName: asset.name, path: asset.path)
+//                            }
                         }
                         .onTapGesture(count: 1) {
                             if asset.isFolder {
