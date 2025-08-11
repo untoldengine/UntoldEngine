@@ -95,22 +95,12 @@ func decelerate(deltaTime: Float, ball: EntityID) {
     clearAngularVelocity(entityId: ball)
 }
 
-
-// Add component to the editor
 var BallComponent_Editor: ComponentOption_Editor = .init(
     id: getComponentId(for: BallComponent.self),
     name: "Ball Component",
     type: BallComponent.self,
-    view: { selectedId, _, _ in
-        AnyView(
-            VStack {
-                if selectedId != nil {
-                    Text("Ball Component")
-                }
-            }
-        )
-    },
+    view: makeEditorView(fields: []),
     onAdd: { entityId in
-        registerComponent(entityId: entityId, componentType: BallComponent.self)
+        registerComponent(entityId: entityId, componentType: DribblinComponent.self)
     }
 )

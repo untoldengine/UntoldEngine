@@ -11,19 +11,17 @@ class GameScene {
         }
 
         // register custom systems. do not delete
-        // registerCustomSystem(ballSystemUpdate)
+
+        // 1. Register custom system
+        // 2. add component to editor
+        // 3. encode/decode custom component
+        /*
+        registerCustomSystem(ballSystemUpdate)
+        addComponent_Editor(componentOption: BallComponent_Editor)
+        encodeCustomComponent(type: BallComponent.self)
 
         registerCustomSystem(dribblingSystemUpdate)
         addComponent_Editor(componentOption: DribblingComponent_Editor)
-
-        registerCustomSystem(ballSystemUpdate)
-        addComponent_Editor(componentOption: BallComponent_Editor)
-
-        registerCustomSystem(cameraFollowUpdate)
-        addComponent_Editor(componentOption: CameraFollowComponent_Editor)
-
-        encodeCustomComponent(type: BallComponent.self)
-        encodeCustomComponent(type: CameraFollowComponent.self)
         encodeCustomComponent(
             type: DribblinComponent.self,
             merge: { current, decoded in
@@ -32,64 +30,18 @@ class GameScene {
                 current.direction = decoded.direction
             }
         )
+        
+        registerCustomSystem(cameraFollowUpdate)
+        addComponent_Editor(componentOption: CameraFollowComponent_Editor)
+        encodeCustomComponent(type: CameraFollowComponent.self,
+                              merge: {current, decoded in
+            current.targetName = decoded.targetName
+            current.offset = decoded.offset
+        })
+       */
+        
 
-        /*
-        encodeCustomComponent(
-            type: DribblinComponent.self,
-            editorMetadata: DribblingComponent_Editor,
-            serialize: { entityId in
-                guard let playerComponent = scene.get(component: DribblinComponent.self, for: entityId) else { return nil }
-                return try? JSONEncoder().encode(playerComponent)
-            },
-            deserialize: { entityId, data in
-                if let decoded = try? JSONDecoder().decode(DribblinComponent.self, from: data) {
-                    registerComponent(entityId: entityId, componentType: DribblinComponent.self)
-                    if let playerComponent = scene.get(component: DribblinComponent.self, for: entityId) {
-                        playerComponent.maxSpeed = decoded.maxSpeed
-                        playerComponent.kickSpeed = decoded.kickSpeed
-                        playerComponent.direction = decoded.direction
-                    }
-                }
-            }
-        )
-
-        // serialize/deserialize component
-        encodeCustomComponent(
-            type: BallComponent.self,
-            editorMetadata: BallComponent_Editor,
-            serialize: { entityId in
-                guard let ballComponent = scene.get(component: BallComponent.self, for: entityId) else { return nil }
-                return try? JSONEncoder().encode(ballComponent)
-            },
-            deserialize: { entityId, data in
-                if let decoded = try? JSONDecoder().decode(BallComponent.self, from: data) {
-                    registerComponent(entityId: entityId, componentType: BallComponent.self)
-                    if let ballComponent = scene.get(component: BallComponent.self, for: entityId) {
-                        // save data here
-                    }
-                }
-            }
-        )
-
-        encodeCustomComponent(
-            type: CameraFollowComponent.self,
-            editorMetadata: CameraFollowComponent_Editor,
-            serialize: { entityId in
-                guard let cameraFollowComponent = scene.get(component: CameraFollowComponent.self, for: entityId) else { return nil }
-                return try? JSONEncoder().encode(cameraFollowComponent)
-            },
-            deserialize: { entityId, data in
-                if let decoded = try? JSONDecoder().decode(CameraFollowComponent.self, from: data) {
-                    registerComponent(entityId: entityId, componentType: CameraFollowComponent.self)
-                    if let cameraFollowComponent = scene.get(component: CameraFollowComponent.self, for: entityId) {
-                        // save data here
-                        cameraFollowComponent.targetName = decoded.targetName
-                        cameraFollowComponent.offset = decoded.offset
-                    }
-                }
-            }
-        )
-         */
+        
         /*
          //Example: Load game
 

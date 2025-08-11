@@ -113,35 +113,25 @@ var CameraFollowComponent_Editor: ComponentOption_Editor = .init(
     id: getComponentId(for: CameraFollowComponent.self),
     name: "Camera Follow",
     type: CameraFollowComponent.self,
-    view: { selectedId, _, refreshView in
-        AnyView(
-            VStack {
-                if selectedId != nil {
-                    Text("Camera Follow")
-
-                    var offset = getOffsetTarget(entityId: selectedId!)
-                    var targetName = getTargetName(entityId: selectedId!)
-                    HStack {
-                        Text("Target Name")
-                        TextField("Set Entity Name", text: Binding(
-                            get: { getTargetName(entityId: selectedId!) ?? "No name" },
-                            set: {
-                                setTargetName(entityId: selectedId!, name: $0)
-                            }
-                        )).onSubmit {
-                            refreshView()
-                        }
-                    }
-                    TextInputVectorView(label: "offset", value: Binding(
-                        get: { offset },
-                        set: { newOffset in
-                            setOffsetTarget(entityId: selectedId!, offset: newOffset)
-                            refreshView()
-                        }))
-                }
-            }
-        )
-    },
+    view: makeEditorView(fields: [
+        
+        .text(label: "Target Name",
+              placeholder: "Entity name",
+              get: {entityId in
+                    getTargetName(entityId: entityId) ?? "None"},
+              set: { entityId, targetName in
+                    setTargetName(entityId: entityId, name: targetName)
+              }),
+        
+        .vector3(label: "Offset",
+                 get: { entityId in
+                     getOffsetTarget(entityId: entityId)
+                 },
+                 set: { entityId, newOffset in
+                     setOffsetTarget(entityId: entityId, offset: newOffset)
+                 })
+    
+    ]),
     onAdd: { entityId in
         registerComponent(entityId: entityId, componentType: CameraFollowComponent.self)
     }

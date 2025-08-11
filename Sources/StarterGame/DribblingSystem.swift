@@ -138,48 +138,35 @@ public func dribblingSystemUpdate(deltaTime: Float) {
     }
 }
 
-
 var DribblingComponent_Editor: ComponentOption_Editor = .init(
     id: getComponentId(for: DribblinComponent.self),
     name: "Dribbling Component",
     type: DribblinComponent.self,
-    view: { selectedId, _, refreshView in
-        AnyView(
-            VStack {
-                if selectedId != nil {
-                    var maxSpeed = getMaxSpeed(entityId: selectedId!)
-                    var kickSpeed = getKickSpeed(entityId: selectedId!)
-//                    var turnSpeed = getTurnSpeed(entityId: selectedId!)
-                    var playerDirection = getPlayerDirection(entityId: selectedId!)
-                    Text("Dribbling Component")
-                    TextInputNumberView(label: "Max Speed", value: Binding(
-                        get: { maxSpeed },
-                        set: { newMaxSpeed in
-                            setMaxSpeed(entityId: selectedId!, maxSpeed: newMaxSpeed)
-                            refreshView()
-                        }))
-                    TextInputNumberView(label: "Kick Speed", value: Binding(
-                        get: { kickSpeed },
-                        set: { newKickSpeed in
-                            setKickSpeed(entityId: selectedId!, maxSpeed: newKickSpeed)
-                            refreshView()
-                        }))
-//                    TextInputNumberView(label: "Turn Speed", value: Binding(
-//                        get: { turnSpeed },
-//                        set: { newTurnSpeed in
-//                            setTurnSpeed(entityId: selectedId!, turnSpeed: newTurnSpeed)
-//                            refreshView()
-//                        }))
-                    TextInputVectorView(label: "Direction", value: Binding(
-                        get: { playerDirection },
-                        set: { newPlayerDirection in
-                            setPlayerDirection(entityId: selectedId!, direction: newPlayerDirection)
-                            refreshView()
-                        }))
-                }
-            }
-        )
-    },
+    view: makeEditorView(fields: [
+        .number(label: "Max Speed",
+                get: { entityId in
+                    getMaxSpeed(entityId: entityId)
+                },
+                set: { entityId, newMaxSpeed in
+                    setMaxSpeed(entityId: entityId, maxSpeed: newMaxSpeed)
+                }),
+
+        .number(label: "Kick Speed",
+                get: { entityId in
+                    getKickSpeed(entityId: entityId)
+                },
+                set: { entityId, newKickSpeed in
+                    setKickSpeed(entityId: entityId, maxSpeed: newKickSpeed)
+                }),
+
+        .vector3(label: "Direction",
+                 get: { entityId in
+                     getPlayerDirection(entityId: entityId)
+                 },
+                 set: { entityId, newDirection in
+                     setPlayerDirection(entityId: entityId, direction: newDirection)
+                 })
+    ]),
     onAdd: { entityId in
         registerComponent(entityId: entityId, componentType: DribblinComponent.self)
     }
