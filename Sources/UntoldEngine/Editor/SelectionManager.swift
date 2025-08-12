@@ -43,11 +43,16 @@ class SceneGraphModel: ObservableObject {
     @Published var childrenMap: [EntityID: [EntityID]] = [:]
 
     func refreshHierarchy() {
-        let allEntities = getAllGameEntities()
-        childrenMap = Dictionary(grouping: allEntities) {
-            getEntityParent(entityId: $0) ?? .invalid
+            let allEntities = getAllGameEntities()
+
+            childrenMap = Dictionary(grouping: allEntities) { entityId in
+                // If there's no ScenegraphComponent (e.g., camera), treat as root
+                if !hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) {
+                    return .invalid
+                }
+                return getEntityParent(entityId: entityId) ?? .invalid
+            }
         }
-    }
 
     func getChildren(entityId: EntityID?) -> [EntityID] {
         childrenMap[entityId ?? .invalid] ?? []

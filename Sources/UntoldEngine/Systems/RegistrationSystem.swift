@@ -20,6 +20,13 @@ public func registerComponent(entityId: EntityID, componentType: (some Component
 }
 
 public func destroyEntity(entityId: EntityID) {
+   
+    if entityId == .invalid{
+        return
+    }
+    
+    Logger.log(message: "removing entity: \(entityId)")
+    
     // Remove any resources linked to entity
     removeEntityMesh(entityId: entityId)
     removeEntityTransforms(entityId: entityId)
@@ -191,7 +198,6 @@ func removeEntityMesh(entityId: EntityID) {
     deassociateMeshesToEntity(entityId: entityId)
 
     guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
-        handleError(.noSkeletonComponent)
         return
     }
 
@@ -326,7 +332,6 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
 
 func removeEntityAnimations(entityId: EntityID) {
     guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
-        handleError(.noAnimationComponent, entityId)
         return
     }
 
@@ -346,7 +351,6 @@ public func setEntityKinetics(entityId: EntityID) {
 
 func removeEntityKinetics(entityId: EntityID) {
     guard let kineticComponent = scene.get(component: KineticComponent.self, for: entityId) else {
-        handleError(.noKineticComponent, entityId)
         return
     }
 
@@ -357,7 +361,6 @@ func removeEntityKinetics(entityId: EntityID) {
 
 func removeEntityLight(entityId: EntityID) {
     guard scene.get(component: LightComponent.self, for: entityId) != nil else {
-        handleError(.noLightComponent, entityId)
         return
     }
 
@@ -366,7 +369,6 @@ func removeEntityLight(entityId: EntityID) {
 
 func removeEntityScenegraph(entityId: EntityID) {
     guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: entityId) else {
-        handleError(.noScenegraphComponent)
         return
     }
 
@@ -380,7 +382,6 @@ func removeEntityScenegraph(entityId: EntityID) {
     if scenegraphComponent.parent != .invalid {
         // get the parent for the entity
         guard let parentScenegraphComponent = scene.get(component: ScenegraphComponent.self, for: scenegraphComponent.parent) else {
-            handleError(.noScenegraphComponent)
             return
         }
 
@@ -405,14 +406,12 @@ func registerSceneGraphComponent(entityId: EntityID) {
 
 func removeEntityTransforms(entityId: EntityID) {
     guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else {
-        handleError(.noLocalTransformComponent, entityId)
         return
     }
 
     scene.remove(component: LocalTransformComponent.self, from: entityId)
 
     guard scene.get(component: WorldTransformComponent.self, for: entityId) != nil else {
-        handleError(.noWorldTransformComponent, entityId)
         return
     }
 
