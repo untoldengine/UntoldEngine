@@ -18,7 +18,7 @@ public struct Scene {
     public mutating func remove<T: Component>(component _: T.Type, from entityId: EntityID) {
         let entityIndex = getEntityIndex(entityId)
         guard entities[Int(entityIndex)].entityId == entityId else {
-            handleError(.entityMissing)
+            handleError(.entityMissing, entityId)
             return
         }
 
@@ -29,7 +29,7 @@ public struct Scene {
     public mutating func destroyEntity(_ entityId: EntityID) {
         let entityIndex = getEntityIndex(entityId)
         guard entities[Int(entityIndex)].entityId == entityId else {
-            handleError(.entityMissing)
+            handleError(.entityMissing, entityId)
             return
         }
         let newId = createEntityId(EntityIndex(UInt32.max), getEntityVersion(entityId))
@@ -59,7 +59,7 @@ public struct Scene {
         let entityIndex = getEntityIndex(entityId)
 
         guard entities[Int(entityIndex)].entityId == entityId else {
-            handleError(.entityMissing)
+            handleError(.entityMissing, entityId)
             return nil
         }
 
@@ -99,7 +99,7 @@ public struct Scene {
         }
 
         guard entities[Int(entityIndex)].entityId == entityId else {
-            handleError(.entityMissing)
+            handleError(.entityMissing, entityId)
             return nil
         }
 

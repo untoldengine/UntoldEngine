@@ -112,11 +112,8 @@ public struct EditorView: View {
 
     private func editor_clearScene() {
         destroyAllEntities()
+        removeGizmo()
         EditorComponentsState.shared.clear()
-
-        let gameCamera = createEntity()
-        setEntityName(entityId: gameCamera, name: "Main Camera")
-        createGameCamera(entityId: gameCamera)
 
         let light = createEntity()
         setEntityName(entityId: light, name: "Directional Light")

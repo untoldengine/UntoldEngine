@@ -39,15 +39,17 @@ public func destroyEntity(entityId: EntityID) {
 }
 
 public func destroyAllEntities() {
-    for entity in scene.getAllEntities() {
-        // scene camera should not be destroyed
-        if hasComponent(entityId: entity, componentType: SceneCameraComponent.self) {
-            continue
-        }
-
-        destroyEntity(entityId: entity)
-        globalEntityCounter = 0
+    // Take a snapshot so iteration isn't affected by mutations
+    // Note, we only get parents.
+    let toDestroy = getEntitiesWithLevel(level: 0).filter {
+        !hasComponent(entityId: $0, componentType: SceneCameraComponent.self)
     }
+
+    for entity in toDestroy {
+        destroyEntity(entityId: entity)
+    }
+
+    globalEntityCounter = 0
 }
 
 private func setEntityMeshCommon(
