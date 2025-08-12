@@ -129,6 +129,7 @@ public struct EditorView: View {
         editor_entities = getAllGameEntities()
         selectionManager.selectedEntity = nil
         activeEntity = .invalid
+        gizmoActive = false
         selectionManager.objectWillChange.send()
         sceneGraphModel.refreshHierarchy()
     }
