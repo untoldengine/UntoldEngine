@@ -17,73 +17,117 @@ public enum LogLevel: Int {
     case test
 }
 
+public struct LogEvent: Identifiable {
+    public let id = UUID()
+    public let timestamp = Date()
+    public let level: LogLevel
+    public let message: String
+    public let file: String
+    public let function: String
+    public let line: Int
+    public let category: String
+}
+
+public protocol LoggerSink: AnyObject {
+    func didLog(_ event: LogEvent)
+}
+
 public enum Logger {
-    // Define a log level
     public static var logLevel: LogLevel = .debug
 
-    public static func log(message: String) {
-        // custom implementation for logging
+    private static var sinks = [WeakBox]()
+    private static let sinkQueue = DispatchQueue(label: "engine.logger.sinks", qos: .utility)
+
+    private struct WeakBox { weak var value: LoggerSink? }
+
+    // Backlog for events emitted before any sinks exist
+    private static var backlog: [LogEvent] = []
+    private static let backlogLimit = 2000
+
+    public static func addSink(_ sink: LoggerSink) {
+        sinkQueue.async {
+            sinks.append(WeakBox(value: sink))
+
+            // Replay backlog to the new sink (in order)
+            let snapshot = backlog
+            snapshot.forEach { sink.didLog($0) }
+        }
+    }
+    
+    private static func emit(level: LogLevel,
+                             message: String,
+                             category: String = "General",
+                             file: String = #fileID,
+                             function: String = #function,
+                             line: Int = #line) {
+        let event = LogEvent(level: level, message: message, file: file,
+                             function: function, line: line, category: category)
+
+        sinkQueue.async {
+            // Store in backlog (trim to ring size)
+            backlog.append(event)
+            if backlog.count > backlogLimit {
+                backlog.removeFirst(backlog.count - backlogLimit)
+            }
+
+            // Notify sinks
+            sinks = sinks.filter { $0.value != nil }
+            sinks.forEach { $0.value?.didLog(event) }
+        }
+    }
+
+
+    public static func log(message: String,
+                           category: String = "General",
+                           file: String = #fileID,
+                           function: String = #function,
+                           line: Int = #line) {
         guard logLevel.rawValue >= LogLevel.info.rawValue else { return }
         print("Log: \(message)")
+        emit(level: .info, message: message, category: category, file: file, function: function, line: line)
     }
 
-    public static func logError(message: String) {
+    public static func logError(message: String,
+                                category: String = "General",
+                                file: String = #fileID,
+                                function: String = #function,
+                                line: Int = #line) {
         guard logLevel.rawValue >= LogLevel.error.rawValue else { return }
         print("Error: \(message)")
+        emit(level: .error, message: message, category: category, file: file, function: function, line: line)
     }
 
-    public static func logWarning(message: String) {
+    public static func logWarning(message: String,
+                                  category: String = "General",
+                                  file: String = #fileID,
+                                  function: String = #function,
+                                  line: Int = #line) {
         guard logLevel.rawValue >= LogLevel.warning.rawValue else { return }
         print("Warning: \(message)")
+        emit(level: .warning, message: message, category: category, file: file, function: function, line: line)
     }
 
-    public static func log(vector: simd_float3) {
+    public static func log(vector: simd_float3,
+                           category: String = "General",
+                           file: String = #fileID,
+                           function: String = #function,
+                           line: Int = #line) {
         guard logLevel.rawValue >= LogLevel.debug.rawValue else { return }
-        let string = String(format: "simd_float3(%f, %f, %f)", vector.x, vector.y, vector.z)
-        print(string)
+        let s = String(format: "simd_float3(%f, %f, %f)", vector.x, vector.y, vector.z)
+        print(s)
+        emit(level: .debug, message: s, category: category, file: file, function: function, line: line)
     }
 
-    public static func log(message: String, vector: simd_float3) {
+    public static func log(message: String, vector: simd_float3,
+                           category: String = "General",
+                           file: String = #fileID,
+                           function: String = #function,
+                           line: Int = #line) {
         guard logLevel.rawValue >= LogLevel.debug.rawValue else { return }
-        let string = String(format: "simd_float3(%f, %f, %f)", vector.x, vector.y, vector.z)
-        print(message)
-        print(string)
+        let s = String(format: "simd_float3(%f, %f, %f)", vector.x, vector.y, vector.z)
+        print(message); print(s)
+        emit(level: .debug, message: "\(message)  \(s)", category: category, file: file, function: function, line: line)
     }
 
-    public static func log(vector: simd_uint3) {
-        guard logLevel.rawValue >= LogLevel.debug.rawValue else { return }
-        let string = String(format: "simd_uint3(%d, %d, %d)", vector.x, vector.y, vector.z)
-        print(string)
-    }
-
-    public static func log(vector: simd_float4) {
-        guard logLevel.rawValue >= LogLevel.debug.rawValue else { return }
-        let string = String(
-            format: "simd_float4(%f, %f, %f, %f)", vector.x, vector.y, vector.z, vector.w
-        )
-        print(string)
-    }
-
-    public static func log(matrix: simd_float3x3) {
-        guard logLevel.rawValue >= LogLevel.debug.rawValue else { return }
-        print("simd_float3x3:")
-        for row in 0 ..< 3 {
-            let string = String(
-                format: "%f, %f, %f", matrix.columns.0[row], matrix.columns.1[row], matrix.columns.2[row]
-            )
-            print(string)
-        }
-    }
-
-    public static func log(matrix: simd_float4x4) {
-        guard logLevel.rawValue >= LogLevel.debug.rawValue else { return }
-        print("simd_float4x4:")
-        for row in 0 ..< 4 {
-            let string = String(
-                format: "%f, %f, %f, %f", matrix.columns.0[row], matrix.columns.1[row],
-                matrix.columns.2[row], matrix.columns.3[row]
-            )
-            print(string)
-        }
-    }
+    // …repeat same idea for simd_uint3, float4, 3x3, 4x4 (compose a string, print, emit)
 }

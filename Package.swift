@@ -1,11 +1,11 @@
-// swift-tools-version:5.7
+// swift-tools-version: 5.10
 
 import PackageDescription
 
 let package = Package(
     name: "UntoldEngine",
     platforms: [
-        .macOS(.v13),
+        .macOS(.v14),
     ],
     products: [
         // Library product for the engine

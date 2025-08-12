@@ -411,10 +411,10 @@ func loadGameScene() -> SceneData? {
         do {
             let jsonData = try Data(contentsOf: url)
             let sceneData = try decoder.decode(SceneData.self, from: jsonData)
-            print("Scene loaded from \(url.path)")
+            Logger.log(message: "Scene loaded from \(url.path)")
             return sceneData
         } catch {
-            print("Failed to load scene: \(error)")
+            Logger.log(message: "Failed to load scene: \(error)")
         }
     }
 
@@ -428,10 +428,10 @@ func loadGameScene(from url: URL) -> SceneData? {
     do {
         let data = try Data(contentsOf: fileURL)
         let scene = try JSONDecoder().decode(SceneData.self, from: data)
-        print("Scene loaded from \(fileURL.path)")
+        Logger.log(message: "Scene loaded from \(fileURL.path)")
         return scene
     } catch {
-        print("Failed to load scene:", error)
+        Logger.log(message: "Failed to load scene: \(error)")
         return nil
     }
 }

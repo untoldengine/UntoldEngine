@@ -48,8 +48,22 @@ public struct EditorView: View {
                     SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
                     TransformManipulationToolbar(controller: editorController!, showAssetBrowser: $showAssetBrowser)
                     if showAssetBrowser {
-                        AssetBrowserView(assets: $assets, selectedAsset: $selectedAsset, selectionManager: selectionManager, editor_addEntityWithAsset: editor_addEntityWithAsset)
-                    }
+                        
+                            TabView {
+                                AssetBrowserView(
+                                    assets: $assets,
+                                    selectedAsset: $selectedAsset,
+                                    selectionManager: selectionManager,
+                                    editor_addEntityWithAsset: editor_addEntityWithAsset
+                                )
+                                .tabItem { Label("Assets", systemImage: "shippingbox") }
+
+                                LogConsoleView()
+                                    .tabItem { Label("Console", systemImage: "terminal") }
+                            }
+                            .frame(height: 200)
+                            .clipped()
+                        }
                 }
 
                 TabView {

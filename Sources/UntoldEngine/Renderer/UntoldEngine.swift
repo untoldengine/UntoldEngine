@@ -21,6 +21,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         // Initialize the metal view
         metalView = MTKView()
 
+        Logger.addSink(LogStore.shared)
         super.init()
     }
 
