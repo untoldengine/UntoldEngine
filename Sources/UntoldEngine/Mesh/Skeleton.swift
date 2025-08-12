@@ -247,7 +247,7 @@ class AnimationClip {
     /// Retrieves the interpolated pose for a joint at a specific time
     func getPose(at time: Float, jointPath: String) -> float4x4? {
         guard let animation = jointAnimation[jointPath] else { return nil }
-        let rotation = animation.getRotation(at: time) ?? simd_quatf(.identity)
+        let rotation = animation.getRotation(at: time) ?? simd_quatf(simd_float4x4.identity)
         let translation = animation.getTranslation(at: time) ?? simd_float3(repeating: 0)
         return float4x4(translation: translation) * float4x4(rotation)
     }
