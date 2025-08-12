@@ -15,7 +15,7 @@ class GameScene {
         // 1. Register custom system
         // 2. add component to editor
         // 3. encode/decode custom component
-        /*
+        
         registerCustomSystem(ballSystemUpdate)
         addComponent_Editor(componentOption: BallComponent_Editor)
         encodeCustomComponent(type: BallComponent.self)
@@ -38,7 +38,7 @@ class GameScene {
             current.targetName = decoded.targetName
             current.offset = decoded.offset
         })
-       */
+       
         
 
         

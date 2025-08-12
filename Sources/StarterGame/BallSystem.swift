@@ -99,8 +99,17 @@ var BallComponent_Editor: ComponentOption_Editor = .init(
     id: getComponentId(for: BallComponent.self),
     name: "Ball Component",
     type: BallComponent.self,
-    view: makeEditorView(fields: []),
+    view: makeEditorView(fields: [
+    .text(label: "Ball Component",
+              placeholder: "Entity name",
+              get: {entityId in
+                    getEntityName(entityId: entityId) ?? "None"},
+              set: { entityId, targetName in
+                    setEntityName(entityId: entityId, name: targetName)
+              })
+        
+    ]),
     onAdd: { entityId in
-        registerComponent(entityId: entityId, componentType: DribblinComponent.self)
+        registerComponent(entityId: entityId, componentType: BallComponent.self)
     }
 )
