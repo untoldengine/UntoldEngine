@@ -289,7 +289,7 @@ class SSAOParams: ObservableObject {
     @Published var radius: Float = 0.5 // 0.1 to 2.0 how far to sample
     @Published var bias: Float = 0.025 // 0.01-0.1 avoid self occusion
     @Published var intensity: Float = 0 // 0.5-2.0 Final multiplier
-    @Published var enabled: Bool = true
+    @Published var enabled: Bool =  false
 }
 
 class DebugSettings: ObservableObject {
