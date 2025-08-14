@@ -97,7 +97,7 @@ final class CameraTests: XCTestCase {
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             return
         }
-        cameraComponent.rotation = .init(.identity)
+        cameraComponent.rotation = .init(simd_float4x4.identity)
 
         cameraLookAboutAxis(entityId: camera, uDelta: simd_float2(1, 0))
 
@@ -109,7 +109,7 @@ final class CameraTests: XCTestCase {
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             return
         }
-        cameraComponent.rotation = .init(.identity)
+        cameraComponent.rotation = .init(simd_float4x4.identity)
 
         rotateCamera(entityId: camera, pitch: .pi / 4, yaw: .pi / 4, sensitivity: 1.0)
         let expectedRotation = simd_quatf(ix: 0.35355338, iy: 0.35355338, iz: 0.14644662, r: 0.8535534)
