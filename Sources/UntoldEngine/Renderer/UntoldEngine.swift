@@ -200,15 +200,16 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         updateRenderingSystem(in: view)
     }
 
-    public func mtkView(_: MTKView, drawableSizeWillChange size: CGSize) {
-        let aspect = Float(size.width) / Float(size.height)
+    public func mtkView(_ mtkView: MTKView, drawableSizeWillChange _: CGSize) {
+        let mtkViewSize = mtkView.bounds.size
+        let aspect = Float(mtkViewSize.width) / Float(mtkViewSize.height)
         let projectionMatrix = matrixPerspectiveRightHand(
             fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far
         )
 
         renderInfo.perspectiveSpace = projectionMatrix
 
-        let viewPortSize: simd_float2 = simd_make_float2(Float(size.width), Float(size.height))
+        let viewPortSize: simd_float2 = simd_make_float2(Float(mtkViewSize.width), Float(mtkViewSize.height))
         renderInfo.viewPort = viewPortSize
     }
 
