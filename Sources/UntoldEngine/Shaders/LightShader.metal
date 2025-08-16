@@ -233,14 +233,14 @@ vertex VertexCompositeOutput vertexLightShader(VertexCompositeIn in [[stage_in]]
 }
 
 fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]],
-                                    texture2d<float> albedoMap[[texture(lightPassAlbedoTextureIndex)]],
-                                    texture2d<float> normalMap[[texture(lightPassNormalTextureIndex)]],
+                                    texture2d<half> albedoMap[[texture(lightPassAlbedoTextureIndex)]],
+                                    texture2d<half> normalMap[[texture(lightPassNormalTextureIndex)]],
                                     texture2d<float> positionMap[[texture(lightPassPositionTextureIndex)]],
-                                    texture2d<float> materialMap[[texture(lightPassMaterialTextureIndex)]],
+                                    texture2d<half> materialMap[[texture(lightPassMaterialTextureIndex)]],
                                     depth2d<float> shadowTexture[[texture(lightPassShadowTextureIndex)]],
                                     texture2d<float> irradianceTexture [[texture(lightPassIBLIrradianceTextureIndex)]],
                                     texture2d<float> specularTexture [[texture(lightPassIBLSpecularTextureIndex)]],
-                                    texture2d<float> ssaoTexture [[texture(lightPassSSAOTextureIndex)]],
+                                    texture2d<half> ssaoTexture [[texture(lightPassSSAOTextureIndex)]],
                                     texture2d<float> iblBRDFTexture [[texture(lightPassIBLBRDFMapTextureIndex)]],
                                     texture2d<float> ltcMagTexture [[texture(lightPassAreaLTCMagTextureIndex)]],
                                     texture2d<float> ltcMatTexture [[texture(lightPassAreaLTCMatTextureIndex)]],
@@ -260,15 +260,18 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     float3 lightRayDirection=normalize(lights.direction);
     
     uint2 pixelCoord = uint2(vertexOut.position.xy);
-    float4 albedo = albedoMap.read(pixelCoord, 0);
+    half4 albedo_h = albedoMap.read(pixelCoord, 0);
+    float4 albedo = float4(albedo_h);
     
     float4 verticesInWorldSpace = positionMap.read(pixelCoord, 0);
-    float3 surfaceNormal = normalMap.read(pixelCoord, 0).xyz;
-    float4 materialTexture = materialMap.read(pixelCoord, 0);
-    float roughness = materialTexture.r;
-    float metallic = materialTexture.g;
+    half3 surfaceNormal_h = normalMap.read(pixelCoord, 0).xyz;
+    float3 surfaceNormal = float3(surfaceNormal_h);
     
-    float ambientOcclusion = isGameMode ? ssaoTexture.read(pixelCoord, 0).r : 1.0;
+    half4 materialTexture = materialMap.read(pixelCoord, 0);
+    float roughness = (float)materialTexture.r;
+    float metallic = (float)materialTexture.g;
+    
+    float ambientOcclusion = isGameMode ? (float)ssaoTexture.read(pixelCoord, 0).r : 1.0;
     
     float3 viewVector=normalize(cameraPosition-verticesInWorldSpace.xyz);
    

@@ -429,7 +429,7 @@ func initTextureResources() {
     textureResources.emissiveMap = createTexture(
         device: renderInfo.device,
         label: "Emissive Texture",
-        pixelFormat: .rgba16Float,
+        pixelFormat: .rgba8Unorm,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -484,7 +484,7 @@ func initTextureResources() {
     textureResources.materialMap = createTexture(
         device: renderInfo.device,
         label: "Material Texture",
-        pixelFormat: .rgba16Float,
+        pixelFormat: .rgba8Unorm,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -1119,7 +1119,7 @@ func initRenderPipelines() {
         vertexShader: "vertexModelShader",
         fragmentShader: "fragmentModelShader",
         vertexDescriptor: createModelVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float, .rgba16Float, .rgba16Float],
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float, .rgba8Unorm, .rgba8Unorm],
         depthFormat: renderInfo.depthPixelFormat,
         name: "Model Pipeline"
     ) {
