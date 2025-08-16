@@ -255,38 +255,20 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                     constant bool &isGameMode[[buffer(lightPassGameModeIndex)]]
                                     ){
 
-   // Base Color and Normal Maps: Linear filtering, mipmaps, repeat wrapping
-    constexpr sampler s(min_filter::linear, mag_filter::linear, mip_filter::linear, s_address::clamp_to_edge, t_address::clamp_to_edge);
-    
-    constexpr sampler positionSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
-                                    s_address::clamp_to_edge, t_address::clamp_to_edge);
-    
-     constexpr sampler normalSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
-                                     s_address::clamp_to_edge, t_address::clamp_to_edge);
-
-     // Roughness and Metallic: Linear filtering, mipmaps, default to repeat wrapping
-     constexpr sampler materialSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
-                                       s_address::clamp_to_edge, t_address::clamp_to_edge);
-     
-    constexpr sampler ssaoSampler(min_filter::linear, mag_filter::linear, mip_filter::linear,
-                                    s_address::clamp_to_edge, t_address::clamp_to_edge);
-
     MaterialParametersUniform materialParameter;
     materialParameter.edgeTint = float4(0.0,0.0,0.0,0.0);
     float3 lightRayDirection=normalize(lights.direction);
     
-    // sample textures
-
-    float4 albedo=albedoMap.sample(s, vertexOut.uvCoords);
-    float4 verticesInWorldSpace = positionMap.sample(positionSampler, vertexOut.uvCoords);
-    float3 surfaceNormal = normalMap.sample(normalSampler, vertexOut.uvCoords).xyz;
-    float roughness = materialMap.sample(materialSampler, vertexOut.uvCoords).r;
-    float metallic = materialMap.sample(materialSampler, vertexOut.uvCoords).g;
-    float ambientOcclusion = ssaoTexture.sample(ssaoSampler, vertexOut.uvCoords).r;
+    uint2 pixelCoord = uint2(vertexOut.position.xy);
+    float4 albedo = albedoMap.read(pixelCoord, 0);
     
-    if(!isGameMode){
-        ambientOcclusion = 1.0;
-    }
+    float4 verticesInWorldSpace = positionMap.read(pixelCoord, 0);
+    float3 surfaceNormal = normalMap.read(pixelCoord, 0).xyz;
+    float4 materialTexture = materialMap.read(pixelCoord, 0);
+    float roughness = materialTexture.r;
+    float metallic = materialTexture.g;
+    
+    float ambientOcclusion = isGameMode ? ssaoTexture.read(pixelCoord, 0).r : 1.0;
     
     float3 viewVector=normalize(cameraPosition-verticesInWorldSpace.xyz);
    
