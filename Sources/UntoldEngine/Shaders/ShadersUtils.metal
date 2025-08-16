@@ -9,6 +9,12 @@
 #include "../../CShaderTypes/ShaderTypes.h"
 using namespace metal;
 
+struct LightContribution {
+    half3  diff = half3(0.0);   // low-freq, FP16-friendly
+    float3 spec = float3(0.0);   // high-freq, keep precision
+};
+
+
 float3x3 rotation_matrix(float3 axis, float angle) {
     float c = cos(angle);
     float s = sin(angle);
@@ -147,7 +153,7 @@ float geometricSmith(float NoV, float NoL,float roughness){
 
 // Cook-Torrance BRDF function - Implementation explanation can be found here: https://graphicscompendium.com/gamedev/15-pbr
 
-float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float roughnessMap, float metallicMap){
+LightContribution computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float roughnessMap, float metallicMap){
 
     float roughness=roughnessMap;
     float metallic=metallicMap;
@@ -173,28 +179,34 @@ float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal
     float G=geometricSmith(NoV,NoL,roughness);
 
     float3 spec=(F*D*G)/(4.0*max(NoV,0.001)*max(NoL,0.001));
-
-    float3 rhoD=diffuseColor;
-
-    rhoD*=(1.0-metallic);
+    spec *= specularColor;
     
-    float3 diff=rhoD*(1/M_PI_F);
+    // Diffuse (half)
+    half3 rhoD = (half3)diffuseColor * (half)(1.0f - metallic);
 
-    return float3(max(NoL,0.001)*(diff+spec*specularColor));
+    half3 diff=rhoD*(half)(1.0f/M_PI_F);
+
+    half hNoL = (half)NoL;
+    LightContribution lc;
+    lc.diff = hNoL * diff;
+    lc.spec = NoL * spec;
+    
+    return lc;
 
 }
 
-float3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float roughnessMap, float metallicMap)
+half3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float roughnessMap, float metallicMap)
 {
     
-    float metallic=metallicMap;
-
     float NoL = max(dot(surfaceNormal, incomingLightDir), 0.001);
 
-    float3 rhoD = diffuseColor * (1.0 - metallic);
-    float3 diffuse = rhoD * (1.0 / M_PI_F); // Lambertian BRDF
+    half3 rhoD = (half3)diffuseColor * (half)(1.0 - metallicMap);
+    half3 diffuse = rhoD * (half)(1.0f / M_PI_F); // Lambertian BRDF
     
-    return float3(max(NoL,0.001)*diffuse);
+    half hNoL = (half)NoL;
+    
+    
+    return hNoL * diffuse;
 }
                   
                   

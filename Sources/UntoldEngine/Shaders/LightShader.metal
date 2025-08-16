@@ -92,7 +92,7 @@ float3 computeIBLContribution(texture2d<float> irradianceTexture,
     return ambient;
 }
 
-float4 computePointLightContribution(constant PointLightUniform &light,
+LightContribution computePointLightContribution(constant PointLightUniform &light,
                                      float4 verticesInWorldSpace,
                                      float3 viewVector,
                                      float3 normalMap,
@@ -103,16 +103,18 @@ float4 computePointLightContribution(constant PointLightUniform &light,
     float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
     float lightDistance=length(light.position.xyz-verticesInWorldSpace.xyz);
 
-    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), roughness,metallic);
+    LightContribution br=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), roughness,metallic);
 
     float attenuation=calculateAttenuation(lightDistance, light.attenuation);
 
-    float4 lightContribution=float4(lightBRDF*attenuation*light.intensity*light.color,1.0);
- 
-    return lightContribution;
+    LightContribution outC;
+    outC.diff = br.diff * (half)attenuation * (half)light.intensity * (half3)light.color;
+    outC.spec = br.spec * attenuation * light.intensity * (float3)light.color;
+        
+    return outC;
 }
 
-float4 computeSpotLightContribution(constant SpotLightUniform &light,
+LightContribution computeSpotLightContribution(constant SpotLightUniform &light,
                                      float4 verticesInWorldSpace,
                                      float3 viewVector,
                                      float3 normalMap,
@@ -127,19 +129,21 @@ float4 computeSpotLightContribution(constant SpotLightUniform &light,
     
     float attenuation=calculateAttenuation(lightDistance, light.attenuation);
     
-    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), roughness,metallic);
+    LightContribution br=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), roughness,metallic);
     
     float theta = dot(-lightDirection, spotDirection); // cosine of angle between light dir and spot dir
     float epsilon = cos(light.innerCone) - cos(light.outerCone);
     float coneFalloff = clamp((theta-cos(light.outerCone))/epsilon, 0.0, 1.0);
     
-    float4 lightContribution=float4(lightBRDF*attenuation*coneFalloff*light.intensity*light.color,1.0);
- 
-    return lightContribution;
+    LightContribution outC;
+    outC.diff = br.diff * (half)attenuation * (half)coneFalloff * (half)light.intensity * half3(light.color);
+    outC.spec = br.spec * attenuation*coneFalloff*light.intensity*light.color;
+    
+    return outC;
 }
 
 
-float4 evaluateAreaLight(constant AreaLightUniform &light,
+LightContribution evaluateAreaLight(constant AreaLightUniform &light,
                             float4 verticesInWorldSpace,
                             float3 viewVector,
                             float3 normalMap,
@@ -200,15 +204,16 @@ float4 evaluateAreaLight(constant AreaLightUniform &light,
 
     float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
     
-    float3 diffuseBRDF = computeDiffuseBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), roughness, metallic);
+    half3 diffuseBRDF = computeDiffuseBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), roughness, metallic);
 
     float3 specBRDF = computeSpecBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), roughness, metallic);
 
     
-    float3 finalLight = light.intensity * (Lo_diffuse * diffuseBRDF + Lo_spec * specBRDF)*light.color;
-    
+    LightContribution outC;
+    outC.diff = (half)light.intensity * (half3)Lo_diffuse * diffuseBRDF * (half3)light.color;
+    outC.spec = light.intensity * Lo_spec * specBRDF * light.color;
 
-    return float4(finalLight, 1.0);
+    return outC;
     
 }
 
@@ -279,11 +284,14 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     indirectLighting = ACESFilmicToneMapping(indirectLighting);
     
     // Compute BRDF
-    float3 brdf=float3(0.0);
+    LightContribution brdf;
     
     brdf=computeBRDF(lightRayDirection, viewVector, surfaceNormal, albedo.rgb, float3(1.0), roughness,metallic);
+   
+    LightContribution color;
     
-    float4 color = float4(brdf*lights.color*lights.intensity,1.0);
+    color.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
+    color.spec = brdf.spec*lights.color*lights.intensity;
     
     float4 shadowCoords = lightOrthoView * float4(verticesInWorldSpace.xyz,1.0);
     
@@ -291,46 +299,53 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     float shadow = computeShadow(shadowCoords, shadowTexture, surfaceNormal, lightRayDirection);
    
     // shadows affect directional light for now
-    color = color*shadow;
-    
+    color.diff = color.diff*(half)shadow;
+    color.spec = color.spec*shadow;
     
     // compute point light contribution
 
-    float4 pointColor=simd_float4(0.0);
+    LightContribution pointColor;
     uint lightCount = min(plBlock.count.x, MAX_POINT_LIGHTS);
     for (uint i=0; i<lightCount; ++i){
-        pointColor += computePointLightContribution(plBlock.lights[i],
+        LightContribution pl = computePointLightContribution(plBlock.lights[i],
                                                     verticesInWorldSpace,
                                                     viewVector,
                                                     surfaceNormal,
                                                     albedo.rgb,
                                                     roughness,
                                                     metallic);
+        pointColor.diff += pl.diff;
+        pointColor.spec += pl.spec;
     }
-    color+=pointColor;
+    
+    color.diff += pointColor.diff;
+    color.spec += pointColor.spec;
     
     // Compute spot light contribution
 
-    float4 spotLightColor = simd_float4(0.0);
+    LightContribution spotLightColor;
     uint spotLightCount = min(slBlock.count.x, MAX_POINT_LIGHTS);
     for (uint i=0 ; i< spotLightCount; ++i){
-        spotLightColor += computeSpotLightContribution(slBlock.lights[i],
+        LightContribution sl = computeSpotLightContribution(slBlock.lights[i],
                                                        verticesInWorldSpace,
                                                        viewVector,
                                                        surfaceNormal,
                                                        albedo.rgb,
                                                        roughness,
                                                        metallic);
+        spotLightColor.diff += sl.diff;
+        spotLightColor.spec += sl.spec;
     }
 
-    color += spotLightColor;
+    color.diff += spotLightColor.diff;
+    color.spec += spotLightColor.spec;
     
     // Compute Area Light contribution
-    simd_float4 areaLightColor = simd_float4(0.0);
+    LightContribution areaLightColor;
 
     uint areaLightCount = min(alBlock.count.x, MAX_POINT_LIGHTS);
     for (uint i=0 ; i< areaLightCount; ++i){
-        areaLightColor += evaluateAreaLight(alBlock.lights[i],
+        LightContribution al = evaluateAreaLight(alBlock.lights[i],
                                                verticesInWorldSpace,
                                                viewVector,
                                                 surfaceNormal,
@@ -339,13 +354,16 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                 albedo.rgb,
                                                roughness,
                                                metallic);
+        areaLightColor.diff += al.diff;
+        areaLightColor.spec += al.spec;
     }
 
-    color += areaLightColor;
+    color.diff += areaLightColor.diff;
+    color.spec += areaLightColor.spec;
 
-    color = float4(color.rgb + indirectLighting,1.0);
+    float4 finalcolor = float4((float3)color.diff + color.spec + indirectLighting,1.0);
     
-    return color;
+    return finalcolor;
 
 }
 
