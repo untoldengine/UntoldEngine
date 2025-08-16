@@ -337,8 +337,7 @@ func initRenderPassDescriptors() {
         height: Int(renderInfo.viewPort.y),
         colorAttachments: [
             (textureResources.deferredColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-        ],
-        depthAttachment: (textureResources.deferredDepthMap, .dontCare, .store, nil)
+        ]
     )
 
     // SSAO Render Pass
@@ -1132,7 +1131,7 @@ func initRenderPipelines() {
         fragmentShader: "fragmentLightShader",
         vertexDescriptor: createLightVertexDescriptor(),
         colorFormats: [renderInfo.colorPixelFormat],
-        depthFormat: renderInfo.depthPixelFormat,
+        depthFormat: .invalid,
         depthEnabled: false,
         name: "Light Pipeline"
     ) {

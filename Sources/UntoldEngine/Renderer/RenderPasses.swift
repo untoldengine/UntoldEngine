@@ -782,7 +782,6 @@ enum RenderPasses {
         renderEncoder.pushDebugGroup("Light Pass")
 
         renderEncoder.setRenderPipelineState(lightPipeline.pipelineState!)
-        renderEncoder.setDepthStencilState(lightPipeline.depthState)
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
         renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
