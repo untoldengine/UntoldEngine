@@ -147,12 +147,10 @@ float geometricSmith(float NoV, float NoL,float roughness){
 
 // Cook-Torrance BRDF function - Implementation explanation can be found here: https://graphicscompendium.com/gamedev/15-pbr
 
-float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap){
+float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float roughnessMap, float metallicMap){
 
     float roughness=roughnessMap;
     float metallic=metallicMap;
-
-    float4 edgeTint=materialParam.edgeTint;
 
     // Compute the half vector between the incoming and view directions
     float3 halfVector = normalize(incomingLightDir + viewDir);
@@ -166,13 +164,7 @@ float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal
     //float LoH = max(dot(incomingLightDir, halfVector), 0.001);
     float NoH = max(dot(surfaceNormal, halfVector), 0.001);
 
-    float fr=artistFriendlyF0(diffuseColor.r, edgeTint.x, VoH);
-    float fg=artistFriendlyF0(diffuseColor.g, edgeTint.y, VoH);
-    float fb=artistFriendlyF0(diffuseColor.b, edgeTint.z, VoH);
-
-    float3 f0=float3(fr, fg, fb);
-
-    f0=mix(0.04,f0,metallic);
+    float3 f0 = mix(0.04, diffuseColor.rgb, metallic);
 
     float3 F=fresnelSchlick(VoH,f0);
     
@@ -192,7 +184,7 @@ float3 computeBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal
 
 }
 
-float3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap) 
+float3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float roughnessMap, float metallicMap)
 {
     
     float metallic=metallicMap;
@@ -206,12 +198,10 @@ float3 computeDiffuseBRDF(float3 incomingLightDir, float3 viewDir, float3 surfac
 }
                   
                   
-float3 computeSpecBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, MaterialParametersUniform materialParam,float roughnessMap, float metallicMap)
+float3 computeSpecBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNormal, float3 diffuseColor, float3 specularColor, float roughnessMap, float metallicMap)
 {
     float roughness=roughnessMap;
     float metallic=metallicMap;
-
-    float4 edgeTint=materialParam.edgeTint;
 
     // Compute the half vector between the incoming and view directions
     float3 halfVector = normalize(incomingLightDir + viewDir);
@@ -225,13 +215,7 @@ float3 computeSpecBRDF(float3 incomingLightDir, float3 viewDir, float3 surfaceNo
     //float LoH = max(dot(incomingLightDir, halfVector), 0.001);
     //float NoH = max(dot(surfaceNormal, halfVector), 0.001);
 
-    float fr=artistFriendlyF0(diffuseColor.r, edgeTint.x, VoH);
-    float fg=artistFriendlyF0(diffuseColor.g, edgeTint.y, VoH);
-    float fb=artistFriendlyF0(diffuseColor.b, edgeTint.z, VoH);
-
-    float3 f0=float3(fr, fg, fb);
-
-    f0=mix(0.04,f0,metallic);
+    float3 f0 = mix(0.04, diffuseColor.rgb, (half)metallic);
 
     float3 F=fresnelSchlick(VoH,f0);
     

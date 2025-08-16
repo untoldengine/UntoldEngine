@@ -64,7 +64,6 @@ float3 computeIBLContribution(texture2d<float> irradianceTexture,
                               texture2d<float> iblBRDFTexture,
                               constant float &iblRotationAngle,
                               constant IBLParamsUniform &iblParam,
-                              MaterialParametersUniform materialParameter,
                               float4 inBaseColor,
                               float3 normalMap,
                               float3 viewVector,
@@ -79,14 +78,7 @@ float3 computeIBLContribution(texture2d<float> irradianceTexture,
     
     float3 diffuse = irradiance*inBaseColor.rgb;
 
-    float fr=artistFriendlyF0(inBaseColor.r, materialParameter.edgeTint.x, NoV);
-    float fg=artistFriendlyF0(inBaseColor.g, materialParameter.edgeTint.y, NoV);
-    float fb=artistFriendlyF0(inBaseColor.b, materialParameter.edgeTint.z, NoV);
-
-    float3 f0=float3(fr, fg, fb);
-
-    f0=mix(0.04,f0,metallic);
-
+    float3 f0 = mix(0.04, inBaseColor.rgb, metallic);
     float3 F=fresnelSchlick(NoV,f0);
 
     float3 specular=specularIBL(F, roughness, normalMap.xyz, viewVector, specularTexture, iblBRDFTexture,float3(0.0,1.0,0.0),degreesToRadians(iblRotationAngle));
@@ -104,7 +96,6 @@ float4 computePointLightContribution(constant PointLightUniform &light,
                                      float4 verticesInWorldSpace,
                                      float3 viewVector,
                                      float3 normalMap,
-                                     MaterialParametersUniform materialParameter,
                                      float3 inBaseColor,
                                      float roughness,
                                      float metallic
@@ -112,7 +103,7 @@ float4 computePointLightContribution(constant PointLightUniform &light,
     float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
     float lightDistance=length(light.position.xyz-verticesInWorldSpace.xyz);
 
-    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), materialParameter,roughness,metallic);
+    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), roughness,metallic);
 
     float attenuation=calculateAttenuation(lightDistance, light.attenuation);
 
@@ -125,7 +116,6 @@ float4 computeSpotLightContribution(constant SpotLightUniform &light,
                                      float4 verticesInWorldSpace,
                                      float3 viewVector,
                                      float3 normalMap,
-                                     MaterialParametersUniform materialParameter,
                                      float3 inBaseColor,
                                      float roughness,
                                      float metallic
@@ -137,7 +127,7 @@ float4 computeSpotLightContribution(constant SpotLightUniform &light,
     
     float attenuation=calculateAttenuation(lightDistance, light.attenuation);
     
-    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), materialParameter,roughness,metallic);
+    float3 lightBRDF=computeBRDF(lightDirection, viewVector, normalMap.xyz, inBaseColor, float3(1.0), roughness,metallic);
     
     float theta = dot(-lightDirection, spotDirection); // cosine of angle between light dir and spot dir
     float epsilon = cos(light.innerCone) - cos(light.outerCone);
@@ -155,7 +145,6 @@ float4 evaluateAreaLight(constant AreaLightUniform &light,
                             float3 normalMap,
                             texture2d<float> ltcMat,
                             texture2d<float> ltcMag,
-                            MaterialParametersUniform materialParameter,
                             float3 inBaseColor,
                             float roughness,
                             float metallic
@@ -211,9 +200,9 @@ float4 evaluateAreaLight(constant AreaLightUniform &light,
 
     float3 lightDirection=normalize(light.position.xyz-verticesInWorldSpace.xyz);
     
-    float3 diffuseBRDF = computeDiffuseBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), materialParameter, roughness, metallic);
+    float3 diffuseBRDF = computeDiffuseBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), roughness, metallic);
 
-    float3 specBRDF = computeSpecBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), materialParameter, roughness, metallic);
+    float3 specBRDF = computeSpecBRDF(lightDirection, viewVector, normalMap, inBaseColor.rgb, float3(1.0), roughness, metallic);
 
     
     float3 finalLight = light.intensity * (Lo_diffuse * diffuseBRDF + Lo_spec * specBRDF)*light.color;
@@ -255,8 +244,6 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                     constant bool &isGameMode[[buffer(lightPassGameModeIndex)]]
                                     ){
 
-    MaterialParametersUniform materialParameter;
-    materialParameter.edgeTint = float4(0.0,0.0,0.0,0.0);
     float3 lightRayDirection=normalize(lights.direction);
     
     uint2 pixelCoord = uint2(vertexOut.position.xy);
@@ -281,7 +268,6 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                               iblBRDFTexture,
                                               iblRotationAngle,
                                               iblParam,
-                                              materialParameter,
                                               albedo,
                                               surfaceNormal,
                                               viewVector,
@@ -295,7 +281,7 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     // Compute BRDF
     float3 brdf=float3(0.0);
     
-    brdf=computeBRDF(lightRayDirection, viewVector, surfaceNormal, albedo.rgb, float3(1.0), materialParameter,roughness,metallic);
+    brdf=computeBRDF(lightRayDirection, viewVector, surfaceNormal, albedo.rgb, float3(1.0), roughness,metallic);
     
     float4 color = float4(brdf*lights.color*lights.intensity,1.0);
     
@@ -317,7 +303,6 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                     verticesInWorldSpace,
                                                     viewVector,
                                                     surfaceNormal,
-                                                    materialParameter,
                                                     albedo.rgb,
                                                     roughness,
                                                     metallic);
@@ -333,7 +318,6 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                        verticesInWorldSpace,
                                                        viewVector,
                                                        surfaceNormal,
-                                                       materialParameter,
                                                        albedo.rgb,
                                                        roughness,
                                                        metallic);
@@ -352,7 +336,6 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                 surfaceNormal,
                                                ltcMatTexture,
                                                ltcMagTexture,
-                                               materialParameter,
                                                 albedo.rgb,
                                                roughness,
                                                metallic);
