@@ -10,6 +10,23 @@
 #include "ShaderStructs.h"
 using namespace metal;
 
+constant uint MAX_POINT_LIGHTS = 1024;
+
+struct PointLightBlock{
+    uint4 count;
+    PointLightUniform lights[MAX_POINT_LIGHTS];
+};
+
+struct SpotLightBlock{
+    uint4 count;
+    SpotLightUniform lights[MAX_POINT_LIGHTS];
+};
+
+struct AreaLightBlock{
+    uint4 count;
+    AreaLightUniform lights[MAX_POINT_LIGHTS];
+};
+
 float computeShadow(float4 shadowCoords, depth2d<float> shadowTexture, float3 normal, float3 lightDir){
     
     float shadow=0.0;
@@ -230,14 +247,11 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                     constant simd_float4x4 &lightOrthoView [[buffer(lightPassLightOrthoViewMatrixIndex)]],
                                     constant simd_float3 &cameraPosition [[buffer(lightPassCameraPositionIndex)]],
                                     constant LightParameters &lights [[buffer(lightPassLightParamsIndex)]],
-                                    constant PointLightUniform *pointLights [[buffer(lightPassPointLightsIndex)]],
-                                    constant int *pointLightsCount [[buffer(lightPassPointLightsCountIndex)]],
-                                    constant SpotLightUniform *spotLights [[buffer(lightPassSpotLightsIndex)]],
-                                    constant int *spotLightsCount [[buffer(lightPassSpotLightsCountIndex)]],
-                                   constant IBLParamsUniform &iblParam [[buffer(lightPassIBLParamIndex)]],
-                                  constant AreaLightUniform *areaLights[[buffer(lightPassAreaLightsIndex)]],
-                                  constant int *areaLightsCount [[buffer(lightPassAreaLightsCountIndex)]],
-                                  constant float &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
+                                    constant PointLightBlock &plBlock[[buffer(lightPassPointLightsIndex)]],
+                                    constant SpotLightBlock &slBlock[[buffer(lightPassSpotLightsIndex)]],
+                                    constant IBLParamsUniform &iblParam [[buffer(lightPassIBLParamIndex)]],
+                                    constant AreaLightBlock &alBlock[[buffer(lightPassAreaLightsIndex)]],
+                                    constant float &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
                                     constant bool &isGameMode[[buffer(lightPassGameModeIndex)]]
                                     ){
 
@@ -308,12 +322,13 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     // shadows affect directional light for now
     color = color*shadow;
     
-    // compute point ligth contribution
+    
+    // compute point light contribution
+
     float4 pointColor=simd_float4(0.0);
-
-    for(int i=0; i<pointLightsCount[0];i++){
-
-        pointColor += computePointLightContribution(pointLights[i],
+    uint lightCount = min(plBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i=0; i<lightCount; ++i){
+        pointColor += computePointLightContribution(plBlock.lights[i],
                                                     verticesInWorldSpace,
                                                     viewVector,
                                                     surfaceNormal,
@@ -322,14 +337,14 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                     roughness,
                                                     metallic);
     }
-
     color+=pointColor;
     
     // Compute spot light contribution
+
     float4 spotLightColor = simd_float4(0.0);
-    
-    for(int i=0; i<spotLightsCount[0]; i++){
-        spotLightColor += computeSpotLightContribution(spotLights[i],
+    uint spotLightCount = min(slBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i=0 ; i< spotLightCount; ++i){
+        spotLightColor += computeSpotLightContribution(slBlock.lights[i],
                                                        verticesInWorldSpace,
                                                        viewVector,
                                                        surfaceNormal,
@@ -338,15 +353,15 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                        roughness,
                                                        metallic);
     }
-    
+
     color += spotLightColor;
     
     // Compute Area Light contribution
     simd_float4 areaLightColor = simd_float4(0.0);
-    
-    for (int i=0; i<areaLightsCount[0]; i++){
-        
-        areaLightColor += evaluateAreaLight(areaLights[i],
+
+    uint areaLightCount = min(alBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i=0 ; i< areaLightCount; ++i){
+        areaLightColor += evaluateAreaLight(alBlock.lights[i],
                                                verticesInWorldSpace,
                                                viewVector,
                                                 surfaceNormal,
@@ -357,7 +372,7 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                                roughness,
                                                metallic);
     }
-    
+
     color += areaLightColor;
 
     color = float4(color.rgb + indirectLighting,1.0);

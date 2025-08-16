@@ -230,29 +230,51 @@ func initBufferResources() {
 
     // Initialize Point Light Buffer
     func initPointLightBuffer() {
+        let maxLights = 1024
+        let headerSize = MemoryLayout<UInt32>.stride * 4 // 4 * u32 (count + pad) = 16B
+        let perLight = MemoryLayout<PointLightUniform>.stride // should be 64
+        let rawSize = headerSize + perLight * maxLights
+
+        // Pad to 16 bytes (you could also pad to 256 if you like being extra safe)
+        let blockSize = align(rawSize, to: 16)
+
+        let options: MTLResourceOptions = [.storageModeShared]
         bufferResources.pointLightBuffer = createEmptyBuffer(
             device: renderInfo.device,
-            length: MemoryLayout<PointLight>.stride * maxNumPointLights,
+            length: blockSize,
+            options: options,
             label: "Point Lights"
         )
     }
 
     // Initialize Spot Light Buffer
     func initSpotLightBuffer() {
+        let maxLights = 1024
+        let headerSize = MemoryLayout<UInt32>.stride * 4 // 4 * u32 (count + pad) = 16B
+        let perLight = MemoryLayout<SpotLightUniform>.stride // should be 64
+        let rawSize = headerSize + perLight * maxLights
+
+        // Pad to 16 bytes (you could also pad to 256 if you like being extra safe)
+        let blockSize = align(rawSize, to: 16)
+
+        let options: MTLResourceOptions = [.storageModeShared]
         bufferResources.spotLightBuffer = createEmptyBuffer(
-            device: renderInfo.device,
-            length: MemoryLayout<SpotLight>.stride * maxNumSpotLights,
-            label: "Spot Lights"
+            device: renderInfo.device, length: blockSize, options: options, label: "Spot Lights"
         )
     }
 
     // Initialize Area Light Buffer
     func initAreaLightBuffer() {
-        bufferResources.areaLightBuffer = createEmptyBuffer(
-            device: renderInfo.device,
-            length: MemoryLayout<AreaLight>.stride * maxAreaLights,
-            label: "Area Light"
-        )
+        let maxLights = 1024
+        let headerSize = MemoryLayout<UInt32>.stride * 4 // 4 * u32 (count + pad) = 16B
+        let perLight = MemoryLayout<AreaLightUniform>.stride // should be 64
+        let rawSize = headerSize + perLight * maxLights
+
+        // Pad to 16 bytes (you could also pad to 256 if you like being extra safe)
+        let blockSize = align(rawSize, to: 16)
+
+        let options: MTLResourceOptions = [.storageModeShared]
+        bufferResources.areaLightBuffer = createEmptyBuffer(device: renderInfo.device, length: blockSize, options: options, label: "Area Light")
     }
 
     // Initialize Bounding Box Buffer

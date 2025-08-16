@@ -826,88 +826,133 @@ enum RenderPasses {
         )
 
         // point lights
-        if let pointLightBuffer = bufferResources.pointLightBuffer {
-            let pointLightArray = Array(getPointLights())
+        /*
+         if let pointLightBuffer = bufferResources.pointLightBuffer {
 
-            pointLightArray.withUnsafeBufferPointer { bufferPointer in
-                guard let baseAddress = bufferPointer.baseAddress else { return }
-                pointLightBuffer.contents().copyMemory(
-                    from: baseAddress,
-                    byteCount: MemoryLayout<PointLight>.stride * getPointLightCount()
-                )
-            }
+             let headerSize = MemoryLayout<UInt32>.stride * 4
+             let MAX_POINT_LIGHTS = 1024
 
-        } else {
-            handleError(.bufferAllocationFailed, bufferResources.pointLightBuffer!.label!)
-            return
-        }
+             // Grab lights and cap to buffer capacity
+             let src = getPointLights()
+             let capped = min(src.count, MAX_POINT_LIGHTS)
 
-        renderEncoder.setFragmentBuffer(
-            bufferResources.pointLightBuffer, offset: 0, index: Int(lightPassPointLightsIndex.rawValue)
+             // Write count at offset 0
+             pointLightBuffer.contents().storeBytes(of: UInt32(capped), toByteOffset: 0, as: UInt32.self)
+
+             // Copy the contiguous bytes of the array after the header
+             let dst = pointLightBuffer.contents().advanced(by: headerSize)
+
+             src.withUnsafeBytes{ raw in
+                 let stride = MemoryLayout<PointLightUniform>.stride
+                 let nBytes = capped * stride
+                 dst.copyMemory(from: raw.baseAddress!, byteCount: nBytes)
+             }
+
+             renderEncoder.setFragmentBuffer(
+                 pointLightBuffer, offset: 0, index: Int(lightPassPointLightsIndex.rawValue)
+             )
+         } else {
+             handleError(.bufferAllocationFailed, bufferResources.pointLightBuffer!.label!)
+             return
+         }
+
+         // spot light
+         if let spotLightBuffer = bufferResources.spotLightBuffer {
+
+             let headerSize = MemoryLayout<UInt32>.stride * 4
+             let MAX_POINT_LIGHTS = 1024
+
+             // Grab lights and cap to buffer capacity
+             let src = getSpotLights()
+             let capped = min(src.count, MAX_POINT_LIGHTS)
+
+             // Write count at offset 0
+             spotLightBuffer.contents().storeBytes(of: UInt32(capped), toByteOffset: 0, as: UInt32.self)
+
+             // Copy the contiguous bytes of the array after the header
+             let dst = spotLightBuffer.contents().advanced(by: headerSize)
+
+             src.withUnsafeBytes{ raw in
+                 let stride = MemoryLayout<SpotLightUniform>.stride
+                 let nBytes = capped * stride
+                 dst.copyMemory(from: raw.baseAddress!, byteCount: nBytes)
+             }
+
+             renderEncoder.setFragmentBuffer(
+                 spotLightBuffer, offset: 0, index: Int(lightPassSpotLightsIndex.rawValue)
+             )
+
+         } else {
+             handleError(.bufferAllocationFailed, bufferResources.spotLightBuffer!.label!)
+             return
+         }
+
+         // area light
+         if let areaLightBuffer = bufferResources.areaLightBuffer {
+
+             let headerSize = MemoryLayout<UInt32>.stride * 4
+             let MAX_POINT_LIGHTS = 1024
+
+             // Grab lights and cap to buffer capacity
+             let src = getAreaLights()
+             let capped = min(src.count, MAX_POINT_LIGHTS)
+
+             // Write count at offset 0
+             areaLightBuffer.contents().storeBytes(of: UInt32(capped), toByteOffset: 0, as: UInt32.self)
+
+             // Copy the contiguous bytes of the array after the header
+             let dst = areaLightBuffer.contents().advanced(by: headerSize)
+
+             src.withUnsafeBytes{ raw in
+                 let stride = MemoryLayout<AreaLightUniform>.stride
+                 let nBytes = capped * stride
+                 dst.copyMemory(from: raw.baseAddress!, byteCount: nBytes)
+             }
+
+             renderEncoder.setFragmentBuffer(
+                 areaLightBuffer, offset: 0, index: Int(lightPassAreaLightsIndex.rawValue)
+             )
+
+         } else {
+             handleError(.bufferAllocationFailed, bufferResources.areaLightBuffer!.label!)
+             return
+         }
+         */
+        let MAX_POINT_LIGHTS = 1024
+        let headerSize = 16
+        // Point
+        _ = uploadAndBindLights(
+            buffer: bufferResources.pointLightBuffer,
+            lights: getPointLights(), // [PointLight]
+            maxCount: MAX_POINT_LIGHTS,
+            headerSize: headerSize,
+            encoder: renderEncoder,
+            bufferIndex: Int(lightPassPointLightsIndex.rawValue),
+            labelForErrors: "Point Lights"
         )
 
-        var pointLightCount: Int = getPointLightCount()
-
-        renderEncoder.setFragmentBytes(
-            &pointLightCount, length: MemoryLayout<Int>.stride,
-            index: Int(lightPassPointLightsCountIndex.rawValue)
+        // Spot
+        _ = uploadAndBindLights(
+            buffer: bufferResources.spotLightBuffer,
+            lights: getSpotLights(), // [SpotLightUniform] or [SpotLight]
+            maxCount: 1024,
+            headerSize: headerSize,
+            encoder: renderEncoder,
+            bufferIndex: Int(lightPassSpotLightsIndex.rawValue),
+            labelForErrors: "Spot Lights"
         )
 
-        // spot light
-        if let spotLightBuffer = bufferResources.spotLightBuffer {
-            let spotLightArray = Array(getSpotLights())
-
-            spotLightArray.withUnsafeBufferPointer { bufferPointer in
-                guard let baseAddress = bufferPointer.baseAddress else { return }
-                spotLightBuffer.contents().copyMemory(
-                    from: baseAddress,
-                    byteCount: MemoryLayout<SpotLight>.stride * getSpotLightCount()
-                )
-            }
-
-        } else {
-            handleError(.bufferAllocationFailed, bufferResources.spotLightBuffer!.label!)
-            return
-        }
-
-        renderEncoder.setFragmentBuffer(
-            bufferResources.spotLightBuffer, offset: 0, index: Int(lightPassSpotLightsIndex.rawValue)
+        // Area
+        _ = uploadAndBindLights(
+            buffer: bufferResources.areaLightBuffer,
+            lights: getAreaLights(), // [AreaLightUniform] or [AreaLight]
+            maxCount: 1024,
+            headerSize: headerSize,
+            encoder: renderEncoder,
+            bufferIndex: Int(lightPassAreaLightsIndex.rawValue),
+            labelForErrors: "Area Lights"
         )
 
-        var spotLightCount: Int = getSpotLightCount()
-
-        renderEncoder.setFragmentBytes(
-            &spotLightCount, length: MemoryLayout<Int>.stride,
-            index: Int(lightPassSpotLightsCountIndex.rawValue)
-        )
-
-        // area light
-        if let areaLightBuffer = bufferResources.areaLightBuffer {
-            let areaLightArray = Array(getAreaLights())
-
-            areaLightArray.withUnsafeBufferPointer { bufferPointer in
-                guard let baseAddress = bufferPointer.baseAddress else { return }
-                areaLightBuffer.contents().copyMemory(
-                    from: baseAddress,
-                    byteCount: MemoryLayout<AreaLight>.stride * getAreaLightCount()
-                )
-            }
-
-        } else {
-            handleError(.bufferAllocationFailed, bufferResources.areaLightBuffer!.label!)
-            return
-        }
-
-        renderEncoder.setFragmentBuffer(
-            bufferResources.areaLightBuffer, offset: 0, index: Int(lightPassAreaLightsIndex.rawValue)
-        )
-
-        var areaLightCount: Int = getAreaLightCount()
-
-        renderEncoder.setFragmentBytes(
-            &areaLightCount, length: MemoryLayout<Int>.stride,
-            index: Int(lightPassAreaLightsCountIndex.rawValue)
-        )
         // LTC Maps for Area Lights
         renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMat, index: Int(lightPassAreaLTCMatTextureIndex.rawValue))
 
@@ -1762,4 +1807,38 @@ extension float4x4 {
                   SIMD4<Float>(0, 0, s.z, 0),
                   SIMD4<Float>(0, 0, 0, 1))
     }
+}
+
+@inline(__always)
+private func uploadAndBindLights<T>(
+    buffer: MTLBuffer?,
+    lights: [T],
+    maxCount: Int,
+    headerSize: Int = 16, // uint4 header
+    encoder: MTLRenderCommandEncoder,
+    bufferIndex: Int,
+    labelForErrors: String
+) -> Bool {
+    guard let buf = buffer else {
+        print("Missing buffer for \(labelForErrors)")
+        return false
+    }
+
+    // Cap to buffer capacity
+    let capped = min(lights.count, maxCount)
+
+    // Write count (UInt32) at offset 0; rest of uint4 padding can remain garbage
+    buf.contents().storeBytes(of: UInt32(capped), toByteOffset: 0, as: UInt32.self)
+
+    // Copy array right after header
+    let dst = buf.contents().advanced(by: headerSize)
+    let nBytes = capped * MemoryLayout<T>.stride
+
+    lights.withUnsafeBytes { raw in
+        dst.copyMemory(from: raw.baseAddress!, byteCount: nBytes)
+    }
+
+    // Bind
+    encoder.setFragmentBuffer(buf, offset: 0, index: bufferIndex)
+    return true
 }

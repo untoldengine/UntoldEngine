@@ -993,3 +993,5 @@ func loadTextureType(entityId: EntityID, assetName: String, path: URL) {
     }
     updateMaterialTexture(entityId: entityId, textureType: textureType, path: path)
 }
+
+func align(_ n: Int, to alignment: Int) -> Int { (n + alignment - 1) & ~(alignment - 1) }
