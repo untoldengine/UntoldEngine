@@ -86,6 +86,15 @@ public struct BufferResources {
 
     // ssao kernel
     var ssaoKernelBuffer: MTLBuffer?
+
+    // Frustum Plane Buffer
+    var visibleCountBuffer: MTLBuffer?
+    var visibilityBuffer: MTLBuffer?
+}
+
+public struct TripleBufferResources {
+    var frustumPlane: TripleBuffer<simd_float4>?
+    var entityAABB: TripleBuffer<EntityAABB>?
 }
 
 public struct VertexDescriptors {

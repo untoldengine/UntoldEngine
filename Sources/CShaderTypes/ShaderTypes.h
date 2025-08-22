@@ -63,6 +63,20 @@ typedef struct{
     
 }AreaLightUniform;
 
+// Upload 6 planes as float4(nx, ny, nz, d)
+struct FrustumPlanes {
+    simd_float4 p[6];
+};
+
+struct EntityAABB {
+    simd_float4 center;
+    simd_float4 halfExtent;
+    uint index; // upper 32 bits of EntityID
+    uint version; // lower 32 bits of EntityID
+    uint pad0;
+    uint pad1;
+};
+
 typedef enum{
     gridPassPositionIndex,
     gridPassUniformIndex,
@@ -288,6 +302,14 @@ typedef enum{
     lightVisualPassProjMatrixIndex,
     lightVisualPassModelMatrixIndex,
 }LightVisualBufferIndices;
+
+typedef enum{
+    frustumCullingPassPlanesIndex,
+    frustumCullingPassVisibilityIndex,
+    frustumCullingPassVisibleCountIndex,
+    frustumCullingPassObjectIndex,
+    frustumCullingPassObjectCountIndex,
+}FrustumCullingBufferIndices;
 
 //Ray tracing structs
 #define GEOMETRY_MASK_TRIANGLE 1

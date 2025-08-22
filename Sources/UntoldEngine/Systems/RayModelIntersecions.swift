@@ -83,7 +83,7 @@ func createAccelerationStructures(_: Bool) {
         let gizmoId = getComponentId(for: GizmoComponent.self)
         entities = queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
     } else {
-        entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
+        entities = visibleEntityIds
     }
 
     // Iterate over the entities found by the component query

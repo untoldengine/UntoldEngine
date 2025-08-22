@@ -28,3 +28,4 @@ using namespace metal;
 #include "../Shaders/GizmoShader.metal"
 #include "../Shaders/LightShader.metal"
 #include "../Shaders/SSAOBlurShader.metal"
+#include "../Shaders/FrustumCullingCompute.metal"

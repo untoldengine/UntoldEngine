@@ -115,6 +115,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         loadLightDebugMeshes()
 
+        initFrustumCulllingCompute()
+
         Logger.log(message: "Untold Engine Starting")
     }
 

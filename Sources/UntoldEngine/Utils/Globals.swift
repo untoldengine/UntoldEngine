@@ -35,6 +35,7 @@ var renderInfo = RenderInfo()
 
 var vertexDescriptor = VertexDescriptors()
 var bufferResources = BufferResources()
+var tripleBufferResources = TripleBufferResources()
 var textureResources = TextureResources()
 
 var entityMeshMap: [EntityID: [Mesh]] = [:] // Holds all meshes loaded
@@ -100,6 +101,7 @@ var outlinePipeline = RenderPipeline()
 var rayTracingPipeline = ComputePipeline()
 var rayModelIntersectPipeline = ComputePipeline()
 var clearRayTracingPipeline = ComputePipeline()
+var frustumCullingPipeline = ComputePipeline()
 
 // Environment Mesh
 var environmentMesh: MTKMesh!
@@ -289,7 +291,7 @@ class SSAOParams: ObservableObject {
     @Published var radius: Float = 0.5 // 0.1 to 2.0 how far to sample
     @Published var bias: Float = 0.025 // 0.01-0.1 avoid self occusion
     @Published var intensity: Float = 0 // 0.5-2.0 Final multiplier
-    @Published var enabled: Bool =  false
+    @Published var enabled: Bool = false
 }
 
 class DebugSettings: ObservableObject {
@@ -321,6 +323,19 @@ var areaLightDebugMesh: [Mesh] = []
 var dirLightDebugMesh: [Mesh] = []
 
 // Camera defaults
-let cameraDefaultEye: simd_float3 = simd_float3(0.0, 1.0, 4.0)
-let cameraTargetDefault: simd_float3 = simd_float3(0.0, 0.0, -2.0)
-let cameraUpDefault: simd_float3 = simd_float3(0.0, 1.0, 0.0)
+let cameraDefaultEye: simd_float3 = .init(0.0, 1.0, 4.0)
+let cameraTargetDefault: simd_float3 = .init(0.0, 0.0, -2.0)
+let cameraUpDefault: simd_float3 = .init(0.0, 1.0, 0.0)
+
+// Culling
+public struct EntityAABB {
+    public var center: simd_float4
+    public var halfExtent: simd_float4
+    public var index: UInt32
+    public var version: UInt32
+    public var pad0: UInt32 = 0
+    public var pad1: UInt32 = 0
+}
+
+struct VisibleEntity { var index: UInt32; var version: UInt32 }
+var visibleEntityIds: [EntityID] = []

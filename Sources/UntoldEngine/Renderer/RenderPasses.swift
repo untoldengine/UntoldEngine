@@ -240,7 +240,7 @@ enum RenderPasses {
         let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
         // Iterate over the entities found by the component query
-        for entityId in entities {
+        for entityId in visibleEntityIds {
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
                 continue
@@ -381,12 +381,8 @@ enum RenderPasses {
 
         // Create a component query for entities with both Transform and Render components
 
-        let transformId = getComponentId(for: WorldTransformComponent.self)
-        let renderId = getComponentId(for: RenderComponent.self)
-        let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
-
         // Iterate over the entities found by the component query
-        for entityId in entities {
+        for entityId in visibleEntityIds {
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
                 continue

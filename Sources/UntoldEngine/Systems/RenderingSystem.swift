@@ -13,6 +13,8 @@ func updateRenderingSystem(in view: MTKView) {
         if let renderPassDescriptor = view.currentRenderPassDescriptor {
             renderInfo.renderPassDescriptor = renderPassDescriptor
 
+            executeFrustumCulling(commandBuffer)
+
             // build a render graph
             var (graph, preCompID) = gameMode ? buildGameModeGraph() : buildEditModeGraph()
 
