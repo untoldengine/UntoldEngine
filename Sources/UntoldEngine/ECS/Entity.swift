@@ -8,7 +8,7 @@
 
 import Foundation
 
-public func createEntityId(_ index: EntityIndex, _ version: EntityVersion) -> EntityID {
+func createEntityId(_ index: EntityIndex, _ version: EntityVersion) -> EntityID {
     // entity index is in upper 32 bits. version is lower 32 bits
     let shiftedIndex = EntityID(index) << 32
     let versionId = EntityID(version)
@@ -16,11 +16,11 @@ public func createEntityId(_ index: EntityIndex, _ version: EntityVersion) -> En
     return shiftedIndex | versionId
 }
 
-public func getEntityIndex(_ index: EntityID) -> EntityIndex {
+func getEntityIndex(_ index: EntityID) -> EntityIndex {
     // shift down 32 so we get rid of the version and return index
     EntityIndex(index >> 32)
 }
 
-public func getEntityVersion(_ index: EntityID) -> EntityVersion {
+func getEntityVersion(_ index: EntityID) -> EntityVersion {
     EntityVersion(UInt32(index & 0xFFFF_FFFF))
 }
