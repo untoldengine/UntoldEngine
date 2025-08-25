@@ -102,6 +102,10 @@ var rayTracingPipeline = ComputePipeline()
 var rayModelIntersectPipeline = ComputePipeline()
 var clearRayTracingPipeline = ComputePipeline()
 var frustumCullingPipeline = ComputePipeline()
+var reduceScanMarkVisiblePipeline = ComputePipeline()
+var reduceScanLocalScanPipeline = ComputePipeline()
+var reduceScanBlockScanPipeline = ComputePipeline()
+var reduceScanScatterCompactedPipeline = ComputePipeline()
 
 // Environment Mesh
 var environmentMesh: MTKMesh!

@@ -172,27 +172,26 @@ func buildFrustum(from viewProj: simd_float4x4,
 }
 
 func initFrustumCulllingCompute() {
-    // create kernel
-    guard
-        let frustumCullingKernel = renderInfo.library.makeFunction(name: "cullFrustumAABB")
-    else {
-        handleError(.kernelCreationFailed, frustumCullingPipeline.name!)
-        return
-    }
+    let numBlocks = (Int32(maxObjects) + BLOCK_SIZE - 1) / BLOCK_SIZE
 
-    // create a pipeline
-    do {
-        frustumCullingPipeline.pipelineState = try renderInfo.device.makeComputePipelineState(
-            function: frustumCullingKernel)
+    // Create Pipelines
+    createComputePipeline(
+        into: &frustumCullingPipeline,
+        device: renderInfo.device,
+        library: renderInfo.library,
+        functionName: "cullFrustumAABB",
+        pipelineName: "Frustum Culling pipe"
+    )
 
-        frustumCullingPipeline.name = "Frustum Culling pipe"
-        frustumCullingPipeline.success = true
-    } catch {
-        frustumCullingPipeline.success = false
-        handleError(.pipelineStateCreationFailed, frustumCullingPipeline.name!)
-        return
-    }
+    createComputePipeline(into: &reduceScanMarkVisiblePipeline, device: renderInfo.device, library: renderInfo.library, functionName: "markVisibleAABB", pipelineName: "Mark Visible")
 
+    createComputePipeline(into: &reduceScanLocalScanPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "scanLocalExclusive", pipelineName: "Reduce Scan Local")
+
+    createComputePipeline(into: &reduceScanBlockScanPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "scanBlockSumsExclusive", pipelineName: "Reduce Scan Block")
+
+    createComputePipeline(into: &reduceScanScatterCompactedPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "scatterCompacted", pipelineName: "Stream and compact")
+
+    // Make and allocate buffers
     tripleBufferResources.frustumPlane = TripleBuffer<simd_float4>(device: renderInfo.device, initialCapacity: planeCount)
 
     tripleBufferResources.entityAABB = TripleBuffer(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
@@ -200,8 +199,21 @@ func initFrustumCulllingCompute() {
     // count
     bufferResources.visibleCountBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride, options: .storageModeShared)
 
+    // reset visible count
+    bufferResources.visibleCountBuffer?.contents().storeBytes(of: UInt32(0), as: UInt32.self)
+
     bufferResources.visibilityBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride * MAX_ENTITIES, options: .storageModeShared)
 
+    // Reduce scan buffers
+    bufferResources.reduceScanFlags = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * MAX_ENTITIES, options: .storageModePrivate)
+
+    bufferResources.reduceScanIndices = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * MAX_ENTITIES, options: .storageModePrivate)
+
+    bufferResources.reduceScanBlockSums = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * Int(numBlocks), options: .storageModePrivate)
+
+    bufferResources.reduceScanBlockOffsets = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * Int(numBlocks), options: .storageModePrivate)
+
+    // clear up visible entity array
     visibleEntityIds.removeAll(keepingCapacity: true)
 }
 
@@ -362,6 +374,234 @@ func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         DispatchQueue.main.async{
             tripleVisibleEntities.setWrite(frame: cullFrameIndex, with: nextVisibleIds)
             cullFrameIndex += 1
+        }
+    }
+}
+
+func executeOptimizedFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
+    if reduceScanMarkVisiblePipeline.success == false {
+        handleError(.pipelineStateNulled, reduceScanMarkVisiblePipeline.name!)
+        return
+    }
+
+    if reduceScanLocalScanPipeline.success == false {
+        handleError(.pipelineStateNulled, reduceScanLocalScanPipeline.name!)
+        return
+    }
+
+    if reduceScanBlockScanPipeline.success == false {
+        handleError(.pipelineStateNulled, reduceScanBlockScanPipeline.name!)
+        return
+    }
+
+    if reduceScanScatterCompactedPipeline.success == false {
+        handleError(.pipelineStateNulled, reduceScanScatterCompactedPipeline.name!)
+        return
+    }
+
+    guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+        handleError(.noActiveCamera)
+        return
+    }
+
+    let numBlocks = (Int32(maxObjects) + BLOCK_SIZE - 1) / BLOCK_SIZE
+
+    // clear up visible count buffer
+    let blit = commandBuffer.makeBlitCommandEncoder()!
+    blit.fill(buffer: bufferResources.visibleCountBuffer!, range: 0 ..< MemoryLayout<UInt32>.stride, value: 0)
+    blit.endEncoding()
+
+    let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
+
+    // build the frustum
+    let frustum = buildFrustum(from: viewProjection)
+
+    guard let frustumTripleBuffer = tripleBufferResources.frustumPlane else {
+        handleError(.bufferAllocationFailed, "Frustum cull buffer")
+        return
+    }
+
+    guard let entityAABBTripleBuffer = tripleBufferResources.entityAABB else {
+        handleError(.bufferAllocationFailed, "Entity AABB buffer")
+        return
+    }
+
+    guard let visibilityCountBuffer = bufferResources.visibleCountBuffer else {
+        handleError(.bufferAllocationFailed, "visbility count buffer in frustum culling")
+        return
+    }
+
+    guard let visibilityBuffer = bufferResources.visibilityBuffer else {
+        handleError(.bufferAllocationFailed, "visibility buffer in frustum culling")
+        return
+    }
+
+    let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: frameCount)
+    let frustumWritePointer = frustumWriteBuffer.contents().bindMemory(to: simd_float4.self, capacity: planeCount)
+    for i in 0 ..< planeCount {
+        frustumWritePointer[i] = simd_float4(frustum.planes[i].n, frustum.planes[i].d)
+    }
+
+    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: frameCount)
+
+    let transformId = getComponentId(for: WorldTransformComponent.self)
+    let renderId = getComponentId(for: RenderComponent.self)
+    let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
+
+    var entityAABBContainer: [EntityAABB] = []
+
+    for entityId in entities {
+        guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+            handleError(.noRenderComponent, entityId)
+            continue
+        }
+
+        guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+            handleError(.noWorldTransformComponent, entityId)
+            continue
+        }
+
+        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+            handleError(.noLocalTransformComponent, entityId)
+            continue
+        }
+
+        if hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
+            continue
+        }
+
+        if hasComponent(entityId: entityId, componentType: LightComponent.self) {
+            continue
+        }
+
+        // get object AABB
+        let entityAABB: EntityAABB = makeObjectAABB(localMin: localTransformComponent.boundingBox.min, localMax: localTransformComponent.boundingBox.max, worldMatrix: worldTransformComponent.space, index: getEntityIndex(entityId), version: getEntityVersion(entityId))
+
+        entityAABBContainer.append(entityAABB)
+    }
+
+    let count = entityAABBContainer.count
+
+    guard count > 0 else {
+        return
+    }
+
+    // ensure we have enough capacity
+    entityAABBTripleBuffer.ensureCapacity(count)
+
+    // write current frame's data
+    let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: frameCount)
+
+    entityAABBContainer.withUnsafeBytes { src in
+
+        entityAABBWriteBuffer.contents().copyMemory(from: src.baseAddress!, byteCount: src.count)
+    }
+
+    // pick the buffer the gpu should read
+    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: frameCount)
+
+    var count32 = UInt32(count)
+
+    // Mark visible launch
+    do {
+        let computeEncoderMarkVisible: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+
+        computeEncoderMarkVisible.label = "Mark Visible Pass"
+
+        computeEncoderMarkVisible.setComputePipelineState(reduceScanMarkVisiblePipeline.pipelineState!)
+
+        computeEncoderMarkVisible.setBuffer(frustumReadBuffer, offset: 0, index: Int(markVisibilityPassFrustumIndex.rawValue))
+        computeEncoderMarkVisible.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(markVisibilityPassEntityAABBIndex.rawValue))
+        computeEncoderMarkVisible.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(markVisibilityPassEntityAABBCountIndex.rawValue))
+        computeEncoderMarkVisible.setBuffer(bufferResources.reduceScanFlags, offset: 0, index: Int(markVisibilityPassFlagIndex.rawValue))
+
+        let w = min(reduceScanMarkVisiblePipeline.pipelineState!.maxTotalThreadsPerThreadgroup, 256)
+        computeEncoderMarkVisible.dispatchThreads(MTLSize(width: count, height: 1, depth: 1), threadsPerThreadgroup: MTLSize(width: w, height: 1, depth: 1))
+
+        computeEncoderMarkVisible.endEncoding()
+    }
+
+    // scan local
+    do {
+        let computeEncoderLocalScan: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+
+        computeEncoderLocalScan.label = "Local Scan Pass"
+
+        computeEncoderLocalScan.setComputePipelineState(reduceScanLocalScanPipeline.pipelineState!)
+
+        computeEncoderLocalScan.setBuffer(bufferResources.reduceScanFlags, offset: 0, index: Int(scanLocalPassFlagIndex.rawValue))
+
+        computeEncoderLocalScan.setBuffer(bufferResources.reduceScanIndices, offset: 0, index: Int(scanLocalPassIndicesIndex.rawValue))
+
+        computeEncoderLocalScan.setBuffer(bufferResources.reduceScanBlockSums, offset: 0, index: Int(scanLocalPassBlockSumsIndex.rawValue))
+
+        computeEncoderLocalScan.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(scanLocalPassCountIndex.rawValue))
+
+        computeEncoderLocalScan.dispatchThreadgroups(MTLSize(width: Int(numBlocks), height: 1, depth: 1), threadsPerThreadgroup: MTLSize(width: Int(BLOCK_SIZE), height: 1, depth: 1))
+
+        computeEncoderLocalScan.endEncoding()
+    }
+
+    // scan block
+
+    do {
+        let computeEncoderBlockScan: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+
+        computeEncoderBlockScan.label = "Block Scan Pass"
+
+        computeEncoderBlockScan.setComputePipelineState(reduceScanBlockScanPipeline.pipelineState!)
+
+        computeEncoderBlockScan.setBuffer(bufferResources.reduceScanBlockSums, offset: 0, index: Int(scanBlockSumPassSumIndex.rawValue))
+
+        computeEncoderBlockScan.setBuffer(bufferResources.reduceScanBlockOffsets, offset: 0, index: Int(scanBlockSumPassOffsetIndex.rawValue))
+
+        var nbU32 = UInt32(numBlocks)
+        computeEncoderBlockScan.setBytes(&nbU32, length: 4, index: 2)
+
+        var threads = 1
+        while threads < numBlocks {
+            threads <<= 1
+        }
+        threads = min(1024, threads)
+        computeEncoderBlockScan.dispatchThreadgroups(MTLSize(width: 1, height: 1, depth: 1),
+                                                     threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1))
+        computeEncoderBlockScan.endEncoding()
+    }
+
+    // Compact and stream
+    do {
+        let computeEncoderCompact: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+
+        computeEncoderCompact.label = "Compact and Stream Pass"
+
+        computeEncoderCompact.setComputePipelineState(reduceScanScatterCompactedPipeline.pipelineState!)
+
+        computeEncoderCompact.setBuffer(bufferResources.reduceScanFlags, offset: 0, index: Int(compactPassFlagsIndex.rawValue))
+        computeEncoderCompact.setBuffer(bufferResources.reduceScanIndices, offset: 0, index: Int(compactPassIndicesIndex.rawValue))
+        computeEncoderCompact.setBuffer(bufferResources.reduceScanBlockOffsets, offset: 0, index: Int(compactPassBlockOffsetIndex.rawValue))
+        computeEncoderCompact.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(compactPassEntityAABBIndex.rawValue))
+
+        computeEncoderCompact.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(compactPassCountIndex.rawValue))
+
+        computeEncoderCompact.setBuffer(bufferResources.visibilityBuffer, offset: 0, index: Int(compactPassVisibilityIndicesIndex.rawValue))
+        computeEncoderCompact.setBuffer(bufferResources.visibleCountBuffer, offset: 0, index: Int(compactPassVisibilityCountIndex.rawValue))
+
+        let w = min(reduceScanScatterCompactedPipeline.pipelineState!.maxTotalThreadsPerThreadgroup, 256)
+        computeEncoderCompact.dispatchThreads(MTLSize(width: Int(count32), height: 1, depth: 1),
+                                              threadsPerThreadgroup: MTLSize(width: w, height: 1, depth: 1))
+
+        computeEncoderCompact.endEncoding()
+    }
+
+    commandBuffer.addCompletedHandler { _ in
+        visibleEntityIds.removeAll(keepingCapacity: true)
+        let visibleCount = visibilityCountBuffer.contents().load(as: UInt32.self)
+        let visibleEntities = visibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
+
+        for i in 0 ..< Int(visibleCount) {
+            let index = visibleEntities[i].index
+            let version = visibleEntities[i].version
+            visibleEntityIds.append(createEntityId(EntityIndex(index), EntityVersion(version)))
         }
     }
 }
