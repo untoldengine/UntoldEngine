@@ -90,6 +90,12 @@ public struct BufferResources {
     // Frustum Plane Buffer
     var visibleCountBuffer: MTLBuffer?
     var visibilityBuffer: MTLBuffer?
+
+    // Frustum Culling reduce-scan
+    var reduceScanFlags: MTLBuffer?
+    var reduceScanIndices: MTLBuffer?
+    var reduceScanBlockSums: MTLBuffer?
+    var reduceScanBlockOffsets: MTLBuffer?
 }
 
 public struct TripleBufferResources {
