@@ -22,6 +22,8 @@ typedef NSInteger EnumBackingType;
 
 #include <simd/simd.h>
 
+#define BLOCK_SIZE 256
+
 typedef struct
 {
     matrix_float4x4 projectionMatrix;
@@ -314,7 +316,38 @@ typedef enum{
     frustumCullingPassVisibleCountIndex,
     frustumCullingPassObjectIndex,
     frustumCullingPassObjectCountIndex,
+    frustumCullingPassFlagIndex
 }FrustumCullingBufferIndices;
+
+typedef enum{
+    markVisibilityPassFrustumIndex,
+    markVisibilityPassEntityAABBIndex,
+    markVisibilityPassEntityAABBCountIndex,
+    markVisibilityPassFlagIndex
+}MarkVisibilityBufferIndices;
+
+typedef enum{
+    scanLocalPassFlagIndex,
+    scanLocalPassIndicesIndex,
+    scanLocalPassBlockSumsIndex,
+    scanLocalPassCountIndex
+}ScanLocalBufferIndices;
+
+typedef enum{
+    scanBlockSumPassSumIndex,
+    scanBlockSumPassOffsetIndex,
+    scanBlockSumPassNumBlocksIndex
+}ScanBlockSumBufferIndices;
+
+typedef enum{
+    compactPassFlagsIndex,
+    compactPassIndicesIndex,
+    compactPassBlockOffsetIndex,
+    compactPassEntityAABBIndex,
+    compactPassCountIndex,
+    compactPassVisibilityIndicesIndex,
+    compactPassVisibilityCountIndex
+}ScatterCompactBufferIndices;
 
 //Ray tracing structs
 #define GEOMETRY_MASK_TRIANGLE 1
