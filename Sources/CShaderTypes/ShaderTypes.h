@@ -91,11 +91,17 @@ typedef enum{
     modelPassJointWeightsIndex,
     modelPassBitangentIndex,
     modelPassUniformIndex,
-    modelPassMaterialParameterIndex,
     modelPassJointTransformIndex,
     modelPassHasArmature,
-    modelPassSTScaleIndex,
 }ModelPassBufferIndices;
+typedef enum{
+    modelPassFragmentUniformIndex,
+    modelPassFragmentHasNormalTextureIndex,
+    modelPassFragmentMaterialParameterIndex,
+    modelPassFragmentSTScaleIndex,
+}ModelPassFragmentBufferIndices;
+
+
 
 typedef enum{
     lightPassLightOrthoViewMatrixIndex,
@@ -117,7 +123,6 @@ typedef enum{
     modelPassRoughnessTextureIndex,
     modelPassMetallicTextureIndex,
     modelPassNormalTextureIndex,
-    modelPassHasNormalTextureIndex,
 }ModelPassTextureIndices;
 
 typedef enum{

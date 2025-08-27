@@ -25,7 +25,7 @@ vertex VertexOutModel vertexGizmoShader(
 
 fragment FragmentModelOut fragmentGizmoShader(VertexOutModel in [[stage_in]],
                                     constant Uniforms & uniforms [[ buffer(modelPassUniformIndex) ]],
-                                 constant MaterialParametersUniform &materialParameter [[buffer(modelPassMaterialParameterIndex)]])
+                                 constant MaterialParametersUniform &materialParameter [[buffer(modelPassFragmentMaterialParameterIndex)]])
 {
 
     FragmentModelOut fragmentOut;

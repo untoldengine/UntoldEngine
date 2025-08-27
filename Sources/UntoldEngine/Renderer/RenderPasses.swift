@@ -444,10 +444,6 @@ enum RenderPasses {
                     mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
                 )
 
-                renderEncoder.setFragmentBuffer(
-                    mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
-                )
-
                 // check if it has skeleton component
                 var hasArmature = false
 
@@ -489,10 +485,14 @@ enum RenderPasses {
 
                 renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
 
+                renderEncoder.setFragmentBuffer(
+                    mesh.spaceUniform, offset: 0, index: Int(modelPassFragmentUniformIndex.rawValue)
+                )
+
                 for subMesh in mesh.submeshes {
                     var stScale: Float = subMesh.material!.stScale
 
-                    renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassSTScaleIndex.rawValue))
+                    renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
 
                     // set base texture
                     renderEncoder.setFragmentTexture(
@@ -1130,7 +1130,7 @@ enum RenderPasses {
 
                     renderEncoder.setFragmentBytes(
                         &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
-                        index: Int(modelPassMaterialParameterIndex.rawValue)
+                        index: Int(modelPassFragmentMaterialParameterIndex.rawValue)
                     )
 
                     renderEncoder.drawIndexedPrimitives(

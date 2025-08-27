@@ -58,17 +58,17 @@ vertex VertexOutModel vertexModelShader(
 
 
 fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
-                                    constant Uniforms & uniforms [[ buffer(modelPassUniformIndex) ]],
+                                        constant Uniforms & uniforms [[ buffer(modelPassFragmentUniformIndex) ]],
                                  texture2d<float> baseColor [[texture(modelPassBaseTextureIndex)]],
                                   texture2d<float> roughnessTexture [[texture(modelPassRoughnessTextureIndex)]],
                                   texture2d<float> metallicTexture [[texture(modelPassMetallicTextureIndex)]],
                                   texture2d<float> normalTexture [[texture(modelPassNormalTextureIndex)]],
-                                  constant bool &hasNormal[[buffer(modelPassHasNormalTextureIndex)]],
-                                  constant MaterialParametersUniform &materialParameter [[buffer(modelPassMaterialParameterIndex)]],
+                                        constant bool &hasNormal[[buffer(modelPassFragmentHasNormalTextureIndex)]],
+                                        constant MaterialParametersUniform &materialParameter [[buffer(modelPassFragmentMaterialParameterIndex)]],
                                   sampler baseColorSampler [[sampler(modelPassBaseSamplerIndex)]],
                                   sampler normalSampler [[sampler(modelPassNormalSamplerIndex)]],
                                   sampler materialSampler [[sampler(modelPassMaterialSamplerIndex)]],
-                                  constant float &stScale [[buffer(modelPassSTScaleIndex)]])
+                                        constant float &stScale [[buffer(modelPassFragmentSTScaleIndex)]])
 {
 
     // Base Color and Normal Maps: Linear filtering, mipmaps, repeat wrapping
