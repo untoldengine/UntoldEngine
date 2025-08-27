@@ -66,32 +66,42 @@ public struct ComponentPool {
     }
 }
 
-public struct ComponentMask {
-    private var bits = [Bool](repeating: false, count: MAX_COMPONENTS)
+public struct ComponentMask: Equatable, Hashable {
+    @usableFromInline var bits: UInt64 = 0
 
-    // set the bit at a specific index to true
-    public mutating func set(_ index: Int) {
-        guard index < MAX_COMPONENTS else { return }
-        bits[index] = true
+    @inlinable init() {}
+
+    @inlinable public mutating func set(_ index: Int) {
+        precondition(index >= 0 && index < 64)
+        bits |= (1 &<< index)
     }
 
-    // Resets the bit at a specific index to false
-    public mutating func reset(_ index: Int? = nil) {
-        if let index, index < MAX_COMPONENTS {
-            bits[index] = false
-        } else if index == nil {
-            bits = [Bool](repeating: false, count: MAX_COMPONENTS)
-        }
+    @inlinable public mutating func reset(_ index: Int) {
+        precondition(index >= 0 && index < 64)
+        bits &= ~(1 &<< index)
     }
 
-    // Checks if the bit at a specific index is true
-    public func test(_ index: Int) -> Bool {
-        guard index < MAX_COMPONENTS else { return false }
-        return bits[index]
+    @inlinable public mutating func resetAll() { bits = 0 }
+
+    @inlinable public func test(_ index: Int) -> Bool {
+        precondition(index >= 0 && index < 64)
+        return (bits & (1 &<< index)) != 0
     }
 
-    // Checks if this ComponentMask contains all the components in the specified `otherMask`.
-    func contains(_ otherMask: ComponentMask) -> Bool {
-        zip(bits, otherMask.bits).allSatisfy { $0 || !$1 }
+    /// self includes all bits in `other`
+    @inlinable func contains(_ other: ComponentMask) -> Bool {
+        (bits & other.bits) == other.bits
     }
+
+    @inlinable func intersects(_ other: ComponentMask) -> Bool { (bits & other.bits) != 0 }
+    @inlinable func isDisjoint(with other: ComponentMask) -> Bool { (bits & other.bits) == 0 }
+}
+
+@inlinable
+func makeMask<S: Sequence<Int>>(from componentTypes: S) -> ComponentMask {
+    var m = ComponentMask()
+    for c in componentTypes {
+        if c >= 0 && c < 64 { m.set(c) }
+    }
+    return m
 }

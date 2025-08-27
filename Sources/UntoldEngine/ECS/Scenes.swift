@@ -34,7 +34,7 @@ public struct Scene {
         }
         let newId = createEntityId(EntityIndex(UInt32.max), getEntityVersion(entityId))
         entities[Int(entityIndex)].entityId = newId
-        entities[Int(entityIndex)].mask.reset()
+        entities[Int(entityIndex)].mask.resetAll()
         entities[Int(entityIndex)].freed = true
         freeEntities.append(entityIndex)
     }
@@ -144,10 +144,13 @@ func createComponentMask(for components: [Int]) -> ComponentMask {
 
 public func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Scene) -> [EntityID] {
     let requiredMask = createComponentMask(for: componentTypes)
-    return scene.entities.filter { entity in
-        // Use bitwise AND to check if the entity has all required components
-        entity.mask.contains(requiredMask)
-    }.map(\.entityId)
+
+    var out: [EntityID] = []
+    out.reserveCapacity(64)
+    for e in scene.entities where e.mask.contains(requiredMask) {
+        out.append(e.entityId)
+    }
+    return out
 }
 
 func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> Bool {
