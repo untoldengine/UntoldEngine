@@ -508,12 +508,12 @@ enum RenderPasses {
 
                     renderEncoder.setFragmentSamplerState(subMesh.material?.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
 
-                    // set metallic
-                    renderEncoder.setFragmentTexture(
-                        subMesh.material?.metallic.texture, index: Int(modelPassMetallicTextureIndex.rawValue)
+                    // set normal
+                    var hasNormal: Bool = ((subMesh.material?.normal.texture) != nil)
+                    renderEncoder.setFragmentBytes(
+                        &hasNormal, length: MemoryLayout<Bool>.stride,
+                        index: Int(modelPassFragmentHasNormalTextureIndex.rawValue)
                     )
-
-                    renderEncoder.setFragmentSamplerState(subMesh.material?.metallic.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
 
                     var materialParameters = MaterialParametersUniform()
                     materialParameters.specular = subMesh.material!.specular
@@ -541,7 +541,7 @@ enum RenderPasses {
 
                     renderEncoder.setFragmentBytes(
                         &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
-                        index: Int(modelPassMaterialParameterIndex.rawValue)
+                        index: Int(modelPassFragmentMaterialParameterIndex.rawValue)
                     )
 
                     // set normal
