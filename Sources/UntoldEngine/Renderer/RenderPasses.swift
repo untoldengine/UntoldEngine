@@ -544,13 +544,6 @@ enum RenderPasses {
                         index: Int(modelPassFragmentMaterialParameterIndex.rawValue)
                     )
 
-                    // set normal
-                    var hasNormal: Bool = ((subMesh.material?.normal.texture) != nil)
-                    renderEncoder.setFragmentBytes(
-                        &hasNormal, length: MemoryLayout<Bool>.stride,
-                        index: Int(modelPassHasNormalTextureIndex.rawValue)
-                    )
-
                     renderEncoder.setFragmentTexture(
                         subMesh.material?.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue)
                     )
