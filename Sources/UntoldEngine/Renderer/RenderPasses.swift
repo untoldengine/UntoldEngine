@@ -235,9 +235,6 @@ enum RenderPasses {
         // send info for each entity that conforms to shadows
 
         // Create a component query for entities with both Transform and Render components
-        let transformId = getComponentId(for: WorldTransformComponent.self)
-        let renderId = getComponentId(for: RenderComponent.self)
-        let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
         // Iterate over the entities found by the component query
         for entityId in visibleEntityIds {
