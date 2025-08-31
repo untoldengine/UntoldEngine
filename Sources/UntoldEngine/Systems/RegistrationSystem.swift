@@ -20,13 +20,10 @@ public func registerComponent(entityId: EntityID, componentType: (some Component
 }
 
 public func destroyEntity(entityId: EntityID) {
-   
-    if entityId == .invalid{
+    if entityId == .invalid {
         return
     }
-    
-    Logger.log(message: "removing entity: \(entityId)")
-    
+
     // Remove any resources linked to entity
     removeEntityMesh(entityId: entityId)
     removeEntityTransforms(entityId: entityId)
@@ -36,20 +33,21 @@ public func destroyEntity(entityId: EntityID) {
     removeEntityName(entityId: entityId)
     removeEntityLight(entityId: entityId)
     scene.destroyEntity(entityId)
+
+    Logger.log(message: "removed entity: \(entityId)")
 }
 
 public func destroyAllEntities() {
     // Take a snapshot so iteration isn't affected by mutations
     // Note, we only get parents.
-    let toDestroy = getEntitiesWithLevel(level: 0).filter {
-        !hasComponent(entityId: $0, componentType: SceneCameraComponent.self)
-    }
+    let toDestroy = scene.getAllEntities()
 
     for entity in toDestroy {
         destroyEntity(entityId: entity)
     }
 
     globalEntityCounter = 0
+    visibleEntityIds.removeAll()
 }
 
 private func setEntityMeshCommon(
@@ -491,35 +489,36 @@ func removeEntityName(entityId: EntityID) {
 public func findEntity(name: String) -> EntityID? {
     reverseEntityNameMap[name]
 }
+
 /*
-var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
-var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
+ var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
+ var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
 
-public func encodeCustomComponent<T: Component & Codable>(
-    type: T.Type,
-    merge: ((inout T, T) -> Void)? = nil
-) {
-    let encKey = ObjectIdentifier(type)
-    let decKey = String(describing: type)
+ public func encodeCustomComponent<T: Component & Codable>(
+     type: T.Type,
+     merge: ((inout T, T) -> Void)? = nil
+ ) {
+     let encKey = ObjectIdentifier(type)
+     let decKey = String(describing: type)
 
-    customComponentEncoderMap[encKey] = { entityId in
-        guard let c = scene.get(component: T.self, for: entityId) else { return nil }
-        return try? JSONEncoder().encode(c)
-    }
+     customComponentEncoderMap[encKey] = { entityId in
+         guard let c = scene.get(component: T.self, for: entityId) else { return nil }
+         return try? JSONEncoder().encode(c)
+     }
 
-    customComponentDecoderMap[decKey] = { entityId, data in
-        guard let decoded = try? JSONDecoder().decode(T.self, from: data) else { return }
+     customComponentDecoderMap[decKey] = { entityId, data in
+         guard let decoded = try? JSONDecoder().decode(T.self, from: data) else { return }
 
-        if var existing = scene.assign(to: entityId, component: T.self) {
-            if let merge = merge {
-                merge(&existing, decoded)  // partial update
-            } else {
-                existing = decoded         // full replace
-            }
-        }
-    }
-}
-*/
+         if var existing = scene.assign(to: entityId, component: T.self) {
+             if let merge = merge {
+                 merge(&existing, decoded)  // partial update
+             } else {
+                 existing = decoded         // full replace
+             }
+         }
+     }
+ }
+ */
 
 var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
 var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
