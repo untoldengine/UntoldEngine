@@ -37,7 +37,12 @@ public func findGameCamera() -> EntityID {
             return entityId
         }
     }
-    return .invalid
+
+    // if scene camera was not found, then create one
+
+    let gameCamera = createEntity()
+    createGameCamera(entityId: gameCamera)
+    return gameCamera
 }
 
 func createSceneCamera(entityId: EntityID) {
@@ -51,6 +56,7 @@ func createSceneCamera(entityId: EntityID) {
 }
 
 func createGameCamera(entityId: EntityID) {
+    setEntityName(entityId: entityId, name: "Game Camera")
     registerComponent(entityId: entityId, componentType: CameraComponent.self)
 
     cameraLookAt(entityId: entityId,
@@ -58,8 +64,7 @@ func createGameCamera(entityId: EntityID) {
                  up: cameraUpDefault)
 }
 
-func resetCameraToDefaultTransform(entityId: EntityID){
-  
+func resetCameraToDefaultTransform(entityId: EntityID) {
     guard scene.get(component: CameraComponent.self, for: entityId) != nil else {
         handleError(.noActiveCamera)
         return

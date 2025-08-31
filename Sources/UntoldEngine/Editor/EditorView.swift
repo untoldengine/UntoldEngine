@@ -48,22 +48,21 @@ public struct EditorView: View {
                     SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
                     TransformManipulationToolbar(controller: editorController!, showAssetBrowser: $showAssetBrowser)
                     if showAssetBrowser {
-                        
-                            TabView {
-                                AssetBrowserView(
-                                    assets: $assets,
-                                    selectedAsset: $selectedAsset,
-                                    selectionManager: selectionManager,
-                                    editor_addEntityWithAsset: editor_addEntityWithAsset
-                                )
-                                .tabItem { Label("Assets", systemImage: "shippingbox") }
+                        TabView {
+                            AssetBrowserView(
+                                assets: $assets,
+                                selectedAsset: $selectedAsset,
+                                selectionManager: selectionManager,
+                                editor_addEntityWithAsset: editor_addEntityWithAsset
+                            )
+                            .tabItem { Label("Assets", systemImage: "shippingbox") }
 
-                                LogConsoleView()
-                                    .tabItem { Label("Console", systemImage: "terminal") }
-                            }
-                            .frame(height: 200)
-                            .clipped()
+                            LogConsoleView()
+                                .tabItem { Label("Console", systemImage: "terminal") }
                         }
+                        .frame(height: 200)
+                        .clipped()
+                    }
                 }
 
                 TabView {
@@ -122,6 +121,10 @@ public struct EditorView: View {
         let sceneCamera = findSceneCamera()
 
         resetCameraToDefaultTransform(entityId: sceneCamera)
+
+        let gameCamera = findGameCamera()
+
+        resetCameraToDefaultTransform(entityId: gameCamera)
 
         editor_entities = getAllGameEntities()
         selectionManager.selectedEntity = nil
