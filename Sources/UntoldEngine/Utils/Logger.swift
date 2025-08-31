@@ -53,13 +53,14 @@ public enum Logger {
             snapshot.forEach { sink.didLog($0) }
         }
     }
-    
+
     private static func emit(level: LogLevel,
                              message: String,
                              category: String = "General",
                              file: String = #fileID,
                              function: String = #function,
-                             line: Int = #line) {
+                             line: Int = #line)
+    {
         let event = LogEvent(level: level, message: message, file: file,
                              function: function, line: line, category: category)
 
@@ -76,12 +77,12 @@ public enum Logger {
         }
     }
 
-
     public static func log(message: String,
                            category: String = "General",
                            file: String = #fileID,
                            function: String = #function,
-                           line: Int = #line) {
+                           line: Int = #line)
+    {
         guard logLevel.rawValue >= LogLevel.info.rawValue else { return }
         print("Log: \(message)")
         emit(level: .info, message: message, category: category, file: file, function: function, line: line)
@@ -91,7 +92,8 @@ public enum Logger {
                                 category: String = "General",
                                 file: String = #fileID,
                                 function: String = #function,
-                                line: Int = #line) {
+                                line: Int = #line)
+    {
         guard logLevel.rawValue >= LogLevel.error.rawValue else { return }
         print("Error: \(message)")
         emit(level: .error, message: message, category: category, file: file, function: function, line: line)
@@ -101,7 +103,8 @@ public enum Logger {
                                   category: String = "General",
                                   file: String = #fileID,
                                   function: String = #function,
-                                  line: Int = #line) {
+                                  line: Int = #line)
+    {
         guard logLevel.rawValue >= LogLevel.warning.rawValue else { return }
         print("Warning: \(message)")
         emit(level: .warning, message: message, category: category, file: file, function: function, line: line)
@@ -111,7 +114,8 @@ public enum Logger {
                            category: String = "General",
                            file: String = #fileID,
                            function: String = #function,
-                           line: Int = #line) {
+                           line: Int = #line)
+    {
         guard logLevel.rawValue >= LogLevel.debug.rawValue else { return }
         let s = String(format: "simd_float3(%f, %f, %f)", vector.x, vector.y, vector.z)
         print(s)
@@ -122,7 +126,8 @@ public enum Logger {
                            category: String = "General",
                            file: String = #fileID,
                            function: String = #function,
-                           line: Int = #line) {
+                           line: Int = #line)
+    {
         guard logLevel.rawValue >= LogLevel.debug.rawValue else { return }
         let s = String(format: "simd_float3(%f, %f, %f)", vector.x, vector.y, vector.z)
         print(message); print(s)

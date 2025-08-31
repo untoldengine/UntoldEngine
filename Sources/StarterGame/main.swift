@@ -15,7 +15,7 @@ class GameScene {
         // 1. Register custom system
         // 2. add component to editor
         // 3. encode/decode custom component
-        
+
         registerCustomSystem(ballSystemUpdate)
         addComponent_Editor(componentOption: BallComponent_Editor)
         encodeCustomComponent(type: BallComponent.self)
@@ -25,23 +25,20 @@ class GameScene {
         encodeCustomComponent(
             type: DribblinComponent.self,
             merge: { current, decoded in
-                current.maxSpeed  = decoded.maxSpeed
+                current.maxSpeed = decoded.maxSpeed
                 current.kickSpeed = decoded.kickSpeed
                 current.direction = decoded.direction
             }
         )
-        
+
         registerCustomSystem(cameraFollowUpdate)
         addComponent_Editor(componentOption: CameraFollowComponent_Editor)
         encodeCustomComponent(type: CameraFollowComponent.self,
-                              merge: {current, decoded in
-            current.targetName = decoded.targetName
-            current.offset = decoded.offset
-        })
-       
-        
+                              merge: { current, decoded in
+                                  current.targetName = decoded.targetName
+                                  current.offset = decoded.offset
+                              })
 
-        
         /*
          //Example: Load game
 

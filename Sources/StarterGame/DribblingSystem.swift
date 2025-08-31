@@ -165,7 +165,7 @@ var DribblingComponent_Editor: ComponentOption_Editor = .init(
                  },
                  set: { entityId, newDirection in
                      setPlayerDirection(entityId: entityId, direction: newDirection)
-                 })
+                 }),
     ]),
     onAdd: { entityId in
         registerComponent(entityId: entityId, componentType: DribblinComponent.self)

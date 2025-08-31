@@ -24,11 +24,10 @@ struct ToolbarView: View {
 
     var body: some View {
         HStack {
-           
-            HStack(spacing:12){
+            HStack(spacing: 12) {
                 ToolbarButton(iconName: "clear.fill", action: onClear, tooltip: "Clear Scene")
             }
-            
+
             Spacer() // Push content to the center
 
             // Centered Buttons

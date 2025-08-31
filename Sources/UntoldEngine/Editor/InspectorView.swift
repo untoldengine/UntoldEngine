@@ -64,7 +64,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
         AnyView(
             Group {
                 if let entityId = selectedId {
-                RenderingEditorView(entityId: entityId, asset: asset, refreshView: refreshView)
+                    RenderingEditorView(entityId: entityId, asset: asset, refreshView: refreshView)
                 }
             }
         )
@@ -100,7 +100,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
         AnyView(
             Group {
                 if let entityId = selectedId {
-                   DirLightEditorView(entityId: entityId, refreshView: refreshView)
+                    DirLightEditorView(entityId: entityId, refreshView: refreshView)
                 }
             }
         )
@@ -109,7 +109,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
         AnyView(
             Group {
                 if let entityId = selectedId {
-                   PointLightEditorView(entityId: entityId, refreshView: refreshView)
+                    PointLightEditorView(entityId: entityId, refreshView: refreshView)
                 }
             }
         )
@@ -118,7 +118,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
         AnyView(
             Group {
                 if let entityId = selectedId {
-                   SpotLightEditorView(entityId: entityId, refreshView: refreshView)
+                    SpotLightEditorView(entityId: entityId, refreshView: refreshView)
                 }
             }
         )
@@ -127,7 +127,7 @@ var availableComponents_Editor: [ComponentOption_Editor] = [
         AnyView(
             Group {
                 if let entityId = selectedId {
-                   AreaLightEditorView(entityId: entityId, refreshView: refreshView)
+                    AreaLightEditorView(entityId: entityId, refreshView: refreshView)
                 }
             }
         )
@@ -372,9 +372,9 @@ func getMaterialBaseColor(entityId: EntityID) -> simd_float4 {
  let entityId: EntityID
  let asset: Asset?
  let refreshView: () -> Void
- 
+
  var body: some View{
- 
+
  }
  }
  */

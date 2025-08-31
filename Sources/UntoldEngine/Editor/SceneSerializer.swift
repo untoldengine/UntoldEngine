@@ -324,7 +324,8 @@ func serializeScene() -> SceneData {
         // Serialize every registered custom component; the closure returns nil if the entity doesn’t have it
         for (encKey, serialize) in customComponentEncoderMap {
             if let data = serialize(entityId),
-               let typeName = customComponentTypeNameById[encKey] {
+               let typeName = customComponentTypeNameById[encKey]
+            {
                 customComponents[typeName] = data
             }
         }
@@ -463,8 +464,7 @@ func deserializeScene(sceneData: SceneData) {
     if let bloomThreshold = sceneData.bloom {
         BloomThresholdParams.shared.intensity = bloomThreshold.intensity
         BloomThresholdParams.shared.threshold = bloomThreshold.threshold
-        if let enabled = bloomThreshold.enabled{
-            
+        if let enabled = bloomThreshold.enabled {
             BloomThresholdParams.shared.enabled = enabled
         }
     }
@@ -474,7 +474,7 @@ func deserializeScene(sceneData: SceneData) {
         VignetteParams.shared.radius = vignette.radius
         VignetteParams.shared.softness = vignette.softness
         VignetteParams.shared.center = vignette.center
-        if let enabled = vignette.enabled{
+        if let enabled = vignette.enabled {
             VignetteParams.shared.enabled = enabled
         }
     }
@@ -482,7 +482,7 @@ func deserializeScene(sceneData: SceneData) {
     if let chromaticAberration = sceneData.chromaticAberration {
         ChromaticAberrationParams.shared.intensity = chromaticAberration.intensity
         ChromaticAberrationParams.shared.center = chromaticAberration.center
-        if let enabled = chromaticAberration.enabled{
+        if let enabled = chromaticAberration.enabled {
             ChromaticAberrationParams.shared.enabled = enabled
         }
     }
@@ -491,7 +491,7 @@ func deserializeScene(sceneData: SceneData) {
         DepthOfFieldParams.shared.focusDistance = depthOfField.focusDistance
         DepthOfFieldParams.shared.focusRange = depthOfField.focusRange
         DepthOfFieldParams.shared.maxBlur = depthOfField.maxBlur
-        if let enabled = depthOfField.enabled{
+        if let enabled = depthOfField.enabled {
             DepthOfFieldParams.shared.enabled = enabled
         }
     }
@@ -500,7 +500,7 @@ func deserializeScene(sceneData: SceneData) {
         SSAOParams.shared.radius = ssao.radius
         SSAOParams.shared.intensity = ssao.intensity
         SSAOParams.shared.bias = ssao.bias
-        if let enabled = ssao.enabled{
+        if let enabled = ssao.enabled {
             SSAOParams.shared.enabled = enabled
         }
     }
