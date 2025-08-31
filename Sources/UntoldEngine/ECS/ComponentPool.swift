@@ -98,10 +98,10 @@ public struct ComponentMask: Equatable, Hashable {
 }
 
 @inlinable
-func makeMask(from componentTypes: some Sequence<Int>) -> ComponentMask {
+func makeMask<S: Sequence<Int>>(from componentTypes: S) -> ComponentMask {
     var m = ComponentMask()
     for c in componentTypes {
-        if c >= 0, c < 64 { m.set(c) }
+        if c >= 0 && c < 64 { m.set(c) }
     }
     return m
 }
