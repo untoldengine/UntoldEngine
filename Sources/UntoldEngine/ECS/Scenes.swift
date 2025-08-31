@@ -128,6 +128,13 @@ public struct Scene {
         }
     }
 
+    func mask(for entityId: EntityID) -> ComponentMask? {
+        let idx = getEntityIndex(entityId)
+        let e = entities[Int(idx)]
+        guard e.entityId == entityId, e.freed == false else { return nil }
+        return e.mask
+    }
+
     // data
     var componentPool: [Int: ComponentPool] = [:]
     var entities: [EntityDesc] = []
@@ -147,8 +154,13 @@ public func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Sce
 
     var out: [EntityID] = []
     out.reserveCapacity(64)
-    for e in scene.entities where e.mask.contains(requiredMask) {
-        out.append(e.entityId)
+
+    for id in scene.getAllEntities() { // already excludes freed
+        if let mask = scene.mask(for: id),
+           mask.contains(requiredMask)
+        {
+            out.append(id)
+        }
     }
     return out
 }
