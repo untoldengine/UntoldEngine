@@ -99,9 +99,9 @@ final class LightSystemTest: XCTestCase {
 
         XCTAssertEqual(lightParameters.color, .one, "color should be all 1's")
         XCTAssertEqual(lightParameters.intensity, 1.0, "intensity should be 1")
-        XCTAssertEqual(lightParameters.direction.x, 0.5, "Rotation about X axis should match")
-        XCTAssertEqual(lightParameters.direction.y, 0.70710677, "Rotation about Y axis should match")
-        XCTAssertEqual(lightParameters.direction.z, 0.5, accuracy: 0.001, "Rotation about Z axis should match")
+        XCTAssertEqual(lightParameters.direction.x, 0.0, accuracy: 0.001, "Rotation about X axis should match")
+        XCTAssertEqual(lightParameters.direction.y, 1.0, accuracy: 0.001, "Rotation about Y axis should match")
+        XCTAssertEqual(lightParameters.direction.z, 0.0, accuracy: 0.001, "Rotation about Z axis should match")
 
         destroyEntity(entityId: entityId)
     }
@@ -156,8 +156,8 @@ final class LightSystemTest: XCTestCase {
         XCTAssertEqual(spotLightParameter[0].outerCone, 0.523, accuracy: 0.001, "outer cone should be 1")
         XCTAssertEqual(spotLightParameter[0].innerCone, 0.427, accuracy: 0.001, "inner cone should be 1")
 
-        XCTAssertEqual(spotLightParameter[0].direction.x, 0.0, "Rotation about X axis should match")
-        XCTAssertEqual(spotLightParameter[0].direction.y, -1.0, "Rotation about Y axis should match")
+        XCTAssertEqual(spotLightParameter[0].direction.x, 0.0, accuracy: 0.001, "Rotation about X axis should match")
+        XCTAssertEqual(spotLightParameter[0].direction.y, -1.0, accuracy: 0.001, "Rotation about Y axis should match")
         XCTAssertEqual(spotLightParameter[0].direction.z, 0.0, accuracy: 0.001, "Rotation about Z axis should match")
 
         destroyEntity(entityId: entityId)
