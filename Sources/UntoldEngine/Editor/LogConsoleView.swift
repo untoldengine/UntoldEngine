@@ -5,10 +5,9 @@
 //  Created by Harold Serrano on 8/10/25.
 //
 
-import Foundation
 import Combine
+import Foundation
 import SwiftUI
-
 
 public final class LogStore: ObservableObject, LoggerSink {
     public static let shared = LogStore()
@@ -21,15 +20,13 @@ public final class LogStore: ObservableObject, LoggerSink {
 
     public func didLog(_ event: LogEvent) {
         DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
+            guard let self else { return }
             self.entries.append(event)
             if self.entries.count > self.maxEntries {
                 self.entries.removeFirst(self.entries.count - self.maxEntries)
             }
         }
     }
-
-
 }
 
 struct LogConsoleView: View {
@@ -40,9 +37,9 @@ struct LogConsoleView: View {
 
     private func passes(_ e: LogEvent) -> Bool {
         (selectedLevel == nil || e.level == selectedLevel!) &&
-        (search.isEmpty ||
-         e.message.localizedCaseInsensitiveContains(search) ||
-         e.category.localizedCaseInsensitiveContains(search))
+            (search.isEmpty ||
+                e.message.localizedCaseInsensitiveContains(search) ||
+                e.category.localizedCaseInsensitiveContains(search))
     }
 
     var body: some View {
@@ -64,27 +61,27 @@ struct LogConsoleView: View {
 
                 Toggle("Auto‑scroll", isOn: $autoScroll)
                     .toggleStyle(.checkbox)
-/* //Disabling Buttons for now
-                Spacer()
+                /* //Disabling Buttons for now
+                                Spacer()
 
-                Button("Copy") {
-                    let text = store.entries.filter(passes).map {
-                        "[\($0.level)] \($0.message)"
-                    }.joined(separator: "\n")
-                    #if os(macOS)
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(text, forType: .string)
-                    #endif
-                }
+                                Button("Copy") {
+                                    let text = store.entries.filter(passes).map {
+                                        "[\($0.level)] \($0.message)"
+                                    }.joined(separator: "\n")
+                                    #if os(macOS)
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(text, forType: .string)
+                                    #endif
+                                }
 
-                Button("Export") {
-                    //exportLog(store.entries.filter(passes))
-                }
+                                Button("Export") {
+                                    //exportLog(store.entries.filter(passes))
+                                }
 
-                Button("Clear") {
-                    // optional: expose a clear API on Logger/LogStore if you want
-                }
- */
+                                Button("Clear") {
+                                    // optional: expose a clear API on Logger/LogStore if you want
+                                }
+                 */
             }
             .padding(.horizontal, 8)
 
@@ -125,6 +122,7 @@ struct LogConsoleView: View {
         f.dateFormat = "HH:mm:ss.SSS"
         return f.string(from: d)
     }
+
     private func tag(for level: LogLevel) -> String {
         switch level {
         case .error: return "ERROR"
@@ -135,6 +133,7 @@ struct LogConsoleView: View {
         case .none: return ""
         }
     }
+
     private func badgeColor(for level: LogLevel) -> Color {
         switch level {
         case .error: return .red
@@ -158,7 +157,7 @@ private func exportLog(_ entries: [LogEvent]) {
     do {
         try text.data(using: .utf8)?.write(to: url)
         #if os(macOS)
-        NSWorkspace.shared.activateFileViewerSelecting([url])
+            NSWorkspace.shared.activateFileViewerSelecting([url])
         #endif
     } catch {
         Logger.logError(message: "Failed to export log: \(error)", category: "Logger")

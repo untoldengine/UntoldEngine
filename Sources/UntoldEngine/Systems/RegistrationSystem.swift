@@ -541,7 +541,7 @@ public func encodeCustomComponent<T: Component & Codable>(
     customComponentDecoderMap[decKey] = { entityId, data in
         guard let decoded = try? JSONDecoder().decode(T.self, from: data) else { return }
         if var existing = scene.assign(to: entityId, component: T.self) {
-            if let merge = merge { merge(&existing, decoded) } else { existing = decoded }
+            if let merge { merge(&existing, decoded) } else { existing = decoded }
         }
         // (Optional) If you still want editor visibility auto-restored:
         // EditorComponentsState.shared.components[entityId, default: [:]][encKey] = <your editor metadata>

@@ -9,6 +9,7 @@ import CShaderTypes
 import Foundation
 import MetalKit
 import UniformTypeIdentifiers
+
 struct ShaderPipelineConfig {
     let pipelineName: String
     let vertexFunctionName: String
@@ -135,7 +136,6 @@ func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: 
 func updateShadersAndPipeline() {
     if let library = loadMetalLibraryFromUserSelection() {
         reloadPipeline(named: "model", with: library, pipe: &modelPipeline)
-        
     }
 }
 
@@ -143,7 +143,7 @@ func selectMetalLibraryFile() -> URL? {
     let openPanel = NSOpenPanel()
     openPanel.prompt = "Select .metallib file"
     openPanel.allowedContentTypes = [
-        UTType(filenameExtension: "metallib")!
+        UTType(filenameExtension: "metallib")!,
     ]
     openPanel.allowsMultipleSelection = false
     openPanel.canChooseDirectories = false

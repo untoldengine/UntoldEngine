@@ -386,7 +386,7 @@ struct AssetBrowserView: View {
     }
 
     @ViewBuilder
-    private func folderContentsView(for folder: URL, selectionManager: SelectionManager) -> some View {
+    private func folderContentsView(for folder: URL, selectionManager _: SelectionManager) -> some View {
         if let contents = try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
             let items = contents.compactMap { item -> Asset? in
                 var isDir: ObjCBool = false

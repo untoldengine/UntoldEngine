@@ -17,11 +17,11 @@ public enum EditorField {
     case vector3(label: String,
                  get: (EntityID) -> SIMD3<Float>,
                  set: (EntityID, SIMD3<Float>) -> Void)
-    
+
     case text(label: String,
-                  placeholder: String?,
-                  get: (EntityID) -> String,
-                  set: (EntityID, String) -> Void)
+              placeholder: String?,
+              get: (EntityID) -> String,
+              set: (EntityID, String) -> Void)
 }
 
 // 2) Render fields into controls, wiring refreshView automatically
@@ -51,22 +51,20 @@ public struct ComponentForm: View {
                             set: { newValue in set(entityId, newValue); refresh() }
                         )
                     )
-                    
+
                 case let .text(label, placeholder, get, set):
-                                    HStack {
-                                        Text(label)
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                        TextField(placeholder ?? "",
-                                                  text: Binding(
-                                                    get: { get(entityId) },
-                                                    set: { newValue in set(entityId, newValue); refresh() }
-                                                  )
-                                        )
-                                        .textFieldStyle(.roundedBorder)
-                                    }
+                    HStack {
+                        Text(label)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextField(placeholder ?? "",
+                                  text: Binding(
+                                      get: { get(entityId) },
+                                      set: { newValue in set(entityId, newValue); refresh() }
+                                  ))
+                                  .textFieldStyle(.roundedBorder)
+                    }
                 }
-                
             }
         }
     }

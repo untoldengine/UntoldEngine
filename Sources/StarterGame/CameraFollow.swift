@@ -114,23 +114,23 @@ var CameraFollowComponent_Editor: ComponentOption_Editor = .init(
     name: "Camera Follow",
     type: CameraFollowComponent.self,
     view: makeEditorView(fields: [
-        
         .text(label: "Target Name",
               placeholder: "Entity name",
-              get: {entityId in
-                    getTargetName(entityId: entityId) ?? "None"},
+              get: { entityId in
+                  getTargetName(entityId: entityId) ?? "None"
+              },
               set: { entityId, targetName in
-                    setTargetName(entityId: entityId, name: targetName)
+                  setTargetName(entityId: entityId, name: targetName)
               }),
-        
+
         .vector3(label: "Offset",
                  get: { entityId in
                      getOffsetTarget(entityId: entityId)
                  },
                  set: { entityId, newOffset in
                      setOffsetTarget(entityId: entityId, offset: newOffset)
-                 })
-    
+                 }),
+
     ]),
     onAdd: { entityId in
         registerComponent(entityId: entityId, componentType: CameraFollowComponent.self)

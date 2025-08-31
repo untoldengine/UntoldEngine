@@ -100,14 +100,15 @@ var BallComponent_Editor: ComponentOption_Editor = .init(
     name: "Ball Component",
     type: BallComponent.self,
     view: makeEditorView(fields: [
-    .text(label: "Ball Component",
+        .text(label: "Ball Component",
               placeholder: "Entity name",
-              get: {entityId in
-                    getEntityName(entityId: entityId) ?? "None"},
+              get: { entityId in
+                  getEntityName(entityId: entityId) ?? "None"
+              },
               set: { entityId, targetName in
-                    setEntityName(entityId: entityId, name: targetName)
-              })
-        
+                  setEntityName(entityId: entityId, name: targetName)
+              }),
+
     ]),
     onAdd: { entityId in
         registerComponent(entityId: entityId, componentType: BallComponent.self)
