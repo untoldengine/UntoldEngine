@@ -339,3 +339,6 @@ public struct EntityAABB {
 
 struct VisibleEntity { var index: UInt32; var version: UInt32 }
 var visibleEntityIds: [EntityID] = []
+
+var needsFinalizeDestroys: Bool = false
+var hasPendingDestroys: Bool = false

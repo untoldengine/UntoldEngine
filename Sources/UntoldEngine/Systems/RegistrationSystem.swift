@@ -24,30 +24,47 @@ public func destroyEntity(entityId: EntityID) {
         return
     }
 
-    // Remove any resources linked to entity
-    removeEntityMesh(entityId: entityId)
-    removeEntityTransforms(entityId: entityId)
-    removeEntityAnimations(entityId: entityId)
-    removeEntityKinetics(entityId: entityId)
-    removeEntityScenegraph(entityId: entityId)
-    removeEntityName(entityId: entityId)
-    removeEntityLight(entityId: entityId)
-    scene.destroyEntity(entityId)
+    hasPendingDestroys = true
+    scene.markDestroy(entityId)
+    
+    // if entity has children, then mark it to destroy
+    
+    let childrenId = getEntityChildren(parentId: entityId)
+    for childId in childrenId {
+        scene.markDestroy(childId)
+    }
 
-    Logger.log(message: "removed entity: \(entityId)")
 }
 
 public func destroyAllEntities() {
-    // Take a snapshot so iteration isn't affected by mutations
-    // Note, we only get parents.
     let toDestroy = scene.getAllEntities()
 
     for entity in toDestroy {
         destroyEntity(entityId: entity)
     }
 
-    globalEntityCounter = 0
+}
+
+func finalizePendingDestroys(){
+   
     visibleEntityIds.removeAll()
+    //clear any other systems from the entities
+    
+    // Gather marked entities from scene
+    let pending: [EntityID] = scene.entities.enumerated().compactMap{ (i,e) in (e.pendingDestroy && !e.freed) ? e.entityId : nil}
+    
+    // Clean up each entity
+    for entityId in pending{
+        removeEntityMesh(entityId: entityId)
+        removeEntityTransforms(entityId: entityId)
+        removeEntityAnimations(entityId: entityId)
+        removeEntityKinetics(entityId: entityId)
+        removeEntityScenegraph(entityId: entityId)
+        removeEntityName(entityId: entityId)
+        removeEntityLight(entityId: entityId)
+    }
+    
+    scene.finalizePendingDestroys()
 }
 
 private func setEntityMeshCommon(

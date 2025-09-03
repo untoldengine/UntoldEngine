@@ -188,13 +188,6 @@ public struct EditorView: View {
             return
         }
 
-        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) {
-            let children = getEntityChildren(parentId: entityId)
-            for childId in children {
-                destroyEntity(entityId: childId)
-            }
-        }
-
         destroyEntity(entityId: entityId)
 
         editor_entities = getAllGameEntities()

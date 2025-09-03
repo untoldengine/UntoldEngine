@@ -43,6 +43,13 @@ func updateRenderingSystem(in view: MTKView) {
             commandBuffer.present(drawable)
         }
 
+        commandBuffer.addCompletedHandler{ _ in
+
+            DispatchQueue.main.async{
+                needsFinalizeDestroys = true
+            }
+        }
+        
         commandBuffer.commit()
     }
 }
