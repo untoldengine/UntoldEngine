@@ -25,10 +25,10 @@ final class ECSTests: XCTestCase {
 
     func testCreateEntityReusesFreedEntityIndex() throws {
         // Create and destroy an entity
-        
+
         let entityId = createEntity()
         destroyEntity(entityId: entityId)
-        
+
         scene.finalizePendingDestroys()
 
         // Create a new entity and verify that it reuses the freed index
@@ -47,7 +47,7 @@ final class ECSTests: XCTestCase {
         // Destroy the entity
         destroyEntity(entityId: entityId)
         scene.finalizePendingDestroys()
-        
+
         // Verify that the entity is marked as freed
         XCTAssertTrue(scene.entities[Int(entityIndex)].freed, "Entity should be marked as freed")
         XCTAssertEqual(scene.freeEntities.last, entityIndex, "Freed entity index should be added to freeEntities")
