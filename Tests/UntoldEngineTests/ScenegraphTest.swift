@@ -186,7 +186,7 @@ final class SceneGraphTests: XCTestCase {
         let parentScenegraph = scene.get(component: ScenegraphComponent.self, for: rootEntity)
 
         removeEntityScenegraph(entityId: childEntity)
-
+        scene.finalizePendingDestroys()
         XCTAssertEqual(parentScenegraph?.children.count, 0, "Children count should be zero")
 
         XCTAssertFalse(hasComponent(entityId: childEntity, componentType: ScenegraphComponent.self))

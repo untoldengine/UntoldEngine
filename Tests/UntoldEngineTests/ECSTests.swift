@@ -25,13 +25,17 @@ final class ECSTests: XCTestCase {
 
     func testCreateEntityReusesFreedEntityIndex() throws {
         // Create and destroy an entity
+        
         let entityId = createEntity()
         destroyEntity(entityId: entityId)
+        
+        scene.finalizePendingDestroys()
 
         // Create a new entity and verify that it reuses the freed index
+        let freedCountBefore = scene.freeEntities.count
         let newEntityId = createEntity()
         let newIndex = getEntityIndex(newEntityId)
-        XCTAssertEqual(scene.freeEntities.last, nil, "Free entities should be empty after reuse")
+        XCTAssertEqual(scene.freeEntities.count, freedCountBefore - 1, "Free entities should be empty after reuse")
         XCTAssertEqual(newIndex, getEntityIndex(entityId), "Entity index should be reused")
     }
 
@@ -42,26 +46,27 @@ final class ECSTests: XCTestCase {
 
         // Destroy the entity
         destroyEntity(entityId: entityId)
-
+        scene.finalizePendingDestroys()
+        
         // Verify that the entity is marked as freed
         XCTAssertTrue(scene.entities[Int(entityIndex)].freed, "Entity should be marked as freed")
         XCTAssertEqual(scene.freeEntities.last, entityIndex, "Freed entity index should be added to freeEntities")
     }
 
-//    func testDestroyEntityIncrementsEntityIDVersion() throws {
-//        // Create an entity
-//        let entityId = createEntity()
-//        let entityIndex = getEntityIndex(entityId)
-//        let initialVersion = getEntityVersion(entityId)
-//
-//        // Destroy the entity
-//        destroyEntity(entityId: entityId)
-//
-//        // Verify that the entity ID version is incremented
-//        let newEntityId = scene.entities[Int(entityIndex)].entityId
-//        let newVersion = getEntityVersion(newEntityId)
-//        XCTAssertEqual(newVersion, initialVersion + 1, "Entity version should be incremented")
-//    }
+    func testDestroyEntityIncrementsEntityIDVersion() throws {
+        // Create an entity
+        let entityId = createEntity()
+        let entityIndex = getEntityIndex(entityId)
+        let initialVersion = getEntityVersion(entityId)
+
+        // Destroy the entity
+        destroyEntity(entityId: entityId)
+        scene.finalizePendingDestroys()
+        // Verify that the entity ID version is incremented
+        let newEntityId = scene.entities[Int(entityIndex)].entityId
+        let newVersion = getEntityVersion(newEntityId)
+        XCTAssertEqual(newVersion, initialVersion + 1, "Entity version should be incremented")
+    }
 
     func testHasComponent() {
         let entityId = createEntity()
