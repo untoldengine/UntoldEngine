@@ -1,0 +1,11 @@
+repos:
+  - repo: local
+    hooks:
+      - id: run-engine-tests
+        name: Run Engine Tests Before Commit
+        entry: bash
+        language: system
+        args: ["-c", "make test"]
+        pass_filenames: false
+
+
