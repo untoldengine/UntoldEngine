@@ -16,50 +16,51 @@ public struct EntityDesc {
 }
 
 public struct Scene {
-    
-    func exists(_ id: EntityID) -> Bool{
+    func exists(_ id: EntityID) -> Bool {
         let idx = getEntityIndex(id)
-        guard idx < entities.count else {return false}
+        guard idx < entities.count else { return false }
         let e = entities[Int(idx)]
         return e.entityId == id && !e.freed && !e.pendingDestroy
     }
-    
+
     public mutating func remove<T: Component>(component _: T.Type, from entityId: EntityID) {
         let entityIndex = getEntityIndex(entityId)
         let e = entities[Int(entityIndex)]
-        
+
         guard e.entityId == entityId, !e.freed else {
             handleError(.entityMissing, entityId)
             return
-        }   
-        
+        }
+
         let componentId = getComponentId(for: T.self)
         entities[Int(entityIndex)].mask.reset(componentId)
     }
 
     // Phase A: mark entity for destroy
-    public mutating func markDestroy(_ entityId: EntityID){
+    public mutating func markDestroy(_ entityId: EntityID) {
         let idx = getEntityIndex(entityId)
-        guard entities[Int(idx)].entityId == entityId, !entities[Int(idx)].freed else{
+        guard entities[Int(idx)].entityId == entityId, !entities[Int(idx)].freed else {
             return
         }
         entities[Int(idx)].pendingDestroy = true
     }
-    
-    public mutating func markDestroyAll(){
-        for e in getAllEntities() {markDestroy(e)}
+
+    public mutating func markDestroyAll() {
+        for e in getAllEntities() {
+            markDestroy(e)
+        }
     }
-    
+
     // Phase B: Finalizze (call one per frame)
-    public mutating func finalizePendingDestroys(){
-        for i in entities.indices{
-            if entities[i].pendingDestroy, !entities[i].freed{
+    public mutating func finalizePendingDestroys() {
+        for i in entities.indices {
+            if entities[i].pendingDestroy, !entities[i].freed {
                 destroyEntityFinalize(at: i)
             }
         }
     }
-    
-    private mutating func destroyEntityFinalize(at entityIndexInt: Int){
+
+    private mutating func destroyEntityFinalize(at entityIndexInt: Int) {
         let oldId = entities[entityIndexInt].entityId
         let idx = getEntityIndex(oldId)
         let newVersion = getEntityVersion(oldId) &+ 1
@@ -70,7 +71,7 @@ public struct Scene {
         entities[entityIndexInt].freed = true
         freeEntities.append(idx)
     }
-    
+
     public mutating func newEntity() -> EntityID {
         if let newIndex = freeEntities.popLast() {
             let newId = createEntityId(newIndex, getEntityVersion(entities[Int(newIndex)].entityId))
@@ -137,11 +138,10 @@ public struct Scene {
             handleError(.entityMissing, entityId)
             return nil
         }
-        
+
         guard e.mask.test(componentId) else {
             return nil
         }
-        
 
         // Retrieve the specific component pool
         guard let pool = componentPool[componentId] else {
@@ -166,7 +166,7 @@ public struct Scene {
     func mask(for entityId: EntityID) -> ComponentMask? {
         let idx = getEntityIndex(entityId)
         let e = entities[Int(idx)]
-        guard e.entityId == entityId, !e.freed, !e.pendingDestroy  else { return nil }
+        guard e.entityId == entityId, !e.freed, !e.pendingDestroy else { return nil }
         return e.mask
     }
 

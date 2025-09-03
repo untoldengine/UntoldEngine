@@ -26,14 +26,13 @@ public func destroyEntity(entityId: EntityID) {
 
     hasPendingDestroys = true
     scene.markDestroy(entityId)
-    
+
     // if entity has children, then mark it to destroy
-    
+
     let childrenId = getEntityChildren(parentId: entityId)
     for childId in childrenId {
         scene.markDestroy(childId)
     }
-
 }
 
 public func destroyAllEntities() {
@@ -42,19 +41,17 @@ public func destroyAllEntities() {
     for entity in toDestroy {
         destroyEntity(entityId: entity)
     }
-
 }
 
-func finalizePendingDestroys(){
-   
+func finalizePendingDestroys() {
     visibleEntityIds.removeAll()
-    //clear any other systems from the entities
-    
+    // clear any other systems from the entities
+
     // Gather marked entities from scene
-    let pending: [EntityID] = scene.entities.enumerated().compactMap{ (i,e) in (e.pendingDestroy && !e.freed) ? e.entityId : nil}
-    
+    let pending: [EntityID] = scene.entities.enumerated().compactMap { _, e in (e.pendingDestroy && !e.freed) ? e.entityId : nil }
+
     // Clean up each entity
-    for entityId in pending{
+    for entityId in pending {
         removeEntityMesh(entityId: entityId)
         removeEntityTransforms(entityId: entityId)
         removeEntityAnimations(entityId: entityId)
@@ -63,7 +60,7 @@ func finalizePendingDestroys(){
         removeEntityName(entityId: entityId)
         removeEntityLight(entityId: entityId)
     }
-    
+
     scene.finalizePendingDestroys()
 }
 
@@ -558,7 +555,7 @@ public func encodeCustomComponent<T: Component & Codable>(
     customComponentDecoderMap[decKey] = { entityId, data in
         guard let decoded = try? JSONDecoder().decode(T.self, from: data) else { return }
         if var existing = scene.assign(to: entityId, component: T.self) {
-            if let merge = merge { merge(&existing, decoded) } else { existing = decoded }
+            if let merge { merge(&existing, decoded) } else { existing = decoded }
         }
         // (Optional) If you still want editor visibility auto-restored:
         // EditorComponentsState.shared.components[entityId, default: [:]][encKey] = <your editor metadata>

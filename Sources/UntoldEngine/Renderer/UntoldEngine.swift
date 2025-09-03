@@ -156,18 +156,15 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     public func draw(in view: MTKView) {
-        
-        if needsFinalizeDestroys{
-            
+        if needsFinalizeDestroys {
             needsFinalizeDestroys = false
-            
-            if hasPendingDestroys{
+
+            if hasPendingDestroys {
                 finalizePendingDestroys()
                 hasPendingDestroys = false
             }
-            
         }
-        
+
         if getMainCamera() == .invalid {
             handleError(.noGameCamera)
             return
