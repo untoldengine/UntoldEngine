@@ -108,7 +108,7 @@ public struct TextInputVectorView: View {
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .frame(width: 60)
                     .focused($focusedField, equals: index)
-                    .onChange(of: value[index]) { newValue in
+                    .onChange(of: value[index]) { _, newValue in
                         tempValues[index] = String(newValue) // Update when entity changes
                     }
                     .onSubmit {
@@ -151,7 +151,7 @@ public struct TextInputNumberView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .frame(width: 60)
                 .focused($focusedField, equals: 1)
-                .onChange(of: value) { newValue in
+                .onChange(of: value) { _, newValue in
                     tempValues = String(newValue) // Update when entity changes
                 }
                 .onSubmit {

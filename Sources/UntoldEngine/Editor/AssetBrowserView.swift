@@ -210,7 +210,7 @@ struct AssetBrowserView: View {
         }
         .frame(maxHeight: 200)
         .onAppear(perform: loadAssets)
-        .onChange(of: editorBaseAssetPath.basePath) { _ in
+        .onChange(of: editorBaseAssetPath.basePath) {
             loadAssets()
         }
     }

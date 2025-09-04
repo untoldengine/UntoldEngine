@@ -72,7 +72,7 @@ struct EnvironmentView: View {
                 }
                 .toggleStyle(SwitchToggleStyle())
                 .scaleEffect(0.85) // Make toggle smaller
-                .onChange(of: enableApplyIBL) { newValue in
+                .onChange(of: enableApplyIBL) { _, newValue in
                     applyIBL = newValue
                 }
 
@@ -82,7 +82,7 @@ struct EnvironmentView: View {
                 }
                 .toggleStyle(SwitchToggleStyle())
                 .scaleEffect(0.85)
-                .onChange(of: enableRenderEnvironment) { newValue in
+                .onChange(of: enableRenderEnvironment) { _, newValue in
                     renderEnvironment = newValue
                 }
             }
