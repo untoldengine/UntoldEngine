@@ -10,6 +10,7 @@ import CoreGraphics
 import Foundation
 import MetalKit
 import simd
+import UniformTypeIdentifiers
 
 enum LoadError: Error {
     case urlCreationFailed(String)
@@ -363,7 +364,7 @@ public func depthTextureToCGImage(texture: MTLTexture) -> CGImage? {
 
 public func saveCGImageToDisk(_ image: CGImage, fileName: String, directory: URL = FileManager.default.temporaryDirectory) {
     let url = directory.appendingPathComponent(fileName).appendingPathExtension("png")
-    guard let destination = CGImageDestinationCreateWithURL(url as CFURL, kUTTypePNG, 1, nil) else {
+    guard let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil) else {
         print("Failed to create image destination")
         return
     }
