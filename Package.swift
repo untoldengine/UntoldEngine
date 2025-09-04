@@ -45,7 +45,6 @@ let package = Package(
                 .process("UntoldEngineKernels/UntoldEngineKernels.air"),
                 .process("UntoldEngineKernels/UntoldEngineKernels.metal"),
                 .process("Resources/Models"),
-                .process("Resources/Animations"),
                 .process("Resources/HDR"),
                 .process("Resources/ReferenceImages"),
                 .process("Resources/textures"),
