@@ -101,11 +101,11 @@ func buildFrustum(from viewProj: simd_float4x4) -> Frustum {
         return SIMD3(p.x, p.y, p.z) / p.w
     }
 
-    let zn: Float = 0, zf: Float = 1 // change to -1/1 if using OpenGL-style depth
+    let zn: Float = 0, zf: Float = 1 // Metal depth goes from 0 to 1.
     let ntl = unproject([-1, 1, zn]), ntr = unproject([1, 1, zn])
     let nbl = unproject([-1, -1, zn]), nbr = unproject([1, -1, zn])
     let ftl = unproject([-1, 1, zf]), ftr = unproject([1, 1, zf])
-    let fbl = unproject([-1, -1, zf]), fbr = unproject([1, -1, zf])
+    let _ = unproject([-1, -1, zf]), fbr = unproject([1, -1, zf])
 
     func plane(_ a: simd_float3, _ b: simd_float3, _ c: simd_float3) -> Plane {
         let n = normalize(cross(b - a, c - a)) // CCW seen from inside → inward normals
