@@ -250,8 +250,6 @@ final class SteeringSystemTests: XCTestCase {
 
         let targetPosition = simd_float3(10.0, 0.0, 0.0)
 
-        let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
-
         let deltaTime: Float = 0.01
 
         var t: Float = 0.0
@@ -285,8 +283,6 @@ final class SteeringSystemTests: XCTestCase {
         clearVelocity(entityId: entityId)
 
         let targetPosition = simd_float3(10.0, 0.0, 0.0)
-
-        let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
 
         let deltaTime: Float = 0.01
 

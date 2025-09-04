@@ -85,7 +85,7 @@ final class LightSystemTest: XCTestCase {
 
         createDirLight(entityId: entityId)
 
-        guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        guard scene.get(component: LightComponent.self, for: entityId) != nil else {
             handleError(.noLightComponent, entityId)
             return
         }
@@ -111,7 +111,7 @@ final class LightSystemTest: XCTestCase {
 
         createPointLight(entityId: entityId)
 
-        guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        guard scene.get(component: LightComponent.self, for: entityId) != nil else {
             handleError(.noLightComponent, entityId)
             return
         }
@@ -137,7 +137,7 @@ final class LightSystemTest: XCTestCase {
 
         createSpotLight(entityId: entityId)
 
-        guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+        guard scene.get(component: LightComponent.self, for: entityId) != nil else {
             handleError(.noLightComponent, entityId)
             return
         }
