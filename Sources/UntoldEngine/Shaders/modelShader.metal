@@ -14,10 +14,9 @@ using namespace metal;
 
 vertex VertexOutModel vertexModelShader(
     VertexInModel in [[stage_in]],
-    //constant simd_float4x4 &lightOrthoView [[buffer(modelPassLightOrthoViewMatrixIndex)]],
     constant Uniforms &uniforms [[buffer(modelPassUniformIndex)]],
     constant bool &hasArmature [[buffer(modelPassHasArmature)]],
-    device simd_float4x4 *jointMatrices [[buffer(modelPassJointTransformIndex)]]
+    const device simd_float4x4 *jointMatrices [[buffer(modelPassJointTransformIndex)]]
 ) {
     VertexOutModel out;
 
