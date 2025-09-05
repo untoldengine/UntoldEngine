@@ -16,7 +16,7 @@ The **Scene Graph** shows all the entities in your scene in a hierarchical view.
 
 ## Inspector
 
-![Inspector](../images/engine-scenegraph.png)
+![Inspector](../images/engine-inspector.png)
 
 The **Inspector** lets you configure properties of the selected entity. Adjust position, rotation, and scale, or fine-tune camera settings and add components. Think of it as the control panel for whatever you’re working on.
 
@@ -41,9 +41,14 @@ Assign meshes and materials through the **Inspector**. You can drop in textures 
 ## Lighting & Environment
 
 ![Lighting](../images/engine-lights.png)  
-![HDR](../images/engine-hdr.png)
 
-The **Lighting and Environment panels** give you control over your scene’s mood. Add directional lights, adjust intensities, and enable **Image-Based Lighting (IBL)** for realistic reflections and ambient light.
+The **Lighting panel** give you control over your scene’s mood. Add directional, point, spotlight and area lights, adjust intensities. 
+
+## Environment
+
+The **Environment panel** enable **Image-Based Lighting (IBL)** for realistic reflections and ambient light.
+
+![HDR](../images/engine-hdr.png)
 
 ---
 
