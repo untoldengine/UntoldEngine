@@ -24,9 +24,9 @@ open Package.swift
 
 4. Click on Run
 
-You should see models being rendered.
+You should see the editor show up.
 
-![gamesceneimage](../images/gamescene1.png)
+![gamesceneimage](../images/engine-editor-startup.png)
 
 ### Controls
 
@@ -41,13 +41,11 @@ In **Edit Mode**, you can navigate the scene and adjust the environment with eas
   - Use the **Q** and **E** keys to move vertically (up and down).
 - **Zoom**: Pinch to zoom in or out for a closer or wider view.
 
+## Editor & Workflow
 
+The Editor is now the primary way to initialize and manage entities.  
 
-#### **Play Mode**
-In **Play Mode**, the scene comes to life! You will experience:
+- [Editor Overview](docs/EditorOverview.md): Walkthrough of Scene Graph, Inspector, Gizmos, Materials, Lighting, Post-Processing, Asset Browser, and Console.  
+- [How to Import Assets](docs/ImportAssets.md): Learn how to set asset paths and import models, materials, and animations.  
 
-- Animated characters performing actions.
-- Physics simulations running dynamically.
-
-Toggle between Edit Mode and Play Mode with the **P** key to seamlessly explore or interact with the scene.
-
+⚠️ **Important**: Entities should be created and configured in the Editor. Code is used for gameplay logic only.  
