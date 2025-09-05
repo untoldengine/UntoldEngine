@@ -93,26 +93,24 @@ To begin using the Untold Engine, you’ll need:
 - An Apple computer.
 - The latest version of Xcode, which you can download from the App Store.
 
-### Running the Untold Engine Standalone (For Contributors & Engine Developers)
-If you want to explore, modify, or contribute to the engine, you can run it independently with its built-in demo features. Follow the step-by-step guide in [Running the Untold Engine](docs/Installation.md).
+### Installation
+Follow the step-by-step guide to [clone and install the Untold Engine](docs/Installation.md)
 
-### Integrating the Untold Engine into Your Game Project (For Game Developers)
-To use the Untold Engine in your own game, you must add it as a Swift Package Dependency in your project. Follow the step-by-step guide in [Create a Mac OS Game](docs/CreateMacOSGame.md).
+### Demo Game - Jump right in
+Want to see the Untold Engine in action with zero setup? The **Demo Game** is for you! It’s a simple, ready-to-run soccer dribbling game — perfect for testing the engine and getting a feel for how it works. Follow the step-by-step guide to run the [small demo](docs/demogamesteps.md)
 
-### Choose your starting path
+### Starter Game - Experiment and Learn
+If you want to tinker and get hands-on, the **Starter Game** is your playground. It’s a minimal setup that gives you just enough to start experimenting, importing assets, and building your own mechanics. Follow the step-by-step guide to run the [starter game](docs/startergamesteps.md)
 
-I’ve designed three different ways for you to [Get Started](docs/Onboarding.md) with the Untold Engine. Whether you just want to explore or are ready to make your own game.
 
-### Video Tutorials
+### Editor & Workflow
 
-I have uploaded video tutorials to help you get started with the Untold Engine. Enjoy
+The Editor is now the primary way to initialize and manage entities.  
 
-1. [How to Install the Untold Engine: Quick Start Guide](https://youtu.be/tAAOzIMQD_Q)
-2. [Getting Started with the Untold Engine: A Simple Beginner's Guide](https://youtu.be/jzl56O06ulc)
-3. [Untold Engine Onboarding: The Best Learning Path for Beginners](https://youtu.be/h6OgCbM3V1Y)
-4. [Rendering with the Untold Engine - A Beginner’s Guide](https://youtu.be/kj6i6btb9c0)
-5. [Animating in  the Untold Engine - A Beginner’s Guide](https://youtu.be/Du23BsQmwO8)
-6. [Moving Characters in the Untold Engine: A Beginner's Guide](https://youtu.be/biScvPvccI4)
+- [Editor Overview](docs/EditorOverview.md): Walkthrough of Scene Graph, Inspector, Gizmos, Materials, Lighting, Post-Processing, Asset Browser, and Console.  
+- [How to Import Assets](docs/ImportAssets.md): Learn how to set asset paths and import models, materials, and animations.  
+
+⚠️ **Important**: Entities should be created and configured in the Editor. Code is used for gameplay logic only.  
 
 ---
 
