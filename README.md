@@ -51,6 +51,8 @@
 
 The Untold Engine is an open-source 3D game engine under active development, designed for macOS and iOS platforms. Written in Swift and powered by Metal, its goal is to simplify game creation with a clean, intuitive API. While the engine already supports many core systems like rendering, physics, and animation, there’s still much to build and improve.
 
+Click on image to play video:
+
 [![Watch the video](images/enginethumbnail.jpg)](https://vimeo.com/1116239409?share=copy#t=0)
 
 
