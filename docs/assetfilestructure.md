@@ -44,4 +44,6 @@ Assets/
 * Materials: Each material gets its own folder with all required textures.
 * Models: Each model gets its own folder with a .usdc file and a textures/ subfolder containing its textures.
 
+For reference, download the [Demo Game Asset v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1) folder. 
+
 ⚠️ Tip: The engine expects this structure. Keeping a clean hierarchy will make asset importing smoother in the Editor.

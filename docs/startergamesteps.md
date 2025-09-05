@@ -25,6 +25,6 @@ To save time, the Untold Engine includes preloaded assets you can use right away
 - **Models**: Soccer stadium, player, ball, and more.  
 - **Animations**: Prebuilt running, idle, and other character motions.  
 
-You can download them [here](linktogameassets).
+You can download them [Demo Game Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1).
 
 
