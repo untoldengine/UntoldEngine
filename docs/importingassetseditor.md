@@ -28,9 +28,11 @@ Currently, the engine supports **USDC models** only. Each model's folder should 
 
 **Steps to import a model:**  
 1. In the **Asset Browser**, click on **Models**.  
-2. Navigate to the folder containing your `.usdc` file and its `textures/` folder.  
-3. Select the `.usdc` file.  
-4. The engine will automatically import the model and link its textures.  
+2. Next, click on the "Import Asset" button.
+![import-asset](../images/importassetbutton.png)
+3. Navigate to the folder containing your `.usdc` file and its `textures/` folder.  
+4. Select the `.usdc` file.  
+5. The engine will automatically import the model and link its textures.  
 
 ---
 
@@ -40,8 +42,9 @@ Animations are also stored in `.usdc` format.
 
 **Steps to import an animation:**  
 1. In the **Asset Browser**, click on **Animations**.  
-2. Navigate to your animation `.usdc` file.  
-3. Select the file to import it.  
+2. Next, click on the "Import Asset" button.
+3. Navigate to your animation `.usdc` file.  
+4. Select the file to import it.  
 
 ---
 
@@ -51,8 +54,9 @@ Materials can be imported directly as a set of texture maps.
 
 **Steps to import materials:**  
 1. In the **Asset Browser**, click on **Materials**.  
-2. Navigate to the folder where you’ve stored your texture maps (e.g., Base Color, Roughness, Metallic).  
-3. Select the folder to import all textures at once.  
+2. Next, click on the "Import Asset" button.
+3. Navigate to the folder where you’ve stored your texture maps (e.g., Base Color, Roughness, Metallic).  
+4. Select the folder to import all textures at once.  
 
 Once imported, you can assign materials to entities in the **Inspector**.
 
