@@ -8,7 +8,7 @@ Want to see the Untold Engine in action with zero setup? The **Demo Game** is fo
 **How to Run**
 1. Select the **DemoGame** scheme.  
 2. Set **My Mac** as the target device and hit **Run**.  
-3. Download the [game assets](linktogameassets) and place them in your Desktop folder.  
+3. Download the [Demo Game Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1) and place them in your Desktop folder.  
 4. In the Editor, click **Set Path** and point to that folder.  
 5. Click the **Load** button in the Editor toolbar, navigate to the folder above and select `soccergamedemo.json`.  
 6. Press **Play** to toggle between game mode and edit mode.  
