@@ -1,4 +1,3 @@
-
 import MetalKit
 import SwiftUI
 import UntoldEngine
@@ -6,55 +5,14 @@ import UntoldEngine
 // GameScene is where you would initialize your game and write the game logic.
 class GameScene {
     init() {
+        
+        // By default, the engine needs to know where your assets are located.
+        // Here we point it to a folder named "DemoGameAssets" on the Desktop.
+        // You can change this to any folder where you keep your own assets.
         if let desktopURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first {
-            assetBasePath = desktopURL.appendingPathComponent("MyGreatGame")
+            assetBasePath = desktopURL.appendingPathComponent("DemoGameAssets")
         }
-
-        // register custom systems. do not delete
-
-        // 1. Register custom system
-        // 2. add component to editor
-        // 3. encode/decode custom component
-
-        registerCustomSystem(ballSystemUpdate)
-        addComponent_Editor(componentOption: BallComponent_Editor)
-        encodeCustomComponent(type: BallComponent.self)
-
-        registerCustomSystem(dribblingSystemUpdate)
-        addComponent_Editor(componentOption: DribblingComponent_Editor)
-        encodeCustomComponent(
-            type: DribblinComponent.self,
-            merge: { current, decoded in
-                current.maxSpeed = decoded.maxSpeed
-                current.kickSpeed = decoded.kickSpeed
-                current.direction = decoded.direction
-            }
-        )
-
-        registerCustomSystem(cameraFollowUpdate)
-        addComponent_Editor(componentOption: CameraFollowComponent_Editor)
-        encodeCustomComponent(type: CameraFollowComponent.self,
-                              merge: { current, decoded in
-                                  current.targetName = decoded.targetName
-                                  current.offset = decoded.offset
-                              })
-
-        /*
-         //Example: Load game
-
-         let sceneURL = URL(fileURLWithPath: "Path/to/file.json")
-
-         playSceneAt(url:sceneURL)
-
-         // if from loading from main.bundle:
-
-          if let sceneURL = Bundle.main.url(forResource: "file", withExtension: "json") {
-              playSceneAt(url: sceneURL)
-          } else {
-              print("Scene file not found in bundle.")
-          }
-
-         */
+        
     }
 
     func update(deltaTime _: Float) {
