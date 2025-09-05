@@ -96,6 +96,9 @@ To begin using the Untold Engine, you’ll need:
 ### Installation
 Follow the step-by-step guide to [clone and install the Untold Engine](docs/Installation.md)
 
+### Assets Download 
+To help you get started, download the [Demo Game Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1). It contains models and animations that you can use as you try out the engine. Unzip the folder and place it on your Desktop.
+
 ### Demo Game - Jump right in
 Want to see the Untold Engine in action with zero setup? The **Demo Game** is for you! It’s a simple, ready-to-run soccer dribbling game — perfect for testing the engine and getting a feel for how it works. Follow the step-by-step guide to run the [small demo](docs/demogamesteps.md)
 
