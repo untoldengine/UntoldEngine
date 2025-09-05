@@ -45,7 +45,7 @@ In **Edit Mode**, you can navigate the scene and adjust the environment with eas
 
 The Editor is now the primary way to initialize and manage entities.  
 
-- [Editor Overview](docs/EditorOverview.md): Walkthrough of Scene Graph, Inspector, Gizmos, Materials, Lighting, Post-Processing, Asset Browser, and Console.  
-- [How to Import Assets](docs/ImportAssets.md): Learn how to set asset paths and import models, materials, and animations.  
+- [Editor Overview](docs/editoroverview.md): Walkthrough of Scene Graph, Inspector, Gizmos, Materials, Lighting, Post-Processing, Asset Browser, and Console.  
+- [How to Import Assets](docs/importingassetseditor.md): Learn how to set asset paths and import models, materials, and animations.  
 
 ⚠️ **Important**: Entities should be created and configured in the Editor. Code is used for gameplay logic only.  
