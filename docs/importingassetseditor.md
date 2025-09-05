@@ -9,6 +9,7 @@ Before you can load models into your scene, you’ll need to set up the **Asset 
 1. Create a folder on your computer where you’ll store your game’s assets.  
    *(Example: `MyGreatGameAssets/`)*  
 2. In the **Asset Browser**, click the **Set Path** button.  
+![set-path-button](../images/setpathbutton.png)
 3. Select the folder you created. This tells the engine where to look for models, textures, and animations.  
 
 ⚠️ You must create the folder beforehand — the engine will not generate it automatically.  
@@ -21,7 +22,7 @@ When the engine is running, it cannot import new files directly into the applica
 
 ## 2. Importing 3D Models
 
-Currently, the engine supports **USDC models** only. Each model should be organized with:  
+Currently, the engine supports **USDC models** only. Each model's folder should be organized with:  
 - A `.usdc` file (the 3D mesh).  
 - A corresponding `textures/` folder that contains the model’s materials.  
 
