@@ -98,17 +98,38 @@ To begin using the Untold Engine, you’ll need:
 - An Apple computer.
 - The latest version of Xcode, which you can download from the App Store.
 
-### Installation
-Follow the step-by-step guide to [clone and install the Untold Engine](docs/Installation.md)
+### Quick Start
+
+Get the Untold Engine running in under a minute:
+
+```bash
+git clone https://github.com/untoldengine/UntoldEngine.git
+cd UntoldEngine
+open Package.swift
+```
+
+- In Xcode, select the DemoGame scheme.
+- Choose My Mac as the target.
+- Press Run ▶ and the Editor will launch.
+
+🎮 You’re ready to explore!
+
+👉 For full installation details (screenshots, controls, and Editor workflow), see the [Installation Guides](docs/Installation.md)
 
 ### Assets Download 
 To help you get started, download the [Demo Game Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1). It contains models and animations that you can use as you try out the engine. Unzip the folder and place it on your Desktop.
 
-### Demo Game - Jump right in
-Want to see the Untold Engine in action with zero setup? The **Demo Game** is for you! It’s a simple, ready-to-run soccer dribbling game — perfect for testing the engine and getting a feel for how it works. Follow the step-by-step guide to run the [small demo](docs/demogamesteps.md)
+### Demo Game – Jump right in
+The **Demo Game** is a simple soccer dribbling example that runs out of the box.  
+It not only lets you test the engine with zero setup, but also serves as a live reference for how the API is used in practice — from entity creation to animations and physics.  
 
-### Starter Game - Experiment and Learn
-If you want to tinker and get hands-on, the **Starter Game** is your playground. It’s a minimal setup that gives you just enough to start experimenting, importing assets, and building your own mechanics. Follow the step-by-step guide to run the [starter game](docs/startergamesteps.md)
+👉 Follow the step-by-step guide to run the [small demo](docs/demogamesteps.md).
+
+### Starter Game – Experiment and Learn
+The **Starter Game** is a minimal project designed as your playground.  
+It gives you a clean slate to experiment with importing assets, writing your own systems, and building new mechanics. Unlike the Demo Game (which shows the API in action), the Starter Game is where you can start creating your own gameplay ideas.  
+
+👉 Follow the step-by-step guide to run the [starter game](docs/startergamesteps.md).
 
 For an overview of how to reference entities, play animations, and create components and systems, check out the files in the DemoGame folder. More documentation is on the way, but these examples should be enough to help you get started.
 If you run into any issues or have questions, please don’t hesitate to open an [issue](https://github.com/untoldengine/UntoldEngine/issues).
@@ -166,6 +187,8 @@ The Untold Engine is powered by modular systems that simplify game development. 
 
 - [Editor Overview](docs/editoroverview.md): Walkthrough of Scene Graph, Inspector, Gizmos, Materials, Lighting, Post-Processing, Asset Browser, and Console.  
 - [How to Import Assets](docs/importingassetseditor.md): Learn how to set asset paths and import models, materials, and animations.  
+
+### How-To Guides
 - [Adding a model using the Editor](docs/addModelUsingEditor.md): Learn how to add a model using the editor 
 - [Adding an animation using the Editor](docs/addAnimationUsingEditor.md): Learn how to link an animation to the model using the editor (Coming Soon)
 
@@ -245,6 +268,16 @@ This project is licensed under the **LGPL v2.1**.
 ### What Does This Mean for You?
 - **Developing a Game**: You can use the Untold Engine to build your game without needing to open source your game’s code.
 - **Modifying the Engine**: If you make changes to the engine itself, those changes must be open-sourced under the LGPL v2.1.
+
+### License in Plain Terms
+
+| You want to…              | Allowed? | Obligations                                  |
+|----------------------------|----------|----------------------------------------------|
+| Build a game with Untold   | ✅ Yes   | No need to open source your game’s code      |
+| Modify Untold internals    | ✅ Yes   | Must share modifications under LGPL v2.1     |
+| Distribute the engine      | ✅ Yes   | Keep the LGPL license intact                 |
+| Use for commercial projects| ✅ Yes   | No royalties or fees                         |
+
 
 For more details, see the full license text [here](https://www.gnu.org/licenses/lgpl-2.1.html).
 
