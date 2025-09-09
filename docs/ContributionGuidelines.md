@@ -2,6 +2,11 @@
 
 I'm excited to have you contribute to the Untold Engine! To maintain consistency and quality, please follow these guidelines when submitting a pull request (PR). Submissions that do not adhere to these guidelines will not be approved.
 
+### Vision  
+The vision for the Untold Engine is to continually shape a 3D engine that balances clarity, performance, and creativity.  
+
+Contributions should align with this vision — improving clarity, performance, or creativity without sacrificing the others.  
+
 ### Pull Request Guidelines
 
 - **One feature or bug fix per PR**  
