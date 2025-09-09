@@ -190,7 +190,7 @@ The Untold Engine is powered by modular systems that simplify game development. 
 
 ### How-To Guides
 - [Adding a model using the Editor](docs/addModelUsingEditor.md): Learn how to add a model using the editor 
-- [Adding an animation using the Editor](docs/addAnimationUsingEditor.md): Learn how to link an animation to the model using the editor (Coming Soon)
+- [Adding an animation using the Editor](docs/addAnimationsUsingEditor.md): Learn how to link an animation to the model using the editor (Coming Soon)
 
 ⚠️ **Important**: Entities should be created and configured in the Editor. Code is used for gameplay logic only.  
 
