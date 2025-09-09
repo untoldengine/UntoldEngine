@@ -9,12 +9,21 @@ import Foundation
 import MetalKit
 
 func updateRenderingSystem(in view: MTKView) {
+    if let cullingCommandBuffer = renderInfo.commandQueue.makeCommandBuffer(){
+       
+        cullingCommandBuffer.label = "Culling Command Buffer"
+        
+        executeFrustumCulling(cullingCommandBuffer)
+        
+        cullingCommandBuffer.commit()
+    }
+    
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
         if let renderPassDescriptor = view.currentRenderPassDescriptor {
             renderInfo.renderPassDescriptor = renderPassDescriptor
 
-            executeFrustumCulling(commandBuffer)
-
+            commandBuffer.label = "Rendering Command Buffer"
+            
             // build a render graph
             var (graph, preCompID) = gameMode ? buildGameModeGraph() : buildEditModeGraph()
 
