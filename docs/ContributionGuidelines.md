@@ -1,13 +1,37 @@
 # Contributing Guidelines
 
-I'm excited to have you contribute to the Untold Engine! To maintain consistency and quality, please follow these guidelines when submitting a pull request (PR). Submissions that do not adhere to these guidelines will not be approved.
+Thank you for your interest in contributing! 
+ 
+The vision for Untold Engine is to continually shape a 3D engine that balances **clarity, performance, and creativity**.  
+As maintainer, my focus is on **performance, testing, quality control, and API design**.  
+Contributors are encouraged to expand features, fix bugs, improve documentation, and enhance usability — always keeping the vision in mind.  
 
-### Vision  
-The vision for the Untold Engine is to continually shape a 3D engine that balances clarity, performance, and creativity.  
+---
 
-Contributions should align with this vision — improving clarity, performance, or creativity without sacrificing the others.  
+## Maintainer Responsibilities  
 
-### Pull Request Guidelines
+The Untold Engine is guided by a clear vision: **clarity, performance, and creativity**.  
+As the maintainer, my primary focus is to ensure the project stays true to this vision while remaining stable, performant, and approachable.  
+
+### What I Focus On  
+- **Performance** → keeping the renderer and systems lean, efficient, and optimized for Apple hardware.  
+- **Testing & Stability** → maintaining a reliable codebase with proper testing practices.  
+- **Quality Control** → reviewing PRs for clarity, readability, and adherence to coding standards.  
+- **API Design** → ensuring that the engine’s API remains logical, intuitive, and consistent.  
+
+### What Contributors Are Encouraged to Focus On  
+- **Features** → adding or improving systems, tools, and workflows.  
+- **Bug Fixes** → addressing open issues and fixing edge cases.  
+- **Documentation** → clarifying how things work and providing examples.  
+- **Editor & Usability** → enhancing the UI, workflows, and overall developer experience.  
+
+### Decision Making  
+All contributions are welcome, but acceptance will be guided by the project’s vision and the priorities above.  
+PRs that align with clarity, performance, or creativity — while keeping the engine stable and simple — are more likely to be accepted.   
+
+These guidelines aren’t here to block you, but to make sure every contribution keeps the engine stable, clear, and useful for everyone.
+
+## Pull Request Guidelines
 
 - **One feature or bug fix per PR**  
   Each Pull Request should focus on a single feature, bug fix, or documentation improvement.  
@@ -24,19 +48,16 @@ Contributions should align with this vision — improving clarity, performance, 
 
 ---
 
-### Required Contributions for New System Support
+## Required Contributions for New System Support
 
-When adding new features or systems to the Untold Engine, your PR must include the following:
+For **new systems or major features**, your PR must include:
 
-1. Unit Tests
-- Requirement: All new systems must include XCTests to validate their functionality.
-- Why: Tests ensure stability and prevent regressions when making future changes.
-- Example: Provide unit tests that cover edge cases, typical use cases, and failure scenarios.
+- **Unit Tests** → Validate functionality and cover edge cases.  
+- **How-To Guide** → A step-by-step markdown guide explaining how to use the system.  
 
-2. How-To Guide
-- Requirement: Every new system must include a how-to guide explaining its usage.
-- Why: This helps users understand how to integrate and utilize the feature effectively.
-- Format: Use the structure outlined below to ensure consistency and clarity.
+This ensures new features are stable, documented, and accessible to all users.  
+
+👉 Note: For small fixes or incremental features, a How-To is not required.
 
 ---
 
