@@ -58,7 +58,7 @@ struct SceneHierarchyView: View {
                     ForEach(sceneGraphModel.getChildren(entityId: nil), id: \.self) { entityId in
                         HierarchyNode(
                             entityId: entityId,
-                            entityName: getEntityName(entityId: entityId) ?? "Unnamed",
+                            entityName: getEntityName(entityId: entityId),
                             depth: 0,
                             sceneGraphModel: sceneGraphModel,
                             selectionManager: selectionManager
@@ -134,7 +134,7 @@ struct HierarchyNode: View {
             ForEach(sceneGraphModel.getChildren(entityId: entityId), id: \.self) { childID in
                 HierarchyNode(
                     entityId: childID,
-                    entityName: getEntityName(entityId: childID) ?? "Unnamed",
+                    entityName: getEntityName(entityId: childID),
                     depth: depth + 1,
                     sceneGraphModel: sceneGraphModel,
                     selectionManager: selectionManager

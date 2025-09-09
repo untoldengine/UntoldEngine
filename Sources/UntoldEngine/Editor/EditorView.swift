@@ -203,7 +203,7 @@ public struct EditorView: View {
             return
         }
 
-        setEntityName(entityId: entity, name: getEntityName(entityId: entity) ?? "No name")
+        setEntityName(entityId: entity, name: getEntityName(entityId: entity))
     }
 
     private func editor_handlePlayToggle(_ isPlaying: Bool) {

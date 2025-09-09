@@ -100,7 +100,7 @@ func hitGizmoToolAxis(entityId: EntityID) -> Bool {
         "directionHandle",
     ]
 
-    if validNames.contains(name!) {
+    if validNames.contains(name) {
         return true
     } else {
         return false
