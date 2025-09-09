@@ -55,6 +55,16 @@ Click on image to play video:
 
 [![Watch the video](images/enginethumbnail.jpg)](https://vimeo.com/1116239409?share=copy#t=0)
 
+## Vision
+
+The vision for the Untold Engine is to continually shape a 3D engine that balances clarity, performance, and creativity.  
+
+- **Clarity** → to keep the codebase and API straightforward and readable, making the engine a resource for both building and learning.  
+- **Performance** → to push the limits of Apple devices with a modern Metal renderer, while staying lean and efficient.  
+- **Creativity** → to provide a flexible foundation where developers can experiment freely and bring ideas to life.  
+
+This vision guides the project forward: Untold Engine will always evolve, but its purpose remains the same — to make game creation both powerful and accessible.  
+
 
 ### Current Features:
 
