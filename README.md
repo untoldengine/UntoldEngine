@@ -139,7 +139,7 @@ The Untold Engine is powered by modular systems that simplify game development. 
 
 ### Editor & Workflow
 
-The Editor is now the primary way to initialize and manage entities.  
+⚠️ **Important** The Editor is now the primary way to initialize and manage entities.  
 
 - [Editor Overview](docs/editoroverview.md): Walkthrough of Scene Graph, Inspector, Gizmos, Materials, Lighting, Post-Processing, Asset Browser, and Console.  
 - [How to Import Assets](docs/importingassetseditor.md): Learn how to set asset paths and import models, materials, and animations.  
@@ -148,7 +148,7 @@ The Editor is now the primary way to initialize and manage entities.
 
 ⚠️ **Important**: Entities should be created and configured in the Editor. Code is used for gameplay logic only.  
 
-
+### Systems 
 - [Registration-ECS System](docs/UsingRegistrationSystem.md): Handles the creation of entities and components
 - [Rendering System](docs/UsingRenderingSystem.md): Render 3D models with support for PBR and custom shaders.
 - [Transform System](docs/UsingTransformSystem.md): Manage entity positions, rotations, and scales.
