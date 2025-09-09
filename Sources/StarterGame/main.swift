@@ -13,6 +13,22 @@ class GameScene {
             assetBasePath = desktopURL.appendingPathComponent("DemoGameAssets")
         }
         
+        // Note: You’re not limited to the editor for setting up entities.
+        // The editor provides a visual workflow, but you can also create and
+        // configure everything directly in code if that’s your preference.
+        // Here is an example. For more details, see:
+        // https://github.com/untoldengine/UntoldEngine?tab=readme-ov-file#systems
+        
+        let stadium = createEntity()
+        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
+        translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
+        
+        let player = createEntity()
+        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdc", flip: false)
+        rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0,1.0,0.0))
+        setEntityAnimations(entityId: player, filename: "running", withExtension: "usdc", name: "running")
+        changeAnimation(entityId: player, name: "running") // Start animation
+        
     }
 
     func update(deltaTime _: Float) {
