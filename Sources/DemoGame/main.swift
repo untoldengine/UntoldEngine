@@ -13,6 +13,8 @@ class GameScene {
         if let desktopURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first {
             assetBasePath = desktopURL.appendingPathComponent("DemoGameAssets")
         }
+        
+        //Take a look at the DribblingSystem and BallSystem (inside `Sources/DemoGame`) to see how the game is structured and get familiar with the Untold Engine API.
 
         // The Untold Engine uses an ECS (Entity–Component–System) architecture.
         // This means you can extend the engine by adding your own custom
