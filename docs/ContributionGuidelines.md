@@ -2,6 +2,23 @@
 
 I'm excited to have you contribute to the Untold Engine! To maintain consistency and quality, please follow these guidelines when submitting a pull request (PR). Submissions that do not adhere to these guidelines will not be approved.
 
+### Pull Request Guidelines
+
+- **One feature or bug fix per PR**  
+  Each Pull Request should focus on a single feature, bug fix, or documentation improvement.  
+  This keeps the history clean and makes it easier to track down issues later.  
+
+- **Commit hygiene**  
+  - Keep commits meaningful (avoid "misc changes" or "fix stuff").  
+  - Squash commits if needed, but do not mix unrelated features in the same commit.  
+  - If your PR touches multiple files, make sure they all relate to the same feature or fix.  
+
+✅ Example:  
+- Good: *“Add PhysicsSystem with gravity integration”*  
+- Bad: *“Added PhysicsSystem + fixed rendering bug + updated docs”*  
+
+---
+
 ### Required Contributions for New System Support
 
 When adding new features or systems to the Untold Engine, your PR must include the following:
