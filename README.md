@@ -113,16 +113,6 @@ If you want to tinker and get hands-on, the **Starter Game** is your playground.
 For an overview of how to reference entities, play animations, and create components and systems, check out the files in the DemoGame folder. More documentation is on the way, but these examples should be enough to help you get started.
 If you run into any issues or have questions, please don’t hesitate to open an [issue](https://github.com/untoldengine/UntoldEngine/issues).
 
-### Editor & Workflow
-
-The Editor is now the primary way to initialize and manage entities.  
-
-- [Editor Overview](docs/editoroverview.md): Walkthrough of Scene Graph, Inspector, Gizmos, Materials, Lighting, Post-Processing, Asset Browser, and Console.  
-- [How to Import Assets](docs/importingassetseditor.md): Learn how to set asset paths and import models, materials, and animations.  
-- [Adding a model using the Editor](docs/addModelUsingEditor.md): Learn how to add a model using the editor 
-- [Adding an animation using the Editor](docs/addAnimationUsingEditor.md): Learn how to link an animation to the model using the editor (Coming Soon)
-
-⚠️ **Important**: Entities should be created and configured in the Editor. Code is used for gameplay logic only.  
 
 ---
 
@@ -146,6 +136,18 @@ setEntityKinetics(entityId: player) // Enable Physics System
 ## Using the Untold Engine
 
 The Untold Engine is powered by modular systems that simplify game development. Click on the links to get started.
+
+### Editor & Workflow
+
+The Editor is now the primary way to initialize and manage entities.  
+
+- [Editor Overview](docs/editoroverview.md): Walkthrough of Scene Graph, Inspector, Gizmos, Materials, Lighting, Post-Processing, Asset Browser, and Console.  
+- [How to Import Assets](docs/importingassetseditor.md): Learn how to set asset paths and import models, materials, and animations.  
+- [Adding a model using the Editor](docs/addModelUsingEditor.md): Learn how to add a model using the editor 
+- [Adding an animation using the Editor](docs/addAnimationUsingEditor.md): Learn how to link an animation to the model using the editor (Coming Soon)
+
+⚠️ **Important**: Entities should be created and configured in the Editor. Code is used for gameplay logic only.  
+
 
 - [Registration-ECS System](docs/UsingRegistrationSystem.md): Handles the creation of entities and components
 - [Rendering System](docs/UsingRenderingSystem.md): Render 3D models with support for PBR and custom shaders.
