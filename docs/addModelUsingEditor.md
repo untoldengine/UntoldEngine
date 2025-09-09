@@ -22,7 +22,7 @@ Follow these steps to bring a character into your scene or if you prefer, here i
 - In the Inspector, click **Add Components**.  
 - Choose **Render Component** from the list.  
 
-![screenshot of add components here](../images/render-component.png)
+![screenshot of add components here](../images/addcomponent.png)
 
 ---
 
@@ -31,7 +31,7 @@ Follow these steps to bring a character into your scene or if you prefer, here i
 - Navigate to your game character’s folder.  
 - Select the character’s `.usdc` file and click **Assign**.  
 
-![screenshot of asset browser with usdc file here](../images/asset-browser-model.png)
+![screenshot of asset browser with usdc file here](../images/modelineditor.png)
 
 ---
 
