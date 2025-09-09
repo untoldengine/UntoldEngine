@@ -86,7 +86,7 @@ final class ECSTests: XCTestCase {
         let entityId2 = createEntity()
 
         setEntityName(entityId: entityId2, name: "untold")
-        let result = getEntityName(entityId: entityId2)!
+        let result = getEntityName(entityId: entityId2)
 
         XCTAssertEqual("untold", result, "Strings do not match")
     }

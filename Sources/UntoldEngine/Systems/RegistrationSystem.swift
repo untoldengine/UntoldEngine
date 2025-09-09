@@ -488,17 +488,22 @@ public func setEntityName(entityId: EntityID, name: String) {
     reverseEntityNameMap[name] = entityId
 }
 
-public func getEntityName(entityId: EntityID) -> String? {
-    entityNameMap[entityId]
+public func getEntityName(entityId: EntityID) -> String {
+    if let name = entityNameMap[entityId] {
+        return name
+    }
+    return "Entity-\(entityId)"
 }
+
 
 func removeEntityName(entityId: EntityID) {
-    if let name: String = getEntityName(entityId: entityId) {
-        reverseEntityNameMap.removeValue(forKey: name)
+    if let stored = entityNameMap[entityId],
+       stored.isEmpty == false {
+        reverseEntityNameMap.removeValue(forKey: stored)
     }
-
     entityNameMap.removeValue(forKey: entityId)
 }
+
 
 public func findEntity(name: String) -> EntityID? {
     reverseEntityNameMap[name]

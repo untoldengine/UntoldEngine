@@ -201,7 +201,7 @@ struct InspectorView: View {
                         HStack {
                             Text("Name")
                             TextField("Set Entity Name", text: Binding(
-                                get: { getEntityName(entityId: entityId) ?? "No name" },
+                                get: { getEntityName(entityId: entityId) },
                                 set: {
                                     setEntityName(entityId: entityId, name: $0)
                                 }

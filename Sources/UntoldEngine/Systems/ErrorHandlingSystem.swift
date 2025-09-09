@@ -203,10 +203,7 @@ public func handleError(_ error: ErrorHandlingSystem) {
 }
 
 public func handleError(_ error: ErrorHandlingSystem, _ entityId: EntityID) {
-    guard let name = getEntityName(entityId: entityId) else {
-        Logger.logError(message: "\(error.rawValue): \(error.description) for \(entityId)")
-        return
-    }
+    let name = getEntityName(entityId: entityId)
     handleError(error, name)
 }
 
@@ -219,9 +216,7 @@ public func handleError(_ error: ErrorHandlingSystem, _ argument: String, _ name
 }
 
 public func handleError(_ error: ErrorHandlingSystem, _ argument: String, _ entityId: EntityID) {
-    guard let name = getEntityName(entityId: entityId) else {
-        return
-    }
+    let name = getEntityName(entityId: entityId)
     handleError(error, argument, name)
 }
 

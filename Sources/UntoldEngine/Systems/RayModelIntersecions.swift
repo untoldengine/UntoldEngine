@@ -148,7 +148,7 @@ func createAccelerationStructures(_: Bool) {
 
         // build the acceleration structure
         if let accelerationStructure: MTLAccelerationStructure = newAccelerationStructure(
-            accelerationStructureDescriptor, getEntityName(entityId: entityId)!
+            accelerationStructureDescriptor, getEntityName(entityId: entityId)
         ) {
             // Add the acceleration structure to the array of primitive acceleration structures.
             accelStructResources.primitiveAccelerationStructures.append(accelerationStructure)

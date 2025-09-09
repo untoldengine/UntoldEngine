@@ -166,7 +166,7 @@ func serializeScene() -> SceneData {
             entityData.parentUUID = entityIdToUUID[parentId]
         }
 
-        entityData.name = getEntityName(entityId: entityId)!
+        entityData.name = getEntityName(entityId: entityId)
 
         if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
             entityData.assetName = renderComponent.assetName
