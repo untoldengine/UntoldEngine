@@ -57,13 +57,17 @@ Click on image to play video:
 
 ## Vision
 
-The vision for the Untold Engine is to continually shape a 3D engine that balances clarity, performance, and creativity.  
+The Untold Engine strives to be a **stable, performant, and developer-friendly** 3D engine that empowers creativity, removes friction, and makes game development feel effortless for Apple developers
 
-- **Clarity** → to keep the codebase and API straightforward and readable, making the engine a resource for both building and learning.  
-- **Performance** → to push the limits of Apple devices with a modern Metal renderer, while staying lean and efficient.  
-- **Creativity** → to provide a flexible foundation where developers can experiment freely and bring ideas to life.  
+## Guiding Principles
 
-This vision guides the project forward: Untold Engine will always evolve, but its purpose remains the same — to make game creation both powerful and accessible.  
+To achieve this vision, we follow these principles:
+
+- The engine strives to remain stable and crash-free.
+- The codebase is backed by unit tests.
+- We profile continuously to prevent regressions (visual and performance).
+- The API must remain clear and user-friendly.
+- We always think about the developer first—removing friction so they can focus on their games.
 
 
 ### Current Features:
@@ -292,4 +296,13 @@ This project is licensed under the **LGPL v2.1**.
 For more details, see the full license text [here](https://www.gnu.org/licenses/lgpl-2.1.html).
 
 ---
+
+## Questions & Discussions
+
+To keep communication clear and accessible for everyone:
+
+- 💡 Use **[GitHub Discussions](https://github.com/untoldengine/UntoldEngine/discussions)** for feature proposals, ideas, or general questions.  
+- 🐞 Use **[GitHub Issues](https://github.com/untoldengine/UntoldEngine/issues)** for bugs or concrete tasks that need tracking.  
+
+This way, conversations stay organized, visible to the community, and future contributors can benefit from past discussions. 
  

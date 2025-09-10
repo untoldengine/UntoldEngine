@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing! 
  
-The vision for Untold Engine is to continually shape a 3D engine that balances **clarity, performance, and creativity**.  
+The vision for Untold Engine is to continually shape a 3D engine that is **stable, performant and developer-friendly**.
 As maintainer, my focus is on **performance, testing, quality control, and API design**.  
 Contributors are encouraged to expand features, fix bugs, improve documentation, and enhance usability — always keeping the vision in mind.  
 
@@ -10,8 +10,19 @@ Contributors are encouraged to expand features, fix bugs, improve documentation,
 
 ## Maintainer Responsibilities  
 
-The Untold Engine is guided by a clear vision: **clarity, performance, and creativity**.  
-As the maintainer, my primary focus is to ensure the project stays true to this vision while remaining stable, performant, and approachable.  
+The Untold Engine is guided by a clear vision: To be a stable, performant, and developer-friendly 3D engine that empowers creativity, removes friction, and makes game development feel effortless.
+
+## Guiding Principles
+
+To achieve this vision, we follow these principles:
+
+- The engine strives to remain stable and crash-free.
+- The codebase is backed by unit tests.
+- We profile continuously to prevent regressions (visual and performance).
+- The API must remain clear and user-friendly.
+- We always think about the developer first—removing friction so they can focus on their games.
+
+As the maintainer, my primary focus is to ensure the project stays true to this vision.  
 
 ### What I Focus On  
 - **Performance** → keeping the renderer and systems lean, efficient, and optimized for Apple hardware.  
@@ -104,4 +115,16 @@ Your guide must follow this structure:
 - Make sure your code follows the [formatting guidelines](Formatting.md).
 
 ---
+
+## Questions & Discussions
+
+To keep communication clear and accessible for everyone:
+
+- 💡 Use **[GitHub Discussions](https://github.com/untoldengine/UntoldEngine/discussions)** for feature proposals, ideas, or general questions.  
+- 🐞 Use **[GitHub Issues](https://github.com/untoldengine/UntoldEngine/issues)** for bugs or concrete tasks that need tracking.  
+
+This way, conversations stay organized, visible to the community, and future contributors can benefit from past discussions.  
+
+---
+
 Thank you for contributing to the Untold Engine! Following these guidelines will ensure that your work aligns with the project's goals and provides value to users.
