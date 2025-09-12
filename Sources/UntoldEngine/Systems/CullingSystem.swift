@@ -146,14 +146,12 @@ func initFrustumCulllingCompute() {
 
     tripleBufferResources.frustumPlane = TripleBuffer<simd_float4>(device: renderInfo.device, initialCapacity: planeCount)
 
-    tripleBufferResources.entityAABB = TripleBuffer(device: renderInfo.device, initialCapacity: 4028)
+    tripleBufferResources.entityAABB = TripleBuffer(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
 
     // count
     bufferResources.visibleCountBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride, options: .storageModeShared)
 
-    let maxObjects = 4028
-
-    bufferResources.visibilityBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride * maxObjects, options: .storageModeShared)
+    bufferResources.visibilityBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride * MAX_ENTITIES, options: .storageModeShared)
 
     visibleEntityIds.removeAll(keepingCapacity: true)
 }
@@ -205,13 +203,13 @@ func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: frameCount)
+    let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: cullFrameIndex)
     let frustumWritePointer = frustumWriteBuffer.contents().bindMemory(to: simd_float4.self, capacity: planeCount)
     for i in 0 ..< planeCount {
         frustumWritePointer[i] = simd_float4(frustum.planes[i].n, frustum.planes[i].d)
     }
 
-    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: frameCount)
+    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: cullFrameIndex)
     computeEncoder.setBuffer(frustumReadBuffer, offset: 0, index: Int(frustumCullingPassPlanesIndex.rawValue))
 
     let transformId = getComponentId(for: WorldTransformComponent.self)
@@ -256,7 +254,7 @@ func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     entityAABBTripleBuffer.ensureCapacity(count)
 
     // write current frame's data
-    let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: frameCount)
+    let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: cullFrameIndex)
 
     entityAABBContainer.withUnsafeBytes { src in
 
@@ -264,7 +262,7 @@ func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     }
 
     // pick the buffer the gpu should read
-    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: frameCount)
+    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: cullFrameIndex)
 
     computeEncoder.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(frustumCullingPassObjectIndex.rawValue))
 
@@ -300,14 +298,20 @@ func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     computeEncoder.endEncoding()
 
     commandBuffer.addCompletedHandler { _ in
-        visibleEntityIds.removeAll(keepingCapacity: true)
         let visibleCount = visibilityCountBuffer.contents().load(as: UInt32.self)
         let visibleEntities = visibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
 
+        var nextVisibleIds: [EntityID] = []
         for i in 0 ..< Int(visibleCount) {
             let index = visibleEntities[i].index
             let version = visibleEntities[i].version
-            visibleEntityIds.append(createEntityId(EntityIndex(index), EntityVersion(version)))
+            nextVisibleIds.append(createEntityId(EntityIndex(index), EntityVersion(version)))
+        }
+        
+        // Swap into the write slot on the render thread
+        DispatchQueue.main.async{
+            tripleVisibleEntities.setWrite(frame: cullFrameIndex, with: nextVisibleIds)
+            cullFrameIndex += 1
         }
     }
 }
