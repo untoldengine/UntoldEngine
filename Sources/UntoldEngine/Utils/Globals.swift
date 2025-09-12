@@ -339,6 +339,7 @@ public struct EntityAABB {
 
 struct VisibleEntity { var index: UInt32; var version: UInt32 }
 var visibleEntityIds: [EntityID] = []
-
+var tripleVisibleEntities = TripleCPUBuffer<EntityID>(inFlight: 3, initialCapacity: MAX_ENTITIES)
+var cullFrameIndex: Int = 0
 var needsFinalizeDestroys: Bool = false
 var hasPendingDestroys: Bool = false

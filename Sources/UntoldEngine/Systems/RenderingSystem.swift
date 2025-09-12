@@ -9,16 +9,11 @@ import Foundation
 import MetalKit
 
 func updateRenderingSystem(in view: MTKView) {
-    if let cullingCommandBuffer = renderInfo.commandQueue.makeCommandBuffer(){
-       
-        cullingCommandBuffer.label = "Culling Command Buffer"
-        
-        executeFrustumCulling(cullingCommandBuffer)
-        
-        cullingCommandBuffer.commit()
-    }
     
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
+        
+        executeFrustumCulling(commandBuffer)
+        
         if let renderPassDescriptor = view.currentRenderPassDescriptor {
             renderInfo.renderPassDescriptor = renderPassDescriptor
 
@@ -56,6 +51,7 @@ func updateRenderingSystem(in view: MTKView) {
 
             DispatchQueue.main.async {
                 needsFinalizeDestroys = true
+                visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
             }
         }
 
