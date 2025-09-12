@@ -172,7 +172,7 @@ func buildFrustum(from viewProj: simd_float4x4,
 }
 
 func initFrustumCulllingCompute() {
-    let numBlocks = (Int32(maxObjects) + BLOCK_SIZE - 1) / BLOCK_SIZE
+    let numBlocks = (Int32(MAX_ENTITIES) + BLOCK_SIZE - 1) / BLOCK_SIZE
 
     // Create Pipelines
     createComputePipeline(
@@ -404,7 +404,7 @@ func executeOptimizedFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    let numBlocks = (Int32(maxObjects) + BLOCK_SIZE - 1) / BLOCK_SIZE
+    let numBlocks = (Int32(MAX_ENTITIES) + BLOCK_SIZE - 1) / BLOCK_SIZE
 
     // clear up visible count buffer
     let blit = commandBuffer.makeBlitCommandEncoder()!
