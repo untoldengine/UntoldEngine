@@ -275,25 +275,28 @@ See the [Contribution Guidelines](docs/ContributionGuidelines.md) for details.
 
 ---
 
-## License
+## License  
 
-This project is licensed under the **LGPL v2.1**.
+This project is licensed under the **LGPL v3.0**.  
 
-### What Does This Mean for You?
-- **Developing a Game**: You can use the Untold Engine to build your game without needing to open source your game’s code.
-- **Modifying the Engine**: If you make changes to the engine itself, those changes must be open-sourced under the LGPL v2.1.
+### What Does This Mean for You?  
+- **Developing a Game**: You can use the Untold Engine to build your game without needing to open source your game’s code.  
+- **Modifying the Engine**: If you make changes to the engine itself, those changes must be open-sourced under the LGPL v3.0.  
+- **Stronger Protections**: LGPL v3.0 adds explicit patent protection and compatibility with modern licenses like Apache-2.0 (used by OpenUSD).  
 
-### License in Plain Terms
+### License in Plain Terms  
 
-| You want to…              | Allowed? | Obligations                                  |
-|----------------------------|----------|----------------------------------------------|
-| Build a game with Untold   | ✅ Yes   | No need to open source your game’s code      |
-| Modify Untold internals    | ✅ Yes   | Must share modifications under LGPL v2.1     |
-| Distribute the engine      | ✅ Yes   | Keep the LGPL license intact                 |
-| Use for commercial projects| ✅ Yes   | No royalties or fees                         |
+| You want to…                                 | Allowed? | Obligations                                      |
+|----------------------------------------------|----------|--------------------------------------------------|
+| Build a game with Untold Engine              | ✅ Yes   | No need to open source your game’s code          |
+| Modify Untold Engine internals               | ✅ Yes   | Must share modifications under LGPL v3.0         |
+| Distribute the Untold Engine                 | ✅ Yes   | Keep the LGPL license intact                     |
+| Use for commercial projects                  | ✅ Yes   | No royalties or fees                             |
+| Combine with Apache-2.0 libs (e.g. OpenUSD)  | ✅ Yes   | Fully compatible under LGPL v3.0                 |
 
+For more details, see the full license text [here](https://www.gnu.org/licenses/lgpl-3.0.html).  
 
-For more details, see the full license text [here](https://www.gnu.org/licenses/lgpl-2.1.html).
+> 💡 Our philosophy: You’re free to build with Untold Engine however you like — but if you improve the engine itself, those improvements should be shared back so the whole community benefits.  
 
 ---
 
