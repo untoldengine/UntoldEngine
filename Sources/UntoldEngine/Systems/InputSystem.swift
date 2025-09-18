@@ -320,6 +320,11 @@ public class InputSystem {
     }
 
     public func mouseRaycast(gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
+        
+        guard editorController?.isEnabled == true else{
+            return
+        }
+        
         guard scene.get(component: CameraComponent.self, for: findSceneCamera()) != nil else {
             handleError(.noActiveCamera)
             return
@@ -353,83 +358,89 @@ public class InputSystem {
 
     public func handlePanGesture(_ gestureRecognizer: NSPanGestureRecognizer, in view: NSView) {
         let currentPanLocation = gestureRecognizer.translation(in: view)
+        let currentLocation    = gestureRecognizer.location(in: view)
 
-        guard let editorController else {
-            return
-        }
-
-        if editorController.activeMode != .none, activeEntity != .invalid, keyState.shiftPressed {
-            return
-        }
-        let currentLocation = gestureRecognizer.location(in: view)
-
+        // Camera is required for any pan handling
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
             handleError(.noActiveCamera)
             return
         }
 
+        // Editor is optional; only gates editor-specific logic
+        let isEditorEnabled = editorController?.isEnabled ?? (editorController != nil)
+
+        // If the editor is active and user is manipulating an entity (e.g., with Shift),
+        // exit *only* the camera-orbit logic, not the entire gesture handler.
+        if isEditorEnabled,
+           activeEntity != .invalid,
+           keyState.shiftPressed {
+            return
+        }
+
         switch gestureRecognizer.state {
         case .began:
-            // Store the initial touch location and perform any initial setup
-            initialPanLocation = currentPanLocation
+            // Store initial state
+            initialPanLocation    = currentPanLocation
             currentPanGestureState = .began
             setOrbitOffset(entityId: findSceneCamera(), uTargetOffset: length(cameraComponent.localPosition))
             cameraControlMode = .orbiting
 
-            if gizmoActive {
+            // Editor-only: hit-test gizmo if editor/gizmo mode is active
+            if gizmoActive, isEditorEnabled {
                 let (hitEntityId, hit) = getRaycastedEntity(currentLocation: currentLocation, view: view)
-
                 if hit {
                     activeHitGizmoEntity = hitEntityId
-
                 } else {
                     activeHitGizmoEntity = .invalid
-                    editorController.activeMode = .none
-                    editorController.activeAxis = .none
+                    editorController?.activeMode = .none
+                    editorController?.activeAxis = .none
                 }
             }
+
         case .changed:
-
-            processGizmoAction(entityId: activeHitGizmoEntity)
-
-            if activeHitGizmoEntity != .invalid {
-                return
+            // Editor-only: process gizmo if we hit one
+            if isEditorEnabled {
+                processGizmoAction(entityId: activeHitGizmoEntity)
+                if activeHitGizmoEntity != .invalid {
+                    // While dragging a gizmo, skip camera orbit updates
+                    return
+                }
             }
-            // Calculate the deltas from the initial touch location
-            var deltaX = currentPanLocation.x - initialPanLocation.x
-            var deltaY = currentPanLocation.y - initialPanLocation.y
 
+            // Camera orbit pan (unaffected by editor being absent/disabled)
+            var deltaX = currentPanLocation.x - (initialPanLocation?.x ?? currentPanLocation.x)
+            var deltaY = currentPanLocation.y - (initialPanLocation?.y ?? currentPanLocation.y)
+
+            // Lock to dominant axis; invert X for your orbit convention
             if abs(deltaX) < abs(deltaY) {
                 deltaX = 0.0
             } else {
                 deltaY = 0.0
-                deltaX = -1.0 * deltaX
+                deltaX = -deltaX
             }
 
-            if abs(deltaX) <= 1.0 {
-                deltaX = 0.0
-            }
+            // Dead zone
+            if abs(deltaX) <= 1.0 { deltaX = 0.0 }
+            if abs(deltaY) <= 1.0 { deltaY = 0.0 }
 
-            if abs(deltaY) <= 1.0 {
-                deltaY = 0.0
-            }
-
-            // Add your code for touch moved here
             panDelta = simd_float2(Float(deltaX), Float(deltaY))
             currentPanGestureState = .changed
             initialPanLocation = currentPanLocation
-            orbitAround(entityId: findSceneCamera(), uPosition: inputSystem.panDelta * 0.005)
-        case .ended, .cancelled, .failed:
 
-            // reset
+            orbitAround(entityId: findSceneCamera(), uPosition: inputSystem.panDelta * 0.005)
+
+        case .ended, .cancelled, .failed:
+            // Reset
             panDelta = simd_float2(0, 0)
             initialPanLocation = nil
             currentPanGestureState = .ended
             cameraControlMode = .idle
+
         default:
             break
         }
     }
+
 
     public func leftMouseDragged(_ delta: simd_float2) {
         mouseDeltaX = delta.x

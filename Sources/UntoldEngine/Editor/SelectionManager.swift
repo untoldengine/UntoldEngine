@@ -14,12 +14,14 @@ protocol SelectionDelegate: AnyObject {
 
 class EditorController: SelectionDelegate, ObservableObject {
     let selectionManager: SelectionManager
+    var isEnabled: Bool = false
     @Published var activeMode: TransformManipulationMode = .none
     @Published var activeAxis: TransformAxis = .none
 
     init(selectionManager: SelectionManager) {
         self.selectionManager = selectionManager
         inputSystem.selectionDelegate = self
+        isEnabled = true
     }
 
     func didSelectEntity(_ entityId: EntityID) {
