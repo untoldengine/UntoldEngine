@@ -12,7 +12,7 @@ func updateRenderingSystem(in view: MTKView) {
     
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
         
-        executeFrustumCulling(commandBuffer)
+        executeReduceScanFrustumCulling(commandBuffer)
         
         if let renderPassDescriptor = view.currentRenderPassDescriptor {
             renderInfo.renderPassDescriptor = renderPassDescriptor
