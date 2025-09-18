@@ -366,7 +366,7 @@ func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     }
 }
 
-func executeOptimizedFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
+func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     if reduceScanMarkVisiblePipeline.success == false {
         handleError(.pipelineStateNulled, reduceScanMarkVisiblePipeline.name!)
         return
