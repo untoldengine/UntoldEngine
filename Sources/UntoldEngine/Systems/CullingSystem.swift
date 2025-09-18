@@ -23,6 +23,22 @@ struct Frustum {
     var planes: [Plane] // L, R, B, T, N, F
 }
 
+func padFrustum(_ F: Frustum,
+                       sidePad: Float = 0.5,   // world units; L/R/T/B
+                       nearPad: Float = 0.05,   // move near plane toward camera
+                       farPad:  Float = 1.0)    // move far plane farther away
+-> Frustum {
+    var p = F.planes // order: L, R, B, T, N, F
+    // Assumes planes have unit-length normals
+    p[0].d += sidePad  // Left
+    p[1].d += sidePad  // Right
+    p[2].d += sidePad  // Bottom
+    p[3].d += sidePad  // Top
+    p[4].d += nearPad  // Near
+    p[5].d += farPad   // Far
+    return Frustum(planes: p)
+}
+
 // ---------- Local OBB → world AABB (handles rotation+scale safely) ----------
 public func worldAABB_MinMax(localMin: simd_float3,
                              localMax: simd_float3,
@@ -206,15 +222,16 @@ func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     blit.endEncoding()
 
     let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
+    
+    // build the frustum
+    var frustum = buildFrustum(from: viewProjection)
+    frustum = padFrustum(frustum, sidePad: 3.0)
 
     let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
 
     computeEncoder.label = "Frustum Culling pass"
 
     computeEncoder.setComputePipelineState(frustumCullingPipeline.pipelineState!)
-
-    // build the frustum
-    let frustum = buildFrustum(from: viewProjection)
 
     guard let frustumTripleBuffer = tripleBufferResources.frustumPlane else {
         handleError(.bufferAllocationFailed, "Frustum cull buffer")
