@@ -109,13 +109,6 @@ public func makeObjectAABB(localMin: simd_float3,
     return EntityAABB(center: simd_float4(c.x, c.y, c.z, 0.0), halfExtent: simd_float4(e.x, e.y, e.z, 0.0), index: index, version: version, pad0: 0, pad1: 0)
 }
 
-private func planeFromPts(_ a: simd_float3, _ b: simd_float3, _ c: simd_float3) -> Plane {
-    let n = simd_normalize(simd_cross(b - a, c - a))
-    return Plane(n: n, d: -simd_dot(n, a))
-}
-
-
-
 
 func buildFrustum(from viewProj: simd_float4x4,
                   ndcNear: Float = 0, ndcFar: Float = 1) -> Frustum
@@ -352,11 +345,6 @@ func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     computeEncoder.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
 
-    /*
-     let numThreadgroups = (N + block - 1) / block
-     computeEncoder.dispatchThreadgroups(MTLSize(width: numThreadgroups, height: 1, depth: 1),
-                                         threadsPerThreadgroup: MTLSize(width: block, height: 1, depth: 1))
-     */
     computeEncoder.endEncoding()
 
     commandBuffer.addCompletedHandler { _ in
@@ -414,8 +402,9 @@ func executeOptimizedFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
 
     // build the frustum
-    let frustum = buildFrustum(from: viewProjection)
-
+    var frustum = buildFrustum(from: viewProjection)
+    frustum = padFrustum(frustum, sidePad: 3.0)
+    
     guard let frustumTripleBuffer = tripleBufferResources.frustumPlane else {
         handleError(.bufferAllocationFailed, "Frustum cull buffer")
         return
@@ -436,13 +425,13 @@ func executeOptimizedFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: frameCount)
+    let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: cullFrameIndex)
     let frustumWritePointer = frustumWriteBuffer.contents().bindMemory(to: simd_float4.self, capacity: planeCount)
     for i in 0 ..< planeCount {
         frustumWritePointer[i] = simd_float4(frustum.planes[i].n, frustum.planes[i].d)
     }
 
-    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: frameCount)
+    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: cullFrameIndex)
 
     let transformId = getComponentId(for: WorldTransformComponent.self)
     let renderId = getComponentId(for: RenderComponent.self)
@@ -490,7 +479,7 @@ func executeOptimizedFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     entityAABBTripleBuffer.ensureCapacity(count)
 
     // write current frame's data
-    let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: frameCount)
+    let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: cullFrameIndex)
 
     entityAABBContainer.withUnsafeBytes { src in
 
@@ -498,7 +487,7 @@ func executeOptimizedFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     }
 
     // pick the buffer the gpu should read
-    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: frameCount)
+    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: cullFrameIndex)
 
     var count32 = UInt32(count)
 
@@ -592,16 +581,23 @@ func executeOptimizedFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         computeEncoderCompact.endEncoding()
     }
-
+    
     commandBuffer.addCompletedHandler { _ in
-        visibleEntityIds.removeAll(keepingCapacity: true)
         let visibleCount = visibilityCountBuffer.contents().load(as: UInt32.self)
         let visibleEntities = visibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
 
+        var nextVisibleIds: [EntityID] = []
         for i in 0 ..< Int(visibleCount) {
             let index = visibleEntities[i].index
             let version = visibleEntities[i].version
-            visibleEntityIds.append(createEntityId(EntityIndex(index), EntityVersion(version)))
+            nextVisibleIds.append(createEntityId(EntityIndex(index), EntityVersion(version)))
+        }
+        
+        // Swap into the write slot on the render thread
+        DispatchQueue.main.async{
+            tripleVisibleEntities.setWrite(frame: cullFrameIndex, with: nextVisibleIds)
+            cullFrameIndex += 1
         }
     }
+    
 }
