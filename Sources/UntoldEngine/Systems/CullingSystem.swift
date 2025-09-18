@@ -56,33 +56,33 @@ public func worldAABB_MinMax(localMin: simd_float3,
 
 public func worldAABB_CenterExtent(localMin: simd_float3,
                                    localMax: simd_float3,
-                                   worldMatrix M: simd_float4x4) -> (center: simd_float3, halfExtent: simd_float3)
+                                   worldMatrix m: simd_float4x4) -> (center: simd_float3, halfExtent: simd_float3)
 {
-    // rotation*scale + translation
+    // Linear part (rotation/scale/shear) and translation
     let R = simd_float3x3(columns: (
-        simd_float3(M.columns.0.x, M.columns.0.y, M.columns.0.z),
-        simd_float3(M.columns.1.x, M.columns.1.y, M.columns.1.z),
-        simd_float3(M.columns.2.x, M.columns.2.y, M.columns.2.z)
+        simd_float3(m.columns.0.x, m.columns.0.y, m.columns.0.z),
+        simd_float3(m.columns.1.x, m.columns.1.y, m.columns.1.z),
+        simd_float3(m.columns.2.x, m.columns.2.y, m.columns.2.z)
     ))
-    let T = simd_float3(M.columns.3.x, M.columns.3.y, M.columns.3.z)
+    let T = simd_float3(m.columns.3.x, m.columns.3.y, m.columns.3.z)
 
-    // local center & halfExtent
-    let lc = (localMin + localMax) * 0.5
-    let le = (localMax - localMin) * 0.5
+    // Local center & half-extent
+    let localCenter = (localMin + localMax) * 0.5
+    let localHalfExtent = (localMax - localMin) * 0.5
 
-    // world center
-    let wc = T + R * lc
-
-    // world halfExtent
-    let AR = simd_float3x3(rows: [
-        simd_float3(abs(R[0, 0]), abs(R[0, 1]), abs(R[0, 2])),
-        simd_float3(abs(R[1, 0]), abs(R[1, 1]), abs(R[1, 2])),
-        simd_float3(abs(R[2, 0]), abs(R[2, 1]), abs(R[2, 2])),
-    ])
-    let we = AR * le
-
-    return (wc, we)
+    // World center and axis-aligned half-extent (|R|·le)
+    let worldCenter = T + R * localCenter
+    let absC0 = simd_float3(abs(R.columns.0.x), abs(R.columns.0.y), abs(R.columns.0.z))
+    let absC1 = simd_float3(abs(R.columns.1.x), abs(R.columns.1.y), abs(R.columns.1.z))
+    let absC2 = simd_float3(abs(R.columns.2.x), abs(R.columns.2.y), abs(R.columns.2.z))
+    let worldExtent = simd_float3(
+        simd_dot(absC0, localHalfExtent),   // row0 of |R|
+        simd_dot(absC1, localHalfExtent),   // row1 of |R|
+        simd_dot(absC2, localHalfExtent)    // row2 of |R|
+    )
+    return (worldCenter, worldExtent)
 }
+
 
 public func makeObjectAABB(localMin: simd_float3,
                            localMax: simd_float3,
@@ -93,33 +93,66 @@ public func makeObjectAABB(localMin: simd_float3,
     return EntityAABB(center: simd_float4(c.x, c.y, c.z, 0.0), halfExtent: simd_float4(e.x, e.y, e.z, 0.0), index: index, version: version, pad0: 0, pad1: 0)
 }
 
-func buildFrustum(from viewProj: simd_float4x4) -> Frustum {
-    let inv = viewProj.inverse
+private func planeFromPts(_ a: simd_float3, _ b: simd_float3, _ c: simd_float3) -> Plane {
+    let n = simd_normalize(simd_cross(b - a, c - a))
+    return Plane(n: n, d: -simd_dot(n, a))
+}
 
+
+
+
+func buildFrustum(from viewProj: simd_float4x4,
+                  ndcNear: Float = 0, ndcFar: Float = 1) -> Frustum
+{
+    let inv = simd_inverse(viewProj)
+
+    @inline(__always)
     func unproject(_ ndc: simd_float3) -> simd_float3 {
-        let p = inv * SIMD4(ndc, 1)
-        return SIMD3(p.x, p.y, p.z) / p.w
+        let p = inv * simd_float4(ndc, 1)
+        return simd_float3(p.x, p.y, p.z) / p.w
     }
 
-    let zn: Float = 0, zf: Float = 1 // Metal depth goes from 0 to 1.
-    let ntl = unproject([-1, 1, zn]), ntr = unproject([1, 1, zn])
-    let nbl = unproject([-1, -1, zn]), nbr = unproject([1, -1, zn])
-    let ftl = unproject([-1, 1, zf]), ftr = unproject([1, 1, zf])
-    let _ = unproject([-1, -1, zf]), fbr = unproject([1, -1, zf])
+    // NDC corners (Metal/D3D: z in [0,1])
+    let ntl = unproject([-1, +1, ndcNear])
+    let ntr = unproject([+1, +1, ndcNear])
+    let nbl = unproject([-1, -1, ndcNear])
+    let nbr = unproject([+1, -1, ndcNear])
 
+    let ftl = unproject([-1, +1, ndcFar])
+    let ftr = unproject([+1, +1, ndcFar])
+    let fbl = unproject([-1, -1, ndcFar])
+    let fbr = unproject([+1, -1, ndcFar])
+
+    @inline(__always)
     func plane(_ a: simd_float3, _ b: simd_float3, _ c: simd_float3) -> Plane {
-        let n = normalize(cross(b - a, c - a)) // CCW seen from inside → inward normals
-        return Plane(n: n, d: -dot(n, a))
+        let n = simd_normalize(simd_cross(b - a, c - a)) // CCW seen from inside
+        return Plane(n: n, d: -simd_dot(n, a))
     }
 
-    let left = plane(ftl, ntl, nbl)
-    let right = plane(ntr, ftr, fbr)
-    let bottom = plane(nbl, nbr, fbr)
-    let top = plane(ftr, ntr, ntl)
-    let nearP = plane(ntl, ntr, nbr)
-    let farP = plane(fbr, ftr, ftl)
+    // Planes with inward-facing CCW triplets
+    var planes = [
+        plane(ntl, nbl, fbl), // Left
+        plane(nbr, ntr, fbr), // Right
+        plane(nbl, nbr, fbr), // Bottom
+        plane(ntr, ntl, ftr), // Top
+        plane(ntl, ntr, nbr), // Near
+        plane(ftr, ftl, fbl), // Far
+    ]
 
-    return Frustum(planes: [left, right, bottom, top, nearP, farP])
+    // Compute frustum center without a giant expression (avoids type-check blowup)
+    let nearCenter = (ntl + ntr + nbl + nbr) * 0.25
+    let farCenter  = (ftl + ftr + fbl + fbr) * 0.25
+    let center     = (nearCenter + farCenter) * 0.5
+
+    // Ensure normals point inward (robust orientation)
+    for i in planes.indices {
+        if simd_dot(planes[i].n, center) + planes[i].d < 0 {
+            planes[i].n = -planes[i].n
+            planes[i].d = -planes[i].d
+        }
+    }
+
+    return Frustum(planes: planes)
 }
 
 func initFrustumCulllingCompute() {
