@@ -200,9 +200,6 @@ public class ScenegraphComponent: Component {
 }
 
 public class CameraComponent: Component {
-    var fov: Float = 65.0
-    var nearClip: Float = 0.1
-    var farClip: Float = 1000.0
 
     public var viewSpace = simd_float4x4.init(1.0)
     public var xAxis: simd_float3 = .init(0.0, 0.0, 0.0)
