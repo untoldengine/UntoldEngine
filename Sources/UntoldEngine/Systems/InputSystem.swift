@@ -53,9 +53,9 @@ public final class InputSystem {
 
     var pinchDelta: simd_float3 = .init(0, 0, 0)
     var previousScale: CGFloat = 1
-
+    #if os(macOS)
     weak var selectionDelegate: SelectionDelegate?
-
+    #endif
     public init() { setupGameController() }
 
     private func setupGameController() {
