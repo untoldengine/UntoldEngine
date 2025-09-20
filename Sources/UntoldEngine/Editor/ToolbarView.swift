@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 2/19/25.
 //
-
+#if canImport(AppKit)
 import SwiftUI
 
 struct ToolbarView: View {
@@ -102,3 +102,4 @@ struct ToolbarButton: View {
         .help(tooltip)
     }
 }
+#endif

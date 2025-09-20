@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 4/18/25.
 //
-
+#if canImport(AppKit)
 import Foundation
 import SwiftUI
 
@@ -93,3 +93,4 @@ struct TransformManipulationToolbar: View {
         .cornerRadius(5)
     }
 }
+#endif
