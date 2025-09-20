@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 3/6/25.
 //
-
+#if canImport(AppKit)
 import AppKit
 import Foundation
 import simd
@@ -767,3 +767,4 @@ func deserializeScene(sceneData: SceneData) {
         setParent(childId: childId, parentId: parentId)
     }
 }
+#endif

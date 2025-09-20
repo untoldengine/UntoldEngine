@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 2/23/25.
 //
-
+#if canImport(AppKit)
 import simd
 import SwiftUI
 
@@ -168,3 +168,4 @@ public struct TextInputNumberView: View {
         }
     }
 }
+#endif

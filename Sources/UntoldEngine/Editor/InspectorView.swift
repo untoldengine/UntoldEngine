@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 2/19/25.
 //
-
+#if canImport(AppKit)
 import simd
 import SwiftUI
 
@@ -901,3 +901,4 @@ struct CameraEditorView: View {
         }
     }
 }
+#endif
