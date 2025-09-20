@@ -1,31 +1,19 @@
 // swift-tools-version: 5.10
-
 import PackageDescription
 
 let package = Package(
     name: "UntoldEngine",
     platforms: [
         .macOS(.v14),
+        .iOS(.v17),
+        // .visionOS(.v1),
     ],
     products: [
-        // Library product for the engine
-        .library(
-            name: "UntoldEngine",
-            targets: ["UntoldEngine"]
-        ),
-        // Executable for the demo game
-        .executable(
-            name: "DemoGame",
-            targets: ["DemoGame"]
-        ),
-        // Executable for the starter template
-        .executable(
-            name: "StarterGame",
-            targets: ["StarterGame"]
-        ),
+        .library(name: "UntoldEngine", targets: ["UntoldEngine"]),
+        .executable(name: "DemoGame", targets: ["DemoGame"]),
+        .executable(name: "StarterGame", targets: ["StarterGame"]),
     ],
     targets: [
-        // Library target with the engine code
         .target(
             name: "CShaderTypes",
             path: "Sources/CShaderTypes",
@@ -39,49 +27,55 @@ let package = Package(
             dependencies: ["CShaderTypes"],
             path: "Sources/UntoldEngine",
             exclude: ["Shaders"],
+
+            // 📦 Ship prebuilt metallibs for each platform; pick at runtime.
             resources: [
-                // Include all Metal files and other resources
-                .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
-                .process("UntoldEngineKernels/UntoldEngineKernels.air"),
-                .process("UntoldEngineKernels/UntoldEngineKernels.metal"),
+                .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),        // macOS
+                .copy("UntoldEngineKernels/UntoldEngineKernels-ios.metallib"),    // iOS (device)
+                // .copy("UntoldEngineKernels/UntoldEngineKernels-xros.metallib"), // visionOS (optional)
                 .process("Resources/Models"),
                 .process("Resources/HDR"),
                 .process("Resources/ReferenceImages"),
                 .process("Resources/textures"),
             ],
-            swiftSettings: [
-                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
+
+            linkerSettings: [
+                // Common
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS/*, .visionOS*/])),
+
+                // macOS UI stack
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
+
+                // iOS UI stack (only if some targets import UIKit)
+                .linkedFramework("UIKit", .when(platforms: [.iOS])),
             ]
         ),
-        // Executable target for the demo game
+
+        // These executables are macOS-only
         .executableTarget(
             name: "DemoGame",
             dependencies: ["UntoldEngine"],
             path: "Sources/DemoGame",
-            swiftSettings: [
-                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore"),
+                .linkedFramework("AppKit"), // macOS only code guarded in sources
             ]
         ),
-        // Executable target for the starter template
         .executableTarget(
             name: "StarterGame",
             dependencies: ["UntoldEngine"],
             path: "Sources/StarterGame",
-            swiftSettings: [
-                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore"),
+                .linkedFramework("AppKit"),
             ]
         ),
-        // Test target for unit tests
-        .testTarget(
-            name: "UntoldEngineTests",
-            dependencies: ["UntoldEngine"],
-            path: "Tests/UntoldEngineTests"
-        ),
-        // Render-specific test target
-        .testTarget(
-            name: "UntoldEngineRenderTests",
-            dependencies: ["UntoldEngine"],
-            path: "Tests/UntoldEngineRenderTests"
-        ),
+
+        .testTarget(name: "UntoldEngineTests", dependencies: ["UntoldEngine"], path: "Tests/UntoldEngineTests"),
+        .testTarget(name: "UntoldEngineRenderTests", dependencies: ["UntoldEngine"], path: "Tests/UntoldEngineRenderTests"),
     ]
 )
+
