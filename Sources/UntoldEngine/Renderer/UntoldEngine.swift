@@ -20,8 +20,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     override public init() {
         // Initialize the metal view
         metalView = MTKView()
-
+        #if canImport(AppKit)
         Logger.addSink(LogStore.shared)
+        #endif
         super.init()
     }
 
@@ -225,6 +226,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     func handleSceneInput() {
+        #if os(macOS)
         // Game mode blocks editor + camera input entirely
         if gameMode { return }
 
@@ -454,6 +456,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         default:
             break
         }
+#endif
     }
 
    
