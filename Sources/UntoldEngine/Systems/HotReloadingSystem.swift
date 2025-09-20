@@ -134,12 +134,16 @@ func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: 
 }
 
 func updateShadersAndPipeline() {
+    #if os(macOS)
     if let library = loadMetalLibraryFromUserSelection() {
         reloadPipeline(named: "model", with: library, pipe: &modelPipeline)
     }
+    #endif
 }
 
 func selectMetalLibraryFile() -> URL? {
+    // We can fix this up  later. The hot-reload system will only work for mac. 
+#if os(macOS)
     let openPanel = NSOpenPanel()
     openPanel.prompt = "Select .metallib file"
     openPanel.allowedContentTypes = [
@@ -156,6 +160,8 @@ func selectMetalLibraryFile() -> URL? {
     } else {
         return nil
     }
+#endif
+    return nil
 }
 
 func loadMetalLibraryFromUserSelection() -> MTLLibrary? {
