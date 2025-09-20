@@ -45,6 +45,7 @@ func createGizmo(name: String) {
 }
 
 func processGizmoAction(entityId: EntityID) {
+#if canImport(AppKit)
     if entityId == .invalid {
         return
     }
@@ -84,6 +85,7 @@ func processGizmoAction(entityId: EntityID) {
         editorController?.activeMode = .none
         editorController?.activeAxis = .none
     }
+#endif
 }
 
 func hitGizmoToolAxis(entityId: EntityID) -> Bool {
