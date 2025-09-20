@@ -34,7 +34,7 @@ public protocol LoggerSink: AnyObject {
 
 public enum Logger {
     public static var logLevel: LogLevel = .debug
-
+#if canImport(AppKit)
     private static var sinks = [WeakBox]()
     private static let sinkQueue = DispatchQueue(label: "engine.logger.sinks", qos: .utility)
 
@@ -43,8 +43,10 @@ public enum Logger {
     // Backlog for events emitted before any sinks exist
     private static var backlog: [LogEvent] = []
     private static let backlogLimit = 2000
-
+    #endif
+    
     public static func addSink(_ sink: LoggerSink) {
+#if canImport(AppKit)
         sinkQueue.async {
             sinks.append(WeakBox(value: sink))
 
@@ -52,6 +54,7 @@ public enum Logger {
             let snapshot = backlog
             snapshot.forEach { sink.didLog($0) }
         }
+        #endif
     }
 
     private static func emit(level: LogLevel,
@@ -61,6 +64,7 @@ public enum Logger {
                              function: String = #function,
                              line: Int = #line)
     {
+#if canImport(AppKit)
         let event = LogEvent(level: level, message: message, file: file,
                              function: function, line: line, category: category)
 
@@ -75,6 +79,7 @@ public enum Logger {
             sinks = sinks.filter { $0.value != nil }
             sinks.forEach { $0.value?.didLog(event) }
         }
+        #endif
     }
 
     public static func log(message: String,
