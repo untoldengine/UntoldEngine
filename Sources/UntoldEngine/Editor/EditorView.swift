@@ -1,3 +1,4 @@
+#if canImport(AppKit)
 import MetalKit
 import SwiftUI
 
@@ -288,3 +289,4 @@ public struct EditorView: View {
         translateTo(entityId: selectionManager.selectedEntity!, position: spawnPosition)
     }
 }
+#endif

@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 2/19/25.
 //
-
+#if canImport(AppKit)
 import SwiftUI
 
 struct SceneHierarchyView: View {
@@ -143,3 +143,4 @@ struct HierarchyNode: View {
         }
     }
 }
+#endif

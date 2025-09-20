@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 2/22/25.
 //
-
+#if canImport(AppKit)
 import Foundation
 
 protocol SelectionDelegate: AnyObject {
@@ -97,3 +97,4 @@ class SelectionManager: ObservableObject {
         }
     }
 }
+#endif

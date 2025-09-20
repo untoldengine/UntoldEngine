@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 8/10/25.
 //
-
+#if canImport(AppKit)
 import Foundation
 import SwiftUI
 
@@ -82,3 +82,4 @@ public func makeEditorView(fields: [EditorField]) -> (EntityID?, Asset?, @escapi
         )
     }
 }
+#endif

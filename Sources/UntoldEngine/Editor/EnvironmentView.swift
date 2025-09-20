@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 3/19/25.
 //
-
+#if canImport(AppKit)
 import simd
 import SwiftUI
 
@@ -370,3 +370,4 @@ struct DebuggerEditorView: View {
         .padding()
     }
 }
+#endif
