@@ -1,6 +1,8 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#include <TargetConditionals.h>
+
 #include "../Shaders/ShadersUtils.metal"
 #include "../Shaders/shadowShader.metal"
 #include "../Shaders/GridShader.metal"
@@ -13,9 +15,7 @@ using namespace metal;
 #include "../Shaders/postprocessShader.metal"
 #include "../Shaders/tonemapShader.metal"
 #include "../Shaders/preCompShader.metal"
-#include "../Shaders/OutlineShader.metal"
 #include "../Shaders/LightVisualShader.metal"
-#include "../Shaders/raymodelIntersect.metal"
 #include "../Shaders/ColorGradingShader.metal"
 #include "../Shaders/BlurShader.metal"
 #include "../Shaders/ColorCorrectionShader.metal"
@@ -29,3 +29,9 @@ using namespace metal;
 #include "../Shaders/LightShader.metal"
 #include "../Shaders/SSAOBlurShader.metal"
 #include "../Shaders/FrustumCullingCompute.metal"
+
+#if TARGET_OS_OSX
+
+#include "../Shaders/OutlineShader.metal"
+#include "../Shaders/raymodelIntersect.metal"
+#endif
