@@ -241,9 +241,13 @@ typedef enum{
 
 typedef enum{
     shadowPassModelPositionIndex,
+    shadowPassJointIdIndex,
+    shadowPassJointWeightsIndex,
     shadowPassModelUniform,
     shadowPassLightMatrixUniform,
-    shadowPassLightPositionUniform
+    shadowPassLightPositionUniform,
+    shadowPassJointTransformIndex,
+    shadowPassHasArmature,
 }ShadowBufferIndices;
 
 typedef struct{

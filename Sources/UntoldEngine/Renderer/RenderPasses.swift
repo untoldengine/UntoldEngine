@@ -306,7 +306,29 @@ enum RenderPasses {
                     mesh.metalKitMesh.vertexBuffers[Int(shadowPassModelPositionIndex.rawValue)].buffer,
                     offset: 0, index: Int(shadowPassModelPositionIndex.rawValue)
                 )
+                
+                // check if it has skeleton component
+                var hasArmature = false
 
+                if let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) {
+                    hasArmature = true
+                }
+
+                renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
+
+                renderEncoder.setVertexBuffer(
+                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
+                    offset: 0, index: Int(shadowPassJointIdIndex.rawValue)
+                )
+
+                renderEncoder.setVertexBuffer(
+                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
+                    offset: 0, index: Int(shadowPassJointWeightsIndex.rawValue)
+                )
+
+                renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
+                
+                
                 for subMesh in mesh.submeshes {
                     renderEncoder.drawIndexedPrimitives(
                         type: subMesh.metalKitSubmesh.primitiveType,
