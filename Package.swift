@@ -23,6 +23,10 @@ let package = Package(
             name: "StarterGame",
             targets: ["StarterGame"]
         ),
+        .executable(
+            name: "SwiftUIDemo",
+            targets: ["SwiftUIDemo"]
+        ),
     ],
     targets: [
         // Library target with the engine code
@@ -69,6 +73,17 @@ let package = Package(
             path: "Sources/StarterGame",
             swiftSettings: [
                 .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"]),
+            ]
+        ),
+        .executableTarget(
+            name: "SwiftUIDemo",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/SwiftUIDemo",
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.iOS, .macOS])),
+                .linkedFramework("Cocoa", .when(platforms: [.macOS])),
+                .linkedFramework("UIKit", .when(platforms: [.iOS]))
             ]
         ),
         // Test target for unit tests
