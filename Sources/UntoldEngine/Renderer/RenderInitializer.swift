@@ -766,12 +766,38 @@ func createShadowVertexDescriptor() -> MTLVertexDescriptor {
         shadowPassModelPositionIndex.rawValue)
     vertexDescriptor.attributes[Int(shadowPassModelPositionIndex.rawValue)].offset = 0
 
+    // set joint id
+    vertexDescriptor.attributes[Int(shadowPassJointIdIndex.rawValue)].format =
+        MTLVertexFormat.ushort4
+    vertexDescriptor.attributes[Int(shadowPassJointIdIndex.rawValue)].bufferIndex = Int(
+        shadowPassJointIdIndex.rawValue)
+    vertexDescriptor.attributes[Int(shadowPassJointIdIndex.rawValue)].offset = 0
+
+    // set joint weights
+    vertexDescriptor.attributes[Int(shadowPassJointWeightsIndex.rawValue)].format =
+        MTLVertexFormat.float4
+    vertexDescriptor.attributes[Int(shadowPassJointWeightsIndex.rawValue)].bufferIndex = Int(
+        shadowPassJointWeightsIndex.rawValue)
+    vertexDescriptor.attributes[Int(shadowPassJointWeightsIndex.rawValue)].offset = 0
+
     // stride
     vertexDescriptor.layouts[Int(shadowPassModelPositionIndex.rawValue)].stride =
         MemoryLayout<simd_float4>.stride
     vertexDescriptor.layouts[Int(shadowPassModelPositionIndex.rawValue)].stepFunction =
         MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[Int(shadowPassModelPositionIndex.rawValue)].stepRate = 1
+    
+    vertexDescriptor.layouts[Int(shadowPassJointIdIndex.rawValue)].stride =
+        MemoryLayout<simd_ushort4>.stride
+    vertexDescriptor.layouts[Int(shadowPassJointIdIndex.rawValue)].stepFunction =
+        MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[Int(shadowPassJointIdIndex.rawValue)].stepRate = 1
+
+    vertexDescriptor.layouts[Int(shadowPassJointWeightsIndex.rawValue)].stride =
+        MemoryLayout<simd_float4>.stride
+    vertexDescriptor.layouts[Int(shadowPassJointWeightsIndex.rawValue)].stepFunction =
+        MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[Int(shadowPassJointWeightsIndex.rawValue)].stepRate = 1
 
     return vertexDescriptor
 }
