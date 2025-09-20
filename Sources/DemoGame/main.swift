@@ -1,4 +1,4 @@
-
+#if os(macOS)
 import MetalKit
 import SwiftUI
 import UntoldEngine
@@ -154,3 +154,4 @@ let delegate = AppDelegate()
 app.delegate = delegate
 
 app.run()
+#endif

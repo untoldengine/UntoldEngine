@@ -4,7 +4,7 @@
 //
 //  Created by Harold Serrano on 5/11/25.
 //
-
+#if os(macOS)
 import Foundation
 import simd
 import SwiftUI
@@ -135,7 +135,6 @@ func cameraFollow(
 // Editor Integration
 // Makes CameraFollowComponent visible in the Editor (Inspector panel).
 // -----------------------------------------------------------------------------
-
 var CameraFollowComponent_Editor: ComponentOption_Editor = .init(
     id: getComponentId(for: CameraFollowComponent.self),
     name: "Camera Follow",
@@ -157,3 +156,4 @@ var CameraFollowComponent_Editor: ComponentOption_Editor = .init(
         registerComponent(entityId: entityId, componentType: CameraFollowComponent.self)
     }
 )
+#endif

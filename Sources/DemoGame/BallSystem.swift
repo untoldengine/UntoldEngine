@@ -4,6 +4,7 @@
 //
 //  Created by Harold Serrano on 2/24/25.
 //
+#if os(macOS)
 import simd
 import SwiftUI
 import UntoldEngine
@@ -118,7 +119,6 @@ func decelerate(deltaTime: Float, ball: EntityID) {
     clearVelocity(entityId: ball)
     clearAngularVelocity(entityId: ball)
 }
-
 // BallComponent_Editor integrates the BallComponent with the Editor.
 // This makes the component visible and editable in the UI.
 var BallComponent_Editor: ComponentOption_Editor = .init(
@@ -142,3 +142,4 @@ var BallComponent_Editor: ComponentOption_Editor = .init(
         registerComponent(entityId: entityId, componentType: BallComponent.self)
     }
 )
+#endif

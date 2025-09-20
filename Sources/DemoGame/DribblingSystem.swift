@@ -5,6 +5,7 @@
 //  Created by Harold Serrano on 2/25/25.
 //
 
+#if os(macOS)
 import Foundation
 import simd
 import SwiftUI
@@ -133,7 +134,6 @@ public func dribblingSystemUpdate(deltaTime: Float) {
 // Editor Integration
 // Makes DribblinComponent editable in the Editor (Inspector panel).
 // -----------------------------------------------------------------------------
-
 var DribblingComponent_Editor: ComponentOption_Editor = .init(
     id: getComponentId(for: DribblinComponent.self),
     name: "Dribbling Component",
@@ -159,4 +159,4 @@ var DribblingComponent_Editor: ComponentOption_Editor = .init(
         registerComponent(entityId: entityId, componentType: DribblinComponent.self)
     }
 )
-
+#endif
