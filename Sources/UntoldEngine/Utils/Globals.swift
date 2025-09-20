@@ -162,7 +162,13 @@ enum TextureType: String, CaseIterable, Identifiable {
 }
 
 var visualDebug: Bool = false
+
+#if os(iOS)
+public var gameMode: Bool = true
+#else
 public var gameMode: Bool = false
+#endif
+
 var hotReload: Bool = false
 
 var applyIBL: Bool = true
@@ -200,8 +206,9 @@ public var enableEditor: Bool = true
 public var assetBasePath: URL?
 
 var activeEntity: EntityID = .invalid
+#if os(macOS)
 var editorController: EditorController?
-
+#endif
 // Transform Manipulation mode
 enum TransformManipulationMode {
     case translate
