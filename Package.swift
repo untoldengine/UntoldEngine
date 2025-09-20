@@ -59,8 +59,8 @@ let package = Package(
             path: "Sources/DemoGame",
             linkerSettings: [
                 .linkedFramework("Metal"),
-                .linkedFramework("QuartzCore"),
-                .linkedFramework("AppKit"), // macOS only code guarded in sources
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
             ]
         ),
         .executableTarget(
@@ -69,8 +69,8 @@ let package = Package(
             path: "Sources/StarterGame",
             linkerSettings: [
                 .linkedFramework("Metal"),
-                .linkedFramework("QuartzCore"),
-                .linkedFramework("AppKit"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
             ]
         ),
 
