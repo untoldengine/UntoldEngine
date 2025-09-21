@@ -1,7 +1,7 @@
-//
-//  Info.plist.swift
-//  UntoldEngine
-//
-//  Created by Javier Segura Perez on 20/9/25.
-//
-
+{
+	CFBundleExecutable = "$(EXECUTABLE_NAME)";
+	CFBundleVersion = 1;
+	"CFBundleShortVersionString" = "1.0";
+	CFBundleName = SwiftUIDemoApp;
+	CFBundleIdentifier = "com.untoldengine.swiftuidemoapp";
+}
