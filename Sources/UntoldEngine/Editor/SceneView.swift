@@ -4,7 +4,6 @@
 //
 //  Created by Harold Serrano on 2/19/25.
 //
-#if canImport(AppKit)
 import MetalKit
 import SwiftUI
 
@@ -35,11 +34,11 @@ public struct SceneView: ViewRepresentable {
         mtkView
     }
 
-    public func updateUIView(_: MTKView, context _: Context) {
+    public func updateUIView(_ mtkView: MTKView, context: Context) {
         updateView(mtkView, context: context)
     }
 #endif
     
     public func updateView(_ view: MTKView, context: Context) { }
 }
-#endif
+
