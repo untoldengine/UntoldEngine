@@ -8,13 +8,38 @@
 import MetalKit
 import SwiftUI
 
-struct SceneView: NSViewRepresentable {
+#if os(macOS)
+public typealias ViewRepresentable = NSViewRepresentable
+#else
+public typealias ViewRepresentable = UIViewRepresentable
+#endif
+
+
+public struct SceneView: ViewRepresentable {
     var mtkView: MTKView
 
-    func makeNSView(context _: Context) -> MTKView {
+    public init( mtkView: MTKView) {
+        self.mtkView = mtkView
+    }
+    
+#if os(macOS)
+    public func makeNSView(context: Context) -> MTKView {
         mtkView
     }
 
-    func updateNSView(_: MTKView, context _: Context) {}
+    public func updateNSView( _ view: MTKView, context : Context) {
+        updateView(mtkView, context: context)
+    }
+#else
+    public func makeUIView(context: Context) -> MTKView {
+        mtkView
+    }
+
+    public func updateUIView(_: MTKView, context _: Context) {
+        updateView(mtkView, context: context)
+    }
+#endif
+    
+    public func updateView(_ view: MTKView, context: Context) { }
 }
 #endif
