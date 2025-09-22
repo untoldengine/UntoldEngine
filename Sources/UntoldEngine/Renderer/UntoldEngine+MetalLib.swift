@@ -21,10 +21,11 @@ extension MTLDevice
         let resourceName = "UntoldEngineKernels-tvos"
         #elseif os(tvOS) && targetEnvironment(simulator)
         let resourceName = "UntoldEngineKernels-tvossim"
+        #elseif os(xrOS) && !targetEnvironment(simulator)
+        let resourceName = "UntoldEngineKernels-xros"
+        #elseif os(xrOS) && targetEnvironment(simulator)
+        let resourceName = "UntoldEngineKernels-xrossim"
         #endif
-            // elseif os(xrOS)
-            // let libraryURL=Bundle.main.url(forResource: "UntoldEngineKernels-xros", withExtension: "metallib")
-            // elseif os(xrOS)
                 
         let libraryURL = Bundle.module.url(forResource: resourceName, withExtension: "metallib")
         
