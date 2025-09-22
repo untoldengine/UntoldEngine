@@ -83,8 +83,10 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         shadowSystem = ShadowSystem()
 
+        #if !os(tvOS)
         inputSystem.setupGestureRecognizers(view: metalView)
         inputSystem.setupEventMonitors()
+        #endif
 
         let sceneCamera = createEntity()
         createSceneCamera(entityId: sceneCamera)
@@ -111,6 +113,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     
     func initSizeableResources() {
         if renderInfo.viewPort.x == 0 || renderInfo.viewPort.y == 0 { return }
+        
+        initRTXAccumulationBuffer()
         
         initTextureResources()
         initRenderPassDescriptors()
