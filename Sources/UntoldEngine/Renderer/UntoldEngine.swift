@@ -56,8 +56,10 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
         renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
 
-        #if os(iOS)
+        #if os(iOS) && !targetEnvironment(simulator)
             let libraryURL = Bundle.module.url(forResource: "UntoldEngineKernels-ios", withExtension: "metallib")!
+        #elseif os(iOS) && targetEnvironment(simulator)
+        let libraryURL = Bundle.module.url(forResource: "UntoldEngineKernels-iossim", withExtension: "metallib")!
         #elseif os(macOS)
             let libraryURL = Bundle.module.url(forResource: "UntoldEngineKernels", withExtension: "metallib")!
             // elseif os(xrOS)

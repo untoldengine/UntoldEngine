@@ -472,7 +472,7 @@ func initTextureResources() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget],
-        storageMode: .shared
+        storageMode: .private
     )
 
     // Deferred Depth Texture
@@ -483,7 +483,7 @@ func initTextureResources() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget],
-        storageMode: .shared
+        storageMode: .private
     )
 
     // SSAO Depth Texture
@@ -494,7 +494,7 @@ func initTextureResources() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget],
-        storageMode: .shared
+        storageMode: .private
     )
 
     // SSAO Blur Depth Texture
@@ -505,7 +505,7 @@ func initTextureResources() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget],
-        storageMode: .shared
+        storageMode: .private
     )
 
     // Material Texture
@@ -669,7 +669,7 @@ func initTextureResources() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget],
-        storageMode: .shared
+        storageMode: .private
     )
 
     textureResources.gizmoColorTexture = createTexture(
