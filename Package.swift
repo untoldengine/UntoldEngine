@@ -101,17 +101,6 @@ let package = Package(
                 .linkedFramework("UIKit", .when(platforms: [.iOS]))
             ]
         ),
-        .executableTarget(
-            name: "SwiftUIDemo",
-            dependencies: ["UntoldEngine"],
-            path: "Sources/SwiftUIDemo",
-            linkerSettings: [
-                .linkedFramework("Metal"),
-                .linkedFramework("QuartzCore", .when(platforms: [.iOS, .macOS])),
-                .linkedFramework("Cocoa", .when(platforms: [.macOS])),
-                .linkedFramework("UIKit", .when(platforms: [.iOS]))
-            ]
-        ),
         // Test target for unit tests
         .testTarget(
             name: "UntoldEngineTests",
