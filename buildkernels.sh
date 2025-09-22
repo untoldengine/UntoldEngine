@@ -17,3 +17,15 @@ xcrun -sdk iphoneos metallib UntoldEngineKernels-ios.air -o UntoldEngineKernels-
 xcrun -sdk iphonesimulator metal UntoldEngineKernels.metal -c -o UntoldEngineKernels-ios.air
 
 xcrun -sdk iphonesimulator metallib UntoldEngineKernels-ios.air -o UntoldEngineKernels-ios.metallib
+
+# tvOS (device)
+
+xcrun -sdk appletvos metal UntoldEngineKernels.metal -c -o UntoldEngineKernels-tvos.air
+
+xcrun -sdk appletvos metallib UntoldEngineKernels-tvos.air -o UntoldEngineKernels-tvos.metallib
+
+# tvOS (simulator)
+
+xcrun -sdk appletvsimulator metal UntoldEngineKernels.metal -c -o UntoldEngineKernels-tvossim.air
+
+xcrun -sdk appletvsimulator metallib UntoldEngineKernels-tvossim.air -o UntoldEngineKernels-tvossim.metallib
