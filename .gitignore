@@ -67,3 +67,4 @@ Sources/UntoldEngine/UntoldEngineKernels/UntoldEngineKernels.air
 docs/_site/
 docs/.jekyll-cache/
 
+.vscode/
