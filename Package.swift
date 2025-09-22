@@ -46,9 +46,11 @@ let package = Package(
 
             // 📦 Ship prebuilt metallibs for each platform; pick at runtime.
             resources: [
-                .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),        // macOS
-                .copy("UntoldEngineKernels/UntoldEngineKernels-ios.metallib"),    // iOS (device)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-iossim.metallib"), // iOS (simulator)
+                .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),         // macOS
+                .copy("UntoldEngineKernels/UntoldEngineKernels-ios.metallib"),     // iOS (device)
+                .copy("UntoldEngineKernels/UntoldEngineKernels-iossim.metallib"),  // iOS (simulator)
+                .copy("UntoldEngineKernels/UntoldEngineKernels-tvos.metallib"),    // tvOS (device)
+                .copy("UntoldEngineKernels/UntoldEngineKernels-tvossim.metallib"), // tvOS (simulator)
                 // .copy("UntoldEngineKernels/UntoldEngineKernels-xros.metallib"), // visionOS (optional)
                 .process("Resources/Models"),
                 .process("Resources/HDR"),
