@@ -315,18 +315,6 @@ func initBufferResources() {
         )
     }
 
-    // Initialize RTX Accumulation Buffer
-    func initRTXAccumulationBuffer() {
-        let width = Int(renderInfo.viewPort.x)
-        let height = Int(renderInfo.viewPort.y)
-        let bufferLength = MemoryLayout<simd_float3>.stride * width * height
-        bufferResources.accumulationBuffer = createEmptyBuffer(
-            device: renderInfo.device,
-            length: bufferLength,
-            label: "Accumulation Buffer"
-        )
-    }
-
     // Initialize All Buffers
     initGridBuffers()
     initCompositeBuffers()
@@ -334,7 +322,19 @@ func initBufferResources() {
     initSpotLightBuffer()
     initAreaLightBuffer()
     initBoundingBoxBuffer()
-    initRTXAccumulationBuffer()
+}
+
+// Initialize RTX Accumulation Buffer
+func initRTXAccumulationBuffer() {
+    let width = Int(renderInfo.viewPort.x)
+    let height = Int(renderInfo.viewPort.y)
+    
+    let bufferLength = MemoryLayout<simd_float3>.stride * width * height
+    bufferResources.accumulationBuffer = createEmptyBuffer(
+        device: renderInfo.device,
+        length: bufferLength,
+        label: "Accumulation Buffer"
+    )
 }
 
 func initRenderPassDescriptors() {
