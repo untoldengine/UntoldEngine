@@ -51,7 +51,8 @@ let package = Package(
                 .copy("UntoldEngineKernels/UntoldEngineKernels-iossim.metallib"),  // iOS (simulator)
                 .copy("UntoldEngineKernels/UntoldEngineKernels-tvos.metallib"),    // tvOS (device)
                 .copy("UntoldEngineKernels/UntoldEngineKernels-tvossim.metallib"), // tvOS (simulator)
-                // .copy("UntoldEngineKernels/UntoldEngineKernels-xros.metallib"), // visionOS (optional)
+                .copy("UntoldEngineKernels/UntoldEngineKernels-xros.metallib"),    // visionOS (device)
+                .copy("UntoldEngineKernels/UntoldEngineKernels-xrossim.metallib"), // visionOS (simulator)
                 .process("Resources/Models"),
                 .process("Resources/HDR"),
                 .process("Resources/ReferenceImages"),
