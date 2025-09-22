@@ -83,7 +83,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         shadowSystem = ShadowSystem()
 
-        #if !os(tvOS)
+        #if !os(tvOS) && !os(visionOS)
         inputSystem.setupGestureRecognizers(view: metalView)
         inputSystem.setupEventMonitors()
         #endif
