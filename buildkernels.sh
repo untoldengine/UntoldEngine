@@ -11,3 +11,9 @@ xcrun -sdk macosx metallib UntoldEngineKernels.air -o UntoldEngineKernels.metall
 xcrun -sdk iphoneos metal UntoldEngineKernels.metal -c -o UntoldEngineKernels-ios.air
 
 xcrun -sdk iphoneos metallib UntoldEngineKernels-ios.air -o UntoldEngineKernels-ios.metallib
+
+# iOS (simulator)
+
+xcrun -sdk iphonesimulator metal UntoldEngineKernels.metal -c -o UntoldEngineKernels-ios.air
+
+xcrun -sdk iphonesimulator metallib UntoldEngineKernels-ios.air -o UntoldEngineKernels-ios.metallib

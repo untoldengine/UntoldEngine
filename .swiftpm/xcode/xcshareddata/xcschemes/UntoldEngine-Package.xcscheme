@@ -63,6 +63,20 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "SwiftUIDemo"
+               BuildableName = "SwiftUIDemo"
+               BlueprintName = "SwiftUIDemo"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -118,9 +132,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "StarterGame"
-            BuildableName = "StarterGame"
-            BlueprintName = "StarterGame"
+            BlueprintIdentifier = "SwiftUIDemo"
+            BuildableName = "SwiftUIDemo"
+            BlueprintName = "SwiftUIDemo"
             ReferencedContainer = "container:">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -144,9 +158,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "StarterGame"
-            BuildableName = "StarterGame"
-            BlueprintName = "StarterGame"
+            BlueprintIdentifier = "SwiftUIDemo"
+            BuildableName = "SwiftUIDemo"
+            BlueprintName = "SwiftUIDemo"
             ReferencedContainer = "container:">
          </BuildableReference>
       </BuildableProductRunnable>
