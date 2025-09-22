@@ -56,19 +56,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
         renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
 
-        #if os(iOS) && !targetEnvironment(simulator)
-            let libraryURL = Bundle.module.url(forResource: "UntoldEngineKernels-ios", withExtension: "metallib")!
-        #elseif os(iOS) && targetEnvironment(simulator)
-        let libraryURL = Bundle.module.url(forResource: "UntoldEngineKernels-iossim", withExtension: "metallib")!
-        #elseif os(macOS)
-            let libraryURL = Bundle.module.url(forResource: "UntoldEngineKernels", withExtension: "metallib")!
-            // elseif os(xrOS)
-            // let libraryURL=Bundle.main.url(forResource: "UntoldEngineKernels-xros", withExtension: "metallib")
-            // elseif os(xrOS)
-        #endif
-
         do {
-            let mainLibrary = try renderInfo.device.makeLibrary(URL: libraryURL)
+            let mainLibrary = try renderInfo.device.makeLibraryFromBundle()
             renderInfo.library = mainLibrary
             Logger.log(message: "Found Untold Engine metallib")
         } catch {
@@ -219,19 +208,29 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         updateRenderingSystem(in: view)
     }
 
-    public func mtkView(_ mtkView: MTKView, drawableSizeWillChange _: CGSize) {
-        let mtkViewSize = mtkView.bounds.size
-        let aspect = Float(mtkViewSize.width) / Float(mtkViewSize.height)
+    public func mtkView(_ mtkView: MTKView, drawableSizeWillChange size: CGSize) {
+        let oldSize = mtkView.drawableSize
+        
+        let aspect = Float(size.width) / Float(size.height)
         let projectionMatrix = matrixPerspectiveRightHand(
             fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far
         )
-
+        
         renderInfo.perspectiveSpace = projectionMatrix
-
-        let viewPortSize: simd_float2 = simd_make_float2(Float(mtkViewSize.width), Float(mtkViewSize.height))
+        
+        let viewPortSize: simd_float2 = simd_make_float2(Float(size.width), Float(size.height))
         renderInfo.viewPort = viewPortSize
         
-        initSizeableResources()
+        if oldSize.width == 0 || oldSize.height == 0 {
+            // Init sizeable resources
+            initSizeableResources()
+        }
+        else if (abs(oldSize.width - size.height) < 0.1 &&
+                 abs(oldSize.height - size.width) < 0.1) {
+            // Init the resources again becasue the rotation of the screen
+            initResources()
+        }
+        // TODO: We should init the resources again if they change the view size?
     }
 
     func handleSceneInput() {
