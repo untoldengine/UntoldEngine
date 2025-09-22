@@ -9,9 +9,25 @@ let package = Package(
         // .visionOS(.v1),
     ],
     products: [
-        .library(name: "UntoldEngine", targets: ["UntoldEngine"]),
-        .executable(name: "DemoGame", targets: ["DemoGame"]),
-        .executable(name: "StarterGame", targets: ["StarterGame"]),
+        // Library product for the engine
+        .library(
+            name: "UntoldEngine",
+            targets: ["UntoldEngine"]
+        ),
+        // Executable for the demo game
+        .executable(
+            name: "DemoGame",
+            targets: ["DemoGame"]
+        ),
+        // Executable for the starter template
+        .executable(
+            name: "StarterGame",
+            targets: ["StarterGame"]
+        ),
+        .executable(
+            name: "SwiftUIDemo",
+            targets: ["SwiftUIDemo"]
+        ),
     ],
     targets: [
         .target(
@@ -73,9 +89,29 @@ let package = Package(
                 .linkedFramework("AppKit", .when(platforms: [.macOS])),
             ]
         ),
-
-        .testTarget(name: "UntoldEngineTests", dependencies: ["UntoldEngine"], path: "Tests/UntoldEngineTests"),
-        .testTarget(name: "UntoldEngineRenderTests", dependencies: ["UntoldEngine"], path: "Tests/UntoldEngineRenderTests"),
+        .executableTarget(
+            name: "SwiftUIDemo",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/SwiftUIDemo",
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.iOS, .macOS])),
+                .linkedFramework("Cocoa", .when(platforms: [.macOS])),
+                .linkedFramework("UIKit", .when(platforms: [.iOS]))
+            ]
+        ),
+        // Test target for unit tests
+        .testTarget(
+            name: "UntoldEngineTests",
+            dependencies: ["UntoldEngine"],
+            path: "Tests/UntoldEngineTests"
+        ),
+        // Render-specific test target
+        .testTarget(
+            name: "UntoldEngineRenderTests",
+            dependencies: ["UntoldEngine"],
+            path: "Tests/UntoldEngineRenderTests"
+        ),
     ]
 )
 

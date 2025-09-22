@@ -86,12 +86,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     public func initResources() {
         initBufferResources()
-
-        initTextureResources()
         initRenderPipelines()
-
-        initRenderPassDescriptors()
-        initIBLResources()
+               
+        initSizeableResources() //TODO: Find a better name function
 
         shadowSystem = ShadowSystem()
 
@@ -119,6 +116,14 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         initFrustumCulllingCompute()
 
         Logger.log(message: "Untold Engine Starting")
+    }
+    
+    func initSizeableResources() {
+        if renderInfo.viewPort.x == 0 || renderInfo.viewPort.y == 0 { return }
+        
+        initTextureResources()
+        initRenderPassDescriptors()
+        initIBLResources()
     }
 
     func calculateDeltaTime() {
@@ -223,6 +228,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         let viewPortSize: simd_float2 = simd_make_float2(Float(mtkViewSize.width), Float(mtkViewSize.height))
         renderInfo.viewPort = viewPortSize
+        
+        initSizeableResources()
     }
 
     func handleSceneInput() {
