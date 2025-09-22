@@ -29,3 +29,15 @@ xcrun -sdk appletvos metallib UntoldEngineKernels-tvos.air -o UntoldEngineKernel
 xcrun -sdk appletvsimulator metal UntoldEngineKernels.metal -c -o UntoldEngineKernels-tvossim.air
 
 xcrun -sdk appletvsimulator metallib UntoldEngineKernels-tvossim.air -o UntoldEngineKernels-tvossim.metallib
+
+# visionOS (device)
+
+xcrun -sdk xros metal UntoldEngineKernels.metal -c -o UntoldEngineKernels-xros.air
+
+xcrun -sdk xros metallib UntoldEngineKernels-xros.air -o UntoldEngineKernels-xros.metallib
+
+# visionOS (simulator)
+
+xcrun -sdk xrsimulator metal UntoldEngineKernels.metal -c -o UntoldEngineKernels-xrossim.air
+
+xcrun -sdk xrsimulator metallib UntoldEngineKernels-xrossim.air -o UntoldEngineKernels-xrossim.metallib
