@@ -14,10 +14,11 @@ final class RendererTests: XCTestCase {
     var window: NSWindow!
     let saveToDisk: Bool = true // set to true to save ref, rendered and diff images to the download folder: Download/UntoldEngineRenderingTest
     let timeoutFactor: Float = 5.0
+    let windowWidth = 1920
+    let windowHeight = 1080
+
     override func setUp() {
         super.setUp()
-        let windowWidth = 1280
-        let windowHeight = 720
         ambientIntensity = 0.4
 
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
@@ -65,14 +66,12 @@ final class RendererTests: XCTestCase {
 
     func testProjectionMatrixInitialization() {
         // Known parameters
-        let windowWidth: Float = 1280
-        let windowHeight: Float = 720
         let far: Float = far
         let near: Float = near
         let fov: Float = fov
 
         // Aspect ratio
-        let aspect = windowWidth / windowHeight
+        let aspect = Float(windowWidth) / Float(windowHeight)
 
         // Compute the expected projection matrix
         let expectedProjectionMatrix = matrixPerspectiveRightHand(
@@ -89,12 +88,11 @@ final class RendererTests: XCTestCase {
         XCTAssertTrue(compareMatrices(actualProjectionMatrix, expectedProjectionMatrix), "Projection matrix is incorrect.")
 
         // Check viewport dimensions
-        let expectedViewport = simd_make_float2(windowWidth, windowHeight)
+        let expectedViewport = simd_make_float2(Float(windowWidth), Float(windowHeight))
         XCTAssertEqual(renderInfo.viewPort, expectedViewport, "Viewport dimensions are incorrect.")
     }
-
-    /*
-       func testGenerateReferenceImages() {
+/*
+    func testGenerateReferenceImages() {
            // Ensure renderer and metalview are properly initialized
            XCTAssertNotNil(renderer, "Renderer should be initialized")
            XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
@@ -159,7 +157,7 @@ final class RendererTests: XCTestCase {
            // Wait for the execution
            wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
        }
-     */
+    */
     func testColorTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
