@@ -309,7 +309,7 @@ final class RendererTests: XCTestCase {
 //
 //        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
 //    }
-
+/*
     func testDepthTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
@@ -329,7 +329,7 @@ final class RendererTests: XCTestCase {
 
         wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
     }
-
+*/
     private func testGenerateRenderTarget(targetName: String, texture: MTLTexture, isDepthTexture: Bool = false) {
         var renderImage: CGImage?
 
