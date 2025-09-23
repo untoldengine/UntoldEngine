@@ -18,8 +18,7 @@ enum LoadError: Error {
     case cgImageCreationFailed
     case colorSpaceCreationFailed
     case bitmapContextCreationFailed
-    case textureCreationFailed
-    case metalLibraryNotFound(String)
+    case textureCreationFailed    
 }
 
 public func loadTexture(

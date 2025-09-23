@@ -35,6 +35,6 @@ extension MTLDevice
         }
         
         Logger.logError(message: "No Metal Library found with name: \(resourceName)")
-        throw LoadError.metalLibraryNotFound("No Metal Library found with name: \(resourceName)")
+        throw ErrorHandlingSystem.metalLibraryNotFound
     }
 }
