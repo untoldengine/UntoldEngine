@@ -68,3 +68,4 @@ docs/_site/
 docs/.jekyll-cache/
 
 .vscode/
+.swiftpm
