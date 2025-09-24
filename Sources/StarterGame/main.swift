@@ -8,10 +8,10 @@ class GameScene {
     init() {
         
         // By default, the engine needs to know where your assets are located.
-        // Here we point it to a folder named "DemoGameAssets" on the Desktop.
+        // Here we point it to a folder named "DemoGameAssets/Assets" on the Desktop.
         // You can change this to any folder where you keep your own assets.
         if let desktopURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first {
-            assetBasePath = desktopURL.appendingPathComponent("DemoGameAssets")
+            assetBasePath = desktopURL.appendingPathComponent("DemoGameAssets/Assets")
         }
         
         // Note: You’re not limited to the editor for setting up entities.
