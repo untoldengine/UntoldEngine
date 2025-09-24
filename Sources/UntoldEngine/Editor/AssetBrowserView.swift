@@ -233,102 +233,77 @@ struct AssetBrowserView: View {
         let openPanel = NSOpenPanel()
         openPanel.allowedContentTypes = [
             UTType(filenameExtension: "usdc")!,
-            UTType.png,
-            UTType.jpeg,
-            UTType(filenameExtension: "hdr")!,
-            UTType.tiff,
+            .png, .jpeg, .tiff,
+            UTType(filenameExtension: "hdr")!
         ]
         openPanel.canChooseDirectories = (selectedCategory == "Materials")
         openPanel.allowsMultipleSelection = true
 
-        guard let path = assetBasePath else {
-            return
-        }
+        guard let basePath = assetBasePath else { return }
+        // Supported categories must match your enum/string values
+        guard ["Models", "Animations", "HDR", "Materials"].contains(selectedCategory) else { return }
 
-        if openPanel.runModal() == .OK, let sourceURL = openPanel.url {
-            let fileManager = FileManager.default
+        let fm = FileManager.default
+        let categoryRoot = basePath.appendingPathComponent(selectedCategory!, isDirectory: true)
+        // Ensure category folder exists (e.g., <Base>/Models)
+        try? fm.createDirectory(at: categoryRoot, withIntermediateDirectories: true)
 
-            var destinationURL = path.appendingPathComponent("Assets")
+        if openPanel.runModal() == .OK {
+            for sourceURL in openPanel.urls {
+                do {
+                    switch selectedCategory {
+                    case "HDR":
+                        // Copy .hdr directly into HDR folder
+                        let destURL = categoryRoot.appendingPathComponent(sourceURL.lastPathComponent)
+                        if fm.fileExists(atPath: destURL.path) { try fm.removeItem(at: destURL) }
+                        try fm.copyItem(at: sourceURL, to: destURL)
 
-            if selectedCategory == "Models" {
-                destinationURL = destinationURL.appendingPathComponent("Models")
-
-            } else if selectedCategory == "Animations" {
-                destinationURL = destinationURL.appendingPathComponent("Animations")
-            } else if selectedCategory == "HDR" {
-                destinationURL = destinationURL.appendingPathComponent("HDR")
-            } else if selectedCategory == "Materials" {
-                destinationURL = destinationURL.appendingPathComponent("Materials")
-            }
-
-            // if this is a model, make a subfolder using the base name
-            let baseName = sourceURL.deletingPathExtension().lastPathComponent
-            let modelFolder = destinationURL.appendingPathComponent(baseName)
-
-            do {
-                if selectedCategory == "HDR" {
-                    // Directly copy .hdr file into HDR folder (no subfolder)
-                    let finalPath = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
-                    if fileManager.fileExists(atPath: finalPath.path) {
-                        try fileManager.removeItem(at: finalPath)
-                    }
-                    try fileManager.copyItem(at: sourceURL, to: finalPath)
-                } else if selectedCategory == "Materials" {
-                    if openPanel.canChooseDirectories {
-                        // Copy selected material folder
-                        let materialFolderSource = sourceURL
-                        let materialFolderDest = destinationURL.appendingPathComponent(sourceURL.lastPathComponent)
-
-                        if fileManager.fileExists(atPath: materialFolderDest.path) {
-                            try fileManager.removeItem(at: materialFolderDest)
+                    case "Materials":
+                        if sourceURL.hasDirectoryPath {
+                            // Copy entire material folder (recommended)
+                            let destURL = categoryRoot.appendingPathComponent(sourceURL.lastPathComponent, isDirectory: true)
+                            if fm.fileExists(atPath: destURL.path) { try fm.removeItem(at: destURL) }
+                            try fm.copyItem(at: sourceURL, to: destURL)
+                        } else {
+                            // Single texture fallback → create folder named after the file (without ext)
+                            let baseName = sourceURL.deletingPathExtension().lastPathComponent
+                            let materialFolder = categoryRoot.appendingPathComponent(baseName, isDirectory: true)
+                            if fm.fileExists(atPath: materialFolder.path) { try fm.removeItem(at: materialFolder) }
+                            try fm.createDirectory(at: materialFolder, withIntermediateDirectories: true)
+                            let destFile = materialFolder.appendingPathComponent(sourceURL.lastPathComponent)
+                            try fm.copyItem(at: sourceURL, to: destFile)
                         }
-                        try fileManager.copyItem(at: materialFolderSource, to: materialFolderDest)
-                    } else {
-                        // Single texture — fallback to folder + file
+
+                    case "Models", "Animations":
+                        // Create <Category>/<name>/ and copy the .usdc
                         let baseName = sourceURL.deletingPathExtension().lastPathComponent
-                        let materialFolder = destinationURL.appendingPathComponent(baseName)
+                        let destFolder = categoryRoot.appendingPathComponent(baseName, isDirectory: true)
+                        try fm.createDirectory(at: destFolder, withIntermediateDirectories: true)
 
-                        if fileManager.fileExists(atPath: materialFolder.path) {
-                            try fileManager.removeItem(at: materialFolder)
-                        }
-                        try fileManager.createDirectory(at: materialFolder, withIntermediateDirectories: true)
+                        let destModel = destFolder.appendingPathComponent(sourceURL.lastPathComponent)
+                        if fm.fileExists(atPath: destModel.path) { try fm.removeItem(at: destModel) }
+                        try fm.copyItem(at: sourceURL, to: destModel)
 
-                        let destFile = materialFolder.appendingPathComponent(sourceURL.lastPathComponent)
-
-                        try fileManager.copyItem(at: sourceURL, to: destFile)
-                    }
-                } else {
-                    // Create Model folder
-                    if !fileManager.fileExists(atPath: modelFolder.path) {
-                        try fileManager.createDirectory(at: modelFolder, withIntermediateDirectories: true)
-                    }
-
-                    // copy usdc file
-                    let finalModelPath = modelFolder.appendingPathComponent(sourceURL.lastPathComponent)
-
-                    if fileManager.fileExists(atPath: finalModelPath.path) {
-                        try fileManager.removeItem(at: finalModelPath)
-                    }
-                    try fileManager.copyItem(at: sourceURL, to: finalModelPath)
-                    // copy texture folder
-                    if selectedCategory == "Models" {
-                        let textureFolderSource = sourceURL.deletingLastPathComponent().appendingPathComponent("textures")
-                        let textureFolderDest = modelFolder.appendingPathComponent("textures")
-
-                        var isDir: ObjCBool = false
-                        if fileManager.fileExists(atPath: textureFolderSource.path, isDirectory: &isDir), isDir.boolValue {
-                            if fileManager.fileExists(atPath: textureFolderDest.path) {
-                                try fileManager.removeItem(at: textureFolderDest)
+                        // For Models: also copy sibling "textures" folder if it exists
+                        if selectedCategory == "Models" {
+                            let textureFolderSource = sourceURL.deletingLastPathComponent().appendingPathComponent("textures", isDirectory: true)
+                            let textureFolderDest = destFolder.appendingPathComponent("textures", isDirectory: true)
+                            var isDir: ObjCBool = false
+                            if fm.fileExists(atPath: textureFolderSource.path, isDirectory: &isDir), isDir.boolValue {
+                                if fm.fileExists(atPath: textureFolderDest.path) { try fm.removeItem(at: textureFolderDest) }
+                                try fm.copyItem(at: textureFolderSource, to: textureFolderDest)
                             }
-                            try fileManager.copyItem(at: textureFolderSource, to: textureFolderDest)
                         }
-                    }
-                }
 
-                loadAssets()
-            } catch {
-                print("Error copying file: \(error)")
+                    default:
+                        break
+                    }
+                } catch {
+                    print("Error copying \(sourceURL.lastPathComponent): \(error)")
+                }
             }
+
+            loadAssets()
         }
     }
 
@@ -340,22 +315,31 @@ struct AssetBrowserView: View {
         var groupedAssets: [String: [Asset]] = [:]
 
         for category in AssetCategory.allCases {
-            var categoryPath = basePath.appendingPathComponent("Assets")
-            categoryPath = categoryPath.appendingPathComponent(category.rawValue)
-
+            // Flattened: <Base>/<Category> (no "Assets" root)
+            let categoryPath = basePath.appendingPathComponent(category.rawValue, isDirectory: true)
             var categoryAssets: [Asset] = []
 
-            if let contents = try? FileManager.default.contentsOfDirectory(at: categoryPath, includingPropertiesForKeys: nil, options: .skipsHiddenFiles) {
+            if let contents = try? FileManager.default.contentsOfDirectory(
+                at: categoryPath,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            ) {
                 for item in contents {
                     var isDir: ObjCBool = false
                     if FileManager.default.fileExists(atPath: item.path, isDirectory: &isDir) {
                         if isDir.boolValue {
-                            // It's a folder — valid for all categories
-                            categoryAssets.append(Asset(name: item.lastPathComponent, category: category.rawValue, path: item, isFolder: true))
+                            // It’s a folder — valid for all categories
+                            categoryAssets.append(Asset(name: item.lastPathComponent,
+                                                        category: category.rawValue,
+                                                        path: item,
+                                                        isFolder: true))
                         } else if category == .hdr {
-                            // For HDR category, also allow .hdr files directly
+                            // For HDR, also allow .hdr files directly in the HDR folder
                             if item.pathExtension.lowercased() == "hdr" {
-                                categoryAssets.append(Asset(name: item.lastPathComponent, category: category.rawValue, path: item, isFolder: false))
+                                categoryAssets.append(Asset(name: item.lastPathComponent,
+                                                            category: category.rawValue,
+                                                            path: item,
+                                                            isFolder: false))
                             }
                         }
                     }
