@@ -15,19 +15,18 @@ public func getResourceURL(
     withExtension ext: String,
     subResource subName: String? = nil
 ) -> URL? {
-    
-    // Define common search paths (relative)
+
+    // Flat layout (no top-level "Assets")
     var searchPaths: [[String]] = [
-        ["Assets", "Models", resourceName, "\(resourceName).\(ext)"],
-        ["Assets", "Animations", resourceName, "\(resourceName).\(ext)"],
-        ["Assets", "HDR", "\(resourceName).\(ext)"]
+        ["Models", resourceName, "\(resourceName).\(ext)"],
+        ["Animations", resourceName, "\(resourceName).\(ext)"],
+        ["HDR", "\(resourceName).\(ext)"]
     ]
-    
     if let subName {
-        searchPaths.append(["Assets", "Materials", subName, "\(resourceName).\(ext)"])
+        searchPaths.append(["Materials", subName, "\(resourceName).\(ext)"])
     }
-    
-    // 1. Look under assetBasePath if defined
+
+    // 1) External base path
     if let basePath = assetBasePath {
         for components in searchPaths {
             let candidate = components.reduce(basePath) { $0.appendingPathComponent($1) }
@@ -36,32 +35,33 @@ public func getResourceURL(
             }
         }
     }
-    
-    // 2. Look under main bundle
+
+    // 2) Main bundle (search subdirectories)
     for components in searchPaths {
         if let url = urlInBundle(Bundle.main, components: components) {
             return url
         }
     }
-    
-    // 3. Look under module bundle
+
+    // 3) Module bundle (UNCHANGED: top-level only, for engine-internal content)
     return Bundle.module.url(forResource: resourceName, withExtension: ext)
-    
 }
 
 private func urlInBundle(_ bundle: Bundle, components: [String]) -> URL? {
-    // Last component is the file
     guard let filename = components.last else { return nil }
     let folders = components.dropLast()
-    
-    let nameExt = filename.split(separator: ".", maxSplits: 1)
-    guard nameExt.count == 2 else { return nil }
-    
-    let resource = String(nameExt[0])
-    let ext = String(nameExt[1])
-    
-    return bundle.url(forResource: resource, withExtension: ext, subdirectory: folders.joined(separator: "/"))
+    let parts = filename.split(separator: ".", maxSplits: 1)
+    guard parts.count == 2 else { return nil }
+    let name = String(parts[0])
+    let ext  = String(parts[1])
+
+    return bundle.url(
+        forResource: name,
+        withExtension: ext,
+        subdirectory: folders.joined(separator: "/")
+    )
 }
+
 
 #if os(macOS)
 public func playSceneAt(url: URL) {
