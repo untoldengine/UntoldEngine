@@ -69,3 +69,19 @@ docs/.jekyll-cache/
 
 .vscode/
 .swiftpm
+
+# --- Docusaurus (website/) ---
+/website/.docusaurus/
+/website/build/
+/website/node_modules/
+/website/.cache/
+/website/.env
+/website/.env.local
+/website/.env.*.local
+
+# --- Docusaurus Node logs ---
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
