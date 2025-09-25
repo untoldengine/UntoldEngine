@@ -3,12 +3,22 @@
 
 const path = require('path');
 
+const ORG = 'untoldengine';
+const REPO = 'UntoldEngine';
+const isDev = process.env.NODE_ENV !== 'production';
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Untold Engine Docs',
-  url: 'http://localhost:3000',   // dev URL
-  baseUrl: '/',                   // mount at root for local dev
+  url: isDev ? 'http://localhost:3000' : 'https://${ORG}.github.io',   // dev URL
+  baseUrl: isDev ? '/' : '/${REPO}/',                   // mount at root for local dev
+  baseUrlIssueBanner: false,
   favicon: 'img/favicon.ico',
+
+  organizationName: ORG,
+  projectName: REPO,
+  deploymentBranch: 'gh-pages',
+  trailingSlash: false,
 
   // keep defaults
   onBrokenLinks: 'throw',
@@ -25,7 +35,7 @@ const config = {
           path: path.resolve(__dirname, '..', 'docs'),
           routeBasePath: '/docs', // docs at /docs (keeps / for the homepage)
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/untoldengine/UntoldEngine/edit/master/docs/',
+          editUrl: 'https://github.com/${ORG}/${REPO}/edit/master/docs/',
         },
         blog: false,
         theme: { customCss: require.resolve('./src/css/custom.css') },
@@ -40,10 +50,10 @@ const config = {
 //      logo: { alt: 'Untold', src: 'img/logo.svg' },
       items: [
         { to: '/docs/intro', label: 'Docs', position: 'left' },
-        { href: 'https://github.com/untoldengine/UntoldEngine', label: 'GitHub', position: 'right' },
+        { href: 'https://github.com/${ORG}/${REPO}', label: 'GitHub', position: 'right' },
       ],
     },
-    prism: { additionalLanguages: ['swift', 'objectivec', 'c', 'cpp', 'hlsl', 'glsl'] },
+    prism: { additionalLanguages: ['swift', 'c', 'cpp', 'hlsl', 'glsl'] },
   },
 };
 
