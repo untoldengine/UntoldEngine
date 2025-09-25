@@ -128,7 +128,7 @@ open Package.swift
 
 🎮 You’re ready to explore!
 
-👉 For full installation details (screenshots, controls, and Editor workflow), see the [Installation Guides](docs/Installation.md)
+👉 For full installation details (screenshots, controls, and Editor workflow), see the [Installation Guides](docs/Getting%20Started/Installation.md)
 
 ### Assets Download 
 To help you get started, download the [Demo Game Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1). It contains models and animations that you can use as you try out the engine. Unzip the folder and place it on your Desktop.
@@ -137,13 +137,13 @@ To help you get started, download the [Demo Game Assets v1.0](https://github.com
 The **Demo Game** is a simple soccer dribbling example that runs out of the box.  
 It not only lets you test the engine with zero setup, but also serves as a live reference for how the API is used in practice — from entity creation to animations and physics.  
 
-👉 Follow the step-by-step guide to run the [small demo](docs/demogamesteps.md).
+👉 Follow the step-by-step guide to run the [small demo](docs/Getting%20Started/demogamesteps.md).
 
 ### Starter Game – Experiment and Learn
 The **Starter Game** is a minimal project designed as your playground.  
 It gives you a clean slate to experiment with importing assets, writing your own systems, and building new mechanics. Unlike the Demo Game (which shows the API in action), the Starter Game is where you can start creating your own gameplay ideas.  
 
-👉 Follow the step-by-step guide to run the [starter game](docs/startergamesteps.md).
+👉 Follow the step-by-step guide to run the [starter game](docs/Getting%20Started/startergamesteps.md).
 
 For an overview of how to reference entities, play animations, and create components and systems, check out the files in the DemoGame folder. More documentation is on the way, but these examples should be enough to help you get started.
 If you run into any issues or have questions, please don’t hesitate to open an [issue](https://github.com/untoldengine/UntoldEngine/issues).
@@ -184,26 +184,26 @@ The Untold Engine is powered by modular systems that simplify game development. 
 
 ⚡ **For your convenience**: The Untold Engine provides an Editor that makes it easy to import assets, set up entities, and manage scenes — all without writing code.  
 
-- [Editor Overview](docs/editoroverview.md): Walkthrough of Scene Graph, Inspector, Gizmos, Materials, Lighting, Post-Processing, Asset Browser, and Console.  
-- [How to Import Assets](docs/importingassetseditor.md): Learn how to set asset paths and import models, materials, and animations.  
+- [Editor Overview](docs/Editor/editoroverview.md): Walkthrough of Scene Graph, Inspector, Gizmos, Materials, Lighting, Post-Processing, Asset Browser, and Console.  
+- [How to Import Assets](docs/Import-Export/importingassetseditor.md): Learn how to set asset paths and import models, materials, and animations.  
 
 ### How-To Guides  
-- [Adding a model using the Editor](docs/addModelUsingEditor.md)  
-- [Adding an animation using the Editor](docs/addAnimationsUsingEditor.md) (Coming Soon)  
+- [Adding a model using the Editor](docs/Editor/addModelUsingEditor.md)  
+- [Adding an animation using the Editor](docs/Editor/addAnimationsUsingEditor.md) (Coming Soon)  
 
 💡 **Note**: The Editor is optional. You can also load models, link animations, attach components, and configure entities directly in code. See the **Systems** section below for details.  
 
 ### Systems  
-- [Registration-ECS System](docs/UsingRegistrationSystem.md): Handles the creation of entities and components.  
-- [Rendering System](docs/UsingRenderingSystem.md): Render 3D models with support for PBR and custom shaders.  
-- [Transform System](docs/UsingTransformSystem.md): Manage entity positions, rotations, and scales.  
-- [Animation System](docs/UsingAnimationSystem.md): Add life to your models with skeletal animations.  
-- [Physics System](docs/UsingPhysicsSystem.md): Simulate gravity, forces, and movement.  
-- [Input System](docs/UsingInputSystem.md): Capture keyboard and mouse interactions.  
-- [Steering System](docs/UsingSteeringSystem.md): Implement intelligent behaviors like path-following.  
-- [Scenegraph](docs/UsingScenegraph.md): Enables parent-child relationships between entities.  
-- [Shaders](docs/shaders.md): Add or modify shaders to fit your game’s style.  
-- [Importing Assets](docs/ImportingAssetFiles.md): Importing assets into your game project.  
+- [Registration-ECS System](docs/Engine%20Systems/UsingRegistrationSystem.md): Handles the creation of entities and components.  
+- [Rendering System](docs/Engine%20Systems/UsingRenderingSystem.md): Render 3D models with support for PBR and custom shaders.  
+- [Transform System](docs/Engine%20Systems/UsingTransformSystem.md): Manage entity positions, rotations, and scales.  
+- [Animation System](docs/Engine%20Systems/UsingAnimationSystem.md): Add life to your models with skeletal animations.  
+- [Physics System](docs/Engine%20Systems/UsingPhysicsSystem.md): Simulate gravity, forces, and movement.  
+- [Input System](docs/Engine%20Systems/UsingInputSystem.md): Capture keyboard and mouse interactions.  
+- [Steering System](docs/Engine%20Systems/UsingSteeringSystem.md): Implement intelligent behaviors like path-following.  
+- [Scenegraph](docs/Engine%20Systems/UsingScenegraph.md): Enables parent-child relationships between entities.  
+- [Shaders](docs/Engine%20Systems/shaders.md): Add or modify shaders to fit your game’s style.  
+ 
 
 ## High-Level API Overview
 
