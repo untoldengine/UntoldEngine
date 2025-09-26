@@ -3,56 +3,63 @@ name: Automatic Versioning
 on:
   push:
     branches:
-      - master  # Change this if needed
+      - master         # change to main if that's your default
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   versioning:
-    name: Determine Next Version
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout (with tags)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # IMPORTANT: allows tags/history
 
       - name: Get latest tag
-        id: latest-tag
+        id: latest
         run: |
-          latest_tag=$(git describe --tags --abbrev=0 || echo v0.0.0)
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo v0.0.0)
           echo "Latest tag: $latest_tag"
-          echo "::set-output name=tag::$latest_tag"
+          echo "tag=$latest_tag" >> "$GITHUB_OUTPUT"
 
       - name: Determine version bump
-        id: version-bump
+        id: bump
         run: |
-          latest_version="${{ steps.latest-tag.outputs.tag }}"
+          latest_version="${{ steps.latest.outputs.tag }}"
           commit_message=$(git log -1 --pretty=%B)
 
-          major=$(echo $latest_version | cut -d. -f1 | sed 's/v//')
-          minor=$(echo $latest_version | cut -d. -f2)
-          patch=$(echo $latest_version | cut -d. -f3)
+          major=$(echo "$latest_version" | cut -d. -f1 | sed 's/^v//')
+          minor=$(echo "$latest_version" | cut -d. -f2)
+          patch=$(echo "$latest_version" | cut -d. -f3)
 
-          if [[ "$commit_message" == *"[API Change]"* ]]; then
+          if echo "$commit_message" | grep -q "\[API Change\]"; then
             new_version="v$((major + 1)).0.0"
-          elif [[ "$commit_message" == *"[Feature]"* ]]; then
+          elif echo "$commit_message" | grep -q "\[Feature\]"; then
             new_version="v$major.$((minor + 1)).0"
-          elif [[ "$commit_message" == *"[Patch]"* ]]; then
+          elif echo "$commit_message" | grep -q "\[Patch\]"; then
             new_version="v$major.$minor.$((patch + 1))"
           else
             echo "No versioning keyword found. Skipping tagging."
+            echo "new_version=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           echo "New version: $new_version"
-          echo "::set-output name=new_version::$new_version"
+          echo "new_version=$new_version" >> "$GITHUB_OUTPUT"
 
-      - name: Create new Git tag
+      - name: Create and push tag
+        if: ${{ steps.bump.outputs.new_version != '' }}
         run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          git tag ${{ steps.version-bump.outputs.new_version }}
-          git push origin ${{ steps.version-bump.outputs.new_version }}
+          git config user.name  "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git tag "${{ steps.bump.outputs.new_version }}"
+          git push origin "${{ steps.bump.outputs.new_version }}"
 
       - name: Trigger Release Workflow
+        if: ${{ steps.bump.outputs.new_version != '' }}
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: Release Engine

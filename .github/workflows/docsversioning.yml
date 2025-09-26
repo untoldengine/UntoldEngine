@@ -1,0 +1,29 @@
+name: Docs Version on Tag
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+
+jobs:
+  version-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - name: Create docs version from tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"   # 'v0.3.1' -> '0.3.1'
+          npm run docusaurus docs:version "$TAG"
+      - name: Commit versioned docs
+        run: |
+          git config user.name  "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: version ${GITHUB_REF_NAME}" || echo "No changes"
+          git push
+
