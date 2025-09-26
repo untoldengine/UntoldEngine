@@ -1,0 +1,25 @@
+[git]
+conventional_commits = false
+filter_unconventional = false
+commit_parsers = [
+  { message = "^(?i)\\[API Change\\]", group = "💥 API Changes" },
+  { message = "^(?i)\\[Feature\\]",    group = "🚀 Features"     },
+  { message = "^(?i)\\[Patch\\]",      group = "🐞 Fixes"        },
+  { message = "^(?i)\\[Docs?\\]",      group = "📚 Docs"         },
+  { message = "^(?i)\\[Perf\\]",       group = "⚡ Performance"  },
+  { message = "^(?i)\\[Refactor\\]",   group = "🧰 Maintenance"  },
+  { message = "^Merge pull request",   skip = true }
+]
+
+[changelog]
+header = "# Changelog\n"
+body = """
+## {{ version }} - {{ timestamp | date(format="%Y-%m-%d") }}
+{% for group, commits in commits | group_by(attribute="group") -%}
+### {{ group }}
+{% for c in commits -%}
+- {{ c.message | split(pat="\\n") | first }} ({{ c.id | truncate(length=7) }})
+{% endfor -%}
+{% endfor -%}
+"""
+
