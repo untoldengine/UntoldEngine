@@ -449,7 +449,6 @@ func deserializeScene(sceneData: SceneData) {
         generateHDR(hdrURL)
     }
 
-    assetBasePath = sceneData.assetBasePath
     EditorAssetBasePath.shared.basePath = assetBasePath
 
     if let colorGrading = sceneData.colorGrading {
