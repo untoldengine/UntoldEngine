@@ -1,3 +1,9 @@
+---
+id: formatting
+title: Formatting
+sidebar_position: 2
+---
+
 #  Formatting and Linting
 
 To maintain a consistent code style across the Untold Engine repo, we use [SwiftFormat](https://github.com/nicklockwood/SwiftFormat). SwiftFormat is a code formatter for Swift that helps enforce Swift style conventions and keep the codebase clean.
