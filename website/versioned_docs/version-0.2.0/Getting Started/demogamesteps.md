@@ -14,14 +14,14 @@ For your convenience, you can either watch a [video tutorial](https://vimeo.com/
 1. Select the **DemoGame** scheme.  
 2. Set **My Mac** as the target device and hit **Run**.  
 3. Download the [Demo Game Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1) and place them in your Desktop folder.  
-4. In the Editor, click **Set Path** and point to that folder.  
+4. In the Editor, click **Set Path** and point to that folder (Make sure you are inside the Assets subfolder).  
 5. Click the **Load** button in the Editor toolbar, navigate to the folder above and select `soccergamedemo.json`.  
 6. Press **Play** to toggle between game mode and edit mode.  
 7. Use **WASD** keys to move the player around.  
 
 🔍 Take a look at the `GameScene` class in `main.swift` (inside `Sources/DemoGame`) to see how the game is structured and get familiar with the Untold Engine API.
 
-![DemoGame](../images/choosedemogame.gif)
+![DemoGame](../images/gamedemoscreenshot.png)
 
 
 ---
