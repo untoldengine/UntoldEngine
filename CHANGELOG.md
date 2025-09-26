@@ -1,0 +1,33 @@
+# Changelog
+## v0.2.0 - 2025-09-26
+### 🐞 Fixes
+- [Patch] Improved the build frustum and kernel to avoid false negatives (705f6f4…)
+- [Patch] Padded the frustum to reduce whipping camera pops (6d33bba…)
+- [Patch] set maxObjects to MAX_Entities (d75113f…)
+- [Patch] Updated metallib kernel (6696002…)
+- [Patch] updated optimized function to match recent changes (b17773d…)
+- [Patch] Use reduce scan frustum culling (27772d5…)
+- [Patch] fixed issue where camera was not responding when editor was disabled (f0194d1…)
+- [Patch] Removed unused variables (d0f0551…)
+- [Patch] fixed issue where shadows were not linked to animation (f2203ef…)
+- [Patch] Separated kernels according to target (d6b0260…)
+- [Patch] Set an abstraction to the input system (463c1ed…)
+- [Patch] reverted metal shaders - pipeline will be ignored in game mode (8c70a8f…)
+- [Patch] Wrapped the demo games in swift compilation code (2b23421…)
+- [Patch] Updated the package to fix link issues. (1453ddf…)
+- [Patch] Wrapped the editor in Swift compilation code. (651cc99…)
+- [Patch] wrapped the logger in swift compilation code (169863c…)
+- [Patch] On iOS game mode should be set to true automatically. (8a8fbcd…)
+- [Patch] Wrapped handleSceneInput and Logger in Swift conditional (3ca7bc5…)
+- [Patch] Wrapped systems in Swift conditionals (eaf84ec…)
+- [PATCH] Removing the macro to compile only if is a macOS target. (384f982…)
+- [PATCH] Move initRTXAccumulationBuffer to initSizeableResources to avoid creating the RTXAccumulationBuffer with size 0 (68dacdb…)
+- [PATCH] Move metallibNotFound error from LoadError struct to the ErrorHandlingSystem (812b047…)
+- [Patch] fixed projection calculation (3d791f4…)
+- [Patch] Revert to original culling (6bfe4c5…)
+### 📚 Docs
+- [Docs] Updated documentation (83dc195…)
+- [Docs] Added Docusourus website (8b35185…)
+- [Docs] Fixed docusaurus urls in config file (61c3fc3…)
+### 🚀 Features
+- [Feature] Reduce Scan Frustum culling (d8495c5…)
