@@ -100,11 +100,13 @@ public struct EditorView: View {
     private func editor_handleLoad() {
         if let sceneData = loadGameScene() {
             destroyAllEntities()
+            removeGizmo()
             EditorComponentsState.shared.clear()
             deserializeScene(sceneData: sceneData)
             editor_entities = getAllGameEntities()
             selectionManager.selectedEntity = nil
             activeEntity = .invalid
+            gizmoActive = false
             selectionManager.objectWillChange.send()
             sceneGraphModel.refreshHierarchy()
         }

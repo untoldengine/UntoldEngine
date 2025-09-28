@@ -293,10 +293,6 @@ func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             continue
         }
 
-        if hasComponent(entityId: entityId, componentType: LightComponent.self) {
-            continue
-        }
-
         // get object AABB
         let entityAABB: EntityAABB = makeObjectAABB(localMin: localTransformComponent.boundingBox.min, localMax: localTransformComponent.boundingBox.max, worldMatrix: worldTransformComponent.space, index: getEntityIndex(entityId), version: getEntityVersion(entityId))
 
