@@ -1,5 +1,5 @@
 # Changelog
-## v0.2.0 - 2025-09-26
+## v0.3.0 - 2025-09-28
 ### 🐞 Fixes
 - [Patch] Improved the build frustum and kernel to avoid false negatives (705f6f4…)
 - [Patch] Padded the frustum to reduce whipping camera pops (6d33bba…)
@@ -25,9 +25,15 @@
 - [PATCH] Move metallibNotFound error from LoadError struct to the ErrorHandlingSystem (812b047…)
 - [Patch] fixed projection calculation (3d791f4…)
 - [Patch] Revert to original culling (6bfe4c5…)
+- [Patch] Removed setting basepath from deserializer routine (edb3281…)
 ### 📚 Docs
 - [Docs] Updated documentation (83dc195…)
 - [Docs] Added Docusourus website (8b35185…)
 - [Docs] Fixed docusaurus urls in config file (61c3fc3…)
+- [Docs] fixed docs in contributor folder (02ef1e0…)
+- [Docs] Updated game demo docs (3fc7e0c…)
+- [Docs] Added documentation for custom components (fff8132…)
+- [Docs] Added documentation for custom components (9bda27f…)
+- [Docs]updated the readme pointing to new docs (b4f9479…)
 ### 🚀 Features
 - [Feature] Reduce Scan Frustum culling (d8495c5…)
