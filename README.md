@@ -157,7 +157,7 @@ A huge thanks to the people helping shape the Untold Engine. Your support and co
 
 <p align="center">
   <a href="https://github.com/miolabs">
-    <img src="images/contributors/MioLogo.png" alt="MioLabs" width="120"/>
+    <img src="images/top_contributors/MioLogo.png" alt="MioLabs" width="120"/>
   </a>
 </p>
 
