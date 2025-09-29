@@ -31,6 +31,8 @@ struct EditorSceneView: View, UntoldRendererDelegate {
                 setEntityName(entityId: light, name: "Directional Light")
                 createDirLight(entityId: light)
                 
+                CameraSystem.shared.activeCamera = sceneCamera
+                
                 // Initialize ray vs model pipeline
                 initRayPickerCompute()
                 

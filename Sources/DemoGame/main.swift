@@ -28,12 +28,12 @@ class GameScene {
         
         // Ball system
         registerCustomSystem(ballSystemUpdate)
-        addComponent_Editor(componentOption: BallComponent_Editor)
+//        addComponent_Editor(componentOption: BallComponent_Editor)
         encodeCustomComponent(type: BallComponent.self)
 
         // Dribbling system
         registerCustomSystem(dribblingSystemUpdate)
-        addComponent_Editor(componentOption: DribblingComponent_Editor)
+//        addComponent_Editor(componentOption: DribblingComponent_Editor)
         encodeCustomComponent(
             type: DribblinComponent.self,
             merge: { current, decoded in
@@ -45,7 +45,7 @@ class GameScene {
 
         // Camera follow system
         registerCustomSystem(cameraFollowUpdate)
-        addComponent_Editor(componentOption: CameraFollowComponent_Editor)
+//        addComponent_Editor(componentOption: CameraFollowComponent_Editor)
         encodeCustomComponent(
             type: CameraFollowComponent.self,
             merge: { current, decoded in
@@ -54,22 +54,24 @@ class GameScene {
             }
         )
 
-        /*
-         -----------------------------------------------------
-         Example: Loading a saved scene
-         -----------------------------------------------------
+        
+        // -----------------------------------------------------
+        // Example: Loading a saved scene
+        // -----------------------------------------------------
          
          // Load from a file path:
-         let sceneURL = URL(fileURLWithPath: "Path/to/file.json")
-         playSceneAt(url: sceneURL)
+        let sceneURL = URL(fileURLWithPath: "Path/to/file.json") // <-- Change the path to work!!
+        assetBasePath = sceneURL.deletingLastPathComponent()
+        
+        InputSystem.shared.registerKeyboardEvents()
+        playSceneAt(url: sceneURL)
 
-         // Load from the app bundle:
-         if let sceneURL = Bundle.main.url(forResource: "file", withExtension: "json") {
-             playSceneAt(url: sceneURL)
-         } else {
-             print("Scene file not found in bundle.")
-         }
-         */
+        // Load from the app bundle:
+        if let sceneURL = Bundle.main.url(forResource: "file", withExtension: "json") {
+            playSceneAt(url: sceneURL)
+        } else {
+            print("Scene file not found in bundle.")
+        }
     }
 
     func update(deltaTime _: Float) {
@@ -128,15 +130,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             handleInput: { [weak self] in self?.gameScene.handleInput() }
         )
 
-        if enableEditor {
-            if #available(macOS 13.0, *) {
-                let hostingView = NSHostingView(rootView: EditorView(mtkView: renderer.metalView))
-                window.contentView = hostingView
-            } else {
-                // Fallback on earlier versions
-            }
-        }
-
+        let hostingView = NSHostingView(rootView: SceneView(renderer: renderer))
+        window.contentView = hostingView
+        
         window.makeKeyAndOrderFront(nil)
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)

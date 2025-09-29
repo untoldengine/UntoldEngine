@@ -157,7 +157,7 @@ public struct Scene {
         return nil
     }
 
-    func getAllEntities() -> [EntityID] {
+    public func getAllEntities() -> [EntityID] {
         entities.compactMap { entityDesc in
             entityDesc.freed || entityDesc.pendingDestroy ? nil : entityDesc.entityId
         }

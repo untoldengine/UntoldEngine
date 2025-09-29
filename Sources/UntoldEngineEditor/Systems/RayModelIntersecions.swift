@@ -81,7 +81,7 @@ func createAccelerationStructures(_: Bool) {
     var entities: [EntityID] = []
 
     // only ray cast gizmo components
-    if gizmoActive, inputSystem.keyState.shiftPressed == false {
+    if gizmoActive, InputSystem.shared.keyState.shiftPressed == false {
         let gizmoId = getComponentId(for: GizmoComponent.self)
         entities = queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
     } else {

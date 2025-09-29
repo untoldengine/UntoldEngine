@@ -68,6 +68,8 @@ public func playSceneAt(url: URL) {
     if let scene = loadGameScene(from: url) {
         destroyAllEntities()
         deserializeScene(sceneData: scene)
+        
+        CameraSystem.shared.activeCamera = findGameCamera()        
     }
 }
 #endif

@@ -9,26 +9,16 @@
 import Foundation
 import simd
 
-public func getMainCamera() -> EntityID {
-    if gameMode == true {
-        return findGameCamera()
-    } else {
-        return findSceneCamera()
+public final class CameraSystem
+{
+    // Thread-safe shared instance
+    public static let shared: CameraSystem = { return CameraSystem() }()
+    
+    var _activeCamera: EntityID? = nil
+    public var activeCamera: EntityID? {
+        get { return _activeCamera }
+        set { _activeCamera = newValue }
     }
-}
-
-public func findSceneCamera() -> EntityID {
-    for entityId in scene.getAllEntities() {
-        if hasComponent(entityId: entityId, componentType: CameraComponent.self), hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) {
-            return entityId
-        }
-    }
-
-    // if scene camera was not found, then create one
-
-    let sceneCamera = createEntity()
-    createSceneCamera(entityId: sceneCamera)
-    return sceneCamera
 }
 
 public func findGameCamera() -> EntityID {
@@ -43,16 +33,6 @@ public func findGameCamera() -> EntityID {
     let gameCamera = createEntity()
     createGameCamera(entityId: gameCamera)
     return gameCamera
-}
-
-public func createSceneCamera(entityId: EntityID) {
-    setEntityName(entityId: entityId, name: "Scene Camera")
-    registerComponent(entityId: entityId, componentType: CameraComponent.self)
-    registerComponent(entityId: entityId, componentType: SceneCameraComponent.self)
-
-    cameraLookAt(entityId: entityId,
-                 eye: cameraDefaultEye, target: cameraTargetDefault,
-                 up: cameraUpDefault)
 }
 
 public func createGameCamera(entityId: EntityID) {
@@ -265,7 +245,7 @@ public func moveCameraWithInput(entityId: EntityID, input: (w: Bool, a: Bool, s:
         return
     }
 
-    if inputSystem.cameraControlMode == .orbiting {
+    if InputSystem.shared.cameraControlMode == .orbiting {
         return
     }
 

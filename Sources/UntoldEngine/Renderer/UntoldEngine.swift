@@ -163,8 +163,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             }
         }
 
-        if getMainCamera() == .invalid {
-            handleError(.noGameCamera)
+        if CameraSystem.shared.activeCamera == .invalid {
+            handleError(.noActiveCamera)
             return
         }
 

@@ -29,7 +29,7 @@ public enum RenderPasses {
 
         let modelMatrix = simd_float4x4.init(1.0)
 
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -65,6 +65,12 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "Grid Pass")
             return
         }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
 
         renderEncoder.label = "Grid Pass"
 
@@ -91,10 +97,6 @@ public enum RenderPasses {
         renderEncoder.drawPrimitives(type: MTLPrimitiveType.triangle, vertexStart: 0, vertexCount: 6)
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-
-        renderEncoder.popDebugGroup()
-
-        renderEncoder.endEncoding()
     }
 
     public static let executeEnvironmentPass: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -109,7 +111,7 @@ public enum RenderPasses {
             return
         }
 
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -124,6 +126,12 @@ public enum RenderPasses {
         else {
             handleError(.renderPassCreationFailed, "Environment Pass")
             return
+        }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
         }
 
         renderEncoder.label = "Environment Pass"
@@ -191,10 +199,6 @@ public enum RenderPasses {
                 indexBufferOffset: submesh.indexBuffer.offset
             )
         }
-
-        renderEncoder.popDebugGroup()
-
-        renderEncoder.endEncoding()
     }
 
     public static let shadowExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -219,11 +223,16 @@ public enum RenderPasses {
                 descriptor: renderInfo.shadowRenderPassDescriptor)
         else {
             handleError(.renderPassCreationFailed, "shadow Pass")
-
             return
         }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
 
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -253,6 +262,8 @@ public enum RenderPasses {
 
         // Iterate over the entities found by the component query
         for entityId in visibleEntityIds {
+            if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
+            
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
                 continue
@@ -357,9 +368,6 @@ public enum RenderPasses {
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
 
     public static let modelExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -373,7 +381,7 @@ public enum RenderPasses {
             handleError(.pipelineStateNulled, modelPipeline.name!)
             return
         }
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -405,8 +413,13 @@ public enum RenderPasses {
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Model Pass")
-
             return
+        }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
         }
 
         renderEncoder.label = "Model Pass"
@@ -422,6 +435,8 @@ public enum RenderPasses {
 
         // Iterate over the entities found by the component query
         for entityId in visibleEntityIds {
+            if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
+            
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
                 continue
@@ -604,12 +619,15 @@ public enum RenderPasses {
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
 
     static let ssaoExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
+            handleError(.noActiveCamera)
+            return
+        }
+        
         guard let ssaoPipeline = PipelineManager.shared.renderPipelinesByType[ .ssao ] else {
             handleError(.pipelineStateNulled, "ssaoPipeline is nil")
             return
@@ -636,6 +654,7 @@ public enum RenderPasses {
         // clear it so that it doesn't have any effect on the final output
         renderInfo.ssaoRenderPassDescriptor.depthAttachment.loadAction = .clear
         renderInfo.ssaoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].storeAction = .store
+        
         // set your encoder here
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
@@ -643,10 +662,11 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "SSAO Pass")
             return
         }
-
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
-            handleError(.noActiveCamera)
-            return
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
         }
 
         renderEncoder.label = "SSAO Pass"
@@ -716,8 +736,6 @@ public enum RenderPasses {
         )
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
 
     static let ssaoBlurExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -750,6 +768,12 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "SSAO Blur Pass")
             return
         }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
 
         renderEncoder.label = "SSAO Blur Pass"
 
@@ -781,8 +805,6 @@ public enum RenderPasses {
         )
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
 
     public static let lightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -797,7 +819,7 @@ public enum RenderPasses {
             return
         }
 
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -818,6 +840,12 @@ public enum RenderPasses {
         else {
             handleError(.renderPassCreationFailed, "Light Pass")
             return
+        }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
         }
 
         renderEncoder.label = "Light Pass"
@@ -1039,8 +1067,6 @@ public enum RenderPasses {
         )
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
 
     public static let compositeExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -1072,6 +1098,12 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "Composite Pass")
             return
         }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
 
         renderEncoder.label = "Composite Pass"
 
@@ -1099,8 +1131,6 @@ public enum RenderPasses {
         )
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
 
     public static let preCompositeExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -1145,6 +1175,12 @@ public enum RenderPasses {
         else {
             handleError(.renderPassCreationFailed, "Pre Composite Pass")
             return
+        }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
         }
 
         renderEncoder.label = "Pre Composite Pass"
@@ -1198,8 +1234,6 @@ public enum RenderPasses {
         )
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
 
     static func executePostProcess(
@@ -1230,6 +1264,12 @@ public enum RenderPasses {
                 handleError(.renderPassCreationFailed, "Post Process \(pipeline.name!) Pass")
                 return
             }
+            
+            defer {
+                // Make sure no matter what we end the encoding at the end of the function
+                renderEncoder.popDebugGroup()
+                renderEncoder.endEncoding()
+            }
 
             renderEncoder.label = "Post-Processing Pass"
 
@@ -1256,8 +1296,6 @@ public enum RenderPasses {
             )
 
             renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-            renderEncoder.popDebugGroup()
-            renderEncoder.endEncoding()
         }
     }
 }
