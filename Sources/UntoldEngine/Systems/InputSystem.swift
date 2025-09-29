@@ -13,8 +13,8 @@ public struct KeyState {
     public var wPressed = false, aPressed = false, sPressed = false, dPressed = false
     public var qPressed = false, ePressed = false
     public var spacePressed = false, shiftPressed = false, ctrlPressed = false
-    var altPressed = false
-    var leftMousePressed = false, rightMousePressed = false, middleMousePressed = false
+    public var altPressed = false
+    public var leftMousePressed = false, rightMousePressed = false, middleMousePressed = false
 }
 
 public struct GamePadState {
@@ -23,39 +23,37 @@ public struct GamePadState {
     public var leftThumbStickActive = false
 }
 
-enum PanGestureState { case began, changed, ended }
-enum PinchGestureState { case began, changed, ended }
-enum CameraControlMode { case idle, orbiting, moving }
+public enum PanGestureState { case began, changed, ended }
+public enum PinchGestureState { case began, changed, ended }
+public enum CameraControlMode { case idle, orbiting, moving }
 
 public final class InputSystem {
-    let kVK_ANSI_W: UInt16 = 13, kVK_ANSI_A: UInt16 = 0,  kVK_ANSI_S: UInt16 = 1,  kVK_ANSI_D: UInt16 = 2
-    let kVK_ANSI_R: UInt16 = 15, kVK_ANSI_P: UInt16 = 35, kVK_ANSI_L: UInt16 = 37
-    let kVK_ANSI_Q: UInt16 = 12, kVK_ANSI_E: UInt16 = 14
-    let kVK_ANSI_1: UInt16 = 18, kVK_ANSI_2: UInt16 = 19
-    let kVK_ANSI_G: UInt16 = 5,  kVK_ANSI_X: UInt16 = 7,  kVK_ANSI_Y: UInt16 = 16, kVK_ANSI_Z: UInt16 = 6
-    let kVK_ANSI_Space: UInt16 = 49
+    public let kVK_ANSI_W: UInt16 = 13, kVK_ANSI_A: UInt16 = 0,  kVK_ANSI_S: UInt16 = 1,  kVK_ANSI_D: UInt16 = 2
+    public let kVK_ANSI_R: UInt16 = 15, kVK_ANSI_P: UInt16 = 35, kVK_ANSI_L: UInt16 = 37
+    public let kVK_ANSI_Q: UInt16 = 12, kVK_ANSI_E: UInt16 = 14
+    public let kVK_ANSI_1: UInt16 = 18, kVK_ANSI_2: UInt16 = 19
+    public let kVK_ANSI_G: UInt16 = 5,  kVK_ANSI_X: UInt16 = 7,  kVK_ANSI_Y: UInt16 = 16, kVK_ANSI_Z: UInt16 = 6
+    public let kVK_ANSI_Space: UInt16 = 49
 
     public var keyState = KeyState()
     public var gamePadState = GamePadState()
     public var currentGamepad: GCExtendedGamepad?
 
     // Shared state
-    var currentPanGestureState: PanGestureState?
-    var currentPinchGestureState: PinchGestureState?
-    var cameraControlMode: CameraControlMode = .idle
+    public var currentPanGestureState: PanGestureState?
+    public var currentPinchGestureState: PinchGestureState?
+    public var cameraControlMode: CameraControlMode = .idle
 
-    var mouseX: Float = 0, mouseY: Float = 0, lastMouseX: Float = 0, lastMouseY: Float = 0
-    var mouseDeltaX: Float = 0, mouseDeltaY: Float = 0, mouseActive: Bool = false
+    public var mouseX: Float = 0, mouseY: Float = 0, lastMouseX: Float = 0, lastMouseY: Float = 0
+    public var mouseDeltaX: Float = 0, mouseDeltaY: Float = 0, mouseActive: Bool = false
 
-    var initialPanLocation: CGPoint!
-    var panDelta: simd_float2 = .init(0, 0)
-    var scrollDelta: simd_float2 = .init(0, 0)
+    public var initialPanLocation: CGPoint!
+    public var panDelta: simd_float2 = .init(0, 0)
+    public var scrollDelta: simd_float2 = .init(0, 0)
 
-    var pinchDelta: simd_float3 = .init(0, 0, 0)
-    var previousScale: CGFloat = 1
-    #if os(macOS)
-    weak var selectionDelegate: SelectionDelegate?
-    #endif
+    public var pinchDelta: simd_float3 = .init(0, 0, 0)
+    public var previousScale: CGFloat = 1
+            
     public init() { setupGameController() }
 
     private func setupGameController() {

@@ -16,9 +16,13 @@ public typealias ViewRepresentable = UIViewRepresentable
 
 public struct SceneView: ViewRepresentable {
     var mtkView: MTKView
+    private var renderer: UntoldRenderer?
 
-    public init( mtkView: MTKView) {
-        self.mtkView = mtkView
+    //TODO: Maybe we should thow an error on init instead of allowing nil renderer value
+    public init( renderer: UntoldRenderer? = nil) {
+        self.renderer = renderer ?? UntoldRenderer.create()
+        self.mtkView = self.renderer!.metalView
+        self.renderer?.initResources()
     }
     
 #if os(macOS)
@@ -40,5 +44,10 @@ public struct SceneView: ViewRepresentable {
 #endif
     
     public func updateView(_ view: MTKView, context: Context) { }
+    
+    public func onInit( block: @escaping () -> Void ) -> Self {
+        block()
+        return self
+    }
 }
 

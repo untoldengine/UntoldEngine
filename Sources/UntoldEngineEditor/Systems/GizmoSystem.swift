@@ -7,6 +7,8 @@
 
 import Foundation
 import simd
+import UntoldEngine
+
 
 func createGizmo(name: String) {
     var gizmoName: String = name

@@ -4,17 +4,17 @@ import Foundation
 import MetalKit
 import simd
 
-struct Mesh {
-    let metalKitMesh: MTKMesh
-    var submeshes: [SubMesh] = []
-    var modelMDLMesh: MDLMesh
-    var localSpace: simd_float4x4 = .identity
-    var worldSpace: simd_float4x4 = .identity
+public struct Mesh {
+    public let metalKitMesh: MTKMesh
+    public var submeshes: [SubMesh] = []
+    public var modelMDLMesh: MDLMesh
+    public var localSpace: simd_float4x4 = .identity
+    public var worldSpace: simd_float4x4 = .identity
     var assetName: String
     var boundingBox: (min: simd_float3, max: simd_float3)
     var flipCoord: Bool = false
     var skin: Skin?
-    var spaceUniform: MTLBuffer!
+    public var spaceUniform: MTLBuffer!
 
     init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip: Bool) {
         modelMDLMesh = modelIOMesh
@@ -175,9 +175,9 @@ struct Mesh {
     }
 }
 
-struct SubMesh {
-    let metalKitSubmesh: MTKSubmesh
-    var material: Material?
+public struct SubMesh {
+    public let metalKitSubmesh: MTKSubmesh
+    public var material: Material?
 
     init(metalKitSubmesh: MTKSubmesh) {
         self.metalKitSubmesh = metalKitSubmesh
@@ -195,13 +195,13 @@ struct SubMesh {
     }
 }
 
-enum WrapMode: Int, CaseIterable, Identifiable, CustomStringConvertible {
+public enum WrapMode: Int, CaseIterable, Identifiable, CustomStringConvertible {
     case clampToEdge
     case `repeat`
 
-    var id: Int { rawValue }
+    public var id: Int { rawValue }
 
-    var description: String {
+    public var description: String {
         switch self {
         case .clampToEdge: return "Clamp to Edge"
         case .repeat: return "Repeat"
@@ -209,51 +209,51 @@ enum WrapMode: Int, CaseIterable, Identifiable, CustomStringConvertible {
     }
 }
 
-struct TextureDescriptor {
-    var texture: MTLTexture?
-    var sampler: MTLSamplerState?
-    var wrapMode: WrapMode = .clampToEdge
+public struct TextureDescriptor {
+    public var texture: MTLTexture?
+    public var sampler: MTLSamplerState?
+    public var wrapMode: WrapMode = .clampToEdge
 }
 
-struct Material {
-    var baseColor: TextureDescriptor
-    var roughness: TextureDescriptor
-    var metallic: TextureDescriptor
-    var normal: TextureDescriptor
+public struct Material {
+    public var baseColor: TextureDescriptor
+    public var roughness: TextureDescriptor
+    public var metallic: TextureDescriptor
+    public var normal: TextureDescriptor
 
     // Texture URLs
-    var baseColorURL: URL?
-    var roughnessURL: URL?
-    var metallicURL: URL?
-    var normalURL: URL?
+    public var baseColorURL: URL?
+    public var roughnessURL: URL?
+    public var metallicURL: URL?
+    public var normalURL: URL?
 
     // Default values
-    var baseColorValue: simd_float4 = .init(1.0, 1.0, 1.0, 1.0)
-    var edgeTint: simd_float4 = .init(0.0, 0.0, 0.0, 1.0)
-    var emissiveValue: simd_float3 = .zero
-    var roughnessValue: Float = 1.0
-    var metallicValue: Float = 0.0
+    public var baseColorValue: simd_float4 = .init(1.0, 1.0, 1.0, 1.0)
+    public var edgeTint: simd_float4 = .init(0.0, 0.0, 0.0, 1.0)
+    public var emissiveValue: simd_float3 = .zero
+    public var roughnessValue: Float = 1.0
+    public var metallicValue: Float = 0.0
 
     // Disney material properties
-    var specular: Float = 0.0
-    var specularTint: Float = 0.0
-    var subsurface: Float = 0.0
-    var anisotropic: Float = 0.0
-    var sheen: Float = 0.0
-    var sheenTint: Float = 0.0
-    var clearCoat: Float = 0.0
-    var clearCoatGloss: Float = 0.0
-    var ior: Float = 1.5
-    var emit: Bool = false
-    var interactWithLight: Bool = true
+    public var specular: Float = 0.0
+    public var specularTint: Float = 0.0
+    public var subsurface: Float = 0.0
+    public var anisotropic: Float = 0.0
+    public var sheen: Float = 0.0
+    public var sheenTint: Float = 0.0
+    public var clearCoat: Float = 0.0
+    public var clearCoatGloss: Float = 0.0
+    public var ior: Float = 1.5
+    public var emit: Bool = false
+    public var interactWithLight: Bool = true
 
     // Texture presence flags
-    var hasNormalMap: Bool { normal.texture != nil }
-    var hasBaseMap: Bool { baseColor.texture != nil }
-    var hasRoughMap: Bool { roughness.texture != nil }
-    var hasMetalMap: Bool { metallic.texture != nil }
+    public var hasNormalMap: Bool { normal.texture != nil }
+    public var hasBaseMap: Bool { baseColor.texture != nil }
+    public var hasRoughMap: Bool { roughness.texture != nil }
+    public var hasMetalMap: Bool { metallic.texture != nil }
 
-    var stScale: Float = 1.0
+    public var stScale: Float = 1.0
 
     init(mdlMaterial: MDLMaterial, textureLoader: TextureLoader, name: String) {
         // Load textures and set URLs

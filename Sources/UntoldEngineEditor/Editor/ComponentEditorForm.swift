@@ -4,9 +4,9 @@
 //
 //  Created by Harold Serrano on 8/10/25.
 //
-#if canImport(AppKit)
 import Foundation
 import SwiftUI
+import UntoldEngine
 
 // 1) Describe the fields you want to render
 public enum EditorField {
@@ -82,4 +82,3 @@ public func makeEditorView(fields: [EditorField]) -> (EntityID?, Asset?, @escapi
         )
     }
 }
-#endif

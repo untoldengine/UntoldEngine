@@ -7,6 +7,8 @@
 
 import Foundation
 import SwiftUI
+import UntoldEngine
+
 
 func bindingForWrapMode(entityId: EntityID, textureType: TextureType, onChange: @escaping () -> Void) -> Binding<WrapMode> {
     Binding<WrapMode>(

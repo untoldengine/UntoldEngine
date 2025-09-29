@@ -7,7 +7,37 @@
 
 import Foundation
 
-public func updateAnimationSystem(deltaTime: Float) {
+public final class AnimationSystem
+{
+    // Thread-safe shared instance
+    public static let shared: AnimationSystem = { return AnimationSystem() }()
+    
+    private let queue = DispatchQueue(label: "com.untoldengine.animation-system-queue", attributes: .concurrent)
+    
+    var _isEnabled: Bool = true
+    // Read and Write (thread-safe)
+    public var isEnabled: Bool {
+        get { queue.sync { _isEnabled } }
+        set {
+            queue.sync(flags: .barrier) {
+                self._updateAnimationCallback = newValue ? updateAnimationSystem : updateAnimationSystemDummy
+                self._isEnabled = newValue
+            }
+        }
+    }
+        
+    public typealias UpdateAnimationCallback = ( (Float) -> Void )
+    
+    var _updateAnimationCallback: UpdateAnimationCallback = updateAnimationSystem
+    public var update: UpdateAnimationCallback { _updateAnimationCallback }
+}
+
+// Small performance trick.
+// It's always faster to have a funciton pointers inside the render loop and switch to dummy functions if you don't need them
+// instead of add an ifelse conditional jump.
+fileprivate func updateAnimationSystemDummy(deltaTime: Float) { }
+
+fileprivate func updateAnimationSystem(deltaTime: Float) {
     currentGlobalTime += deltaTime
 
     let skeletonId = getComponentId(for: SkeletonComponent.self)

@@ -14,6 +14,11 @@ let package = Package(
             name: "UntoldEngine",
             targets: ["UntoldEngine"]
         ),
+        // Executable for the editor
+        .executable(
+            name: "UntoldEngineEditor",
+            targets: ["UntoldEngineEditor"]
+        ),
         // Executable for the demo game
         .executable(
             name: "DemoGame",
@@ -71,7 +76,17 @@ let package = Package(
                 .linkedFramework("UIKit", .when(platforms: [.iOS])),
             ]
         ),
-
+        // These executables are macOS-only
+        .executableTarget(
+            name: "UntoldEngineEditor",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/UntoldEngineEditor",
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
+            ]
+        ),
         // These executables are macOS-only
         .executableTarget(
             name: "DemoGame",

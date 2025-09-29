@@ -12,46 +12,25 @@ import ModelIO
 import simd
 
 public struct RenderInfo {
-    var perspectiveSpace = simd_float4x4.init(1.0)
-    var device: MTLDevice!
-    var fence: MTLFence!
-    var library: MTLLibrary!
-    var commandQueue: MTLCommandQueue!
-    var bufferAllocator: MTKMeshBufferAllocator!
-    var textureLoader: MTKTextureLoader!
-    var renderPassDescriptor: MTLRenderPassDescriptor!
-    var offscreenRenderPassDescriptor: MTLRenderPassDescriptor!
-    var postProcessRenderPassDescriptor: MTLRenderPassDescriptor!
-    var shadowRenderPassDescriptor: MTLRenderPassDescriptor!
-    var gizmoRenderPassDescriptor: MTLRenderPassDescriptor!
-    var deferredRenderPassDescriptor: MTLRenderPassDescriptor!
-    var ssaoRenderPassDescriptor: MTLRenderPassDescriptor!
-    var ssaoBlurRenderPassDescriptor: MTLRenderPassDescriptor!
-    var iblOffscreenRenderPassDescriptor: MTLRenderPassDescriptor!
-    var colorPixelFormat: MTLPixelFormat!
-    var depthPixelFormat: MTLPixelFormat!
-    var viewPort: simd_float2!
-}
-
-public struct RenderPipeline {
-    var pipelineState: MTLRenderPipelineState?
-    var depthState: MTLDepthStencilState?
-    var success: Bool = false
-    var name: String?
-}
-
-public struct ComputePipeline {
-    var pipelineState: MTLComputePipelineState?
-    var success: Bool = false
-    var name: String?
-}
-
-public struct MeshShaderPipeline {
-    var depthState: MTLDepthStencilState?
-    var pipelineState: MTLRenderPipelineState?
-    var passDescriptor: MTLRenderPassDescriptor?
-    var uniformSpaceBuffer: MTLBuffer?
-    var success: Bool = false
+    public var perspectiveSpace = simd_float4x4.init(1.0)
+    public var device: MTLDevice!
+    public var fence: MTLFence!
+    public var library: MTLLibrary!
+    public var commandQueue: MTLCommandQueue!
+    public var bufferAllocator: MTKMeshBufferAllocator!
+    public var textureLoader: MTKTextureLoader!
+    public var renderPassDescriptor: MTLRenderPassDescriptor!
+    public var offscreenRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var postProcessRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var shadowRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var gizmoRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var deferredRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var ssaoRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var ssaoBlurRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var iblOffscreenRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var colorPixelFormat: MTLPixelFormat!
+    public var depthPixelFormat: MTLPixelFormat!
+    public var viewPort: simd_float2!
 }
 
 public struct BufferResources {
@@ -70,19 +49,19 @@ public struct BufferResources {
     var voxelUniforms: MTLBuffer?
 
     // composite quad
-    var quadVerticesBuffer: MTLBuffer?
-    var quadTexCoordsBuffer: MTLBuffer?
-    var quadIndexBuffer: MTLBuffer?
+    public var quadVerticesBuffer: MTLBuffer?
+    public var quadTexCoordsBuffer: MTLBuffer?
+    public var quadIndexBuffer: MTLBuffer?
 
     // bounding box
-    var boundingBoxBuffer: MTLBuffer?
+    public var boundingBoxBuffer: MTLBuffer?
 
     // ray tracing uniform
-    var rayTracingUniform: MTLBuffer?
-    var accumulationBuffer: MTLBuffer?
+    public var rayTracingUniform: MTLBuffer?
+    public var accumulationBuffer: MTLBuffer?
 
     // ray model
-    var rayModelInstanceBuffer: MTLBuffer?
+    public var rayModelInstanceBuffer: MTLBuffer?
 
     // ssao kernel
     var ssaoKernelBuffer: MTLBuffer?
@@ -104,72 +83,74 @@ public struct TripleBufferResources {
 }
 
 public struct VertexDescriptors {
-    var model: MDLVertexDescriptor!
-    var gizmo: MDLVertexDescriptor!
+    public var model: MDLVertexDescriptor!
+    public var gizmo: MDLVertexDescriptor!
 }
 
 public struct TextureResources {
-    var shadowMap: MTLTexture?
-    var colorMap: MTLTexture?
-    var normalMap: MTLTexture?
-    var positionMap: MTLTexture?
-    var materialMap: MTLTexture?
-    var emissiveMap: MTLTexture?
-    var depthMap: MTLTexture?
+    public var shadowMap: MTLTexture?
+    public var colorMap: MTLTexture?
+    public var normalMap: MTLTexture?
+    public var positionMap: MTLTexture?
+    public var materialMap: MTLTexture?
+    public var emissiveMap: MTLTexture?
+    public var depthMap: MTLTexture?
 
     // deferred
-    var deferredColorMap: MTLTexture?
-    var deferredDepthMap: MTLTexture?
+    public var deferredColorMap: MTLTexture?
+    public var deferredDepthMap: MTLTexture?
 
     // ibl
-    var environmentTexture: MTLTexture?
-    var irradianceMap: MTLTexture?
-    var specularMap: MTLTexture?
-    var iblBRDFMap: MTLTexture?
+    public var environmentTexture: MTLTexture?
+    public var irradianceMap: MTLTexture?
+    public var specularMap: MTLTexture?
+    public var iblBRDFMap: MTLTexture?
 
     // raytracing dest texture
-    var rayTracingDestTexture: MTLTexture?
-    var rayTracingPreviousTexture: MTLTexture?
-    var rayTracingRandomTexture: MTLTexture?
-    var rayTracingDestTextureArray: MTLTexture?
-    var rayTracingAccumTexture: [MTLTexture] = []
+    public var rayTracingDestTexture: MTLTexture?
+    public var rayTracingPreviousTexture: MTLTexture?
+    public var rayTracingRandomTexture: MTLTexture?
+    public var rayTracingDestTextureArray: MTLTexture?
+    public var rayTracingAccumTexture: [MTLTexture] = []
 
     // debugger textures
 
-    var tonemapTexture: MTLTexture?
-    var blurDebugTextures: MTLTexture?
-    var colorGradingTexture: MTLTexture?
-    var colorCorrectionTexture: MTLTexture?
-    var blurTextureHor: MTLTexture?
-    var blurTextureVer: MTLTexture?
-    var bloomThresholdTextuture: MTLTexture?
-    var bloomCompositeTexture: MTLTexture?
-    var vignetteTexture: MTLTexture?
-    var chromaticAberrationTexture: MTLTexture?
-    var depthOfFieldTexture: MTLTexture?
-    var ssaoTexture: MTLTexture?
-    var ssaoDepthMap: MTLTexture?
-    var ssaoBlurTexture: MTLTexture?
-    var ssaoBlurDepthTexture: MTLTexture?
+    public var tonemapTexture: MTLTexture?
+    public var blurDebugTextures: MTLTexture?
+    public var colorGradingTexture: MTLTexture?
+    public var colorCorrectionTexture: MTLTexture?
+    public var blurTextureHor: MTLTexture?
+    public var blurTextureVer: MTLTexture?
+    public var bloomThresholdTextuture: MTLTexture?
+    public var bloomCompositeTexture: MTLTexture?
+    public var vignetteTexture: MTLTexture?
+    public var chromaticAberrationTexture: MTLTexture?
+    public var depthOfFieldTexture: MTLTexture?
+    public var ssaoTexture: MTLTexture?
+    public var ssaoDepthMap: MTLTexture?
+    public var ssaoBlurTexture: MTLTexture?
+    public var ssaoBlurDepthTexture: MTLTexture?
 
     // Area texture ltc_1
-    var areaTextureLTCMag: MTLTexture?
-    var areaTextureLTCMat: MTLTexture?
+    public var areaTextureLTCMag: MTLTexture?
+    public var areaTextureLTCMat: MTLTexture?
 
     // Gizmo
-    var gizmoColorTexture: MTLTexture?
-    var gizmoDepthTexture: MTLTexture?
+    public var gizmoColorTexture: MTLTexture?
+    public var gizmoDepthTexture: MTLTexture?
 
     // SSAO
-    var ssaoNoiseTexture: MTLTexture?
+    public var ssaoNoiseTexture: MTLTexture?
 }
 
 public struct AccelStructResources {
-    var primitiveAccelerationStructures: [MTLAccelerationStructure] = []
-    var instanceTransforms: [MTLPackedFloat4x3] = []
-    var accelerationStructIndex: [UInt32] = []
-    var entityIDIndex: [EntityID] = []
-    var instanceAccelerationStructure: MTLAccelerationStructure?
-    var instanceBuffer: MTLBuffer?
-    var mask: [Int32] = []
+    public var primitiveAccelerationStructures: [MTLAccelerationStructure] = []
+    public var instanceTransforms: [MTLPackedFloat4x3] = []
+    public var accelerationStructIndex: [UInt32] = []
+    public var entityIDIndex: [EntityID] = []
+    public var instanceAccelerationStructure: MTLAccelerationStructure?
+    public var instanceBuffer: MTLBuffer?
+    public var mask: [Int32] = []
+    
+    public init() {}
 }

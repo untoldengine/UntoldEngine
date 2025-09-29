@@ -210,7 +210,7 @@ func initFrustumCulllingCompute() {
     visibleEntityIds.removeAll(keepingCapacity: true)
 }
 
-func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
+public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     if frustumCullingPipeline.success == false {
         handleError(.pipelineStateNulled, frustumCullingPipeline.name!)
         return

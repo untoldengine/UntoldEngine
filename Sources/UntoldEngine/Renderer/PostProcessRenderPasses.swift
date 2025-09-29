@@ -63,6 +63,12 @@ func executePostProcess(postProcessPipeline: RenderPipeline, uCommandBuffer: MTL
 }
 
 func executeIBLPreFilterPass(uCommandBuffer: MTLCommandBuffer, _ envTexture: MTLTexture) {
+    
+    guard let iblPrefilterPipeline = PipelineManager.shared.renderPipelinesByType[ .iblPreFilter ] else {
+        handleError(.pipelineStateNulled, "iblPreFilterPipeline is nil")
+        return
+    }
+    
     if !iblPrefilterPipeline.success {
         return
     }

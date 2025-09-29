@@ -183,7 +183,7 @@ func getDirectionalLightParameters() -> LightParameters {
     return lightParameter
 }
 
-func updateLightColor(entityId: EntityID, color: simd_float3) {
+public func updateLightColor(entityId: EntityID, color: simd_float3) {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
         return
@@ -192,7 +192,7 @@ func updateLightColor(entityId: EntityID, color: simd_float3) {
     lightComponent.color = color
 }
 
-func getLightColor(entityId: EntityID) -> simd_float3 {
+public func getLightColor(entityId: EntityID) -> simd_float3 {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
         return .zero
@@ -201,7 +201,7 @@ func getLightColor(entityId: EntityID) -> simd_float3 {
     return lightComponent.color
 }
 
-func updateLightAttenuation(entityId: EntityID, attenuation: simd_float3) {
+public func updateLightAttenuation(entityId: EntityID, attenuation: simd_float3) {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
         return
@@ -225,7 +225,7 @@ func updateLightAttenuation(entityId: EntityID, attenuation: simd_float3) {
     }
 }
 
-func getLightAttenuation(entityId: EntityID) -> simd_float3 {
+public func getLightAttenuation(entityId: EntityID) -> simd_float3 {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
         return .zero
@@ -251,7 +251,7 @@ func getLightAttenuation(entityId: EntityID) -> simd_float3 {
     return .zero
 }
 
-func updateLightIntensity(entityId: EntityID, intensity: Float) {
+public func updateLightIntensity(entityId: EntityID, intensity: Float) {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
         return
@@ -260,7 +260,7 @@ func updateLightIntensity(entityId: EntityID, intensity: Float) {
     lightComponent.intensity = intensity
 }
 
-func getLightIntensity(entityId: EntityID) -> Float {
+public func getLightIntensity(entityId: EntityID) -> Float {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
         return 0.0
@@ -269,7 +269,7 @@ func getLightIntensity(entityId: EntityID) -> Float {
     return lightComponent.intensity
 }
 
-func updateLightRadius(entityId: EntityID, radius: Float) {
+public func updateLightRadius(entityId: EntityID, radius: Float) {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
         return
@@ -293,7 +293,7 @@ func updateLightRadius(entityId: EntityID, radius: Float) {
     }
 }
 
-func getLightRadius(entityId: EntityID) -> Float {
+public func getLightRadius(entityId: EntityID) -> Float {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
         return 0.0
@@ -319,7 +319,7 @@ func getLightRadius(entityId: EntityID) -> Float {
     return 0.0
 }
 
-func getLightFalloff(entityId: EntityID) -> Float {
+public func getLightFalloff(entityId: EntityID) -> Float {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
         return 0.0
@@ -345,7 +345,7 @@ func getLightFalloff(entityId: EntityID) -> Float {
     return 0.0
 }
 
-func updateLightFalloff(entityId: EntityID, falloff: Float) {
+public func updateLightFalloff(entityId: EntityID, falloff: Float) {
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
         return
@@ -369,7 +369,7 @@ func updateLightFalloff(entityId: EntityID, falloff: Float) {
     }
 }
 
-func getPointLightCount() -> Int {
+public func getPointLightCount() -> Int {
     let lightComponentID = getComponentId(for: PointLightComponent.self)
 
     let lightEntities = queryEntitiesWithComponentIds([lightComponentID], in: scene)
@@ -388,7 +388,7 @@ func getPointLightCount() -> Int {
     return pointCount
 }
 
-func getSpotLightCount() -> Int {
+public func getSpotLightCount() -> Int {
     let lightComponentID = getComponentId(for: SpotLightComponent.self)
 
     let lightEntities = queryEntitiesWithComponentIds([lightComponentID], in: scene)
@@ -559,7 +559,7 @@ func updateLightOuterCone(entityId: EntityID, outerCone: Float) {
     spotLightComponent.outerCone = outerCone
 }
 
-func getLightConeAngle(entityId: EntityID) -> Float {
+public func getLightConeAngle(entityId: EntityID) -> Float {
     guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
         handleError(.noSpotLightComponent)
         return 0.0
@@ -568,7 +568,7 @@ func getLightConeAngle(entityId: EntityID) -> Float {
     return spotLightComponent.coneAngle
 }
 
-func updateLightConeAngle(entityId: EntityID, coneAngle: Float) {
+public func updateLightConeAngle(entityId: EntityID, coneAngle: Float) {
     guard let spotLightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
         handleError(.noSpotLightComponent)
         return
@@ -637,7 +637,7 @@ func getAreaLightCount() -> Int {
     return areaLightCount
 }
 
-func handleLightScaleInput(projectedAmount: Float, axis: simd_float3) {
+public func handleLightScaleInput(projectedAmount: Float, axis: simd_float3) {
     if let pointLightComponent = scene.get(component: PointLightComponent.self, for: activeEntity) {
         pointLightComponent.radius += projectedAmount
     }
@@ -652,14 +652,4 @@ func handleLightScaleInput(projectedAmount: Float, axis: simd_float3) {
 
         scaleTo(entityId: activeEntity, scale: newScale)
     }
-}
-
-func loadLightDebugMeshes() {
-    spotLightDebugMesh = loadRawMesh(name: "spot_light_debug_mesh", filename: "spot_light_debug_mesh", withExtension: "usdc")
-
-    pointLightDebugMesh = loadRawMesh(name: "point_light_debug_mesh", filename: "point_light_debug_mesh", withExtension: "usdc")
-
-    areaLightDebugMesh = loadRawMesh(name: "area_light_debug_mesh", filename: "area_light_debug_mesh", withExtension: "usdc")
-
-    dirLightDebugMesh = loadRawMesh(name: "dir_light_debug_mesh", filename: "dir_light_debug_mesh", withExtension: "usdc")
 }

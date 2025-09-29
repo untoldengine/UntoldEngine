@@ -4,9 +4,9 @@
 //
 //  Created by Harold Serrano on 4/18/25.
 //
-#if canImport(AppKit)
 import Foundation
 import SwiftUI
+import UntoldEngine
 
 struct ModeButton: View {
     let icon: String
@@ -93,4 +93,3 @@ struct TransformManipulationToolbar: View {
         .cornerRadius(5)
     }
 }
-#endif

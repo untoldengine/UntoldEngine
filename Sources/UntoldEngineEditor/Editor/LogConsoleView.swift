@@ -4,10 +4,11 @@
 //
 //  Created by Harold Serrano on 8/10/25.
 //
-#if canImport(AppKit)
 import Combine
 import Foundation
 import SwiftUI
+import UntoldEngine
+
 
 public final class LogStore: ObservableObject, LoggerSink {
     public static let shared = LogStore()
@@ -163,4 +164,3 @@ private func exportLog(_ entries: [LogEvent]) {
         Logger.logError(message: "Failed to export log: \(error)", category: "Logger")
     }
 }
-#endif
