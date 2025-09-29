@@ -128,11 +128,13 @@ final class ECSTests: XCTestCase {
         let components = getAllEntityComponentsTypes(entityId: entityId)
 
         // Assert
-        XCTAssertEqual(components.count, 2, "Expected entity to have 2 components")
+        XCTAssertEqual(components.count, 4, "Expected entity to have 4 components")
 
         let expectedTypes: Set<ObjectIdentifier> = [
-            ObjectIdentifier(RenderComponent.self),
+            ObjectIdentifier(ScenegraphComponent.self),
             ObjectIdentifier(LocalTransformComponent.self),
+            ObjectIdentifier(RenderComponent.self),
+            ObjectIdentifier(WorldTransformComponent.self)
         ]
 
         let actualTypes = Set(components.map { ObjectIdentifier($0) })

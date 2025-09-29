@@ -12,7 +12,15 @@ import MetalKit
 
 public func createEntity() -> EntityID {
     globalEntityCounter += 1
-    return scene.newEntity()
+    let entity = scene.newEntity()
+    makeSpatial(entityId: entity)   // attach LocalTransform, WorldTransform, Scenegraph
+    return entity
+}
+
+public func makeSpatial(entityId: EntityID) {
+    registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
+    registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
+    registerComponent(entityId: entityId, componentType: ScenegraphComponent.self)
 }
 
 public func registerComponent(entityId: EntityID, componentType: (some Component).Type) {
