@@ -4,9 +4,11 @@
 //
 //  Created by Harold Serrano on 3/19/25.
 //
-#if canImport(AppKit)
 import simd
 import SwiftUI
+import UntoldEngine
+import CShaderTypes
+
 
 func addIBL(asset: Asset?) {
     let selectedCategory: AssetCategory = .hdr
@@ -119,7 +121,7 @@ struct EnvironmentView: View {
 }
 
 struct ColorGradingEditorView: View {
-    @ObservedObject var settings = ColorGradingParams.shared
+    @ObservedObject public var settings = ColorGradingParams.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -370,4 +372,3 @@ struct DebuggerEditorView: View {
         .padding()
     }
 }
-#endif

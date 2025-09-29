@@ -4,8 +4,8 @@
 //
 //  Created by Harold Serrano on 2/19/25.
 //
-#if canImport(AppKit)
 import SwiftUI
+import UntoldEngine
 
 struct SceneHierarchyView: View {
     @ObservedObject var selectionManager: SelectionManager
@@ -143,4 +143,3 @@ struct HierarchyNode: View {
         }
     }
 }
-#endif

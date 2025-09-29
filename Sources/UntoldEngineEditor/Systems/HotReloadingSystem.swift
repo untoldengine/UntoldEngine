@@ -9,6 +9,8 @@ import CShaderTypes
 import Foundation
 import MetalKit
 import UniformTypeIdentifiers
+import UntoldEngine
+
 
 struct ShaderPipelineConfig {
     let pipelineName: String
@@ -73,7 +75,7 @@ let pipelineConfigs: [String: ShaderPipelineConfig] = [
     ),
 ]
 
-func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: inout RenderPipeline) {
+func reloadPipeline(named pipelineName: String, with library: MTLLibrary) {
     guard let config = pipelineConfigs[pipelineName] else {
         print("No pipeline config found for: \(pipelineName)")
         return
@@ -125,8 +127,15 @@ func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: 
 
         // Update your pipeline storage
 
+        guard var pipe = PipelineManager.shared.renderPipelinesByType[ .model] else {
+            print( "Failed to get pipeline for: \(pipelineName)" )
+            return
+        }
+        
+        //TODO: Check if the value actually changes or becasue its a struct we are just copy by value and it's not changing at all so we had to re-assign the pipe to the manager
         pipe.pipelineState = newPipeline
         pipe.depthState = newDepthState
+        
         print("✅ Reloaded pipeline: \(pipelineName)")
     } catch {
         print("❌ Failed to create pipeline state: \(error)")
@@ -136,14 +145,13 @@ func reloadPipeline(named pipelineName: String, with library: MTLLibrary, pipe: 
 func updateShadersAndPipeline() {
     #if os(macOS)
     if let library = loadMetalLibraryFromUserSelection() {
-        reloadPipeline(named: "model", with: library, pipe: &modelPipeline)
+        reloadPipeline(named: "model", with: library)
     }
     #endif
 }
 
 func selectMetalLibraryFile() -> URL? {
     // We can fix this up  later. The hot-reload system will only work for mac. 
-#if os(macOS)
     let openPanel = NSOpenPanel()
     openPanel.prompt = "Select .metallib file"
     openPanel.allowedContentTypes = [
@@ -155,12 +163,8 @@ func selectMetalLibraryFile() -> URL? {
     openPanel.canChooseFiles = true
 
     let response = openPanel.runModal()
-    if response == .OK, let url = openPanel.url {
-        return url
-    } else {
-        return nil
-    }
-#endif
+    if response == .OK, let url = openPanel.url { return url }
+    
     return nil
 }
 

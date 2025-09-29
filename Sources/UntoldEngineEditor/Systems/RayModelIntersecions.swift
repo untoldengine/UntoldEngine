@@ -8,6 +8,8 @@
 import CShaderTypes
 import Foundation
 import Metal
+import UntoldEngine
+
 
 func newAccelerationStructure(
     _ accelerationStructureDescriptor: MTLAccelerationStructureDescriptor, _ name: String
@@ -208,7 +210,6 @@ func createInstanceAccelerationStructures() {
 }
 
 func initRayPickerCompute() {
-    #if os(macOS)
     // create ray vs model pipeline
     // create kernel
     guard
@@ -234,7 +235,6 @@ func initRayPickerCompute() {
     bufferResources.rayModelInstanceBuffer = renderInfo.device.makeBuffer(
         length: MemoryLayout<Int32>.stride, options: .storageModeShared
     )
-    #endif
 }
 
 func cleanUpAccelStructures() {

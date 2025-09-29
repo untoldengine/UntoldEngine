@@ -6,7 +6,14 @@
 //
 
 import Foundation
+import SwiftUI
 import simd
+
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 func standardIlluminantY(x: Float) -> Float {
     2.87 * x - 3 * x * x - 0.27509507
@@ -37,4 +44,47 @@ func colorBalanceToLMSCoeffs(temperature: Float, tint: Float) -> simd_float3 {
     let w1 = simd_float3(0.949237, 1.03542, 1.08728) // D65 white point
     let w2: simd_float3 = CIExyToLMS(x: x, y: y)
     return simd_float3(w1.x / w2.x, w1.y / w2.y, w1.z / w2.z)
+}
+
+public func colorFromSimd(_ vec: simd_float4) -> Color {
+    Color(red: Double(vec.x), green: Double(vec.y), blue: Double(vec.z), opacity: Double(vec.w))
+}
+
+func simdFromColor(_ color: Color) -> simd_float4 {
+    var red: CGFloat = 0
+    var green: CGFloat = 0
+    var blue: CGFloat = 0
+    var alpha: CGFloat = 1
+
+    #if os(macOS)
+        NSColor(color).usingColorSpace(.deviceRGB)?.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+    #else
+        UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+    #endif
+
+    return simd_float4(Float(red), Float(green), Float(blue), Float(alpha))
+}
+
+public func updateMaterialColor(entityId: EntityID, color: Color) {
+    // Convert SwiftUI.Color to internal format and update material
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
+
+    material.baseColorValue = simdFromColor(color)
+    renderComponent.mesh[0].submeshes[0].material = material
+}
+
+public func getMaterialBaseColor(entityId: EntityID) -> simd_float4 {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return .one
+    }
+
+    guard let material = renderComponent.mesh.first?.submeshes.first?.material else {
+        return .one
+    }
+
+    return material.baseColorValue
 }

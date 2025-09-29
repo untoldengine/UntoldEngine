@@ -13,19 +13,19 @@ enum GraphError: Error {
     case cycleDetected(String)
 }
 
-struct RenderPass {
-    let id: String
+public struct RenderPass {
+    public let id: String
     var dependencies: [String]
     var execute: ((MTLCommandBuffer) -> Void)?
 
-    init(id: String, dependencies: [String], execute: ((MTLCommandBuffer) -> Void)?) {
+    public init(id: String, dependencies: [String], execute: ((MTLCommandBuffer) -> Void)?) {
         self.id = id
         self.dependencies = dependencies
         self.execute = execute
     }
 }
 
-func executeGraph(
+public func executeGraph(
     _: [String: RenderPass], _ sortedPasses: [RenderPass], _ commandBuffer: MTLCommandBuffer
 ) {
     for pass in sortedPasses {
@@ -34,7 +34,7 @@ func executeGraph(
 }
 
 // Creates a Directed Acyclic (non-cyclical) Graph
-func topologicalSortGraph(graph: [String: RenderPass]) throws -> [RenderPass] {
+public func topologicalSortGraph(graph: [String: RenderPass]) throws -> [RenderPass] {
     var sortedPasses = [RenderPass]()
     var visited = Set<String>()
     var visiting = Set<String>() // Tracks nodes in the current recursion stack

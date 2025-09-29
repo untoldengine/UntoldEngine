@@ -4,11 +4,14 @@
 //
 //  Created by Harold Serrano on 11/11/24.
 //  Copyright © 2024 Untold Engine Studios. All rights reserved.
+
 import CShaderTypes
 import Foundation
 import MetalKit
 
-func updateRenderingSystem(in view: MTKView) {
+public typealias UpdateRenderingSystemCallback = (MTKView) -> Void
+
+func UpdateRenderingSystem(in view: MTKView) {
     
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
         
@@ -20,21 +23,13 @@ func updateRenderingSystem(in view: MTKView) {
             commandBuffer.label = "Rendering Command Buffer"
             
             // build a render graph
-            var (graph, preCompID) = gameMode ? buildGameModeGraph() : buildEditModeGraph()
+            var (graph, preCompID) = buildGameModeGraph()
 
-            if visualDebug == false {
-                let compositePass = RenderPass(
-                    id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-                )
+            let compositePass = RenderPass(
+                id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
+            )
 
-                graph[compositePass.id] = compositePass
-            } else {
-                let debugPass = RenderPass(
-                    id: "debug", dependencies: [preCompID], execute: RenderPasses.debuggerExecution
-                )
-
-                graph[debugPass.id] = debugPass
-            }
+            graph[compositePass.id] = compositePass
 
             // sorted it
             let sortedPasses = try! topologicalSortGraph(graph: graph)
@@ -61,61 +56,9 @@ func updateRenderingSystem(in view: MTKView) {
 
 // graphs
 
-typealias RenderGraphResult = (graph: [String: RenderPass], finalPassID: String)
+public typealias RenderGraphResult = (graph: [String: RenderPass], finalPassID: String)
 
-func buildEditModeGraph() -> RenderGraphResult {
-    var graph = [String: RenderPass]()
-
-    let basePassID: String
-    if renderEnvironment {
-        let environmentPass = RenderPass(
-            id: "environment", dependencies: [], execute: RenderPasses.executeEnvironmentPass
-        )
-        graph[environmentPass.id] = environmentPass
-        basePassID = environmentPass.id
-    } else {
-        let gridPass = RenderPass(
-            id: "grid", dependencies: [], execute: RenderPasses.gridExecution
-        )
-        graph[gridPass.id] = gridPass
-        basePassID = gridPass.id
-    }
-
-    let shadowPass = RenderPass(
-        id: "shadow", dependencies: [basePassID], execute: RenderPasses.shadowExecution
-    )
-    graph[shadowPass.id] = shadowPass
-
-    let modelPass = RenderPass(
-        id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
-    )
-    graph[modelPass.id] = modelPass
-
-    let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id], execute: RenderPasses.lightExecution)
-    graph[lightPass.id] = lightPass
-
-    let highlightPass = RenderPass(
-        id: "outline", dependencies: [modelPass.id], execute: RenderPasses.highlightExecution
-    )
-    graph[highlightPass.id] = highlightPass
-
-    let lightVisualsPass = RenderPass(id: "lightVisualPass", dependencies: [highlightPass.id], execute: RenderPasses.lightVisualPass)
-
-    graph[lightVisualsPass.id] = lightVisualsPass
-
-    let gizmoPass = RenderPass(id: "gizmo", dependencies: [lightVisualsPass.id], execute: RenderPasses.gizmoExecution)
-
-    graph[gizmoPass.id] = gizmoPass
-
-    let preCompPass = RenderPass(
-        id: "precomp", dependencies: [modelPass.id, gizmoPass.id, lightPass.id], execute: RenderPasses.preCompositeExecution
-    )
-    graph[preCompPass.id] = preCompPass
-
-    return (graph, preCompPass.id)
-}
-
-func buildGameModeGraph() -> RenderGraphResult {
+public func buildGameModeGraph() -> RenderGraphResult {
     var graph = [String: RenderPass]()
 
     let basePassID: String
@@ -184,7 +127,7 @@ func buildGameModeGraph() -> RenderGraphResult {
             id: horID,
             dependencies: [previousPassID],
             execute: RenderPasses.executePostProcess(
-                blurPipeline,
+                PipelineManager.shared.renderPipelinesByType[.blur]!,
                 source: horSource,
                 destination: horDestination,
                 customization: makeBlurCustomization(direction: simd_float2(1.0, 0.0), radius: blurRadius)
@@ -197,7 +140,7 @@ func buildGameModeGraph() -> RenderGraphResult {
             id: verID,
             dependencies: [horID],
             execute: RenderPasses.executePostProcess(
-                blurPipeline,
+                PipelineManager.shared.renderPipelinesByType[.blur]!,
                 source: horDestination,
                 destination: textureResources.blurTextureVer!,
                 customization: makeBlurCustomization(direction: simd_float2(0.0, 1.0), radius: blurRadius)
@@ -256,7 +199,7 @@ func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder) {
 }
 
 var colorCorrectionRenderPass = RenderPasses.executePostProcess(
-    colorCorrectionPipeline,
+    PipelineManager.shared.renderPipelinesByType[.colorCorrection]!,
     source: textureResources.tonemapTexture!,
     destination: textureResources.colorCorrectionTexture!,
     customization: colorCorrectionCustomization
@@ -305,7 +248,7 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
 }
 
 var colorGradingRenderPass = RenderPasses.executePostProcess(
-    colorGradingPipeline,
+    PipelineManager.shared.renderPipelinesByType[.colorGrading]!,
     source: textureResources.bloomCompositeTexture!,
     destination: textureResources.colorGradingTexture!,
     customization: colorGradingCustomization
@@ -336,7 +279,7 @@ func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderC
 }
 
 var bloomThresholdRenderPass = RenderPasses.executePostProcess(
-    bloomThresholdPipeline,
+    PipelineManager.shared.renderPipelinesByType[.bloomThreshold]!,
     source: textureResources.chromaticAberrationTexture!,
     destination: textureResources.bloomThresholdTextuture!,
     customization: bloomThresholdCustomization
@@ -365,7 +308,7 @@ func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
 }
 
 var bloomCompositeRenderPass = RenderPasses.executePostProcess(
-    bloomCompositePipeline,
+    PipelineManager.shared.renderPipelinesByType[.bloomComposite]!,
     source: textureResources.blurTextureVer!,
     destination: textureResources.bloomCompositeTexture!,
     customization: bloomCompositeCustomization
@@ -388,7 +331,7 @@ func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
 }
 
 var vignetteRenderPass = RenderPasses.executePostProcess(
-    vignettePipeline,
+    PipelineManager.shared.renderPipelinesByType[.vignette]!,
     source: textureResources.colorGradingTexture!,
     destination: textureResources.vignetteTexture!,
     customization: vignetteCustomization
@@ -427,7 +370,7 @@ func vignetteCustomization(encoder: MTLRenderCommandEncoder) {
 }
 
 var chromaticAberrationRenderPass = RenderPasses.executePostProcess(
-    chromaticAberrationPipeline,
+    PipelineManager.shared.renderPipelinesByType[.chromaticAberration]!,
     source: textureResources.depthOfFieldTexture!,
     destination: textureResources.chromaticAberrationTexture!,
     customization: chromaticAberrationCustomization
@@ -454,7 +397,7 @@ func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
 }
 
 var depthOfFieldRenderPass = RenderPasses.executePostProcess(
-    depthOfFieldPipeline,
+    PipelineManager.shared.renderPipelinesByType[.depthOfField]!,
     source: textureResources.deferredColorMap!,
     destination: textureResources.depthOfFieldTexture!,
     customization: depthOfFieldCustomization

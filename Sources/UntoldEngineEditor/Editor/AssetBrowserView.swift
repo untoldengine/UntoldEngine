@@ -4,9 +4,10 @@
 //
 //  Created by Harold Serrano on 2/19/25.
 //
-#if canImport(AppKit)
 import SwiftUI
 import UniformTypeIdentifiers
+import UntoldEngine
+
 
 enum AssetCategory: String, CaseIterable {
     case models = "Models"
@@ -426,4 +427,3 @@ struct AssetBrowserView: View {
         selectedAssetName = asset.name
     }
 }
-#endif

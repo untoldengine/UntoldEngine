@@ -9,6 +9,8 @@
 import AppKit
 import Cocoa
 import simd
+import UntoldEngine
+
 
 extension InputSystem {
     public func setupGestureRecognizers(view: NSView) {

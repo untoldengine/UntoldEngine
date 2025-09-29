@@ -12,31 +12,31 @@ import MetalKit
 import simd
 
 public class LocalTransformComponent: Component {
-    var position: simd_float3 = .zero
-    var rotation: simd_quatf = .init()
-    var scale: simd_float3 = .one
+    public var position: simd_float3 = .zero
+    public var rotation: simd_quatf = .init()
+    public var scale: simd_float3 = .one
 
-    var space: simd_float4x4 = .identity
+    public var space: simd_float4x4 = .identity
 
-    var boundingBox: (min: simd_float3, max: simd_float3) = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
+    public var boundingBox: (min: simd_float3, max: simd_float3) = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
 
-    var flipCoord: Bool = false
+    public var flipCoord: Bool = false
 
-    var rotationX: Float = 0
-    var rotationY: Float = 0
-    var rotationZ: Float = 0
+    public var rotationX: Float = 0
+    public var rotationY: Float = 0
+    public var rotationZ: Float = 0
 
     public required init() {}
 }
 
 public class WorldTransformComponent: Component {
-    var space: simd_float4x4 = .identity
+    public var space: simd_float4x4 = .identity
 
     public required init() {}
 }
 
 public class RenderComponent: Component {
-    var mesh: [Mesh]
+    public var mesh: [Mesh]
     var assetURL: URL = .init(fileURLWithPath: "")
     var assetName: String = ""
 
@@ -113,7 +113,7 @@ public class SkeletonComponent: Component {
 public class AnimationComponent: Component {
     var animationClips: [String: AnimationClip] = [:]
     var currentAnimation: AnimationClip?
-    var animationsFilenames: [URL] = []
+    public var animationsFilenames: [URL] = []
     var pause: Bool = false
     var currentTime: Float = 0.0
     public required init() {}
@@ -141,18 +141,18 @@ public enum LightType: String, CaseIterable {
 }
 
 public class LightTexture {
-    var directional: MTLTexture?
-    var point: MTLTexture?
-    var spot: MTLTexture?
-    var area: MTLTexture?
+    public var directional: MTLTexture?
+    public var point: MTLTexture?
+    public var spot: MTLTexture?
+    public var area: MTLTexture?
 }
 
 public class LightComponent: Component {
-    var texture: LightTexture = .init()
-    var lightType: LightType?
+    public var texture: LightTexture = .init()
+    public var lightType: LightType?
 
-    var color: simd_float3 = .one
-    var intensity: Float = 1.0
+    public var color: simd_float3 = .one
+    public var intensity: Float = 1.0
 
     public required init() {}
 }
@@ -162,21 +162,21 @@ public class DirectionalLightComponent: Component {
 }
 
 public class PointLightComponent: Component {
-    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // (constant, linear, quadratic)->x,y,z
-    var radius: Float = 1.0
-    var falloff: Float = 0.5
+    public var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0) // (constant, linear, quadratic)->x,y,z
+    public var radius: Float = 1.0
+    public var falloff: Float = 0.5
 
     public required init() {}
 }
 
 public class SpotLightComponent: Component {
-    var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0)
-    var radius: Float = 1.0
-    var innerCone: Float = 5.0
-    var outerCone: Float = 10.0
-    var direction: simd_float3 = .init(0, -1, 0)
-    var falloff: Float = 0.5
-    var coneAngle: Float = 30.0
+    public var attenuation: simd_float4 = .init(1.0, 0.7, 1.8, 0.0)
+    public var radius: Float = 1.0
+    public var innerCone: Float = 5.0
+    public var outerCone: Float = 10.0
+    public var direction: simd_float3 = .init(0, -1, 0)
+    public var falloff: Float = 0.5
+    public var coneAngle: Float = 30.0
 
     public required init() {}
 }
@@ -207,7 +207,7 @@ public class CameraComponent: Component {
     public var zAxis: simd_float3 = .init(0.0, 0.0, 0.0)
 
     // quaternion
-    var rotation: simd_quatf = .init()
+    public var rotation: simd_quatf = .init()
     var localOrientation: simd_float3 = .init(0.0, 0.0, 0.0)
     public var localPosition: simd_float3 = .init(0.0, 0.0, 0.0)
     var orbitTarget: simd_float3 = .init(0.0, 0.0, 0.0)

@@ -200,7 +200,7 @@ public func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Sce
     return out
 }
 
-func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> Bool {
+public func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> Bool {
     let entityIndex: EntityIndex = getEntityIndex(entityId)
 
     let entityMask = scene.entities[Int(entityIndex)].mask
@@ -228,7 +228,7 @@ func getAllEntityComponentsTypes(entityId: EntityID) -> [Any.Type] {
     return components
 }
 
-func getAllEntityComponentsIds(entityId: EntityID) -> [Int] {
+public func getAllEntityComponentsIds(entityId: EntityID) -> [Int] {
     var componentIdsArray: [Int] = []
 
     let componentTypes: [Any.Type] = getAllEntityComponentsTypes(entityId: entityId)

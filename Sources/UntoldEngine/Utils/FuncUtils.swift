@@ -195,7 +195,7 @@ public func hasTextureCoordinates(mesh: MDLMesh) -> Bool {
     return false
 }
 
-func generateHDR(_ hdrName: String, from directory: URL? = nil) {
+public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
     do {
         textureResources.environmentTexture = try loadHDR(hdrName, from: directory)
         textureResources.environmentTexture?.label = "environment texture"
@@ -378,7 +378,7 @@ public func saveCGImageToDisk(_ image: CGImage, fileName: String, directory: URL
     }
 }
 
-func updateBoundingBoxBuffer(min: SIMD3<Float>, max: SIMD3<Float>) {
+public func updateBoundingBoxBuffer(min: SIMD3<Float>, max: SIMD3<Float>) {
     let vertices: [SIMD4<Float>] = [
         // Bottom face
         SIMD4(min.x, min.y, min.z, 1.0), SIMD4(max.x, min.y, min.z, 1.0),
@@ -441,7 +441,7 @@ public func isWASDPressed() -> Bool {
     return isPressed
 }
 
-func generateEntityName() -> String {
+public func generateEntityName() -> String {
     "Entity_\(globalEntityCounter)"
 }
 
@@ -475,7 +475,7 @@ public func getAllGameEntitiesWithMeshes() -> [EntityID] {
     return entityList
 }
 
-func getAssetURLString(entityId: EntityID) -> String? {
+public func getAssetURLString(entityId: EntityID) -> String? {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return nil
     }
@@ -483,7 +483,7 @@ func getAssetURLString(entityId: EntityID) -> String? {
     return renderComponent.assetURL.deletingPathExtension().lastPathComponent
 }
 
-func updateMaterialTexture(entityId: EntityID, textureType: TextureType, path: URL) {
+public func updateMaterialTexture(entityId: EntityID, textureType: TextureType, path: URL) {
     let filename = path.deletingPathExtension().lastPathComponent
     let withExtension = path.pathExtension
     let folderName = path.deletingLastPathComponent().lastPathComponent
@@ -491,7 +491,7 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, path: U
     updateMaterialTexture(entityId: entityId, textureType: textureType, textureName: filename, withExtension: withExtension, subResource: folderName)
 }
 
-func removeMaterialTexture(entityId: EntityID, textureType: TextureType) {
+public func removeMaterialTexture(entityId: EntityID, textureType: TextureType) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
@@ -569,7 +569,7 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
     }
 }
 
-func getMaterialTextureURL(entityId: EntityID, type: TextureType) -> URL? {
+public func getMaterialTextureURL(entityId: EntityID, type: TextureType) -> URL? {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return nil
     }
@@ -584,7 +584,7 @@ func getMaterialTextureURL(entityId: EntityID, type: TextureType) -> URL? {
     }
 }
 
-func getMaterialRoughness(entityId: EntityID) -> Float {
+public func getMaterialRoughness(entityId: EntityID) -> Float {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return .zero
     }
@@ -596,7 +596,7 @@ func getMaterialRoughness(entityId: EntityID) -> Float {
     return material.roughnessValue
 }
 
-func updateMaterialRoughness(entityId: EntityID, roughness: Float) {
+public func updateMaterialRoughness(entityId: EntityID, roughness: Float) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
@@ -607,7 +607,7 @@ func updateMaterialRoughness(entityId: EntityID, roughness: Float) {
     renderComponent.mesh[0].submeshes[0].material = material
 }
 
-func getMaterialMetallic(entityId: EntityID) -> Float {
+public func getMaterialMetallic(entityId: EntityID) -> Float {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return .zero
     }
@@ -619,7 +619,7 @@ func getMaterialMetallic(entityId: EntityID) -> Float {
     return material.metallicValue
 }
 
-func updateMaterialMetallic(entityId: EntityID, metallic: Float) {
+public func updateMaterialMetallic(entityId: EntityID, metallic: Float) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
@@ -630,7 +630,7 @@ func updateMaterialMetallic(entityId: EntityID, metallic: Float) {
     renderComponent.mesh[0].submeshes[0].material = material
 }
 
-func getMaterialEmmissive(entityId: EntityID) -> simd_float3 {
+public func getMaterialEmmissive(entityId: EntityID) -> simd_float3 {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return .zero
     }
@@ -642,7 +642,7 @@ func getMaterialEmmissive(entityId: EntityID) -> simd_float3 {
     return material.emissiveValue
 }
 
-func updateMaterialEmmisive(entityId: EntityID, emmissive: simd_float3) {
+public func updateMaterialEmmisive(entityId: EntityID, emmissive: simd_float3) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
@@ -706,7 +706,7 @@ func projectToScreenSpace(
     return simd_float3(screenX, screenY, ndc.z)
 }
 
-func computeAxisTranslationGizmo(
+public func computeAxisTranslationGizmo(
     axisWorldDir: simd_float3,
     gizmoWorldPosition: simd_float3,
     mouseDelta: simd_float2,
@@ -739,7 +739,7 @@ func computeAxisTranslationGizmo(
     return projectedAmount * sensitivity
 }
 
-func computeRotationAngleFromGizmo(
+public func computeRotationAngleFromGizmo(
     axis _: simd_float3,
     gizmoWorldPosition: simd_float3,
     lastMousePos: simd_float2,
@@ -769,7 +769,7 @@ func computeRotationAngleFromGizmo(
     return angle * sensitivity // positive = CCW, negative = CW
 }
 
-func applyWorldSpaceScaleDelta(
+public func applyWorldSpaceScaleDelta(
     entityId: EntityID,
     worldAxis: simd_float3,
     projectedAmount: Float
@@ -889,7 +889,7 @@ func generateSSAONoiseTexture(device: MTLDevice, size: Int = 4) -> MTLTexture? {
     return texture
 }
 
-func getMaterialSTScale(entityId: EntityID) -> Float {
+public func getMaterialSTScale(entityId: EntityID) -> Float {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return 1.0
     }
@@ -899,7 +899,7 @@ func getMaterialSTScale(entityId: EntityID) -> Float {
     return material.stScale
 }
 
-func updateMaterialSTScale(entityId: EntityID, stScale: Float) {
+public func updateMaterialSTScale(entityId: EntityID, stScale: Float) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
@@ -913,7 +913,7 @@ func updateMaterialSTScale(entityId: EntityID, stScale: Float) {
     renderComponent.mesh[0].submeshes[0].material = material
 }
 
-func getTextureWrapMode(entityId: EntityID, textureType: TextureType) -> WrapMode? {
+public func getTextureWrapMode(entityId: EntityID, textureType: TextureType) -> WrapMode? {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return nil
     }
@@ -934,7 +934,7 @@ func getTextureWrapMode(entityId: EntityID, textureType: TextureType) -> WrapMod
     return nil
 }
 
-func updateTextureSampler(entityId: EntityID, textureType: TextureType, wrapMode: WrapMode) {
+public func updateTextureSampler(entityId: EntityID, textureType: TextureType, wrapMode: WrapMode) {
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }

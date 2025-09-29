@@ -1,6 +1,7 @@
-#if canImport(AppKit)
 import MetalKit
 import SwiftUI
+import UntoldEngine
+
 
 public struct Asset: Identifiable {
     public let id = UUID()
@@ -11,8 +12,6 @@ public struct Asset: Identifiable {
 }
 
 public struct EditorView: View {
-    var mtkView: MTKView
-
     @State private var editor_entities: [EntityID] = getAllGameEntities()
     @StateObject private var selectionManager = SelectionManager()
     @StateObject private var sceneGraphModel = SceneGraphModel()
@@ -21,11 +20,22 @@ public struct EditorView: View {
     @State private var isPlaying = false
     @State private var showAssetBrowser = false
 
-    public init(mtkView: MTKView) {
-        self.mtkView = mtkView
+    var renderer: UntoldRenderer?
+    
+    public init() {
         let sharedSelectionManager = SelectionManager()
         _selectionManager = StateObject(wrappedValue: sharedSelectionManager)
         editorController = EditorController(selectionManager: sharedSelectionManager)
+        renderer = UntoldRenderer.create( configuration: .editor )
+                
+        if let r = renderer, let v = renderer?.metalView, let controller = editorController {
+            r.setupCallbacks( gameUpdate: { deltaTime in }, handleInput: r.handleSceneInput )
+            
+//            setupGestureRecognizers(view: v)
+//            setupEventMonitors()
+        }
+        
+        AnimationSystem.shared.isEnabled = isPlaying
     }
 
     public var body: some View {
@@ -46,7 +56,7 @@ public struct EditorView: View {
                 }
 
                 VStack {
-                    SceneView(mtkView: mtkView) // Scene placeholder (Metal integration later)
+                    EditorSceneView( renderer: renderer! )
                     TransformManipulationToolbar(controller: editorController!, showAssetBrowser: $showAssetBrowser)
                     if showAssetBrowser {
                         TabView {
@@ -291,4 +301,3 @@ public struct EditorView: View {
         translateTo(entityId: selectionManager.selectedEntity!, position: spawnPosition)
     }
 }
-#endif
