@@ -28,7 +28,7 @@ extension RenderPasses
             handleError(.pipelineStateNulled, gizmoPipeline.name!)
             return
         }
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -42,8 +42,13 @@ extension RenderPasses
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Gizmo Pass")
-
             return
+        }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
         }
 
         renderEncoder.label = "Gizmo Pass"
@@ -80,7 +85,7 @@ extension RenderPasses
                 continue
             }
 
-            let distanceToCamera = length(getCameraPosition(entityId: getMainCamera()) - getPosition(entityId: parentEntityIdGizmo))
+            let distanceToCamera = length(getCameraPosition(entityId: camera) - getPosition(entityId: parentEntityIdGizmo))
 
             let worldScale = (distanceToCamera * tan(fov * 0.5)) * (gizmoDesiredScreenSize / renderInfo.viewPort.y)
 
@@ -170,8 +175,6 @@ extension RenderPasses
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
 
     static let outlineExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -209,8 +212,13 @@ extension RenderPasses
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Outline Pass")
-
             return
+        }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
         }
 
         renderEncoder.label = "Outline Pass"
@@ -304,13 +312,11 @@ extension RenderPasses
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
     
     static let debuggerExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        guard let debuggerPipeline = PipelineManager.shared.renderPipelinesByType[ .lightVisual ] else {
+        guard let debuggerPipeline = PipelineManager.shared.renderPipelinesByType[ .debug ] else {
             handleError(.pipelineStateNulled, "debuggerPipeline is nil")
             return
         }
@@ -337,6 +343,12 @@ extension RenderPasses
         else {
             handleError(.renderPassCreationFailed, "Debugger Pass")
             return
+        }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
         }
 
         renderEncoder.label = "Debugger Pass"
@@ -377,8 +389,6 @@ extension RenderPasses
         )
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
     
     static let lightVisualPass: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -408,8 +418,13 @@ extension RenderPasses
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Light Visual Pass")
-
             return
+        }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
         }
 
         renderEncoder.label = "Light Visual Pass"
@@ -478,8 +493,6 @@ extension RenderPasses
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
     
     static let highlightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -495,10 +508,9 @@ extension RenderPasses
             guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
             else {
                 handleError(.renderPassCreationFailed, "Highlight Pass")
-
                 return
             }
-
+            
             renderEncoder.label = "Highlight Pass"
 
             renderEncoder.pushDebugGroup("Highlight Pass")
@@ -537,9 +549,15 @@ extension RenderPasses
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
             handleError(.renderPassCreationFailed, "Highlight Pass")
-
             return
         }
+        
+        defer {
+            // Make sure no matter what we end the encoding at the end of the function
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
 
         renderEncoder.label = "Highlight Pass"
 
@@ -624,7 +642,5 @@ extension RenderPasses
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
 }

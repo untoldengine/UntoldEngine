@@ -104,10 +104,10 @@ public func dribblingSystemUpdate(deltaTime: Float) {
 
         // Compute direction from key inputs
         var newPosition: simd_float3 = .zero
-        if inputSystem.keyState.wPressed { newPosition.z += 1.0 }
-        if inputSystem.keyState.sPressed { newPosition.z -= 1.0 }
-        if inputSystem.keyState.aPressed { newPosition.x -= 1.0 }
-        if inputSystem.keyState.dPressed { newPosition.x += 1.0 }
+        if InputSystem.shared.keyState.wPressed { newPosition.z += 1.0 }
+        if InputSystem.shared.keyState.sPressed { newPosition.z -= 1.0 }
+        if InputSystem.shared.keyState.aPressed { newPosition.x -= 1.0 }
+        if InputSystem.shared.keyState.dPressed { newPosition.x += 1.0 }
 
         // Get the ball’s position (ignore height for ground movement)
         var ballPosition: simd_float3 = getPosition(entityId: ball)
@@ -134,6 +134,7 @@ public func dribblingSystemUpdate(deltaTime: Float) {
 // Editor Integration
 // Makes DribblinComponent editable in the Editor (Inspector panel).
 // -----------------------------------------------------------------------------
+/*
 var DribblingComponent_Editor: ComponentOption_Editor = .init(
     id: getComponentId(for: DribblinComponent.self),
     name: "Dribbling Component",
@@ -159,4 +160,5 @@ var DribblingComponent_Editor: ComponentOption_Editor = .init(
         registerComponent(entityId: entityId, componentType: DribblinComponent.self)
     }
 )
+ */
 #endif

@@ -121,6 +121,7 @@ func decelerate(deltaTime: Float, ball: EntityID) {
 }
 // BallComponent_Editor integrates the BallComponent with the Editor.
 // This makes the component visible and editable in the UI.
+/*
 var BallComponent_Editor: ComponentOption_Editor = .init(
     id: getComponentId(for: BallComponent.self),
     name: "Ball Component",
@@ -142,4 +143,5 @@ var BallComponent_Editor: ComponentOption_Editor = .init(
         registerComponent(entityId: entityId, componentType: BallComponent.self)
     }
 )
+ */
 #endif

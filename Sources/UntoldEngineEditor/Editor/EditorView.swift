@@ -28,13 +28,14 @@ public struct EditorView: View {
         editorController = EditorController(selectionManager: sharedSelectionManager)
         renderer = UntoldRenderer.create( configuration: .editor )
                 
-        if let r = renderer, let v = renderer?.metalView, let controller = editorController {
+        if let r = renderer, let v = renderer?.metalView {
             r.setupCallbacks( gameUpdate: { deltaTime in }, handleInput: r.handleSceneInput )
             
-//            setupGestureRecognizers(view: v)
-//            setupEventMonitors()
+            InputSystem.shared.setupGestureRecognizers(view: v)
+            InputSystem.shared.setupEventMonitors()
         }
         
+        gameMode = isPlaying
         AnimationSystem.shared.isEnabled = isPlaying
     }
 
@@ -119,6 +120,8 @@ public struct EditorView: View {
             gizmoActive = false
             selectionManager.objectWillChange.send()
             sceneGraphModel.refreshHierarchy()
+            
+            CameraSystem.shared.activeCamera = findSceneCamera()
         }
     }
 
@@ -145,6 +148,8 @@ public struct EditorView: View {
         gizmoActive = false
         selectionManager.objectWillChange.send()
         sceneGraphModel.refreshHierarchy()
+        
+        CameraSystem.shared.activeCamera = sceneCamera
     }
 
     private func editor_cameraSave() {
@@ -178,6 +183,8 @@ public struct EditorView: View {
         selectionManager.selectedEntity = nil
         activeEntity = .invalid
         selectionManager.objectWillChange.send()
+        
+        CameraSystem.shared.activeCamera = findSceneCamera()
     }
 
     private func editor_addNewEntity() {
@@ -222,6 +229,8 @@ public struct EditorView: View {
     private func editor_handlePlayToggle(_ isPlaying: Bool) {
         self.isPlaying = isPlaying
         gameMode = !gameMode
+        CameraSystem.shared.activeCamera = gameMode ? findGameCamera() : findSceneCamera()
+        AnimationSystem.shared.isEnabled = isPlaying
     }
 
     private func editor_createDirLight() {
@@ -283,9 +292,7 @@ public struct EditorView: View {
         let withExtension = selectedAsset?.path.pathExtension
         setEntityMesh(entityId: selectionManager.selectedEntity!, filename: filename!, withExtension: withExtension!)
 
-        let mainCamera = getMainCamera()
-
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: mainCamera) else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }

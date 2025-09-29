@@ -88,14 +88,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             handleInput: { [weak self] in self?.gameScene.handleInput() }
         )
 
-        if enableEditor {
-            if #available(macOS 13.0, *) {
-                let hostingView = NSHostingView(rootView: EditorView(mtkView: renderer.metalView))
-                window.contentView = hostingView
-            } else {
-                // Fallback on earlier versions
-            }
-        }
+        let hostingView = NSHostingView(rootView: SceneView(renderer: renderer))
+        window.contentView = hostingView
 
         window.makeKeyAndOrderFront(nil)
         NSApp.setActivationPolicy(.regular)

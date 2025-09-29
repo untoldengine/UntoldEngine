@@ -36,9 +36,7 @@ class EditorController: SelectionDelegate, ObservableObject {
     init(selectionManager: SelectionManager) {
         self.selectionManager = selectionManager
         selectionDelegate = self
-        isEnabled = true
-        
-        gameMode = false
+        isEnabled = true                        
     }
 
     func didSelectEntity(_ entityId: EntityID) {
@@ -94,9 +92,7 @@ func loadGameScene() -> SceneData? {
 
         do {
             let jsonData = try Data(contentsOf: url)
-            let sceneData = try decoder.decode(SceneData.self, from: jsonData)
-            
-            EditorAssetBasePath.shared.basePath = assetBasePath
+            let sceneData = try decoder.decode(SceneData.self, from: jsonData)                        
             
             Logger.log(message: "Scene loaded from \(url.path)")
             return sceneData

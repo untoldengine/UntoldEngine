@@ -49,3 +49,6 @@ class DebugSettings: ObservableObject {
     @Published var debugEnabled: Bool = true
 }
 
+// Editor
+public var enableEditor: Bool = true
+

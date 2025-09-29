@@ -12,18 +12,17 @@ import UntoldEngine
 extension UntoldRenderer
 {
     func handleSceneInput() {
-        #if os(macOS)
         // Game mode blocks editor + camera input entirely
         if gameMode { return }
 
         // Always allow camera WASDQE input, regardless of editor state
         let input = (
-            w: inputSystem.keyState.wPressed,
-            a: inputSystem.keyState.aPressed,
-            s: inputSystem.keyState.sPressed,
-            d: inputSystem.keyState.dPressed,
-            q: inputSystem.keyState.qPressed,
-            e: inputSystem.keyState.ePressed
+            w: InputSystem.shared.keyState.wPressed,
+            a: InputSystem.shared.keyState.aPressed,
+            s: InputSystem.shared.keyState.sPressed,
+            d: InputSystem.shared.keyState.dPressed,
+            q: InputSystem.shared.keyState.qPressed,
+            e: InputSystem.shared.keyState.ePressed
         )
         moveCameraWithInput(entityId: findSceneCamera(), input: input, speed: 1, deltaTime: 0.1)
 
@@ -36,7 +35,7 @@ extension UntoldRenderer
         //  - user intent suggests editing (Shift or gizmo is active)
         guard isEditorEnabled,
               activeEntity != .invalid,
-              (inputSystem.keyState.shiftPressed || gizmoActive)
+              (InputSystem.shared.keyState.shiftPressed || gizmoActive)
         else {
             return
         }
@@ -57,12 +56,12 @@ extension UntoldRenderer
 
         switch (editorController!.activeMode, editorController!.activeAxis) {
         // MARK: - Translate
-        case (.translate, .x) where inputSystem.mouseActive:
+        case (.translate, .x) where InputSystem.shared.mouseActive:
             let axis = simd_float3(1, 0, 0)
             let amt = computeAxisTranslationGizmo(
                 axisWorldDir: axis,
                 gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY),
+                mouseDelta: simd_float2(InputSystem.shared.mouseDeltaX, InputSystem.shared.mouseDeltaY),
                 viewMatrix: cameraComponent.viewSpace,
                 projectionMatrix: renderInfo.perspectiveSpace,
                 viewportSize: renderInfo.viewPort
@@ -72,11 +71,11 @@ extension UntoldRenderer
             translateBy(entityId: parentEntityIdGizmo, position: t)
             refreshInspector()
 
-        case (.translate, .y) where inputSystem.mouseActive:
+        case (.translate, .y) where InputSystem.shared.mouseActive:
             let axis = simd_float3(0, 1, 0)
             let amt = computeAxisTranslationGizmo(axisWorldDir: axis,
                                                   gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                                                  mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY),
+                                                  mouseDelta: simd_float2(InputSystem.shared.mouseDeltaX, InputSystem.shared.mouseDeltaY),
                                                   viewMatrix: cameraComponent.viewSpace,
                                                   projectionMatrix: renderInfo.perspectiveSpace,
                                                   viewportSize: renderInfo.viewPort)
@@ -85,11 +84,11 @@ extension UntoldRenderer
             translateBy(entityId: parentEntityIdGizmo, position: t)
             refreshInspector()
 
-        case (.translate, .z) where inputSystem.mouseActive:
+        case (.translate, .z) where InputSystem.shared.mouseActive:
             let axis = simd_float3(0, 0, 1)
             let amt = computeAxisTranslationGizmo(axisWorldDir: axis,
                                                   gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                                                  mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY),
+                                                  mouseDelta: simd_float2(InputSystem.shared.mouseDeltaX, InputSystem.shared.mouseDeltaY),
                                                   viewMatrix: cameraComponent.viewSpace,
                                                   projectionMatrix: renderInfo.perspectiveSpace,
                                                   viewportSize: renderInfo.viewPort)
@@ -99,13 +98,13 @@ extension UntoldRenderer
             refreshInspector()
 
         // MARK: - Rotate
-        case (.rotate, .x) where inputSystem.mouseActive:
+        case (.rotate, .x) where InputSystem.shared.mouseActive:
             let axis = simd_float3(1, 0, 0)
             let angle = computeRotationAngleFromGizmo(
                 axis: axis,
                 gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                lastMousePos: simd_float2(inputSystem.lastMouseX, inputSystem.lastMouseY),
-                currentMousePos: simd_float2(inputSystem.mouseX, inputSystem.mouseY),
+                lastMousePos: simd_float2(InputSystem.shared.lastMouseX, InputSystem.shared.lastMouseY),
+                currentMousePos: simd_float2(InputSystem.shared.mouseX, InputSystem.shared.mouseY),
                 viewMatrix: cameraComponent.viewSpace,
                 projectionMatrix: renderInfo.perspectiveSpace,
                 viewportSize: renderInfo.viewPort,
@@ -116,13 +115,13 @@ extension UntoldRenderer
             applyAxisRotations(entityId: activeEntity, axis: r)
             refreshInspector()
 
-        case (.rotate, .y) where inputSystem.mouseActive:
+        case (.rotate, .y) where InputSystem.shared.mouseActive:
             let axis = simd_float3(0, 1, 0)
             let angle = computeRotationAngleFromGizmo(
                 axis: axis,
                 gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                lastMousePos: simd_float2(inputSystem.lastMouseX, inputSystem.lastMouseY),
-                currentMousePos: simd_float2(inputSystem.mouseX, inputSystem.mouseY),
+                lastMousePos: simd_float2(InputSystem.shared.lastMouseX, InputSystem.shared.lastMouseY),
+                currentMousePos: simd_float2(InputSystem.shared.mouseX, InputSystem.shared.mouseY),
                 viewMatrix: cameraComponent.viewSpace,
                 projectionMatrix: renderInfo.perspectiveSpace,
                 viewportSize: renderInfo.viewPort,
@@ -133,13 +132,13 @@ extension UntoldRenderer
             applyAxisRotations(entityId: activeEntity, axis: r)
             refreshInspector()
 
-        case (.rotate, .z) where inputSystem.mouseActive:
+        case (.rotate, .z) where InputSystem.shared.mouseActive:
             let axis = simd_float3(0, 0, 1)
             let angle = computeRotationAngleFromGizmo(
                 axis: axis,
                 gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                lastMousePos: simd_float2(inputSystem.lastMouseX, inputSystem.lastMouseY),
-                currentMousePos: simd_float2(inputSystem.mouseX, inputSystem.mouseY),
+                lastMousePos: simd_float2(InputSystem.shared.lastMouseX, InputSystem.shared.lastMouseY),
+                currentMousePos: simd_float2(InputSystem.shared.mouseX, InputSystem.shared.mouseY),
                 viewMatrix: cameraComponent.viewSpace,
                 projectionMatrix: renderInfo.perspectiveSpace,
                 viewportSize: renderInfo.viewPort,
@@ -151,11 +150,11 @@ extension UntoldRenderer
             refreshInspector()
 
         // MARK: - Scale
-        case (.scale, .x) where inputSystem.mouseActive:
+        case (.scale, .x) where InputSystem.shared.mouseActive:
             let axis = simd_float3(1, 0, 0)
             let amt = computeAxisTranslationGizmo(axisWorldDir: axis,
                                                   gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                                                  mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY),
+                                                  mouseDelta: simd_float2(InputSystem.shared.mouseDeltaX, InputSystem.shared.mouseDeltaY),
                                                   viewMatrix: cameraComponent.viewSpace,
                                                   projectionMatrix: renderInfo.perspectiveSpace,
                                                   viewportSize: renderInfo.viewPort)
@@ -166,11 +165,11 @@ extension UntoldRenderer
             }
             refreshInspector()
 
-        case (.scale, .y) where inputSystem.mouseActive:
+        case (.scale, .y) where InputSystem.shared.mouseActive:
             let axis = simd_float3(0, 1, 0)
             let amt = computeAxisTranslationGizmo(axisWorldDir: axis,
                                                   gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                                                  mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY),
+                                                  mouseDelta: simd_float2(InputSystem.shared.mouseDeltaX, InputSystem.shared.mouseDeltaY),
                                                   viewMatrix: cameraComponent.viewSpace,
                                                   projectionMatrix: renderInfo.perspectiveSpace,
                                                   viewportSize: renderInfo.viewPort)
@@ -181,11 +180,11 @@ extension UntoldRenderer
             }
             refreshInspector()
 
-        case (.scale, .z) where inputSystem.mouseActive:
+        case (.scale, .z) where InputSystem.shared.mouseActive:
             let axis = simd_float3(0, 0, 1)
             let amt = computeAxisTranslationGizmo(axisWorldDir: axis,
                                                   gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                                                  mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY),
+                                                  mouseDelta: simd_float2(InputSystem.shared.mouseDeltaX, InputSystem.shared.mouseDeltaY),
                                                   viewMatrix: cameraComponent.viewSpace,
                                                   projectionMatrix: renderInfo.perspectiveSpace,
                                                   viewportSize: renderInfo.viewPort)
@@ -197,7 +196,7 @@ extension UntoldRenderer
             refreshInspector()
 
         // MARK: - Light direction (view-plane drag)
-        case (.lightRotate, .none) where inputSystem.mouseActive:
+        case (.lightRotate, .none) where InputSystem.shared.mouseActive:
             let lightDirEntity = findEntity(name: "directionHandle")
 
             // Choose 2D plane aligned to camera forward
@@ -211,14 +210,14 @@ extension UntoldRenderer
 
             let p1 = computeAxisTranslationGizmo(axisWorldDir: axis1,
                                                  gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                                                 mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY),
+                                                 mouseDelta: simd_float2(InputSystem.shared.mouseDeltaX, InputSystem.shared.mouseDeltaY),
                                                  viewMatrix: cameraComponent.viewSpace,
                                                  projectionMatrix: renderInfo.perspectiveSpace,
                                                  viewportSize: renderInfo.viewPort)
 
             let p2 = computeAxisTranslationGizmo(axisWorldDir: axis2,
                                                  gizmoWorldPosition: getLocalPosition(entityId: activeEntity),
-                                                 mouseDelta: simd_float2(inputSystem.mouseDeltaX, inputSystem.mouseDeltaY),
+                                                 mouseDelta: simd_float2(InputSystem.shared.mouseDeltaX, InputSystem.shared.mouseDeltaY),
                                                  viewMatrix: cameraComponent.viewSpace,
                                                  projectionMatrix: renderInfo.perspectiveSpace,
                                                  viewportSize: renderInfo.viewPort)
@@ -242,6 +241,5 @@ extension UntoldRenderer
         default:
             break
         }
-#endif
     }
 }

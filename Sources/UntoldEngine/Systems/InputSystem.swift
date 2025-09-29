@@ -9,14 +9,6 @@ import Foundation
 import GameController
 import simd
 
-public struct KeyState {
-    public var wPressed = false, aPressed = false, sPressed = false, dPressed = false
-    public var qPressed = false, ePressed = false
-    public var spacePressed = false, shiftPressed = false, ctrlPressed = false
-    public var altPressed = false
-    public var leftMousePressed = false, rightMousePressed = false, middleMousePressed = false
-}
-
 public struct GamePadState {
     public var aPressed = false
     public var bPressed = false
@@ -27,7 +19,16 @@ public enum PanGestureState { case began, changed, ended }
 public enum PinchGestureState { case began, changed, ended }
 public enum CameraControlMode { case idle, orbiting, moving }
 
+
+public protocol InputSystemDelegate : AnyObject
+{
+    func didUpdateKeyState()
+}
+
 public final class InputSystem {
+    public static let shared: InputSystem = { return InputSystem() }()
+    public weak var delegate: InputSystemDelegate? = nil
+    
     public let kVK_ANSI_W: UInt16 = 13, kVK_ANSI_A: UInt16 = 0,  kVK_ANSI_S: UInt16 = 1,  kVK_ANSI_D: UInt16 = 2
     public let kVK_ANSI_R: UInt16 = 15, kVK_ANSI_P: UInt16 = 35, kVK_ANSI_L: UInt16 = 37
     public let kVK_ANSI_Q: UInt16 = 12, kVK_ANSI_E: UInt16 = 14
@@ -54,7 +55,7 @@ public final class InputSystem {
     public var pinchDelta: simd_float3 = .init(0, 0, 0)
     public var previousScale: CGFloat = 1
             
-    public init() { setupGameController() }
+    init() { setupGameController() }
 
     private func setupGameController() {
         NotificationCenter.default.addObserver(self,

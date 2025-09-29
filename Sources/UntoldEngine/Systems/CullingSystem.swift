@@ -216,7 +216,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+    guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
         handleError(.noActiveCamera)
         return
     }
@@ -383,7 +383,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+    guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
         handleError(.noActiveCamera)
         return
     }

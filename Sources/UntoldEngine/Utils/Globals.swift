@@ -28,7 +28,6 @@ var maxNumPointLights: Int = 100
 var maxNumSpotLights: Int = 100
 var maxAreaLights: Int = 100
 public var scene: Scene = .init()
-public var inputSystem = InputSystem()
 var shadowSystem: ShadowSystem!
 
 public var renderInfo = RenderInfo()
@@ -149,9 +148,6 @@ enum InertiaTensorType: Int {
     case cylindrical
 }
 
-// Editor
-
-public var enableEditor: Bool = true
 public var assetBasePath: URL?
 
 public var activeEntity: EntityID = .invalid
@@ -181,9 +177,9 @@ var physicsAccumulator: Float = 0
 var ssaoKernelSize: Int = 64
 
 // Camera defaults
-let cameraDefaultEye: simd_float3 = .init(0.0, 1.0, 4.0)
-let cameraTargetDefault: simd_float3 = .init(0.0, 0.0, -2.0)
-let cameraUpDefault: simd_float3 = .init(0.0, 1.0, 0.0)
+public let cameraDefaultEye: simd_float3 = .init(0.0, 1.0, 4.0)
+public let cameraTargetDefault: simd_float3 = .init(0.0, 0.0, -2.0)
+public let cameraUpDefault: simd_float3 = .init(0.0, 1.0, 0.0)
 
 // Culling
 public struct EntityAABB {

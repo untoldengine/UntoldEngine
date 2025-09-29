@@ -257,7 +257,7 @@ extension InputSystem {
             currentPanGestureState = .changed
             initialPanLocation = currentPanLocation
 
-            orbitAround(entityId: findSceneCamera(), uPosition: inputSystem.panDelta * 0.005)
+            orbitAround(entityId: findSceneCamera(), uPosition: InputSystem.shared.panDelta * 0.005)
 
         case .ended, .cancelled, .failed:
             // Reset
