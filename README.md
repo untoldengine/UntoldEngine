@@ -34,8 +34,8 @@
 - [Support](#support)
 - [Project assistance](#project-assistance)
 - [Contributing](#contributing)
+- [Top Contributors](#top-contributors)
 - [License](#license)
-- [Common Issues](#common-issues)
 
 
 </details>
@@ -149,6 +149,18 @@ We welcome contributions to the Untold Engine! Here’s how you can help:
 See the [Contribution Guidelines](https://untoldengine.github.io/UntoldEngine) for details.
 
 ---
+
+
+## Top Contributors
+
+A huge thanks to the people helping shape the Untold Engine. Your support and contributions make the project better every day.
+
+<p align="center">
+  <a href="https://github.com/miolabs">
+    <img src="images/contributors/MioLogo.png" alt="MioLabs" width="120"/>
+  </a>
+</p>
+
 
 ## License  
 
