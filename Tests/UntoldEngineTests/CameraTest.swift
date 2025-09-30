@@ -11,7 +11,7 @@ import XCTest
 
 final class CameraTests: XCTestCase {
     var camera: EntityID!
-    var sceneCamera: EntityID!
+//    var sceneCamera: EntityID!
 
     override func setUp() {
         super.setUp()
@@ -28,7 +28,7 @@ final class CameraTests: XCTestCase {
     override func tearDown() {
         super.tearDown()
         destroyEntity(entityId: camera)
-        destroyEntity(entityId: sceneCamera)
+//        destroyEntity(entityId: sceneCamera)
     }
 
     // MARK: - Translation Tests
