@@ -50,10 +50,6 @@ final class CullingTest: XCTestCase {
 
         camera = createEntity()
         createGameCamera(entityId: camera)
-
-        sceneCamera = createEntity()
-        createSceneCamera(entityId: sceneCamera)
-
     }
 
     override func tearDown() {
