@@ -135,7 +135,7 @@ func reloadPipeline(named pipelineName: String, with library: MTLLibrary) {
         //TODO: Check if the value actually changes or becasue its a struct we are just copy by value and it's not changing at all so we had to re-assign the pipe to the manager
         pipe.pipelineState = newPipeline
         pipe.depthState = newDepthState
-        PipelineManager.shared.renderPipelinesByType[.model] = pipe
+        PipelineManager.shared.update(rendererPipeLine: pipe, forType: .model)
         print("✅ Reloaded pipeline: \(pipelineName)")
     } catch {
         print("❌ Failed to create pipeline state: \(error)")

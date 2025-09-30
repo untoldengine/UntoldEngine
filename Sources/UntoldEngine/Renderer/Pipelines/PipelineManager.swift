@@ -18,4 +18,9 @@ public final class PipelineManager
             _renderPipelinesByType[type] = initBlock()
         }
     }
+    
+    // TODO: Make it thread safe but without too much blocking
+    public func update( rendererPipeLine: RenderPipeline, forType type: RenderPipelineType ) {
+        _renderPipelinesByType[type] = rendererPipeLine
+    }
 }
