@@ -18,8 +18,9 @@ final class CameraTests: XCTestCase {
         camera = createEntity()
         createGameCamera(entityId: camera)
 
-        sceneCamera = createEntity()
-        createSceneCamera(entityId: sceneCamera)
+        // This goes to the editor test
+//        sceneCamera = createEntity()
+//        createSceneCamera(entityId: sceneCamera)
 
         Logger.logLevel = .none
     }
@@ -144,7 +145,8 @@ final class CameraTests: XCTestCase {
         XCTAssertEqual(findGameCamera(), camera, "Could not find Main camera")
     }
 
-    func testGetSceneCamera() {
-        XCTAssertEqual(findSceneCamera(), sceneCamera, "Could not find Scene camera")
-    }
+    // This goes to the editor tests
+//    func testGetSceneCamera() {
+//        XCTAssertEqual(findSceneCamera(), sceneCamera, "Could not find Scene camera")
+//    }
 }

@@ -22,7 +22,7 @@ struct ContentView: View {
     
     var body: some View {
         VStack {
-            SceneView( mtkView: mtkView )
+            SceneView( renderer: renderer )
         }
     }
 }
