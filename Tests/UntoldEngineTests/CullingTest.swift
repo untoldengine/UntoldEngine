@@ -151,7 +151,7 @@ final class CullingTest: XCTestCase {
 
         renderInfo.perspectiveSpace = projectionMatrix
         
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: getMainCamera()) else {
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: findGameCamera()) else {
             handleError(.noActiveCamera)
             return
         }

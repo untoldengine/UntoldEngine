@@ -485,7 +485,7 @@ final class RendererTests: XCTestCase {
     }
 
     private func initializeAssets() {
-        cameraLookAt(entityId: getMainCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
+        cameraLookAt(entityId: findGameCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
 
         let helmet: EntityID = createEntity()
 
