@@ -12,8 +12,7 @@ public final class PipelineManager
     
     var _renderPipelinesByType: [RenderPipelineType: RenderPipeline] = [:]
     public var renderPipelinesByType: [RenderPipelineType: RenderPipeline] { _renderPipelinesByType }
-
-    @MainActor
+    
     func initRenderPipelines( _ pipelines: [(RenderPipelineType, RenderPipelineInitBlock)] ) {
         for (type, initBlock) in pipelines {
             _renderPipelinesByType[type] = initBlock()

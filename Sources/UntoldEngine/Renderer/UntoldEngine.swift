@@ -90,7 +90,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         handleInputCallback = handleInput
     }
 
-    @MainActor
     public func initResources() {
         initBufferResources()
         
