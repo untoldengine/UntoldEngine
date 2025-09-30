@@ -491,7 +491,7 @@ final class SteeringSystemTests: XCTestCase {
 
         let maxSimulationTime: Float = 10.0
 
-        inputSystem.keyState.dPressed = true
+        InputSystem.shared.keyState.dPressed = true
 
         while t < maxSimulationTime {
             steerWithWASD(entityId: entityId, maxSpeed: maxSpeed, deltaTime: deltaTime)
