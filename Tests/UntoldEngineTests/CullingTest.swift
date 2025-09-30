@@ -12,7 +12,6 @@ import XCTest
 
 final class CullingTest: XCTestCase {
     var camera: EntityID!
-    var sceneCamera: EntityID!
     var renderer: UntoldRenderer!
     var window: NSWindow!
     
@@ -55,7 +54,6 @@ final class CullingTest: XCTestCase {
     override func tearDown() {
         super.tearDown()
         destroyEntity(entityId: camera)
-        destroyEntity(entityId: sceneCamera)
     }
     
     // CPU reference test (same math as your GPU code)
