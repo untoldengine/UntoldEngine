@@ -9,7 +9,6 @@
 import Foundation
 import UntoldEngine
 
-
 var editorController: EditorController?
 
 var visualDebug: Bool = false
@@ -53,4 +52,3 @@ class DebugSettings: ObservableObject {
 
 // Editor
 public var enableEditor: Bool = true
-

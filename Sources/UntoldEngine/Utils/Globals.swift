@@ -17,8 +17,8 @@ public typealias EntityID = UInt64
 public typealias EntityIndex = UInt32
 public typealias EntityVersion = UInt32
 
-extension EntityID {
-    public static let invalid: EntityID = .max
+public extension EntityID {
+    static let invalid: EntityID = .max
 }
 
 var componentCounter = 0
@@ -170,7 +170,6 @@ public enum TransformAxis {
 // mtk view color
 // Graphite Gray
 let mtkBackgroundColor = MTLClearColorMake(40.0 / 255.0, 40.0 / 255.0, 45.0 / 255.0, 1.0)
-
 
 let fixedStep: Float = 1.0 / 60.0
 var physicsAccumulator: Float = 0

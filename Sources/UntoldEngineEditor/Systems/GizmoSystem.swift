@@ -11,7 +11,6 @@ import Foundation
 import simd
 import UntoldEngine
 
-
 func createGizmo(name: String) {
     var gizmoName: String = name
 
@@ -49,47 +48,47 @@ func createGizmo(name: String) {
 }
 
 func processGizmoAction(entityId: EntityID) {
-#if canImport(AppKit)
-    if entityId == .invalid {
-        return
-    }
+    #if canImport(AppKit)
+        if entityId == .invalid {
+            return
+        }
 
-    if getEntityName(entityId: entityId) == "xAxisTranslate" {
-        editorController!.activeAxis = .x
-        editorController!.activeMode = .translate
-    } else if getEntityName(entityId: entityId) == "yAxisTranslate" {
-        editorController!.activeAxis = .y
-        editorController!.activeMode = .translate
-    } else if getEntityName(entityId: entityId) == "zAxisTranslate" {
-        editorController!.activeAxis = .z
-        editorController!.activeMode = .translate
-    } else if getEntityName(entityId: entityId) == "yAxisRotate" {
-        editorController!.activeAxis = .y
-        editorController!.activeMode = .rotate
-    } else if getEntityName(entityId: entityId) == "xAxisRotate" {
-        editorController!.activeAxis = .x
-        editorController!.activeMode = .rotate
-    } else if getEntityName(entityId: entityId) == "zAxisRotate" {
-        editorController!.activeAxis = .z
-        editorController!.activeMode = .rotate
-    } else if getEntityName(entityId: entityId) == "xAxisScale" {
-        editorController!.activeAxis = .x
-        editorController!.activeMode = .scale
-    } else if getEntityName(entityId: entityId) == "yAxisScale" {
-        editorController!.activeAxis = .y
-        editorController!.activeMode = .scale
-    } else if getEntityName(entityId: entityId) == "zAxisScale" {
-        editorController!.activeAxis = .z
-        editorController!.activeMode = .scale
-    } else if getEntityName(entityId: entityId) == "directionHandle" {
-        editorController!.activeMode = .lightRotate
-        editorController!.activeAxis = .none
-    } else {
-        activeHitGizmoEntity = .invalid
-        editorController?.activeMode = .none
-        editorController?.activeAxis = .none
-    }
-#endif
+        if getEntityName(entityId: entityId) == "xAxisTranslate" {
+            editorController!.activeAxis = .x
+            editorController!.activeMode = .translate
+        } else if getEntityName(entityId: entityId) == "yAxisTranslate" {
+            editorController!.activeAxis = .y
+            editorController!.activeMode = .translate
+        } else if getEntityName(entityId: entityId) == "zAxisTranslate" {
+            editorController!.activeAxis = .z
+            editorController!.activeMode = .translate
+        } else if getEntityName(entityId: entityId) == "yAxisRotate" {
+            editorController!.activeAxis = .y
+            editorController!.activeMode = .rotate
+        } else if getEntityName(entityId: entityId) == "xAxisRotate" {
+            editorController!.activeAxis = .x
+            editorController!.activeMode = .rotate
+        } else if getEntityName(entityId: entityId) == "zAxisRotate" {
+            editorController!.activeAxis = .z
+            editorController!.activeMode = .rotate
+        } else if getEntityName(entityId: entityId) == "xAxisScale" {
+            editorController!.activeAxis = .x
+            editorController!.activeMode = .scale
+        } else if getEntityName(entityId: entityId) == "yAxisScale" {
+            editorController!.activeAxis = .y
+            editorController!.activeMode = .scale
+        } else if getEntityName(entityId: entityId) == "zAxisScale" {
+            editorController!.activeAxis = .z
+            editorController!.activeMode = .scale
+        } else if getEntityName(entityId: entityId) == "directionHandle" {
+            editorController!.activeMode = .lightRotate
+            editorController!.activeAxis = .none
+        } else {
+            activeHitGizmoEntity = .invalid
+            editorController?.activeMode = .none
+            editorController?.activeAxis = .none
+        }
+    #endif
 }
 
 func hitGizmoToolAxis(entityId: EntityID) -> Bool {

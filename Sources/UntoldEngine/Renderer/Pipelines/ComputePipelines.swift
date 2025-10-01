@@ -9,12 +9,11 @@
 
 import MetalKit
 
-public struct ComputePipeline
-{
-    public var pipelineState: MTLComputePipelineState? = nil
+public struct ComputePipeline {
+    public var pipelineState: MTLComputePipelineState?
     public var success: Bool = false
-    public var name: String? = nil
-    
+    public var name: String?
+
     public init() {}
 }
 

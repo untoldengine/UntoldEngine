@@ -15,7 +15,7 @@ import MetalKit
 public func createEntity() -> EntityID {
     globalEntityCounter += 1
     let entity = scene.newEntity()
-    makeSpatial(entityId: entity)   // attach LocalTransform, WorldTransform, Scenegraph
+    makeSpatial(entityId: entity) // attach LocalTransform, WorldTransform, Scenegraph
     return entity
 }
 
@@ -505,15 +505,14 @@ public func getEntityName(entityId: EntityID) -> String {
     return "Entity-\(entityId)"
 }
 
-
 func removeEntityName(entityId: EntityID) {
     if let stored = entityNameMap[entityId],
-       stored.isEmpty == false {
+       stored.isEmpty == false
+    {
         reverseEntityNameMap.removeValue(forKey: stored)
     }
     entityNameMap.removeValue(forKey: entityId)
 }
-
 
 public func findEntity(name: String) -> EntityID? {
     reverseEntityNameMap[name]

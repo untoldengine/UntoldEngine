@@ -2,7 +2,6 @@ import MetalKit
 import SwiftUI
 import UntoldEngine
 
-
 public struct Asset: Identifiable {
     public let id = UUID()
     public let name: String
@@ -21,20 +20,20 @@ public struct EditorView: View {
     @State private var showAssetBrowser = false
 
     var renderer: UntoldRenderer?
-    
+
     public init() {
         let sharedSelectionManager = SelectionManager()
         _selectionManager = StateObject(wrappedValue: sharedSelectionManager)
         editorController = EditorController(selectionManager: sharedSelectionManager)
-        renderer = UntoldRenderer.create( configuration: .editor )
-                
+        renderer = UntoldRenderer.create(configuration: .editor)
+
         if let r = renderer, let v = renderer?.metalView {
-            r.setupCallbacks( gameUpdate: { deltaTime in }, handleInput: r.handleSceneInput )
-            
+            r.setupCallbacks(gameUpdate: { _ in }, handleInput: r.handleSceneInput)
+
             InputSystem.shared.setupGestureRecognizers(view: v)
             InputSystem.shared.setupEventMonitors()
         }
-        
+
         gameMode = isPlaying
         AnimationSystem.shared.isEnabled = isPlaying
     }
@@ -57,7 +56,7 @@ public struct EditorView: View {
                 }
 
                 VStack {
-                    EditorSceneView( renderer: renderer! )
+                    EditorSceneView(renderer: renderer!)
                     TransformManipulationToolbar(controller: editorController!, showAssetBrowser: $showAssetBrowser)
                     if showAssetBrowser {
                         TabView {
@@ -120,7 +119,7 @@ public struct EditorView: View {
             gizmoActive = false
             selectionManager.objectWillChange.send()
             sceneGraphModel.refreshHierarchy()
-            
+
             CameraSystem.shared.activeCamera = findSceneCamera()
         }
     }
@@ -148,7 +147,7 @@ public struct EditorView: View {
         gizmoActive = false
         selectionManager.objectWillChange.send()
         sceneGraphModel.refreshHierarchy()
-        
+
         CameraSystem.shared.activeCamera = sceneCamera
     }
 
@@ -183,7 +182,7 @@ public struct EditorView: View {
         selectionManager.selectedEntity = nil
         activeEntity = .invalid
         selectionManager.objectWillChange.send()
-        
+
         CameraSystem.shared.activeCamera = findSceneCamera()
     }
 

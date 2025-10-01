@@ -1,5 +1,5 @@
 //
-//  UntoldRendererConfig.swift
+//  EditorUntoldRendererConfig.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -9,9 +9,9 @@
 
 import UntoldEngine
 
-extension UntoldRendererConfig {
-    public static var editor: UntoldRendererConfig {
-        return UntoldRendererConfig(
+public extension UntoldRendererConfig {
+    static var editor: UntoldRendererConfig {
+        UntoldRendererConfig(
             initPipelineBlocks: EditorDefaultPipeLines(),
             updateRenderingSystemCallback: EditorUpdateRenderingSystem
         )

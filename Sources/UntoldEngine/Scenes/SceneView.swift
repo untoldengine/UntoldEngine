@@ -10,45 +10,43 @@ import MetalKit
 import SwiftUI
 
 #if os(macOS)
-public typealias ViewRepresentable = NSViewRepresentable
+    public typealias ViewRepresentable = NSViewRepresentable
 #else
-public typealias ViewRepresentable = UIViewRepresentable
+    public typealias ViewRepresentable = UIViewRepresentable
 #endif
-
 
 public struct SceneView: ViewRepresentable {
     var mtkView: MTKView
     private var renderer: UntoldRenderer?
 
-    //TODO: Maybe we should thow an error on init instead of allowing nil renderer value
-    public init( renderer: UntoldRenderer? = nil) {
+    // TODO: Maybe we should thow an error on init instead of allowing nil renderer value
+    public init(renderer: UntoldRenderer? = nil) {
         self.renderer = renderer ?? UntoldRenderer.create()
-        self.mtkView = self.renderer!.metalView
-    }
-    
-#if os(macOS)
-    public func makeNSView(context: Context) -> MTKView {
-        mtkView
+        mtkView = self.renderer!.metalView
     }
 
-    public func updateNSView( _ view: MTKView, context : Context) {
-        updateView(mtkView, context: context)
-    }
-#else
-    public func makeUIView(context: Context) -> MTKView {
-        mtkView
-    }
+    #if os(macOS)
+        public func makeNSView(context _: Context) -> MTKView {
+            mtkView
+        }
 
-    public func updateUIView(_ mtkView: MTKView, context: Context) {
-        updateView(mtkView, context: context)
-    }
-#endif
-    
-    public func updateView(_ view: MTKView, context: Context) { }
-    
-    public func onInit( block: @escaping () -> Void ) -> Self {
+        public func updateNSView(_: MTKView, context: Context) {
+            updateView(mtkView, context: context)
+        }
+    #else
+        public func makeUIView(context _: Context) -> MTKView {
+            mtkView
+        }
+
+        public func updateUIView(_ mtkView: MTKView, context: Context) {
+            updateView(mtkView, context: context)
+        }
+    #endif
+
+    public func updateView(_: MTKView, context _: Context) {}
+
+    public func onInit(block: @escaping () -> Void) -> Self {
         block()
         return self
     }
 }
-

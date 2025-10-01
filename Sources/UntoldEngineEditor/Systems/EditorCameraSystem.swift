@@ -1,5 +1,5 @@
 //
-//  CameraSystem.swift
+//  EditorCameraSystem.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -8,7 +8,6 @@
 //
 
 import UntoldEngine
-
 
 public func findSceneCamera() -> EntityID {
     for entityId in scene.getAllEntities() {

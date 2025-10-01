@@ -6,12 +6,11 @@
 //  Licensed under the GNU LGPL v3.0 or later.
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
-import Foundation
 import AppKit
+import Foundation
+import simd
 import UniformTypeIdentifiers
 import UntoldEngine
-import simd
-
 
 public class EditorComponentsState: ObservableObject {
     public static let shared = EditorComponentsState()
@@ -38,7 +37,7 @@ class EditorController: SelectionDelegate, ObservableObject {
     init(selectionManager: SelectionManager) {
         self.selectionManager = selectionManager
         selectionDelegate = self
-        isEnabled = true                        
+        isEnabled = true
     }
 
     func didSelectEntity(_ entityId: EntityID) {
@@ -94,8 +93,8 @@ func loadGameScene() -> SceneData? {
 
         do {
             let jsonData = try Data(contentsOf: url)
-            let sceneData = try decoder.decode(SceneData.self, from: jsonData)                        
-            
+            let sceneData = try decoder.decode(SceneData.self, from: jsonData)
+
             Logger.log(message: "Scene loaded from \(url.path)")
             return sceneData
         } catch {

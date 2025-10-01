@@ -1,5 +1,5 @@
 //
-//  LightingSystem.swift
+//  EditorLightingSystem.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -8,7 +8,6 @@
 //
 
 import UntoldEngine
-
 
 func loadLightDebugMeshes() {
     spotLightDebugMesh = loadRawMesh(name: "spot_light_debug_mesh", filename: "spot_light_debug_mesh", withExtension: "usdc")

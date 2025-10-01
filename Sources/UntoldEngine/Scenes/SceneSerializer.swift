@@ -10,7 +10,6 @@
 import Foundation
 import simd
 
-
 public struct SceneData: Codable {
     var entities: [EntityData] = []
     var environment: EnvironmentData? = nil
@@ -401,7 +400,7 @@ public func deserializeScene(sceneData: SceneData) {
 
         hdrURL = env.hdr ?? "teatro_massimo_2k.hdr"
         generateHDR(hdrURL)
-    }    
+    }
 
     if let colorGrading = sceneData.colorGrading {
         ColorGradingParams.shared.brightness = colorGrading.brightness

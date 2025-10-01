@@ -1,5 +1,5 @@
 //
-//  UntoldRenderer.swift
+//  EditorUntoldRenderer.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -10,9 +10,7 @@
 import simd
 import UntoldEngine
 
-
-extension UntoldRenderer
-{
+extension UntoldRenderer {
     func handleSceneInput() {
         // Game mode blocks editor + camera input entirely
         if gameMode { return }
@@ -37,7 +35,7 @@ extension UntoldRenderer
         //  - user intent suggests editing (Shift or gizmo is active)
         guard isEditorEnabled,
               activeEntity != .invalid,
-              (InputSystem.shared.keyState.shiftPressed || gizmoActive)
+              InputSystem.shared.keyState.shiftPressed || gizmoActive
         else {
             return
         }
@@ -58,6 +56,7 @@ extension UntoldRenderer
 
         switch (editorController!.activeMode, editorController!.activeAxis) {
         // MARK: - Translate
+
         case (.translate, .x) where InputSystem.shared.mouseActive:
             let axis = simd_float3(1, 0, 0)
             let amt = computeAxisTranslationGizmo(
@@ -100,6 +99,7 @@ extension UntoldRenderer
             refreshInspector()
 
         // MARK: - Rotate
+
         case (.rotate, .x) where InputSystem.shared.mouseActive:
             let axis = simd_float3(1, 0, 0)
             let angle = computeRotationAngleFromGizmo(
@@ -152,6 +152,7 @@ extension UntoldRenderer
             refreshInspector()
 
         // MARK: - Scale
+
         case (.scale, .x) where InputSystem.shared.mouseActive:
             let axis = simd_float3(1, 0, 0)
             let amt = computeAxisTranslationGizmo(axisWorldDir: axis,
@@ -198,6 +199,7 @@ extension UntoldRenderer
             refreshInspector()
 
         // MARK: - Light direction (view-plane drag)
+
         case (.lightRotate, .none) where InputSystem.shared.mouseActive:
             let lightDirEntity = findEntity(name: "directionHandle")
 
@@ -205,9 +207,9 @@ extension UntoldRenderer
             let cameraForward = -cameraComponent.zAxis
             let absF = simd_abs(cameraForward)
             let (axis1, axis2): (simd_float3, simd_float3) = {
-                if absF.x > absF.y && absF.x > absF.z { return (simd_float3(0,1,0), simd_float3(0,0,1)) } // YZ
-                if absF.y > absF.x && absF.y > absF.z { return (simd_float3(1,0,0), simd_float3(0,0,1)) } // XZ
-                return (simd_float3(1,0,0), simd_float3(0,1,0))                                          // XY
+                if absF.x > absF.y, absF.x > absF.z { return (simd_float3(0, 1, 0), simd_float3(0, 0, 1)) } // YZ
+                if absF.y > absF.x, absF.y > absF.z { return (simd_float3(1, 0, 0), simd_float3(0, 0, 1)) } // XZ
+                return (simd_float3(1, 0, 0), simd_float3(0, 1, 0)) // XY
             }()
 
             let p1 = computeAxisTranslationGizmo(axisWorldDir: axis1,

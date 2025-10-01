@@ -1,5 +1,5 @@
 //
-//  GPUKernelTests.swift
+//  GpuKernelTests.swift
 //
 //
 //  Copyright (C) Untold Engine Studios
@@ -106,7 +106,7 @@ final class GpuKernelTests: XCTestCase {
 
     private struct SeededRNG {
         private var state: UInt64
-        init(_ seed: UInt64) { state = seed == 0 ? 0x554E544F4C44 : seed } // "UNTOLD" :)
+        init(_ seed: UInt64) { state = seed == 0 ? 0x554E_544F_4C44 : seed } // "UNTOLD" :)
         mutating func next() -> UInt32 {
             state ^= state << 13; state ^= state >> 7; state ^= state << 17
             return UInt32(truncatingIfNeeded: state)
@@ -220,7 +220,7 @@ final class GpuKernelTests: XCTestCase {
 
         cmd.commit()
         cmd.waitUntilCompleted()
-        
+
         struct Pair: Equatable {
             var index: UInt32
             var version: UInt32
@@ -232,10 +232,9 @@ final class GpuKernelTests: XCTestCase {
 
         // Only first gpuCount entries are valid
         let visPtr = visibilityBuf.contents().bindMemory(to: VisibleEntity.self, capacity: Int(gpuCount))
-        let gpuPairs = (0..<Int(gpuCount)).map { Pair(index: visPtr[$0].index, version: visPtr[$0].version) }
-        
+        let gpuPairs = (0 ..< Int(gpuCount)).map { Pair(index: visPtr[$0].index, version: visPtr[$0].version) }
+
         XCTAssertEqual(gpuPairs, refPairs, "compacted output mismatch (order-preserving)")
-        
     }
 
     // --- Tests ---

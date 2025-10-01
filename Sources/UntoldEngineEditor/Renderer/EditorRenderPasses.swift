@@ -1,5 +1,5 @@
 //
-//  RenderPasses.swift
+//  EditorRenderPasses.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -7,21 +7,19 @@
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
-import Foundation
-import UntoldEngine
-import MetalKit
 import CShaderTypes
+import Foundation
+import MetalKit
+import UntoldEngine
 
-
-extension RenderPasses
-{
+extension RenderPasses {
     static let gizmoExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
         if activeEntity == .invalid {
             return
         }
-        
-        guard let gizmoPipeline = PipelineManager.shared.renderPipelinesByType[ .gizmo ] else {
+
+        guard let gizmoPipeline = PipelineManager.shared.renderPipelinesByType[.gizmo] else {
             handleError(.pipelineStateNulled, "gizmoPipeline is nil")
             return
         }
@@ -46,7 +44,7 @@ extension RenderPasses
             handleError(.renderPassCreationFailed, "Gizmo Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -190,11 +188,11 @@ extension RenderPasses
             return
         }
 
-        guard let outlinePipeline = PipelineManager.shared.renderPipelinesByType[ .outline ] else {
+        guard let outlinePipeline = PipelineManager.shared.renderPipelinesByType[.outline] else {
             handleError(.pipelineStateNulled, "outlinePipeline is nil")
             return
         }
-        
+
         if outlinePipeline.success == false {
             handleError(.pipelineStateNulled, outlinePipeline.name!)
             return
@@ -216,7 +214,7 @@ extension RenderPasses
             handleError(.renderPassCreationFailed, "Outline Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -315,14 +313,14 @@ extension RenderPasses
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
-    
+
     static let debuggerExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        guard let debuggerPipeline = PipelineManager.shared.renderPipelinesByType[ .debug ] else {
+        guard let debuggerPipeline = PipelineManager.shared.renderPipelinesByType[.debug] else {
             handleError(.pipelineStateNulled, "debuggerPipeline is nil")
             return
         }
-        
+
         if !debuggerPipeline.success {
             handleError(.pipelineStateNulled, debuggerPipeline.name!)
             return
@@ -346,7 +344,7 @@ extension RenderPasses
             handleError(.renderPassCreationFailed, "Debugger Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -392,7 +390,7 @@ extension RenderPasses
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
-    
+
     static let lightVisualPass: (MTLCommandBuffer) -> Void = { commandBuffer in
 
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: findSceneCamera()) else {
@@ -400,11 +398,11 @@ extension RenderPasses
             return
         }
 
-        guard let lightVisualPipeline = PipelineManager.shared.renderPipelinesByType[ .lightVisual ] else {
+        guard let lightVisualPipeline = PipelineManager.shared.renderPipelinesByType[.lightVisual] else {
             handleError(.pipelineStateNulled, "lightVisualPipeline is nil")
             return
         }
-        
+
         if lightVisualPipeline.success == false {
             handleError(.pipelineStateNulled, lightVisualPipeline.name!)
             return
@@ -422,7 +420,7 @@ extension RenderPasses
             handleError(.renderPassCreationFailed, "Light Visual Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -496,7 +494,7 @@ extension RenderPasses
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
-    
+
     static let highlightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
         if activeEntity == .invalid {
@@ -512,7 +510,7 @@ extension RenderPasses
                 handleError(.renderPassCreationFailed, "Highlight Pass")
                 return
             }
-            
+
             renderEncoder.label = "Highlight Pass"
 
             renderEncoder.pushDebugGroup("Highlight Pass")
@@ -531,11 +529,11 @@ extension RenderPasses
             return
         }
 
-        guard let hightlightPipeline = PipelineManager.shared.renderPipelinesByType[ .highlight ] else {
+        guard let hightlightPipeline = PipelineManager.shared.renderPipelinesByType[.highlight] else {
             handleError(.pipelineStateNulled, "highlightPipeline is nil")
             return
         }
-        
+
         if hightlightPipeline.success == false {
             handleError(.pipelineStateNulled, hightlightPipeline.name!)
             return
@@ -553,13 +551,12 @@ extension RenderPasses
             handleError(.renderPassCreationFailed, "Highlight Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
             renderEncoder.endEncoding()
         }
-
 
         renderEncoder.label = "Highlight Pass"
 

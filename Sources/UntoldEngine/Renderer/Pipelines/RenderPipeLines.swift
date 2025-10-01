@@ -8,13 +8,12 @@
 //
 import MetalKit
 
-public struct RenderPipeline
-{
+public struct RenderPipeline {
     public var pipelineState: MTLRenderPipelineState?
     public var depthState: MTLDepthStencilState?
     public var success: Bool = false
     public var name: String?
-    
+
     public init(pipelineState: MTLRenderPipelineState? = nil, depthState: MTLDepthStencilState? = nil, success: Bool = false, name: String? = nil) {
         self.pipelineState = pipelineState
         self.depthState = depthState
@@ -84,11 +83,11 @@ public func CreatePipeline(
 }
 
 public typealias RenderPipelineInitBlock = () -> RenderPipeline?
-    
+
 // MARK: Grid pipeline
-public func InitGridPipeline() -> RenderPipeline?
-{
-    return CreatePipeline(
+
+public func InitGridPipeline() -> RenderPipeline? {
+    CreatePipeline(
         vertexShader: "vertexGridShader",
         fragmentShader: "fragmentGridShader",
         vertexDescriptor: createGridVertexDescriptor(),
@@ -102,9 +101,9 @@ public func InitGridPipeline() -> RenderPipeline?
 }
 
 // MARK: Shadow pipeline
-public func InitShadowPipeline() -> RenderPipeline?
-{
-    return CreatePipeline(
+
+public func InitShadowPipeline() -> RenderPipeline? {
+    CreatePipeline(
         vertexShader: "vertexShadowShader",
         fragmentShader: nil,
         vertexDescriptor: createShadowVertexDescriptor(),
@@ -116,8 +115,9 @@ public func InitShadowPipeline() -> RenderPipeline?
 }
 
 // MARK: Model pipeline
+
 public func InitModelPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexModelShader",
         fragmentShader: "fragmentModelShader",
         vertexDescriptor: createModelVertexDescriptor(),
@@ -128,8 +128,9 @@ public func InitModelPipeline() -> RenderPipeline? {
 }
 
 // MARK: Light pipeline
+
 public func InitLightPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexLightShader",
         fragmentShader: "fragmentLightShader",
         vertexDescriptor: createLightVertexDescriptor(),
@@ -141,8 +142,9 @@ public func InitLightPipeline() -> RenderPipeline? {
 }
 
 // MARK: Geometry pipeline
+
 public func InitGeometryPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexGeometryShader",
         fragmentShader: "fragmentGeometryShader",
         vertexDescriptor: createGeometryVertexDescriptor(),
@@ -153,8 +155,9 @@ public func InitGeometryPipeline() -> RenderPipeline? {
 }
 
 // MARK: Highlight pipeline
+
 public func InitHighlightPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexGeometryShader",
         fragmentShader: "fragmentGeometryShader",
         vertexDescriptor: createGeometryVertexDescriptor(),
@@ -167,8 +170,9 @@ public func InitHighlightPipeline() -> RenderPipeline? {
 }
 
 // MARK: Light Visual pipeline
+
 public func InitLightVisualPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexLightVisualShader",
         fragmentShader: "fragmentLightVisualShader",
         vertexDescriptor: createLightVisualVertexDescriptor(),
@@ -180,8 +184,9 @@ public func InitLightVisualPipeline() -> RenderPipeline? {
 }
 
 // MARK: Outline pipeline
+
 public func InitOutlinePipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexOutlineShader",
         fragmentShader: "fragmentOutlineShader",
         vertexDescriptor: createOutlineVertexDescriptor(),
@@ -194,8 +199,9 @@ public func InitOutlinePipeline() -> RenderPipeline? {
 }
 
 // MARK: Composite pipeline
+
 public func InitCompositePipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexCompositeShader",
         fragmentShader: "fragmentCompositeShader",
         vertexDescriptor: createCompositeVertexDescriptor(),
@@ -207,8 +213,9 @@ public func InitCompositePipeline() -> RenderPipeline? {
 }
 
 // MARK: Pre composite pipeline
+
 public func InitPreCompositePipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexPreCompositeShader",
         fragmentShader: "fragmentPreCompositeShader",
         vertexDescriptor: createPreCompositeVertexDescriptor(),
@@ -220,8 +227,9 @@ public func InitPreCompositePipeline() -> RenderPipeline? {
 }
 
 // MARK: Tone mapping pipeline
+
 public func InitTonemappingPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexTonemappingShader",
         fragmentShader: "fragmentTonemappingShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -233,8 +241,9 @@ public func InitTonemappingPipeline() -> RenderPipeline? {
 }
 
 // MARK: Blur pipeline
+
 public func InitBlurPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexBlurShader",
         fragmentShader: "fragmentBlurShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -246,8 +255,9 @@ public func InitBlurPipeline() -> RenderPipeline? {
 }
 
 // MARK: Color grading pipeline
+
 public func InitColorGradingPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexColorGradingShader",
         fragmentShader: "fragmentColorGradingShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -259,8 +269,9 @@ public func InitColorGradingPipeline() -> RenderPipeline? {
 }
 
 // MARK: Color correction pipeline
+
 public func InitColorCorrectionPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexColorCorrectionShader",
         fragmentShader: "fragmentColorCorrectionShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -272,8 +283,9 @@ public func InitColorCorrectionPipeline() -> RenderPipeline? {
 }
 
 // MARK: Bloom threshold pipeline
+
 public func InitBloomThresholdPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexBloomThresholdShader",
         fragmentShader: "fragmentBloomThresholdShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -285,8 +297,9 @@ public func InitBloomThresholdPipeline() -> RenderPipeline? {
 }
 
 // MARK: Bloom composite pipeline
+
 public func InitBloomCompositePipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexBloomCompositeShader",
         fragmentShader: "fragmentBloomCompositeShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -299,8 +312,9 @@ public func InitBloomCompositePipeline() -> RenderPipeline? {
 }
 
 // MARK: Vignette pipeline
+
 public func InitVignettePipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexVignetteShader",
         fragmentShader: "fragmentVignetteShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -312,8 +326,9 @@ public func InitVignettePipeline() -> RenderPipeline? {
 }
 
 // MARK: Chromatic aberration pipeline
+
 public func InitChromaticAberrationPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexChromaticAberrationShader",
         fragmentShader: "fragmentChromaticAberrationShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -325,8 +340,9 @@ public func InitChromaticAberrationPipeline() -> RenderPipeline? {
 }
 
 // MARK: Depth of field pipeline
+
 public func InitDepthOfFieldPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexDepthOfFieldShader",
         fragmentShader: "fragmentDepthOfFieldShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -338,8 +354,9 @@ public func InitDepthOfFieldPipeline() -> RenderPipeline? {
 }
 
 // MARK: SSAO pipeline
+
 public func InitSSAOPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexSSAOShader",
         fragmentShader: "fragmentSSAOShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -351,8 +368,9 @@ public func InitSSAOPipeline() -> RenderPipeline? {
 }
 
 // MARK: SSAO blur pipeline
+
 public func InitSSAOBlurPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexSSAOBlurShader",
         fragmentShader: "fragmentSSAOBlurShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
@@ -364,6 +382,7 @@ public func InitSSAOBlurPipeline() -> RenderPipeline? {
 }
 
 // MARK: Environment pipeline
+
 public func InitEnvironmentPipeline() -> RenderPipeline? {
     guard var pipeline = CreatePipeline(
         vertexShader: "vertexEnvironmentShader",
@@ -428,9 +447,10 @@ public func InitEnvironmentPipeline() -> RenderPipeline? {
     return pipeline
 }
 
-//MARK: IBL pre filter pipeline
+// MARK: IBL pre filter pipeline
+
 public func InitIBLPreFilterPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexIBLPreFilterShader",
         fragmentShader: "fragmentIBLPreFilterShader",
         vertexDescriptor: createIBLPreFilterVertexDescriptor(),
@@ -443,29 +463,29 @@ public func InitIBLPreFilterPipeline() -> RenderPipeline? {
 }
 
 public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)] {
-    return [
-        (.grid               , InitGridPipeline               ),
-        (.shadow             , InitShadowPipeline             ),
-        (.model              , InitModelPipeline              ),
-        (.light              , InitLightPipeline              ),
-        (.geometry           , InitGeometryPipeline           ),
-        (.highlight          , InitHighlightPipeline          ),
-        (.lightVisual        , InitLightVisualPipeline        ),
-        (.outline            , InitOutlinePipeline            ),
-        (.composite          , InitCompositePipeline          ),
-        (.preComposite       , InitPreCompositePipeline       ),
-        (.tonemapping        , InitTonemappingPipeline        ),
-        (.blur               , InitBlurPipeline               ),
-        (.colorGrading       , InitColorGradingPipeline       ),
-        (.colorCorrection    , InitColorCorrectionPipeline    ),
-        (.bloomThreshold     , InitBloomThresholdPipeline     ),
-        (.bloomComposite     , InitBloomCompositePipeline     ),
-        (.vignette           , InitVignettePipeline           ),
+    [
+        (.grid, InitGridPipeline),
+        (.shadow, InitShadowPipeline),
+        (.model, InitModelPipeline),
+        (.light, InitLightPipeline),
+        (.geometry, InitGeometryPipeline),
+        (.highlight, InitHighlightPipeline),
+        (.lightVisual, InitLightVisualPipeline),
+        (.outline, InitOutlinePipeline),
+        (.composite, InitCompositePipeline),
+        (.preComposite, InitPreCompositePipeline),
+        (.tonemapping, InitTonemappingPipeline),
+        (.blur, InitBlurPipeline),
+        (.colorGrading, InitColorGradingPipeline),
+        (.colorCorrection, InitColorCorrectionPipeline),
+        (.bloomThreshold, InitBloomThresholdPipeline),
+        (.bloomComposite, InitBloomCompositePipeline),
+        (.vignette, InitVignettePipeline),
         (.chromaticAberration, InitChromaticAberrationPipeline),
-        (.depthOfField       , InitDepthOfFieldPipeline       ),
-        (.ssao               , InitSSAOPipeline               ),
-        (.ssaoBlur           , InitSSAOBlurPipeline           ),
-        (.environment        , InitEnvironmentPipeline        ),
-        (.iblPreFilter       , InitIBLPreFilterPipeline       )
+        (.depthOfField, InitDepthOfFieldPipeline),
+        (.ssao, InitSSAOPipeline),
+        (.ssaoBlur, InitSSAOBlurPipeline),
+        (.environment, InitEnvironmentPipeline),
+        (.iblPreFilter, InitIBLPreFilterPipeline),
     ]
 }

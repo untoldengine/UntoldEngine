@@ -1,5 +1,5 @@
 //
-//  RendererInitializer.swift
+//  EditorRendererInitializer.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -7,10 +7,9 @@
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
+import CShaderTypes
 import MetalKit
 import UntoldEngine
-import CShaderTypes
-
 
 func createGizmoVertexDescriptor() -> MTLVertexDescriptor? {
     // tell the gpu how data is organized

@@ -26,18 +26,19 @@ struct Frustum {
 }
 
 func padFrustum(_ F: Frustum,
-                       sidePad: Float = 0.5,   // world units; L/R/T/B
-                       nearPad: Float = 0.05,   // move near plane toward camera
-                       farPad:  Float = 1.0)    // move far plane farther away
--> Frustum {
+                sidePad: Float = 0.5, // world units; L/R/T/B
+                nearPad: Float = 0.05, // move near plane toward camera
+                farPad: Float = 1.0) // move far plane farther away
+    -> Frustum
+{
     var p = F.planes // order: L, R, B, T, N, F
     // Assumes planes have unit-length normals
-    p[0].d += sidePad  // Left
-    p[1].d += sidePad  // Right
-    p[2].d += sidePad  // Bottom
-    p[3].d += sidePad  // Top
-    p[4].d += nearPad  // Near
-    p[5].d += farPad   // Far
+    p[0].d += sidePad // Left
+    p[1].d += sidePad // Right
+    p[2].d += sidePad // Bottom
+    p[3].d += sidePad // Top
+    p[4].d += nearPad // Near
+    p[5].d += farPad // Far
     return Frustum(planes: p)
 }
 
@@ -94,13 +95,12 @@ public func worldAABB_CenterExtent(localMin: simd_float3,
     let absC1 = simd_float3(abs(R.columns.1.x), abs(R.columns.1.y), abs(R.columns.1.z))
     let absC2 = simd_float3(abs(R.columns.2.x), abs(R.columns.2.y), abs(R.columns.2.z))
     let worldExtent = simd_float3(
-        simd_dot(absC0, localHalfExtent),   // row0 of |R|
-        simd_dot(absC1, localHalfExtent),   // row1 of |R|
-        simd_dot(absC2, localHalfExtent)    // row2 of |R|
+        simd_dot(absC0, localHalfExtent), // row0 of |R|
+        simd_dot(absC1, localHalfExtent), // row1 of |R|
+        simd_dot(absC2, localHalfExtent) // row2 of |R|
     )
     return (worldCenter, worldExtent)
 }
-
 
 public func makeObjectAABB(localMin: simd_float3,
                            localMax: simd_float3,
@@ -110,7 +110,6 @@ public func makeObjectAABB(localMin: simd_float3,
     let (c, e) = worldAABB_CenterExtent(localMin: localMin, localMax: localMax, worldMatrix: M)
     return EntityAABB(center: simd_float4(c.x, c.y, c.z, 0.0), halfExtent: simd_float4(e.x, e.y, e.z, 0.0), index: index, version: version, pad0: 0, pad1: 0)
 }
-
 
 func buildFrustum(from viewProj: simd_float4x4,
                   ndcNear: Float = 0, ndcFar: Float = 1) -> Frustum
@@ -152,8 +151,8 @@ func buildFrustum(from viewProj: simd_float4x4,
 
     // Compute frustum center without a giant expression (avoids type-check blowup)
     let nearCenter = (ntl + ntr + nbl + nbr) * 0.25
-    let farCenter  = (ftl + ftr + fbl + fbr) * 0.25
-    let center     = (nearCenter + farCenter) * 0.5
+    let farCenter = (ftl + ftr + fbl + fbr) * 0.25
+    let center = (nearCenter + farCenter) * 0.5
 
     // Ensure normals point inward (robust orientation)
     for i in planes.indices {
@@ -229,7 +228,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     blit.endEncoding()
 
     let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
-    
+
     // build the frustum
     var frustum = buildFrustum(from: viewProjection)
     frustum = padFrustum(frustum, sidePad: 3.0)
@@ -355,9 +354,9 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             let version = visibleEntities[i].version
             nextVisibleIds.append(createEntityId(EntityIndex(index), EntityVersion(version)))
         }
-        
+
         // Swap into the write slot on the render thread
-        DispatchQueue.main.async{
+        DispatchQueue.main.async {
             tripleVisibleEntities.setWrite(frame: cullFrameIndex, with: nextVisibleIds)
             cullFrameIndex += 1
         }
@@ -402,7 +401,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     // build the frustum
     var frustum = buildFrustum(from: viewProjection)
     frustum = padFrustum(frustum, sidePad: 3.0)
-    
+
     guard let frustumTripleBuffer = tripleBufferResources.frustumPlane else {
         handleError(.bufferAllocationFailed, "Frustum cull buffer")
         return
@@ -579,7 +578,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         computeEncoderCompact.endEncoding()
     }
-    
+
     commandBuffer.addCompletedHandler { _ in
         let visibleCount = visibilityCountBuffer.contents().load(as: UInt32.self)
         let visibleEntities = visibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
@@ -590,12 +589,11 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             let version = visibleEntities[i].version
             nextVisibleIds.append(createEntityId(EntityIndex(index), EntityVersion(version)))
         }
-        
+
         // Swap into the write slot on the render thread
-        DispatchQueue.main.async{
+        DispatchQueue.main.async {
             tripleVisibleEntities.setWrite(frame: cullFrameIndex, with: nextVisibleIds)
             cullFrameIndex += 1
         }
     }
-    
 }

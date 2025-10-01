@@ -36,26 +36,26 @@ public protocol LoggerSink: AnyObject {
 
 public enum Logger {
     public static var logLevel: LogLevel = .debug
-#if canImport(AppKit)
-    private static var sinks = [WeakBox]()
-    private static let sinkQueue = DispatchQueue(label: "engine.logger.sinks", qos: .utility)
+    #if canImport(AppKit)
+        private static var sinks = [WeakBox]()
+        private static let sinkQueue = DispatchQueue(label: "engine.logger.sinks", qos: .utility)
 
-    private struct WeakBox { weak var value: LoggerSink? }
+        private struct WeakBox { weak var value: LoggerSink? }
 
-    // Backlog for events emitted before any sinks exist
-    private static var backlog: [LogEvent] = []
-    private static let backlogLimit = 2000
+        // Backlog for events emitted before any sinks exist
+        private static var backlog: [LogEvent] = []
+        private static let backlogLimit = 2000
     #endif
-    
-    public static func addSink(_ sink: LoggerSink) {
-#if canImport(AppKit)
-        sinkQueue.async {
-            sinks.append(WeakBox(value: sink))
 
-            // Replay backlog to the new sink (in order)
-            let snapshot = backlog
-            snapshot.forEach { sink.didLog($0) }
-        }
+    public static func addSink(_ sink: LoggerSink) {
+        #if canImport(AppKit)
+            sinkQueue.async {
+                sinks.append(WeakBox(value: sink))
+
+                // Replay backlog to the new sink (in order)
+                let snapshot = backlog
+                snapshot.forEach { sink.didLog($0) }
+            }
         #endif
     }
 
@@ -66,21 +66,21 @@ public enum Logger {
                              function: String = #function,
                              line: Int = #line)
     {
-#if canImport(AppKit)
-        let event = LogEvent(level: level, message: message, file: file,
-                             function: function, line: line, category: category)
+        #if canImport(AppKit)
+            let event = LogEvent(level: level, message: message, file: file,
+                                 function: function, line: line, category: category)
 
-        sinkQueue.async {
-            // Store in backlog (trim to ring size)
-            backlog.append(event)
-            if backlog.count > backlogLimit {
-                backlog.removeFirst(backlog.count - backlogLimit)
+            sinkQueue.async {
+                // Store in backlog (trim to ring size)
+                backlog.append(event)
+                if backlog.count > backlogLimit {
+                    backlog.removeFirst(backlog.count - backlogLimit)
+                }
+
+                // Notify sinks
+                sinks = sinks.filter { $0.value != nil }
+                sinks.forEach { $0.value?.didLog(event) }
             }
-
-            // Notify sinks
-            sinks = sinks.filter { $0.value != nil }
-            sinks.forEach { $0.value?.didLog(event) }
-        }
         #endif
     }
 

@@ -161,9 +161,9 @@ func createTexture(
     let texture = device.makeTexture(descriptor: descriptor)
     texture?.label = label
 
-    //TODO: Figure it out how to support this in game and editor mode
+    // TODO: Figure it out how to support this in game and editor mode
 //    DebugTextureRegistry.register(name: label, texture: texture!)
-    
+
     return texture
 }
 
@@ -331,7 +331,7 @@ func initBufferResources() {
 func initRTXAccumulationBuffer() {
     let width = Int(renderInfo.viewPort.x)
     let height = Int(renderInfo.viewPort.y)
-    
+
     let bufferLength = MemoryLayout<simd_float3>.stride * width * height
     bufferResources.accumulationBuffer = createEmptyBuffer(
         device: renderInfo.device,
@@ -789,7 +789,7 @@ func createShadowVertexDescriptor() -> MTLVertexDescriptor {
     vertexDescriptor.layouts[Int(shadowPassModelPositionIndex.rawValue)].stepFunction =
         MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[Int(shadowPassModelPositionIndex.rawValue)].stepRate = 1
-    
+
     vertexDescriptor.layouts[Int(shadowPassJointIdIndex.rawValue)].stride =
         MemoryLayout<simd_ushort4>.stride
     vertexDescriptor.layouts[Int(shadowPassJointIdIndex.rawValue)].stepFunction =

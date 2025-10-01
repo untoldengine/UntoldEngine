@@ -9,26 +9,25 @@
 
 import MetalKit
 
-public struct UntoldRendererConfig
-{
+public struct UntoldRendererConfig {
     var metalView: MTKView?
-    var initRenderPipelineBlocks: [ (RenderPipelineType, RenderPipelineInitBlock) ]
+    var initRenderPipelineBlocks: [(RenderPipelineType, RenderPipelineInitBlock)]
     var updateRenderingSystemCallback: UpdateRenderingSystemCallback
-    
+
     public init(
         metalView: MTKView? = nil,
         initPipelineBlocks: [(RenderPipelineType, RenderPipelineInitBlock)],
         updateRenderingSystemCallback: @escaping UpdateRenderingSystemCallback
     ) {
         self.metalView = metalView
-        self.initRenderPipelineBlocks = initPipelineBlocks
+        initRenderPipelineBlocks = initPipelineBlocks
         self.updateRenderingSystemCallback = updateRenderingSystemCallback
     }
 }
 
-extension UntoldRendererConfig {
-    public static var `default`: UntoldRendererConfig {
-        return UntoldRendererConfig(
+public extension UntoldRendererConfig {
+    static var `default`: UntoldRendererConfig {
+        UntoldRendererConfig(
             initPipelineBlocks: DefaultPipeLines(),
             updateRenderingSystemCallback: UpdateRenderingSystem
         )

@@ -8,13 +8,13 @@
 //
 
 import Foundation
-import SwiftUI
 import simd
+import SwiftUI
 
 #if os(macOS)
-import AppKit
+    import AppKit
 #else
-import UIKit
+    import UIKit
 #endif
 
 func standardIlluminantY(x: Float) -> Float {

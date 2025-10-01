@@ -6,11 +6,10 @@
 //  Licensed under the GNU LGPL v3.0 or later.
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
+import CShaderTypes
 import simd
 import SwiftUI
 import UntoldEngine
-import CShaderTypes
-
 
 func addIBL(asset: Asset?) {
     let selectedCategory: AssetCategory = .hdr

@@ -9,33 +9,31 @@
 
 import MetalKit
 
-extension MTLDevice
-{
+extension MTLDevice {
     func makeLibraryFromBundle() throws -> MTLLibrary? {
-                        
         #if os(macOS)
-        let resourceName = "UntoldEngineKernels"
+            let resourceName = "UntoldEngineKernels"
         #elseif os(iOS) && !targetEnvironment(simulator)
-        let resourceName = "UntoldEngineKernels-ios"
+            let resourceName = "UntoldEngineKernels-ios"
         #elseif os(iOS) && targetEnvironment(simulator)
-        let resourceName = "UntoldEngineKernels-iossim"
+            let resourceName = "UntoldEngineKernels-iossim"
         #elseif os(tvOS) && !targetEnvironment(simulator)
-        let resourceName = "UntoldEngineKernels-tvos"
+            let resourceName = "UntoldEngineKernels-tvos"
         #elseif os(tvOS) && targetEnvironment(simulator)
-        let resourceName = "UntoldEngineKernels-tvossim"
+            let resourceName = "UntoldEngineKernels-tvossim"
         #elseif os(xrOS) && !targetEnvironment(simulator)
-        let resourceName = "UntoldEngineKernels-xros"
+            let resourceName = "UntoldEngineKernels-xros"
         #elseif os(xrOS) && targetEnvironment(simulator)
-        let resourceName = "UntoldEngineKernels-xrossim"
+            let resourceName = "UntoldEngineKernels-xrossim"
         #endif
-                
+
         let libraryURL = Bundle.module.url(forResource: resourceName, withExtension: "metallib")
-        
+
         if let libURL = libraryURL {
             Logger.log(message: "Loading Metal Library from Bundle: \(libURL)")
-            return try self.makeLibrary(URL: libURL)
+            return try makeLibrary(URL: libURL)
         }
-        
+
         Logger.logError(message: "No Metal Library found with name: \(resourceName)")
         throw ErrorHandlingSystem.metalLibraryNotFound
     }

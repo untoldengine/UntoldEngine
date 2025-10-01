@@ -9,18 +9,15 @@
 import MetalKit
 import UntoldEngine
 
-
 func EditorUpdateRenderingSystem(in view: MTKView) {
-    
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
-        
         executeFrustumCulling(commandBuffer)
-        
+
         if let renderPassDescriptor = view.currentRenderPassDescriptor {
             renderInfo.renderPassDescriptor = renderPassDescriptor
 
             commandBuffer.label = "Rendering Command Buffer"
-            
+
             // build a render graph
             var (graph, preCompID) = gameMode ? buildGameModeGraph() : buildEditModeGraph()
 
@@ -112,4 +109,3 @@ func buildEditModeGraph() -> RenderGraphResult {
 
     return (graph, preCompPass.id)
 }
-
