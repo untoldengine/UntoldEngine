@@ -28,7 +28,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     private var configuration: UntoldRendererConfig
     public var delegate: UntoldRendererDelegate? = nil
         
-    public init( configuration: UntoldRendererConfig? = nil ) {
+    init( configuration: UntoldRendererConfig? = nil ) {
         self.configuration = configuration ?? .default
 
         // Set the metal view from configuration or create new one
@@ -79,6 +79,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             Logger.logError(message: "Failed to load metallib: \(error)")
         }
 
+        renderer.initResources( )
+        
         return renderer
     }
 
