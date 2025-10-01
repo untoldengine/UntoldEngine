@@ -92,7 +92,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         handleInputCallback = handleInput
     }
 
-    public func initResources() {
+    func initResources() {
         initBufferResources()
         
         PipelineManager.shared.initRenderPipelines( configuration.initRenderPipelineBlocks )
@@ -106,6 +106,15 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         initFrustumCulllingCompute()
 
+        // Create defautls objects.
+        let gameCamera = createEntity()
+        setEntityName(entityId: gameCamera, name: "Main Camera")
+        createGameCamera(entityId: gameCamera)
+
+        let light = createEntity()
+        setEntityName(entityId: light, name: "Directional Light")
+        createDirLight(entityId: light)
+        
         Logger.log(message: "Untold Engine Starting")
     }
     
