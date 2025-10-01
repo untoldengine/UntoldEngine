@@ -2,7 +2,9 @@
 //  UntoldRendererConfig.swift
 //  UntoldEngine
 //
-//  Created by Javier Segura Perez on 24/9/25.
+//  Copyright (C) Untold Engine Studios
+//  Licensed under the GNU LGPL v3.0 or later.
+//  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
 import MetalKit

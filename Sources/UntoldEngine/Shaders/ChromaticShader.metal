@@ -2,7 +2,9 @@
 //  ChromaticShader.metal
 //
 //
-//  Created by Harold Serrano on 5/28/25.
+//  Copyright (C) Untold Engine Studios
+//  Licensed under the GNU LGPL v3.0 or later.
+//  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
 #include <metal_stdlib>
