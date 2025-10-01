@@ -2,9 +2,10 @@
 //  iblPreFilterShaders.metal
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 11/26/23.
-//  For more information on how these shaders work, please see:
-// https://www.mathematik.uni-marburg.de/~thormae/lectures/graphics1/graphics_10_2_eng_web.html#45
+//  Copyright (C) Untold Engine Studios
+//  Licensed under the GNU LGPL v3.0 or later.
+//  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
+//
 
 #include <metal_stdlib>
 #include "../../CShaderTypes/ShaderTypes.h"

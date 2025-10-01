@@ -1,7 +1,9 @@
 //  HotReloadingSystem.swift
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 3/12/24.
+//  Copyright (C) Untold Engine Studios
+//  Licensed under the GNU LGPL v3.0 or later.
+//  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //  Copyright © 2024 Untold Engine Studios. All rights reserved.
 //
 
