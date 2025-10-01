@@ -10,7 +10,6 @@ import SwiftUI
 import UniformTypeIdentifiers
 import UntoldEngine
 
-
 enum AssetCategory: String, CaseIterable {
     case models = "Models"
     case materials = "Materials"
@@ -237,7 +236,7 @@ struct AssetBrowserView: View {
         openPanel.allowedContentTypes = [
             UTType(filenameExtension: "usdc")!,
             .png, .jpeg, .tiff,
-            UTType(filenameExtension: "hdr")!
+            UTType(filenameExtension: "hdr")!,
         ]
         openPanel.canChooseDirectories = (selectedCategory == "Materials")
         openPanel.allowsMultipleSelection = true

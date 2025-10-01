@@ -202,7 +202,6 @@ public class ScenegraphComponent: Component {
 }
 
 public class CameraComponent: Component {
-
     public var viewSpace = simd_float4x4.init(1.0)
     public var xAxis: simd_float3 = .init(0.0, 0.0, 0.0)
     public var yAxis: simd_float3 = .init(0.0, 0.0, 0.0)

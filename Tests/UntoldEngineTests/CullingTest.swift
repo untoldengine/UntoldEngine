@@ -1,14 +1,14 @@
 //
 //  CullingTest.swift
-//  
+//
 //
 //  Copyright (C) Untold Engine Studios
 //  Licensed under the GNU LGPL v3.0 or later.
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
-import simd
 import CShaderTypes
+import simd
 @testable import UntoldEngine
 import XCTest
 
@@ -16,7 +16,7 @@ final class CullingTest: XCTestCase {
     var camera: EntityID!
     var renderer: UntoldRenderer!
     var window: NSWindow!
-    
+
     override func setUp() {
         super.setUp()
         let windowWidth = 1280
@@ -57,30 +57,30 @@ final class CullingTest: XCTestCase {
         super.tearDown()
         destroyEntity(entityId: camera)
     }
-    
+
     // CPU reference test (same math as your GPU code)
     @inline(__always)
     func cpuInFrustum(center c: simd_float3, extent e: simd_float3, planes: [simd_float4]) -> Bool {
-        var epsilon: Float = 0.0001;
-            for p in planes {
-                let n = simd_float3(p.x, p.y, p.z)
-                let r = abs(n.x)*e.x + abs(n.y)*e.y + abs(n.z)*e.z
-                let s = simd_dot(n, c) + p.w
-                if (s < -r - epsilon) { return false }
-            }
-            return true
+        var epsilon: Float = 0.0001
+        for p in planes {
+            let n = simd_float3(p.x, p.y, p.z)
+            let r = abs(n.x) * e.x + abs(n.y) * e.y + abs(n.z) * e.z
+            let s = simd_dot(n, c) + p.w
+            if s < -r - epsilon { return false }
         }
-    
+        return true
+    }
+
     @discardableResult
     func dispatchFrustumCull(
         _ commandBuffer: MTLCommandBuffer,
         pipeline: MTLComputePipelineState,
-        frustumPlanes: [simd_float4],          // 6 planes as (nx, ny, nz, d)
-        aabbs: MTLBuffer,                // pointer to contiguous EntityAABB
+        frustumPlanes: [simd_float4], // 6 planes as (nx, ny, nz, d)
+        aabbs: MTLBuffer, // pointer to contiguous EntityAABB
         aabbCount: Int,
         visibleCountBuffer: MTLBuffer,
         visibilityBuffer: MTLBuffer,
-        planesBuffer: MTLBuffer                 // temp upload buffer for planes
+        planesBuffer: MTLBuffer // temp upload buffer for planes
     ) -> Bool {
         guard aabbCount > 0 else { return true }
 
@@ -92,7 +92,7 @@ final class CullingTest: XCTestCase {
         enc.label = "Frustum Culling (unit-testable)"
         enc.setComputePipelineState(pipeline)
         enc.setBuffer(planesBuffer, offset: 0, index: Int(frustumCullingPassPlanesIndex.rawValue))
-        enc.setBuffer( aabbs, offset: 0, index: Int(frustumCullingPassObjectIndex.rawValue)) // set by caller
+        enc.setBuffer(aabbs, offset: 0, index: Int(frustumCullingPassObjectIndex.rawValue)) // set by caller
         var n32 = UInt32(aabbCount)
         enc.setBytes(&n32, length: MemoryLayout<UInt32>.stride, index: Int(frustumCullingPassObjectCountIndex.rawValue))
         enc.setBuffer(visibleCountBuffer, offset: 0, index: Int(frustumCullingPassVisibleCountIndex.rawValue))
@@ -111,31 +111,31 @@ final class CullingTest: XCTestCase {
         enc.endEncoding()
         return true
     }
-    
-    private func unprojectCorners(viewProj: simd_float4x4,
-                                      ndcNear: Float = 0, ndcFar: Float = 1) -> [SIMD3<Float>] {
-            let inv = simd_inverse(viewProj)
-            func up(_ ndc: SIMD3<Float>) -> SIMD3<Float> {
-                let p = inv * SIMD4(ndc, 1)
-                return SIMD3(p.x, p.y, p.z) / p.w
-            }
-            return [
-                up([-1, +1, ndcNear]), up([+1, +1, ndcNear]),
-                up([-1, -1, ndcNear]), up([+1, -1, ndcNear]),
-                up([-1, +1, ndcFar]),  up([+1, +1, ndcFar]),
-                up([-1, -1, ndcFar]),  up([+1, -1, ndcFar])
-            ]
-        }
-    
-    private func pointPlaneDistance(_ p: Plane, _ x: SIMD3<Float>) -> Float {
-            simd_dot(p.n, x) + p.d
-        }
-    
-    func testBuildFrustum() {
 
+    private func unprojectCorners(viewProj: simd_float4x4,
+                                  ndcNear: Float = 0, ndcFar: Float = 1) -> [SIMD3<Float>]
+    {
+        let inv = simd_inverse(viewProj)
+        func up(_ ndc: SIMD3<Float>) -> SIMD3<Float> {
+            let p = inv * SIMD4(ndc, 1)
+            return SIMD3(p.x, p.y, p.z) / p.w
+        }
+        return [
+            up([-1, +1, ndcNear]), up([+1, +1, ndcNear]),
+            up([-1, -1, ndcNear]), up([+1, -1, ndcNear]),
+            up([-1, +1, ndcFar]), up([+1, +1, ndcFar]),
+            up([-1, -1, ndcFar]), up([+1, -1, ndcFar]),
+        ]
+    }
+
+    private func pointPlaneDistance(_ p: Plane, _ x: SIMD3<Float>) -> Float {
+        simd_dot(p.n, x) + p.d
+    }
+
+    func testBuildFrustum() {
         let windowWidth = 1280
         let windowHeight = 720
-       
+
         // Initialize projection
         let aspect = Float(windowWidth) / Float(windowHeight)
         let projectionMatrix = matrixPerspectiveRightHand(
@@ -146,14 +146,14 @@ final class CullingTest: XCTestCase {
         )
 
         renderInfo.perspectiveSpace = projectionMatrix
-        
+
         guard let cameraComponent = scene.get(component: CameraComponent.self, for: findGameCamera()) else {
             handleError(.noActiveCamera)
             return
         }
-        
+
         let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
-        
+
         let F = buildFrustum(from: viewProjection, ndcNear: 0, ndcFar: 1)
 
         // Frustum center should evaluate >= 0 for all planes
@@ -200,7 +200,7 @@ final class CullingTest: XCTestCase {
         XCTAssertEqual(pointPlaneDistance(F.planes[5], fbl), 0, accuracy: eps)
         XCTAssertEqual(pointPlaneDistance(F.planes[5], fbr), 0, accuracy: eps)
     }
-    
+
     struct EntityAABB {
         var center: simd_float4
         var halfExtent: simd_float4
@@ -209,7 +209,7 @@ final class CullingTest: XCTestCase {
         var pad0: UInt32
         var pad1: UInt32
     }
-    
+
     func test_kernel_matches_cpu_reference() {
         // Frustum planes (nx,ny,nz,d). Keep it simple & deterministic.
         let planes: [simd_float4] = [
@@ -247,7 +247,7 @@ final class CullingTest: XCTestCase {
 
         // Dispatch
         let cmd = renderInfo.commandQueue.makeCommandBuffer()!
-        
+
         _ = dispatchFrustumCull(
             cmd,
             pipeline: frustumCullingPipeline.pipelineState!,
@@ -272,5 +272,4 @@ final class CullingTest: XCTestCase {
 
         XCTAssertEqual(Int(visibleCount), expectedVisiblePairs.count)
     }
-    
 }

@@ -16,11 +16,11 @@ import MetalKit
 public enum RenderPasses {
     public static let gridExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        guard let gridPipeline = PipelineManager.shared.renderPipelinesByType[ .grid ] else {
+        guard let gridPipeline = PipelineManager.shared.renderPipelinesByType[.grid] else {
             handleError(.pipelineStateNulled, "gridPipeline is nil")
             return
         }
-        
+
         if gridPipeline.success == false {
             handleError(.pipelineStateNulled, gridPipeline.name!)
             return
@@ -67,7 +67,7 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "Grid Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -103,11 +103,11 @@ public enum RenderPasses {
 
     public static let executeEnvironmentPass: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        guard let environmentPipeline = PipelineManager.shared.renderPipelinesByType[ .environment ] else {
+        guard let environmentPipeline = PipelineManager.shared.renderPipelinesByType[.environment] else {
             handleError(.pipelineStateNulled, "environmentPipeline is nil")
             return
         }
-        
+
         if environmentPipeline.success == false {
             handleError(.pipelineStateNulled, environmentPipeline.name!)
             return
@@ -129,7 +129,7 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "Environment Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -205,11 +205,11 @@ public enum RenderPasses {
 
     public static let shadowExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[ .shadow ] else {
+        guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
             handleError(.pipelineStateNulled, "shadowPipeline is nil")
             return
         }
-        
+
         if shadowPipeline.success == false {
             handleError(.pipelineStateNulled, shadowPipeline.name!)
             return
@@ -227,7 +227,7 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "shadow Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -265,7 +265,7 @@ public enum RenderPasses {
         // Iterate over the entities found by the component query
         for entityId in visibleEntityIds {
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
-            
+
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
                 continue
@@ -334,7 +334,7 @@ public enum RenderPasses {
                     mesh.metalKitMesh.vertexBuffers[Int(shadowPassModelPositionIndex.rawValue)].buffer,
                     offset: 0, index: Int(shadowPassModelPositionIndex.rawValue)
                 )
-                
+
                 // check if it has skeleton component
                 var hasArmature = false
 
@@ -355,8 +355,7 @@ public enum RenderPasses {
                 )
 
                 renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
-                
-                
+
                 for subMesh in mesh.submeshes {
                     renderEncoder.drawIndexedPrimitives(
                         type: subMesh.metalKitSubmesh.primitiveType,
@@ -374,11 +373,11 @@ public enum RenderPasses {
 
     public static let modelExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[ .model ] else {
+        guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[.model] else {
             handleError(.pipelineStateNulled, "modelPipeline is nil")
             return
         }
-        
+
         if modelPipeline.success == false {
             handleError(.pipelineStateNulled, modelPipeline.name!)
             return
@@ -417,7 +416,7 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "Model Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -438,7 +437,7 @@ public enum RenderPasses {
         // Iterate over the entities found by the component query
         for entityId in visibleEntityIds {
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
-            
+
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
                 continue
@@ -629,12 +628,12 @@ public enum RenderPasses {
             handleError(.noActiveCamera)
             return
         }
-        
-        guard let ssaoPipeline = PipelineManager.shared.renderPipelinesByType[ .ssao ] else {
+
+        guard let ssaoPipeline = PipelineManager.shared.renderPipelinesByType[.ssao] else {
             handleError(.pipelineStateNulled, "ssaoPipeline is nil")
             return
         }
-        
+
         if !ssaoPipeline.success {
             handleError(.pipelineStateNulled, ssaoPipeline.name!)
             return
@@ -656,7 +655,7 @@ public enum RenderPasses {
         // clear it so that it doesn't have any effect on the final output
         renderInfo.ssaoRenderPassDescriptor.depthAttachment.loadAction = .clear
         renderInfo.ssaoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].storeAction = .store
-        
+
         // set your encoder here
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
@@ -664,7 +663,7 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "SSAO Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -742,11 +741,11 @@ public enum RenderPasses {
 
     static let ssaoBlurExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        guard let ssaoBlurPipeline = PipelineManager.shared.renderPipelinesByType[ .ssaoBlur ] else {
+        guard let ssaoBlurPipeline = PipelineManager.shared.renderPipelinesByType[.ssaoBlur] else {
             handleError(.pipelineStateNulled, "ssaoBlurPipeline is nil")
             return
         }
-        
+
         if !ssaoBlurPipeline.success {
             handleError(.pipelineStateNulled, ssaoBlurPipeline.name!)
             return
@@ -770,7 +769,7 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "SSAO Blur Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -811,11 +810,11 @@ public enum RenderPasses {
 
     public static let lightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        guard let lightPipeline = PipelineManager.shared.renderPipelinesByType[ .light ] else {
+        guard let lightPipeline = PipelineManager.shared.renderPipelinesByType[.light] else {
             handleError(.pipelineStateNulled, "lightPipeline is nil")
             return
         }
-        
+
         if !lightPipeline.success {
             handleError(.pipelineStateNulled, lightPipeline.name!)
             return
@@ -843,7 +842,7 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "Light Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -1073,11 +1072,11 @@ public enum RenderPasses {
 
     public static let compositeExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        guard let compositePipeline = PipelineManager.shared.renderPipelinesByType[ .composite ] else {
+        guard let compositePipeline = PipelineManager.shared.renderPipelinesByType[.composite] else {
             handleError(.pipelineStateNulled, "compositePipeline is nil")
             return
         }
-        
+
         if !compositePipeline.success {
             handleError(.pipelineStateNulled, compositePipeline.name!)
             return
@@ -1100,7 +1099,7 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "Composite Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -1137,11 +1136,11 @@ public enum RenderPasses {
 
     public static let preCompositeExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
 
-        guard let preCompositePipeline = PipelineManager.shared.renderPipelinesByType[ .preComposite ] else {
+        guard let preCompositePipeline = PipelineManager.shared.renderPipelinesByType[.preComposite] else {
             handleError(.pipelineStateNulled, "preCompositePipeline is nil")
             return
         }
-        
+
         if !preCompositePipeline.success {
             handleError(.pipelineStateNulled, preCompositePipeline.name!)
             return
@@ -1178,7 +1177,7 @@ public enum RenderPasses {
             handleError(.renderPassCreationFailed, "Pre Composite Pass")
             return
         }
-        
+
         defer {
             // Make sure no matter what we end the encoding at the end of the function
             renderEncoder.popDebugGroup()
@@ -1266,7 +1265,7 @@ public enum RenderPasses {
                 handleError(.renderPassCreationFailed, "Post Process \(pipeline.name!) Pass")
                 return
             }
-            
+
             defer {
                 // Make sure no matter what we end the encoding at the end of the function
                 renderEncoder.popDebugGroup()

@@ -14,37 +14,35 @@ import MetalKit
 import simd
 import Spatial
 
-public  protocol UntoldRendererDelegate
-{
-    func willDraw(in view: MTKView) -> Void
-    func didDraw(in view: MTKView) -> Void
+public protocol UntoldRendererDelegate {
+    func willDraw(in view: MTKView)
+    func didDraw(in view: MTKView)
 }
-
 
 public class UntoldRenderer: NSObject, MTKViewDelegate {
     public let metalView: MTKView
 
     var gameUpdateCallback: ((_ deltaTime: Float) -> Void)?
     var handleInputCallback: (() -> Void)?
-    
+
     private var configuration: UntoldRendererConfig
     public var delegate: UntoldRendererDelegate? = nil
-        
-    init( configuration: UntoldRendererConfig? = nil ) {
+
+    init(configuration: UntoldRendererConfig? = nil) {
         self.configuration = configuration ?? .default
 
         // Set the metal view from configuration or create new one
         metalView = self.configuration.metalView ?? MTKView()
-        
+
         #if canImport(AppKit)
-        Logger.addSink(LogStore.shared)
+            Logger.addSink(LogStore.shared)
         #endif
-        
+
         super.init()
     }
 
-    public static func create( configuration: UntoldRendererConfig? = nil ) -> UntoldRenderer? {
-        let renderer = UntoldRenderer( configuration: configuration )
+    public static func create(configuration: UntoldRendererConfig? = nil) -> UntoldRenderer? {
+        let renderer = UntoldRenderer(configuration: configuration)
 
         guard let device = MTLCreateSystemDefaultDevice() else {
             assertionFailure("Metal device is not available.")
@@ -81,8 +79,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             Logger.logError(message: "Failed to load metallib: \(error)")
         }
 
-        renderer.initResources( )
-        
+        renderer.initResources()
+
         return renderer
     }
 
@@ -96,13 +94,13 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     func initResources() {
         initBufferResources()
-        
-        PipelineManager.shared.initRenderPipelines( configuration.initRenderPipelineBlocks )
-               
-        initSizeableResources() //TODO: Find a better name function
+
+        PipelineManager.shared.initRenderPipelines(configuration.initRenderPipelineBlocks)
+
+        initSizeableResources() // TODO: Find a better name function
 
         shadowSystem = ShadowSystem()
-        
+
         // init ssao kernels
         initSSAOResources()
 
@@ -116,17 +114,17 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         let light = createEntity()
         setEntityName(entityId: light, name: "Directional Light")
         createDirLight(entityId: light)
-        
+
         CameraSystem.shared.activeCamera = gameCamera
-        
+
         Logger.log(message: "Untold Engine Starting")
     }
-    
+
     func initSizeableResources() {
         if renderInfo.viewPort.x == 0 || renderInfo.viewPort.y == 0 { return }
-        
+
         initRTXAccumulationBuffer()
-        
+
         initTextureResources()
         initRenderPassDescriptors()
         initIBLResources()
@@ -187,11 +185,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         // Call delegate, for example the editor to support hotreload system
         delegate?.willDraw(in: view)
-        
+
         // calculate delta time for frame
         calculateDeltaTime()
         traverseSceneGraph()
-        
+
         // process Input - Handle user input before updating game states
         handleInputCallback?()
 
@@ -209,39 +207,37 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             steps += 1
         }
 
-
         // update game states and logic
         gameUpdateCallback?(timeSinceLastUpdate)
 
         // render
         configuration.updateRenderingSystemCallback(view)
-                 
+
         delegate?.didDraw(in: view)
     }
 
     public func mtkView(_ mtkView: MTKView, drawableSizeWillChange size: CGSize) {
         let oldSize = mtkView.drawableSize
-        
+
         let aspect = Float(size.width) / Float(size.height)
         let projectionMatrix = matrixPerspectiveRightHand(
             fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far
         )
-        
+
         renderInfo.perspectiveSpace = projectionMatrix
-        
+
         let viewPortSize: simd_float2 = simd_make_float2(Float(size.width), Float(size.height))
         renderInfo.viewPort = viewPortSize
-        
+
         if oldSize.width == 0 || oldSize.height == 0 {
             // Init sizeable resources
             initSizeableResources()
-        }
-        else if (abs(oldSize.width - size.height) < 0.1 &&
-                 abs(oldSize.height - size.width) < 0.1) {
+        } else if abs(oldSize.width - size.height) < 0.1,
+                  abs(oldSize.height - size.width) < 0.1
+        {
             // Init the resources again becasue the rotation of the screen
             initResources()
         }
         // TODO: We should init the resources again if they change the view size?
     }
-   
 }

@@ -153,6 +153,6 @@ public struct AccelStructResources {
     public var instanceAccelerationStructure: MTLAccelerationStructure?
     public var instanceBuffer: MTLBuffer?
     public var mask: [Int32] = []
-    
+
     public init() {}
 }

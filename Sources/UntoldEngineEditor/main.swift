@@ -8,10 +8,9 @@
 //
 
 import AppKit
-import SwiftUI
 import MetalKit
+import SwiftUI
 import UntoldEngine
-
 
 // AppDelegate: Boiler plate code
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -29,8 +28,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         window.title = "Untold Engine Editor v0.2"
-        window.center()            
-        
+        window.center()
+
         let hostingView = NSHostingView(rootView: EditorView())
         window.contentView = hostingView
 
@@ -51,4 +50,3 @@ let delegate = AppDelegate()
 app.delegate = delegate
 
 app.run()
-

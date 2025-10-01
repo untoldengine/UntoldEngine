@@ -9,9 +9,7 @@
 
 import MetalKit
 
-
-public struct MeshShaderPipeline
-{
+public struct MeshShaderPipeline {
     var depthState: MTLDepthStencilState?
     var pipelineState: MTLRenderPipelineState?
     var passDescriptor: MTLRenderPassDescriptor?

@@ -51,12 +51,12 @@ let package = Package(
 
             // 📦 Ship prebuilt metallibs for each platform; pick at runtime.
             resources: [
-                .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),         // macOS
-                .copy("UntoldEngineKernels/UntoldEngineKernels-ios.metallib"),     // iOS (device)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-iossim.metallib"),  // iOS (simulator)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-tvos.metallib"),    // tvOS (device)
+                .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"), // macOS
+                .copy("UntoldEngineKernels/UntoldEngineKernels-ios.metallib"), // iOS (device)
+                .copy("UntoldEngineKernels/UntoldEngineKernels-iossim.metallib"), // iOS (simulator)
+                .copy("UntoldEngineKernels/UntoldEngineKernels-tvos.metallib"), // tvOS (device)
                 .copy("UntoldEngineKernels/UntoldEngineKernels-tvossim.metallib"), // tvOS (simulator)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-xros.metallib"),    // visionOS (device)
+                .copy("UntoldEngineKernels/UntoldEngineKernels-xros.metallib"), // visionOS (device)
                 .copy("UntoldEngineKernels/UntoldEngineKernels-xrossim.metallib"), // visionOS (simulator)
                 .process("Resources/Models"),
                 .process("Resources/HDR"),
@@ -67,7 +67,7 @@ let package = Package(
             linkerSettings: [
                 // Common
                 .linkedFramework("Metal"),
-                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS/*, .visionOS*/])),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS /* , .visionOS */ ])),
 
                 // macOS UI stack
                 .linkedFramework("AppKit", .when(platforms: [.macOS])),
@@ -116,7 +116,7 @@ let package = Package(
                 .linkedFramework("Metal"),
                 .linkedFramework("QuartzCore", .when(platforms: [.iOS, .macOS])),
                 .linkedFramework("Cocoa", .when(platforms: [.macOS])),
-                .linkedFramework("UIKit", .when(platforms: [.iOS]))
+                .linkedFramework("UIKit", .when(platforms: [.iOS])),
             ]
         ),
         // Test target for unit tests
@@ -133,4 +133,3 @@ let package = Package(
         ),
     ]
 )
-

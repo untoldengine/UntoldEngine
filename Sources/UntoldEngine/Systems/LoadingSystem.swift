@@ -17,12 +17,11 @@ public func getResourceURL(
     withExtension ext: String,
     subResource subName: String? = nil
 ) -> URL? {
-
     // Flat layout (no top-level "Assets")
     var searchPaths: [[String]] = [
         ["Models", resourceName, "\(resourceName).\(ext)"],
         ["Animations", resourceName, "\(resourceName).\(ext)"],
-        ["HDR", "\(resourceName).\(ext)"]
+        ["HDR", "\(resourceName).\(ext)"],
     ]
     if let subName {
         searchPaths.append(["Materials", subName, "\(resourceName).\(ext)"])
@@ -55,7 +54,7 @@ private func urlInBundle(_ bundle: Bundle, components: [String]) -> URL? {
     let parts = filename.split(separator: ".", maxSplits: 1)
     guard parts.count == 2 else { return nil }
     let name = String(parts[0])
-    let ext  = String(parts[1])
+    let ext = String(parts[1])
 
     return bundle.url(
         forResource: name,
@@ -64,14 +63,13 @@ private func urlInBundle(_ bundle: Bundle, components: [String]) -> URL? {
     )
 }
 
-
 #if os(macOS)
-public func playSceneAt(url: URL) {
-    if let scene = loadGameScene(from: url) {
-        destroyAllEntities()
-        deserializeScene(sceneData: scene)
-        
-        CameraSystem.shared.activeCamera = findGameCamera()        
+    public func playSceneAt(url: URL) {
+        if let scene = loadGameScene(from: url) {
+            destroyAllEntities()
+            deserializeScene(sceneData: scene)
+
+            CameraSystem.shared.activeCamera = findGameCamera()
+        }
     }
-}
 #endif

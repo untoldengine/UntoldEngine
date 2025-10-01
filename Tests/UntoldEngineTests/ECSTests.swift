@@ -134,7 +134,7 @@ final class ECSTests: XCTestCase {
             ObjectIdentifier(ScenegraphComponent.self),
             ObjectIdentifier(LocalTransformComponent.self),
             ObjectIdentifier(RenderComponent.self),
-            ObjectIdentifier(WorldTransformComponent.self)
+            ObjectIdentifier(WorldTransformComponent.self),
         ]
 
         let actualTypes = Set(components.map { ObjectIdentifier($0) })

@@ -11,7 +11,6 @@ import Foundation
 import SwiftUI
 import UntoldEngine
 
-
 public final class LogStore: ObservableObject, LoggerSink {
     public static let shared = LogStore()
     @Published public private(set) var entries: [LogEvent] = []

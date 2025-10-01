@@ -12,7 +12,6 @@ import Foundation
 import Metal
 import UntoldEngine
 
-
 func newAccelerationStructure(
     _ accelerationStructureDescriptor: MTLAccelerationStructureDescriptor, _ name: String
 ) -> MTLAccelerationStructure? {

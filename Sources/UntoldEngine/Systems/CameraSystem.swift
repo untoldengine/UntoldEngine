@@ -1,6 +1,6 @@
 
 //
-//  Camera.swift
+//  CameraSystem.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -11,14 +11,13 @@
 import Foundation
 import simd
 
-public final class CameraSystem
-{
+public final class CameraSystem {
     // Thread-safe shared instance
-    public static let shared: CameraSystem = { return CameraSystem() }()
-    
-    var _activeCamera: EntityID? = nil
+    public static let shared: CameraSystem = .init()
+
+    var _activeCamera: EntityID?
     public var activeCamera: EntityID? {
-        get { return _activeCamera }
+        get { _activeCamera }
         set { _activeCamera = newValue }
     }
 }

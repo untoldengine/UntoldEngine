@@ -1,5 +1,5 @@
 //
-//  RenderPipeLines.swift
+//  EditorRenderPipeLines.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -10,8 +10,9 @@
 import UntoldEngine
 
 // MARK: Gizmo Pipeline
+
 public func InitGizmoPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexGizmoShader",
         fragmentShader: "fragmentGizmoShader",
         vertexDescriptor: createGizmoVertexDescriptor(),
@@ -22,8 +23,9 @@ public func InitGizmoPipeline() -> RenderPipeline? {
 }
 
 // MARK: Debug Pipeline
+
 public func InitDebugPipeline() -> RenderPipeline? {
-    return CreatePipeline(
+    CreatePipeline(
         vertexShader: "vertexDebugShader",
         fragmentShader: "fragmentDebugShader",
         vertexDescriptor: createDebugVertexDescriptor(),
@@ -35,14 +37,14 @@ public func InitDebugPipeline() -> RenderPipeline? {
     )
 }
 
-extension RenderPipelineType {
-    public static let gizmo : RenderPipelineType = "gizmo"
-    public static let debug : RenderPipelineType = "debug"
+public extension RenderPipelineType {
+    static let gizmo: RenderPipelineType = "gizmo"
+    static let debug: RenderPipelineType = "debug"
 }
 
 public func EditorDefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)] {
-    return DefaultPipeLines() + [
-        ( .gizmo, InitGizmoPipeline),
-        ( .debug, InitDebugPipeline)
+    DefaultPipeLines() + [
+        (.gizmo, InitGizmoPipeline),
+        (.debug, InitDebugPipeline),
     ]
 }
