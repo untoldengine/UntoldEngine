@@ -10,11 +10,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SwiftFormat 0.54.6
+      - name: Install SwiftFormat
         run: |
           brew update
-          brew install swiftformat@0.54.6
-          echo "/opt/homebrew/opt/swiftformat@0.54.6/bin" >> $GITHUB_PATH
+          brew install swiftformat
 
       - name: Show versions
         run: |
