@@ -14,6 +14,12 @@ When reviewing pull requests for this repository:
 - Avoid being overly nitpicky — only raise issues that impact readability, maintainability, testability, or functionality.
 - Do not enforce style rules — SwiftFormat is already run automatically. Only highlight when style issues affect readability.
 - If something is unclear, ask for explanation rather than rejecting the PR.
+- Verify that **all source files and Metal shader files** include the proper copyright and license notice at the very top:
+  ```swift
+  //  Copyright Untold Engine Studios
+  //  Licensed under the GNU LGPL v3.0 or later.
+  //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
+  ```
 
 Final decision always rests with human maintainers; Copilot is here to provide helpful suggestions.
 
