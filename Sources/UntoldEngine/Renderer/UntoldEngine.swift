@@ -115,6 +115,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         setEntityName(entityId: light, name: "Directional Light")
         createDirLight(entityId: light)
         
+        CameraSystem.shared.activeCamera = gameCamera
+        
         Logger.log(message: "Untold Engine Starting")
     }
     
