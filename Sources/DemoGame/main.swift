@@ -121,8 +121,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         self.renderer = renderer
 
-        renderer.initResources()
-
         // Step 3. Create the game scene and connect callbacks
         gameScene = GameScene()
         renderer.setupCallbacks(
