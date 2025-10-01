@@ -22,7 +22,6 @@ public struct SceneView: ViewRepresentable {
     public init( renderer: UntoldRenderer? = nil) {
         self.renderer = renderer ?? UntoldRenderer.create()
         self.mtkView = self.renderer!.metalView
-        self.renderer?.initResources()
     }
     
 #if os(macOS)
