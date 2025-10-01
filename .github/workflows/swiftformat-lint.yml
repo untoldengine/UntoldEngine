@@ -1,15 +1,26 @@
-name: Lint
+name: Formatting Validation
 
 on:
   pull_request:
-    branches:
-      - master
-      - develop
+    branches: [master, develop]
 
 jobs:
-  Lint:
+  lint:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: SwiftFormat
+      - uses: actions/checkout@v4
+
+      - name: Install SwiftFormat 0.54.6
+        run: |
+          brew update
+          brew install swiftformat@0.54.6
+          echo "/opt/homebrew/opt/swiftformat@0.54.6/bin" >> $GITHUB_PATH
+
+      - name: Show versions
+        run: |
+          swiftformat --version
+          swift --version
+
+      - name: Run SwiftFormat (lint mode)
         run: swiftformat --lint . --swiftversion 5.7 --reporter github-actions-log
+
