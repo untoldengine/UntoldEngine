@@ -17,7 +17,6 @@ struct ContentView: View {
     init() {
         self.renderer = UntoldRenderer.create()
         self.mtkView = self.renderer?.metalView ?? MTKView( )
-        self.renderer?.initResources( )
     }
     
     var body: some View {
