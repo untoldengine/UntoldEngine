@@ -121,29 +121,5 @@
         clearVelocity(entityId: ball)
         clearAngularVelocity(entityId: ball)
     }
-    // BallComponent_Editor integrates the BallComponent with the Editor.
-    // This makes the component visible and editable in the UI.
-    /*
-     var BallComponent_Editor: ComponentOption_Editor = .init(
-         id: getComponentId(for: BallComponent.self),
-         name: "Ball Component",
-         type: BallComponent.self,
-         view: makeEditorView(fields: [
-             .text(
-                 label: "Ball Component",
-                 placeholder: "Entity name",
-                 get: { entityId in
-                     getEntityName(entityId: entityId) ?? "None"
-                 },
-                 set: { entityId, targetName in
-                     setEntityName(entityId: entityId, name: targetName)
-                 }
-             ),
-         ]),
-         onAdd: { entityId in
-             // When a BallComponent is added in the Editor, register it with the entity
-             registerComponent(entityId: entityId, componentType: BallComponent.self)
-         }
-     )
-      */
+    
 #endif

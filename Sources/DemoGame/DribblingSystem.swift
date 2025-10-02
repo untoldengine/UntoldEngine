@@ -24,51 +24,6 @@
         var direction: simd_float3 = .zero // Current movement direction (from input)
     }
 
-    // -----------------------------------------------------------------------------
-    // Helper functions for accessing and modifying DribblinComponent values
-    // -----------------------------------------------------------------------------
-
-    func getMaxSpeed(entityId: EntityID) -> Float {
-        guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
-            return 0.0
-        }
-        return dribblingComponent.maxSpeed
-    }
-
-    func setMaxSpeed(entityId: EntityID, maxSpeed: Float) {
-        guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
-            return
-        }
-        dribblingComponent.maxSpeed = maxSpeed
-    }
-
-    func getKickSpeed(entityId: EntityID) -> Float {
-        guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
-            return 0.0
-        }
-        return dribblingComponent.kickSpeed
-    }
-
-    func setKickSpeed(entityId: EntityID, maxSpeed: Float) {
-        guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
-            return
-        }
-        dribblingComponent.kickSpeed = maxSpeed
-    }
-
-    func setPlayerDirection(entityId: EntityID, direction: simd_float3) {
-        guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
-            return
-        }
-        dribblingComponent.direction = direction
-    }
-
-    func getPlayerDirection(entityId: EntityID) -> simd_float3 {
-        guard let dribblingComponent = scene.get(component: DribblinComponent.self, for: entityId) else {
-            return .zero
-        }
-        return dribblingComponent.direction
-    }
 
     // -----------------------------------------------------------------------------
     // Dribbling System
@@ -132,35 +87,5 @@
         }
     }
 
-    // -----------------------------------------------------------------------------
-    // Editor Integration
-    // Makes DribblinComponent editable in the Editor (Inspector panel).
-    // -----------------------------------------------------------------------------
-    /*
-     var DribblingComponent_Editor: ComponentOption_Editor = .init(
-         id: getComponentId(for: DribblinComponent.self),
-         name: "Dribbling Component",
-         type: DribblinComponent.self,
-         view: makeEditorView(fields: [
-             // Editable field for max speed
-             .number(label: "Max Speed",
-                     get: { entityId in getMaxSpeed(entityId: entityId) },
-                     set: { entityId, newMaxSpeed in setMaxSpeed(entityId: entityId, maxSpeed: newMaxSpeed) }),
-
-             // Editable field for kick speed
-             .number(label: "Kick Speed",
-                     get: { entityId in getKickSpeed(entityId: entityId) },
-                     set: { entityId, newKickSpeed in setKickSpeed(entityId: entityId, maxSpeed: newKickSpeed) }),
-
-             // Editable field for movement direction
-             .vector3(label: "Direction",
-                      get: { entityId in getPlayerDirection(entityId: entityId) },
-                      set: { entityId, newDirection in setPlayerDirection(entityId: entityId, direction: newDirection) }),
-         ]),
-         onAdd: { entityId in
-             // When added in the Editor, register this component with the entity
-             registerComponent(entityId: entityId, componentType: DribblinComponent.self)
-         }
-     )
-      */
+    
 #endif

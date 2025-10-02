@@ -16,33 +16,9 @@
     // It stores the name of the target and the offset from that target.
     // This makes it possible to create a third-person or top-down camera easily.
     public class CameraFollowComponent: Component, Codable {
-        var targetName: String = "nil" // The name of the entity the camera should follow
-        var offset: simd_float3 = .zero // The offset position relative to the target
+        var targetName: String = "ball" // The name of the entity the camera should follow
+        var offset: simd_float3 = simd_float3(0.0,1.0,5.0) // The offset position relative to the target
         public required init() {}
-    }
-
-    // -----------------------------------------------------------------------------
-    // Helper functions for accessing and modifying CameraFollowComponent values
-    // -----------------------------------------------------------------------------
-
-    func getOffsetTarget(entityId: EntityID) -> simd_float3 {
-        guard let cameraFollowComponent = scene.get(component: CameraFollowComponent.self, for: entityId) else { return .zero }
-        return cameraFollowComponent.offset
-    }
-
-    func setOffsetTarget(entityId: EntityID, offset: simd_float3) {
-        guard let cameraFollowComponent = scene.get(component: CameraFollowComponent.self, for: entityId) else { return }
-        cameraFollowComponent.offset = offset
-    }
-
-    func getTargetName(entityId: EntityID) -> String? {
-        guard let cameraFollowComponent = scene.get(component: CameraFollowComponent.self, for: entityId) else { return nil }
-        return cameraFollowComponent.targetName
-    }
-
-    func setTargetName(entityId: EntityID, name: String) {
-        guard let cameraFollowComponent = scene.get(component: CameraFollowComponent.self, for: entityId) else { return }
-        cameraFollowComponent.targetName = name
     }
 
     // -----------------------------------------------------------------------------
@@ -133,31 +109,5 @@
         }
     }
 
-    // -----------------------------------------------------------------------------
-    // Editor Integration
-    // Makes CameraFollowComponent visible in the Editor (Inspector panel).
-    // -----------------------------------------------------------------------------
-    /*
-     var CameraFollowComponent_Editor: ComponentOption_Editor = .init(
-         id: getComponentId(for: CameraFollowComponent.self),
-         name: "Camera Follow",
-         type: CameraFollowComponent.self,
-         view: makeEditorView(fields: [
-             // Editable field for selecting the target entity by name
-             .text(label: "Target Name",
-                   placeholder: "Entity name",
-                   get: { entityId in getTargetName(entityId: entityId) ?? "None" },
-                   set: { entityId, targetName in setTargetName(entityId: entityId, name: targetName) }),
-
-             // Editable field for the follow offset
-             .vector3(label: "Offset",
-                      get: { entityId in getOffsetTarget(entityId: entityId) },
-                      set: { entityId, newOffset in setOffsetTarget(entityId: entityId, offset: newOffset) }),
-         ]),
-         onAdd: { entityId in
-             // When added in the Editor, register this component with the entity
-             registerComponent(entityId: entityId, componentType: CameraFollowComponent.self)
-         }
-     )
-      */
+    
 #endif
