@@ -5,25 +5,30 @@ sidebar_position: 1
 ---
 
 # Getting Started
-The Untold Engine is a game engine designed to be integrated into your game projects. It is distributed as a Swift Package using Swift Package Manager (SPM) for easy integration and maintenance.
 
-There are two primary ways to use the engine:
+The Untold Engine is a game engine distributed as a Swift Package using Swift Package Manager (SPM) for easy integration and maintenance.
 
-- **Running the Engine Standalone** – Ideal for contributors and developers who want to explore, modify, or contribute to the engine itself. This mode allows you to test the engine independently using its built-in demo assets and functionalities.
-- **Integrating the Engine into Your Game Project** – Perfect for game developers who want to build a game using the engine. This requires adding the engine as a Swift Package Dependency in a game project.
+There are now **two main entry points**, depending on whether you want to **develop the engine** or **build a game with it**:
 
-### Prerequisites
+- **Engine Developers** → Clone the core [UntoldEngine](https://github.com/untoldengine/UntoldEngine) repo to explore, modify, or contribute to the engine itself.  
+- **Game Developers** → Use the [UntoldEngineExamples](https://github.com/untoldengine/UntoldEngineExamples) repo, which provides ready-to-run demo games built on top of the engine.
 
-To begin using the Untold Engine, you’ll need:
+---
 
-- An Apple computer.
-- The latest version of Xcode, which you can download from the App Store.
+## Prerequisites
 
-## How to install the Untold Engine
+To use the Untold Engine, you’ll need:
 
-Follow these steps to set up and run the Untold Engine.
+- An Apple computer.  
+- The latest version of Xcode, available from the App Store.  
 
-1. Clone the Repository
+---
+
+## Option 1: For Engine Developers
+
+If you want to work directly on the engine’s source code:
+
+1. Clone the core repo:
 
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine
@@ -31,34 +36,32 @@ cd UntoldEngine
 open Package.swift
 ```
 
-2. Configure the Scheme in Xcode
+2. Build and run in Xcode.
 
-- In Xcode, select the "DemoGame" scheme.
-- Set "My Mac" as the target device.
+This opens the engine library and test targets, so you can contribute or experiment with the engine internals.
 
-3. Click on Run
+## Option 2: For Game Developers
 
-You should see the editor show up.
+If you just want to try the engine in action or kickstart your own game:
 
-![gamesceneimage](../images/engine-editor-startup.png)
+1. Clone the examples repo:
 
-### Controls
+```bash 
+git clone https://github.com/untoldengine/UntoldEngineExamples
+cd UntoldEngineExamples/Examples
+open SoccerGame.xcodeproj
+```
 
-The Untold Engine provides two distinct modes for interaction: **Edit Mode** and **Play Mode**. You can switch between these modes at any time by clickin on the **Play** button in the editor.
+2. In Xcode, choose a scheme: SoccerGame 
 
-#### **Edit Mode**
-In **Edit Mode**, you can navigate the scene and adjust the environment with ease using the following controls:
+3. Press Run.
+You’ll see the chosen game launch, powered by Untold Engine.
 
-- **Orbit**: Click and drag to rotate the view around the scene.
-- **Move**: 
-  - Use the **W**, **A**, **S**, and **D** keys to move forward, backward, left, and right.
-  - Use the **Q** and **E** keys to move vertically (up and down).
-- **Zoom**: Pinch to zoom in or out for a closer or wider view.
+![gamesceneimage](../images/gamedemoscreenshot.png)
 
+Press WASD keys to dribble.
 
----
-
-## Preloaded Assets to Kickstart Development
+## Preloaded Assets to Kickstart Development (Download first before Pressing Run in Xcode)
 
 To save time, the Untold Engine includes preloaded assets you can use right away:
 
