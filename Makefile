@@ -26,3 +26,6 @@ clean:
 # Test target 
 test:
 	swift test
+
+test-render:
+	swift test --parallel --num-workers 1 --filter UntoldEngineRenderTests
