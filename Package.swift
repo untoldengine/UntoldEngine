@@ -14,21 +14,12 @@ let package = Package(
             name: "UntoldEngine",
             targets: ["UntoldEngine"]
         ),
-        // Executable for the editor
+        // Executable for the editor (macOS-only)
         .executable(
             name: "UntoldEngineEditor",
             targets: ["UntoldEngineEditor"]
         ),
-        // Executable for the demo game
-        .executable(
-            name: "DemoGame",
-            targets: ["DemoGame"]
-        ),
-        // Executable for the starter template
-        .executable(
-            name: "StarterGame",
-            targets: ["StarterGame"]
-        ),
+        // Keep this sample if you still want a minimal showcase
         .executable(
             name: "SwiftUIDemo",
             targets: ["SwiftUIDemo"]
@@ -48,35 +39,30 @@ let package = Package(
             dependencies: ["CShaderTypes"],
             path: "Sources/UntoldEngine",
             exclude: ["Shaders"],
-
-            // 📦 Ship prebuilt metallibs for each platform; pick at runtime.
             resources: [
-                .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"), // macOS
-                .copy("UntoldEngineKernels/UntoldEngineKernels-ios.metallib"), // iOS (device)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-iossim.metallib"), // iOS (simulator)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-tvos.metallib"), // tvOS (device)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-tvossim.metallib"), // tvOS (simulator)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-xros.metallib"), // visionOS (device)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-xrossim.metallib"), // visionOS (simulator)
+                // Prebuilt metallibs
+                .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
+                .copy("UntoldEngineKernels/UntoldEngineKernels-ios.metallib"),
+                .copy("UntoldEngineKernels/UntoldEngineKernels-iossim.metallib"),
+                .copy("UntoldEngineKernels/UntoldEngineKernels-tvos.metallib"),
+                .copy("UntoldEngineKernels/UntoldEngineKernels-tvossim.metallib"),
+                .copy("UntoldEngineKernels/UntoldEngineKernels-xros.metallib"),
+                .copy("UntoldEngineKernels/UntoldEngineKernels-xrossim.metallib"),
+                // Engine sample assets
                 .process("Resources/Models"),
                 .process("Resources/HDR"),
                 .process("Resources/ReferenceImages"),
                 .process("Resources/textures"),
             ],
-
             linkerSettings: [
-                // Common
                 .linkedFramework("Metal"),
                 .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS /* , .visionOS */ ])),
-
-                // macOS UI stack
                 .linkedFramework("AppKit", .when(platforms: [.macOS])),
-
-                // iOS UI stack (only if some targets import UIKit)
                 .linkedFramework("UIKit", .when(platforms: [.iOS])),
             ]
         ),
-        // These executables are macOS-only
+
+        // macOS-only Editor
         .executableTarget(
             name: "UntoldEngineEditor",
             dependencies: ["UntoldEngine"],
@@ -87,27 +73,8 @@ let package = Package(
                 .linkedFramework("AppKit", .when(platforms: [.macOS])),
             ]
         ),
-        // These executables are macOS-only
-        .executableTarget(
-            name: "DemoGame",
-            dependencies: ["UntoldEngine"],
-            path: "Sources/DemoGame",
-            linkerSettings: [
-                .linkedFramework("Metal"),
-                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
-                .linkedFramework("AppKit", .when(platforms: [.macOS])),
-            ]
-        ),
-        .executableTarget(
-            name: "StarterGame",
-            dependencies: ["UntoldEngine"],
-            path: "Sources/StarterGame",
-            linkerSettings: [
-                .linkedFramework("Metal"),
-                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
-                .linkedFramework("AppKit", .when(platforms: [.macOS])),
-            ]
-        ),
+
+        // Optional minimal app target you kept
         .executableTarget(
             name: "SwiftUIDemo",
             dependencies: ["UntoldEngine"],
@@ -119,13 +86,13 @@ let package = Package(
                 .linkedFramework("UIKit", .when(platforms: [.iOS])),
             ]
         ),
-        // Test target for unit tests
+
+        // Tests
         .testTarget(
             name: "UntoldEngineTests",
             dependencies: ["UntoldEngine"],
             path: "Tests/UntoldEngineTests"
         ),
-        // Render-specific test target
         .testTarget(
             name: "UntoldEngineRenderTests",
             dependencies: ["UntoldEngine"],
@@ -133,3 +100,4 @@ let package = Package(
         ),
     ]
 )
+
