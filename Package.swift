@@ -24,11 +24,7 @@ let package = Package(
             name: "DemoGame",
             targets: ["DemoGame"]
         ),
-        // Executable for the starter template
-        .executable(
-            name: "StarterGame",
-            targets: ["StarterGame"]
-        ),
+        // Executable for SwiftUIDemo
         .executable(
             name: "SwiftUIDemo",
             targets: ["SwiftUIDemo"]
@@ -92,16 +88,6 @@ let package = Package(
             name: "DemoGame",
             dependencies: ["UntoldEngine"],
             path: "Sources/DemoGame",
-            linkerSettings: [
-                .linkedFramework("Metal"),
-                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
-                .linkedFramework("AppKit", .when(platforms: [.macOS])),
-            ]
-        ),
-        .executableTarget(
-            name: "StarterGame",
-            dependencies: ["UntoldEngine"],
-            path: "Sources/StarterGame",
             linkerSettings: [
                 .linkedFramework("Metal"),
                 .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
