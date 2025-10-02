@@ -37,9 +37,6 @@ final class RendererTests: XCTestCase {
 
         self.renderer = renderer
 
-        // Initialize resources
-        self.renderer.initResources()
-
         // Initialize projection
         let aspect = Float(windowWidth) / Float(windowHeight)
         let projectionMatrix = matrixPerspectiveRightHand(
