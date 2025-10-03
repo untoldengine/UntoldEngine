@@ -93,17 +93,25 @@ Author: [Harold Serrano](http://www.haroldserrano.com)
 
 ---
 
-## Documentation
+## Documentation & Quick Start
 
-👉 Full setup instructions, guides, and API references are now maintained in our official documentation site:
-[Untold Engine Docs](https://untoldengine.github.io/UntoldEngine)
+If you just want to **try the engine right away**, check out the demo games in our companion repo:  
+👉 [UntoldArcade](https://github.com/untoldengine/UntoldArcade)  
+
+Clone it, open the Xcode workspace, and you’ll be able to run a demo game (like **SoccerArcade**) immediately.
+
+---
+
+If you’re interested in learning more about the engine itself — how it works, how to build with it, and the full API — head over to our official documentation site:  
+👉 [Untold Engine Docs](https://untoldengine.github.io/UntoldEngine)
 
 There you’ll find:
 - Installation & setup
 - Editor overview
 - How-to guides (import assets, add models, use systems)
-- API examples
-⚡ If you’re new, start with the Getting Started guide.
+- API references & examples
+
+⚡ New to the engine? Start with the **Getting Started** guide in the docs.
 
 ---
 
