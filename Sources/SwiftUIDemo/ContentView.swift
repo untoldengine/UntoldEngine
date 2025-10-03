@@ -12,8 +12,13 @@ import simd
 import SwiftUI
 import UntoldEngine
 
+// Scene Builder style to create a scene with herarchy
 struct ContentView: View {
-    var mtkView: MTKView
+    @State var playerAngle: Float = 0
+    
+    let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+    var rootID: EntityID = createEntity()
+    
     var renderer: UntoldRenderer?
 
     init() {

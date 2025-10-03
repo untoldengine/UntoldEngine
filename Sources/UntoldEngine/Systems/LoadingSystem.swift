@@ -37,7 +37,12 @@ public func getResourceURL(
         }
     }
 
-    // 2) Main bundle (search subdirectories)
+    // 2) Main bundle without folders ( the default one in Xcode )
+    if let url = Bundle.main.url(forResource: resourceName, withExtension: ext) {
+        return url
+    }
+    
+    // 3) Main bundle (search subdirectories) usully swift package preserve the folder structure
     for components in searchPaths {
         if let url = urlInBundle(Bundle.main, components: components) {
             return url
