@@ -82,6 +82,9 @@ let package = Package(
             name: "SwiftUIDemo",
             dependencies: ["UntoldEngine"],
             path: "Sources/SwiftUIDemo",
+            resources: [
+                .process("Resources"),
+            ],
             linkerSettings: [
                 .linkedFramework("Metal"),
                 .linkedFramework("QuartzCore", .when(platforms: [.iOS, .macOS])),

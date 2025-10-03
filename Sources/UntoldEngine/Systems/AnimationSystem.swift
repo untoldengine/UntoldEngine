@@ -36,7 +36,7 @@ public final class AnimationSystem {
 // Small performance trick.
 // It's always faster to have a funciton pointers inside the render loop and switch to dummy functions if you don't need them
 // instead of add an ifelse conditional jump.
-private func updateAnimationSystemDummy(deltaTime _: Float) {}
+private func updateAnimationSystemDummy( deltaTime: Float) {}
 
 private func updateAnimationSystem(deltaTime: Float) {
     currentGlobalTime += deltaTime

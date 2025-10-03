@@ -39,7 +39,7 @@ public func loadTexture(
         MTKTextureLoader.Option.SRGB: NSNumber(value: isSRGB),
     ]
 
-    guard let url = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: nil) else {
+    guard let url = LoadingSystem.shared.resourceURL(forResource: textureName, withExtension: withExtension, subResource: nil) else {
         throw LoadError.textureCreationFailed
     }
 
@@ -539,7 +539,7 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
         MTKTextureLoader.Option.generateMipmaps: true,
     ]
 
-    guard let url = getResourceURL(forResource: textureName, withExtension: withExtension, subResource: subResource) else {
+    guard let url = LoadingSystem.shared.resourceURL(forResource: textureName, withExtension: withExtension, subResource: subResource) else {
         return
     }
 
