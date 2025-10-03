@@ -12,11 +12,20 @@ import Foundation
 import MetalKit
 import ModelIO
 
-public func getResourceURL(
-    forResource resourceName: String,
-    withExtension ext: String,
-    subResource subName: String? = nil
-) -> URL? {
+    
+public final class LoadingSystem
+{
+    public static var shared: LoadingSystem = LoadingSystem()
+    
+    public typealias GetResourceURLBlock = (String, String, String?) -> URL?
+    public var resourceURLFn: GetResourceURLBlock? = getResourceURL
+    
+    public func resourceURL(forResource resourceName: String, withExtension ext: String, subResource subName: String? = nil) -> URL? {
+        return resourceURLFn?(resourceName, ext, subName)
+    }
+}
+
+public func getResourceURL(resourceName: String, ext: String, subName: String?) -> URL? {
     // Flat layout (no top-level "Assets")
     var searchPaths: [[String]] = [
         ["Models", resourceName, "\(resourceName).\(ext)"],
@@ -36,12 +45,12 @@ public func getResourceURL(
             }
         }
     }
-
+    
     // 2) Main bundle without folders ( the default one in Xcode )
     if let url = Bundle.main.url(forResource: resourceName, withExtension: ext) {
         return url
     }
-    
+        
     // 3) Main bundle (search subdirectories) usully swift package preserve the folder structure
     for components in searchPaths {
         if let url = urlInBundle(Bundle.main, components: components) {
@@ -49,11 +58,11 @@ public func getResourceURL(
         }
     }
 
-    // 3) Module bundle (UNCHANGED: top-level only, for engine-internal content)
+    // 4) Module bundle (UNCHANGED: top-level only, for engine-internal content)
     return Bundle.module.url(forResource: resourceName, withExtension: ext)
 }
 
-private func urlInBundle(_ bundle: Bundle, components: [String]) -> URL? {
+fileprivate func urlInBundle(_ bundle: Bundle, components: [String]) -> URL? {
     guard let filename = components.last else { return nil }
     let folders = components.dropLast()
     let parts = filename.split(separator: ".", maxSplits: 1)

@@ -41,7 +41,7 @@ public class MeshNode: Node3D, NodeAnimations, NodeKinetics
         updateMaterialEmmisive(entityId: entityID, emmissive: simd_float3(emissive.0, emissive.1, emissive.2))
 
         func updateMaterialResource( _ resource: String?, _ type: TextureType ) {
-            if let r = resource, let url = getResourceURL(forResource: r.filename, withExtension: r.extensionName) {
+            if let r = resource, let url = LoadingSystem.shared.resourceURL(forResource: r.filename, withExtension: r.extensionName) {
                 updateMaterialTexture(entityId: entityID, textureType: type, path: url)
             }
         }
