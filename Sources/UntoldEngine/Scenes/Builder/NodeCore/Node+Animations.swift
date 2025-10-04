@@ -15,7 +15,7 @@ public protocol NodeAnimations : NodeProtocol
 extension NodeAnimations
 {
     public func setAnimations ( resource:String, name:String ) -> Self {
-        setEntityAnimations(entityId: entityID, filename: resource.filename, withExtension: resource.extensionName, name: "running")
+        setEntityAnimations(entityId: entityID, filename: resource.filename, withExtension: resource.extensionName, name: name)
         return self
     }
 
