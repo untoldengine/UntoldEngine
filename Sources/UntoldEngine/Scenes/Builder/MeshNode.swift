@@ -21,7 +21,6 @@ public class MeshNode: Node3D, NodeAnimations, NodeKinetics
         if name == nil { setEntityName(entityId: self.entityID, name: resource) }
         
         setEntityMesh(entityId: self.entityID, filename: resource.filename, withExtension: resource.extensionName)
-        registerSceneGraphComponent(entityId: self.entityID)
     }
     
     public func materialData(
