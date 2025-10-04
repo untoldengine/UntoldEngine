@@ -51,7 +51,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         return url
     }
         
-    // 3) Main bundle (search subdirectories) usully swift package preserve the folder structure
+    // 3) Main bundle (search subdirectories) usually swift package preserve the folder structure
     for components in searchPaths {
         if let url = urlInBundle(Bundle.main, components: components) {
             return url
