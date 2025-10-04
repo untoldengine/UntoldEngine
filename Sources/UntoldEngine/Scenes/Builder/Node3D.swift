@@ -9,9 +9,5 @@
 
 public class Node3D: Node, NodeTransform
 {
-    public override init(entityID: EntityID? = nil, name: String? = nil, @SceneBuilder content: @escaping () -> [any NodeProtocol]) {
-        super.init(entityID: entityID, name:name, content: content)
-        self.registerTransformComponent()
-        UntoldEngine.registerSceneGraphComponent(entityId: self.entityID)
-    }
+    // TODO: Just place holder to group objects together. Let's see if we need in hte future.
 }
