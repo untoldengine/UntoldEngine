@@ -11,7 +11,7 @@ import Foundation
 import SwiftUI
 import simd
 
-public class MeshNode: Node3D, NodeAnimations, NodeKinetics
+public class MeshNode: Node, NodeAnimations, NodeKinetics
 {
     public convenience init (resource: String, entityID: EntityID? = nil, name: String? = nil) {
         self.init(resource: resource, entityID: entityID, name: name) { }

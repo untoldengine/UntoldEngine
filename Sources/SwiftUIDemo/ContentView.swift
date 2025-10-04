@@ -52,21 +52,19 @@ struct SceneBuilderView: View {
     
     var body: some View {
         UntoldView( renderer: renderer ) {
-            Node3D( entityID: rootID, name: "Pivot" ) {
-                MeshNode( resource: "redplayer.usdc" ) {
-                    MeshNode(resource: "ball.usdc")
-                        .materialData(
-                            baseColorResource: "Ball Texture_Diffuse.jpg",
-                            normalResource: "Ball_Normal_Map.png"
-                        )
-                        .translateBy(x: 0, y: 0, z: 1)
-                }
-                .materialData(
-                    roughness: 0.5,
-                    baseColorResource: "soccer-player-1.png"
-                )
-                .rotateTo(angle: 0, axis: [.y])
+            MeshNode( resource: "redplayer.usdc", entityID: rootID ) {
+                MeshNode(resource: "ball.usdc")
+                    .materialData(
+                        baseColorResource: "Ball Texture_Diffuse.jpg",
+                        normalResource: "Ball_Normal_Map.png"
+                    )
+                    .translateBy(x: 0, y: 0, z: 1)
             }
+            .materialData(
+                roughness: 0.5,
+                baseColorResource: "soccer-player-1.png"
+            )
+            .rotateTo(angle: 0, axis: [.y])
         }
         .onReceive(timer) { _ in
             playerAngle += 1
