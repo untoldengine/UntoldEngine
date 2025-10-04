@@ -63,7 +63,7 @@ extension NodeTransform
         return self
     }
         
-    public func scaleTo(x:Float = 0, y:Float = 0, z:Float = 0) -> Self {
+    public func scaleTo(x:Float = 1, y:Float = 1, z:Float = 1) -> Self {
         UntoldEngine.scaleTo(entityId: entityID, scale: simd_float3( x, y, z))
         return self
     }
