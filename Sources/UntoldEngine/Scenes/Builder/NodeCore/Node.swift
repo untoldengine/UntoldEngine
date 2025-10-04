@@ -14,18 +14,13 @@ public protocol NodeProtocol
     var entityID: EntityID { get }
 }
 
-open class Node : NodeProtocol
+open class Node : NodeProtocol, NodeTransform
 {
     var _entityID: EntityID
     public var entityID: EntityID { _entityID }
     
     public var subNodes: [any NodeProtocol] = []
     
-    public init( entityID: EntityID? = nil, name:String? = nil ) {
-        self._entityID = entityID ?? createEntity()
-        if let n = name { setEntityName(entityId: self.entityID, name: n) }
-    }
-
     public init( entityID: EntityID? = nil, name:String? = nil, @SceneBuilder content: @escaping () -> [any NodeProtocol] ) {
         self._entityID = entityID ?? createEntity()
         if let n = name { setEntityName(entityId: self.entityID, name: n) }
@@ -34,6 +29,10 @@ open class Node : NodeProtocol
         for n in subNodes {
             setParent(childId: n.entityID, parentId: self.entityID)
         }
+    }
+    
+    public convenience init( entityID: EntityID? = nil, name:String? = nil ) {
+        self.init( entityID: entityID, name: name ) { }
     }
 }
 
