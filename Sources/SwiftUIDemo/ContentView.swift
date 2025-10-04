@@ -37,7 +37,7 @@ struct ContentView : View {
     }
 }
 
-// Scene Builder style to create a scene with herarchy
+// Scene Builder style to create a scene with hierarchy
 struct SceneBuilderView: View {
     @State var playerAngle: Float = 0
     
