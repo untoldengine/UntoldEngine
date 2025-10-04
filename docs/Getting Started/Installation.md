@@ -7,6 +7,19 @@ sidebar_position: 1
 # Getting Started
 The Untold Engine is a game engine designed to be integrated into your game projects. It is distributed as a Swift Package using Swift Package Manager (SPM) for easy integration and maintenance.
 
+---
+
+### Instant Demo
+
+If you just want to **try the Untold Engine right away**, check out the demo games in our companion repo:  
+👉 [UntoldArcade](https://github.com/untoldengine/UntoldArcade)  
+
+Clone it, open the Xcode workspace, and you’ll be able to run a demo game (like **SoccerArcade**) immediately.
+
+---
+
+## Using the Untold Engine 
+
 There are two primary ways to use the engine:
 
 - **Running the Engine Standalone** – Ideal for contributors and developers who want to explore, modify, or contribute to the engine itself. This mode allows you to test the engine independently using its built-in demo assets and functionalities.
@@ -30,32 +43,25 @@ git clone https://github.com/untoldengine/UntoldEngine
 cd UntoldEngine
 open Package.swift
 ```
+**How to Run**
+1. Download the [Demo Game Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1) and place them in your Desktop folder. 
+2. In Xcode, Select the **DemoGame** scheme.  
+3. Set **My Mac** as the target device and hit **Run**.  
 
-2. Configure the Scheme in Xcode
+You should see a soccer game show up. Use the WASD keys to move the player around.
 
-- In Xcode, select the "DemoGame" scheme.
-- Set "My Mac" as the target device.
+![DemoGame](../images/demogame-noeditor.png)
 
-3. Click on Run
+---
 
-You should see the editor show up.
+## Untold Editor
 
-![gamesceneimage](../images/engine-editor-startup.png)
+The **Untold Editor** is a companion tool for the Untold Engine.  
+It provides a visual environment for managing assets, scenes, and entities in projects built with the engine.  
 
-### Controls
+The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. [Untold Editor](https://github.com/untoldengine/UntoldEditor)
 
-The Untold Engine provides two distinct modes for interaction: **Edit Mode** and **Play Mode**. You can switch between these modes at any time by clickin on the **Play** button in the editor.
-
-#### **Edit Mode**
-In **Edit Mode**, you can navigate the scene and adjust the environment with ease using the following controls:
-
-- **Orbit**: Click and drag to rotate the view around the scene.
-- **Move**: 
-  - Use the **W**, **A**, **S**, and **D** keys to move forward, backward, left, and right.
-  - Use the **Q** and **E** keys to move vertically (up and down).
-- **Zoom**: Pinch to zoom in or out for a closer or wider view.
-
-
+![UntoldEditorscreenshot](../images/editorscreenshot.png)
 ---
 
 ## Preloaded Assets to Kickstart Development
