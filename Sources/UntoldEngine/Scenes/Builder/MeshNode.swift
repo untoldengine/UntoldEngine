@@ -34,7 +34,7 @@ public class MeshNode: Node3D, NodeAnimations, NodeKinetics
         baseColorResource:String? = nil,
         roughnessResource:String? = nil,
         metallicResource:String? = nil,
-        normalResource:String? = nil,
+        normalResource:String? = nil
     ) -> Self {
         
         updateMaterialColor(entityId: entityID, color: colorFromSimd(simd_float4(baseColor.0, baseColor.1, baseColor.2, baseColor.3)))
