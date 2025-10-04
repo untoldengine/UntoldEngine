@@ -76,7 +76,7 @@ struct SceneBuilderView: View {
 }
 
 
-// Standard style to create a scene with herarchy
+// Standard style to create a scene with hierarchy
 struct TestView : View
 {
     @State var playerAngle: Float = 0
