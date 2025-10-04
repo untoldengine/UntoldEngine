@@ -1,4 +1,26 @@
 # Changelog
+## v0.3.1 - 2025-10-04
+### Fixes
+- [Patch] fix adding support to update a render pipeline in the pipeline manager 5e0be583
+- [Patch] fix removing scene camera from culling tests 8e40d357
+- [Patch] fix removing scene camera in the tests 60c378cc
+- [Patch] fix replace in test inputSystem for InputSystem.shared 99856ee3
+- [Patch] fix replacing get main camera function to findGameCamera as is the default one right now 1dd82230
+- [Patch] Make entities spatial upon creation 105a9bed
+- [Patch] Fixed directional light crash upon selection 378f0c22
+
+### 📚 Docs
+- [Docs] Added section for top contributors (85784ac…)
+- [Docs] Fixed link to images for top contributors (5871c57…)
+- [Docs] Fixed link to images folder for top contributors (9328745…)
+- [Docs] Added quick reference guide (e3594db…)
+- [Docs] Changed copyright on all files to untold engine (e474286…)
+- [docs] add copilot instructions (4f5724c…)
+- [Docs] Removed old contributing page (c29673b…)
+- [Docs] Added code of conduct (de9d76c…)
+- [Docs] Added swiftformat lint workflow with fix (f184d89…)
+- [Docs] Improved game demo tutorial (c20ef7d…)
+- [Docs] Added quick start section to untold arcade (53b4914…)
 ## v0.3.0 - 2025-09-28
 ### 🐞 Fixes
 - [Patch] Improved the build frustum and kernel to avoid false negatives (705f6f4…)
