@@ -115,6 +115,15 @@ There you’ll find:
 
 ---
 
+## Untold Editor
+
+The **Untold Editor** is a companion tool for the Untold Engine.  
+It provides a visual environment for managing assets, scenes, and entities in projects built with the engine.  
+
+The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. [Untold Editor](https://github.com/untoldengine/UntoldEditor)
+
+---
+
 ## Roadmap
 
 See the [open issues](https://github.com/untoldengine/UntoldEngine/issues) for a list of proposed features (and known issues).
