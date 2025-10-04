@@ -16,7 +16,7 @@ import UntoldEngine
 struct ContentView : View {
     
     init () {
-        // Wired stuff. The assets / resources that process in teh swift package get copy to a module that has to be
+        // Wired stuff. The assets / resources that process in the swift package get copy to a module that has to be
         // reference manually. Bundle.main or Bundle.module cant found the bundle. So I had to specify manually
         LoadingSystem.shared.resourceURLFn = { resourceName, extensionName, subPath in
             if let bundleURL = Bundle.main.url(forResource: "UntoldEngine_SwiftUIDemo", withExtension: "bundle") {
