@@ -1,11 +1,43 @@
 #!/usr/bin/env bash
-# Usage:
-#   scripts/next-version.sh [release/x.y.z] [--with-v] [--cliff] [--docs]
-# Examples:
-#   scripts/next-version.sh                    # prints 0.4.0
-#   scripts/next-version.sh --with-v           # prints v0.4.0
-#   scripts/next-version.sh release/0.3.0 --cliff
-#   scripts/next-version.sh --cliff --docs     # also runs Docusaurus versioning
+#
+# -------------------------------------------------------------
+#  next-version.sh
+# -------------------------------------------------------------
+#  Description:
+#    Determines the next semantic version of the Untold Engine
+#    by comparing the current release branch (e.g. release/0.3.0)
+#    against the latest commits in develop.
+#
+#    The script scans commit messages between the release branch
+#    and develop for keywords that indicate the bump level:
+#      [API Change] → major
+#      [Feature]    → minor
+#      [Patch]/[Bugfix] → patch
+#
+#    It then prints the next version number (e.g. 0.3.1),
+#    optionally prefixed with "v" if the --with-v flag is used.
+#
+#  Optional Flags:
+#    --with-v   : Print version with 'v' prefix (e.g. v0.3.1)
+#    --cliff    : Run git-cliff to prepend a changelog section
+#                 for the new version based on recent commits
+#    --docs     : Run Docusaurus docs:version command to
+#                 snapshot documentation for the new release
+#
+#  Usage Examples:
+#    ./scripts/next-version.sh
+#    ./scripts/next-version.sh --with-v
+#    ./scripts/next-version.sh release/0.3.0 --cliff
+#    ./scripts/next-version.sh --cliff --docs
+#
+#  Notes:
+#    - Must be executed from the repository root.
+#    - Assumes release branches follow the pattern release/x.y.z.
+#    - Designed to simplify the Untold Engine release flow by
+#      automating version calculation, changelog generation, and
+#      docs versioning in a single step.
+#
+# -------------------------------------------------------------
 
 set -euo pipefail
 
