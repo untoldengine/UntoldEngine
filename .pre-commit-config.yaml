@@ -3,9 +3,11 @@ repos:
     hooks:
       - id: run-engine-tests
         name: Run Engine Tests Before Commit
-        entry: bash
+        entry: bash -lc
         language: system
-        args: ["-c", "make test"]
         pass_filenames: false
-
+        args:
+          - |
+            echo "🧪 Running filtered Swift tests: UntoldEngineTests"
+            swift test --filter "UntoldEngineTests"
 
