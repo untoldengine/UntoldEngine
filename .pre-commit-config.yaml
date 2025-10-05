@@ -6,8 +6,19 @@ repos:
         entry: bash -lc
         language: system
         pass_filenames: false
+        stages: [pre-commit]
         args:
           - |
+            if [[ "${PRE_COMMIT_STAGE:-}" != "pre-commit" ]]; then
+              exit 0
+            fi
             echo "🧪 Running filtered Swift tests: UntoldEngineTests"
             swift test --filter "UntoldEngineTests"
+
+      - id: enforce-commit-prefix
+        name: Enforce Commit Message Prefix
+        entry: scripts/enforce-commit-prefix.sh
+        language: system
+        pass_filenames: false
+        stages: [commit-msg]
 
