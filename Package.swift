@@ -19,11 +19,6 @@ let package = Package(
             name: "DemoGame",
             targets: ["DemoGame"]
         ),
-        // Executable for SwiftUIDemo
-        .executable(
-            name: "SwiftUIDemo",
-            targets: ["SwiftUIDemo"]
-        ),
     ],
     targets: [
         .target(
@@ -76,20 +71,6 @@ let package = Package(
                 .linkedFramework("Metal"),
                 .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
                 .linkedFramework("AppKit", .when(platforms: [.macOS])),
-            ]
-        ),
-        .executableTarget(
-            name: "SwiftUIDemo",
-            dependencies: ["UntoldEngine"],
-            path: "Sources/SwiftUIDemo",
-            resources: [
-                .process("Resources"),
-            ],
-            linkerSettings: [
-                .linkedFramework("Metal"),
-                .linkedFramework("QuartzCore", .when(platforms: [.iOS, .macOS])),
-                .linkedFramework("Cocoa", .when(platforms: [.macOS])),
-                .linkedFramework("UIKit", .when(platforms: [.iOS])),
             ]
         ),
         // Test target for unit tests
