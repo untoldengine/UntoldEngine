@@ -123,6 +123,8 @@ It provides a visual environment for managing assets, scenes, and entities in pr
 
 The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. [Untold Editor](https://github.com/untoldengine/UntoldEditor)
 
+[UntoldEditorScreenshot](images/editorscreenshot.png)
+
 ---
 
 ## Roadmap
