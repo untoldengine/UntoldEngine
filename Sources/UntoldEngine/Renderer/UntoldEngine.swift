@@ -223,7 +223,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         let projectionMatrix = matrixPerspectiveRightHand(
             fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far
         )
-
+        
         renderInfo.perspectiveSpace = projectionMatrix
 
         let viewPortSize: simd_float2 = simd_make_float2(Float(size.width), Float(size.height))
@@ -240,4 +240,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
         // TODO: We should init the resources again if they change the view size?
     }
+
+   
 }

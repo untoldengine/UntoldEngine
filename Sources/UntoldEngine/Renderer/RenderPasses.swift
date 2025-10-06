@@ -334,9 +334,10 @@ public enum RenderPasses {
                     mesh.metalKitMesh.vertexBuffers[Int(shadowPassModelPositionIndex.rawValue)].buffer,
                     offset: 0, index: Int(shadowPassModelPositionIndex.rawValue)
                 )
-
+                
                 // check if it has skeleton component
                 var hasArmature = false
+
 
                 if let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) {
                     hasArmature = true

@@ -789,6 +789,12 @@ func createShadowVertexDescriptor() -> MTLVertexDescriptor {
     vertexDescriptor.layouts[Int(shadowPassModelPositionIndex.rawValue)].stepFunction =
         MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[Int(shadowPassModelPositionIndex.rawValue)].stepRate = 1
+    
+    vertexDescriptor.layouts[Int(shadowPassJointIdIndex.rawValue)].stride =
+        MemoryLayout<simd_ushort4>.stride
+    vertexDescriptor.layouts[Int(shadowPassJointIdIndex.rawValue)].stepFunction =
+        MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[Int(shadowPassJointIdIndex.rawValue)].stepRate = 1
 
     vertexDescriptor.layouts[Int(shadowPassJointIdIndex.rawValue)].stride =
         MemoryLayout<simd_ushort4>.stride
