@@ -8,6 +8,14 @@ repos:
         args: ["-c", "make testcore"] 
         pass_filenames: false
         stages: [pre-commit]
+      
+      - id: run-renderer-tests 
+        name: Running Engine Renderer Tests Before Commit 
+        entry: bash 
+        language: system 
+        args: ["-c", "make testrenderer"] 
+        pass_filenames: false
+        stages: [pre-commit]
 
       - id: enforce-commit-prefix
         name: Enforcing Commit Message Prefix
