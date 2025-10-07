@@ -1,26 +1,31 @@
-# This workflow will build a Swift project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
-
 name: CI Build and Test
 
 on:
   push:
-    branches:
-      - master
-      - develop
+    branches: [master, develop]
   pull_request:
-    branches:
-      - master
-      - develop 
+    branches: [master, develop]
 
 jobs:
-  build:
-
+  build-and-test:
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: swift build -v
-    - name: Run tests
-      run: swift test -v --filter UntoldEngineTests
+      - uses: actions/checkout@v4
+
+      - name: Show tool versions
+        run: |
+          swift --version
+          system_profiler SPHardwareDataType | grep 'Chip\|Processor' || true
+
+      - name: Build (debug)
+        run: swift build -v
+
+      # Fast unit tests (fully parallel)
+      - name: Run core tests (parallel)
+        run: swift test --parallel -v --filter UntoldEngineTests
+
+      # GPU/renderer tests (single worker to avoid Metal device contention)
+      - name: Run renderer tests (single worker)
+        run: swift test --parallel --num-workers 1 -v --filter UntoldEngineRenderTests
+
