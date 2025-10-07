@@ -10,11 +10,15 @@ import CShaderTypes
 import simd
 @testable import UntoldEngine
 import XCTest
+#if canImport(UniformTypeIdentifiers)
+    import UniformTypeIdentifiers
+#endif
+import ImageIO
 
 final class RendererTests: XCTestCase {
     var renderer: UntoldRenderer!
     var window: NSWindow!
-    let saveToDisk: Bool = true // set to true to save ref, rendered and diff images to the download folder: Download/UntoldEngineRenderingTest
+    let saveToDisk: Bool = false // set to true to save ref, rendered and diff images to the download folder: Download/UntoldEngineRenderingTest
     let timeoutFactor: Float = 5.0
     let windowWidth = 1920
     let windowHeight = 1080
@@ -349,58 +353,100 @@ final class RendererTests: XCTestCase {
     }
 
     private func psnrTest(targetName: String, texture: MTLTexture, isDepthTexture: Bool = false) {
-        var renderImage: CGImage?
+        // 1) Make CGImage
+        let renderImage: CGImage? = isDepthTexture
+            ? depthTextureToCGImage(texture: texture)
+            : textureToCGImage(texture: texture)
 
-        if isDepthTexture {
-            renderImage = depthTextureToCGImage(texture: texture)
-        } else {
-            renderImage = textureToCGImage(texture: texture)
-        }
-
-        // Get rendered image from the target
         guard let finalImage = renderImage else {
             XCTFail("\(targetName): Renderer should produce an output image")
             return
         }
 
-        saveResultToDisk(finalImage, "\(targetName)Test")
+        // 2) Detect CI vs Local
+        let env = ProcessInfo.processInfo.environment
+        let isCI = (env["GITHUB_ACTIONS"] == "true") || (env["CI"] == "true")
 
-        guard let desktopDirectory = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first else {
-            print("Failed to locate Desktop directory.")
-            return
+        // 3) Build paths
+        let scriptPath: URL
+        let referencePath: URL
+        let testPath: URL
+        let pythonExec: URL
+        let fm = FileManager.default
+
+        if isCI {
+            // --- CI (GitHub Actions) ---
+            let repoRoot = URL(fileURLWithPath: env["GITHUB_WORKSPACE"]!, isDirectory: true)
+
+            scriptPath = repoRoot
+                .appendingPathComponent("scripts")
+                .appendingPathComponent("imagecomparisons")
+                .appendingPathComponent("compare_psnr.py")
+
+            referencePath = repoRoot
+                .appendingPathComponent("Sources")
+                .appendingPathComponent("UntoldEngine")
+                .appendingPathComponent("Resources")
+                .appendingPathComponent("ReferenceImages")
+                .appendingPathComponent("\(targetName)Reference.png")
+
+            let artifactsDir = repoRoot.appendingPathComponent(".artifacts/test-images", isDirectory: true)
+            try? fm.createDirectory(at: artifactsDir, withIntermediateDirectories: true)
+            testPath = artifactsDir.appendingPathComponent("\(targetName)Test.png")
+
+            // Save the freshly rendered image to the CI test path
+            savePNG(finalImage, to: testPath)
+
+            // Use env python (portable)
+            pythonExec = URL(fileURLWithPath: "/usr/bin/env")
+        } else {
+            // --- Local (your Desktop/Downloads + venv) ---
+            guard let desktopDirectory = fm.urls(for: .desktopDirectory, in: .userDomainMask).first else {
+                XCTFail("Failed to locate Desktop directory.")
+                return
+            }
+            guard let downloadsDirectory = fm.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
+                XCTFail("Failed to locate Downloads directory.")
+                return
+            }
+
+            // Keep your existing local save (lands in ~/Downloads/UntoldEngineRenderingTest/<name>.png)
+            saveResultToDisk(finalImage, "\(targetName)Test")
+
+            // Ensure the local test dir exists (avoid flakiness)
+            let localTestDir = downloadsDirectory.appendingPathComponent("UntoldEngineRenderingTest", isDirectory: true)
+            try? fm.createDirectory(at: localTestDir, withIntermediateDirectories: true)
+
+            pythonExec = desktopDirectory
+                .appendingPathComponent("UntoldEngineTest")
+                .appendingPathComponent("bin")
+                .appendingPathComponent("python3")
+
+            scriptPath = desktopDirectory
+                .appendingPathComponent("UntoldEngineStudio")
+                .appendingPathComponent("UntoldEngine")
+                .appendingPathComponent("scripts")
+                .appendingPathComponent("imagecomparisons")
+                .appendingPathComponent("compare_psnr.py")
+
+            referencePath = desktopDirectory
+                .appendingPathComponent("UntoldEngineStudio")
+                .appendingPathComponent("UntoldEngine")
+                .appendingPathComponent("Sources")
+                .appendingPathComponent("UntoldEngine")
+                .appendingPathComponent("Resources")
+                .appendingPathComponent("ReferenceImages")
+                .appendingPathComponent("\(targetName)Reference.png")
+
+            testPath = localTestDir.appendingPathComponent("\(targetName)Test.png")
         }
 
-        let pythonPath = desktopDirectory
-            .appendingPathComponent("UntoldEngineTest")
-            .appendingPathComponent("bin")
-            .appendingPathComponent("python3")
-
-        let scriptPath = desktopDirectory
-            .appendingPathComponent("UntoldEngineStudio")
-            .appendingPathComponent("ImageComparison")
-            .appendingPathComponent("compare_psnr.py")
-
-        let referencePath = desktopDirectory
-            .appendingPathComponent("UntoldEngineStudio")
-            .appendingPathComponent("UntoldEngine")
-            .appendingPathComponent("Sources")
-            .appendingPathComponent("UntoldEngine")
-            .appendingPathComponent("Resources")
-            .appendingPathComponent("ReferenceImages")
-            .appendingPathComponent("\(targetName)Reference.png")
-
-        guard let downloadsDirectory = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
-            print("Failed to locate Downloads directory.")
-            return
-        }
-
-        let testPath = downloadsDirectory
-            .appendingPathComponent("UntoldEngineRenderingTest")
-            .appendingPathComponent("\(targetName)Test.png")
-
+        // 4) Run the Python PSNR script
         let process = Process()
-        process.executableURL = pythonPath
-        process.arguments = [scriptPath.path, referencePath.path, testPath.path]
+        process.executableURL = isCI ? pythonExec : pythonExec
+        process.arguments = isCI
+            ? ["python3", scriptPath.path, referencePath.path, testPath.path]
+            : [scriptPath.path, referencePath.path, testPath.path]
 
         let pipe = Pipe()
         process.standardOutput = pipe
@@ -411,16 +457,32 @@ final class RendererTests: XCTestCase {
             process.waitUntilExit()
 
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "No output"
+            let output = String(data: data, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? "No output"
 
             if process.terminationStatus == 0 {
+                // Optionally assert a PSNR threshold here by parsing `output`
+                // e.g., if let v = Double(output), XCTAssert(v >= 30.0, "\(targetName): PSNR \(v) < 30 dB")
             } else {
-                XCTFail("\(targetName): ❌ PSNR test failed. Value: \(output)")
+                XCTFail("\(targetName): ❌ PSNR test failed. Output: \(output)")
             }
-
         } catch {
             XCTFail("\(targetName): ❌ Failed to run PSNR comparison – \(error)")
         }
+    }
+
+    // Minimal, portable PNG writer for CI path
+    private func savePNG(_ image: CGImage, to url: URL) {
+//        #if canImport(UniformTypeIdentifiers)
+//            let uti: CFString = UTType.png.identifier as CFString
+//        #else
+//            // Fallback if UniformTypeIdentifiers isn't available
+//            let uti: CFString = "public.png" as CFString
+//        #endif
+//
+//        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, uti, 1, nil) else { return }
+//        CGImageDestinationAddImage(dest, image, nil)
+//        CGImageDestinationFinalize(dest)
     }
 
     // Utility to load reference image
