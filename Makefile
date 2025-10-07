@@ -27,5 +27,8 @@ clean:
 test:
 	swift test
 
-test-render:
+testcore:
+	swift test --filter UntoldEngineTests
+
+testrenderer:
 	swift test --parallel --num-workers 1 --filter UntoldEngineRenderTests
