@@ -20,6 +20,9 @@ jobs:
 
       - name: Build (debug)
         run: swift build -v
+      
+      - name: Install Python dependencies for image comparison
+        run: pip install scikit-image 
 
       # Fast unit tests (fully parallel)
       - name: Run core tests (parallel)
