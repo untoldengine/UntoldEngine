@@ -18,11 +18,28 @@ jobs:
           swift --version
           system_profiler SPHardwareDataType | grep 'Chip\|Processor' || true
 
+        # 1) Pick a Python and put it first in PATH
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # 2) Sanity check the interpreter
+      - name: Show Python info
+        run: |
+          which -a python3
+          python3 -V
+          python3 -c 'import sys; print(sys.executable)'
+
+      # 3) Install deps into THAT python
+      - name: Install Python dependencies for image comparison
+        run: |
+          python3 -m pip install --upgrade pip wheel
+          python3 -m pip install scikit-image numpy pillow
+     
       - name: Build (debug)
         run: swift build -v
-      
-      - name: Install Python dependencies for image comparison
-        run: pip install scikit-image 
 
       # Fast unit tests (fully parallel)
       - name: Run core tests (parallel)
