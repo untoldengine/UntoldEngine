@@ -18,7 +18,7 @@ import ImageIO
 final class RendererTests: XCTestCase {
     var renderer: UntoldRenderer!
     var window: NSWindow!
-    let saveToDisk: Bool = false // set to true to save ref, rendered and diff images to the download folder: Download/UntoldEngineRenderingTest
+    let saveToDisk: Bool = true // set to true to save ref, rendered and diff images to the download folder: Download/UntoldEngineRenderingTest
     let timeoutFactor: Float = 5.0
     let windowWidth = 1920
     let windowHeight = 1080
