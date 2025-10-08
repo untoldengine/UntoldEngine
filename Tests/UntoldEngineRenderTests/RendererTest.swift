@@ -473,16 +473,16 @@ final class RendererTests: XCTestCase {
 
     // Minimal, portable PNG writer for CI path
     private func savePNG(_ image: CGImage, to url: URL) {
-//        #if canImport(UniformTypeIdentifiers)
-//            let uti: CFString = UTType.png.identifier as CFString
-//        #else
-//            // Fallback if UniformTypeIdentifiers isn't available
-//            let uti: CFString = "public.png" as CFString
-//        #endif
-//
-//        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, uti, 1, nil) else { return }
-//        CGImageDestinationAddImage(dest, image, nil)
-//        CGImageDestinationFinalize(dest)
+        #if canImport(UniformTypeIdentifiers)
+            let uti: CFString = UTType.png.identifier as CFString
+        #else
+            // Fallback if UniformTypeIdentifiers isn't available
+            let uti: CFString = "public.png" as CFString
+        #endif
+
+        guard let dest = CGImageDestinationCreateWithURL(url as CFURL, uti, 1, nil) else { return }
+        CGImageDestinationAddImage(dest, image, nil)
+        CGImageDestinationFinalize(dest)
     }
 
     // Utility to load reference image
