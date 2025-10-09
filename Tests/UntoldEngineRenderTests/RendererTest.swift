@@ -8,6 +8,7 @@
 
 import CShaderTypes
 import simd
+import UniformTypeIdentifiers
 @testable import UntoldEngine
 import XCTest
 
@@ -158,6 +159,7 @@ final class RendererTests: XCTestCase {
             wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
         }
      */
+    
     func testColorTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
@@ -345,7 +347,7 @@ final class RendererTests: XCTestCase {
             return
         }
 
-        saveResultToDisk(image, "\(targetName)Reference")
+        _ = saveResultToDisk(image, "\(targetName)Reference")
     }
 
     private func psnrTest(targetName: String, texture: MTLTexture, isDepthTexture: Bool = false) {
@@ -363,33 +365,34 @@ final class RendererTests: XCTestCase {
             return
         }
 
-        saveResultToDisk(finalImage, "\(targetName)Test")
-        
+        // 2) Create a unique temp run dir
+        let runStamp = String(Int(Date().timeIntervalSince1970))
+        let baseTemp = FileManager.default.temporaryDirectory.appendingPathComponent(runStamp, isDirectory: true)
+        do { try FileManager.default.createDirectory(at: baseTemp, withIntermediateDirectories: true) }
+        catch { XCTFail("Failed to create temp dir: \(error)"); return }
+
+        // Save rendered image to temp (returns exact URL)
+        guard let testImageURL = saveResultToDisk(finalImage, named: "\(targetName)Test", in: baseTemp) else {
+            XCTFail("Failed to save test image for \(targetName)")
+            return
+        }
+
         // Locate PSNR Script and reference via bundle.module
-        
-        guard let scriptURL = Bundle.module.url(forResource: "compare_psnr", withExtension: "py") else{
+
+        guard let scriptURL = Bundle.module.url(forResource: "compare_psnr", withExtension: "py") else {
             XCTFail("compare_psnr.py not foundn in test bundle")
             return
         }
-        
-        guard let referenceURL = Bundle.module.url(forResource: "\(targetName)Reference", withExtension: "png") else{
+
+        guard let referenceURL = Bundle.module.url(forResource: "\(targetName)Reference", withExtension: "png") else {
             XCTFail("Reference image for \(targetName) not found in test bundle")
             return
         }
 
-        guard let downloadsDirectory = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
-            print("Failed to locate Downloads directory.")
-            return
-        }
-
-        let testPath = downloadsDirectory
-            .appendingPathComponent("UntoldEngineRenderingTest")
-            .appendingPathComponent("\(targetName)Test.png")
-
+        // 4) Run python via /usr/bin/env
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["python3", scriptURL.path, referenceURL.path, testPath.path]
-
+        process.arguments = ["python3", scriptURL.path, referenceURL.path, testImageURL.path]
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
@@ -399,13 +402,48 @@ final class RendererTests: XCTestCase {
             process.waitUntilExit()
 
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "No output"
+            let output = String(data: data, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? "No output"
 
-            if process.terminationStatus == 0 {
-            } else {
-                XCTFail("\(targetName): ❌ PSNR test failed. Value: \(output)")
+            // 5) Attach artifacts to XCTest (viewable in Xcode/CI)
+            if FileManager.default.fileExists(atPath: testImageURL.path) {
+                let testAttachment = XCTAttachment(contentsOfFile: testImageURL)
+                testAttachment.name = "\(targetName)Test.png"
+                testAttachment.lifetime = (process.terminationStatus == 0) ? .deleteOnSuccess : .keepAlways
+                add(testAttachment)
             }
 
+            if FileManager.default.fileExists(atPath: referenceURL.path) {
+                let refAttachment = XCTAttachment(contentsOfFile: referenceURL)
+                refAttachment.name = "\(targetName)Reference.png"
+                refAttachment.lifetime = (process.terminationStatus == 0) ? .deleteOnSuccess : .keepAlways
+                add(refAttachment)
+            }
+
+            // 6) Copy to Downloads if failed OR opt-in via env var
+            let keepArtifacts = (process.terminationStatus != 0) ||
+                (ProcessInfo.processInfo.environment["UNTOLD_KEEP_ARTIFACTS"] == "1")
+            if keepArtifacts, let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first {
+                let keepDir = downloads
+                    .appendingPathComponent("UntoldEngineRenderingTest", isDirectory: true)
+                    .appendingPathComponent("\(targetName)-\(runStamp)", isDirectory: true)
+                try? FileManager.default.createDirectory(at: keepDir, withIntermediateDirectories: true)
+
+                let dstTest = keepDir.appendingPathComponent(testImageURL.lastPathComponent)
+                let dstRef = keepDir.appendingPathComponent(referenceURL.lastPathComponent)
+                try? FileManager.default.removeItem(at: dstTest)
+                try? FileManager.default.removeItem(at: dstRef)
+                try? FileManager.default.copyItem(at: testImageURL, to: dstTest)
+                try? FileManager.default.copyItem(at: referenceURL, to: dstRef)
+                print("🧪 Artifacts kept at: \(keepDir.path)")
+            } else {
+                print("🧪 Temp artifacts at: \(baseTemp.path)")
+            }
+
+            // 7) Assert on PSNR result
+            if process.terminationStatus != 0 {
+                XCTFail("\(targetName): ❌ PSNR test failed. Output: \(output)")
+            }
         } catch {
             XCTFail("\(targetName): ❌ Failed to run PSNR comparison – \(error)")
         }
@@ -444,33 +482,50 @@ final class RendererTests: XCTestCase {
         return true
     }
 
-    private func saveResultToDisk(_ image: CGImage, _ imageName: String) {
-        if saveToDisk == false {
-            return
-        }
-        // Get the user's Downloads directory
-        guard let downloadDirectory = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
-            print("Failed to locate Downloads directory.")
-            return
-        }
+    @discardableResult
+    private func saveResultToDisk(_ image: CGImage,
+                                  named imageName: String,
+                                  in baseDirectory: URL) -> URL?
+    {
+        guard saveToDisk else { return nil }
 
-        // Define the subdirectory path
-        let folderName = "UntoldEngineRenderingTest"
-        let folderURL = downloadDirectory.appendingPathComponent(folderName)
-
-        // Create the folder if it doesn't exist
+        let folderURL = baseDirectory.appendingPathComponent("UntoldEngineRenderingTest", isDirectory: true)
         do {
-            if !FileManager.default.fileExists(atPath: folderURL.path) {
-                try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true, attributes: nil)
-            }
+            try FileManager.default.createDirectory(at: folderURL, withIntermediateDirectories: true, attributes: nil)
         } catch {
             print("Failed to create directory \(folderURL.path): \(error)")
-            return
+            return nil
         }
 
-        // Save the image to the subdirectory
-        saveCGImageToDisk(image, fileName: imageName, directory: folderURL)
+        // ensure .png
+        let fileURL = folderURL.appendingPathComponent(
+            imageName.hasSuffix(".png") ? imageName : "\(imageName).png"
+        )
+
+        // write PNG
+        guard let dest = CGImageDestinationCreateWithURL(fileURL as CFURL, UTType.png.identifier as CFString, 1, nil) else {
+            print("Failed to create image destination for \(fileURL.path)")
+            return nil
+        }
+        CGImageDestinationAddImage(dest, image, nil)
+        guard CGImageDestinationFinalize(dest) else {
+            print("Failed to write image to \(fileURL.path)")
+            return nil
+        }
+
+        print("Saved image to \(fileURL.path)")
+        return fileURL
     }
+    
+    @discardableResult
+    private func saveResultToDisk(_ image: CGImage, _ imageName: String) -> URL? {
+        guard let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
+            print("Failed to locate Downloads directory.")
+            return nil
+        }
+        return saveResultToDisk(image, named: imageName, in: downloads)
+    }
+
 
     private func initializeAssets() {
         cameraLookAt(entityId: findGameCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))

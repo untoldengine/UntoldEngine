@@ -33,4 +33,4 @@ testcore:
 testrenderer:
 	python3 -m pip install --upgrade pip wheel setuptools
 	python3 -m pip install --user opencv-python-headless scikit-image
-	swift test --parallel --num-workers 1 --filter UntoldEngineRenderTests
+	UNTOLD_KEEP_ARTIFACTS=$(KEEP) swift test --parallel --num-workers 1 --filter UntoldEngineRenderTests
