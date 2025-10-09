@@ -364,30 +364,18 @@ final class RendererTests: XCTestCase {
         }
 
         saveResultToDisk(finalImage, "\(targetName)Test")
-
-        guard let desktopDirectory = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first else {
-            print("Failed to locate Desktop directory.")
+        
+        // Locate PSNR Script and reference via bundle.module
+        
+        guard let scriptURL = Bundle.module.url(forResource: "compare_psnr", withExtension: "py") else{
+            XCTFail("compare_psnr.py not foundn in test bundle")
             return
         }
-
-        let pythonPath = desktopDirectory
-            .appendingPathComponent("UntoldEngineTest")
-            .appendingPathComponent("bin")
-            .appendingPathComponent("python3")
-
-        let scriptPath = desktopDirectory
-            .appendingPathComponent("UntoldEngineStudio")
-            .appendingPathComponent("ImageComparison")
-            .appendingPathComponent("compare_psnr.py")
-
-        let referencePath = desktopDirectory
-            .appendingPathComponent("UntoldEngineStudio")
-            .appendingPathComponent("UntoldEngine")
-            .appendingPathComponent("Sources")
-            .appendingPathComponent("UntoldEngine")
-            .appendingPathComponent("Resources")
-            .appendingPathComponent("ReferenceImages")
-            .appendingPathComponent("\(targetName)Reference.png")
+        
+        guard let referenceURL = Bundle.module.url(forResource: "\(targetName)Reference", withExtension: "png") else{
+            XCTFail("Reference image for \(targetName) not found in test bundle")
+            return
+        }
 
         guard let downloadsDirectory = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
             print("Failed to locate Downloads directory.")
@@ -399,8 +387,8 @@ final class RendererTests: XCTestCase {
             .appendingPathComponent("\(targetName)Test.png")
 
         let process = Process()
-        process.executableURL = pythonPath
-        process.arguments = [scriptPath.path, referencePath.path, testPath.path]
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["python3", scriptURL.path, referenceURL.path, testPath.path]
 
         let pipe = Pipe()
         process.standardOutput = pipe
