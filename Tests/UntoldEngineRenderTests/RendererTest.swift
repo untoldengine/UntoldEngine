@@ -159,7 +159,7 @@ final class RendererTests: XCTestCase {
             wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
         }
      */
-    
+
     func testColorTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
@@ -516,7 +516,7 @@ final class RendererTests: XCTestCase {
         print("Saved image to \(fileURL.path)")
         return fileURL
     }
-    
+
     @discardableResult
     private func saveResultToDisk(_ image: CGImage, _ imageName: String) -> URL? {
         guard let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
@@ -525,7 +525,6 @@ final class RendererTests: XCTestCase {
         }
         return saveResultToDisk(image, named: imageName, in: downloads)
     }
-
 
     private func initializeAssets() {
         cameraLookAt(entityId: findGameCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
