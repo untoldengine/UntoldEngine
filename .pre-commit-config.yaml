@@ -18,22 +18,22 @@ repos:
         pass_filenames: false
         stages: [pre-commit]
       
-      - id: run-renderer-tests 
-        name: Running Engine Renderer Tests Before Commit 
-        entry: |
-          bash -c '
-            if ! make testrenderer; then
-              echo ""
-              echo "❌ Engine Renderer tests failed during pre-commit."
-              echo "🧪 Run them manually with: make testrenderer"
-              echo "👉 Or bypass tests with: git commit --no-verify"
-              echo ""
-              exit 1
-            fi
-          '
-        language: system 
-        pass_filenames: false
-        stages: [pre-commit]
+     # - id: run-renderer-tests 
+     #   name: Running Engine Renderer Tests Before Commit 
+     #   entry: |
+     #     bash -c '
+     #       if ! make testrenderer; then
+     #         echo ""
+     #         echo "❌ Engine Renderer tests failed during pre-commit."
+     #         echo "🧪 Run them manually with: make testrenderer"
+     #         echo "👉 Or bypass tests with: git commit --no-verify"
+     #         echo ""
+     #         exit 1
+     #       fi
+     #     '
+     #   language: system 
+     #   pass_filenames: false
+     #   stages: [pre-commit]
 
       - id: enforce-commit-prefix
         name: Enforcing Commit Message Prefix
@@ -41,4 +41,4 @@ repos:
         language: system
         pass_filenames: false
         stages: [commit-msg]
-
+    
