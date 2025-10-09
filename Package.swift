@@ -46,7 +46,6 @@ let package = Package(
                 .copy("UntoldEngineKernels/UntoldEngineKernels-xrossim.metallib"), // visionOS (simulator)
                 .process("Resources/Models"),
                 .process("Resources/HDR"),
-                .process("Resources/ReferenceImages"),
                 .process("Resources/textures"),
             ],
 
@@ -83,7 +82,11 @@ let package = Package(
         .testTarget(
             name: "UntoldEngineRenderTests",
             dependencies: ["UntoldEngine"],
-            path: "Tests/UntoldEngineRenderTests"
+            path: "Tests/UntoldEngineRenderTests",
+            resources: [
+                .copy("Resources/compare_psnr.py"),
+                .process("Resources/ReferenceImages")
+            ]
         ),
     ]
 )
