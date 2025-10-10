@@ -362,48 +362,50 @@ final class RendererTests: XCTestCase {
     }
 
     private func psnrTest(targetName: String, texture: MTLTexture, isDepthTexture: Bool = false) {
-        var renderImage: CGImage?
+        // 0) Texture → CGImage
+        let renderImage: CGImage? = isDepthTexture
+            ? depthTextureToCGImage(texture: texture)
+            : textureToCGImage(texture: texture)
 
-        if isDepthTexture {
-            renderImage = depthTextureToCGImage(texture: texture)
-        } else {
-            renderImage = textureToCGImage(texture: texture)
-        }
-
-        // Get rendered image from the target
         guard let finalImage = renderImage else {
             XCTFail("\(targetName): Renderer should produce an output image")
             return
         }
 
-        // 2) Create a unique temp run dir
+        // 1) Env & paths
+        let env = ProcessInfo.processInfo.environment
         let runStamp = String(Int(Date().timeIntervalSince1970))
         let baseTemp = FileManager.default.temporaryDirectory.appendingPathComponent(runStamp, isDirectory: true)
+        let isCI = (env["CI"] == "true") || (env["GITHUB_ACTIONS"] == "true")
+        let keepFlag = (env["UNTOLD_KEEP_ARTIFACTS"] == "1")
+        let pythonCmd = env["UNTOLD_PYTHON"] ?? "python3"
+        let threshold: String = env["UNTOLD_PSNR_THRESHOLD"] ?? "35.0"
+
         do { try FileManager.default.createDirectory(at: baseTemp, withIntermediateDirectories: true) }
         catch { XCTFail("Failed to create temp dir: \(error)"); return }
 
-        // Save rendered image to temp (returns exact URL)
+        // 2) Save test image
         guard let testImageURL = saveResultToDisk(finalImage, named: "\(targetName)Test", in: baseTemp) else {
             XCTFail("Failed to save test image for \(targetName)")
             return
         }
 
-        // Locate PSNR Script and reference via bundle.module
-
+        // 3) Locate script + reference
         guard let scriptURL = Bundle.module.url(forResource: "compare_psnr", withExtension: "py") else {
-            XCTFail("compare_psnr.py not foundn in test bundle")
+            XCTFail("compare_psnr.py not found in test bundle")
             return
         }
-
         guard let referenceURL = Bundle.module.url(forResource: "\(targetName)Reference", withExtension: "png") else {
             XCTFail("Reference image for \(targetName) not found in test bundle")
             return
         }
 
-        // 4) Run python via /usr/bin/env
+        // 4) Run python script
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["python3", scriptURL.path, referenceURL.path, testImageURL.path]
+        process.arguments = [pythonCmd, scriptURL.path, referenceURL.path, testImageURL.path, "--threshold", threshold]
+        process.currentDirectoryURL = scriptURL.deletingLastPathComponent()
+
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe
@@ -416,7 +418,7 @@ final class RendererTests: XCTestCase {
             let output = String(data: data, encoding: .utf8)?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? "No output"
 
-            // 5) Attach artifacts to XCTest (viewable in Xcode/CI)
+            // 5) Attach artifacts to XCTest
             if FileManager.default.fileExists(atPath: testImageURL.path) {
                 let testAttachment = XCTAttachment(contentsOfFile: testImageURL)
                 testAttachment.name = "\(targetName)Test.png"
@@ -431,29 +433,32 @@ final class RendererTests: XCTestCase {
                 add(refAttachment)
             }
 
-            // 6) Copy to Downloads if failed OR opt-in via env var
-            let keepArtifacts = (process.terminationStatus != 0) ||
-                (ProcessInfo.processInfo.environment["UNTOLD_KEEP_ARTIFACTS"] == "1")
-            if keepArtifacts, let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first {
-                let keepDir = downloads
-                    .appendingPathComponent("UntoldEngineRenderingTest", isDirectory: true)
-                    .appendingPathComponent("\(targetName)-\(runStamp)", isDirectory: true)
-                try? FileManager.default.createDirectory(at: keepDir, withIntermediateDirectories: true)
+            // 6) Optional local copies to ~/Downloads (skip on CI unless forced)
+            if keepFlag || process.terminationStatus != 0, !isCI {
+                if let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first {
+                    let keepDir = downloads
+                        .appendingPathComponent("UntoldEngineRenderingTest", isDirectory: true)
+                        .appendingPathComponent("\(targetName)-\(runStamp)", isDirectory: true)
+                    try? FileManager.default.createDirectory(at: keepDir, withIntermediateDirectories: true)
 
-                let dstTest = keepDir.appendingPathComponent(testImageURL.lastPathComponent)
-                let dstRef = keepDir.appendingPathComponent(referenceURL.lastPathComponent)
-                try? FileManager.default.removeItem(at: dstTest)
-                try? FileManager.default.removeItem(at: dstRef)
-                try? FileManager.default.copyItem(at: testImageURL, to: dstTest)
-                try? FileManager.default.copyItem(at: referenceURL, to: dstRef)
-                print("🧪 Artifacts kept at: \(keepDir.path)")
+                    let dstTest = keepDir.appendingPathComponent(testImageURL.lastPathComponent)
+                    let dstRef = keepDir.appendingPathComponent(referenceURL.lastPathComponent)
+                    try? FileManager.default.removeItem(at: dstTest)
+                    try? FileManager.default.removeItem(at: dstRef)
+                    try? FileManager.default.copyItem(at: testImageURL, to: dstTest)
+                    try? FileManager.default.copyItem(at: referenceURL, to: dstRef)
+                    print("🧪 Artifacts kept at: \(keepDir.path)")
+                }
             } else {
                 print("🧪 Temp artifacts at: \(baseTemp.path)")
             }
 
-            // 7) Assert on PSNR result
+            // 7) Assert on script exit code
             if process.terminationStatus != 0 {
                 XCTFail("\(targetName): ❌ PSNR test failed. Output: \(output)")
+            } else {
+                // Optional nice log (if your script prints PSNR=xx.xx)
+                print("✅ \(targetName): \(output)")
             }
         } catch {
             XCTFail("\(targetName): ❌ Failed to run PSNR comparison – \(error)")
