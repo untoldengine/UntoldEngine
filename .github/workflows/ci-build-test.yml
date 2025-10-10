@@ -1,26 +1,62 @@
-# This workflow will build a Swift project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
-
 name: CI Build and Test
 
 on:
   push:
-    branches:
-      - master
-      - develop
+    branches: [master, develop]
   pull_request:
-    branches:
-      - master
-      - develop 
+    branches: [master, develop]
 
 jobs:
   build:
-
     runs-on: macos-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: swift build -v
-    - name: Run tests
-      run: swift test -v --filter UntoldEngineTests
+      - uses: actions/checkout@v4
+
+      # ✅ Ensure a consistent, modern Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # ✅ Show tool versions (handy for debugging)
+      - name: Show toolchain versions
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+          python3 --version
+        env:
+          CI: true
+
+      # ✅ Install Python dependencies for compare_psnr.py
+      - name: Install Python dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install numpy opencv-python scikit-image
+        env:
+          CI: true
+
+      # ✅ Build the Swift package
+      - name: Build
+        run: swift build -v
+        env:
+          CI: true
+
+      # ✅ Run core tests (fast, CPU-based)
+      - name: Run core tests
+        run: swift test -v --filter UntoldEngineTests
+        env:
+          CI: true
+
+      # ✅ Run renderer tests (Metal-based, with PSNR Python script)
+      - name: Run renderer tests (incl. PSNR)
+        env:
+          CI: true
+          UNTOLD_PSNR_THRESHOLD: "36.0"   # tweak per suite/scene
+          UNTOLD_PYTHON: "python3"
+          # UNTOLD_KEEP_ARTIFACTS: "1"    # rarely needed on CI
+        run: |
+          command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
+          swift test -v --num-workers 1 --filter UntoldEngineRenderTests
+
