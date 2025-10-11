@@ -301,7 +301,10 @@ public func textureToCGImage(texture: MTLTexture) -> CGImage? {
     texture.getBytes(rawData, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
 
     // Create a CGImage from the raw pixel data
-    let colorSpace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
+    let colorSpace = CGColorSpace(name: CGColorSpace.linearSRGB)!
+    // or CGColorSpace(name: CGColorSpace.displayP3)!
+
+    //let colorSpace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
     let bitmapInfo: CGBitmapInfo = [
         .floatComponents,
         CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
