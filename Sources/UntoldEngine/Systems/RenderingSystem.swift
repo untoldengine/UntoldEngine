@@ -43,7 +43,6 @@ func UpdateRenderingSystem(in view: MTKView) {
         }
 
         commandBuffer.addCompletedHandler { _ in
-
             DispatchQueue.main.async {
                 needsFinalizeDestroys = true
                 visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)

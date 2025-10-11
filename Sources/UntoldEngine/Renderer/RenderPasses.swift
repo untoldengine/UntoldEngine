@@ -15,7 +15,6 @@ import MetalKit
 
 public enum RenderPasses {
     public static let gridExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-
         guard let gridPipeline = PipelineManager.shared.renderPipelinesByType[.grid] else {
             handleError(.pipelineStateNulled, "gridPipeline is nil")
             return
@@ -102,7 +101,6 @@ public enum RenderPasses {
     }
 
     public static let executeEnvironmentPass: (MTLCommandBuffer) -> Void = { commandBuffer in
-
         guard let environmentPipeline = PipelineManager.shared.renderPipelinesByType[.environment] else {
             handleError(.pipelineStateNulled, "environmentPipeline is nil")
             return
@@ -204,7 +202,6 @@ public enum RenderPasses {
     }
 
     public static let shadowExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-
         guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
             handleError(.pipelineStateNulled, "shadowPipeline is nil")
             return
@@ -372,7 +369,6 @@ public enum RenderPasses {
     }
 
     public static let modelExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-
         guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[.model] else {
             handleError(.pipelineStateNulled, "modelPipeline is nil")
             return
@@ -623,7 +619,6 @@ public enum RenderPasses {
     }
 
     static let ssaoExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-
         guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
@@ -740,7 +735,6 @@ public enum RenderPasses {
     }
 
     static let ssaoBlurExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-
         guard let ssaoBlurPipeline = PipelineManager.shared.renderPipelinesByType[.ssaoBlur] else {
             handleError(.pipelineStateNulled, "ssaoBlurPipeline is nil")
             return
@@ -809,7 +803,6 @@ public enum RenderPasses {
     }
 
     public static let lightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-
         guard let lightPipeline = PipelineManager.shared.renderPipelinesByType[.light] else {
             handleError(.pipelineStateNulled, "lightPipeline is nil")
             return
@@ -1071,7 +1064,6 @@ public enum RenderPasses {
     }
 
     public static let compositeExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-
         guard let compositePipeline = PipelineManager.shared.renderPipelinesByType[.composite] else {
             handleError(.pipelineStateNulled, "compositePipeline is nil")
             return
@@ -1135,7 +1127,6 @@ public enum RenderPasses {
     }
 
     public static let preCompositeExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-
         guard let preCompositePipeline = PipelineManager.shared.renderPipelinesByType[.preComposite] else {
             handleError(.pipelineStateNulled, "preCompositePipeline is nil")
             return
@@ -1244,7 +1235,6 @@ public enum RenderPasses {
         customization: @escaping (_ encoder: MTLRenderCommandEncoder) -> Void
     ) -> (MTLCommandBuffer) -> Void {
         { commandBuffer in
-
             if !pipeline.success {
                 handleError(.pipelineStateNulled, "Post Process Pipeline")
                 return

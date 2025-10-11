@@ -21,9 +21,9 @@ public final class LogStore: ObservableObject, LoggerSink {
     public func didLog(_ event: LogEvent) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.entries.append(event)
-            if self.entries.count > self.maxEntries {
-                self.entries.removeFirst(self.entries.count - self.maxEntries)
+            entries.append(event)
+            if entries.count > maxEntries {
+                entries.removeFirst(entries.count - maxEntries)
             }
         }
     }
