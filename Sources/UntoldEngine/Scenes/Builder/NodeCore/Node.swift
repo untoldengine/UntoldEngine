@@ -1,5 +1,5 @@
 //
-//  EntityNode.swift
+//  Node.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -9,39 +9,37 @@
 
 import simd
 
-public protocol NodeProtocol
-{
+public protocol NodeProtocol {
     var entityID: EntityID { get }
 }
 
-open class Node : NodeProtocol, NodeTransform
-{
+open class Node: NodeProtocol, NodeTransform {
     var _entityID: EntityID
     public var entityID: EntityID { _entityID }
-    
+
     public var subNodes: [any NodeProtocol] = []
-    
-    public init( entityID: EntityID? = nil, name:String? = nil, @SceneBuilder content: @escaping () -> [any NodeProtocol] ) {
-        self._entityID = entityID ?? createEntity()
+
+    public init(entityID: EntityID? = nil, name: String? = nil, @SceneBuilder content: @escaping () -> [any NodeProtocol]) {
+        _entityID = entityID ?? createEntity()
         if let n = name { setEntityName(entityId: self.entityID, name: n) }
-        
+
         subNodes = content()
         for n in subNodes {
             setParent(childId: n.entityID, parentId: self.entityID)
         }
     }
-    
-    public convenience init( entityID: EntityID? = nil, name:String? = nil ) {
-        self.init( entityID: entityID, name: name ) { }
+
+    public convenience init(entityID: EntityID? = nil, name: String? = nil) {
+        self.init(entityID: entityID, name: name) {}
     }
 }
 
-extension String {
-    public var filename: String {
-        return String( self.split(separator: ".").first ?? "" )
+public extension String {
+    var filename: String {
+        String(split(separator: ".").first ?? "")
     }
-    
-    public var extensionName: String {
-        return String( self.split(separator: ".").last ?? "" )
+
+    var extensionName: String {
+        String(split(separator: ".").last ?? "")
     }
 }

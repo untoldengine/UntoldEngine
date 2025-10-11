@@ -17,7 +17,7 @@
     // This makes it possible to create a third-person or top-down camera easily.
     public class CameraFollowComponent: Component, Codable {
         var targetName: String = "ball" // The name of the entity the camera should follow
-        var offset: simd_float3 = simd_float3(0.0,1.0,5.0) // The offset position relative to the target
+        var offset: simd_float3 = .init(0.0, 1.0, 5.0) // The offset position relative to the target
         public required init() {}
     }
 
@@ -109,5 +109,4 @@
         }
     }
 
-    
 #endif

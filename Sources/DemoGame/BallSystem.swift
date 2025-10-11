@@ -121,5 +121,5 @@
         clearVelocity(entityId: ball)
         clearAngularVelocity(entityId: ball)
     }
-    
+
 #endif
