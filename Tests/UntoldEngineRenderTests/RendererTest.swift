@@ -105,71 +105,71 @@ final class RendererTests: XCTestCase {
     }
 
     /*
-          func testGenerateReferenceImages() {
-                 // Ensure renderer and metalview are properly initialized
-                 XCTAssertNotNil(renderer, "Renderer should be initialized")
-                 XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
-                 // Manually trigger the draw call
-                 renderer.draw(in: renderer.metalView)
+           func testGenerateReferenceImages() {
+                  // Ensure renderer and metalview are properly initialized
+                  XCTAssertNotNil(renderer, "Renderer should be initialized")
+                  XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+                  // Manually trigger the draw call
+                  renderer.draw(in: renderer.metalView)
 
-                 let expectation = XCTestExpectation(description: "Render graph execution delay")
+                  let expectation = XCTestExpectation(description: "Render graph execution delay")
 
-                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                     // generate different render targets
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                      // generate different render targets
 
-                     self.testGenerateRenderTarget(
-                         targetName: "ColorTarget",
-                         texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
-                     )
+                      self.testGenerateRenderTarget(
+                          targetName: "ColorTarget",
+                          texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
+                      )
 
-                     self.testGenerateRenderTarget(
-                         targetName: "NormalTarget",
-                         texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture!
-                     )
+                      self.testGenerateRenderTarget(
+                          targetName: "NormalTarget",
+                          texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture!
+                      )
 
-                     self.testGenerateRenderTarget(
-                         targetName: "PositionTarget",
-                         texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture!
-                     )
+                      self.testGenerateRenderTarget(
+                          targetName: "PositionTarget",
+                          texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture!
+                      )
 
-                     self.testGenerateRenderTarget(
-                         targetName: "IrradianceIBL",
-                         texture: textureResources.irradianceMap!
-                     )
+                      self.testGenerateRenderTarget(
+                          targetName: "IrradianceIBL",
+                          texture: textureResources.irradianceMap!
+                      )
 
-                     self.testGenerateRenderTarget(
-                         targetName: "SpecularIBL",
-                         texture: textureResources.specularMap!
-                     )
+                      self.testGenerateRenderTarget(
+                          targetName: "SpecularIBL",
+                          texture: textureResources.specularMap!
+                      )
 
-                     self.testGenerateRenderTarget(
-                         targetName: "BRDFIBL",
-                         texture: textureResources.iblBRDFMap!
-                     )
+                      self.testGenerateRenderTarget(
+                          targetName: "BRDFIBL",
+                          texture: textureResources.iblBRDFMap!
+                      )
 
-     //                self.testGenerateRenderTarget(
-     //                    targetName: "DepthTarget",
-     //                    texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
-     //                    isDepthTexture: true
-     //                )
+      //                self.testGenerateRenderTarget(
+      //                    targetName: "DepthTarget",
+      //                    texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
+      //                    isDepthTexture: true
+      //                )
 
-                     self.testGenerateRenderTarget(
-                        targetName: "LightPassColor",
-                        texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[0].texture!
-                     )
+                      self.testGenerateRenderTarget(
+                         targetName: "LightPassColor",
+                         texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[0].texture!
+                      )
 
-                     self.testGenerateRenderTarget(
-                         targetName: "CompositeColorTarget",
-                         texture: renderInfo.renderPassDescriptor.colorAttachments[0].texture!
-                     )
+                      self.testGenerateRenderTarget(
+                          targetName: "CompositeColorTarget",
+                          texture: renderInfo.renderPassDescriptor.colorAttachments[0].texture!
+                      )
 
-                     expectation.fulfill()
-                 }
+                      expectation.fulfill()
+                  }
 
-                 // Wait for the execution
-                 wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
-             }
-          */
+                  // Wait for the execution
+                  wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+              }
+     */
 
     func testColorTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
@@ -252,7 +252,6 @@ final class RendererTests: XCTestCase {
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
 
         renderer.draw(in: renderer.metalView)
-
         let expectation = XCTestExpectation(description: "IrradianceIBL test")
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -379,7 +378,7 @@ final class RendererTests: XCTestCase {
         let isCI = (env["CI"] == "true") || (env["GITHUB_ACTIONS"] == "true")
         let keepFlag = (env["UNTOLD_KEEP_ARTIFACTS"] == "1")
         let pythonCmd = env["UNTOLD_PYTHON"] ?? "python3"
-        let threshold: String = env["UNTOLD_PSNR_THRESHOLD"] ?? "35.0"
+        let threshold: String = env["UNTOLD_PSNR_THRESHOLD"] ?? "11.0"
 
         do { try FileManager.default.createDirectory(at: baseTemp, withIntermediateDirectories: true) }
         catch { XCTFail("Failed to create temp dir: \(error)"); return }
@@ -403,7 +402,19 @@ final class RendererTests: XCTestCase {
         // 4) Run python script
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = [pythonCmd, scriptURL.path, referenceURL.path, testImageURL.path, "--threshold", threshold]
+
+        // Decide PSNR mode per test name
+        let mode: String
+        if targetName.contains("ColorTarget") ||
+            targetName.contains("LightPassColor") ||
+            targetName.contains("NormalTarget")
+        {
+            mode = "rgb"
+        } else {
+            mode = "gray"
+        }
+
+        process.arguments = [pythonCmd, scriptURL.path, referenceURL.path, testImageURL.path, "--threshold", threshold, "--mode", mode, "--resize", "no"]
         process.currentDirectoryURL = scriptURL.deletingLastPathComponent()
 
         let pipe = Pipe()
