@@ -82,7 +82,7 @@ final class ECSTests: XCTestCase {
     }
 
     func testSetGetName() {
-        let _ = createEntity()
+        _ = createEntity()
         let entityId2 = createEntity()
 
         setEntityName(entityId: entityId2, name: "untold")
@@ -106,7 +106,7 @@ final class ECSTests: XCTestCase {
     }
 
     func testFindEntity() {
-        let _ = createEntity()
+        _ = createEntity()
         let entityId = createEntity()
 
         setEntityName(entityId: entityId, name: "untold")
@@ -158,8 +158,8 @@ final class ECSTests: XCTestCase {
     }
 
     func testDestroyAllEntities() {
-        let _ = createEntity()
-        let _ = createEntity()
+        _ = createEntity()
+        _ = createEntity()
 
         destroyAllEntities()
 

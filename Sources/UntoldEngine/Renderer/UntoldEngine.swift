@@ -26,7 +26,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     var handleInputCallback: (() -> Void)?
 
     private var configuration: UntoldRendererConfig
-    public var delegate: UntoldRendererDelegate? = nil
+    public var delegate: UntoldRendererDelegate?
 
     init(configuration: UntoldRendererConfig? = nil) {
         self.configuration = configuration ?? .default

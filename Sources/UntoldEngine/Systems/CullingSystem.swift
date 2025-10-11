@@ -17,8 +17,8 @@ let planeCount = 6
 let planeStride = MemoryLayout<simd_float4>.stride
 
 struct Plane {
-    public var n: simd_float3
-    public var d: Float // plane: n·x + d = 0
+    var n: simd_float3
+    var d: Float // plane: n·x + d = 0
 }
 
 struct Frustum {
@@ -309,7 +309,6 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: cullFrameIndex)
 
     entityAABBContainer.withUnsafeBytes { src in
-
         entityAABBWriteBuffer.contents().copyMemory(from: src.baseAddress!, byteCount: src.count)
     }
 
@@ -479,7 +478,6 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: cullFrameIndex)
 
     entityAABBContainer.withUnsafeBytes { src in
-
         entityAABBWriteBuffer.contents().copyMemory(from: src.baseAddress!, byteCount: src.count)
     }
 
