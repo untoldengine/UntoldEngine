@@ -12,16 +12,14 @@ import Foundation
 import MetalKit
 import ModelIO
 
-    
-public final class LoadingSystem
-{
-    public static var shared: LoadingSystem = LoadingSystem()
-    
+public final class LoadingSystem {
+    public static var shared: LoadingSystem = .init()
+
     public typealias GetResourceURLBlock = (String, String, String?) -> URL?
     public var resourceURLFn: GetResourceURLBlock? = getResourceURL
-    
+
     public func resourceURL(forResource resourceName: String, withExtension ext: String, subResource subName: String? = nil) -> URL? {
-        return resourceURLFn?(resourceName, ext, subName)
+        resourceURLFn?(resourceName, ext, subName)
     }
 }
 
@@ -45,12 +43,12 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
             }
         }
     }
-    
+
     // 2) Main bundle without folders ( the default one in Xcode )
     if let url = Bundle.main.url(forResource: resourceName, withExtension: ext) {
         return url
     }
-        
+
     // 3) Main bundle (search subdirectories) usually swift package preserve the folder structure
     for components in searchPaths {
         if let url = urlInBundle(Bundle.main, components: components) {
@@ -62,7 +60,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
     return Bundle.module.url(forResource: resourceName, withExtension: ext)
 }
 
-fileprivate func urlInBundle(_ bundle: Bundle, components: [String]) -> URL? {
+private func urlInBundle(_ bundle: Bundle, components: [String]) -> URL? {
     guard let filename = components.last else { return nil }
     let folders = components.dropLast()
     let parts = filename.split(separator: ".", maxSplits: 1)

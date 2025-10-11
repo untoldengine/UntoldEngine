@@ -85,7 +85,7 @@ let package = Package(
             path: "Tests/UntoldEngineRenderTests",
             resources: [
                 .copy("Resources/compare_psnr.py"),
-                .process("Resources/ReferenceImages")
+                .process("Resources/ReferenceImages"),
             ]
         ),
     ]

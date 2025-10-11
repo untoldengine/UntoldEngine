@@ -7,14 +7,12 @@
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
-public protocol NodeKinetics : NodeProtocol
-{
+public protocol NodeKinetics: NodeProtocol {
     func setEntityKinetics() -> Self
 }
 
-extension NodeKinetics
-{
-    public func setEntityKinetics() -> Self {
+public extension NodeKinetics {
+    func setEntityKinetics() -> Self {
         UntoldEngine.setEntityKinetics(entityId: entityID)
         return self
     }

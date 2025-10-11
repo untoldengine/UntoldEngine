@@ -304,7 +304,7 @@ public func textureToCGImage(texture: MTLTexture) -> CGImage? {
     let colorSpace = CGColorSpace(name: CGColorSpace.linearSRGB)!
     // or CGColorSpace(name: CGColorSpace.displayP3)!
 
-    //let colorSpace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
+    // let colorSpace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
     let bitmapInfo: CGBitmapInfo = [
         .floatComponents,
         CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),

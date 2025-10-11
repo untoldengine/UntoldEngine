@@ -118,7 +118,6 @@
             // entities or components through code.
             //
 
-
             // Point the engine to your asset folder (used by both options)
             assetBasePath = demoAssetsBaseURL()
 
@@ -161,7 +160,7 @@
 
             // Input (WASD) for the demo
             InputSystem.shared.registerKeyboardEvents()
-            
+
             // Disable SSAO
             SSAOParams.shared.enabled = false
         }

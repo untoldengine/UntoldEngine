@@ -24,7 +24,6 @@
         var direction: simd_float3 = .zero // Current movement direction (from input)
     }
 
-
     // -----------------------------------------------------------------------------
     // Dribbling System
     // This system is called every frame and updates entities with a DribblinComponent.
@@ -87,5 +86,4 @@
         }
     }
 
-    
 #endif
