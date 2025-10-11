@@ -34,3 +34,11 @@ testrenderer:
 	python3 -m pip install --upgrade pip wheel setuptools
 	python3 -m pip install --user opencv-python-headless scikit-image
 	UNTOLD_KEEP_ARTIFACTS=$(KEEP) swift test --parallel --num-workers 1 --filter UntoldEngineRenderTests
+
+# Lint Swift files using SwiftFormat
+lint:
+	swiftformat --lint . --swiftversion 5.8 --reporter github-actions-log
+
+# Auto-format Swift files (for convenience)
+format:
+	swiftformat . --swiftversion 5.8 --quiet
