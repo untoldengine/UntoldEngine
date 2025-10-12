@@ -1,4 +1,8 @@
 # Changelog
+## v0.3.2 - 2025-10-12
+### 🐞 Fixes
+- [Patch]: Made the renderer Tests headless (43e9fdb…)
+- [Patch] Saved reference imaged with linear sRGB profile (b63605a…)
 ## v0.3.1 - 2025-10-06
 ### 🐞 Fixes
 - [Patch] fix removing node3D and adding convenience init method to the node to support empty scene builder content (bdc56ff5…)
