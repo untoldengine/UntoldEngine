@@ -6,7 +6,7 @@ let package = Package(
     platforms: [
         .macOS(.v14),
         .iOS(.v17),
-        // .visionOS(.v1),
+        .visionOS(.v1),
     ],
     products: [
         // Library product for the engine
@@ -14,6 +14,9 @@ let package = Package(
             name: "UntoldEngine",
             targets: ["UntoldEngine"]
         ),
+
+        .library(name: "UntoldEngineXR", targets: ["UntoldEngineXR"]),
+
         // Executable for the demo game
         .executable(
             name: "DemoGame",
@@ -59,6 +62,24 @@ let package = Package(
 
                 // iOS UI stack (only if some targets import UIKit)
                 .linkedFramework("UIKit", .when(platforms: [.iOS])),
+            ]
+        ),
+
+        // Vision OS target
+        .target(
+            name: "UntoldEngineXR",
+            dependencies: [
+                "UntoldEngine",
+            ],
+            path: "Sources/UntoldEngineXR",
+            swiftSettings: [
+                // CompositorServices and ARKit only exist on visionOS
+                .define("VISIONOS_AVAILABLE", .when(platforms: [.visionOS])),
+            ],
+            linkerSettings: [
+                .linkedFramework("Metal", .when(platforms: [.visionOS])),
+                .linkedFramework("CompositorServices", .when(platforms: [.visionOS])),
+                .linkedFramework("ARKit", .when(platforms: [.visionOS])),
             ]
         ),
         // These executables are macOS-only
