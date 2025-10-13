@@ -240,4 +240,125 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
         // TODO: We should init the resources again if they change the view size?
     }
+
+    // MARK: - XR Entry Point (VisionOS)
+    public static func createXR(configuration: UntoldRendererConfig? = nil, device: MTLDevice, commandQueue: MTLCommandQueue, colorPixelFormat: MTLPixelFormat, depthPixelFormat: MTLPixelFormat, viewPort: simd_float2) -> UntoldRenderer? {
+        
+        let renderer = UntoldRenderer(configuration: configuration)
+
+        renderInfo.device = device
+        renderInfo.commandQueue = commandQueue
+        renderInfo.colorPixelFormat = colorPixelFormat
+        renderInfo.depthPixelFormat = depthPixelFormat
+        renderInfo.viewPort = viewPort
+        
+        renderInfo.fence = renderInfo.device.makeFence()
+        renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
+        renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
+
+        do {
+            let mainLibrary = try renderInfo.device.makeLibraryFromBundle()
+            renderInfo.library = mainLibrary
+            Logger.log(message: "Found Untold Engine metallib")
+        } catch {
+            Logger.logError(message: "Failed to load metallib: \(error)")
+        }
+
+        renderer.initResources()
+
+        return renderer
+    }
+    
+    public func updateXR() {
+        if needsFinalizeDestroys {
+            needsFinalizeDestroys = false
+
+            if hasPendingDestroys {
+                finalizePendingDestroys()
+                hasPendingDestroys = false
+            }
+        }
+
+        if CameraSystem.shared.activeCamera == .invalid {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        // call the update call before the render
+        frameCount += 1
+
+        // calculate delta time for frame
+        calculateDeltaTime()
+        traverseSceneGraph()
+
+        // process Input - Handle user input before updating game states
+        handleInputCallback?()
+
+        AnimationSystem.shared.update(timeSinceLastUpdate)
+
+        // TODO: Should be this moving to Physics system?
+        // Fixed‐timestep physics
+        physicsAccumulator += timeSinceLastUpdate
+        let maxSteps = 5
+        var steps = 0
+        while physicsAccumulator >= fixedStep, steps < maxSteps {
+            updatePhysicsSystem(deltaTime: fixedStep)
+            updateCustomSystems(deltaTime: fixedStep)
+            physicsAccumulator -= fixedStep
+            steps += 1
+        }
+
+        // update game states and logic
+        gameUpdateCallback?(timeSinceLastUpdate)
+    }
+
+    public func renderXR(
+        commandBuffer: MTLCommandBuffer,
+        passDescriptor: MTLRenderPassDescriptor,
+        viewMatrix: simd_float4x4,
+        projectionMatrix: simd_float4x4,
+        eyeIndex _: Int
+    ) {
+        renderInfo.perspectiveSpace = projectionMatrix
+
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        cameraComponent.viewSpace = viewMatrix
+
+        // render
+        renderXRGraph(commandBuffer: commandBuffer, passDescriptor: passDescriptor)
+    }
+
+    public func renderXRGraph(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor) {
+        executeFrustumCulling(commandBuffer)
+
+        renderInfo.renderPassDescriptor = passDescriptor
+
+        commandBuffer.label = "XR Rendering Command Buffer"
+
+        // build a render graph
+        var (graph, preCompID) = buildGameModeGraph()
+
+        let compositePass = RenderPass(
+            id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
+        )
+
+        graph[compositePass.id] = compositePass
+
+        // sorted it
+        let sortedPasses = try! topologicalSortGraph(graph: graph)
+
+        // execute it
+        executeGraph(graph, sortedPasses, commandBuffer)
+
+        commandBuffer.addCompletedHandler { _ in
+            DispatchQueue.main.async {
+                needsFinalizeDestroys = true
+                visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
+            }
+        }
+    }
 }
