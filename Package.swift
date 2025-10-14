@@ -1,4 +1,4 @@
-// swift-tools-version: 5.10
+// swift-tools-version: 6.0
 import PackageDescription
 
 let package = Package(
@@ -6,7 +6,7 @@ let package = Package(
     platforms: [
         .macOS(.v14),
         .iOS(.v17),
-        .visionOS(.v1),
+        .visionOS(.v2),
     ],
     products: [
         // Library product for the engine
@@ -51,7 +51,9 @@ let package = Package(
                 .process("Resources/HDR"),
                 .process("Resources/textures"),
             ],
-
+            swiftSettings: [
+                .swiftLanguageMode(.v5),
+            ],
             linkerSettings: [
                 // Common
                 .linkedFramework("Metal"),
@@ -75,6 +77,7 @@ let package = Package(
             swiftSettings: [
                 // CompositorServices and ARKit only exist on visionOS
                 .define("VISIONOS_AVAILABLE", .when(platforms: [.visionOS])),
+                .swiftLanguageMode(.v6),
             ],
             linkerSettings: [
                 .linkedFramework("Metal", .when(platforms: [.visionOS])),
@@ -87,6 +90,7 @@ let package = Package(
             name: "DemoGame",
             dependencies: ["UntoldEngine"],
             path: "Sources/DemoGame",
+            swiftSettings: [.swiftLanguageMode(.v5)],
             linkerSettings: [
                 .linkedFramework("Metal"),
                 .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
@@ -97,7 +101,8 @@ let package = Package(
         .testTarget(
             name: "UntoldEngineTests",
             dependencies: ["UntoldEngine"],
-            path: "Tests/UntoldEngineTests"
+            path: "Tests/UntoldEngineTests",
+            swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         // Render-specific test target
         .testTarget(
@@ -107,7 +112,8 @@ let package = Package(
             resources: [
                 .copy("Resources/compare_psnr.py"),
                 .process("Resources/ReferenceImages"),
-            ]
+            ],
+            swiftSettings: [.swiftLanguageMode(.v5)]
         ),
     ]
 )
