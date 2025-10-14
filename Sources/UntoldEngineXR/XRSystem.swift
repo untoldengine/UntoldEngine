@@ -8,13 +8,14 @@
 //
 
 #if os(visionOS)
-import Metal
+    import Metal
 
-public protocol XRSystem: AnyObject {
-    /// Start the visionOS-driven render loop.
-    func start()
-    /// Stop the loop (optional, but handy during teardown).
-    func stop()
-}
+    @MainActor
+    public protocol XRSystem: AnyObject {
+        /// Start the visionOS-driven render loop.
+        func start()
+        /// Stop the loop (optional, but handy during teardown).
+        func stop()
+    }
 
 #endif

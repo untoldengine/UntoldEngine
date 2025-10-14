@@ -242,8 +242,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     // MARK: - XR Entry Point (VisionOS)
+
     public static func createXR(configuration: UntoldRendererConfig? = nil, device: MTLDevice, commandQueue: MTLCommandQueue, colorPixelFormat: MTLPixelFormat, depthPixelFormat: MTLPixelFormat, viewPort: simd_float2) -> UntoldRenderer? {
-        
         let renderer = UntoldRenderer(configuration: configuration)
 
         renderInfo.device = device
@@ -251,7 +251,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         renderInfo.colorPixelFormat = colorPixelFormat
         renderInfo.depthPixelFormat = depthPixelFormat
         renderInfo.viewPort = viewPort
-        
+
         renderInfo.fence = renderInfo.device.makeFence()
         renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
         renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
@@ -268,7 +268,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         return renderer
     }
-    
+
     public func updateXR() {
         if needsFinalizeDestroys {
             needsFinalizeDestroys = false
