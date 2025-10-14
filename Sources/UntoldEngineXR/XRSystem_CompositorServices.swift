@@ -80,8 +80,11 @@
             }
 
             let renderThread = Thread {
-                self.runLoop()
+                Task { @MainActor in
+                    self.runLoop()
+                }
             }
+
             renderThread.name = "Render Thread"
             renderThread.qualityOfService = .userInteractive
             renderThread.start()
@@ -151,14 +154,10 @@
 
             // 10. Fetch the predicted device anchor from ARKit using the frameTiming information, and
             // apply the anchor to your frame
-
-            let actualTiming = drawable.frameTiming
-            guard let anchor: DeviceAnchor = createPoseForTiming(at: actualTiming) else {
-                print("Unable to create anchor pose for timing")
-                return
-            }
-
-            drawable.deviceAnchor = anchor
+            let presentationInstant = drawable.frameTiming.presentationTime
+            let presentationTimeCA: TimeInterval = compositorInstantToCATime(presentationInstant)
+            let deviceAnchor = worldTracking.queryDeviceAnchor(atTimestamp: presentationTimeCA)
+            drawable.deviceAnchor = deviceAnchor
 
             executeXRSystemPass(frame: frame, drawable: drawable)
 
@@ -180,9 +179,7 @@
 
                 cameraMatrix = simd_inverse(cameraMatrix)
 
-                var projection: simd_float4x4 = .init(1)
-
-                projection = drawable.computeProjection(convention: .rightUpBack, viewIndex: viewIndex)
+                let projection: simd_float4x4 = drawable.computeProjection(convention: .rightUpBack, viewIndex: viewIndex)
 
                 // create a pass descriptor
                 let passDescriptor = MTLRenderPassDescriptor()
@@ -214,15 +211,6 @@
             // Convert compositor time -> Core Animation time
             let caTimestamp = compositorInstantToCATime(timing.presentationTime)
 
-            /*
-             if #available(visionOS 2.0, *) {
-                 return worldTracking.queryDeviceAnchor(at: timing.presentationTime)
-             } else {
-                 let caTimestamp = compositorInstantToCATime(timing.presentationTime)
-                 return worldTracking.queryDeviceAnchor(atTimestamp: caTimestamp)
-             }
-
-             */
             // Query ARKit for the predicted device anchor pose
             return worldTracking.queryDeviceAnchor(atTimestamp: caTimestamp)
         }
@@ -241,41 +229,6 @@
             let seconds = Double(components.seconds) + Double(components.attoseconds) / 1e18
 
             return nowCA + seconds
-        }
-
-        @inline(__always)
-        func makeProjectionMatrixFromTangents(
-            tangents: simd_float4, // [left, right, up, down]
-            depthRange: simd_float2, // [near, far]
-            rightHanded: Bool = true
-        ) -> simd_float4x4 {
-            let left = tangents.x * depthRange.x
-            let right = tangents.y * depthRange.x
-            let up = tangents.z * depthRange.x
-            let down = tangents.w * depthRange.x
-            let nearZ = depthRange.x
-            let farZ = depthRange.y
-
-            let rl = 1.0 / (right - left)
-            let tb = 1.0 / (up - down)
-            let nf = 1.0 / (nearZ - farZ)
-
-            if rightHanded {
-                return simd_float4x4(
-                    SIMD4<Float>(2 * nearZ * rl, 0, 0, 0),
-                    SIMD4<Float>(0, 2 * nearZ * tb, 0, 0),
-                    SIMD4<Float>((right + left) * rl, (up + down) * tb, (farZ + nearZ) * nf, -1),
-                    SIMD4<Float>(0, 0, 2 * farZ * nearZ * nf, 0)
-                )
-            } else {
-                // Left-handed variant
-                return simd_float4x4(
-                    SIMD4<Float>(2 * nearZ * rl, 0, 0, 0),
-                    SIMD4<Float>(0, 2 * nearZ * tb, 0, 0),
-                    SIMD4<Float>((right + left) * rl, (up + down) * tb, -(farZ + nearZ) * nf, 1),
-                    SIMD4<Float>(0, 0, 2 * farZ * nearZ * nf, 0)
-                )
-            }
         }
     }
 
