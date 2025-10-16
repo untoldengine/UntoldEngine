@@ -18,10 +18,10 @@
 
     enum XRLayerState { case paused, running, invalidated }
 
-    @MainActor
     public final class CompositorXRSystem: XRSystem {
         private var renderer: UntoldRenderer?
-        private var isRunning = false
+        private var _isRunning = false
+        private let lock = NSLock()
 
         private let layerRenderer: LayerRenderer?
 
@@ -47,7 +47,7 @@
         }
 
         public func initUntoldXR(device: MTLDevice, commandQueue: MTLCommandQueue, layerRenderer: LayerRenderer) {
-            Task { @MainActor in
+            Task {
                 do {
                     try await startWorldTrackingIfNeeded()
                 } catch {
@@ -73,29 +73,25 @@
         }
 
         public func start() {
-            isRunning = true
-
             if renderer == nil {
                 return
             }
-
-            let renderThread = Thread {
-                Task { @MainActor in
-                    self.runLoop()
-                }
-            }
-
-            renderThread.name = "Render Thread"
-            renderThread.qualityOfService = .userInteractive
-            renderThread.start()
+            lock.lock()
+            _isRunning = true
+            lock.unlock()
         }
 
         public func stop() {}
 
-        private func runLoop() {
-            while isRunning {
+        public func runLoop() {
+            while true {
+                lock.lock()
+                let running = _isRunning
+                lock.unlock()
+
+                if !running { break }
+
                 guard let layerRenderer else {
-                    isRunning = false
                     break
                 }
 
@@ -104,13 +100,10 @@
                     layerRenderer.waitUntilRunning()
 
                 case .running:
-                    autoreleasepool {
-                        // Call the per-frame function here
-                        self.renderNewFrame()
-                    }
+                    // Call the per-frame function here
+                    renderNewFrame()
 
-                case .invalidated:
-                    isRunning = false
+                case .invalidated: break
 
                 @unknown default: break
                 }
@@ -191,7 +184,7 @@
                 passDescriptor.depthAttachment.texture = drawable.depthTextures[viewIndex]
                 passDescriptor.depthAttachment.loadAction = .clear
                 passDescriptor.depthAttachment.storeAction = .store
-                passDescriptor.depthAttachment.clearDepth = 0.0
+                passDescriptor.depthAttachment.clearDepth = 1.0
 
                 // call the visionXR render graph
                 guard let renderer else { return }

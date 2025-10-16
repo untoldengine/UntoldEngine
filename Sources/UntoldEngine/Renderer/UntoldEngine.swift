@@ -266,6 +266,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         renderer.initResources()
 
+        renderEnvironment = true
+        
         return renderer
     }
 
@@ -327,12 +329,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         cameraComponent.viewSpace = viewMatrix
-
         // render
         renderXRGraph(commandBuffer: commandBuffer, passDescriptor: passDescriptor)
     }
 
     public func renderXRGraph(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor) {
+       
         executeFrustumCulling(commandBuffer)
 
         renderInfo.renderPassDescriptor = passDescriptor
@@ -360,5 +362,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
             }
         }
+         
+         
     }
 }
