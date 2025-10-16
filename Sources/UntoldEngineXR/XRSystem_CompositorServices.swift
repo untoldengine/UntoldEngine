@@ -105,6 +105,7 @@
 
                 case .invalidated:
                     return
+
                 @unknown default:
                     return
                 }
