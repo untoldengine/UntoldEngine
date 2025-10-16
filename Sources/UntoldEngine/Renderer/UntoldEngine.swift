@@ -12,7 +12,6 @@ import Foundation
 import Metal
 import MetalKit
 import simd
-import Spatial
 
 public protocol UntoldRendererDelegate {
     func willDraw(in view: MTKView)
@@ -166,38 +165,38 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
     }
 
-    public func draw(in view: MTKView) {
+    @discardableResult
+    private func runFrame(beforeRender: (() -> Void)? = nil,
+                          render: (() -> Void)? = nil,
+                          afterRender: (() -> Void)? = nil) -> Bool
+    {
+        // finalize destroys once per frame
         if needsFinalizeDestroys {
             needsFinalizeDestroys = false
-
             if hasPendingDestroys {
                 finalizePendingDestroys()
                 hasPendingDestroys = false
             }
         }
 
-        if CameraSystem.shared.activeCamera == .invalid {
+        // must have a valid camera
+        guard CameraSystem.shared.activeCamera != .invalid else {
             handleError(.noActiveCamera)
-            return
+            return false
         }
 
-        // call the update call before the render
         frameCount += 1
 
-        // Call delegate, for example the editor to support hotreload system
-        delegate?.willDraw(in: view)
+        // pre-render hook (e.g., editor hot reload)
+        beforeRender?()
 
-        // calculate delta time for frame
+        // simulation/update pipeline
         calculateDeltaTime()
         traverseSceneGraph()
-
-        // process Input - Handle user input before updating game states
         handleInputCallback?()
-
         AnimationSystem.shared.update(timeSinceLastUpdate)
 
-        // TODO: Should be this moving to Physics system?
-        // Fixed‐timestep physics
+        // fixed‐timestep physics
         physicsAccumulator += timeSinceLastUpdate
         let maxSteps = 5
         var steps = 0
@@ -208,13 +207,27 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             steps += 1
         }
 
-        // update game states and logic
+        // user game update
         gameUpdateCallback?(timeSinceLastUpdate)
 
-        // render
-        configuration.updateRenderingSystemCallback(view)
+        // render hook (platform-specific)
+        render?()
 
-        delegate?.didDraw(in: view)
+        // post-render hook (e.g., editor)
+        afterRender?()
+
+        return true
+    }
+
+    public func draw(in view: MTKView) {
+        _ = runFrame(
+            beforeRender: { [weak self] in self?.delegate?.willDraw(in: view) },
+            render: { [weak self] in
+                guard let self else { return }
+                self.configuration.updateRenderingSystemCallback(view)
+            },
+            afterRender: { [weak self] in self?.delegate?.didDraw(in: view) }
+        )
     }
 
     public func mtkView(_ mtkView: MTKView, drawableSizeWillChange size: CGSize) {
@@ -273,46 +286,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     public func updateXR() {
-        if needsFinalizeDestroys {
-            needsFinalizeDestroys = false
+        _ = runFrame()
+    }
 
-            if hasPendingDestroys {
-                finalizePendingDestroys()
-                hasPendingDestroys = false
-            }
-        }
-
-        if CameraSystem.shared.activeCamera == .invalid {
-            handleError(.noActiveCamera)
-            return
-        }
-
-        // call the update call before the render
-        frameCount += 1
-
-        // calculate delta time for frame
-        calculateDeltaTime()
-        traverseSceneGraph()
-
-        // process Input - Handle user input before updating game states
-        handleInputCallback?()
-
-        AnimationSystem.shared.update(timeSinceLastUpdate)
-
-        // TODO: Should be this moving to Physics system?
-        // Fixed‐timestep physics
-        physicsAccumulator += timeSinceLastUpdate
-        let maxSteps = 5
-        var steps = 0
-        while physicsAccumulator >= fixedStep, steps < maxSteps {
-            updatePhysicsSystem(deltaTime: fixedStep)
-            updateCustomSystems(deltaTime: fixedStep)
-            physicsAccumulator -= fixedStep
-            steps += 1
-        }
-
-        // update game states and logic
-        gameUpdateCallback?(timeSinceLastUpdate)
+    public func updateXR(render: @escaping () -> Void) {
+        _ = runFrame(render: render)
     }
 
     public func renderXR(
