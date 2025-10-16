@@ -103,9 +103,10 @@
                     // Call the per-frame function here
                     renderNewFrame()
 
-                case .invalidated: break
-
-                @unknown default: break
+                case .invalidated:
+                    return
+                @unknown default:
+                    return
                 }
             }
         }
@@ -172,7 +173,7 @@
 
                 cameraMatrix = simd_inverse(cameraMatrix)
 
-                let projection: simd_float4x4 = drawable.computeProjection(convention: .rightUpBack, viewIndex: viewIndex)
+                let projection: simd_float4x4 = drawable.computeProjection(convention: .rightUpForward, viewIndex: viewIndex)
 
                 // create a pass descriptor
                 let passDescriptor = MTLRenderPassDescriptor()
