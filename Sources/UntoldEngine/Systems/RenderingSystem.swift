@@ -11,7 +11,13 @@ import CShaderTypes
 import Foundation
 import MetalKit
 
+public enum RenderingSystemContext {
+    case view(_ view: MTKView)
+    case xr(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor)
+}
+
 public typealias UpdateRenderingSystemCallback = (MTKView) -> Void
+public typealias UpdateXRRenderingSystemCallback = (RenderingSystemContext) -> Void
 
 func UpdateRenderingSystem(in view: MTKView) {
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
@@ -50,6 +56,36 @@ func UpdateRenderingSystem(in view: MTKView) {
         }
 
         commandBuffer.commit()
+    }
+}
+
+func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor) {
+    executeFrustumCulling(commandBuffer)
+
+    renderInfo.renderPassDescriptor = passDescriptor
+
+    commandBuffer.label = "XR Rendering Command Buffer"
+
+    // build a render graph
+    var (graph, preCompID) = buildGameModeGraph()
+
+    let compositePass = RenderPass(
+        id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
+    )
+
+    graph[compositePass.id] = compositePass
+
+    // sorted it
+    let sortedPasses = try! topologicalSortGraph(graph: graph)
+
+    // execute it
+    executeGraph(graph, sortedPasses, commandBuffer)
+
+    commandBuffer.addCompletedHandler { _ in
+        DispatchQueue.main.async {
+            needsFinalizeDestroys = true
+            visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
+        }
     }
 }
 
