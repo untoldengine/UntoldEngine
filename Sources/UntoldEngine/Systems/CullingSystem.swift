@@ -355,10 +355,8 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         }
 
         // Swap into the write slot on the render thread
-        DispatchQueue.main.async {
-            tripleVisibleEntities.setWrite(frame: cullFrameIndex, with: nextVisibleIds)
-            cullFrameIndex += 1
-        }
+        tripleVisibleEntities.setWrite(frame: cullFrameIndex, with: nextVisibleIds)
+        cullFrameIndex += 1
     }
 }
 
