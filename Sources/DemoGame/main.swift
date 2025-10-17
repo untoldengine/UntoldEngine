@@ -217,7 +217,7 @@
 
             // Step 1. Create and configure the window
             window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 1920, height: 1080),
+                contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
                 styleMask: [.titled, .closable, .resizable],
                 backing: .buffered,
                 defer: false
