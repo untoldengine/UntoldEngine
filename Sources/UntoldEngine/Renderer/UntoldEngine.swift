@@ -52,6 +52,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         renderer.metalView.depthStencilPixelFormat = .depth32Float
         renderer.metalView.colorPixelFormat = .bgra8Unorm_srgb
         renderer.metalView.preferredFramesPerSecond = 60
+        (renderer.metalView.layer as? CAMetalLayer)?.contentsScale = 1.0
         renderer.metalView.framebufferOnly = false
         renderer.metalView.delegate = renderer
 
