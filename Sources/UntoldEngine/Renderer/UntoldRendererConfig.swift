@@ -14,14 +14,18 @@ public struct UntoldRendererConfig {
     var initRenderPipelineBlocks: [(RenderPipelineType, RenderPipelineInitBlock)]
     var updateRenderingSystemCallback: UpdateRenderingSystemCallback
 
+    var updateXRRenderingSystemCallback: UpdateXRRenderingSystemCallback?
+
     public init(
         metalView: MTKView? = nil,
         initPipelineBlocks: [(RenderPipelineType, RenderPipelineInitBlock)],
-        updateRenderingSystemCallback: @escaping UpdateRenderingSystemCallback
+        updateRenderingSystemCallback: @escaping UpdateRenderingSystemCallback,
+        updateXRRenderingSystemCallback: UpdateXRRenderingSystemCallback? = nil
     ) {
         self.metalView = metalView
         initRenderPipelineBlocks = initPipelineBlocks
         self.updateRenderingSystemCallback = updateRenderingSystemCallback
+        self.updateXRRenderingSystemCallback = updateXRRenderingSystemCallback
     }
 }
 
@@ -29,7 +33,17 @@ public extension UntoldRendererConfig {
     static var `default`: UntoldRendererConfig {
         UntoldRendererConfig(
             initPipelineBlocks: DefaultPipeLines(),
-            updateRenderingSystemCallback: UpdateRenderingSystem
+            updateRenderingSystemCallback: { view in
+                UpdateRenderingSystem(in: view)
+            },
+            updateXRRenderingSystemCallback: { ctx in
+                switch ctx {
+                case let .view(v):
+                    UpdateRenderingSystem(in: v)
+                case let .xr(cb, desc):
+                    UpdateXRRenderingSystem(commandBuffer: cb, passDescriptor: desc)
+                }
+            }
         )
     }
 }

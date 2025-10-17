@@ -224,7 +224,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             beforeRender: { [weak self] in self?.delegate?.willDraw(in: view) },
             render: { [weak self] in
                 guard let self else { return }
-                self.configuration.updateRenderingSystemCallback(view)
+                configuration.updateRenderingSystemCallback(view)
             },
             afterRender: { [weak self] in self?.delegate?.didDraw(in: view) }
         )
@@ -308,37 +308,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         cameraComponent.viewSpace = viewMatrix
-        // render
-        renderXRGraph(commandBuffer: commandBuffer, passDescriptor: passDescriptor)
-    }
 
-    public func renderXRGraph(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor) {
-        executeFrustumCulling(commandBuffer)
-
-        renderInfo.renderPassDescriptor = passDescriptor
-
-        commandBuffer.label = "XR Rendering Command Buffer"
-
-        // build a render graph
-        var (graph, preCompID) = buildGameModeGraph()
-
-        let compositePass = RenderPass(
-            id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-        )
-
-        graph[compositePass.id] = compositePass
-
-        // sorted it
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
-
-        // execute it
-        executeGraph(graph, sortedPasses, commandBuffer)
-
-        commandBuffer.addCompletedHandler { _ in
-            DispatchQueue.main.async {
-                needsFinalizeDestroys = true
-                visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
-            }
-        }
+        configuration.updateXRRenderingSystemCallback!(.xr(commandBuffer: commandBuffer, passDescriptor: passDescriptor))
     }
 }
