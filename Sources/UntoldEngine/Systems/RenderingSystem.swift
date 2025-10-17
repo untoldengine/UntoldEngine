@@ -82,10 +82,8 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     executeGraph(graph, sortedPasses, commandBuffer)
 
     commandBuffer.addCompletedHandler { _ in
-        DispatchQueue.main.async {
-            needsFinalizeDestroys = true
-            visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
-        }
+        needsFinalizeDestroys = true
+        visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
     }
 }
 
