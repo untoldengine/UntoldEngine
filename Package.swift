@@ -109,9 +109,10 @@ let package = Package(
             name: "UntoldEngineRenderTests",
             dependencies: ["UntoldEngine"],
             path: "Tests/UntoldEngineRenderTests",
+            exclude: ["Resources/compare_psnr.py"],
             resources: [
                 .copy("Resources/compare_psnr.py"),
-                .process("Resources/ReferenceImages"),
+                .process("Resources"),
             ],
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),

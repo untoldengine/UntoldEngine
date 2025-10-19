@@ -61,7 +61,7 @@ final class CullingTest: XCTestCase {
     // CPU reference test (same math as your GPU code)
     @inline(__always)
     func cpuInFrustum(center c: simd_float3, extent e: simd_float3, planes: [simd_float4]) -> Bool {
-        var epsilon: Float = 0.0001
+        let epsilon: Float = 0.0001
         for p in planes {
             let n = simd_float3(p.x, p.y, p.z)
             let r = abs(n.x) * e.x + abs(n.y) * e.y + abs(n.z) * e.z
