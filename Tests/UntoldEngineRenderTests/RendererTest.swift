@@ -25,6 +25,9 @@ final class RendererTests: XCTestCase {
         super.setUp()
         ambientIntensity = 0.4
 
+        let bundleURL = Bundle.module.resourceURL // .../Tests.bundle
+        assetBasePath = bundleURL
+
         // Create the renderer as usual
         guard let renderer = UntoldRenderer.create() else {
             XCTFail("Failed to initialize the renderer.")
@@ -59,6 +62,48 @@ final class RendererTests: XCTestCase {
 
     override func tearDown() {
         super.tearDown()
+    }
+
+    private func assertResourceExists(_ name: String, _ ext: String,
+                                      structuredSubdir: String? = nil,
+                                      file: StaticString = #filePath, line: UInt = #line)
+    {
+        let base = Bundle.module.resourceURL!
+        let fm = FileManager.default
+
+        // 1) flat
+        let flatPath = base.appendingPathComponent("\(name).\(ext)").path
+        if fm.fileExists(atPath: flatPath) { return }
+
+        // 2) structured (if provided)
+        if let sub = structuredSubdir {
+            let structPath = base.appendingPathComponent(sub)
+                .appendingPathComponent("\(name).\(ext)").path
+            if fm.fileExists(atPath: structPath) { return }
+        }
+
+        // 3) Bundle query (in case of odd packaging)
+        let bundle = Bundle(url: Bundle.module.bundleURL)!
+        if bundle.url(forResource: name, withExtension: ext, subdirectory: structuredSubdir) != nil { return }
+        if bundle.url(forResource: name, withExtension: ext) != nil { return }
+
+        XCTFail("Missing resource \(name).\(ext) (flat or under \(structuredSubdir ?? "<none>"))",
+                file: file, line: line)
+    }
+
+    func test_essentialAssetsExist_anyLayout() {
+        assertResourceExists("ball", "usdc", structuredSubdir: "Models/ball")
+        assertResourceExists("redplayer", "usdc", structuredSubdir: "Models/redplayer")
+        assertResourceExists("stadium", "usdc", structuredSubdir: "Models/stadium")
+        assertResourceExists("idle", "usdc", structuredSubdir: "Animations/idle")
+        assertResourceExists("running", "usdc", structuredSubdir: "Animations/running")
+    }
+
+    func test_engineResolverFindsThem() {
+        for (name, ext) in [("ball", "usdc"), ("redplayer", "usdc"), ("stadium", "usdc")] {
+            XCTAssertNotNil(getResourceURL(resourceName: name, ext: ext, subName: nil),
+                            "Engine failed to locate \(name).\(ext)")
+        }
     }
 
     // Temp solution until I figure out how to get culling working inside this test routine
@@ -104,72 +149,70 @@ final class RendererTests: XCTestCase {
         XCTAssertEqual(renderInfo.viewPort, expectedViewport, "Viewport dimensions are incorrect.")
     }
 
-    /*
-           func testGenerateReferenceImages() {
-                  // Ensure renderer and metalview are properly initialized
-                  XCTAssertNotNil(renderer, "Renderer should be initialized")
-                  XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
-                  // Manually trigger the draw call
-                  renderer.draw(in: renderer.metalView)
+    func testGenerateReferenceImages() {
+        // Ensure renderer and metalview are properly initialized
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+        // Manually trigger the draw call
+        renderer.draw(in: renderer.metalView)
 
-                  let expectation = XCTestExpectation(description: "Render graph execution delay")
+        let expectation = XCTestExpectation(description: "Render graph execution delay")
 
-                  DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                      // generate different render targets
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            // generate different render targets
 
-                      self.testGenerateRenderTarget(
-                          targetName: "ColorTarget",
-                          texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
-                      )
+            self.testGenerateRenderTarget(
+                targetName: "ColorTarget",
+                texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture!
+            )
 
-                      self.testGenerateRenderTarget(
-                          targetName: "NormalTarget",
-                          texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture!
-                      )
+            self.testGenerateRenderTarget(
+                targetName: "NormalTarget",
+                texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture!
+            )
 
-                      self.testGenerateRenderTarget(
-                          targetName: "PositionTarget",
-                          texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture!
-                      )
+            self.testGenerateRenderTarget(
+                targetName: "PositionTarget",
+                texture: renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture!
+            )
 
-                      self.testGenerateRenderTarget(
-                          targetName: "IrradianceIBL",
-                          texture: textureResources.irradianceMap!
-                      )
+            self.testGenerateRenderTarget(
+                targetName: "IrradianceIBL",
+                texture: textureResources.irradianceMap!
+            )
 
-                      self.testGenerateRenderTarget(
-                          targetName: "SpecularIBL",
-                          texture: textureResources.specularMap!
-                      )
+            self.testGenerateRenderTarget(
+                targetName: "SpecularIBL",
+                texture: textureResources.specularMap!
+            )
 
-                      self.testGenerateRenderTarget(
-                          targetName: "BRDFIBL",
-                          texture: textureResources.iblBRDFMap!
-                      )
+            self.testGenerateRenderTarget(
+                targetName: "BRDFIBL",
+                texture: textureResources.iblBRDFMap!
+            )
 
-      //                self.testGenerateRenderTarget(
-      //                    targetName: "DepthTarget",
-      //                    texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
-      //                    isDepthTexture: true
-      //                )
+            //                self.testGenerateRenderTarget(
+            //                    targetName: "DepthTarget",
+            //                    texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
+            //                    isDepthTexture: true
+            //                )
 
-                      self.testGenerateRenderTarget(
-                         targetName: "LightPassColor",
-                         texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[0].texture!
-                      )
+            self.testGenerateRenderTarget(
+                targetName: "LightPassColor",
+                texture: renderInfo.deferredRenderPassDescriptor.colorAttachments[0].texture!
+            )
 
-                      self.testGenerateRenderTarget(
-                          targetName: "CompositeColorTarget",
-                          texture: renderInfo.renderPassDescriptor.colorAttachments[0].texture!
-                      )
+            self.testGenerateRenderTarget(
+                targetName: "CompositeColorTarget",
+                texture: renderInfo.renderPassDescriptor.colorAttachments[0].texture!
+            )
 
-                      expectation.fulfill()
-                  }
+            expectation.fulfill()
+        }
 
-                  // Wait for the execution
-                  wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
-              }
-     */
+        // Wait for the execution
+        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+    }
 
     func testColorTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
@@ -556,15 +599,24 @@ final class RendererTests: XCTestCase {
     private func initializeAssets() {
         cameraLookAt(entityId: findGameCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
 
-        let helmet: EntityID = createEntity()
+        // Stadium (static mesh)
+        let stadium = createEntity()
+        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
+        translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
 
-        setEntityMesh(entityId: helmet, filename: "whitehelmet", withExtension: "usdc")
+        // Player (animated, named for lookup)
+        let player = createEntity()
+        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdc", flip: false)
+        setEntityName(entityId: player, name: "player")
+        rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
 
-        translateTo(entityId: helmet, position: simd_float3(0.0, 1.5, 0.0))
+        // Ball (named for lookup)
+        let ball = createEntity()
+        setEntityMesh(entityId: ball, filename: "ball", withExtension: "usdc")
+        setEntityName(entityId: ball, name: "ball")
+        translateBy(entityId: ball, position: simd_float3(0.0, 0.6, 3.0))
 
-        let plane: EntityID = createEntity()
-
-        setEntityMesh(entityId: plane, filename: "plane", withExtension: "usdc")
+        ambientIntensity = 0.4
 
         let sunEntity: EntityID = createEntity()
 
@@ -573,7 +625,7 @@ final class RendererTests: XCTestCase {
         let pointLight = createEntity()
         createPointLight(entityId: pointLight)
 
-        translateTo(entityId: pointLight, position: simd_float3(2.0, 1.0, 0.0))
+        translateTo(entityId: pointLight, position: simd_float3(3.0, 0.5, 0.0))
 
         let spotLight = createEntity()
         createSpotLight(entityId: spotLight)

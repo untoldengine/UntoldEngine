@@ -75,15 +75,27 @@ final class PerformanceTests: XCTestCase {
     private func initializeAssets() {
         cameraLookAt(entityId: findGameCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
 
-        let helmet: EntityID = createEntity()
+        // Stadium (static mesh)
+        let stadium = createEntity()
+        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
+        translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
 
-        setEntityMesh(entityId: helmet, filename: "whitehelmet", withExtension: "usdc")
+        // Player (animated, named for lookup)
+        let player = createEntity()
+        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdc", flip: false)
+        setEntityAnimations(entityId: player, filename: "running", withExtension: "usdc", name: "running")
+        setEntityName(entityId: player, name: "player")
+        rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
 
-        translateTo(entityId: helmet, position: simd_float3(0.0, 1.5, 0.0))
+        changeAnimation(entityId: player, name: "running")
 
-        let plane: EntityID = createEntity()
+        // Ball (named for lookup)
+        let ball = createEntity()
+        setEntityMesh(entityId: ball, filename: "ball", withExtension: "usdc")
+        setEntityName(entityId: ball, name: "ball")
+        translateBy(entityId: ball, position: simd_float3(0.0, 0.6, 3.0))
 
-        setEntityMesh(entityId: plane, filename: "plane", withExtension: "usdc")
+        ambientIntensity = 0.4
 
         let sunEntity: EntityID = createEntity()
 
@@ -92,7 +104,7 @@ final class PerformanceTests: XCTestCase {
         let pointLight = createEntity()
         createPointLight(entityId: pointLight)
 
-        translateTo(entityId: pointLight, position: simd_float3(2.0, 1.0, 0.0))
+        translateTo(entityId: pointLight, position: simd_float3(3.0, 0.5, 0.0))
 
         let spotLight = createEntity()
         createSpotLight(entityId: spotLight)

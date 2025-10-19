@@ -34,13 +34,35 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         searchPaths.append(["Materials", subName, "\(resourceName).\(ext)"])
     }
 
-    // 1) External base path
+    // 1) External base path (folder OR .bundle OR already a Resources dir)
     if let basePath = assetBasePath {
-        for components in searchPaths {
-            let candidate = components.reduce(basePath) { $0.appendingPathComponent($1) }
-            if FileManager.default.fileExists(atPath: candidate.path) {
-                return candidate
+        let fm = FileManager.default
+
+        // If .bundle, hop into Contents/Resources on macOS
+        let base: URL = {
+            if basePath.pathExtension == "bundle",
+               let bundle = Bundle(url: basePath),
+               let res = bundle.resourceURL
+            {
+                return res
             }
+            return basePath
+        }()
+
+        // Try FLAT root first (handles your current packaging)
+        let flat = base.appendingPathComponent("\(resourceName).\(ext)")
+        if fm.fileExists(atPath: flat.path) { return flat }
+
+        // Then try structured subdirectories
+        let searchPaths: [[String]] = [
+            ["Models", resourceName, "\(resourceName).\(ext)"],
+            ["Animations", resourceName, "\(resourceName).\(ext)"],
+            ["HDR", "\(resourceName).\(ext)"],
+        ] + (subName.map { [["Materials", $0, "\(resourceName).\(ext)"]] } ?? [])
+
+        for components in searchPaths {
+            let candidate = components.reduce(base) { $0.appendingPathComponent($1) }
+            if fm.fileExists(atPath: candidate.path) { return candidate }
         }
     }
 
