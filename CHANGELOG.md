@@ -1,4 +1,12 @@
 # Changelog
+## v0.4.0 - 2025-10-20
+### 🐞 Fixes
+- [Patch] fixed the projection convention. (9ce27e9…)
+- [Patch] force the retina scale to be 1x (84dc30f…)
+- [Patch] removed dispatch main queue from culling compute (aaa2cd2…)
+### 🚀 Features
+- [Feature] Added support for VisionOS. (tested on simulator only) (8059e54…)
+## v0.3.2 - 2025-10-12
 ## v0.3.2 - 2025-10-12
 ### 🐞 Fixes
 - [Patch]: Made the renderer Tests headless (43e9fdb…)

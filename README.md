@@ -44,54 +44,36 @@
 
 ## About
 
-> "A Swift-based 3D game engine designed for simplicity and creativity on macOS and iOS."
+The Untold Engine strives to be a **stable, performant, and developer-friendly** 3D engine that empowers creativity, removes friction, and makes game development feel effortless for Apple developers
 
 The Untold Engine is an open-source 3D game engine under active development, designed for macOS and iOS platforms. Written in Swift and powered by Metal, its goal is to simplify game creation with a clean, intuitive API. While the engine already supports many core systems like rendering, physics, and animation, there’s still much to build and improve.
+
+Creator & Lead Developer: [Harold Serrano](http://www.haroldserrano.com)
 
 Click on image to play video:
 
 [![Watch the video](images/enginethumbnail.jpg)](https://vimeo.com/1116239409?share=copy#t=0)
 
-## Vision
+## Current Features:
+- Cross-Platform Support: Runs on macOS, iOS, and visionOS using a unified Swift + Metal codebase.
+- Modern Renderer: Built on Metal with support for PBR materials, IBL, post-processing effects, and efficient GPU resource management.
+- Entity–Component–System (ECS): Lightweight ECS architecture for organizing game logic and behaviors cleanly.
+- Scene Graph: Hierarchical transformation system for managing parent–child relationships between entities.
+- Physics System: Includes Euler integration, motion systems, and component-based extensibility for collisions and constraints.
+- Animation System: Supports skeletal animations and reusable animation clips.
+- Input System: Unified keyboard, mouse, and touch input handling (with controller support planned).
+- Untold Editor Integration: Optional visual editor for managing assets, entities, and scenes.
+- Swift Package Manager (SPM): Fully modular — integrate it easily into your own Xcode or Swift projects.
+- Open Source & Extensible: Licensed under LGPL-3.0, encouraging collaboration and custom extensions.
 
-The Untold Engine strives to be a **stable, performant, and developer-friendly** 3D engine that empowers creativity, removes friction, and makes game development feel effortless for Apple developers
-
-## Guiding Principles
-
-To achieve this vision, we follow these principles:
-
-- The engine strives to remain stable and crash-free.
-- The codebase is backed by unit tests.
-- We profile continuously to prevent regressions (visual and performance).
-- The API must remain clear and user-friendly.
-- We always think about the developer first—removing friction so they can focus on their games.
-
-
-### Current Features:
-
-- Simple API: Focused on ease of use, even for those new to game development.
-- Core Systems: Includes foundational systems for entity registration, rendering, physics, and more.
-- Metal Integration: Leverages Apple’s graphics API for efficient rendering.
-
-### The Journey Ahead:
+## The Journey Ahead:
 
 The Untold Engine is a work in progress, with ambitious goals to:
 
-- Expand physics capabilities with collision detection.
-- Enhance PBR rendering for more realistic visuals.
-- Add new features to make game development a breeze.
-
-### Why Try the Untold Engine?
-
-- For Learners: A great way to explore game development with an engine that prioritizes simplicity.
-- For Game Developers: An opportunity to contribute to an open-source project and shape its future.
-- For Apple Developers: A Swift and Metal-based engine that feels at home on macOS and iOS.
-
-The engine is far from complete, but with every iteration, it gets closer to being an amazing tool for developers. By trying it out, contributing, or sharing your feedback, you can help make the Untold Engine better for everyone.
-
-Author: [Harold Serrano](http://www.haroldserrano.com)
-
----
+- Extend the physics and collision system.
+- Add advanced lighting and reflections.
+- Expand XR and input support for visionOS.
+- Improve workflow between the engine, editor, and asset pipeline.
 
 ## Documentation & Quick Start
 
@@ -171,7 +153,7 @@ See the [Contribution Guidelines](https://untoldengine.github.io/UntoldEngine) f
 ---
 
 
-## Top Contributors
+## Top Github Sponsors
 
 A huge thanks to the people helping shape the Untold Engine. Your support and contributions make the project better every day.
 
