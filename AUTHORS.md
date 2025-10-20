@@ -2,7 +2,6 @@
 
 The Untold Engine was created and is primarily maintained by:
 
-## Maintainers
 - Harold Serrano [website](https://www.haroldserrano.com)
 
 Project website: [https://untoldengine.github.io/UntoldEngine](https://untoldengine.github.io/UntoldEngine)
