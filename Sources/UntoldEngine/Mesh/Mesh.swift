@@ -94,6 +94,8 @@ public struct Mesh {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
 
+        asset.loadTextures()
+
         let textureLoader = TextureLoader(device: device)
 
         return asset.childObjects(of: MDLObject.self).flatMap {
@@ -104,6 +106,8 @@ public struct Mesh {
     static func loadSceneMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [[Mesh]] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
+
+        asset.loadTextures()
 
         let textureLoader = TextureLoader(device: device)
 
@@ -117,6 +121,8 @@ public struct Mesh {
     static func loadMeshWithName(name: String, url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
+
+        asset.loadTextures()
 
         let textureLoader = TextureLoader(device: device)
 
@@ -300,10 +306,27 @@ public struct Material {
 struct TextureLoader {
     let device: MTLDevice
 
-    func loadTexture(from property: MDLMaterialProperty?, isSRGB: Bool, outputURL: inout URL?, mapType _: String, assetName: String) -> MTLTexture? {
-        guard let property else {
-            return nil // No property? Skip silently.
-        }
+    fileprivate func textureViewMatchingSRGB(_ tex: MTLTexture, wantSRGB: Bool) -> MTLTexture {
+        let pairs: [MTLPixelFormat: (linear: MTLPixelFormat, srgb: MTLPixelFormat)] = [
+            .rgba8Unorm: (.rgba8Unorm, .rgba8Unorm_srgb),
+            .rgba8Unorm_srgb: (.rgba8Unorm, .rgba8Unorm_srgb),
+            .bgra8Unorm: (.bgra8Unorm, .bgra8Unorm_srgb),
+            .bgra8Unorm_srgb: (.bgra8Unorm, .bgra8Unorm_srgb),
+        ]
+
+        guard let pair = pairs[tex.pixelFormat] else { return tex }
+        let target = wantSRGB ? pair.srgb : pair.linear
+        if tex.pixelFormat == target { return tex }
+        return tex.makeTextureView(pixelFormat: target) ?? tex
+    }
+
+    func loadTexture(from property: MDLMaterialProperty?,
+                     isSRGB: Bool,
+                     outputURL: inout URL?,
+                     mapType _: String,
+                     assetName _: String) -> MTLTexture?
+    {
+        guard let property else { return nil }
 
         let loader = MTKTextureLoader(device: device)
 
@@ -312,61 +335,42 @@ struct TextureLoader {
             .textureStorageMode: MTLStorageMode.private.rawValue,
             .SRGB: isSRGB,
             .generateMipmaps: true,
+            .origin: MTKTextureLoader.Origin.topLeft, // matches MDL byte layout
         ]
 
-        // First try the original URL
-        if let url = property.urlValue {
+        // 1) Prefer the sampler path (works for USDZ-embedded textures)
+        if let sampler = property.textureSamplerValue,
+           let mdlTex = sampler.texture
+        {
             do {
-                let texture = try loader.newTexture(URL: url, options: options)
-                outputURL = url
-                return texture
+                let tex = try loader.newTexture(texture: mdlTex, options: options)
+
+                let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
+                return texView
             } catch {
-                let errorMessage = "\(url.absoluteString) for \(assetName)"
-                handleError(.textureFailedLoading, errorMessage)
-                print("Error loading texture from urlValue: \(error.localizedDescription)")
+                handleError(.textureFailedLoading)
             }
         }
 
-        /* Leaving this for reference
-         // Fallback logic using relative path string
-         guard let stringValue = property.stringValue else {
-             handleError(.textureFailedLoading, "Missing texture path string for \(assetName)")
-             return nil
-         }
+        // (Optional but handy) 2) Fallback to URL if present
+        if let url = property.urlValue {
+            do {
+                let tex = try loader.newTexture(URL: url, options: options)
+                outputURL = url
+                let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB) // apply same fix
+                return texView
+            } catch {
+                handleError(.textureFailedLoading)
+            }
+        }
 
-         let baseTextureName = NSString(string: stringValue).lastPathComponent
-
-         let fallbackNames = [
-             "Assets/Imported/Textures/\(baseTextureName)",
-             "Assets/Imported/textures/\(baseTextureName)",
-             "Assets/Imported/\(baseTextureName)",
-         ]
-
-         for name in fallbackNames {
-             guard let fallbackURL = assetBasePath?.appendingPathComponent(name) else {
-                 continue
-             }
-
-             if FileManager.default.fileExists(atPath: fallbackURL.path) {
-                 do {
-                     let texture = try loader.newTexture(URL: fallbackURL, options: options)
-                     outputURL = fallbackURL
-                     return texture
-                 } catch {
-                     let errorMessage = "\(fallbackURL.lastPathComponent) for \(assetName)"
-                     handleError(.textureFailedLoading, errorMessage)
-                     print("Fallback texture load failed: \(error.localizedDescription)")
-                 }
-             }
-         }
-         */
         return nil
     }
 
     func loadDefaultColorTexture(color: simd_float4) -> MTLTexture? {
         // Generate a 1x1 texture with a solid color
         let descriptor = MTLTextureDescriptor()
-        descriptor.pixelFormat = .rgba8Unorm
+        descriptor.pixelFormat = .rgba8Unorm_srgb
         descriptor.width = 1
         descriptor.height = 1
         descriptor.usage = [.shaderRead]
