@@ -15,7 +15,7 @@
     // GameScene is where you initialize your game and write game-specific logic.
     class GameScene {
         // Toggle between Editor-loaded scene (true) and Code-built scene (false).
-        var useEditorScene: Bool = true
+        var useEditorScene: Bool = false
 
         // Demo assets location + scene file name (adjust as needed).
         private let demoAssetsRelativePath = "DemoGameAssets/Assets"
@@ -169,12 +169,12 @@
         private func buildSceneInCode() {
             // Stadium (static mesh)
             let stadium = createEntity()
-            setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
+            setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdz")
             translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
 
             // Player (animated, named for lookup)
             let player = createEntity()
-            setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdc", flip: false)
+            setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdz", flip: false)
             setEntityName(entityId: player, name: "player")
             rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
             setEntityAnimations(entityId: player, filename: "running", withExtension: "usdc", name: "running")
@@ -183,7 +183,7 @@
 
             // Ball (named for lookup)
             let ball = createEntity()
-            setEntityMesh(entityId: ball, filename: "ball", withExtension: "usdc")
+            setEntityMesh(entityId: ball, filename: "ball", withExtension: "usdz")
             setEntityName(entityId: ball, name: "ball")
             translateBy(entityId: ball, position: simd_float3(0.0, 0.6, 3.0))
             setEntityKinetics(entityId: ball)
