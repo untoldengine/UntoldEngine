@@ -25,7 +25,7 @@ final class RendererTests: XCTestCase {
         super.setUp()
         ambientIntensity = 0.4
 
-        let bundleURL = Bundle.module.resourceURL // .../Tests.bundle
+        let bundleURL = Bundle.module.resourceURL 
         assetBasePath = bundleURL
 
         // Create the renderer as usual
