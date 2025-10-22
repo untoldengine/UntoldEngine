@@ -98,9 +98,17 @@ public struct Mesh {
 
         let textureLoader = TextureLoader(device: device)
 
-        return asset.childObjects(of: MDLObject.self).flatMap {
+        let meshes = asset.childObjects(of: MDLObject.self).flatMap {
             makeMeshes(object: $0, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip)
         }
+
+        if !meshes.isEmpty {
+            return meshes
+        }
+
+        // ---- Fallback path: fabricate a safe default mesh ----
+
+        return makeDefaultMesh()
     }
 
     static func loadSceneMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [[Mesh]] {
@@ -113,6 +121,12 @@ public struct Mesh {
 
         let meshGroups: [[Mesh]] = asset.childObjects(of: MDLObject.self).map {
             makeMeshes(object: $0, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: true)
+        }
+
+        // If the scene had no objects (or everything failed), return a single fallback group
+        if meshGroups.isEmpty || meshGroups.allSatisfy(\.isEmpty) {
+            Logger.logWarning(message: "Scene contained no usable meshes: \(url.lastPathComponent). Returning a single default fallback mesh.")
+            return [makeDefaultMesh()]
         }
 
         return meshGroups
@@ -186,6 +200,30 @@ public struct Mesh {
         }
 
         return (min: combinedMin, max: combinedMax)
+    }
+
+    // Helper to create one fallback mesh
+    static func makeDefaultMesh() -> [Mesh] {
+        let textureLoader = TextureLoader(device: renderInfo.device)
+        let bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
+
+        let fallbackMDL = MDLMesh(
+            sphereWithExtent: [0.5, 0.5, 0.5],
+            segments: [32, 16],
+            inwardNormals: false,
+            geometryType: .triangles,
+            allocator: bufferAllocator
+        )
+        fallbackMDL.name = "UntoldEngine_DefaultMesh"
+        let fallback = Mesh.makeMeshes(object: fallbackMDL,
+                                       vertexDescriptor: vertexDescriptor.model,
+                                       textureLoader: textureLoader,
+                                       device: renderInfo.device,
+                                       flip: true)
+        if fallback.isEmpty {
+            Logger.logWarning(message: "Default mesh group creation returned empty; check vertex descriptor/material pipeline.")
+        }
+        return fallback
     }
 }
 
@@ -352,15 +390,45 @@ struct TextureLoader {
             }
         }
 
-        // (Optional but handy) 2) Fallback to URL if present
+        // URL (absolute or resolved by USD/MDL)
         if let url = property.urlValue {
-            do {
-                let tex = try loader.newTexture(URL: url, options: options)
+            if let tex = try? loader.newTexture(URL: url, options: options) {
                 outputURL = url
-                let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB) // apply same fix
+                let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
                 return texView
-            } catch {
-                handleError(.textureFailedLoading)
+            }
+        }
+
+        // String (relative) -> try to resolve against the model’s base path if you keep it
+        if let str = property.stringValue, !str.isEmpty {
+            // 1) Try as-is (absolute or already-resolved)
+            if let url = URL(string: str), url.isFileURL {
+                if let tex = try? loader.newTexture(URL: url, options: options) {
+                    outputURL = url
+                    let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
+                    return texView
+                }
+            }
+            // 2) Try against known asset base
+            if let base = assetBasePath {
+                let candidate = base.appendingPathComponent(str)
+                if FileManager.default.fileExists(atPath: candidate.path),
+                   let tex = try? loader.newTexture(URL: candidate, options: options)
+                {
+                    outputURL = candidate
+                    let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
+                    return texView
+                }
+            }
+            // 3) Try resources bundle lookup by filename
+            let name = URL(fileURLWithPath: str).deletingPathExtension().lastPathComponent
+            let ext = URL(fileURLWithPath: str).pathExtension
+            if let url = getResourceURL(resourceName: name, ext: ext.isEmpty ? "png" : ext, subName: nil),
+               let tex = try? loader.newTexture(URL: url, options: options)
+            {
+                outputURL = url
+                let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
+                return texView
             }
         }
 
@@ -378,6 +446,28 @@ struct TextureLoader {
         let rawData = [UInt8(color.x * 255), UInt8(color.y * 255), UInt8(color.z * 255), UInt8(color.w * 255)]
         texture.replace(region: MTLRegionMake2D(0, 0, 1, 1), mipmapLevel: 0, withBytes: rawData, bytesPerRow: 4)
         return texture
+    }
+
+    func defaultTexture() -> MTLTexture {
+        let size = 64
+        let desc = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm_srgb, width: size, height: size, mipmapped: true)
+        desc.usage = [.shaderRead]
+        let tex = renderInfo.device.makeTexture(descriptor: desc)!
+
+        var pixels = [UInt8](repeating: 0, count: size * size * 4)
+        for y in 0 ..< size {
+            for x in 0 ..< size {
+                let isDark = ((x / 8 + y / 8) % 2) == 0
+                let c: UInt8 = isDark ? 200 : 50
+                let i = (y * size + x) * 4
+                pixels[i + 0] = c
+                pixels[i + 1] = c
+                pixels[i + 2] = c
+                pixels[i + 3] = 255
+            }
+        }
+        tex.replace(region: MTLRegionMake2D(0, 0, size, size), mipmapLevel: 0, withBytes: pixels, bytesPerRow: size * 4)
+        return tex
     }
 }
 
