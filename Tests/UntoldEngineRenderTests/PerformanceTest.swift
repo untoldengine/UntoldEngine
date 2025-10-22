@@ -146,7 +146,7 @@ final class PerformanceTests: XCTestCase {
         XCTAssertLessThanOrEqual(
             avgMs,
             frameBudgetMs,
-            String(format: "Average frame time %.2f ms exceeded budget %.2f ms (%.1f FPS).",
+            String(format: "❌ Average frame time %.2f ms exceeded budget %.2f ms (%.1f FPS).",
                    avgMs, frameBudgetMs, fps)
         )
     }
