@@ -25,6 +25,9 @@ final class PerformanceTests: XCTestCase {
         super.setUp()
         ambientIntensity = 0.4
 
+        let bundleURL = Bundle.module.resourceURL
+        assetBasePath = bundleURL
+        
         // Create the renderer as usual
         guard let renderer = UntoldRenderer.create() else {
             XCTFail("Failed to initialize the renderer.")
