@@ -594,10 +594,11 @@ public func loadRawMesh(
 
     let meshes = Mesh.loadMeshWithName(name: name, url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
 
-    if meshes.isEmpty {
-        handleError(.assetDataMissing, filename)
-        return []
+    if !meshes.isEmpty {
+        return meshes
     }
 
-    return meshes
+    // ---- Fallback path: fabricate a safe default mesh ----
+    handleError(.assetDataMissing, filename)
+    return Mesh.makeDefaultMesh()
 }
