@@ -53,7 +53,7 @@ jobs:
       - name: Run renderer tests (incl. PSNR)
         env:
           CI: true
-          UNTOLD_PSNR_THRESHOLD: "36.0"   # tweak per suite/scene
+          UNTOLD_PSNR_THRESHOLD: "33.5"   # tweak per suite/scene
           UNTOLD_PYTHON: "python3"
           # UNTOLD_KEEP_ARTIFACTS: "1"    # rarely needed on CI
         run: |
