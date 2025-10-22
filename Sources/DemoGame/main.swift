@@ -177,8 +177,8 @@
             setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdz", flip: false)
             setEntityName(entityId: player, name: "player")
             rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
-            setEntityAnimations(entityId: player, filename: "running", withExtension: "usdc", name: "running")
-            setEntityAnimations(entityId: player, filename: "idle", withExtension: "usdc", name: "idle")
+            setEntityAnimations(entityId: player, filename: "running", withExtension: "usdz", name: "running")
+            setEntityAnimations(entityId: player, filename: "idle", withExtension: "usdz", name: "idle")
             setEntityKinetics(entityId: player)
 
             // Ball (named for lookup)
