@@ -53,7 +53,7 @@ public func createDirLight(entityId: EntityID) {
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -78,7 +78,7 @@ public func createPointLight(entityId: EntityID) {
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -103,7 +103,7 @@ public func createSpotLight(entityId: EntityID) {
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -129,7 +129,7 @@ public func createAreaLight(entityId: EntityID) {
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdc")
+    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
