@@ -386,6 +386,26 @@ final class RendererTests: XCTestCase {
          wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
      }
      */
+
+    func testDefaultMeshCreation() {
+        let mesh = Mesh.makeDefaultMesh()
+
+        XCTAssertGreaterThan(mesh[0].metalKitMesh.vertexCount, 0)
+        XCTAssertGreaterThan(mesh[0].metalKitMesh.submeshes.count, 0)
+        // verify attribute layout index 0 = position, 1 = uv, etc.
+        let vb = mesh[0].metalKitMesh.vertexBuffers.first!
+        XCTAssertGreaterThan(vb.length, 0)
+    }
+
+    func testDefaultTextureHasMipsAndSRGB() {
+        let loader = TextureLoader(device: renderInfo.device)
+        let tex = loader.defaultTexture()
+        XCTAssertEqual(tex.width, 64)
+        XCTAssertEqual(tex.height, 64)
+        XCTAssertGreaterThan(tex.mipmapLevelCount, 1, "Checker texture should have mipmaps")
+        XCTAssertEqual(tex.pixelFormat, .rgba8Unorm_srgb)
+    }
+
     private func testGenerateRenderTarget(targetName: String, texture: MTLTexture, isDepthTexture: Bool = false) {
         var renderImage: CGImage?
 
