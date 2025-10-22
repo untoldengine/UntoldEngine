@@ -25,7 +25,7 @@ final class RendererTests: XCTestCase {
         super.setUp()
         ambientIntensity = 0.4
 
-        let bundleURL = Bundle.module.resourceURL 
+        let bundleURL = Bundle.module.resourceURL
         assetBasePath = bundleURL
 
         // Create the renderer as usual
@@ -92,15 +92,15 @@ final class RendererTests: XCTestCase {
     }
 
     func test_essentialAssetsExist_anyLayout() {
-        assertResourceExists("ball", "usdc", structuredSubdir: "Models/ball")
-        assertResourceExists("redplayer", "usdc", structuredSubdir: "Models/redplayer")
-        assertResourceExists("stadium", "usdc", structuredSubdir: "Models/stadium")
-        assertResourceExists("idle", "usdc", structuredSubdir: "Animations/idle")
-        assertResourceExists("running", "usdc", structuredSubdir: "Animations/running")
+        assertResourceExists("ball", "usdz", structuredSubdir: "Models/ball")
+        assertResourceExists("redplayer", "usdz", structuredSubdir: "Models/redplayer")
+        assertResourceExists("stadium", "usdz", structuredSubdir: "Models/stadium")
+        assertResourceExists("idle", "usdz", structuredSubdir: "Animations/idle")
+        assertResourceExists("running", "usdz", structuredSubdir: "Animations/running")
     }
 
     func test_engineResolverFindsThem() {
-        for (name, ext) in [("ball", "usdc"), ("redplayer", "usdc"), ("stadium", "usdc")] {
+        for (name, ext) in [("ball", "usdz"), ("redplayer", "usdz"), ("stadium", "usdz")] {
             XCTAssertNotNil(getResourceURL(resourceName: name, ext: ext, subName: nil),
                             "Engine failed to locate \(name).\(ext)")
         }

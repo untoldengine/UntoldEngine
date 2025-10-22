@@ -27,7 +27,7 @@ final class PerformanceTests: XCTestCase {
 
         let bundleURL = Bundle.module.resourceURL
         assetBasePath = bundleURL
-        
+
         // Create the renderer as usual
         guard let renderer = UntoldRenderer.create() else {
             XCTFail("Failed to initialize the renderer.")
