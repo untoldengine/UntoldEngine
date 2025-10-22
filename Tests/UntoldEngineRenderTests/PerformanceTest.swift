@@ -83,7 +83,7 @@ final class PerformanceTests: XCTestCase {
         // Player (animated, named for lookup)
         let player = createEntity()
         setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdz", flip: false)
-        setEntityAnimations(entityId: player, filename: "running", withExtension: "usdc", name: "running")
+        setEntityAnimations(entityId: player, filename: "running", withExtension: "usdz", name: "running")
         setEntityName(entityId: player, name: "player")
         rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
 
