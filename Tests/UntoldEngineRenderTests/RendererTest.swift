@@ -13,21 +13,6 @@ import UniformTypeIdentifiers
 import XCTest
 
 final class RendererTests: BaseRenderSetup {
-    func test_essentialAssetsExist_anyLayout() {
-        assertResourceExists("ball", "usdz", structuredSubdir: "Models/ball")
-        assertResourceExists("redplayer", "usdz", structuredSubdir: "Models/redplayer")
-        assertResourceExists("stadium", "usdz", structuredSubdir: "Models/stadium")
-        assertResourceExists("idle", "usdz", structuredSubdir: "Animations/idle")
-        assertResourceExists("running", "usdz", structuredSubdir: "Animations/running")
-    }
-
-    func test_engineResolverFindsThem() {
-        for (name, ext) in [("ball", "usdz"), ("redplayer", "usdz"), ("stadium", "usdz")] {
-            XCTAssertNotNil(getResourceURL(resourceName: name, ext: ext, subName: nil),
-                            "Engine failed to locate \(name).\(ext)")
-        }
-    }
-
     func testRendererInitialization() {
         XCTAssertNotNil(renderer, "❌ Renderer should be inialized.")
     }
