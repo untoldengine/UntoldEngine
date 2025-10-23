@@ -50,25 +50,23 @@ If you’re building a game in your own Xcode project:
 
 ### 3) Importing 3D Models (External folder only)
 
-- Supported format: **USDC**.
+- Supported format: **USDZ**.
 - **Best practice:** Create a **dedicated folder per model** that contains:
-  - `<model>.usdc`
-  - `textures/` subfolder with all texture maps
+  - `<model>.usdz`
 
 **Steps:**  
 1. In the **Asset Browser**, click **Models**.  
 2. Click **Import Asset**.  
    ![import-asset](../images/importassetbutton.png)
-3. Select the model’s `.usdc` file inside its dedicated folder (with `textures/`).  
-4. The engine links textures automatically when following this structure.
+3. Select the model’s `.usdz` file.  
 
 ---
 
 ### 4) Importing Animations (External folder only)
 
-- Animations are **`.usdc`** files.
+- Animations are **`.usdz`** files.
 1. In the **Asset Browser**, click **Animations**.  
-2. Click **Import Asset** and select the animation `.usdc`.
+2. Click **Import Asset** and select the animation `.usdz`.
 
 ---
 
@@ -87,11 +85,11 @@ Use this **same structure** under your **external asset folder** *or* under your
 
 ```text
 Assets/
-├── Animations/                 # .usdc animations (one folder per clip is ideal)
+├── Animations/                 # .usdz animations (one folder per clip is ideal)
 │   ├── walk/
-│   │   └── walk.usdc
+│   │   └── walk.usdz
 │   └── jump/
-│       └── jump.usdc
+│       └── jump.usdz
 │
 ├── HDR/                        # Environment lighting maps (.hdr)
 │   ├── studio.hdr
@@ -105,31 +103,21 @@ Assets/
 │       ├── Wood_Roughness.png
 │       └── Wood_Metalness.png
 │
-└── Models/                     # **One folder per model** with .usdc + textures/
+└── Models/                     # **One folder per model** with .usdz
     ├── tree/
-    │   ├── tree.usdc
-    │   └── textures/
-    │       ├── Tree_BaseColor.png
-    │       ├── Tree_Normal.png
-    │       └── Tree_Roughness.png
+    │   ├── tree.usdz
+    │   
     └── character/
-        ├── character.usdc
-        └── textures/
-            ├── Character_BaseColor.png
-            ├── Character_Normal.png
-            └── Character_Roughness.png
+        ├── character.usdz
+        
 ```
-
-**Why a dedicated folder per model?**
-
-It keeps the .usdc and its textures/ together, making references predictable and reducing broken links during import/export.
 
 ### Key Points
 
 - Animations: Place each animation .usdc in its own folder for clarity.
 - HDR: Keep environment maps together for easy IBL (Image-Based Lighting) setup.
 - Materials: Each material gets its own folder with all required textures.
-- Models: Each model gets its own folder with a .usdc file and a textures/ subfolder containing its textures.
+- Models: Each model gets its own folder with a .usdz file.
 
 For reference, download the [Demo Game Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1)
 

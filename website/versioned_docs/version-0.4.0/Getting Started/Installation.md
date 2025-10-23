@@ -21,12 +21,6 @@ To begin using the Untold Engine, you’ll need:
 
 ## Documentation & Quick Start
 
-### Quick Start
-If you just want to **try the engine right away**, check out the demo games in our companion repo:  
-👉 [UntoldArcade](https://github.com/untoldengine/UntoldArcade)  
-
-Clone it, open the Xcode workspace, and you’ll be able to run a demo game (like **SoccerArcade**) immediately.
-
 ### How to install the Untold Engine
 
 Follow these steps to set up and run the Untold Engine.
@@ -42,7 +36,7 @@ open Package.swift
 **How to Run**
 1. Select the **DemoGame** scheme.  
 2. Download the [Demo Game Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1) and place them in your Desktop folder.  
-3. Set **My Mac** as the target device and hit **Run**.  
+3. Set the Scheme to **Demo Game**. Then set **My Mac** as the target device and hit **Run**.  
 4. Use **WASD** keys to move the player around.  
 
 
@@ -54,7 +48,7 @@ open Package.swift
 The **Untold Editor** is a companion tool for the Untold Engine.  
 It provides a visual environment for managing assets, scenes, and entities in projects built with the engine.  
 
-The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. [Untold Editor](https://github.com/untoldengine/UntoldEditor)
+The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. To launch the Untold Editor, set the scheme in xcode to **UntoldEngineEditor**.
 
 ![UntoldEditorScreenshot](../images/editorscreenshot.png)
 
