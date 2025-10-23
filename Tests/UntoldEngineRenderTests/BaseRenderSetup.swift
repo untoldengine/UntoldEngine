@@ -64,33 +64,6 @@ class BaseRenderSetup: XCTestCase {
         super.tearDown()
     }
 
-    func assertResourceExists(_ name: String, _ ext: String,
-                              structuredSubdir: String? = nil,
-                              file: StaticString = #filePath, line: UInt = #line)
-    {
-        let base = Bundle.module.resourceURL!
-        let fm = FileManager.default
-
-        // 1) flat
-        let flatPath = base.appendingPathComponent("\(name).\(ext)").path
-        if fm.fileExists(atPath: flatPath) { return }
-
-        // 2) structured (if provided)
-        if let sub = structuredSubdir {
-            let structPath = base.appendingPathComponent(sub)
-                .appendingPathComponent("\(name).\(ext)").path
-            if fm.fileExists(atPath: structPath) { return }
-        }
-
-        // 3) Bundle query (in case of odd packaging)
-        let bundle = Bundle(url: Bundle.module.bundleURL)!
-        if bundle.url(forResource: name, withExtension: ext, subdirectory: structuredSubdir) != nil { return }
-        if bundle.url(forResource: name, withExtension: ext) != nil { return }
-
-        XCTFail("❌ Missing resource \(name).\(ext) (flat or under \(structuredSubdir ?? "<none>"))",
-                file: file, line: line)
-    }
-
     // Temp solution until I figure out how to get culling working inside this test routine
     func setVisibleEntities() {
         let transformId = getComponentId(for: WorldTransformComponent.self)
