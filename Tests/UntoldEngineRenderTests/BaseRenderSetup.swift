@@ -313,6 +313,68 @@ class BaseRenderSetup: XCTestCase {
         _ = saveResultToDisk(image, "\(targetName)Reference")
     }
 
+    @discardableResult
+    func saveTestKeyframePNG(targetName: String,
+                             texture: MTLTexture,
+                             to outDir: URL) -> URL?
+    {
+        guard let img = textureToCGImage(texture: texture) else { return nil }
+        // This returns: outDir/UntoldEngineRenderingTest/<name>.png
+        return saveResultToDisk(img, named: "\(targetName)Test", in: outDir)
+    }
+
+    /// PSNR compare, but using an already saved test image URL (no GPU reads).
+    func psnrCompareSaved(referenceName: String,
+                          testURL: URL,
+                          mode: String? = nil,
+                          threshold: String? = nil)
+    {
+        let env = ProcessInfo.processInfo.environment
+        let pythonCmd = env["UNTOLD_PYTHON"] ?? "python3"
+        let psnrThresh = threshold ?? (env["UNTOLD_PSNR_THRESHOLD"] ?? "11.0")
+
+        guard let scriptURL = Bundle.module.url(forResource: "compare_psnr", withExtension: "py") else {
+            XCTFail("compare_psnr.py not found in test bundle"); return
+        }
+        guard let referenceURL = Bundle.module.url(forResource: "\(referenceName)Reference", withExtension: "png") else {
+            XCTFail("Reference \(referenceName)Reference.png not found"); return
+        }
+
+        let chosenMode: String
+        if let mode { chosenMode = mode }
+        else if referenceName.contains("ColorTarget") || referenceName.contains("LightPassColor") || referenceName.contains("NormalTarget") {
+            chosenMode = "rgb"
+        } else {
+            chosenMode = "gray"
+        }
+
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        p.arguments = [pythonCmd, scriptURL.path, referenceURL.path, testURL.path,
+                       "--threshold", psnrThresh, "--mode", chosenMode, "--resize", "no"]
+        p.currentDirectoryURL = scriptURL.deletingLastPathComponent()
+        let pipe = Pipe(); p.standardOutput = pipe; p.standardError = pipe
+
+        do {
+            try p.run(); p.waitUntilExit()
+            let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            // Attach artifacts
+            let testAtt = XCTAttachment(contentsOfFile: testURL); testAtt.name = "\(referenceName)Test.png"
+            testAtt.lifetime = (p.terminationStatus == 0) ? .deleteOnSuccess : .keepAlways; add(testAtt)
+            let refAtt = XCTAttachment(contentsOfFile: referenceURL); refAtt.name = "\(referenceName)Reference.png"
+            refAtt.lifetime = (p.terminationStatus == 0) ? .deleteOnSuccess : .keepAlways; add(refAtt)
+
+            if p.terminationStatus != 0 {
+                XCTFail("\(referenceName): ❌ PSNR failed. \(out)")
+            } else {
+                print("✅ \(referenceName): \(out)")
+            }
+        } catch {
+            XCTFail("\(referenceName): ❌ Failed to run PSNR – \(error)")
+        }
+    }
+
     func initializeAssets() {
         cameraLookAt(entityId: findGameCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
 

@@ -311,4 +311,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         configuration.updateXRRenderingSystemCallback!(.xr(commandBuffer: commandBuffer, passDescriptor: passDescriptor))
     }
+
+    public func getConfiguration() -> UntoldRendererConfig {
+        configuration
+    }
 }

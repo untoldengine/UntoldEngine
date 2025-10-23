@@ -31,8 +31,8 @@ testcore:
 	swift test --filter UntoldEngineTests
 
 testrenderer:
-	python3 -m pip install --upgrade pip wheel setuptools
-	python3 -m pip install --user opencv-python-headless scikit-image
+	python3 -m pip install --user --break-system-packages --upgrade pip wheel setuptools
+	python3 -m pip install --user --break-system-packages opencv-python-headless scikit-image
 	UNTOLD_KEEP_ARTIFACTS=$(KEEP) swift test --parallel --num-workers 1 --filter UntoldEngineRenderTests
 
 # Lint Swift files using SwiftFormat
