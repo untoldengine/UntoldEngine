@@ -17,6 +17,11 @@ let package = Package(
 
         .library(name: "UntoldEngineXR", targets: ["UntoldEngineXR"]),
 
+        // Executable for the editor
+        .executable(
+            name: "UntoldEngineEditor",
+            targets: ["UntoldEngineEditor"]
+        ),
         // Executable for the demo game
         .executable(
             name: "DemoGame",
@@ -83,6 +88,18 @@ let package = Package(
                 .linkedFramework("Metal", .when(platforms: [.visionOS])),
                 .linkedFramework("CompositorServices", .when(platforms: [.visionOS])),
                 .linkedFramework("ARKit", .when(platforms: [.visionOS])),
+            ]
+        ),
+        // These executables are macOS-only
+        .executableTarget(
+            name: "UntoldEngineEditor",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/UntoldEngineEditor",
+            swiftSettings: [.swiftLanguageMode(.v5)],
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
             ]
         ),
         // These executables are macOS-only
