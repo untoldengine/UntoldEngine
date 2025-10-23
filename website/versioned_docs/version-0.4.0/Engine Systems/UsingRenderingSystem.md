@@ -24,14 +24,14 @@ let entity = createEntity()
 To display a model, load its .usdc file and link it to the entity using setEntityMesh.
 
 ```swift
-setEntityMesh(entityId: entity, filename: "entity", withExtension: "usdc")
+setEntityMesh(entityId: entity, filename: "entity", withExtension: "usdz")
 ```
 
 Parameters:
 
 - entityId: The ID of the entity created earlier.
 - filename: The name of the .usdc file (without the extension).
-- withExtension: The file extension, typically "usdc".
+- withExtension: The file extension, typically "usdz".
 
 > Note: If PBR textures (e.g., albedo, normal, roughness, metallic maps) are included, the rendering system will automatically use the appropriate PBR shader to render the model with realistic lighting and material properties.
 

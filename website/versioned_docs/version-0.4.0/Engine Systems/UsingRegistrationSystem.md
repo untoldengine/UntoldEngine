@@ -37,7 +37,7 @@ Example:
 When you load a mesh for rendering, the system automatically registers the required components:
 
 ```swift
-setEntityMesh(entityId: entity, filename: "model", withExtension: "usdc")
+setEntityMesh(entityId: entity, filename: "model", withExtension: "usdz")
 ```
 
 This function:

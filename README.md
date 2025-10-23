@@ -75,15 +75,7 @@ The Untold Engine is a work in progress, with ambitious goals to:
 - Expand XR and input support for visionOS.
 - Improve workflow between the engine, editor, and asset pipeline.
 
-## Documentation & Quick Start
-
-### Quick Start
-If you just want to **try the engine right away**, check out the demo games in our companion repo:  
-👉 [UntoldArcade](https://github.com/untoldengine/UntoldArcade)  
-
-Clone it, open the Xcode workspace, and you’ll be able to run a demo game (like **SoccerArcade**) immediately.
-
-### Full Documentation
+## Documentation
 
 If you’re interested in learning more about the engine itself — how it works, how to build with it, and the full API — head over to our official documentation site:  
 👉 [Untold Engine Docs](https://untoldengine.github.io/UntoldEngine)
@@ -103,7 +95,7 @@ There you’ll find:
 The **Untold Editor** is a companion tool for the Untold Engine.  
 It provides a visual environment for managing assets, scenes, and entities in projects built with the engine.  
 
-The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. [Untold Editor](https://github.com/untoldengine/UntoldEditor)
+The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. Once you have installed the engine, select the **UntoldEngineEditor** scheme in Xcode to launch the Editor.
 
 ![UntoldEditorScreenshot](images/editorscreenshot.png)
 
