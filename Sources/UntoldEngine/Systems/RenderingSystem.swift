@@ -21,6 +21,7 @@ public typealias UpdateXRRenderingSystemCallback = (RenderingSystemContext) -> V
 
 func UpdateRenderingSystem(in view: MTKView) {
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
+        renderInfo.lastCommandBuffer = commandBuffer
         executeFrustumCulling(commandBuffer)
 
         if let renderPassDescriptor = view.currentRenderPassDescriptor {

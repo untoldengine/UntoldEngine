@@ -19,6 +19,7 @@ public struct RenderInfo {
     public var fence: MTLFence!
     public var library: MTLLibrary!
     public var commandQueue: MTLCommandQueue!
+    public var lastCommandBuffer: MTLCommandBuffer!
     public var bufferAllocator: MTKMeshBufferAllocator!
     public var textureLoader: MTKTextureLoader!
     public var renderPassDescriptor: MTLRenderPassDescriptor!
