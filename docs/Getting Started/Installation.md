@@ -48,7 +48,7 @@ open Package.swift
 The **Untold Editor** is a companion tool for the Untold Engine.  
 It provides a visual environment for managing assets, scenes, and entities in projects built with the engine.  
 
-The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. To launch the Untold Editor, set the scheme in xcode to **UntoldEngineEditor**.
+The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. [Untold Editor](https://github.com/untoldengine/UntoldEditor)
 
 ![UntoldEditorScreenshot](../images/editorscreenshot.png)
 
