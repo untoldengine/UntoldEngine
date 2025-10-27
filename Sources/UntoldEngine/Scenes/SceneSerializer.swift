@@ -376,13 +376,22 @@ public func serializeScene() -> SceneData {
 }
 
 public func loadGameScene(from url: URL) -> SceneData? {
-    // Normalize to a file URL if needed
-    let fileURL = url.isFileURL ? url : URL(fileURLWithPath: url.path)
+    // Ensure it's a file URL
+    guard url.isFileURL else {
+        Logger.log(message: "Invalid URL: must be a file URL")
+        return nil
+    }
+
+    // Check if file exists and is readable
+    guard FileManager.default.isReadableFile(atPath: url.path) else {
+        Logger.log(message: "File not accesible or doesn't exist: \(url.path)")
+        return nil
+    }
 
     do {
-        let data = try Data(contentsOf: fileURL)
+        let data = try Data(contentsOf: url)
         let scene = try JSONDecoder().decode(SceneData.self, from: data)
-        Logger.log(message: "Scene loaded from \(fileURL.path)")
+        Logger.log(message: "Scene loaded from \(url.path)")
         return scene
     } catch {
         Logger.log(message: "Failed to load scene: \(error)")
