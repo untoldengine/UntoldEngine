@@ -97,13 +97,11 @@ private func urlInBundle(_ bundle: Bundle, components: [String]) -> URL? {
     )
 }
 
-#if os(macOS)
-    public func playSceneAt(url: URL) {
-        if let scene = loadGameScene(from: url) {
-            destroyAllEntities()
-            deserializeScene(sceneData: scene)
+public func playSceneAt(url: URL) {
+    if let scene = loadGameScene(from: url) {
+        destroyAllEntities()
+        deserializeScene(sceneData: scene)
 
-            CameraSystem.shared.activeCamera = findGameCamera()
-        }
+        CameraSystem.shared.activeCamera = findGameCamera()
     }
-#endif
+}
