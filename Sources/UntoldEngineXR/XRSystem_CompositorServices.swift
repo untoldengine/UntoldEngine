@@ -190,6 +190,8 @@
 
                 // call the visionXR render graph
                 guard let renderer else { return }
+
+                renderInfo.currentEye = viewIndex
                 renderer.renderXR(commandBuffer: commandBuffer, passDescriptor: passDescriptor, viewMatrix: cameraMatrix, projectionMatrix: projection, eyeIndex: viewIndex)
             }
 

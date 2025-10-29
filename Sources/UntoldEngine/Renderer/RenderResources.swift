@@ -15,6 +15,7 @@ import simd
 
 public struct RenderInfo {
     public var perspectiveSpace = simd_float4x4.init(1.0)
+    public var currentEye: Int = 0
     public var device: MTLDevice!
     public var fence: MTLFence!
     public var library: MTLLibrary!
