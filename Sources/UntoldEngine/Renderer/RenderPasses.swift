@@ -314,7 +314,7 @@ public enum RenderPasses {
 
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-                if let modelUniformBuffer = mesh.spaceUniform {
+                if let modelUniformBuffer = mesh.spaceUniform[renderInfo.currentEye] {
                     modelUniformBuffer.contents().copyMemory(
                         from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
                     )
@@ -324,7 +324,7 @@ public enum RenderPasses {
                 }
 
                 renderEncoder.setVertexBuffer(
-                    mesh.spaceUniform, offset: 0, index: Int(shadowPassModelUniform.rawValue)
+                    mesh.spaceUniform[renderInfo.currentEye], offset: 0, index: Int(shadowPassModelUniform.rawValue)
                 )
 
                 renderEncoder.setVertexBuffer(
@@ -485,7 +485,7 @@ public enum RenderPasses {
 
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-                if let modelUniformBuffer = mesh.spaceUniform {
+                if let modelUniformBuffer = mesh.spaceUniform[renderInfo.currentEye] {
                     modelUniformBuffer.contents().copyMemory(
                         from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
                     )
@@ -495,7 +495,7 @@ public enum RenderPasses {
                 }
 
                 renderEncoder.setVertexBuffer(
-                    mesh.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue)
+                    mesh.spaceUniform[renderInfo.currentEye], offset: 0, index: Int(modelPassUniformIndex.rawValue)
                 )
 
                 // check if it has skeleton component
@@ -540,7 +540,7 @@ public enum RenderPasses {
                 renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
 
                 renderEncoder.setFragmentBuffer(
-                    mesh.spaceUniform, offset: 0, index: Int(modelPassFragmentUniformIndex.rawValue)
+                    mesh.spaceUniform[renderInfo.currentEye], offset: 0, index: Int(modelPassFragmentUniformIndex.rawValue)
                 )
 
                 for subMesh in mesh.submeshes {

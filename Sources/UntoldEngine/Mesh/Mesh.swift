@@ -22,7 +22,7 @@ public struct Mesh {
     var boundingBox: (min: simd_float3, max: simd_float3)
     var flipCoord: Bool = false
     var skin: Skin?
-    public var spaceUniform: MTLBuffer!
+    public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: 2)
 
     init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip: Bool) {
         modelMDLMesh = modelIOMesh
@@ -53,9 +53,11 @@ public struct Mesh {
         modelIOMesh.vertexDescriptor = vertexDescriptor
 
         // allocate buffer
-        spaceUniform = renderInfo.device.makeBuffer(
-            length: MemoryLayout<Uniforms>.stride, options: [MTLResourceOptions.storageModeShared]
-        )
+
+        spaceUniform = (0 ..< 2).compactMap { _ in
+            renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
+                                         options: [MTLResourceOptions.storageModeShared])
+        }
 
         // Create MetalKit mesh
         modelIOMesh.vertexDescriptor = vertexDescriptor
@@ -83,7 +85,7 @@ public struct Mesh {
     }
 
     mutating func cleanUp() {
-        spaceUniform = nil
+        spaceUniform.removeAll()
         submeshes.removeAll()
         skin?.cleanUp()
         skin = nil
