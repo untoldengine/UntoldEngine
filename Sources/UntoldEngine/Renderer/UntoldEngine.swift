@@ -120,7 +120,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         Logger.log(message: "Untold Engine Starting")
     }
 
-    func initSizeableResources() {
+    public func initSizeableResources() {
         if renderInfo.viewPort.x == 0 || renderInfo.viewPort.y == 0 { return }
 
         initRTXAccumulationBuffer()

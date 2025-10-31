@@ -62,7 +62,7 @@
             let depthPixelFormat = configuration.depthFormat
 
             // **VERIFY THIS** Need to verify this. Couldn't find any info
-            let viewPort = simd_float2(1024, 1024)
+            let viewPort = simd_float2(2048, 1984)
 
             guard let untoldrenderer = UntoldRenderer.createXR(configuration: nil, device: device, commandQueue: commandQueue, colorPixelFormat: colorPixelFormat, depthPixelFormat: depthPixelFormat, viewPort: viewPort) else {
                 print("Failed to initialize the renderer")
@@ -162,6 +162,16 @@
 
         func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable) {
             let commandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()!
+
+            // Update viewport to match actual drawable size (per-eye texture dimensions)
+            if let firstColorTexture = drawable.colorTextures.first {
+                let actualViewPort = simd_float2(Float(firstColorTexture.width), Float(firstColorTexture.height))
+                if renderInfo.viewPort != actualViewPort {
+                    renderInfo.viewPort = actualViewPort
+                    renderer!.initSizeableResources()
+                    print("✓ Updated VisionOS viewport to: \(actualViewPort)")
+                }
+            }
 
             for (viewIndex, view) in drawable.views.enumerated() {
                 let anchor = drawable.deviceAnchor
