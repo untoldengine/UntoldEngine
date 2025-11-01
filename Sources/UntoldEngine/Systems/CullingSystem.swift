@@ -113,7 +113,7 @@ public func makeObjectAABB(localMin: simd_float3,
     return EntityAABB(center: simd_float4(c.x, c.y, c.z, 0.0), halfExtent: simd_float4(e.x, e.y, e.z, 0.0), index: index, version: version, pad0: 0, pad1: 0)
 }
 
-func performFrustumCulling(commandBuffer: MTLCommandBuffer) {
+public func performFrustumCulling(commandBuffer: MTLCommandBuffer) {
     if useOptimizedCulling {
         executeReduceScanFrustumCulling(commandBuffer)
     } else {
