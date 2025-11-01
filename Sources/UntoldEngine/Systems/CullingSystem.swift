@@ -12,6 +12,8 @@ import Foundation
 import Metal
 import simd
 
+var useOptimizedCulling = false
+
 let kInFlight = 3
 let planeCount = 6
 let planeStride = MemoryLayout<simd_float4>.stride
@@ -109,6 +111,14 @@ public func makeObjectAABB(localMin: simd_float3,
 {
     let (c, e) = worldAABB_CenterExtent(localMin: localMin, localMax: localMax, worldMatrix: M)
     return EntityAABB(center: simd_float4(c.x, c.y, c.z, 0.0), halfExtent: simd_float4(e.x, e.y, e.z, 0.0), index: index, version: version, pad0: 0, pad1: 0)
+}
+
+func performFrustumCulling(commandBuffer: MTLCommandBuffer) {
+    if useOptimizedCulling {
+        executeReduceScanFrustumCulling(commandBuffer)
+    } else {
+        executeFrustumCulling(commandBuffer)
+    }
 }
 
 func buildFrustum(from viewProj: simd_float4x4,
