@@ -1078,7 +1078,6 @@ public enum RenderPasses {
 
         // set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
-        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
 
         // clear it so that it doesn't have any effect on the final output
@@ -1140,9 +1139,15 @@ public enum RenderPasses {
         let renderPassDescriptor = renderInfo.renderPassDescriptor!
 
         // set the states for the pipeline
+
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
-        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
+
+        if renderInfo.immersionStyle == .none {
+            renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
+        } else {
+            renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, Double(getAlphaForImmersionMode()))
+        }
 
         // clear it so that it doesn't have any effect on the final output
         if gameMode == false {
