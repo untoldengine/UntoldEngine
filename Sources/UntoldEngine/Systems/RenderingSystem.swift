@@ -68,7 +68,7 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     commandBuffer.label = "XR Rendering Command Buffer"
 
     // build a render graph
-    var (graph, preCompID) = buildGameModeGraph()
+    var (graph, preCompID) = buildXRGameModeGraph()
 
     let compositePass = RenderPass(
         id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
@@ -113,6 +113,126 @@ public func buildGameModeGraph() -> RenderGraphResult {
     let shadowPass = RenderPass(
         id: "shadow", dependencies: [basePassID], execute: RenderPasses.shadowExecution
     )
+    graph[shadowPass.id] = shadowPass
+
+    let modelPass = RenderPass(
+        id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
+    )
+    graph[modelPass.id] = modelPass
+
+    let ssaoPass = RenderPass(id: "ssao", dependencies: [modelPass.id], execute: RenderPasses.ssaoExecution)
+
+    graph[ssaoPass.id] = ssaoPass
+
+    let ssaoBlurPass = RenderPass(id: "ssaoBlur", dependencies: [ssaoPass.id], execute: RenderPasses.ssaoBlurExecution)
+
+    graph[ssaoBlurPass.id] = ssaoBlurPass
+
+    let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id, ssaoBlurPass.id], execute: RenderPasses.lightExecution)
+
+    graph[lightPass.id] = lightPass
+
+    let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [lightPass.id], execute: depthOfFieldRenderPass)
+
+    graph[depthOfFieldPass.id] = depthOfFieldPass
+
+    let chromaticAberrationPass = RenderPass(id: "chromatic", dependencies: [depthOfFieldPass.id], execute: chromaticAberrationRenderPass)
+
+    graph[chromaticAberrationPass.id] = chromaticAberrationPass
+
+    let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [chromaticAberrationPass.id, modelPass.id], execute: bloomThresholdRenderPass)
+    graph[bloomThresholdPass.id] = bloomThresholdPass
+
+    // define params for the blur pass
+    let blurPassCount = BloomThresholdParams.shared.enabled ? 2 : 0
+    let blurRadius: Float = 4.0
+
+    var previousPassID = bloomThresholdPass.id
+    var useFirstTexture = true
+
+    for i in 0 ..< blurPassCount {
+        let horID = "blur_pass_hor_pass\(i + 1)"
+        let verID = "blur_pass_ver_pass\(i + 1)"
+
+        let horSource = useFirstTexture ? textureResources.bloomThresholdTextuture! : textureResources.blurTextureVer!
+        let horDestination = textureResources.blurTextureHor!
+
+        let horPass = RenderPass(
+            id: horID,
+            dependencies: [previousPassID],
+            execute: RenderPasses.executePostProcess(
+                PipelineManager.shared.renderPipelinesByType[.blur]!,
+                source: horSource,
+                destination: horDestination,
+                customization: makeBlurCustomization(direction: simd_float2(1.0, 0.0), radius: blurRadius)
+            )
+        )
+
+        graph[horID] = horPass
+
+        let verPass = RenderPass(
+            id: verID,
+            dependencies: [horID],
+            execute: RenderPasses.executePostProcess(
+                PipelineManager.shared.renderPipelinesByType[.blur]!,
+                source: horDestination,
+                destination: textureResources.blurTextureVer!,
+                customization: makeBlurCustomization(direction: simd_float2(0.0, 1.0), radius: blurRadius)
+            )
+        )
+
+        graph[verID] = verPass
+
+        previousPassID = verID
+
+        useFirstTexture = false // only use bloomthreshold texture for first iteration
+    }
+
+    let bloomCompositePass = RenderPass(id: "bloomComposite", dependencies: [previousPassID], execute: bloomCompositeRenderPass)
+    graph[bloomCompositePass.id] = bloomCompositePass
+
+    let colorgradingPass = RenderPass(id: "colorgrading", dependencies: [bloomCompositePass.id], execute: colorGradingRenderPass)
+    graph[colorgradingPass.id] = colorgradingPass
+
+    let vignettePass = RenderPass(id: "vignette", dependencies: [colorgradingPass.id], execute: vignetteRenderPass)
+
+    graph[vignettePass.id] = vignettePass
+
+    let preCompPass = RenderPass(id: "precomp", dependencies: [vignettePass.id], execute: RenderPasses.preCompositeExecution)
+    graph[preCompPass.id] = preCompPass
+
+    return (graph, preCompPass.id)
+}
+
+// XR Game mode -- Will modify this graph soon
+public func buildXRGameModeGraph() -> RenderGraphResult {
+    var graph = [String: RenderPass]()
+
+    var basePassID: String? = nil
+    if renderInfo.immersionStyle != .passthrough {
+        if renderEnvironment {
+            let environmentPass = RenderPass(
+                id: "environment", dependencies: [], execute: RenderPasses.executeEnvironmentPass
+            )
+            graph[environmentPass.id] = environmentPass
+            basePassID = environmentPass.id
+        } else {
+            let gridPass = RenderPass(
+                id: "grid", dependencies: [], execute: RenderPasses.gridExecution
+            )
+            graph[gridPass.id] = gridPass
+            basePassID = gridPass.id
+        }
+    } else {
+        basePassID = nil
+    }
+
+    let shadowDependency = basePassID.map { [$0] } ?? []
+
+    let shadowPass = RenderPass(
+        id: "shadow", dependencies: shadowDependency, execute: RenderPasses.shadowExecution
+    )
+
     graph[shadowPass.id] = shadowPass
 
     let modelPass = RenderPass(

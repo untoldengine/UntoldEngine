@@ -277,3 +277,9 @@ public class SSAOParams: ObservableObject {
     @Published public var intensity: Float = 0 // 0.5-2.0 Final multiplier
     @Published public var enabled: Bool = false
 }
+
+public enum XRImmersionMode {
+    case none
+    case passthrough
+    case full
+}

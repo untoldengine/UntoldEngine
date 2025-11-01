@@ -14,7 +14,14 @@
     @preconcurrency import UntoldEngine
     #if canImport(ARKit)
         import ARKit
+        import SwiftUI
     #endif
+
+    public enum XRImmersionMode {
+        case none
+        case passthrough
+        case full
+    }
 
     enum XRLayerState { case paused, running, invalidated }
 
@@ -191,7 +198,8 @@
                 passDescriptor.colorAttachments[0].texture = drawable.colorTextures[viewIndex]
                 passDescriptor.colorAttachments[0].storeAction = .store
                 passDescriptor.colorAttachments[0].loadAction = .clear
-                passDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+
+                passDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: Double(getAlphaForImmersionMode()))
 
                 passDescriptor.depthAttachment.texture = drawable.depthTextures[viewIndex]
                 passDescriptor.depthAttachment.loadAction = .clear
@@ -236,6 +244,17 @@
             let seconds = Double(components.seconds) + Double(components.attoseconds) / 1e18
 
             return nowCA + seconds
+        }
+
+        public func setImmersionMode(xrImmersionMode: XRImmersionMode) {
+            switch xrImmersionMode {
+            case .full:
+                renderInfo.immersionStyle = .full
+            case .passthrough:
+                renderInfo.immersionStyle = .passthrough
+            default:
+                break
+            }
         }
     }
 
