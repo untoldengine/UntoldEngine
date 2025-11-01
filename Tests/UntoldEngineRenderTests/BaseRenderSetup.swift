@@ -304,7 +304,7 @@ class BaseRenderSetup: XCTestCase {
     {
         let env = ProcessInfo.processInfo.environment
         let pythonCmd = env["UNTOLD_PYTHON"] ?? "python3"
-        let psnrThresh = threshold ?? (env["UNTOLD_PSNR_THRESHOLD"] ?? "11.0")
+        let psnrThresh = threshold ?? (env["UNTOLD_PSNR_THRESHOLD"] ?? "30.0")
 
         guard let scriptURL = Bundle.module.url(forResource: "compare_psnr", withExtension: "py") else {
             XCTFail("compare_psnr.py not found in test bundle"); return
