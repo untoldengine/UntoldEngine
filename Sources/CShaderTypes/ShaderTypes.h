@@ -104,6 +104,17 @@ typedef enum{
 }ModelPassFragmentBufferIndices;
 
 
+typedef enum{
+    prePassGizmoBufferIndex,
+    prePassPassthroughBufferIndex
+}PrePassBufferIndices;
+
+typedef enum{
+    prePassFinalTextureIndex,
+    prePassEnvTextureIndex,
+    prePassDepthTextureIndex,
+    prePassGizmoTextureIndex,
+}PrePassTextureIndices;
 
 typedef enum{
     lightPassLightOrthoViewMatrixIndex,

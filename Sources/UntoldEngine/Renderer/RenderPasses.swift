@@ -1185,33 +1185,37 @@ public enum RenderPasses {
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
         renderEncoder.setFragmentTexture(
-            renderInfo.renderPassDescriptor.colorAttachments[0].texture, index: 1
+            renderInfo.renderPassDescriptor.colorAttachments[0].texture, index: Int(prePassEnvTextureIndex.rawValue)
         )
 
         if gameMode == false {
             renderEncoder.setFragmentTexture(
                 renderInfo.deferredRenderPassDescriptor.colorAttachments[0].texture,
-                index: 0
+                index: Int(prePassFinalTextureIndex.rawValue)
             )
 
             renderEncoder.setFragmentTexture(
-                renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture, index: 2
+                renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture, index: Int(prePassDepthTextureIndex.rawValue)
             )
         } else {
             renderEncoder.setFragmentTexture(
                 renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture,
-                index: 0
+                index: Int(prePassFinalTextureIndex.rawValue)
             )
 
             renderEncoder.setFragmentTexture(
-                renderInfo.postProcessRenderPassDescriptor.depthAttachment.texture, index: 2
+                renderInfo.postProcessRenderPassDescriptor.depthAttachment.texture, index: Int(prePassDepthTextureIndex.rawValue)
             )
         }
 
-        renderEncoder.setFragmentTexture(renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].texture, index: 3)
+        renderEncoder.setFragmentTexture(renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].texture, index: Int(prePassGizmoTextureIndex.rawValue))
 
         var isGameMode = gameMode
-        renderEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.size, index: 3)
+        renderEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.stride, index: Int(prePassGizmoBufferIndex.rawValue))
+
+        var isPassthrough = (renderInfo.immersionStyle == XRImmersionMode.passthrough) ? true : false
+
+        renderEncoder.setFragmentBytes(&isPassthrough, length: MemoryLayout<Bool>.stride, index: Int(prePassPassthroughBufferIndex.rawValue))
 
         // set the draw command
 
