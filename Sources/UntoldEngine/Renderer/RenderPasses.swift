@@ -1139,8 +1139,6 @@ public enum RenderPasses {
 
         let renderPassDescriptor = renderInfo.renderPassDescriptor!
 
-        renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture = textureResources.vignetteTexture
-
         // set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
