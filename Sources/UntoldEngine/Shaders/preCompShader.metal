@@ -22,24 +22,24 @@ vertex VertexCompositeOutput vertexPreCompositeShader(VertexCompositeIn in [[sta
 }
 
 fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[stage_in]],
-                                        texture2d<float> finalTexture[[texture(0)]],
-                                        texture2d<float> gridTexture[[texture(1)]],
-                                        depth2d<float> depthTexture [[texture(2)]],
-                                        texture2d<float> gizmoTexture [[texture(3)]],
-                                        constant bool &isGameMode [[ buffer(3) ]]){
+                                        texture2d<float> finalTexture[[texture(prePassFinalTextureIndex)]],
+                                        texture2d<float> envTexture[[texture(prePassEnvTextureIndex)]],
+                                        depth2d<float> depthTexture [[texture(prePassDepthTextureIndex)]],
+                                        texture2d<float> gizmoTexture [[texture(prePassGizmoTextureIndex)]],
+                                        constant bool &isGameMode [[ buffer(prePassGizmoBufferIndex) ]],
+                                        constant bool &isPassthrough [[buffer(prePassPassthroughBufferIndex)]]){
 
     constexpr sampler s(min_filter::linear, mag_filter::linear);
 
     // Sample depth
     //float depth = depthTexture.sample(s, vertexOut.uvCoords);
-    
     // Sample textures
-    float4 gridColor = gridTexture.sample(s, vertexOut.uvCoords);
+    float4 envColor = envTexture.sample(s, vertexOut.uvCoords);
     float4 modelColor = finalTexture.sample(s, vertexOut.uvCoords);
     float lumen =getLuminance(modelColor.rgb);
     float blendFactor = (lumen == 0.0) ? 1.0 : 0.0;
     // Blend: show grid if there's no model
-    float4 baseColor = mix(modelColor, gridColor, blendFactor);
+    float4 baseColor = mix(modelColor, (isPassthrough == false) ? envColor : float4(0.0,0.0,0.0,0.0), blendFactor);
 
     // Sample gizmo
     float3 gizmoColor = gizmoTexture.sample(s, vertexOut.uvCoords).rgb;
