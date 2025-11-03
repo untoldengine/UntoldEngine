@@ -17,9 +17,9 @@
         import SwiftUI
     #endif
 
-    public enum XRImmersionMode {
+    public enum UntoldImmersionMode {
         case none
-        case passthrough
+        case mixed
         case full
     }
 
@@ -246,12 +246,12 @@
             return nowCA + seconds
         }
 
-        public func setImmersionMode(xrImmersionMode: XRImmersionMode) {
+        public func setImmersionMode(xrImmersionMode: UntoldImmersionMode) {
             switch xrImmersionMode {
             case .full:
                 renderInfo.immersionStyle = .full
-            case .passthrough:
-                renderInfo.immersionStyle = .passthrough
+            case .mixed:
+                renderInfo.immersionStyle = .mixed
             default:
                 break
             }

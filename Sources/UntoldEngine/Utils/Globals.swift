@@ -278,8 +278,8 @@ public class SSAOParams: ObservableObject {
     @Published public var enabled: Bool = false
 }
 
-public enum XRImmersionMode {
+public enum UntoldImmersionMode {
     case none
-    case passthrough
+    case mixed
     case full
 }

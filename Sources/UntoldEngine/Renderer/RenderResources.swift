@@ -35,7 +35,7 @@ public struct RenderInfo {
     public var colorPixelFormat: MTLPixelFormat!
     public var depthPixelFormat: MTLPixelFormat!
     public var viewPort: simd_float2!
-    public var immersionStyle: XRImmersionMode = .none
+    public var immersionStyle: UntoldImmersionMode = .none
 }
 
 public struct BufferResources {

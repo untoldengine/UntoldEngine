@@ -1005,7 +1005,7 @@ public func getAlphaForImmersionMode() -> Float {
     switch renderInfo.immersionStyle {
     case .none, .full:
         return 1.0
-    case .passthrough:
+    case .mixed:
         return 0.0
     default:
         return 1.0

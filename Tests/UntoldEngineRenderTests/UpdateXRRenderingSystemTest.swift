@@ -106,7 +106,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
 
     func testUpdateXRRenderingSystem_PassthroughConfiguresRenderGraphCorrectly() {
         // Set up XR passthrough mode
-        renderInfo.immersionStyle = .passthrough
+        renderInfo.immersionStyle = .mixed
 
         // Create a command buffer and render pass descriptor for XR
         guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
@@ -161,7 +161,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
 
     func testUpdateXRRenderingSystem_PassthroughHasNoBasePass() {
         // Set up XR passthrough mode
-        renderInfo.immersionStyle = .passthrough
+        renderInfo.immersionStyle = .mixed
 
         let (graph, _) = buildGameModeGraph()
 
@@ -214,7 +214,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
 
     func testUpdateXRRenderingSystem_CompositePassIsLastInTopologicalOrder() {
         // Test with passthrough mode
-        renderInfo.immersionStyle = .passthrough
+        renderInfo.immersionStyle = .mixed
 
         var (graph, preCompID) = buildGameModeGraph()
 
@@ -235,10 +235,10 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
     func testUpdateXRRenderingSystem_CompositeDependsOnCorrectFinalPassInAllModes() {
         // Test in all immersion modes to ensure composite always depends on the correct final pass
 
-        let modes: [(XRImmersionMode, String)] = [
+        let modes: [(UntoldImmersionMode, String)] = [
             (.none, "none"),
             (.full, "full"),
-            (.passthrough, "passthrough"),
+            (.mixed, "mixed"),
         ]
 
         for (mode, description) in modes {
@@ -305,7 +305,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
 
     func testUpdateXRRenderingSystem_FullWorkflowWithPassthrough() {
         // Simulate the full UpdateXRRenderingSystem workflow
-        renderInfo.immersionStyle = .passthrough
+        renderInfo.immersionStyle = .mixed
 
         guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
             XCTFail("Failed to create command buffer")
