@@ -1218,7 +1218,7 @@ public enum RenderPasses {
         var isGameMode = gameMode
         renderEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.stride, index: Int(prePassGizmoBufferIndex.rawValue))
 
-        var isPassthrough = (renderInfo.immersionStyle == XRImmersionMode.passthrough) ? true : false
+        var isPassthrough = (renderInfo.immersionStyle == UntoldImmersionMode.mixed) ? true : false
 
         renderEncoder.setFragmentBytes(&isPassthrough, length: MemoryLayout<Bool>.stride, index: Int(prePassPassthroughBufferIndex.rawValue))
 

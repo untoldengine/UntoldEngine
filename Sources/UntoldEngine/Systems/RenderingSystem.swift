@@ -129,7 +129,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
     case .none:
         // macOS/iOS path: use environment or grid
         mode = renderEnvironment ? .environment : .grid
-    case .passthrough:
+    case .mixed:
         // XR passthrough: no base pass needed
         mode = .none
     case .full:

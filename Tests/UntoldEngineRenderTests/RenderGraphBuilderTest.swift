@@ -207,7 +207,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
     }
 
     func testBuildGameModeGraph_XRPassthroughMode() {
-        renderInfo.immersionStyle = .passthrough
+        renderInfo.immersionStyle = .mixed
 
         let (graph, _) = buildGameModeGraph()
 
