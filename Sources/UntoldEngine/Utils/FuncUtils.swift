@@ -1007,7 +1007,5 @@ public func getAlphaForImmersionMode() -> Float {
         return 1.0
     case .mixed:
         return 0.0
-    default:
-        return 1.0
     }
 }

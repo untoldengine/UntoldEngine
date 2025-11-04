@@ -27,7 +27,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderInfo.immersionStyle = .full
 
         // Create a command buffer and render pass descriptor for XR
-        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+        guard (renderInfo.commandQueue.makeCommandBuffer()) != nil else {
             XCTFail("Failed to create command buffer")
             return
         }
@@ -109,7 +109,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderInfo.immersionStyle = .mixed
 
         // Create a command buffer and render pass descriptor for XR
-        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+        guard (renderInfo.commandQueue.makeCommandBuffer()) != nil else {
             XCTFail("Failed to create command buffer")
             return
         }
@@ -278,7 +278,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         // Simulate the full UpdateXRRenderingSystem workflow
         renderInfo.immersionStyle = .full
 
-        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+        guard (renderInfo.commandQueue.makeCommandBuffer()) != nil else {
             XCTFail("Failed to create command buffer")
             return
         }
@@ -307,7 +307,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         // Simulate the full UpdateXRRenderingSystem workflow
         renderInfo.immersionStyle = .mixed
 
-        guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+        guard (renderInfo.commandQueue.makeCommandBuffer()) != nil else {
             XCTFail("Failed to create command buffer")
             return
         }

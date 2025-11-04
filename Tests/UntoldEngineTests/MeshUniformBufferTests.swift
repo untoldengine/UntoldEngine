@@ -407,12 +407,3 @@ final class MeshUniformBufferTests: XCTestCase {
 }
 
 // MARK: - Helper Extensions for Matrix Operations
-
-extension simd_float4x4: Equatable {
-    public static func == (lhs: simd_float4x4, rhs: simd_float4x4) -> Bool {
-        lhs.columns.0 == rhs.columns.0 &&
-            lhs.columns.1 == rhs.columns.1 &&
-            lhs.columns.2 == rhs.columns.2 &&
-            lhs.columns.3 == rhs.columns.3
-    }
-}
