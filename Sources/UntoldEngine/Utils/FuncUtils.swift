@@ -1000,3 +1000,4 @@ func loadTextureType(entityId: EntityID, assetName: String, path: URL) {
 }
 
 func align(_ n: Int, to alignment: Int) -> Int { (n + alignment - 1) & ~(alignment - 1) }
+//
