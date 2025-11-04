@@ -36,12 +36,23 @@ public func CreatePipeline(
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
     let depthStateDescriptor = MTLDepthStencilDescriptor()
 
+    guard renderInfo.library != nil else {
+        handleError(.metalLibraryNotFound)
+        return nil
+    }
+
     do {
-        let vertexFunction = renderInfo.library.makeFunction(name: vertexShader)!
+        guard let vertexFunction = renderInfo.library.makeFunction(name: vertexShader) else {
+            handleError(.shaderCreationFailed, vertexShader)
+            return nil
+        }
         pipelineDescriptor.vertexFunction = vertexFunction
 
         if let fragmentShader {
-            let fragmentFunction = renderInfo.library.makeFunction(name: fragmentShader)!
+            guard let fragmentFunction = renderInfo.library.makeFunction(name: fragmentShader) else {
+                handleError(.shaderCreationFailed, fragmentShader)
+                return nil
+            }
             pipelineDescriptor.fragmentFunction = fragmentFunction
         }
 
