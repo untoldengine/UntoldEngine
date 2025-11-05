@@ -178,6 +178,16 @@ func buildFrustum(from viewProj: simd_float4x4,
 func initFrustumCulllingCompute() {
     let numBlocks = (Int32(MAX_ENTITIES) + BLOCK_SIZE - 1) / BLOCK_SIZE
 
+    if renderInfo.device == nil {
+        handleError(.metalDeviceNotFound)
+        return
+    }
+
+    if renderInfo.library == nil {
+        handleError(.metalLibraryNotFound)
+        return
+    }
+
     // Create Pipelines
     createComputePipeline(
         into: &frustumCullingPipeline,
