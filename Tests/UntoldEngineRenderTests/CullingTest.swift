@@ -12,42 +12,11 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-final class CullingTest: XCTestCase {
+final class CullingTest: BaseRenderSetup {
     var camera: EntityID!
-    var renderer: UntoldRenderer!
-    var window: NSWindow!
 
     override func setUp() {
         super.setUp()
-        let windowWidth = 1280
-        let windowHeight = 720
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-
-        window.title = "Test Window"
-
-        // Initialize the renderer
-        guard let renderer = UntoldRenderer.create() else {
-            XCTFail("Failed to initialize the renderer.")
-            return
-        }
-
-        window.contentView = renderer.metalView
-
-        self.renderer = renderer
-
-        // Initialize resources
-        self.renderer.initResources()
-
-        // Initialize projection
-        let aspect = Float(windowWidth) / Float(windowHeight)
-        let projectionMatrix = matrixPerspectiveRightHand(
-            fovyRadians: degreesToRadians(degrees: fov),
-            aspectRatio: aspect,
-            nearZ: near,
-            farZ: far
-        )
-
-        renderInfo.perspectiveSpace = projectionMatrix
 
         camera = createEntity()
         createGameCamera(entityId: camera)

@@ -12,10 +12,7 @@ import Foundation
 @testable import UntoldEngine
 import XCTest
 
-final class GpuKernelTests: XCTestCase {
-    var renderer: UntoldRenderer!
-    var window: NSWindow!
-
+final class GpuKernelTests: BaseRenderSetup {
     var pLocal: MTLComputePipelineState!
     var pBlock: MTLComputePipelineState!
     var pCompact: MTLComputePipelineState!
@@ -24,24 +21,6 @@ final class GpuKernelTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        let windowWidth = 1280
-        let windowHeight = 720
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-
-        window.title = "Test Window"
-
-        // Initialize the renderer
-        guard let renderer = UntoldRenderer.create() else {
-            XCTFail("Failed to initialize the renderer.")
-            return
-        }
-
-        window.contentView = renderer.metalView
-
-        self.renderer = renderer
-
-        // Initialize resources
-        self.renderer.initResources()
 
         pLocal = reduceScanLocalScanPipeline.pipelineState
         pBlock = reduceScanBlockScanPipeline.pipelineState
