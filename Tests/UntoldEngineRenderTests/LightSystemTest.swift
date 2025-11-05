@@ -12,36 +12,16 @@ import Foundation
 @testable import UntoldEngine
 import XCTest
 
-final class LightSystemTest: XCTestCase {
-    var renderer: UntoldRenderer!
-    var window: NSWindow!
-
+final class LightSystemTest: BaseRenderSetup {
     // MARK: - Setup and Teardown
 
     override func setUp() {
         super.setUp()
-        let windowWidth = 1280
-        let windowHeight = 720
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-
-        window.title = "Test Window"
-
-        // Initialize the renderer
-        guard let renderer = UntoldRenderer.create() else {
-            XCTFail("Failed to initialize the renderer.")
-            return
-        }
-
-        window.contentView = renderer.metalView
-
-        self.renderer = renderer
-
-        // Initialize resources
-        self.renderer.initResources()
     }
 
     override func tearDown() {
         super.tearDown()
+        destroyAllEntities()
     }
 
     // MARK: - Light Tests
@@ -166,6 +146,7 @@ final class LightSystemTest: XCTestCase {
     }
 
     func testGetPointLightCount() {
+        destroyAllEntities()
         let entityId0: EntityID = createEntity()
         let entityId1: EntityID = createEntity()
 
@@ -179,13 +160,14 @@ final class LightSystemTest: XCTestCase {
     }
 
     func testGetSpotLightCount() {
+        destroyAllEntities()
         let entityId0: EntityID = createEntity()
         let entityId1: EntityID = createEntity()
 
         createSpotLight(entityId: entityId0)
         createSpotLight(entityId: entityId1)
 
-        XCTAssertEqual(getSpotLightCount(), 2, "There should be two point lights")
+        XCTAssertEqual(getSpotLightCount(), 2, "There should be two spot lights")
 
         destroyEntity(entityId: entityId0)
         destroyEntity(entityId: entityId1)
