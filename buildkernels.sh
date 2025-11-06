@@ -3,7 +3,7 @@
 cd Sources/UntoldEngine/UntoldEngineKernels
 
 # mac (device)
-xcrun -sdk macosx metal UntoldEngineKernels.metal -c -o UntoldEngineKernels.air
+xcrun -sdk macosx metal -std=metal3.1 UntoldEngineKernels.metal -c -o UntoldEngineKernels.air
 
 xcrun -sdk macosx metallib UntoldEngineKernels.air -o UntoldEngineKernels.metallib
 
