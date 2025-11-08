@@ -282,4 +282,5 @@ public enum UntoldImmersionMode {
     case none
     case mixed
     case full
+    case ar
 }

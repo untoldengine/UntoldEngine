@@ -1079,7 +1079,7 @@ public enum RenderPasses {
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
 
-        if renderInfo.immersionStyle == .none {
+        if renderInfo.immersionStyle == .none || renderInfo.immersionStyle == .ar {
             renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
         } else {
             renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, Double(getAlphaForImmersionMode()))

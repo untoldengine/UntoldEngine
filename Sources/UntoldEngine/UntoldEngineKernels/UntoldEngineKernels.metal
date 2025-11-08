@@ -26,6 +26,7 @@ using namespace metal;
 #include "../Shaders/LightShader.metal"
 #include "../Shaders/SSAOBlurShader.metal"
 #include "../Shaders/FrustumCullingCompute.metal"
+#include "../Shaders/ARShader.metal"
 
 // Shaders used by editor when in edit mode- These pipeline is ignored by iOS since iOS will never be in edit mode
 #include "../Shaders/OutlineShader.metal"

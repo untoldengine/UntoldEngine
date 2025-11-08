@@ -1003,7 +1003,7 @@ func align(_ n: Int, to alignment: Int) -> Int { (n + alignment - 1) & ~(alignme
 
 public func getAlphaForImmersionMode() -> Float {
     switch renderInfo.immersionStyle {
-    case .none, .full:
+    case .none, .full, .ar:
         return 1.0
     case .mixed:
         return 0.0

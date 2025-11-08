@@ -364,6 +364,22 @@ typedef enum{
     compactPassVisibilityCountIndex
 }ScatterCompactBufferIndices;
 
+typedef enum {
+    imagePlaneARPositions    = 0,
+} ARBufferIndices;
+
+typedef enum {
+    kVertexAttributePosition  = 0,
+    kVertexAttributeTexcoord  = 1,
+    kVertexAttributeNormal    = 2
+} ARVertexAttributes;
+
+typedef enum {
+    textureARIndexColor    = 0,
+    textureARIndexY        = 1,
+    textureARIndexCbCr     = 2
+} ARTextureIndices;
+
 //Ray tracing structs
 #define GEOMETRY_MASK_TRIANGLE 1
 #define GEOMETRY_MASK_SPHERE   2
