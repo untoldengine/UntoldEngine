@@ -1061,68 +1061,6 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    public static let compositeExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-        guard let compositePipeline = PipelineManager.shared.renderPipelinesByType[.composite] else {
-            handleError(.pipelineStateNulled, "compositePipeline is nil")
-            return
-        }
-
-        if !compositePipeline.success {
-            handleError(.pipelineStateNulled, compositePipeline.name!)
-            return
-        }
-
-        let renderPassDescriptor = renderInfo.renderPassDescriptor!
-
-        // set the states for the pipeline
-        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
-        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
-
-        // clear it so that it doesn't have any effect on the final output
-        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
-
-        // set your encoder here
-        guard
-            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
-        else {
-            handleError(.renderPassCreationFailed, "Composite Pass")
-            return
-        }
-
-        defer {
-            // Make sure no matter what we end the encoding at the end of the function
-            renderEncoder.popDebugGroup()
-            renderEncoder.endEncoding()
-        }
-
-        renderEncoder.label = "Composite Pass"
-
-        renderEncoder.pushDebugGroup("Composite Pass")
-
-        renderEncoder.setRenderPipelineState(compositePipeline.pipelineState!)
-
-        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
-
-        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
-        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
-
-        renderEncoder.setFragmentTexture(
-            renderInfo.renderPassDescriptor.colorAttachments[0].texture, index: 0
-        )
-
-        // set the draw command
-
-        renderEncoder.drawIndexedPrimitives(
-            type: .triangle,
-            indexCount: 6,
-            indexType: .uint16,
-            indexBuffer: bufferResources.quadIndexBuffer!,
-            indexBufferOffset: 0
-        )
-
-        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-    }
-
     public static let preCompositeExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
         guard let preCompositePipeline = PipelineManager.shared.renderPipelinesByType[.preComposite] else {
             handleError(.pipelineStateNulled, "preCompositePipeline is nil")
@@ -1155,7 +1093,8 @@ public enum RenderPasses {
 
             renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].loadAction = .load
         } else {
-            renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
+            renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .clear
+            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
             renderInfo.postProcessRenderPassDescriptor.colorAttachments[0]
                 .loadAction = .load
 
