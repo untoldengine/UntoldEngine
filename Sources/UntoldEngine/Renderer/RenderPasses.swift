@@ -144,8 +144,6 @@ public enum RenderPasses {
 
         renderEncoder.setRenderPipelineState(environmentPipeline.pipelineState!)
 
-        renderEncoder.setDepthStencilState(environmentPipeline.depthState)
-
         var environmentConstants = EnvironmentConstants()
         environmentConstants.modelMatrix = matrix4x4Identity()
         environmentConstants.environmentRotation = matrix4x4Identity()
