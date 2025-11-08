@@ -30,13 +30,13 @@ func UpdateRenderingSystem(in view: MTKView) {
             commandBuffer.label = "Rendering Command Buffer"
 
             // build a render graph
-            var (graph, preCompID) = buildGameModeGraph()
+            let (graph, _) = buildGameModeGraph()
 
-            let compositePass = RenderPass(
-                id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-            )
-
-            graph[compositePass.id] = compositePass
+//            let compositePass = RenderPass(
+//                id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
+//            )
+//
+//            graph[compositePass.id] = compositePass
 
             // sorted it
             let sortedPasses = try! topologicalSortGraph(graph: graph)
@@ -68,13 +68,7 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     commandBuffer.label = "XR Rendering Command Buffer"
 
     // build a render graph
-    var (graph, preCompID) = buildGameModeGraph()
-
-    let compositePass = RenderPass(
-        id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-    )
-
-    graph[compositePass.id] = compositePass
+    let (graph, _) = buildGameModeGraph()
 
     // sorted it
     let sortedPasses = try! topologicalSortGraph(graph: graph)
