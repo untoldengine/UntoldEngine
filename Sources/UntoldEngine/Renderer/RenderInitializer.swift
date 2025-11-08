@@ -348,7 +348,7 @@ func initRenderPassDescriptors() {
         colorAttachments: [
             (textureResources.environmentColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (nil, .dontCare, .store, nil)
+        depthAttachment: (textureResources.depthMap, .dontCare, .dontCare, nil)
     )
 
     // Shadow Render Pass
@@ -698,7 +698,7 @@ func initTextureResources() {
     textureResources.environmentColorMap = createTexture(
         device: renderInfo.device,
         label: "Environment Color Texture",
-        pixelFormat: .rgba8Unorm_srgb,
+        pixelFormat: .bgra8Unorm_srgb,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],

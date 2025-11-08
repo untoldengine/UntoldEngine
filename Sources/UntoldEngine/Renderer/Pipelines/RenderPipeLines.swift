@@ -400,7 +400,7 @@ public func InitEnvironmentPipeline() -> RenderPipeline? {
         fragmentShader: "fragmentEnvironmentShader",
         vertexDescriptor: createEnvironmentVertexDescriptor(),
         colorFormats: [.bgra8Unorm_srgb],
-        depthFormat: renderInfo.depthPixelFormat,
+        depthFormat: MTLPixelFormat.invalid,
         depthEnabled: false,
         name: "Environment Pipeline"
     ) else {
