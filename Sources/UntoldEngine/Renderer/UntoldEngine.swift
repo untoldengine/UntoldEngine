@@ -315,4 +315,38 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     public func getConfiguration() -> UntoldRendererConfig {
         configuration
     }
+
+    public static func createAR(configuration: UntoldRendererConfig? = nil, device: MTLDevice, view: MTKView) -> UntoldRenderer? {
+        let renderer = UntoldRenderer(configuration: configuration)
+
+        renderInfo.device = device
+
+        guard let commandQueue = device.makeCommandQueue() else {
+            print("Error: Failed to create a Metal command queue.")
+            return nil
+        }
+
+        renderInfo.commandQueue = commandQueue
+        renderInfo.colorPixelFormat = view.colorPixelFormat
+        renderInfo.depthPixelFormat = view.depthStencilPixelFormat
+        renderInfo.viewPort = simd_float2(Float(view.bounds.size.width), Float(view.bounds.size.height))
+
+        renderInfo.fence = renderInfo.device.makeFence()
+        renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
+        renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
+
+        do {
+            let mainLibrary = try renderInfo.device.makeLibraryFromBundle()
+            renderInfo.library = mainLibrary
+            Logger.log(message: "Found Untold Engine metallib")
+        } catch {
+            Logger.logError(message: "Failed to load metallib: \(error)")
+        }
+
+        renderer.initResources()
+
+        renderInfo.immersionStyle = .ar
+
+        return renderer
+    }
 }

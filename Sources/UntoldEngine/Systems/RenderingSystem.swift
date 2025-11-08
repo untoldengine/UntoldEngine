@@ -89,6 +89,7 @@ public typealias RenderGraphResult = (graph: [String: RenderPass], finalPassID: 
 enum BasePassMode {
     case environment
     case grid
+    case ar
     case none
 }
 
@@ -109,7 +110,7 @@ func addSceneBackgroundPass(
         )
         graph[gridPass.id] = gridPass
         return gridPass.id
-    case .none:
+    case .none, .ar:
         return nil
     }
 }
@@ -129,6 +130,8 @@ public func buildGameModeGraph() -> RenderGraphResult {
     case .full:
         // XR full immersion: use environment
         mode = .environment
+    case .ar:
+        mode = .ar
     @unknown default:
         mode = renderEnvironment ? .environment : .grid
     }

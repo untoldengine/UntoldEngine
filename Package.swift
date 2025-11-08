@@ -17,6 +17,8 @@ let package = Package(
 
         .library(name: "UntoldEngineXR", targets: ["UntoldEngineXR"]),
 
+        .library(name: "UntoldEngineAR", targets: ["UntoldEngineAR"]),
+
         // Executable for the demo game
         .executable(
             name: "DemoGame",
@@ -83,6 +85,21 @@ let package = Package(
                 .linkedFramework("Metal", .when(platforms: [.visionOS])),
                 .linkedFramework("CompositorServices", .when(platforms: [.visionOS])),
                 .linkedFramework("ARKit", .when(platforms: [.visionOS])),
+            ]
+        ),
+        // iOS AR target
+        .target(
+            name: "UntoldEngineAR",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/UntoldEngineAR",
+            swiftSettings: [
+                .define("AR_AVAILABLE", .when(platforms: [.iOS])),
+                .swiftLanguageMode(.v5),
+            ],
+            linkerSettings: [
+                .linkedFramework("Metal", .when(platforms: [.iOS])),
+                .linkedFramework("MetalKit", .when(platforms: [.iOS])),
+                .linkedFramework("ARKit", .when(platforms: [.iOS])),
             ]
         ),
         // These executables are macOS-only
