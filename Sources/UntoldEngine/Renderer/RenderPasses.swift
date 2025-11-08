@@ -56,7 +56,7 @@ public enum RenderPasses {
 
         // create the encoder
 
-        let encoderDescriptor = renderInfo.renderPassDescriptor!
+        let encoderDescriptor = renderInfo.environmentRenderPassDescriptor!
         encoderDescriptor.colorAttachments[0].clearColor = mtkBackgroundColor
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
         encoderDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
@@ -116,7 +116,7 @@ public enum RenderPasses {
             return
         }
 
-        let encoderDescriptor = renderInfo.renderPassDescriptor!
+        let encoderDescriptor = renderInfo.environmentRenderPassDescriptor!
 
         encoderDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1)
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
@@ -1190,7 +1190,7 @@ public enum RenderPasses {
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
         renderEncoder.setFragmentTexture(
-            renderInfo.renderPassDescriptor.colorAttachments[0].texture, index: Int(prePassEnvTextureIndex.rawValue)
+            renderInfo.environmentRenderPassDescriptor.colorAttachments[0].texture, index: Int(prePassEnvTextureIndex.rawValue)
         )
 
         if gameMode == false {
