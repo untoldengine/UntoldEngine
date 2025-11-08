@@ -341,6 +341,16 @@ func initRTXAccumulationBuffer() {
 }
 
 func initRenderPassDescriptors() {
+    // Environment Render Pass
+    renderInfo.environmentRenderPassDescriptor = createRenderPassDescriptor(
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        colorAttachments: [
+            (textureResources.environmentColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+        ],
+        depthAttachment: (nil, .dontCare, .store, nil)
+    )
+
     // Shadow Render Pass
     renderInfo.shadowRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(shadowResolution.x),
@@ -679,6 +689,16 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Gizmo Color Texture",
         pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+
+    textureResources.environmentColorMap = createTexture(
+        device: renderInfo.device,
+        label: "Environment Color Texture",
+        pixelFormat: .rgba8Unorm_srgb,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
