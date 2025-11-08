@@ -38,7 +38,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
 
         // Build the render graph using the same logic as UpdateXRRenderingSystem
-        var (graph, preCompID) = buildGameModeGraph()
+        let (graph, preCompID) = buildGameModeGraph()
 
         // Verify that full immersion mode creates the environment pass
         XCTAssertNotNil(graph["environment"], "Full immersion mode should create environment pass")
@@ -57,24 +57,13 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         XCTAssertEqual(graph["shadow"]?.dependencies, ["environment"],
                        "Shadow should depend on environment in full immersion mode")
 
-        // Add composite pass as UpdateXRRenderingSystem does
-        let compositePass = RenderPass(
-            id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-        )
-        graph[compositePass.id] = compositePass
-
-        // Verify composite pass was added
-        XCTAssertNotNil(graph["composite"], "Composite pass should be added to graph")
-        XCTAssertEqual(graph["composite"]?.dependencies, [preCompID],
-                       "Composite pass should depend on the final pass from buildGameModeGraph")
-
         // Verify the graph can be topologically sorted
         let sortedPasses = try! topologicalSortGraph(graph: graph)
         XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
 
-        // Verify composite is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "composite",
-                       "Composite should be the last pass in the sorted order")
+        // Verify precomp is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "precomp",
+                       "Precomp should be the last pass in the sorted order")
 
         // Verify environment comes before composite in the sorted order
         let order = sortedPasses.map(\.id)
@@ -83,7 +72,6 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
             ("shadow", "model"),
             ("model", "lightPass"),
             ("lightPass", "depthOfField"),
-            ("precomp", "composite"),
         ])
     }
 
@@ -120,7 +108,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
 
         // Build the render graph using the same logic as UpdateXRRenderingSystem
-        var (graph, preCompID) = buildGameModeGraph()
+        let (graph, preCompID) = buildGameModeGraph()
 
         // Verify that passthrough mode does not create environment or grid passes
         XCTAssertNil(graph["environment"], "Passthrough mode should not create environment pass")
@@ -139,24 +127,13 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         XCTAssertEqual(graph["shadow"]?.dependencies, [],
                        "Shadow should have no dependencies in passthrough mode")
 
-        // Add composite pass as UpdateXRRenderingSystem does
-        let compositePass = RenderPass(
-            id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-        )
-        graph[compositePass.id] = compositePass
-
-        // Verify composite pass was added
-        XCTAssertNotNil(graph["composite"], "Composite pass should be added to graph")
-        XCTAssertEqual(graph["composite"]?.dependencies, [preCompID],
-                       "Composite pass should depend on the final pass from buildGameModeGraph")
-
         // Verify the graph can be topologically sorted
         let sortedPasses = try! topologicalSortGraph(graph: graph)
         XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
 
-        // Verify composite is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "composite",
-                       "Composite should be the last pass in the sorted order")
+        // Verify precomp is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "precomp",
+                       "Precomp should be the last pass in the sorted order")
     }
 
     func testUpdateXRRenderingSystem_PassthroughHasNoBasePass() {
@@ -175,65 +152,41 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
                        "Shadow pass should have no dependencies in passthrough mode")
     }
 
-    // MARK: - Composite Pass Dependency Tests
+    // MARK: - Final Pass Tests
 
-    func testUpdateXRRenderingSystem_CompositePassDependsOnFinalPassFromBuildGameModeGraph() {
+    func testUpdateXRRenderingSystem_PrecompIsTheFinalPass() {
         // Test with full immersion
         renderInfo.immersionStyle = .full
 
-        var (graph, preCompID) = buildGameModeGraph()
+        let (graph, preCompID) = buildGameModeGraph()
 
         // Verify preCompID is "precomp"
         XCTAssertEqual(preCompID, "precomp", "buildGameModeGraph should return 'precomp' as final pass ID")
 
-        // Add composite pass as UpdateXRRenderingSystem does
-        let compositePass = RenderPass(
-            id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-        )
-        graph[compositePass.id] = compositePass
-
-        // Verify composite depends on precomp
-        XCTAssertEqual(graph["composite"]?.dependencies, ["precomp"],
-                       "Composite pass should depend on precomp (the final pass from buildGameModeGraph)")
-
         // Verify the dependency chain is correct
         let sortedPasses = try! topologicalSortGraph(graph: graph)
-        let order = sortedPasses.map(\.id)
 
-        // Precomp must come before composite
-        guard let precompIndex = order.firstIndex(of: "precomp"),
-              let compositeIndex = order.firstIndex(of: "composite")
-        else {
-            XCTFail("Both precomp and composite should be in the sorted order")
-            return
-        }
-
-        XCTAssertTrue(precompIndex < compositeIndex,
-                      "Precomp must come before composite in topological order")
+        // Verify precomp is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "precomp",
+                       "Precomp should be the last pass in topological order")
     }
 
-    func testUpdateXRRenderingSystem_CompositePassIsLastInTopologicalOrder() {
+    func testUpdateXRRenderingSystem_PrecompIsLastInTopologicalOrder() {
         // Test with passthrough mode
         renderInfo.immersionStyle = .mixed
 
-        var (graph, preCompID) = buildGameModeGraph()
-
-        // Add composite pass
-        let compositePass = RenderPass(
-            id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-        )
-        graph[compositePass.id] = compositePass
+        let (graph, _) = buildGameModeGraph()
 
         // Sort the graph
         let sortedPasses = try! topologicalSortGraph(graph: graph)
 
-        // Verify composite is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "composite",
-                       "Composite should be the last pass in the render graph")
+        // Verify precomp is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "precomp",
+                       "Precomp should be the last pass in the render graph")
     }
 
-    func testUpdateXRRenderingSystem_CompositeDependsOnCorrectFinalPassInAllModes() {
-        // Test in all immersion modes to ensure composite always depends on the correct final pass
+    func testUpdateXRRenderingSystem_PrecompIsCorrectFinalPassInAllModes() {
+        // Test in all immersion modes to ensure precomp is the final pass
 
         let modes: [(UntoldImmersionMode, String)] = [
             (.none, "none"),
@@ -244,31 +197,17 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         for (mode, description) in modes {
             renderInfo.immersionStyle = mode
 
-            var (graph, preCompID) = buildGameModeGraph()
+            let (graph, preCompID) = buildGameModeGraph()
 
-            // Add composite pass
-            let compositePass = RenderPass(
-                id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-            )
-            graph[compositePass.id] = compositePass
-
-            // Verify composite depends on the returned preCompID
-            XCTAssertEqual(graph["composite"]?.dependencies, [preCompID],
-                           "Composite should depend on '\(preCompID)' in \(description) mode")
+            // Verify precomp is the final pass
+            XCTAssertEqual(preCompID, "precomp",
+                           "Final pass should be 'precomp' in \(description) mode")
 
             // Verify topological ordering
             let sortedPasses = try! topologicalSortGraph(graph: graph)
-            let order = sortedPasses.map(\.id)
 
-            guard let finalPassIndex = order.firstIndex(of: preCompID),
-                  let compositeIndex = order.firstIndex(of: "composite")
-            else {
-                XCTFail("Both final pass '\(preCompID)' and composite should exist in \(description) mode")
-                continue
-            }
-
-            XCTAssertTrue(finalPassIndex < compositeIndex,
-                          "Final pass '\(preCompID)' should come before composite in \(description) mode")
+            XCTAssertEqual(sortedPasses.last?.id, preCompID,
+                           "Precomp should be the last pass in \(description) mode")
         }
     }
 
@@ -288,19 +227,14 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
 
         // This simulates what UpdateXRRenderingSystem does
-        var (graph, preCompID) = buildGameModeGraph()
-
-        let compositePass = RenderPass(
-            id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-        )
-        graph[compositePass.id] = compositePass
+        let (graph, _) = buildGameModeGraph()
 
         // Verify the entire graph is valid
         let sortedPasses = try! topologicalSortGraph(graph: graph)
 
         XCTAssertTrue(sortedPasses.count > 0, "Should have a valid sorted pass list")
         XCTAssertNotNil(graph["environment"], "Full immersion should have environment pass")
-        XCTAssertEqual(sortedPasses.last?.id, "composite", "Composite should be the final pass")
+        XCTAssertEqual(sortedPasses.last?.id, "precomp", "Precomp should be the final pass")
     }
 
     func testUpdateXRRenderingSystem_FullWorkflowWithPassthrough() {
@@ -317,12 +251,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
 
         // This simulates what UpdateXRRenderingSystem does
-        var (graph, preCompID) = buildGameModeGraph()
-
-        let compositePass = RenderPass(
-            id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-        )
-        graph[compositePass.id] = compositePass
+        let (graph, _) = buildGameModeGraph()
 
         // Verify the entire graph is valid
         let sortedPasses = try! topologicalSortGraph(graph: graph)
@@ -330,7 +259,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         XCTAssertTrue(sortedPasses.count > 0, "Should have a valid sorted pass list")
         XCTAssertNil(graph["environment"], "Passthrough should not have environment pass")
         XCTAssertNil(graph["grid"], "Passthrough should not have grid pass")
-        XCTAssertEqual(sortedPasses.last?.id, "composite", "Composite should be the final pass")
+        XCTAssertEqual(sortedPasses.last?.id, "precomp", "Precomp should be the final pass")
     }
 
     // MARK: - Helper Methods
