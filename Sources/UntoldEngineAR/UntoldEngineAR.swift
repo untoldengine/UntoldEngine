@@ -240,7 +240,7 @@
         }
 
         func drawCapturedImage(commandBuffer: MTLCommandBuffer) {
-            guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderInfo.renderPassDescriptor)
+            guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderInfo.environmentRenderPassDescriptor)
             else {
                 handleError(.renderPassCreationFailed, "AR Pass")
                 return
