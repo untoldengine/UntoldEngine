@@ -1,5 +1,5 @@
 //
-//  XRSystem_CompositorServices.swift
+//  UntoldEngineXR.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -24,8 +24,8 @@
     }
 
     enum XRLayerState { case paused, running, invalidated }
-
-    public final class CompositorXRSystem: XRSystem {
+    @MainActor
+    public final class UntoldEngineXR {
         private var renderer: UntoldRenderer?
         private var _isRunning = false
         private let lock = NSLock()
