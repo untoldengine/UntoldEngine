@@ -316,7 +316,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         configuration
     }
 
-    public static func createAR(configuration: UntoldRendererConfig? = nil, device: MTLDevice, view: MTKView) -> UntoldRenderer? {
+    public static func createiOS(configuration: UntoldRendererConfig? = nil, device: MTLDevice, view: MTKView, immersionStyle: UntoldImmersionMode = .none) -> UntoldRenderer? {
         let renderer = UntoldRenderer(configuration: configuration)
 
         renderInfo.device = device
@@ -345,8 +345,13 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         renderer.initResources()
 
-        renderInfo.immersionStyle = .ar
-
+        renderInfo.immersionStyle = immersionStyle
         return renderer
+    }
+
+    // MARK: - AR Entry Point (iOS)
+
+    public static func createAR(configuration: UntoldRendererConfig? = nil, device: MTLDevice, view: MTKView) -> UntoldRenderer? {
+        createiOS(configuration: configuration, device: device, view: view, immersionStyle: .ar)
     }
 }
