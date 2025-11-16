@@ -65,19 +65,19 @@ public func CreatePipeline(
             if blendEnabled {
                 attachment?.isBlendingEnabled = true
                 attachment?.rgbBlendOperation = .add
-                attachment?.sourceRGBBlendFactor = .sourceAlpha
+                attachment?.sourceRGBBlendFactor = .one
                 attachment?.destinationRGBBlendFactor = .oneMinusSourceAlpha
-                
+
                 attachment?.alphaBlendOperation = .add
-                attachment?.sourceAlphaBlendFactor = .sourceAlpha
+                attachment?.sourceAlphaBlendFactor = .one
                 attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
-                
-            }else if gaussianBlending{
+
+            } else if gaussianBlending {
                 attachment?.isBlendingEnabled = true
                 attachment?.rgbBlendOperation = .add
                 attachment?.sourceRGBBlendFactor = .oneMinusDestinationAlpha
                 attachment?.destinationRGBBlendFactor = .one
-                
+
                 attachment?.alphaBlendOperation = .add
                 attachment?.sourceAlphaBlendFactor = .oneMinusDestinationAlpha
                 attachment?.destinationAlphaBlendFactor = .one
@@ -245,6 +245,7 @@ public func InitPreCompositePipeline() -> RenderPipeline? {
         colorFormats: [.bgra8Unorm_srgb],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
+        blendEnabled: true,
         name: "Pre-Composite Pipeline"
     )
 }
@@ -526,6 +527,7 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.ssaoBlur, InitSSAOBlurPipeline),
         (.environment, InitEnvironmentPipeline),
         (.iblPreFilter, InitIBLPreFilterPipeline),
+        (.gaussian, InitGaussianPipeline),
     ]
 }
 

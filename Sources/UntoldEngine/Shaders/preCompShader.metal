@@ -26,20 +26,25 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
                                         texture2d<float> envTexture[[texture(prePassEnvTextureIndex)]],
                                         depth2d<float> depthTexture [[texture(prePassDepthTextureIndex)]],
                                         texture2d<float> gizmoTexture [[texture(prePassGizmoTextureIndex)]],
+                                        texture2d<float> gaussianTexture [[texture(prePassGaussianTextureIndex)]],
                                         constant bool &isGameMode [[ buffer(prePassGizmoBufferIndex) ]],
                                         constant bool &isPassthrough [[buffer(prePassPassthroughBufferIndex)]]){
 
     constexpr sampler s(min_filter::linear, mag_filter::linear);
 
-    // Sample depth
-    //float depth = depthTexture.sample(s, vertexOut.uvCoords);
     // Sample textures
     float4 envColor = envTexture.sample(s, vertexOut.uvCoords);
     float4 modelColor = finalTexture.sample(s, vertexOut.uvCoords);
-    float lumen =getLuminance(modelColor.rgb);
+    float4 gaussianColor = gaussianTexture.sample(s, vertexOut.uvCoords);
+    
+    float lumen = getLuminance(modelColor.rgb);
     float blendFactor = (lumen == 0.0) ? 1.0 : 0.0;
     // Blend: show grid if there's no model
     float4 baseColor = mix(modelColor, (isPassthrough == false) ? envColor : float4(0.0,0.0,0.0,0.0), blendFactor);
+    
+    // Composite Gaussians (occlusion handled during Gaussian rendering)
+    baseColor.rgb = gaussianColor.rgb + baseColor.rgb * (1.0 - gaussianColor.a);
+    baseColor.a = gaussianColor.a + baseColor.a * (1.0 - gaussianColor.a);
 
     // Sample gizmo
     float3 gizmoColor = gizmoTexture.sample(s, vertexOut.uvCoords).rgb;

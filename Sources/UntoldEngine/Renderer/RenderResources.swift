@@ -149,7 +149,7 @@ public struct TextureResources {
 
     // SSAO
     public var ssaoNoiseTexture: MTLTexture?
-    
+
     // Gaussian
     public var gaussianColorMap: MTLTexture?
 }

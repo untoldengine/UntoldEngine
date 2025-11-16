@@ -24,6 +24,9 @@ func UpdateRenderingSystem(in view: MTKView) {
         renderInfo.lastCommandBuffer = commandBuffer
         performFrustumCulling(commandBuffer: commandBuffer)
 
+        executeGaussianDepth(commandBuffer)
+        executeBitonicSort(commandBuffer)
+
         if let renderPassDescriptor = view.currentRenderPassDescriptor {
             renderInfo.renderPassDescriptor = renderPassDescriptor
 
@@ -177,9 +180,14 @@ public func buildGameModeGraph() -> RenderGraphResult {
 
     gBufferPass(graph: &graph, shadowPass: shadowPass)
 
+    // Gaussian pass depends on model pass - needs depth buffer from 3D models
+    let gaussianPass = RenderPass(id: "gaussian", dependencies: ["model"], execute: RenderPasses.gaussianExecution)
+    graph[gaussianPass.id] = gaussianPass
+
     let postProcess = postProcessingEffects(graph: &graph, deferredPassId: "lightPass", geometryPassId: "model")
 
-    let preCompPass = RenderPass(id: "precomp", dependencies: [postProcess.id], execute: RenderPasses.preCompositeExecution)
+    // PreComposite depends on both post-processing and gaussian
+    let preCompPass = RenderPass(id: "precomp", dependencies: [postProcess.id, gaussianPass.id], execute: RenderPasses.preCompositeExecution)
     graph[preCompPass.id] = preCompPass
 
     return (graph, preCompPass.id)
