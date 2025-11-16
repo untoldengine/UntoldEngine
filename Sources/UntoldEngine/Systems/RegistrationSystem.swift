@@ -9,6 +9,7 @@
 //  Copyright © 2024 Untold Engine Studios. All rights reserved.
 //
 
+import CShaderTypes
 import Foundation
 import MetalKit
 
@@ -601,4 +602,66 @@ public func loadRawMesh(
     // ---- Fallback path: fabricate a safe default mesh ----
     handleError(.assetDataMissing, filename)
     return Mesh.makeDefaultMesh()
+}
+
+public func setEntityGaussian(entityId: EntityID, path: String) throws {
+    let url = URL(fileURLWithPath: path)
+    let splats = try PLYReader.readGaussianSplats(from: url)
+
+    // Check if we exceed the buffer capacity
+    guard splats.count <= Int(maxNumOfGaussians) else {
+        handleError(.bufferAllocationFailed, "Too many Gaussian splats: \(splats.count) exceeds maximum \(maxNumOfGaussians)")
+        throw PLYError.invalidData("Too many Gaussian splats: \(splats.count) exceeds maximum \(maxNumOfGaussians)")
+    }
+
+    registerComponent(entityId: entityId, componentType: GaussianComponent.self)
+
+    guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
+        handleError(.noRenderComponent, entityId)
+        return
+    }
+
+    gaussianComponent.splatCount = UInt(splats.count)
+    var temSplatCount = UInt(splats.count)
+    let tempPowerOfTwoSplatCount: UInt = nextPowerOf2(x: &temSplatCount)
+
+    gaussianComponent.gaussianSortedIndices = renderInfo.device.makeBuffer(length: MemoryLayout<UInt64>.stride * Int(tempPowerOfTwoSplatCount), options: .storageModeShared)
+
+    gaussianComponent.splatData = renderInfo.device.makeBuffer(length: MemoryLayout<GaussianSplat>.stride * Int(gaussianComponent.splatCount), options: .storageModeShared)
+
+    // Copy to GPU buffer
+    guard let splatBuffer = gaussianComponent.splatData else {
+        handleError(.bufferAllocationFailed, "Gaussian splat buffer is nil")
+        throw PLYError.invalidData("Gaussian splat buffer not initialized")
+    }
+
+    let pointer = splatBuffer.contents().bindMemory(
+        to: GaussianSplat.self,
+        capacity: splats.count
+    )
+
+    for (index, splat) in splats.enumerated() {
+        pointer[index] = splat
+    }
+
+    gaussianComponent.spaceUniform = (0 ..< 2).compactMap { _ in
+        renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
+                                     options: [MTLResourceOptions.storageModeShared])
+    }
+
+    print("✓ Loaded \(splats.count) Gaussian splats from \(url.lastPathComponent)")
+
+    // Debug: Read back splat positions from GPU buffer
+    if let entity = queryEntitiesWithComponentIds([getComponentId(for: GaussianComponent.self)], in: scene).first {
+        if let gaussianComp = scene.get(component: GaussianComponent.self, for: entity) {
+            if let splatBuffer = gaussianComp.splatData {
+                let ptr = splatBuffer.contents().bindMemory(to: GaussianSplat.self, capacity: Int(gaussianComp.splatCount))
+                print("=== Splat Data Buffer (first 10) ===")
+                for i in 0 ..< min(10, Int(gaussianComp.splatCount)) {
+                    let splat = ptr[i]
+                    print("Splat \(i): center=(\(splat.center.x), \(splat.center.y),\(splat.center.z)), scale=(\(splat.scale.x), \(splat.scale.y),\(splat.scale.z))")
+                }
+            }
+        }
+    }
 }

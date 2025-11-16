@@ -28,6 +28,10 @@ using namespace metal;
 #include "../Shaders/FrustumCullingCompute.metal"
 #include "../Shaders/ARShader.metal"
 
+// Gaussian kernels
+#include "../Shaders/BitonicSort.metal"
+#include "../Shaders/Gaussians.metal"
+
 // Shaders used by editor when in edit mode- These pipeline is ignored by iOS since iOS will never be in edit mode
 #include "../Shaders/OutlineShader.metal"
 #include "../Shaders/raymodelIntersect.metal"

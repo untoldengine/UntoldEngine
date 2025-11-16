@@ -31,6 +31,7 @@ public func CreatePipeline(
     depthCompareFunction: MTLCompareFunction = .lessEqual,
     depthEnabled: Bool = true,
     blendEnabled: Bool = false,
+    gaussianBlending: Bool = false,
     name: String
 ) -> RenderPipeline? {
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
@@ -65,10 +66,21 @@ public func CreatePipeline(
                 attachment?.isBlendingEnabled = true
                 attachment?.rgbBlendOperation = .add
                 attachment?.sourceRGBBlendFactor = .sourceAlpha
-                attachment?.destinationRGBBlendFactor = .one
+                attachment?.destinationRGBBlendFactor = .oneMinusSourceAlpha
+                
                 attachment?.alphaBlendOperation = .add
                 attachment?.sourceAlphaBlendFactor = .sourceAlpha
                 attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+                
+            }else if gaussianBlending{
+                attachment?.isBlendingEnabled = true
+                attachment?.rgbBlendOperation = .add
+                attachment?.sourceRGBBlendFactor = .oneMinusDestinationAlpha
+                attachment?.destinationRGBBlendFactor = .one
+                
+                attachment?.alphaBlendOperation = .add
+                attachment?.sourceAlphaBlendFactor = .oneMinusDestinationAlpha
+                attachment?.destinationAlphaBlendFactor = .one
             }
         }
 
@@ -392,6 +404,22 @@ public func InitSSAOBlurPipeline() -> RenderPipeline? {
     )
 }
 
+// MARK: Gaussian pipeline
+
+public func InitGaussianPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexGaussianShader",
+        fragmentShader: "fragmentGaussianShader",
+        vertexDescriptor: createGaussianVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        blendEnabled: false,
+        gaussianBlending: true, // ✅ Enable alpha blending for Gaussian splatting
+        name: "Gaussian Pipeline"
+    )
+}
+
 // MARK: Environment pipeline
 
 public func InitEnvironmentPipeline() -> RenderPipeline? {
@@ -498,5 +526,12 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.ssaoBlur, InitSSAOBlurPipeline),
         (.environment, InitEnvironmentPipeline),
         (.iblPreFilter, InitIBLPreFilterPipeline),
+    ]
+}
+
+public func GaussianSplatPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)] {
+    DefaultPipeLines() + [
+        (.gaussian, InitGaussianPipeline),
+        (.preComposite, InitPreCompositePipeline),
     ]
 }

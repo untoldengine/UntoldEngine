@@ -26,6 +26,7 @@ public struct RenderInfo {
     public var renderPassDescriptor: MTLRenderPassDescriptor!
     public var environmentRenderPassDescriptor: MTLRenderPassDescriptor!
     public var offscreenRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var gaussianRenderPassDescriptor: MTLRenderPassDescriptor!
     public var postProcessRenderPassDescriptor: MTLRenderPassDescriptor!
     public var shadowRenderPassDescriptor: MTLRenderPassDescriptor!
     public var gizmoRenderPassDescriptor: MTLRenderPassDescriptor!
@@ -148,6 +149,9 @@ public struct TextureResources {
 
     // SSAO
     public var ssaoNoiseTexture: MTLTexture?
+    
+    // Gaussian
+    public var gaussianColorMap: MTLTexture?
 }
 
 public struct AccelStructResources {

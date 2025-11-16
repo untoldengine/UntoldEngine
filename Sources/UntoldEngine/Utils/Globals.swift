@@ -71,7 +71,8 @@ var reduceScanMarkVisiblePipeline = ComputePipeline()
 var reduceScanLocalScanPipeline = ComputePipeline()
 var reduceScanBlockScanPipeline = ComputePipeline()
 var reduceScanScatterCompactedPipeline = ComputePipeline()
-
+var bitonicSortPipeline = ComputePipeline()
+var gaussianDepthPipeline = ComputePipeline()
 // Environment Mesh
 var environmentMesh: MTKMesh!
 
