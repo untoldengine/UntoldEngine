@@ -38,4 +38,5 @@ public extension RenderPipelineType {
     static let ssaoBlur: RenderPipelineType = "ssaoBlur"
     static let environment: RenderPipelineType = "environment"
     static let iblPreFilter: RenderPipelineType = "iblPreFilter"
+    static let gaussian: RenderPipelineType = "gaussian"
 }

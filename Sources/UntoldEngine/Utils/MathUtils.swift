@@ -601,3 +601,17 @@ func safeNormalize(_ vector: simd_float3) -> simd_float3 {
     let length = simd.length(vector)
     return length > 0 ? vector / length : vector
 }
+
+func nextPowerOf2(x: inout UInt) -> UInt {
+    if x == 0 {
+        return 1
+    }
+
+    x -= 1
+    x |= x >> 1
+    x |= x >> 2
+    x |= x >> 4
+    x |= x >> 8
+    x |= x >> 16
+    return x + 1
+}

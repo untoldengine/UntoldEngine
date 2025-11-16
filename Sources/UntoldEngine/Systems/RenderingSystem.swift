@@ -32,12 +32,6 @@ func UpdateRenderingSystem(in view: MTKView) {
             // build a render graph
             let (graph, _) = buildGameModeGraph()
 
-//            let compositePass = RenderPass(
-//                id: "composite", dependencies: [preCompID], execute: RenderPasses.compositeExecution
-//            )
-//
-//            graph[compositePass.id] = compositePass
-
             // sorted it
             let sortedPasses = try! topologicalSortGraph(graph: graph)
 
@@ -79,6 +73,43 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     commandBuffer.addCompletedHandler { _ in
         needsFinalizeDestroys = true
         visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
+    }
+}
+
+func UpdateGaussianRenderingSystem(in view: MTKView) {
+    if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
+        renderInfo.lastCommandBuffer = commandBuffer
+
+        executeGaussianDepth(commandBuffer)
+        executeBitonicSort(commandBuffer)
+
+        if let renderPassDescriptor = view.currentRenderPassDescriptor {
+            renderInfo.renderPassDescriptor = renderPassDescriptor
+
+            commandBuffer.label = "Gaussian Rendering Command Buffer"
+
+            // build a render graph
+            let (graph, _) = buildGaussianGraph()
+
+            // sorted it
+            let sortedPasses = try! topologicalSortGraph(graph: graph)
+
+            // execute it
+            executeGraph(graph, sortedPasses, commandBuffer)
+        }
+
+        if let drawable = view.currentDrawable {
+            commandBuffer.present(drawable)
+        }
+
+        commandBuffer.addCompletedHandler { _ in
+            DispatchQueue.main.async {
+                needsFinalizeDestroys = true
+                visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
+            }
+        }
+
+        commandBuffer.commit()
     }
 }
 
@@ -243,6 +274,20 @@ func postProcessingEffects(graph: inout [String: RenderPass], deferredPassId: St
     graph[vignettePass.id] = vignettePass
 
     return vignettePass
+}
+
+// Gaussian render graph
+public func buildGaussianGraph() -> RenderGraphResult {
+    var graph = [String: RenderPass]()
+
+    let gaussianPass = RenderPass(id: "gaussian", dependencies: [], execute: RenderPasses.gaussianExecution)
+
+    graph[gaussianPass.id] = gaussianPass
+
+    let preCompPass = RenderPass(id: "precomp", dependencies: [gaussianPass.id], execute: RenderPasses.preCompositeExecution)
+    graph[preCompPass.id] = preCompPass
+
+    return (graph, preCompPass.id)
 }
 
 func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder) {

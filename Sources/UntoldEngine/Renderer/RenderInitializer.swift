@@ -419,6 +419,16 @@ func initRenderPassDescriptors() {
         colorAttachments: [(textureResources.gizmoColorTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0))],
         depthAttachment: (textureResources.gizmoDepthTexture, .dontCare, .store, nil)
     )
+    
+    // Gaussian Offscreen Render Pass
+    renderInfo.gaussianRenderPassDescriptor = createRenderPassDescriptor(
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        colorAttachments: [
+            (textureResources.gaussianColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+        ],
+        depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
+    )
 }
 
 func initTextureResources() {
@@ -685,6 +695,7 @@ func initTextureResources() {
         storageMode: .private
     )
 
+    // Gizmo Color texture
     textureResources.gizmoColorTexture = createTexture(
         device: renderInfo.device,
         label: "Gizmo Color Texture",
@@ -695,10 +706,22 @@ func initTextureResources() {
         storageMode: .shared
     )
 
+    // Environment color texture
     textureResources.environmentColorMap = createTexture(
         device: renderInfo.device,
         label: "Environment Color Texture",
         pixelFormat: .bgra8Unorm_srgb,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+    
+    // Gaussian Color texture
+    textureResources.gaussianColorMap = createTexture(
+        device: renderInfo.device,
+        label: "Gaussian Color Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -1060,6 +1083,13 @@ func createIBLPreFilterVertexDescriptor() -> MTLVertexDescriptor {
     vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
     vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[1].stepRate = 1
+
+    return vertexDescriptor
+}
+
+func createGaussianVertexDescriptor() -> MTLVertexDescriptor {
+    // tell the gpu how data is organized
+    let vertexDescriptor = MTLVertexDescriptor()
 
     return vertexDescriptor
 }

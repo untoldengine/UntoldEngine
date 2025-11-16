@@ -1172,6 +1172,121 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
+    static let gaussianExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        guard let gaussianPipeline = PipelineManager.shared.renderPipelinesByType[.gaussian] else {
+            handleError(.pipelineStateNulled, "Guassian Pipeline is nil")
+            return
+        }
+
+        if !gaussianPipeline.success {
+            handleError(.pipelineStateNulled, gaussianPipeline.name!)
+            return
+        }
+
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        let renderPassDescriptor = renderInfo.gaussianRenderPassDescriptor!
+
+        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
+        // renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+            handleError(.renderPassCreationFailed, "Gaussian Pass")
+            return
+        }
+
+        renderEncoder.label = "Gaussian Pass"
+
+        renderEncoder.pushDebugGroup("Gaussian Pass")
+
+        renderEncoder.setRenderPipelineState(gaussianPipeline.pipelineState!)
+
+        renderEncoder.setVertexBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianRenderViewPortIndex.rawValue))
+
+        let transformId = getComponentId(for: WorldTransformComponent.self)
+        let gaussianId = getComponentId(for: GaussianComponent.self)
+        let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+
+        for entityId in entities {
+            guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
+                handleError(.noGaussianComponent, entityId)
+                continue
+            }
+
+            guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+                handleError(.noWorldTransformComponent, entityId)
+                continue
+            }
+
+            guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+                handleError(.noLocalTransformComponent, entityId)
+                continue
+            }
+            
+            // update uniforms
+            var gaussianUniform = Uniforms()
+
+            var modelMatrix = simd_mul(worldTransformComponent.space, .identity)
+
+            let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+
+            let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+
+            let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
+
+            let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
+
+            let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
+
+            gaussianUniform.modelViewMatrix = modelViewMatrix
+
+            gaussianUniform.normalMatrix = normalMatrix
+
+            gaussianUniform.viewMatrix = viewMatrix
+
+            gaussianUniform.modelMatrix = modelMatrix
+
+            gaussianUniform.cameraPosition = cameraComponent.localPosition
+
+            gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
+
+            if let gaussianUniformBuffer = gaussianComponent.spaceUniform[renderInfo.currentEye] {
+                gaussianUniformBuffer.contents().copyMemory(
+                    from: &gaussianUniform, byteCount: MemoryLayout<Uniforms>.stride
+                )
+            } else {
+                handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
+                return
+            }
+
+            renderEncoder.setVertexBuffer(
+                gaussianComponent.spaceUniform[renderInfo.currentEye], offset: 0, index: Int(gaussianRenderUniformIndex.rawValue)
+            )
+
+            // bind data here
+            renderEncoder.setVertexBuffer(
+                  gaussianComponent.gaussianSortedIndices,
+                  offset: 0,
+                  index: Int(gaussianRenderIndicesIndex.rawValue)
+            )
+
+            renderEncoder.setVertexBuffer(gaussianComponent.splatData, offset: 0, index: Int(gaussianRenderSplatIndex.rawValue))
+
+            renderEncoder.drawPrimitives(type: .triangleStrip,
+                                         vertexStart: 0,
+                                         vertexCount: 4,
+                                         instanceCount: Int(gaussianComponent.splatCount))
+        }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
+    }
+
     static func executePostProcess(
         _ pipeline: RenderPipeline,
         source: MTLTexture,

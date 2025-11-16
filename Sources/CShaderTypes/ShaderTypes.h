@@ -380,6 +380,33 @@ typedef enum {
     textureARIndexCbCr     = 2
 } ARTextureIndices;
 
+typedef enum{
+    gaussianSplatIndex,
+    gaussianUniformIndex,
+    gaussianNumberOfSplatsIndex,
+    gaussianIndicesIndex,
+    gaussianSubArraySizeIndex,
+    gaussianComparisonDistanceIndex,
+}BitonicSortBufferIndices;
+
+typedef struct{
+    simd_float4 center;
+    simd_float4 scale;
+    simd_float4 color;
+    simd_float4 quat;
+    float opacity;
+}GaussianSplat;
+
+
+typedef enum{
+      gaussianRenderIndicesIndex = 0,
+      gaussianRenderSplatIndex,
+      gaussianRenderUniformIndex,
+      gaussianRenderFocalXIndex,
+      gaussianRenderFocalYIndex,
+      gaussianRenderViewPortIndex,
+  }GaussianRenderBufferIndices;
+
 //Ray tracing structs
 #define GEOMETRY_MASK_TRIANGLE 1
 #define GEOMETRY_MASK_SPHERE   2

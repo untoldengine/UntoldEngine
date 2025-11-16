@@ -59,6 +59,15 @@ public class RenderComponent: Component {
     }
 }
 
+public class GaussianComponent: Component {
+    var splatData: MTLBuffer?
+    var gaussianSortedIndices: MTLBuffer?
+    public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: 2)
+    var splatCount: UInt = 0
+
+    public required init() {}
+}
+
 public class PhysicsComponents: Component {
     var mass: Float = 1.0
     var centerOfMass: simd_float3 = .zero

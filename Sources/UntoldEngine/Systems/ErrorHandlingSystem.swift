@@ -73,6 +73,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case noAreaLightComponent = 1062
     case metalLibraryNotFound = 1063
     case metalDeviceNotFound = 1064
+    case noGaussianComponent = 1065
 
     public var description: String {
         switch self {
@@ -202,6 +203,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Metal library not found"
         case .metalDeviceNotFound:
             return "Metal Device not found"
+        case .noGaussianComponent:
+            return "Gaussian Component missing"
         }
     }
 }

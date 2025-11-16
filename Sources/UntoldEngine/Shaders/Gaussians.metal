@@ -1,0 +1,252 @@
+#include <metal_stdlib>
+#include "../../CShaderTypes/ShaderTypes.h"
+#include "ShaderStructs.h"
+#include "ShadersUtils.h"
+
+using namespace metal;
+
+inline uint unpackIndex(uint64_t packed)  { return (uint)(packed & 0xffffffffu); }
+inline uint unpackDepthKey(uint64_t packed) { return (uint)(packed >> 32); }
+
+// Build 3×3 covariance in local/model space from scale and quaternion
+float3x3 computeCov3D(float3 scale, float4 q)
+{
+    // Diagonal scale S
+    float3x3 S = float3x3(0.0f);
+    S[0][0] = scale.x;
+    S[1][1] = scale.y;
+    S[2][2] = scale.z;
+
+    // Quaternion q = (r, x, y, z)
+    float r = q.x;
+    float x = q.y;
+    float y = q.z;
+    float z = q.w;
+
+    float3x3 R = float3x3(
+        1.f - 2.f * (y*y + z*z),  2.f * (x*y - r*z),      2.f * (x*z + r*y),
+        2.f * (x*y + r*z),        1.f - 2.f * (x*x + z*z), 2.f * (y*z - r*x),
+        2.f * (x*z - r*y),        2.f * (y*z + r*x),      1.f - 2.f * (x*x + y*y)
+    );
+
+    // M encodes the ellipsoid axes; covariance = Mᵀ M
+    float3x3 M = S * R;
+    float3x3 covariance = transpose(M) * M;
+    return covariance;
+}
+
+// Project 3D covariance into 2D screen-pixel space
+float3 computeCov2D(float4      splatCenter,
+                    float3x3    cov3D,
+                    float4x4    modelViewMatrix,
+                    float4x4    projectionMatrix,
+                    float2      viewport)
+{
+    // Center in view space
+    float3 centerVS = (modelViewMatrix * splatCenter).xyz;
+
+    // FOV clamp in view space
+    float tanFovX = 1.0f / projectionMatrix[0][0];
+    float tanFovY = 1.0f / projectionMatrix[1][1];
+
+    float fovLimitX = 1.3f * tanFovX;
+    float fovLimitY = 1.3f * tanFovY;
+
+    float xOverZ = centerVS.x / centerVS.z;
+    float yOverZ = centerVS.y / centerVS.z;
+
+    centerVS.x = clamp(xOverZ, -fovLimitX, fovLimitX) * centerVS.z;
+    centerVS.y = clamp(yOverZ, -fovLimitY, fovLimitY) * centerVS.z;
+
+    float t[3] = { centerVS.x, centerVS.y, centerVS.z };
+
+    // Focal length in pixels
+    float focalX = viewport.x * projectionMatrix[0][0] * 0.5f;
+    float focalY = viewport.y * projectionMatrix[1][1] * 0.5f;
+
+    // Jacobian: view space → pixel space
+    float3x3 J = float3x3(
+        float3( focalX / t[2],      0.0f,                -(focalX * t[0]) / (t[2] * t[2]) ),
+        float3( 0.0f,              -focalY / t[2],        (focalY * t[1]) / (t[2] * t[2]) ),
+        float3( 0.0f,               0.0f,                 0.0f )
+    );
+
+    // 3×3 rotation from local → view, built to match your matrix convention
+    float3x3 W = float3x3(
+        modelViewMatrix[0][0], modelViewMatrix[1][0], modelViewMatrix[2][0],
+        modelViewMatrix[0][1], modelViewMatrix[1][1], modelViewMatrix[2][1],
+        modelViewMatrix[0][2], modelViewMatrix[1][2], modelViewMatrix[2][2]
+    );
+
+    // Total transform for covariance: local → view → pixels
+    float3x3 T = W * J;
+
+    // cov2D = Tᵀ Σ3D T
+    float3x3 cov = transpose(T) * cov3D * T;
+
+    // Low-pass filter to ensure at least ~1 pixel extent
+    cov[0][0] += 0.1f;
+    cov[1][1] += 0.1f;
+
+    // Pack symmetric 2×2 into (a, b, c)
+    return float3(cov[0][0], cov[0][1], cov[1][1]);
+}
+
+// Compute inverse covariance and a scalar radius (~3σ) in pixels
+float3 computeInverseCovarianceConic(float3 cov2D,
+                                     thread float &radius,
+                                     thread bool  &valid)
+{
+    float a  = cov2D.x;
+    float b  = cov2D.y;
+    float c  = cov2D.z;
+
+    float det = a * c - b * b;
+    if (det == 0.0f) {
+        valid = false;
+        radius = 0.0f;
+        return float3(0.0f);
+    }
+
+    float detInv = 1.0f / det;
+
+    float3 conic = float3(
+        c * detInv,
+       -b * detInv,
+        a * detInv
+    );
+
+    // Eigenvalues of the 2×2 covariance
+    float mid     = 0.5f * (a + c);
+    float disc    = max(0.1f, mid * mid - det);
+    float lambda1 = mid + sqrt(disc);
+    float lambda2 = mid - sqrt(disc);
+
+    // Radius in pixels covering ~3σ of the larger axis
+    radius = ceil(3.0f * sqrt(max(lambda1, lambda2)));
+
+    valid = true;
+    return conic;
+}
+
+// Vertex: builds a quad around the splat center and passes center + conic
+inline float2 getCurrentQuadVertex(uint vertexId)
+{
+    return float2(vertexId & 1, (vertexId >> 1) & 1); // (0,0), (1,0), (0,1), (1,1)
+}
+
+vertex GaussianOutData vertexGaussianShader(
+    const device uint64_t      *packedKeys [[buffer(gaussianRenderIndicesIndex)]],
+    const device GaussianSplat *splats     [[buffer(gaussianRenderSplatIndex)]],
+    constant Uniforms          &uniforms   [[buffer(gaussianRenderUniformIndex)]],
+    constant float2            &viewport   [[buffer(gaussianRenderViewPortIndex)]],
+    uint                        vid        [[vertex_id]],
+    uint                        iid        [[instance_id]])
+{
+    GaussianOutData out;
+    out.valid    = false;
+    out.position = float4(0.0, 0.0, 0.0, 1.0);
+
+    // Unpack index
+    uint64_t packed     = packedKeys[iid];
+    uint     splatIndex = unpackIndex(packed);
+
+    const GaussianSplat splat = splats[splatIndex];
+
+    // Quad vertex in [-1, 1]
+    float2 quad = getCurrentQuadVertex(vid);
+    quad = quad * 2.0f - 1.0f;
+
+    float3 centerLocal = splat.center.xyz;
+    float3 scale       = splat.scale.xyz;
+    float4 q           = splat.quat;
+    float3 color       = splat.color.rgb;
+    float  alpha       = splat.opacity;
+
+    // Clip-space center
+    float4 centerClip = uniforms.projectionMatrix *
+                        uniforms.modelViewMatrix *
+                        float4(centerLocal, 1.0);
+
+    if (centerClip.w <= 0.0f) {
+        return out;
+    }
+
+    // Center in screen pixels
+    const float projYSign = -1.0f; // Metal NDC Y flip
+    float2 centerNDC = centerClip.xy / centerClip.w;
+    float2 centerUV  = centerNDC * float2(0.5f, 0.5f * projYSign) + 0.5f;
+    out.coordxy      = centerUV * viewport;
+
+    // Covariance in local space
+    float3x3 cov3D = computeCov3D(scale, q);
+
+    // Covariance in screen-pixel space
+    float3 cov2D = computeCov2D(float4(centerLocal, 1.0),
+                                cov3D,
+                                uniforms.modelViewMatrix,
+                                uniforms.projectionMatrix,
+                                viewport);
+
+    // Inverse covariance and radius
+    float extent = 0.0f;
+    bool  valid  = true;
+    out.conic    = computeInverseCovarianceConic(cov2D, extent, valid);
+
+    if (!valid || extent <= 0.0f) {
+        return out;
+    }
+
+    // Build a square quad in NDC that covers the radius in pixels
+    float2 ndcOffset = quad * extent * 2.0f / viewport;
+    out.position     = centerClip;
+    out.position.xy += ndcOffset * centerClip.w;
+
+    out.color = color;
+    out.alpha = alpha;
+    out.valid = true;
+
+    return out;
+}
+
+// Fragment: evaluate Gaussian at the current pixel
+
+inline float calcPowerFromConic(float3 conic, float2 d)
+{
+    return -0.5f * (conic.x * d.x * d.x +
+                    conic.z * d.y * d.y +
+                    2.0f   * conic.y * d.x * d.y);
+}
+
+inline float2 calcScreenSpaceDelta(float2 pixelPos,
+                                   float2 centerPixel,
+                                   float  projYSign)
+{
+    float2 d = pixelPos - centerPixel;
+    d.y *= projYSign;
+    return d;
+}
+
+fragment float4 fragmentGaussianShader(
+    GaussianOutData in [[stage_in]],
+    constant Uniforms &uniforms [[buffer(modelPassUniformIndex)]])
+{
+    if (!in.valid) {
+        discard_fragment();
+    }
+
+    const float projYSign = 1.0f; // match vertex-stage convention
+    float2 d = calcScreenSpaceDelta(in.position.xy, in.coordxy, projYSign);
+
+    float power = calcPowerFromConic(in.conic, d);
+
+    float alpha = saturate(in.alpha * exp(power));
+    if (alpha < 1.0f / 255.0f) {
+        discard_fragment();
+    }
+
+    float3 rgb = in.color * alpha; // pre-multiplied alpha
+
+    return float4(rgb, alpha);
+}
+

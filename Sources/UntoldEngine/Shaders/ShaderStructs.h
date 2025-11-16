@@ -168,4 +168,23 @@ typedef struct{
     float3 normal;
 }VertexOutOutline;
 
+typedef struct{
+    float4 position [[attribute(0)]];
+    float4 scale [[attribute(1)]];
+    float4 rotation [[attribute(2)]];
+    float4 color [[attribute(3)]];
+    float opacity [[attribute(4)]];
+}GaussianInData;
+
+typedef struct{
+    float4 position [[position]];
+    float3 cov2;
+    float3 conic;
+    float3 color;
+    float2 coordxy;
+    float alpha;
+    bool valid;
+    
+}GaussianOutData;
+
 #endif /* ShaderStructs_h */
