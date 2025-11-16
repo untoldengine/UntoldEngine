@@ -15,66 +15,6 @@ import simd
 
 // Helper creation functions
 
-func createPipeline(
-    vertexShader: String,
-    fragmentShader: String?,
-    vertexDescriptor: MTLVertexDescriptor?,
-    colorFormats: [MTLPixelFormat],
-    depthFormat: MTLPixelFormat,
-    depthCompareFunction: MTLCompareFunction = .lessEqual,
-    depthEnabled: Bool = true,
-    blendEnabled: Bool = false,
-    name: String
-) -> RenderPipeline? {
-    let pipelineDescriptor = MTLRenderPipelineDescriptor()
-    let depthStateDescriptor = MTLDepthStencilDescriptor()
-
-    do {
-        let vertexFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        pipelineDescriptor.vertexFunction = vertexFunction
-
-        if let fragmentShader {
-            let fragmentFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-            pipelineDescriptor.fragmentFunction = fragmentFunction
-        }
-
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-
-        for (index, format) in colorFormats.enumerated() {
-            let attachment = pipelineDescriptor.colorAttachments[index]
-            attachment?.pixelFormat = format
-            if blendEnabled {
-                attachment?.isBlendingEnabled = true
-                attachment?.rgbBlendOperation = .add
-                attachment?.sourceRGBBlendFactor = .sourceAlpha
-                attachment?.destinationRGBBlendFactor = .one
-                attachment?.alphaBlendOperation = .add
-                attachment?.sourceAlphaBlendFactor = .sourceAlpha
-                attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
-            }
-        }
-
-        pipelineDescriptor.depthAttachmentPixelFormat = depthFormat
-
-        depthStateDescriptor.depthCompareFunction = depthCompareFunction
-        depthStateDescriptor.isDepthWriteEnabled = depthEnabled
-
-        let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: pipelineDescriptor)
-        let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)
-
-        return RenderPipeline(
-            pipelineState: pipelineState,
-            depthState: depthState,
-            success: true,
-            name: name
-        )
-
-    } catch {
-        handleError(.pipelineStateCreationFailed, name)
-        return nil
-    }
-}
-
 func createComputePipeline(
     into pipeline: inout ComputePipeline,
     device: MTLDevice,
@@ -419,15 +359,15 @@ func initRenderPassDescriptors() {
         colorAttachments: [(textureResources.gizmoColorTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0))],
         depthAttachment: (textureResources.gizmoDepthTexture, .dontCare, .store, nil)
     )
-    
-    // Gaussian Offscreen Render Pass
+
+    // Gaussian Offscreen Render Pass - shares depth buffer with 3D models
     renderInfo.gaussianRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         colorAttachments: [
             (textureResources.gaussianColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
+        depthAttachment: (textureResources.depthMap, .load, .dontCare, nil) // Load existing depth from models
     )
 }
 
@@ -716,7 +656,7 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
-    
+
     // Gaussian Color texture
     textureResources.gaussianColorMap = createTexture(
         device: renderInfo.device,

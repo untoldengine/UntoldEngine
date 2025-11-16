@@ -1080,7 +1080,7 @@ public enum RenderPasses {
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
 
         if renderInfo.immersionStyle == .none || renderInfo.immersionStyle == .ar {
-            renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
+            renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
         } else {
             renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, Double(getAlphaForImmersionMode()))
         }
@@ -1100,6 +1100,9 @@ public enum RenderPasses {
 
             renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].loadAction = .clear
         }
+
+        // Load Gaussian texture so it isn't cleared
+        renderInfo.gaussianRenderPassDescriptor.colorAttachments[0].loadAction = .load
 
         // set your encoder here
         guard
@@ -1152,6 +1155,12 @@ public enum RenderPasses {
 
         renderEncoder.setFragmentTexture(renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].texture, index: Int(prePassGizmoTextureIndex.rawValue))
 
+        // Pass the Gaussian texture
+        renderEncoder.setFragmentTexture(
+            renderInfo.gaussianRenderPassDescriptor.colorAttachments[0].texture,
+            index: Int(prePassGaussianTextureIndex.rawValue)
+        )
+
         var isGameMode = gameMode
         renderEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.stride, index: Int(prePassGizmoBufferIndex.rawValue))
 
@@ -1192,7 +1201,7 @@ public enum RenderPasses {
 
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
-        // renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
+        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = MTLLoadAction.load // Load existing depth from 3D models
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             handleError(.renderPassCreationFailed, "Gaussian Pass")
@@ -1204,9 +1213,9 @@ public enum RenderPasses {
         renderEncoder.pushDebugGroup("Gaussian Pass")
 
         renderEncoder.setRenderPipelineState(gaussianPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(gaussianPipeline.depthState)
 
         renderEncoder.setVertexBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianRenderViewPortIndex.rawValue))
-
         let transformId = getComponentId(for: WorldTransformComponent.self)
         let gaussianId = getComponentId(for: GaussianComponent.self)
         let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
@@ -1226,7 +1235,7 @@ public enum RenderPasses {
                 handleError(.noLocalTransformComponent, entityId)
                 continue
             }
-            
+
             // update uniforms
             var gaussianUniform = Uniforms()
 
@@ -1269,9 +1278,9 @@ public enum RenderPasses {
 
             // bind data here
             renderEncoder.setVertexBuffer(
-                  gaussianComponent.gaussianSortedIndices,
-                  offset: 0,
-                  index: Int(gaussianRenderIndicesIndex.rawValue)
+                gaussianComponent.gaussianSortedIndices,
+                offset: 0,
+                index: Int(gaussianRenderIndicesIndex.rawValue)
             )
 
             renderEncoder.setVertexBuffer(gaussianComponent.splatData, offset: 0, index: Int(gaussianRenderSplatIndex.rawValue))

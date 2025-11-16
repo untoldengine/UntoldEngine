@@ -114,6 +114,7 @@ typedef enum{
     prePassEnvTextureIndex,
     prePassDepthTextureIndex,
     prePassGizmoTextureIndex,
+    prePassGaussianTextureIndex,
 }PrePassTextureIndices;
 
 typedef enum{
