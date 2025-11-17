@@ -50,7 +50,7 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
             continue
         }
 
-        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else {
             handleError(.noLocalTransformComponent, entityId)
             continue
         }
@@ -61,7 +61,7 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
         // update uniforms
         var gaussianUniform = Uniforms()
 
-        var modelMatrix = simd_mul(worldTransformComponent.space, .identity)
+        let modelMatrix = simd_mul(worldTransformComponent.space, .identity)
 
         let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 
