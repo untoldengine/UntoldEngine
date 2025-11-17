@@ -650,18 +650,4 @@ public func setEntityGaussian(entityId: EntityID, path: String) throws {
     }
 
     print("✓ Loaded \(splats.count) Gaussian splats from \(url.lastPathComponent)")
-
-    // Debug: Read back splat positions from GPU buffer
-    if let entity = queryEntitiesWithComponentIds([getComponentId(for: GaussianComponent.self)], in: scene).first {
-        if let gaussianComp = scene.get(component: GaussianComponent.self, for: entity) {
-            if let splatBuffer = gaussianComp.splatData {
-                let ptr = splatBuffer.contents().bindMemory(to: GaussianSplat.self, capacity: Int(gaussianComp.splatCount))
-                print("=== Splat Data Buffer (first 10) ===")
-                for i in 0 ..< min(10, Int(gaussianComp.splatCount)) {
-                    let splat = ptr[i]
-                    print("Splat \(i): center=(\(splat.center.x), \(splat.center.y),\(splat.center.z)), scale=(\(splat.scale.x), \(splat.scale.y),\(splat.scale.z))")
-                }
-            }
-        }
-    }
 }
