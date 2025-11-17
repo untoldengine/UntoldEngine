@@ -604,14 +604,25 @@ public func loadRawMesh(
     return Mesh.makeDefaultMesh()
 }
 
-public func setEntityGaussian(entityId: EntityID, path: String) throws {
-    let url = URL(fileURLWithPath: path)
-    let splats = try PLYReader.readGaussianSplats(from: url)
+public func setEntityGaussian(entityId: EntityID, filename: String, withExtension: String) {
+    guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
+        handleError(.filenameNotFound, filename)
+        return
+    }
+
+    // Attempt to read Gaussian splats, handling errors internally
+    let splats: [GaussianSplat]
+    do {
+        splats = try PLYReader.readGaussianSplats(from: url)
+    } catch {
+        handleError(.assetDataMissing, "Failed to read Gaussian splats from \(filename): \(error.localizedDescription)")
+        return
+    }
 
     // Check if we exceed the buffer capacity
     guard splats.count <= Int(maxNumOfGaussians) else {
         handleError(.bufferAllocationFailed, "Too many Gaussian splats: \(splats.count) exceeds maximum \(maxNumOfGaussians)")
-        throw PLYError.invalidData("Too many Gaussian splats: \(splats.count) exceeds maximum \(maxNumOfGaussians)")
+        return
     }
 
     registerComponent(entityId: entityId, componentType: GaussianComponent.self)
@@ -632,7 +643,7 @@ public func setEntityGaussian(entityId: EntityID, path: String) throws {
     // Copy to GPU buffer
     guard let splatBuffer = gaussianComponent.splatData else {
         handleError(.bufferAllocationFailed, "Gaussian splat buffer is nil")
-        throw PLYError.invalidData("Gaussian splat buffer not initialized")
+        return
     }
 
     let pointer = splatBuffer.contents().bindMemory(
@@ -648,6 +659,4 @@ public func setEntityGaussian(entityId: EntityID, path: String) throws {
         renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
                                      options: [MTLResourceOptions.storageModeShared])
     }
-
-    print("✓ Loaded \(splats.count) Gaussian splats from \(url.lastPathComponent)")
 }
