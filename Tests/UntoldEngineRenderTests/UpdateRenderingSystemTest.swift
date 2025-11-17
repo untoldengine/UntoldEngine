@@ -28,7 +28,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderEnvironment = true
 
         // Build the render graph using the same logic as UpdateRenderingSystem
-        var (graph, preCompID) = buildGameModeGraph()
+        let (graph, preCompID) = buildGameModeGraph()
 
         // Verify that environment mode creates the environment pass
         XCTAssertNotNil(graph["environment"], "Environment mode should create environment pass")
@@ -89,7 +89,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderEnvironment = false
 
         // Build the render graph using the same logic as UpdateRenderingSystem
-        var (graph, preCompID) = buildGameModeGraph()
+        let (graph, preCompID) = buildGameModeGraph()
 
         // Verify that grid mode creates the grid pass
         XCTAssertNotNil(graph["grid"], "Grid mode should create grid pass")
@@ -156,7 +156,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
 
         // Verify the dependency chain is correct
         let sortedPasses = try! topologicalSortGraph(graph: graph)
-        let order = sortedPasses.map(\.id)
+        _ = sortedPasses.map(\.id)
 
         // Verify precomp is the last pass
         XCTAssertEqual(sortedPasses.last?.id, "precomp",
@@ -168,7 +168,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderInfo.immersionStyle = .none
         renderEnvironment = false
 
-        let (graph, preCompID) = buildGameModeGraph()
+        let (graph, _) = buildGameModeGraph()
 
         // Sort the graph
         let sortedPasses = try! topologicalSortGraph(graph: graph)
@@ -253,7 +253,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderEnvironment = true
 
         // This simulates what UpdateRenderingSystem does
-        let (graph, preCompID) = buildGameModeGraph()
+        let (graph, _) = buildGameModeGraph()
 
         // Verify the entire graph is valid
         let sortedPasses = try! topologicalSortGraph(graph: graph)
@@ -263,7 +263,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         XCTAssertEqual(sortedPasses.last?.id, "precomp", "Precomp should be the final pass")
 
         // Verify all expected passes are present
-        let expectedPasses = ["environment", "shadow", "model", "lightPass", "precomp"]
+        let expectedPasses = ["environment", "shadow", "model", "lightPass", "gaussian", "precomp"]
         for passID in expectedPasses {
             XCTAssertNotNil(graph[passID], "Graph should contain '\(passID)' pass")
         }
@@ -275,7 +275,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         renderEnvironment = false
 
         // This simulates what UpdateRenderingSystem does
-        let (graph, preCompID) = buildGameModeGraph()
+        let (graph, _) = buildGameModeGraph()
 
         // Verify the entire graph is valid
         let sortedPasses = try! topologicalSortGraph(graph: graph)
@@ -285,7 +285,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         XCTAssertEqual(sortedPasses.last?.id, "precomp", "Precomp should be the final pass")
 
         // Verify all expected passes are present
-        let expectedPasses = ["grid", "shadow", "model", "lightPass", "precomp"]
+        let expectedPasses = ["grid", "shadow", "model", "lightPass", "gaussian", "precomp"]
         for passID in expectedPasses {
             XCTAssertNotNil(graph[passID], "Graph should contain '\(passID)' pass")
         }

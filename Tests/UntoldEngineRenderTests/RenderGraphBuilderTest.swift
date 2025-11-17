@@ -186,6 +186,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertNotNil(graph["shadow"], "Shadow pass should exist")
         XCTAssertNotNil(graph["model"], "Model pass should exist")
         XCTAssertNotNil(graph["lightPass"], "Light pass should exist")
+        XCTAssertNotNil(graph["gaussian"], "Gaussian pass should exist")
         XCTAssertNotNil(graph["precomp"], "Pre-composite pass should exist")
 
         // Verify final pass
@@ -246,12 +247,108 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         assertTopologicalConstraints(order: order, constraints: [
             ("environment", "shadow"),
             ("shadow", "model"),
+            ("model", "gaussian"),
             ("model", "lightPass"),
             ("lightPass", "depthOfField"),
             ("depthOfField", "chromatic"),
             ("chromatic", "bloomThreshold"),
             ("bloomThreshold", "precomp"),
+            ("gaussian", "precomp"),
         ])
+    }
+
+    // MARK: - Gaussian Pass Integration Tests
+
+    func testBuildGameModeGraph_GaussianPassExists() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+
+        let (graph, _) = buildGameModeGraph()
+
+        XCTAssertNotNil(graph["gaussian"], "Gaussian pass should exist in game mode graph")
+    }
+
+    func testBuildGameModeGraph_GaussianDependsOnModel() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+
+        let (graph, _) = buildGameModeGraph()
+
+        XCTAssertEqual(graph["gaussian"]?.dependencies, ["model"],
+                       "Gaussian pass should depend on model pass to access depth buffer")
+    }
+
+    func testBuildGameModeGraph_PreCompDependsOnGaussian() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+
+        let (graph, _) = buildGameModeGraph()
+
+        let precompDeps = graph["precomp"]?.dependencies.sorted() ?? []
+        XCTAssertTrue(precompDeps.contains("gaussian"),
+                      "Pre-composite pass should depend on gaussian pass")
+    }
+
+    func testBuildGameModeGraph_GaussianHasExecutionFunction() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+
+        let (graph, _) = buildGameModeGraph()
+
+        XCTAssertNotNil(graph["gaussian"]?.execute,
+                        "Gaussian pass should have an execution function")
+    }
+
+    func testBuildGameModeGraph_GaussianInAllRenderModes() {
+        // Test that gaussian pass exists in all render modes
+        let modes: [(UntoldImmersionMode, Bool, String)] = [
+            (.none, true, "environment"),
+            (.none, false, "grid"),
+            (.full, true, "full immersion"),
+            (.mixed, false, "passthrough"),
+        ]
+
+        for (immersionStyle, useEnvironment, description) in modes {
+            renderInfo.immersionStyle = immersionStyle
+            renderEnvironment = useEnvironment
+
+            let (graph, _) = buildGameModeGraph()
+
+            XCTAssertNotNil(graph["gaussian"],
+                            "Gaussian pass should exist in \(description) mode")
+            XCTAssertEqual(graph["gaussian"]?.dependencies, ["model"],
+                           "Gaussian should depend on model in \(description) mode")
+        }
+    }
+
+    func testBuildGameModeGraph_GaussianTopologicalPosition() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+
+        let (graph, _) = buildGameModeGraph()
+
+        let sorted = try! topologicalSortGraph(graph: graph)
+        let order = sorted.map(\.id)
+
+        // Gaussian must come after model
+        guard let gaussianIndex = order.firstIndex(of: "gaussian"),
+              let modelIndex = order.firstIndex(of: "model")
+        else {
+            XCTFail("Both gaussian and model passes should exist")
+            return
+        }
+
+        XCTAssertTrue(modelIndex < gaussianIndex,
+                      "Model pass must come before gaussian pass")
+
+        // Gaussian must come before precomp
+        guard let precompIndex = order.firstIndex(of: "precomp") else {
+            XCTFail("Precomp pass should exist")
+            return
+        }
+
+        XCTAssertTrue(gaussianIndex < precompIndex,
+                      "Gaussian pass must come before pre-composite pass")
     }
 
     // MARK: - Helper Methods
