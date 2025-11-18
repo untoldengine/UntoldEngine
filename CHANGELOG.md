@@ -1,4 +1,29 @@
 # Changelog
+## v0.5.0 - 2025-11-18
+### 🐞 Fixes
+- [Patch] Fix the play scene and load game function (686baf6…)
+- [Patch] set the vision pro viewport size dynamically (9e5b3b7…)
+- [Patch] using a centralized frustum culling function (c85d129…)
+- [Patch] made performFrustumCulling public (81aea66…)
+- [Patch] removed the assignedment to the post-processing color attachment (45bed7b…)
+- [Patch] improved pre-composite pass and pre-composite shader (d8a3dc3…)
+- [Patch] set the render pass descriptor properties depending on immersion mode (72313d7…)
+- [Patch] fix the psnr threshold (4af7e88…)
+- [Patch] Improved the gameModeRenderGraph (ddc0e6d…)
+- [Patch] changed name to UntoldImmersionMode (39867d6…)
+- [Patch] added safe guards when shaders are not found (bd06f97…)
+- [Patch] Added safe guards to the culling system (c7c0e6a…)
+- [Patch] Created intermediate texture for environment-grid pass (c023755…)
+- [Patch] Fixed metal validation issues (3ef584b…)
+- [Patch] Removed redundant composite shader (af3a2f6…)
+- [Patch] set the correct depth format for env map (f6cd093…)
+- [Patch] Fixed render descriptor for AR (d4cb812…)
+- [Patch] Updated untold xr class name for consistency (068ae4e…)
+- [Patch] Added public function to create an iOS and AR (c4036c4…)
+- [Patch] blended 3D models and Gaussians into the render graph (25eb10b…)
+### 🚀 Features
+- [Feature] Added AR support (3cd059f…)
+- [Feature] Added Gaussian support (45333df…)
 ## v0.4.0 - 2025-10-20
 ### 🐞 Fixes
 - [Patch] fixed the projection convention. (9ce27e9…)
