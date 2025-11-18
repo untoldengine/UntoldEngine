@@ -1087,7 +1087,7 @@ public enum RenderPasses {
 
         // clear it so that it doesn't have any effect on the final output
         if gameMode == false {
-            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
             renderInfo.deferredRenderPassDescriptor.colorAttachments[0]
                 .loadAction = .load
 
@@ -1181,7 +1181,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    static let gaussianExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let gaussianExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
         guard let gaussianPipeline = PipelineManager.shared.renderPipelinesByType[.gaussian] else {
             handleError(.pipelineStateNulled, "Guassian Pipeline is nil")
             return
