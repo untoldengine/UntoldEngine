@@ -62,6 +62,7 @@ Click on image to play video:
 - Physics System: Includes Euler integration, motion systems, and component-based extensibility for collisions and constraints.
 - Animation System: Supports skeletal animations and reusable animation clips.
 - Input System: Unified keyboard, mouse, and touch input handling (with controller support planned).
+- Gaussian Splat Rendering: Native support for rendering 3D Gaussian Splats with Metal, enabling photorealistic scene reconstruction and novel view synthesis.
 - Untold Editor Integration: Optional visual editor for managing assets, entities, and scenes.
 - Swift Package Manager (SPM): Fully modular — integrate it easily into your own Xcode or Swift projects.
 - Open Source & Extensible: Licensed under LGPL-3.0, encouraging collaboration and custom extensions.
