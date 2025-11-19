@@ -46,13 +46,4 @@ public extension UntoldRendererConfig {
             }
         )
     }
-
-    static var gaussiansplats: UntoldRendererConfig {
-        UntoldRendererConfig(
-            initPipelineBlocks: GaussianSplatPipeLines(),
-            updateRenderingSystemCallback: { view in
-                UpdateGaussianRenderingSystem(in: view)
-            }
-        )
-    }
 }

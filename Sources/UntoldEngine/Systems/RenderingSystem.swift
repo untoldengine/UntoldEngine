@@ -60,6 +60,9 @@ func UpdateRenderingSystem(in view: MTKView) {
 func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor) {
     performFrustumCulling(commandBuffer: commandBuffer)
 
+    executeGaussianDepth(commandBuffer)
+    executeBitonicSort(commandBuffer)
+
     renderInfo.renderPassDescriptor = passDescriptor
 
     commandBuffer.label = "XR Rendering Command Buffer"
@@ -76,43 +79,6 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     commandBuffer.addCompletedHandler { _ in
         needsFinalizeDestroys = true
         visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
-    }
-}
-
-func UpdateGaussianRenderingSystem(in view: MTKView) {
-    if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
-        renderInfo.lastCommandBuffer = commandBuffer
-
-        executeGaussianDepth(commandBuffer)
-        executeBitonicSort(commandBuffer)
-
-        if let renderPassDescriptor = view.currentRenderPassDescriptor {
-            renderInfo.renderPassDescriptor = renderPassDescriptor
-
-            commandBuffer.label = "Gaussian Rendering Command Buffer"
-
-            // build a render graph
-            let (graph, _) = buildGaussianGraph()
-
-            // sorted it
-            let sortedPasses = try! topologicalSortGraph(graph: graph)
-
-            // execute it
-            executeGraph(graph, sortedPasses, commandBuffer)
-        }
-
-        if let drawable = view.currentDrawable {
-            commandBuffer.present(drawable)
-        }
-
-        commandBuffer.addCompletedHandler { _ in
-            DispatchQueue.main.async {
-                needsFinalizeDestroys = true
-                visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
-            }
-        }
-
-        commandBuffer.commit()
     }
 }
 
