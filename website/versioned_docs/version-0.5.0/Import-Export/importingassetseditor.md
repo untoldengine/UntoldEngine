@@ -47,6 +47,13 @@ Assets/
         └── character.usdz
 ```
 
+### Creating the Folder Structure
+
+You have two options:
+
+1. **Let the editor create it automatically (Recommended)** — When you select or create an asset folder in the **Asset Browser**, the editor will automatically create all required subfolders for you
+2. **Create it manually** — Set up the folder structure yourself following the exact layout shown above
+
 ### Structure Requirements
 
 | Asset Type | Location | Folder Structure | File Format |
@@ -75,11 +82,10 @@ You have two options for storing assets, and **both must use the exact same fold
 - **Before shipping:** You must copy this folder into your app's **Resources**
 
 **Setup:**
-1. Create a folder anywhere on your computer (e.g., `MyGreatGameAssets/`)
-2. Inside it, create the `Assets/` folder with the required subfolders
-3. In the **Asset Browser**, click **Set Path**  
+1. In the UntoldEditor's **Asset Browser**, click **Select Asset Folder**  
    ![set-path-button](../images/setpathbutton.png)
-4. Select your external asset folder
+2. Either select an existing folder or create a new one
+3. The editor will automatically create the required subfolders (`Models/`, `Animations/`, `HDR/`, `Gaussians/`, `Materials/`) for you
 
 ### Option 2: Resources (Main Bundle)
 
