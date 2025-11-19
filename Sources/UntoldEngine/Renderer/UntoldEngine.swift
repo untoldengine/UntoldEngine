@@ -197,6 +197,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         traverseSceneGraph()
         handleInputCallback?()
         AnimationSystem.shared.update(timeSinceLastUpdate)
+        
+        // USC scripts (runs every frame in Play mode)
+        USCSystem.shared.update(timeSinceLastUpdate)
 
         // fixed‐timestep physics
         physicsAccumulator += timeSinceLastUpdate

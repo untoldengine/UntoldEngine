@@ -236,3 +236,17 @@ public class SceneCameraComponent: Component {
 public class GizmoComponent: Component {
     public required init() {}
 }
+
+// MARK: - USC Scripting Component
+
+public class ScriptComponent: Component {
+    public var script: USCScript
+    
+    public required init() {
+        self.script = USCScript(
+            name: "EmptyScript",
+            instructions: [],
+            metadata: .default
+        )
+    }
+}
