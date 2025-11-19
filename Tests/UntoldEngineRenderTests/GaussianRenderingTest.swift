@@ -22,6 +22,56 @@ final class GaussianRenderingTest: BaseRenderSetup {
         super.tearDown()
     }
 
+    override func initializeAssets() {
+        let gaussian = createEntity()
+        setEntityGaussian(entityId: gaussian, filename: "test_gaussians", withExtension: "ply")
+    }
+
+    /*
+         func testGenerateGaussianReferenceImages() {
+             // Ensure renderer and metalview are properly initialized
+             XCTAssertNotNil(renderer, "Renderer should be initialized")
+             XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+             // Manually trigger the draw call
+             renderer.draw(in: renderer.metalView)
+
+             let expectation = XCTestExpectation(description: "Render graph execution delay")
+
+             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                 // generate different render targets
+
+                 self.testGenerateRenderTarget(
+                     targetName: "GaussianTarget",
+                     texture: renderInfo.gaussianRenderPassDescriptor.colorAttachments[Int(0)].texture!
+                 )
+
+                 expectation.fulfill()
+             }
+
+             // Wait for the execution
+             wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+         }
+     */
+
+    func testGaussianTarget() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "GaussianTarget test")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.psnrTest(
+                targetName: "GaussianTarget",
+                texture: renderInfo.gaussianRenderPassDescriptor.colorAttachments[Int(0)].texture!
+            )
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+    }
+
     // MARK: - buildGaussianGraph Tests
 
     func testBuildGaussianGraph_CreatesGaussianPass() {
@@ -167,6 +217,7 @@ final class GaussianRenderingTest: BaseRenderSetup {
     // MARK: - Integration Tests
 
     func testGaussianExecution_WithMultipleEntities() {
+        destroyAllEntities()
         // Create multiple entities with gaussian components
         let entity1 = createEntity()
         _ = scene.assign(to: entity1, component: GaussianComponent.self)
