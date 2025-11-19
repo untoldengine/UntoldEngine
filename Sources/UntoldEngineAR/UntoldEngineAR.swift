@@ -75,6 +75,13 @@
             initializeCapturedImagePipeline()
         }
 
+        public func setupCallbacks(
+            gameUpdate: @escaping (_ deltaTime: Float) -> Void,
+            handleInput: @escaping () -> Void
+        ) {
+            renderer?.setupCallbacks(gameUpdate: gameUpdate, handleInput: handleInput)
+        }
+
         public func drawRectResized(size: CGSize) {
             renderInfo.viewPort = simd_float2(Float(size.width), Float(size.height))
             viewportSizeDidChange = true

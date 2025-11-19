@@ -79,6 +79,13 @@
             renderer = untoldrenderer
         }
 
+        public func setupCallbacks(
+            gameUpdate: @escaping (_ deltaTime: Float) -> Void,
+            handleInput: @escaping () -> Void
+        ) {
+            renderer?.setupCallbacks(gameUpdate: gameUpdate, handleInput: handleInput)
+        }
+
         public func start() {
             if renderer == nil {
                 return
