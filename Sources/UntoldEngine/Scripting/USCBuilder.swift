@@ -24,6 +24,12 @@ public final class USCBuilder {
     // MARK: - Events
 
     @discardableResult
+    public func onStart() -> USCBuilder {
+        instructions.append(.event("OnStart"))
+        return self
+    }
+
+    @discardableResult
     public func onUpdate() -> USCBuilder {
         instructions.append(.event("OnUpdate"))
         return self
