@@ -10,6 +10,8 @@
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
+// This file were jump-started with AI assistance — then refined by humans. If you spot an issue, please submit an issue.
+
 import Foundation
 import simd
 
@@ -20,6 +22,7 @@ public final class USCBuilder {
     public init() {}
 
     // MARK: - Events
+
     @discardableResult
     public func onUpdate() -> USCBuilder {
         instructions.append(.event("OnUpdate"))
@@ -40,6 +43,7 @@ public final class USCBuilder {
     }
 
     // MARK: - Flow control
+
     @discardableResult
     public func ifLess(_ property: String, than value: Float, do block: (USCBuilder) -> Void) -> USCBuilder {
         instructions.append(.getProperty(entity: "self", key: property, as: property))
@@ -90,36 +94,36 @@ public final class USCBuilder {
     }
 
     // MARK: - Transform
+
     @discardableResult
-    public func translate(x: Float, y: Float, z: Float) -> USCBuilder {
-        instructions.append(.translate(entity: "self", offset: .init(x: x, y: y, z: z)))
+    public func translateTo(x: Float, y: Float, z: Float) -> USCBuilder {
+        instructions.append(.translateTo(entity: "self", position: .init(x: x, y: y, z: z)))
         return self
     }
 
     @discardableResult
-    public func translate(_ v: Vec3) -> USCBuilder {
-        instructions.append(.translate(entity: "self", offset: v))
+    public func translateTo(_ v: Vec3) -> USCBuilder {
+        instructions.append(.translateTo(entity: "self", position: v))
         return self
     }
 
     @discardableResult
-    public func translate(_ v: simd_float3) -> USCBuilder {
-        instructions.append(.translate(entity: "self", offset: .init(x: v.x, y: v.y, z: v.z)))
+    public func translateTo(_ v: simd_float3) -> USCBuilder {
+        instructions.append(.translateTo(entity: "self", position: .init(x: v.x, y: v.y, z: v.z)))
         return self
     }
 
     @discardableResult
-    public func rotate(axis: Vec3, degrees: Float) -> USCBuilder {
-        instructions.append(.rotate(entity: "self", axis: axis, degrees: degrees))
+    public func rotateTo(degrees: Float, axis: Vec3) -> USCBuilder {
+        instructions.append(.rotateTo(entity: "self", degrees: degrees, axis: axis))
         return self
     }
 
     @discardableResult
-    public func rotateX(_ degrees: Float) -> USCBuilder { rotate(axis: .init(x: 1, y: 0, z: 0), degrees: degrees) }
-    @discardableResult
-    public func rotateY(_ degrees: Float) -> USCBuilder { rotate(axis: .init(x: 0, y: 1, z: 0), degrees: degrees) }
-    @discardableResult
-    public func rotateZ(_ degrees: Float) -> USCBuilder { rotate(axis: .init(x: 0, y: 0, z: 1), degrees: degrees) }
+    public func rotateBy(degrees: Float, axis: Vec3) -> USCBuilder {
+        instructions.append(.rotateBy(entity: "self", degrees: degrees, axis: axis))
+        return self
+    }
 
     @discardableResult
     public func lookAt(_ targetEntityName: String) -> USCBuilder {
@@ -128,6 +132,7 @@ public final class USCBuilder {
     }
 
     // MARK: - Animation
+
     @discardableResult
     public func playAnimation(_ name: String, loop: Bool = true) -> USCBuilder {
         instructions.append(.playAnimation(entity: "self", name: name, loop: loop))
@@ -147,21 +152,22 @@ public final class USCBuilder {
     }
 
     // MARK: - Physics
+
     @discardableResult
-    public func applyForce(direction: Vec3, magnitude: Float) -> USCBuilder {
-        instructions.append(.applyForce(entity: "self", direction: direction, magnitude: magnitude))
+    public func applyForce(force: Vec3) -> USCBuilder {
+        instructions.append(.applyForce(entity: "self", force: force))
         return self
     }
 
-    @discardableResult
-    public func applyUpwardForce(_ magnitude: Float) -> USCBuilder {
-        applyForce(direction: .init(x: 0, y: 1, z: 0), magnitude: magnitude)
-    }
-
-    @discardableResult
-    public func applyForwardForce(_ magnitude: Float) -> USCBuilder {
-        applyForce(direction: .init(x: 0, y: 0, z: -1), magnitude: magnitude)
-    }
+//    @discardableResult
+//    public func applyUpwardForce(_ magnitude: Float) -> USCBuilder {
+//        applyForce(direction: .init(x: 0, y: 1, z: 0), magnitude: magnitude)
+//    }
+//
+//    @discardableResult
+//    public func applyForwardForce(_ magnitude: Float) -> USCBuilder {
+//        applyForce(direction: .init(x: 0, y: 0, z: -1), magnitude: magnitude)
+//    }
 
     @discardableResult
     public func setVelocity(_ v: Vec3) -> USCBuilder {
@@ -170,9 +176,19 @@ public final class USCBuilder {
     }
 
     // MARK: - Properties
+
     @discardableResult
     public func getProperty(_ key: String, as variableName: String) -> USCBuilder {
         instructions.append(.getProperty(entity: "self", key: key, as: variableName))
+        return self
+    }
+
+    @discardableResult
+    public func getProperty(of entityName: String,
+                            _ key: String,
+                            as variableName: String) -> USCBuilder
+    {
+        instructions.append(.getProperty(entity: entityName, key: key, as: variableName))
         return self
     }
 
@@ -194,7 +210,14 @@ public final class USCBuilder {
         return self
     }
 
+    @discardableResult
+    public func setProperty(_ key: String, to value: Vec3) -> USCBuilder {
+        instructions.append(.setProperty(entity: "self", key: key, value: .vec3(x: value.x, y: value.y, z: value.z)))
+        return self
+    }
+
     // MARK: - Debug
+
     @discardableResult
     public func log(_ message: String) -> USCBuilder {
         instructions.append(.log(message))
@@ -202,6 +225,7 @@ public final class USCBuilder {
     }
 
     // MARK: - Build / Export
+
     public func build(name: String, triggerType: TriggerType = .perFrame, executionMode: ExecutionMode = .auto) -> USCScript {
         USCScript(name: name, instructions: instructions, metadata: .init(triggerType: triggerType, executionMode: executionMode))
     }
