@@ -240,13 +240,11 @@ public class GizmoComponent: Component {
 // MARK: - USC Scripting Component
 
 public class ScriptComponent: Component {
-    public var script: USCScript
-    
+    public var script: USCScript?
+    public var scriptFilePath: String?
+
     public required init() {
-        self.script = USCScript(
-            name: "EmptyScript",
-            instructions: [],
-            metadata: .default
-        )
+        script = nil
+        scriptFilePath = nil
     }
 }

@@ -9,6 +9,8 @@
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
+// This file was jump-started with AI assistance — then refined by humans. If you spot an issue, please submit an issue.
+
 import Foundation
 import simd
 
@@ -17,33 +19,35 @@ import simd
 /// Core USC instruction types
 public enum USCInstruction: Codable {
     // Flow control
-    case event(String)                                      // OnUpdate, OnCollision:Tag, etc.
-    case ifCondition(Condition)                             // Conditional branching
-    case elseBlock                                          // Else clause
-    case endIf                                              // Close if block
-    case delay(seconds: Float)                              // Wait before next instruction
-    case loop(iterations: Int)                              // Repeat N times
-    
+    case event(String) // OnUpdate, OnCollision:Tag, etc.
+    case ifCondition(Condition) // Conditional branching
+    case elseBlock // Else clause
+    case endIf // Close if block
+    case delay(seconds: Float) // Wait before next instruction
+    case loop(iterations: Int) // Repeat N times
+
     // Entity operations
-    case translate(entity: String, offset: Vec3)            // Move entity
-    case rotate(entity: String, axis: Vec3, degrees: Float) // Rotate entity
-    case lookAt(entity: String, target: String)             // Orient towards target
-    
+    case translateTo(entity: String, position: Vec3)
+    case translateBy(entity: String, position: Vec3) // Move entity
+    case rotateTo(entity: String, degrees: Float, axis: Vec3) // Rotate entity
+    case rotateBy(entity: String, degrees: Float, axis: Vec3) // Rotate by entity
+    case lookAt(entity: String, target: String) // Orient towards target
+
     // Animation
     case playAnimation(entity: String, name: String, loop: Bool)
     case stopAnimation(entity: String)
     case setAnimationSpeed(entity: String, speed: Float)
-    
+
     // Physics
-    case applyForce(entity: String, direction: Vec3, magnitude: Float)
+    case applyForce(entity: String, force: Vec3)
     case setVelocity(entity: String, velocity: Vec3)
-    
+
     // Properties
-    case getProperty(entity: String, key: String, as: String)  // Read value into variable
+    case getProperty(entity: String, key: String, as: String) // Read value into variable
     case setProperty(entity: String, key: String, value: Value)
-    
+
     // Debugging
-    case log(String)                                        // Console output
+    case log(String) // Console output
 }
 
 // MARK: - Value Types
@@ -54,7 +58,7 @@ public enum Value: Codable {
     case vec3(x: Float, y: Float, z: Float)
     case string(String)
     case bool(Bool)
-    case variableRef(String)                                // Reference to runtime variable
+    case variableRef(String) // Reference to runtime variable
 }
 
 // MARK: - Conditions
@@ -64,7 +68,7 @@ public struct Condition: Codable {
     public var lhs: Value
     public var op: CompareOp
     public var rhs: Value
-    
+
     public init(lhs: Value, op: CompareOp, rhs: Value) {
         self.lhs = lhs
         self.op = op
@@ -89,7 +93,7 @@ public struct USCScript: Codable {
     public var name: String
     public var instructions: [USCInstruction]
     public var metadata: ScriptMetadata
-    
+
     public init(name: String, instructions: [USCInstruction], metadata: ScriptMetadata = .default) {
         self.name = name
         self.instructions = instructions
@@ -101,12 +105,12 @@ public struct USCScript: Codable {
 public struct ScriptMetadata: Codable {
     public var triggerType: TriggerType
     public var executionMode: ExecutionMode
-    
+
     public init(triggerType: TriggerType, executionMode: ExecutionMode) {
         self.triggerType = triggerType
         self.executionMode = executionMode
     }
-    
+
     public static let `default` = ScriptMetadata(
         triggerType: .perFrame,
         executionMode: .auto
@@ -115,16 +119,16 @@ public struct ScriptMetadata: Codable {
 
 /// Trigger type for scripts
 public enum TriggerType: String, Codable {
-    case event      // OnCollision, OnTriggerEnter - runs once per event
-    case perFrame   // OnUpdate - runs every frame
-    case manual     // Called explicitly from code
+    case event // OnCollision, OnTriggerEnter - runs once per event
+    case perFrame // OnUpdate - runs every frame
+    case manual // Called explicitly from code
 }
 
 /// Execution mode
 public enum ExecutionMode: String, Codable {
-    case interpreted    // Always run via interpreter
-    case compiled       // Always generate Swift code
-    case auto           // Engine decides (events=interpreted, perFrame=compiled)
+    case interpreted // Always run via interpreter
+    case compiled // Always generate Swift code
+    case auto // Engine decides (events=interpreted, perFrame=compiled)
 }
 
 // MARK: - Vec3 Helper
@@ -134,17 +138,17 @@ public struct Vec3: Codable {
     public var x: Float
     public var y: Float
     public var z: Float
-    
+
     public init(x: Float, y: Float, z: Float) {
         self.x = x
         self.y = y
         self.z = z
     }
-    
+
     public var simd: simd_float3 {
         simd_float3(x, y, z)
     }
-    
+
     // Common vectors
     public static let zero = Vec3(x: 0, y: 0, z: 0)
     public static let one = Vec3(x: 1, y: 1, z: 1)
@@ -160,7 +164,6 @@ public struct Vec3: Codable {
 
 /// Load USC script from JSON file
 public func loadUSCScript(from url: URL) -> USCScript? {
-    
     // Ensure it's a file URL
     guard url.isFileURL else {
         Logger.log(message: "Invalid URL: must be a file URL")
@@ -172,18 +175,18 @@ public func loadUSCScript(from url: URL) -> USCScript? {
         Logger.log(message: "File not accesible or doesn't exist: \(url.path)")
         return nil
     }
-    
+
     guard let data = try? Data(contentsOf: url) else {
         print("❌ Failed to load USC script from: \(url.path)")
         return nil
     }
-    
+
     let decoder = JSONDecoder()
     guard let script = try? decoder.decode(USCScript.self, from: data) else {
         print("❌ Failed to decode USC script from: \(url.path)")
         return nil
     }
-    
+
     print("✅ Loaded USC script: \(script.name)")
     return script
 }
