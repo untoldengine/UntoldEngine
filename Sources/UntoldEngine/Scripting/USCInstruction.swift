@@ -14,6 +14,11 @@
 import Foundation
 import simd
 
+public enum InputCondition: Codable {
+    case keyPressed(String)
+    case keyReleased(String)
+}
+
 // MARK: - USC Instruction Set
 
 /// Core USC instruction types
@@ -25,6 +30,9 @@ public enum USCInstruction: Codable {
     case endIf // Close if block
     case delay(seconds: Float) // Wait before next instruction
     case loop(iterations: Int) // Repeat N times
+
+    // Input
+    case ifInput(InputCondition)
 
     // Entity operations
     case translateTo(entity: String, position: Vec3)

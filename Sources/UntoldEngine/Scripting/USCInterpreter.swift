@@ -50,6 +50,14 @@ public class USCInterpreter {
             // Event already triggered, just continue
             return pc + 1
 
+        // Input
+        case let .ifInput(inputCond):
+            if evaluateInput(inputCond) {
+                return pc + 1
+            } else {
+                return findMatchingEnd(from: pc, instructions: context.script!.instructions)
+            }
+
         case let .translateTo(entityRef, position):
             let targetEntity = resolveEntity(entityRef, context: context)
             translateTo(entityId: targetEntity, position: position.simd)
@@ -107,13 +115,6 @@ public class USCInterpreter {
             }
             return pc + 1
 
-        case let .getProperty(entityRef, key, varName):
-            let targetEntity = resolveEntity(entityRef, context: context)
-            if let value = getPropertyValue(entityId: targetEntity, key: key) {
-                context.variables[varName] = value
-            }
-            return pc + 1
-
         case let .setProperty(entityRef, key, value):
             let targetEntity = resolveEntity(entityRef, context: context)
             let resolvedValue = resolveValue(value, context: context)
@@ -150,6 +151,36 @@ public class USCInterpreter {
     }
 
     // MARK: - Helper Methods
+
+    private func evaluateInput(_ cond: InputCondition) -> Bool {
+        switch cond {
+        case let .keyPressed(key):
+            // Map key string to keyState
+            switch key.uppercased() {
+            case "W": return InputSystem.shared.keyState.wPressed
+            case "A": return InputSystem.shared.keyState.aPressed
+            case "S": return InputSystem.shared.keyState.sPressed
+            case "D": return InputSystem.shared.keyState.dPressed
+            case "Q": return InputSystem.shared.keyState.qPressed
+            case "E": return InputSystem.shared.keyState.ePressed
+            case "SPACE": return InputSystem.shared.keyState.spacePressed
+            default: return false
+            }
+
+        case let .keyReleased(key):
+            // Map key string to keyState
+            switch key.uppercased() {
+            case "W": return !InputSystem.shared.keyState.wPressed
+            case "A": return !InputSystem.shared.keyState.aPressed
+            case "S": return !InputSystem.shared.keyState.sPressed
+            case "D": return !InputSystem.shared.keyState.dPressed
+            case "Q": return !InputSystem.shared.keyState.qPressed
+            case "E": return !InputSystem.shared.keyState.ePressed
+            case "SPACE": return !InputSystem.shared.keyState.spacePressed
+            default: return false
+            }
+        }
+    }
 
     /// Resolve entity reference ("self", "player", etc.)
     private func resolveEntity(_ ref: String, context: USCContext) -> EntityID {
@@ -202,7 +233,7 @@ public class USCInterpreter {
 
         while current < instructions.count {
             switch instructions[current] {
-            case .ifCondition:
+            case .ifCondition, .ifInput:
                 depth += 1
             case .elseBlock where depth == 1:
                 return current + 1 // Jump into else block
@@ -226,7 +257,7 @@ public class USCInterpreter {
 
         while current < instructions.count {
             switch instructions[current] {
-            case .ifCondition:
+            case .ifCondition, .ifInput:
                 depth += 1
             case .endIf:
                 depth -= 1
