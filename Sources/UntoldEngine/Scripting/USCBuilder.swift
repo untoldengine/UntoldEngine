@@ -99,6 +99,28 @@ public final class USCBuilder {
         return self
     }
 
+    // MARK: - INPUT
+
+    @discardableResult
+    public func ifKeyPressed(_ key: String, do block: (USCBuilder) -> Void) -> USCBuilder {
+        instructions.append(.ifInput(.keyPressed(key)))
+        let nested = USCBuilder()
+        block(nested)
+        instructions.append(contentsOf: nested.instructions)
+        instructions.append(.endIf)
+        return self
+    }
+
+    @discardableResult
+    public func ifKeyReleased(_ key: String, do block: (USCBuilder) -> Void) -> USCBuilder {
+        instructions.append(.ifInput(.keyReleased(key)))
+        let nested = USCBuilder()
+        block(nested)
+        instructions.append(contentsOf: nested.instructions)
+        instructions.append(.endIf)
+        return self
+    }
+
     // MARK: - Transform
 
     @discardableResult

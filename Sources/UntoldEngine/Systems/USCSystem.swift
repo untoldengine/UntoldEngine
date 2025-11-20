@@ -45,11 +45,12 @@ public class USCSystem {
             scriptContexts[entityId] = context
 
             Logger.log(message: "🎬 USC: Loaded script '\(script.name)' for entity \(entityId)")
-            
+
             // Execute OnStart scripts immediately
             if let firstInstruction = script.instructions.first,
                case let .event(eventName) = firstInstruction,
-               eventName == "OnStart" {
+               eventName == "OnStart"
+            {
                 interpreter.execute(script: script, context: context)
                 Logger.log(message: "🚀 USC: Executed OnStart for '\(script.name)'")
             }
