@@ -57,6 +57,9 @@ public enum USCInstruction: Codable {
     // Math
     case math(MathInstruction)
 
+    // Action
+    case callAction(name: String, args: [String], result: String?)
+
     // Input
     case ifInput(InputCondition)
 

@@ -108,6 +108,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         initGuassianComputePipelines()
 
+        initScriptingSystem()
+
         // Create defautls objects.
         let gameCamera = createEntity()
         setEntityName(entityId: gameCamera, name: "Main Camera")

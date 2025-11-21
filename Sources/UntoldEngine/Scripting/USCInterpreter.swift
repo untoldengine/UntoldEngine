@@ -28,6 +28,32 @@ public class USCContext {
     }
 }
 
+public typealias USCAction = (_ context: USCContext,
+                              _ args: [String: Value]) -> Value?
+
+public class USCActionRegistry {
+    public static let shared = USCActionRegistry()
+    private init() {}
+
+    private var actions: [String: USCAction] = [:]
+
+    public func register(name: String, action: @escaping USCAction) {
+        actions[name] = action
+    }
+
+    public func resolve(name: String) -> USCAction? {
+        actions[name]
+    }
+}
+
+/* Usage Example inside init for example
+ USCActionRegistry.shared.register(name: "Ball.applyKick") { context, args in
+     // args: ["desiredVel": Value, "mass": Value, ...]
+     // Access scene via global or injected handle if needed
+     // Return a Value? that script can capture
+ }
+ */
+
 // MARK: - USC Interpreter
 
 /// Interprets and executes USC IR
@@ -53,6 +79,11 @@ public class USCInterpreter {
         // Math
         case let .math(mathInst):
             executeMath(mathInst, context: context)
+            return pc + 1
+
+        // Action
+        case let .callAction(name, argNames, resultVar):
+            executeAction(name: name, argNames: argNames, resultVar: resultVar, context: context)
             return pc + 1
 
         // Input
@@ -275,6 +306,28 @@ public class USCInterpreter {
             current += 1
         }
         return instructions.count // No matching endIf found
+    }
+
+    private func executeAction(name: String,
+                               argNames: [String],
+                               resultVar: String?,
+                               context: USCContext)
+    {
+        guard let action = USCActionRegistry.shared.resolve(name: name) else {
+            Logger.log(message: "[USC] Unknown action: \(name)")
+            return
+        }
+
+        var argsDict: [String: Value] = [:]
+        for argName in argNames {
+            if let value = context.variables[argName] {
+                argsDict[argName] = value
+            }
+        }
+
+        if let result = action(context, argsDict), let resultVar {
+            context.variables[resultVar] = result
+        }
     }
 
     private func executeMath(_ inst: MathInstruction, context: USCContext) {

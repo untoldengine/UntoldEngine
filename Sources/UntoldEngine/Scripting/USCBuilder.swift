@@ -188,6 +188,16 @@ public final class USCBuilder {
         return self
     }
 
+    // Action
+    @discardableResult
+    public func callAction(_ name: String,
+                           args: [String] = [],
+                           result: String? = nil) -> USCBuilder
+    {
+        instructions.append(.callAction(name: name, args: args, result: result))
+        return self
+    }
+
     // MARK: - INPUT
 
     @discardableResult
@@ -330,6 +340,35 @@ public final class USCBuilder {
     @discardableResult
     public func setProperty(_ key: String, to value: Vec3) -> USCBuilder {
         instructions.append(.setProperty(entity: "self", key: key, value: .vec3(x: value.x, y: value.y, z: value.z)))
+        return self
+    }
+
+    @discardableResult
+    public func setProperty(_ key: String,
+                            toVariable variableName: String) -> USCBuilder
+    {
+        instructions.append(
+            .setProperty(
+                entity: "self",
+                key: key,
+                value: .variableRef(variableName)
+            )
+        )
+        return self
+    }
+
+    @discardableResult
+    public func setProperty(of entityName: String,
+                            _ key: String,
+                            toVariable variableName: String) -> USCBuilder
+    {
+        instructions.append(
+            .setProperty(
+                entity: entityName,
+                key: key,
+                value: .variableRef(variableName)
+            )
+        )
         return self
     }
 
