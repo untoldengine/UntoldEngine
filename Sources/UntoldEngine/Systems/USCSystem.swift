@@ -46,12 +46,9 @@ public class USCSystem {
 
             Logger.log(message: "🎬 USC: Loaded script '\(script.name)' for entity \(entityId)")
 
-            // Execute OnStart scripts immediately
-            if let firstInstruction = script.instructions.first,
-               case let .event(eventName) = firstInstruction,
-               eventName == "OnStart"
-            {
-                interpreter.execute(script: script, context: context)
+            // Execute OnStart event if present in script
+            if scriptHasEvent(script, eventName: "OnStart") {
+                interpreter.execute(script: script, context: context, forEvent: "OnStart")
                 Logger.log(message: "🚀 USC: Executed OnStart for '\(script.name)'")
             }
         }
@@ -70,12 +67,12 @@ public class USCSystem {
     public func update(_: Float) {
         guard gameMode else { return }
 
-        for (entityId, context) in scriptContexts {
+        for (_, context) in scriptContexts {
             guard let script = context.script else { continue }
 
-            // Only execute per-frame scripts
-            if script.metadata.triggerType == .perFrame {
-                interpreter.execute(script: script, context: context)
+            // Execute OnUpdate event if present in script
+            if scriptHasEvent(script, eventName: "OnUpdate") {
+                interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
             }
         }
     }
@@ -86,14 +83,10 @@ public class USCSystem {
         guard let context = scriptContexts[entityId] else { return }
         guard let script = context.script else { return }
 
-        // Check if script handles this event
-        if script.metadata.triggerType == .event {
-            if case let .event(scriptEvent) = script.instructions.first,
-               scriptEvent == eventName
-            {
-                interpreter.execute(script: script, context: context)
-                Logger.log(message: "⚡ USC: Triggered event '\(eventName)' for entity \(entityId)")
-            }
+        // Execute the specified event if present in script
+        if scriptHasEvent(script, eventName: eventName) {
+            interpreter.execute(script: script, context: context, forEvent: eventName)
+            Logger.log(message: "⚡ USC: Triggered event '\(eventName)' for entity \(entityId)")
         }
     }
 
@@ -131,5 +124,17 @@ public class USCSystem {
     /// Get number of active scripts
     public var activeScriptCount: Int {
         scriptContexts.count
+    }
+
+    // MARK: - Helper Methods
+
+    /// Check if a script contains a specific event
+    private func scriptHasEvent(_ script: USCScript, eventName: String) -> Bool {
+        for instruction in script.instructions {
+            if case let .event(name) = instruction, name == eventName {
+                return true
+            }
+        }
+        return false
     }
 }

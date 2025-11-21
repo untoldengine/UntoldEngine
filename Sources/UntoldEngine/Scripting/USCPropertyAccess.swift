@@ -83,9 +83,10 @@ public class USCPropertyAccess {
     }
 
     /// Set property value on entity
-    public func setValue(for entityId: EntityID, keyPath: String, value: Value) {
+    /// Returns true if property was set on a component, false otherwise
+    public func setValue(for entityId: EntityID, keyPath: String, value: Value) -> Bool {
         let components = keyPath.split(separator: ".").map(String.init)
-        guard !components.isEmpty else { return }
+        guard !components.isEmpty else { return false }
 
         let componentName = components[0]
         let subProperty = components.count > 1 ? components[1] : nil
@@ -93,7 +94,7 @@ public class USCPropertyAccess {
         // LocalTransformComponent properties
         if componentName == "position" || componentName == "scale" {
             guard let transform = scene.get(component: LocalTransformComponent.self, for: entityId) else {
-                return
+                return false
             }
 
             switch componentName {
@@ -104,12 +105,13 @@ public class USCPropertyAccess {
             default:
                 break
             }
+            return true
         }
 
         // PhysicsComponent properties
         if componentName == "velocity" || componentName == "acceleration" || componentName == "mass" {
             guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
-                return
+                return false
             }
 
             switch componentName {
@@ -124,12 +126,13 @@ public class USCPropertyAccess {
             default:
                 break
             }
+            return true
         }
 
         // LightComponent properties
         if componentName == "intensity" || componentName == "color" {
             guard let light = scene.get(component: LightComponent.self, for: entityId) else {
-                return
+                return false
             }
 
             switch componentName {
@@ -142,7 +145,11 @@ public class USCPropertyAccess {
             default:
                 break
             }
+            return true
         }
+
+        // Property not found on any component
+        return false
     }
 
     // MARK: - Helper Methods
@@ -186,12 +193,26 @@ public class USCPropertyAccess {
 
 extension USCInterpreter {
     /// Enhanced property access using the property system
-    func getPropertyValue(entityId: EntityID, key: String) -> Value? {
-        USCPropertyAccess.shared.getValue(for: entityId, keyPath: key)
+    /// Falls back to reading from context variables if not a component property
+    func getPropertyValue(entityId: EntityID, key: String, context: USCContext) -> Value? {
+        // Try to get from component first
+        if let value = USCPropertyAccess.shared.getValue(for: entityId, keyPath: key) {
+            return value
+        }
+
+        // Fallback to context variables
+        return context.variables[key]
     }
 
     /// Enhanced property modification using the property system
-    func setPropertyValue(entityId: EntityID, key: String, value: Value) {
-        USCPropertyAccess.shared.setValue(for: entityId, keyPath: key, value: value)
+    /// Falls back to storing in context variables if not a component property
+    func setPropertyValue(entityId: EntityID, key: String, value: Value, context: USCContext) {
+        // Try to set on component first
+        let wasSetOnComponent = USCPropertyAccess.shared.setValue(for: entityId, keyPath: key, value: value)
+
+        // If not a component property, store in context variables
+        if !wasSetOnComponent {
+            context.variables[key] = value
+        }
     }
 }

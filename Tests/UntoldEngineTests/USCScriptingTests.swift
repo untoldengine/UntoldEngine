@@ -589,4 +589,175 @@ final class USCScriptingTests: XCTestCase {
         XCTAssertNotNil(boolValue)
         XCTAssertNotNil(varRefValue)
     }
+
+    // MARK: - Multi-Event Script Tests
+
+    func testScriptWithBothOnStartAndOnUpdate() {
+        let script = buildScript(name: "MultiEventScript") { builder in
+            builder.onStart()
+                .log("Start executed")
+                .setProperty("initialized", to: true)
+            builder.onUpdate()
+                .log("Update executed")
+                .setProperty("frameCount", to: 1.0)
+        }
+
+        XCTAssertEqual(script.name, "MultiEventScript")
+        XCTAssertEqual(script.instructions.count, 6) // 2 events + 4 instructions
+
+        // Verify both events are present
+        var hasOnStart = false
+        var hasOnUpdate = false
+
+        for instruction in script.instructions {
+            if case let .event(name) = instruction {
+                if name == "OnStart" {
+                    hasOnStart = true
+                }
+                if name == "OnUpdate" {
+                    hasOnUpdate = true
+                }
+            }
+        }
+
+        XCTAssertTrue(hasOnStart, "Script should have OnStart event")
+        XCTAssertTrue(hasOnUpdate, "Script should have OnUpdate event")
+    }
+
+    func testInterpreterExecutesOnlyTargetEvent() {
+        let entityId = createEntity()
+
+        let script = buildScript(name: "SelectiveEvent") { builder in
+            builder.onStart()
+                .setProperty("startExecuted", to: true)
+            builder.onUpdate()
+                .setProperty("updateExecuted", to: true)
+        }
+
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        // Execute only OnStart
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        // Verify only OnStart was executed
+        if case let .bool(startExecuted) = context.variables["startExecuted"] {
+            XCTAssertTrue(startExecuted, "OnStart should have executed")
+        } else {
+            XCTFail("startExecuted variable should be set")
+        }
+
+        // Verify OnUpdate was NOT executed
+        XCTAssertNil(context.variables["updateExecuted"], "OnUpdate should not have executed")
+
+        // Now execute OnUpdate
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        // Verify OnUpdate was executed
+        if case let .bool(updateExecuted) = context.variables["updateExecuted"] {
+            XCTAssertTrue(updateExecuted, "OnUpdate should have executed")
+        } else {
+            XCTFail("updateExecuted variable should be set")
+        }
+    }
+
+    func testScriptWithMultipleCollisionEvents() {
+        let script = buildScript(name: "MultiCollision") { builder in
+            builder.onCollision(tag: "Enemy")
+                .log("Enemy collision")
+            builder.onCollision(tag: "Pickup")
+                .log("Pickup collision")
+            builder.onUpdate()
+                .log("Update")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        // Execute only Enemy collision
+        interpreter.execute(script: script, context: context, forEvent: "OnCollision:Enemy")
+
+        // Should execute without errors
+        XCTAssertTrue(true)
+    }
+
+    func testInterpreterWithNoEventFilter() {
+        let entityId = createEntity()
+
+        let script = buildScript(name: "AllEvents") { builder in
+            builder.onStart()
+                .setProperty("counter", to: 1.0)
+            builder.onUpdate()
+                .setProperty("counter", to: 2.0)
+        }
+
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        // Execute without event filter (should execute all events)
+        interpreter.execute(script: script, context: context, forEvent: nil)
+
+        // The last setProperty should win
+        if case let .float(counter) = context.variables["counter"] {
+            XCTAssertEqual(counter, 2.0)
+        } else {
+            XCTFail("counter variable should be set")
+        }
+    }
+
+    func testComplexMultiEventScript() {
+        let entityId = createEntity()
+
+        let script = buildScript(name: "ComplexMultiEvent") { builder in
+            builder.onStart()
+                .setProperty("health", to: 100.0)
+                .setProperty("speed", to: 5.0)
+                .log("Initialized")
+            builder.onUpdate()
+                .getProperty("speed", as: "currentSpeed")
+                .mulFloat("currentSpeed", literal: 1.01, as: "newSpeed")
+                .setProperty("speed", toVariable: "newSpeed")
+            builder.onCollision(tag: "Damage")
+                .getProperty("health", as: "currentHealth")
+                .addFloat("currentHealth", literal: -10.0, as: "newHealth")
+                .setProperty("health", toVariable: "newHealth")
+        }
+
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        // Execute OnStart
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        if case let .float(health) = context.variables["health"] {
+            XCTAssertEqual(health, 100.0)
+        } else {
+            XCTFail("health should be initialized")
+        }
+
+        if case let .float(speed) = context.variables["speed"] {
+            XCTAssertEqual(speed, 5.0)
+        } else {
+            XCTFail("speed should be initialized")
+        }
+
+        // Execute OnUpdate
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        if case let .float(speed) = context.variables["speed"] {
+            XCTAssertEqual(speed, 5.05, accuracy: 0.01)
+        } else {
+            XCTFail("speed should be updated")
+        }
+
+        // Execute OnCollision:Damage
+        interpreter.execute(script: script, context: context, forEvent: "OnCollision:Damage")
+
+        if case let .float(health) = context.variables["health"] {
+            XCTAssertEqual(health, 90.0)
+        } else {
+            XCTFail("health should be decreased")
+        }
+    }
 }

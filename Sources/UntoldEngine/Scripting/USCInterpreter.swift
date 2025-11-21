@@ -61,11 +61,36 @@ public class USCInterpreter {
     public init() {}
 
     /// Execute a complete script
-    public func execute(script: USCScript, context: USCContext) {
+    public func execute(script: USCScript, context: USCContext, forEvent event: String? = nil) {
         var pc = 0 // Program counter
+        var inTargetEvent = (event == nil) // If no event specified, execute all
+        var currentEvent: String? = nil
 
         while pc < script.instructions.count {
-            pc = executeInstruction(script.instructions[pc], at: pc, context: context)
+            let instruction = script.instructions[pc]
+
+            // Check if we hit an event instruction
+            if case let .event(eventName) = instruction {
+                currentEvent = eventName
+
+                // Determine if we should execute this event block
+                if let targetEvent = event {
+                    inTargetEvent = (eventName == targetEvent)
+                } else {
+                    // No specific event requested, execute all events
+                    inTargetEvent = true
+                }
+
+                pc += 1 // Skip the event instruction itself
+                continue
+            }
+
+            // Only execute instructions if we're in the target event block
+            if inTargetEvent {
+                pc = executeInstruction(instruction, at: pc, context: context)
+            } else {
+                pc += 1 // Skip this instruction
+            }
         }
     }
 
@@ -73,8 +98,8 @@ public class USCInterpreter {
     private func executeInstruction(_ inst: USCInstruction, at pc: Int, context: USCContext) -> Int {
         switch inst {
         case .event:
-            // Event already triggered, just continue
-            return pc + 1
+            // This should never be called - events are handled in the main execute loop
+            fatalError("Event instructions should be handled in execute() main loop")
 
         // Math
         case let .math(mathInst):
@@ -115,8 +140,8 @@ public class USCInterpreter {
             return pc + 1
 
         case let .lookAt(entityRef, targetRef):
-            //let entity = resolveEntity(entityRef, context: context)
-            //let target = resolveEntity(targetRef, context: context)
+            // let entity = resolveEntity(entityRef, context: context)
+            // let target = resolveEntity(targetRef, context: context)
             // TODO: Implement lookAt logic
             return pc + 1
 
@@ -137,7 +162,7 @@ public class USCInterpreter {
 
         case let .getProperty(entityRef, key, varName):
             let targetEntity = resolveEntity(entityRef, context: context)
-            if let value = getPropertyValue(entityId: targetEntity, key: key) {
+            if let value = getPropertyValue(entityId: targetEntity, key: key, context: context) {
                 context.variables[varName] = value
             }
             return pc + 1
@@ -145,7 +170,7 @@ public class USCInterpreter {
         case let .setProperty(entityRef, key, value):
             let targetEntity = resolveEntity(entityRef, context: context)
             let resolvedValue = resolveValue(value, context: context)
-            setPropertyValue(entityId: targetEntity, key: key, value: resolvedValue)
+            setPropertyValue(entityId: targetEntity, key: key, value: resolvedValue, context: context)
             return pc + 1
 
         case let .ifCondition(condition):
@@ -373,5 +398,4 @@ public class USCInterpreter {
             setVar(inst.output, .float(len))
         }
     }
-
 }
