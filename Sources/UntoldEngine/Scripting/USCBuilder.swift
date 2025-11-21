@@ -10,7 +10,7 @@
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
-// This file were jump-started with AI assistance — then refined by humans. If you spot an issue, please submit an issue.
+// This file was jump-started with AI assistance — then refined by humans. If you spot an issue, please submit an issue.
 
 import Foundation
 import simd
@@ -96,6 +96,7 @@ public final class USCBuilder {
     public func loop(_ times: Int, do block: (USCBuilder) -> Void) -> USCBuilder {
         instructions.append(.loop(iterations: times))
         let nested = USCBuilder(); block(nested); instructions.append(contentsOf: nested.instructions)
+        instructions.append(.endLoop)
         return self
     }
 

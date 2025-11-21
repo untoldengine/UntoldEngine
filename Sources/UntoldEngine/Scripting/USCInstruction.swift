@@ -53,6 +53,7 @@ public enum USCInstruction: Codable {
     case endIf // Close if block
     case delay(seconds: Float) // Wait before next instruction
     case loop(iterations: Int) // Repeat N times
+    case endLoop // Close loop block
 
     // Math
     case math(MathInstruction)
@@ -209,7 +210,7 @@ public func loadUSCScript(from url: URL) -> USCScript? {
 
     // Check if file exists and is readable
     guard FileManager.default.isReadableFile(atPath: url.path) else {
-        Logger.log(message: "File not accesible or doesn't exist: \(url.path)")
+        Logger.log(message: "File not accessible or doesn't exist: \(url.path)")
         return nil
     }
 
