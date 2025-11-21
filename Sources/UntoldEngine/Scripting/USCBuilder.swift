@@ -295,33 +295,11 @@ public final class USCBuilder {
         return self
     }
 
-    @discardableResult
-    public func setAnimationSpeed(_ speed: Float) -> USCBuilder {
-        instructions.append(.setAnimationSpeed(entity: "self", speed: speed))
-        return self
-    }
-
     // MARK: - Physics
 
     @discardableResult
     public func applyForce(force: Vec3) -> USCBuilder {
         instructions.append(.applyForce(entity: "self", force: force))
-        return self
-    }
-
-//    @discardableResult
-//    public func applyUpwardForce(_ magnitude: Float) -> USCBuilder {
-//        applyForce(direction: .init(x: 0, y: 1, z: 0), magnitude: magnitude)
-//    }
-//
-//    @discardableResult
-//    public func applyForwardForce(_ magnitude: Float) -> USCBuilder {
-//        applyForce(direction: .init(x: 0, y: 0, z: -1), magnitude: magnitude)
-//    }
-
-    @discardableResult
-    public func setVelocity(_ v: Vec3) -> USCBuilder {
-        instructions.append(.setVelocity(entity: "self", velocity: v))
         return self
     }
 

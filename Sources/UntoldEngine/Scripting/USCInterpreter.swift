@@ -115,14 +115,14 @@ public class USCInterpreter {
             return pc + 1
 
         case let .lookAt(entityRef, targetRef):
-            let entity = resolveEntity(entityRef, context: context)
-            let target = resolveEntity(targetRef, context: context)
+            //let entity = resolveEntity(entityRef, context: context)
+            //let target = resolveEntity(targetRef, context: context)
             // TODO: Implement lookAt logic
             return pc + 1
 
         case let .playAnimation(entityRef, name, loop):
             let targetEntity = resolveEntity(entityRef, context: context)
-            changeAnimation(entityId: targetEntity, name: name)
+            changeAnimation(entityId: targetEntity, name: name, withPause: !loop)
             return pc + 1
 
         case let .stopAnimation(entityRef):
@@ -130,18 +130,9 @@ public class USCInterpreter {
             pauseAnimationComponent(entityId: targetEntity, isPaused: true)
             return pc + 1
 
-        case .setAnimationSpeed:
-            // TODO: Implement animation speed control
-            return pc + 1
-
         case let .applyForce(entityRef, force):
             let targetEntity = resolveEntity(entityRef, context: context)
             applyForce(entityId: targetEntity, force: force.simd)
-            return pc + 1
-
-        case let .setVelocity(entityRef, velocity):
-            let targetEntity = resolveEntity(entityRef, context: context)
-            setVelocity(entityId: targetEntity, velocity: velocity.simd)
             return pc + 1
 
         case let .getProperty(entityRef, key, varName):
@@ -383,45 +374,4 @@ public class USCInterpreter {
         }
     }
 
-    // MARK: - Property Access (Stub implementations)
-
-//    private func getPropertyValue(entityId: EntityID, key: String) -> Value? {
-//        // TODO: Implement property access
-//        // This would access component properties based on key path
-//        // e.g., "position.y", "speed", "health", etc.
-//        return nil
-//    }
-//
-//    private func setPropertyValue(entityId: EntityID, key: String, value: Value) {
-//        // TODO: Implement property modification
-//        // This would modify component properties
-//    }
 }
-
-// MARK: - Engine Function Wrappers
-
-// Note: These functions already exist in UntoldEngine, we're just calling them
-/*
- private func applyForce(entityId: EntityID, direction: simd_float3, magnitude: Float) {
-     // Normalize direction and apply force
-     let normalizedDir = simd_normalize(direction)
-     let force = normalizedDir * magnitude
-
-     // Check if entity has kinetic component
-     guard let kineticComp = scene.get(component: KineticComponent.self, for: entityId) else {
-         return
-     }
-
-     // Apply force to velocity
-     if var kinetic = scene.get(component: KineticComponent.self, for: entityId) {
-         kinetic.velocity += force * 0.016  // Assume ~60 FPS for now
-     }
- }
-
- private func setVelocity(entityId: EntityID, velocity: simd_float3) {
-     guard var kineticComp = scene.get(component: KineticComponent.self, for: entityId) else {
-         return
-     }
-     kineticComp.velocity = velocity
- }
- */

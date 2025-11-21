@@ -74,11 +74,9 @@ public enum USCInstruction: Codable {
     // Animation
     case playAnimation(entity: String, name: String, loop: Bool)
     case stopAnimation(entity: String)
-    case setAnimationSpeed(entity: String, speed: Float)
 
     // Physics
     case applyForce(entity: String, force: Vec3)
-    case setVelocity(entity: String, velocity: Vec3)
 
     // Properties
     case getProperty(entity: String, key: String, as: String) // Read value into variable
