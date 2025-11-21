@@ -180,6 +180,10 @@ public class USCInterpreter {
             // TODO: Implement loop logic (requires maintaining loop counters)
             return pc + 1
 
+        case .endLoop:
+            // TODO: Implement loop logic (requires maintaining loop counters)
+            return pc + 1
+
         case let .log(message):
             Logger.log(message: "[USC] \(message)")
             return pc + 1

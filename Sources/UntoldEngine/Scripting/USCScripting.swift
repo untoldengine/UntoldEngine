@@ -32,30 +32,33 @@ public func initScriptingSystem() {
 private func registerCoreMathActions() {
     let reg = USCActionRegistry.shared
 
-    reg.register(name: "Math.addVec3") { _, args in
-        guard
-            let a = args["a"], case let .vec3(ax, ay, az) = a,
-            let b = args["b"], case let .vec3(bx, by, bz) = b
-        else { return nil }
+    /* Example on how you can register your own math function. Use these as reference */
+    /*
+     reg.register(name: "Math.addVec3") { _, args in
+         guard
+             let a = args["a"], case let .vec3(ax, ay, az) = a,
+             let b = args["b"], case let .vec3(bx, by, bz) = b
+         else { return nil }
 
-        return .vec3(x: ax + bx, y: ay + by, z: az + bz)
-    }
+         return .vec3(x: ax + bx, y: ay + by, z: az + bz)
+     }
 
-    reg.register(name: "Math.scaleVec3") { _, args in
-        guard
-            let v = args["v"], case let .vec3(x, y, z) = v,
-            let s = args["s"], case let .float(scalar) = s
-        else { return nil }
+     reg.register(name: "Math.scaleVec3") { _, args in
+         guard
+             let v = args["v"], case let .vec3(x, y, z) = v,
+             let s = args["s"], case let .float(scalar) = s
+         else { return nil }
 
-        return .vec3(x: x * scalar, y: y * scalar, z: z * scalar)
-    }
+         return .vec3(x: x * scalar, y: y * scalar, z: z * scalar)
+     }
 
-    reg.register(name: "Math.lengthVec3") { _, args in
-        guard let v = args["v"], case let .vec3(x, y, z) = v else {
-            return nil
-        }
-        return .float(sqrt(x * x + y * y + z * z))
-    }
+     reg.register(name: "Math.lengthVec3") { _, args in
+         guard let v = args["v"], case let .vec3(x, y, z) = v else {
+             return nil
+         }
+         return .float(sqrt(x * x + y * y + z * z))
+     }
+      */
 }
 
 /*
@@ -69,7 +72,7 @@ private func registerCoreGamePlayActions() {
     let reg = USCActionRegistry.shared
 
     reg.register(name: "Gameplay.jump") { _, args in
-        guard let strength = args["strengh"],
+        guard let strength = args["strength"],
               case let .float(jumpForce) = strength
         else { return nil }
 

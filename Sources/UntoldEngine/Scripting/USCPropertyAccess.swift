@@ -24,11 +24,10 @@ public class USCPropertyAccess {
     /// Get property value from entity
     public func getValue(for entityId: EntityID, keyPath: String) -> Value? {
         let components = keyPath.split(separator: ".").map(String.init)
-        guard components.count >= 2 else { return nil }
+        guard !components.isEmpty else { return nil }
 
         let componentName = components[0]
-        let propertyName = components[1]
-        let subProperty = components.count > 2 ? components[2] : nil
+        let subProperty = components.count > 1 ? components[1] : nil
 
         // LocalTransformComponent properties
         if componentName == "position" || componentName == "rotation" || componentName == "scale" {
@@ -86,15 +85,14 @@ public class USCPropertyAccess {
     /// Set property value on entity
     public func setValue(for entityId: EntityID, keyPath: String, value: Value) {
         let components = keyPath.split(separator: ".").map(String.init)
-        guard components.count >= 2 else { return }
+        guard !components.isEmpty else { return }
 
         let componentName = components[0]
-        let propertyName = components[1]
-        let subProperty = components.count > 2 ? components[2] : nil
+        let subProperty = components.count > 1 ? components[1] : nil
 
         // LocalTransformComponent properties
         if componentName == "position" || componentName == "scale" {
-            guard var transform = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+            guard let transform = scene.get(component: LocalTransformComponent.self, for: entityId) else {
                 return
             }
 
@@ -110,7 +108,7 @@ public class USCPropertyAccess {
 
         // PhysicsComponent properties
         if componentName == "velocity" || componentName == "acceleration" || componentName == "mass" {
-            guard var physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
+            guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
                 return
             }
 
@@ -130,7 +128,7 @@ public class USCPropertyAccess {
 
         // LightComponent properties
         if componentName == "intensity" || componentName == "color" {
-            guard var light = scene.get(component: LightComponent.self, for: entityId) else {
+            guard let light = scene.get(component: LightComponent.self, for: entityId) else {
                 return
             }
 
