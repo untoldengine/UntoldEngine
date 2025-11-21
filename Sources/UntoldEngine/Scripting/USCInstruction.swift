@@ -19,6 +19,29 @@ public enum InputCondition: Codable {
     case keyReleased(String)
 }
 
+public struct MathInstruction: Codable {
+    public var op: MathOp
+    public var output: String // variable name where result is stored
+
+    public init(op: MathOp, output: String) {
+        self.op = op
+        self.output = output
+    }
+}
+
+public enum MathOp: Codable {
+    case addFloat(lhs: String, rhs: String) // variables
+    case addFloatLiteral(lhs: String, rhs: Float) // var + literal
+    case mulFloat(lhs: String, rhs: String)
+    case mulFloatLiteral(lhs: String, rhs: Float)
+
+    case addVec3(lhs: String, rhs: String)
+    case scaleVec3(vec: String, scalarVar: String)
+    case scaleVec3Literal(vec: String, scalar: Float)
+
+    case lengthVec3(vec: String) // vec -> float
+}
+
 // MARK: - USC Instruction Set
 
 /// Core USC instruction types
@@ -30,6 +53,9 @@ public enum USCInstruction: Codable {
     case endIf // Close if block
     case delay(seconds: Float) // Wait before next instruction
     case loop(iterations: Int) // Repeat N times
+
+    // Math
+    case math(MathInstruction)
 
     // Input
     case ifInput(InputCondition)

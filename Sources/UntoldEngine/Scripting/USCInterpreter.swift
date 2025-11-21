@@ -50,6 +50,11 @@ public class USCInterpreter {
             // Event already triggered, just continue
             return pc + 1
 
+        // Math
+        case let .math(mathInst):
+            executeMath(mathInst, context: context)
+            return pc + 1
+
         // Input
         case let .ifInput(inputCond):
             if evaluateInput(inputCond) {
@@ -270,6 +275,55 @@ public class USCInterpreter {
             current += 1
         }
         return instructions.count // No matching endIf found
+    }
+
+    private func executeMath(_ inst: MathInstruction, context: USCContext) {
+        func getVar(_ name: String) -> Value? {
+            context.variables[name]
+        }
+
+        func setVar(_ name: String, _ value: Value) {
+            context.variables[name] = value
+        }
+
+        switch inst.op {
+        case let .addFloat(lhs, rhs):
+            guard case let .float(a)? = getVar(lhs),
+                  case let .float(b)? = getVar(rhs) else { return }
+            setVar(inst.output, .float(a + b))
+
+        case let .addFloatLiteral(lhs, rhsLiteral):
+            guard case let .float(a)? = getVar(lhs) else { return }
+            setVar(inst.output, .float(a + rhsLiteral))
+
+        case let .mulFloat(lhs, rhs):
+            guard case let .float(a)? = getVar(lhs),
+                  case let .float(b)? = getVar(rhs) else { return }
+            setVar(inst.output, .float(a * b))
+
+        case let .mulFloatLiteral(lhs, rhsLiteral):
+            guard case let .float(a)? = getVar(lhs) else { return }
+            setVar(inst.output, .float(a * rhsLiteral))
+
+        case let .addVec3(lhs, rhs):
+            guard case let .vec3(ax, ay, az)? = getVar(lhs),
+                  case let .vec3(bx, by, bz)? = getVar(rhs) else { return }
+            setVar(inst.output, .vec3(x: ax + bx, y: ay + by, z: az + bz))
+
+        case let .scaleVec3(vecVar, scalarVar):
+            guard case let .vec3(x, y, z)? = getVar(vecVar),
+                  case let .float(s)? = getVar(scalarVar) else { return }
+            setVar(inst.output, .vec3(x: x * s, y: y * s, z: z * s))
+
+        case let .scaleVec3Literal(vecVar, scalar):
+            guard case let .vec3(x, y, z)? = getVar(vecVar) else { return }
+            setVar(inst.output, .vec3(x: x * scalar, y: y * scalar, z: z * scalar))
+
+        case let .lengthVec3(vecVar):
+            guard case let .vec3(x, y, z)? = getVar(vecVar) else { return }
+            let len = sqrtf(x * x + y * y + z * z)
+            setVar(inst.output, .float(len))
+        }
     }
 
     // MARK: - Property Access (Stub implementations)
