@@ -99,6 +99,95 @@ public final class USCBuilder {
         return self
     }
 
+    // MARK: - MATH
+
+    @discardableResult
+    public func addFloat(_ lhsVar: String,
+                         _ rhsVar: String,
+                         as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .addFloat(lhs: lhsVar, rhs: rhsVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func addFloat(_ lhsVar: String,
+                         literal rhsValue: Float,
+                         as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .addFloatLiteral(lhs: lhsVar, rhs: rhsValue),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func mulFloat(_ lhsVar: String,
+                         _ rhsVar: String,
+                         as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .mulFloat(lhs: lhsVar, rhs: rhsVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func mulFloat(_ lhsVar: String,
+                         literal rhsValue: Float,
+                         as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .mulFloatLiteral(lhs: lhsVar, rhs: rhsValue),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func addVec3(_ lhsVar: String,
+                        _ rhsVar: String,
+                        as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .addVec3(lhs: lhsVar, rhs: rhsVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func scaleVec3(_ vecVar: String,
+                          by scalarVar: String,
+                          as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .scaleVec3(vec: vecVar, scalarVar: scalarVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func scaleVec3(_ vecVar: String,
+                          literal scalar: Float,
+                          as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .scaleVec3Literal(vec: vecVar, scalar: scalar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func lengthVec3(_ vecVar: String,
+                           as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .lengthVec3(vec: vecVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
     // MARK: - INPUT
 
     @discardableResult
