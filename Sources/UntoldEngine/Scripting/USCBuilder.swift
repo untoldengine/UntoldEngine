@@ -101,6 +101,16 @@ public final class USCBuilder {
 
     // MARK: - MATH
 
+    /*
+     In USC script, it would look like this:
+     s.onUpdate()
+         .getProperty("ball.motionAccumulator", as: "acc")
+         .getProperty("ball.desiredVelocity", as: "input")
+         .scaleVec3("acc", literal: 0.4, as: "accScaled")
+         .scaleVec3("input", literal: 0.6, as: "inputScaled")
+         .addVec3("accScaled", "inputScaled", as: "newAcc")
+         .setProperty("ball.motionAccumulator", toVariable: "newAcc")
+     */
     @discardableResult
     public func addFloat(_ lhsVar: String,
                          _ rhsVar: String,
@@ -189,6 +199,18 @@ public final class USCBuilder {
     }
 
     // Action
+    /*
+     In USC script, it would look like this (see USCSripting for more examples):
+     s.onUpdate()
+      .getProperty("ball.desiredVelocity", as: "desiredVel")
+      .getProperty("mass", as: "mass")
+      .callAction("Ball.applyKick",
+                  args: ["desiredVel", "mass"],
+                  result: "newAcc")
+      .setProperty("ball.motionAccumulator", toVariable: "newAcc")
+
+     */
+
     @discardableResult
     public func callAction(_ name: String,
                            args: [String] = [],
@@ -304,12 +326,20 @@ public final class USCBuilder {
 
     // MARK: - Properties
 
+    /*
+     // self
+     .getProperty("position", as: "selfPos")
+     */
     @discardableResult
     public func getProperty(_ key: String, as variableName: String) -> USCBuilder {
         instructions.append(.getProperty(entity: "self", key: key, as: variableName))
         return self
     }
 
+    /*
+     // other entity
+     .getProperty(of: "Player", "position", as: "playerPos")
+     */
     @discardableResult
     public func getProperty(of entityName: String,
                             _ key: String,
