@@ -760,4 +760,288 @@ final class USCScriptingTests: XCTestCase {
             XCTFail("health should be decreased")
         }
     }
+
+    // MARK: - Variable Tests
+
+    func testSetVariableFloat() {
+        let builder = USCBuilder()
+        builder.setVariable("speed", to: 5.0)
+
+        let script = builder.build(name: "TestScript")
+
+        if case let .setVariable(name, value) = script.instructions[0] {
+            XCTAssertEqual(name, "speed")
+            if case let .float(floatValue) = value {
+                XCTAssertEqual(floatValue, 5.0)
+            } else {
+                XCTFail("Expected float value")
+            }
+        } else {
+            XCTFail("Expected setVariable instruction")
+        }
+    }
+
+    func testSetVariableVec3() {
+        let builder = USCBuilder()
+        builder.setVariable("direction", to: Vec3(x: 1.0, y: 0.0, z: 0.0))
+
+        let script = builder.build(name: "TestScript")
+
+        if case let .setVariable(name, value) = script.instructions[0] {
+            XCTAssertEqual(name, "direction")
+            if case let .vec3(x, y, z) = value {
+                XCTAssertEqual(x, 1.0)
+                XCTAssertEqual(y, 0.0)
+                XCTAssertEqual(z, 0.0)
+            } else {
+                XCTFail("Expected vec3 value")
+            }
+        } else {
+            XCTFail("Expected setVariable instruction")
+        }
+    }
+
+    func testSetVariableString() {
+        let builder = USCBuilder()
+        builder.setVariable("targetEntity", to: "Player")
+
+        let script = builder.build(name: "TestScript")
+
+        if case let .setVariable(name, value) = script.instructions[0] {
+            XCTAssertEqual(name, "targetEntity")
+            if case let .string(stringValue) = value {
+                XCTAssertEqual(stringValue, "Player")
+            } else {
+                XCTFail("Expected string value")
+            }
+        } else {
+            XCTFail("Expected setVariable instruction")
+        }
+    }
+
+    func testSetVariableBool() {
+        let builder = USCBuilder()
+        builder.setVariable("isActive", to: true)
+
+        let script = builder.build(name: "TestScript")
+
+        if case let .setVariable(name, value) = script.instructions[0] {
+            XCTAssertEqual(name, "isActive")
+            if case let .bool(boolValue) = value {
+                XCTAssertEqual(boolValue, true)
+            } else {
+                XCTFail("Expected bool value")
+            }
+        } else {
+            XCTFail("Expected setVariable instruction")
+        }
+    }
+
+    func testInterpreterExecutesSetVariable() {
+        let entityId = createEntity()
+
+        let script = buildScript(name: "VarTest") { builder in
+            builder.setVariable("maxSpeed", to: 10.0)
+            builder.setVariable("target", to: "Enemy")
+        }
+
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        // Verify variables were set
+        if case let .float(maxSpeed) = context.variables["maxSpeed"] {
+            XCTAssertEqual(maxSpeed, 10.0)
+        } else {
+            XCTFail("maxSpeed variable should be set")
+        }
+
+        if case let .string(target) = context.variables["target"] {
+            XCTAssertEqual(target, "Enemy")
+        } else {
+            XCTFail("target variable should be set")
+        }
+    }
+
+    // MARK: - Steering Behavior Tests
+
+    func testSeekActionRegistration() {
+        let action = USCActionRegistry.shared.resolve(name: "seek")
+        XCTAssertNotNil(action, "seek action should be registered")
+    }
+
+    func testFleeActionRegistration() {
+        let action = USCActionRegistry.shared.resolve(name: "flee")
+        XCTAssertNotNil(action, "flee action should be registered")
+    }
+
+    func testArriveActionRegistration() {
+        let action = USCActionRegistry.shared.resolve(name: "arrive")
+        XCTAssertNotNil(action, "arrive action should be registered")
+    }
+
+    func testPursuitActionRegistration() {
+        let action = USCActionRegistry.shared.resolve(name: "pursuit")
+        XCTAssertNotNil(action, "pursuit action should be registered")
+    }
+
+    func testEvadeActionRegistration() {
+        let action = USCActionRegistry.shared.resolve(name: "evade")
+        XCTAssertNotNil(action, "evade action should be registered")
+    }
+
+    func testSteerSeekActionRegistration() {
+        let action = USCActionRegistry.shared.resolve(name: "steerSeek")
+        XCTAssertNotNil(action, "steerSeek action should be registered")
+    }
+
+    func testSteerArriveActionRegistration() {
+        let action = USCActionRegistry.shared.resolve(name: "steerArrive")
+        XCTAssertNotNil(action, "steerArrive action should be registered")
+    }
+
+    func testSteerFleeActionRegistration() {
+        let action = USCActionRegistry.shared.resolve(name: "steerFlee")
+        XCTAssertNotNil(action, "steerFlee action should be registered")
+    }
+
+    func testSteerPursuitActionRegistration() {
+        let action = USCActionRegistry.shared.resolve(name: "steerPursuit")
+        XCTAssertNotNil(action, "steerPursuit action should be registered")
+    }
+
+    func testOrbitActionRegistration() {
+        let action = USCActionRegistry.shared.resolve(name: "orbit")
+        XCTAssertNotNil(action, "orbit action should be registered")
+    }
+
+    func testSeekScriptCreation() {
+        let script = buildScript(name: "SeekTest") { builder in
+            builder.onUpdate()
+                .setVariable("targetPosition", to: Vec3(x: 10.0, y: 0.0, z: 0.0))
+                .setVariable("maxSpeed", to: 5.0)
+                .callAction("seek", args: ["targetPosition", "maxSpeed"], result: "seekForce")
+        }
+
+        XCTAssertEqual(script.name, "SeekTest")
+
+        // Count callAction instructions
+        var actionCount = 0
+        for instruction in script.instructions {
+            if case let .callAction(name, _, _) = instruction {
+                if name == "seek" {
+                    actionCount += 1
+                }
+            }
+        }
+
+        XCTAssertEqual(actionCount, 1, "Script should have one seek action")
+    }
+
+    func testFleeScriptCreation() {
+        let script = buildScript(name: "FleeTest") { builder in
+            builder.onUpdate()
+                .setVariable("threatPosition", to: Vec3(x: 5.0, y: 0.0, z: 0.0))
+                .setVariable("maxSpeed", to: 10.0)
+                .callAction("flee", args: ["threatPosition", "maxSpeed"], result: "fleeForce")
+        }
+
+        XCTAssertEqual(script.name, "FleeTest")
+        XCTAssertGreaterThan(script.instructions.count, 3)
+    }
+
+    func testArriveScriptCreation() {
+        let script = buildScript(name: "ArriveTest") { builder in
+            builder.onUpdate()
+                .setVariable("targetPosition", to: Vec3(x: 10.0, y: 0.0, z: 0.0))
+                .setVariable("maxSpeed", to: 5.0)
+                .setVariable("slowingRadius", to: 3.0)
+                .callAction("arrive", args: ["targetPosition", "maxSpeed", "slowingRadius"], result: "arriveForce")
+        }
+
+        XCTAssertEqual(script.name, "ArriveTest")
+    }
+
+    func testPursuitScriptCreation() {
+        let script = buildScript(name: "PursuitTest") { builder in
+            builder.onUpdate()
+                .setVariable("targetEntity", to: "Player")
+                .setVariable("maxSpeed", to: 8.0)
+                .callAction("pursuit", args: ["targetEntity", "maxSpeed"], result: "pursuitForce")
+        }
+
+        XCTAssertEqual(script.name, "PursuitTest")
+    }
+
+    func testComplexSteeringScript() {
+        let script = buildScript(name: "ComplexSteering") { builder in
+            builder.onUpdate()
+                // Get target position from another entity
+                .getProperty(of: "Target", "position", as: "targetPosition")
+                // Set parameters
+                .setVariable("maxSpeed", to: 5.0)
+                // Calculate seek force
+                .callAction("seek", args: ["targetPosition", "maxSpeed"], result: "seekForce")
+                // Apply force
+                .setProperty("velocity", toVariable: "seekForce")
+                .log("Steering applied")
+        }
+
+        XCTAssertEqual(script.name, "ComplexSteering")
+        XCTAssertGreaterThan(script.instructions.count, 5)
+    }
+
+    func testMultipleSteeringBehaviors() {
+        let script = buildScript(name: "MultiSteering") { builder in
+            builder.onUpdate()
+                // Seek towards target
+                .setVariable("targetPosition", to: Vec3(x: 10.0, y: 0.0, z: 0.0))
+                .setVariable("maxSpeed", to: 5.0)
+                .callAction("seek", args: ["targetPosition", "maxSpeed"], result: "seekForce")
+                // Flee from threat
+                .setVariable("threatPosition", to: Vec3(x: -5.0, y: 0.0, z: 0.0))
+                .callAction("flee", args: ["threatPosition", "maxSpeed"], result: "fleeForce")
+                // Combine forces (would need vector addition in real usage)
+                .log("Forces calculated")
+        }
+
+        // Count steering actions
+        var seekCount = 0
+        var fleeCount = 0
+
+        for instruction in script.instructions {
+            if case let .callAction(name, _, _) = instruction {
+                if name == "seek" { seekCount += 1 }
+                if name == "flee" { fleeCount += 1 }
+            }
+        }
+
+        XCTAssertEqual(seekCount, 1)
+        XCTAssertEqual(fleeCount, 1)
+    }
+
+    func testSteerSeekScriptCreation() {
+        let script = buildScript(name: "SteerSeekTest") { builder in
+            builder.onUpdate()
+                .setVariable("targetPosition", to: Vec3(x: 10.0, y: 0.0, z: 0.0))
+                .setVariable("maxSpeed", to: 5.0)
+                .setVariable("deltaTime", to: 0.016)
+                .callAction("steerSeek", args: ["targetPosition", "maxSpeed", "deltaTime"])
+        }
+
+        XCTAssertEqual(script.name, "SteerSeekTest")
+    }
+
+    func testOrbitScriptCreation() {
+        let script = buildScript(name: "OrbitTest") { builder in
+            builder.onUpdate()
+                .setVariable("centerPosition", to: Vec3(x: 0.0, y: 0.0, z: 0.0))
+                .setVariable("radius", to: 10.0)
+                .setVariable("maxSpeed", to: 2.0)
+                .setVariable("deltaTime", to: 0.016)
+                .callAction("orbit", args: ["centerPosition", "radius", "maxSpeed", "deltaTime"])
+        }
+
+        XCTAssertEqual(script.name, "OrbitTest")
+    }
 }

@@ -173,6 +173,11 @@ public class USCInterpreter {
             setPropertyValue(entityId: targetEntity, key: key, value: resolvedValue, context: context)
             return pc + 1
 
+        case let .setVariable(name, value):
+            let resolvedValue = resolveValue(value, context: context)
+            context.variables[name] = resolvedValue
+            return pc + 1
+
         case let .ifCondition(condition):
             if evaluateCondition(condition, context: context) {
                 return pc + 1 // Enter if block

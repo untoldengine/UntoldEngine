@@ -82,6 +82,9 @@ public enum USCInstruction: Codable {
     case getProperty(entity: String, key: String, as: String) // Read value into variable
     case setProperty(entity: String, key: String, value: Value)
 
+    // Variables
+    case setVariable(name: String, value: Value) // Create/set variable directly
+
     // Debugging
     case log(String) // Console output
 }

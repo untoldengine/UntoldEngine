@@ -381,7 +381,37 @@ public final class USCBuilder {
         return self
     }
 
-    // MARK: - Debug
+    // MARK: - Variables
+
+    /// Set a variable to a literal float value
+    @discardableResult
+    public func setVariable(_ name: String, to value: Float) -> USCBuilder {
+        instructions.append(.setVariable(name: name, value: .float(value)))
+        return self
+    }
+
+    /// Set a variable to a literal vec3 value
+    @discardableResult
+    public func setVariable(_ name: String, to value: Vec3) -> USCBuilder {
+        instructions.append(.setVariable(name: name, value: .vec3(x: value.x, y: value.y, z: value.z)))
+        return self
+    }
+
+    /// Set a variable to a literal string value
+    @discardableResult
+    public func setVariable(_ name: String, to value: String) -> USCBuilder {
+        instructions.append(.setVariable(name: name, value: .string(value)))
+        return self
+    }
+
+    /// Set a variable to a literal bool value
+    @discardableResult
+    public func setVariable(_ name: String, to value: Bool) -> USCBuilder {
+        instructions.append(.setVariable(name: name, value: .bool(value)))
+        return self
+    }
+
+    // MARK: - Conditions
 
     @discardableResult
     public func log(_ message: String) -> USCBuilder {
