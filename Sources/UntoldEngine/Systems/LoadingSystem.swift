@@ -111,3 +111,103 @@ public func playSceneAt(url: URL) {
         CameraSystem.shared.activeCamera = findGameCamera()
     }
 }
+
+/// Script registry to cache loaded scripts by name
+public var scriptRegistry: [String: USCScript] = [:]
+
+/// Load all USC scripts from a directory
+/// - Parameter scriptsURL: URL to the Scripts directory. If nil, uses assetBasePath/Scripts
+/// - Returns: The number of scripts loaded successfully
+@discardableResult
+public func loadScripts(from scriptsURL: URL? = nil) -> Int {
+    scriptRegistry.removeAll()
+
+    // Determine the scripts path
+    let scriptsPath: URL
+    if let providedURL = scriptsURL {
+        scriptsPath = providedURL
+    } else {
+        guard let basePath = assetBasePath else {
+            Logger.log(message: "⚠️  Cannot load scripts: assetBasePath is not set")
+            return 0
+        }
+        scriptsPath = basePath.appendingPathComponent("Scripts", isDirectory: true)
+    }
+
+    // Check if Scripts directory exists
+    guard FileManager.default.fileExists(atPath: scriptsPath.path) else {
+        Logger.log(message: "⚠️  Scripts directory not found at: \(scriptsPath.path)")
+        return 0
+    }
+
+    var loadedCount = 0
+    var failedCount = 0
+
+    do {
+        let contents = try FileManager.default.contentsOfDirectory(
+            at: scriptsPath,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )
+
+        for fileURL in contents {
+            // Only process .uscript files
+            guard fileURL.pathExtension.lowercased() == "uscript" else {
+                continue
+            }
+
+            // Attempt to load the script
+            if let script = loadUSCScript(from: fileURL) {
+                scriptRegistry[script.name] = script
+                loadedCount += 1
+                Logger.log(message: "✅ Loaded script: \(script.name)")
+            } else {
+                failedCount += 1
+                Logger.log(message: "❌ Failed to load script: \(fileURL.lastPathComponent)")
+            }
+        }
+    } catch {
+        Logger.log(message: "❌ Error reading Scripts directory: \(error.localizedDescription)")
+        return 0
+    }
+
+    let totalAttempted = loadedCount + failedCount
+    if totalAttempted > 0 {
+        Logger.log(message: "📜 Script loading complete: \(loadedCount)/\(totalAttempted) scripts loaded successfully")
+    } else {
+        Logger.log(message: "ℹ️  No .uscript files found in Scripts directory")
+    }
+
+    return loadedCount
+}
+
+/// Get a loaded script by name from the registry
+public func getScript(named name: String) -> USCScript? {
+    return scriptRegistry[name]
+}
+
+/// Check if a script is loaded
+public func isScriptLoaded(named name: String) -> Bool {
+    return scriptRegistry[name] != nil
+}
+
+/// Reload a specific script from disk
+@discardableResult
+public func reloadScript(named name: String) -> Bool {
+    guard let basePath = assetBasePath else {
+        Logger.log(message: "⚠️  Cannot reload script: assetBasePath is not set")
+        return false
+    }
+
+    let scriptsPath = basePath.appendingPathComponent("Scripts", isDirectory: true)
+    let scriptURL = scriptsPath.appendingPathComponent("\(name).uscript")
+
+    guard let script = loadUSCScript(from: scriptURL) else {
+        Logger.log(message: "❌ Failed to reload script: \(name)")
+        return false
+    }
+
+    scriptRegistry[script.name] = script
+    Logger.log(message: "🔄 Reloaded script: \(script.name)")
+    return true
+}
