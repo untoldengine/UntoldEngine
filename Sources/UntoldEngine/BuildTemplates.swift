@@ -82,10 +82,6 @@ let package = Package(
                     Logger.log(message: "✅ Found GameData in Resources: \\(gameDataPath.path)")
                 } else {
                     Logger.log(message: "⚠️ GameData not found. Bundle resources: \\(resourceURL.path)")
-                    // List what's actually in the bundle
-                    if let contents = try? FileManager.default.contentsOfDirectory(atPath: resourceURL.path) {
-                        Logger.log(message: "Bundle contents: \\(contents.joined(separator: \", \"))")
-                    }
                 }
             }
             
@@ -94,6 +90,11 @@ let package = Package(
             
             // Load USC scripts from GameData/Scripts
             loadBundledScripts()
+            
+            // Initialize game systems for play mode
+            gameMode = true
+            AnimationSystem.shared.isEnabled = true
+            USCSystem.shared.startPlayMode() 
         }
         
         /// Load the first scene found in GameData/Scenes
