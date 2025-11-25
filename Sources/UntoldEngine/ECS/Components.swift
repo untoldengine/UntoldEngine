@@ -239,12 +239,29 @@ public class GizmoComponent: Component {
 
 // MARK: - USC Scripting Component
 
-public class ScriptComponent: Component {
+public class ScriptComponent: Component, Codable {
     public var script: USCScript?
     public var scriptFilePath: String?
 
     public required init() {
         script = nil
         scriptFilePath = nil
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case script
+        case scriptFilePath
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(script, forKey: .script)
+        try container.encodeIfPresent(scriptFilePath, forKey: .scriptFilePath)
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        script = try container.decodeIfPresent(USCScript.self, forKey: .script)
+        scriptFilePath = try container.decodeIfPresent(String.self, forKey: .scriptFilePath)
     }
 }

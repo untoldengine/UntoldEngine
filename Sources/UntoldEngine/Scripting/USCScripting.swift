@@ -10,6 +10,12 @@ import simd
 public func initScriptingSystem() {
     registerCoreMathActions()
     registerCoreGamePlayActions()
+    
+    // Register ScriptComponent for scene serialization with custom merge
+    encodeCustomComponent(type: ScriptComponent.self) { existing, decoded in
+        existing.script = decoded.script
+        existing.scriptFilePath = decoded.scriptFilePath
+    }
 }
 
 /*
