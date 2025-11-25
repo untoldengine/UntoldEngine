@@ -125,6 +125,11 @@ public class USCSystem {
     public var activeScriptCount: Int {
         scriptContexts.count
     }
+    
+    /// Get all active scripts (for build system)
+    public func getAllScripts() -> [USCScript] {
+        scriptContexts.values.compactMap { $0.script }
+    }
 
     // MARK: - Helper Methods
 
