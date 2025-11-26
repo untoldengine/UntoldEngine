@@ -1,4 +1,3 @@
-
 //
 //  Components.swift
 //  UntoldEngine
@@ -240,28 +239,55 @@ public class GizmoComponent: Component {
 // MARK: - USC Scripting Component
 
 public class ScriptComponent: Component, Codable {
-    public var script: USCScript?
-    public var scriptFilePath: String?
+    // New multi-script storage
+    public var scripts: [USCScript] = []
+    public var scriptFilePaths: [String]? = nil
 
-    public required init() {
-        script = nil
-        scriptFilePath = nil
-    }
+    public required init() {}
 
+    // Backward-compatible coding keys
     enum CodingKeys: String, CodingKey {
+        case scripts
+        case scriptFilePaths
+        // Legacy single-script fields supported for decoding
         case script
         case scriptFilePath
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encodeIfPresent(script, forKey: .script)
-        try container.encodeIfPresent(scriptFilePath, forKey: .scriptFilePath)
+        // Only encode the new multi-script fields
+        try container.encode(scripts, forKey: .scripts)
+        try container.encodeIfPresent(scriptFilePaths, forKey: .scriptFilePaths)
     }
 
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        script = try container.decodeIfPresent(USCScript.self, forKey: .script)
-        scriptFilePath = try container.decodeIfPresent(String.self, forKey: .scriptFilePath)
+
+        // Try new array-based decoding first
+        let decodedScripts = try container.decodeIfPresent([USCScript].self, forKey: .scripts)
+        let decodedPaths = try container.decodeIfPresent([String].self, forKey: .scriptFilePaths)
+
+        if let decodedScripts {
+            self.scripts = decodedScripts
+            self.scriptFilePaths = decodedPaths
+            return
+        }
+
+        // Fallback to legacy single-script decoding
+        let legacyScript = try container.decodeIfPresent(USCScript.self, forKey: .script)
+        let legacyPath = try container.decodeIfPresent(String.self, forKey: .scriptFilePath)
+
+        if let legacyScript {
+            self.scripts = [legacyScript]
+        } else {
+            self.scripts = []
+        }
+        if let legacyPath {
+            self.scriptFilePaths = [legacyPath]
+        } else {
+            self.scriptFilePaths = nil
+        }
     }
 }
+

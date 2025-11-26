@@ -12,9 +12,25 @@ public func initScriptingSystem() {
     registerCoreGamePlayActions()
     
     // Register ScriptComponent for scene serialization with custom merge
+    // Now supports multi-script arrays and remains backward compatible.
     encodeCustomComponent(type: ScriptComponent.self) { existing, decoded in
-        existing.script = decoded.script
-        existing.scriptFilePath = decoded.scriptFilePath
+        // If decoded has explicit arrays, use them directly.
+        // This also covers legacy decode, since our ScriptComponent decoder
+        // maps legacy single fields into arrays.
+        if !decoded.scripts.isEmpty {
+            existing.scripts = decoded.scripts
+        } else {
+            // If decoded scripts are empty, keep existing.scripts as-is
+            // (no change).
+        }
+        
+        if let decodedPaths = decoded.scriptFilePaths {
+            // If decoded has paths, replace existing
+            existing.scriptFilePaths = decodedPaths
+        } else {
+            // If decoded has no paths field, do not overwrite existing paths
+            // (keeps existing.scriptFilePaths).
+        }
     }
 }
 
