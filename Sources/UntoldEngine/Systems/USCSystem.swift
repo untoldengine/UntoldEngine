@@ -16,7 +16,9 @@ public class USCSystem {
     public static let shared = USCSystem()
 
     private let interpreter = USCInterpreter()
-    private var scriptContexts: [EntityID: USCContext] = [:]
+
+    // Multi-script: one entity may have multiple USCContext (one per script)
+    private var scriptContexts: [EntityID: [USCContext]] = [:]
 
     private init() {}
 
@@ -30,35 +32,45 @@ public class USCSystem {
     public func startPlayMode() {
         scriptContexts.removeAll()
 
-        // Load all script components
+        // Load all entities that have ScriptComponent
         let scriptId = getComponentId(for: ScriptComponent.self)
         let scriptEntities = queryEntitiesWithComponentIds([scriptId], in: scene)
 
         for entityId in scriptEntities {
-            guard let scriptComp = scene.get(component: ScriptComponent.self, for: entityId),
-                  let script = scriptComp.script
-            else {
+            guard let scriptComp = scene.get(component: ScriptComponent.self, for: entityId) else {
                 continue
             }
 
-            let context = USCContext(entityId: entityId, script: script)
-            scriptContexts[entityId] = context
+            let scripts = scriptComp.scripts
+            guard !scripts.isEmpty else { continue }
 
-            Logger.log(message: "🎬 USC: Loaded script '\(script.name)' for entity \(entityId)")
+            // Build contexts for each script
+            var contexts: [USCContext] = []
+            contexts.reserveCapacity(scripts.count)
 
-            // Execute OnStart event if present in script
-            if scriptHasEvent(script, eventName: "OnStart") {
-                interpreter.execute(script: script, context: context, forEvent: "OnStart")
-                Logger.log(message: "🚀 USC: Executed OnStart for '\(script.name)'")
+            for script in scripts {
+                let context = USCContext(entityId: entityId, script: script)
+                contexts.append(context)
+
+                Logger.log(message: "🎬 USC: Loaded script '\(script.name)' for entity \(entityId)")
+
+                // Execute OnStart event if present in script
+                if scriptHasEvent(script, eventName: "OnStart") {
+                    interpreter.execute(script: script, context: context, forEvent: "OnStart")
+                    Logger.log(message: "🚀 USC: Executed OnStart for '\(script.name)'")
+                }
             }
+
+            scriptContexts[entityId] = contexts
         }
 
-        Logger.log(message: "▶️  USC System: Play mode started (\(scriptContexts.count) scripts active)")
+        let total = activeScriptCount
+        Logger.log(message: "▶️  USC System: Play mode started (\(total) scripts active)")
     }
 
     /// Stop interpreting scripts (called when Play mode stops)
     public func stopPlayMode() {
-        let count = scriptContexts.count
+        let count = activeScriptCount
         scriptContexts.removeAll()
         Logger.log(message: "⏹️  USC System: Play mode stopped (\(count) scripts unloaded)")
     }
@@ -67,68 +79,114 @@ public class USCSystem {
     public func update(_: Float) {
         guard gameMode else { return }
 
-        for (_, context) in scriptContexts {
-            guard let script = context.script else { continue }
-
-            // Execute OnUpdate event if present in script
-            if scriptHasEvent(script, eventName: "OnUpdate") {
-                interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+        for (_, contexts) in scriptContexts {
+            for context in contexts {
+                guard let script = context.script else { continue }
+                if scriptHasEvent(script, eventName: "OnUpdate") {
+                    interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+                }
             }
         }
     }
 
-    /// Trigger event-based scripts
+    /// Trigger event-based scripts for a specific entity
     public func triggerEvent(_ eventName: String, for entityId: EntityID) {
         guard gameMode else { return }
-        guard let context = scriptContexts[entityId] else { return }
-        guard let script = context.script else { return }
+        guard let contexts = scriptContexts[entityId] else { return }
 
-        // Execute the specified event if present in script
-        if scriptHasEvent(script, eventName: eventName) {
-            interpreter.execute(script: script, context: context, forEvent: eventName)
-            Logger.log(message: "⚡ USC: Triggered event '\(eventName)' for entity \(entityId)")
+        for context in contexts {
+            guard let script = context.script else { continue }
+            if scriptHasEvent(script, eventName: eventName) {
+                interpreter.execute(script: script, context: context, forEvent: eventName)
+                Logger.log(message: "⚡ USC: Triggered event '\(eventName)' for entity \(entityId) [script: \(script.name)]")
+            }
         }
     }
 
-    /// Hot-reload a script (update while running)
-    public func reloadScript(_ script: USCScript, for entityId: EntityID) {
-        guard var context = scriptContexts[entityId] else { return }
-        context.script = script
-        scriptContexts[entityId] = context
-        Logger.log(message: "🔥 USC: Script '\(script.name)' hot-reloaded for entity \(entityId)")
+    /// Hot-reload a script (update while running) by name
+    public func reloadScript(named scriptName: String, for entityId: EntityID) {
+        guard var contexts = scriptContexts[entityId] else { return }
+
+        // Find context index by script name
+        if let idx = contexts.firstIndex(where: { $0.script?.name == scriptName }) {
+            // Try to fetch the latest script from registry if available; otherwise keep the same script object
+            let newScript = scriptRegistry[scriptName] ?? contexts[idx].script
+            contexts[idx].script = newScript
+            scriptContexts[entityId] = contexts
+            Logger.log(message: "🔥 USC: Script '\(scriptName)' hot-reloaded for entity \(entityId)")
+        }
     }
 
-    /// Attach a script to an entity at runtime
+    /// Attach a new script to an entity at runtime
     public func attachScript(_ script: USCScript, to entityId: EntityID) {
+        var contexts = scriptContexts[entityId] ?? []
         let context = USCContext(entityId: entityId, script: script)
-        scriptContexts[entityId] = context
+        contexts.append(context)
+        scriptContexts[entityId] = contexts
+
+        // Also append to the entity's ScriptComponent.scripts if present
+        if let scriptComp = scene.get(component: ScriptComponent.self, for: entityId) {
+            scriptComp.scripts.append(script)
+        }
+
         Logger.log(message: "📎 USC: Attached script '\(script.name)' to entity \(entityId)")
     }
 
-    /// Detach script from an entity
-    public func detachScript(from entityId: EntityID) {
+    /// Detach a script by name from an entity
+    public func detachScript(named scriptName: String, from entityId: EntityID) {
+        guard var contexts = scriptContexts[entityId] else { return }
+
+        // Remove matching contexts
+        let originalCount = contexts.count
+        contexts.removeAll { $0.script?.name == scriptName }
+        scriptContexts[entityId] = contexts
+
+        // Also remove from the ScriptComponent if present
+        if let scriptComp = scene.get(component: ScriptComponent.self, for: entityId) {
+            scriptComp.scripts.removeAll { $0.name == scriptName }
+        }
+
+        let removed = originalCount - contexts.count
+        if removed > 0 {
+            Logger.log(message: "✂️  USC: Detached script '\(scriptName)' from entity \(entityId) (\(removed) removed)")
+        }
+    }
+
+    /// Detach all scripts from an entity
+    public func detachAllScripts(from entityId: EntityID) {
+        let removed = scriptContexts[entityId]?.count ?? 0
         scriptContexts.removeValue(forKey: entityId)
-        Logger.log(message: "✂️  USC: Detached script from entity \(entityId)")
+
+        // Also clear ScriptComponent if present
+        if let scriptComp = scene.get(component: ScriptComponent.self, for: entityId) {
+            scriptComp.scripts.removeAll()
+        }
+
+        Logger.log(message: "🧹 USC: Detached all scripts from entity \(entityId) (\(removed) removed)")
     }
 
-    /// Get current script for entity
-    public func getScript(for entityId: EntityID) -> USCScript? {
-        scriptContexts[entityId]?.script
+    /// Get current scripts for an entity
+    public func getScripts(for entityId: EntityID) -> [USCScript] {
+        if let contexts = scriptContexts[entityId] {
+            return contexts.compactMap { $0.script }
+        }
+        return []
     }
 
-    /// Check if entity has an active script
-    public func hasScript(entityId: EntityID) -> Bool {
-        scriptContexts[entityId] != nil
+    /// Check if entity has any active scripts
+    public func hasScripts(entityId: EntityID) -> Bool {
+        guard let contexts = scriptContexts[entityId] else { return false }
+        return !contexts.isEmpty
     }
 
-    /// Get number of active scripts
+    /// Get number of active scripts (sum across all entities)
     public var activeScriptCount: Int {
-        scriptContexts.count
+        scriptContexts.values.reduce(0) { $0 + $1.count }
     }
-    
+
     /// Get all active scripts (for build system)
     public func getAllScripts() -> [USCScript] {
-        scriptContexts.values.compactMap { $0.script }
+        scriptContexts.values.flatMap { $0.compactMap { $0.script } }
     }
 
     // MARK: - Helper Methods
@@ -143,3 +201,4 @@ public class USCSystem {
         return false
     }
 }
+

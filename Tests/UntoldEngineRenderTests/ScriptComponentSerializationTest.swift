@@ -32,10 +32,10 @@ final class ScriptComponentSerializationTest: XCTestCase {
             )
         )
         
-        // Create a ScriptComponent
+        // Create a ScriptComponent with multi-script API
         let scriptComponent = ScriptComponent()
-        scriptComponent.script = script
-        scriptComponent.scriptFilePath = "/path/to/test.uscript"
+        scriptComponent.scripts = [script]
+        scriptComponent.scriptFilePaths = ["/path/to/test.uscript"]
         
         // Encode it
         let encoder = JSONEncoder()
@@ -51,6 +51,13 @@ final class ScriptComponentSerializationTest: XCTestCase {
         print("Encoded JSON:\n\(jsonString ?? "nil")")
         XCTAssertTrue(jsonString!.contains("TestScript"), "JSON should contain TestScript")
         XCTAssertTrue(jsonString!.contains("test.uscript"), "JSON should contain test.uscript")
+        
+        // Decode back to ensure round-trip
+        let decoder = JSONDecoder()
+        let decoded = try decoder.decode(ScriptComponent.self, from: jsonData)
+        XCTAssertEqual(decoded.scripts.count, 1)
+        XCTAssertEqual(decoded.scripts.first?.name, "TestScript")
+        XCTAssertEqual(decoded.scriptFilePaths?.first, "/path/to/test.uscript")
     }
     
     func test_scriptComponent_canBeDecoded() throws {
@@ -67,10 +74,10 @@ final class ScriptComponentSerializationTest: XCTestCase {
             )
         )
         
-        // Create and encode
+        // Create and encode using new multi-script API
         let original = ScriptComponent()
-        original.script = originalScript
-        original.scriptFilePath = "/scripts/test.uscript"
+        original.scripts = [originalScript]
+        original.scriptFilePaths = ["/scripts/test.uscript"]
         
         let encoder = JSONEncoder()
         let jsonData = try encoder.encode(original)
@@ -80,11 +87,12 @@ final class ScriptComponentSerializationTest: XCTestCase {
         let decoded = try decoder.decode(ScriptComponent.self, from: jsonData)
         
         // Verify
-        XCTAssertEqual(decoded.script?.name, "DecodingTest")
-        XCTAssertEqual(decoded.scriptFilePath, "/scripts/test.uscript")
-        XCTAssertEqual(decoded.script?.instructions.count, 2)
-        XCTAssertEqual(decoded.script?.metadata.triggerType, .event)
-        XCTAssertEqual(decoded.script?.metadata.executionMode, .interpreted)
+        XCTAssertEqual(decoded.scripts.count, 1)
+        XCTAssertEqual(decoded.scripts.first?.name, "DecodingTest")
+        XCTAssertEqual(decoded.scriptFilePaths?.first, "/scripts/test.uscript")
+        XCTAssertEqual(decoded.scripts.first?.instructions.count, 2)
+        XCTAssertEqual(decoded.scripts.first?.metadata.triggerType, .event)
+        XCTAssertEqual(decoded.scripts.first?.metadata.executionMode, .interpreted)
     }
     
     func test_scriptComponent_withNilValues_canBeEncoded() throws {
@@ -102,8 +110,39 @@ final class ScriptComponentSerializationTest: XCTestCase {
         let decoder = JSONDecoder()
         let decoded = try decoder.decode(ScriptComponent.self, from: jsonData)
         
-        // Verify nil values are preserved
-        XCTAssertNil(decoded.script)
-        XCTAssertNil(decoded.scriptFilePath)
+        // Verify empty arrays / nil arrays are preserved
+        XCTAssertEqual(decoded.scripts.count, 0)
+        XCTAssertNil(decoded.scriptFilePaths)
+    }
+    
+    func test_scriptComponent_legacySingleFields_decodeIntoArrays() throws {
+        // Construct legacy JSON that uses single 'script' and 'scriptFilePath'
+        let legacyScript = USCScript(
+            name: "LegacyScript",
+            instructions: [
+                .log("legacy")
+            ],
+            metadata: ScriptMetadata(triggerType: .perFrame, executionMode: .auto)
+        )
+        
+        let legacyComponent = ScriptComponent()
+        // Simulate legacy by encoding via a manual container:
+        // We’ll encode using the legacy keys to ensure the new decoder maps them to arrays.
+        struct LegacyWrapper: Codable {
+            let script: USCScript?
+            let scriptFilePath: String?
+        }
+        let legacy = LegacyWrapper(script: legacyScript, scriptFilePath: "/legacy/path.uscript")
+        let encoder = JSONEncoder()
+        let legacyData = try encoder.encode(legacy)
+        
+        // Decode using new ScriptComponent decoder (should map into arrays)
+        let decoder = JSONDecoder()
+        let decoded = try decoder.decode(ScriptComponent.self, from: legacyData)
+        
+        XCTAssertEqual(decoded.scripts.count, 1)
+        XCTAssertEqual(decoded.scripts.first?.name, "LegacyScript")
+        XCTAssertEqual(decoded.scriptFilePaths?.first, "/legacy/path.uscript")
     }
 }
+

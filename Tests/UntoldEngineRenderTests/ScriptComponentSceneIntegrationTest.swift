@@ -37,10 +37,10 @@ final class ScriptComponentSceneIntegrationTest: XCTestCase {
             )
         )
         
-        // Create a ScriptComponent
+        // Create a ScriptComponent using multi-script API
         let scriptComponent = ScriptComponent()
-        scriptComponent.script = script
-        scriptComponent.scriptFilePath = "/Assets/Scripts/movement.uscript"
+        scriptComponent.scripts = [script]
+        scriptComponent.scriptFilePaths = ["/Assets/Scripts/movement.uscript"]
         
         // Encode it (simulating what the scene serializer does)
         let encoder = JSONEncoder()
@@ -51,12 +51,42 @@ final class ScriptComponentSceneIntegrationTest: XCTestCase {
         let decodedComponent = try decoder.decode(ScriptComponent.self, from: jsonData)
         
         // Verify the decoded component matches what we serialized
-        XCTAssertNotNil(decodedComponent.script, "Script should be in decoded component")
-        XCTAssertEqual(decodedComponent.script?.name, "TestMovementScript", "Script name should match")
-        XCTAssertEqual(decodedComponent.scriptFilePath, "/Assets/Scripts/movement.uscript", "Script path should match")
-        XCTAssertEqual(decodedComponent.script?.instructions.count, 3, "Should have 3 instructions")
-        XCTAssertEqual(decodedComponent.script?.metadata.triggerType, .perFrame, "Trigger type should match")
-        XCTAssertEqual(decodedComponent.script?.metadata.executionMode, .auto, "Execution mode should match")
+        XCTAssertEqual(decodedComponent.scripts.count, 1, "Should have one script")
+        XCTAssertEqual(decodedComponent.scripts.first?.name, "TestMovementScript", "Script name should match")
+        XCTAssertEqual(decodedComponent.scriptFilePaths?.first, "/Assets/Scripts/movement.uscript", "Script path should match")
+        XCTAssertEqual(decodedComponent.scripts.first?.instructions.count, 3, "Should have 3 instructions")
+        XCTAssertEqual(decodedComponent.scripts.first?.metadata.triggerType, .perFrame, "Trigger type should match")
+        XCTAssertEqual(decodedComponent.scripts.first?.metadata.executionMode, .auto, "Execution mode should match")
     }
     
+    func test_scriptComponent_multipleScripts_roundTrip() throws {
+        let scriptA = USCScript(
+            name: "A",
+            instructions: [.log("A")],
+            metadata: .init(triggerType: .perFrame, executionMode: .auto)
+        )
+        let scriptB = USCScript(
+            name: "B",
+            instructions: [.log("B")],
+            metadata: .init(triggerType: .event, executionMode: .interpreted)
+        )
+        
+        let component = ScriptComponent()
+        component.scripts = [scriptA, scriptB]
+        component.scriptFilePaths = ["/A.uscript", "/B.uscript"]
+        
+        let encoder = JSONEncoder()
+        let json = try encoder.encode(component)
+        
+        let decoder = JSONDecoder()
+        let decoded = try decoder.decode(ScriptComponent.self, from: json)
+        
+        XCTAssertEqual(decoded.scripts.count, 2)
+        XCTAssertEqual(decoded.scripts[0].name, "A")
+        XCTAssertEqual(decoded.scripts[1].name, "B")
+        XCTAssertEqual(decoded.scriptFilePaths?.count, 2)
+        XCTAssertEqual(decoded.scriptFilePaths?[0], "/A.uscript")
+        XCTAssertEqual(decoded.scriptFilePaths?[1], "/B.uscript")
+    }
 }
+
