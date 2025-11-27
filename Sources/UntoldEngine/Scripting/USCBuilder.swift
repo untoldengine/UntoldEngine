@@ -86,19 +86,21 @@ public final class USCBuilder {
         return self
     }
 
-    @discardableResult
-    public func wait(_ seconds: Float) -> USCBuilder {
-        instructions.append(.delay(seconds: seconds))
-        return self
-    }
+    /*
+     @discardableResult
+     public func wait(_ seconds: Float) -> USCBuilder {
+         instructions.append(.delay(seconds: seconds))
+         return self
+     }
 
-    @discardableResult
-    public func loop(_ times: Int, do block: (USCBuilder) -> Void) -> USCBuilder {
-        instructions.append(.loop(iterations: times))
-        let nested = USCBuilder(); block(nested); instructions.append(contentsOf: nested.instructions)
-        instructions.append(.endLoop)
-        return self
-    }
+     @discardableResult
+     public func loop(_ times: Int, do block: (USCBuilder) -> Void) -> USCBuilder {
+         instructions.append(.loop(iterations: times))
+         let nested = USCBuilder(); block(nested); instructions.append(contentsOf: nested.instructions)
+         instructions.append(.endLoop)
+         return self
+     }
+      */
 
     // MARK: - MATH
 
