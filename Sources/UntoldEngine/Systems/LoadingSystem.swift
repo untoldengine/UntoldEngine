@@ -183,12 +183,12 @@ public func loadScripts(from scriptsURL: URL? = nil) -> Int {
 
 /// Get a loaded script by name from the registry
 public func getScript(named name: String) -> USCScript? {
-    return scriptRegistry[name]
+    scriptRegistry[name]
 }
 
 /// Check if a script is loaded
 public func isScriptLoaded(named name: String) -> Bool {
-    return scriptRegistry[name] != nil
+    scriptRegistry[name] != nil
 }
 
 /// Reload a specific script from disk

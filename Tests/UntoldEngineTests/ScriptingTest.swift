@@ -1,5 +1,5 @@
 //
-//  ScriptingTests.swift
+//  ScriptingTest.swift
 //  UntoldEngineTests
 //
 //  Copyright (C) Untold Engine Studios
@@ -1050,5 +1050,4 @@ final class ScriptingTests: XCTestCase {
             XCTFail("Expected setProperty instruction")
         }
     }
-
 }

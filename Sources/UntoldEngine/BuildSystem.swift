@@ -33,7 +33,7 @@ public enum BuildTarget: Codable {
     case macOS(deployment: MacOSVersion)
     case iOS(deployment: IOSVersion)
     case visionOS(deployment: VisionOSVersion)
-    
+
     public var platformName: String {
         switch self {
         case .macOS: return "macOS"
@@ -41,12 +41,12 @@ public enum BuildTarget: Codable {
         case .visionOS: return "visionOS"
         }
     }
-    
+
     public var deploymentTarget: String {
         switch self {
-        case .macOS(let version): return version.rawValue
-        case .iOS(let version): return version.rawValue
-        case .visionOS(let version): return version.rawValue
+        case let .macOS(version): return version.rawValue
+        case let .iOS(version): return version.rawValue
+        case let .visionOS(version): return version.rawValue
         }
     }
 }
@@ -68,7 +68,7 @@ public struct BuildSettings: Codable {
     public var includeDebugInfo: Bool
     public var optimizationLevel: OptimizationLevel
     public var teamID: String? // For code signing
-    
+
     public init(
         projectName: String,
         bundleIdentifier: String,
@@ -96,7 +96,7 @@ public struct BuildResult {
     public let xcodeProjectPath: URL
     public let buildTime: TimeInterval
     public let bundledAssets: [String]
-    
+
     public init(xcodeProjectPath: URL, buildTime: TimeInterval, bundledAssets: [String]) {
         self.xcodeProjectPath = xcodeProjectPath
         self.buildTime = buildTime
@@ -110,14 +110,14 @@ public enum BuildError: Error, LocalizedError {
     case assetBundlingFailed(String)
     case projectGenerationFailed(String)
     case fileSystemError(String)
-    
+
     public var errorDescription: String? {
         switch self {
-        case .invalidSettings(let msg): return "Invalid build settings: \(msg)"
+        case let .invalidSettings(msg): return "Invalid build settings: \(msg)"
         case .templateNotFound: return "Build template not found"
-        case .assetBundlingFailed(let msg): return "Asset bundling failed: \(msg)"
-        case .projectGenerationFailed(let msg): return "Project generation failed: \(msg)"
-        case .fileSystemError(let msg): return "File system error: \(msg)"
+        case let .assetBundlingFailed(msg): return "Asset bundling failed: \(msg)"
+        case let .projectGenerationFailed(msg): return "Project generation failed: \(msg)"
+        case let .fileSystemError(msg): return "File system error: \(msg)"
         }
     }
 }
@@ -125,59 +125,58 @@ public enum BuildError: Error, LocalizedError {
 // MARK: - Build System
 
 public class BuildSystem {
-    
     public static let shared = BuildSystem()
     private init() {}
-    
+
     /// Build a game project and generate Xcode project
     public func build(settings: BuildSettings, progress: ((String) -> Void)? = nil) async throws -> BuildResult {
         let startTime = Date()
-        
+
         progress?("🔨 Starting build for \(settings.target.platformName)...")
-        
+
         // 1. Validate settings
         try validateSettings(settings)
         progress?("✅ Settings validated")
-        
+
         // 2. Create output directory
         let projectDir = try createProjectDirectory(settings: settings)
         progress?("📁 Created project directory")
-        
+
         // 3. Copy template project
         try await copyTemplateProject(to: projectDir, settings: settings)
         progress?("📋 Copied template project")
-        
+
         // 4. Bundle game data (scenes, scripts, assets)
         let bundledAssets = try await bundleGameData(to: projectDir, settings: settings)
         progress?("📦 Bundled \(bundledAssets.count) assets")
-        
+
         // 5. Configure Xcode project settings
         try configureProject(at: projectDir, settings: settings)
         progress?("⚙️ Configured Xcode project")
-        
+
         let buildTime = Date().timeIntervalSince(startTime)
         progress?("✅ Build complete in \(String(format: "%.2f", buildTime))s")
-        
+
         let xcodeProjectPath = projectDir.appendingPathComponent("\(settings.projectName).xcodeproj")
-        
+
         return BuildResult(
             xcodeProjectPath: xcodeProjectPath,
             buildTime: buildTime,
             bundledAssets: bundledAssets
         )
     }
-    
+
     // MARK: - Private Helpers
-    
+
     private func validateSettings(_ settings: BuildSettings) throws {
         guard !settings.projectName.isEmpty else {
             throw BuildError.invalidSettings("Project name cannot be empty")
         }
-        
+
         guard !settings.bundleIdentifier.isEmpty else {
             throw BuildError.invalidSettings("Bundle identifier cannot be empty")
         }
-        
+
         // Validate bundle identifier format
         let bundleIDPattern = "^[a-zA-Z0-9.-]+$"
         let regex = try? NSRegularExpression(pattern: bundleIDPattern)
@@ -186,82 +185,82 @@ public class BuildSystem {
             throw BuildError.invalidSettings("Invalid bundle identifier format")
         }
     }
-    
+
     private func createProjectDirectory(settings: BuildSettings) throws -> URL {
         let projectDir = settings.outputPath.appendingPathComponent(settings.projectName)
-        
+
         // Remove existing directory if it exists
         if FileManager.default.fileExists(atPath: projectDir.path) {
             try FileManager.default.removeItem(at: projectDir)
         }
-        
+
         try FileManager.default.createDirectory(at: projectDir, withIntermediateDirectories: true)
-        
+
         return projectDir
     }
-    
+
     private func copyTemplateProject(to projectDir: URL, settings: BuildSettings) async throws {
         // Use embedded templates
         Logger.log(message: "📦 Creating project from embedded templates")
         try createProjectFromEmbeddedTemplates(at: projectDir, settings: settings)
-        
+
         // Process template variables
         try processTemplateVariables(in: projectDir, settings: settings)
-        
+
         Logger.log(message: "📋 Template project created successfully")
     }
-    
+
     private func createProjectFromEmbeddedTemplates(at projectDir: URL, settings: BuildSettings) throws {
         let fileManager = FileManager.default
-        
+
         // Get template files for the target
         let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
-        
+
         for (relativePath, content) in templateFiles {
             // Replace {{PROJECT_NAME}} in paths
             let processedPath = relativePath.replacingOccurrences(of: "{{PROJECT_NAME}}", with: settings.projectName)
             let fileURL = projectDir.appendingPathComponent(processedPath)
-            
+
             // Create intermediate directories
             let dirURL = fileURL.deletingLastPathComponent()
             try fileManager.createDirectory(at: dirURL, withIntermediateDirectories: true)
-            
+
             // Write file content
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
         }
-        
+
         // Create GameData directory structure
         let gameDataDir = projectDir
             .appendingPathComponent("Sources")
             .appendingPathComponent(settings.projectName)
             .appendingPathComponent("GameData")
-        
+
         try createGameDataDirectories(at: gameDataDir)
-        
+
         Logger.log(message: "📄 Created \(templateFiles.count) files from embedded templates")
     }
-    
+
     private func bundleGameData(to projectDir: URL, settings: BuildSettings) async throws -> [String] {
         var bundledAssets: [String] = []
-        
+
         let gameDataDir = projectDir
             .appendingPathComponent("Sources")
             .appendingPathComponent(settings.projectName)
             .appendingPathComponent("GameData")
-        
+
         // Create subdirectories
         try createGameDataDirectories(at: gameDataDir)
-        
+
         // 1. Bundle scenes
         let scenesDir = gameDataDir.appendingPathComponent("Scenes")
         let sceneAssets = try await bundleScene("", to: scenesDir)
         bundledAssets.append(contentsOf: sceneAssets)
-        
+
         // 2. Bundle USC scripts
         let scriptsDir = gameDataDir.appendingPathComponent("Scripts")
         let scriptAssets = try await bundleScripts(to: scriptsDir)
         bundledAssets.append(contentsOf: scriptAssets)
-        
+
         // 3. Bundle models, animations, gaussians, and textures
         let modelsDir = gameDataDir.appendingPathComponent("Models")
         let animationsDir = gameDataDir.appendingPathComponent("Animations")
@@ -269,37 +268,37 @@ public class BuildSystem {
         let texturesDir = gameDataDir.appendingPathComponent("Textures")
         let assetPaths = try await bundleAssets(modelsDir: modelsDir, animationsDir: animationsDir, gaussiansDir: gaussiansDir, texturesDir: texturesDir)
         bundledAssets.append(contentsOf: assetPaths)
-        
+
         // 4. Bundle Metal shaders
         let shadersDir = gameDataDir.appendingPathComponent("Shaders")
         let shaderAssets = try await bundleShaders(to: shadersDir)
         bundledAssets.append(contentsOf: shaderAssets)
-        
+
         Logger.log(message: "📦 Game data bundled to \(gameDataDir.path)")
-        
+
         return bundledAssets
     }
-    
+
     private func configureProject(at projectDir: URL, settings: BuildSettings) throws {
         Logger.log(message: "⚙️ Generating Xcode project with XcodeGen...")
-        
+
         // Generate project.yml YAML
         let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
         let yamlPath = projectDir.appendingPathComponent("project.yml")
         try yamlContent.write(to: yamlPath, atomically: true, encoding: .utf8)
         Logger.log(message: "📝 Generated project.yml")
-        
+
         // Call xcodegen command to generate .xcodeproj
         let task = Process()
         task.currentDirectoryURL = projectDir
-        
+
         // Try to find xcodegen in common locations
         let possiblePaths = [
             "/opt/homebrew/bin/xcodegen",
             "/usr/local/bin/xcodegen",
-            "/opt/local/bin/xcodegen"
+            "/opt/local/bin/xcodegen",
         ]
-        
+
         var xcodegenPath: String?
         for path in possiblePaths {
             if FileManager.default.fileExists(atPath: path) {
@@ -307,43 +306,43 @@ public class BuildSystem {
                 break
             }
         }
-        
+
         guard let xcodegenPath else {
             throw BuildError.projectGenerationFailed("xcodegen not found. Install with: brew install xcodegen")
         }
-        
+
         task.executableURL = URL(fileURLWithPath: xcodegenPath)
         task.arguments = ["generate"]
-        
+
         let pipe = Pipe()
         task.standardOutput = pipe
         task.standardError = pipe
-        
+
         do {
             try task.run()
             task.waitUntilExit()
-            
+
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             let output = String(data: data, encoding: .utf8) ?? ""
-            
+
             if task.terminationStatus != 0 {
                 Logger.log(message: "❌ XcodeGen output: \(output)")
                 throw BuildError.projectGenerationFailed("xcodegen failed with status \(task.terminationStatus): \(output)")
             }
-            
+
             Logger.log(message: "✅ Xcode project generated successfully")
         } catch {
             throw BuildError.projectGenerationFailed("Failed to run xcodegen: \(error.localizedDescription)")
         }
-        
+
         Logger.log(message: "⚙️ Project configured for \(settings.target.platformName)")
     }
-    
+
     // MARK: - Template Processing
-    
+
     private func copyDirectory(from source: URL, to destination: URL) throws {
         let fileManager = FileManager.default
-        
+
         guard let enumerator = fileManager.enumerator(
             at: source,
             includingPropertiesForKeys: [.isRegularFileKey],
@@ -351,32 +350,32 @@ public class BuildSystem {
         ) else {
             throw BuildError.fileSystemError("Failed to enumerate template directory")
         }
-        
+
         for case let fileURL as URL in enumerator {
             let relativePath = fileURL.path.replacingOccurrences(of: source.path + "/", with: "")
             let destinationURL = destination.appendingPathComponent(relativePath)
-            
+
             // Create intermediate directories
             let destinationDir = destinationURL.deletingLastPathComponent()
             try fileManager.createDirectory(at: destinationDir, withIntermediateDirectories: true)
-            
+
             // Remove existing file if it exists
             if fileManager.fileExists(atPath: destinationURL.path) {
                 try fileManager.removeItem(at: destinationURL)
             }
-            
+
             // Copy file
             try fileManager.copyItem(at: fileURL, to: destinationURL)
         }
     }
-    
+
     private func processTemplateVariables(in projectDir: URL, settings: BuildSettings) throws {
         let replacements: [String: String] = [
             "{{PROJECT_NAME}}": settings.projectName,
             "{{BUNDLE_IDENTIFIER}}": settings.bundleIdentifier,
-            "{{MACOS_VERSION}}": getMacOSVersionString(settings.target)
+            "{{MACOS_VERSION}}": getMacOSVersionString(settings.target),
         ]
-        
+
         let fileManager = FileManager.default
         guard let enumerator = fileManager.enumerator(
             at: projectDir,
@@ -384,17 +383,17 @@ public class BuildSystem {
         ) else {
             return
         }
-        
+
         for case let fileURL as URL in enumerator {
             // Process text files only
             guard ["swift", "md", "txt"].contains(fileURL.pathExtension) || fileURL.lastPathComponent == "Package.swift" else {
                 continue
             }
-            
+
             guard var content = try? String(contentsOf: fileURL, encoding: .utf8) else {
                 continue
             }
-            
+
             var modified = false
             for (placeholder, value) in replacements {
                 if content.contains(placeholder) {
@@ -402,58 +401,58 @@ public class BuildSystem {
                     modified = true
                 }
             }
-            
+
             if modified {
                 try content.write(to: fileURL, atomically: true, encoding: .utf8)
             }
         }
     }
-    
+
     private func getMacOSVersionString(_ target: BuildTarget) -> String {
         switch target {
-        case .macOS(let version):
+        case let .macOS(version):
             // Convert "13.0" to "13" for Package.swift
             return version.rawValue.components(separatedBy: ".").first ?? "13"
         default:
             return "13"
         }
     }
-    
+
     // MARK: - Asset Bundling Helpers
-    
+
     private func createGameDataDirectories(at gameDataDir: URL) throws {
         let subdirs = ["Scenes", "Scripts", "Models", "Animations", "Gaussians", "Textures", "Shaders"]
-        
+
         for subdir in subdirs {
             let dirURL = gameDataDir.appendingPathComponent(subdir)
             try FileManager.default.createDirectory(at: dirURL, withIntermediateDirectories: true)
         }
     }
-    
-    private func bundleScene(_ scenePath: String, to scenesDir: URL) async throws -> [String] {
+
+    private func bundleScene(_: String, to scenesDir: URL) async throws -> [String] {
         var bundledScenes: [String] = []
         let fileManager = FileManager.default
-        
+
         // Copy all scene files from assetBasePath/Scenes
         guard let basePath = assetBasePath else {
             Logger.log(message: "⚠️ Asset base path not set, skipping scene bundling")
             return []
         }
-        
+
         let scenesSourceDir = basePath.appendingPathComponent("Scenes")
-        
+
         if fileManager.fileExists(atPath: scenesSourceDir.path) {
             do {
                 let sceneFiles = try fileManager.contentsOfDirectory(at: scenesSourceDir, includingPropertiesForKeys: nil)
                     .filter { $0.pathExtension.lowercased() == "json" }
-                
+
                 for sceneFile in sceneFiles {
                     let destURL = scenesDir.appendingPathComponent(sceneFile.lastPathComponent)
                     try fileManager.copyItem(at: sceneFile, to: destURL)
                     bundledScenes.append(destURL.path)
                     Logger.log(message: "🎬 Bundled scene: \(sceneFile.lastPathComponent)")
                 }
-                
+
                 if bundledScenes.isEmpty {
                     Logger.log(message: "ℹ️  No scene files found in Scenes folder")
                 }
@@ -464,37 +463,37 @@ public class BuildSystem {
         } else {
             Logger.log(message: "⚠️ Scenes directory not found at: \(scenesSourceDir.path)")
         }
-        
+
         return bundledScenes
     }
-    
+
     private func bundleScripts(to scriptsDir: URL) async throws -> [String] {
         var bundledScripts: [String] = []
-        
+
         // First, try to get scripts from the registry (if loadScripts was called)
         for (_, script) in scriptRegistry {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            
+
             let scriptData = try encoder.encode(script)
             let scriptFileName = "\(script.name).uscript"
             let scriptFileURL = scriptsDir.appendingPathComponent(scriptFileName)
-            
+
             try scriptData.write(to: scriptFileURL)
             bundledScripts.append(scriptFileURL.path)
             Logger.log(message: "📜 Bundled script from registry: \(scriptFileName)")
         }
-        
+
         // If no scripts in registry, try to copy from assetBasePath/Scripts
         if bundledScripts.isEmpty, let basePath = assetBasePath {
             let scriptsSourceDir = basePath.appendingPathComponent("Scripts")
             let fileManager = FileManager.default
-            
+
             if fileManager.fileExists(atPath: scriptsSourceDir.path) {
                 do {
                     let scriptFiles = try fileManager.contentsOfDirectory(at: scriptsSourceDir, includingPropertiesForKeys: nil)
                         .filter { $0.pathExtension.lowercased() == "uscript" }
-                    
+
                     for scriptFile in scriptFiles {
                         let destURL = scriptsDir.appendingPathComponent(scriptFile.lastPathComponent)
                         try fileManager.copyItem(at: scriptFile, to: destURL)
@@ -506,24 +505,24 @@ public class BuildSystem {
                 }
             }
         }
-        
+
         if bundledScripts.isEmpty {
             Logger.log(message: "ℹ️  No scripts found to bundle")
         }
-        
+
         return bundledScripts
     }
-    
+
     private func bundleAssets(modelsDir: URL, animationsDir: URL, gaussiansDir: URL, texturesDir: URL) async throws -> [String] {
         var bundledAssets: [String] = []
-        
+
         guard let basePath = assetBasePath else {
             Logger.log(message: "⚠️ Asset base path not set, skipping asset bundling")
             return []
         }
-        
+
         let fileManager = FileManager.default
-        
+
         // Bundle Models
         let modelsSourceDir = basePath.appendingPathComponent("Models")
         if fileManager.fileExists(atPath: modelsSourceDir.path) {
@@ -536,7 +535,7 @@ public class BuildSystem {
                 Logger.log(message: "⚠️ Failed to bundle models: \(error.localizedDescription)")
             }
         }
-        
+
         // Bundle Animations
         let animationsSourceDir = basePath.appendingPathComponent("Animations")
         if fileManager.fileExists(atPath: animationsSourceDir.path) {
@@ -549,7 +548,7 @@ public class BuildSystem {
                 Logger.log(message: "⚠️ Failed to bundle animations: \(error.localizedDescription)")
             }
         }
-        
+
         // Bundle Materials/Textures
         let materialsSourceDir = basePath.appendingPathComponent("Materials")
         if fileManager.fileExists(atPath: materialsSourceDir.path) {
@@ -562,20 +561,20 @@ public class BuildSystem {
                 Logger.log(message: "⚠️ Failed to bundle materials: \(error.localizedDescription)")
             }
         }
-        
+
         // Bundle HDR files
         let hdrSourceDir = basePath.appendingPathComponent("HDR")
         if fileManager.fileExists(atPath: hdrSourceDir.path) {
             do {
                 let hdrFiles = try fileManager.contentsOfDirectory(at: hdrSourceDir, includingPropertiesForKeys: nil)
                     .filter { $0.pathExtension.lowercased() == "hdr" }
-                
+
                 for hdrFile in hdrFiles {
                     let destURL = texturesDir.appendingPathComponent(hdrFile.lastPathComponent)
                     try? fileManager.copyItem(at: hdrFile, to: destURL)
                     bundledAssets.append(destURL.path)
                 }
-                
+
                 if !hdrFiles.isEmpty {
                     Logger.log(message: "🌅 Bundled \(hdrFiles.count) HDR file(s)")
                 }
@@ -583,7 +582,7 @@ public class BuildSystem {
                 Logger.log(message: "⚠️ Failed to bundle HDR files: \(error.localizedDescription)")
             }
         }
-        
+
         // Bundle Gaussians
         let gaussiansSourceDir = basePath.appendingPathComponent("Gaussians")
         if fileManager.fileExists(atPath: gaussiansSourceDir.path) {
@@ -596,24 +595,24 @@ public class BuildSystem {
                 Logger.log(message: "⚠️ Failed to bundle Gaussian files: \(error.localizedDescription)")
             }
         }
-        
+
         return bundledAssets
     }
-    
+
     private func bundleShaders(to shadersDir: URL) async throws -> [String] {
         // Bundle the compiled Metal shader library
         // The .metallib file should already exist in the engine package
-        
+
         // Find the UntoldEngineKernels.metallib in the engine
         let enginePath = Bundle.main.bundlePath.components(separatedBy: "/").dropLast(3).joined(separator: "/")
         guard !enginePath.isEmpty else {
             Logger.log(message: "⚠️ Engine path not found, skipping shader bundling")
             return []
         }
-        
+
         let shaderSourcePath = URL(fileURLWithPath: enginePath)
             .appendingPathComponent("Sources/UntoldEngine/UntoldEngineKernels")
-        
+
         // Look for .metallib or .air files
         guard let shaderFiles = try? FileManager.default.contentsOfDirectory(
             at: shaderSourcePath,
@@ -622,18 +621,18 @@ public class BuildSystem {
             Logger.log(message: "⚠️ Shader directory not found")
             return []
         }
-        
+
         var bundledShaders: [String] = []
-        
+
         for shaderFile in shaderFiles where ["metallib", "air"].contains(shaderFile.pathExtension) {
             let destinationURL = shadersDir.appendingPathComponent(shaderFile.lastPathComponent)
-            
+
             try? FileManager.default.copyItem(at: shaderFile, to: destinationURL)
             bundledShaders.append(destinationURL.path)
-            
+
             Logger.log(message: "✨ Bundled shader: \(shaderFile.lastPathComponent)")
         }
-        
+
         return bundledShaders
     }
 }

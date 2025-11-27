@@ -38,20 +38,18 @@ public enum ScriptActionName: String {
     case steerPursuit
     case steerFollowPath
     case orbit
-
 }
 
-extension Dictionary where Key == String, Value == Value {
+extension [String: Value] {
     subscript(_ key: ScriptArgKey) -> Value? {
-        return self[key.rawValue]
+        self[key.rawValue]
     }
 }
-
 
 extension USCActionRegistry {
     func register(name action: ScriptActionName,
-                  _ handler: @escaping (USCContext, [String: Value]) -> Value?) {
+                  _ handler: @escaping (USCContext, [String: Value]) -> Value?)
+    {
         register(name: action.rawValue, action: handler)
     }
 }
-
