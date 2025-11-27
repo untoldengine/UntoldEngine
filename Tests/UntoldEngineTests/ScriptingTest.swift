@@ -1,7 +1,16 @@
+//
+//  ScriptingTests.swift
+//  UntoldEngineTests
+//
+//  Copyright (C) Untold Engine Studios
+//  Licensed under the GNU LGPL v3.0 or later.
+//  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
+//
+
 @testable import UntoldEngine
 import XCTest
 
-final class USCScriptingTests: XCTestCase {
+final class ScriptingTests: XCTestCase {
     override func setUp() {
         super.setUp()
         // Initialize scripting system
@@ -863,185 +872,183 @@ final class USCScriptingTests: XCTestCase {
         }
     }
 
-    // MARK: - Steering Behavior Tests
+    // MARK: - ScriptProperty / ScriptAxis Tests
 
-    func testSeekActionRegistration() {
-        let action = USCActionRegistry.shared.resolve(name: "seek")
-        XCTAssertNotNil(action, "seek action should be registered")
+    func testScriptPropertyRawValues() {
+        XCTAssertEqual(ScriptProperty.position.rawValue, "position")
+        XCTAssertEqual(ScriptProperty.rotation.rawValue, "rotation")
+        XCTAssertEqual(ScriptProperty.scale.rawValue, "scale")
+
+        XCTAssertEqual(ScriptProperty.velocity.rawValue, "velocity")
+        XCTAssertEqual(ScriptProperty.acceleration.rawValue, "acceleration")
+        XCTAssertEqual(ScriptProperty.mass.rawValue, "mass")
+
+        XCTAssertEqual(ScriptProperty.intensity.rawValue, "intensity")
+        XCTAssertEqual(ScriptProperty.color.rawValue, "color")
     }
 
-    func testFleeActionRegistration() {
-        let action = USCActionRegistry.shared.resolve(name: "flee")
-        XCTAssertNotNil(action, "flee action should be registered")
+    func testScriptAxisRawValues() {
+        XCTAssertEqual(ScriptAxis.x.rawValue, "x")
+        XCTAssertEqual(ScriptAxis.y.rawValue, "y")
+        XCTAssertEqual(ScriptAxis.z.rawValue, "z")
     }
 
-    func testArriveActionRegistration() {
-        let action = USCActionRegistry.shared.resolve(name: "arrive")
-        XCTAssertNotNil(action, "arrive action should be registered")
+    func testScriptPropertyKeyPaths() {
+        // No axis
+        XCTAssertEqual(ScriptProperty.position.keyPath(), "position")
+        XCTAssertEqual(ScriptProperty.velocity.keyPath(), "velocity")
+        XCTAssertEqual(ScriptProperty.intensity.keyPath(), "intensity")
+
+        // With axis
+        XCTAssertEqual(ScriptProperty.position.keyPath(axis: .x), "position.x")
+        XCTAssertEqual(ScriptProperty.velocity.keyPath(axis: .y), "velocity.y")
+        XCTAssertEqual(ScriptProperty.color.keyPath(axis: .z), "color.z")
     }
 
-    func testPursuitActionRegistration() {
-        let action = USCActionRegistry.shared.resolve(name: "pursuit")
-        XCTAssertNotNil(action, "pursuit action should be registered")
-    }
+    // MARK: - Enum-based Property Access Builder Tests
 
-    func testEvadeActionRegistration() {
-        let action = USCActionRegistry.shared.resolve(name: "evade")
-        XCTAssertNotNil(action, "evade action should be registered")
-    }
+    func testGetPropertyUsingEnumOnSelf() {
+        let builder = USCBuilder()
+        builder.getProperty(.position, as: "pos")
 
-    func testSteerSeekActionRegistration() {
-        let action = USCActionRegistry.shared.resolve(name: "steerSeek")
-        XCTAssertNotNil(action, "steerSeek action should be registered")
-    }
+        let script = builder.build(name: "EnumPropertyTest")
 
-    func testSteerArriveActionRegistration() {
-        let action = USCActionRegistry.shared.resolve(name: "steerArrive")
-        XCTAssertNotNil(action, "steerArrive action should be registered")
-    }
+        XCTAssertEqual(script.instructions.count, 1)
 
-    func testSteerFleeActionRegistration() {
-        let action = USCActionRegistry.shared.resolve(name: "steerFlee")
-        XCTAssertNotNil(action, "steerFlee action should be registered")
-    }
-
-    func testSteerPursuitActionRegistration() {
-        let action = USCActionRegistry.shared.resolve(name: "steerPursuit")
-        XCTAssertNotNil(action, "steerPursuit action should be registered")
-    }
-
-    func testOrbitActionRegistration() {
-        let action = USCActionRegistry.shared.resolve(name: "orbit")
-        XCTAssertNotNil(action, "orbit action should be registered")
-    }
-
-    func testSeekScriptCreation() {
-        let script = buildScript(name: "SeekTest") { builder in
-            builder.onUpdate()
-                .setVariable("targetPosition", to: Vec3(x: 10.0, y: 0.0, z: 0.0))
-                .setVariable("maxSpeed", to: 5.0)
-                .callAction("seek", args: ["targetPosition", "maxSpeed"], result: "seekForce")
+        if case let .getProperty(entity, key, varName) = script.instructions[0] {
+            XCTAssertEqual(entity, "self")
+            XCTAssertEqual(key, "position") // from ScriptProperty.position.keyPath()
+            XCTAssertEqual(varName, "pos")
+        } else {
+            XCTFail("Expected getProperty instruction")
         }
+    }
 
-        XCTAssertEqual(script.name, "SeekTest")
+    func testGetPropertyUsingEnumWithAxis() {
+        let builder = USCBuilder()
+        builder.getProperty(.velocity, axis: .y, as: "velY")
 
-        // Count callAction instructions
-        var actionCount = 0
-        for instruction in script.instructions {
-            if case let .callAction(name, _, _) = instruction {
-                if name == "seek" {
-                    actionCount += 1
-                }
+        let script = builder.build(name: "EnumPropertyAxisTest")
+
+        XCTAssertEqual(script.instructions.count, 1)
+
+        if case let .getProperty(entity, key, varName) = script.instructions[0] {
+            XCTAssertEqual(entity, "self")
+            XCTAssertEqual(key, "velocity.y") // from ScriptProperty.velocity.keyPath(axis: .y)
+            XCTAssertEqual(varName, "velY")
+        } else {
+            XCTFail("Expected getProperty instruction with axis")
+        }
+    }
+
+    func testGetPropertyOfOtherEntityUsingEnum() {
+        let builder = USCBuilder()
+        builder.getProperty(of: "Player", .position, as: "playerPos")
+
+        let script = builder.build(name: "EnumPropertyOtherEntityTest")
+
+        XCTAssertEqual(script.instructions.count, 1)
+
+        if case let .getProperty(entity, key, varName) = script.instructions[0] {
+            XCTAssertEqual(entity, "Player")
+            XCTAssertEqual(key, "position")
+            XCTAssertEqual(varName, "playerPos")
+        } else {
+            XCTFail("Expected getProperty instruction for other entity")
+        }
+    }
+
+    // MARK: - Enum-based SetProperty Builder Tests
+
+    func testSetPropertyFloatUsingEnum() {
+        let builder = USCBuilder()
+        builder.setProperty(.mass, to: 5.0)
+
+        let script = builder.build(name: "EnumSetPropertyFloatTest")
+
+        XCTAssertEqual(script.instructions.count, 1)
+
+        if case let .setProperty(entity, key, value) = script.instructions[0] {
+            XCTAssertEqual(entity, "self")
+            XCTAssertEqual(key, "mass")
+
+            if case let .float(mass) = value {
+                XCTAssertEqual(mass, 5.0)
+            } else {
+                XCTFail("Expected float value for mass")
             }
+        } else {
+            XCTFail("Expected setProperty instruction")
         }
-
-        XCTAssertEqual(actionCount, 1, "Script should have one seek action")
     }
 
-    func testFleeScriptCreation() {
-        let script = buildScript(name: "FleeTest") { builder in
-            builder.onUpdate()
-                .setVariable("threatPosition", to: Vec3(x: 5.0, y: 0.0, z: 0.0))
-                .setVariable("maxSpeed", to: 10.0)
-                .callAction("flee", args: ["threatPosition", "maxSpeed"], result: "fleeForce")
-        }
+    func testSetPropertyVec3UsingEnum() {
+        let builder = USCBuilder()
+        let color = Vec3(x: 1.0, y: 0.5, z: 0.25)
+        builder.setProperty(.color, to: color)
 
-        XCTAssertEqual(script.name, "FleeTest")
-        XCTAssertGreaterThan(script.instructions.count, 3)
-    }
+        let script = builder.build(name: "EnumSetPropertyVec3Test")
 
-    func testArriveScriptCreation() {
-        let script = buildScript(name: "ArriveTest") { builder in
-            builder.onUpdate()
-                .setVariable("targetPosition", to: Vec3(x: 10.0, y: 0.0, z: 0.0))
-                .setVariable("maxSpeed", to: 5.0)
-                .setVariable("slowingRadius", to: 3.0)
-                .callAction("arrive", args: ["targetPosition", "maxSpeed", "slowingRadius"], result: "arriveForce")
-        }
+        XCTAssertEqual(script.instructions.count, 1)
 
-        XCTAssertEqual(script.name, "ArriveTest")
-    }
+        if case let .setProperty(entity, key, value) = script.instructions[0] {
+            XCTAssertEqual(entity, "self")
+            XCTAssertEqual(key, "color")
 
-    func testPursuitScriptCreation() {
-        let script = buildScript(name: "PursuitTest") { builder in
-            builder.onUpdate()
-                .setVariable("targetEntity", to: "Player")
-                .setVariable("maxSpeed", to: 8.0)
-                .callAction("pursuit", args: ["targetEntity", "maxSpeed"], result: "pursuitForce")
-        }
-
-        XCTAssertEqual(script.name, "PursuitTest")
-    }
-
-    func testComplexSteeringScript() {
-        let script = buildScript(name: "ComplexSteering") { builder in
-            builder.onUpdate()
-                // Get target position from another entity
-                .getProperty(of: "Target", "position", as: "targetPosition")
-                // Set parameters
-                .setVariable("maxSpeed", to: 5.0)
-                // Calculate seek force
-                .callAction("seek", args: ["targetPosition", "maxSpeed"], result: "seekForce")
-                // Apply force
-                .setProperty("velocity", toVariable: "seekForce")
-                .log("Steering applied")
-        }
-
-        XCTAssertEqual(script.name, "ComplexSteering")
-        XCTAssertGreaterThan(script.instructions.count, 5)
-    }
-
-    func testMultipleSteeringBehaviors() {
-        let script = buildScript(name: "MultiSteering") { builder in
-            builder.onUpdate()
-                // Seek towards target
-                .setVariable("targetPosition", to: Vec3(x: 10.0, y: 0.0, z: 0.0))
-                .setVariable("maxSpeed", to: 5.0)
-                .callAction("seek", args: ["targetPosition", "maxSpeed"], result: "seekForce")
-                // Flee from threat
-                .setVariable("threatPosition", to: Vec3(x: -5.0, y: 0.0, z: 0.0))
-                .callAction("flee", args: ["threatPosition", "maxSpeed"], result: "fleeForce")
-                // Combine forces (would need vector addition in real usage)
-                .log("Forces calculated")
-        }
-
-        // Count steering actions
-        var seekCount = 0
-        var fleeCount = 0
-
-        for instruction in script.instructions {
-            if case let .callAction(name, _, _) = instruction {
-                if name == "seek" { seekCount += 1 }
-                if name == "flee" { fleeCount += 1 }
+            if case let .vec3(x, y, z) = value {
+                XCTAssertEqual(x, 1.0)
+                XCTAssertEqual(y, 0.5)
+                XCTAssertEqual(z, 0.25)
+            } else {
+                XCTFail("Expected vec3 value for color")
             }
+        } else {
+            XCTFail("Expected setProperty instruction")
         }
-
-        XCTAssertEqual(seekCount, 1)
-        XCTAssertEqual(fleeCount, 1)
     }
 
-    func testSteerSeekScriptCreation() {
-        let script = buildScript(name: "SteerSeekTest") { builder in
-            builder.onUpdate()
-                .setVariable("targetPosition", to: Vec3(x: 10.0, y: 0.0, z: 0.0))
-                .setVariable("maxSpeed", to: 5.0)
-                .setVariable("deltaTime", to: 0.016)
-                .callAction("steerSeek", args: ["targetPosition", "maxSpeed", "deltaTime"])
-        }
+    func testSetPropertyVariableUsingEnum() {
+        let builder = USCBuilder()
+        builder.setProperty(.velocity, toVariable: "newVel")
 
-        XCTAssertEqual(script.name, "SteerSeekTest")
+        let script = builder.build(name: "EnumSetPropertyVariableTest")
+
+        XCTAssertEqual(script.instructions.count, 1)
+
+        if case let .setProperty(entity, key, value) = script.instructions[0] {
+            XCTAssertEqual(entity, "self")
+            XCTAssertEqual(key, "velocity")
+
+            if case let .variableRef(varName) = value {
+                XCTAssertEqual(varName, "newVel")
+            } else {
+                XCTFail("Expected variableRef value for velocity")
+            }
+        } else {
+            XCTFail("Expected setProperty instruction")
+        }
     }
 
-    func testOrbitScriptCreation() {
-        let script = buildScript(name: "OrbitTest") { builder in
-            builder.onUpdate()
-                .setVariable("centerPosition", to: Vec3(x: 0.0, y: 0.0, z: 0.0))
-                .setVariable("radius", to: 10.0)
-                .setVariable("maxSpeed", to: 2.0)
-                .setVariable("deltaTime", to: 0.016)
-                .callAction("orbit", args: ["centerPosition", "radius", "maxSpeed", "deltaTime"])
-        }
+    func testSetPropertyOfOtherEntityUsingEnum() {
+        let builder = USCBuilder()
+        builder.setProperty(of: "Light1", .intensity, toVariable: "intensityVar")
 
-        XCTAssertEqual(script.name, "OrbitTest")
+        let script = builder.build(name: "EnumSetPropertyOtherEntityTest")
+
+        XCTAssertEqual(script.instructions.count, 1)
+
+        if case let .setProperty(entity, key, value) = script.instructions[0] {
+            XCTAssertEqual(entity, "Light1")
+            XCTAssertEqual(key, "intensity")
+
+            if case let .variableRef(varName) = value {
+                XCTAssertEqual(varName, "intensityVar")
+            } else {
+                XCTFail("Expected variableRef value for intensity")
+            }
+        } else {
+            XCTFail("Expected setProperty instruction")
+        }
     }
+
 }

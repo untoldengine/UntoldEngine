@@ -29,53 +29,59 @@ public class USCPropertyAccess {
         let componentName = components[0]
         let subProperty = components.count > 1 ? components[1] : nil
 
+        // Try to interpret the first segment as a ScriptProperty
+        let property = ScriptProperty(rawValue: componentName)
+
         // LocalTransformComponent properties
-        if componentName == "position" || componentName == "rotation" || componentName == "scale" {
+        if property == .position || property == .rotation || property == .scale {
             guard let transform = scene.get(component: LocalTransformComponent.self, for: entityId) else {
                 return nil
             }
 
-            switch componentName {
-            case "position":
+            switch property {
+            case .position:
                 return getVec3Property(transform.position, subProperty: subProperty)
-            case "scale":
+            case .scale:
                 return getVec3Property(transform.scale, subProperty: subProperty)
-            default:
+            case .rotation:
+                // not implemented yet
                 return nil
+            default:
+                break
             }
         }
 
         // PhysicsComponent properties
-        if componentName == "velocity" || componentName == "acceleration" || componentName == "mass" {
+        if property == .velocity || property == .acceleration || property == .mass {
             guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
                 return nil
             }
 
-            switch componentName {
-            case "velocity":
+            switch property {
+            case .velocity:
                 return getVec3Property(physics.velocity, subProperty: subProperty)
-            case "acceleration":
+            case .acceleration:
                 return getVec3Property(physics.acceleration, subProperty: subProperty)
-            case "mass":
+            case .mass:
                 return .float(physics.mass)
             default:
-                return nil
+                break
             }
         }
 
         // LightComponent properties
-        if componentName == "intensity" || componentName == "color" {
+        if property == .intensity || property == .color {
             guard let light = scene.get(component: LightComponent.self, for: entityId) else {
                 return nil
             }
 
-            switch componentName {
-            case "intensity":
+            switch property {
+            case .intensity:
                 return .float(light.intensity)
-            case "color":
+            case .color:
                 return getVec3Property(light.color, subProperty: subProperty)
             default:
-                return nil
+                break
             }
         }
 

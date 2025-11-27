@@ -220,6 +220,25 @@ public final class USCBuilder {
         instructions.append(.callAction(name: name, args: args, result: result))
         return self
     }
+    
+    @discardableResult
+    public func callAction(_ action: ScriptActionName,
+                           args: [String] = [],
+                           result: String? = nil) -> USCBuilder
+    {
+        return callAction(action.rawValue, args: args, result: result)
+    }
+    
+    @discardableResult
+    public func callAction(_ action: ScriptActionName,
+                           args: [ScriptArgKey],
+                           result: String? = nil) -> USCBuilder
+    {
+        let argNames = args.map { $0.rawValue }
+        return callAction(action.rawValue, args: argNames, result: result)
+    }
+
+
 
     // MARK: - INPUT
 
@@ -260,6 +279,24 @@ public final class USCBuilder {
     @discardableResult
     public func translateTo(_ v: simd_float3) -> USCBuilder {
         instructions.append(.translateTo(entity: "self", position: .init(x: v.x, y: v.y, z: v.z)))
+        return self
+    }
+    
+    @discardableResult
+    public func translateBy(x: Float, y: Float, z: Float) -> USCBuilder {
+        instructions.append(.translateBy(entity: "self", position: .init(x: x, y: y, z: z)))
+        return self
+    }
+
+    @discardableResult
+    public func translateBy(_ v: Vec3) -> USCBuilder {
+        instructions.append(.translateBy(entity: "self", position: v))
+        return self
+    }
+
+    @discardableResult
+    public func translateBy(_ v: simd_float3) -> USCBuilder {
+        instructions.append(.translateBy(entity: "self", position: .init(x: v.x, y: v.y, z: v.z)))
         return self
     }
 
@@ -327,6 +364,49 @@ public final class USCBuilder {
         instructions.append(.getProperty(entity: entityName, key: key, as: variableName))
         return self
     }
+    
+    // MARK: - Properties (enum-based convenience)
+
+    @discardableResult
+    public func getProperty(_ key: ScriptProperty,
+                            as variableName: String) -> USCBuilder
+    {
+        let keyPath = key.keyPath()
+        instructions.append(.getProperty(entity: "self", key: keyPath, as: variableName))
+        return self
+    }
+
+    @discardableResult
+    public func getProperty(_ key: ScriptProperty,
+                            axis: ScriptAxis,
+                            as variableName: String) -> USCBuilder
+    {
+        let keyPath = key.keyPath(axis: axis)
+        instructions.append(.getProperty(entity: "self", key: keyPath, as: variableName))
+        return self
+    }
+
+    @discardableResult
+    public func getProperty(of entityName: String,
+                            _ key: ScriptProperty,
+                            as variableName: String) -> USCBuilder
+    {
+        let keyPath = key.keyPath()
+        instructions.append(.getProperty(entity: entityName, key: keyPath, as: variableName))
+        return self
+    }
+
+    @discardableResult
+    public func getProperty(of entityName: String,
+                            _ key: ScriptProperty,
+                            axis: ScriptAxis,
+                            as variableName: String) -> USCBuilder
+    {
+        let keyPath = key.keyPath(axis: axis)
+        instructions.append(.getProperty(entity: entityName, key: keyPath, as: variableName))
+        return self
+    }
+
 
     @discardableResult
     public func setProperty(_ key: String, to value: Float) -> USCBuilder {
@@ -380,6 +460,75 @@ public final class USCBuilder {
         )
         return self
     }
+    
+    @discardableResult
+    public func setProperty(_ key: ScriptProperty,
+                            to value: Float) -> USCBuilder
+    {
+        let keyPath = key.keyPath()
+        instructions.append(.setProperty(entity: "self", key: keyPath, value: .float(value)))
+        return self
+    }
+
+    @discardableResult
+    public func setProperty(_ key: ScriptProperty,
+                            to value: Bool) -> USCBuilder
+    {
+        let keyPath = key.keyPath()
+        instructions.append(.setProperty(entity: "self", key: keyPath, value: .bool(value)))
+        return self
+    }
+
+    @discardableResult
+    public func setProperty(_ key: ScriptProperty,
+                            to value: String) -> USCBuilder
+    {
+        let keyPath = key.keyPath()
+        instructions.append(.setProperty(entity: "self", key: keyPath, value: .string(value)))
+        return self
+    }
+
+    @discardableResult
+    public func setProperty(_ key: ScriptProperty,
+                            to value: Vec3) -> USCBuilder
+    {
+        let keyPath = key.keyPath()
+        instructions.append(.setProperty(entity: "self", key: keyPath,
+                                         value: .vec3(x: value.x, y: value.y, z: value.z)))
+        return self
+    }
+
+    @discardableResult
+    public func setProperty(_ key: ScriptProperty,
+                            toVariable variableName: String) -> USCBuilder
+    {
+        let keyPath = key.keyPath()
+        instructions.append(
+            .setProperty(
+                entity: "self",
+                key: keyPath,
+                value: .variableRef(variableName)
+            )
+        )
+        return self
+    }
+
+    @discardableResult
+    public func setProperty(of entityName: String,
+                            _ key: ScriptProperty,
+                            toVariable variableName: String) -> USCBuilder
+    {
+        let keyPath = key.keyPath()
+        instructions.append(
+            .setProperty(
+                entity: entityName,
+                key: keyPath,
+                value: .variableRef(variableName)
+            )
+        )
+        return self
+    }
+
 
     // MARK: - Variables
 
@@ -410,6 +559,13 @@ public final class USCBuilder {
         instructions.append(.setVariable(name: name, value: .bool(value)))
         return self
     }
+    
+    @discardableResult
+    public func setVariable(_ name: String, fromVariable other: String) -> USCBuilder {
+        instructions.append(.setVariable(name: name, value: .variableRef(other)))
+        return self
+    }
+
 
     // MARK: - Conditions
 
