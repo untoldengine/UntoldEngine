@@ -46,14 +46,6 @@ public class USCActionRegistry {
     }
 }
 
-/* Usage Example inside init for example
- USCActionRegistry.shared.register(name: "Ball.applyKick") { context, args in
-     // args: ["desiredVel": Value, "mass": Value, ...]
-     // Access scene via global or injected handle if needed
-     // Return a Value? that script can capture
- }
- */
-
 // MARK: - USC Interpreter
 
 /// Interprets and executes USC IR
