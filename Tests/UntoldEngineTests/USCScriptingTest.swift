@@ -1,5 +1,5 @@
 //
-//  ScriptingTest.swift
+//  USCScriptingTest.swift
 //  UntoldEngineTests
 //
 //  Copyright (C) Untold Engine Studios
@@ -10,7 +10,7 @@
 @testable import UntoldEngine
 import XCTest
 
-final class ScriptingTests: XCTestCase {
+final class USCScriptingTests: XCTestCase {
     override func setUp() {
         super.setUp()
         // Initialize scripting system
