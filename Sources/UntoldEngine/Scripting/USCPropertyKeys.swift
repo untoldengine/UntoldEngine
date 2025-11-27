@@ -13,7 +13,7 @@ import Foundation
 public enum ScriptProperty: String {
     // LocalTransformComponent
     case position
-    case rotation    
+    case rotation
     case scale
 
     // PhysicsComponents

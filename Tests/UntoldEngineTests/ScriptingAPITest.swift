@@ -18,22 +18,21 @@ final class ScriptingAPITest: XCTestCase {
         // Initialize scripting system
         initScriptingSystem()
     }
-    
+
     override func tearDown() {
         super.tearDown()
         destroyAllEntities()
     }
-    
-    func registerPhysics(entityId: EntityID){
+
+    func registerPhysics(entityId: EntityID) {
         registerComponent(entityId: entityId, componentType: PhysicsComponents.self)
         registerComponent(entityId: entityId, componentType: KineticComponent.self)
         registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
         registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
         registerComponent(entityId: entityId, componentType: ScenegraphComponent.self)
     }
-   
+
     func testTranslateTo_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onUpdate()
                 .translateTo(x: 1.0, y: 2.0, z: 3.0)
@@ -41,24 +40,22 @@ final class ScriptingAPITest: XCTestCase {
 
         let entityId = createEntity()
         let context = USCContext(entityId: entityId, script: script)
-       
+
         let interpreter = USCInterpreter()
 
         interpreter.execute(script: script,
                             context: context,
                             forEvent: "OnUpdate")
-        
+
         // Now query the ECS
         let transform = getLocalPosition(entityId: entityId)
 
         XCTAssertEqual(transform.x, 1.0)
         XCTAssertEqual(transform.y, 2.0)
         XCTAssertEqual(transform.z, 3.0)
-        
     }
-    
+
     func testTranslateToVec3_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onUpdate()
                 .translateTo(Vec3(x: 1.0, y: 2.0, z: 3.0))
@@ -66,49 +63,45 @@ final class ScriptingAPITest: XCTestCase {
 
         let entityId = createEntity()
         let context = USCContext(entityId: entityId, script: script)
-       
+
         let interpreter = USCInterpreter()
 
         interpreter.execute(script: script,
                             context: context,
                             forEvent: "OnUpdate")
-        
+
         // Now query the ECS
         let transform = getLocalPosition(entityId: entityId)
 
         XCTAssertEqual(transform.x, 1.0)
         XCTAssertEqual(transform.y, 2.0)
         XCTAssertEqual(transform.z, 3.0)
-        
     }
-    
+
     func testTranslateToSimd3_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onUpdate()
-                .translateTo(simd_float3(1,2,3))
+                .translateTo(simd_float3(1, 2, 3))
         }
 
         let entityId = createEntity()
         let context = USCContext(entityId: entityId, script: script)
-       
+
         let interpreter = USCInterpreter()
 
         interpreter.execute(script: script,
                             context: context,
                             forEvent: "OnUpdate")
-        
+
         // Now query the ECS
         let transform = getLocalPosition(entityId: entityId)
 
         XCTAssertEqual(transform.x, 1.0)
         XCTAssertEqual(transform.y, 2.0)
         XCTAssertEqual(transform.z, 3.0)
-        
     }
-    
+
     func testTranslateBy_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onUpdate()
                 .translateBy(x: 1.0, y: 2.0, z: 3.0)
@@ -116,24 +109,22 @@ final class ScriptingAPITest: XCTestCase {
 
         let entityId = createEntity()
         let context = USCContext(entityId: entityId, script: script)
-       
+
         let interpreter = USCInterpreter()
 
         interpreter.execute(script: script,
                             context: context,
                             forEvent: "OnUpdate")
-        
+
         // Now query the ECS
         let transform = getLocalPosition(entityId: entityId)
 
         XCTAssertEqual(transform.x, 1.0)
         XCTAssertEqual(transform.y, 2.0)
         XCTAssertEqual(transform.z, 3.0)
-        
     }
-    
+
     func testTranslateByVec3_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onUpdate()
                 .translateBy(Vec3(x: 1.0, y: 2.0, z: 3.0))
@@ -141,61 +132,57 @@ final class ScriptingAPITest: XCTestCase {
 
         let entityId = createEntity()
         let context = USCContext(entityId: entityId, script: script)
-       
+
         let interpreter = USCInterpreter()
 
         interpreter.execute(script: script,
                             context: context,
                             forEvent: "OnUpdate")
-        
+
         // Now query the ECS
         let transform = getLocalPosition(entityId: entityId)
 
         XCTAssertEqual(transform.x, 1.0)
         XCTAssertEqual(transform.y, 2.0)
         XCTAssertEqual(transform.z, 3.0)
-        
     }
-    
+
     func testTranslateBySimd3_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onUpdate()
-                .translateBy(simd_float3(1,2,3))
+                .translateBy(simd_float3(1, 2, 3))
         }
 
         let entityId = createEntity()
         let context = USCContext(entityId: entityId, script: script)
-       
+
         let interpreter = USCInterpreter()
 
         interpreter.execute(script: script,
                             context: context,
                             forEvent: "OnUpdate")
-        
+
         // Now query the ECS
         let transform = getLocalPosition(entityId: entityId)
 
         XCTAssertEqual(transform.x, 1.0)
         XCTAssertEqual(transform.y, 2.0)
         XCTAssertEqual(transform.z, 3.0)
-        
     }
-    
+
     func testRotateTo_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onUpdate()
                 .rotateTo(degrees: 90.0, axis: Vec3(x: 0.0, y: 1.0, z: 0.0))
         }
-        
+
         let entityId = createEntity()
         let context = USCContext(entityId: entityId, script: script)
-        
+
         let interpreter = USCInterpreter()
-        
+
         interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
-        
+
         let result = getLocalOrientation(entityId: entityId)
 
         let expectedMatrix = transformQuaternionToMatrix3x3(q: simd_quatf(angle: degreesToRadians(degrees: 90.0), axis: simd_float3(0.0, 1.0, 0.0)))
@@ -213,93 +200,84 @@ final class ScriptingAPITest: XCTestCase {
         XCTAssertEqual(result.columns.2.y, expectedMatrix.columns.2.y, accuracy: 0.01)
         XCTAssertEqual(result.columns.2.z, expectedMatrix.columns.2.z, accuracy: 0.01)
     }
-    
-    func testRotateBy_Scripted(){
-        
+
+    func testRotateBy_Scripted() {
         let script = buildScript(name: "test") { s in
-            
             s.onUpdate()
                 .rotateBy(degrees: 45.0, axis: Vec3(x: 0.0, y: 0.0, z: 1.0))
         }
-        
+
         let entityId = createEntity()
         let context = USCContext(entityId: entityId, script: script)
-        
+
         let interpreter = USCInterpreter()
-        
+
         interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
-        
+
         let updatedMatrix = getLocalOrientation(entityId: entityId)
         XCTAssertNotEqual(updatedMatrix, simd_float3x3(1)) // Ensure it updated
     }
-    
-    func testSetAndGetMass_Scripted(){
+
+    func testSetAndGetMass_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()
                 .setProperty(.mass, to: 5.0)
         }
-        
+
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
-        
+
         let context = USCContext(entityId: entityId, script: script)
-        
+
         let interpreter = USCInterpreter()
-        
+
         interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
-        
+
         let retrievedMass = getMass(entityId: entityId)
         XCTAssertEqual(retrievedMass, 5.0, "Mass should be correctly set and retrieved.")
-        
     }
-    
+
     func testApplyForce_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onUpdate()
                 .applyForce(force: Vec3(x: 10, y: 0, z: 0))
         }
-        
+
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
         let context = USCContext(entityId: entityId, script: script)
-        
+
         let interpreter = USCInterpreter()
-        
+
         interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
-        
+
         let kineticComponent = scene.get(component: KineticComponent.self, for: entityId)
 
         let force = simd_float3(10, 0, 0)
-        
+
         XCTAssertEqual(kineticComponent?.forces.first, force, "Force should be correctly applied.")
-        
     }
-    
-    func testClearForces_Scripted() {
-        
-    }
-    
+
+    func testClearForces_Scripted() {}
+
     func testGetVelocity_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onUpdate()
-                s.setProperty(.velocity, to: Vec3(x: 5, y: 0, z: 0))
+            s.setProperty(.velocity, to: Vec3(x: 5, y: 0, z: 0))
         }
-        
+
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
         let context = USCContext(entityId: entityId, script: script)
-        
+
         let interpreter = USCInterpreter()
-        
+
         interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
-        
+
         let retrievedVelocity = getVelocity(entityId: entityId)
-        XCTAssertEqual(retrievedVelocity, simd_float3(5,0,0), "Velocity should be correctly retrieved.")
-        
+        XCTAssertEqual(retrievedVelocity, simd_float3(5, 0, 0), "Velocity should be correctly retrieved.")
     }
-    
+
     func testLinearAccelerationUpdateWithForces_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onStart()
@@ -345,7 +323,6 @@ final class ScriptingAPITest: XCTestCase {
     }
 
     func testLinearVelocityUpdateWithForces_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onStart()
                 .setProperty(.mass, to: 2.0)
@@ -353,7 +330,7 @@ final class ScriptingAPITest: XCTestCase {
             s.onUpdate()
                 .applyForce(force: Vec3(x: 10, y: 0, z: 0))
         }
-        
+
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
 
@@ -376,7 +353,7 @@ final class ScriptingAPITest: XCTestCase {
             updatePhysicsSystem(deltaTime: 0.01)
             t += 0.01
         }
-        
+
         // 3) Now check physics state, same as before
         guard let velocity = scene.get(component: PhysicsComponents.self, for: entityId)?.velocity
         else {
@@ -386,11 +363,9 @@ final class ScriptingAPITest: XCTestCase {
         XCTAssertEqual(velocity.x, 5.0, accuracy: 0.1, "x Velocity should be updated correctly.")
         XCTAssertEqual(velocity.y, 0.0, accuracy: 0.1, "y Velocity should be updated correctly.")
         XCTAssertEqual(velocity.z, 0.0, accuracy: 0.1, "z Velocity should be updated correctly.")
-        
     }
-    
+
     func testPositionUpdateWithForces_Scripted() {
-        
         let script = buildScript(name: "test") { s in
             s.onStart()
                 .setProperty(.mass, to: 2.0)
@@ -398,7 +373,7 @@ final class ScriptingAPITest: XCTestCase {
             s.onUpdate()
                 .applyForce(force: Vec3(x: 10, y: 0, z: 0))
         }
-        
+
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
 
@@ -421,7 +396,7 @@ final class ScriptingAPITest: XCTestCase {
             updatePhysicsSystem(deltaTime: 0.001)
             t += 0.001
         }
-        
+
         let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
 
         let position = simd_float3(transformComponent!.position.x,
@@ -433,18 +408,16 @@ final class ScriptingAPITest: XCTestCase {
         XCTAssertEqual(position.x, expectedPosition.x, accuracy: 0.1, "x Position should be correctly calculated.")
         XCTAssertEqual(position.y, expectedPosition.y, accuracy: 0.1, "y Position should be correctly calculated.")
         XCTAssertEqual(position.z, expectedPosition.z, accuracy: 0.1, "z Position should be correctly calculated.")
-        
     }
-    
+
     func testSeek_Scripted() {
-        
         let script = buildScript(name: "testSeek") { s in
             s.onUpdate()
                 .setVariable(ScriptArgKey.targetPosition.rawValue, to: Vec3(x: 10, y: 0, z: 0))
                 .setVariable(ScriptArgKey.maxSpeed.rawValue, to: 5.0)
                 .callAction(.seek, args: [.targetPosition, .maxSpeed], result: "force")
         }
-        
+
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
 
@@ -457,21 +430,21 @@ final class ScriptingAPITest: XCTestCase {
                             forEvent: "OnUpdate")
 
         updatePhysicsSystem(deltaTime: 0.01)
-        
+
         // Read result from script variable
         guard case let .vec3(fx, fy, fz)? = context.variables["force"] else {
             return XCTFail("force should be stored as vec3 in context.variables")
         }
-        
+
         XCTAssertEqual(fx, 5.0, accuracy: 0.001)
         XCTAssertEqual(fy, 0.0, accuracy: 0.001)
         XCTAssertEqual(fz, 0.0, accuracy: 0.001)
     }
-    
+
     func testFlee_Scripted() {
         let script = buildScript(name: "testFlee") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.threatPosition.rawValue, to: Vec3(x: 5,y: 0,z: 0))
+                .setVariable(ScriptArgKey.threatPosition.rawValue, to: Vec3(x: 5, y: 0, z: 0))
                 .setVariable(ScriptArgKey.maxSpeed.rawValue, to: 5.0)
                 .callAction(.flee,
                             args: [.threatPosition, .maxSpeed],
@@ -662,15 +635,15 @@ final class ScriptingAPITest: XCTestCase {
 
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
-        
-        translateTo(entityId: entityId, position: simd_float3(5, 0, 0))   // start at radius
+
+        translateTo(entityId: entityId, position: simd_float3(5, 0, 0)) // start at radius
         let interpreter = USCInterpreter()
         let context = USCContext(entityId: entityId, script: script)
 
         let oldPos = getPosition(entityId: entityId)
 
         interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
-        updateTransformSystem(entityId: entityId)   // orbit modifies transform
+        updateTransformSystem(entityId: entityId) // orbit modifies transform
 
         let newPos = getPosition(entityId: entityId)
 
@@ -692,7 +665,7 @@ final class ScriptingAPITest: XCTestCase {
 
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
-        translateTo(entityId: entityId, position: simd_float3(0,0,0))
+        translateTo(entityId: entityId, position: simd_float3(0, 0, 0))
         clearVelocity(entityId: entityId)
 
         let interpreter = USCInterpreter()
@@ -700,7 +673,7 @@ final class ScriptingAPITest: XCTestCase {
 
         var t: Float = 0
         let dt: Float = 0.01
-        let target = simd_float3(10,0,0)
+        let target = simd_float3(10, 0, 0)
 
         while t < 10.0 {
             interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
@@ -716,7 +689,7 @@ final class ScriptingAPITest: XCTestCase {
         XCTAssertEqual(finalPos.y, target.y, accuracy: 0.1)
         XCTAssertEqual(finalPos.z, target.z, accuracy: 0.1)
     }
-    
+
     func testSteerArrive_Scripted() {
         let script = buildScript(name: "testSteerArrive") { s in
             s.onUpdate()
@@ -734,14 +707,14 @@ final class ScriptingAPITest: XCTestCase {
 
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
-        
-        translateTo(entityId: entityId, position: simd_float3(0,0,0))
+
+        translateTo(entityId: entityId, position: simd_float3(0, 0, 0))
         clearVelocity(entityId: entityId)
 
         let interpreter = USCInterpreter()
         let context = USCContext(entityId: entityId, script: script)
 
-        let target = simd_float3(10,0,0)
+        let target = simd_float3(10, 0, 0)
         let dt: Float = 0.01
 
         var t: Float = 0
@@ -774,14 +747,14 @@ final class ScriptingAPITest: XCTestCase {
 
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
-        
-        translateTo(entityId: entityId, position: simd_float3(0,0,0))
+
+        translateTo(entityId: entityId, position: simd_float3(0, 0, 0))
         clearVelocity(entityId: entityId)
 
         let interpreter = USCInterpreter()
         let context = USCContext(entityId: entityId, script: script)
 
-        let threat = simd_float3(5,0,0)
+        let threat = simd_float3(5, 0, 0)
         let dt: Float = 0.01
 
         var t: Float = 0
@@ -807,7 +780,7 @@ final class ScriptingAPITest: XCTestCase {
                 .setVariable(ScriptArgKey.targetEntity.rawValue,
                              to: "Target")
                 .setVariable(ScriptArgKey.maxSpeed.rawValue,
-                             to: 50.0)          // like your test: maxSpeed * 10
+                             to: 50.0) // like your test: maxSpeed * 10
                 .setVariable(ScriptArgKey.deltaTime.rawValue,
                              to: 0.01)
                 .callAction(.steerPursuit,
@@ -816,15 +789,15 @@ final class ScriptingAPITest: XCTestCase {
 
         let entityId = createEntity()
         registerPhysics(entityId: entityId)
-        
+
         let targetId = createEntity()
         registerPhysics(entityId: targetId)
-        
+
         // Naming target entity so pursuit can resolve it
         setEntityName(entityId: targetId, name: "Target")
 
-        translateTo(entityId: entityId, position: simd_float3(0,0,1))
-        translateTo(entityId: targetId, position: simd_float3(0,0,-5))
+        translateTo(entityId: entityId, position: simd_float3(0, 0, 1))
+        translateTo(entityId: targetId, position: simd_float3(0, 0, -5))
         clearVelocity(entityId: entityId)
         clearVelocity(entityId: targetId)
 
@@ -868,7 +841,7 @@ final class ScriptingAPITest: XCTestCase {
 
         XCTAssertEqual(distance(finalPos, finalTargetPos), 0.0, accuracy: 0.1)
     }
-    
+
     func testScript_OnStart_SetsMassComponent() {
         let script = buildScript(name: "SetMassOnStart") { s in
             s.onStart()
@@ -925,9 +898,10 @@ final class ScriptingAPITest: XCTestCase {
                 .lengthVec3("vel", as: "speed")
                 .ifCondition(lhs: .variableRef("speed"),
                              .greater,
-                             rhs: .float(10.0)) { nested in
+                             rhs: .float(10.0))
+                { nested in
                     nested.scaleVec3("vel", literal: 0.5, as: "dampedVel")
-                          .setProperty(.velocity, toVariable: "dampedVel")
+                        .setProperty(.velocity, toVariable: "dampedVel")
                 }
         }
 
@@ -935,7 +909,7 @@ final class ScriptingAPITest: XCTestCase {
         registerPhysics(entityId: entityId)
 
         // Seed initial velocity with a magnitude > 10
-        if var kinetic = scene.get(component: PhysicsComponents.self, for: entityId) {
+        if let kinetic = scene.get(component: PhysicsComponents.self, for: entityId) {
             kinetic.velocity = simd_float3(20, 0, 0)
         }
 
@@ -995,7 +969,4 @@ final class ScriptingAPITest: XCTestCase {
         XCTAssertEqual(afterDamage, 90.0, accuracy: 0.001,
                        "health should be reduced to 90 after collision")
     }
-
-
-
 }

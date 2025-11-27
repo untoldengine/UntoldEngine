@@ -140,8 +140,8 @@ public class USCInterpreter {
             return pc + 1
 
         case let .lookAt(entityRef, targetRef):
-            // let entity = resolveEntity(entityRef, context: context)
-            // let target = resolveEntity(targetRef, context: context)
+            let entity = resolveEntity(entityRef, context: context)
+            let target = resolveEntity(targetRef, context: context)
             // TODO: Implement lookAt logic
             return pc + 1
 
@@ -404,4 +404,3 @@ public class USCInterpreter {
         }
     }
 }
-

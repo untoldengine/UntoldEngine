@@ -220,25 +220,23 @@ public final class USCBuilder {
         instructions.append(.callAction(name: name, args: args, result: result))
         return self
     }
-    
+
     @discardableResult
     public func callAction(_ action: ScriptActionName,
                            args: [String] = [],
                            result: String? = nil) -> USCBuilder
     {
-        return callAction(action.rawValue, args: args, result: result)
+        callAction(action.rawValue, args: args, result: result)
     }
-    
+
     @discardableResult
     public func callAction(_ action: ScriptActionName,
                            args: [ScriptArgKey],
                            result: String? = nil) -> USCBuilder
     {
-        let argNames = args.map { $0.rawValue }
+        let argNames = args.map(\.rawValue)
         return callAction(action.rawValue, args: argNames, result: result)
     }
-
-
 
     // MARK: - INPUT
 
@@ -281,7 +279,7 @@ public final class USCBuilder {
         instructions.append(.translateTo(entity: "self", position: .init(x: v.x, y: v.y, z: v.z)))
         return self
     }
-    
+
     @discardableResult
     public func translateBy(x: Float, y: Float, z: Float) -> USCBuilder {
         instructions.append(.translateBy(entity: "self", position: .init(x: x, y: y, z: z)))
@@ -364,7 +362,7 @@ public final class USCBuilder {
         instructions.append(.getProperty(entity: entityName, key: key, as: variableName))
         return self
     }
-    
+
     // MARK: - Properties (enum-based convenience)
 
     @discardableResult
@@ -406,7 +404,6 @@ public final class USCBuilder {
         instructions.append(.getProperty(entity: entityName, key: keyPath, as: variableName))
         return self
     }
-
 
     @discardableResult
     public func setProperty(_ key: String, to value: Float) -> USCBuilder {
@@ -460,7 +457,7 @@ public final class USCBuilder {
         )
         return self
     }
-    
+
     @discardableResult
     public func setProperty(_ key: ScriptProperty,
                             to value: Float) -> USCBuilder
@@ -529,7 +526,6 @@ public final class USCBuilder {
         return self
     }
 
-
     // MARK: - Variables
 
     /// Set a variable to a literal float value
@@ -559,13 +555,12 @@ public final class USCBuilder {
         instructions.append(.setVariable(name: name, value: .bool(value)))
         return self
     }
-    
+
     @discardableResult
     public func setVariable(_ name: String, fromVariable other: String) -> USCBuilder {
         instructions.append(.setVariable(name: name, value: .variableRef(other)))
         return self
     }
-
 
     // MARK: - Conditions
 

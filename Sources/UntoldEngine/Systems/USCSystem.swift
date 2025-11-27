@@ -105,7 +105,7 @@ public class USCSystem {
 
     /// Hot-reload a script (update while running) by name
     public func reloadScript(named scriptName: String, for entityId: EntityID) {
-        guard var contexts = scriptContexts[entityId] else { return }
+        guard let contexts = scriptContexts[entityId] else { return }
 
         // Find context index by script name
         if let idx = contexts.firstIndex(where: { $0.script?.name == scriptName }) {
@@ -168,7 +168,7 @@ public class USCSystem {
     /// Get current scripts for an entity
     public func getScripts(for entityId: EntityID) -> [USCScript] {
         if let contexts = scriptContexts[entityId] {
-            return contexts.compactMap { $0.script }
+            return contexts.compactMap(\.script)
         }
         return []
     }
@@ -186,7 +186,7 @@ public class USCSystem {
 
     /// Get all active scripts (for build system)
     public func getAllScripts() -> [USCScript] {
-        scriptContexts.values.flatMap { $0.compactMap { $0.script } }
+        scriptContexts.values.flatMap { $0.compactMap(\.script) }
     }
 
     // MARK: - Helper Methods
@@ -201,4 +201,3 @@ public class USCSystem {
         return false
     }
 }
-

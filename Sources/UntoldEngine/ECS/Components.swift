@@ -269,8 +269,8 @@ public class ScriptComponent: Component, Codable {
         let decodedPaths = try container.decodeIfPresent([String].self, forKey: .scriptFilePaths)
 
         if let decodedScripts {
-            self.scripts = decodedScripts
-            self.scriptFilePaths = decodedPaths
+            scripts = decodedScripts
+            scriptFilePaths = decodedPaths
             return
         }
 
@@ -279,15 +279,14 @@ public class ScriptComponent: Component, Codable {
         let legacyPath = try container.decodeIfPresent(String.self, forKey: .scriptFilePath)
 
         if let legacyScript {
-            self.scripts = [legacyScript]
+            scripts = [legacyScript]
         } else {
-            self.scripts = []
+            scripts = []
         }
         if let legacyPath {
-            self.scriptFilePaths = [legacyPath]
+            scriptFilePaths = [legacyPath]
         } else {
-            self.scriptFilePaths = nil
+            scriptFilePaths = nil
         }
     }
 }
-

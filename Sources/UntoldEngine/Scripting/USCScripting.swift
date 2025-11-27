@@ -10,7 +10,7 @@ import simd
 public func initScriptingSystem() {
     registerCoreMathActions()
     registerCoreGamePlayActions()
-    
+
     // Register ScriptComponent for scene serialization with custom merge
     // Now supports multi-script arrays and remains backward compatible.
     encodeCustomComponent(type: ScriptComponent.self) { existing, decoded in
@@ -23,7 +23,7 @@ public func initScriptingSystem() {
             // If decoded scripts are empty, keep existing.scripts as-is
             // (no change).
         }
-        
+
         if let decodedPaths = decoded.scriptFilePaths {
             // If decoded has paths, replace existing
             existing.scriptFilePaths = decodedPaths
@@ -59,12 +59,13 @@ private func registerCoreMathActions() {
     let addVec3Handler: USCAction = { _, args in
         // Preferred conventional names
         if let a = args["a"], case let .vec3(ax, ay, az) = a,
-           let b = args["b"], case let .vec3(bx, by, bz) = b {
+           let b = args["b"], case let .vec3(bx, by, bz) = b
+        {
             return .vec3(x: ax + bx, y: ay + by, z: az + bz)
         }
 
         // Fallback: add the first two vec3s present regardless of key names
-        let vecPairs = args.compactMap { (_, v) -> (Float, Float, Float)? in
+        let vecPairs = args.compactMap { _, v -> (Float, Float, Float)? in
             if case let .vec3(x, y, z) = v { return (x, y, z) }
             return nil
         }

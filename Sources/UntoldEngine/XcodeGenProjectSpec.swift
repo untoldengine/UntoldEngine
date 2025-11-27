@@ -11,21 +11,20 @@
 import Foundation
 
 /// Generates XcodeGen project specification for game builds
-struct XcodeGenProjectSpec {
-    
+enum XcodeGenProjectSpec {
     /// Generate project.yml YAML content from build settings
     static func generateYAML(settings: BuildSettings) throws -> String {
         let platformName = settings.target.platformName
         let deploymentTarget = settings.target.deploymentTarget
-        
+
         var yaml = """
         name: \(settings.projectName)
-        
+
         packages:
           UntoldEngine:
             url: https://github.com/untoldengine/UntoldEngine.git
             branch: develop
-        
+
         targets:
           \(settings.projectName):
             type: application
@@ -49,18 +48,18 @@ struct XcodeGenProjectSpec {
                 GENERATE_INFOPLIST_FILE: YES
                 INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.games
         """
-        
+
         // Add team ID if provided
         if let teamID = settings.teamID, !teamID.isEmpty {
             yaml += """
-            
+
                 DEVELOPMENT_TEAM: \(teamID)
             """
         }
-        
+
         // Add configurations
         yaml += """
-        
+
               configs:
                 Debug:
                   SWIFT_OPTIMIZATION_LEVEL: -Onone
@@ -68,7 +67,7 @@ struct XcodeGenProjectSpec {
                 Release:
                   SWIFT_COMPILATION_MODE: wholemodule
         """
-        
+
         // Add optimization level for release
         let optLevel: String
         switch settings.optimizationLevel {
@@ -76,21 +75,20 @@ struct XcodeGenProjectSpec {
         case .speed: optLevel = "-O"
         case .size: optLevel = "-Osize"
         }
-        
+
         yaml += """
-        
+
                   SWIFT_OPTIMIZATION_LEVEL: \(optLevel)
         """
-        
+
         // Add debug info for release if requested
         if settings.includeDebugInfo {
             yaml += """
-            
+
                   DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
             """
         }
-        
+
         return yaml
     }
 }
-
