@@ -34,24 +34,6 @@ public func initScriptingSystem() {
     }
 }
 
-/*
- In USC Script you can do something like this:
- let script = buildScript(name: "CombineVelocity") { s in
-     s.onUpdate()
-      // read two direction vectors from components
-      .getProperty("moveDirection", as: "moveDir")
-      .getProperty("externalForceDir", as: "externalDir")
-
-      // sum = moveDir + externalDir
-      .callAction("Math.addVec3",
-                  args: ["a", "b"],   // names expected by the action
-                  result: "combinedDir")
-
-      // write result back into velocity
-      .setProperty("velocity", toVariable: "combinedDir")
- }
-
- */
 private func registerCoreMathActions() {
     let reg = USCActionRegistry.shared
 
@@ -93,16 +75,88 @@ private func registerCoreMathActions() {
     }
 }
 
-/*
- In USC script, you can now do this:
-
- s.onUpdate()
-  .callAction("Gameplay.jump", args: ["jumpStrength"])
-
- */
 private func registerCoreGamePlayActions() {
     let reg = USCActionRegistry.shared
 
+    // Camera scripted actions
+    reg.register(name: ScriptActionName.cameraMoveTo.rawValue) { context, args in
+        // 1. Extract the position argument as a Vec3
+        guard let posValue = args[ScriptArgKey.position.rawValue],
+              case let .vec3(x, y, z) = posValue
+        else {
+            Logger.log(message: "[USC] cameraMoveTo action failed: missing or invalid 'position' arg")
+            return nil
+        }
+
+        // 2. Call into your existing camera API
+        moveCameraTo(entityId: context.entityId, x, y, z)
+
+        // 3. No return value (pure side effect)
+        return nil
+    }
+
+    // 1) camera.lookAt: eye / target / up vec3
+    reg.register(name: ScriptActionName.cameraLookAt.rawValue) { context, args in
+        guard
+            let eyeVal = args[ScriptArgKey.eye.rawValue],
+            case let .vec3(ex, ey, ez) = eyeVal,
+            let targetVal = args[ScriptArgKey.target.rawValue],
+            case let .vec3(tx, ty, tz) = targetVal,
+            let upVal = args[ScriptArgKey.up.rawValue],
+            case let .vec3(ux, uy, uz) = upVal
+        else {
+            Logger.log(message: "[USC] cameraLookAt failed: missing or invalid args")
+            return nil
+        }
+
+        let eye = simd_float3(ex, ey, ez)
+        let target = simd_float3(tx, ty, tz)
+        let up = simd_float3(ux, uy, uz)
+
+        cameraLookAt(entityId: context.entityId,
+                     eye: eye,
+                     target: target,
+                     up: up)
+
+        return nil
+    }
+
+    // 2) camera.moveWithInput: speed, dt, 6 booleans
+    reg.register(name: ScriptActionName.cameraMoveWithInput.rawValue) { context, args in
+        guard
+            let speedVal = args[ScriptArgKey.speed.rawValue],
+            case let .float(speed) = speedVal,
+            let dtVal = args[ScriptArgKey.deltaTime.rawValue],
+            case let .float(dt) = dtVal
+        else {
+            Logger.log(message: "[USC] cameraMoveWithInput failed: missing speed/deltaTime")
+            return nil
+        }
+
+        func boolArg(_ key: ScriptArgKey) -> Bool {
+            if let v = args[key.rawValue], case let .bool(b) = v {
+                return b
+            }
+            return false
+        }
+
+        let input = (
+            w: boolArg(.inputW),
+            a: boolArg(.inputA),
+            s: boolArg(.inputS),
+            d: boolArg(.inputD),
+            q: boolArg(.inputQ),
+            e: boolArg(.inputE)
+        )
+
+        moveCameraWithInput(entityId: context.entityId,
+                            input: input,
+                            speed: speed,
+                            deltaTime: dt)
+        return nil
+    }
+
+    // Steering scripted actions
     reg.register(name: .seek) { context, args in
         guard let targetPos = args[.targetPosition], case let .vec3(x, y, z) = targetPos,
               let maxSpeedVal = args[.maxSpeed], case let .float(maxSpeed) = maxSpeedVal

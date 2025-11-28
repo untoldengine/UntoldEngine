@@ -23,6 +23,21 @@ public enum ScriptArgKey: String {
     case radius
     case strength
     case speed
+
+    case position
+
+    // Camera look-at
+    case eye
+    case target
+    case up
+
+    // Camera movement with input
+    case inputW
+    case inputA
+    case inputS
+    case inputD
+    case inputQ
+    case inputE
 }
 
 public enum ScriptActionName: String {
@@ -38,6 +53,10 @@ public enum ScriptActionName: String {
     case steerPursuit
     case steerFollowPath
     case orbit
+
+    case cameraMoveTo
+    case cameraLookAt
+    case cameraMoveWithInput
 }
 
 extension [String: Value] {
