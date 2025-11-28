@@ -27,4 +27,10 @@ public final class LogStore: ObservableObject, LoggerSink {
             }
         }
     }
+
+    public func clear() {
+        DispatchQueue.main.async { [weak self] in
+            self?.entries.removeAll()
+        }
+    }
 }
