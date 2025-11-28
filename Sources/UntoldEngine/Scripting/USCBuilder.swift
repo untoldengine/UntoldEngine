@@ -565,3 +565,48 @@ public func buildScript(name: String, triggerType: TriggerType = .perFrame, exec
 public func exportScript(name: String, to url: URL, triggerType: TriggerType = .perFrame, executionMode: ExecutionMode = .auto, _ builder: (USCBuilder) -> Void) throws {
     let b = USCBuilder(); builder(b); try b.export(name: name, to: url, triggerType: triggerType, executionMode: executionMode)
 }
+
+public extension USCBuilder {
+    @discardableResult
+    func cameraLookAt(eye: Vec3,
+                      target: Vec3,
+                      up: Vec3 = .up) -> USCBuilder
+    {
+        setVariable("eye", to: eye)
+        setVariable("target", to: target)
+        setVariable("up", to: up)
+
+        setVariable(ScriptArgKey.eye.rawValue, fromVariable: "eye")
+        setVariable(ScriptArgKey.target.rawValue, fromVariable: "target")
+        setVariable(ScriptArgKey.up.rawValue, fromVariable: "up")
+
+        return callAction(.cameraLookAt,
+                          args: [.eye, .target, .up])
+    }
+
+    @discardableResult
+    func cameraMoveWithInput(speedVar: String,
+                             deltaTimeVar: String,
+                             wVar: String,
+                             aVar: String,
+                             sVar: String,
+                             dVar: String,
+                             qVar: String,
+                             eVar: String) -> USCBuilder
+    {
+        setVariable(ScriptArgKey.speed.rawValue, fromVariable: speedVar)
+        setVariable(ScriptArgKey.deltaTime.rawValue, fromVariable: deltaTimeVar)
+
+        setVariable(ScriptArgKey.inputW.rawValue, fromVariable: wVar)
+        setVariable(ScriptArgKey.inputA.rawValue, fromVariable: aVar)
+        setVariable(ScriptArgKey.inputS.rawValue, fromVariable: sVar)
+        setVariable(ScriptArgKey.inputD.rawValue, fromVariable: dVar)
+        setVariable(ScriptArgKey.inputQ.rawValue, fromVariable: qVar)
+        setVariable(ScriptArgKey.inputE.rawValue, fromVariable: eVar)
+
+        return callAction(.cameraMoveWithInput,
+                          args: [.speed, .deltaTime,
+                                 .inputW, .inputA, .inputS,
+                                 .inputD, .inputQ, .inputE])
+    }
+}
