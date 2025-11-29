@@ -1,4 +1,36 @@
 # Changelog
+## v0.6.0 - 2025-11-29
+### 🐞 Fixes
+- [Patch] Set game scene callbacks (f72571d…)
+- [Patch] Added input system extensions (b3d0f8c…)
+- [Patch] Implemented Builder DSL (c57162f…)
+- [Patch] Modified the DSL (7883912…)
+- [Patch] Added onStart event (1f43692…)
+- [Patch] Added DSL for input key (d8a3e38…)
+- [Patch] Added basic math operations to DSL (3c0d931…)
+- [Patch] Implemented DSL custom Actions (9bfd422…)
+- [Patch] Added usc examples for reference (b0eaef8…)
+- [Patch] Cleaning up dsl (2006b4e…)
+- [Patch] added support for onStart to the scripting system (feaf6a8…)
+- [Patch] Added steering funcs to script (b8250fc…)
+- [Patch] Added scenes and scripts to loading system (81a6ff7…)
+- [Patch] Implemented function to load scripts (41311a7…)
+- [Patch] Made scripts codable so they can be serialized (f8a07e9…)
+- [Patch] Added helper function to usc (fbdc7d1…)
+- [Patch] Initialized systems in build templates (e015832…)
+- [Patch] Improved scripting system. added tests (8ad8e82…)
+- [Patch] formatted the engine (887747f…)
+- [Patch] commented out wait and loop in the USC (d017b32…)
+- [Patch] Added script api for camera and unit tests (0e47c7e…)
+- [Patch] added clear function to log console (14c5396…)
+### 📚 Docs
+- [Docs] Updated docs with scripting instruction (e26a9f1…)
+- [Docs] Add collision system not yet implemented message (ae545d5…)
+### 🚀 Features
+- [Feature] Implemented Untold Script Core (4c1b891…)
+- [Feature] Initial implementation of building system (bc0335b…)
+- [Feature] Supports multiple scripts (dcb9fbc…)
+## v0.5.0 - 2025-11-18
 ## v0.5.0 - 2025-11-18
 ### 🐞 Fixes
 - [Patch] Fix the play scene and load game function (686baf6…)
