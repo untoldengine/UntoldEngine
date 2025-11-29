@@ -1,7 +1,7 @@
 <h1 align="center">
   <a href="https://github.com/untoldengine/UntoldEngine">
     <!-- Please provide path to your logo here -->
-    <img src="images/untoldenginewhite.png" alt="Logo" width="459" height="53">
+    <img src="docs/images/untoldenginewhite.png" alt="Logo" width="459" height="53">
   </a>
 </h1>
 
@@ -52,7 +52,7 @@ Creator & Lead Developer: [Harold Serrano](http://www.haroldserrano.com)
 
 Click on image to play video:
 
-[![Watch the video](images/enginethumbnail.jpg)](https://vimeo.com/1116239409?share=copy#t=0)
+[![Watch the video](docs/images/enginethumbnail.jpg)](https://vimeo.com/1116239409?share=copy#t=0)
 
 ## Current Features:
 - Cross-Platform Support: Runs on macOS, iOS, and visionOS using a unified Swift + Metal codebase.
@@ -98,7 +98,7 @@ It provides a visual environment for managing assets, scenes, and entities in pr
 
 The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. Once you have installed the engine, select the **UntoldEngineEditor** scheme in Xcode to launch the Editor.
 
-![UntoldEditorScreenshot](images/editorscreenshot.png)
+![UntoldEditorScreenshot](docs/images/editorscreenshot.png)
 
 ---
 
@@ -152,7 +152,7 @@ A huge thanks to the people helping shape the Untold Engine. Your support and co
 
 <p align="center">
   <a href="https://github.com/miolabs">
-    <img src="images/top_contributors/MioLogo.png" alt="MioLabs" width="120"/>
+    <img src="docs/images/top_contributors/MioLogo.png" alt="MioLabs" width="120"/>
   </a>
 </p>
 
