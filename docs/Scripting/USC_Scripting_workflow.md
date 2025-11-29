@@ -180,7 +180,7 @@ Common DSL methods available in your scripts:
 **Events:**
 - `.onStart()` - Runs once when Play mode starts
 - `.onUpdate()` - Runs every frame
-- `.onCollision(tag: "TagName")` - Runs on collision with tagged entities
+- `.onCollision(tag: "TagName")` - Runs on collision with tagged entities *(Coming soon)*
 - `.onEvent("EventName")` - Runs when custom event fires
 
 **Properties:**

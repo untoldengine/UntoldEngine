@@ -81,7 +81,7 @@ You only need to specify `triggerType` if you want something other than the defa
 - **`.event`** - For event-driven scripts (collision handlers, triggers)
   ```swift
   let script = buildScript(name: "DoorTrigger", triggerType: .event) { s in
-      s.onCollision(tag: "Player")
+      s.onCollision(tag: "Player")  // Coming soon - collision system not yet implemented
           .log("Door opened!")
   }
   ```
@@ -134,6 +134,8 @@ s.onUpdate()
 ```
 
 **onCollision(tag:)** - Runs when colliding with tagged entities:
+> ⚠️ **Coming Soon** - The collision system is not yet implemented. This API is planned for a future release.
+
 ```swift
 s.onCollision(tag: "Enemy")
     .log("Hit an enemy!")
@@ -158,6 +160,7 @@ let script = buildScript(name: "Player") { s in
     s.onUpdate()
         .getProperty(.position, as: "pos")
     
+    // Coming soon - collision system not yet implemented
     s.onCollision(tag: "Coin")
         .addFloat("score", 1.0, as: "score")
 }
@@ -518,7 +521,7 @@ let script = buildScript(name: "Enemy") { s in
         .callAction(.seek, args: [.targetPosition: "playerPos"], result: "force")
         .applyForce(force: .variableRef("force"))
     
-    // Event handlers
+    // Event handlers (collision system coming soon)
     s.onCollision(tag: "Bullet")
         .subtractFloat("health", 10.0, as: "health")
 }
