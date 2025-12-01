@@ -29,12 +29,12 @@
 <summary>Table of Contents</summary>
 
 - [About](#about)
+- [Understanding the Ecosystem](#understanding-the-ecosystem)
 - [Documentation](#documentation)
+- [Getting Started](#getting-started)
 - [Roadmap](#roadmap)
 - [Support](#support)
-- [Project assistance](#project-assistance)
 - [Contributing](#contributing)
-- [Top Contributors](#top-contributors)
 - [License](#license)
 
 
@@ -76,29 +76,84 @@ The Untold Engine is a work in progress, with ambitious goals to:
 - Expand XR and input support for visionOS.
 - Improve workflow between the engine, editor, and asset pipeline.
 
-## Documentation
+---
 
-If you’re interested in learning more about the engine itself — how it works, how to build with it, and the full API — head over to our official documentation site:  
-👉 [Untold Engine Docs](https://untoldengine.github.io/UntoldEngine)
+## Understanding the Ecosystem
 
-There you’ll find:
-- Installation & setup
-- Editor overview
-- How-to guides (import assets, add models, use systems)
-- API references & examples
+The Untold Engine project consists of multiple components designed for different audiences:
 
-⚡ New to the engine? Start with the **Getting Started** guide in the docs.
+### 🎮 **Untold Engine Studio** (For Game Developers)
+- **What it is**: Standalone application (DMG download)
+- **Includes**: Visual editor + scripting + full engine + all dependencies
+- **Target audience**: Game developers who want to create games
+- **Get it**: [Download releases](https://github.com/untoldengine/UntoldEditor/releases)
+- **No coding/building required** — just install and start creating
+
+### 🛠️ **Untold Engine** (For Engine Contributors)
+- **What it is**: Core engine repository (this repo)
+- **Contains**: Rendering, physics, ECS, animation, input systems
+- **Target audience**: Developers contributing to the engine core
+- **Get it**: Clone [UntoldEngine](https://github.com/untoldengine/UntoldEngine)
+- **Purpose**: Improve or extend the engine's fundamental systems
+
+### 📝 **Untold Editor** (For Editor Contributors)  
+- **What it is**: Editor interface repository
+- **Contains**: Visual editing tools, UI, asset management
+- **Target audience**: Developers contributing to the editor
+- **Get it**: Clone [UntoldEditor](https://github.com/untoldengine/UntoldEditor)
+- **Purpose**: Improve the editor interface and workflows
+
+**Quick guide:**
+- **Making games?** → Download Untold Engine Studio
+- **Contributing to engine core?** → Clone Untold Engine
+- **Contributing to editor?** → Clone Untold Editor
 
 ---
 
-## Untold Editor
+## Documentation
 
-The **Untold Editor** is a companion tool for the Untold Engine.  
-It provides a visual environment for managing assets, scenes, and entities in projects built with the engine.  
+For comprehensive guides and API documentation, visit:  
+👉 [Untold Engine Docs](https://untoldengine.github.io/UntoldEngine)
 
-The editor is not required to use the engine, but it makes iteration faster by giving developers and designers a user-friendly interface. Once you have installed the engine, select the **UntoldEngineEditor** scheme in Xcode to launch the Editor.
+You'll find:
+- **Game developers**: Tutorials on using Untold Engine Studio
+- **Contributors**: Architecture guides and API references
+- **Installation & setup** for both users and developers
+- **How-to guides** for common tasks
+
+⚡ **New to game development with Untold Engine?** Download [Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases) and check out the Getting Started guide.
+
+---
+
+## Getting Started
+
+### 🎮 For Game Developers
+
+**Want to make games?** Download **[Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)** — a complete standalone application that includes:
+
+- ✅ Visual editor with scripting support
+- ✅ Full Untold Engine integration
+- ✅ Asset management and scene editing
+- ✅ Everything you need to create games
+- ✅ No build tools or GitHub required
+
+👉 **[Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)**
+
+Just download the DMG, install, and start creating your game!
 
 ![UntoldEditorScreenshot](docs/images/editorscreenshot.png)
+
+### 🛠️ For Engine Contributors
+
+**Want to contribute to the engine core?** This repository contains the engine's fundamental systems:
+
+- Rendering (Metal-based)
+- Physics and collision detection
+- Entity-Component-System (ECS)
+- Animation and scene graph
+- Input handling
+
+Clone this repository if you want to improve or extend the engine itself.
 
 ---
 
@@ -189,5 +244,5 @@ To keep communication clear and accessible for everyone:
 - 💡 Use **[GitHub Discussions](https://github.com/untoldengine/UntoldEngine/discussions)** for feature proposals, ideas, or general questions.  
 - 🐞 Use **[GitHub Issues](https://github.com/untoldengine/UntoldEngine/issues)** for bugs or concrete tasks that need tracking.  
 
-This way, conversations stay organized, visible to the community, and future contributors can benefit from past discussions. 
+This way, conversations stay organized, visible to the community, and future contributors can benefit from past discussions.
  
