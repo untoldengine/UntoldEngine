@@ -67,8 +67,8 @@ public enum USCInstruction: Codable {
     // Entity operations
     case translateTo(entity: String, position: Vec3)
     case translateBy(entity: String, position: Vec3) // Move entity
-    case rotateTo(entity: String, degrees: Float, axis: Vec3) // Rotate entity
-    case rotateBy(entity: String, degrees: Float, axis: Vec3) // Rotate by entity
+    case rotateTo(entity: String, degrees: Value, axis: Vec3) // Rotate entity (supports float or variableRef)
+    case rotateBy(entity: String, degrees: Value, axis: Vec3) // Rotate by entity (supports float or variableRef)
     case lookAt(entity: String, target: String) // Orient towards target
 
     // Animation
