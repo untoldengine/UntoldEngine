@@ -281,12 +281,24 @@ public final class USCBuilder {
 
     @discardableResult
     public func rotateTo(degrees: Float, axis: Vec3) -> USCBuilder {
+        instructions.append(.rotateTo(entity: "self", degrees: .float(degrees), axis: axis))
+        return self
+    }
+
+    @discardableResult
+    public func rotateTo(degrees: Value, axis: Vec3) -> USCBuilder {
         instructions.append(.rotateTo(entity: "self", degrees: degrees, axis: axis))
         return self
     }
 
     @discardableResult
     public func rotateBy(degrees: Float, axis: Vec3) -> USCBuilder {
+        instructions.append(.rotateBy(entity: "self", degrees: .float(degrees), axis: axis))
+        return self
+    }
+
+    @discardableResult
+    public func rotateBy(degrees: Value, axis: Vec3) -> USCBuilder {
         instructions.append(.rotateBy(entity: "self", degrees: degrees, axis: axis))
         return self
     }
@@ -532,6 +544,12 @@ public final class USCBuilder {
     @discardableResult
     public func setVariable(_ name: String, fromVariable other: String) -> USCBuilder {
         instructions.append(.setVariable(name: name, value: .variableRef(other)))
+        return self
+    }
+
+    @discardableResult
+    public func setVariable(_ name: String, to value: Value) -> USCBuilder {
+        instructions.append(.setVariable(name: name, value: value))
         return self
     }
 

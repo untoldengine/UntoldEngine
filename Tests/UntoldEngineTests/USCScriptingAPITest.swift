@@ -218,6 +218,81 @@ final class USCScriptingAPITest: XCTestCase {
         XCTAssertNotEqual(updatedMatrix, simd_float3x3(1)) // Ensure it updated
     }
 
+    func testRotateToWithVariableRef_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setVariable("angle", to: 90.0)
+
+            s.onUpdate()
+                .rotateTo(degrees: .variableRef("angle"), axis: Vec3(x: 0.0, y: 1.0, z: 0.0))
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        // Initialize variable
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        // Apply rotation
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        let result = getLocalOrientation(entityId: entityId)
+        let expectedMatrix = transformQuaternionToMatrix3x3(q: simd_quatf(angle: degreesToRadians(degrees: 90.0), axis: simd_float3(0.0, 1.0, 0.0)))
+
+        XCTAssertEqual(result.columns.0.x, expectedMatrix.columns.0.x, accuracy: 0.01)
+        XCTAssertEqual(result.columns.0.y, expectedMatrix.columns.0.y, accuracy: 0.01)
+        XCTAssertEqual(result.columns.0.z, expectedMatrix.columns.0.z, accuracy: 0.01)
+    }
+
+    func testRotateByWithVariableRef_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setVariable("rotSpeed", to: 45.0)
+
+            s.onUpdate()
+                .rotateBy(degrees: .variableRef("rotSpeed"), axis: Vec3(x: 0.0, y: 0.0, z: 1.0))
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        // Initialize variable
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        // Apply rotation
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        let updatedMatrix = getLocalOrientation(entityId: entityId)
+        XCTAssertNotEqual(updatedMatrix, simd_float3x3(1)) // Ensure it updated
+    }
+
+    func testSetVariableWithValueType_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setVariable("speed", to: 10.0)
+                .setVariable("currentSpeed", to: .variableRef("speed"))
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        // Both variables should have the same value
+        guard case let .float(speed) = context.variables["speed"] else {
+            return XCTFail("speed should be a float")
+        }
+        guard case let .float(currentSpeed) = context.variables["currentSpeed"] else {
+            return XCTFail("currentSpeed should be a float")
+        }
+
+        XCTAssertEqual(speed, 10.0)
+        XCTAssertEqual(currentSpeed, 10.0)
+    }
+
     func testSetAndGetMass_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()

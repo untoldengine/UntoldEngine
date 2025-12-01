@@ -300,7 +300,12 @@ final class USCScriptingTests: XCTestCase {
 
         if case let .rotateBy(entity, degrees, axis) = script.instructions[0] {
             XCTAssertEqual(entity, "self")
-            XCTAssertEqual(degrees, 45.0)
+            // degrees is now a Value type
+            if case let .float(degreesValue) = degrees {
+                XCTAssertEqual(degreesValue, 45.0)
+            } else {
+                XCTFail("Expected degrees to be a float Value")
+            }
             XCTAssertEqual(axis.y, 1.0)
         } else {
             XCTFail("Expected rotateBy instruction")

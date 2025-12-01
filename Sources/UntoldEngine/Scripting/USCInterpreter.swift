@@ -123,12 +123,18 @@ public class USCInterpreter {
 
         case let .rotateTo(entityRef, degrees, axis):
             let targetEntity = resolveEntity(entityRef, context: context)
-            rotateTo(entityId: targetEntity, angle: degrees, axis: axis.simd)
+            let degreesValue = resolveValue(degrees, context: context)
+            if case let .float(angle) = degreesValue {
+                rotateTo(entityId: targetEntity, angle: angle, axis: axis.simd)
+            }
             return pc + 1
 
         case let .rotateBy(entityRef, degrees, axis):
             let targetEntity = resolveEntity(entityRef, context: context)
-            rotateBy(entityId: targetEntity, angle: degrees, axis: axis.simd)
+            let degreesValue = resolveValue(degrees, context: context)
+            if case let .float(angle) = degreesValue {
+                rotateBy(entityId: targetEntity, angle: angle, axis: axis.simd)
+            }
             return pc + 1
 
         case let .lookAt(entityRef, targetRef):
