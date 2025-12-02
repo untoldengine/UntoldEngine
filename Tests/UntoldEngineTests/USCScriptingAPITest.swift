@@ -333,7 +333,177 @@ final class USCScriptingAPITest: XCTestCase {
         XCTAssertEqual(kineticComponent?.forces.first, force, "Force should be correctly applied.")
     }
 
-    func testClearForces_Scripted() {}
+    func testApplyMoment_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onUpdate()
+                .applyMoment(force: Vec3(x: 10, y: 0, z: 0), at: Vec3(x: 0, y: 1, z: 0))
+        }
+
+        let entityId = createEntity()
+        registerPhysics(entityId: entityId)
+        let context = USCContext(entityId: entityId, script: script)
+
+        let interpreter = USCInterpreter()
+
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        let kineticComponent = scene.get(component: KineticComponent.self, for: entityId)
+
+        // applyMoment should add torque to the moments array
+        XCTAssertNotNil(kineticComponent?.moments.first, "Moment should be applied.")
+    }
+
+    func testClearVelocity_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setProperty(.velocity, to: Vec3(x: 10, y: 5, z: 3))
+
+            s.onUpdate()
+                .clearVelocity()
+        }
+
+        let entityId = createEntity()
+        registerPhysics(entityId: entityId)
+        let context = USCContext(entityId: entityId, script: script)
+
+        let interpreter = USCInterpreter()
+
+        // Set initial velocity
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        let initialVelocity = getVelocity(entityId: entityId)
+        XCTAssertEqual(initialVelocity, simd_float3(10, 5, 3), "Velocity should be set initially.")
+
+        // Clear velocity
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        let clearedVelocity = getVelocity(entityId: entityId)
+        XCTAssertEqual(clearedVelocity, simd_float3(0, 0, 0), "Velocity should be cleared.")
+    }
+
+    func testClearAngularVelocity_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setProperty(.angularVelocity, to: Vec3(x: 5, y: 10, z: 2))
+
+            s.onUpdate()
+                .clearAngularVelocity()
+        }
+
+        let entityId = createEntity()
+        registerPhysics(entityId: entityId)
+        let context = USCContext(entityId: entityId, script: script)
+
+        let interpreter = USCInterpreter()
+
+        // Set initial angular velocity
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId)
+
+        let initialAngularVelocity = physicsComponent?.angularVelocity
+
+        XCTAssertEqual(initialAngularVelocity, simd_float3(5, 10, 2), "Angular velocity should be set initially.")
+
+        // Clear angular velocity
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        let clearedAngularVelocity = physicsComponent?.angularVelocity
+
+        XCTAssertEqual(clearedAngularVelocity, simd_float3(0, 0, 0), "Angular velocity should be cleared.")
+    }
+
+    func testClearForces_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .applyForce(force: Vec3(x: 10, y: 0, z: 0))
+                .applyForce(force: Vec3(x: 5, y: 5, z: 0))
+
+            s.onUpdate()
+                .clearForces()
+        }
+
+        let entityId = createEntity()
+        registerPhysics(entityId: entityId)
+        let context = USCContext(entityId: entityId, script: script)
+
+        let interpreter = USCInterpreter()
+
+        // Apply forces
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        let kineticAfterForces = scene.get(component: KineticComponent.self, for: entityId)
+        XCTAssertEqual(kineticAfterForces?.forces.count, 2, "Two forces should be applied.")
+
+        // Clear forces
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        let kineticAfterClear = scene.get(component: KineticComponent.self, for: entityId)
+        XCTAssertEqual(kineticAfterClear?.forces.count, 0, "Forces should be cleared.")
+    }
+
+    func testPausePhysicsComponent_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .pausePhysicsComponent(isPaused: true)
+
+            s.onUpdate()
+                .pausePhysicsComponent(isPaused: false)
+        }
+
+        let entityId = createEntity()
+        registerPhysics(entityId: entityId)
+        let context = USCContext(entityId: entityId, script: script)
+
+        let interpreter = USCInterpreter()
+
+        // Pause physics
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId)
+
+        let pausedState = physicsComponent?.pause
+
+        XCTAssertEqual(pausedState, true, "Physics should be paused.")
+
+        // Unpause physics
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        let unpausedState = physicsComponent?.pause
+        XCTAssertEqual(unpausedState, false, "Physics should be unpaused.")
+    }
+
+    func testSetGravityScale_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setGravityScale(0.5)
+
+            s.onUpdate()
+                .setGravityScale(2.0)
+        }
+
+        let entityId = createEntity()
+        registerPhysics(entityId: entityId)
+        let context = USCContext(entityId: entityId, script: script)
+
+        let interpreter = USCInterpreter()
+
+        // Set gravity scale to 0.5
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        let kineticComponent = scene.get(component: KineticComponent.self, for: entityId)
+
+        let initialScale = kineticComponent?.gravityScale
+
+        XCTAssertEqual(initialScale, 0.5, "Gravity scale should be 0.5.")
+
+        // Set gravity scale to 2.0
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        let updatedScale = kineticComponent?.gravityScale
+
+        XCTAssertEqual(updatedScale, 2.0, "Gravity scale should be 2.0.")
+    }
 
     func testGetVelocity_Scripted() {
         let script = buildScript(name: "test") { s in

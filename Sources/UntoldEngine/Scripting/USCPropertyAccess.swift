@@ -115,7 +115,7 @@ public class USCPropertyAccess {
         }
 
         // PhysicsComponent properties
-        if componentName == "velocity" || componentName == "acceleration" || componentName == "mass" {
+        if componentName == "velocity" || componentName == "acceleration" || componentName == "mass" || componentName == "angularVelocity" {
             guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
                 return false
             }
@@ -129,6 +129,8 @@ public class USCPropertyAccess {
                 if case let .float(mass) = value {
                     physics.mass = mass
                 }
+            case "angularVelocity":
+                setVec3Property(&physics.angularVelocity, subProperty: subProperty, value: value)
             default:
                 break
             }
