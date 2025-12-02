@@ -331,6 +331,42 @@ public final class USCBuilder {
         return self
     }
 
+    @discardableResult
+    public func applyMoment(force: Vec3, at point: Vec3) -> USCBuilder {
+        instructions.append(.applyMoment(entity: "self", force: force, at: point))
+        return self
+    }
+
+    @discardableResult
+    public func clearVelocity() -> USCBuilder {
+        instructions.append(.clearVelocity(entity: "self"))
+        return self
+    }
+
+    @discardableResult
+    public func clearAngularVelocity() -> USCBuilder {
+        instructions.append(.clearAngularVelocity(entity: "self"))
+        return self
+    }
+
+    @discardableResult
+    public func clearForces() -> USCBuilder {
+        instructions.append(.clearForces(entity: "self"))
+        return self
+    }
+
+    @discardableResult
+    public func pausePhysicsComponent(isPaused: Bool) -> USCBuilder {
+        instructions.append(.pausePhysicsComponent(entity: "self", isPaused: isPaused))
+        return self
+    }
+
+    @discardableResult
+    public func setGravityScale(_ scale: Float) -> USCBuilder {
+        instructions.append(.setGravityScale(entity: "self", scale: scale))
+        return self
+    }
+
     // MARK: - Properties
 
     @discardableResult

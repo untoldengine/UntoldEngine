@@ -158,6 +158,36 @@ public class USCInterpreter {
             applyForce(entityId: targetEntity, force: force.simd)
             return pc + 1
 
+        case let .applyMoment(entityRef, force, at):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            applyMoment(entityId: targetEntity, force: force.simd, at: at.simd)
+            return pc + 1
+
+        case let .clearVelocity(entityRef):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            clearVelocity(entityId: targetEntity)
+            return pc + 1
+
+        case let .clearAngularVelocity(entityRef):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            clearAngularVelocity(entityId: targetEntity)
+            return pc + 1
+
+        case let .clearForces(entityRef):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            clearForces(entityId: targetEntity)
+            return pc + 1
+
+        case let .pausePhysicsComponent(entityRef, isPaused):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            pausePhysicsComponent(entityId: targetEntity, isPaused: isPaused)
+            return pc + 1
+
+        case let .setGravityScale(entityRef, scale):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            setGravityScale(entityId: targetEntity, gravityScale: scale)
+            return pc + 1
+
         case let .getProperty(entityRef, key, varName):
             let targetEntity = resolveEntity(entityRef, context: context)
             if let value = getPropertyValue(entityId: targetEntity, key: key, context: context) {

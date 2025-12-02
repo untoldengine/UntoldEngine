@@ -77,6 +77,12 @@ public enum USCInstruction: Codable {
 
     // Physics
     case applyForce(entity: String, force: Vec3)
+    case applyMoment(entity: String, force: Vec3, at: Vec3)
+    case clearVelocity(entity: String)
+    case clearAngularVelocity(entity: String)
+    case clearForces(entity: String)
+    case pausePhysicsComponent(entity: String, isPaused: Bool)
+    case setGravityScale(entity: String, scale: Float)
 
     // Properties
     case getProperty(entity: String, key: String, as: String) // Read value into variable

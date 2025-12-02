@@ -20,6 +20,7 @@ public enum ScriptProperty: String {
     case velocity
     case acceleration
     case mass
+    case angularVelocity
 
     // LightComponent
     case intensity
