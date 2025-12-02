@@ -333,6 +333,42 @@ final class USCScriptingAPITest: XCTestCase {
         XCTAssertEqual(kineticComponent?.forces.first, force, "Force should be correctly applied.")
     }
 
+    func testApplyForceWithVariableRef_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setVariable("upwardForce", to: Vec3(x: 0, y: 15, z: 0))
+
+            s.onUpdate()
+                .applyForce(force: .variableRef("upwardForce"))
+        }
+
+        let entityId = createEntity()
+        registerPhysics(entityId: entityId)
+        let context = USCContext(entityId: entityId, script: script)
+
+        let interpreter = USCInterpreter()
+
+        // Initialize variable
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        // Verify variable was set correctly
+        guard case let .vec3(x, y, z) = context.variables["upwardForce"] else {
+            return XCTFail("upwardForce should be a vec3")
+        }
+        XCTAssertEqual(x, 0)
+        XCTAssertEqual(y, 15)
+        XCTAssertEqual(z, 0)
+
+        // Apply force from variable
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        let kineticComponent = scene.get(component: KineticComponent.self, for: entityId)
+
+        let expectedForce = simd_float3(0, 15, 0)
+
+        XCTAssertEqual(kineticComponent?.forces.first, expectedForce, "Force from variable should be correctly applied.")
+    }
+
     func testApplyMoment_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()

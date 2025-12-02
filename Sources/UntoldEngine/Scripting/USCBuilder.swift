@@ -367,6 +367,12 @@ public final class USCBuilder {
 
     @discardableResult
     public func applyForce(force: Vec3) -> USCBuilder {
+        instructions.append(.applyForce(entity: "self", force: .vec3(x: force.x, y: force.y, z: force.z)))
+        return self
+    }
+
+    @discardableResult
+    public func applyForce(force: Value) -> USCBuilder {
         instructions.append(.applyForce(entity: "self", force: force))
         return self
     }

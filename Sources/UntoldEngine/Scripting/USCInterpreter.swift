@@ -158,9 +158,12 @@ public class USCInterpreter {
             pauseAnimationComponent(entityId: targetEntity, isPaused: true)
             return pc + 1
 
-        case let .applyForce(entityRef, force):
+        case let .applyForce(entityRef, forceValue):
             let targetEntity = resolveEntity(entityRef, context: context)
-            applyForce(entityId: targetEntity, force: force.simd)
+            let resolvedForce = resolveValue(forceValue, context: context)
+            if case let .vec3(x, y, z) = resolvedForce {
+                applyForce(entityId: targetEntity, force: simd_float3(x, y, z))
+            }
             return pc + 1
 
         case let .applyMoment(entityRef, force, at):

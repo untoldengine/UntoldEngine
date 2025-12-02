@@ -82,7 +82,7 @@ public enum USCInstruction: Codable {
     case stopAnimation(entity: String)
 
     // Physics
-    case applyForce(entity: String, force: Vec3)
+    case applyForce(entity: String, force: Value) // Supports Vec3 literal or variableRef
     case applyMoment(entity: String, force: Vec3, at: Vec3)
     case clearVelocity(entity: String)
     case clearAngularVelocity(entity: String)
