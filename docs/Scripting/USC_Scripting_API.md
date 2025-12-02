@@ -410,15 +410,23 @@ s.rotateBy(degrees: 45, axis: Vec3(x: 0, y: 1, z: 0)) // Rotate relative
 s.lookAt("targetEntityName")                          // Face another entity
 ```
 
-**Physics:**
+**Physics - Force & Torque:**
 ```swift
-s.applyForce(force: Vec3(x: 0, y: 10, z: 0))         // Apply force vector (literal only)
+s.applyForce(force: Vec3(x: 0, y: 10, z: 0))                     // Apply linear force
+s.applyMoment(force: Vec3(x: 5, y: 0, z: 0), at: Vec3(x: 1, y: 0, z: 0))  // Apply torque at point
 ```
 
-**Note:** `applyForce` only accepts literal `Vec3` values. To apply a force from a variable, use `setProperty`:
+**Physics - Velocity Control:**
 ```swift
-s.setVariable("force", to: Vec3(x: 0, y: 10, z: 0))
-s.setProperty(.velocity, toVariable: "force")  // Set velocity from variable
+s.clearVelocity()                     // Stop linear movement instantly
+s.clearAngularVelocity()              // Stop rotation instantly
+s.clearForces()                       // Clear accumulated forces
+```
+
+**Physics - Gravity & Pause:**
+```swift
+s.setGravityScale(0.5)                // Half gravity (0 = no gravity, 1 = normal, 2 = double)
+s.pausePhysicsComponent(isPaused: true)   // Pause/unpause physics simulation
 ```
 
 **Example - Jump mechanic:**
@@ -428,6 +436,24 @@ s.onEvent("Jump")
     .setVariable("jumpForce", to: Vec3(x: 0, y: 15, z: 0))
     .addVec3("currentVel", "jumpForce", as: "newVel")
     .setProperty(.velocity, toVariable: "newVel")
+```
+
+**Example - Reset physics:**
+```swift
+s.onEvent("Respawn")
+    .clearVelocity()             // Stop all movement
+    .clearAngularVelocity()      // Stop all rotation
+    .clearForces()               // Clear force accumulation
+    .translateTo(Vec3(x: 0, y: 5, z: 0))  // Move to spawn point
+```
+
+**Example - Apply torque to spin:**
+```swift
+s.onUpdate()
+    .ifKeyPressed("R") { n in
+        // Apply torque at the right edge to spin left
+        n.applyMoment(force: Vec3(x: 0, y: 10, z: 0), at: Vec3(x: 1, y: 0, z: 0))
+    }
 ```
 
 **Animation:**
