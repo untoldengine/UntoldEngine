@@ -1214,4 +1214,171 @@ final class USCScriptingAPITest: XCTestCase {
         XCTAssertEqual(afterDamage, 90.0, accuracy: 0.001,
                        "health should be reduced to 90 after collision")
     }
+
+    // MARK: - Boolean Operations Tests
+
+    func testGetKeyState_Scripted() {
+        let script = buildScript(name: "testGetKeyState") { s in
+            s.onUpdate()
+                .getKeyState("w", as: "wPressed")
+                .getKeyState("a", as: "aPressed")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        // Simulate W key pressed
+        InputSystem.shared.keyState.wPressed = true
+        InputSystem.shared.keyState.aPressed = false
+
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        guard case let .bool(wPressed) = context.variables["wPressed"] else {
+            return XCTFail("wPressed should be a bool")
+        }
+        guard case let .bool(aPressed) = context.variables["aPressed"] else {
+            return XCTFail("aPressed should be a bool")
+        }
+
+        XCTAssertEqual(wPressed, true, "W key should be pressed")
+        XCTAssertEqual(aPressed, false, "A key should not be pressed")
+
+        // Reset
+        InputSystem.shared.keyState.wPressed = false
+    }
+
+    func testOrBool_Scripted() {
+        let script = buildScript(name: "testOrBool") { s in
+            s.onStart()
+                .setVariable("a", to: true)
+                .setVariable("b", to: false)
+                .orBool("a", "b", as: "result")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        guard case let .bool(result) = context.variables["result"] else {
+            return XCTFail("result should be a bool")
+        }
+
+        XCTAssertEqual(result, true, "true OR false should be true")
+    }
+
+    func testAndBool_Scripted() {
+        let script = buildScript(name: "testAndBool") { s in
+            s.onStart()
+                .setVariable("a", to: true)
+                .setVariable("b", to: false)
+                .andBool("a", "b", as: "result")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        guard case let .bool(result) = context.variables["result"] else {
+            return XCTFail("result should be a bool")
+        }
+
+        XCTAssertEqual(result, false, "true AND false should be false")
+    }
+
+    func testNotBool_Scripted() {
+        let script = buildScript(name: "testNotBool") { s in
+            s.onStart()
+                .setVariable("a", to: true)
+                .notBool("a", as: "result")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        guard case let .bool(result) = context.variables["result"] else {
+            return XCTFail("result should be a bool")
+        }
+
+        XCTAssertEqual(result, false, "NOT true should be false")
+    }
+
+    func testIsWASDPressed_Scripted() {
+        let script = buildScript(name: "testIsWASDPressed") { s in
+            s.onUpdate()
+                // Query each key state
+                .getKeyState("w", as: "w")
+                .getKeyState("a", as: "a")
+                .getKeyState("s", as: "s")
+                .getKeyState("d", as: "d")
+                // Combine with OR: wasd = w || a || s || d
+                .orBool("w", "a", as: "wa")
+                .orBool("s", "d", as: "sd")
+                .orBool("wa", "sd", as: "wasdPressed")
+                // Use in conditional
+                .ifCondition(lhs: .variableRef("wasdPressed"), .equal, rhs: .bool(true)) { nested in
+                    nested.setVariable("moved", to: true)
+                }
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        // Test 1: Press W key
+        InputSystem.shared.keyState.wPressed = true
+        InputSystem.shared.keyState.aPressed = false
+        InputSystem.shared.keyState.sPressed = false
+        InputSystem.shared.keyState.dPressed = false
+
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        guard case let .bool(wasdPressed) = context.variables["wasdPressed"] else {
+            return XCTFail("wasdPressed should be a bool")
+        }
+        XCTAssertEqual(wasdPressed, true, "WASD should be pressed when W is pressed")
+
+        guard case let .bool(moved) = context.variables["moved"] else {
+            return XCTFail("moved should be set")
+        }
+        XCTAssertEqual(moved, true, "moved should be true when WASD is pressed")
+
+        // Test 2: Press A key
+        context.variables.removeAll()
+        InputSystem.shared.keyState.wPressed = false
+        InputSystem.shared.keyState.aPressed = true
+
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        guard case let .bool(wasdPressed2) = context.variables["wasdPressed"] else {
+            return XCTFail("wasdPressed should be a bool")
+        }
+        XCTAssertEqual(wasdPressed2, true, "WASD should be pressed when A is pressed")
+
+        // Test 3: No keys pressed
+        context.variables.removeAll()
+        InputSystem.shared.keyState.wPressed = false
+        InputSystem.shared.keyState.aPressed = false
+        InputSystem.shared.keyState.sPressed = false
+        InputSystem.shared.keyState.dPressed = false
+
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        guard case let .bool(wasdPressed3) = context.variables["wasdPressed"] else {
+            return XCTFail("wasdPressed should be a bool")
+        }
+        XCTAssertEqual(wasdPressed3, false, "WASD should not be pressed when no keys are pressed")
+        XCTAssertNil(context.variables["moved"], "moved should not be set when WASD not pressed")
+
+        // Reset
+        InputSystem.shared.keyState.wPressed = false
+        InputSystem.shared.keyState.aPressed = false
+    }
 }

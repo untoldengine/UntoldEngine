@@ -40,6 +40,11 @@ public enum MathOp: Codable {
     case scaleVec3Literal(vec: String, scalar: Float)
 
     case lengthVec3(vec: String) // vec -> float
+
+    // Boolean operations
+    case orBool(lhs: String, rhs: String) // bool || bool
+    case andBool(lhs: String, rhs: String) // bool && bool
+    case notBool(operand: String) // !bool
 }
 
 // MARK: - USC Instruction Set
@@ -63,6 +68,7 @@ public enum USCInstruction: Codable {
 
     // Input
     case ifInput(InputCondition)
+    case getKeyState(key: String, as: String) // Query key state into bool variable
 
     // Entity operations
     case translateTo(entity: String, position: Vec3)
