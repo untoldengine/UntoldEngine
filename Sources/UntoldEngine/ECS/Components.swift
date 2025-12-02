@@ -21,8 +21,6 @@ public class LocalTransformComponent: Component {
 
     public var boundingBox: (min: simd_float3, max: simd_float3) = (min: simd_float3(-1.0, -1.0, -1.0), max: simd_float3(1.0, 1.0, 1.0))
 
-    public var flipCoord: Bool = false
-
     public var rotationX: Float = 0
     public var rotationY: Float = 0
     public var rotationZ: Float = 0

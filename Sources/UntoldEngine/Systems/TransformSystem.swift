@@ -199,11 +199,6 @@ public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
     n.columns.1 = m.columns.1
     n.columns.2 = m.columns.2
 
-    if localTransformComponent.flipCoord == true {
-        n.columns.2 = m.columns.1
-        n.columns.1 = m.columns.2
-    }
-
     localTransformComponent.rotation = transformMatrix3nToQuaternion(m: n)
 }
 

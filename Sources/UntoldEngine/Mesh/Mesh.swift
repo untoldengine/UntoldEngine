@@ -20,18 +20,15 @@ public struct Mesh {
     public var worldSpace: simd_float4x4 = .identity
     var assetName: String
     var boundingBox: (min: simd_float3, max: simd_float3)
-    var flipCoord: Bool = false
     var skin: Skin?
     public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: 2)
 
-    init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip: Bool) {
+    init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip _: Bool) {
         modelMDLMesh = modelIOMesh
 
         // Transform to adjust orientation
-        let transform = flip ? matrix4x4Rotation(radians: -.pi / 2.0, axis: [1, 0, 0]) : matrix_identity_float4x4
+        let transform = matrix4x4Rotation(radians: -.pi / 2.0, axis: [1, 0, 0])
         modelIOMesh.parent?.transform?.matrix = simd_mul(transform, modelIOMesh.parent?.transform?.matrix ?? .identity)
-
-        flipCoord = flip
 
         // Set local transform matrix and name
         worldSpace = modelIOMesh.parent?.transform?.matrix ?? .identity
