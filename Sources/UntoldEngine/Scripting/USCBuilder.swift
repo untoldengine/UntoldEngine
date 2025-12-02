@@ -191,6 +191,40 @@ public final class USCBuilder {
         return self
     }
 
+    // MARK: - Boolean Operations
+
+    @discardableResult
+    public func orBool(_ lhsVar: String,
+                       _ rhsVar: String,
+                       as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .orBool(lhs: lhsVar, rhs: rhsVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func andBool(_ lhsVar: String,
+                        _ rhsVar: String,
+                        as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .andBool(lhs: lhsVar, rhs: rhsVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func notBool(_ operandVar: String,
+                        as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .notBool(operand: operandVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
     // Action
 
     @discardableResult
@@ -238,6 +272,12 @@ public final class USCBuilder {
         block(nested)
         instructions.append(contentsOf: nested.instructions)
         instructions.append(.endIf)
+        return self
+    }
+
+    @discardableResult
+    public func getKeyState(_ key: String, as variableName: String) -> USCBuilder {
+        instructions.append(.getKeyState(key: key, as: variableName))
         return self
     }
 

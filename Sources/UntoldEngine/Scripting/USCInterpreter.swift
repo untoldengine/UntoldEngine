@@ -111,6 +111,11 @@ public class USCInterpreter {
                 return findMatchingEnd(from: pc, instructions: context.script!.instructions)
             }
 
+        case let .getKeyState(key, variableName):
+            let isPressed = getKeyStateValue(key)
+            context.variables[variableName] = .bool(isPressed)
+            return pc + 1
+
         case let .translateTo(entityRef, position):
             let targetEntity = resolveEntity(entityRef, context: context)
             translateTo(entityId: targetEntity, position: position.simd)
@@ -298,6 +303,17 @@ public class USCInterpreter {
         let lhs = resolveValue(condition.lhs, context: context)
         let rhs = resolveValue(condition.rhs, context: context)
 
+        // Try boolean comparison first
+        if case let .bool(lhsVal) = lhs,
+           case let .bool(rhsVal) = rhs
+        {
+            switch condition.op {
+            case .equal: return lhsVal == rhsVal
+            case .notEqual: return lhsVal != rhsVal
+            default: return false // Other ops not valid for bool
+            }
+        }
+
         // Extract float values for comparison
         guard case let .float(lhsVal) = lhs,
               case let .float(rhsVal) = rhs
@@ -429,6 +445,37 @@ public class USCInterpreter {
             guard case let .vec3(x, y, z)? = getVar(vecVar) else { return }
             let len = sqrtf(x * x + y * y + z * z)
             setVar(inst.output, .float(len))
+
+        case let .orBool(lhs, rhs):
+            guard case let .bool(a)? = getVar(lhs),
+                  case let .bool(b)? = getVar(rhs) else { return }
+            setVar(inst.output, .bool(a || b))
+
+        case let .andBool(lhs, rhs):
+            guard case let .bool(a)? = getVar(lhs),
+                  case let .bool(b)? = getVar(rhs) else { return }
+            setVar(inst.output, .bool(a && b))
+
+        case let .notBool(operand):
+            guard case let .bool(a)? = getVar(operand) else { return }
+            setVar(inst.output, .bool(!a))
+        }
+    }
+
+    /// Get key state from InputSystem
+    private func getKeyStateValue(_ key: String) -> Bool {
+        switch key.uppercased() {
+        case "W": return InputSystem.shared.keyState.wPressed
+        case "A": return InputSystem.shared.keyState.aPressed
+        case "S": return InputSystem.shared.keyState.sPressed
+        case "D": return InputSystem.shared.keyState.dPressed
+        case "Q": return InputSystem.shared.keyState.qPressed
+        case "E": return InputSystem.shared.keyState.ePressed
+        case "SPACE": return InputSystem.shared.keyState.spacePressed
+        case "SHIFT": return InputSystem.shared.keyState.shiftPressed
+        case "CTRL": return InputSystem.shared.keyState.ctrlPressed
+        case "ALT": return InputSystem.shared.keyState.altPressed
+        default: return false
         }
     }
 }
