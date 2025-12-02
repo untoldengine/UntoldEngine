@@ -541,6 +541,59 @@ final class USCScriptingAPITest: XCTestCase {
         XCTAssertEqual(updatedScale, 2.0, "Gravity scale should be 2.0.")
     }
 
+    func testStringComparison_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setVariable("currentAnimation", to: "idle")
+                .setVariable("didExecute", to: false)
+
+            s.onUpdate()
+                // Test notEqual - should enter block since currentAnimation is "idle" not "running"
+                .ifCondition(lhs: .variableRef("currentAnimation"), .notEqual, rhs: .string("running")) { n in
+                    n.setVariable("didExecute", to: true)
+                    n.setVariable("currentAnimation", to: "running")
+                    n.log("Changed animation to running")
+                }
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        // Initialize variables
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        // Verify initial state
+        guard case let .string(initialAnim) = context.variables["currentAnimation"] else {
+            return XCTFail("currentAnimation should be a string")
+        }
+        XCTAssertEqual(initialAnim, "idle")
+
+        // Execute update - should enter the ifCondition block
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        // Verify the block was executed
+        guard case let .bool(executed) = context.variables["didExecute"] else {
+            return XCTFail("didExecute should be a bool")
+        }
+        XCTAssertTrue(executed, "Should have entered the notEqual condition")
+
+        // Verify animation was changed
+        guard case let .string(updatedAnim) = context.variables["currentAnimation"] else {
+            return XCTFail("currentAnimation should be a string")
+        }
+        XCTAssertEqual(updatedAnim, "running")
+
+        // Run again - should NOT enter block since now equal
+        context.variables["didExecute"] = .bool(false)
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        guard case let .bool(executedAgain) = context.variables["didExecute"] else {
+            return XCTFail("didExecute should be a bool")
+        }
+        XCTAssertFalse(executedAgain, "Should NOT have entered the notEqual condition when strings are equal")
+    }
+
     func testGetVelocity_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()
