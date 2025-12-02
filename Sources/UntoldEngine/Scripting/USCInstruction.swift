@@ -32,8 +32,12 @@ public struct MathInstruction: Codable {
 public enum MathOp: Codable {
     case addFloat(lhs: String, rhs: String) // variables
     case addFloatLiteral(lhs: String, rhs: Float) // var + literal
+    case subFloat(lhs: String, rhs: String) // var - var
+    case subFloatLiteral(lhs: String, rhs: Float) // var - literal
     case mulFloat(lhs: String, rhs: String)
     case mulFloatLiteral(lhs: String, rhs: Float)
+    case divFloat(lhs: String, rhs: String) // var / var
+    case divFloatLiteral(lhs: String, rhs: Float) // var / literal
 
     case addVec3(lhs: String, rhs: String)
     case scaleVec3(vec: String, scalarVar: String)
