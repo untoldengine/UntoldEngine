@@ -480,7 +480,6 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
     localTransformComponent.rotationZ = euler.roll
 
     localTransformComponent.boundingBox = boundingBox
-    localTransformComponent.flipCoord = meshes[0].flipCoord
 }
 
 func associateMeshesToEntity(entityId: EntityID, meshes: [Mesh]) {
