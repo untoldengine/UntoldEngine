@@ -85,6 +85,11 @@ public class USCPropertyAccess {
             }
         }
 
+        // Engine properties
+        if property == .deltaTime {
+            return .float(timeSinceLastUpdate ?? 0.0)
+        }
+
         return nil
     }
 
