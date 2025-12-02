@@ -317,6 +317,17 @@ public class USCInterpreter {
             }
         }
 
+        // Try string comparison
+        if case let .string(lhsVal) = lhs,
+           case let .string(rhsVal) = rhs
+        {
+            switch condition.op {
+            case .equal: return lhsVal == rhsVal
+            case .notEqual: return lhsVal != rhsVal
+            default: return false // Other ops not valid for string
+            }
+        }
+
         // Extract float values for comparison
         guard case let .float(lhsVal) = lhs,
               case let .float(rhsVal) = rhs
