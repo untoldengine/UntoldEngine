@@ -594,6 +594,120 @@ final class USCScriptingAPITest: XCTestCase {
         XCTAssertFalse(executedAgain, "Should NOT have entered the notEqual condition when strings are equal")
     }
 
+    func testElseBlock_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setVariable("value", to: 5.0)
+                .setVariable("result", to: "")
+
+            s.onUpdate()
+                .ifCondition(lhs: .variableRef("value"), .greater, rhs: .float(10.0)) { n in
+                    n.setVariable("result", to: "greater")
+                }.else { n in
+                    n.setVariable("result", to: "not greater")
+                }
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        guard case let .string(result) = context.variables["result"] else {
+            return XCTFail("result should be a string")
+        }
+        XCTAssertEqual(result, "not greater", "Else block should have executed")
+    }
+
+    func testSubtractFloat_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setVariable("a", to: 10.0)
+                .setVariable("b", to: 3.0)
+                .subtractFloat("a", "b", as: "result1")
+                .subtractFloat("a", literal: 2.0, as: "result2")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        guard case let .float(result1) = context.variables["result1"] else {
+            return XCTFail("result1 should be a float")
+        }
+        XCTAssertEqual(result1, 7.0, "10 - 3 should equal 7")
+
+        guard case let .float(result2) = context.variables["result2"] else {
+            return XCTFail("result2 should be a float")
+        }
+        XCTAssertEqual(result2, 8.0, "10 - 2 should equal 8")
+    }
+
+    func testDivFloat_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onStart()
+                .setVariable("a", to: 20.0)
+                .setVariable("b", to: 4.0)
+                .setVariable("c", to: 0.0)
+                .divFloat("a", "b", as: "result1")
+                .divFloat("a", literal: 5.0, as: "result2")
+                .divFloat("a", "c", as: "result3") // Division by zero
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        interpreter.execute(script: script, context: context, forEvent: "OnStart")
+
+        guard case let .float(result1) = context.variables["result1"] else {
+            return XCTFail("result1 should be a float")
+        }
+        XCTAssertEqual(result1, 5.0, "20 / 4 should equal 5")
+
+        guard case let .float(result2) = context.variables["result2"] else {
+            return XCTFail("result2 should be a float")
+        }
+        XCTAssertEqual(result2, 4.0, "20 / 5 should equal 4")
+
+        guard case let .float(result3) = context.variables["result3"] else {
+            return XCTFail("result3 should be a float")
+        }
+        XCTAssertEqual(result3, 0.0, "20 / 0 should return 0 (protected)")
+    }
+
+    func testDeltaTime_Scripted() {
+        let script = buildScript(name: "test") { s in
+            s.onUpdate()
+                .getProperty(.deltaTime, as: "dt")
+                .setVariable("speed", to: 100.0)
+                .mulFloat("speed", "dt", as: "displacement")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        let interpreter = USCInterpreter()
+
+        // Set a fake delta time for testing
+        timeSinceLastUpdate = 0.016 // ~60fps
+
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        guard case let .float(dt) = context.variables["dt"] else {
+            return XCTFail("dt should be a float")
+        }
+        XCTAssertEqual(dt, 0.016, accuracy: 0.001, "Delta time should be accessible")
+
+        guard case let .float(displacement) = context.variables["displacement"] else {
+            return XCTFail("displacement should be a float")
+        }
+        XCTAssertEqual(displacement, 1.6, accuracy: 0.01, "Displacement should be speed * deltaTime")
+    }
+
     func testGetVelocity_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()
