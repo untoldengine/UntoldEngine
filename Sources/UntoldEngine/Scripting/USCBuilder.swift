@@ -86,6 +86,21 @@ public final class USCBuilder {
         return self
     }
 
+    /// Else block - must follow an if statement
+    @discardableResult
+    public func `else`(do block: (USCBuilder) -> Void) -> USCBuilder {
+        // Replace the last endIf with an else block
+        if case .endIf = instructions.last {
+            instructions.removeLast()
+            instructions.append(.elseBlock)
+            let nested = USCBuilder()
+            block(nested)
+            instructions.append(contentsOf: nested.instructions)
+            instructions.append(.endIf)
+        }
+        return self
+    }
+
     /*
      @discardableResult
      public func wait(_ seconds: Float) -> USCBuilder {
