@@ -25,6 +25,9 @@ public enum ScriptProperty: String {
     // LightComponent
     case intensity
     case color
+
+    // Engine properties
+    case deltaTime // Time elapsed since last frame
 }
 
 /// Sub-components of a vec3 property (x, y, z)
