@@ -142,6 +142,28 @@ public final class USCBuilder {
     }
 
     @discardableResult
+    public func subtractFloat(_ lhsVar: String,
+                              _ rhsVar: String,
+                              as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .subFloat(lhs: lhsVar, rhs: rhsVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func subtractFloat(_ lhsVar: String,
+                              literal rhsValue: Float,
+                              as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .subFloatLiteral(lhs: lhsVar, rhs: rhsValue),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
     public func mulFloat(_ lhsVar: String,
                          _ rhsVar: String,
                          as outputVar: String) -> USCBuilder
@@ -158,6 +180,28 @@ public final class USCBuilder {
                          as outputVar: String) -> USCBuilder
     {
         let inst = MathInstruction(op: .mulFloatLiteral(lhs: lhsVar, rhs: rhsValue),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func divFloat(_ lhsVar: String,
+                         _ rhsVar: String,
+                         as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .divFloat(lhs: lhsVar, rhs: rhsVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func divFloat(_ lhsVar: String,
+                         literal rhsValue: Float,
+                         as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .divFloatLiteral(lhs: lhsVar, rhs: rhsValue),
                                    output: outputVar)
         instructions.append(.math(inst))
         return self

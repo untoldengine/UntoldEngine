@@ -432,6 +432,15 @@ public class USCInterpreter {
             guard case let .float(a)? = getVar(lhs) else { return }
             setVar(inst.output, .float(a + rhsLiteral))
 
+        case let .subFloat(lhs, rhs):
+            guard case let .float(a)? = getVar(lhs),
+                  case let .float(b)? = getVar(rhs) else { return }
+            setVar(inst.output, .float(a - b))
+
+        case let .subFloatLiteral(lhs, rhsLiteral):
+            guard case let .float(a)? = getVar(lhs) else { return }
+            setVar(inst.output, .float(a - rhsLiteral))
+
         case let .mulFloat(lhs, rhs):
             guard case let .float(a)? = getVar(lhs),
                   case let .float(b)? = getVar(rhs) else { return }
@@ -440,6 +449,27 @@ public class USCInterpreter {
         case let .mulFloatLiteral(lhs, rhsLiteral):
             guard case let .float(a)? = getVar(lhs) else { return }
             setVar(inst.output, .float(a * rhsLiteral))
+
+        case let .divFloat(lhs, rhs):
+            guard case let .float(a)? = getVar(lhs),
+                  case let .float(b)? = getVar(rhs) else { return }
+            // Protect against divide by zero
+            if abs(b) < 0.0001 {
+                Logger.log(message: "[USC] Warning: Division by zero, result set to 0")
+                setVar(inst.output, .float(0))
+            } else {
+                setVar(inst.output, .float(a / b))
+            }
+
+        case let .divFloatLiteral(lhs, rhsLiteral):
+            guard case let .float(a)? = getVar(lhs) else { return }
+            // Protect against divide by zero
+            if abs(rhsLiteral) < 0.0001 {
+                Logger.log(message: "[USC] Warning: Division by zero, result set to 0")
+                setVar(inst.output, .float(0))
+            } else {
+                setVar(inst.output, .float(a / rhsLiteral))
+            }
 
         case let .addVec3(lhs, rhs):
             guard case let .vec3(ax, ay, az)? = getVar(lhs),
