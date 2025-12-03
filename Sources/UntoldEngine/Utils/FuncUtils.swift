@@ -445,8 +445,8 @@ public func isWASDPressed() -> Bool {
     return isPressed
 }
 
-public func generateEntityName() -> String {
-    "Entity_\(globalEntityCounter)"
+public func generateEntityName(prefix: String = "Entity") -> String {
+    "\(prefix)_\(globalEntityCounter)"
 }
 
 public func getAllGameEntities() -> [EntityID] {
@@ -508,17 +508,21 @@ public func removeMaterialTexture(entityId: EntityID, textureType: TextureType) 
     case .baseColor:
         updatedMaterial.baseColor.texture = nil
         updatedMaterial.baseColorURL = nil
+    // Keep baseColorMDLTexture for restore functionality
     case .roughness:
         updatedMaterial.roughness.texture = nil
         updatedMaterial.roughnessURL = nil
+        // Keep roughnessMDLTexture for restore functionality
         updatedMaterial.roughnessValue = 1.0
     case .metallic:
         updatedMaterial.metallic.texture = nil
         updatedMaterial.metallicURL = nil
+        // Keep metallicMDLTexture for restore functionality
         updatedMaterial.metallicValue = 0.0
     case .normal:
         updatedMaterial.normal.texture = nil
         updatedMaterial.normalURL = nil
+        // Keep normalMDLTexture for restore functionality
     }
 
     renderComponent.mesh[0].submeshes[0].material = updatedMaterial
@@ -553,21 +557,25 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
         case .baseColor:
             updatedMaterial.baseColor.texture = texture
             updatedMaterial.baseColorURL = url
+        // Keep baseColorMDLTexture for restore functionality
         case .roughness:
             updatedMaterial.roughness.texture = texture
             updatedMaterial.roughnessURL = url
+            // Keep roughnessMDLTexture for restore functionality
             updatedMaterial.roughnessValue = 1.0
         case .metallic:
             updatedMaterial.metallic.texture = texture
             updatedMaterial.metallicURL = url
+            // Keep metallicMDLTexture for restore functionality
             updatedMaterial.metallicValue = 1.0
         case .normal:
             updatedMaterial.normal.texture = texture
             updatedMaterial.normalURL = url
+            // Keep normalMDLTexture for restore functionality
         }
 
         renderComponent.mesh[0].submeshes[0].material = updatedMaterial
-        print("\(textureType) textured updated succesfully.")
+        Logger.log(message: "\(textureType) textured updated succesfully.")
     } catch {
         handleError(.textureFailedLoading)
     }
@@ -585,6 +593,120 @@ public func getMaterialTextureURL(entityId: EntityID, type: TextureType) -> URL?
     case .roughness: return material?.roughnessURL
     case .metallic: return material?.metallicURL
     case .normal: return material?.normalURL
+    }
+}
+
+// Helper to check if a URL represents an embedded USDZ texture
+public func isEmbeddedUSDZTexture(_ url: URL?) -> Bool {
+    guard let url else { return false }
+    return url.scheme == "usdz-embedded"
+}
+
+// Helper to get MDLTexture for embedded textures
+public func getMaterialMDLTexture(entityId: EntityID, type: TextureType) -> MDLTexture? {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return nil
+    }
+
+    let material = renderComponent.mesh.first?.submeshes.first?.material
+
+    switch type {
+    case .baseColor: return material?.baseColorMDLTexture
+    case .roughness: return material?.roughnessMDLTexture
+    case .metallic: return material?.metallicMDLTexture
+    case .normal: return material?.normalMDLTexture
+    }
+}
+
+// Check if an original embedded texture can be restored
+public func canRestoreEmbeddedTexture(entityId: EntityID, type: TextureType) -> Bool {
+    getMaterialMDLTexture(entityId: entityId, type: type) != nil
+}
+
+// Helper to match sRGB texture format (same logic as in TextureLoader)
+private func textureViewMatchingSRGB(_ tex: MTLTexture, wantSRGB: Bool) -> MTLTexture {
+    let pairs: [MTLPixelFormat: (linear: MTLPixelFormat, srgb: MTLPixelFormat)] = [
+        .rgba8Unorm: (.rgba8Unorm, .rgba8Unorm_srgb),
+        .rgba8Unorm_srgb: (.rgba8Unorm, .rgba8Unorm_srgb),
+        .bgra8Unorm: (.bgra8Unorm, .bgra8Unorm_srgb),
+        .bgra8Unorm_srgb: (.bgra8Unorm, .bgra8Unorm_srgb),
+    ]
+
+    guard let pair = pairs[tex.pixelFormat] else { return tex }
+    let target = wantSRGB ? pair.srgb : pair.linear
+    if tex.pixelFormat == target { return tex }
+    return tex.makeTextureView(pixelFormat: target) ?? tex
+}
+
+// Restore the original embedded texture from USDZ
+public func restoreEmbeddedTexture(entityId: EntityID, textureType: TextureType) {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
+
+    // Get the stored MDLTexture for this texture type
+    let mdlTexture: MDLTexture?
+    switch textureType {
+    case .baseColor: mdlTexture = material.baseColorMDLTexture
+    case .roughness: mdlTexture = material.roughnessMDLTexture
+    case .metallic: mdlTexture = material.metallicMDLTexture
+    case .normal: mdlTexture = material.normalMDLTexture
+    }
+
+    guard let mdlTex = mdlTexture else {
+        Logger.log(message: "No embedded texture to restore for \(textureType)")
+        return
+    }
+
+    // Reload the texture from MDLTexture
+    let textureLoader = MTKTextureLoader(device: renderInfo.device)
+    let isSRGB = textureType == .baseColor
+
+    let options: [MTKTextureLoader.Option: Any] = [
+        .textureUsage: MTLTextureUsage.shaderRead.rawValue,
+        .textureStorageMode: MTLStorageMode.private.rawValue,
+        .SRGB: isSRGB,
+        .generateMipmaps: true,
+        .origin: MTKTextureLoader.Origin.topLeft,
+    ]
+
+    do {
+        let loadedTexture = try textureLoader.newTexture(texture: mdlTex, options: options)
+
+        // Apply sRGB correction (same as in TextureLoader.loadTexture)
+        let texture = textureViewMatchingSRGB(loadedTexture, wantSRGB: isSRGB)
+
+        // Regenerate the pseudo-URL
+        let assetName = getAssetURLString(entityId: entityId) ?? "unknown"
+        let mapType = textureType.displayName
+        let textureName = mdlTex.name.isEmpty ? "embedded_\(mapType.replacingOccurrences(of: " ", with: "_"))" : mdlTex.name
+        let pseudoURL = URL(string: "usdz-embedded://\(assetName)/\(textureName)")
+
+        // Update the material with restored texture
+        switch textureType {
+        case .baseColor:
+            material.baseColor.texture = texture
+            material.baseColorURL = pseudoURL
+        case .roughness:
+            material.roughness.texture = texture
+            material.roughnessURL = pseudoURL
+            material.roughnessValue = 1.0
+        case .metallic:
+            material.metallic.texture = texture
+            material.metallicURL = pseudoURL
+            material.metallicValue = 1.0
+        case .normal:
+            material.normal.texture = texture
+            material.normalURL = pseudoURL
+        }
+
+        renderComponent.mesh[0].submeshes[0].material = material
+        Logger.log(message: "\(textureType) texture restored successfully.")
+    } catch {
+        Logger.log(message: "Failed to restore \(textureType) texture: \(error)")
+        handleError(.textureFailedLoading)
     }
 }
 
