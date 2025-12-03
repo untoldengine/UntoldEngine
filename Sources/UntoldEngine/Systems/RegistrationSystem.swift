@@ -167,6 +167,40 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
     )
 }
 
+/// Sets entity mesh directly from pre-generated meshes (e.g., procedural primitives)
+/// Follows the same pattern as setEntityMeshCommon
+public func setEntityMeshDirect(entityId: EntityID, meshes: [Mesh], assetName: String) {
+    if meshes.isEmpty {
+        handleError(.assetDataMissing, assetName)
+        return
+    }
+
+    // Single mesh case
+    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+        registerTransformComponent(entityId: entityId)
+    }
+
+    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+        registerSceneGraphComponent(entityId: entityId)
+    }
+
+    associateMeshesToEntity(entityId: entityId, meshes: meshes)
+    let dummyURL = URL(fileURLWithPath: "/primitive/\(assetName)")
+    registerRenderComponent(entityId: entityId, meshes: meshes, url: dummyURL, assetName: assetName)
+    // Primitives don't have skeletons, so we skip setEntitySkeleton
+
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        handleError(.noRenderComponent, entityId)
+        return
+    }
+
+    let skin = Skin()
+
+    for index in renderComponent.mesh.indices {
+        renderComponent.mesh[index].skin = skin
+    }
+}
+
 public func loadScene(filename: String, withExtension: String) {
     guard let url: URL = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
         handleError(.filenameNotFound, filename)
