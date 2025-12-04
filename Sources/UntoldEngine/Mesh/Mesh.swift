@@ -26,13 +26,23 @@ public struct Mesh {
     init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip _: Bool) {
         modelMDLMesh = modelIOMesh
 
-        // Transform to adjust orientation
-        let transform = matrix4x4Rotation(radians: -.pi / 2.0, axis: [1, 0, 0])
-        modelIOMesh.parent?.transform?.matrix = simd_mul(transform, modelIOMesh.parent?.transform?.matrix ?? .identity)
+        // Get the mesh's own transform first, then check parent
+        // This respects the hierarchy: mesh transform relative to parent
+        let meshTransform = modelIOMesh.transform?.matrix ?? .identity
+        let parentTransform = modelIOMesh.parent?.transform?.matrix ?? .identity
 
-        // Set local transform matrix and name
-        worldSpace = modelIOMesh.parent?.transform?.matrix ?? .identity
-        assetName = modelIOMesh.parent?.name ?? "Unnamed"
+        // Combine parent and mesh transforms
+        let combinedTransform = simd_mul(parentTransform, meshTransform)
+
+        // Store world space transform (no orientation adjustment needed - engine and USD both use Y-up)
+        worldSpace = combinedTransform
+
+        // Store local space transform
+        localSpace = meshTransform
+
+        // Set asset name from parent
+        let parentName = modelIOMesh.parent?.name ?? "Unnamed"
+        assetName = parentName
 
         // Set bounding box dimensions
         boundingBox = (min: modelIOMesh.boundingBox.minBounds, max: modelIOMesh.boundingBox.maxBounds)

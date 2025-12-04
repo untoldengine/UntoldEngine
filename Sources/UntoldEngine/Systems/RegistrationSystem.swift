@@ -501,11 +501,15 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
 
     let boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
 
-    localTransformComponent.position = simd_float3(meshes[0].worldSpace.columns.3.x, meshes[0].worldSpace.columns.3.y, meshes[0].worldSpace.columns.3.z)
+    // Use localSpace transform instead of worldSpace
+    // This ensures child entities get their transform relative to their parent
+    let transformMatrix = meshes[0].localSpace
+
+    localTransformComponent.position = simd_float3(transformMatrix.columns.3.x, transformMatrix.columns.3.y, transformMatrix.columns.3.z)
 
     localTransformComponent.scale = .one
 
-    localTransformComponent.rotation = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(meshes[0].worldSpace))
+    localTransformComponent.rotation = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(transformMatrix))
 
     let euler = transformQuaternionToEulerAngles(q: localTransformComponent.rotation)
 
