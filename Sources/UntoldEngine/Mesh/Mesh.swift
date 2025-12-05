@@ -12,6 +12,46 @@ import Foundation
 import MetalKit
 import simd
 
+private extension simd_float3 {
+    func isApproximately(_ other: simd_float3, epsilon: Float = 0.01) -> Bool {
+        simd_distance(self, other) < epsilon
+    }
+}
+
+private func orientationTransformForAsset(_ asset: MDLAsset) -> simd_float4x4 {
+    let sourceUp = simd_normalize(asset.upAxis)
+
+    let yUp = simd_float3(0, 1, 0)
+    let zUp = simd_float3(0, 0, 1)
+
+    // Case 1: already Y-up → assume it matches engine space
+    if sourceUp.isApproximately(yUp) {
+        return matrix_identity_float4x4
+    }
+
+    // Case 2: Z-up (Blender: X-right, Y-forward, Z-up)
+    // Map:
+    //   X_s → X_t      (1, 0, 0)
+    //   Y_s → -Z_t     (0, 0, -1)
+    //   Z_s →  Y_t     (0, 1, 0)
+    if sourceUp.isApproximately(zUp) {
+        var m = matrix_identity_float4x4
+
+        // Column 0: image of (1,0,0)
+        m.columns.0 = simd_float4(1, 0, 0, 0)
+        // Column 1: image of (0,1,0)
+        m.columns.1 = simd_float4(0, 0, -1, 0)
+        // Column 2: image of (0,0,1)
+        m.columns.2 = simd_float4(0, 1, 0, 0)
+        // Column 3: translation
+        m.columns.3 = simd_float4(0, 0, 0, 1)
+
+        return m
+    }
+
+    // Fallback: unknown up axis → no change (you can log here)
+    return matrix_identity_float4x4
+}
 public struct Mesh {
     public let metalKitMesh: MTKMesh
     public var submeshes: [SubMesh] = []
@@ -102,6 +142,14 @@ public struct Mesh {
     static func loadMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, flip: Bool) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
+        
+        // Apply coordinate system conversion if needed (e.g., Blender Z-up to engine Y-up)
+        let orientationTransform = orientationTransformForAsset(asset)
+        if orientationTransform != matrix_identity_float4x4 {
+            for object in asset.childObjects(of: MDLObject.self) {
+                object.transform = MDLTransform(matrix: simd_mul(orientationTransform, object.transform?.matrix ?? .identity))
+            }
+        }
 
         asset.loadTextures()
 
@@ -123,6 +171,14 @@ public struct Mesh {
     static func loadSceneMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [[Mesh]] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
+        
+        // Apply coordinate system conversion if needed (e.g., Blender Z-up to engine Y-up)
+        let orientationTransform = orientationTransformForAsset(asset)
+        if orientationTransform != matrix_identity_float4x4 {
+            for object in asset.childObjects(of: MDLObject.self) {
+                object.transform = MDLTransform(matrix: simd_mul(orientationTransform, object.transform?.matrix ?? .identity))
+            }
+        }
 
         asset.loadTextures()
 
@@ -144,6 +200,14 @@ public struct Mesh {
     static func loadMeshWithName(name: String, url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
+        
+        // Apply coordinate system conversion if needed (e.g., Blender Z-up to engine Y-up)
+        let orientationTransform = orientationTransformForAsset(asset)
+        if orientationTransform != matrix_identity_float4x4 {
+            for object in asset.childObjects(of: MDLObject.self) {
+                object.transform = MDLTransform(matrix: simd_mul(orientationTransform, object.transform?.matrix ?? .identity))
+            }
+        }
 
         asset.loadTextures()
 
