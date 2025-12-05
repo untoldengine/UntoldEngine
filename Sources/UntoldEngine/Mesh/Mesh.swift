@@ -52,6 +52,7 @@ private func orientationTransformForAsset(_ asset: MDLAsset) -> simd_float4x4 {
     // Fallback: unknown up axis → no change (you can log here)
     return matrix_identity_float4x4
 }
+
 public struct Mesh {
     public let metalKitMesh: MTKMesh
     public var submeshes: [SubMesh] = []
@@ -80,9 +81,8 @@ public struct Mesh {
         // Store local space transform
         localSpace = meshTransform
 
-        // Set asset name from parent
-        let parentName = modelIOMesh.parent?.name ?? "Unnamed"
-        assetName = parentName
+        // Set asset name from parent, or use the mesh's own name if no parent
+        assetName = modelIOMesh.parent?.name ?? modelIOMesh.name
 
         // Set bounding box dimensions
         boundingBox = (min: modelIOMesh.boundingBox.minBounds, max: modelIOMesh.boundingBox.maxBounds)
@@ -142,7 +142,7 @@ public struct Mesh {
     static func loadMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, flip: Bool) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
-        
+
         // Apply coordinate system conversion if needed (e.g., Blender Z-up to engine Y-up)
         let orientationTransform = orientationTransformForAsset(asset)
         if orientationTransform != matrix_identity_float4x4 {
@@ -171,7 +171,7 @@ public struct Mesh {
     static func loadSceneMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [[Mesh]] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
-        
+
         // Apply coordinate system conversion if needed (e.g., Blender Z-up to engine Y-up)
         let orientationTransform = orientationTransformForAsset(asset)
         if orientationTransform != matrix_identity_float4x4 {
@@ -200,7 +200,7 @@ public struct Mesh {
     static func loadMeshWithName(name: String, url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
-        
+
         // Apply coordinate system conversion if needed (e.g., Blender Z-up to engine Y-up)
         let orientationTransform = orientationTransformForAsset(asset)
         if orientationTransform != matrix_identity_float4x4 {

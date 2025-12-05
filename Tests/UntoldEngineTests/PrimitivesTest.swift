@@ -1,5 +1,5 @@
 //
-//  BasicPrimitivesTest.swift
+//  PrimitivesTest.swift
 //  UntoldEngine
 //
 //  Copyright (C) Untold Engine Studios
@@ -12,7 +12,7 @@ import MetalKit
 @testable import UntoldEngine
 import XCTest
 
-final class BasicPrimitivesTest: XCTestCase {
+final class PrimitivesTest: XCTestCase {
     override func setUp() {
         super.setUp()
 

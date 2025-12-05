@@ -21,11 +21,11 @@ final class AnimationTests: BaseRenderSetup {
         (0.40, "pose_t040"),
     ]
 
-//        func test_generateReferenceKeyframes() throws {
-//            try runSamples { tex, name in
-//                self.testGenerateRenderTarget(targetName: name, texture: tex)
-//            }
-//        }
+    func test_generateReferenceKeyframes() throws {
+        try runSamples { tex, name in
+            self.testGenerateRenderTarget(targetName: name, texture: tex)
+        }
+    }
 
     // Save all test poses first, then PSNR from files
     func test_referenceKeyframes() throws {
