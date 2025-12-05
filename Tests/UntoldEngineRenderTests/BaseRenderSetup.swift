@@ -349,25 +349,27 @@ class BaseRenderSetup: XCTestCase {
     }
 
     func initializeAssets() {
-        cameraLookAt(entityId: findGameCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
+        let camera = findGameCamera()
+
+        CameraSystem.shared.activeCamera = camera
+
+        cameraLookAt(entityId: camera, eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
 
         // Stadium (static mesh)
         let stadium = createEntity()
         setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdz")
-        translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
+        translateBy(entityId: stadium, position: simd_float3(0.0, -0.5, 0.0))
 
         // Player (animated, named for lookup)
         let player = createEntity()
-        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdz", flip: false)
+        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdz")
         setEntityName(entityId: player, name: "player")
-        rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
 
         // Ball (named for lookup)
         let ball = createEntity()
         setEntityMesh(entityId: ball, filename: "ball", withExtension: "usdz")
         setEntityName(entityId: ball, name: "ball")
         translateBy(entityId: ball, position: simd_float3(0.0, 0.6, 3.0))
-
         ambientIntensity = 0.4
 
         let sunEntity: EntityID = createEntity()
@@ -377,7 +379,7 @@ class BaseRenderSetup: XCTestCase {
         let pointLight = createEntity()
         createPointLight(entityId: pointLight)
 
-        translateTo(entityId: pointLight, position: simd_float3(3.0, 0.5, 0.0))
+        translateTo(entityId: pointLight, position: simd_float3(4.0, 0.2, 0.0))
 
         let spotLight = createEntity()
         createSpotLight(entityId: spotLight)

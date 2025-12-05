@@ -13,6 +13,14 @@ import UniformTypeIdentifiers
 import XCTest
 
 final class RendererTests: BaseRenderSetup {
+    override func setUp() {
+        super.setUp()
+    }
+
+    override func tearDown() {
+        super.tearDown()
+    }
+
     func testRendererInitialization() {
         XCTAssertNotNil(renderer, "❌ Renderer should be inialized.")
     }

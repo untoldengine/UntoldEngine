@@ -13,24 +13,19 @@ import XCTest
 
 final class CameraTests: XCTestCase {
     var camera: EntityID!
-//    var sceneCamera: EntityID!
 
     override func setUp() {
         super.setUp()
         camera = createEntity()
+
+        CameraSystem.shared.activeCamera = camera
         createGameCamera(entityId: camera)
-
-        // This goes to the editor test
-//        sceneCamera = createEntity()
-//        createSceneCamera(entityId: sceneCamera)
-
         Logger.logLevel = .none
     }
 
     override func tearDown() {
         super.tearDown()
         destroyEntity(entityId: camera)
-//        destroyEntity(entityId: sceneCamera)
     }
 
     // MARK: - Translation Tests
@@ -146,9 +141,4 @@ final class CameraTests: XCTestCase {
     func testGetMainCamera() {
         XCTAssertEqual(findGameCamera(), camera, "Could not find Main camera")
     }
-
-    // This goes to the editor tests
-//    func testGetSceneCamera() {
-//        XCTAssertEqual(findSceneCamera(), sceneCamera, "Could not find Scene camera")
-//    }
 }

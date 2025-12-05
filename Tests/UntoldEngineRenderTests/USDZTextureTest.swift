@@ -64,7 +64,7 @@ final class USDZTextureTest: BaseRenderSetup {
         if let baseColorURL = getMaterialTextureURL(entityId: entity, type: .baseColor) {
             // Then: Check if it's an embedded URL
             XCTAssertEqual(baseColorURL.scheme, "usdz-embedded", "Embedded texture should have usdz-embedded:// scheme")
-            XCTAssertTrue(baseColorURL.absoluteString.contains("soccer_player_0"), "URL should reference the model name")
+            XCTAssertTrue(baseColorURL.absoluteString.contains("Mesh_SoccerPlayer1"), "URL should reference the model name")
         }
     }
 
