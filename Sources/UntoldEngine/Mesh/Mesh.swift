@@ -18,39 +18,51 @@ private extension simd_float3 {
     }
 }
 
-private func orientationTransformForAsset(_ asset: MDLAsset) -> simd_float4x4 {
-    let sourceUp = simd_normalize(asset.upAxis)
+public enum CoordinateSystemConversion {
+    case autoDetect // Check USD up-axis and convert only if needed
+    case forceZUpToYUp // Always apply Z-up to Y-up conversion
+    case none // Use transforms as-is from USD
+}
 
-    let yUp = simd_float3(0, 1, 0)
-    let zUp = simd_float3(0, 0, 1)
-
-    // Case 1: already Y-up → assume it matches engine space
-    if sourceUp.isApproximately(yUp) {
-        return matrix_identity_float4x4
-    }
-
-    // Case 2: Z-up (Blender: X-right, Y-forward, Z-up)
-    // Map:
-    //   X_s → X_t      (1, 0, 0)
-    //   Y_s → -Z_t     (0, 0, -1)
-    //   Z_s →  Y_t     (0, 1, 0)
-    if sourceUp.isApproximately(zUp) {
+private func orientationTransformForAsset(_ asset: MDLAsset, conversion: CoordinateSystemConversion) -> simd_float4x4 {
+    let zUpToYUpMatrix: simd_float4x4 = {
         var m = matrix_identity_float4x4
-
-        // Column 0: image of (1,0,0)
+        // Column 0: image of (1,0,0) -> X stays X
         m.columns.0 = simd_float4(1, 0, 0, 0)
-        // Column 1: image of (0,1,0)
+        // Column 1: image of (0,1,0) -> Y becomes -Z
         m.columns.1 = simd_float4(0, 0, -1, 0)
-        // Column 2: image of (0,0,1)
+        // Column 2: image of (0,0,1) -> Z becomes Y
         m.columns.2 = simd_float4(0, 1, 0, 0)
         // Column 3: translation
         m.columns.3 = simd_float4(0, 0, 0, 1)
-
         return m
-    }
+    }()
 
-    // Fallback: unknown up axis → no change (you can log here)
-    return matrix_identity_float4x4
+    switch conversion {
+    case .none:
+        return matrix_identity_float4x4
+
+    case .forceZUpToYUp:
+        return zUpToYUpMatrix
+
+    case .autoDetect:
+        let sourceUp = simd_normalize(asset.upAxis)
+        let yUp = simd_float3(0, 1, 0)
+        let zUp = simd_float3(0, 0, 1)
+
+        // Already Y-up → no conversion needed
+        if sourceUp.isApproximately(yUp) {
+            return matrix_identity_float4x4
+        }
+
+        // Z-up (Blender default) → convert to Y-up
+        if sourceUp.isApproximately(zUp) {
+            return zUpToYUpMatrix
+        }
+
+        // Unknown up axis → no conversion (could log warning here)
+        return matrix_identity_float4x4
+    }
 }
 
 public struct Mesh {
@@ -139,12 +151,12 @@ public struct Mesh {
     }
 
     // Load meshes from a file URL
-    static func loadMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, flip: Bool) -> [Mesh] {
+    static func loadMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, flip: Bool, coordinateConversion: CoordinateSystemConversion = .autoDetect) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
 
         // Apply coordinate system conversion if needed (e.g., Blender Z-up to engine Y-up)
-        let orientationTransform = orientationTransformForAsset(asset)
+        let orientationTransform = orientationTransformForAsset(asset, conversion: coordinateConversion)
         if orientationTransform != matrix_identity_float4x4 {
             for object in asset.childObjects(of: MDLObject.self) {
                 object.transform = MDLTransform(matrix: simd_mul(orientationTransform, object.transform?.matrix ?? .identity))
@@ -168,12 +180,12 @@ public struct Mesh {
         return makeDefaultMesh()
     }
 
-    static func loadSceneMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [[Mesh]] {
+    static func loadSceneMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, coordinateConversion: CoordinateSystemConversion = .autoDetect) -> [[Mesh]] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
 
         // Apply coordinate system conversion if needed (e.g., Blender Z-up to engine Y-up)
-        let orientationTransform = orientationTransformForAsset(asset)
+        let orientationTransform = orientationTransformForAsset(asset, conversion: coordinateConversion)
         if orientationTransform != matrix_identity_float4x4 {
             for object in asset.childObjects(of: MDLObject.self) {
                 object.transform = MDLTransform(matrix: simd_mul(orientationTransform, object.transform?.matrix ?? .identity))
@@ -197,12 +209,12 @@ public struct Mesh {
         return meshGroups
     }
 
-    static func loadMeshWithName(name: String, url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice) -> [Mesh] {
+    static func loadMeshWithName(name: String, url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, coordinateConversion: CoordinateSystemConversion = .autoDetect) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
 
         // Apply coordinate system conversion if needed (e.g., Blender Z-up to engine Y-up)
-        let orientationTransform = orientationTransformForAsset(asset)
+        let orientationTransform = orientationTransformForAsset(asset, conversion: coordinateConversion)
         if orientationTransform != matrix_identity_float4x4 {
             for object in asset.childObjects(of: MDLObject.self) {
                 object.transform = MDLTransform(matrix: simd_mul(orientationTransform, object.transform?.matrix ?? .identity))

@@ -153,14 +153,14 @@ private func setEntityMeshCommon(
     }
 }
 
-public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true) {
+public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
     setEntityMeshCommon(
         entityId: entityId,
         filename: filename,
         withExtension: withExtension,
         flip: flip,
         meshLoader: { url in
-            Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
+            Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, coordinateConversion: coordinateConversion)
         },
         entityName: nil,
         assetName: assetName
@@ -201,7 +201,7 @@ public func setEntityMeshDirect(entityId: EntityID, meshes: [Mesh], assetName: S
     }
 }
 
-public func loadScene(filename: String, withExtension: String) {
+public func loadScene(filename: String, withExtension: String, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
     guard let url: URL = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
         handleError(.filenameNotFound, filename)
         return
@@ -214,7 +214,7 @@ public func loadScene(filename: String, withExtension: String) {
 
     var meshes = [[Mesh]]()
 
-    meshes = Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
+    meshes = Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, coordinateConversion: coordinateConversion)
 
     if meshes.isEmpty {
         handleError(.assetDataMissing, filename)
