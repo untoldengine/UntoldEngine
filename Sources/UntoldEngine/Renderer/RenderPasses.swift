@@ -260,6 +260,7 @@ public enum RenderPasses {
         // Iterate over the entities found by the component query
         for entityId in visibleEntityIds {
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
+            if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
 
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
@@ -431,6 +432,7 @@ public enum RenderPasses {
         // Iterate over the entities found by the component query
         for entityId in visibleEntityIds {
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
+            if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
 
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
                 handleError(.noRenderComponent, entityId)
