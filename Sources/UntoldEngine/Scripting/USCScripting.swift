@@ -156,6 +156,118 @@ private func registerCoreGamePlayActions() {
         return nil
     }
 
+    reg.register(name: ScriptActionName.cameraMoveBy.rawValue) { context, args in
+        guard let deltaVal = args[ScriptArgKey.offset.rawValue],
+              case let .vec3(x, y, z) = deltaVal
+        else {
+            Logger.log(message: "[USC] cameraMoveBy failed: missing offset vec3")
+            return nil
+        }
+        cameraMoveBy(entityId: context.entityId, delta: simd_float3(x, y, z), space: .world)
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.cameraRotate.rawValue) { context, args in
+        guard
+            let pitchVal = args[ScriptArgKey.pitch.rawValue],
+            case let .float(pitch) = pitchVal,
+            let yawVal = args[ScriptArgKey.yaw.rawValue],
+            case let .float(yaw) = yawVal
+        else {
+            Logger.log(message: "[USC] cameraRotate failed: missing pitch/yaw")
+            return nil
+        }
+
+        let sensitivity = (args[ScriptArgKey.sensitivity.rawValue].flatMap { if case let .float(f) = $0 { return Double(f) } else { return nil } }) ?? 1.0
+        rotateCamera(entityId: context.entityId, pitch: pitch, yaw: yaw, sensitivity: Float(sensitivity))
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.cameraFollow.rawValue) { context, args in
+        guard
+            let targetNameVal = args[ScriptArgKey.targetEntity.rawValue],
+            case let .string(targetName) = targetNameVal,
+            let offsetVal = args[ScriptArgKey.offset.rawValue],
+            case let .vec3(ox, oy, oz) = offsetVal
+        else {
+            Logger.log(message: "[USC] cameraFollow failed: missing targetEntity/offset")
+            return nil
+        }
+
+        guard let targetEntity = findEntity(name: targetName) else {
+            Logger.log(message: "[USC] cameraFollow failed: entity '\(targetName)' not found")
+            return nil
+        }
+
+        let smooth = (args[ScriptArgKey.smoothFactor.rawValue].flatMap { if case let .float(f) = $0 { return Double(f) } else { return nil } }) ?? 0.0
+        let dt = (args[ScriptArgKey.deltaTime.rawValue].flatMap { if case let .float(f) = $0 { return Double(f) } else { return nil } }) ?? 0.0
+
+        cameraFollow(entityId: context.entityId,
+                     targetEntity: targetEntity,
+                     offset: simd_float3(ox, oy, oz),
+                     smoothFactor: Float(smooth),
+                     deltaTime: Float(dt))
+        return nil
+    }
+
+    reg.register(name: "cameraFollowLocal") { context, args in
+        guard
+            let targetNameVal = args[ScriptArgKey.targetEntity.rawValue],
+            case let .string(targetName) = targetNameVal,
+            let offsetVal = args[ScriptArgKey.localOffset.rawValue],
+            case let .vec3(ox, oy, oz) = offsetVal
+        else {
+            Logger.log(message: "[USC] cameraFollowLocal failed: missing targetEntity/localOffset")
+            return nil
+        }
+
+        guard let targetEntity = findEntity(name: targetName) else {
+            Logger.log(message: "[USC] cameraFollowLocal failed: entity '\(targetName)' not found")
+            return nil
+        }
+
+        let smooth = (args[ScriptArgKey.smoothFactor.rawValue].flatMap { if case let .float(f) = $0 { return Double(f) } else { return nil } }) ?? 0.0
+        let dt = (args[ScriptArgKey.deltaTime.rawValue].flatMap { if case let .float(f) = $0 { return Double(f) } else { return nil } }) ?? 0.0
+
+        cameraFollowLocal(entityId: context.entityId,
+                          targetEntity: targetEntity,
+                          localOffset: simd_float3(ox, oy, oz),
+                          smoothFactor: Float(smooth),
+                          deltaTime: Float(dt))
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.cameraOrbitTarget.rawValue) { context, args in
+        guard
+            let centerNameVal = args[ScriptArgKey.targetEntity.rawValue],
+            case let .string(centerName) = centerNameVal,
+            let radiusVal = args[ScriptArgKey.radius.rawValue],
+            case let .float(radius) = radiusVal,
+            let speedVal = args[ScriptArgKey.speed.rawValue],
+            case let .float(speed) = speedVal,
+            let dtVal = args[ScriptArgKey.deltaTime.rawValue],
+            case let .float(dt) = dtVal
+        else {
+            Logger.log(message: "[USC] cameraOrbitTarget failed: missing targetEntity/radius/speed/deltaTime")
+            return nil
+        }
+
+        guard let centerEntity = findEntity(name: centerName) else {
+            Logger.log(message: "[USC] cameraOrbitTarget failed: entity '\(centerName)' not found")
+            return nil
+        }
+
+        let offsetY = (args[ScriptArgKey.offset.rawValue].flatMap { if case let .float(f) = $0 { return Double(f) } else { return nil } }) ?? 0.0
+
+        cameraOrbitTarget(entityId: context.entityId,
+                          centerEntity: centerEntity,
+                          radius: radius,
+                          angularSpeed: speed,
+                          deltaTime: dt,
+                          offsetY: Float(offsetY))
+        return nil
+    }
+
     // Steering scripted actions
     reg.register(name: .seek) { context, args in
         guard let targetPos = args[.targetPosition], case let .vec3(x, y, z) = targetPos,

@@ -173,4 +173,83 @@ final class USCCameraScriptTests: XCTestCase {
         XCTAssertNotEqual(newPos.z, initialPos.z, accuracy: 1e-5,
                           "Camera should have moved along its axes when W is pressed")
     }
+
+    func testCameraMoveBy_Scripted() {
+        let cameraEntity = createEntity()
+        createGameCamera(entityId: cameraEntity)
+        CameraSystem.shared.activeCamera = cameraEntity
+        moveCameraTo(entityId: cameraEntity, 0, 0, 0)
+
+        let script = buildScript(name: "cameraMoveByScript") { s in
+            s.onUpdate()
+                .setVariable("delta", to: Vec3(x: 1, y: 2, z: 3))
+                .setVariable(ScriptArgKey.offset.rawValue, fromVariable: "delta")
+                .callAction(.cameraMoveBy, args: [.offset])
+        }
+
+        let context = USCContext(entityId: cameraEntity, script: script)
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        guard let cam = scene.get(component: CameraComponent.self, for: cameraEntity) else {
+            return XCTFail("CameraComponent should exist after moveBy")
+        }
+        XCTAssertEqual(cam.localPosition, simd_float3(1, 2, 3))
+    }
+
+    func testCameraRotate_Scripted() {
+        let cameraEntity = createEntity()
+        createGameCamera(entityId: cameraEntity)
+        CameraSystem.shared.activeCamera = cameraEntity
+        guard let camBefore = scene.get(component: CameraComponent.self, for: cameraEntity) else {
+            return XCTFail("CameraComponent should exist")
+        }
+        let initialRotation = camBefore.rotation
+
+        let script = buildScript(name: "cameraRotateScript") { s in
+            s.onUpdate()
+                .setVariable(ScriptArgKey.pitch.rawValue, to: 0.1)
+                .setVariable(ScriptArgKey.yaw.rawValue, to: -0.1)
+                .setVariable(ScriptArgKey.sensitivity.rawValue, to: 1.0)
+                .callAction(.cameraRotate, args: [.pitch, .yaw, .sensitivity])
+        }
+
+        let context = USCContext(entityId: cameraEntity, script: script)
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        guard let camAfter = scene.get(component: CameraComponent.self, for: cameraEntity) else {
+            return XCTFail("CameraComponent should exist after rotate")
+        }
+        XCTAssertNotEqual(camAfter.rotation.real, initialRotation.real, accuracy: 1e-4)
+    }
+
+    func testCameraFollow_Scripted() {
+        let cameraEntity = createEntity()
+        let target = createEntity()
+        setEntityName(entityId: target, name: "Player")
+        translateTo(entityId: target, position: simd_float3(5, 0, 0))
+
+        createGameCamera(entityId: cameraEntity)
+        CameraSystem.shared.activeCamera = cameraEntity
+        moveCameraTo(entityId: cameraEntity, 0, 0, 0)
+
+        let script = buildScript(name: "cameraFollowScript") { s in
+            s.onUpdate()
+                .setVariable(ScriptArgKey.targetEntity.rawValue, to: "Player")
+                .setVariable(ScriptArgKey.offset.rawValue, to: Vec3(x: 0, y: 2, z: -4))
+                .setVariable(ScriptArgKey.smoothFactor.rawValue, to: 0.0)
+                .setVariable(ScriptArgKey.deltaTime.rawValue, to: 0.0)
+                .callAction(.cameraFollow, args: [.targetEntity, .offset, .smoothFactor, .deltaTime])
+        }
+
+        let context = USCContext(entityId: cameraEntity, script: script)
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        guard let cam = scene.get(component: CameraComponent.self, for: cameraEntity) else {
+            return XCTFail("CameraComponent should exist after follow")
+        }
+        XCTAssertEqual(cam.localPosition, simd_float3(5, 2, -4))
+    }
 }

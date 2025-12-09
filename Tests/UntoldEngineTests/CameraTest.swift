@@ -141,4 +141,31 @@ final class CameraTests: XCTestCase {
     func testGetMainCamera() {
         XCTAssertEqual(findGameCamera(), camera, "Could not find Main camera")
     }
+
+    func testCameraMoveByWorld() {
+        moveCameraTo(entityId: camera, 0, 0, 0)
+        cameraMoveBy(entityId: camera, delta: simd_float3(1, 2, 3), space: .world)
+        guard let cam = scene.get(component: CameraComponent.self, for: camera) else {
+            return
+        }
+        XCTAssertEqual(cam.localPosition, simd_float3(1, 2, 3))
+    }
+
+    func testCameraFollowNoSmooth() {
+        let target = createEntity()
+        translateTo(entityId: target, position: simd_float3(10, 0, 0))
+        setEntityName(entityId: target, name: "Target")
+
+        moveCameraTo(entityId: camera, 0, 0, 0)
+        cameraFollow(entityId: camera,
+                     targetEntity: target,
+                     offset: simd_float3(0, 2, -5),
+                     smoothFactor: 0,
+                     deltaTime: 0)
+
+        guard let cam = scene.get(component: CameraComponent.self, for: camera) else {
+            return
+        }
+        XCTAssertEqual(cam.localPosition, simd_float3(10, 2, -5))
+    }
 }
