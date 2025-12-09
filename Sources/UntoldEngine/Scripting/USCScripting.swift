@@ -237,6 +237,73 @@ private func registerCoreGamePlayActions() {
         return nil
     }
 
+    // Physics linear motion
+    reg.register(name: ScriptActionName.applyLinearImpulse.rawValue) { context, args in
+        guard
+            let dirVal = args["direction"], case let .vec3(x, y, z) = dirVal,
+            let magVal = args[ScriptArgKey.magnitude.rawValue], case let .float(mag) = magVal
+        else {
+            Logger.log(message: "[USC] applyLinearImpulse failed: missing direction/magnitude")
+            return nil
+        }
+        applyLinearImpulse(entityId: context.entityId, direction: simd_float3(x, y, z), magnitude: mag)
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.applyWorldForce.rawValue) { context, args in
+        guard
+            let dirVal = args["worldDirection"], case let .vec3(x, y, z) = dirVal,
+            let magVal = args[ScriptArgKey.magnitude.rawValue], case let .float(mag) = magVal
+        else {
+            Logger.log(message: "[USC] applyWorldForce failed: missing worldDirection/magnitude")
+            return nil
+        }
+        applyForce(entityId: context.entityId,
+                   direction: simd_float3(x, y, z),
+                   magnitude: mag)
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.setLinearVelocity.rawValue) { context, args in
+        guard let velVal = args["velocity"], case let .vec3(x, y, z) = velVal else {
+            Logger.log(message: "[USC] setLinearVelocity failed: missing velocity vec3")
+            return nil
+        }
+        setLinearVelocity(entityId: context.entityId, velocity: simd_float3(x, y, z))
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.addLinearVelocity.rawValue) { context, args in
+        guard let velVal = args["deltaVelocity"], case let .vec3(x, y, z) = velVal else {
+            Logger.log(message: "[USC] addLinearVelocity failed: missing deltaVelocity vec3")
+            return nil
+        }
+        addLinearVelocity(entityId: context.entityId, deltaVelocity: simd_float3(x, y, z))
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.clampLinearSpeed.rawValue) { context, args in
+        guard
+            let minVal = args[ScriptArgKey.minSpeed.rawValue], case let .float(min) = minVal,
+            let maxVal = args[ScriptArgKey.maxSpeed.rawValue], case let .float(max) = maxVal
+        else {
+            Logger.log(message: "[USC] clampLinearSpeed failed: missing minSpeed/maxSpeed")
+            return nil
+        }
+        clampLinearSpeed(entityId: context.entityId, minSpeed: min, maxSpeed: max)
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.applyLinearDamping.rawValue) { context, args in
+        guard let dampingVal = args[ScriptArgKey.damping.rawValue], case let .float(d) = dampingVal else {
+            Logger.log(message: "[USC] applyLinearDamping failed: missing damping")
+            return nil
+        }
+        let dt = (args[ScriptArgKey.deltaTime.rawValue].flatMap { if case let .float(f) = $0 { return Double(f) } else { return nil } }) ?? 0.0
+        applyLinearDamping(entityId: context.entityId, dampingFactor: d, deltaTime: Float(dt))
+        return nil
+    }
+
     reg.register(name: ScriptActionName.cameraOrbitTarget.rawValue) { context, args in
         guard
             let centerNameVal = args[ScriptArgKey.targetEntity.rawValue],

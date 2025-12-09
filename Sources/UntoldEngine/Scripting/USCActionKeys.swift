@@ -23,6 +23,10 @@ public enum ScriptArgKey: String {
     case radius
     case strength
     case speed
+    case magnitude
+    case minSpeed
+    case damping
+    case duration
     case offset
     case localOffset
     case pitch
@@ -68,6 +72,14 @@ public enum ScriptActionName: String {
     case cameraFollow
     case cameraFollowLocal
     case cameraOrbitTarget
+
+    // Physics linear motion
+    case applyLinearImpulse
+    case applyWorldForce
+    case setLinearVelocity
+    case addLinearVelocity
+    case clampLinearSpeed
+    case applyLinearDamping
 }
 
 extension [String: Value] {
