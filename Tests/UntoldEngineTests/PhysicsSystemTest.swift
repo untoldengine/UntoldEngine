@@ -523,4 +523,37 @@ final class PhysicsSystemTests: XCTestCase {
         XCTAssertEqual(m.columns.2.y, 0.0, accuracy: 0.3, "component should match")
         XCTAssertEqual(m.columns.2.z, 1.0, accuracy: 0.3, "component should match")
     }
+
+    func testApplyAngularImpulse() {
+        guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
+            return XCTFail("Physics missing")
+        }
+        let before = physics.angularVelocity
+        applyAngularImpulse(entityId: entityId, axis: simd_float3(0, 1, 0), magnitude: 2.0)
+        XCTAssertGreaterThan(physics.angularVelocity.y, before.y)
+    }
+
+    func testSetAngularVelocity() {
+        setAngularVelocity(entityId: entityId, angularVelocity: simd_float3(0, 2, 0))
+        XCTAssertEqual(scene.get(component: PhysicsComponents.self, for: entityId)?.angularVelocity,
+                       simd_float3(0, 2, 0))
+    }
+
+    func testClampAngularSpeed() {
+        if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
+            physics.angularVelocity = simd_float3(0, 10, 0)
+        }
+        clampAngularSpeed(entityId: entityId, maxAngularSpeed: 3.0)
+        let speed = simd_length(scene.get(component: PhysicsComponents.self, for: entityId)!.angularVelocity)
+        XCTAssertEqual(speed, 3.0, accuracy: 0.0001)
+    }
+
+    func testApplyAngularDamping() {
+        if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
+            physics.angularVelocity = simd_float3(0, 5, 0)
+        }
+        applyAngularDamping(entityId: entityId, dampingFactor: 0.5, deltaTime: 1.0)
+        let speed = simd_length(scene.get(component: PhysicsComponents.self, for: entityId)!.angularVelocity)
+        XCTAssertLessThan(speed, 5)
+    }
 }

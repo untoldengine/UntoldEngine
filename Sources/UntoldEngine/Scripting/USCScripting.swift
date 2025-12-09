@@ -304,6 +304,46 @@ private func registerCoreGamePlayActions() {
         return nil
     }
 
+    reg.register(name: ScriptActionName.applyAngularImpulse.rawValue) { context, args in
+        guard
+            let axisVal = args["axis"], case let .vec3(x, y, z) = axisVal,
+            let magVal = args[ScriptArgKey.magnitude.rawValue], case let .float(mag) = magVal
+        else {
+            Logger.log(message: "[USC] applyAngularImpulse failed: missing axis/magnitude")
+            return nil
+        }
+        applyAngularImpulse(entityId: context.entityId, axis: simd_float3(x, y, z), magnitude: mag)
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.setAngularVelocity.rawValue) { context, args in
+        guard let velVal = args["angularVelocity"], case let .vec3(x, y, z) = velVal else {
+            Logger.log(message: "[USC] setAngularVelocity failed: missing angularVelocity vec3")
+            return nil
+        }
+        setAngularVelocity(entityId: context.entityId, angularVelocity: simd_float3(x, y, z))
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.clampAngularSpeed.rawValue) { context, args in
+        guard let maxVal = args[ScriptArgKey.maxAngularSpeed.rawValue], case let .float(max) = maxVal else {
+            Logger.log(message: "[USC] clampAngularSpeed failed: missing maxAngularSpeed")
+            return nil
+        }
+        clampAngularSpeed(entityId: context.entityId, maxAngularSpeed: max)
+        return nil
+    }
+
+    reg.register(name: ScriptActionName.applyAngularDamping.rawValue) { context, args in
+        guard let dampingVal = args[ScriptArgKey.damping.rawValue], case let .float(d) = dampingVal else {
+            Logger.log(message: "[USC] applyAngularDamping failed: missing damping")
+            return nil
+        }
+        let dt = (args[ScriptArgKey.deltaTime.rawValue].flatMap { if case let .float(f) = $0 { return Double(f) } else { return nil } }) ?? 0.0
+        applyAngularDamping(entityId: context.entityId, dampingFactor: d, deltaTime: Float(dt))
+        return nil
+    }
+
     reg.register(name: ScriptActionName.cameraOrbitTarget.rawValue) { context, args in
         guard
             let centerNameVal = args[ScriptArgKey.targetEntity.rawValue],

@@ -27,6 +27,7 @@ public enum ScriptArgKey: String {
     case minSpeed
     case damping
     case duration
+    case maxAngularSpeed
     case offset
     case localOffset
     case pitch
@@ -80,6 +81,10 @@ public enum ScriptActionName: String {
     case addLinearVelocity
     case clampLinearSpeed
     case applyLinearDamping
+    case applyAngularImpulse
+    case setAngularVelocity
+    case clampAngularSpeed
+    case applyAngularDamping
 }
 
 extension [String: Value] {
