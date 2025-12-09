@@ -151,4 +151,82 @@ final class USCPhysicsScriptTests: XCTestCase {
         let speed = simd_length(physics?.velocity ?? .zero)
         XCTAssertLessThan(speed, 10)
     }
+
+    func testApplyAngularImpulseAction_Runtime() {
+        let entity = makeEntityWithPhysics()
+
+        let script = buildScript(name: "applyAngularImpulse") { s in
+            s.onUpdate()
+                .setVariable("axis", to: Vec3(x: 0, y: 1, z: 0))
+                .setVariable(ScriptArgKey.magnitude.rawValue, to: 2.0)
+                .callAction(.applyAngularImpulse, args: ["axis", ScriptArgKey.magnitude.rawValue])
+        }
+
+        let ctx = USCContext(entityId: entity, script: script)
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: ctx, forEvent: "OnUpdate")
+
+        let physics = scene.get(component: PhysicsComponents.self, for: entity)
+        XCTAssertGreaterThan(physics?.angularVelocity.y ?? 0, 0)
+    }
+
+    func testSetAngularVelocityAction_Runtime() {
+        let entity = makeEntityWithPhysics()
+
+        let script = buildScript(name: "setAngVel") { s in
+            s.onUpdate()
+                .setVariable("angularVelocity", to: Vec3(x: 0, y: 3, z: 0))
+                .callAction(.setAngularVelocity, args: ["angularVelocity"])
+        }
+
+        let ctx = USCContext(entityId: entity, script: script)
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: ctx, forEvent: "OnUpdate")
+
+        let physics = scene.get(component: PhysicsComponents.self, for: entity)
+        XCTAssertEqual(physics?.angularVelocity, simd_float3(0, 3, 0))
+    }
+
+    func testClampAngularSpeedAction_Runtime() {
+        let entity = makeEntityWithPhysics()
+        if let physics = scene.get(component: PhysicsComponents.self, for: entity) {
+            physics.angularVelocity = simd_float3(0, 10, 0)
+        }
+
+        let script = buildScript(name: "clampAngSpeed") { s in
+            s.onUpdate()
+                .setVariable(ScriptArgKey.maxAngularSpeed.rawValue, to: 4.0)
+                .callAction(.clampAngularSpeed, args: [.maxAngularSpeed])
+        }
+
+        let ctx = USCContext(entityId: entity, script: script)
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: ctx, forEvent: "OnUpdate")
+
+        let physics = scene.get(component: PhysicsComponents.self, for: entity)
+        let speed = simd_length(physics?.angularVelocity ?? .zero)
+        XCTAssertEqual(speed, 4.0, accuracy: 0.0001)
+    }
+
+    func testApplyAngularDampingAction_Runtime() {
+        let entity = makeEntityWithPhysics()
+        if let physics = scene.get(component: PhysicsComponents.self, for: entity) {
+            physics.angularVelocity = simd_float3(0, 8, 0)
+        }
+
+        let script = buildScript(name: "angDamping") { s in
+            s.onUpdate()
+                .setVariable(ScriptArgKey.damping.rawValue, to: 0.5)
+                .setVariable(ScriptArgKey.deltaTime.rawValue, to: 1.0)
+                .callAction(.applyAngularDamping, args: [.damping, .deltaTime])
+        }
+
+        let ctx = USCContext(entityId: entity, script: script)
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: ctx, forEvent: "OnUpdate")
+
+        let physics = scene.get(component: PhysicsComponents.self, for: entity)
+        let speed = simd_length(physics?.angularVelocity ?? .zero)
+        XCTAssertLessThan(speed, 8)
+    }
 }
