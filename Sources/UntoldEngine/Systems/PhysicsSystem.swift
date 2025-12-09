@@ -303,6 +303,62 @@ public func clearVelocity(entityId: EntityID) {
     physicsComponent.velocity = .zero
 }
 
+public func setLinearVelocity(entityId: EntityID, velocity: simd_float3) {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+    physicsComponent.velocity = velocity
+}
+
+public func addLinearVelocity(entityId: EntityID, deltaVelocity: simd_float3) {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+    physicsComponent.velocity += deltaVelocity
+}
+
+public func applyLinearImpulse(entityId: EntityID, direction: simd_float3, magnitude: Float) {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+    let dir = simd_length(direction) > 0 ? simd_normalize(direction) : simd_float3.zero
+    let impulse = dir * magnitude
+    physicsComponent.velocity += impulse / physicsComponent.mass
+}
+
+public func applyForce(entityId: EntityID, direction: simd_float3, magnitude: Float) {
+    guard let kinetic = scene.get(component: KineticComponent.self, for: entityId) else {
+        handleError(.noKineticComponent, entityId)
+        return
+    }
+    let dir = simd_length(direction) > 0 ? simd_normalize(direction) : simd_float3.zero
+    let force = dir * magnitude
+    kinetic.addForce(force)
+}
+
+public func clampLinearSpeed(entityId: EntityID, minSpeed: Float, maxSpeed: Float) {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+    let speed = simd_length(physicsComponent.velocity)
+    if speed < 1e-5 { return }
+    let clampedSpeed = simd_clamp(speed, minSpeed, maxSpeed)
+    physicsComponent.velocity = simd_normalize(physicsComponent.velocity) * clampedSpeed
+}
+
+public func applyLinearDamping(entityId: EntityID, dampingFactor: Float, deltaTime: Float) {
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+    let decay = max(0.0, min(1.0, dampingFactor * deltaTime))
+    physicsComponent.velocity *= (1.0 - decay)
+}
+
 /// pause physics component for entity
 public func pausePhysicsComponent(entityId: EntityID, isPaused: Bool) {
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {

@@ -52,6 +52,12 @@ final class PhysicsSystemTests: XCTestCase {
         XCTAssertEqual(kineticComponent?.forces.first, force, "Force should be correctly applied.")
     }
 
+    func testApplyForceDirectionMagnitude() {
+        applyForce(entityId: entityId, direction: simd_float3(0, 1, 0), magnitude: 2.0)
+        let kineticComponent = scene.get(component: KineticComponent.self, for: entityId)
+        XCTAssertEqual(kineticComponent?.forces.first, simd_float3(0, 2, 0))
+    }
+
     func testClearForces() {
         applyForce(entityId: entityId, force: simd_float3(10, 0, 0))
         clearForces(entityId: entityId)
@@ -72,6 +78,21 @@ final class PhysicsSystemTests: XCTestCase {
 
         let retrievedVelocity = getVelocity(entityId: entityId)
         XCTAssertEqual(retrievedVelocity, velocity, "Velocity should be correctly retrieved.")
+    }
+
+    func testSetLinearVelocity() {
+        setLinearVelocity(entityId: entityId, velocity: simd_float3(3, 4, 0))
+        XCTAssertEqual(scene.get(component: PhysicsComponents.self, for: entityId)?.velocity,
+                       simd_float3(3, 4, 0))
+    }
+
+    func testAddLinearVelocity() {
+        if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
+            physics.velocity = simd_float3(1, 1, 1)
+        }
+        addLinearVelocity(entityId: entityId, deltaVelocity: simd_float3(1, 0, -1))
+        XCTAssertEqual(scene.get(component: PhysicsComponents.self, for: entityId)?.velocity,
+                       simd_float3(2, 1, 0))
     }
 
     // MARK: - Pause Physics Tests
@@ -207,6 +228,31 @@ final class PhysicsSystemTests: XCTestCase {
         XCTAssertEqual(position.x, expectedPosition.x, accuracy: 0.1, "x Position should be correctly calculated.")
         XCTAssertEqual(position.y, expectedPosition.y, accuracy: 0.1, "y Position should be correctly calculated.")
         XCTAssertEqual(position.z, expectedPosition.z, accuracy: 0.1, "z Position should be correctly calculated.")
+    }
+
+    func testClampLinearSpeed() {
+        if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
+            physics.velocity = simd_float3(10, 0, 0)
+        }
+        clampLinearSpeed(entityId: entityId, minSpeed: 2, maxSpeed: 5)
+        let speed = simd_length(scene.get(component: PhysicsComponents.self, for: entityId)!.velocity)
+        XCTAssertEqual(speed, 5, accuracy: 0.0001)
+    }
+
+    func testApplyLinearDamping() {
+        if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
+            physics.velocity = simd_float3(10, 0, 0)
+        }
+        applyLinearDamping(entityId: entityId, dampingFactor: 0.5, deltaTime: 1.0)
+        let speed = simd_length(scene.get(component: PhysicsComponents.self, for: entityId)!.velocity)
+        XCTAssertLessThan(speed, 10)
+    }
+
+    func testApplyLinearImpulse() {
+        let before = scene.get(component: PhysicsComponents.self, for: entityId)?.velocity ?? .zero
+        applyLinearImpulse(entityId: entityId, direction: simd_float3(1, 0, 0), magnitude: 2.0)
+        let after = scene.get(component: PhysicsComponents.self, for: entityId)?.velocity ?? .zero
+        XCTAssertGreaterThan(after.x, before.x)
     }
 
     // MARK: Linear forces with drag
