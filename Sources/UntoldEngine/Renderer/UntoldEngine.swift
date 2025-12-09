@@ -198,25 +198,27 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         calculateDeltaTime()
         traverseSceneGraph()
         handleInputCallback?()
-        AnimationSystem.shared.update(timeSinceLastUpdate)
 
-        // USC scripts (runs every frame in Play mode)
-        USCSystem.shared.update(timeSinceLastUpdate)
+        if gameMode == true {
+            AnimationSystem.shared.update(timeSinceLastUpdate)
 
-        // fixed‐timestep physics
-        physicsAccumulator += timeSinceLastUpdate
-        let maxSteps = 5
-        var steps = 0
-        while physicsAccumulator >= fixedStep, steps < maxSteps {
-            updatePhysicsSystem(deltaTime: fixedStep)
-            updateCustomSystems(deltaTime: fixedStep)
-            physicsAccumulator -= fixedStep
-            steps += 1
+            // USC scripts (runs every frame in Play mode)
+            USCSystem.shared.update(timeSinceLastUpdate)
+
+            // fixed‐timestep physics
+            physicsAccumulator += timeSinceLastUpdate
+            let maxSteps = 5
+            var steps = 0
+            while physicsAccumulator >= fixedStep, steps < maxSteps {
+                updatePhysicsSystem(deltaTime: fixedStep)
+                updateCustomSystems(deltaTime: fixedStep)
+                physicsAccumulator -= fixedStep
+                steps += 1
+            }
+
+            // user game update
+            gameUpdateCallback?(timeSinceLastUpdate)
         }
-
-        // user game update
-        gameUpdateCallback?(timeSinceLastUpdate)
-
         // render hook (platform-specific)
         render?()
 
