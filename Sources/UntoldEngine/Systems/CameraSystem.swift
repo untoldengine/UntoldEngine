@@ -22,6 +22,11 @@ public final class CameraSystem {
     }
 }
 
+public enum CameraMoveSpace {
+    case local
+    case world
+}
+
 public func findGameCamera() -> EntityID {
     for entityId in scene.getAllEntities() {
         if hasComponent(entityId: entityId, componentType: CameraComponent.self), !hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) {
@@ -76,6 +81,23 @@ public func moveCameraBy(entityId: EntityID, delU: Float, delV: Float, delN: Flo
     cameraComponent.localPosition.y += delU * cameraComponent.xAxis.y + delV * cameraComponent.yAxis.y + delN * cameraComponent.zAxis.y
     cameraComponent.localPosition.z += delU * cameraComponent.xAxis.z + delV * cameraComponent.yAxis.z + delN * cameraComponent.zAxis.z
     updateCameraViewMatrix(entityId: entityId)
+}
+
+public func cameraMoveBy(entityId: EntityID, delta: simd_float3, space: CameraMoveSpace = .local) {
+    guard scene.get(component: CameraComponent.self, for: entityId) != nil else {
+        return
+    }
+
+    switch space {
+    case .local:
+        moveCameraBy(entityId: entityId, delU: delta.x, delV: delta.y, delN: delta.z)
+    case .world:
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+            return
+        }
+        cameraComponent.localPosition += delta
+        updateCameraViewMatrix(entityId: entityId)
+    }
 }
 
 public func updateCameraViewMatrix(entityId: EntityID) {
@@ -305,4 +327,94 @@ public func rotateCamera(entityId: EntityID, pitch: Float, yaw: Float, sensitivi
 
     // Recompute view matrix to update the orientation vectors
     updateCameraViewMatrix(entityId: entityId)
+}
+
+public func cameraFollow(entityId: EntityID,
+                         targetEntity: EntityID,
+                         offset: simd_float3,
+                         smoothFactor: Float = 0.0,
+                         deltaTime: Float = 0.0)
+{
+    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+        return
+    }
+    guard let targetTransform = scene.get(component: LocalTransformComponent.self, for: targetEntity) else {
+        return
+    }
+
+    let desiredPosition = targetTransform.position + offset
+    let currentPosition = cameraComponent.localPosition
+
+    if smoothFactor > 0, deltaTime > 0 {
+        let t = min(smoothFactor * deltaTime, 1.0)
+        cameraComponent.localPosition = currentPosition + (desiredPosition - currentPosition) * t
+    } else {
+        cameraComponent.localPosition = desiredPosition
+    }
+
+    updateCameraViewMatrix(entityId: entityId)
+}
+
+public func cameraFollowLocal(entityId: EntityID,
+                              targetEntity: EntityID,
+                              localOffset: simd_float3,
+                              smoothFactor: Float = 0.0,
+                              deltaTime: Float = 0.0)
+{
+    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+        return
+    }
+    guard let targetTransform = scene.get(component: LocalTransformComponent.self, for: targetEntity) else {
+        return
+    }
+
+    // Rotate local offset by target rotation to world space
+    let rotationMatrix = transformQuaternionToMatrix3x3(q: targetTransform.rotation)
+    let rotatedOffset = rotationMatrix * localOffset
+    let desiredPosition = targetTransform.position + rotatedOffset
+    let currentPosition = cameraComponent.localPosition
+
+    if smoothFactor > 0, deltaTime > 0 {
+        let t = min(smoothFactor * deltaTime, 1.0)
+        cameraComponent.localPosition = currentPosition + (desiredPosition - currentPosition) * t
+    } else {
+        cameraComponent.localPosition = desiredPosition
+    }
+
+    updateCameraViewMatrix(entityId: entityId)
+}
+
+public func cameraOrbitTarget(entityId: EntityID,
+                              centerEntity: EntityID,
+                              radius: Float,
+                              angularSpeed: Float,
+                              deltaTime: Float,
+                              offsetY: Float = 0.0)
+{
+    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+        return
+    }
+    guard let centerTransform = scene.get(component: LocalTransformComponent.self, for: centerEntity) else {
+        return
+    }
+
+    // Compute current angle in XZ plane relative to center
+    let currentPos = cameraComponent.localPosition
+    let center = centerTransform.position + simd_float3(0, offsetY, 0)
+    let rel = currentPos - center
+    var angle = atan2(rel.z, rel.x)
+
+    // Advance angle
+    angle += angularSpeed * deltaTime
+
+    // New position on orbit
+    let newX = cos(angle) * radius
+    let newZ = sin(angle) * radius
+    cameraComponent.localPosition = simd_float3(newX, center.y, newZ) + center
+
+    // Aim at the center entity
+    cameraLookAt(entityId: entityId,
+                 eye: cameraComponent.localPosition,
+                 target: centerTransform.position,
+                 up: simd_float3(0, 1, 0))
 }

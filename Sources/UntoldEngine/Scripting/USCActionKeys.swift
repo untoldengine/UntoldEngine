@@ -23,6 +23,12 @@ public enum ScriptArgKey: String {
     case radius
     case strength
     case speed
+    case offset
+    case localOffset
+    case pitch
+    case yaw
+    case sensitivity
+    case smoothFactor
 
     case position
 
@@ -57,6 +63,11 @@ public enum ScriptActionName: String {
     case cameraMoveTo
     case cameraLookAt
     case cameraMoveWithInput
+    case cameraMoveBy
+    case cameraRotate
+    case cameraFollow
+    case cameraFollowLocal
+    case cameraOrbitTarget
 }
 
 extension [String: Value] {
