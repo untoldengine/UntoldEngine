@@ -118,19 +118,19 @@ public class USCInterpreter {
 
         case let .translateTo(entityRef, position):
             let targetEntity = resolveEntity(entityRef, context: context)
-            translateTo(entityId: targetEntity, position: position.simd)
+            translateTo(entityId: targetEntity, position: position)
             return pc + 1
 
         case let .translateBy(entityRef, position):
             let targetEntity = resolveEntity(entityRef, context: context)
-            translateBy(entityId: targetEntity, position: position.simd)
+            translateBy(entityId: targetEntity, position: position)
             return pc + 1
 
         case let .rotateTo(entityRef, degrees, axis):
             let targetEntity = resolveEntity(entityRef, context: context)
             let degreesValue = resolveValue(degrees, context: context)
             if case let .float(angle) = degreesValue {
-                rotateTo(entityId: targetEntity, angle: angle, axis: axis.simd)
+                rotateTo(entityId: targetEntity, angle: angle, axis: axis)
             }
             return pc + 1
 
@@ -138,7 +138,7 @@ public class USCInterpreter {
             let targetEntity = resolveEntity(entityRef, context: context)
             let degreesValue = resolveValue(degrees, context: context)
             if case let .float(angle) = degreesValue {
-                rotateBy(entityId: targetEntity, angle: angle, axis: axis.simd)
+                rotateBy(entityId: targetEntity, angle: angle, axis: axis)
             }
             return pc + 1
 
@@ -154,7 +154,7 @@ public class USCInterpreter {
             if case let .vec3(x, y, z) = resolvedPosition {
                 moveCameraTo(entityId: targetEntity, x, y, z)
             } else {
-                Logger.log(message: "[USC] cameraMoveTo failed: expected Vec3 position")
+                Logger.log(message: "[USC] cameraMoveTo failed: expected vec3 position")
             }
             return pc + 1
 
@@ -164,7 +164,7 @@ public class USCInterpreter {
                   let targetVec = resolveVec3(target, context: context),
                   let upVec = resolveVec3(up, context: context)
             else {
-                Logger.log(message: "[USC] cameraLookAt failed: missing eye/target/up Vec3")
+                Logger.log(message: "[USC] cameraLookAt failed: missing eye/target/up vec3")
                 return pc + 1
             }
 
@@ -429,7 +429,7 @@ public class USCInterpreter {
 
         case let .applyMoment(entityRef, force, at):
             let targetEntity = resolveEntity(entityRef, context: context)
-            applyMoment(entityId: targetEntity, force: force.simd, at: at.simd)
+            applyMoment(entityId: targetEntity, force: force, at: at)
             return pc + 1
 
         case let .clearVelocity(entityRef):

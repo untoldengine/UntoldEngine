@@ -7,6 +7,7 @@
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
+import simd
 @testable import UntoldEngine
 import XCTest
 
@@ -28,7 +29,7 @@ final class ScriptComponentSceneIntegrationTest: XCTestCase {
             instructions: [
                 .log("Initializing movement"),
                 .setVariable(name: "speed", value: .float(10.0)),
-                .translateBy(entity: "self", position: Vec3(x: 1, y: 0, z: 0)),
+                .translateBy(entity: "self", position: simd_float3(x: 1, y: 0, z: 0)),
             ],
             metadata: ScriptMetadata(
                 triggerType: .perFrame,

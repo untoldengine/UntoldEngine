@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import simd
 @testable import UntoldEngine
 import XCTest
 
@@ -276,8 +277,8 @@ final class USCScriptingMathRuntimeTests: XCTestCase {
 
     func testVec3Math_UsingOnlyScriptVariables() {
         let script = buildScript(name: "Vec3Pipeline") { s in
-            s.setVariable("v1", to: Vec3(x: 1.0, y: 2.0, z: 3.0))
-                .setVariable("v2", to: Vec3(x: -1.0, y: 0.0, z: 1.0))
+            s.setVariable("v1", to: simd_float3(1.0, 2.0, 3.0))
+                .setVariable("v2", to: simd_float3(-1.0, 0.0, 1.0))
                 // sum = v1 + v2
                 .addVec3("v1", "v2", as: "sum")
                 // len = length(sum)

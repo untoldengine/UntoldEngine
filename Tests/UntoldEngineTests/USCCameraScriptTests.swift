@@ -42,7 +42,7 @@ final class USCCameraScriptTests: XCTestCase {
         let script = buildScript(name: "cameraMoveToScript") { s in
             s.onUpdate()
                 // user-friendly variable
-                .setVariable("targetPos", to: Vec3(x: 1.0, y: 2.0, z: 3.0))
+                .setVariable("targetPos", to: simd_float3(1.0, 2.0, 3.0))
                 // invoke the engine camera instruction
                 .cameraMoveTo(.variableRef("targetPos"))
         }
@@ -75,15 +75,15 @@ final class USCCameraScriptTests: XCTestCase {
         CameraSystem.shared.activeCamera = cameraEntity
 
         // Different from default so we can see a change
-        let eye = Vec3(x: 1.0, y: 2.0, z: 3.0)
-        let target = Vec3(x: 0.0, y: 0.0, z: 0.0)
-        let up = Vec3.up
+        let eye = simd_float3(1.0, 2.0, 3.0)
+        let target = simd_float3(0.0, 0.0, 0.0)
+        let up = simd_float3.up
 
         let script = buildScript(name: "cameraLookAtScript") { s in
             s.onUpdate()
-                .cameraLookAt(eye: Vec3(x: 1.0, y: 2.0, z: 3.0),
-                              target: Vec3(x: 0.0, y: 0.0, z: 0.0),
-                              up: Vec3.up)
+                .cameraLookAt(eye: simd_float3(1.0, 2.0, 3.0),
+                              target: simd_float3(0.0, 0.0, 0.0),
+                              up: simd_float3.up)
         }
 
         let context = USCContext(entityId: cameraEntity, script: script)
@@ -178,7 +178,7 @@ final class USCCameraScriptTests: XCTestCase {
 
         let script = buildScript(name: "cameraMoveByScript") { s in
             s.onUpdate()
-                .setVariable("delta", to: Vec3(x: 1, y: 2, z: 3))
+                .setVariable("delta", to: simd_float3(1, 2, 3))
                 .cameraMoveBy(.variableRef("delta"))
         }
 
@@ -234,7 +234,7 @@ final class USCCameraScriptTests: XCTestCase {
         let script = buildScript(name: "cameraFollowScript") { s in
             s.onUpdate()
                 .setVariable("targetEntity", to: "Player")
-                .setVariable("offset", to: Vec3(x: 0, y: 2, z: -4))
+                .setVariable("offset", to: simd_float3(0, 2, -4))
                 .setVariable("smoothFactor", to: 0.0)
                 .setVariable("deltaTime", to: 0.0)
                 .cameraFollow(target: .variableRef("targetEntity"),
