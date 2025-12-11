@@ -148,6 +148,167 @@ public class USCInterpreter {
             // TODO: Implement lookAt logic
             return pc + 1
 
+        case let .cameraMoveTo(entityRef, position):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            let resolvedPosition = resolveValue(position, context: context)
+            if case let .vec3(x, y, z) = resolvedPosition {
+                moveCameraTo(entityId: targetEntity, x, y, z)
+            } else {
+                Logger.log(message: "[USC] cameraMoveTo failed: expected Vec3 position")
+            }
+            return pc + 1
+
+        case let .cameraLookAt(entityRef, eye, target, up):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let eyeVec = resolveVec3(eye, context: context),
+                  let targetVec = resolveVec3(target, context: context),
+                  let upVec = resolveVec3(up, context: context)
+            else {
+                Logger.log(message: "[USC] cameraLookAt failed: missing eye/target/up Vec3")
+                return pc + 1
+            }
+
+            cameraLookAt(entityId: targetEntity,
+                         eye: eyeVec,
+                         target: targetVec,
+                         up: upVec)
+            return pc + 1
+
+        case let .cameraMoveWithInput(entityRef,
+                                      speed,
+                                      deltaTime,
+                                      inputW,
+                                      inputA,
+                                      inputS,
+                                      inputD,
+                                      inputQ,
+                                      inputE):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let speedVal = resolveFloat(speed, context: context),
+                  let dtVal = resolveFloat(deltaTime, context: context)
+            else {
+                Logger.log(message: "[USC] cameraMoveWithInput failed: missing speed/deltaTime")
+                return pc + 1
+            }
+
+            func boolValue(_ v: Value) -> Bool {
+                if case let .bool(b) = resolveValue(v, context: context) { return b }
+                return false
+            }
+
+            let input = (
+                w: boolValue(inputW),
+                a: boolValue(inputA),
+                s: boolValue(inputS),
+                d: boolValue(inputD),
+                q: boolValue(inputQ),
+                e: boolValue(inputE)
+            )
+
+            moveCameraWithInput(entityId: targetEntity,
+                                input: input,
+                                speed: speedVal,
+                                deltaTime: dtVal)
+            return pc + 1
+
+        case let .cameraMoveBy(entityRef, offset):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let delta = resolveVec3(offset, context: context) else {
+                Logger.log(message: "[USC] cameraMoveBy failed: missing offset vec3")
+                return pc + 1
+            }
+            cameraMoveBy(entityId: targetEntity, delta: delta, space: .world)
+            return pc + 1
+
+        case let .cameraRotate(entityRef, pitch, yaw, sensitivity):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let pitchVal = resolveFloat(pitch, context: context),
+                  let yawVal = resolveFloat(yaw, context: context)
+            else {
+                Logger.log(message: "[USC] cameraRotate failed: missing pitch/yaw")
+                return pc + 1
+            }
+            let sensVal = resolveFloatOptional(sensitivity, context: context) ?? 1.0
+            rotateCamera(entityId: targetEntity,
+                         pitch: pitchVal,
+                         yaw: yawVal,
+                         sensitivity: sensVal)
+            return pc + 1
+
+        case let .cameraFollow(entityRef, targetEntityValue, offset, smoothFactor, deltaTime):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let targetName = resolveString(targetEntityValue, context: context),
+                  let offsetVec = resolveVec3(offset, context: context)
+            else {
+                Logger.log(message: "[USC] cameraFollow failed: missing targetEntity/offset")
+                return pc + 1
+            }
+
+            guard let followTarget = findEntity(name: targetName) else {
+                Logger.log(message: "[USC] cameraFollow failed: entity '\(targetName)' not found")
+                return pc + 1
+            }
+
+            let smooth = resolveFloatOptional(smoothFactor, context: context) ?? 0.0
+            let dt = resolveFloatOptional(deltaTime, context: context) ?? 0.0
+
+            cameraFollow(entityId: targetEntity,
+                         targetEntity: followTarget,
+                         offset: offsetVec,
+                         smoothFactor: smooth,
+                         deltaTime: dt)
+            return pc + 1
+
+        case let .cameraFollowLocal(entityRef, targetEntityValue, localOffset, smoothFactor, deltaTime):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let targetName = resolveString(targetEntityValue, context: context),
+                  let offsetVec = resolveVec3(localOffset, context: context)
+            else {
+                Logger.log(message: "[USC] cameraFollowLocal failed: missing targetEntity/localOffset")
+                return pc + 1
+            }
+
+            guard let followTarget = findEntity(name: targetName) else {
+                Logger.log(message: "[USC] cameraFollowLocal failed: entity '\(targetName)' not found")
+                return pc + 1
+            }
+
+            let smooth = resolveFloatOptional(smoothFactor, context: context) ?? 0.0
+            let dt = resolveFloatOptional(deltaTime, context: context) ?? 0.0
+
+            cameraFollowLocal(entityId: targetEntity,
+                              targetEntity: followTarget,
+                              localOffset: offsetVec,
+                              smoothFactor: smooth,
+                              deltaTime: dt)
+            return pc + 1
+
+        case let .cameraOrbitTarget(entityRef, targetEntityValue, radius, speed, deltaTime, offsetY):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let targetName = resolveString(targetEntityValue, context: context),
+                  let radiusVal = resolveFloat(radius, context: context),
+                  let speedVal = resolveFloat(speed, context: context),
+                  let dtVal = resolveFloat(deltaTime, context: context)
+            else {
+                Logger.log(message: "[USC] cameraOrbitTarget failed: missing targetEntity/radius/speed/deltaTime")
+                return pc + 1
+            }
+
+            guard let centerEntity = findEntity(name: targetName) else {
+                Logger.log(message: "[USC] cameraOrbitTarget failed: entity '\(targetName)' not found")
+                return pc + 1
+            }
+
+            let offsetYVal = resolveFloatOptional(offsetY, context: context) ?? 0.0
+
+            cameraOrbitTarget(entityId: targetEntity,
+                              centerEntity: centerEntity,
+                              radius: radiusVal,
+                              angularSpeed: speedVal,
+                              deltaTime: dtVal,
+                              offsetY: offsetYVal)
+            return pc + 1
+
         case let .playAnimation(entityRef, name, loop):
             let targetEntity = resolveEntity(entityRef, context: context)
             changeAnimation(entityId: targetEntity, name: name, withPause: !loop)
@@ -156,6 +317,106 @@ public class USCInterpreter {
         case let .stopAnimation(entityRef):
             let targetEntity = resolveEntity(entityRef, context: context)
             pauseAnimationComponent(entityId: targetEntity, isPaused: true)
+            return pc + 1
+
+        case let .applyLinearImpulse(entityRef, direction, magnitude):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let dir = resolveVec3(direction, context: context),
+                  let mag = resolveFloat(magnitude, context: context)
+            else {
+                Logger.log(message: "[USC] applyLinearImpulse failed: missing direction/magnitude")
+                return pc + 1
+            }
+            applyLinearImpulse(entityId: targetEntity, direction: dir, magnitude: mag)
+            return pc + 1
+
+        case let .applyWorldForce(entityRef, direction, magnitude):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let dir = resolveVec3(direction, context: context),
+                  let mag = resolveFloat(magnitude, context: context)
+            else {
+                Logger.log(message: "[USC] applyWorldForce failed: missing direction/magnitude")
+                return pc + 1
+            }
+            applyForce(entityId: targetEntity, direction: dir, magnitude: mag)
+            return pc + 1
+
+        case let .setLinearVelocity(entityRef, velocity):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let vel = resolveVec3(velocity, context: context) else {
+                Logger.log(message: "[USC] setLinearVelocity failed: missing velocity vec3")
+                return pc + 1
+            }
+            setLinearVelocity(entityId: targetEntity, velocity: vel)
+            return pc + 1
+
+        case let .addLinearVelocity(entityRef, deltaVelocity):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let vel = resolveVec3(deltaVelocity, context: context) else {
+                Logger.log(message: "[USC] addLinearVelocity failed: missing deltaVelocity vec3")
+                return pc + 1
+            }
+            addLinearVelocity(entityId: targetEntity, deltaVelocity: vel)
+            return pc + 1
+
+        case let .clampLinearSpeed(entityRef, minSpeed, maxSpeed):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let min = resolveFloat(minSpeed, context: context),
+                  let max = resolveFloat(maxSpeed, context: context)
+            else {
+                Logger.log(message: "[USC] clampLinearSpeed failed: missing minSpeed/maxSpeed")
+                return pc + 1
+            }
+            clampLinearSpeed(entityId: targetEntity, minSpeed: min, maxSpeed: max)
+            return pc + 1
+
+        case let .applyLinearDamping(entityRef, damping, deltaTime):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let dampingVal = resolveFloat(damping, context: context) else {
+                Logger.log(message: "[USC] applyLinearDamping failed: missing damping")
+                return pc + 1
+            }
+            let dt = resolveFloat(deltaTime, context: context) ?? 0.0
+            applyLinearDamping(entityId: targetEntity, dampingFactor: dampingVal, deltaTime: dt)
+            return pc + 1
+
+        case let .applyAngularImpulse(entityRef, axis, magnitude):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let axisVec = resolveVec3(axis, context: context),
+                  let mag = resolveFloat(magnitude, context: context)
+            else {
+                Logger.log(message: "[USC] applyAngularImpulse failed: missing axis/magnitude")
+                return pc + 1
+            }
+            applyAngularImpulse(entityId: targetEntity, axis: axisVec, magnitude: mag)
+            return pc + 1
+
+        case let .setAngularVelocity(entityRef, angularVelocity):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let vel = resolveVec3(angularVelocity, context: context) else {
+                Logger.log(message: "[USC] setAngularVelocity failed: missing angularVelocity vec3")
+                return pc + 1
+            }
+            setAngularVelocity(entityId: targetEntity, angularVelocity: vel)
+            return pc + 1
+
+        case let .clampAngularSpeed(entityRef, maxAngularSpeed):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let max = resolveFloat(maxAngularSpeed, context: context) else {
+                Logger.log(message: "[USC] clampAngularSpeed failed: missing maxAngularSpeed")
+                return pc + 1
+            }
+            clampAngularSpeed(entityId: targetEntity, maxAngularSpeed: max)
+            return pc + 1
+
+        case let .applyAngularDamping(entityRef, damping, deltaTime):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let dampingVal = resolveFloat(damping, context: context) else {
+                Logger.log(message: "[USC] applyAngularDamping failed: missing damping")
+                return pc + 1
+            }
+            let dt = resolveFloat(deltaTime, context: context) ?? 0.0
+            applyAngularDamping(entityId: targetEntity, dampingFactor: dampingVal, deltaTime: dt)
             return pc + 1
 
         case let .applyForce(entityRef, forceValue):
@@ -244,6 +505,187 @@ public class USCInterpreter {
         case let .log(message):
             Logger.log(message: "[USC] \(message)")
             return pc + 1
+
+        case let .seek(entityRef, targetPosition, maxSpeed, resultVar):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let targetPos = resolveVec3(targetPosition, context: context),
+                  let max = resolveFloat(maxSpeed, context: context)
+            else {
+                Logger.log(message: "[USC] seek failed: missing args")
+                return pc + 1
+            }
+            let force = seek(entityId: targetEntity, targetPosition: targetPos, maxSpeed: max)
+            if let resultVar {
+                context.variables[resultVar] = .vec3(x: force.x, y: force.y, z: force.z)
+            }
+            return pc + 1
+
+        case let .flee(entityRef, threatPosition, maxSpeed, resultVar):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let threatPos = resolveVec3(threatPosition, context: context),
+                  let max = resolveFloat(maxSpeed, context: context)
+            else {
+                Logger.log(message: "[USC] flee failed: missing args")
+                return pc + 1
+            }
+            let force = flee(entityId: targetEntity, threatPosition: threatPos, maxSpeed: max)
+            if let resultVar {
+                context.variables[resultVar] = .vec3(x: force.x, y: force.y, z: force.z)
+            }
+            return pc + 1
+
+        case let .arrive(entityRef, targetPosition, maxSpeed, slowingRadius, resultVar):
+            let targetEntity = resolveEntity(entityRef, context: context)
+            guard let targetPos = resolveVec3(targetPosition, context: context),
+                  let max = resolveFloat(maxSpeed, context: context),
+                  let slow = resolveFloat(slowingRadius, context: context)
+            else {
+                Logger.log(message: "[USC] arrive failed: missing args")
+                return pc + 1
+            }
+            let force = arrive(entityId: targetEntity,
+                               targetPosition: targetPos,
+                               maxSpeed: max,
+                               slowingRadius: slow)
+            if let resultVar {
+                context.variables[resultVar] = .vec3(x: force.x, y: force.y, z: force.z)
+            }
+            return pc + 1
+
+        case let .pursuit(entityRef, targetEntityValue, maxSpeed, resultVar):
+            let pursuer = resolveEntity(entityRef, context: context)
+            guard let targetName = resolveString(targetEntityValue, context: context),
+                  let max = resolveFloat(maxSpeed, context: context)
+            else {
+                Logger.log(message: "[USC] pursuit failed: missing args")
+                return pc + 1
+            }
+            guard let target = findEntity(name: targetName) else {
+                Logger.log(message: "[USC] pursuit failed: entity '\(targetName)' not found")
+                return pc + 1
+            }
+            let force = pursuit(entityId: pursuer, targetEntity: target, maxSpeed: max)
+            if let resultVar {
+                context.variables[resultVar] = .vec3(x: force.x, y: force.y, z: force.z)
+            }
+            return pc + 1
+
+        case let .evade(entityRef, threatEntityValue, maxSpeed, resultVar):
+            let evader = resolveEntity(entityRef, context: context)
+            guard let threatName = resolveString(threatEntityValue, context: context),
+                  let max = resolveFloat(maxSpeed, context: context)
+            else {
+                Logger.log(message: "[USC] evade failed: missing args")
+                return pc + 1
+            }
+            guard let threat = findEntity(name: threatName) else {
+                Logger.log(message: "[USC] evade failed: entity '\(threatName)' not found")
+                return pc + 1
+            }
+            let force = evade(entityId: evader, threatEntity: threat, maxSpeed: max)
+            if let resultVar {
+                context.variables[resultVar] = .vec3(x: force.x, y: force.y, z: force.z)
+            }
+            return pc + 1
+
+        case let .steerSeek(entityRef, targetPosition, maxSpeed, deltaTime, turnSpeed, weight):
+            let entity = resolveEntity(entityRef, context: context)
+            guard let targetPos = resolveVec3(targetPosition, context: context),
+                  let max = resolveFloat(maxSpeed, context: context),
+                  let dt = resolveFloat(deltaTime, context: context)
+            else {
+                Logger.log(message: "[USC] steerSeek failed: missing args")
+                return pc + 1
+            }
+            let turn = resolveFloatOptional(turnSpeed, context: context) ?? 1.0
+            let w = resolveFloatOptional(weight, context: context) ?? 1.0
+            steerSeek(entityId: entity,
+                      targetPosition: targetPos,
+                      maxSpeed: max,
+                      deltaTime: dt,
+                      turnSpeed: turn,
+                      weight: w)
+            return pc + 1
+
+        case let .steerArrive(entityRef, targetPosition, maxSpeed, slowingRadius, deltaTime, turnSpeed):
+            let entity = resolveEntity(entityRef, context: context)
+            guard let targetPos = resolveVec3(targetPosition, context: context),
+                  let max = resolveFloat(maxSpeed, context: context),
+                  let slow = resolveFloat(slowingRadius, context: context),
+                  let dt = resolveFloat(deltaTime, context: context)
+            else {
+                Logger.log(message: "[USC] steerArrive failed: missing args")
+                return pc + 1
+            }
+            let turn = resolveFloatOptional(turnSpeed, context: context) ?? 1.0
+            steerArrive(entityId: entity,
+                        targetPosition: targetPos,
+                        maxSpeed: max,
+                        slowingRadius: slow,
+                        deltaTime: dt,
+                        turnSpeed: turn)
+            return pc + 1
+
+        case let .steerFlee(entityRef, threatPosition, maxSpeed, deltaTime, turnSpeed):
+            let entity = resolveEntity(entityRef, context: context)
+            guard let threatPos = resolveVec3(threatPosition, context: context),
+                  let max = resolveFloat(maxSpeed, context: context),
+                  let dt = resolveFloat(deltaTime, context: context)
+            else {
+                Logger.log(message: "[USC] steerFlee failed: missing args")
+                return pc + 1
+            }
+            let turn = resolveFloatOptional(turnSpeed, context: context) ?? 1.0
+            steerFlee(entityId: entity,
+                      threatPosition: threatPos,
+                      maxSpeed: max,
+                      deltaTime: dt,
+                      turnSpeed: turn)
+            return pc + 1
+
+        case let .steerPursuit(entityRef, targetEntityValue, maxSpeed, deltaTime, turnSpeed):
+            let entity = resolveEntity(entityRef, context: context)
+            guard let targetName = resolveString(targetEntityValue, context: context),
+                  let max = resolveFloat(maxSpeed, context: context),
+                  let dt = resolveFloat(deltaTime, context: context)
+            else {
+                Logger.log(message: "[USC] steerPursuit failed: missing args")
+                return pc + 1
+            }
+            guard let target = findEntity(name: targetName) else {
+                Logger.log(message: "[USC] steerPursuit failed: entity '\(targetName)' not found")
+                return pc + 1
+            }
+            let turn = resolveFloatOptional(turnSpeed, context: context) ?? 1.0
+            steerPursuit(entityId: entity,
+                         targetEntity: target,
+                         maxSpeed: max,
+                         deltaTime: dt,
+                         turnSpeed: turn)
+            return pc + 1
+
+        case let .steerFollowPath(entityRef):
+            Logger.log(message: "[USC] steerFollowPath not yet implemented - requires path handling")
+            return pc + 1
+
+        case let .orbit(entityRef, centerPosition, radius, maxSpeed, deltaTime, turnSpeed):
+            let entity = resolveEntity(entityRef, context: context)
+            guard let centerPos = resolveVec3(centerPosition, context: context),
+                  let r = resolveFloat(radius, context: context),
+                  let max = resolveFloat(maxSpeed, context: context),
+                  let dt = resolveFloat(deltaTime, context: context)
+            else {
+                Logger.log(message: "[USC] orbit failed: missing args")
+                return pc + 1
+            }
+            let turn = resolveFloatOptional(turnSpeed, context: context) ?? 1.0
+            orbit(entityId: entity,
+                  centerPosition: centerPos,
+                  radius: r,
+                  maxSpeed: max,
+                  deltaTime: dt,
+                  turnSpeed: turn)
+            return pc + 1
         }
     }
 
@@ -299,6 +741,32 @@ public class USCInterpreter {
         default:
             return value
         }
+    }
+
+    private func resolveVec3(_ value: Value, context: USCContext) -> simd_float3? {
+        if case let .vec3(x, y, z) = resolveValue(value, context: context) {
+            return simd_float3(x, y, z)
+        }
+        return nil
+    }
+
+    private func resolveFloat(_ value: Value, context: USCContext) -> Float? {
+        if case let .float(f) = resolveValue(value, context: context) {
+            return f
+        }
+        return nil
+    }
+
+    private func resolveFloatOptional(_ value: Value?, context: USCContext) -> Float? {
+        guard let value else { return nil }
+        return resolveFloat(value, context: context)
+    }
+
+    private func resolveString(_ value: Value, context: USCContext) -> String? {
+        if case let .string(s) = resolveValue(value, context: context) {
+            return s
+        }
+        return nil
     }
 
     /// Evaluate condition

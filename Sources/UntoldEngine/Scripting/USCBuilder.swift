@@ -295,23 +295,6 @@ public final class USCBuilder {
         return self
     }
 
-    @discardableResult
-    public func callAction(_ action: ScriptActionName,
-                           args: [String] = [],
-                           result: String? = nil) -> USCBuilder
-    {
-        callAction(action.rawValue, args: args, result: result)
-    }
-
-    @discardableResult
-    public func callAction(_ action: ScriptActionName,
-                           args: [ScriptArgKey],
-                           result: String? = nil) -> USCBuilder
-    {
-        let argNames = args.map(\.rawValue)
-        return callAction(action.rawValue, args: argNames, result: result)
-    }
-
     // MARK: - INPUT
 
     @discardableResult
@@ -419,6 +402,22 @@ public final class USCBuilder {
     @discardableResult
     public func stopAnimation() -> USCBuilder {
         instructions.append(.stopAnimation(entity: "self"))
+        return self
+    }
+
+    // MARK: - Camera
+
+    // Direct camera movement without ScriptAction.
+    @discardableResult
+    public func cameraMoveTo(_ position: Vec3) -> USCBuilder {
+        instructions.append(.cameraMoveTo(entity: "self",
+                                          position: .vec3(x: position.x, y: position.y, z: position.z)))
+        return self
+    }
+
+    @discardableResult
+    public func cameraMoveTo(_ position: Value) -> USCBuilder {
+        instructions.append(.cameraMoveTo(entity: "self", position: position))
         return self
     }
 
@@ -731,16 +730,23 @@ public extension USCBuilder {
                       target: Vec3,
                       up: Vec3 = .up) -> USCBuilder
     {
-        setVariable("eye", to: eye)
-        setVariable("target", to: target)
-        setVariable("up", to: up)
+        instructions.append(.cameraLookAt(entity: "self",
+                                          eye: .vec3(x: eye.x, y: eye.y, z: eye.z),
+                                          target: .vec3(x: target.x, y: target.y, z: target.z),
+                                          up: .vec3(x: up.x, y: up.y, z: up.z)))
+        return self
+    }
 
-        setVariable(ScriptArgKey.eye.rawValue, fromVariable: "eye")
-        setVariable(ScriptArgKey.target.rawValue, fromVariable: "target")
-        setVariable(ScriptArgKey.up.rawValue, fromVariable: "up")
-
-        return callAction(.cameraLookAt,
-                          args: [.eye, .target, .up])
+    @discardableResult
+    func cameraLookAt(eye: Value,
+                      target: Value,
+                      up: Value) -> USCBuilder
+    {
+        instructions.append(.cameraLookAt(entity: "self",
+                                          eye: eye,
+                                          target: target,
+                                          up: up))
+        return self
     }
 
     @discardableResult
@@ -753,19 +759,292 @@ public extension USCBuilder {
                              qVar: String,
                              eVar: String) -> USCBuilder
     {
-        setVariable(ScriptArgKey.speed.rawValue, fromVariable: speedVar)
-        setVariable(ScriptArgKey.deltaTime.rawValue, fromVariable: deltaTimeVar)
+        instructions.append(
+            .cameraMoveWithInput(entity: "self",
+                                 speed: .variableRef(speedVar),
+                                 deltaTime: .variableRef(deltaTimeVar),
+                                 inputW: .variableRef(wVar),
+                                 inputA: .variableRef(aVar),
+                                 inputS: .variableRef(sVar),
+                                 inputD: .variableRef(dVar),
+                                 inputQ: .variableRef(qVar),
+                                 inputE: .variableRef(eVar))
+        )
+        return self
+    }
+}
 
-        setVariable(ScriptArgKey.inputW.rawValue, fromVariable: wVar)
-        setVariable(ScriptArgKey.inputA.rawValue, fromVariable: aVar)
-        setVariable(ScriptArgKey.inputS.rawValue, fromVariable: sVar)
-        setVariable(ScriptArgKey.inputD.rawValue, fromVariable: dVar)
-        setVariable(ScriptArgKey.inputQ.rawValue, fromVariable: qVar)
-        setVariable(ScriptArgKey.inputE.rawValue, fromVariable: eVar)
+// MARK: - Camera/Physics/Steering Instruction Helpers
 
-        return callAction(.cameraMoveWithInput,
-                          args: [.speed, .deltaTime,
-                                 .inputW, .inputA, .inputS,
-                                 .inputD, .inputQ, .inputE])
+public extension USCBuilder {
+    // Camera helpers
+    @discardableResult
+    func cameraMoveBy(_ offset: Vec3) -> USCBuilder {
+        instructions.append(.cameraMoveBy(entity: "self",
+                                          offset: .vec3(x: offset.x, y: offset.y, z: offset.z)))
+        return self
+    }
+
+    @discardableResult
+    func cameraMoveBy(_ offset: Value) -> USCBuilder {
+        instructions.append(.cameraMoveBy(entity: "self", offset: offset))
+        return self
+    }
+
+    @discardableResult
+    func cameraRotate(pitch: Value, yaw: Value, sensitivity: Value? = nil) -> USCBuilder {
+        instructions.append(.cameraRotate(entity: "self",
+                                          pitch: pitch,
+                                          yaw: yaw,
+                                          sensitivity: sensitivity))
+        return self
+    }
+
+    @discardableResult
+    func cameraFollow(target: Value,
+                      offset: Value,
+                      smoothFactor: Value? = nil,
+                      deltaTime: Value? = nil) -> USCBuilder
+    {
+        instructions.append(.cameraFollow(entity: "self",
+                                          targetEntity: target,
+                                          offset: offset,
+                                          smoothFactor: smoothFactor,
+                                          deltaTime: deltaTime))
+        return self
+    }
+
+    @discardableResult
+    func cameraFollowLocal(target: Value,
+                           localOffset: Value,
+                           smoothFactor: Value? = nil,
+                           deltaTime: Value? = nil) -> USCBuilder
+    {
+        instructions.append(.cameraFollowLocal(entity: "self",
+                                               targetEntity: target,
+                                               localOffset: localOffset,
+                                               smoothFactor: smoothFactor,
+                                               deltaTime: deltaTime))
+        return self
+    }
+
+    @discardableResult
+    func cameraOrbitTarget(target: Value,
+                           radius: Value,
+                           speed: Value,
+                           deltaTime: Value,
+                           offsetY: Value? = nil) -> USCBuilder
+    {
+        instructions.append(.cameraOrbitTarget(entity: "self",
+                                               targetEntity: target,
+                                               radius: radius,
+                                               speed: speed,
+                                               deltaTime: deltaTime,
+                                               offsetY: offsetY))
+        return self
+    }
+
+    // Physics helpers (instruction-based)
+    @discardableResult
+    func applyLinearImpulse(direction: Value, magnitude: Value) -> USCBuilder {
+        instructions.append(.applyLinearImpulse(entity: "self",
+                                                direction: direction,
+                                                magnitude: magnitude))
+        return self
+    }
+
+    @discardableResult
+    func applyLinearImpulse(direction: Vec3, magnitude: Float) -> USCBuilder {
+        applyLinearImpulse(direction: .vec3(x: direction.x, y: direction.y, z: direction.z),
+                           magnitude: .float(magnitude))
+    }
+
+    @discardableResult
+    func applyWorldForce(direction: Value, magnitude: Value) -> USCBuilder {
+        instructions.append(.applyWorldForce(entity: "self",
+                                             direction: direction,
+                                             magnitude: magnitude))
+        return self
+    }
+
+    @discardableResult
+    func applyWorldForce(direction: Vec3, magnitude: Float) -> USCBuilder {
+        applyWorldForce(direction: .vec3(x: direction.x, y: direction.y, z: direction.z),
+                        magnitude: .float(magnitude))
+    }
+
+    @discardableResult
+    func setLinearVelocity(_ velocity: Value) -> USCBuilder {
+        instructions.append(.setLinearVelocity(entity: "self", velocity: velocity))
+        return self
+    }
+
+    @discardableResult
+    func addLinearVelocity(_ deltaVelocity: Value) -> USCBuilder {
+        instructions.append(.addLinearVelocity(entity: "self", deltaVelocity: deltaVelocity))
+        return self
+    }
+
+    @discardableResult
+    func clampLinearSpeed(min: Value, max: Value) -> USCBuilder {
+        instructions.append(.clampLinearSpeed(entity: "self", minSpeed: min, maxSpeed: max))
+        return self
+    }
+
+    @discardableResult
+    func applyLinearDamping(damping: Value, deltaTime: Value) -> USCBuilder {
+        instructions.append(.applyLinearDamping(entity: "self",
+                                                damping: damping,
+                                                deltaTime: deltaTime))
+        return self
+    }
+
+    @discardableResult
+    func applyAngularImpulse(axis: Value, magnitude: Value) -> USCBuilder {
+        instructions.append(.applyAngularImpulse(entity: "self", axis: axis, magnitude: magnitude))
+        return self
+    }
+
+    @discardableResult
+    func setAngularVelocity(_ angularVelocity: Value) -> USCBuilder {
+        instructions.append(.setAngularVelocity(entity: "self", angularVelocity: angularVelocity))
+        return self
+    }
+
+    @discardableResult
+    func clampAngularSpeed(max: Value) -> USCBuilder {
+        instructions.append(.clampAngularSpeed(entity: "self", maxAngularSpeed: max))
+        return self
+    }
+
+    @discardableResult
+    func applyAngularDamping(damping: Value, deltaTime: Value) -> USCBuilder {
+        instructions.append(.applyAngularDamping(entity: "self",
+                                                 damping: damping,
+                                                 deltaTime: deltaTime))
+        return self
+    }
+
+    // Steering (returning Vec3 into result variable if provided)
+    @discardableResult
+    func seek(targetPosition: Value, maxSpeed: Value, result: String? = nil) -> USCBuilder {
+        instructions.append(.seek(entity: "self",
+                                  targetPosition: targetPosition,
+                                  maxSpeed: maxSpeed,
+                                  result: result))
+        return self
+    }
+
+    @discardableResult
+    func flee(threatPosition: Value, maxSpeed: Value, result: String? = nil) -> USCBuilder {
+        instructions.append(.flee(entity: "self",
+                                  threatPosition: threatPosition,
+                                  maxSpeed: maxSpeed,
+                                  result: result))
+        return self
+    }
+
+    @discardableResult
+    func arrive(targetPosition: Value, maxSpeed: Value, slowingRadius: Value, result: String? = nil) -> USCBuilder {
+        instructions.append(.arrive(entity: "self",
+                                    targetPosition: targetPosition,
+                                    maxSpeed: maxSpeed,
+                                    slowingRadius: slowingRadius,
+                                    result: result))
+        return self
+    }
+
+    @discardableResult
+    func pursuit(targetEntity: Value, maxSpeed: Value, result: String? = nil) -> USCBuilder {
+        instructions.append(.pursuit(entity: "self",
+                                     targetEntity: targetEntity,
+                                     maxSpeed: maxSpeed,
+                                     result: result))
+        return self
+    }
+
+    @discardableResult
+    func evade(threatEntity: Value, maxSpeed: Value, result: String? = nil) -> USCBuilder {
+        instructions.append(.evade(entity: "self",
+                                   threatEntity: threatEntity,
+                                   maxSpeed: maxSpeed,
+                                   result: result))
+        return self
+    }
+
+    @discardableResult
+    func steerSeek(targetPosition: Value,
+                   maxSpeed: Value,
+                   deltaTime: Value,
+                   turnSpeed: Value? = nil,
+                   weight: Value? = nil) -> USCBuilder
+    {
+        instructions.append(.steerSeek(entity: "self",
+                                       targetPosition: targetPosition,
+                                       maxSpeed: maxSpeed,
+                                       deltaTime: deltaTime,
+                                       turnSpeed: turnSpeed,
+                                       weight: weight))
+        return self
+    }
+
+    @discardableResult
+    func steerArrive(targetPosition: Value,
+                     maxSpeed: Value,
+                     slowingRadius: Value,
+                     deltaTime: Value,
+                     turnSpeed: Value? = nil) -> USCBuilder
+    {
+        instructions.append(.steerArrive(entity: "self",
+                                         targetPosition: targetPosition,
+                                         maxSpeed: maxSpeed,
+                                         slowingRadius: slowingRadius,
+                                         deltaTime: deltaTime,
+                                         turnSpeed: turnSpeed))
+        return self
+    }
+
+    @discardableResult
+    func steerFlee(threatPosition: Value,
+                   maxSpeed: Value,
+                   deltaTime: Value,
+                   turnSpeed: Value? = nil) -> USCBuilder
+    {
+        instructions.append(.steerFlee(entity: "self",
+                                       threatPosition: threatPosition,
+                                       maxSpeed: maxSpeed,
+                                       deltaTime: deltaTime,
+                                       turnSpeed: turnSpeed))
+        return self
+    }
+
+    @discardableResult
+    func steerPursuit(targetEntity: Value,
+                      maxSpeed: Value,
+                      deltaTime: Value,
+                      turnSpeed: Value? = nil) -> USCBuilder
+    {
+        instructions.append(.steerPursuit(entity: "self",
+                                          targetEntity: targetEntity,
+                                          maxSpeed: maxSpeed,
+                                          deltaTime: deltaTime,
+                                          turnSpeed: turnSpeed))
+        return self
+    }
+
+    @discardableResult
+    func orbit(centerPosition: Value,
+               radius: Value,
+               maxSpeed: Value,
+               deltaTime: Value,
+               turnSpeed: Value? = nil) -> USCBuilder
+    {
+        instructions.append(.orbit(entity: "self",
+                                   centerPosition: centerPosition,
+                                   radius: radius,
+                                   maxSpeed: maxSpeed,
+                                   deltaTime: deltaTime,
+                                   turnSpeed: turnSpeed))
+        return self
     }
 }

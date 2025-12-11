@@ -39,9 +39,9 @@ final class USCPhysicsScriptTests: XCTestCase {
         let script = buildScript(name: "applyForceAction") { s in
             s.onUpdate()
                 .setVariable("dir", to: Vec3(x: 0, y: 1, z: 0))
-                .setVariable(ScriptArgKey.magnitude.rawValue, to: 3.0)
-                .setVariable(ScriptArgKey.worldDirection.rawValue, fromVariable: "dir")
-                .callAction(.applyWorldForce, args: [.worldDirection, .magnitude])
+                .setVariable("magnitude", to: 3.0)
+                .applyWorldForce(direction: .variableRef("dir"),
+                                 magnitude: .variableRef("magnitude"))
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -58,9 +58,9 @@ final class USCPhysicsScriptTests: XCTestCase {
         let script = buildScript(name: "applyImpulse") { s in
             s.onUpdate()
                 .setVariable("dir", to: Vec3(x: 1, y: 0, z: 0))
-                .setVariable(ScriptArgKey.magnitude.rawValue, to: 2.0)
-                .setVariable(ScriptArgKey.direction.rawValue, fromVariable: "dir")
-                .callAction(.applyLinearImpulse, args: [.direction, .magnitude])
+                .setVariable("magnitude", to: 2.0)
+                .applyLinearImpulse(direction: .variableRef("dir"),
+                                    magnitude: .variableRef("magnitude"))
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -76,8 +76,8 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "setVel") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.velocity.rawValue, to: Vec3(x: 3, y: 4, z: 0))
-                .callAction(.setLinearVelocity, args: [.velocity])
+                .setVariable("velocity", to: Vec3(x: 3, y: 4, z: 0))
+                .setLinearVelocity(.variableRef("velocity"))
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -96,8 +96,8 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "addVel") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.deltaVelocity.rawValue, to: Vec3(x: 1, y: 0, z: -1))
-                .callAction(.addLinearVelocity, args: [.deltaVelocity])
+                .setVariable("deltaVelocity", to: Vec3(x: 1, y: 0, z: -1))
+                .addLinearVelocity(.variableRef("deltaVelocity"))
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -116,9 +116,10 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "clampSpeed") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.minSpeed.rawValue, to: 2.0)
-                .setVariable(ScriptArgKey.maxSpeed.rawValue, to: 5.0)
-                .callAction(.clampLinearSpeed, args: [.minSpeed, .maxSpeed])
+                .setVariable("minSpeed", to: 2.0)
+                .setVariable("maxSpeed", to: 5.0)
+                .clampLinearSpeed(min: .variableRef("minSpeed"),
+                                  max: .variableRef("maxSpeed"))
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -138,9 +139,10 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "damping") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.damping.rawValue, to: 0.5)
-                .setVariable(ScriptArgKey.deltaTime.rawValue, to: 1.0)
-                .callAction(.applyLinearDamping, args: [.damping, .deltaTime])
+                .setVariable("damping", to: 0.5)
+                .setVariable("deltaTime", to: 1.0)
+                .applyLinearDamping(damping: .variableRef("damping"),
+                                    deltaTime: .variableRef("deltaTime"))
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -157,9 +159,10 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "applyAngularImpulse") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.axis.rawValue, to: Vec3(x: 0, y: 1, z: 0))
-                .setVariable(ScriptArgKey.magnitude.rawValue, to: 2.0)
-                .callAction(.applyAngularImpulse, args: [.axis, .magnitude])
+                .setVariable("axis", to: Vec3(x: 0, y: 1, z: 0))
+                .setVariable("magnitude", to: 2.0)
+                .applyAngularImpulse(axis: .variableRef("axis"),
+                                     magnitude: .variableRef("magnitude"))
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -175,8 +178,8 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "setAngVel") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.angularVelocity.rawValue, to: Vec3(x: 0, y: 3, z: 0))
-                .callAction(.setAngularVelocity, args: [.angularVelocity])
+                .setVariable("angularVelocity", to: Vec3(x: 0, y: 3, z: 0))
+                .setAngularVelocity(.variableRef("angularVelocity"))
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -195,8 +198,8 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "clampAngSpeed") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.maxAngularSpeed.rawValue, to: 4.0)
-                .callAction(.clampAngularSpeed, args: [.maxAngularSpeed])
+                .setVariable("maxAngularSpeed", to: 4.0)
+                .clampAngularSpeed(max: .variableRef("maxAngularSpeed"))
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -216,9 +219,10 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "angDamping") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.damping.rawValue, to: 0.5)
-                .setVariable(ScriptArgKey.deltaTime.rawValue, to: 1.0)
-                .callAction(.applyAngularDamping, args: [.damping, .deltaTime])
+                .setVariable("damping", to: 0.5)
+                .setVariable("deltaTime", to: 1.0)
+                .applyAngularDamping(damping: .variableRef("damping"),
+                                     deltaTime: .variableRef("deltaTime"))
         }
 
         let ctx = USCContext(entityId: entity, script: script)
