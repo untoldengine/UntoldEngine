@@ -24,10 +24,16 @@ public enum ScriptArgKey: String {
     case strength
     case speed
     case magnitude
+    case direction
+    case worldDirection
+    case velocity
+    case deltaVelocity
     case minSpeed
     case damping
     case duration
     case maxAngularSpeed
+    case axis
+    case angularVelocity
     case offset
     case localOffset
     case pitch

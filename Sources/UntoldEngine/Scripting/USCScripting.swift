@@ -240,8 +240,8 @@ private func registerCoreGamePlayActions() {
     // Physics linear motion
     reg.register(name: ScriptActionName.applyLinearImpulse.rawValue) { context, args in
         guard
-            let dirVal = args["direction"], case let .vec3(x, y, z) = dirVal,
-            let magVal = args[ScriptArgKey.magnitude.rawValue], case let .float(mag) = magVal
+            let dirVal = args[.direction], case let .vec3(x, y, z) = dirVal,
+            let magVal = args[.magnitude], case let .float(mag) = magVal
         else {
             Logger.log(message: "[USC] applyLinearImpulse failed: missing direction/magnitude")
             return nil
@@ -252,8 +252,8 @@ private func registerCoreGamePlayActions() {
 
     reg.register(name: ScriptActionName.applyWorldForce.rawValue) { context, args in
         guard
-            let dirVal = args["worldDirection"], case let .vec3(x, y, z) = dirVal,
-            let magVal = args[ScriptArgKey.magnitude.rawValue], case let .float(mag) = magVal
+            let dirVal = args[.worldDirection], case let .vec3(x, y, z) = dirVal,
+            let magVal = args[.magnitude], case let .float(mag) = magVal
         else {
             Logger.log(message: "[USC] applyWorldForce failed: missing worldDirection/magnitude")
             return nil
@@ -265,7 +265,7 @@ private func registerCoreGamePlayActions() {
     }
 
     reg.register(name: ScriptActionName.setLinearVelocity.rawValue) { context, args in
-        guard let velVal = args["velocity"], case let .vec3(x, y, z) = velVal else {
+        guard let velVal = args[.velocity], case let .vec3(x, y, z) = velVal else {
             Logger.log(message: "[USC] setLinearVelocity failed: missing velocity vec3")
             return nil
         }
@@ -274,7 +274,7 @@ private func registerCoreGamePlayActions() {
     }
 
     reg.register(name: ScriptActionName.addLinearVelocity.rawValue) { context, args in
-        guard let velVal = args["deltaVelocity"], case let .vec3(x, y, z) = velVal else {
+        guard let velVal = args[.deltaVelocity], case let .vec3(x, y, z) = velVal else {
             Logger.log(message: "[USC] addLinearVelocity failed: missing deltaVelocity vec3")
             return nil
         }
@@ -306,8 +306,8 @@ private func registerCoreGamePlayActions() {
 
     reg.register(name: ScriptActionName.applyAngularImpulse.rawValue) { context, args in
         guard
-            let axisVal = args["axis"], case let .vec3(x, y, z) = axisVal,
-            let magVal = args[ScriptArgKey.magnitude.rawValue], case let .float(mag) = magVal
+            let axisVal = args[.axis], case let .vec3(x, y, z) = axisVal,
+            let magVal = args[.magnitude], case let .float(mag) = magVal
         else {
             Logger.log(message: "[USC] applyAngularImpulse failed: missing axis/magnitude")
             return nil
@@ -317,7 +317,7 @@ private func registerCoreGamePlayActions() {
     }
 
     reg.register(name: ScriptActionName.setAngularVelocity.rawValue) { context, args in
-        guard let velVal = args["angularVelocity"], case let .vec3(x, y, z) = velVal else {
+        guard let velVal = args[.angularVelocity], case let .vec3(x, y, z) = velVal else {
             Logger.log(message: "[USC] setAngularVelocity failed: missing angularVelocity vec3")
             return nil
         }
