@@ -15,7 +15,7 @@ import XCTest
 final class USCCameraScriptTests: XCTestCase {
     override func setUp() {
         super.setUp()
-        initScriptingSystem() // should register cameraMoveTo
+        initScriptingSystem()
     }
 
     override func tearDown() {
@@ -38,17 +38,13 @@ final class USCCameraScriptTests: XCTestCase {
         XCTAssertNotEqual(initialCam.localPosition,
                           simd_float3(1.0, 2.0, 3.0))
 
-        // 2. Build a USC script that calls cameraMoveTo
+        // 2. Build a USC script that calls cameraMoveTo instruction
         let script = buildScript(name: "cameraMoveToScript") { s in
             s.onUpdate()
                 // user-friendly variable
                 .setVariable("targetPos", to: Vec3(x: 1.0, y: 2.0, z: 3.0))
-                // map into the action arg key
-                .setVariable(ScriptArgKey.position.rawValue,
-                             fromVariable: "targetPos")
-                // invoke the engine camera action
-                .callAction(.cameraMoveTo,
-                            args: [.position])
+                // invoke the engine camera instruction
+                .cameraMoveTo(.variableRef("targetPos"))
         }
 
         // 3. Create context and interpreter
@@ -183,8 +179,7 @@ final class USCCameraScriptTests: XCTestCase {
         let script = buildScript(name: "cameraMoveByScript") { s in
             s.onUpdate()
                 .setVariable("delta", to: Vec3(x: 1, y: 2, z: 3))
-                .setVariable(ScriptArgKey.offset.rawValue, fromVariable: "delta")
-                .callAction(.cameraMoveBy, args: [.offset])
+                .cameraMoveBy(.variableRef("delta"))
         }
 
         let context = USCContext(entityId: cameraEntity, script: script)
@@ -208,10 +203,12 @@ final class USCCameraScriptTests: XCTestCase {
 
         let script = buildScript(name: "cameraRotateScript") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.pitch.rawValue, to: 0.1)
-                .setVariable(ScriptArgKey.yaw.rawValue, to: -0.1)
-                .setVariable(ScriptArgKey.sensitivity.rawValue, to: 1.0)
-                .callAction(.cameraRotate, args: [.pitch, .yaw, .sensitivity])
+                .setVariable("pitch", to: 0.1)
+                .setVariable("yaw", to: -0.1)
+                .setVariable("sensitivity", to: 1.0)
+                .cameraRotate(pitch: .variableRef("pitch"),
+                              yaw: .variableRef("yaw"),
+                              sensitivity: .variableRef("sensitivity"))
         }
 
         let context = USCContext(entityId: cameraEntity, script: script)
@@ -236,11 +233,14 @@ final class USCCameraScriptTests: XCTestCase {
 
         let script = buildScript(name: "cameraFollowScript") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.targetEntity.rawValue, to: "Player")
-                .setVariable(ScriptArgKey.offset.rawValue, to: Vec3(x: 0, y: 2, z: -4))
-                .setVariable(ScriptArgKey.smoothFactor.rawValue, to: 0.0)
-                .setVariable(ScriptArgKey.deltaTime.rawValue, to: 0.0)
-                .callAction(.cameraFollow, args: [.targetEntity, .offset, .smoothFactor, .deltaTime])
+                .setVariable("targetEntity", to: "Player")
+                .setVariable("offset", to: Vec3(x: 0, y: 2, z: -4))
+                .setVariable("smoothFactor", to: 0.0)
+                .setVariable("deltaTime", to: 0.0)
+                .cameraFollow(target: .variableRef("targetEntity"),
+                              offset: .variableRef("offset"),
+                              smoothFactor: .variableRef("smoothFactor"),
+                              deltaTime: .variableRef("deltaTime"))
         }
 
         let context = USCContext(entityId: cameraEntity, script: script)

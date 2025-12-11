@@ -861,9 +861,11 @@ final class USCScriptingAPITest: XCTestCase {
     func testSeek_Scripted() {
         let script = buildScript(name: "testSeek") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.targetPosition.rawValue, to: Vec3(x: 10, y: 0, z: 0))
-                .setVariable(ScriptArgKey.maxSpeed.rawValue, to: 5.0)
-                .callAction(.seek, args: [.targetPosition, .maxSpeed], result: "force")
+                .setVariable("targetPosition", to: Vec3(x: 10, y: 0, z: 0))
+                .setVariable("maxSpeed", to: 5.0)
+                .seek(targetPosition: .variableRef("targetPosition"),
+                      maxSpeed: .variableRef("maxSpeed"),
+                      result: "force")
         }
 
         let entityId = createEntity()
@@ -892,11 +894,11 @@ final class USCScriptingAPITest: XCTestCase {
     func testFlee_Scripted() {
         let script = buildScript(name: "testFlee") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.threatPosition.rawValue, to: Vec3(x: 5, y: 0, z: 0))
-                .setVariable(ScriptArgKey.maxSpeed.rawValue, to: 5.0)
-                .callAction(.flee,
-                            args: [.threatPosition, .maxSpeed],
-                            result: "steering")
+                .setVariable("threatPosition", to: Vec3(x: 5, y: 0, z: 0))
+                .setVariable("maxSpeed", to: 5.0)
+                .flee(threatPosition: .variableRef("threatPosition"),
+                      maxSpeed: .variableRef("maxSpeed"),
+                      result: "steering")
         }
 
         let entityId = createEntity()
@@ -923,9 +925,10 @@ final class USCScriptingAPITest: XCTestCase {
     func testArrive_Scripted() {
         let script = buildScript(name: "testArrive") { s in
             s.onUpdate()
-                .callAction(.arrive,
-                            args: [.targetPosition, .maxSpeed, .slowingRadius],
-                            result: "steering")
+                .arrive(targetPosition: .variableRef("targetPosition"),
+                        maxSpeed: .variableRef("maxSpeed"),
+                        slowingRadius: .variableRef("slowingRadius"),
+                        result: "steering")
         }
 
         let entityId = createEntity()
@@ -939,12 +942,9 @@ final class USCScriptingAPITest: XCTestCase {
         let maxSpeed: Float = 5.0
 
         let context = USCContext(entityId: entityId, script: script)
-        context.variables[ScriptArgKey.targetPosition.rawValue] =
-            .vec3(x: targetPosition.x, y: targetPosition.y, z: targetPosition.z)
-        context.variables[ScriptArgKey.maxSpeed.rawValue] =
-            .float(maxSpeed)
-        context.variables[ScriptArgKey.slowingRadius.rawValue] =
-            .float(slowingRadius)
+        context.variables["targetPosition"] = .vec3(x: targetPosition.x, y: targetPosition.y, z: targetPosition.z)
+        context.variables["maxSpeed"] = .float(maxSpeed)
+        context.variables["slowingRadius"] = .float(slowingRadius)
 
         let interpreter = USCInterpreter()
 
@@ -975,9 +975,9 @@ final class USCScriptingAPITest: XCTestCase {
     func testPursuit_Scripted() {
         let script = buildScript(name: "testPursuit") { s in
             s.onUpdate()
-                .callAction(.pursuit,
-                            args: [.targetEntity, .maxSpeed],
-                            result: "steering")
+                .pursuit(targetEntity: .variableRef("targetEntity"),
+                         maxSpeed: .variableRef("maxSpeed"),
+                         result: "steering")
         }
 
         let entityId = createEntity()
@@ -999,10 +999,8 @@ final class USCScriptingAPITest: XCTestCase {
         let maxSpeed: Float = 5.0
 
         let context = USCContext(entityId: entityId, script: script)
-        context.variables[ScriptArgKey.targetEntity.rawValue] =
-            .string("Target")
-        context.variables[ScriptArgKey.maxSpeed.rawValue] =
-            .float(maxSpeed)
+        context.variables["targetEntity"] = .string("Target")
+        context.variables["maxSpeed"] = .float(maxSpeed)
 
         let interpreter = USCInterpreter()
 
@@ -1023,9 +1021,9 @@ final class USCScriptingAPITest: XCTestCase {
     func testEvade_Scripted() {
         let script = buildScript(name: "testEvade") { s in
             s.onUpdate()
-                .callAction(.evade,
-                            args: [.threatEntity, .maxSpeed],
-                            result: "steering")
+                .evade(threatEntity: .variableRef("threatEntity"),
+                       maxSpeed: .variableRef("maxSpeed"),
+                       result: "steering")
         }
 
         let entityId = createEntity()
@@ -1045,10 +1043,8 @@ final class USCScriptingAPITest: XCTestCase {
         let maxSpeed: Float = 5.0
 
         let context = USCContext(entityId: entityId, script: script)
-        context.variables[ScriptArgKey.threatEntity.rawValue] =
-            .string("Threat")
-        context.variables[ScriptArgKey.maxSpeed.rawValue] =
-            .float(maxSpeed)
+        context.variables["threatEntity"] = .string("Threat")
+        context.variables["maxSpeed"] = .float(maxSpeed)
 
         let interpreter = USCInterpreter()
 
@@ -1069,16 +1065,14 @@ final class USCScriptingAPITest: XCTestCase {
     func testOrbit_Scripted() {
         let script = buildScript(name: "testOrbit") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.centerPosition.rawValue,
-                             to: Vec3(x: 0, y: 0, z: 0))
-                .setVariable(ScriptArgKey.radius.rawValue,
-                             to: 5.0)
-                .setVariable(ScriptArgKey.maxSpeed.rawValue,
-                             to: 2.0)
-                .setVariable(ScriptArgKey.deltaTime.rawValue,
-                             to: 1.0)
-                .callAction(.orbit,
-                            args: [.centerPosition, .radius, .maxSpeed, .deltaTime])
+                .setVariable("centerPosition", to: Vec3(x: 0, y: 0, z: 0))
+                .setVariable("radius", to: 5.0)
+                .setVariable("maxSpeed", to: 2.0)
+                .setVariable("deltaTime", to: 1.0)
+                .orbit(centerPosition: .variableRef("centerPosition"),
+                       radius: .variableRef("radius"),
+                       maxSpeed: .variableRef("maxSpeed"),
+                       deltaTime: .variableRef("deltaTime"))
         }
 
         let entityId = createEntity()
@@ -1101,14 +1095,12 @@ final class USCScriptingAPITest: XCTestCase {
     func testSteerSeek_Scripted() {
         let script = buildScript(name: "testSteerSeek") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.targetPosition.rawValue,
-                             to: Vec3(x: 10, y: 0, z: 0))
-                .setVariable(ScriptArgKey.maxSpeed.rawValue,
-                             to: 5.0)
-                .setVariable(ScriptArgKey.deltaTime.rawValue,
-                             to: 0.01)
-                .callAction(.steerSeek,
-                            args: [.targetPosition, .maxSpeed, .deltaTime])
+                .setVariable("targetPosition", to: Vec3(x: 10, y: 0, z: 0))
+                .setVariable("maxSpeed", to: 5.0)
+                .setVariable("deltaTime", to: 0.01)
+                .steerSeek(targetPosition: .variableRef("targetPosition"),
+                           maxSpeed: .variableRef("maxSpeed"),
+                           deltaTime: .variableRef("deltaTime"))
         }
 
         let entityId = createEntity()
@@ -1141,16 +1133,14 @@ final class USCScriptingAPITest: XCTestCase {
     func testSteerArrive_Scripted() {
         let script = buildScript(name: "testSteerArrive") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.targetPosition.rawValue,
-                             to: Vec3(x: 10, y: 0, z: 0))
-                .setVariable(ScriptArgKey.maxSpeed.rawValue,
-                             to: 5.0)
-                .setVariable(ScriptArgKey.slowingRadius.rawValue,
-                             to: 0.2)
-                .setVariable(ScriptArgKey.deltaTime.rawValue,
-                             to: 0.01)
-                .callAction(.steerArrive,
-                            args: [.targetPosition, .maxSpeed, .slowingRadius, .deltaTime])
+                .setVariable("targetPosition", to: Vec3(x: 10, y: 0, z: 0))
+                .setVariable("maxSpeed", to: 5.0)
+                .setVariable("slowingRadius", to: 0.2)
+                .setVariable("deltaTime", to: 0.01)
+                .steerArrive(targetPosition: .variableRef("targetPosition"),
+                             maxSpeed: .variableRef("maxSpeed"),
+                             slowingRadius: .variableRef("slowingRadius"),
+                             deltaTime: .variableRef("deltaTime"))
         }
 
         let entityId = createEntity()
@@ -1183,14 +1173,12 @@ final class USCScriptingAPITest: XCTestCase {
     func testSteerFlee_Scripted() {
         let script = buildScript(name: "testSteerFlee") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.threatPosition.rawValue,
-                             to: Vec3(x: 5, y: 0, z: 0))
-                .setVariable(ScriptArgKey.maxSpeed.rawValue,
-                             to: 5.0)
-                .setVariable(ScriptArgKey.deltaTime.rawValue,
-                             to: 0.01)
-                .callAction(.steerFlee,
-                            args: [.threatPosition, .maxSpeed, .deltaTime])
+                .setVariable("threatPosition", to: Vec3(x: 5, y: 0, z: 0))
+                .setVariable("maxSpeed", to: 5.0)
+                .setVariable("deltaTime", to: 0.01)
+                .steerFlee(threatPosition: .variableRef("threatPosition"),
+                           maxSpeed: .variableRef("maxSpeed"),
+                           deltaTime: .variableRef("deltaTime"))
         }
 
         let entityId = createEntity()
@@ -1225,14 +1213,12 @@ final class USCScriptingAPITest: XCTestCase {
     func testSteerPursuit_Scripted() {
         let script = buildScript(name: "testSteerPursuit") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.targetEntity.rawValue,
-                             to: "Target")
-                .setVariable(ScriptArgKey.maxSpeed.rawValue,
-                             to: 50.0) // like your test: maxSpeed * 10
-                .setVariable(ScriptArgKey.deltaTime.rawValue,
-                             to: 0.01)
-                .callAction(.steerPursuit,
-                            args: [.targetEntity, .maxSpeed, .deltaTime])
+                .setVariable("targetEntity", to: "Target")
+                .setVariable("maxSpeed", to: 50.0) // like your test: maxSpeed * 10
+                .setVariable("deltaTime", to: 0.01)
+                .steerPursuit(targetEntity: .variableRef("targetEntity"),
+                              maxSpeed: .variableRef("maxSpeed"),
+                              deltaTime: .variableRef("deltaTime"))
         }
 
         let entityId = createEntity()
@@ -1255,14 +1241,12 @@ final class USCScriptingAPITest: XCTestCase {
         // Target moves using steerSeek each frame
         let targetScript = buildScript(name: "targetMove") { s in
             s.onUpdate()
-                .setVariable(ScriptArgKey.targetPosition.rawValue,
-                             to: Vec3(x: 20, y: 0, z: 0))
-                .setVariable(ScriptArgKey.maxSpeed.rawValue,
-                             to: 1.0)
-                .setVariable(ScriptArgKey.deltaTime.rawValue,
-                             to: 0.01)
-                .callAction(.steerSeek,
-                            args: [.targetPosition, .maxSpeed, .deltaTime])
+                .setVariable("targetPosition", to: Vec3(x: 20, y: 0, z: 0))
+                .setVariable("maxSpeed", to: 1.0)
+                .setVariable("deltaTime", to: 0.01)
+                .steerSeek(targetPosition: .variableRef("targetPosition"),
+                           maxSpeed: .variableRef("maxSpeed"),
+                           deltaTime: .variableRef("deltaTime"))
         }
         let targetCtx = USCContext(entityId: targetId, script: targetScript)
 

@@ -85,7 +85,35 @@ public enum USCInstruction: Codable {
     case playAnimation(entity: String, name: String, loop: Bool)
     case stopAnimation(entity: String)
 
+    // Camera
+    case cameraMoveTo(entity: String, position: Value)
+    case cameraLookAt(entity: String, eye: Value, target: Value, up: Value)
+    case cameraMoveWithInput(entity: String,
+                             speed: Value,
+                             deltaTime: Value,
+                             inputW: Value,
+                             inputA: Value,
+                             inputS: Value,
+                             inputD: Value,
+                             inputQ: Value,
+                             inputE: Value)
+    case cameraMoveBy(entity: String, offset: Value)
+    case cameraRotate(entity: String, pitch: Value, yaw: Value, sensitivity: Value?)
+    case cameraFollow(entity: String, targetEntity: Value, offset: Value, smoothFactor: Value?, deltaTime: Value?)
+    case cameraFollowLocal(entity: String, targetEntity: Value, localOffset: Value, smoothFactor: Value?, deltaTime: Value?)
+    case cameraOrbitTarget(entity: String, targetEntity: Value, radius: Value, speed: Value, deltaTime: Value, offsetY: Value?)
+
     // Physics
+    case applyLinearImpulse(entity: String, direction: Value, magnitude: Value)
+    case applyWorldForce(entity: String, direction: Value, magnitude: Value)
+    case setLinearVelocity(entity: String, velocity: Value)
+    case addLinearVelocity(entity: String, deltaVelocity: Value)
+    case clampLinearSpeed(entity: String, minSpeed: Value, maxSpeed: Value)
+    case applyLinearDamping(entity: String, damping: Value, deltaTime: Value)
+    case applyAngularImpulse(entity: String, axis: Value, magnitude: Value)
+    case setAngularVelocity(entity: String, angularVelocity: Value)
+    case clampAngularSpeed(entity: String, maxAngularSpeed: Value)
+    case applyAngularDamping(entity: String, damping: Value, deltaTime: Value)
     case applyForce(entity: String, force: Value) // Supports Vec3 literal or variableRef
     case applyMoment(entity: String, force: Vec3, at: Vec3)
     case clearVelocity(entity: String)
@@ -103,6 +131,21 @@ public enum USCInstruction: Codable {
 
     // Debugging
     case log(String) // Console output
+
+    // Steering behaviors (can return Vec3 into result variable)
+    case seek(entity: String, targetPosition: Value, maxSpeed: Value, result: String?)
+    case flee(entity: String, threatPosition: Value, maxSpeed: Value, result: String?)
+    case arrive(entity: String, targetPosition: Value, maxSpeed: Value, slowingRadius: Value, result: String?)
+    case pursuit(entity: String, targetEntity: Value, maxSpeed: Value, result: String?)
+    case evade(entity: String, threatEntity: Value, maxSpeed: Value, result: String?)
+
+    // Steering force application (side effects)
+    case steerSeek(entity: String, targetPosition: Value, maxSpeed: Value, deltaTime: Value, turnSpeed: Value?, weight: Value?)
+    case steerArrive(entity: String, targetPosition: Value, maxSpeed: Value, slowingRadius: Value, deltaTime: Value, turnSpeed: Value?)
+    case steerFlee(entity: String, threatPosition: Value, maxSpeed: Value, deltaTime: Value, turnSpeed: Value?)
+    case steerPursuit(entity: String, targetEntity: Value, maxSpeed: Value, deltaTime: Value, turnSpeed: Value?)
+    case steerFollowPath(entity: String) // placeholder until path data exists
+    case orbit(entity: String, centerPosition: Value, radius: Value, maxSpeed: Value, deltaTime: Value, turnSpeed: Value?)
 }
 
 // MARK: - Value Types
