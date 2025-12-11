@@ -75,10 +75,10 @@ public enum USCInstruction: Codable {
     case getKeyState(key: String, as: String) // Query key state into bool variable
 
     // Entity operations
-    case translateTo(entity: String, position: Vec3)
-    case translateBy(entity: String, position: Vec3) // Move entity
-    case rotateTo(entity: String, degrees: Value, axis: Vec3) // Rotate entity (supports float or variableRef)
-    case rotateBy(entity: String, degrees: Value, axis: Vec3) // Rotate by entity (supports float or variableRef)
+    case translateTo(entity: String, position: simd_float3)
+    case translateBy(entity: String, position: simd_float3) // Move entity
+    case rotateTo(entity: String, degrees: Value, axis: simd_float3) // Rotate entity (supports float or variableRef)
+    case rotateBy(entity: String, degrees: Value, axis: simd_float3) // Rotate by entity (supports float or variableRef)
     case lookAt(entity: String, target: String) // Orient towards target
 
     // Animation
@@ -115,7 +115,7 @@ public enum USCInstruction: Codable {
     case clampAngularSpeed(entity: String, maxAngularSpeed: Value)
     case applyAngularDamping(entity: String, damping: Value, deltaTime: Value)
     case applyForce(entity: String, force: Value) // Supports Vec3 literal or variableRef
-    case applyMoment(entity: String, force: Vec3, at: Vec3)
+    case applyMoment(entity: String, force: simd_float3, at: simd_float3)
     case clearVelocity(entity: String)
     case clearAngularVelocity(entity: String)
     case clearForces(entity: String)
@@ -231,31 +231,19 @@ public enum ExecutionMode: String, Codable {
 
 // MARK: - Vec3 Helper
 
-/// Helper for 3D vectors
-public struct Vec3: Codable {
-    public var x: Float
-    public var y: Float
-    public var z: Float
-
-    public init(x: Float, y: Float, z: Float) {
-        self.x = x
-        self.y = y
-        self.z = z
-    }
-
-    public var simd: simd_float3 {
-        simd_float3(x, y, z)
-    }
+/// Use simd_float3 as the vector type in scripts.
+public extension simd_float3 {
+    init(x: Float, y: Float, z: Float) { self.init(x, y, z) }
 
     // Common vectors
-    public static let zero = Vec3(x: 0, y: 0, z: 0)
-    public static let one = Vec3(x: 1, y: 1, z: 1)
-    public static let forward = Vec3(x: 0, y: 0, z: -1)
-    public static let backward = Vec3(x: 0, y: 0, z: 1)
-    public static let up = Vec3(x: 0, y: 1, z: 0)
-    public static let down = Vec3(x: 0, y: -1, z: 0)
-    public static let right = Vec3(x: 1, y: 0, z: 0)
-    public static let left = Vec3(x: -1, y: 0, z: 0)
+    static let zero = simd_float3(0, 0, 0)
+    static let one = simd_float3(1, 1, 1)
+    static let forward = simd_float3(0, 0, -1)
+    static let backward = simd_float3(0, 0, 1)
+    static let up = simd_float3(0, 1, 0)
+    static let down = simd_float3(0, -1, 0)
+    static let right = simd_float3(1, 0, 0)
+    static let left = simd_float3(-1, 0, 0)
 }
 
 // MARK: - Helper Functions

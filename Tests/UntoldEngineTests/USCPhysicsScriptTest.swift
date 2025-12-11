@@ -38,7 +38,7 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "applyForceAction") { s in
             s.onUpdate()
-                .setVariable("dir", to: Vec3(x: 0, y: 1, z: 0))
+                .setVariable("dir", to: simd_float3(x: 0, y: 1, z: 0))
                 .setVariable("magnitude", to: 3.0)
                 .applyWorldForce(direction: .variableRef("dir"),
                                  magnitude: .variableRef("magnitude"))
@@ -57,7 +57,7 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "applyImpulse") { s in
             s.onUpdate()
-                .setVariable("dir", to: Vec3(x: 1, y: 0, z: 0))
+                .setVariable("dir", to: simd_float3(x: 1, y: 0, z: 0))
                 .setVariable("magnitude", to: 2.0)
                 .applyLinearImpulse(direction: .variableRef("dir"),
                                     magnitude: .variableRef("magnitude"))
@@ -76,7 +76,7 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "setVel") { s in
             s.onUpdate()
-                .setVariable("velocity", to: Vec3(x: 3, y: 4, z: 0))
+                .setVariable("velocity", to: simd_float3(x: 3, y: 4, z: 0))
                 .setLinearVelocity(.variableRef("velocity"))
         }
 
@@ -96,7 +96,7 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "addVel") { s in
             s.onUpdate()
-                .setVariable("deltaVelocity", to: Vec3(x: 1, y: 0, z: -1))
+                .setVariable("deltaVelocity", to: simd_float3(x: 1, y: 0, z: -1))
                 .addLinearVelocity(.variableRef("deltaVelocity"))
         }
 
@@ -159,7 +159,7 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "applyAngularImpulse") { s in
             s.onUpdate()
-                .setVariable("axis", to: Vec3(x: 0, y: 1, z: 0))
+                .setVariable("axis", to: simd_float3(x: 0, y: 1, z: 0))
                 .setVariable("magnitude", to: 2.0)
                 .applyAngularImpulse(axis: .variableRef("axis"),
                                      magnitude: .variableRef("magnitude"))
@@ -178,7 +178,7 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "setAngVel") { s in
             s.onUpdate()
-                .setVariable("angularVelocity", to: Vec3(x: 0, y: 3, z: 0))
+                .setVariable("angularVelocity", to: simd_float3(x: 0, y: 3, z: 0))
                 .setAngularVelocity(.variableRef("angularVelocity"))
         }
 

@@ -7,6 +7,7 @@
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
+import simd
 @testable import UntoldEngine
 import XCTest
 
@@ -294,7 +295,7 @@ final class USCScriptingTests: XCTestCase {
 
     func testRotateByInstruction() {
         let builder = USCBuilder()
-        builder.rotateBy(degrees: 45.0, axis: Vec3(x: 0, y: 1, z: 0))
+        builder.rotateBy(degrees: 45.0, axis: simd_float3(x: 0, y: 1, z: 0))
 
         let script = builder.build(name: "TestScript")
 
@@ -492,31 +493,6 @@ final class USCScriptingTests: XCTestCase {
 
         // Test should pass if no crash occurs
         XCTAssertTrue(true)
-    }
-
-    // MARK: - Vec3 Helper Tests
-
-    func testVec3Constants() {
-        XCTAssertEqual(Vec3.zero.x, 0.0)
-        XCTAssertEqual(Vec3.zero.y, 0.0)
-        XCTAssertEqual(Vec3.zero.z, 0.0)
-
-        XCTAssertEqual(Vec3.up.x, 0.0)
-        XCTAssertEqual(Vec3.up.y, 1.0)
-        XCTAssertEqual(Vec3.up.z, 0.0)
-
-        XCTAssertEqual(Vec3.forward.x, 0.0)
-        XCTAssertEqual(Vec3.forward.y, 0.0)
-        XCTAssertEqual(Vec3.forward.z, -1.0)
-    }
-
-    func testVec3SimdConversion() {
-        let vec = Vec3(x: 1.0, y: 2.0, z: 3.0)
-        let simdVec = vec.simd
-
-        XCTAssertEqual(simdVec.x, 1.0)
-        XCTAssertEqual(simdVec.y, 2.0)
-        XCTAssertEqual(simdVec.z, 3.0)
     }
 
     // MARK: - Script Metadata Tests
@@ -798,7 +774,7 @@ final class USCScriptingTests: XCTestCase {
 
     func testSetVariableVec3() {
         let builder = USCBuilder()
-        builder.setVariable("direction", to: Vec3(x: 1.0, y: 0.0, z: 0.0))
+        builder.setVariable("direction", to: simd_float3(x: 1.0, y: 0.0, z: 0.0))
 
         let script = builder.build(name: "TestScript")
 
@@ -990,7 +966,7 @@ final class USCScriptingTests: XCTestCase {
 
     func testSetPropertyVec3UsingEnum() {
         let builder = USCBuilder()
-        let color = Vec3(x: 1.0, y: 0.5, z: 0.25)
+        let color = simd_float3(x: 1.0, y: 0.5, z: 0.25)
         builder.setProperty(.color, to: color)
 
         let script = builder.build(name: "EnumSetPropertyVec3Test")

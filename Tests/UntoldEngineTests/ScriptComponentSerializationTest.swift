@@ -7,6 +7,7 @@
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
+import simd
 @testable import UntoldEngine
 import XCTest
 
@@ -64,7 +65,7 @@ final class ScriptComponentSerializationTest: XCTestCase {
         let originalScript = USCScript(
             name: "DecodingTest",
             instructions: [
-                .translateBy(entity: "player", position: Vec3(x: 1, y: 0, z: 0)),
+                .translateBy(entity: "player", position: simd_float3(x: 1, y: 0, z: 0)),
                 .log("Moving player"),
             ],
             metadata: ScriptMetadata(

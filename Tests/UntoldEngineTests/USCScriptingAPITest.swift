@@ -58,7 +58,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testTranslateToVec3_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()
-                .translateTo(Vec3(x: 1.0, y: 2.0, z: 3.0))
+                .translateTo(simd_float3(1.0, 2.0, 3.0))
         }
 
         let entityId = createEntity()
@@ -127,7 +127,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testTranslateByVec3_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()
-                .translateBy(Vec3(x: 1.0, y: 2.0, z: 3.0))
+                .translateBy(simd_float3(x: 1.0, y: 2.0, z: 3.0))
         }
 
         let entityId = createEntity()
@@ -173,7 +173,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testRotateTo_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()
-                .rotateTo(degrees: 90.0, axis: Vec3(x: 0.0, y: 1.0, z: 0.0))
+                .rotateTo(degrees: 90.0, axis: simd_float3(x: 0.0, y: 1.0, z: 0.0))
         }
 
         let entityId = createEntity()
@@ -204,7 +204,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testRotateBy_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()
-                .rotateBy(degrees: 45.0, axis: Vec3(x: 0.0, y: 0.0, z: 1.0))
+                .rotateBy(degrees: 45.0, axis: simd_float3(x: 0.0, y: 0.0, z: 1.0))
         }
 
         let entityId = createEntity()
@@ -224,7 +224,7 @@ final class USCScriptingAPITest: XCTestCase {
                 .setVariable("angle", to: 90.0)
 
             s.onUpdate()
-                .rotateTo(degrees: .variableRef("angle"), axis: Vec3(x: 0.0, y: 1.0, z: 0.0))
+                .rotateTo(degrees: .variableRef("angle"), axis: simd_float3(x: 0.0, y: 1.0, z: 0.0))
         }
 
         let entityId = createEntity()
@@ -251,7 +251,7 @@ final class USCScriptingAPITest: XCTestCase {
                 .setVariable("rotSpeed", to: 45.0)
 
             s.onUpdate()
-                .rotateBy(degrees: .variableRef("rotSpeed"), axis: Vec3(x: 0.0, y: 0.0, z: 1.0))
+                .rotateBy(degrees: .variableRef("rotSpeed"), axis: simd_float3(x: 0.0, y: 0.0, z: 1.0))
         }
 
         let entityId = createEntity()
@@ -315,7 +315,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testApplyForce_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()
-                .applyForce(force: Vec3(x: 10, y: 0, z: 0))
+                .applyForce(force: simd_float3(x: 10, y: 0, z: 0))
         }
 
         let entityId = createEntity()
@@ -336,7 +336,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testApplyForceWithVariableRef_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onStart()
-                .setVariable("upwardForce", to: Vec3(x: 0, y: 15, z: 0))
+                .setVariable("upwardForce", to: simd_float3(x: 0, y: 15, z: 0))
 
             s.onUpdate()
                 .applyForce(force: .variableRef("upwardForce"))
@@ -372,7 +372,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testApplyMoment_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()
-                .applyMoment(force: Vec3(x: 10, y: 0, z: 0), at: Vec3(x: 0, y: 1, z: 0))
+                .applyMoment(force: simd_float3(x: 10, y: 0, z: 0), at: simd_float3(x: 0, y: 1, z: 0))
         }
 
         let entityId = createEntity()
@@ -392,7 +392,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testClearVelocity_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onStart()
-                .setProperty(.velocity, to: Vec3(x: 10, y: 5, z: 3))
+                .setProperty(.velocity, to: simd_float3(x: 10, y: 5, z: 3))
 
             s.onUpdate()
                 .clearVelocity()
@@ -420,7 +420,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testClearAngularVelocity_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onStart()
-                .setProperty(.angularVelocity, to: Vec3(x: 5, y: 10, z: 2))
+                .setProperty(.angularVelocity, to: simd_float3(x: 5, y: 10, z: 2))
 
             s.onUpdate()
                 .clearAngularVelocity()
@@ -452,8 +452,8 @@ final class USCScriptingAPITest: XCTestCase {
     func testClearForces_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onStart()
-                .applyForce(force: Vec3(x: 10, y: 0, z: 0))
-                .applyForce(force: Vec3(x: 5, y: 5, z: 0))
+                .applyForce(force: simd_float3(x: 10, y: 0, z: 0))
+                .applyForce(force: simd_float3(x: 5, y: 5, z: 0))
 
             s.onUpdate()
                 .clearForces()
@@ -711,7 +711,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testGetVelocity_Scripted() {
         let script = buildScript(name: "test") { s in
             s.onUpdate()
-            s.setProperty(.velocity, to: Vec3(x: 5, y: 0, z: 0))
+            s.setProperty(.velocity, to: simd_float3(x: 5, y: 0, z: 0))
         }
 
         let entityId = createEntity()
@@ -732,7 +732,7 @@ final class USCScriptingAPITest: XCTestCase {
                 .setProperty(.mass, to: 2.0)
 
             s.onUpdate()
-                .applyForce(force: Vec3(x: 10, y: 0, z: 0))
+                .applyForce(force: simd_float3(x: 10, y: 0, z: 0))
         }
 
         let entityId = createEntity()
@@ -776,7 +776,7 @@ final class USCScriptingAPITest: XCTestCase {
                 .setProperty(.mass, to: 2.0)
 
             s.onUpdate()
-                .applyForce(force: Vec3(x: 10, y: 0, z: 0))
+                .applyForce(force: simd_float3(x: 10, y: 0, z: 0))
         }
 
         let entityId = createEntity()
@@ -819,7 +819,7 @@ final class USCScriptingAPITest: XCTestCase {
                 .setProperty(.mass, to: 2.0)
 
             s.onUpdate()
-                .applyForce(force: Vec3(x: 10, y: 0, z: 0))
+                .applyForce(force: simd_float3(x: 10, y: 0, z: 0))
         }
 
         let entityId = createEntity()
@@ -861,7 +861,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testSeek_Scripted() {
         let script = buildScript(name: "testSeek") { s in
             s.onUpdate()
-                .setVariable("targetPosition", to: Vec3(x: 10, y: 0, z: 0))
+                .setVariable("targetPosition", to: simd_float3(x: 10, y: 0, z: 0))
                 .setVariable("maxSpeed", to: 5.0)
                 .seek(targetPosition: .variableRef("targetPosition"),
                       maxSpeed: .variableRef("maxSpeed"),
@@ -894,7 +894,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testFlee_Scripted() {
         let script = buildScript(name: "testFlee") { s in
             s.onUpdate()
-                .setVariable("threatPosition", to: Vec3(x: 5, y: 0, z: 0))
+                .setVariable("threatPosition", to: simd_float3(x: 5, y: 0, z: 0))
                 .setVariable("maxSpeed", to: 5.0)
                 .flee(threatPosition: .variableRef("threatPosition"),
                       maxSpeed: .variableRef("maxSpeed"),
@@ -1065,7 +1065,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testOrbit_Scripted() {
         let script = buildScript(name: "testOrbit") { s in
             s.onUpdate()
-                .setVariable("centerPosition", to: Vec3(x: 0, y: 0, z: 0))
+                .setVariable("centerPosition", to: simd_float3(x: 0, y: 0, z: 0))
                 .setVariable("radius", to: 5.0)
                 .setVariable("maxSpeed", to: 2.0)
                 .setVariable("deltaTime", to: 1.0)
@@ -1095,7 +1095,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testSteerSeek_Scripted() {
         let script = buildScript(name: "testSteerSeek") { s in
             s.onUpdate()
-                .setVariable("targetPosition", to: Vec3(x: 10, y: 0, z: 0))
+                .setVariable("targetPosition", to: simd_float3(x: 10, y: 0, z: 0))
                 .setVariable("maxSpeed", to: 5.0)
                 .setVariable("deltaTime", to: 0.01)
                 .steerSeek(targetPosition: .variableRef("targetPosition"),
@@ -1133,7 +1133,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testSteerArrive_Scripted() {
         let script = buildScript(name: "testSteerArrive") { s in
             s.onUpdate()
-                .setVariable("targetPosition", to: Vec3(x: 10, y: 0, z: 0))
+                .setVariable("targetPosition", to: simd_float3(x: 10, y: 0, z: 0))
                 .setVariable("maxSpeed", to: 5.0)
                 .setVariable("slowingRadius", to: 0.2)
                 .setVariable("deltaTime", to: 0.01)
@@ -1173,7 +1173,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testSteerFlee_Scripted() {
         let script = buildScript(name: "testSteerFlee") { s in
             s.onUpdate()
-                .setVariable("threatPosition", to: Vec3(x: 5, y: 0, z: 0))
+                .setVariable("threatPosition", to: simd_float3(x: 5, y: 0, z: 0))
                 .setVariable("maxSpeed", to: 5.0)
                 .setVariable("deltaTime", to: 0.01)
                 .steerFlee(threatPosition: .variableRef("threatPosition"),
@@ -1241,7 +1241,7 @@ final class USCScriptingAPITest: XCTestCase {
         // Target moves using steerSeek each frame
         let targetScript = buildScript(name: "targetMove") { s in
             s.onUpdate()
-                .setVariable("targetPosition", to: Vec3(x: 20, y: 0, z: 0))
+                .setVariable("targetPosition", to: simd_float3(x: 20, y: 0, z: 0))
                 .setVariable("maxSpeed", to: 1.0)
                 .setVariable("deltaTime", to: 0.01)
                 .steerSeek(targetPosition: .variableRef("targetPosition"),

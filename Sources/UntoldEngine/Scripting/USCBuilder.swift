@@ -327,60 +327,48 @@ public final class USCBuilder {
 
     @discardableResult
     public func translateTo(x: Float, y: Float, z: Float) -> USCBuilder {
-        instructions.append(.translateTo(entity: "self", position: .init(x: x, y: y, z: z)))
-        return self
-    }
-
-    @discardableResult
-    public func translateTo(_ v: Vec3) -> USCBuilder {
-        instructions.append(.translateTo(entity: "self", position: v))
+        instructions.append(.translateTo(entity: "self", position: simd_float3(x, y, z)))
         return self
     }
 
     @discardableResult
     public func translateTo(_ v: simd_float3) -> USCBuilder {
-        instructions.append(.translateTo(entity: "self", position: .init(x: v.x, y: v.y, z: v.z)))
+        instructions.append(.translateTo(entity: "self", position: v))
         return self
     }
 
     @discardableResult
     public func translateBy(x: Float, y: Float, z: Float) -> USCBuilder {
-        instructions.append(.translateBy(entity: "self", position: .init(x: x, y: y, z: z)))
-        return self
-    }
-
-    @discardableResult
-    public func translateBy(_ v: Vec3) -> USCBuilder {
-        instructions.append(.translateBy(entity: "self", position: v))
+        instructions.append(.translateBy(entity: "self", position: simd_float3(x, y, z)))
         return self
     }
 
     @discardableResult
     public func translateBy(_ v: simd_float3) -> USCBuilder {
-        instructions.append(.translateBy(entity: "self", position: .init(x: v.x, y: v.y, z: v.z)))
+        instructions.append(.translateBy(entity: "self", position: v))
         return self
     }
 
     @discardableResult
-    public func rotateTo(degrees: Float, axis: Vec3) -> USCBuilder {
+    public func rotateTo(degrees: Float, axis: simd_float3) -> USCBuilder {
         instructions.append(.rotateTo(entity: "self", degrees: .float(degrees), axis: axis))
         return self
     }
 
     @discardableResult
-    public func rotateTo(degrees: Value, axis: Vec3) -> USCBuilder {
+    public func rotateTo(degrees: Value, axis: simd_float3) -> USCBuilder {
         instructions.append(.rotateTo(entity: "self", degrees: degrees, axis: axis))
         return self
     }
 
     @discardableResult
-    public func rotateBy(degrees: Float, axis: Vec3) -> USCBuilder {
+    public func rotateBy(degrees: Float, axis: simd_float3) -> USCBuilder {
         instructions.append(.rotateBy(entity: "self", degrees: .float(degrees), axis: axis))
         return self
     }
 
     @discardableResult
-    public func rotateBy(degrees: Value, axis: Vec3) -> USCBuilder {
+    public func rotateBy(degrees: Value, axis: simd_float3) -> USCBuilder {
         instructions.append(.rotateBy(entity: "self", degrees: degrees, axis: axis))
         return self
     }
@@ -409,7 +397,7 @@ public final class USCBuilder {
 
     // Direct camera movement without ScriptAction.
     @discardableResult
-    public func cameraMoveTo(_ position: Vec3) -> USCBuilder {
+    public func cameraMoveTo(_ position: simd_float3) -> USCBuilder {
         instructions.append(.cameraMoveTo(entity: "self",
                                           position: .vec3(x: position.x, y: position.y, z: position.z)))
         return self
@@ -424,7 +412,7 @@ public final class USCBuilder {
     // MARK: - Physics
 
     @discardableResult
-    public func applyForce(force: Vec3) -> USCBuilder {
+    public func applyForce(force: simd_float3) -> USCBuilder {
         instructions.append(.applyForce(entity: "self", force: .vec3(x: force.x, y: force.y, z: force.z)))
         return self
     }
@@ -436,7 +424,7 @@ public final class USCBuilder {
     }
 
     @discardableResult
-    public func applyMoment(force: Vec3, at point: Vec3) -> USCBuilder {
+    public func applyMoment(force: simd_float3, at point: simd_float3) -> USCBuilder {
         instructions.append(.applyMoment(entity: "self", force: force, at: point))
         return self
     }
@@ -549,7 +537,7 @@ public final class USCBuilder {
     }
 
     @discardableResult
-    public func setProperty(_ key: String, to value: Vec3) -> USCBuilder {
+    public func setProperty(_ key: String, to value: simd_float3) -> USCBuilder {
         instructions.append(.setProperty(entity: "self", key: key, value: .vec3(x: value.x, y: value.y, z: value.z)))
         return self
     }
@@ -612,7 +600,7 @@ public final class USCBuilder {
 
     @discardableResult
     public func setProperty(_ key: ScriptProperty,
-                            to value: Vec3) -> USCBuilder
+                            to value: simd_float3) -> USCBuilder
     {
         let keyPath = key.keyPath()
         instructions.append(.setProperty(entity: "self", key: keyPath,
@@ -662,7 +650,7 @@ public final class USCBuilder {
 
     /// Set a variable to a literal vec3 value
     @discardableResult
-    public func setVariable(_ name: String, to value: Vec3) -> USCBuilder {
+    public func setVariable(_ name: String, to value: simd_float3) -> USCBuilder {
         instructions.append(.setVariable(name: name, value: .vec3(x: value.x, y: value.y, z: value.z)))
         return self
     }
@@ -726,9 +714,9 @@ public func exportScript(name: String, to url: URL, triggerType: TriggerType = .
 
 public extension USCBuilder {
     @discardableResult
-    func cameraLookAt(eye: Vec3,
-                      target: Vec3,
-                      up: Vec3 = .up) -> USCBuilder
+    func cameraLookAt(eye: simd_float3,
+                      target: simd_float3,
+                      up: simd_float3 = .up) -> USCBuilder
     {
         instructions.append(.cameraLookAt(entity: "self",
                                           eye: .vec3(x: eye.x, y: eye.y, z: eye.z),
@@ -779,7 +767,7 @@ public extension USCBuilder {
 public extension USCBuilder {
     // Camera helpers
     @discardableResult
-    func cameraMoveBy(_ offset: Vec3) -> USCBuilder {
+    func cameraMoveBy(_ offset: simd_float3) -> USCBuilder {
         instructions.append(.cameraMoveBy(entity: "self",
                                           offset: .vec3(x: offset.x, y: offset.y, z: offset.z)))
         return self
@@ -854,7 +842,7 @@ public extension USCBuilder {
     }
 
     @discardableResult
-    func applyLinearImpulse(direction: Vec3, magnitude: Float) -> USCBuilder {
+    func applyLinearImpulse(direction: simd_float3, magnitude: Float) -> USCBuilder {
         applyLinearImpulse(direction: .vec3(x: direction.x, y: direction.y, z: direction.z),
                            magnitude: .float(magnitude))
     }
@@ -868,7 +856,7 @@ public extension USCBuilder {
     }
 
     @discardableResult
-    func applyWorldForce(direction: Vec3, magnitude: Float) -> USCBuilder {
+    func applyWorldForce(direction: simd_float3, magnitude: Float) -> USCBuilder {
         applyWorldForce(direction: .vec3(x: direction.x, y: direction.y, z: direction.z),
                         magnitude: .float(magnitude))
     }
