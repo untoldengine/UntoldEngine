@@ -40,8 +40,8 @@ final class USCPhysicsScriptTests: XCTestCase {
             s.onUpdate()
                 .setVariable("dir", to: Vec3(x: 0, y: 1, z: 0))
                 .setVariable(ScriptArgKey.magnitude.rawValue, to: 3.0)
-                .setVariable("worldDirection", fromVariable: "dir")
-                .callAction(.applyWorldForce, args: ["worldDirection", ScriptArgKey.magnitude.rawValue])
+                .setVariable(ScriptArgKey.worldDirection.rawValue, fromVariable: "dir")
+                .callAction(.applyWorldForce, args: [.worldDirection, .magnitude])
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -59,8 +59,8 @@ final class USCPhysicsScriptTests: XCTestCase {
             s.onUpdate()
                 .setVariable("dir", to: Vec3(x: 1, y: 0, z: 0))
                 .setVariable(ScriptArgKey.magnitude.rawValue, to: 2.0)
-                .setVariable("direction", fromVariable: "dir")
-                .callAction(.applyLinearImpulse, args: ["direction", ScriptArgKey.magnitude.rawValue])
+                .setVariable(ScriptArgKey.direction.rawValue, fromVariable: "dir")
+                .callAction(.applyLinearImpulse, args: [.direction, .magnitude])
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -76,8 +76,8 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "setVel") { s in
             s.onUpdate()
-                .setVariable("velocity", to: Vec3(x: 3, y: 4, z: 0))
-                .callAction(.setLinearVelocity, args: ["velocity"])
+                .setVariable(ScriptArgKey.velocity.rawValue, to: Vec3(x: 3, y: 4, z: 0))
+                .callAction(.setLinearVelocity, args: [.velocity])
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -96,8 +96,8 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "addVel") { s in
             s.onUpdate()
-                .setVariable("deltaVelocity", to: Vec3(x: 1, y: 0, z: -1))
-                .callAction(.addLinearVelocity, args: ["deltaVelocity"])
+                .setVariable(ScriptArgKey.deltaVelocity.rawValue, to: Vec3(x: 1, y: 0, z: -1))
+                .callAction(.addLinearVelocity, args: [.deltaVelocity])
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -157,9 +157,9 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "applyAngularImpulse") { s in
             s.onUpdate()
-                .setVariable("axis", to: Vec3(x: 0, y: 1, z: 0))
+                .setVariable(ScriptArgKey.axis.rawValue, to: Vec3(x: 0, y: 1, z: 0))
                 .setVariable(ScriptArgKey.magnitude.rawValue, to: 2.0)
-                .callAction(.applyAngularImpulse, args: ["axis", ScriptArgKey.magnitude.rawValue])
+                .callAction(.applyAngularImpulse, args: [.axis, .magnitude])
         }
 
         let ctx = USCContext(entityId: entity, script: script)
@@ -175,8 +175,8 @@ final class USCPhysicsScriptTests: XCTestCase {
 
         let script = buildScript(name: "setAngVel") { s in
             s.onUpdate()
-                .setVariable("angularVelocity", to: Vec3(x: 0, y: 3, z: 0))
-                .callAction(.setAngularVelocity, args: ["angularVelocity"])
+                .setVariable(ScriptArgKey.angularVelocity.rawValue, to: Vec3(x: 0, y: 3, z: 0))
+                .callAction(.setAngularVelocity, args: [.angularVelocity])
         }
 
         let ctx = USCContext(entityId: entity, script: script)
