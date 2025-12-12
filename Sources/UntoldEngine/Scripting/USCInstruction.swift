@@ -131,6 +131,7 @@ public enum USCInstruction: Codable {
 
     // Debugging
     case log(String) // Console output
+    case logValue(name: String, value: Value) // Log a value (literal or variableRef) with a label
 
     // Steering behaviors (can return Vec3 into result variable)
     case seek(entity: String, targetPosition: Value, maxSpeed: Value, result: String?)
