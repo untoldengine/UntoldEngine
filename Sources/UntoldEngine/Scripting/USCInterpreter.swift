@@ -506,6 +506,12 @@ public class USCInterpreter {
             Logger.log(message: "[USC] \(message)")
             return pc + 1
 
+        case let .logValue(name, value):
+            let resolved = resolveValue(value, context: context)
+            let contentValue = loggerContentValue(resolved)
+            Logger.log(message: "[USC] \(name): \(contentValue)")
+            return pc + 1
+
         case let .seek(entityRef, targetPosition, maxSpeed, resultVar):
             let targetEntity = resolveEntity(entityRef, context: context)
             guard let targetPos = resolveVec3(targetPosition, context: context),
@@ -740,6 +746,16 @@ public class USCInterpreter {
             return context.variables[name] ?? .float(0)
         default:
             return value
+        }
+    }
+
+    private func loggerContentValue(_ value: Value) -> String {
+        switch value {
+        case let .float(f): return "\(f)"
+        case let .vec3(x, y, z): return "vec3(\(x), \(y), \(z))"
+        case let .string(s): return "\"\(s)\""
+        case let .bool(b): return "\(b)"
+        case let .variableRef(name): return "variableRef(\(name))"
         }
     }
 

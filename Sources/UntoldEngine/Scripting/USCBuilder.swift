@@ -689,6 +689,20 @@ public final class USCBuilder {
         return self
     }
 
+    /// Log a value (literal or variableRef) with a label.
+    @discardableResult
+    public func log(_ name: String, value: Value) -> USCBuilder {
+        instructions.append(.logValue(name: name, value: value))
+        return self
+    }
+
+    /// Convenience: log the value of a variable by name.
+    @discardableResult
+    public func logVariable(_ variableName: String) -> USCBuilder {
+        instructions.append(.logValue(name: variableName, value: .variableRef(variableName)))
+        return self
+    }
+
     // MARK: - Build / Export
 
     public func build(name: String, triggerType: TriggerType = .perFrame, executionMode: ExecutionMode = .auto) -> USCScript {
