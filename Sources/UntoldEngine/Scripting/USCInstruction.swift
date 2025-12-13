@@ -48,6 +48,12 @@ public enum MathOp: Codable {
     case dotVec3(lhs: String, rhs: String) // vec dot vec -> float
     case crossVec3(lhs: String, rhs: String) // vec x vec -> vec
     case lerpVec3(from: String, to: String, t: String) // vec lerp vec with float t
+    case lerpFloat(from: String, to: String, t: String) // float lerp
+    case reflectVec3(vec: String, normal: String) // reflect vec around normal
+    case projectVec3(vec: String, onto: String) // project vec onto another vec
+    case angleBetweenVec3(lhs: String, rhs: String) // returns degrees (float)
+    case clampFloat(value: String, minVar: String?, maxVar: String?) // clamp float variable
+    case clampVec3(value: String, minVar: String?, maxVar: String?) // component-wise clamp vec3 variable
 
     // Boolean operations
     case orBool(lhs: String, rhs: String) // bool || bool

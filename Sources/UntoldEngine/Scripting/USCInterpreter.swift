@@ -1010,6 +1010,61 @@ public class USCInterpreter {
             let lerped = simd_mix(a, b, simd_make_float3(tVal, tVal, tVal))
             setVar(inst.output, .vec3(x: lerped.x, y: lerped.y, z: lerped.z))
 
+        case let .lerpFloat(from, to, t):
+            guard case let .float(a)? = getVar(from),
+                  case let .float(b)? = getVar(to),
+                  case let .float(tVal)? = getVar(t) else { return }
+            let lerped = a * (1 - tVal) + b * tVal
+            setVar(inst.output, .float(lerped))
+
+        case let .reflectVec3(vecVar, normalVar):
+            guard case let .vec3(x, y, z)? = getVar(vecVar),
+                  case let .vec3(nx, ny, nz)? = getVar(normalVar) else { return }
+            let v = simd_float3(x, y, z)
+            let n = simd_float3(nx, ny, nz)
+            let r = reflect(vector: v, normal: n)
+            setVar(inst.output, .vec3(x: r.x, y: r.y, z: r.z))
+
+        case let .projectVec3(vecVar, onto):
+            guard case let .vec3(x, y, z)? = getVar(vecVar),
+                  case let .vec3(ax, ay, az)? = getVar(onto) else { return }
+            let v = simd_float3(x, y, z)
+            let a = simd_float3(ax, ay, az)
+            let p = project(vector: v, onto: a)
+            setVar(inst.output, .vec3(x: p.x, y: p.y, z: p.z))
+
+        case let .angleBetweenVec3(lhs, rhs):
+            guard case let .vec3(ax, ay, az)? = getVar(lhs),
+                  case let .vec3(bx, by, bz)? = getVar(rhs) else { return }
+            let angle = angleBetweenDegrees(simd_float3(ax, ay, az), simd_float3(bx, by, bz))
+            setVar(inst.output, .float(angle))
+
+        case let .clampFloat(valueVar, minVar, maxVar):
+            guard case let .float(v)? = getVar(valueVar) else { return }
+            let minVal: Float? = {
+                if let minVar, case let .float(m)? = getVar(minVar) { return m }
+                return nil
+            }()
+            let maxVal: Float? = {
+                if let maxVar, case let .float(m)? = getVar(maxVar) { return m }
+                return nil
+            }()
+            let clamped = clampFloat(v, min: minVal, max: maxVal)
+            setVar(inst.output, .float(clamped))
+
+        case let .clampVec3(valueVar, minVar, maxVar):
+            guard case let .vec3(x, y, z)? = getVar(valueVar) else { return }
+            let minVec: simd_float3? = {
+                if let minVar, case let .vec3(mx, my, mz)? = getVar(minVar) { return simd_float3(mx, my, mz) }
+                return nil
+            }()
+            let maxVec: simd_float3? = {
+                if let maxVar, case let .vec3(mx, my, mz)? = getVar(maxVar) { return simd_float3(mx, my, mz) }
+                return nil
+            }()
+            let clamped = clampVec3(simd_float3(x, y, z), min: minVec, max: maxVec)
+            setVar(inst.output, .vec3(x: clamped.x, y: clamped.y, z: clamped.z))
+
         case let .orBool(lhs, rhs):
             guard case let .bool(a)? = getVar(lhs),
                   case let .bool(b)? = getVar(rhs) else { return }

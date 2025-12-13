@@ -295,4 +295,46 @@ final class MathFunctionsTests: XCTestCase {
         let right = rightDirectionVector(from: q)
         XCTAssertEqual(length(right), 1.0, accuracy: 1e-5)
     }
+
+    // MARK: - Additional vector/scalar helpers
+
+    func testReflectVector() {
+        let v = simd_float3(1, -1, 0)
+        let n = simd_float3(0, 1, 0) // reflect over Y plane
+        let r = reflect(vector: v, normal: n)
+        XCTAssertEqual(r, simd_float3(1, 1, 0))
+    }
+
+    func testProjectVector() {
+        let v = simd_float3(1, 2, 0)
+        let axis = simd_float3(0, 1, 0)
+        let p = project(vector: v, onto: axis)
+        XCTAssertEqual(p, simd_float3(0, 2, 0))
+    }
+
+    func testAngleBetweenDegrees() {
+        let a = simd_float3(1, 0, 0)
+        let b = simd_float3(0, 1, 0)
+        let angle = angleBetweenDegrees(a, b)
+        XCTAssertEqual(angle, 90, accuracy: 0.0001)
+    }
+
+    func testClampFloat() {
+        XCTAssertEqual(clampFloat(5, min: 0, max: 10), 5)
+        XCTAssertEqual(clampFloat(-5, min: 0, max: 10), 0)
+        XCTAssertEqual(clampFloat(15, min: 0, max: 10), 10)
+    }
+
+    func testClampVec3() {
+        let v = simd_float3(-1, 5, 12)
+        let minV = simd_float3(0, 0, 0)
+        let maxV = simd_float3(10, 10, 10)
+        let c = clampVec3(v, min: minV, max: maxV)
+        XCTAssertEqual(c, simd_float3(0, 5, 10))
+    }
+
+    func testLerpFloat() {
+        XCTAssertEqual(lerpFloat(start: 0, end: 10, t: 0.25), 2.5, accuracy: 0.0001)
+        XCTAssertEqual(lerpFloat(start: -10, end: 10, t: 0.5), 0, accuracy: 0.0001)
+    }
 }

@@ -50,6 +50,62 @@ public func areEqual(_ uNumber1: Float, _ uNumber2: Float, uEpsilon: Float) -> B
     abs(uNumber1 - uNumber2) <= uEpsilon * max(1.0, max(abs(uNumber1), abs(uNumber2)))
 }
 
+// MARK: - Vector Math Helpers
+
+/// Reflect a vector about a normal. Returns zero if normal is degenerate.
+public func reflect(vector: simd_float3, normal: simd_float3) -> simd_float3 {
+    let n = simd_normalize(normal)
+    let len = simd_length(n)
+    guard len > 0.0001 else { return .zero }
+    return vector - 2 * simd_dot(vector, n) * n
+}
+
+/// Project a vector onto another. Returns zero if the axis is degenerate.
+public func project(vector: simd_float3, onto axis: simd_float3) -> simd_float3 {
+    let n = simd_normalize(axis)
+    let len = simd_length(n)
+    guard len > 0.0001 else { return .zero }
+    let d = simd_dot(vector, n)
+    return d * n
+}
+
+/// Angle between two vectors in degrees (zero if either is degenerate).
+public func angleBetweenDegrees(_ a: simd_float3, _ b: simd_float3) -> Float {
+    let na = simd_normalize(a)
+    let nb = simd_normalize(b)
+    let lena = simd_length(na)
+    let lenb = simd_length(nb)
+    guard lena > 0.0001, lenb > 0.0001 else { return 0 }
+    let dot = simd_dot(na, nb)
+    let clamped = simd_clamp(dot, -1.0, 1.0)
+    return radiansToDegrees(radians: acosf(clamped))
+}
+
+/// Clamp a float with optional min/max bounds.
+public func clampFloat(_ value: Float, min minValue: Float? = nil, max maxValue: Float? = nil) -> Float {
+    var result = value
+    if let minValue { result = max(result, minValue) }
+    if let maxValue { result = min(result, maxValue) }
+    return result
+}
+
+/// Clamp a vector component-wise with optional min/max bounds.
+public func clampVec3(_ value: simd_float3, min minValue: simd_float3? = nil, max maxValue: simd_float3? = nil) -> simd_float3 {
+    var result = value
+    if let minValue {
+        result = simd.max(result, minValue)
+    }
+    if let maxValue {
+        result = simd.min(result, maxValue)
+    }
+    return result
+}
+
+/// Linear interpolation between scalars.
+public func lerpFloat(start: Float, end: Float, t: Float) -> Float {
+    start * (1 - t) + end * t
+}
+
 // Generic matrix math utility functions
 
 public func matrix4x4Identity() -> matrix_float4x4 {

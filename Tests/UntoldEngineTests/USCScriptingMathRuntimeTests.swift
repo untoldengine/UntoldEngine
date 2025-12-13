@@ -295,6 +295,129 @@ final class USCScriptingMathRuntimeTests: XCTestCase {
         XCTAssertEqual(z, -2.5, accuracy: 0.0001)
     }
 
+    func testLerpFloat_Runtime() {
+        let script = buildScript(name: "LerpFloat") { s in
+            s.lerpFloat(from: "a", to: "b", t: "t", as: "out")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["a"] = .float(0)
+        context.variables["b"] = .float(10)
+        context.variables["t"] = .float(0.3)
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        guard case let .float(out) = context.variables["out"] else {
+            return XCTFail("out should be a float")
+        }
+        XCTAssertEqual(out, 3.0, accuracy: 0.0001)
+    }
+
+    func testReflectVec3_Runtime() {
+        let script = buildScript(name: "ReflectVec3") { s in
+            s.reflectVec3("v", normal: "n", as: "reflected")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["v"] = .vec3(x: 1, y: -1, z: 0)
+        context.variables["n"] = .vec3(x: 0, y: 1, z: 0)
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        guard case let .vec3(x, y, z) = context.variables["reflected"] else {
+            return XCTFail("reflected should be a vec3")
+        }
+        XCTAssertEqual(x, 1, accuracy: 0.0001)
+        XCTAssertEqual(y, 1, accuracy: 0.0001)
+        XCTAssertEqual(z, 0, accuracy: 0.0001)
+    }
+
+    func testProjectVec3_Runtime() {
+        let script = buildScript(name: "ProjectVec3") { s in
+            s.projectVec3("v", onto: "axis", as: "proj")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["v"] = .vec3(x: 1, y: 2, z: 0)
+        context.variables["axis"] = .vec3(x: 0, y: 1, z: 0)
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        guard case let .vec3(x, y, z) = context.variables["proj"] else {
+            return XCTFail("proj should be a vec3")
+        }
+        XCTAssertEqual(x, 0, accuracy: 0.0001)
+        XCTAssertEqual(y, 2, accuracy: 0.0001)
+        XCTAssertEqual(z, 0, accuracy: 0.0001)
+    }
+
+    func testAngleBetweenVec3_Runtime() {
+        let script = buildScript(name: "AngleBetween") { s in
+            s.angleBetweenVec3("a", "b", as: "angle")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["a"] = .vec3(x: 1, y: 0, z: 0)
+        context.variables["b"] = .vec3(x: 0, y: 1, z: 0)
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        guard case let .float(angle) = context.variables["angle"] else {
+            return XCTFail("angle should be a float")
+        }
+        XCTAssertEqual(angle, 90, accuracy: 0.0001)
+    }
+
+    func testClampFloat_Runtime() {
+        let script = buildScript(name: "ClampFloat") { s in
+            s.clampFloat("value", min: "min", max: "max", as: "clamped")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["value"] = .float(12)
+        context.variables["min"] = .float(0)
+        context.variables["max"] = .float(10)
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        guard case let .float(clamped) = context.variables["clamped"] else {
+            return XCTFail("clamped should be a float")
+        }
+        XCTAssertEqual(clamped, 10, accuracy: 0.0001)
+    }
+
+    func testClampVec3_Runtime() {
+        let script = buildScript(name: "ClampVec3") { s in
+            s.clampVec3("vel", min: "minVel", max: "maxVel", as: "clamped")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["vel"] = .vec3(x: -1, y: 5, z: 12)
+        context.variables["minVel"] = .vec3(x: 0, y: 0, z: 0)
+        context.variables["maxVel"] = .vec3(x: 10, y: 10, z: 10)
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        guard case let .vec3(x, y, z) = context.variables["clamped"] else {
+            return XCTFail("clamped should be a vec3")
+        }
+        XCTAssertEqual(x, 0, accuracy: 0.0001)
+        XCTAssertEqual(y, 5, accuracy: 0.0001)
+        XCTAssertEqual(z, 10, accuracy: 0.0001)
+    }
+
     // MARK: - math grouping helper
 
     func testMathBlock_GroupsInstructionsButExecutesSame() {
