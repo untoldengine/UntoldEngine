@@ -302,6 +302,41 @@ public final class USCBuilder {
         return self
     }
 
+    @discardableResult
+    public func dotVec3(_ lhsVar: String,
+                        _ rhsVar: String,
+                        as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .dotVec3(lhs: lhsVar, rhs: rhsVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func crossVec3(_ lhsVar: String,
+                          _ rhsVar: String,
+                          as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .crossVec3(lhs: lhsVar, rhs: rhsVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    /// Linear interpolation between two vectors: (1 - t) * from + t * to
+    @discardableResult
+    public func lerpVec3(from: String,
+                         to: String,
+                         t: String,
+                         as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .lerpVec3(from: from, to: to, t: t),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
     // MARK: - Boolean Operations
 
     @discardableResult

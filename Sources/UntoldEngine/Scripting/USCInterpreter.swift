@@ -985,6 +985,29 @@ public class USCInterpreter {
                 setVar(inst.output, .vec3(x: 0, y: 0, z: 0))
             }
 
+        case let .dotVec3(lhs, rhs):
+            guard case let .vec3(ax, ay, az)? = getVar(lhs),
+                  case let .vec3(bx, by, bz)? = getVar(rhs) else { return }
+            let dot = ax * bx + ay * by + az * bz
+            setVar(inst.output, .float(dot))
+
+        case let .crossVec3(lhs, rhs):
+            guard case let .vec3(ax, ay, az)? = getVar(lhs),
+                  case let .vec3(bx, by, bz)? = getVar(rhs) else { return }
+            let a = simd_float3(ax, ay, az)
+            let b = simd_float3(bx, by, bz)
+            let c = simd_cross(a, b)
+            setVar(inst.output, .vec3(x: c.x, y: c.y, z: c.z))
+
+        case let .lerpVec3(from, to, t):
+            guard case let .vec3(ax, ay, az)? = getVar(from),
+                  case let .vec3(bx, by, bz)? = getVar(to),
+                  case let .float(tVal)? = getVar(t) else { return }
+            let a = simd_float3(ax, ay, az)
+            let b = simd_float3(bx, by, bz)
+            let lerped = simd_mix(a, b, simd_make_float3(tVal, tVal, tVal))
+            setVar(inst.output, .vec3(x: lerped.x, y: lerped.y, z: lerped.z))
+
         case let .orBool(lhs, rhs):
             guard case let .bool(a)? = getVar(lhs),
                   case let .bool(b)? = getVar(rhs) else { return }

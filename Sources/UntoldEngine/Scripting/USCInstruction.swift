@@ -45,6 +45,9 @@ public enum MathOp: Codable {
 
     case lengthVec3(vec: String) // vec -> float
     case normalizeVec3(vec: String) // vec -> vec
+    case dotVec3(lhs: String, rhs: String) // vec dot vec -> float
+    case crossVec3(lhs: String, rhs: String) // vec x vec -> vec
+    case lerpVec3(from: String, to: String, t: String) // vec lerp vec with float t
 
     // Boolean operations
     case orBool(lhs: String, rhs: String) // bool || bool

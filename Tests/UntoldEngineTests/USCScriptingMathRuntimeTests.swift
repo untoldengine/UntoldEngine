@@ -231,6 +231,70 @@ final class USCScriptingMathRuntimeTests: XCTestCase {
         XCTAssertEqual(z, 0.8, accuracy: 0.0001)
     }
 
+    func testDotVec3_Runtime() {
+        let script = buildScript(name: "DotVec3") { s in
+            s.dotVec3("a", "b", as: "dot")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["a"] = .vec3(x: 1, y: 2, z: 3)
+        context.variables["b"] = .vec3(x: 4, y: -2, z: 0.5)
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        guard case let .float(dot) = context.variables["dot"] else {
+            return XCTFail("dot should be a float")
+        }
+        // Use consistent Double literals to avoid slow type-checking
+        let expected: Double = (1.0 * 4.0) + (2.0 * -2.0) + (3.0 * 0.5)
+        XCTAssertEqual(Double(dot), expected, accuracy: 0.0001)
+    }
+
+    func testCrossVec3_Runtime() {
+        let script = buildScript(name: "CrossVec3") { s in
+            s.crossVec3("a", "b", as: "cross")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["a"] = .vec3(x: 1, y: 0, z: 0)
+        context.variables["b"] = .vec3(x: 0, y: 1, z: 0)
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        guard case let .vec3(x, y, z) = context.variables["cross"] else {
+            return XCTFail("cross should be a vec3")
+        }
+        XCTAssertEqual(x, 0, accuracy: 0.0001)
+        XCTAssertEqual(y, 0, accuracy: 0.0001)
+        XCTAssertEqual(z, 1, accuracy: 0.0001)
+    }
+
+    func testLerpVec3_Runtime() {
+        let script = buildScript(name: "LerpVec3") { s in
+            s.lerpVec3(from: "a", to: "b", t: "t", as: "lerped")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["a"] = .vec3(x: 0, y: 0, z: 0)
+        context.variables["b"] = .vec3(x: 10, y: 0, z: -10)
+        context.variables["t"] = .float(0.25)
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        guard case let .vec3(x, y, z) = context.variables["lerped"] else {
+            return XCTFail("lerped should be a vec3")
+        }
+        XCTAssertEqual(x, 2.5, accuracy: 0.0001)
+        XCTAssertEqual(y, 0, accuracy: 0.0001)
+        XCTAssertEqual(z, -2.5, accuracy: 0.0001)
+    }
+
     // MARK: - math grouping helper
 
     func testMathBlock_GroupsInstructionsButExecutesSame() {
