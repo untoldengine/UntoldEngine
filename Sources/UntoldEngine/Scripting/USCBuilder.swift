@@ -62,7 +62,7 @@ public final class USCBuilder {
     @discardableResult
     public func ifGreater(_ property: String, than value: Float, do block: (USCBuilder) -> Void) -> USCBuilder {
         instructions.append(.getProperty(entity: "self", key: property, as: property))
-        instructions.append(.ifCondition(.init(lhs: .variableRef(property), op: .greater, rhs: .float(value))))
+        instructions.append(.ifCondition(.init(left: .variableRef(property), comparison: .greater, right: .float(value))))
         let nested = USCBuilder(); block(nested); instructions.append(contentsOf: nested.instructions)
         instructions.append(.endIf)
         return self
@@ -71,7 +71,18 @@ public final class USCBuilder {
     @discardableResult
     public func ifEqual(_ property: String, to value: Float, do block: (USCBuilder) -> Void) -> USCBuilder {
         instructions.append(.getProperty(entity: "self", key: property, as: property))
-        instructions.append(.ifCondition(.init(lhs: .variableRef(property), op: .equal, rhs: .float(value))))
+        instructions.append(.ifCondition(.init(left: .variableRef(property), comparison: .equal, right: .float(value))))
+        let nested = USCBuilder(); block(nested); instructions.append(contentsOf: nested.instructions)
+        instructions.append(.endIf)
+        return self
+    }
+
+    /// Convenience bool comparison for variables/flags: use when comparing a bool variable to a literal.
+    @discardableResult
+    public func ifEqual(_ variable: String, to value: Bool, do block: (USCBuilder) -> Void) -> USCBuilder {
+        instructions.append(.ifCondition(.init(left: .variableRef(variable),
+                                               comparison: .equal,
+                                               right: .bool(value))))
         let nested = USCBuilder(); block(nested); instructions.append(contentsOf: nested.instructions)
         instructions.append(.endIf)
         return self
@@ -80,7 +91,7 @@ public final class USCBuilder {
     /// Generic conditional using explicit operands/op
     @discardableResult
     public func ifCondition(lhs: Value, _ op: CompareOp, rhs: Value, do block: (USCBuilder) -> Void) -> USCBuilder {
-        instructions.append(.ifCondition(.init(lhs: lhs, op: op, rhs: rhs)))
+        instructions.append(.ifCondition(.init(left: lhs, comparison: op, right: rhs)))
         let nested = USCBuilder(); block(nested); instructions.append(contentsOf: nested.instructions)
         instructions.append(.endIf)
         return self
@@ -97,6 +108,30 @@ public final class USCBuilder {
             block(nested)
             instructions.append(contentsOf: nested.instructions)
             instructions.append(.endIf)
+        }
+        return self
+    }
+
+    /// Else-if helper: syntactic sugar for else { ifCondition(...) { ... } }
+    @discardableResult
+    public func elseIf(lhs: Value,
+                       _ op: CompareOp,
+                       rhs: Value,
+                       do block: (USCBuilder) -> Void) -> USCBuilder
+    {
+        // Replace the trailing endIf with an else + nested if
+        if case .endIf = instructions.last {
+            instructions.removeLast()
+            instructions.append(.elseBlock)
+
+            // Nested if
+            instructions.append(.ifCondition(.init(left: lhs, comparison: op, right: rhs)))
+            let nested = USCBuilder()
+            block(nested)
+            instructions.append(contentsOf: nested.instructions)
+            instructions.append(.endIf) // close nested if
+
+            instructions.append(.endIf) // close outer if
         }
         return self
     }

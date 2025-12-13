@@ -787,14 +787,14 @@ public class USCInterpreter {
 
     /// Evaluate condition
     private func evaluateCondition(_ condition: Condition, context: USCContext) -> Bool {
-        let lhs = resolveValue(condition.lhs, context: context)
-        let rhs = resolveValue(condition.rhs, context: context)
+        let lhs = resolveValue(condition.left, context: context)
+        let rhs = resolveValue(condition.right, context: context)
 
         // Try boolean comparison first
         if case let .bool(lhsVal) = lhs,
            case let .bool(rhsVal) = rhs
         {
-            switch condition.op {
+            switch condition.comparison {
             case .equal: return lhsVal == rhsVal
             case .notEqual: return lhsVal != rhsVal
             default: return false // Other ops not valid for bool
@@ -805,7 +805,7 @@ public class USCInterpreter {
         if case let .string(lhsVal) = lhs,
            case let .string(rhsVal) = rhs
         {
-            switch condition.op {
+            switch condition.comparison {
             case .equal: return lhsVal == rhsVal
             case .notEqual: return lhsVal != rhsVal
             default: return false // Other ops not valid for string
@@ -819,7 +819,7 @@ public class USCInterpreter {
             return false
         }
 
-        switch condition.op {
+        switch condition.comparison {
         case .less: return lhsVal < rhsVal
         case .greater: return lhsVal > rhsVal
         case .equal: return abs(lhsVal - rhsVal) < 0.001
