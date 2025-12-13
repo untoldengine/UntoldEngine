@@ -1205,4 +1205,28 @@ public extension USCBuilder {
                                    turnSpeed: turnSpeed))
         return self
     }
+
+    @discardableResult
+    func steerEvade(threatEntity: Value,
+                    maxSpeed: Value,
+                    result: String? = nil) -> USCBuilder
+    {
+        instructions.append(.steerEvade(entity: "self",
+                                        threatEntity: threatEntity,
+                                        maxSpeed: maxSpeed,
+                                        result: result))
+        return self
+    }
+
+    @discardableResult
+    func alignOrientation(targetDirection: Value,
+                          deltaTime: Value,
+                          turnSpeed: Value) -> USCBuilder
+    {
+        instructions.append(.alignOrientation(entity: "self",
+                                              targetDirection: targetDirection,
+                                              deltaTime: deltaTime,
+                                              turnSpeed: turnSpeed))
+        return self
+    }
 }
