@@ -145,7 +145,9 @@ public class USCInterpreter {
         case let .lookAt(entityRef, targetRef):
             let entity = resolveEntity(entityRef, context: context)
             let target = resolveEntity(targetRef, context: context)
-            // TODO: Implement lookAt logic
+            let eye = getLocalPosition(entityId: entity)
+            let targetPos = getLocalPosition(entityId: target)
+            lookAt(entityId: entity, targetPosition: targetPos, up: simd_float3(0, 1, 0), eyePositionOverride: eye)
             return pc + 1
 
         case let .cameraMoveTo(entityRef, position):

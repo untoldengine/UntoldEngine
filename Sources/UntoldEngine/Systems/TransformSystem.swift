@@ -202,6 +202,37 @@ public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
     localTransformComponent.rotation = transformMatrix3nToQuaternion(m: n)
 }
 
+/// Orient an entity so its forward axis points at a target position.
+/// - Parameters:
+///   - entityId: entity to rotate
+///   - targetPosition: world position to face
+///   - up: world up vector (defaults to +Y)
+///   - eyePositionOverride: optional eye position if the entity position is being animated externally
+public func lookAt(entityId: EntityID,
+                   targetPosition: simd_float3,
+                   up: simd_float3 = simd_float3(0, 1, 0),
+                   eyePositionOverride: simd_float3? = nil)
+{
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+
+    let eye = eyePositionOverride ?? getPosition(entityId: entityId)
+    let forward = normalize(targetPosition - eye)
+    let right = normalize(simd_cross(up, forward))
+    let trueUp = normalize(simd_cross(forward, right))
+
+    var rotationMatrix = simd_float3x3(columns: (right, trueUp, forward))
+    // Orthonormalize with a simple Gram-Schmidt step to avoid drift
+    let r = normalize(rotationMatrix.columns.0)
+    let u = normalize(rotationMatrix.columns.1 - simd_dot(rotationMatrix.columns.1, r) * r)
+    let f = normalize(simd_cross(r, u))
+    rotationMatrix = simd_float3x3(columns: (r, u, f))
+
+    localTransformComponent.rotation = transformMatrix3nToQuaternion(m: rotationMatrix)
+}
+
 public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)

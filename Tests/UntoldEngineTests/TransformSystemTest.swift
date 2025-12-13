@@ -174,4 +174,19 @@ final class TransformSystemTests: XCTestCase {
         XCTAssertEqual(m.columns.2.y, -0.7071068, accuracy: 0.001, "component should be equal")
         XCTAssertEqual(m.columns.2.z, 0.7071068, accuracy: 0.001, "component should be equal")
     }
+
+    func testLookAtOrientsForwardTowardTarget() {
+        let entity = createEntity()
+        let target = createEntity()
+
+        translateTo(entityId: entity, position: simd_float3(0, 0, 0))
+        translateTo(entityId: target, position: simd_float3(0, 0, 1))
+
+        lookAt(entityId: entity, targetPosition: getLocalPosition(entityId: target))
+
+        let forward = getForwardAxisVector(entityId: entity)
+        XCTAssertEqual(forward.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(forward.y, 0, accuracy: 0.0001)
+        XCTAssertEqual(forward.z, 1, accuracy: 0.0001)
+    }
 }

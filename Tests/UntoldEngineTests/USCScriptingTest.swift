@@ -128,6 +128,30 @@ final class USCScriptingTests: XCTestCase {
         if case .endIf = script.instructions[4] {} else { XCTFail("Expected outer endIf") }
     }
 
+    func testLookAtInstructionOrientsEntity() {
+        // Create two entities: subject and target
+        let subject = createEntity()
+        let target = createEntity()
+
+        translateTo(entityId: subject, position: simd_float3(0, 0, 0))
+        translateTo(entityId: target, position: simd_float3(0, 0, 1))
+
+        let script = buildScript(name: "LookAtScript") { s in
+            s.onUpdate()
+                .lookAt("Target")
+        }
+
+        setEntityName(entityId: target, name: "Target")
+        let context = USCContext(entityId: subject, script: script)
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+
+        let forward = getForwardAxisVector(entityId: subject)
+        XCTAssertEqual(forward.x, 0, accuracy: 0.0001)
+        XCTAssertEqual(forward.y, 0, accuracy: 0.0001)
+        XCTAssertEqual(forward.z, 1, accuracy: 0.0001)
+    }
+
     /*
      func testLoopInstruction() {
          let builder = USCBuilder()
