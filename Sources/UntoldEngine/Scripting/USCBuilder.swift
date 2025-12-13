@@ -337,6 +337,75 @@ public final class USCBuilder {
         return self
     }
 
+    @discardableResult
+    public func lerpFloat(from: String,
+                          to: String,
+                          t: String,
+                          as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .lerpFloat(from: from, to: to, t: t),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func reflectVec3(_ vecVar: String,
+                            normal normalVar: String,
+                            as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .reflectVec3(vec: vecVar, normal: normalVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func projectVec3(_ vecVar: String,
+                            onto axisVar: String,
+                            as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .projectVec3(vec: vecVar, onto: axisVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func angleBetweenVec3(_ lhsVar: String,
+                                 _ rhsVar: String,
+                                 as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .angleBetweenVec3(lhs: lhsVar, rhs: rhsVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func clampFloat(_ valueVar: String,
+                           min minVar: String? = nil,
+                           max maxVar: String? = nil,
+                           as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .clampFloat(value: valueVar, minVar: minVar, maxVar: maxVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func clampVec3(_ valueVar: String,
+                          min minVar: String? = nil,
+                          max maxVar: String? = nil,
+                          as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .clampVec3(value: valueVar, minVar: minVar, maxVar: maxVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
     // MARK: - Boolean Operations
 
     @discardableResult
