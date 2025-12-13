@@ -164,14 +164,29 @@ public enum Value: Codable {
 
 /// Condition for if statements
 public struct Condition: Codable {
-    public var lhs: Value
-    public var op: CompareOp
-    public var rhs: Value
+    /// Left-hand side of the comparison
+    public var left: Value
+    /// Comparison operator
+    public var comparison: CompareOp
+    /// Right-hand side of the comparison
+    public var right: Value
 
+    public init(left: Value, comparison: CompareOp, right: Value) {
+        self.left = left
+        self.comparison = comparison
+        self.right = right
+    }
+
+    /// Legacy initializer kept for compatibility with existing code
+    @available(*, deprecated, message: "Use init(left:comparison:right:) for readability.")
     public init(lhs: Value, op: CompareOp, rhs: Value) {
-        self.lhs = lhs
-        self.op = op
-        self.rhs = rhs
+        self.init(left: lhs, comparison: op, right: rhs)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case left = "lhs"
+        case comparison = "op"
+        case right = "rhs"
     }
 }
 

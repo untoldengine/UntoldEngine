@@ -81,7 +81,7 @@ final class USCScriptingTests: XCTestCase {
         XCTAssertEqual(script.instructions.count, 2) // ifCondition + endIf
 
         if case let .ifCondition(condition) = script.instructions[0] {
-            XCTAssertEqual(condition.op, .greater)
+            XCTAssertEqual(condition.comparison, .greater)
         } else {
             XCTFail("Expected ifCondition instruction")
         }
@@ -103,6 +103,29 @@ final class USCScriptingTests: XCTestCase {
 
         // Should have: ifCondition, ifCondition, endIf, endIf
         XCTAssertEqual(script.instructions.count, 4)
+    }
+
+    func testElseIfAddsExpectedInstructions() {
+        let builder = USCBuilder()
+        builder.ifCondition(lhs: .float(5.0), .greater, rhs: .float(3.0)) { _ in }
+            .elseIf(lhs: .float(1.0), .equal, rhs: .float(2.0)) { _ in }
+
+        let script = builder.build(name: "ElseIfScript")
+        // Should have ifCondition, elseBlock, nested ifCondition, endIf (nested), endIf (outer)
+        XCTAssertEqual(script.instructions.count, 5)
+        if case let .ifCondition(cond) = script.instructions[0] {
+            XCTAssertEqual(cond.comparison, .greater)
+        } else {
+            XCTFail("Expected outer ifCondition")
+        }
+        if case .elseBlock = script.instructions[1] {} else { XCTFail("Expected elseBlock") }
+        if case let .ifCondition(cond) = script.instructions[2] {
+            XCTAssertEqual(cond.comparison, .equal)
+        } else {
+            XCTFail("Expected nested ifCondition")
+        }
+        if case .endIf = script.instructions[3] {} else { XCTFail("Expected nested endIf") }
+        if case .endIf = script.instructions[4] {} else { XCTFail("Expected outer endIf") }
     }
 
     /*
