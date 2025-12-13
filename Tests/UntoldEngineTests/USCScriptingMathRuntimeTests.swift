@@ -209,6 +209,58 @@ final class USCScriptingMathRuntimeTests: XCTestCase {
         XCTAssertEqual(len, 5.0, accuracy: 0.0001)
     }
 
+    // MARK: - normalizeVec3
+
+    func testNormalizeVec3_Runtime() {
+        let script = buildScript(name: "NormalizeVec3") { s in
+            s.normalizeVec3("v", as: "unit")
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["v"] = .vec3(x: 0, y: 3, z: 4) // length 5
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        guard case let .vec3(x, y, z) = context.variables["unit"] else {
+            return XCTFail("unit should be a vec3")
+        }
+        XCTAssertEqual(x, 0, accuracy: 0.0001)
+        XCTAssertEqual(y, 0.6, accuracy: 0.0001)
+        XCTAssertEqual(z, 0.8, accuracy: 0.0001)
+    }
+
+    // MARK: - math grouping helper
+
+    func testMathBlock_GroupsInstructionsButExecutesSame() {
+        let script = buildScript(name: "MathBlock") { s in
+            s.math { m in
+                m.getProperty(.velocity, as: "vel")
+                m.lengthVec3("vel", as: "speed")
+                m.ifGreater("speed", than: 10.0) { n in
+                    n.normalizeVec3("vel", as: "dir")
+                    n.scaleVec3("dir", literal: 10.0, as: "clamped")
+                    n.setProperty(.velocity, toVariable: "clamped")
+                }
+            }
+        }
+
+        let entityId = createEntity()
+        let context = USCContext(entityId: entityId, script: script)
+        context.variables["velocity"] = .vec3(x: 0, y: 0, z: 12) // length = 12
+
+        let interpreter = USCInterpreter()
+        interpreter.execute(script: script, context: context)
+
+        // Should have been clamped to length 10 along same direction
+        guard case let .vec3(x, y, z) = context.variables["velocity"] else {
+            return XCTFail("velocity should be a vec3")
+        }
+        let length = simd_length(simd_float3(x, y, z))
+        XCTAssertEqual(length, 10.0, accuracy: 0.0001)
+    }
+
     // MARK: - setVariable + addFloat / mulFloat
 
     func testAddFloat_UsingSetVariableForInputs() {

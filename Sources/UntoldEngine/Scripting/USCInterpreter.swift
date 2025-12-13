@@ -974,6 +974,17 @@ public class USCInterpreter {
             let len = sqrtf(x * x + y * y + z * z)
             setVar(inst.output, .float(len))
 
+        case let .normalizeVec3(vecVar):
+            guard case let .vec3(x, y, z)? = getVar(vecVar) else { return }
+            let v = simd_float3(x, y, z)
+            let len = simd_length(v)
+            if len > 0.0001 {
+                let n = v / len
+                setVar(inst.output, .vec3(x: n.x, y: n.y, z: n.z))
+            } else {
+                setVar(inst.output, .vec3(x: 0, y: 0, z: 0))
+            }
+
         case let .orBool(lhs, rhs):
             guard case let .bool(a)? = getVar(lhs),
                   case let .bool(b)? = getVar(rhs) else { return }

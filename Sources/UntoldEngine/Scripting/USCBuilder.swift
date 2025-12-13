@@ -97,6 +97,13 @@ public final class USCBuilder {
         return self
     }
 
+    /// Group math/transform steps for readability.
+    @discardableResult
+    public func math(_ block: (USCBuilder) -> Void) -> USCBuilder {
+        block(self)
+        return self
+    }
+
     /// Else block - must follow an if statement
     @discardableResult
     public func `else`(do block: (USCBuilder) -> Void) -> USCBuilder {
@@ -280,6 +287,16 @@ public final class USCBuilder {
                            as outputVar: String) -> USCBuilder
     {
         let inst = MathInstruction(op: .lengthVec3(vec: vecVar),
+                                   output: outputVar)
+        instructions.append(.math(inst))
+        return self
+    }
+
+    @discardableResult
+    public func normalizeVec3(_ vecVar: String,
+                              as outputVar: String) -> USCBuilder
+    {
+        let inst = MathInstruction(op: .normalizeVec3(vec: vecVar),
                                    output: outputVar)
         instructions.append(.math(inst))
         return self
