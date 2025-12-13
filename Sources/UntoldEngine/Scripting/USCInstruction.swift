@@ -157,6 +157,8 @@ public enum USCInstruction: Codable {
     case steerPursuit(entity: String, targetEntity: Value, maxSpeed: Value, deltaTime: Value, turnSpeed: Value?)
     case steerFollowPath(entity: String) // placeholder until path data exists
     case orbit(entity: String, centerPosition: Value, radius: Value, maxSpeed: Value, deltaTime: Value, turnSpeed: Value?)
+    case steerEvade(entity: String, threatEntity: Value, maxSpeed: Value, result: String?)
+    case alignOrientation(entity: String, targetDirection: Value, deltaTime: Value, turnSpeed: Value)
 }
 
 // MARK: - Value Types

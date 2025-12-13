@@ -694,6 +694,38 @@ public class USCInterpreter {
                   deltaTime: dt,
                   turnSpeed: turn)
             return pc + 1
+
+        case let .steerEvade(entityRef, threatEntityValue, maxSpeed, result):
+            let entity = resolveEntity(entityRef, context: context)
+            guard let threatName = resolveString(threatEntityValue, context: context),
+                  let max = resolveFloat(maxSpeed, context: context)
+            else {
+                Logger.log(message: "[USC] steerEvade failed: missing args")
+                return pc + 1
+            }
+            guard let threat = findEntity(name: threatName) else {
+                Logger.log(message: "[USC] steerEvade failed: threat '\(threatName)' not found")
+                return pc + 1
+            }
+            let force = evade(entityId: entity, threatEntity: threat, maxSpeed: max)
+            if let resultVar = result {
+                context.variables[resultVar] = .vec3(x: force.x, y: force.y, z: force.z)
+            } else {
+                applyForce(entityId: entity, force: force)
+            }
+            return pc + 1
+
+        case let .alignOrientation(entityRef, targetDirection, deltaTime, turnSpeed):
+            let entity = resolveEntity(entityRef, context: context)
+            guard let dir = resolveVec3(targetDirection, context: context),
+                  let dt = resolveFloat(deltaTime, context: context),
+                  let turn = resolveFloat(turnSpeed, context: context)
+            else {
+                Logger.log(message: "[USC] alignOrientation failed: missing targetDirection/deltaTime/turnSpeed")
+                return pc + 1
+            }
+            alignOrientation(entityId: entity, targetDirection: dir, deltaTime: dt, turnSpeed: turn)
+            return pc + 1
         }
     }
 

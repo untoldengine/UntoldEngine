@@ -1274,6 +1274,81 @@ final class USCScriptingAPITest: XCTestCase {
         XCTAssertEqual(distance(finalPos, finalTargetPos), 0.0, accuracy: 0.1)
     }
 
+    func testAlignOrientationInstruction() {
+        let script = buildScript(name: "AlignOrientationScript") { s in
+            s.onUpdate()
+                .alignOrientation(targetDirection: .vec3(x: 0, y: 0, z: 1),
+                                  deltaTime: .float(0.016),
+                                  turnSpeed: .float(1.0))
+        }
+
+        let entity = createEntity()
+
+        registerPhysics(entityId: entity)
+
+        // Give the entity some velocity so alignOrientation has something to use
+        if let physics = scene.get(component: PhysicsComponents.self, for: entity) {
+            physics.velocity = simd_float3(0, 0, 5)
+        }
+
+        let context = USCContext(entityId: entity, script: script)
+        let interpreter = USCInterpreter()
+
+        var t: Float = 0
+        let dt: Float = 0.01
+
+        while t < 10.0 {
+            interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+            updatePhysicsSystem(deltaTime: dt)
+            t += dt
+        }
+
+        let forward = getForwardAxisVector(entityId: entity)
+        // Should be roughly aligned to +Z (velocity direction)
+        XCTAssertEqual(forward.x, 0, accuracy: 0.01)
+        XCTAssertEqual(forward.y, 0, accuracy: 0.01)
+        XCTAssertGreaterThan(forward.z, 0)
+    }
+
+    func testSteerEvadeInstructionAppliesForce() {
+        let script = buildScript(name: "EvadeScript") { s in
+            s.onUpdate()
+                .steerEvade(threatEntity: .string("Threat"),
+                            maxSpeed: .float(5.0),
+                            result: "force")
+        }
+
+        let subject = createEntity()
+        let threat = createEntity()
+        setEntityName(entityId: threat, name: "Threat")
+
+        registerPhysics(entityId: subject)
+        registerPhysics(entityId: threat)
+
+        // Give threat some velocity so prediction makes sense
+        if let physics = scene.get(component: PhysicsComponents.self, for: threat) {
+            physics.velocity = simd_float3(1, 0, 0)
+        }
+
+        let context = USCContext(entityId: subject, script: script)
+        let interpreter = USCInterpreter()
+
+        var t: Float = 0
+        let dt: Float = 0.01
+
+        while t < 10.0 {
+            interpreter.execute(script: script, context: context, forEvent: "OnUpdate")
+            updatePhysicsSystem(deltaTime: dt)
+            t += dt
+        }
+
+        guard case let .vec3(x, _, _) = context.variables["force"] else {
+            return XCTFail("force should be a vec3")
+        }
+        // Evade should push away from the threat's predicted path; x should be negative if threat moves +X
+        XCTAssertLessThan(x, 0)
+    }
+
     func testScript_OnStart_SetsMassComponent() {
         let script = buildScript(name: "SetMassOnStart") { s in
             s.onStart()
