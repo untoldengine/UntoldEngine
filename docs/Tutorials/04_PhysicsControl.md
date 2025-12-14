@@ -30,7 +30,7 @@ A physics-controlled object that:
 Before starting, make sure you understand:
 - Basic scripting (Tutorial 1)
 - Input handling (Tutorial 2)
-- Working with Vec3 and positions (Tutorial 2-3)
+- Working with simd_float3 and positions (Tutorial 2-3)
 
 ---
 
@@ -89,7 +89,7 @@ extension GenerateScripts {
         let script = buildScript(name: "PhysicsControl") { s in
             // Initialize: Start with physics paused
             s.onStart()
-                .setVariable("upwardForce", to: Vec3(x: 0, y: 15, z: 0))
+                .setVariable("upwardForce", to: simd_float3(x: 0, y: 15, z: 0))
                 .setVariable("isGrounded", to: true)
                 .pausePhysicsComponent(isPaused: true)
                 .setGravityScale(0.0)
@@ -107,24 +107,26 @@ extension GenerateScripts {
                     n.setVariable("isGrounded", to: true)
                     
                     // Optional: Reset to ground level
-                    n.setVariable("resetPos", to: Vec3(x: 0, y: 0.0, z: 0))
+                    n.setVariable("resetPos", to: simd_float3(x: 0, y: 0.0, z: 0))
                     n.setProperty(.position, toVariable: "resetPos")
                     n.log("Grounded - Physics paused")
                 }
                 
-                // Handle W key input
-                .getKeyState("w", as: "wPressed")
-                
-                // If W is pressed and we're grounded, launch!
-                .ifCondition(lhs: .variableRef("wPressed"), .equal, rhs: .bool(true)) { n in
-                    n.ifCondition(lhs: .variableRef("isGrounded"), .equal, rhs: .bool(true)) { launch in
-                        launch.pausePhysicsComponent(isPaused: false)
-                        launch.setVariable("isGrounded", to: false)
-                        launch.log("Launching!")
+                .math { m in
+                    // Handle W key input
+                    m.getKeyState("w", as: "wPressed")
+
+                    // If W is pressed and we're grounded, launch!
+                    m.ifEqual("wPressed", to: true) { n in
+                        n.ifEqual("isGrounded", to: true) { launch in
+                            launch.pausePhysicsComponent(isPaused: false)
+                            launch.setVariable("isGrounded", to: false)
+                            launch.log("Launching!")
+                        }
+
+                        // Apply upward force while W is held
+                        n.applyForce(force: .variableRef("upwardForce"))
                     }
-                    
-                    // Apply upward force while W is held
-                    n.applyForce(force: .variableRef("upwardForce"))
                 }
 
                .ifGreater("position.y", than: 3.0){ n in 
@@ -148,7 +150,7 @@ extension GenerateScripts {
 - When paused: entity ignores gravity, forces, and collisions
 - When unpaused: physics simulation resumes normally
 
-**`applyForce(force: Vec3(...))`**
+**`applyForce(force: simd_float3(...))`**
 - Applies a force to the entity (like a rocket thrust)
 - Force is applied every frame it's called
 - Accumulates with gravity and other forces
@@ -252,7 +254,7 @@ s.onUpdate()
         n.pausePhysicsComponent(isPaused: true)
         n.clearVelocity()
         n.setVariable("isGrounded", to: true)
-        n.setVariable("resetPos", to: Vec3(x: 0, y: 0, z: 0))
+        n.setVariable("resetPos", to: simd_float3(x: 0, y: 0, z: 0))
         n.setProperty(.position, toVariable: "resetPos")
     }
     
@@ -261,14 +263,14 @@ s.onUpdate()
     .getKeyState("w", as: "wPressedPrev")  // From previous frame
     
     // Detect key press (not held)
-    .ifCondition(lhs: .variableRef("wPressed"), .equal, rhs: .bool(true)) { n in
-        n.ifCondition(lhs: .variableRef("wPressedPrev"), .equal, rhs: .bool(false)) { jump in
-            jump.ifCondition(lhs: .variableRef("isGrounded"), .equal, rhs: .bool(true)) { n in
+    .ifEqual("wPressed", to: true) { n in
+        n.ifEqual("wPressedPrev", to: false) { jump in
+            jump.ifEqual("isGrounded", to: true) { n in
                 n.pausePhysicsComponent(isPaused: false)
                 n.setVariable("isGrounded", to: false)
                 
                 // Single impulse instead of continuous force
-                n.setVariable("jumpImpulse", to: Vec3(x: 0, y: 20, z: 0))
+                n.setVariable("jumpImpulse", to: simd_float3(x: 0, y: 20, z: 0))
                 n.setProperty(.velocity, toVariable: "jumpImpulse")
                 n.log("Jump!")
             }
@@ -300,22 +302,22 @@ s.onUpdate()
     
     // Adjust thrust with keys
     .getKeyState("up", as: "upPressed")
-    .ifCondition(lhs: .variableRef("upPressed"), .equal, rhs: .bool(true)) { n in
+    .ifEqual("upPressed", to: true) { n in
         n.addFloat("thrustPower", literal: 0.5, as: "thrustPower")
         n.log("Thrust increased")
     }
     
     .getKeyState("down", as: "downPressed")
-    .ifCondition(lhs: .variableRef("downPressed"), .equal, rhs: .bool(true)) { n in
+    .ifEqual("downPressed", to: true) { n in
         n.subtractFloat("thrustPower", literal: 0.5, as: "thrustPower")
         n.log("Thrust decreased")
     }
     
     // Apply force with variable magnitude
     .getKeyState("w", as: "wPressed")
-    .ifCondition(lhs: .variableRef("wPressed"), .equal, rhs: .bool(true)) { n in
-        n.setVariable("upDirection", to: Vec3(x: 0, y: 1, z: 0))
-        n.scaleVec3("upDirection", by: "thrustPower", as: "thrustForce")
+    .ifEqual("wPressed", to: true) { n in
+        n.setVariable("upDirection", to: simd_float3(x: 0, y: 1, z: 0))
+        n.scalesimd_float3("upDirection", by: "thrustPower", as: "thrustForce")
         n.applyForce(force: .variableRef("thrustForce"))
     }
 ```
@@ -331,23 +333,23 @@ s.onUpdate()
     // ... existing code ...
     
     // When airborne, allow steering
-    .ifCondition(lhs: .variableRef("isGrounded"), .equal, rhs: .bool(false)) { n in
+    .ifEqual("isGrounded", to: false) { n in
         // Apply upward thrust with W
         n.getKeyState("w", as: "wPressed")
-        n.ifCondition(lhs: .variableRef("wPressed"), .equal, rhs: .bool(true)) { w in
-            w.applyForce(force: Vec3(x: 0, y: 15, z: 0))
+        n.ifEqual("wPressed", to: true) { w in
+            w.applyForce(force: simd_float3(x: 0, y: 15, z: 0))
         }
         
         // Steer left with A
         n.getKeyState("a", as: "aPressed")
-        n.ifCondition(lhs: .variableRef("aPressed"), .equal, rhs: .bool(true)) { a in
-            a.applyForce(force: Vec3(x: -5, y: 0, z: 0))
+        n.ifEqual("aPressed", to: true) { a in
+            a.applyForce(force: simd_float3(x: -5, y: 0, z: 0))
         }
         
         // Steer right with D
         n.getKeyState("d", as: "dPressed")
-        n.ifCondition(lhs: .variableRef("dPressed"), .equal, rhs: .bool(true)) { d in
-            d.applyForce(force: Vec3(x: 5, y: 0, z: 0))
+        n.ifEqual("dPressed", to: true) { d in
+            d.applyForce(force: simd_float3(x: 5, y: 0, z: 0))
         }
     }
 ```
@@ -360,7 +362,7 @@ Now you have a controllable flying object!
 
 ### Using Forces (What we did):
 ```swift
-s.applyForce(force: Vec3(x: 0, y: 15, z: 0))
+s.applyForce(force: simd_float3(x: 0, y: 15, z: 0))
 ```
 - **Natural physics**: Accumulates with gravity
 - **Momentum**: Builds up over time
@@ -369,7 +371,7 @@ s.applyForce(force: Vec3(x: 0, y: 15, z: 0))
 
 ### Using Velocity (Alternative):
 ```swift
-s.setProperty(.velocity, to: Vec3(x: 0, y: 10, z: 0))
+s.setProperty(.velocity, to: simd_float3(x: 0, y: 10, z: 0))
 ```
 - **Direct control**: Sets exact speed
 - **Immediate**: No acceleration
@@ -378,7 +380,7 @@ s.setProperty(.velocity, to: Vec3(x: 0, y: 10, z: 0))
 
 ### Using Position (Tutorial 2):
 ```swift
-s.setProperty(.position, to: Vec3(x: 0, y: 2, z: 0))
+s.setProperty(.position, to: simd_float3(x: 0, y: 2, z: 0))
 ```
 - **Teleportation**: Instant movement
 - **No physics**: Ignores gravity

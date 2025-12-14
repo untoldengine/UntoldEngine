@@ -14,33 +14,6 @@ This reference provides the complete API surface for building gameplay scripts.
 
 ---
 
-## Quick Example
-
-Here's a complete script that makes an entity bounce up and down:
-
-```swift
-extension GenerateScripts {
-    static func generateBouncingCube(to dir: URL) {
-        let script = buildScript(name: "BouncingCube") { s in
-            s.onStart()
-                .setVariable("bounceSpeed", to: 5.0)
-            
-            s.onUpdate()
-                .getProperty(.position, as: "pos")
-                .setVariable("offset", to: Vec3(x: 0.0, y: 0.1, z: 0.0))
-                .addVec3("pos", "offset", as: "newPos")
-                .setProperty(.position, toVariable: "newPos")
-        }
-        
-        let outputPath = dir.appendingPathComponent("BouncingCube.uscript")
-        try? saveUSCScript(script, to: outputPath)
-        print("  ✅ BouncingCube.uscript")
-    }
-}
-```
-
----
-
 ## 1. Script Lifecycle
 
 ### Building and Exporting Scripts
@@ -246,6 +219,21 @@ s.ifEqual("state", to: 1.0) { nested in
 }
 ```
 
+**Organizing math-heavy code with `.math { ... }`:**
+```swift
+s.onUpdate()
+    .math { m in
+        m.getProperty(.velocity, as: "vel")
+        m.lengthVec3("vel", as: "speed")
+        m.ifGreater("speed", than: 10) { n in
+            n.normalizeVec3("vel", as: "dir")
+            n.scaleVec3("dir", literal: 10, as: "clampedVel")
+            n.setProperty(.velocity, toVariable: "clampedVel")
+        }
+    }
+    .log("Velocity clamped if above 10")
+```
+
 ---
 
 ## 5. Values & Variables
@@ -264,7 +252,7 @@ enum Value {
 **Setting Variables:**
 ```swift
 s.setVariable("speed", to: 5.0)
-s.setVariable("direction", to: Vec3(x: 1, y: 0, z: 0))
+s.setVariable("direction", to: simd_float3(x: 1, y: 0, z: 0))
 s.setVariable("isActive", to: true)
 s.setVariable("playerName", to: "Hero")
 ```
@@ -291,8 +279,6 @@ enum ScriptProperty: String {
     // Rendering (lights)
     case intensity, color
 }
-
-enum ScriptAxis: String { case x, y, z }
 ```
 
 **Reading Properties:**
@@ -304,15 +290,15 @@ s.getProperty(.rotation, as: "rot")        // Store rotation in "rot" variable
 
 **Writing Properties:**
 ```swift
-s.setProperty(.position, toVariable: "newPos")     // Set from variable
-s.setProperty(.velocity, to: Vec3(x: 0, y: 5, z: 0)) // Set from literal
+s.setProperty(.position, toVariable: "newPos")                  // Set from variable
+s.setProperty(.velocity, to: simd_float3(x: 0, y: 5, z: 0))     // Set from literal
 ```
 
 **Complete Example:**
 ```swift
 s.onUpdate()
     .getProperty(.position, as: "currentPos")
-    .setVariable("offset", to: Vec3(x: 0, y: 0.1, z: 0))
+    .setVariable("offset", to: simd_float3(x: 0, y: 0.1, z: 0))
     .addVec3("currentPos", "offset", as: "newPos")
     .setProperty(.position, toVariable: "newPos")  // Move entity up
 ```
@@ -335,12 +321,22 @@ s.addVec3("v1", "v2", as: "sum")               // sum = v1 + v2
 s.scaleVec3("dir", literal: 2.0, as: "scaled") // scaled = dir * 2.0
 s.scaleVec3("dir", by: "scale", as: "scaled")  // scaled = dir * scale
 s.lengthVec3("vec", as: "length")              // length = magnitude of vec
+s.normalizeVec3("vec", as: "unitVec")          // normalized vec (zero-safe)
+s.dotVec3("a", "b", as: "dot")                 // dot product -> float
+s.crossVec3("a", "b", as: "cross")             // cross product -> vec3
+s.lerpVec3(from: "a", to: "b", t: "t", as: "lerped") // linear interpolation
+s.lerpFloat(from: "a", to: "b", t: "t", as: "out")   // scalar lerp
+s.reflectVec3("v", normal: "n", as: "reflected")     // reflect v about normal
+s.projectVec3("v", onto: "axis", as: "proj")         // project v onto axis
+s.angleBetweenVec3("a", "b", as: "angleDeg")         // angle in degrees
+s.clampFloat("speed", min: "minSpeed", max: "maxSpeed", as: "clampedSpeed") // bounds via vars
+s.clampVec3("velocity", min: "minVel", max: "maxVel", as: "clampedVel")     // component-wise
 ```
 
 **Example - Calculate velocity:**
 ```swift
 s.onUpdate()
-    .setVariable("direction", to: Vec3(x: 1, y: 0, z: 0))
+    .setVariable("direction", to: simd_float3(x: 1, y: 0, z: 0))
     .setVariable("speed", to: 5.0)
     .scaleVec3("direction", by: "speed", as: "velocity")
     .setProperty(.velocity, toVariable: "velocity")
@@ -348,51 +344,87 @@ s.onUpdate()
 
 ---
 
-## 8. Actions / Args (AI & Steering)
+## 8. Built-in Behaviors (Steering, Camera, Physics)
 
-**Action Names** - Built-in AI behaviors:
+All behaviors are instruction helpers—no `callAction` or `ScriptArgKey`.
+
+**Steering**
 ```swift
-enum ScriptActionName: String {
-    // Basic AI
-    case seek       // Move toward target
-    case flee       // Move away from threat
-    case arrive     // Move toward target and slow down
-    case pursuit    // Predict and intercept moving target
-    case evade      // Predict and avoid moving threat
-    
-    // Steering (returns force vectors)
-    case steerSeek, steerArrive, steerFlee, steerPursuit, steerFollowPath
-    
-    // Special
-    case orbit      // Orbit around a point
-}
+// Seek toward a target and store the steering force
+s.seek(targetPosition: .vec3(x: 10, y: 0, z: 0),
+       maxSpeed: .float(5.0),
+       result: "seekForce")
+
+// Arrive with slowing radius
+s.steerArrive(targetPosition: .variableRef("targetPos"),
+              maxSpeed: .variableRef("maxSpeed"),
+              slowingRadius: .variableRef("slowingRadius"),
+              deltaTime: .variableRef("dt"),
+              turnSpeed: .variableRef("turnSpeed"))
+
+// Evade a threat: compute force into result or apply directly
+s.steerEvade(threatEntity: .string("Enemy"),
+             maxSpeed: .float(6.0),
+             result: "evadeForce")    // omit result to apply immediately
+
+// Align orientation to current velocity (smooth)
+s.alignOrientation(deltaTime: .float(0.016),
+                   turnSpeed: .float(1.0))
 ```
 
-**Action Arguments:**
+**Camera**
 ```swift
-enum ScriptArgKey: String {
-    case targetPosition, threatPosition
-    case targetEntity, threatEntity
-    case maxSpeed, slowingRadius
-    case deltaTime, turnSpeed, weight
-    case centerPosition, radius
-}
+// Snap camera to a position
+s.cameraMoveTo(.vec3(x: 0, y: 3, z: -10))
+
+// Look at a target
+s.cameraLookAt(eye: .vec3(x: 0, y: 3, z: -8),
+               target: .variableRef("lookTarget"),
+               up: .vec3(x: 0, y: 1, z: 0))
+
+// Follow a target with smoothing
+s.cameraFollow(target: .string("Player"),
+               offset: .vec3(x: 0, y: 3, z: -6),
+               smoothFactor: .float(5.0),
+               deltaTime: .float(0.016))
+
+// WASDQE fly camera
+s.cameraMoveWithInput(speedVar: "moveSpeed",
+                      deltaTimeVar: "dt",
+                      wVar: "wPressed",
+                      aVar: "aPressed",
+                      sVar: "sPressed",
+                      dVar: "dPressed",
+                      qVar: "qPressed",
+                      eVar: "ePressed")
+
+// Orbit a target entity (auto look-at)
+s.cameraOrbitTarget(target: .string("Boss"),
+                    radius: .float(12.0),
+                    speed: .float(1.5),
+                    deltaTime: .float(0.016),
+                    offsetY: .float(1.5))
 ```
 
-**Calling Actions:**
-
-Actions require setting up argument variables first, then calling the action:
-
+**Physics**
 ```swift
-// Seek toward a target
-s.setVariable("targetPos", to: Vec3(x: 10, y: 0, z: 0))
-    .setVariable("maxSpeed", to: 5.0)
-    .callAction(.seek, args: ["targetPos", "maxSpeed"], result: "seekForce")
+// Impulse
+s.applyLinearImpulse(direction: .vec3(x: 1, y: 0, z: 0),
+                     magnitude: .float(5.0))
 
-// Using ScriptArgKey for type safety
-s.setVariable(ScriptArgKey.targetPosition.rawValue, to: Vec3(x: 10, y: 0, z: 0))
-    .setVariable(ScriptArgKey.maxSpeed.rawValue, to: 5.0)
-    .callAction(.seek, args: [.targetPosition, .maxSpeed], result: "seekForce")
+// Continuous world force
+s.applyWorldForce(direction: .vec3(x: 0, y: 1, z: 0),
+                  magnitude: .float(3.0))
+
+// Velocity control
+s.setLinearVelocity(.vec3(x: 0, y: 0, z: 5))
+s.addLinearVelocity(.variableRef("deltaVel"))
+s.clampLinearSpeed(min: .float(2.0), max: .float(8.0))
+
+// Angular control
+s.applyAngularImpulse(axis: .vec3(x: 0, y: 1, z: 0), magnitude: .float(2.0))
+s.clampAngularSpeed(max: .float(5.0))
+s.applyAngularDamping(damping: .float(0.6), deltaTime: .float(0.016))
 ```
 
 ---
@@ -402,18 +434,18 @@ s.setVariable(ScriptArgKey.targetPosition.rawValue, to: Vec3(x: 10, y: 0, z: 0))
 **Transform:**
 ```swift
 s.translateTo(x: 1, y: 2, z: 3)                       // Set absolute position
-s.translateTo(Vec3(x: 1, y: 2, z: 3))                 // Alternative syntax
+s.translateTo(simd_float3(x: 1, y: 2, z: 3))           // Alternative syntax
 s.translateBy(x: 0.1, y: 0, z: 0)                     // Move relative
-s.translateBy(Vec3(x: 0.1, y: 0, z: 0))               // Alternative syntax
-s.rotateTo(degrees: 45, axis: Vec3(x: 0, y: 1, z: 0)) // Set absolute rotation
-s.rotateBy(degrees: 45, axis: Vec3(x: 0, y: 1, z: 0)) // Rotate relative
+s.translateBy(simd_float3(x: 0.1, y: 0, z: 0))        // Alternative syntax
+s.rotateTo(degrees: 45, axis: simd_float3(x: 0, y: 1, z: 0)) // Set absolute rotation
+s.rotateBy(degrees: 45, axis: simd_float3(x: 0, y: 1, z: 0)) // Rotate relative
 s.lookAt("targetEntityName")                          // Face another entity
 ```
 
 **Physics - Force & Torque:**
 ```swift
-s.applyForce(force: Vec3(x: 0, y: 10, z: 0))                     // Apply linear force
-s.applyMoment(force: Vec3(x: 5, y: 0, z: 0), at: Vec3(x: 1, y: 0, z: 0))  // Apply torque at point
+s.applyForce(force: simd_float3(x: 0, y: 10, z: 0))                     // Apply linear force
+s.applyMoment(force: simd_float3(x: 5, y: 0, z: 0), at: simd_float3(x: 1, y: 0, z: 0))  // Apply torque at point
 ```
 
 **Physics - Velocity Control:**
@@ -433,7 +465,7 @@ s.pausePhysicsComponent(isPaused: true)   // Pause/unpause physics simulation
 ```swift
 s.onEvent("Jump")
     .getProperty(.velocity, as: "currentVel")
-    .setVariable("jumpForce", to: Vec3(x: 0, y: 15, z: 0))
+    .setVariable("jumpForce", to: simd_float3(x: 0, y: 15, z: 0))
     .addVec3("currentVel", "jumpForce", as: "newVel")
     .setProperty(.velocity, toVariable: "newVel")
 ```
@@ -444,7 +476,7 @@ s.onEvent("Respawn")
     .clearVelocity()             // Stop all movement
     .clearAngularVelocity()      // Stop all rotation
     .clearForces()               // Clear force accumulation
-    .translateTo(Vec3(x: 0, y: 5, z: 0))  // Move to spawn point
+    .translateTo(simd_float3(x: 0, y: 5, z: 0))  // Move to spawn point
 ```
 
 **Example - Apply torque to spin:**
@@ -452,7 +484,7 @@ s.onEvent("Respawn")
 s.onUpdate()
     .ifKeyPressed("R") { n in
         // Apply torque at the right edge to spin left
-        n.applyMoment(force: Vec3(x: 0, y: 10, z: 0), at: Vec3(x: 1, y: 0, z: 0))
+        n.applyMoment(force: simd_float3(x: 0, y: 10, z: 0), at: simd_float3(x: 1, y: 0, z: 0))
     }
 ```
 
@@ -471,12 +503,12 @@ s.stopAnimation()                                    // Stop current animation
 ```swift
 s.ifKeyPressed("W") { nested in
     nested.log("Forward")
-    nested.applyForce(force: Vec3(x: 0, y: 0, z: -1))
+    nested.applyForce(force: simd_float3(x: 0, y: 0, z: -1))
 }
 
 s.ifKeyPressed("Space") { nested in
     nested.log("Jump!")
-    nested.applyForce(force: Vec3(x: 0, y: 10, z: 0))
+    nested.applyForce(force: simd_float3(x: 0, y: 10, z: 0))
 }
 ```
 
@@ -485,16 +517,16 @@ s.ifKeyPressed("Space") { nested in
 s.onUpdate()
     .setVariable("moveSpeed", to: 5.0)
     .ifKeyPressed("W") { n in
-        n.applyForce(force: Vec3(x: 0, y: 0, z: -5))
+        n.applyForce(force: simd_float3(x: 0, y: 0, z: -5))
     }
     .ifKeyPressed("S") { n in
-        n.applyForce(force: Vec3(x: 0, y: 0, z: 5))
+        n.applyForce(force: simd_float3(x: 0, y: 0, z: 5))
     }
     .ifKeyPressed("A") { n in
-        n.applyForce(force: Vec3(x: -5, y: 0, z: 0))
+        n.applyForce(force: simd_float3(x: -5, y: 0, z: 0))
     }
     .ifKeyPressed("D") { n in
-        n.applyForce(force: Vec3(x: 5, y: 0, z: 0))
+        n.applyForce(force: simd_float3(x: 5, y: 0, z: 0))
     }
 ```
 
@@ -506,6 +538,8 @@ s.onUpdate()
 ```swift
 s.log("Debug message")                    // Simple message
 s.log("Player health: 100")               // Can include values
+s.logValue("velocity", value: .variableRef("vel")) // Log a labeled variable
+s.logValue("spawnPoint", value: .vec3(x: 0, y: 1, z: 2)) // Log a literal with a label
 ```
 
 **Debug Variables:**
