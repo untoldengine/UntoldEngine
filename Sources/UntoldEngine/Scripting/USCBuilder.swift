@@ -1219,12 +1219,10 @@ public extension USCBuilder {
     }
 
     @discardableResult
-    func alignOrientation(targetDirection: Value,
-                          deltaTime: Value,
+    func alignOrientation(deltaTime: Value,
                           turnSpeed: Value) -> USCBuilder
     {
         instructions.append(.alignOrientation(entity: "self",
-                                              targetDirection: targetDirection,
                                               deltaTime: deltaTime,
                                               turnSpeed: turnSpeed))
         return self
