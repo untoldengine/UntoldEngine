@@ -1277,8 +1277,7 @@ final class USCScriptingAPITest: XCTestCase {
     func testAlignOrientationInstruction() {
         let script = buildScript(name: "AlignOrientationScript") { s in
             s.onUpdate()
-                .alignOrientation(targetDirection: .vec3(x: 0, y: 0, z: 1),
-                                  deltaTime: .float(0.016),
+                .alignOrientation(deltaTime: .float(0.016),
                                   turnSpeed: .float(1.0))
         }
 

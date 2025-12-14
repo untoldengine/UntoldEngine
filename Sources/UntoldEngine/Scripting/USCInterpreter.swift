@@ -715,16 +715,16 @@ public class USCInterpreter {
             }
             return pc + 1
 
-        case let .alignOrientation(entityRef, targetDirection, deltaTime, turnSpeed):
+        case let .alignOrientation(entityRef, deltaTime, turnSpeed):
             let entity = resolveEntity(entityRef, context: context)
-            guard let dir = resolveVec3(targetDirection, context: context),
-                  let dt = resolveFloat(deltaTime, context: context),
+            guard let dt = resolveFloat(deltaTime, context: context),
                   let turn = resolveFloat(turnSpeed, context: context)
             else {
-                Logger.log(message: "[USC] alignOrientation failed: missing targetDirection/deltaTime/turnSpeed")
+                Logger.log(message: "[USC] alignOrientation failed: missing deltaTime/turnSpeed")
                 return pc + 1
             }
-            alignOrientation(entityId: entity, targetDirection: dir, deltaTime: dt, turnSpeed: turn)
+            // Engine alignOrientation currently derives direction from velocity; pass zero placeholder.
+            alignOrientation(entityId: entity, targetDirection: simd_float3.zero, deltaTime: dt, turnSpeed: turn)
             return pc + 1
         }
     }
