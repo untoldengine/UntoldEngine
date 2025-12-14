@@ -4,7 +4,7 @@
 - Reading keyboard input with `getKeyState()`
 - Using conditionals to respond to input
 - Modifying entity position for movement
-- Working with Vec3 vectors and vector math
+- Working with simd_float3 vectors and vector math
 - Building movement from multiple simultaneous inputs
 
 **Time:** ~10 minutes
@@ -70,39 +70,41 @@ extension GenerateScripts {
                 .log("Player movement initialized")
             
             // Handle input every frame
-            s.onUpdate()
-                .getProperty(.position, as: "currentPos")
-                .setVariable("newPosition", to: Vec3(x: 0, y: 0, z: 0))
-                
-                // Get key states
-                .getKeyState("w", as: "wPressed")
-                .getKeyState("s", as: "sPressed")
-                .getKeyState("a", as: "aPressed")
-                .getKeyState("d", as: "dPressed")
-                
-                // Forward (W key)
-                .ifCondition(lhs: .variableRef("wPressed"), .equal, rhs: .bool(true)) { n in
-                    n.setVariable("offset", to: Vec3(x: 0, y: 0, z: 1))
-                    n.addVec3("newPosition", "offset", as: "newPosition")
-                }
-                // Backward (S key)
-                .ifCondition(lhs: .variableRef("sPressed"), .equal, rhs: .bool(true)) { n in
-                    n.setVariable("offset", to: Vec3(x: 0, y: 0, z: -1))
-                    n.addVec3("newPosition", "offset", as: "newPosition")
-                }
-                // Left (A key)
-                .ifCondition(lhs: .variableRef("aPressed"), .equal, rhs: .bool(true)) { n in
-                    n.setVariable("offset", to: Vec3(x: -1, y: 0, z: 0))
-                    n.addVec3("newPosition", "offset", as: "newPosition")
-                }
-                // Right (D key)
-                .ifCondition(lhs: .variableRef("dPressed"), .equal, rhs: .bool(true)) { n in
-                    n.setVariable("offset", to: Vec3(x: 1, y: 0, z: 0))
-                    n.addVec3("newPosition", "offset", as: "newPosition")
-                }
-                
-                .addVec3("currentPos", "newPosition", as: "finalPos")
-                .setProperty(.position, toVariable: "finalPos")
+s.onUpdate()
+    .math { m in
+        m.getProperty(.position, as: "currentPos")
+        m.setVariable("newPosition", to: simd_float3(x: 0, y: 0, z: 0))
+
+        // Get key states
+        m.getKeyState("w", as: "wPressed")
+        m.getKeyState("s", as: "sPressed")
+        m.getKeyState("a", as: "aPressed")
+        m.getKeyState("d", as: "dPressed")
+
+        // Forward (W key)
+        m.ifEqual("wPressed", to: true) { n in
+            n.setVariable("offset", to: simd_float3(x: 0, y: 0, z: 1))
+            n.addVec3("newPosition", "offset", as: "newPosition")
+        }
+        // Backward (S key)
+        m.ifEqual("sPressed", to: true) { n in
+            n.setVariable("offset", to: simd_float3(x: 0, y: 0, z: -1))
+            n.addVec3("newPosition", "offset", as: "newPosition")
+        }
+        // Left (A key)
+        m.ifEqual("aPressed", to: true) { n in
+            n.setVariable("offset", to: simd_float3(x: -1, y: 0, z: 0))
+            n.addVec3("newPosition", "offset", as: "newPosition")
+        }
+        // Right (D key)
+        m.ifEqual("dPressed", to: true) { n in
+            n.setVariable("offset", to: simd_float3(x: 1, y: 0, z: 0))
+            n.addVec3("newPosition", "offset", as: "newPosition")
+        }
+
+        m.addVec3("currentPos", "newPosition", as: "finalPos")
+        m.setProperty(.position, toVariable: "finalPos")
+    }
         }
         
         let outputPath = dir.appendingPathComponent("PlayerMovement.uscript")
@@ -122,7 +124,7 @@ extension GenerateScripts {
 - Checks if the key state variable equals `true`
 - The nested block runs only when the condition passes
 
-**`Vec3(x, y, z)`** - Represents a 3D vector
+**`simd_float3(x, y, z)`** - Represents a 3D vector
 - Positive Z = forward, Negative Z = backward
 - Negative X = left, Positive X = right
 - Y axis controls up/down (we'll use this later)
@@ -188,7 +190,7 @@ extension GenerateScripts {
             
             s.onUpdate()
                 .getProperty(.position, as: "currentPos")
-                .setVariable("newPosition", to: Vec3(x: 0, y: 0, z: 0))
+                .setVariable("newPosition", to: simd_float3(x: 0, y: 0, z: 0))
                 
                 // Get key states
                 .getKeyState("w", as: "wPressed")
@@ -197,26 +199,26 @@ extension GenerateScripts {
                 .getKeyState("d", as: "dPressed")
                 
                 // Forward (W key)
-                .ifCondition(lhs: .variableRef("wPressed"), .equal, rhs: .bool(true)) { n in
-                    n.setVariable("direction", to: Vec3(x: 0, y: 0, z: 1))
+                .ifEqual("wPressed", to: true) { n in
+                    n.setVariable("direction", to: simd_float3(x: 0, y: 0, z: 1))
                     n.scaleVec3("direction", by: "moveSpeed", as: "offset")
                     n.addVec3("newPosition", "offset", as: "newPosition")
                 }
                 // Backward (S key)
-                .ifCondition(lhs: .variableRef("sPressed"), .equal, rhs: .bool(true)) { n in
-                    n.setVariable("direction", to: Vec3(x: 0, y: 0, z: -1))
+                .ifEqual("sPressed", to: true) { n in
+                    n.setVariable("direction", to: simd_float3(x: 0, y: 0, z: -1))
                     n.scaleVec3("direction", by: "moveSpeed", as: "offset")
                     n.addVec3("newPosition", "offset", as: "newPosition")
                 }
                 // Left (A key)
-                .ifCondition(lhs: .variableRef("aPressed"), .equal, rhs: .bool(true)) { n in
-                    n.setVariable("direction", to: Vec3(x: -1, y: 0, z: 0))
+                .ifEqual("aPressed", to: true) { n in
+                    n.setVariable("direction", to: simd_float3(x: -1, y: 0, z: 0))
                     n.scaleVec3("direction", by: "moveSpeed", as: "offset")
                     n.addVec3("newPosition", "offset", as: "newPosition")
                 }
                 // Right (D key)
-                .ifCondition(lhs: .variableRef("dPressed"), .equal, rhs: .bool(true)) { n in
-                    n.setVariable("direction", to: Vec3(x: 1, y: 0, z: 0))
+                .ifEqual("dPressed", to: true) { n in
+                    n.setVariable("direction", to: simd_float3(x: 1, y: 0, z: 0))
                     n.scaleVec3("direction", by: "moveSpeed", as: "offset")
                     n.addVec3("newPosition", "offset", as: "newPosition")
                 }
@@ -249,12 +251,12 @@ Let's add a sprint feature when holding Shift:
 ```swift
 s.onUpdate()
     .getProperty(.position, as: "currentPos")
-    .setVariable("newPosition", to: Vec3(x: 0, y: 0, z: 0))
+    .setVariable("newPosition", to: simd_float3(x: 0, y: 0, z: 0))
     
     // Check if Shift is held for sprint speed
     .setVariable("currentSpeed", to: 0.2)  // Default speed
     .getKeyState("lshift", as: "shiftPressed")
-    .ifCondition(lhs: .variableRef("shiftPressed"), .equal, rhs: .bool(true)) { n in
+    .ifEqual("shiftPressed", to: true) { n in
         n.setVariable("currentSpeed", to: 0.5)  // Sprint speed
     }
     
@@ -265,8 +267,8 @@ s.onUpdate()
     .getKeyState("d", as: "dPressed")
     
     // Forward with sprint
-    .ifCondition(lhs: .variableRef("wPressed"), .equal, rhs: .bool(true)) { n in
-        n.setVariable("direction", to: Vec3(x: 0, y: 0, z: 1))
+    .ifEqual("wPressed", to: true) { n in
+        n.setVariable("direction", to: simd_float3(x: 0, y: 0, z: 1))
         n.scaleVec3("direction", by: "currentSpeed", as: "offset")
         n.addVec3("newPosition", "offset", as: "newPosition")
     }
@@ -281,7 +283,7 @@ s.onUpdate()
 ```swift
 s.onUpdate()
     .getProperty(.position, as: "currentPos")
-    .setVariable("offset", to: Vec3(x: 0, y: 0, z: 1))
+    .setVariable("offset", to: simd_float3(x: 0, y: 0, z: 1))
     .addVec3("currentPos", "offset", as: "newPos")
     .setProperty(.position, toVariable: "newPos")
 ```
@@ -293,7 +295,7 @@ s.onUpdate()
 ### Using Velocity (Alternative):
 ```swift
 s.onUpdate()
-    .setVariable("velocity", to: Vec3(x: 0, y: 0, z: 5))
+    .setVariable("velocity", to: simd_float3(x: 0, y: 0, z: 5))
     .setProperty(.velocity, toVariable: "velocity")
 ```
 - Natural physics-based movement
@@ -305,7 +307,7 @@ s.onUpdate()
 ```swift
 s.onUpdate()
     .ifKeyPressed("W") { n in
-        n.applyForce(force: Vec3(x: 0, y: 0, z: -5))
+        n.applyForce(force: simd_float3(x: 0, y: 0, z: -5))
     }
 ```
 - Most realistic physics response
@@ -321,7 +323,7 @@ All three approaches are valid! Choose based on your game's needs.
 
 ✅ Reading keyboard input with `getKeyState()`  
 ✅ Using conditionals with `ifCondition()`  
-✅ Working with Vec3 vectors for 3D movement  
+✅ Working with simd_float3 vectors for 3D movement  
 ✅ Using variables for configurable parameters  
 ✅ Scaling vectors with `scaleVec3()`  
 ✅ Modifying entity position directly  
@@ -342,3 +344,36 @@ All three approaches are valid! Choose based on your game's needs.
 **Need Help?**
 - [USC Scripting API - Input](../Scripting/USC_Scripting_API.md#10-input-conditions)
 - [USC Scripting API - Math Operations](../Scripting/USC_Scripting_API.md#7-math-operations)
+
+---
+
+## Math Helper Quick Examples
+
+```swift
+s.onUpdate()
+    .math { m in
+        // Normalize (zero-safe)
+        m.normalizeVec3("dir", as: "dirNorm")
+
+        // Dot / cross
+        m.dotVec3("forward", "input", as: "alignment")   // -1..1
+        m.crossVec3("forward", "up", as: "right")
+
+        // Reflect / project
+        m.reflectVec3("incoming", normal: "surfaceNormal", as: "bounce")
+        m.projectVec3("velocity", onto: "groundNormal", as: "slide")
+
+        // Angles & lerp
+        m.angleBetweenVec3("a", "b", as: "angleDeg")
+        m.lerpVec3(from: "startPos", to: "endPos", t: "t", as: "pos")
+        m.lerpFloat(from: "speed0", to: "speed1", t: "t", as: "speed")
+
+        // Clamp
+        m.clampVec3("vel", min: "minVel", max: "maxVel", as: "vel")
+        m.clampFloat("speed", min: "minSpeed", max: "maxSpeed", as: "speed")
+    }
+
+// Orient toward another entity by name
+s.onUpdate()
+    .lookAt("TargetEntityName")
+```

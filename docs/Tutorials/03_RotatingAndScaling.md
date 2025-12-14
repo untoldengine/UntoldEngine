@@ -68,7 +68,7 @@ extension GenerateScripts {
                 // Apply rotation around Y-axis
                 .rotateTo(
                     degrees: .variableRef("newAngle"),
-                    axis: Vec3(x: 0, y: 1, z: 0)
+                    axis: simd_float3(x: 0, y: 1, z: 0)
                 )
         }
         
@@ -92,13 +92,13 @@ extension GenerateScripts {
 
 **`rotateTo()`** - Set absolute rotation
 - Takes degrees and an axis vector
-- Y-axis rotation: `Vec3(x: 0, y: 1, z: 0)`
-- X-axis rotation: `Vec3(x: 1, y: 0, z: 0)`
-- Z-axis rotation: `Vec3(x: 0, y: 0, z: 1)`
+- Y-axis rotation: `simd_float3(x: 0, y: 1, z: 0)`
+- X-axis rotation: `simd_float3(x: 1, y: 0, z: 0)`
+- Z-axis rotation: `simd_float3(x: 0, y: 0, z: 1)`
 
 **Alternative - Relative Rotation:**
 ```swift
-s.rotateBy(degrees: 1.0, axis: Vec3(x: 0, y: 1, z: 0))
+s.rotateBy(degrees: 1.0, axis: simd_float3(x: 0, y: 1, z: 0))
 ```
 - Rotates relative to current rotation
 - Simpler but accumulates small errors over time
@@ -155,7 +155,7 @@ extension GenerateScripts {
                 // Create uniform scale vector
                 .setVariable("scaleValue", to: 1.0)
                 .addFloat("scaleValue", "scaleFactor", as: "finalScale")
-                .setVariable("scaleVec", to: Vec3(x: .variableRef("finalScale"), 
+                .setVariable("scaleVec", to: simd_float3(x: .variableRef("finalScale"), 
                                                    y: .variableRef("finalScale"), 
                                                    z: .variableRef("finalScale")))
                 
@@ -173,7 +173,7 @@ extension GenerateScripts {
 ### Understanding Scale
 
 **Scale Property:**
-- Scale is a Vec3: `(x, y, z)`
+- Scale is a simd_float3: `(x, y, z)`
 - `(1, 1, 1)` = original size
 - `(2, 2, 2)` = double size
 - `(0.5, 1, 0.5)` = half width/depth, normal height
@@ -181,10 +181,10 @@ extension GenerateScripts {
 **Uniform vs Non-Uniform:**
 ```swift
 // Uniform scale (all axes same)
-.setProperty(.scale, to: Vec3(x: 2, y: 2, z: 2))
+.setProperty(.scale, to: simd_float3(x: 2, y: 2, z: 2))
 
 // Non-uniform scale (different per axis)
-.setProperty(.scale, to: Vec3(x: 1, y: 2, z: 1))  // Tall and thin
+.setProperty(.scale, to: simd_float3(x: 1, y: 2, z: 1))  // Tall and thin
 ```
 
 ---
@@ -221,7 +221,7 @@ extension GenerateScripts {
                 // Calculate circular orbit position
                 // Simplified: just oscillate X position
                 .mulFloat("orbitRadius", "time", as: "xPos")
-                .setVariable("circlePos", to: Vec3(
+                .setVariable("circlePos", to: simd_float3(
                     x: .variableRef("xPos"),
                     y: 2.0,  // Height
                     z: 0.0
@@ -234,13 +234,13 @@ extension GenerateScripts {
                 .mulFloat("time", literal: 50.0, as: "rotDegrees")
                 .rotateTo(
                     degrees: .variableRef("rotDegrees"),
-                    axis: Vec3(x: 0, y: 1, z: 0)
+                    axis: simd_float3(x: 0, y: 1, z: 0)
                 )
                 
                 // Scale while rotating
                 .mulFloat("time", literal: 0.3, as: "scaleVal")
                 .addFloat("scaleVal", literal: 1.0, as: "finalScale")
-                .setVariable("scaleVec", to: Vec3(
+                .setVariable("scaleVec", to: simd_float3(
                     x: .variableRef("finalScale"),
                     y: .variableRef("finalScale"),
                     z: .variableRef("finalScale")
@@ -279,22 +279,22 @@ s.onUpdate()
 
 **Y-axis (most common):**
 ```swift
-Vec3(x: 0, y: 1, z: 0)  // Spin like a top
+simd_float3(x: 0, y: 1, z: 0)  // Spin like a top
 ```
 
 **X-axis:**
 ```swift
-Vec3(x: 1, y: 0, z: 0)  // Flip forward/backward
+simd_float3(x: 1, y: 0, z: 0)  // Flip forward/backward
 ```
 
 **Z-axis:**
 ```swift
-Vec3(x: 0, y: 0, z: 1)  // Roll left/right
+simd_float3(x: 0, y: 0, z: 1)  // Roll left/right
 ```
 
 **Diagonal:**
 ```swift
-Vec3(x: 1, y: 1, z: 0)  // Custom axis
+simd_float3(x: 1, y: 1, z: 0)  // Custom axis
 ```
 
 ---
@@ -314,15 +314,15 @@ s.onUpdate()
 ```swift
 s.onUpdate()
     .getProperty(.scale, as: "scale")
-    .setVariable("growth", to: Vec3(x: 0.01, y: 0.01, z: 0.01))
-    .addVec3("scale", "growth", as: "newScale")
+    .setVariable("growth", to: simd_float3(x: 0.01, y: 0.01, z: 0.01))
+    .addsimd_float3("scale", "growth", as: "newScale")
     .setProperty(.scale, toVariable: "newScale")
 ```
 
 **Shrink over time:**
 ```swift
-.setVariable("shrink", to: Vec3(x: -0.01, y: -0.01, z: -0.01))
-.addVec3("scale", "shrink", as: "newScale")
+.setVariable("shrink", to: simd_float3(x: -0.01, y: -0.01, z: -0.01))
+.addsimd_float3("scale", "shrink", as: "newScale")
 ```
 
 ---
@@ -345,7 +345,7 @@ s.onUpdate()
     
     .rotateTo(
         degrees: .variableRef("newAngle"),
-        axis: Vec3(x: 0, y: 1, z: 0)
+        axis: simd_float3(x: 0, y: 1, z: 0)
     )
 ```
 

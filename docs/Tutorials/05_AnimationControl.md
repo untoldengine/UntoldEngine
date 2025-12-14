@@ -118,21 +118,21 @@ extension GenerateScripts {
                 .getKeyState("d", as: "dPressed")
                 
                 // If any movement key is pressed, set isMoving to true
-                .ifCondition(lhs: .variableRef("wPressed"), .equal, rhs: .bool(true)) { n in
+                .ifEqual("wPressed", to: true) { n in
                     n.setVariable("isMoving", to: true)
                 }
-                .ifCondition(lhs: .variableRef("aPressed"), .equal, rhs: .bool(true)) { n in
+                .ifEqual("aPressed", to: true) { n in
                     n.setVariable("isMoving", to: true)
                 }
-                .ifCondition(lhs: .variableRef("sPressed"), .equal, rhs: .bool(true)) { n in
+                .ifEqual("sPressed", to: true) { n in
                     n.setVariable("isMoving", to: true)
                 }
-                .ifCondition(lhs: .variableRef("dPressed"), .equal, rhs: .bool(true)) { n in
+                .ifEqual("dPressed", to: true) { n in
                     n.setVariable("isMoving", to: true)
                 }
                 
                 // Switch to walking animation if moving
-                .ifCondition(lhs: .variableRef("isMoving"), .equal, rhs: .bool(true)) { n in
+                .ifEqual("isMoving", to: true) { n in
                     // Only change if not already walking
                     n.ifCondition(lhs: .variableRef("currentAnimation"), .notEqual, rhs: .string("walking")) { change in
                         change.playAnimation("walking", loop: true)
@@ -142,7 +142,7 @@ extension GenerateScripts {
                 }
                 
                 // Switch to idle animation if not moving
-                .ifCondition(lhs: .variableRef("isMoving"), .equal, rhs: .bool(false)) { n in
+                .ifEqual("isMoving", to: false) { n in
                     // Only change if not already idle
                     n.ifCondition(lhs: .variableRef("currentAnimation"), .notEqual, rhs: .string("idle")) { change in
                         change.playAnimation("idle", loop: true)
@@ -153,7 +153,7 @@ extension GenerateScripts {
                 
                 // Jump animation (one-shot, doesn't loop)
                 .getKeyState("space", as: "spacePressed")
-                .ifCondition(lhs: .variableRef("spacePressed"), .equal, rhs: .bool(true)) { n in
+                .ifEqual("spacePressed", to: true) { n in
                     n.playAnimation("jumping", loop: false)
                     n.setVariable("currentAnimation", to: "jumping")
                     n.log("Playing jump animation")
@@ -251,8 +251,8 @@ extension GenerateScripts {
             s.onUpdate()
                 // Press P to play animation
                 .getKeyState("p", as: "pPressed")
-                .ifCondition(lhs: .variableRef("pPressed"), .equal, rhs: .bool(true)) { n in
-                    n.ifCondition(lhs: .variableRef("isPlaying"), .equal, rhs: .bool(false)) { play in
+                .ifEqual("pPressed", to: true) { n in
+                    n.ifEqual("isPlaying", to: false) { play in
                         play.playAnimation("walking", loop: true)
                         play.setVariable("isPlaying", to: true)
                         play.log("Animation playing")
@@ -261,8 +261,8 @@ extension GenerateScripts {
                 
                 // Press O to stop animation
                 .getKeyState("o", as: "oPressed")
-                .ifCondition(lhs: .variableRef("oPressed"), .equal, rhs: .bool(true)) { n in
-                    n.ifCondition(lhs: .variableRef("isPlaying"), .equal, rhs: .bool(true)) { stop in
+                .ifEqual("oPressed", to: true) { n in
+                    n.ifEqual("isPlaying", to: true) { stop in
                         stop.stopAnimation()
                         stop.setVariable("isPlaying", to: false)
                         stop.log("Animation stopped")
@@ -306,21 +306,21 @@ extension GenerateScripts {
                 
                 // Check for movement input
                 .getKeyState("w", as: "moving")
-                .ifCondition(lhs: .variableRef("moving"), .equal, rhs: .bool(true)) { n in
+                .ifEqual("moving", to: true) { n in
                     n.setVariable("newState", to: "walking")
                 }
                 
                 // Check for sprint (Shift + movement)
                 .getKeyState("lshift", as: "sprinting")
-                .ifCondition(lhs: .variableRef("sprinting"), .equal, rhs: .bool(true)) { n in
-                    n.ifCondition(lhs: .variableRef("moving"), .equal, rhs: .bool(true)) { sprint in
+                .ifEqual("sprinting", to: true) { n in
+                    n.ifEqual("moving", to: true) { sprint in
                         sprint.setVariable("newState", to: "running")
                     }
                 }
                 
                 // Check for jump (highest priority)
                 .getKeyState("space", as: "jumping")
-                .ifCondition(lhs: .variableRef("jumping"), .equal, rhs: .bool(true)) { n in
+                .ifEqual("jumping", to: true) { n in
                     n.setVariable("newState", to: "jumping")
                 }
                 
@@ -386,21 +386,21 @@ extension GenerateScripts {
                 
                 // Forward movement with W
                 .getKeyState("w", as: "wPressed")
-                .ifCondition(lhs: .variableRef("wPressed"), .equal, rhs: .bool(true)) { n in
+                .ifEqual("wPressed", to: true) { n in
                     n.setVariable("isMoving", to: true)
-                    n.setVariable("offset", to: Vec3(x: 0, y: 0, z: 0.1))
-                    n.addVec3("currentPos", "offset", as: "newPos")
+                    n.setVariable("offset", to: simd_float3(x: 0, y: 0, z: 0.1))
+                    n.addsimd_float3("currentPos", "offset", as: "newPos")
                     n.setProperty(.position, toVariable: "newPos")
                 }
                 
                 // Switch animations based on movement
-                .ifCondition(lhs: .variableRef("isMoving"), .equal, rhs: .bool(true)) { n in
+                .ifEqual("isMoving", to: true) { n in
                     n.ifCondition(lhs: .variableRef("currentAnim"), .notEqual, rhs: .string("walking")) { change in
                         change.playAnimation("walking", loop: true)
                         change.setVariable("currentAnim", to: "walking")
                     }
                 }
-                .ifCondition(lhs: .variableRef("isMoving"), .equal, rhs: .bool(false)) { n in
+                .ifEqual("isMoving", to: false) { n in
                     n.ifCondition(lhs: .variableRef("currentAnim"), .notEqual, rhs: .string("idle")) { change in
                         change.playAnimation("idle", loop: true)
                         change.setVariable("currentAnim", to: "idle")
