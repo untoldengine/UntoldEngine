@@ -354,6 +354,11 @@ All behaviors are instruction helpers—no `callAction` or `ScriptArgKey`.
 s.seek(targetPosition: .vec3(x: 10, y: 0, z: 0),
        maxSpeed: .float(5.0),
        result: "seekForce")
+       
+s.steerSeek(targetPosition: .variableRef("targetPos"),
+           maxSpeed: .variableRef("maxSpeed"),
+           deltaTime: .variableRef("dt"),
+           turnSpeed: .variableRef("turnSpeed"))
 
 // Arrive with slowing radius
 s.steerArrive(targetPosition: .variableRef("targetPos"),
@@ -366,6 +371,12 @@ s.steerArrive(targetPosition: .variableRef("targetPos"),
 s.steerEvade(threatEntity: .string("Enemy"),
              maxSpeed: .float(6.0),
              result: "evadeForce")    // omit result to apply immediately
+             
+// Pursuit
+s.steerPursuit(targetEntity: .variableRef("targetName"),
+              maxSpeed: .variableRef("maxSpeed"),
+              deltaTime: .variableRef("dt"),
+              turnSpeed: .variableRef("turnSpeed"))
 
 // Align orientation to current velocity (smooth)
 s.alignOrientation(deltaTime: .float(0.016),
