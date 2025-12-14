@@ -53,7 +53,7 @@ public final class USCBuilder {
     @discardableResult
     public func ifLess(_ property: String, than value: Float, do block: (USCBuilder) -> Void) -> USCBuilder {
         instructions.append(.getProperty(entity: "self", key: property, as: property))
-        instructions.append(.ifCondition(.init(lhs: .variableRef(property), op: .less, rhs: .float(value))))
+        instructions.append(.ifCondition(.init(left: .variableRef(property), comparison: .less, right: .float(value))))
         let nested = USCBuilder(); block(nested); instructions.append(contentsOf: nested.instructions)
         instructions.append(.endIf)
         return self
