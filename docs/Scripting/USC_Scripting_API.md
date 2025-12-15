@@ -162,14 +162,14 @@ interpreter.execute(script: script, context: context, forEvent: nil)  // onUpdat
 ## 3. Script Context
 
 Every script runs with a **context** that provides access to:
-- **Entity properties** (position, rotation, velocity, etc.)
+- **Entity properties** (position, scale, velocity, acceleration, lights)
 - **Script variables** (custom data you store)
 - **Engine state** (delta time, input, etc.)
 
 You access the entity's properties using `.getProperty()` and `.setProperty()`.
 
 **Available at Runtime:**
-- Current entity's transform (position, rotation, scale)
+- Current entity's transform (position, scale)
 - Physics properties (velocity, acceleration, mass)
 - Rendering properties (color, intensity for lights)
 - All script variables you've defined
@@ -200,9 +200,9 @@ s.ifCondition(
 ```
 
 **Available operators:**
-- `.greater` - Greater than
-- `.less` - Less than
-- `.equal` - Equal to
+- `.greater`, `.less`
+- `.equal`, `.notEqual`
+- `.lessOrEqual`, `.greaterOrEqual`
 
 **Convenience conditionals:**
 ```swift
@@ -271,13 +271,16 @@ s.setVariable("currentSpeed", to: .variableRef("maxSpeed"))  // Copy value
 ```swift
 enum ScriptProperty: String {
     // Transform
-    case position, rotation, scale
-    
+    case position, scale
+
     // Physics
-    case velocity, acceleration, mass
-    
+    case velocity, acceleration, mass, angularVelocity
+
     // Rendering (lights)
     case intensity, color
+
+    // Engine time
+    case deltaTime
 }
 ```
 
@@ -285,14 +288,17 @@ enum ScriptProperty: String {
 ```swift
 s.getProperty(.position, as: "pos")        // Store position in "pos" variable
 s.getProperty(.velocity, as: "vel")        // Store velocity in "vel" variable
-s.getProperty(.rotation, as: "rot")        // Store rotation in "rot" variable
+s.getProperty(.deltaTime, as: "dt")        // Store frame delta time
 ```
 
 **Writing Properties:**
 ```swift
 s.setProperty(.position, toVariable: "newPos")                  // Set from variable
 s.setProperty(.velocity, to: simd_float3(x: 0, y: 5, z: 0))     // Set from literal
+s.setProperty(.angularVelocity, to: simd_float3(x: 0, y: 1, z: 0)) // Set spin (write-only today)
 ```
+
+> Note: Rotation is controlled through `rotateTo` / `rotateBy` instructions. Reading rotation via `getProperty(.rotation, ...)` is not yet supported.
 
 **Complete Example:**
 ```swift
@@ -564,11 +570,11 @@ s.onUpdate()
 
 ## 12. Best Practices
 
-### Use Enums for Type Safety
+### Use enums instead of raw strings
 ✅ **Good:**
 ```swift
 s.getProperty(.position, as: "pos")
-s.callAction(.seek, args: [.targetPosition: "target"], result: "force")
+s.setProperty(.velocity, toVariable: "vel")
 ```
 
 ❌ **Avoid:**
@@ -596,8 +602,11 @@ let script = buildScript(name: "Enemy") { s in
     
     // Main loop
     s.onUpdate()
-        .callAction(.seek, args: [.targetPosition: "playerPos"], result: "force")
-        .applyForce(force: .variableRef("force"))
+        .setVariable("maxSpeed", to: 5.0)
+        .seek(targetPosition: .string("Player"),
+              maxSpeed: .variableRef("maxSpeed"),
+              result: "steer")
+        .applyForce(force: .variableRef("steer"))
     
     // Event handlers (collision system coming soon)
     s.onCollision(tag: "Bullet")

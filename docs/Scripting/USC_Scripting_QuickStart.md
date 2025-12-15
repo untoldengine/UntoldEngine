@@ -103,7 +103,7 @@ extension GenerateScripts {
             // Run every frame
             s.onUpdate()
                 .getProperty(.position, as: "pos")
-                .setVariable("offset", to: Vec3(x: 0.0, y: 0.1, z: 0.0))
+                .setVariable("offset", to: simd_float3(x: 0.0, y: 0.1, z: 0.0))
                 .addVec3("pos", "offset", as: "newPos")
                 .setProperty(.position, toVariable: "newPos")
         }
@@ -201,7 +201,7 @@ extension GenerateScripts {
         let script = buildScript(name: "MovingCube") { s in
             s.onUpdate()
                 .getProperty(.position, as: "pos")
-                .setVariable("offset", to: Vec3(x: 0.1, y: 0.0, z: 0.0))  // Changed to move sideways
+                .setVariable("offset", to: simd_float3(x: 0.1, y: 0.0, z: 0.0))  // Changed to move sideways
                 .addVec3("pos", "offset", as: "newPos")
                 .setProperty(.position, toVariable: "newPos")
         }
@@ -247,9 +247,9 @@ Back in UntoldEditor:
 
 Check out `USC_Scripting_API.md` for:
 - Input handling (`.ifKeyPressed()`)
-- AI behaviors (`.callAction(.seek, ...)`)
-- Math operations (`.addVec3()`, `.normalize()`)
-- Flow control (`.ifCondition()`, `.loop()`)
+- Steering helpers (`.seek()`, `.steerSeek()`, `.cameraFollow()`)
+- Math operations (`.addVec3()`, `.normalizeVec3()`)
+- Flow control (`.ifCondition()`, `.ifGreater()`, `.else`)
 
 ### Create Common Scripts
 
@@ -259,16 +259,16 @@ Try building these next:
 ```swift
 s.onUpdate()
     .ifKeyPressed("W") { n in
-        n.applyForce(force: Vec3(x: 0, y: 0, z: -5))
+        n.applyForce(force: simd_float3(x: 0, y: 0, z: -5))
     }
     .ifKeyPressed("S") { n in
-        n.applyForce(force: Vec3(x: 0, y: 0, z: 5))
+        n.applyForce(force: simd_float3(x: 0, y: 0, z: 5))
     }
     .ifKeyPressed("A") { n in
-        n.applyForce(force: Vec3(x: -5, y: 0, z: 0))
+        n.applyForce(force: simd_float3(x: -5, y: 0, z: 0))
     }
     .ifKeyPressed("D") { n in
-        n.applyForce(force: Vec3(x: 5, y: 0, z: 0))
+        n.applyForce(force: simd_float3(x: 5, y: 0, z: 0))
     }
 ```
 
