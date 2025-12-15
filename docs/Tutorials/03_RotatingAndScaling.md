@@ -1,7 +1,7 @@
 # Tutorial 3: Rotating and Scaling Objects
 
 **What you'll learn:**
-- Accessing and modifying entity rotation
+- Rotating objects with `rotateTo` / `rotateBy`
 - Rotating objects continuously over time
 - Scaling objects dynamically
 - Combining multiple transformations
@@ -137,6 +137,7 @@ extension GenerateScripts {
                 .setVariable("time", to: 0.0)
                 .setVariable("minScale", to: 0.5)
                 .setVariable("maxScale", to: 2.0)
+                .setVariable("baseScale", to: simd_float3(x: 1, y: 1, z: 1))
                 .log("Pulse effect initialized")
             
             s.onUpdate()
@@ -152,14 +153,10 @@ extension GenerateScripts {
                 // Calculate scale using oscillation
                 .mulFloat("time", literal: 0.5, as: "scaleFactor")  // Oscillation factor
                 
-                // Create uniform scale vector
-                .setVariable("scaleValue", to: 1.0)
-                .addFloat("scaleValue", "scaleFactor", as: "finalScale")
-                .setVariable("scaleVec", to: simd_float3(x: .variableRef("finalScale"), 
-                                                   y: .variableRef("finalScale"), 
-                                                   z: .variableRef("finalScale")))
-                
-                // Apply scale
+                // Build uniform scale vector and clamp to min/max
+                .addFloat("scaleFactor", literal: 1.0, as: "finalScaleRaw")
+                .clampFloat("finalScaleRaw", min: "minScale", max: "maxScale", as: "finalScale")
+                .scaleVec3("baseScale", by: "finalScale", as: "scaleVec")
                 .setProperty(.scale, toVariable: "scaleVec")
         }
         
@@ -211,6 +208,9 @@ extension GenerateScripts {
                 .setVariable("time", to: 0.0)
                 .setVariable("orbitRadius", to: 5.0)
                 .setVariable("orbitSpeed", to: 0.05)
+                .setVariable("basePos", to: simd_float3(x: 0, y: 2, z: 0))
+                .setVariable("xAxisUnit", to: simd_float3(x: 1, y: 0, z: 0))
+                .setVariable("baseScale", to: simd_float3(x: 1, y: 1, z: 1))
                 .log("Combo transform initialized")
             
             s.onUpdate()
@@ -221,11 +221,9 @@ extension GenerateScripts {
                 // Calculate circular orbit position
                 // Simplified: just oscillate X position
                 .mulFloat("orbitRadius", "time", as: "xPos")
-                .setVariable("circlePos", to: simd_float3(
-                    x: .variableRef("xPos"),
-                    y: 2.0,  // Height
-                    z: 0.0
-                ))
+                .scaleVec3("xAxisUnit", by: "xPos", as: "xOffset")
+                .setVariable("circlePos", fromVariable: "basePos")
+                .addVec3("circlePos", "xOffset", as: "circlePos")
                 
                 // Apply position
                 .setProperty(.position, toVariable: "circlePos")
@@ -240,11 +238,7 @@ extension GenerateScripts {
                 // Scale while rotating
                 .mulFloat("time", literal: 0.3, as: "scaleVal")
                 .addFloat("scaleVal", literal: 1.0, as: "finalScale")
-                .setVariable("scaleVec", to: simd_float3(
-                    x: .variableRef("finalScale"),
-                    y: .variableRef("finalScale"),
-                    z: .variableRef("finalScale")
-                ))
+                .scaleVec3("baseScale", by: "finalScale", as: "scaleVec")
                 .setProperty(.scale, toVariable: "scaleVec")
         }
         
@@ -265,17 +259,7 @@ This creates a hypnotic, complex motion from simple components!
 
 ---
 
-## Working with Rotation
-
-### Reading Current Rotation
-
-```swift
-s.onUpdate()
-    .getProperty(.rotation, as: "currentRot")
-    .log("Current rotation")
-```
-
-### Rotation Axes
+## Rotation Axes
 
 **Y-axis (most common):**
 ```swift
@@ -315,14 +299,14 @@ s.onUpdate()
 s.onUpdate()
     .getProperty(.scale, as: "scale")
     .setVariable("growth", to: simd_float3(x: 0.01, y: 0.01, z: 0.01))
-    .addsimd_float3("scale", "growth", as: "newScale")
+    .addVec3("scale", "growth", as: "newScale")
     .setProperty(.scale, toVariable: "newScale")
 ```
 
 **Shrink over time:**
 ```swift
 .setVariable("shrink", to: simd_float3(x: -0.01, y: -0.01, z: -0.01))
-.addsimd_float3("scale", "shrink", as: "newScale")
+.addVec3("scale", "shrink", as: "newScale")
 ```
 
 ---

@@ -96,7 +96,7 @@ extension GenerateScripts {
         let script = buildScript(name: "PlayerController") { s in
             s.onUpdate()
                 .getProperty(.position, as: "pos")
-                .setVariable("offset", to: Vec3(x: 0.0, y: 0.1, z: 0.0))
+                .setVariable("offset", to: simd_float3(x: 0.0, y: 0.1, z: 0.0))
                 .addVec3("pos", "offset", as: "newPos")
                 .setProperty(.position, toVariable: "newPos")
         }
@@ -193,7 +193,7 @@ Common DSL methods available in your scripts:
 **Properties:**
 - `.getProperty(.position, as: "varName")` - Read entity property
 - `.setProperty(.velocity, toVariable: "varName")` - Write from variable
-- `.setProperty(.position, to: Vec3(...))` - Write from literal
+- `.setProperty(.position, to: simd_float3(...))` - Write from literal
 
 **Control Flow:**
 - `.ifCondition(lhs: .variableRef("var"), .greater, rhs: .float(10)) { ... }`
@@ -202,13 +202,13 @@ Common DSL methods available in your scripts:
 - `.ifEqual("var", to: 1.0) { ... }` - Convenience method
 
 **Physics:**
-- `.applyForce(force: Vec3(...))` - Apply force (literal Vec3 only)
+- `.applyForce(force: simd_float3(...))` - Apply force (literal vector only)
 
 **Transform:**
 - `.translateTo(x:, y:, z:)` - Set absolute position
 - `.translateBy(x:, y:, z:)` - Move relative
-- `.rotateTo(degrees:, axis: Vec3(...))` - Set rotation
-- `.rotateBy(degrees:, axis: Vec3(...))` - Rotate relative
+- `.rotateTo(degrees:, axis: simd_float3(...))` - Set rotation
+- `.rotateBy(degrees:, axis: simd_float3(...))` - Rotate relative
 
 **Math:**
 - `.addVec3("v1", "v2", as: "result")`
