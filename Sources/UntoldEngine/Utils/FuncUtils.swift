@@ -454,6 +454,9 @@ public func getAllGameEntities() -> [EntityID] {
     let entities: [EntityID] = scene.getAllEntities()
 
     for entityId in entities {
+        // Skip entities that are pending destroy (mask will be nil)
+        guard scene.mask(for: entityId) != nil else { continue }
+
         if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) || hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
             continue
         }
