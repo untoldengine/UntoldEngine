@@ -259,6 +259,9 @@ public enum RenderPasses {
 
         // Iterate over the entities found by the component query
         for entityId in visibleEntityIds {
+            // Skip entities that are pending destroy
+            if scene.mask(for: entityId) == nil { continue }
+
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
             if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
 
@@ -431,6 +434,9 @@ public enum RenderPasses {
 
         // Iterate over the entities found by the component query
         for entityId in visibleEntityIds {
+            // Skip entities that are pending destroy
+            if scene.mask(for: entityId) == nil { continue }
+
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
             if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
 
