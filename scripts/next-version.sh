@@ -5,7 +5,7 @@
 # -------------------------------------------------------------
 #  Description:
 #    Determines the next semantic version of the Untold Engine
-#    by comparing the current release branch (e.g. release/0.3.0)
+#    by comparing the current base ref (release/x.y.z branch or vX.Y.Z tag)
 #    against the latest commits in develop.
 #
 #    The script scans commit messages between the release branch
@@ -25,14 +25,14 @@
 #                 snapshot documentation for the new release
 #
 #  Usage Examples:
-#    ./scripts/next-version.sh
+#    ./scripts/next-version.sh               # auto-picks latest vX.Y.Z tag from develop
 #    ./scripts/next-version.sh --with-v
 #    ./scripts/next-version.sh release/0.3.0 --cliff
-#    ./scripts/next-version.sh --cliff --docs
+#    ./scripts/next-version.sh v0.3.0 --cliff --docs
 #
 #  Notes:
 #    - Must be executed from the repository root.
-#    - Assumes release branches follow the pattern release/x.y.z.
+#    - Base ref can be a release/x.y.z branch or vX.Y.Z tag.
 #    - Designed to simplify the Untold Engine release flow by
 #      automating version calculation, changelog generation, and
 #      docs versioning in a single step.
@@ -44,38 +44,44 @@ set -euo pipefail
 WITH_V="false"
 DO_CLIFF="false"
 DO_DOCS="false"
-BASE_BRANCH=""
+BASE_REF=""
 
 for arg in "$@"; do
   case "$arg" in
     --with-v) WITH_V="true" ;;
     --cliff)  DO_CLIFF="true" ;;
     --docs)   DO_DOCS="true" ;;
-    release/*) BASE_BRANCH="$arg" ;;
+    release/*) BASE_REF="$arg" ;;
+    v[0-9]*|[0-9]*.[0-9]*.[0-9]*) BASE_REF="$arg" ;; # allow tags like v0.3.0 or 0.3.0
     *) echo "Unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
 
-# Auto-pick latest local release/* branch if none provided
-if [[ -z "${BASE_BRANCH}" ]]; then
-  BASE_BRANCH="$(git for-each-ref --sort=-committerdate --format='%(refname:short)' refs/heads/release/ | head -n1 || true)"
+# Auto-pick latest reachable tag (vX.Y.Z) from develop if none provided
+if [[ -z "${BASE_REF}" ]]; then
+  BASE_REF="$(git describe --tags --match 'v[0-9]*' --abbrev=0 develop 2>/dev/null || true)"
 fi
-[[ -n "${BASE_BRANCH}" ]] || { echo "No local release/* branch found; provide one (e.g., release/0.3.0)." >&2; exit 1; }
+[[ -n "${BASE_REF}" ]] || { echo "No base ref found. Pass a release branch (release/x.y.z) or tag (vX.Y.Z)." >&2; exit 1; }
 
-# Parse base version from branch name release/x.y.z
-if [[ ! "${BASE_BRANCH}" =~ ^release/([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-  echo "Base branch must be named like release/x.y.z (got: ${BASE_BRANCH})" >&2
+# Parse base version from branch or tag name
+if [[ "${BASE_REF}" =~ ^release/([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+  BASE_MAJOR="${BASH_REMATCH[1]}"
+  BASE_MINOR="${BASH_REMATCH[2]}"
+  BASE_PATCH="${BASH_REMATCH[3]}"
+elif [[ "${BASE_REF}" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+  BASE_MAJOR="${BASH_REMATCH[1]}"
+  BASE_MINOR="${BASH_REMATCH[2]}"
+  BASE_PATCH="${BASH_REMATCH[3]}"
+else
+  echo "Base ref must look like release/x.y.z or vX.Y.Z (got: ${BASE_REF})" >&2
   exit 1
 fi
-BASE_MAJOR="${BASH_REMATCH[1]}"
-BASE_MINOR="${BASH_REMATCH[2]}"
-BASE_PATCH="${BASH_REMATCH[3]}"
 
 # Ensure develop exists locally
 git rev-parse --verify develop >/dev/null 2>&1 || { echo "Local branch 'develop' not found." >&2; exit 1; }
 
 # Collect commit messages BASE..develop (local)
-LOG="$(git log --pretty=%B "${BASE_BRANCH}..develop" || true)"
+LOG="$(git log --pretty=%B "${BASE_REF}..develop" || true)"
 
 # Highest bump wins
 if echo "$LOG" | grep -q "\[API Change\]"; then
@@ -109,7 +115,7 @@ fi
 if [[ "${DO_CLIFF}" == "true" ]]; then
   command -v git-cliff >/dev/null 2>&1 || { echo "git-cliff not found. Install it first." >&2; exit 1; }
   TAG="v${NEXT}"
-  RANGE="${BASE_BRANCH}..HEAD"
+  RANGE="${BASE_REF}..HEAD"
   git cliff "${RANGE}" --tag "${TAG}" --prepend CHANGELOG.md
 fi
 
@@ -117,9 +123,17 @@ fi
 if [[ "${DO_DOCS}" == "true" ]]; then
   command -v npm >/dev/null 2>&1 || { echo "npm not found. Please install Node.js." >&2; exit 1; }
 
-  echo "🧭 Running Docusaurus versioning for ${NEXT}..."
-  npm run docusaurus docs:version "${NEXT}"
+  DOCS_DIR="website"
+  if [[ -d "${DOCS_DIR}" && -f "${DOCS_DIR}/package.json" ]]; then
+    echo "🧭 Running Docusaurus versioning for ${NEXT} (in ${DOCS_DIR})..."
+    (
+      cd "${DOCS_DIR}"
+      npm run docusaurus docs:version "${NEXT}"
+    )
+  else
+    echo "🧭 Running Docusaurus versioning for ${NEXT} (current directory)..."
+    npm run docusaurus docs:version "${NEXT}"
+  fi
 
   echo "✅ Docusaurus version ${NEXT} created."
 fi
-
