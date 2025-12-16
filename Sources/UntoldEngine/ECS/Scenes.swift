@@ -165,7 +165,7 @@ public struct Scene {
         }
     }
 
-    func mask(for entityId: EntityID) -> ComponentMask? {
+    public func mask(for entityId: EntityID) -> ComponentMask? {
         let idx = getEntityIndex(entityId)
         let e = entities[Int(idx)]
         guard e.entityId == entityId, !e.freed, !e.pendingDestroy else { return nil }
