@@ -1,3 +1,7 @@
+---
+slug: /intro
+---
+
 # Untold Engine Documentation
 
 Welcome to the **Untold Engine documentation**.

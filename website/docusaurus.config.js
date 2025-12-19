@@ -31,7 +31,7 @@ module.exports = {
       ({
         docs: {
           path: path.resolve(__dirname, '..', 'docs'),
-          routeBasePath: '/docs',
+          routeBasePath: 'docs',
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl: `https://github.com/${ORG}/${REPO}/edit/master/docs/`,
           showLastUpdateTime: true,
@@ -43,22 +43,11 @@ module.exports = {
     ],
   ],
 
-  plugins: [
-    [
-      '@docusaurus/plugin-client-redirects',
-      {
-        redirects: [
-          { from: ['/docs/intro', '/docs/intro/'], to: '/docs/Intro' },
-        ],
-      },
-    ],
-  ],
-
   themeConfig: {
     navbar: {
       title: 'Untold Engine',
       items: [
-        { to: '/docs/Intro', label: 'Docs', position: 'left' },
+        { type: 'doc', docId: 'Intro', label: 'Docs', position: 'left' },
         { href: `https://github.com/${ORG}/${REPO}`, label: 'GitHub', position: 'right' },
       ],
     },
