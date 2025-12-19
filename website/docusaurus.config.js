@@ -43,15 +43,26 @@ module.exports = {
     ],
   ],
 
+  plugins: [
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        redirects: [
+          { from: ['/docs', '/docs/'], to: '/docs/Intro' },
+          { from: ['/docs/intro', '/docs/intro/'], to: '/docs/Intro' },
+        ],
+      },
+    ],
+  ],
+
   themeConfig: {
     navbar: {
       title: 'Untold Engine',
       items: [
-        { to: '/docs/intro', label: 'Docs', position: 'left' },
+        { to: '/docs/Intro', label: 'Docs', position: 'left' },
         { href: `https://github.com/${ORG}/${REPO}`, label: 'GitHub', position: 'right' },
       ],
     },
     prism: { additionalLanguages: ['swift', 'c', 'cpp', 'hlsl', 'glsl'] },
   },
 };
-

@@ -1,4 +1,6 @@
 ---
+id: Intro
+slug: /Intro
 sidebar_position: 1
 ---
 

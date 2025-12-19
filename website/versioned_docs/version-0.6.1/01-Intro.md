@@ -1,3 +1,8 @@
+---
+id: Intro
+slug: /Intro
+---
+
 # Untold Engine Documentation
 
 Welcome to the **Untold Engine documentation**.
@@ -107,4 +112,3 @@ If you are unsure where to begin:
 - Contributors: **Engine Development → Architecture**
 
 Each section is designed to stand on its own.
-
