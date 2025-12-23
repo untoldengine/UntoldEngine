@@ -26,6 +26,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     private var configuration: UntoldRendererConfig
     public var delegate: UntoldRendererDelegate?
+    private var pendingResize = false
 
     init(configuration: UntoldRendererConfig? = nil) {
         self.configuration = configuration ?? .default
@@ -229,6 +230,10 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     public func draw(in view: MTKView) {
+        if pendingResize {
+            initSizeableResources()
+            pendingResize = false
+        }
         _ = runFrame(
             beforeRender: { [weak self] in self?.delegate?.willDraw(in: view) },
             render: { [weak self] in
@@ -241,6 +246,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     public func mtkView(_ mtkView: MTKView, drawableSizeWillChange size: CGSize) {
         let oldSize = mtkView.drawableSize
+        if size.width == 0 || size.height == 0 {
+            return
+        }
 
         let aspect = Float(size.width) / Float(size.height)
         let projectionMatrix = matrixPerspectiveRightHand(
@@ -252,16 +260,13 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         let viewPortSize: simd_float2 = simd_make_float2(Float(size.width), Float(size.height))
         renderInfo.viewPort = viewPortSize
 
-        if oldSize.width == 0 || oldSize.height == 0 {
-            // Init sizeable resources
-            initSizeableResources()
-        } else if abs(oldSize.width - size.height) < 0.1,
-                  abs(oldSize.height - size.width) < 0.1
-        {
-            // Init the resources again becasue the rotation of the screen
-            initResources()
+        let sizeChanged = abs(oldSize.width - size.width) > 0.1 || abs(oldSize.height - size.height) > 0.1
+        if size.width > 0, size.height > 0, sizeChanged {
+            // Recreate viewport-sized resources once at the start of the next frame.
+            if !pendingResize {
+                pendingResize = true
+            }
         }
-        // TODO: We should init the resources again if they change the view size?
     }
 
     // MARK: - XR Entry Point (VisionOS)
