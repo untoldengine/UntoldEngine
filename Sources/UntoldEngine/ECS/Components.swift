@@ -38,6 +38,7 @@ public class RenderComponent: Component {
     public var mesh: [Mesh]
     var assetURL: URL = .init(fileURLWithPath: "")
     var assetName: String = ""
+    public var isVisible: Bool = true // Visibility flag for bulk loading
 
     public required init() {
         mesh = []

@@ -295,8 +295,13 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     var entityAABBContainer: [EntityAABB] = []
 
     for entityId in entities {
-        guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
             handleError(.noRenderComponent, entityId)
+            continue
+        }
+
+        // Skip entities that are hidden (e.g., during bulk loading)
+        if !renderComponent.isVisible {
             continue
         }
 
@@ -454,8 +459,13 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     var entityAABBContainer: [EntityAABB] = []
 
     for entityId in entities {
-        guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
             handleError(.noRenderComponent, entityId)
+            continue
+        }
+
+        // Skip entities that are hidden (e.g., during bulk loading)
+        if !renderComponent.isVisible {
             continue
         }
 
@@ -466,10 +476,6 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
             handleError(.noLocalTransformComponent, entityId)
-            continue
-        }
-
-        if hasComponent(entityId: entityId, componentType: GizmoComponent.self) {
             continue
         }
 

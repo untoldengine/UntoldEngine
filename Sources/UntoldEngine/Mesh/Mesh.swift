@@ -180,6 +180,60 @@ public struct Mesh {
         return makeDefaultMesh()
     }
 
+    // Load meshes asynchronously from a file URL
+    static func loadMeshesAsync(
+        url: URL,
+        vertexDescriptor: MDLVertexDescriptor,
+        device: MTLDevice,
+        flip: Bool,
+        coordinateConversion: CoordinateSystemConversion = .autoDetect,
+        progressHandler: ((Int, Int) -> Void)? = nil
+    ) async -> [Mesh] {
+        // Perform heavy I/O work on background thread
+        let asset = await Task.detached {
+            let bufferAllocator = MTKMeshBufferAllocator(device: device)
+            let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
+
+            // Apply coordinate system conversion
+            let transform = orientationTransformForAsset(asset, conversion: coordinateConversion)
+            if transform != matrix_identity_float4x4 {
+                for object in asset.childObjects(of: MDLObject.self) {
+                    object.transform = MDLTransform(matrix: simd_mul(transform, object.transform?.matrix ?? .identity))
+                }
+            }
+
+            // Load textures on background thread
+            asset.loadTextures()
+
+            return asset
+        }.value
+
+        // Create Metal resources on main thread
+        return await MainActor.run {
+            let textureLoader = TextureLoader(device: device)
+            let objects = asset.childObjects(of: MDLObject.self)
+
+            var allMeshes: [Mesh] = []
+            var processedCount = 0
+            let totalObjects = objects.count
+
+            for object in objects {
+                let meshes = makeMeshes(object: object, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip)
+                allMeshes.append(contentsOf: meshes)
+
+                processedCount += 1
+                progressHandler?(processedCount, totalObjects)
+            }
+
+            if !allMeshes.isEmpty {
+                return allMeshes
+            }
+
+            // Fallback to default mesh
+            return makeDefaultMesh()
+        }
+    }
+
     static func loadSceneMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, coordinateConversion: CoordinateSystemConversion = .autoDetect) -> [[Mesh]] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
@@ -198,6 +252,83 @@ public struct Mesh {
 
         let meshGroups: [[Mesh]] = asset.childObjects(of: MDLObject.self).map {
             makeMeshes(object: $0, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: true)
+        }
+
+        // If the scene had no objects (or everything failed), return a single fallback group
+        if meshGroups.isEmpty || meshGroups.allSatisfy(\.isEmpty) {
+            Logger.logWarning(message: "Scene contained no usable meshes: \(url.lastPathComponent). Returning a single default fallback mesh.")
+            return [makeDefaultMesh()]
+        }
+
+        return meshGroups
+    }
+
+    // Load scene meshes asynchronously from a file URL
+    static func loadSceneMeshesAsync(
+        url: URL,
+        vertexDescriptor: MDLVertexDescriptor,
+        device: MTLDevice,
+        coordinateConversion: CoordinateSystemConversion = .autoDetect,
+        progressHandler: ((Int, Int) -> Void)? = nil
+    ) async -> [[Mesh]] {
+        // Perform heavy I/O work on background thread
+        let asset = await Task.detached {
+            let bufferAllocator = MTKMeshBufferAllocator(device: device)
+            let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
+
+            // Apply coordinate system conversion
+            let transform = orientationTransformForAsset(asset, conversion: coordinateConversion)
+            if transform != matrix_identity_float4x4 {
+                for object in asset.childObjects(of: MDLObject.self) {
+                    object.transform = MDLTransform(matrix: simd_mul(transform, object.transform?.matrix ?? .identity))
+                }
+            }
+
+            // Load textures on background thread
+            asset.loadTextures()
+
+            return asset
+        }.value
+
+        // Create Metal resources on main thread with yielding
+        let textureLoader = TextureLoader(device: device)
+        let objects = asset.childObjects(of: MDLObject.self)
+
+        // First pass: count total meshes for accurate progress
+        var totalMeshCount = 0
+        for object in objects {
+            if let _ = object as? MDLMesh {
+                totalMeshCount += 1
+            } else if object.conforms(to: MDLObjectContainerComponent.self) {
+                func countMeshes(_ obj: MDLObject) -> Int {
+                    var count = 0
+                    if let _ = obj as? MDLMesh { count += 1 }
+                    for child in obj.children.objects {
+                        count += countMeshes(child)
+                    }
+                    return count
+                }
+                totalMeshCount += countMeshes(object)
+            }
+        }
+
+        var meshGroups: [[Mesh]] = []
+        var processedMeshes = 0
+
+        // Process objects in small batches to keep UI responsive
+        let batchSize = 3 // Process 3 objects at a time, then yield
+        for (index, object) in objects.enumerated() {
+            await MainActor.run {
+                let meshes = makeMeshes(object: object, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: true)
+                meshGroups.append(meshes)
+                processedMeshes += meshes.count
+                progressHandler?(processedMeshes, totalMeshCount)
+            }
+
+            // After every batch, give UI time to update
+            if (index + 1) % batchSize == 0 {
+                try? await Task.sleep(nanoseconds: 16_000_000) // 16ms (~1 frame at 60fps)
+            }
         }
 
         // If the scene had no objects (or everything failed), return a single fallback group
@@ -243,6 +374,65 @@ public struct Mesh {
         }
 
         return []
+    }
+
+    // Load a specific mesh by name asynchronously from a file URL
+    static func loadMeshWithNameAsync(
+        name: String,
+        url: URL,
+        vertexDescriptor: MDLVertexDescriptor,
+        device: MTLDevice,
+        coordinateConversion: CoordinateSystemConversion = .autoDetect,
+        progressHandler: ((Int, Int) -> Void)? = nil
+    ) async -> [Mesh] {
+        // Perform heavy I/O work on background thread
+        let matchedObject = await Task.detached {
+            let bufferAllocator = MTKMeshBufferAllocator(device: device)
+            let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
+
+            // Apply coordinate system conversion
+            let transform = orientationTransformForAsset(asset, conversion: coordinateConversion)
+            if transform != matrix_identity_float4x4 {
+                for object in asset.childObjects(of: MDLObject.self) {
+                    object.transform = MDLTransform(matrix: simd_mul(transform, object.transform?.matrix ?? .identity))
+                }
+            }
+
+            // Load textures on background thread
+            asset.loadTextures()
+
+            // Find the matching object
+            let topLevelObjects = asset.childObjects(of: MDLObject.self)
+            let matched = topLevelObjects.first { $0.name == name }
+
+            return matched
+        }.value
+
+        // Create Metal resources on main thread
+        return await MainActor.run {
+            guard let mdlObject = matchedObject else {
+                return []
+            }
+
+            let textureLoader = TextureLoader(device: device)
+            var meshGroup: [Mesh] = []
+
+            let children = mdlObject.children.objects
+            let totalChildren = children.count
+            var processedCount = 0
+
+            for child in children {
+                if let mesh = child as? MDLMesh {
+                    let meshes = makeMeshes(object: mesh, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: renderInfo.device, flip: true)
+                    meshGroup.append(contentsOf: meshes)
+                }
+
+                processedCount += 1
+                progressHandler?(processedCount, totalChildren)
+            }
+
+            return meshGroup
+        }
     }
 
     // Recursively find and create Mesh objects from ModelIO hierarchy
