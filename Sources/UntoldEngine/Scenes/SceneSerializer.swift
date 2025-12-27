@@ -118,12 +118,35 @@ struct MaterialData: Codable {
     var normalURL: URL? = nil
 }
 
+// MARK: - Asset Instance Data
+
+struct LocalTransformOverrideData: Codable {
+    var position: simd_float3?
+    var scale: simd_float3?
+    var axisOfRotations: simd_float3?
+}
+
+struct AssetOverrideData: Codable {
+    var nodePath: String
+    var transform: LocalTransformOverrideData?
+    var material: MaterialData?
+    var visibility: Bool?
+}
+
+struct AssetInstanceData: Codable {
+    var assetURL: URL
+    var assetName: String
+    var importMode: String // "preserveHierarchy" | "combineMeshes"
+    var rootPrimPath: String?
+    var overrides: [AssetOverrideData]
+}
+
 struct EntityData: Codable {
     var uuid: UUID = .init() // Unique identifier for this entity
     var parentUUID: UUID? = nil // UUID of the parent entity, if any
     var name: String = "" // entity name
-    var assetName: String = "" // asset name in 3D software
-    var assetURL: URL = .init(fileURLWithPath: "")
+    var assetName: String = "" // asset name in 3D software (legacy)
+    var assetURL: URL = .init(fileURLWithPath: "") // legacy
     var position: simd_float3 = .zero
     var axisOfRotations: simd_float3 = .zero
     var scale: simd_float3 = .one
@@ -132,7 +155,7 @@ struct EntityData: Codable {
     var lightData: LightData? = nil
     var cameraData: CameraData? = nil
     var materialData: MaterialData? = nil
-    var hasRenderingComponent: Bool = false
+    var hasRenderingComponent: Bool = false // legacy
     var hasAnimationComponent: Bool = false
     var hasLocalTransformComponent: Bool = false
     var hasKineticComponent: Bool = false
@@ -143,19 +166,39 @@ struct EntityData: Codable {
     var hasCameraComponent: Bool?
 
     var customComponents: [String: Data]? = nil
+
+    // New Asset Instance system
+    var assetInstance: AssetInstanceData? = nil
 }
 
 public func serializeScene() -> SceneData {
     var sceneData = SceneData()
     var entityIdToUUID: [EntityID: UUID] = [:]
 
-    // assign UUIDs
+    var authoredEntityCount = 0
+    var derivedEntityCount = 0
+
+    // assign UUIDs only to authored entities (skip derived nodes)
     for entityId in getAllGameEntities() {
+        // Skip derived asset nodes - they will be recreated on import
+        if hasComponent(entityId: entityId, componentType: DerivedAssetNodeComponent.self) {
+            derivedEntityCount += 1
+            continue
+        }
+
         let uuid = UUID()
         entityIdToUUID[entityId] = uuid
+        authoredEntityCount += 1
     }
 
+    Logger.log(message: "[SceneSerializer] Serializing \(authoredEntityCount) authored entities, skipping \(derivedEntityCount) derived nodes")
+
     for entityId in getAllGameEntities() {
+        // Skip derived asset nodes
+        if hasComponent(entityId: entityId, componentType: DerivedAssetNodeComponent.self) {
+            continue
+        }
+
         var entityData = EntityData()
 
         // assign uuid
@@ -332,6 +375,61 @@ public func serializeScene() -> SceneData {
 
         entityData.customComponents = customComponents
 
+        // Check if this is an Asset Instance root
+        if let assetInstanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
+            // Collect overrides from derived descendants
+            var overrides: [AssetOverrideData] = []
+            let children = getEntityChildren(parentId: entityId)
+
+            for childId in children {
+                if let derivedComp = scene.get(component: DerivedAssetNodeComponent.self, for: childId) {
+                    // Only collect overrides if the derived node belongs to this asset instance
+                    if derivedComp.assetRootEntityId == entityId {
+                        // MVP: always serialize derived node state (we don't track "initial" values yet)
+                        let transformOverride = LocalTransformOverrideData(
+                            position: getLocalPosition(entityId: childId),
+                            scale: getScale(entityId: childId),
+                            axisOfRotations: getAxisRotations(entityId: childId)
+                        )
+
+                        var materialOverride: MaterialData? = nil
+                        if hasComponent(entityId: childId, componentType: RenderComponent.self) {
+                            let baseColor = getMaterialBaseColor(entityId: childId)
+                            let roughness = getMaterialRoughness(entityId: childId)
+                            let metallic = getMaterialMetallic(entityId: childId)
+                            let emissive = getMaterialEmmissive(entityId: childId)
+                            materialOverride = MaterialData(
+                                baseColorValue: baseColor,
+                                emissiveValue: emissive,
+                                roughnessValue: roughness,
+                                metallicValue: metallic
+                            )
+                        }
+
+                        let visibilityOverride: Bool? = nil // TODO: track visibility if needed
+
+                        let override = AssetOverrideData(
+                            nodePath: derivedComp.nodePath,
+                            transform: transformOverride,
+                            material: materialOverride,
+                            visibility: visibilityOverride
+                        )
+                        overrides.append(override)
+                    }
+                }
+            }
+
+            entityData.assetInstance = AssetInstanceData(
+                assetURL: assetInstanceComp.assetURL,
+                assetName: assetInstanceComp.assetName,
+                importMode: assetInstanceComp.importMode,
+                rootPrimPath: assetInstanceComp.rootPrimPath,
+                overrides: overrides
+            )
+
+            Logger.log(message: "[SceneSerializer] Asset instance '\(entityData.name)' serialized with \(overrides.count) overrides")
+        }
+
         sceneData.entities.append(entityData)
     }
 
@@ -477,7 +575,31 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
         setEntityName(entityId: entityId, name: sceneDataEntity.name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
-        if sceneDataEntity.hasRenderingComponent == true {
+
+        // Check for new Asset Instance system
+        if let assetInstance = sceneDataEntity.assetInstance {
+            // New asset instance workflow
+            let filename = assetInstance.assetURL.deletingPathExtension().lastPathComponent
+            let withExtension = assetInstance.assetURL.pathExtension
+
+            switch meshLoadingMode {
+            case .sync:
+                setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil)
+                // Apply overrides synchronously after import
+                applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
+            case .asyncDefault:
+                setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
+                    if success {
+                        Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
+                        // Apply overrides after async import completes
+                        applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
+                    } else {
+                        Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
+                    }
+                }
+            }
+        } else if sceneDataEntity.hasRenderingComponent == true {
+            // Legacy rendering component workflow (backward compatibility)
             let filename = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
             let withExtension = sceneDataEntity.assetURL.pathExtension
             switch meshLoadingMode {
@@ -743,4 +865,90 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
 
         setParent(childId: childId, parentId: parentId)
     }
+}
+
+// Notification posted when asset instance has finished loading and overrides have been applied
+public extension Notification.Name {
+    static let assetInstanceDidLoad = Notification.Name("assetInstanceDidLoad")
+}
+
+/// Apply overrides to derived asset nodes after import completes
+private func applyAssetInstanceOverrides(entityId: EntityID, overrides: [AssetOverrideData]) {
+    // Build nodePath -> derived entity map
+    var nodePathMap: [String: EntityID] = [:]
+    let children = getEntityChildren(parentId: entityId)
+
+    for childId in children {
+        if let derivedComp = scene.get(component: DerivedAssetNodeComponent.self, for: childId) {
+            nodePathMap[derivedComp.nodePath] = childId
+        }
+    }
+
+    Logger.log(message: "[SceneSerializer] Applying \(overrides.count) overrides to asset instance (found \(nodePathMap.count) derived nodes)")
+
+    var appliedCount = 0
+    var failedCount = 0
+
+    for override in overrides {
+        guard let derivedEntityId = nodePathMap[override.nodePath] else {
+            Logger.logWarning(message: "[SceneSerializer] Override nodePath '\(override.nodePath)' not found in asset instance")
+            failedCount += 1
+            continue
+        }
+
+        // Apply transform override
+        if let transform = override.transform {
+            if let position = transform.position {
+                translateTo(entityId: derivedEntityId, position: position)
+            }
+            if let scale = transform.scale {
+                scaleTo(entityId: derivedEntityId, scale: scale)
+            }
+            if let axisRotations = transform.axisOfRotations {
+                applyAxisRotations(entityId: derivedEntityId, axis: axisRotations)
+            }
+        }
+
+        // Apply material override
+        if let material = override.material {
+            if hasComponent(entityId: derivedEntityId, componentType: RenderComponent.self) {
+                updateMaterialColor(entityId: derivedEntityId, color: colorFromSimd(material.baseColorValue))
+                updateMaterialRoughness(entityId: derivedEntityId, roughness: material.roughnessValue)
+                updateMaterialMetallic(entityId: derivedEntityId, metallic: material.metallicValue)
+                updateMaterialEmmisive(entityId: derivedEntityId, emmissive: material.emissiveValue)
+
+                if let baseColorURL = material.baseColorURL {
+                    updateMaterialTexture(entityId: derivedEntityId, textureType: .baseColor, path: baseColorURL)
+                }
+                if let roughnessURL = material.roughnessURL {
+                    updateMaterialTexture(entityId: derivedEntityId, textureType: .roughness, path: roughnessURL)
+                }
+                if let metallicURL = material.metallicURL {
+                    updateMaterialTexture(entityId: derivedEntityId, textureType: .metallic, path: metallicURL)
+                }
+                if let normalURL = material.normalURL {
+                    updateMaterialTexture(entityId: derivedEntityId, textureType: .normal, path: normalURL)
+                }
+            }
+        }
+
+        // Apply visibility override (if supported in the future)
+        if let visibility = override.visibility {
+            if let renderComp = scene.get(component: RenderComponent.self, for: derivedEntityId) {
+                renderComp.isVisible = visibility
+            }
+        }
+
+        appliedCount += 1
+    }
+
+    if failedCount > 0 {
+        Logger.logWarning(message: "[SceneSerializer] Failed to apply \(failedCount) overrides (nodePath not found)")
+    }
+    if appliedCount > 0 {
+        Logger.log(message: "[SceneSerializer] Successfully applied \(appliedCount) overrides")
+    }
+
+    // Post notification to inform UI that asset instance is fully loaded
+    NotificationCenter.default.post(name: .assetInstanceDidLoad, object: entityId)
 }

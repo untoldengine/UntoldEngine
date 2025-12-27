@@ -128,7 +128,22 @@ private func setEntityMeshCommon(
         setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
 
     } else if nonEmptyMeshes.count > 1 {
-        for mesh in nonEmptyMeshes {
+        // Multi-mesh asset: mark root as AssetInstance, children as DerivedAssetNode
+        let assetInstanceComp = AssetInstanceComponent(
+            assetURL: url,
+            assetName: assetName ?? filename,
+            importMode: "preserveHierarchy",
+            rootPrimPath: nil
+        )
+        registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
+        if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
+            instanceComp.assetURL = assetInstanceComp.assetURL
+            instanceComp.assetName = assetInstanceComp.assetName
+            instanceComp.importMode = assetInstanceComp.importMode
+            instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
+        }
+
+        for (index, mesh) in nonEmptyMeshes.enumerated() {
             let childEntityId = createEntity()
 
             if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
@@ -143,14 +158,31 @@ private func setEntityMeshCommon(
 
             registerRenderComponent(entityId: childEntityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
 
-            setEntityName(entityId: childEntityId, name: mesh.first!.assetName)
+            let meshAssetName = mesh.first!.assetName
+            setEntityName(entityId: childEntityId, name: meshAssetName)
 
             setParent(childId: childEntityId, parentId: entityId)
+
+            // Tag as derived node with stable nodePath
+            let nodePath = generateStableNodePath(assetName: meshAssetName, index: index)
+            let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: entityId, nodePath: nodePath)
+            registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
+            if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
+                derived.assetRootEntityId = derivedComp.assetRootEntityId
+                derived.nodePath = derivedComp.nodePath
+            }
 
             // look for any skeletons in asset
             setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
         }
     }
+}
+
+/// Generate a stable node path for a derived mesh node
+private func generateStableNodePath(assetName: String, index: Int) -> String {
+    // Use a deterministic format: "Root/<AssetName>#<Index>"
+    // This ensures the same USDZ file produces the same nodePath each time
+    "Root/\(assetName)#\(index)"
 }
 
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
@@ -263,6 +295,23 @@ public func setEntityMeshAsync(
             }
             await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: 1, totalMeshes: 1)
         } else if nonEmptyMeshes.count > 1 {
+            // Multi-mesh asset: mark root as AssetInstance, children as DerivedAssetNode
+            await MainActor.run {
+                let assetInstanceComp = AssetInstanceComponent(
+                    assetURL: url,
+                    assetName: assetName ?? filename,
+                    importMode: "preserveHierarchy",
+                    rootPrimPath: nil
+                )
+                registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
+                if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
+                    instanceComp.assetURL = assetInstanceComp.assetURL
+                    instanceComp.assetName = assetInstanceComp.assetName
+                    instanceComp.importMode = assetInstanceComp.importMode
+                    instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
+                }
+            }
+
             // Process mesh groups in batches to keep UI responsive
             let batchSize = 10 // Larger batches for registration (faster than mesh loading)
             for (index, mesh) in nonEmptyMeshes.enumerated() {
@@ -279,8 +328,20 @@ public func setEntityMeshAsync(
 
                     associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
                     registerRenderComponent(entityId: childEntityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-                    setEntityName(entityId: childEntityId, name: mesh.first!.assetName)
+
+                    let meshAssetName = mesh.first!.assetName
+                    setEntityName(entityId: childEntityId, name: meshAssetName)
                     setParent(childId: childEntityId, parentId: entityId)
+
+                    // Tag as derived node with stable nodePath
+                    let nodePath = generateStableNodePath(assetName: meshAssetName, index: index)
+                    let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: entityId, nodePath: nodePath)
+                    registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
+                    if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
+                        derived.assetRootEntityId = derivedComp.assetRootEntityId
+                        derived.nodePath = derivedComp.nodePath
+                    }
+
                     setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
 
                     // Hide during registration
