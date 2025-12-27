@@ -235,6 +235,48 @@ public class GizmoComponent: Component {
     public required init() {}
 }
 
+// MARK: - Asset Instance Components
+
+/// Attached to the root entity of an imported USDZ asset instance.
+/// Marks this entity as an asset instance root, not a derived node.
+public class AssetInstanceComponent: Component {
+    public var assetURL: URL
+    public var assetName: String
+    public var importMode: String // "preserveHierarchy" | "combineMeshes"
+    public var rootPrimPath: String?
+
+    public required init() {
+        assetURL = URL(fileURLWithPath: "")
+        assetName = ""
+        importMode = "preserveHierarchy"
+        rootPrimPath = nil
+    }
+
+    public init(assetURL: URL, assetName: String, importMode: String = "preserveHierarchy", rootPrimPath: String? = nil) {
+        self.assetURL = assetURL
+        self.assetName = assetName
+        self.importMode = importMode
+        self.rootPrimPath = rootPrimPath
+    }
+}
+
+/// Attached to entities automatically created by USDZ importer (derived nodes).
+/// These entities are NOT authored and should NOT be serialized as separate entities.
+public class DerivedAssetNodeComponent: Component {
+    public var assetRootEntityId: EntityID // Reference to the asset root entity
+    public var nodePath: String // Stable path to this node within the asset hierarchy
+
+    public required init() {
+        assetRootEntityId = .invalid
+        nodePath = ""
+    }
+
+    public init(assetRootEntityId: EntityID, nodePath: String) {
+        self.assetRootEntityId = assetRootEntityId
+        self.nodePath = nodePath
+    }
+}
+
 // MARK: - USC Scripting Component
 
 public class ScriptComponent: Component, Codable {
