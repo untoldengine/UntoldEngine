@@ -399,7 +399,12 @@ public func loadGameScene(from url: URL) -> SceneData? {
     }
 }
 
-public func deserializeScene(sceneData: SceneData) {
+public enum MeshLoadingMode {
+    case asyncDefault
+    case sync
+}
+
+public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingMode = .asyncDefault) {
     var uuidToEntityMap: [UUID: EntityID] = [:]
 
     if let env = sceneData.environment {
@@ -475,7 +480,20 @@ public func deserializeScene(sceneData: SceneData) {
         if sceneDataEntity.hasRenderingComponent == true {
             let filename = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
             let withExtension = sceneDataEntity.assetURL.pathExtension
-            setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
+            switch meshLoadingMode {
+            case .sync:
+                setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
+            case .asyncDefault:
+                let fallbackLabel = withExtension.isEmpty ? filename : "\(filename).\(withExtension)"
+                let meshLabel = sceneDataEntity.name.isEmpty ? fallbackLabel : sceneDataEntity.name
+                setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
+                    if success {
+                        Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
+                    } else {
+                        Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
+                    }
+                }
+            }
 
             if let materialData = sceneDataEntity.materialData {
                 let baseColorValue: simd_float4 = materialData.baseColorValue
