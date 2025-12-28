@@ -46,7 +46,7 @@ class BaseRenderSetup: XCTestCase {
         renderer.metalView.frame = NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight) // bounds in points
 
         renderer.mtkView(renderer.metalView, drawableSizeWillChange: size)
-
+        renderer.pendingResize = true
         let aspect = Float(windowWidth) / Float(windowHeight)
         renderInfo.perspectiveSpace = matrixPerspectiveRightHand(
             fovyRadians: degreesToRadians(degrees: fov),
@@ -54,6 +54,14 @@ class BaseRenderSetup: XCTestCase {
         )
 
         renderInfo.viewPort = simd_float2(Float(windowWidth), Float(windowHeight))
+
+        // Initialize sizeable resources immediately since pendingResize was set
+        // This prevents force-unwrap crashes when tests access textures/render passes
+        // before the first draw() call
+        if renderer.pendingResize {
+            renderer.initSizeableResources()
+            renderer.pendingResize = false
+        }
 
         initializeAssets()
 
