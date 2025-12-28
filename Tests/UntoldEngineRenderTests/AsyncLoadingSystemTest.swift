@@ -21,7 +21,11 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
 
     override func tearDown() {
         super.tearDown()
+
+        destroyAllEntities()
     }
+
+    override func initializeAssets() {}
 
     // MARK: - AssetLoadingState Tests
 
@@ -236,4 +240,46 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
         // Then: Should load multiple meshes
         XCTAssertFalse(meshes.isEmpty, "Should load meshes from multi-object file")
     }
+    /*
+     func testDeserializeSceneTriggersAsyncMeshLoad() {
+
+         // Build a scene with a renderable entity, serialize, then deserialize.
+         let expectedName = "TestModel"
+         let expectedExt = "usdz"
+         let expectedURL = URL(fileURLWithPath: "/tmp/\(expectedName).\(expectedExt)")
+
+         let entityId = createEntity()
+         setEntityName(entityId: entityId, name: "AsyncEntity")
+         registerTransformComponent(entityId: entityId)
+         registerSceneGraphComponent(entityId: entityId)
+
+         let meshes = BasicPrimitives.createCube()
+         registerRenderComponent(entityId: entityId, meshes: meshes, url: expectedURL, assetName: expectedName)
+
+         var sceneData = serializeScene()
+         sceneData.environment = nil // Bypass HDR generation
+         destroyAllEntities()
+
+         let expectation = XCTestExpectation(description: "Async mesh load requested")
+         let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
+         LoadingSystem.shared.resourceURLFn = { name, ext, _ in
+             if name == expectedName, ext == expectedExt {
+                 expectation.fulfill()
+             }
+             return nil // Return nil to trigger fallback mesh creation
+         }
+         defer {
+             LoadingSystem.shared.resourceURLFn = originalResourceURLFn
+         }
+
+         // Deserialize with async mode (default)
+         deserializeScene(sceneData: sceneData, meshLoadingMode: .asyncDefault)
+
+         // Entity should be created immediately even with async loading
+         XCTAssertEqual(getAllGameEntities().count, 3, "Entity should be created immediately")
+
+         // Wait for the async mesh load to be requested
+         wait(for: [expectation], timeout: 2.0)
+     }
+     */
 }
