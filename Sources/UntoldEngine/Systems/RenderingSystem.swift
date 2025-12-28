@@ -290,12 +290,20 @@ func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-var colorCorrectionRenderPass = RenderPasses.executePostProcess(
-    PipelineManager.shared.renderPipelinesByType[.colorCorrection]!,
-    source: textureResources.tonemapTexture!,
-    destination: textureResources.colorCorrectionTexture!,
-    customization: colorCorrectionCustomization
-)
+var colorCorrectionRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+    guard let sourceTexture = textureResources.tonemapTexture,
+          let destinationTexture = textureResources.colorCorrectionTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.colorCorrection]
+    else {
+        return
+    }
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: colorCorrectionCustomization
+    )(commandBuffer)
+}
 
 func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
     var exposure = powf(2.0, ColorGradingParams.shared.exposure)
@@ -339,12 +347,20 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-var colorGradingRenderPass = RenderPasses.executePostProcess(
-    PipelineManager.shared.renderPipelinesByType[.colorGrading]!,
-    source: textureResources.bloomCompositeTexture!,
-    destination: textureResources.colorGradingTexture!,
-    customization: colorGradingCustomization
-)
+var colorGradingRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+    guard let sourceTexture = textureResources.bloomCompositeTexture,
+          let destinationTexture = textureResources.colorGradingTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.colorGrading]
+    else {
+        return
+    }
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: colorGradingCustomization
+    )(commandBuffer)
+}
 
 func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderCommandEncoder) -> Void {
     { encoder in
@@ -370,12 +386,20 @@ func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderC
     }
 }
 
-var bloomThresholdRenderPass = RenderPasses.executePostProcess(
-    PipelineManager.shared.renderPipelinesByType[.bloomThreshold]!,
-    source: textureResources.chromaticAberrationTexture!,
-    destination: textureResources.bloomThresholdTextuture!,
-    customization: bloomThresholdCustomization
-)
+var bloomThresholdRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+    guard let sourceTexture = textureResources.chromaticAberrationTexture,
+          let destinationTexture = textureResources.bloomThresholdTextuture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.bloomThreshold]
+    else {
+        return
+    }
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: bloomThresholdCustomization
+    )(commandBuffer)
+}
 
 func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(
@@ -399,12 +423,20 @@ func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentTexture(textureResources.emissiveMap, index: 1)
 }
 
-var bloomCompositeRenderPass = RenderPasses.executePostProcess(
-    PipelineManager.shared.renderPipelinesByType[.bloomComposite]!,
-    source: textureResources.blurTextureVer!,
-    destination: textureResources.bloomCompositeTexture!,
-    customization: bloomCompositeCustomization
-)
+var bloomCompositeRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+    guard let sourceTexture = textureResources.blurTextureVer,
+          let destinationTexture = textureResources.bloomCompositeTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.bloomComposite]
+    else {
+        return
+    }
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: bloomCompositeCustomization
+    )(commandBuffer)
+}
 
 func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(
@@ -422,12 +454,20 @@ func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-var vignetteRenderPass = RenderPasses.executePostProcess(
-    PipelineManager.shared.renderPipelinesByType[.vignette]!,
-    source: textureResources.colorGradingTexture!,
-    destination: textureResources.vignetteTexture!,
-    customization: vignetteCustomization
-)
+var vignetteRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+    guard let sourceTexture = textureResources.colorGradingTexture,
+          let destinationTexture = textureResources.vignetteTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.vignette]
+    else {
+        return
+    }
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: vignetteCustomization
+    )(commandBuffer)
+}
 
 func vignetteCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(
@@ -461,12 +501,20 @@ func vignetteCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-var chromaticAberrationRenderPass = RenderPasses.executePostProcess(
-    PipelineManager.shared.renderPipelinesByType[.chromaticAberration]!,
-    source: textureResources.depthOfFieldTexture!,
-    destination: textureResources.chromaticAberrationTexture!,
-    customization: chromaticAberrationCustomization
-)
+var chromaticAberrationRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+    guard let sourceTexture = textureResources.depthOfFieldTexture,
+          let destinationTexture = textureResources.chromaticAberrationTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.chromaticAberration]
+    else {
+        return
+    }
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: chromaticAberrationCustomization
+    )(commandBuffer)
+}
 
 func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(
@@ -488,12 +536,20 @@ func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-var depthOfFieldRenderPass = RenderPasses.executePostProcess(
-    PipelineManager.shared.renderPipelinesByType[.depthOfField]!,
-    source: textureResources.deferredColorMap!,
-    destination: textureResources.depthOfFieldTexture!,
-    customization: depthOfFieldCustomization
-)
+var depthOfFieldRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+    guard let sourceTexture = textureResources.deferredColorMap,
+          let destinationTexture = textureResources.depthOfFieldTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.depthOfField]
+    else {
+        return
+    }
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: depthOfFieldCustomization
+    )(commandBuffer)
+}
 
 func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(

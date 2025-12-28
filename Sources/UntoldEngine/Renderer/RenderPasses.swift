@@ -56,7 +56,10 @@ public enum RenderPasses {
 
         // create the encoder
 
-        let encoderDescriptor = renderInfo.environmentRenderPassDescriptor!
+        guard let encoderDescriptor = renderInfo.environmentRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Environment render pass descriptor not initialized")
+            return
+        }
         encoderDescriptor.colorAttachments[0].clearColor = mtkBackgroundColor
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
         encoderDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
@@ -116,7 +119,10 @@ public enum RenderPasses {
             return
         }
 
-        let encoderDescriptor = renderInfo.environmentRenderPassDescriptor!
+        guard let encoderDescriptor = renderInfo.environmentRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Environment render pass descriptor not initialized")
+            return
+        }
 
         encoderDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1)
         encoderDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
@@ -215,9 +221,14 @@ public enum RenderPasses {
         // if shadow has no dir light space matrix then no need to proceed
         guard let dirLight = shadowSystem.dirLightSpaceMatrix else { return }
 
+        guard let shadowDescriptor = renderInfo.shadowRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Shadow render pass descriptor not initialized")
+            return
+        }
+
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(
-                descriptor: renderInfo.shadowRenderPassDescriptor)
+                descriptor: shadowDescriptor)
         else {
             handleError(.renderPassCreationFailed, "shadow Pass")
             return
@@ -384,30 +395,34 @@ public enum RenderPasses {
             handleError(.noActiveCamera)
             return
         }
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+
+        guard let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Offscreen render pass descriptor not initialized")
+            return
+        }
+
+        encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)]
             .loadAction = .clear
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+        encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)]
             .loadAction = .clear
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+        encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)]
             .loadAction = .clear
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .clear
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .clear
+        encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .clear
+        encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .clear
 
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-            .storeAction = .store
-
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-            .storeAction = .store
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-            .storeAction = .store
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(materialTarget.rawValue)]
-            .storeAction = .store
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(emissiveTarget.rawValue)]
+        encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)]
             .storeAction = .store
 
-        renderInfo.offscreenRenderPassDescriptor.depthAttachment.storeAction = .store
+        encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+            .storeAction = .store
+        encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+            .storeAction = .store
+        encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)]
+            .storeAction = .store
+        encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)]
+            .storeAction = .store
 
-        let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor!
+        encoderDescriptor.depthAttachment.storeAction = .store
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
@@ -640,7 +655,10 @@ public enum RenderPasses {
             return
         }
 
-        let renderPassDescriptor = renderInfo.ssaoRenderPassDescriptor!
+        guard let renderPassDescriptor = renderInfo.ssaoRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "SSAO render pass descriptor not initialized")
+            return
+        }
 
         renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
         renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
@@ -751,7 +769,10 @@ public enum RenderPasses {
             return
         }
 
-        let renderPassDescriptor = renderInfo.ssaoBlurRenderPassDescriptor!
+        guard let renderPassDescriptor = renderInfo.ssaoBlurRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "SSAO Blur render pass descriptor not initialized")
+            return
+        }
 
         // set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
@@ -824,7 +845,10 @@ public enum RenderPasses {
             return
         }
 
-        let renderPassDescriptor = renderInfo.deferredRenderPassDescriptor!
+        guard let renderPassDescriptor = renderInfo.deferredRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Deferred render pass descriptor not initialized")
+            return
+        }
         renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
         // set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
@@ -1080,7 +1104,10 @@ public enum RenderPasses {
             return
         }
 
-        let renderPassDescriptor = renderInfo.renderPassDescriptor!
+        guard let renderPassDescriptor = renderInfo.renderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Main render pass descriptor not initialized")
+            return
+        }
 
         // set the states for the pipeline
 
@@ -1095,22 +1122,22 @@ public enum RenderPasses {
 
         // clear it so that it doesn't have any effect on the final output
         if gameMode == false {
-            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
-            renderInfo.deferredRenderPassDescriptor.colorAttachments[0]
+            renderInfo.offscreenRenderPassDescriptor?.depthAttachment.loadAction = .clear
+            renderInfo.deferredRenderPassDescriptor?.colorAttachments[0]
                 .loadAction = .load
 
-            renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].loadAction = .load
+            renderInfo.gizmoRenderPassDescriptor?.colorAttachments[0].loadAction = .load
         } else {
-            renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .clear
-            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
-            renderInfo.postProcessRenderPassDescriptor.colorAttachments[0]
+            renderInfo.postProcessRenderPassDescriptor?.depthAttachment.loadAction = .clear
+            renderInfo.offscreenRenderPassDescriptor?.depthAttachment.loadAction = .clear
+            renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0]
                 .loadAction = .load
 
-            renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].loadAction = .clear
+            renderInfo.gizmoRenderPassDescriptor?.colorAttachments[0].loadAction = .clear
         }
 
         // Load Gaussian texture so it isn't cleared
-        renderInfo.gaussianRenderPassDescriptor.colorAttachments[0].loadAction = .load
+        renderInfo.gaussianRenderPassDescriptor?.colorAttachments[0].loadAction = .load
 
         // set your encoder here
         guard
@@ -1138,34 +1165,34 @@ public enum RenderPasses {
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
         renderEncoder.setFragmentTexture(
-            renderInfo.environmentRenderPassDescriptor.colorAttachments[0].texture, index: Int(prePassEnvTextureIndex.rawValue)
+            renderInfo.environmentRenderPassDescriptor?.colorAttachments[0].texture, index: Int(prePassEnvTextureIndex.rawValue)
         )
 
         if gameMode == false {
             renderEncoder.setFragmentTexture(
-                renderInfo.deferredRenderPassDescriptor.colorAttachments[0].texture,
+                renderInfo.deferredRenderPassDescriptor?.colorAttachments[0].texture,
                 index: Int(prePassFinalTextureIndex.rawValue)
             )
 
             renderEncoder.setFragmentTexture(
-                renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture, index: Int(prePassDepthTextureIndex.rawValue)
+                renderInfo.offscreenRenderPassDescriptor?.depthAttachment.texture, index: Int(prePassDepthTextureIndex.rawValue)
             )
         } else {
             renderEncoder.setFragmentTexture(
-                renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].texture,
+                renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0].texture,
                 index: Int(prePassFinalTextureIndex.rawValue)
             )
 
             renderEncoder.setFragmentTexture(
-                renderInfo.postProcessRenderPassDescriptor.depthAttachment.texture, index: Int(prePassDepthTextureIndex.rawValue)
+                renderInfo.postProcessRenderPassDescriptor?.depthAttachment.texture, index: Int(prePassDepthTextureIndex.rawValue)
             )
         }
 
-        renderEncoder.setFragmentTexture(renderInfo.gizmoRenderPassDescriptor.colorAttachments[0].texture, index: Int(prePassGizmoTextureIndex.rawValue))
+        renderEncoder.setFragmentTexture(renderInfo.gizmoRenderPassDescriptor?.colorAttachments[0].texture, index: Int(prePassGizmoTextureIndex.rawValue))
 
         // Pass the Gaussian texture
         renderEncoder.setFragmentTexture(
-            renderInfo.gaussianRenderPassDescriptor.colorAttachments[0].texture,
+            renderInfo.gaussianRenderPassDescriptor?.colorAttachments[0].texture,
             index: Int(prePassGaussianTextureIndex.rawValue)
         )
 
@@ -1205,7 +1232,10 @@ public enum RenderPasses {
             return
         }
 
-        let renderPassDescriptor = renderInfo.gaussianRenderPassDescriptor!
+        guard let renderPassDescriptor = renderInfo.gaussianRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Gaussian render pass descriptor not initialized")
+            return
+        }
 
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
@@ -1322,7 +1352,10 @@ public enum RenderPasses {
             renderInfo.postProcessRenderPassDescriptor.colorAttachments[0].storeAction = .store
             renderInfo.postProcessRenderPassDescriptor.depthAttachment.loadAction = .load
 
-            let renderPassDescriptor = renderInfo.postProcessRenderPassDescriptor!
+            guard let renderPassDescriptor = renderInfo.postProcessRenderPassDescriptor else {
+                handleError(.renderPassCreationFailed, "Post-process render pass descriptor not initialized")
+                return
+            }
 
             // set your encoder here
             guard
