@@ -26,7 +26,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     private var configuration: UntoldRendererConfig
     public var delegate: UntoldRendererDelegate?
-    private var pendingResize = false
+    public var pendingResize = false
 
     init(configuration: UntoldRendererConfig? = nil) {
         self.configuration = configuration ?? .default
