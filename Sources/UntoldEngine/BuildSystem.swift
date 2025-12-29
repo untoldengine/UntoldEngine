@@ -104,12 +104,26 @@ public struct BuildResult {
     }
 }
 
+public struct UpdateResult {
+    public let projectPath: URL
+    public let updateTime: TimeInterval
+    public let updatedAssets: [String]
+
+    public init(projectPath: URL, updateTime: TimeInterval, updatedAssets: [String]) {
+        self.projectPath = projectPath
+        self.updateTime = updateTime
+        self.updatedAssets = updatedAssets
+    }
+}
+
 public enum BuildError: Error, LocalizedError {
     case invalidSettings(String)
     case templateNotFound
     case assetBundlingFailed(String)
     case projectGenerationFailed(String)
     case fileSystemError(String)
+    case projectNotFound(String)
+    case invalidProjectStructure(String)
 
     public var errorDescription: String? {
         switch self {
@@ -118,6 +132,8 @@ public enum BuildError: Error, LocalizedError {
         case let .assetBundlingFailed(msg): return "Asset bundling failed: \(msg)"
         case let .projectGenerationFailed(msg): return "Project generation failed: \(msg)"
         case let .fileSystemError(msg): return "File system error: \(msg)"
+        case let .projectNotFound(msg): return "Project not found: \(msg)"
+        case let .invalidProjectStructure(msg): return "Invalid project structure: \(msg)"
         }
     }
 }
@@ -127,6 +143,68 @@ public enum BuildError: Error, LocalizedError {
 public class BuildSystem {
     public static let shared = BuildSystem()
     private init() {}
+
+    /// Check if a project already exists at the output path
+    public func projectExists(settings: BuildSettings) -> Bool {
+        let projectDir = settings.outputPath.appendingPathComponent(settings.projectName)
+        let xcodeProjectPath = projectDir.appendingPathComponent("\(settings.projectName).xcodeproj")
+        return FileManager.default.fileExists(atPath: xcodeProjectPath.path)
+    }
+
+    /// Validate that an existing project has the expected structure
+    public func isValidProjectStructure(settings: BuildSettings) -> Bool {
+        let projectDir = settings.outputPath.appendingPathComponent(settings.projectName)
+        let gameDataDir = projectDir
+            .appendingPathComponent("Sources")
+            .appendingPathComponent(settings.projectName)
+            .appendingPathComponent("GameData")
+
+        return FileManager.default.fileExists(atPath: gameDataDir.path)
+    }
+
+    /// Update only game data in an existing project (preserves custom code)
+    public func updateGameData(settings: BuildSettings, progress: ((String) -> Void)? = nil) async throws -> UpdateResult {
+        let startTime = Date()
+
+        progress?("🔄 Updating game data for \(settings.projectName)...")
+
+        // 1. Validate that project exists
+        guard projectExists(settings: settings) else {
+            throw BuildError.projectNotFound("Project not found at \(settings.outputPath.path)")
+        }
+
+        // 2. Validate project structure
+        let projectDir = settings.outputPath.appendingPathComponent(settings.projectName)
+        let gameDataDir = projectDir
+            .appendingPathComponent("Sources")
+            .appendingPathComponent(settings.projectName)
+            .appendingPathComponent("GameData")
+
+        // If GameData doesn't exist, create the directory structure
+        if !FileManager.default.fileExists(atPath: gameDataDir.path) {
+            progress?("📁 Creating GameData directory structure...")
+            try createGameDataDirectories(at: gameDataDir)
+        } else {
+            // Clear existing GameData contents
+            progress?("🗑️ Clearing existing game data...")
+            try clearGameDataDirectory(at: gameDataDir)
+        }
+
+        progress?("✅ Project structure validated")
+
+        // 3. Bundle fresh game data
+        let updatedAssets = try await bundleGameData(to: projectDir, settings: settings)
+        progress?("📦 Updated \(updatedAssets.count) assets")
+
+        let updateTime = Date().timeIntervalSince(startTime)
+        progress?("✅ Game data updated in \(String(format: "%.2f", updateTime))s")
+
+        return UpdateResult(
+            projectPath: projectDir,
+            updateTime: updateTime,
+            updatedAssets: updatedAssets
+        )
+    }
 
     /// Build a game project and generate Xcode project
     public func build(settings: BuildSettings, progress: ((String) -> Void)? = nil) async throws -> BuildResult {
@@ -634,5 +712,25 @@ public class BuildSystem {
         }
 
         return bundledShaders
+    }
+
+    /// Clear contents of GameData directory while preserving the directory structure
+    private func clearGameDataDirectory(at gameDataDir: URL) throws {
+        let fileManager = FileManager.default
+        let subdirs = ["Scenes", "Scripts", "Models", "Animations", "Gaussians", "Textures", "Shaders"]
+
+        for subdir in subdirs {
+            let dirURL = gameDataDir.appendingPathComponent(subdir)
+
+            // Remove directory if it exists
+            if fileManager.fileExists(atPath: dirURL.path) {
+                try fileManager.removeItem(at: dirURL)
+            }
+
+            // Recreate empty directory
+            try fileManager.createDirectory(at: dirURL, withIntermediateDirectories: true)
+        }
+
+        Logger.log(message: "🗑️ Cleared GameData directory contents")
     }
 }
