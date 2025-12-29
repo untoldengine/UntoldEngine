@@ -84,7 +84,41 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         return renderer
     }
+    
+    public static func create(configuration: UntoldRendererConfig? = nil, device: MTLDevice, view: MTKView) -> UntoldRenderer? {
+        let renderer = UntoldRenderer(configuration: configuration)
 
+        renderInfo.device = device
+        
+        // Create a command queue
+        guard let commandQueue = device.makeCommandQueue() else {
+            print("Error: Failed to create a Metal command queue.")
+            return nil
+        }
+        
+        renderInfo.commandQueue = commandQueue
+        renderInfo.colorPixelFormat = .rgba16Float
+        renderInfo.depthPixelFormat = view.depthStencilPixelFormat
+        renderInfo.viewPort = simd_float2(
+            Float(view.drawableSize.width), Float(view.drawableSize.height)
+        )
+        renderInfo.fence = renderInfo.device.makeFence()
+        renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
+        renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
+
+        do {
+            let mainLibrary = try renderInfo.device.makeLibraryFromBundle()
+            renderInfo.library = mainLibrary
+            Logger.log(message: "Found Untold Engine metallib")
+        } catch {
+            Logger.logError(message: "Failed to load metallib: \(error)")
+        }
+
+        renderer.initResources()
+
+        return renderer
+    }
+    
     public func setupCallbacks(
         gameUpdate: @escaping (_ deltaTime: Float) -> Void,
         handleInput: @escaping () -> Void
