@@ -77,7 +77,7 @@ var gaussianDepthPipeline = ComputePipeline()
 var environmentMesh: MTKMesh!
 
 // ibl
-var iblSuccessful: Bool = false
+public var iblSuccessful: Bool = false
 
 // let usdRotation:simd_float4x4=matrix4x4Identity()
 
@@ -130,7 +130,7 @@ public enum TextureType: String, CaseIterable, Identifiable {
 // TODO: try to remove this var, because only make sense on the editor side
 public var gameMode: Bool = true
 
-public var applyIBL: Bool = true
+public var applyIBL: Bool = false
 public var renderEnvironment: Bool = false
 public var ambientIntensity: Float = 1.0
 

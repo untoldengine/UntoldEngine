@@ -279,6 +279,8 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
 
     } catch {
         handleError(.iBLCreationFailed)
+        iblSuccessful = false
+        return // Early exit to prevent accessing nil texture
     }
 }
 

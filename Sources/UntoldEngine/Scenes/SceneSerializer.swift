@@ -433,8 +433,43 @@ public func serializeScene() -> SceneData {
         sceneData.entities.append(entityData)
     }
 
-    // load environment data
-    sceneData.environment = EnvironmentData(applyIBL: applyIBL, renderEnvironment: renderEnvironment, hdr: hdrURL, ambientIntensity: ambientIntensity)
+    // Only serialize environment data if IBL is actually being used
+    if applyIBL || renderEnvironment {
+        // Validate that HDR file actually exists if IBL is enabled
+        var validatedHDR: String? = hdrURL
+        var shouldApplyIBL = applyIBL
+
+        if applyIBL, !hdrURL.isEmpty {
+            var hdrExists = false
+
+            // Check in user's asset base path (HDR folder)
+            if let basePath = assetBasePath {
+                let hdrPath = basePath.appendingPathComponent("HDR").appendingPathComponent(hdrURL)
+                hdrExists = FileManager.default.fileExists(atPath: hdrPath.path)
+
+                if !hdrExists {
+                    Logger.logWarning(message: "[SceneSerializer] HDR file not found in assets: \(hdrURL), disabling IBL")
+                    validatedHDR = nil
+                    shouldApplyIBL = false
+                }
+            } else {
+                // No asset base path set, can't validate
+                Logger.logWarning(message: "[SceneSerializer] No asset base path set, cannot validate HDR")
+                validatedHDR = nil
+                shouldApplyIBL = false
+            }
+        }
+
+        // Only serialize if we still have a valid configuration
+        if shouldApplyIBL, renderEnvironment {
+            sceneData.environment = EnvironmentData(
+                applyIBL: shouldApplyIBL,
+                renderEnvironment: renderEnvironment,
+                hdr: validatedHDR,
+                ambientIntensity: ambientIntensity
+            )
+        }
+    }
 
     // Load post-process data
     sceneData.toneMapping = ToneMappingData(
@@ -510,8 +545,11 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
         renderEnvironment = env.renderEnvironment ?? false
         ambientIntensity = env.ambientIntensity ?? 0.44
 
-        hdrURL = env.hdr ?? "teatro_massimo_2k.hdr"
-        generateHDR(hdrURL)
+        // Only generate HDR if IBL is explicitly enabled and HDR is specified
+        if applyIBL, let hdr = env.hdr, !hdr.isEmpty {
+            hdrURL = hdr
+            generateHDR(hdrURL)
+        }
     }
 
     if let colorGrading = sceneData.colorGrading {
