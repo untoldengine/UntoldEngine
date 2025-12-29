@@ -66,6 +66,8 @@ enum BuildTemplates {
 
         // GameScene: Initialize your game and write game-specific logic
         class GameScene {
+            private var sceneLoaded = false
+            private var sceneURL: URL?
 
             init() {
                 // Set asset base path to bundled GameData directory
@@ -84,8 +86,8 @@ enum BuildTemplates {
                     }
                 }
 
-                // Load the first scene from GameData/Scenes
-                loadBundledScene()
+                // Find the scene file but DON'T load it yet
+                findBundledScene()
 
                 // Load USC scripts from GameData/Scripts
                 loadBundledScripts()
@@ -96,8 +98,8 @@ enum BuildTemplates {
                 USCSystem.shared.startPlayMode() 
             }
 
-            /// Load the first scene found in GameData/Scenes
-            private func loadBundledScene() {
+            /// Find the first scene in GameData/Scenes (deferred loading)
+            private func findBundledScene() {
                 guard let gameDataURL = Bundle.main.url(forResource: "GameData", withExtension: nil) else {
                     Logger.log(message: "⚠️ GameData directory not found")
                     return
@@ -113,9 +115,9 @@ enum BuildTemplates {
                     return
                 }
 
-                // Load and play the scene
-                playSceneAt(url: firstScene)
-                Logger.log(message: "✅ Loaded scene: \\(firstScene.lastPathComponent)")
+                // Store the scene URL for deferred loading
+                sceneURL = firstScene
+                Logger.log(message: "📋 Found scene: \\(firstScene.lastPathComponent) (will load on first frame)")
             }
 
             /// Load all USC scripts from GameData/Scripts
@@ -131,8 +133,27 @@ enum BuildTemplates {
                 Logger.log(message: "✅ Loaded \\(count) script(s) from bundle")
             }
 
+            /// Check if renderer resources are ready for scene loading
+            private func isRendererReady() -> Bool {
+                // Check viewport is valid (ensures initSizeableResources has run)
+                return renderInfo.viewPort.x > 0 && renderInfo.viewPort.y > 0
+            }
+
             /// Called every frame - add custom game logic here
             func update(deltaTime _: Float) {
+                // Deferred scene loading: load on the first frame when renderer is fully initialized
+                if !sceneLoaded, let url = sceneURL {
+                    // Only load scene when renderer is confirmed ready
+                    if isRendererReady() {
+                        playSceneAt(url: url)
+                        sceneLoaded = true
+                        Logger.log(message: "✅ Scene loaded and playing: \\(url.lastPathComponent)")
+                    } else {
+                        // Renderer not ready yet, will try again next frame
+                        return
+                    }
+                }
+
                 // Skip logic if not in game mode
                 if gameMode == false { return }
 
