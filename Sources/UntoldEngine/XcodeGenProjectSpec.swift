@@ -37,6 +37,9 @@ enum XcodeGenProjectSpec {
               - path: Sources/\(settings.projectName)/GameData
                 type: folder
                 buildPhase: resources
+              - path: Sources/\(settings.projectName)/Base.lproj
+                type: folder
+                buildPhase: resources
             dependencies:
               - package: UntoldEngine
             settings:
@@ -45,8 +48,7 @@ enum XcodeGenProjectSpec {
                 SWIFT_VERSION: 5.0
                 MARKETING_VERSION: "1.0"
                 CURRENT_PROJECT_VERSION: "1"
-                GENERATE_INFOPLIST_FILE: YES
-                INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.games
+                INFOPLIST_FILE: Sources/\(settings.projectName)/Info.plist
         """
 
         // Add team ID if provided
