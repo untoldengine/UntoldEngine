@@ -84,18 +84,18 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         return renderer
     }
-    
+
     public static func create(configuration: UntoldRendererConfig? = nil, device: MTLDevice, view: MTKView) -> UntoldRenderer? {
         let renderer = UntoldRenderer(configuration: configuration)
 
         renderInfo.device = device
-        
+
         // Create a command queue
         guard let commandQueue = device.makeCommandQueue() else {
             print("Error: Failed to create a Metal command queue.")
             return nil
         }
-        
+
         renderInfo.commandQueue = commandQueue
         renderInfo.colorPixelFormat = .rgba16Float
         renderInfo.depthPixelFormat = view.depthStencilPixelFormat
@@ -118,7 +118,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         return renderer
     }
-    
+
     public func setupCallbacks(
         gameUpdate: @escaping (_ deltaTime: Float) -> Void,
         handleInput: @escaping () -> Void
