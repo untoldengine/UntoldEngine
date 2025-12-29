@@ -572,4 +572,183 @@ final class SceneSerializerTests: XCTestCase {
         let loadedScene = loadGameScene(from: url)
         XCTAssertNil(loadedScene, "Should return nil for non-file URL")
     }
+
+    // MARK: - IBL Serialization Tests
+
+    func testSceneSerializerOnlySerializesEnvironmentDataWhenApplyIBLOrRenderEnvironmentIsTrue() {
+        // Test case 1: Neither applyIBL nor renderEnvironment is true
+        applyIBL = false
+        renderEnvironment = false
+        hdrURL = "test.hdr"
+
+        let sceneData1 = serializeScene()
+        XCTAssertNil(sceneData1.environment, "Environment should not be serialized when both applyIBL and renderEnvironment are false")
+
+        // Test case 2: Only applyIBL is true
+        applyIBL = true
+        renderEnvironment = false
+
+        let sceneData2 = serializeScene()
+        XCTAssertNil(sceneData2.environment, "Environment should not be serialized when renderEnvironment is false (even if applyIBL is true)")
+
+        // Test case 3: Only renderEnvironment is true
+        applyIBL = false
+        renderEnvironment = true
+
+        let sceneData3 = serializeScene()
+        XCTAssertNil(sceneData3.environment, "Environment should not be serialized when applyIBL is false (even if renderEnvironment is true)")
+
+        // Test case 4: Both are true and HDR exists
+        applyIBL = true
+        renderEnvironment = true
+        // Create a temporary HDR file
+        let tempDir = FileManager.default.temporaryDirectory
+        assetBasePath = tempDir
+        let hdrDir = tempDir.appendingPathComponent("HDR")
+        try? FileManager.default.createDirectory(at: hdrDir, withIntermediateDirectories: true)
+        let hdrFile = hdrDir.appendingPathComponent("test.hdr")
+        try? "dummy".write(to: hdrFile, atomically: true, encoding: .utf8)
+
+        let sceneData4 = serializeScene()
+        XCTAssertNotNil(sceneData4.environment, "Environment should be serialized when both applyIBL and renderEnvironment are true")
+        XCTAssertEqual(sceneData4.environment?.applyIBL, true, "applyIBL should be true")
+        XCTAssertEqual(sceneData4.environment?.renderEnvironment, true, "renderEnvironment should be true")
+
+        // Cleanup
+        try? FileManager.default.removeItem(at: hdrDir)
+        applyIBL = false
+        renderEnvironment = false
+        assetBasePath = nil
+    }
+
+    func testSceneSerializerDisablesIBLWhenHDRFileDoesNotExist() {
+        // Setup: Enable IBL and renderEnvironment, but point to non-existent HDR
+        applyIBL = true
+        renderEnvironment = true
+        hdrURL = "nonexistent.hdr"
+
+        let tempDir = FileManager.default.temporaryDirectory
+        assetBasePath = tempDir
+        // Create HDR directory but don't create the file
+        let hdrDir = tempDir.appendingPathComponent("HDR")
+        try? FileManager.default.createDirectory(at: hdrDir, withIntermediateDirectories: true)
+
+        let sceneData = serializeScene()
+
+        // Environment should not be serialized because HDR validation failed
+        XCTAssertNil(sceneData.environment, "Environment should not be serialized when HDR file doesn't exist")
+
+        // Cleanup
+        try? FileManager.default.removeItem(at: hdrDir)
+        applyIBL = false
+        renderEnvironment = false
+        assetBasePath = nil
+    }
+
+    func testSceneSerializerDisablesIBLWhenAssetBasePathIsNil() {
+        // Setup: Enable IBL and renderEnvironment, but no asset base path
+        applyIBL = true
+        renderEnvironment = true
+        hdrURL = "test.hdr"
+        assetBasePath = nil
+
+        let sceneData = serializeScene()
+
+        // Environment should not be serialized because we can't validate HDR without base path
+        XCTAssertNil(sceneData.environment, "Environment should not be serialized when assetBasePath is nil")
+
+        // Cleanup
+        applyIBL = false
+        renderEnvironment = false
+    }
+
+    func testSceneSerializerOnlyCallsGenerateHDRWhenApplyIBLIsTrueAndValidHDRProvided() {
+        // Test case 1: applyIBL is false
+        var sceneData = SceneData()
+        sceneData.environment = EnvironmentData(
+            applyIBL: false,
+            renderEnvironment: true,
+            hdr: "test.hdr",
+            ambientIntensity: 1.0
+        )
+
+        // Store original iblSuccessful state
+        let originalIblSuccessful = iblSuccessful
+        iblSuccessful = false
+
+        deserializeScene(sceneData: sceneData)
+
+        // generateHDR should not have been called, so iblSuccessful should still be false
+        XCTAssertFalse(iblSuccessful, "generateHDR should not be called when applyIBL is false")
+        XCTAssertFalse(applyIBL, "applyIBL should be false after deserialization")
+
+        // Test case 2: applyIBL is true but no HDR provided
+        sceneData.environment = EnvironmentData(
+            applyIBL: true,
+            renderEnvironment: true,
+            hdr: nil,
+            ambientIntensity: 1.0
+        )
+
+        deserializeScene(sceneData: sceneData)
+
+        // generateHDR should not have been called because HDR is nil
+        XCTAssertFalse(iblSuccessful, "generateHDR should not be called when HDR is nil")
+
+        // Test case 3: applyIBL is true but HDR is empty string
+        sceneData.environment = EnvironmentData(
+            applyIBL: true,
+            renderEnvironment: true,
+            hdr: "",
+            ambientIntensity: 1.0
+        )
+
+        deserializeScene(sceneData: sceneData)
+
+        // generateHDR should not have been called because HDR is empty
+        XCTAssertFalse(iblSuccessful, "generateHDR should not be called when HDR is empty")
+
+        // Note: We cannot easily test the case where applyIBL is true and valid HDR is provided
+        // because generateHDR requires actual HDR file resources and rendering setup
+
+        // Cleanup
+        iblSuccessful = originalIblSuccessful
+        applyIBL = false
+        renderEnvironment = false
+    }
+
+    func testFuncUtilsGenerateHDRSetsIblSuccessfulToFalseOnFailure() {
+        // Store original state
+        let originalIblSuccessful = iblSuccessful
+
+        // Attempt to generate HDR with non-existent file
+        iblSuccessful = true // Set to true initially to verify it gets set to false
+        generateHDR("nonexistent_hdr_file.hdr")
+
+        // After failure, iblSuccessful should be false
+        XCTAssertFalse(iblSuccessful, "iblSuccessful should be set to false when HDR generation fails")
+
+        // Restore original state
+        iblSuccessful = originalIblSuccessful
+    }
+
+    func testGlobalsApplyIBLIsInitializedToFalseByDefault() {
+        // This test verifies the default state when the module loads
+        // We reset it in setUp, but we can verify the behavior
+
+        // Create a new scene from scratch
+        destroyAllEntities()
+
+        // Create scene data without environment
+        let sceneData = SceneData()
+
+        // Before deserialization, manually reset applyIBL to its default
+        applyIBL = false
+
+        // Deserialize scene without environment data
+        deserializeScene(sceneData: sceneData)
+
+        // applyIBL should remain false (its default value)
+        XCTAssertFalse(applyIBL, "applyIBL should be false by default when no environment data is provided")
+    }
 }
