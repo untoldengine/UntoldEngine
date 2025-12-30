@@ -10,87 +10,108 @@
 
 import Foundation
 
-/// Generates XcodeGen project specification for game builds
-enum XcodeGenProjectSpec {
-    /// Generate project.yml YAML content from build settings
-    static func generateYAML(settings: BuildSettings) throws -> String {
-        let platformName = settings.target.platformName
-        let deploymentTarget = settings.target.deploymentTarget
+#if os(macOS)
 
-        var yaml = """
-        name: \(settings.projectName)
+    /// Generates XcodeGen project specification for game builds
+    enum XcodeGenProjectSpec {
+        /// Generate project.yml YAML content from build settings
+        static func generateYAML(settings: BuildSettings) throws -> String {
+            let platformName = settings.target.platformName
+            let deploymentTarget = settings.target.deploymentTarget
 
-        packages:
-          UntoldEngine:
-            url: https://github.com/untoldengine/UntoldEngine.git
-            branch: develop
+            // Build base settings
+            var baseSettings = """
+            PRODUCT_BUNDLE_IDENTIFIER: \(settings.bundleIdentifier)
+            SWIFT_VERSION: 5.0
+            MARKETING_VERSION: "1.0"
+            CURRENT_PROJECT_VERSION: "1"
+            INFOPLIST_FILE: Sources/\(settings.projectName)/Info.plist
+            """
 
-        targets:
-          \(settings.projectName):
-            type: application
-            platform: \(platformName)
-            deploymentTarget: \(deploymentTarget)
-            sources:
-              - path: Sources
-                excludes:
-                  - "\(settings.projectName)/GameData"
-              - path: Sources/\(settings.projectName)/GameData
-                type: folder
-                buildPhase: resources
-              - path: Sources/\(settings.projectName)/Base.lproj
-                type: folder
-                buildPhase: resources
-            dependencies:
-              - package: UntoldEngine
-            settings:
-              base:
-                PRODUCT_BUNDLE_IDENTIFIER: \(settings.bundleIdentifier)
-                SWIFT_VERSION: 5.0
-                MARKETING_VERSION: "1.0"
-                CURRENT_PROJECT_VERSION: "1"
-                INFOPLIST_FILE: Sources/\(settings.projectName)/Info.plist
-        """
+            // Add iOS-specific signing settings
+            if case .iOS = settings.target {
+                baseSettings += """
 
-        // Add team ID if provided
-        if let teamID = settings.teamID, !teamID.isEmpty {
-            yaml += """
+                CODE_SIGN_STYLE: Automatic
+                """
+            }
+
+            // Add team ID if provided
+            if let teamID = settings.teamID, !teamID.isEmpty {
+                baseSettings += """
 
                 DEVELOPMENT_TEAM: \(teamID)
+                """
+            }
+
+            // Build optimization level for release
+            let optLevel: String
+            switch settings.optimizationLevel {
+            case .none: optLevel = "-Onone"
+            case .speed: optLevel = "-O"
+            case .size: optLevel = "-Osize"
+            }
+
+            // Build configs section
+            var releaseConfig = """
+            SWIFT_COMPILATION_MODE: wholemodule
+            SWIFT_OPTIMIZATION_LEVEL: \(optLevel)
             """
-        }
 
-        // Add configurations
-        yaml += """
+            if settings.includeDebugInfo {
+                releaseConfig += """
 
-              configs:
-                Debug:
-                  SWIFT_OPTIMIZATION_LEVEL: -Onone
-                  DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
-                Release:
-                  SWIFT_COMPILATION_MODE: wholemodule
-        """
+                DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+                """
+            }
 
-        // Add optimization level for release
-        let optLevel: String
-        switch settings.optimizationLevel {
-        case .none: optLevel = "-Onone"
-        case .speed: optLevel = "-O"
-        case .size: optLevel = "-Osize"
-        }
+            func indent(_ text: String, by spaces: Int) -> String {
+                let padding = String(repeating: " ", count: spaces)
+                return text
+                    .split(separator: "\n", omittingEmptySubsequences: false)
+                    .map { $0.isEmpty ? "" : padding + $0 }
+                    .joined(separator: "\n")
+            }
 
-        yaml += """
+            // Assemble final YAML
+            let yaml = """
+            name: \(settings.projectName)
 
-                  SWIFT_OPTIMIZATION_LEVEL: \(optLevel)
-        """
+            packages:
+              UntoldEngine:
+                url: https://github.com/untoldengine/UntoldEngine.git
+                branch: develop
 
-        // Add debug info for release if requested
-        if settings.includeDebugInfo {
-            yaml += """
-
-                  DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+            targets:
+              \(settings.projectName):
+                type: application
+                platform: \(platformName)
+                deploymentTarget: \(deploymentTarget)
+                sources:
+                  - path: Sources
+                    excludes:
+                      - "\(settings.projectName)/GameData"
+                  - path: Sources/\(settings.projectName)/GameData
+                    type: folder
+                    buildPhase: resources
+                  - path: Sources/\(settings.projectName)/Base.lproj
+                    type: folder
+                    buildPhase: resources
+                dependencies:
+                  - package: UntoldEngine
+                settings:
+                  base:
+            \(indent(baseSettings, by: 16))
+                  configs:
+                    Debug:
+                      SWIFT_OPTIMIZATION_LEVEL: -Onone
+                      DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+                    Release:
+            \(indent(releaseConfig, by: 18))
             """
-        }
 
-        return yaml
+            return yaml
+        }
     }
-}
+
+#endif // os(macOS)

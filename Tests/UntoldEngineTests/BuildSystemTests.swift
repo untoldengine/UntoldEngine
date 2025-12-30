@@ -354,4 +354,244 @@ final class BuildSystemTests: XCTestCase {
         XCTAssertTrue(yamlContent.contains("type: application"),
                       "XcodeGen spec should specify application type")
     }
+
+    // MARK: - iOS Template Tests
+
+    func testIOSAppDelegateSwiftGeneratedWithExpectedContent() throws {
+        // Given: Build settings for an iOS project
+        let settings = BuildSettings(
+            projectName: "MyiOSGame",
+            bundleIdentifier: "com.test.iosgame",
+            outputPath: tempDirectory,
+            target: .iOS(deployment: .v17)
+        )
+
+        // When: Getting template files for iOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: iOS AppDelegate.swift should exist
+        let appDelegateKey = "Sources/{{PROJECT_NAME}}/AppDelegate.swift"
+        XCTAssertNotNil(templateFiles[appDelegateKey], "iOS AppDelegate.swift template should exist")
+
+        guard let appDelegateContent = templateFiles[appDelegateKey] else {
+            XCTFail("iOS AppDelegate.swift content should not be nil")
+            return
+        }
+
+        // Verify iOS-specific content
+        XCTAssertTrue(appDelegateContent.contains("import UIKit"),
+                      "iOS AppDelegate should import UIKit")
+        XCTAssertTrue(appDelegateContent.contains("class AppDelegate: UIResponder, UIApplicationDelegate"),
+                      "iOS AppDelegate should extend UIResponder and UIApplicationDelegate")
+        XCTAssertTrue(appDelegateContent.contains("func application(_ application: UIApplication, didFinishLaunchingWithOptions"),
+                      "iOS AppDelegate should have didFinishLaunchingWithOptions")
+        XCTAssertTrue(appDelegateContent.contains("func applicationWillResignActive"),
+                      "iOS AppDelegate should have lifecycle methods")
+    }
+
+    func testIOSGameViewControllerSwiftGeneratedWithExpectedContent() throws {
+        // Given: Build settings for an iOS project
+        let settings = BuildSettings(
+            projectName: "MyiOSGame",
+            bundleIdentifier: "com.test.iosgame",
+            outputPath: tempDirectory,
+            target: .iOS(deployment: .v17)
+        )
+
+        // When: Getting template files for iOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: iOS GameViewController.swift should exist
+        let gameViewControllerKey = "Sources/{{PROJECT_NAME}}/GameViewController.swift"
+        XCTAssertNotNil(templateFiles[gameViewControllerKey], "iOS GameViewController.swift should exist")
+
+        guard let gameViewControllerContent = templateFiles[gameViewControllerKey] else {
+            XCTFail("iOS GameViewController.swift content should not be nil")
+            return
+        }
+
+        // Verify iOS-specific content
+        XCTAssertTrue(gameViewControllerContent.contains("import UIKit"),
+                      "iOS GameViewController should import UIKit")
+        XCTAssertTrue(gameViewControllerContent.contains("class GameViewController: UIViewController"),
+                      "iOS GameViewController should extend UIViewController")
+        XCTAssertTrue(gameViewControllerContent.contains("UntoldRenderer.createiOS"),
+                      "iOS GameViewController should use createiOS method")
+        XCTAssertTrue(gameViewControllerContent.contains("prefersStatusBarHidden"),
+                      "iOS GameViewController should hide status bar")
+        XCTAssertTrue(gameViewControllerContent.contains("supportedInterfaceOrientations"),
+                      "iOS GameViewController should define interface orientations")
+        XCTAssertTrue(gameViewControllerContent.contains(".landscape"),
+                      "iOS GameViewController should support landscape orientation")
+    }
+
+    func testIOSARGameViewControllerSwiftGeneratedWithExpectedContent() throws {
+        // When: Getting template files for iOS AR
+        let templateFiles = BuildTemplates.getTemplateFilesForIOSAR()
+
+        // Then: iOS AR GameViewController.swift should exist
+        let gameViewControllerKey = "Sources/{{PROJECT_NAME}}/GameViewController.swift"
+        XCTAssertNotNil(templateFiles[gameViewControllerKey], "iOS AR GameViewController.swift should exist")
+
+        guard let gameViewControllerContent = templateFiles[gameViewControllerKey] else {
+            XCTFail("iOS AR GameViewController.swift content should not be nil")
+            return
+        }
+
+        // Verify iOS AR-specific content
+        XCTAssertTrue(gameViewControllerContent.contains("import ARKit"),
+                      "iOS AR GameViewController should import ARKit")
+        XCTAssertTrue(gameViewControllerContent.contains("ARSessionDelegate"),
+                      "iOS AR GameViewController should implement ARSessionDelegate")
+        XCTAssertTrue(gameViewControllerContent.contains("UntoldEngineAR"),
+                      "iOS AR GameViewController should use UntoldEngineAR")
+        XCTAssertTrue(gameViewControllerContent.contains("var arSession: ARSession!"),
+                      "iOS AR GameViewController should have arSession property")
+        XCTAssertTrue(gameViewControllerContent.contains("arSession = ARSession()"),
+                      "iOS AR GameViewController should create AR session")
+        XCTAssertTrue(gameViewControllerContent.contains("ARWorldTrackingConfiguration"),
+                      "iOS AR GameViewController should use ARWorldTrackingConfiguration")
+        XCTAssertTrue(gameViewControllerContent.contains("planeDetection"),
+                      "iOS AR GameViewController should enable plane detection")
+    }
+
+    func testIOSMainStoryboardGeneratedCorrectly() throws {
+        // Given: Build settings for an iOS project
+        let settings = BuildSettings(
+            projectName: "MyiOSGame",
+            bundleIdentifier: "com.test.iosgame",
+            outputPath: tempDirectory,
+            target: .iOS(deployment: .v17)
+        )
+
+        // When: Getting template files for iOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: iOS Main.storyboard should exist
+        let storyboardKey = "Sources/{{PROJECT_NAME}}/Base.lproj/Main.storyboard"
+        XCTAssertNotNil(templateFiles[storyboardKey], "iOS Main.storyboard should exist")
+
+        guard let storyboardContent = templateFiles[storyboardKey] else {
+            XCTFail("iOS Main.storyboard content should not be nil")
+            return
+        }
+
+        // Verify iOS-specific storyboard content
+        XCTAssertTrue(storyboardContent.contains("com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB"),
+                      "iOS storyboard should be CocoaTouch type")
+        XCTAssertTrue(storyboardContent.contains("targetRuntime=\"iOS.CocoaTouch\""),
+                      "iOS storyboard should target iOS CocoaTouch runtime")
+        XCTAssertTrue(storyboardContent.contains("customClass=\"GameViewController\""),
+                      "iOS storyboard should reference GameViewController")
+        XCTAssertTrue(storyboardContent.contains("customClass=\"MTKView\""),
+                      "iOS storyboard should use MTKView")
+    }
+
+    func testIOSInfoPlistContainsRequiredKeys() throws {
+        // Given: Build settings for an iOS project
+        let settings = BuildSettings(
+            projectName: "MyiOSGame",
+            bundleIdentifier: "com.test.iosgame",
+            outputPath: tempDirectory,
+            target: .iOS(deployment: .v17)
+        )
+
+        // When: Getting template files for iOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: iOS Info.plist should exist
+        let infoPlistKey = "Sources/{{PROJECT_NAME}}/Info.plist"
+        XCTAssertNotNil(templateFiles[infoPlistKey], "iOS Info.plist should exist")
+
+        guard let infoPlistContent = templateFiles[infoPlistKey] else {
+            XCTFail("iOS Info.plist content should not be nil")
+            return
+        }
+
+        // Verify iOS-specific Info.plist keys
+        XCTAssertTrue(infoPlistContent.contains("<key>LSRequiresIPhoneOS</key>"),
+                      "iOS Info.plist should contain LSRequiresIPhoneOS")
+        XCTAssertTrue(infoPlistContent.contains("<key>UIRequiredDeviceCapabilities</key>"),
+                      "iOS Info.plist should contain UIRequiredDeviceCapabilities")
+        XCTAssertTrue(infoPlistContent.contains("<string>metal</string>"),
+                      "iOS Info.plist should require Metal capability")
+        XCTAssertTrue(infoPlistContent.contains("<key>UIMainStoryboardFile</key>"),
+                      "iOS Info.plist should reference main storyboard")
+        XCTAssertTrue(infoPlistContent.contains("<key>UIStatusBarHidden</key>"),
+                      "iOS Info.plist should configure status bar")
+        XCTAssertTrue(infoPlistContent.contains("<key>UISupportedInterfaceOrientations</key>"),
+                      "iOS Info.plist should define supported orientations")
+        XCTAssertTrue(infoPlistContent.contains("UIInterfaceOrientationLandscapeLeft"),
+                      "iOS Info.plist should support landscape orientations")
+
+        // Verify bundle identifier uses build setting substitution
+        XCTAssertTrue(infoPlistContent.contains("$(PRODUCT_BUNDLE_IDENTIFIER)"),
+                      "iOS Info.plist should use $(PRODUCT_BUNDLE_IDENTIFIER) for CFBundleIdentifier")
+        XCTAssertFalse(infoPlistContent.contains("{{BUNDLE_IDENTIFIER}}"),
+                       "iOS Info.plist should not contain placeholder {{BUNDLE_IDENTIFIER}}")
+    }
+
+    func testIOSARInfoPlistContainsARPermissions() throws {
+        // When: Getting template files for iOS AR
+        let templateFiles = BuildTemplates.getTemplateFilesForIOSAR()
+
+        // Then: iOS AR Info.plist should exist
+        let infoPlistKey = "Sources/{{PROJECT_NAME}}/Info.plist"
+        XCTAssertNotNil(templateFiles[infoPlistKey], "iOS AR Info.plist should exist")
+
+        guard let infoPlistContent = templateFiles[infoPlistKey] else {
+            XCTFail("iOS AR Info.plist content should not be nil")
+            return
+        }
+
+        // Verify AR-specific permissions and capabilities
+        XCTAssertTrue(infoPlistContent.contains("<key>NSCameraUsageDescription</key>"),
+                      "iOS AR Info.plist should contain camera usage description")
+        XCTAssertTrue(infoPlistContent.contains("camera access for AR features"),
+                      "iOS AR Info.plist should explain camera usage")
+        XCTAssertTrue(infoPlistContent.contains("<string>arkit</string>"),
+                      "iOS AR Info.plist should require ARKit capability")
+        XCTAssertTrue(infoPlistContent.contains("<string>metal</string>"),
+                      "iOS AR Info.plist should require Metal capability")
+
+        // Verify bundle identifier uses build setting substitution
+        XCTAssertTrue(infoPlistContent.contains("$(PRODUCT_BUNDLE_IDENTIFIER)"),
+                      "iOS AR Info.plist should use $(PRODUCT_BUNDLE_IDENTIFIER) for CFBundleIdentifier")
+    }
+
+    func testIOSTemplateDoesNotIncludePackageSwift() throws {
+        // Given: Build settings for an iOS project
+        let settings = BuildSettings(
+            projectName: "MyiOSGame",
+            bundleIdentifier: "com.test.iosgame",
+            outputPath: tempDirectory,
+            target: .iOS(deployment: .v17)
+        )
+
+        // When: Getting template files for iOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: Package.swift should NOT be in the template files
+        XCTAssertNil(templateFiles["Package.swift"],
+                     "iOS template should not include Package.swift")
+
+        // Verify other expected files are present
+        XCTAssertNotNil(templateFiles["README.md"], "iOS template should include README.md")
+        XCTAssertNotNil(templateFiles["Sources/{{PROJECT_NAME}}/AppDelegate.swift"],
+                        "iOS template should include AppDelegate.swift")
+    }
+
+    func testIOSARTemplateDoesNotIncludePackageSwift() throws {
+        // When: Getting template files for iOS AR
+        let templateFiles = BuildTemplates.getTemplateFilesForIOSAR()
+
+        // Then: Package.swift should NOT be in the template files
+        XCTAssertNil(templateFiles["Package.swift"],
+                     "iOS AR template should not include Package.swift")
+
+        // Verify other expected files are present
+        XCTAssertNotNil(templateFiles["README.md"], "iOS AR template should include README.md")
+        XCTAssertNotNil(templateFiles["Sources/{{PROJECT_NAME}}/AppDelegate.swift"],
+                        "iOS AR template should include AppDelegate.swift")
+    }
 }
