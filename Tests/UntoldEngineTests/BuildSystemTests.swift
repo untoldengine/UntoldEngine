@@ -443,8 +443,12 @@ final class BuildSystemTests: XCTestCase {
                       "iOS AR GameViewController should import ARKit")
         XCTAssertTrue(gameViewControllerContent.contains("ARSessionDelegate"),
                       "iOS AR GameViewController should implement ARSessionDelegate")
+        XCTAssertTrue(gameViewControllerContent.contains("import UntoldEngineAR"),
+                      "iOS AR GameViewController should import UntoldEngineAR")
+        XCTAssertFalse(gameViewControllerContent.contains("import UntoldEngine\n"),
+                       "iOS AR GameViewController should NOT import UntoldEngine standalone (it's in GameScene)")
         XCTAssertTrue(gameViewControllerContent.contains("UntoldEngineAR"),
-                      "iOS AR GameViewController should use UntoldEngineAR")
+                      "iOS AR GameViewController should use UntoldEngineAR class")
         XCTAssertTrue(gameViewControllerContent.contains("var arSession: ARSession!"),
                       "iOS AR GameViewController should have arSession property")
         XCTAssertTrue(gameViewControllerContent.contains("arSession = ARSession()"),
@@ -453,6 +457,8 @@ final class BuildSystemTests: XCTestCase {
                       "iOS AR GameViewController should use ARWorldTrackingConfiguration")
         XCTAssertTrue(gameViewControllerContent.contains("planeDetection"),
                       "iOS AR GameViewController should enable plane detection")
+        XCTAssertFalse(gameViewControllerContent.contains("class GameScene"),
+                       "iOS AR GameViewController should NOT contain GameScene class (it's in separate file)")
     }
 
     func testIOSMainStoryboardGeneratedCorrectly() throws {
