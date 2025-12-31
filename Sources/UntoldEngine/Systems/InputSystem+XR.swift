@@ -45,21 +45,19 @@ public extension InputSystem {
 
         func registerXREvents(view: some View) -> some View {
             view
-                // TODO: Re-enable when createSpatialTapGesture is fixed
-                // .gesture(createSpatialTapGesture())
+                .gesture(createSpatialTapGesture())
                 .gesture(createSpatialDragGesture())
                 .gesture(createSpatialMagnifyGesture())
         }
 
         // MARK: - Spatial Tap Gesture (Primary Selection)
 
-        // TODO: Fix SpatialTapGesture - value.location returns CGPoint but handleSpatialTap expects simd_float3
-        // Need to convert CGPoint to 3D space coordinates or change the implementation
-        /*
         private func createSpatialTapGesture() -> some Gesture {
             SpatialTapGesture(count: 1, coordinateSpace: .local)
                 .onEnded { value in
-                    self.handleSpatialTap(at: value.location)
+                    // Convert CGPoint to simd_float3
+                    let location3D = simd_float3(Float(value.location.x), Float(value.location.y), 0.0)
+                    self.handleSpatialTap(at: location3D)
                 }
         }
 
@@ -78,7 +76,6 @@ public extension InputSystem {
                 self?.xrInputState.primaryTapActive = false
             }
         }
-        */
 
         // MARK: - Spatial Drag Gesture (Camera Orbit/Pan)
 
@@ -146,30 +143,19 @@ public extension InputSystem {
 
         // MARK: - Hand Tracking (Advanced Input)
 
-        // TODO: Fix hand tracking - ARKitSession API has changed
-        // queryDeviceAnchor is not available on ARKitSession
-        // Need to update to use proper visionOS 2.0 hand tracking API
-        func updateHandTracking(session: ARKitSession) {
-            // Temporarily disabled - API needs updating
+        func updateHandTracking(session _: ARKitSession) {
+            // TODO: Implement hand tracking using visionOS 2.0 ARKit APIs
+            // The ARKitSession API has changed in visionOS 2.0
+            // Need to use HandTrackingProvider and HandAnchor for proper implementation
+
             xrInputState.handTrackingActive = false
-            
-            /*
-            guard let handTracking = session.queryDeviceAnchor(.hand) else {
-                xrInputState.handTrackingActive = false
-                return
-            }
 
-            xrInputState.handTrackingActive = true
-
-            // Note: This is a simplified example
-            // In a real implementation, you'd query specific hand anchors
-            // and extract joint positions, gestures, etc.
-
-            // Example: Check for pinch gestures with both hands
-            // You would get this from ARKit's hand tracking data
-            // xrInputState.leftHandPinching = checkLeftHandPinch(handTracking)
-            // xrInputState.rightHandPinching = checkRightHandPinch(handTracking)
-            */
+            // Note: This is a placeholder for future implementation
+            // In a real implementation, you'd:
+            // 1. Request hand tracking authorization
+            // 2. Query HandTrackingProvider for hand anchors
+            // 3. Extract joint positions and gestures from HandAnchor
+            // 4. Update xrInputState with hand positions and pinch states
         }
 
         // MARK: - Eye Tracking (Gaze Input)
