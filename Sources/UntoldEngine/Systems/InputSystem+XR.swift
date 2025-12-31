@@ -45,13 +45,17 @@ public extension InputSystem {
 
         func registerXREvents(view: some View) -> some View {
             view
-                .gesture(createSpatialTapGesture())
+                // TODO: Re-enable when createSpatialTapGesture is fixed
+                // .gesture(createSpatialTapGesture())
                 .gesture(createSpatialDragGesture())
                 .gesture(createSpatialMagnifyGesture())
         }
 
         // MARK: - Spatial Tap Gesture (Primary Selection)
 
+        // TODO: Fix SpatialTapGesture - value.location returns CGPoint but handleSpatialTap expects simd_float3
+        // Need to convert CGPoint to 3D space coordinates or change the implementation
+        /*
         private func createSpatialTapGesture() -> some Gesture {
             SpatialTapGesture(count: 1, coordinateSpace: .local)
                 .onEnded { value in
@@ -74,6 +78,7 @@ public extension InputSystem {
                 self?.xrInputState.primaryTapActive = false
             }
         }
+        */
 
         // MARK: - Spatial Drag Gesture (Camera Orbit/Pan)
 
@@ -141,7 +146,14 @@ public extension InputSystem {
 
         // MARK: - Hand Tracking (Advanced Input)
 
+        // TODO: Fix hand tracking - ARKitSession API has changed
+        // queryDeviceAnchor is not available on ARKitSession
+        // Need to update to use proper visionOS 2.0 hand tracking API
         func updateHandTracking(session: ARKitSession) {
+            // Temporarily disabled - API needs updating
+            xrInputState.handTrackingActive = false
+            
+            /*
             guard let handTracking = session.queryDeviceAnchor(.hand) else {
                 xrInputState.handTrackingActive = false
                 return
@@ -157,6 +169,7 @@ public extension InputSystem {
             // You would get this from ARKit's hand tracking data
             // xrInputState.leftHandPinching = checkLeftHandPinch(handTracking)
             // xrInputState.rightHandPinching = checkRightHandPinch(handTracking)
+            */
         }
 
         // MARK: - Eye Tracking (Gaze Input)
