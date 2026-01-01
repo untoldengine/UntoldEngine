@@ -362,9 +362,12 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     block = max(block, tew!) // never below tew
 
     let threadsPerThreadgroup: MTLSize = MTLSizeMake(block, 1, 1)
-    let threadsPerGrid: MTLSize = MTLSizeMake(count, 1, 1)
 
-    computeEncoder.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
+    // Use dispatchThreadgroups for broader device compatibility (including Vision Pro)
+    let numThreadgroups = (count + block - 1) / block
+    let threadgroupsPerGrid: MTLSize = MTLSizeMake(numThreadgroups, 1, 1)
+
+    computeEncoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
 
     computeEncoder.endEncoding()
 
@@ -524,7 +527,8 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         computeEncoderMarkVisible.setBuffer(bufferResources.reduceScanFlags, offset: 0, index: Int(markVisibilityPassFlagIndex.rawValue))
 
         let w = min(reduceScanMarkVisiblePipeline.pipelineState!.maxTotalThreadsPerThreadgroup, 256)
-        computeEncoderMarkVisible.dispatchThreads(MTLSize(width: count, height: 1, depth: 1), threadsPerThreadgroup: MTLSize(width: w, height: 1, depth: 1))
+        let numThreadgroups = (count + w - 1) / w
+        computeEncoderMarkVisible.dispatchThreadgroups(MTLSize(width: numThreadgroups, height: 1, depth: 1), threadsPerThreadgroup: MTLSize(width: w, height: 1, depth: 1))
 
         computeEncoderMarkVisible.endEncoding()
     }
@@ -595,8 +599,9 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         computeEncoderCompact.setBuffer(bufferResources.visibleCountBuffer, offset: 0, index: Int(compactPassVisibilityCountIndex.rawValue))
 
         let w = min(reduceScanScatterCompactedPipeline.pipelineState!.maxTotalThreadsPerThreadgroup, 256)
-        computeEncoderCompact.dispatchThreads(MTLSize(width: Int(count32), height: 1, depth: 1),
-                                              threadsPerThreadgroup: MTLSize(width: w, height: 1, depth: 1))
+        let numThreadgroups = (Int(count32) + w - 1) / w
+        computeEncoderCompact.dispatchThreadgroups(MTLSize(width: numThreadgroups, height: 1, depth: 1),
+                                                   threadsPerThreadgroup: MTLSize(width: w, height: 1, depth: 1))
 
         computeEncoderCompact.endEncoding()
     }

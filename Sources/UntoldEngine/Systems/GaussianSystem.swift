@@ -109,9 +109,12 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
         block = max(block, tew!) // never below tew
 
         let threadsPerThreadgroup: MTLSize = MTLSizeMake(block, 1, 1)
-        let threadsPerGrid: MTLSize = MTLSizeMake(Int(gaussianComponent.splatCount), 1, 1)
 
-        computeEncoder.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
+        // Use dispatchThreadgroups for broader device compatibility (including Vision Pro)
+        let numThreadgroups = (Int(gaussianComponent.splatCount) + block - 1) / block
+        let threadgroupsPerGrid: MTLSize = MTLSizeMake(numThreadgroups, 1, 1)
+
+        computeEncoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
     }
 
     computeEncoder.endEncoding()
@@ -161,9 +164,12 @@ public func executeBitonicSort(_ commandBuffer: MTLCommandBuffer) {
                 block = max(block, tew!) // never below tew
 
                 let threadsPerThreadgroup: MTLSize = MTLSizeMake(block, 1, 1)
-                let threadsPerGrid: MTLSize = MTLSizeMake(Int(powerOfTwoNumGaussian), 1, 1)
 
-                computeEncoder.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
+                // Use dispatchThreadgroups for broader device compatibility (including Vision Pro)
+                let numThreadgroups = (Int(powerOfTwoNumGaussian) + block - 1) / block
+                let threadgroupsPerGrid: MTLSize = MTLSizeMake(numThreadgroups, 1, 1)
+
+                computeEncoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
 
                 comparisonDistance /= 2
             }
