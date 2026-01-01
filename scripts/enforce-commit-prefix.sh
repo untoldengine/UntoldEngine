@@ -16,7 +16,7 @@ COMMIT_MSG_FILE="${1:-.git/COMMIT_EDITMSG}"
 COMMIT_MSG="$(head -n1 "$COMMIT_MSG_FILE")"
 
 # Define valid prefixes
-VALID_PREFIXES='^\[(Feature|Patch|Bugfix|API[[:space:]]Change|Docs|Release|Refactor|Chores|CI|Test|Performance|Security)\]'
+VALID_PREFIXES='^\[(Feature|Patch|Bugfix|API[[:space:]]Change|Docs|Release|Refactor|Chores|CI|Test|Performance|Security|WIP)\]'
 
 # Validate prefix
 if [[ ! "$COMMIT_MSG" =~ $VALID_PREFIXES ]]; then
@@ -35,6 +35,7 @@ if [[ ! "$COMMIT_MSG" =~ $VALID_PREFIXES ]]; then
   echo "  [Performance]  – for performance improvements"
   echo "  [Security]     – for security-related fixes"
   echo "  [Release]      - for releases"
+  echo "  [WIP]          – for work in progress"
   echo
   echo "Example:"
   echo "  [Feature] Add dynamic shadow rendering"
