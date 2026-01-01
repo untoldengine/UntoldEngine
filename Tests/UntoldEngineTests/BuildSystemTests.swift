@@ -599,5 +599,207 @@ final class BuildSystemTests: XCTestCase {
         XCTAssertNotNil(templateFiles["README.md"], "iOS AR template should include README.md")
         XCTAssertNotNil(templateFiles["Sources/{{PROJECT_NAME}}/AppDelegate.swift"],
                         "iOS AR template should include AppDelegate.swift")
+        XCTAssertNotNil(templateFiles["Sources/{{PROJECT_NAME}}/GameScene.swift"],
+                        "iOS AR template should include separate GameScene.swift file")
+    }
+
+    func testIOSARGameSceneSwiftSeparateFile() throws {
+        // When: Getting template files for iOS AR
+        let templateFiles = BuildTemplates.getTemplateFilesForIOSAR()
+
+        // Then: GameScene.swift should exist
+        let gameSceneKey = "Sources/{{PROJECT_NAME}}/GameScene.swift"
+        XCTAssertNotNil(templateFiles[gameSceneKey], "iOS AR GameScene.swift should exist")
+
+        guard let gameSceneContent = templateFiles[gameSceneKey] else {
+            XCTFail("iOS AR GameScene.swift content should not be nil")
+            return
+        }
+
+        // Verify GameScene.swift content
+        XCTAssertTrue(gameSceneContent.contains("import Foundation"),
+                      "iOS AR GameScene should import Foundation")
+        XCTAssertTrue(gameSceneContent.contains("import UntoldEngine"),
+                      "iOS AR GameScene should import UntoldEngine")
+        XCTAssertTrue(gameSceneContent.contains("class GameScene"),
+                      "iOS AR GameScene should contain GameScene class")
+        XCTAssertTrue(gameSceneContent.contains("func update(deltaTime"),
+                      "iOS AR GameScene should have update method")
+        XCTAssertTrue(gameSceneContent.contains("func handleInput()"),
+                      "iOS AR GameScene should have handleInput method")
+        XCTAssertFalse(gameSceneContent.contains("import UIKit"),
+                       "iOS AR GameScene should NOT import UIKit")
+        XCTAssertFalse(gameSceneContent.contains("import ARKit"),
+                       "iOS AR GameScene should NOT import ARKit")
+        XCTAssertFalse(gameSceneContent.contains("import UntoldEngineAR"),
+                       "iOS AR GameScene should NOT import UntoldEngineAR")
+    }
+
+    // MARK: - visionOS Template Tests
+
+    func testVisionOSAppSwiftGeneratedWithExpectedContent() throws {
+        // Given: Build settings for a visionOS project
+        let settings = BuildSettings(
+            projectName: "MyVisionGame",
+            bundleIdentifier: "com.test.visiongame",
+            outputPath: tempDirectory,
+            target: .visionOS(deployment: .v2)
+        )
+
+        // When: Getting template files for visionOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: visionOS App.swift should exist
+        let appSwiftKey = "Sources/{{PROJECT_NAME}}/{{PROJECT_NAME}}App.swift"
+        XCTAssertNotNil(templateFiles[appSwiftKey], "visionOS App.swift should exist")
+
+        guard let appSwiftContent = templateFiles[appSwiftKey] else {
+            XCTFail("visionOS App.swift content should not be nil")
+            return
+        }
+
+        // Verify visionOS-specific content
+        XCTAssertTrue(appSwiftContent.contains("import SwiftUI"),
+                      "visionOS App should import SwiftUI")
+        XCTAssertTrue(appSwiftContent.contains("import CompositorServices"),
+                      "visionOS App should import CompositorServices")
+        XCTAssertTrue(appSwiftContent.contains("import UntoldEngineXR"),
+                      "visionOS App should import UntoldEngineXR")
+        // Check that it doesn't import UntoldEngine as a standalone import (not as part of UntoldEngineXR)
+        XCTAssertFalse(appSwiftContent.contains("import UntoldEngine\n"),
+                       "visionOS App should NOT import UntoldEngine standalone (it's in GameScene)")
+        XCTAssertTrue(appSwiftContent.contains("UntoldEngineXR"),
+                      "visionOS App should use UntoldEngineXR class")
+        XCTAssertTrue(appSwiftContent.contains("CompositorLayer"),
+                      "visionOS App should use CompositorLayer")
+        XCTAssertTrue(appSwiftContent.contains("ImmersiveSpace"),
+                      "visionOS App should define ImmersiveSpace")
+        XCTAssertTrue(appSwiftContent.contains("setImmersionMode(xrImmersionMode: .mixed)"),
+                      "visionOS App should set mixed immersion mode")
+        XCTAssertTrue(appSwiftContent.contains("XRHolder"),
+                      "visionOS App should use XRHolder pattern")
+        XCTAssertFalse(appSwiftContent.contains("class GameScene"),
+                       "visionOS App should NOT contain GameScene class (it's in separate file)")
+    }
+
+    func testVisionOSInfoPlistContainsRequiredKeys() throws {
+        // Given: Build settings for a visionOS project
+        let settings = BuildSettings(
+            projectName: "MyVisionGame",
+            bundleIdentifier: "com.test.visiongame",
+            outputPath: tempDirectory,
+            target: .visionOS(deployment: .v2)
+        )
+
+        // When: Getting template files for visionOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: visionOS Info.plist should exist
+        let infoPlistKey = "Sources/{{PROJECT_NAME}}/Info.plist"
+        XCTAssertNotNil(templateFiles[infoPlistKey], "visionOS Info.plist should exist")
+
+        guard let infoPlistContent = templateFiles[infoPlistKey] else {
+            XCTFail("visionOS Info.plist content should not be nil")
+            return
+        }
+
+        // Verify visionOS-specific Info.plist keys
+        XCTAssertTrue(infoPlistContent.contains("<key>UIRequiredDeviceCapabilities</key>"),
+                      "visionOS Info.plist should contain UIRequiredDeviceCapabilities")
+        XCTAssertTrue(infoPlistContent.contains("<string>metal</string>"),
+                      "visionOS Info.plist should require Metal capability")
+        XCTAssertTrue(infoPlistContent.contains("<key>NSWorldSensingUsageDescription</key>"),
+                      "visionOS Info.plist should contain world sensing usage description")
+        XCTAssertTrue(infoPlistContent.contains("immersive AR experiences"),
+                      "visionOS Info.plist should explain world sensing usage")
+
+        // Verify bundle identifier uses build setting substitution
+        XCTAssertTrue(infoPlistContent.contains("$(PRODUCT_BUNDLE_IDENTIFIER)"),
+                      "visionOS Info.plist should use $(PRODUCT_BUNDLE_IDENTIFIER) for CFBundleIdentifier")
+    }
+
+    func testVisionOSTemplateDoesNotIncludePackageSwift() throws {
+        // Given: Build settings for a visionOS project
+        let settings = BuildSettings(
+            projectName: "MyVisionGame",
+            bundleIdentifier: "com.test.visiongame",
+            outputPath: tempDirectory,
+            target: .visionOS(deployment: .v2)
+        )
+
+        // When: Getting template files for visionOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: Package.swift should NOT be in the template files (visionOS uses Xcode projects)
+        XCTAssertNil(templateFiles["Package.swift"],
+                     "visionOS template should not include Package.swift")
+
+        // Verify other expected files are present
+        XCTAssertNotNil(templateFiles["README.md"], "visionOS template should include README.md")
+        XCTAssertNotNil(templateFiles["Sources/{{PROJECT_NAME}}/{{PROJECT_NAME}}App.swift"],
+                        "visionOS template should include App.swift")
+    }
+
+    func testVisionOSTemplateUsesSwiftUINotAppDelegate() throws {
+        // Given: Build settings for a visionOS project
+        let settings = BuildSettings(
+            projectName: "MyVisionGame",
+            bundleIdentifier: "com.test.visiongame",
+            outputPath: tempDirectory,
+            target: .visionOS(deployment: .v2)
+        )
+
+        // When: Getting template files for visionOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: Should not include AppDelegate or GameViewController (uses SwiftUI App)
+        XCTAssertNil(templateFiles["Sources/{{PROJECT_NAME}}/AppDelegate.swift"],
+                     "visionOS template should not use AppDelegate")
+        XCTAssertNil(templateFiles["Sources/{{PROJECT_NAME}}/GameViewController.swift"],
+                     "visionOS template should not use GameViewController")
+
+        // Should have the SwiftUI App file and separate GameScene file
+        XCTAssertNotNil(templateFiles["Sources/{{PROJECT_NAME}}/{{PROJECT_NAME}}App.swift"],
+                        "visionOS template should include SwiftUI App file")
+        XCTAssertNotNil(templateFiles["Sources/{{PROJECT_NAME}}/GameScene.swift"],
+                        "visionOS template should include separate GameScene.swift file")
+    }
+
+    func testVisionOSGameSceneSwiftSeparateFile() throws {
+        // Given: Build settings for a visionOS project
+        let settings = BuildSettings(
+            projectName: "MyVisionGame",
+            bundleIdentifier: "com.test.visiongame",
+            outputPath: tempDirectory,
+            target: .visionOS(deployment: .v2)
+        )
+
+        // When: Getting template files for visionOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: GameScene.swift should exist
+        let gameSceneKey = "Sources/{{PROJECT_NAME}}/GameScene.swift"
+        XCTAssertNotNil(templateFiles[gameSceneKey], "visionOS GameScene.swift should exist")
+
+        guard let gameSceneContent = templateFiles[gameSceneKey] else {
+            XCTFail("visionOS GameScene.swift content should not be nil")
+            return
+        }
+
+        // Verify GameScene.swift content
+        XCTAssertTrue(gameSceneContent.contains("import Foundation"),
+                      "GameScene should import Foundation")
+        XCTAssertTrue(gameSceneContent.contains("import UntoldEngine"),
+                      "GameScene should import UntoldEngine")
+        XCTAssertTrue(gameSceneContent.contains("class GameScene"),
+                      "GameScene should contain GameScene class")
+        XCTAssertTrue(gameSceneContent.contains("func update(deltaTime"),
+                      "GameScene should have update method")
+        XCTAssertTrue(gameSceneContent.contains("func handleInput()"),
+                      "GameScene should have handleInput method")
+        XCTAssertFalse(gameSceneContent.contains("import SwiftUI"),
+                       "GameScene should NOT import SwiftUI")
+        XCTAssertFalse(gameSceneContent.contains("import UntoldEngineXR"),
+                       "GameScene should NOT import UntoldEngineXR")
     }
 }
