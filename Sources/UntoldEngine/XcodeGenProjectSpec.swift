@@ -28,8 +28,13 @@ import Foundation
             INFOPLIST_FILE: Sources/\(settings.projectName)/Info.plist
             """
 
-            // Add iOS-specific signing settings
+            // Add iOS and visionOS code signing settings
             if case .iOS = settings.target {
+                baseSettings += """
+
+                CODE_SIGN_STYLE: Automatic
+                """
+            } else if case .visionOS = settings.target {
                 baseSettings += """
 
                 CODE_SIGN_STYLE: Automatic
@@ -73,20 +78,8 @@ import Foundation
                     .joined(separator: "\n")
             }
 
-            // Assemble final YAML
-            let yaml = """
-            name: \(settings.projectName)
-
-            packages:
-              UntoldEngine:
-                url: https://github.com/untoldengine/UntoldEngine.git
-                branch: develop
-
-            targets:
-              \(settings.projectName):
-                type: application
-                platform: \(platformName)
-                deploymentTarget: \(deploymentTarget)
+            // Build sources section - visionOS doesn't use Base.lproj
+            var sourcesSection = """
                 sources:
                   - path: Sources
                     excludes:
@@ -94,11 +87,52 @@ import Foundation
                   - path: Sources/\(settings.projectName)/GameData
                     type: folder
                     buildPhase: resources
-                  - path: Sources/\(settings.projectName)/Base.lproj
-                    type: folder
-                    buildPhase: resources
+            """
+
+            // Only add Base.lproj for platforms that use storyboards (macOS, iOS)
+            if case .macOS = settings.target {
+                sourcesSection += """
+
+                      - path: Sources/\(settings.projectName)/Base.lproj
+                        type: folder
+                        buildPhase: resources
+                """
+            } else if case .iOS = settings.target {
+                sourcesSection += """
+
+                      - path: Sources/\(settings.projectName)/Base.lproj
+                        type: folder
+                        buildPhase: resources
+                """
+            }
+
+            // Packages section
+            let packagesSection = """
+            packages:
+              UntoldEngine:
+                url: https://github.com/untoldengine/UntoldEngine.git
+                branch: develop
+            """
+
+            // Dependencies section
+            let dependenciesSection = """
                 dependencies:
                   - package: UntoldEngine
+            """
+
+            // Assemble final YAML
+            let yaml = """
+            name: \(settings.projectName)
+
+            \(packagesSection)
+
+            targets:
+              \(settings.projectName):
+                type: application
+                platform: \(platformName)
+                deploymentTarget: \(deploymentTarget)
+            \(sourcesSection)
+            \(dependenciesSection)
                 settings:
                   base:
             \(indent(baseSettings, by: 16))
