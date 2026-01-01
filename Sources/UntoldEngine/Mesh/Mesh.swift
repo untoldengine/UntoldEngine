@@ -652,7 +652,7 @@ struct TextureLoader {
         let loader = MTKTextureLoader(device: device)
 
         let options: [MTKTextureLoader.Option: Any] = [
-            .textureUsage: MTLTextureUsage.shaderRead.rawValue,
+            .textureUsage: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue,
             .textureStorageMode: MTLStorageMode.private.rawValue,
             .SRGB: isSRGB,
             .generateMipmaps: true,

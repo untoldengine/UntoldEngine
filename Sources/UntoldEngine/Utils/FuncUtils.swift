@@ -34,7 +34,7 @@ public func loadTexture(
     let textureLoader = MTKTextureLoader(device: device)
 
     let textureLoaderOptions = [
-        MTKTextureLoader.Option.textureUsage: NSNumber(value: MTLTextureUsage.shaderRead.rawValue),
+        MTKTextureLoader.Option.textureUsage: NSNumber(value: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue),
         MTKTextureLoader.Option.textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
         MTKTextureLoader.Option.SRGB: NSNumber(value: isSRGB),
     ]
@@ -544,7 +544,7 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
     let textureLoader = MTKTextureLoader(device: renderInfo.device)
 
     let textureLoaderOptions = [
-        MTKTextureLoader.Option.textureUsage: NSNumber(value: MTLTextureUsage.shaderRead.rawValue),
+        MTKTextureLoader.Option.textureUsage: NSNumber(value: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue),
         MTKTextureLoader.Option.textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
         MTKTextureLoader.Option.SRGB: NSNumber(value: textureType == .baseColor),
         MTKTextureLoader.Option.generateMipmaps: true,
@@ -670,7 +670,7 @@ public func restoreEmbeddedTexture(entityId: EntityID, textureType: TextureType)
     let isSRGB = textureType == .baseColor
 
     let options: [MTKTextureLoader.Option: Any] = [
-        .textureUsage: MTLTextureUsage.shaderRead.rawValue,
+        .textureUsage: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue,
         .textureStorageMode: MTLStorageMode.private.rawValue,
         .SRGB: isSRGB,
         .generateMipmaps: true,
