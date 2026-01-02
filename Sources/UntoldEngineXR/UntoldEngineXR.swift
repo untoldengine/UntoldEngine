@@ -31,6 +31,10 @@
         private let lock = NSLock()
 
         private let layerRenderer: LayerRenderer?
+        
+        // Reuse render pass descriptors to avoid allocation churn (2 eyes × 90 FPS = 180 allocs/sec)
+        private let passDescriptorLeft = MTLRenderPassDescriptor()
+        private let passDescriptorRight = MTLRenderPassDescriptor()
 
         #if canImport(ARKit)
             private let arSession = ARKitSession()
@@ -207,8 +211,8 @@
 
                 let projection: simd_float4x4 = drawable.computeProjection(convention: .rightUpForward, viewIndex: viewIndex)
 
-                // create a pass descriptor
-                let passDescriptor = MTLRenderPassDescriptor()
+                // Reuse pre-allocated pass descriptor to avoid allocation churn
+                let passDescriptor = viewIndex == 0 ? passDescriptorLeft : passDescriptorRight
                 passDescriptor.colorAttachments[0].texture = drawable.colorTextures[viewIndex]
                 passDescriptor.colorAttachments[0].storeAction = .store
                 passDescriptor.colorAttachments[0].loadAction = .clear
