@@ -99,33 +99,39 @@
             lock.unlock()
         }
 
-        public func stop() {}
+        public func stop() {
+            lock.lock()
+            _isRunning = false
+            lock.unlock()
+        }
 
         public func runLoop() {
             while true {
-                lock.lock()
-                let running = _isRunning
-                lock.unlock()
+                autoreleasepool {
+                    lock.lock()
+                    let running = _isRunning
+                    lock.unlock()
 
-                if !running { break }
+                    if !running { return }
 
-                guard let layerRenderer else {
-                    break
-                }
+                    guard let layerRenderer else {
+                        return
+                    }
 
-                switch layerRenderer.state {
-                case .paused:
-                    layerRenderer.waitUntilRunning()
+                    switch layerRenderer.state {
+                    case .paused:
+                        layerRenderer.waitUntilRunning()
 
-                case .running:
-                    // Call the per-frame function here
-                    renderNewFrame()
+                    case .running:
+                        // Call the per-frame function here
+                        renderNewFrame()
 
-                case .invalidated:
-                    return
+                    case .invalidated:
+                        return
 
-                @unknown default:
-                    return
+                    @unknown default:
+                        return
+                    }
                 }
             }
         }
