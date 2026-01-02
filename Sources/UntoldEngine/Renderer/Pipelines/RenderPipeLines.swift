@@ -380,12 +380,14 @@ public func InitDepthOfFieldPipeline() -> RenderPipeline? {
 // MARK: SSAO pipeline
 
 public func InitSSAOPipeline() -> RenderPipeline? {
-    CreatePipeline(
+    // Use quality-based texture format for SSAO output
+    let format = SSAOParams.shared.quality.textureFormat
+    return CreatePipeline(
         vertexShader: "vertexSSAOShader",
         fragmentShader: "fragmentSSAOShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
-        depthFormat: renderInfo.depthPixelFormat,
+        colorFormats: [format],
+        depthFormat: .invalid, // No depth attachment for SSAO pass
         depthEnabled: false,
         name: "SSAO Pipeline"
     )
@@ -394,14 +396,47 @@ public func InitSSAOPipeline() -> RenderPipeline? {
 // MARK: SSAO blur pipeline
 
 public func InitSSAOBlurPipeline() -> RenderPipeline? {
-    CreatePipeline(
+    // Use quality-based texture format for SSAO blur output
+    let format = SSAOParams.shared.quality.textureFormat
+    return CreatePipeline(
         vertexShader: "vertexSSAOBlurShader",
         fragmentShader: "fragmentSSAOBlurShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
-        depthFormat: renderInfo.depthPixelFormat,
+        colorFormats: [format],
+        depthFormat: .invalid, // No depth attachment for blur pass
         depthEnabled: false,
         name: "SSAO Blur Pipeline"
+    )
+}
+
+// MARK: SSAO bilateral blur pipeline
+
+public func InitSSAOBilateralBlurPipeline() -> RenderPipeline? {
+    // Use r8Unorm or r16Float based on quality
+    CreatePipeline(
+        vertexShader: "vertexSSAOBilateralBlurShader",
+        fragmentShader: "fragmentSSAOBilateralBlurShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [SSAOParams.shared.quality.textureFormat],
+        depthFormat: .invalid,
+        depthEnabled: false,
+        name: "SSAO Bilateral Blur Pipeline"
+    )
+}
+
+// MARK: SSAO upsample pipeline
+
+public func InitSSAOUpsamplePipeline() -> RenderPipeline? {
+    // Upsample outputs to full-res blur texture, use quality format
+    let format = SSAOParams.shared.quality.textureFormat
+    return CreatePipeline(
+        vertexShader: "vertexSSAOUpsampleShader",
+        fragmentShader: "fragmentSSAOUpsampleShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [format],
+        depthFormat: .invalid,
+        depthEnabled: false,
+        name: "SSAO Upsample Pipeline"
     )
 }
 
@@ -525,6 +560,8 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.depthOfField, InitDepthOfFieldPipeline),
         (.ssao, InitSSAOPipeline),
         (.ssaoBlur, InitSSAOBlurPipeline),
+        (.ssaoBilateralBlur, InitSSAOBilateralBlurPipeline),
+        (.ssaoUpsample, InitSSAOUpsamplePipeline),
         (.environment, InitEnvironmentPipeline),
         (.iblPreFilter, InitIBLPreFilterPipeline),
         (.gaussian, InitGaussianPipeline),

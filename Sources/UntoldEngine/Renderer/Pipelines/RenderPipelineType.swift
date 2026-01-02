@@ -36,6 +36,8 @@ public extension RenderPipelineType {
     static let depthOfField: RenderPipelineType = "depthOfField"
     static let ssao: RenderPipelineType = "ssao"
     static let ssaoBlur: RenderPipelineType = "ssaoBlur"
+    static let ssaoBilateralBlur: RenderPipelineType = "ssaoBilateralBlur"
+    static let ssaoUpsample: RenderPipelineType = "ssaoUpsample"
     static let environment: RenderPipelineType = "environment"
     static let iblPreFilter: RenderPipelineType = "iblPreFilter"
     static let gaussian: RenderPipelineType = "gaussian"

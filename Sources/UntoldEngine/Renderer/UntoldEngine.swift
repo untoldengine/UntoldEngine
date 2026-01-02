@@ -167,6 +167,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         initTextureResources()
         initRenderPassDescriptors()
         initIBLResources()
+
+        // Initialize SSAO quality-based textures (must come after initTextureResources)
+        reinitSSAOTextures()
     }
 
     func calculateDeltaTime() {

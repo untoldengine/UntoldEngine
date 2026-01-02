@@ -129,7 +129,8 @@ typedef enum{
     lightPassSpotLightsCountIndex,
     lightPassAreaLightsIndex,
     lightPassAreaLightsCountIndex,
-    lightPassGameModeIndex
+    lightPassGameModeIndex,
+    lightPassSSAOEnabledIndex
 }LightPassBufferIndices;
 
 typedef enum{

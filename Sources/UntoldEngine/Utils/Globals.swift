@@ -274,6 +274,53 @@ public class DepthOfFieldParams: ObservableObject {
     @Published public var enabled: Bool = false
 }
 
+// SSAO Quality Settings
+public enum SSAOQuality: Int, CaseIterable {
+    case fast = 0
+    case balanced = 1
+    case high = 2
+
+    var sampleCount: Int {
+        switch self {
+        case .fast: return 8
+        case .balanced: return 16
+        case .high: return 32
+        }
+    }
+
+    var resolutionScale: Float {
+        switch self {
+        case .fast: return 0.5 // half-res
+        case .balanced: return 0.5 // half-res
+        case .high: return 1.0 // full-res
+        }
+    }
+
+    var useDepthAwareUpsample: Bool {
+        switch self {
+        case .fast: return false // simple bilinear
+        case .balanced: return true
+        case .high: return false // no upsample needed
+        }
+    }
+
+    var useBilateralBlur: Bool {
+        switch self {
+        case .fast: return false
+        case .balanced: return true
+        case .high: return true
+        }
+    }
+
+    var textureFormat: MTLPixelFormat {
+        switch self {
+        case .fast: return .r8Unorm
+        case .balanced: return .r8Unorm
+        case .high: return .r16Float
+        }
+    }
+}
+
 public class SSAOParams: ObservableObject {
     public static let shared = SSAOParams()
 
@@ -281,6 +328,37 @@ public class SSAOParams: ObservableObject {
     @Published public var bias: Float = 0.025 // 0.01-0.1 avoid self occusion
     @Published public var intensity: Float = 0 // 0.5-2.0 Final multiplier
     @Published public var enabled: Bool = false
+    @Published public var quality: SSAOQuality = .balanced {
+        didSet {
+            // Automatically reinitialize textures and pipeline when quality changes
+            if quality != oldValue {
+                reinitSSAOTextures()
+
+                // Recreate SSAO pipelines with new format
+                if let newSSAOPipeline = InitSSAOPipeline() {
+                    PipelineManager.shared.update(rendererPipeLine: newSSAOPipeline, forType: .ssao)
+                }
+                if let newSSAOBlurPipeline = InitSSAOBlurPipeline() {
+                    PipelineManager.shared.update(rendererPipeLine: newSSAOBlurPipeline, forType: .ssaoBlur)
+                }
+                if let newBilateralPipeline = InitSSAOBilateralBlurPipeline() {
+                    PipelineManager.shared.update(rendererPipeLine: newBilateralPipeline, forType: .ssaoBilateralBlur)
+                }
+                if let newUpsamplePipeline = InitSSAOUpsamplePipeline() {
+                    PipelineManager.shared.update(rendererPipeLine: newUpsamplePipeline, forType: .ssaoUpsample)
+                }
+
+                print("🔧 SSAO Quality changed to: \(quality) - textures & pipelines reinitialized")
+            }
+        }
+    }
+
+    // Performance telemetry
+    public var lastSSAOTime: Double = 0.0 // milliseconds
+    public var lastBlurTime: Double = 0.0 // milliseconds
+    public var frameCount: Int = 0
+    public var avgSSAOTime: Double = 0.0
+    public var avgBlurTime: Double = 0.0
 }
 
 public enum UntoldImmersionMode {

@@ -33,6 +33,10 @@ public struct RenderInfo {
     public var deferredRenderPassDescriptor: MTLRenderPassDescriptor!
     public var ssaoRenderPassDescriptor: MTLRenderPassDescriptor!
     public var ssaoBlurRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var ssaoLowResRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var ssaoBlurHorizontalRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var ssaoBlurVerticalRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var ssaoUpsampleRenderPassDescriptor: MTLRenderPassDescriptor!
     public var iblOffscreenRenderPassDescriptor: MTLRenderPassDescriptor!
     public var colorPixelFormat: MTLPixelFormat!
     public var depthPixelFormat: MTLPixelFormat!
@@ -138,6 +142,11 @@ public struct TextureResources {
     public var ssaoDepthMap: MTLTexture?
     public var ssaoBlurTexture: MTLTexture?
     public var ssaoBlurDepthTexture: MTLTexture?
+
+    // Low-resolution SSAO textures for performance
+    public var ssaoTextureLowRes: MTLTexture?
+    public var ssaoBlurTextureLowRes: MTLTexture?
+    public var ssaoBlurHorizontal: MTLTexture? // Intermediate for separable blur
 
     // Area texture ltc_1
     public var areaTextureLTCMag: MTLTexture?

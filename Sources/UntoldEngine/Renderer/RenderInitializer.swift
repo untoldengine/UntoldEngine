@@ -1077,12 +1077,146 @@ func createOutlineVertexDescriptor() -> MTLVertexDescriptor? {
 }
 
 func initSSAOResources() {
-    // init ssao kernel
-    let kernelData = generateSSAOKernel()
+    // init ssao kernel based on quality setting
+    let sampleCount = SSAOParams.shared.quality.sampleCount
+    let kernelData = generateSSAOKernel(sampleCount: sampleCount)
     bufferResources.ssaoKernelBuffer = renderInfo.device.makeBuffer(bytes: kernelData,
                                                                     length: MemoryLayout<SIMD3<Float>>.stride * kernelData.count,
                                                                     options: [])
 
     // init ssao noise texture
     textureResources.ssaoNoiseTexture = generateSSAONoiseTexture(device: renderInfo.device)
+}
+
+// Reinitialize SSAO textures when quality changes
+func reinitSSAOTextures() {
+    let quality = SSAOParams.shared.quality
+    let scale = quality.resolutionScale
+    let format = quality.textureFormat
+
+    let fullWidth = Int(renderInfo.viewPort.x)
+    let fullHeight = Int(renderInfo.viewPort.y)
+    let ssaoWidth = Int(Float(fullWidth) * scale)
+    let ssaoHeight = Int(Float(fullHeight) * scale)
+
+    // Always recreate full-res textures with quality format (for High quality or final output)
+    textureResources.ssaoTexture = createTexture(
+        device: renderInfo.device,
+        label: "SSAO Texture",
+        pixelFormat: format,
+        width: fullWidth,
+        height: fullHeight,
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+
+    textureResources.ssaoBlurTexture = createTexture(
+        device: renderInfo.device,
+        label: "SSAO Blur Texture",
+        pixelFormat: format,
+        width: fullWidth,
+        height: fullHeight,
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+
+    // Recreate render pass descriptors for full-res
+    renderInfo.ssaoRenderPassDescriptor = createRenderPassDescriptor(
+        width: fullWidth,
+        height: fullHeight,
+        colorAttachments: [
+            (textureResources.ssaoTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+        ],
+        depthAttachment: nil
+    )
+
+    renderInfo.ssaoBlurRenderPassDescriptor = createRenderPassDescriptor(
+        width: fullWidth,
+        height: fullHeight,
+        colorAttachments: [
+            (textureResources.ssaoBlurTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+        ],
+        depthAttachment: nil
+    )
+
+    // Create low-res SSAO texture if needed
+    if scale < 1.0 {
+        textureResources.ssaoTextureLowRes = createTexture(
+            device: renderInfo.device,
+            label: "SSAO Texture Low Res",
+            pixelFormat: format,
+            width: ssaoWidth,
+            height: ssaoHeight,
+            usage: [.shaderRead, .renderTarget],
+            storageMode: .shared
+        )
+
+        textureResources.ssaoBlurTextureLowRes = createTexture(
+            device: renderInfo.device,
+            label: "SSAO Blur Texture Low Res",
+            pixelFormat: format,
+            width: ssaoWidth,
+            height: ssaoHeight,
+            usage: [.shaderRead, .renderTarget],
+            storageMode: .shared
+        )
+
+        textureResources.ssaoBlurHorizontal = createTexture(
+            device: renderInfo.device,
+            label: "SSAO Blur Horizontal",
+            pixelFormat: format,
+            width: ssaoWidth,
+            height: ssaoHeight,
+            usage: [.shaderRead, .renderTarget],
+            storageMode: .shared
+        )
+
+        // Low-res render pass descriptor
+        renderInfo.ssaoLowResRenderPassDescriptor = createRenderPassDescriptor(
+            width: ssaoWidth,
+            height: ssaoHeight,
+            colorAttachments: [
+                (textureResources.ssaoTextureLowRes, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            ],
+            depthAttachment: nil
+        )
+
+        // Bilateral blur render pass descriptors
+        renderInfo.ssaoBlurHorizontalRenderPassDescriptor = createRenderPassDescriptor(
+            width: ssaoWidth,
+            height: ssaoHeight,
+            colorAttachments: [
+                (textureResources.ssaoBlurHorizontal, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            ],
+            depthAttachment: nil
+        )
+
+        renderInfo.ssaoBlurVerticalRenderPassDescriptor = createRenderPassDescriptor(
+            width: ssaoWidth,
+            height: ssaoHeight,
+            colorAttachments: [
+                (textureResources.ssaoBlurTextureLowRes, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            ],
+            depthAttachment: nil
+        )
+
+        // Upsample render pass descriptor (full res output)
+        renderInfo.ssaoUpsampleRenderPassDescriptor = createRenderPassDescriptor(
+            width: fullWidth,
+            height: fullHeight,
+            colorAttachments: [
+                (textureResources.ssaoBlurTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            ],
+            depthAttachment: nil
+        )
+    }
+
+    // Reinitialize kernel if sample count changed
+    let sampleCount = quality.sampleCount
+    if ssaoKernelSize != sampleCount {
+        let kernelData = generateSSAOKernel(sampleCount: sampleCount)
+        bufferResources.ssaoKernelBuffer = renderInfo.device.makeBuffer(bytes: kernelData,
+                                                                        length: MemoryLayout<SIMD3<Float>>.stride * kernelData.count,
+                                                                        options: [])
+    }
 }

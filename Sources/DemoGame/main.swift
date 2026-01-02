@@ -162,7 +162,9 @@
             InputSystem.shared.registerKeyboardEvents()
 
             // Disable SSAO
-            SSAOParams.shared.enabled = false
+            SSAOParams.shared.enabled = true
+            // Test Fast quality (8 samples, half-res)
+            SSAOParams.shared.quality = .high
         }
 
         // Build the same demo scene procedurally.
