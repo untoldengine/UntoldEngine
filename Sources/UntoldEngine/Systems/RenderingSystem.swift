@@ -67,11 +67,9 @@ func UpdateRenderingSystem(in view: MTKView) {
 }
 
 func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor) {
-    performFrustumCulling(commandBuffer: commandBuffer)
-
-    executeGaussianDepth(commandBuffer)
-    executeBitonicSort(commandBuffer)
-
+    // Note: Per-frame work (culling, gaussian, bitonic) is done BEFORE the eye loop in XR
+    // to avoid running it twice (once per eye). See executeXRSystemPass in UntoldEngineXR.swift
+    
     renderInfo.renderPassDescriptor = passDescriptor
 
     commandBuffer.label = "XR Rendering Command Buffer"
