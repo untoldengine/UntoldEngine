@@ -31,7 +31,7 @@
         private let lock = NSLock()
 
         private let layerRenderer: LayerRenderer?
-        
+
         // Reuse render pass descriptors to avoid allocation churn (2 eyes × 90 FPS = 180 allocs/sec)
         private let passDescriptorLeft = MTLRenderPassDescriptor()
         private let passDescriptorRight = MTLRenderPassDescriptor()
@@ -181,7 +181,7 @@
         func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable) {
             // Wait for available command buffer slot to prevent unbounded memory growth
             commandBufferSemaphore.wait()
-            
+
             guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
                 // Failed to create command buffer - release semaphore
                 commandBufferSemaphore.signal()
@@ -197,7 +197,7 @@
                     print("✓ Updated VisionOS viewport to: \(actualViewPort)")
                 }
             }
-            
+
             // Run per-frame work ONCE (not per-eye) to avoid double execution and memory churn
             performFrustumCulling(commandBuffer: commandBuffer)
             executeGaussianDepth(commandBuffer)
@@ -241,7 +241,7 @@
             }
 
             drawable.encodePresent(commandBuffer: commandBuffer)
-            
+
             // Add completion handler to signal semaphore when GPU work is done
             commandBuffer.addCompletedHandler { _ in
                 commandBufferSemaphore.signal()
