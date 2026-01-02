@@ -99,14 +99,14 @@
 
             // Wait for available command buffer slot to prevent unbounded memory growth
             commandBufferSemaphore.wait()
-            
+
             // Create a new command buffer for each renderpass to the current drawable
             guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
                 // Failed to create command buffer - release semaphore
                 commandBufferSemaphore.signal()
                 return
             }
-            
+
             commandBuffer.label = "AR Command Buffer"
 
             // Retain our CVMetalTextures for the duration of the rendering cycle. The MTLTextures
