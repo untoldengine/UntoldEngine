@@ -174,16 +174,14 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
     )
     graph[modelPass.id] = modelPass
 
-    let ssaoPass = RenderPass(id: "ssao", dependencies: [modelPass.id], execute: RenderPasses.ssaoExecution)
-
+    // Use optimized SSAO pipeline with quality-aware execution
+    let ssaoPass = RenderPass(id: "ssao", dependencies: [modelPass.id], execute: RenderPasses.ssaoOptimizedExecution)
     graph[ssaoPass.id] = ssaoPass
 
-    let ssaoBlurPass = RenderPass(id: "ssaoBlur", dependencies: [ssaoPass.id], execute: RenderPasses.ssaoBlurExecution)
+    // Note: ssaoOptimizedExecution handles all blur/upsample internally
+    // No need for separate ssaoBlur pass in the graph
 
-    graph[ssaoBlurPass.id] = ssaoBlurPass
-
-    let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id, ssaoBlurPass.id], execute: RenderPasses.lightExecution)
-
+    let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id, ssaoPass.id], execute: RenderPasses.lightExecution)
     graph[lightPass.id] = lightPass
 }
 

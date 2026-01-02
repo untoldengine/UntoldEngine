@@ -829,6 +829,353 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
+    // MARK: - Optimized SSAO Execution with Quality Tiers
+
+    public static let ssaoOptimizedExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        // Skip SSAO entirely if disabled
+        if !SSAOParams.shared.enabled {
+            return
+        }
+
+        let quality = SSAOParams.shared.quality
+        let startTime = CACurrentMediaTime()
+
+        // Execute based on quality tier
+        if quality.resolutionScale < 1.0 {
+            // Low-res path: SSAO -> Blur (bilateral or simple) -> Upsample
+            ssaoLowResExecution(commandBuffer)
+
+            if quality.useBilateralBlur {
+                ssaoBilateralBlurExecution(commandBuffer)
+            } else {
+                ssaoSimpleBlurExecution(commandBuffer)
+            }
+
+            ssaoUpsampleExecution(commandBuffer)
+        } else {
+            // Full-res path: SSAO -> Blur
+            ssaoExecution(commandBuffer)
+
+            if quality.useBilateralBlur {
+                ssaoBilateralBlurFullResExecution(commandBuffer)
+            } else {
+                ssaoBlurExecution(commandBuffer)
+            }
+        }
+
+        // Record timing
+        commandBuffer.addCompletedHandler { _ in
+            /*
+             let endTime = CACurrentMediaTime()
+             let elapsed = (endTime - startTime) * 1000.0 // ms
+
+             SSAOParams.shared.lastSSAOTime = elapsed
+             SSAOParams.shared.frameCount += 1
+
+             // Rolling average over 60 frames
+             let alpha = 1.0 / min(Double(SSAOParams.shared.frameCount), 60.0)
+             SSAOParams.shared.avgSSAOTime = SSAOParams.shared.avgSSAOTime * (1.0 - alpha) + elapsed * alpha
+
+             // Log periodically
+             if SSAOParams.shared.frameCount % 60 == 0 {
+                 print("🔍 SSAO Performance:")
+                 print("   Quality: \(quality)")
+                 print("   Resolution: \(quality.resolutionScale)x")
+                 print("   Samples: \(quality.sampleCount)")
+                 print("   Avg Time: \(String(format: "%.2f", SSAOParams.shared.avgSSAOTime)) ms")
+             }
+              */
+        }
+    }
+
+    // MARK: - Low-Resolution SSAO Pass
+
+    private static let ssaoLowResExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        guard let ssaoPipeline = PipelineManager.shared.renderPipelinesByType[.ssao] else {
+            handleError(.pipelineStateNulled, "ssaoPipeline is nil")
+            return
+        }
+
+        if !ssaoPipeline.success {
+            handleError(.pipelineStateNulled, ssaoPipeline.name!)
+            return
+        }
+
+        guard let renderPassDescriptor = renderInfo.ssaoLowResRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "SSAO low-res render pass descriptor not initialized")
+            return
+        }
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+            handleError(.renderPassCreationFailed, "SSAO Low-Res Pass")
+            return
+        }
+
+        defer {
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "SSAO Low-Res Pass"
+        renderEncoder.pushDebugGroup("SSAO Low-Res Pass")
+
+        renderEncoder.setRenderPipelineState(ssaoPipeline.pipelineState!)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+
+        // G-buffer resources (full resolution)
+        renderEncoder.setFragmentTexture(
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture,
+            index: Int(ssaoNormalMapTextureIndex.rawValue)
+        )
+
+        renderEncoder.setFragmentTexture(
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture,
+            index: Int(ssaoPositionMapTextureIndex.rawValue)
+        )
+
+        // SSAO resources
+        if let kernelBuffer = bufferResources.ssaoKernelBuffer {
+            renderEncoder.setFragmentBuffer(kernelBuffer, offset: 0, index: Int(ssaoPassKernelIndex.rawValue))
+        }
+
+        renderEncoder.setFragmentTexture(textureResources.ssaoNoiseTexture, index: Int(ssaoNoiseMapTextureIndex.rawValue))
+
+        let quality = SSAOParams.shared.quality
+        var kernelSize = quality.sampleCount
+        renderEncoder.setFragmentBytes(&kernelSize, length: MemoryLayout<Int>.stride, index: Int(ssaoPassKernelSizeIndex.rawValue))
+
+        // Use low-res viewport for sampling calculations
+        var lowResViewPort = renderInfo.viewPort * quality.resolutionScale
+        renderEncoder.setFragmentBytes(&lowResViewPort, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassViewPortIndex.rawValue))
+
+        renderEncoder.setFragmentBytes(&renderInfo.perspectiveSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassPerspectiveSpaceIndex.rawValue))
+        renderEncoder.setFragmentBytes(&cameraComponent.viewSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassViewSpaceIndex.rawValue))
+
+        // SSAO properties
+        renderEncoder.setFragmentBytes(&SSAOParams.shared.radius, length: MemoryLayout<Float>.stride, index: Int(ssaoPassRadiusIndex.rawValue))
+        renderEncoder.setFragmentBytes(&SSAOParams.shared.bias, length: MemoryLayout<Float>.stride, index: Int(ssaoPassBiasIndex.rawValue))
+        renderEncoder.setFragmentBytes(&SSAOParams.shared.enabled, length: MemoryLayout<Bool>.stride, index: Int(ssaoPassEnabledIndex.rawValue))
+
+        renderEncoder.drawIndexedPrimitives(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
+    // MARK: - Bilateral Blur (Separable, Two-Pass)
+
+    private static let ssaoBilateralBlurExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        guard let bilateralPipeline = PipelineManager.shared.renderPipelinesByType[.ssaoBilateralBlur] else {
+            handleError(.pipelineStateNulled, "ssaoBilateralBlur is nil")
+            return
+        }
+
+        if !bilateralPipeline.success {
+            handleError(.pipelineStateNulled, bilateralPipeline.name!)
+            return
+        }
+
+        // Horizontal pass
+        ssaoBilateralBlurPass(
+            commandBuffer: commandBuffer,
+            pipeline: bilateralPipeline,
+            sourceTexture: textureResources.ssaoTextureLowRes!,
+            destinationDescriptor: renderInfo.ssaoBlurHorizontalRenderPassDescriptor!,
+            direction: simd_float2(1.0, 0.0),
+            label: "SSAO Bilateral Blur Horizontal"
+        )
+
+        // Vertical pass
+        ssaoBilateralBlurPass(
+            commandBuffer: commandBuffer,
+            pipeline: bilateralPipeline,
+            sourceTexture: textureResources.ssaoBlurHorizontal!,
+            destinationDescriptor: renderInfo.ssaoBlurVerticalRenderPassDescriptor!,
+            direction: simd_float2(0.0, 1.0),
+            label: "SSAO Bilateral Blur Vertical"
+        )
+    }
+
+    private static func ssaoBilateralBlurPass(
+        commandBuffer: MTLCommandBuffer,
+        pipeline: RenderPipeline,
+        sourceTexture: MTLTexture,
+        destinationDescriptor: MTLRenderPassDescriptor,
+        direction: simd_float2,
+        label: String
+    ) {
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: destinationDescriptor) else {
+            handleError(.renderPassCreationFailed, label)
+            return
+        }
+
+        defer {
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = label
+        renderEncoder.pushDebugGroup(label)
+
+        renderEncoder.setRenderPipelineState(pipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(pipeline.depthState)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+
+        // Bind source SSAO texture and depth
+        renderEncoder.setFragmentTexture(sourceTexture, index: 0)
+        renderEncoder.setFragmentTexture(textureResources.depthMap, index: 1)
+
+        var blurDirection = direction
+        renderEncoder.setFragmentBytes(&blurDirection, length: MemoryLayout<simd_float2>.stride, index: 0)
+
+        var enabled = SSAOParams.shared.enabled
+        renderEncoder.setFragmentBytes(&enabled, length: MemoryLayout<Bool>.stride, index: 1)
+
+        renderEncoder.drawIndexedPrimitives(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
+    // MARK: - Simple Blur (Fast Path)
+
+    private static let ssaoSimpleBlurExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        guard let ssaoBlurPipeline = PipelineManager.shared.renderPipelinesByType[.ssaoBlur] else {
+            handleError(.pipelineStateNulled, "ssaoBlurPipeline is nil")
+            return
+        }
+
+        if !ssaoBlurPipeline.success {
+            handleError(.pipelineStateNulled, ssaoBlurPipeline.name!)
+            return
+        }
+
+        guard let renderPassDescriptor = renderInfo.ssaoBlurVerticalRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "SSAO Blur render pass descriptor not initialized")
+            return
+        }
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+            handleError(.renderPassCreationFailed, "SSAO Blur Pass")
+            return
+        }
+
+        defer {
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "SSAO Simple Blur Pass"
+        renderEncoder.pushDebugGroup("SSAO Simple Blur Pass")
+
+        renderEncoder.setRenderPipelineState(ssaoBlurPipeline.pipelineState!)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+
+        renderEncoder.setFragmentTexture(textureResources.ssaoTextureLowRes, index: 0)
+        renderEncoder.setFragmentBytes(&SSAOParams.shared.enabled, length: MemoryLayout<Bool>.stride, index: 0)
+
+        renderEncoder.drawIndexedPrimitives(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
+    // MARK: - Upsample Pass
+
+    private static let ssaoUpsampleExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        guard let upsamplePipeline = PipelineManager.shared.renderPipelinesByType[.ssaoUpsample] else {
+            handleError(.pipelineStateNulled, "ssaoUpsample is nil")
+            return
+        }
+
+        if !upsamplePipeline.success {
+            handleError(.pipelineStateNulled, upsamplePipeline.name!)
+            return
+        }
+
+        guard let renderPassDescriptor = renderInfo.ssaoUpsampleRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "SSAO Upsample render pass descriptor not initialized")
+            return
+        }
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+            handleError(.renderPassCreationFailed, "SSAO Upsample Pass")
+            return
+        }
+
+        defer {
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "SSAO Upsample Pass"
+        renderEncoder.pushDebugGroup("SSAO Upsample Pass")
+
+        renderEncoder.setRenderPipelineState(upsamplePipeline.pipelineState!)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+
+        // Source: low-res blurred SSAO
+        renderEncoder.setFragmentTexture(textureResources.ssaoBlurTextureLowRes, index: 0)
+
+        // Reference: full-res depth for edge-aware upsampling
+        renderEncoder.setFragmentTexture(textureResources.depthMap, index: 1)
+
+        var useDepthAware = SSAOParams.shared.quality.useDepthAwareUpsample
+        renderEncoder.setFragmentBytes(&useDepthAware, length: MemoryLayout<Bool>.stride, index: 0)
+
+        renderEncoder.drawIndexedPrimitives(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
+    // MARK: - Full-Res Bilateral Blur
+
+    private static let ssaoBilateralBlurFullResExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        // For now, use existing box blur for full-res
+        // TODO: Implement dedicated full-res bilateral blur if needed
+        ssaoBlurExecution(commandBuffer)
+    }
+
     public static let lightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
         guard let lightPipeline = PipelineManager.shared.renderPipelinesByType[.light] else {
             handleError(.pipelineStateNulled, "lightPipeline is nil")
@@ -1079,6 +1426,9 @@ public enum RenderPasses {
 
         var isGameMode = gameMode
         renderEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.size, index: Int(lightPassGameModeIndex.rawValue))
+
+        var ssaoEnabled = SSAOParams.shared.enabled
+        renderEncoder.setFragmentBytes(&ssaoEnabled, length: MemoryLayout<Bool>.size, index: Int(lightPassSSAOEnabledIndex.rawValue))
 
         // set the draw command
 

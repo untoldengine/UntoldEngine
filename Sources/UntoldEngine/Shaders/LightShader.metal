@@ -248,7 +248,8 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                     constant IBLParamsUniform &iblParam [[buffer(lightPassIBLParamIndex)]],
                                     constant AreaLightBlock &alBlock[[buffer(lightPassAreaLightsIndex)]],
                                     constant float &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
-                                    constant bool &isGameMode[[buffer(lightPassGameModeIndex)]]
+                                    constant bool &isGameMode[[buffer(lightPassGameModeIndex)]],
+                                    constant bool &ssaoEnabled[[buffer(lightPassSSAOEnabledIndex)]]
                                     ){
 
     float3 lightRayDirection=normalize(lights.direction);
@@ -265,7 +266,7 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     float roughness = (float)materialTexture.r;
     float metallic = (float)materialTexture.g;
     
-    float ambientOcclusion = isGameMode ? (float)ssaoTexture.read(pixelCoord, 0).r : 1.0;
+    float ambientOcclusion = (isGameMode && ssaoEnabled) ? (float)ssaoTexture.read(pixelCoord, 0).r : 1.0;
     
     float3 viewVector=normalize(cameraPosition-verticesInWorldSpace.xyz);
    
