@@ -197,6 +197,11 @@
                     print("✓ Updated VisionOS viewport to: \(actualViewPort)")
                 }
             }
+            
+            // Run per-frame work ONCE (not per-eye) to avoid double execution and memory churn
+            performFrustumCulling(commandBuffer: commandBuffer)
+            executeGaussianDepth(commandBuffer)
+            executeBitonicSort(commandBuffer)
 
             for (viewIndex, view) in drawable.views.enumerated() {
                 let anchor = drawable.deviceAnchor
