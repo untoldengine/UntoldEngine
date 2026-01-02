@@ -200,6 +200,10 @@ public var cullFrameIndex: Int = 0
 public var needsFinalizeDestroys: Bool = false
 var hasPendingDestroys: Bool = false
 
+// Command buffer synchronization - limit in-flight frames to prevent memory accumulation
+private let maxInFlightCommandBuffers = 3
+public let commandBufferSemaphore = DispatchSemaphore(value: maxInFlightCommandBuffers)
+
 public class ToneMappingParams: ObservableObject {
     static let shared = ToneMappingParams()
 
