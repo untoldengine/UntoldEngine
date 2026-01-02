@@ -20,6 +20,9 @@ public typealias UpdateRenderingSystemCallback = (MTKView) -> Void
 public typealias UpdateXRRenderingSystemCallback = (RenderingSystemContext) -> Void
 
 func UpdateRenderingSystem(in view: MTKView) {
+    // Wait for available command buffer slot to prevent unbounded memory growth
+    commandBufferSemaphore.wait()
+    
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
         renderInfo.lastCommandBuffer = commandBuffer
         performFrustumCulling(commandBuffer: commandBuffer)
@@ -47,6 +50,9 @@ func UpdateRenderingSystem(in view: MTKView) {
         }
 
         commandBuffer.addCompletedHandler { _ in
+            // Signal that this command buffer slot is now available
+            commandBufferSemaphore.signal()
+            
             DispatchQueue.main.async {
                 needsFinalizeDestroys = true
                 visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
@@ -54,6 +60,9 @@ func UpdateRenderingSystem(in view: MTKView) {
         }
 
         commandBuffer.commit()
+    } else {
+        // Failed to create command buffer - release semaphore
+        commandBufferSemaphore.signal()
     }
 }
 
@@ -76,6 +85,7 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     // execute it
     executeGraph(graph, sortedPasses, commandBuffer)
 
+    // Note: Semaphore signaling is handled by executeXRSystemPass completion handler
     commandBuffer.addCompletedHandler { _ in
         needsFinalizeDestroys = true
         visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)

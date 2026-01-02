@@ -97,46 +97,55 @@
                 return
             }
 
+            // Wait for available command buffer slot to prevent unbounded memory growth
+            commandBufferSemaphore.wait()
+            
             // Create a new command buffer for each renderpass to the current drawable
-            if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
-                commandBuffer.label = "MyCommand"
-
-                // Retain our CVMetalTextures for the duration of the rendering cycle. The MTLTextures
-                //   we use from the CVMetalTextures are not valid unless their parent CVMetalTextures
-                //   are retained. Since we may release our CVMetalTexture ivars during the rendering
-                //   cycle, we must retain them separately here.
-                var textures = [capturedImageTextureY, capturedImageTextureCbCr]
-                commandBuffer.addCompletedHandler { _ in
-                    textures.removeAll()
-                }
-
-                currentARCamera = currentFrame.camera.viewMatrix(for: .landscapeRight)
-                let vpSize = CGSize(width: CGFloat(renderInfo.viewPort.x), height: CGFloat(renderInfo.viewPort.y))
-                currentARProjection = currentFrame.camera.projectionMatrix(for: .landscapeRight, viewportSize: vpSize, zNear: 0.001, zFar: 1000)
-
-                updateARStates(currentFrame: currentFrame)
-
-                renderer.updateXR()
-
-                if let renderPassDescriptor = view.currentRenderPassDescriptor {
-                    renderInfo.renderPassDescriptor = renderPassDescriptor
-                    drawCapturedImage(commandBuffer: commandBuffer)
-
-                    renderer.renderXR(commandBuffer: commandBuffer,
-                                      passDescriptor: renderPassDescriptor,
-                                      viewMatrix: currentARCamera,
-                                      projectionMatrix: currentARProjection,
-                                      eyeIndex: 0)
-
-                    // Schedule a present once the framebuffer is complete using the current drawable
-                    if let drawable = view.currentDrawable {
-                        commandBuffer.present(drawable)
-                    }
-                }
-
-                // Finalize rendering here & push the command buffer to the GPU
-                commandBuffer.commit()
+            guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+                // Failed to create command buffer - release semaphore
+                commandBufferSemaphore.signal()
+                return
             }
+            
+            commandBuffer.label = "AR Command Buffer"
+
+            // Retain our CVMetalTextures for the duration of the rendering cycle. The MTLTextures
+            //   we use from the CVMetalTextures are not valid unless their parent CVMetalTextures
+            //   are retained. Since we may release our CVMetalTexture ivars during the rendering
+            //   cycle, we must retain them separately here.
+            var textures = [capturedImageTextureY, capturedImageTextureCbCr]
+            commandBuffer.addCompletedHandler { _ in
+                // Signal that this command buffer slot is now available
+                commandBufferSemaphore.signal()
+                textures.removeAll()
+            }
+
+            currentARCamera = currentFrame.camera.viewMatrix(for: .landscapeRight)
+            let vpSize = CGSize(width: CGFloat(renderInfo.viewPort.x), height: CGFloat(renderInfo.viewPort.y))
+            currentARProjection = currentFrame.camera.projectionMatrix(for: .landscapeRight, viewportSize: vpSize, zNear: 0.001, zFar: 1000)
+
+            updateARStates(currentFrame: currentFrame)
+
+            renderer.updateXR()
+
+            if let renderPassDescriptor = view.currentRenderPassDescriptor {
+                renderInfo.renderPassDescriptor = renderPassDescriptor
+                drawCapturedImage(commandBuffer: commandBuffer)
+
+                renderer.renderXR(commandBuffer: commandBuffer,
+                                  passDescriptor: renderPassDescriptor,
+                                  viewMatrix: currentARCamera,
+                                  projectionMatrix: currentARProjection,
+                                  eyeIndex: 0)
+
+                // Schedule a present once the framebuffer is complete using the current drawable
+                if let drawable = view.currentDrawable {
+                    commandBuffer.present(drawable)
+                }
+            }
+
+            // Finalize rendering here & push the command buffer to the GPU
+            commandBuffer.commit()
         }
 
         func updateARStates(currentFrame: ARFrame) {

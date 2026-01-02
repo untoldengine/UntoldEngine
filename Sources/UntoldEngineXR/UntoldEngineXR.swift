@@ -175,7 +175,14 @@
         }
 
         func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable) {
-            let commandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()!
+            // Wait for available command buffer slot to prevent unbounded memory growth
+            commandBufferSemaphore.wait()
+            
+            guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else {
+                // Failed to create command buffer - release semaphore
+                commandBufferSemaphore.signal()
+                return
+            }
 
             // Update viewport to match actual drawable size (per-eye texture dimensions)
             if let firstColorTexture = drawable.colorTextures.first {
@@ -214,13 +221,22 @@
                 passDescriptor.depthAttachment.clearDepth = 1.0
 
                 // call the visionXR render graph
-                guard let renderer else { return }
+                guard let renderer else {
+                    // Early return - signal semaphore
+                    commandBufferSemaphore.signal()
+                    return
+                }
 
                 renderInfo.currentEye = viewIndex
                 renderer.renderXR(commandBuffer: commandBuffer, passDescriptor: passDescriptor, viewMatrix: cameraMatrix, projectionMatrix: projection, eyeIndex: viewIndex)
             }
 
             drawable.encodePresent(commandBuffer: commandBuffer)
+            
+            // Add completion handler to signal semaphore when GPU work is done
+            commandBuffer.addCompletedHandler { _ in
+                commandBufferSemaphore.signal()
+            }
 
             commandBuffer.commit()
         }
