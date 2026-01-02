@@ -293,6 +293,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
     var entityAABBContainer: [EntityAABB] = []
+    entityAABBContainer.reserveCapacity(entities.count) // Pre-allocate to avoid reallocation churn
 
     for entityId in entities {
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
@@ -460,6 +461,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
     var entityAABBContainer: [EntityAABB] = []
+    entityAABBContainer.reserveCapacity(entities.count) // Pre-allocate to avoid reallocation churn
 
     for entityId in entities {
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
