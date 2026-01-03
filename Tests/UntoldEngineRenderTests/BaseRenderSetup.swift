@@ -20,9 +20,32 @@ class BaseRenderSetup: XCTestCase {
     let windowWidth = 1920
     let windowHeight = 1080
 
+    private func resetGlobalEngineState() {
+        scene = Scene()
+        CameraSystem.shared.activeCamera = nil
+        visibleEntityIds.removeAll(keepingCapacity: true)
+        tripleVisibleEntities = TripleCPUBuffer<EntityID>(inFlight: 3, initialCapacity: MAX_ENTITIES)
+        cullFrameIndex = 0
+        needsFinalizeDestroys = false
+        hasPendingDestroys = false
+        entityMeshMap.removeAll(keepingCapacity: true)
+        entityNameMap.removeAll(keepingCapacity: true)
+        reverseEntityNameMap.removeAll(keepingCapacity: true)
+        customSystems.removeAll(keepingCapacity: true)
+        globalEntityCounter = 0
+        timeSinceLastUpdatePreviousTime = nil
+        timeSinceLastUpdate = nil
+        firstUpdateCall = false
+        frameCount = 0
+        timePassedSinceLastFrame = 0.0
+        renderEnvironment = false
+        applyIBL = false
+    }
+
     // Set up a headless renderer.
     override func setUp() {
         super.setUp()
+        resetGlobalEngineState()
         ambientIntensity = 0.4
 
         let bundleURL = Bundle.module.resourceURL
@@ -395,5 +418,7 @@ class BaseRenderSetup: XCTestCase {
         translateTo(entityId: spotLight, position: simd_float3(-3.0, 1.0, 0.0))
 
         renderEnvironment = true
+
+        SSAOParams.shared.enabled = false
     }
 }
