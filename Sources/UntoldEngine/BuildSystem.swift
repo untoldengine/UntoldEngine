@@ -29,6 +29,7 @@ import Foundation
     public enum VisionOSVersion: String, Codable {
         case v1 = "1.0"
         case v2 = "2.0"
+        case v26 = "26.0"
     }
 
     public enum BuildTarget: Codable {
