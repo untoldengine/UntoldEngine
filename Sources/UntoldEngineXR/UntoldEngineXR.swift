@@ -24,7 +24,7 @@
     }
 
     enum XRLayerState { case paused, running, invalidated }
-    @MainActor
+
     public final class UntoldEngineXR {
         private var renderer: UntoldRenderer?
         private var _isRunning = false
@@ -58,9 +58,14 @@
         }
 
         public func initUntoldXR(device: MTLDevice, commandQueue: MTLCommandQueue, layerRenderer: LayerRenderer) {
+            // Start ARKit tracking asynchronously
+            // Use unstructured Task to avoid blocking initialization
+            let worldTracking = worldTracking
+            let arSession = arSession
             Task {
                 do {
-                    try await startWorldTrackingIfNeeded()
+                    guard worldTracking.state != .running else { return }
+                    try await arSession.run([worldTracking])
                 } catch {
                     print("⚠️ Failed to start world tracking: \(error)")
                 }

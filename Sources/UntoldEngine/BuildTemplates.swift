@@ -1261,8 +1261,8 @@ import Foundation
                             )
 
                             let t = Thread {
-                                Task { @MainActor in xr.start() }      // sets isRunning = true
-                                Task { @MainActor in xr.runLoop() }    // stays off-main on this thread
+                                xr.start()      // sets isRunning = true
+                                xr.runLoop()    // blocking loop - runs on dedicated thread, NOT MainActor
                             }
                             t.name = "XR Render Thread"
                             t.qualityOfService = .userInteractive
