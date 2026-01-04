@@ -607,6 +607,15 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
 
     for sceneDataEntity in sceneData.entities {
         let entityId = createEntity()
+        let applyLocalTransform = {
+            if sceneDataEntity.hasLocalTransformComponent == true {
+                translateTo(entityId: entityId, position: sceneDataEntity.position)
+                scaleTo(entityId: entityId, scale: sceneDataEntity.scale)
+                let axisOfRotation = sceneDataEntity.axisOfRotations
+
+                applyAxisRotations(entityId: entityId, axis: axisOfRotation)
+            }
+        }
 
         uuidToEntityMap[sceneDataEntity.uuid] = entityId
 
@@ -643,10 +652,12 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
             switch meshLoadingMode {
             case .sync:
                 setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
+                applyLocalTransform()
             case .asyncDefault:
                 let fallbackLabel = withExtension.isEmpty ? filename : "\(filename).\(withExtension)"
                 let meshLabel = sceneDataEntity.name.isEmpty ? fallbackLabel : sceneDataEntity.name
                 setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
+                    applyLocalTransform()
                     if success {
                         Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
                     } else {
@@ -853,12 +864,8 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
             }
         }
 
-        if sceneDataEntity.hasLocalTransformComponent == true {
-            translateTo(entityId: entityId, position: sceneDataEntity.position)
-            scaleTo(entityId: entityId, scale: sceneDataEntity.scale)
-            let axisOfRotation = sceneDataEntity.axisOfRotations
-
-            applyAxisRotations(entityId: entityId, axis: axisOfRotation)
+        if sceneDataEntity.assetInstance == nil, sceneDataEntity.hasRenderingComponent != true {
+            applyLocalTransform()
         }
 
         if sceneDataEntity.hasCameraComponent == true {
