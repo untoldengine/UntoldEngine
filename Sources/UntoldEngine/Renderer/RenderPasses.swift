@@ -694,7 +694,7 @@ public enum RenderPasses {
         renderEncoder.pushDebugGroup("SSAO Pass")
 
         renderEncoder.setRenderPipelineState(ssaoPipeline.pipelineState!)
-        renderEncoder.setDepthStencilState(ssaoPipeline.depthState)
+        // renderEncoder.setDepthStencilState(ssaoPipeline.depthState)
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
         renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
@@ -802,7 +802,7 @@ public enum RenderPasses {
         renderEncoder.pushDebugGroup("SSAO Blur Pass")
 
         renderEncoder.setRenderPipelineState(ssaoBlurPipeline.pipelineState!)
-        renderEncoder.setDepthStencilState(ssaoBlurPipeline.depthState)
+        // renderEncoder.setDepthStencilState(ssaoBlurPipeline.depthState)
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
         renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
@@ -1033,7 +1033,7 @@ public enum RenderPasses {
         renderEncoder.pushDebugGroup(label)
 
         renderEncoder.setRenderPipelineState(pipeline.pipelineState!)
-        renderEncoder.setDepthStencilState(pipeline.depthState)
+        // renderEncoder.setDepthStencilState(pipeline.depthState)
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
         renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
