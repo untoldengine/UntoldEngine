@@ -24,6 +24,15 @@ let package = Package(
             name: "DemoGame",
             targets: ["DemoGame"]
         ),
+
+        // CLI tool for project creation
+        .executable(
+            name: "untoldengine-create",
+            targets: ["UntoldEngineCLI"]
+        ),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-argument-parser.git", from: "1.3.0"),
     ],
     targets: [
         .target(
@@ -113,6 +122,16 @@ let package = Package(
                 .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
                 .linkedFramework("AppKit", .when(platforms: [.macOS])),
             ]
+        ),
+        // CLI tool target (macOS only)
+        .executableTarget(
+            name: "UntoldEngineCLI",
+            dependencies: [
+                "UntoldEngine",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
+            path: "Sources/UntoldEngineCLI",
+            swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         // Test target for unit tests
         .testTarget(
