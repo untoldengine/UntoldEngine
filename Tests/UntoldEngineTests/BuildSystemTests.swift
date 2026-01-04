@@ -190,8 +190,49 @@ final class BuildSystemTests: XCTestCase {
                       "AppDelegate.swift should import Cocoa")
     }
 
-    func testGameViewControllerSwiftGeneratedWithExpectedContent() throws {
-        // Given: Build settings for a project
+    func testMacOSGameSceneSwiftGeneratedWithExpectedContent() throws {
+        // Given: Build settings for a macOS project
+        let projectName = "MyGameProject"
+        let settings = BuildSettings(
+            projectName: projectName,
+            bundleIdentifier: "com.test.game",
+            outputPath: tempDirectory,
+            target: .macOS(deployment: .v14)
+        )
+
+        // When: Getting template files
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: GameScene.swift should exist in templates
+        let gameSceneKey = "Sources/{{PROJECT_NAME}}/GameScene.swift"
+        XCTAssertNotNil(templateFiles[gameSceneKey], "GameScene.swift template should exist")
+
+        guard let gameSceneContent = templateFiles[gameSceneKey] else {
+            XCTFail("GameScene.swift content should not be nil")
+            return
+        }
+
+        // Verify GameScene content
+        XCTAssertTrue(gameSceneContent.contains("class GameScene"),
+                      "GameScene.swift should contain GameScene class")
+        XCTAssertTrue(gameSceneContent.contains("import UntoldEngine"),
+                      "GameScene.swift should import UntoldEngine")
+        XCTAssertTrue(gameSceneContent.contains("import Foundation"),
+                      "GameScene.swift should import Foundation")
+        XCTAssertTrue(gameSceneContent.contains("assetBasePath"),
+                      "GameScene.swift should set assetBasePath")
+        XCTAssertTrue(gameSceneContent.contains("loadBundledScripts()"),
+                      "GameScene.swift should call loadBundledScripts")
+        XCTAssertTrue(gameSceneContent.contains("playSceneAt(url: sceneURL)"),
+                      "GameScene.swift should call playSceneAt")
+        XCTAssertTrue(gameSceneContent.contains("func update(deltaTime"),
+                      "GameScene.swift should contain update method")
+        XCTAssertTrue(gameSceneContent.contains("func handleInput()"),
+                      "GameScene.swift should contain handleInput method")
+    }
+
+    func testMacOSGameViewControllerSwiftGeneratedWithExpectedContent() throws {
+        // Given: Build settings for a macOS project
         let projectName = "MyGameProject"
         let settings = BuildSettings(
             projectName: projectName,
@@ -212,9 +253,9 @@ final class BuildSystemTests: XCTestCase {
             return
         }
 
-        // Verify expected content
-        XCTAssertTrue(gameViewControllerContent.contains("class GameScene"),
-                      "GameViewController.swift should contain GameScene class")
+        // Verify GameViewController content (should NOT contain GameScene)
+        XCTAssertFalse(gameViewControllerContent.contains("class GameScene"),
+                       "GameViewController.swift should NOT contain GameScene class (it's in separate file)")
         XCTAssertTrue(gameViewControllerContent.contains("class GameViewController: NSViewController"),
                       "GameViewController.swift should contain GameViewController class")
         XCTAssertTrue(gameViewControllerContent.contains("import UntoldEngine"),
@@ -223,14 +264,10 @@ final class BuildSystemTests: XCTestCase {
                       "GameViewController.swift should import MetalKit")
         XCTAssertTrue(gameViewControllerContent.contains("var renderer: UntoldRenderer!"),
                       "GameViewController.swift should declare renderer property")
-        XCTAssertTrue(gameViewControllerContent.contains("assetBasePath"),
-                      "GameViewController.swift should set assetBasePath")
-        XCTAssertTrue(gameViewControllerContent.contains("loadBundledScripts()"),
-                      "GameViewController.swift should call loadBundledScripts")
-        XCTAssertTrue(gameViewControllerContent.contains("playSceneAt(url: sceneURL)"),
-                      "GameViewController.swift should call playSceneAt")
-        XCTAssertTrue(gameViewControllerContent.contains("func update(deltaTime"),
-                      "GameViewController.swift should contain update method")
+        XCTAssertTrue(gameViewControllerContent.contains("var gameScene: GameScene!"),
+                      "GameViewController.swift should declare gameScene property")
+        XCTAssertTrue(gameViewControllerContent.contains("gameScene = GameScene()"),
+                      "GameViewController.swift should initialize GameScene")
     }
 
     func testMainStoryboardGeneratedCorrectly() throws {
@@ -389,6 +426,44 @@ final class BuildSystemTests: XCTestCase {
                       "iOS AppDelegate should have lifecycle methods")
     }
 
+    func testIOSGameSceneSwiftGeneratedWithExpectedContent() throws {
+        // Given: Build settings for an iOS project
+        let settings = BuildSettings(
+            projectName: "MyiOSGame",
+            bundleIdentifier: "com.test.iosgame",
+            outputPath: tempDirectory,
+            target: .iOS(deployment: .v17)
+        )
+
+        // When: Getting template files for iOS
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: iOS GameScene.swift should exist
+        let gameSceneKey = "Sources/{{PROJECT_NAME}}/GameScene.swift"
+        XCTAssertNotNil(templateFiles[gameSceneKey], "iOS GameScene.swift should exist")
+
+        guard let gameSceneContent = templateFiles[gameSceneKey] else {
+            XCTFail("iOS GameScene.swift content should not be nil")
+            return
+        }
+
+        // Verify GameScene content
+        XCTAssertTrue(gameSceneContent.contains("class GameScene"),
+                      "iOS GameScene.swift should contain GameScene class")
+        XCTAssertTrue(gameSceneContent.contains("import UntoldEngine"),
+                      "iOS GameScene.swift should import UntoldEngine")
+        XCTAssertTrue(gameSceneContent.contains("import Foundation"),
+                      "iOS GameScene.swift should import Foundation")
+        XCTAssertTrue(gameSceneContent.contains("assetBasePath"),
+                      "iOS GameScene.swift should set assetBasePath")
+        XCTAssertTrue(gameSceneContent.contains("loadBundledScripts()"),
+                      "iOS GameScene.swift should call loadBundledScripts")
+        XCTAssertTrue(gameSceneContent.contains("func update(deltaTime"),
+                      "iOS GameScene.swift should contain update method")
+        XCTAssertTrue(gameSceneContent.contains("func handleInput()"),
+                      "iOS GameScene.swift should contain handleInput method")
+    }
+
     func testIOSGameViewControllerSwiftGeneratedWithExpectedContent() throws {
         // Given: Build settings for an iOS project
         let settings = BuildSettings(
@@ -410,13 +485,19 @@ final class BuildSystemTests: XCTestCase {
             return
         }
 
-        // Verify iOS-specific content
+        // Verify iOS-specific content (should NOT contain GameScene)
+        XCTAssertFalse(gameViewControllerContent.contains("class GameScene"),
+                       "iOS GameViewController should NOT contain GameScene class (it's in separate file)")
         XCTAssertTrue(gameViewControllerContent.contains("import UIKit"),
                       "iOS GameViewController should import UIKit")
         XCTAssertTrue(gameViewControllerContent.contains("class GameViewController: UIViewController"),
                       "iOS GameViewController should extend UIViewController")
         XCTAssertTrue(gameViewControllerContent.contains("UntoldRenderer.createiOS"),
                       "iOS GameViewController should use createiOS method")
+        XCTAssertTrue(gameViewControllerContent.contains("var gameScene: GameScene!"),
+                      "iOS GameViewController should declare gameScene property")
+        XCTAssertTrue(gameViewControllerContent.contains("gameScene = GameScene()"),
+                      "iOS GameViewController should initialize GameScene")
         XCTAssertTrue(gameViewControllerContent.contains("prefersStatusBarHidden"),
                       "iOS GameViewController should hide status bar")
         XCTAssertTrue(gameViewControllerContent.contains("supportedInterfaceOrientations"),
