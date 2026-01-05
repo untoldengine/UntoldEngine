@@ -1,65 +1,82 @@
 # Overview
 
-This section of the documentation is for **game developers** who want to build games using Untold Engine.
+This section covers **game development** with the UntoldEngine using **Swift** and **Xcode**.
 
-You do not need to understand engine internals or rendering systems to follow this section.
+You'll learn how to create games by writing Swift code that interacts directly with the engine's API.
 
 ![editorsideshotalt](../images/Editor/EditorSideShotWide-alt.png)
 
 ---
 
-## The Game Development Workflow
+## The Development Workflow
 
-A typical workflow looks like this:
+The UntoldEngine uses a **code-first workflow** that integrates seamlessly with Xcode:
 
-1. Create or open a project in Untold Engine Studio  
-2. Create entities and scenes using the editor  
-3. Attach USC scripts to define behavior  
-4. Press Play to test your game  
-5. Iterate quickly
+1. **Create a project** using the CLI tool (`untoldengine-create`)
+2. **Write game logic** in Swift (GameScene.swift)
+3. **Add assets** to the GameData/ directory
+4. **Build & run** in Xcode (Cmd+R)
+5. **Iterate** quickly with hot-reload
 
-This workflow is designed to stay simple and predictable.
-
----
-
-## USC Scripting
-
-Gameplay logic in Untold Engine is written using **USC (Untold Script Core)**.
-
-USC is designed to:
-- Be readable and explicit
-- Avoid hidden behavior
-- Map clearly to engine concepts
-
-You’ll use USC for:
-- Movement
-- Input handling
-- Camera control
-- Basic gameplay systems
-
-You can explore USC in detail in:
-
-> **Game Development → USC**
+This workflow keeps you in familiar territory: **Swift, Xcode, and the tools you already know**.
 
 ---
 
-## Using the Untold Engine Studio
+## Your Entry Point: GameScene.swift
 
-The Untold Engine Studio is provided to make common tasks easier, such as:
-- Editing scenes
-- Inspecting entities and components
-- Managing assets
-- Running and debugging your game
+When you create a project, you get a clean `GameScene.swift` file that looks like this:
 
-The editor is a tool — not a requirement — and is designed to stay out of your way.
+```swift
+class GameScene {
+    
+    init() {
+        // Configure asset paths
+        setupAssetPaths()
+        
+        // Load game content
+        loadBundledScripts()
+        loadAndPlayFirstScene()
+        
+        // Start game systems
+        startGameSystems()
+    }
+    
+    func update(deltaTime: Float) {
+        // Your game logic goes here
+    }
+    
+    func handleInput() {
+        // Handle user input here
+    }
+}
+```
 
-![editormainshotalt](../images/Editor/EditorMainShot-alt.png)
+**This is where your game comes to life.** Write Swift code, access the engine API, and build your game.
 
 ---
 
-## Where to Go Next
 
-- New to Untold Engine? Start with **USC → Introduction**
-- Want hands-on examples? See **Tutorials**
-- Curious how things work internally? See **Engine Development**
+## Project Structure
+
+Your generated project has everything you need:
+
+```
+MyGame/
+└── MyGame/
+    ├── MyGame.xcodeproj         # Open in Xcode
+    └── Sources/
+        └── MyGame/
+            ├── GameData/        # Assets location
+            │   ├── Models/
+            │   ├── Scenes/
+            │   ├── Scripts/
+            │   └── Textures/
+            ├── GameScene.swift          # Your game logic ⭐
+            ├── GameViewController.swift # Renderer setup
+            └── AppDelegate.swift        # App entry
+```
+
+**Focus on GameScene.swift** - that's where your game lives.
+
+---
 
