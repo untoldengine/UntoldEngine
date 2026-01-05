@@ -32,6 +32,9 @@
 - [Understanding the Ecosystem](#understanding-the-ecosystem)
 - [Documentation](#documentation)
 - [Getting Started](#getting-started)
+  - [For Game Developers](#-for-game-developers)
+  - [Command-Line Tool](#%EF%B8%8F-command-line-tool-for-terminal-users)
+  - [For Engine Contributors](#%EF%B8%8F-for-engine-contributors)
 - [Roadmap](#roadmap)
 - [Support](#support)
 - [Contributing](#contributing)
@@ -142,6 +145,29 @@ You'll find:
 Just download the DMG, install, and start creating your game!
 
 ![UntoldEditorScreenshot](docs/images/editorscreenshot.png)
+
+### ⌨️ Command-Line Tool (For Terminal Users)
+
+**Prefer the command line?** Use **`untoldengine-create`** — a CLI tool for creating game projects without the editor:
+
+```bash
+# Install the CLI tool
+git clone https://github.com/untoldengine/UntoldEngine.git
+cd UntoldEngine
+./Scripts/install-create.sh
+
+# Create a game project
+mkdir MyGame && cd MyGame
+untoldengine-create create MyGame
+```
+
+**Features:**
+- ✅ Create projects for macOS, iOS, iOS AR, and visionOS
+- ✅ Automated asset folder structure creation
+- ✅ Perfect for CI/CD pipelines and scripting
+- ✅ Update existing projects without touching custom code
+
+👉 **[Full CLI Documentation](docs/CLI.md)**
 
 ### 🛠️ For Engine Contributors
 
