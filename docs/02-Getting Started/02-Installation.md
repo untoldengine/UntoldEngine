@@ -6,27 +6,87 @@ sidebar_position: 1
 
 # Installation
 
-This guide covers how to install and set up the **UntoldEngine** for game development.
+This page explains how to install **Untold Engine Studio**, the recommended way to get started with Untold Engine.
 
-There are two ways to work with the Untold Engine:
-1. **CLI Workflow** (Recommended) - Command-line tool for creating projects
-2. **Visual Scene Composition** (Optional) - Untold Engine Studio for visual editing
+Untold Engine Studio is a downloadable app that includes:
+- The **Untold Engine** runtime
+- The **Untold Editor** for building and editing games
+
+![editorbottomshot](../images/Editor/EditorBottomShot.png)
+
+If your goal is to **make games**, this is the only installation you need.
 
 ---
 
-## Recommended: CLI Workflow
+## Recommended Installation (Untold Engine Studio)
 
-The **command-line workflow** is the primary way to create and develop UntoldEngine games. It provides full control and works seamlessly with Xcode.
+### 1. Download
 
-### System Requirements
+Download the latest version of **Untold Engine Studio** from the official website:
 
-- **macOS** (Apple Silicon recommended)
-- **Xcode 15.0+** 
-- **Swift 5.9+**
-- **Metal-capable GPU**
-- **Git**
+[Download Releases](https://github.com/untoldengine/UntoldEditor/releases)
 
-### Installation
+The download is provided as a `.dmg` file for macOS.
+
+---
+
+### 2. Install
+
+1. Open the downloaded `.dmg` file  
+2. Drag **Untold Engine Studio** into your `Applications` folder  
+3. Launch the app from `Applications`
+
+No additional setup is required.
+
+---
+
+### 3. First Launch
+
+On first launch, Untold Engine Studio will:
+- Initialize the engine runtime
+- Set up the editor environment
+- Prompt you to create or open a project
+
+From here, you can immediately:
+- Create scenes
+- Import assets
+- Write USC scripts
+- Run and test your game
+
+---
+
+## System Requirements
+
+- macOS (Apple Silicon recommended)
+- Metal-capable GPU
+- Keyboard and mouse
+
+---
+
+## What You Get
+
+By installing Untold Engine Studio, you get:
+
+- A complete **game development environment**
+- The **USC scripting API** for gameplay logic
+- An integrated editor for scenes, assets, and scripts
+- Build and run support for supported platforms
+
+You do **not** need to install the engine or editor separately.
+
+---
+
+## Alternative Installation: CLI Workflow
+
+For **advanced users** or those who prefer a **command-line workflow** without the visual editor, you can install the CLI tools.
+
+### When to Use CLI
+
+- You prefer working entirely in Xcode without a visual editor
+- You want to script project creation and automation
+- You're building tools or integrations on top of UntoldEngine
+
+### CLI Installation
 
 **1. Clone the repository:**
 
@@ -50,9 +110,9 @@ untoldengine-create --version
 untoldengine-create --help
 ```
 
-### Quick Start
+### CLI Quick Start
 
-Create your first game in three commands:
+Create a project in three commands:
 
 ```bash
 # 1. Create project directory
@@ -65,7 +125,9 @@ untoldengine-create create MyGame
 open MyGame/MyGame.xcodeproj
 ```
 
-**That's it!** Your project is ready to build and run.
+For complete CLI documentation, see: **[CLI.md](../../CLI.md)**
+
+---
 
 ### What You Get
 
@@ -170,6 +232,20 @@ Combine both tools for maximum productivity:
 4. **Build and run** from Xcode
 
 Both tools work with the same project structure and GameData directory.
+
+---
+
+## Preloaded Assets
+
+To kickstart development, download prebuilt demo assets:
+
+- **Models**: Soccer stadium, player, ball, and more
+- **Animations**: Running, idle, and other character motions
+- **Textures**: Sample materials
+
+[Download Demo Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1)
+
+Extract and copy into your project's `GameData/` directory.
 
 ---
 
