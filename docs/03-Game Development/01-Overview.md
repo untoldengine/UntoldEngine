@@ -12,7 +12,7 @@ You'll learn how to create games by writing Swift code that interacts directly w
 
 The UntoldEngine uses a **code-first workflow** that integrates seamlessly with Xcode:
 
-1. **Create a project** using the CLI tool (`untoldengine-create`)
+1. **Create a project** using the Untold Engine Studio or the CLI tool (`untoldengine-create`)
 2. **Write game logic** in Swift (GameScene.swift)
 3. **Add assets** to the GameData/ directory
 4. **Build & run** in Xcode (Cmd+R)
