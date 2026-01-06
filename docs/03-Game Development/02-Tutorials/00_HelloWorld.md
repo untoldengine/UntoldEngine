@@ -13,7 +13,7 @@ This tutorial shows you how to add custom code to your game's update loop and lo
 ## Prerequisites
 
 This tutorial assumes you have:
-- Created a project using `untoldengine-create`
+- Created a project using the 'Untold Engine Studio` or `untoldengine-create`
 - Opened the project in Xcode
 - Located `GameScene.swift` in your project
 
@@ -150,11 +150,3 @@ You've learned:
 
 This is the foundation of game development: **write code that runs every frame**.
 
----
-
-## Where to Go Next
-
-- **Move entities**: [01_Transform/01_MoveAnEntity.md](./01_Transform/01_MoveAnEntityy.md)
-- **Handle input**: [02_Input/01_KeyboardMovement.md](./02_Input/01_KeyboardMovement.md)
-- **Play animations**: [03_Animation/01_PlayAnimation.md](./03_Animation/01_PlayAnimation.md)
-- **Apply physics**: [04_Physics/01_ApplyForce.md](./04_Physics/01_ApplyForce.md)

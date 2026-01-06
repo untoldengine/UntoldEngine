@@ -1,4 +1,39 @@
 # Changelog
+## v0.7.0 - 2026-01-06
+### 🐞 Fixes
+- [Patch] re-enabled renderer tests in pre-commit (fd67537…)
+- [Patch] Enable build system to only update game data (f2706bb…)
+- [Patch] Added overload create function (981cb0a…)
+- [Patch] Modified the buil templates for mac os (4f03509…)
+- [Patch] Added tests for build system macOS (4b0d1aa…)
+- [Patch] added build templates for ios and ios ar (31ca404…)
+- [Patch] Divided iosAR template into gamescene (27fa9f3…)
+- [Patch] Commented xr-input temporarily (5ac456c…)
+- [Patch] fix input XR errors (80061c7…)
+- [Patch] Added a new pre-commit prefix (281f405…)
+- [Patch] fixed texture issues with visionPro (b51d2b7…)
+- [Patch] Fixed dispatch threads computations (b88cb85…)
+- [Patch]Added semaphores to control work flow (0a2f748…)
+- [Patch] Reuse render pass descriptors (bbf2f4a…)
+- [Patch] pre-allocate arrays to avoid memory churn (7b4bb09…)
+- [Patch] moved frustum calculation to the top of code flow (8f51845…)
+- [Patch] Added an autoreleasepool to release memory (653b130…)
+- [Patch] Optimized SSAO shaders (78c06b5…)
+- [Patch] Fixed async loading issue with vision pro (362b544…)
+- [Patch] Added version deployment for vision pro (177da19…)
+- [Patch] Fixed issue with transform to getting properly serialized during async loading (84a1dd8…)
+- [Patch] remove depth state from ssao execution (aed2e06…)
+- [Patch] split the build template into game scene and view controller for macos-ios (1f51b4f…)
+- [Patch] Updated docs with new workflow (0fe30e5…)
+- [Patch] moved cli tool out of engine package (7f44798…)
+### 📚 Docs
+- [Docs] Added engine systems documentation (94451c2…)
+- [Docs] Updated docs with new tutorials (b3673c8…)
+- [Docs] Updated the docs (c05415e…)
+- [Docs] Updated Readme (1a56657…)
+### 🚀 Features
+- [Feature] Made loading system async (0763b60…)
+- [Feature] Added cli command to create project (2c75232…)
 ## v0.6.1 - 2025-12-17
 ### 🐞 Fixes
 - [Patch] Fixed rotate scripting API (bb514cc…)
