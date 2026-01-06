@@ -48,10 +48,10 @@ On first launch, Untold Engine Studio will:
 - Prompt you to create or open a project
 
 From here, you can immediately:
-- Create scenes
-- Import assets
-- Write USC scripts
-- Run and test your game
+- Create scenes visually
+- Import 3D models and assets
+- Write game logic (Swift in Xcode or USC scripts)
+- Build and test your game
 
 ---
 
@@ -68,11 +68,30 @@ From here, you can immediately:
 By installing Untold Engine Studio, you get:
 
 - A complete **game development environment**
-- The **USC scripting API** for gameplay logic
-- An integrated editor for scenes, assets, and scripts
-- Build and run support for supported platforms
+- Visual editor for scenes, assets, and scripts
+- Full **Untold Engine Swift API** for game logic in Xcode
+- **USC scripting system** (experimental component-based scripting)
+- Build and run support for macOS, iOS, and visionOS
 
 You do **not** need to install the engine or editor separately.
+
+### Two Ways to Write Game Logic
+
+Untold Engine Studio supports two approaches for writing gameplay code:
+
+**1. Swift in Xcode (Recommended)**
+- Write game logic in `GameScene.swift` using the full Untold Engine API
+- Complete control over game systems and performance
+- Best for complex games and experienced developers
+- Works seamlessly with Xcode debugging and profiling
+
+**2. USC Scripts (Experimental)**
+- Component-based scripting attached to entities
+- Write gameplay behaviors in the integrated script editor
+- Good for prototyping and simple game mechanics
+- API is experimental and subject to change
+
+You can **use both approaches** in the same project.
 
 ---
 
@@ -185,67 +204,6 @@ untoldengine-create create MyGame --platform visionos
 4. **Iterate** - make changes and rebuild
 
 For complete CLI documentation, see: **[CLI.md](../../CLI.md)**
-
----
-
-## Optional: Visual Scene Composition
-
-If you want a **visual tool for scene composition and asset management**, you can use the **Untold Engine Studio**.
-
-![editorbottomshot](../images/Editor/EditorBottomShot.png)
-
-### What is Untold Engine Studio?
-
-Untold Engine Studio is a **visual editor** that provides:
-- Visual scene composition
-- Asset browser and management
-- USC script editor
-- Real-time preview
-
-### When to Use It
-
-- You want to **visually compose scenes** instead of coding layouts
-- You prefer a **GUI** for asset management
-- You need to **preview scenes** without building
-- You're **prototyping** and want quick visual feedback
-
-### Installation
-
-**1. Download:**
-
-Get the latest `.dmg` from:
-[Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)
-
-**2. Install:**
-
-- Open the `.dmg` file
-- Drag **Untold Engine Studio** to `Applications`
-- Launch from `Applications`
-
-### Workflow Integration
-
-Combine both tools for maximum productivity:
-
-1. **Create project** with CLI (`untoldengine-create`)
-2. **Write game logic** in Xcode (GameScene.swift)
-3. **Compose scenes visually** in Untold Engine Studio
-4. **Build and run** from Xcode
-
-Both tools work with the same project structure and GameData directory.
-
----
-
-## Preloaded Assets
-
-To kickstart development, download prebuilt demo assets:
-
-- **Models**: Soccer stadium, player, ball, and more
-- **Animations**: Running, idle, and other character motions
-- **Textures**: Sample materials
-
-[Download Demo Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1)
-
-Extract and copy into your project's `GameData/` directory.
 
 ---
 

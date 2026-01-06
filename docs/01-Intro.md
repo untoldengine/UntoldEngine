@@ -67,10 +67,14 @@ These docs are organized around **how you intend to use the engine**.
 For developers building games using Untold Engine.
 
 You will learn:
-- How to create scenes
-- How to use USC scripting
+- How to create scenes visually
+- How to write game logic (Swift or USC scripts)
 - How to work with assets and entities
-- How to iterate quickly using the editor
+- How to build and run your game
+
+Untold Engine supports two approaches for writing gameplay code:
+- **Swift in Xcode** (recommended) - Full engine API access
+- **USC Scripts** (experimental) - Component-based scripting
 
 Start here if your goal is to build a game.
 
