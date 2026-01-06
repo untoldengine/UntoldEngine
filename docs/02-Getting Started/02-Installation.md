@@ -114,13 +114,11 @@ git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
 ```
 
-**2. Install the CLI tool:**
+**2. Install the CLI globally:**
 
 ```bash
-./Scripts/install-create.sh
+./scripts/install-create.sh
 ```
-
-This will build and install the `untoldengine-create` command to `/usr/local/bin`.
 
 **3. Verify installation:**
 
@@ -131,10 +129,11 @@ untoldengine-create --help
 
 ### CLI Quick Start
 
-Create a project in three commands:
+After installing the CLI, create a project from anywhere:
 
 ```bash
 # 1. Create project directory
+cd ~/anywhere
 mkdir MyGame && cd MyGame
 
 # 2. Create the project
@@ -144,7 +143,7 @@ untoldengine-create create MyGame
 open MyGame/MyGame.xcodeproj
 ```
 
-For complete CLI documentation, see: **[CLI.md](../../CLI.md)**
+For complete CLI documentation, see: **[Tools/UntoldEngineCLI/README.md](../../Tools/UntoldEngineCLI/README.md)**
 
 ---
 
@@ -203,7 +202,7 @@ untoldengine-create create MyGame --platform visionos
 3. **Build & run** in Xcode (Cmd+R)
 4. **Iterate** - make changes and rebuild
 
-For complete CLI documentation, see: **[CLI.md](../../CLI.md)**
+For complete CLI documentation, see: **[Tools/UntoldEngineCLI/README.md](../../Tools/UntoldEngineCLI/README.md)**
 
 ---
 
