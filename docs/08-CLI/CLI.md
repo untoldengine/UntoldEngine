@@ -1,54 +1,40 @@
 # UntoldEngine CLI Tool
 
+> **Note:** The CLI has been moved to a separate package location.
+> 
+> **New Location:** [`Tools/UntoldEngineCLI/`](../Tools/UntoldEngineCLI/)
+> 
+> **New Documentation:** See [`Tools/UntoldEngineCLI/README.md`](../Tools/UntoldEngineCLI/README.md) for complete documentation.
+
 The `untoldengine-create` command-line tool allows you to create and manage UntoldEngine game projects without launching the UntoldEditor.
 
-## Table of Contents
-
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Commands](#commands)
-  - [create](#create)
-  - [update](#update)
-- [Platform Options](#platform-options)
-- [Project Structure](#project-structure)
-- [Workflow Examples](#workflow-examples)
-- [Troubleshooting](#troubleshooting)
-
-## Installation
-
-### Prerequisites
-
-- macOS (the UntoldEngine currently supports macOS development)
-- Xcode 15.0 or later
-- Swift 5.9 or later
-- Git
-
-### Install Steps
-
-1. Clone the UntoldEngine repository:
-   ```bash
-   git clone https://github.com/untoldengine/UntoldEngine.git
-   cd UntoldEngine
-   ```
-
-2. Run the installation script:
-   ```bash
-   ./Scripts/install-create.sh
-   ```
-
-The script will:
-- Build the CLI tool in release mode
-- Install it to `/usr/local/bin/untoldengine-create`
-- Make it available globally in your terminal
-
-### Verification
-
-After installation, verify the tool is working:
+## Quick Start
 
 ```bash
-untoldengine-create --version
-untoldengine-create --help
+# Clone the repository
+git clone https://github.com/untoldengine/UntoldEngine.git
+cd UntoldEngine
+
+# Install the CLI globally
+./scripts/install-create.sh
+
+# Create a project from anywhere
+cd ~/anywhere
+mkdir MyGame && cd MyGame
+untoldengine-create create MyGame
 ```
+
+## Complete Documentation
+
+For complete CLI documentation including:
+
+- Installation instructions
+- Command reference
+- Platform options
+- Usage examples
+- Troubleshooting
+
+Please visit: **[Tools/UntoldEngineCLI/README.md](../Tools/UntoldEngineCLI/README.md)**
 
 ## Quick Start
 

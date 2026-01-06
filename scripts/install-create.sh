@@ -20,12 +20,18 @@ BUILD_CONFIG="release"
 echo -e "${CYAN}🎮 UntoldEngine CLI Installer${NC}"
 echo ""
 
-# Check if we're in the correct directory
-if [ ! -f "Package.swift" ]; then
-    echo -e "${RED}❌ Error: Package.swift not found${NC}"
+# Navigate to CLI directory
+CLI_DIR="Tools/UntoldEngineCLI"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
+cd "$REPO_ROOT"
+
+if [ ! -d "$CLI_DIR" ]; then
+    echo -e "${RED}❌ Error: CLI directory not found at $CLI_DIR${NC}"
     echo "Please run this script from the UntoldEngine root directory"
     exit 1
 fi
+
+cd "$CLI_DIR"
 
 # Check for Swift
 if ! command -v swift &> /dev/null; then
@@ -35,7 +41,7 @@ if ! command -v swift &> /dev/null; then
 fi
 
 # Build the CLI tool
-echo -e "${CYAN}🔨 Building $CLI_NAME...${NC}"
+echo -e "${CYAN}🔨 Building $CLI_NAME from $CLI_DIR...${NC}"
 swift build -c $BUILD_CONFIG --product $CLI_NAME
 
 if [ $? -ne 0 ]; then

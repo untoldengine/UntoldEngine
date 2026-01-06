@@ -148,15 +148,18 @@ Just download the DMG, install, and start creating your game!
 
 ### ⌨️ Command-Line Tool (For Terminal Users)
 
-**Prefer the command line?** Use **`untoldengine-create`** — a CLI tool for creating game projects without the editor:
+**Prefer the command line?** Use **`untoldengine-create`** — an optional CLI tool for creating game projects without the editor:
 
 ```bash
-# Install the CLI tool
+# Clone the repository
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-./Scripts/install-create.sh
 
-# Create a game project
+# Install the CLI globally
+./scripts/install-create.sh
+
+# Create a game project from anywhere
+cd ~/anywhere
 mkdir MyGame && cd MyGame
 untoldengine-create create MyGame
 ```
@@ -167,7 +170,7 @@ untoldengine-create create MyGame
 - ✅ Perfect for CI/CD pipelines and scripting
 - ✅ Update existing projects without touching custom code
 
-👉 **[Full CLI Documentation](docs/CLI.md)**
+👉 **[Full CLI Documentation](Tools/UntoldEngineCLI/README.md)**
 
 ### 🛠️ For Engine Contributors
 
