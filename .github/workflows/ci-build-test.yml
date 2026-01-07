@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15  # macOS Sequoia - required for Metal 4.0 support
 
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +26,8 @@ jobs:
           xcodebuild -version
           swift --version
           python3 --version
+          # Verify Metal version support
+          xcrun metal --version || echo "Metal compiler info not available"
         env:
           CI: true
 
