@@ -124,12 +124,16 @@
             let vpSize = CGSize(width: CGFloat(renderInfo.viewPort.x), height: CGFloat(renderInfo.viewPort.y))
             currentARProjection = currentFrame.camera.projectionMatrix(for: .landscapeRight, viewportSize: vpSize, zNear: 0.001, zFar: 1000)
 
+            EngineProfiler.shared.beginScope(.renderPrep)
             updateARStates(currentFrame: currentFrame)
+            EngineProfiler.shared.endScope(.renderPrep)
 
             renderer.updateXR()
 
             if let renderPassDescriptor = view.currentRenderPassDescriptor {
                 renderInfo.renderPassDescriptor = renderPassDescriptor
+
+                EngineProfiler.shared.beginScope(.encode)
                 drawCapturedImage(commandBuffer: commandBuffer)
 
                 renderer.renderXR(commandBuffer: commandBuffer,
@@ -137,12 +141,15 @@
                                   viewMatrix: currentARCamera,
                                   projectionMatrix: currentARProjection,
                                   eyeIndex: 0)
+                EngineProfiler.shared.endScope(.encode)
 
                 // Schedule a present once the framebuffer is complete using the current drawable
                 if let drawable = view.currentDrawable {
                     commandBuffer.present(drawable)
                 }
             }
+
+            EngineProfiler.shared.attach(to: commandBuffer, label: "ARFrame")
 
             // Finalize rendering here & push the command buffer to the GPU
             commandBuffer.commit()

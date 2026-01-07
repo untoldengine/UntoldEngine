@@ -210,9 +210,11 @@
             }
 
             // Run per-frame work ONCE (not per-eye) to avoid double execution and memory churn
+            EngineProfiler.shared.beginScope(.renderPrep)
             performFrustumCulling(commandBuffer: commandBuffer)
             executeGaussianDepth(commandBuffer)
             executeBitonicSort(commandBuffer)
+            EngineProfiler.shared.endScope(.renderPrep)
 
             for (viewIndex, view) in drawable.views.enumerated() {
                 let anchor = drawable.deviceAnchor
@@ -248,10 +250,14 @@
                 }
 
                 renderInfo.currentEye = viewIndex
+                EngineProfiler.shared.beginScope(.encode)
                 renderer.renderXR(commandBuffer: commandBuffer, passDescriptor: passDescriptor, viewMatrix: cameraMatrix, projectionMatrix: projection, eyeIndex: viewIndex)
+                EngineProfiler.shared.endScope(.encode)
             }
 
             drawable.encodePresent(commandBuffer: commandBuffer)
+
+            EngineProfiler.shared.attach(to: commandBuffer, label: "XRFrame")
 
             // Add completion handler to signal semaphore when GPU work is done
             commandBuffer.addCompletedHandler { _ in

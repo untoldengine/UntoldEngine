@@ -212,6 +212,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                           render: (() -> Void)? = nil,
                           afterRender: (() -> Void)? = nil) -> Bool
     {
+        EngineProfiler.shared.beginFrame()
+
         // finalize destroys once per frame
         if needsFinalizeDestroys {
             needsFinalizeDestroys = false
@@ -224,6 +226,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         // must have a valid camera
         guard CameraSystem.shared.activeCamera != .invalid else {
             handleError(.noActiveCamera)
+            EngineProfiler.shared.endFrame()
             return false
         }
 
@@ -233,6 +236,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         beforeRender?()
 
         // simulation/update pipeline
+        EngineProfiler.shared.beginScope(.update)
         calculateDeltaTime()
         traverseSceneGraph()
         handleInputCallback?()
@@ -257,12 +261,15 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             // user game update
             gameUpdateCallback?(timeSinceLastUpdate)
         }
+        EngineProfiler.shared.endScope(.update)
+
         // render hook (platform-specific)
         render?()
 
         // post-render hook (e.g., editor)
         afterRender?()
 
+        EngineProfiler.shared.endFrame()
         return true
     }
 
