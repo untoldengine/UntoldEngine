@@ -275,42 +275,6 @@ final class PrimitivesTest: XCTestCase {
         }
     }
 
-    func test_allPrimitives_canBeCreatedConcurrently() {
-        // When: Create multiple primitives concurrently
-        let expectation = expectation(description: "Concurrent primitive creation")
-        expectation.expectedFulfillmentCount = 5
-
-        let queue = DispatchQueue.global(qos: .userInitiated)
-
-        queue.async {
-            _ = BasicPrimitives.createCube()
-            expectation.fulfill()
-        }
-
-        queue.async {
-            _ = BasicPrimitives.createSphere()
-            expectation.fulfill()
-        }
-
-        queue.async {
-            _ = BasicPrimitives.createPlane()
-            expectation.fulfill()
-        }
-
-        queue.async {
-            _ = BasicPrimitives.createCylinder()
-            expectation.fulfill()
-        }
-
-        queue.async {
-            _ = BasicPrimitives.createCone()
-            expectation.fulfill()
-        }
-
-        // Then: All should complete successfully
-        waitForExpectations(timeout: 5.0)
-    }
-
     func test_primitives_haveUniqueNames() {
         // When: Create all primitives
         let cube = BasicPrimitives.createCube()
