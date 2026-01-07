@@ -13,6 +13,16 @@ import simd
 var maxNumOfGaussians: UInt64 = 1024 * 1024 * 5
 
 func initGuassianComputePipelines() {
+    if renderInfo.device == nil {
+        handleError(.metalDeviceNotFound)
+        return
+    }
+
+    if renderInfo.library == nil {
+        handleError(.metalLibraryNotFound)
+        return
+    }
+
     createComputePipeline(into: &bitonicSortPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianBitonicSort", pipelineName: "Bitonic Sort")
 
     createComputePipeline(into: &gaussianDepthPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianDepthKeys", pipelineName: "Gaussian Depth")
