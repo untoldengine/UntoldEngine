@@ -204,6 +204,9 @@ var hasPendingDestroys: Bool = false
 private let maxInFlightCommandBuffers = 3
 public let commandBufferSemaphore = DispatchSemaphore(value: maxInFlightCommandBuffers)
 
+// Engine profiling/benchmarking
+public var enableEngineMetrics: Bool = false
+
 public class ToneMappingParams: ObservableObject {
     static let shared = ToneMappingParams()
 

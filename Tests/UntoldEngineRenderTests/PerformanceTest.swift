@@ -71,4 +71,115 @@ final class PerformanceTests: BaseRenderSetup {
                    avgMs, frameBudgetMs, fps)
         )
     }
+
+    func test_EngineProfiler_CPUFrameMetrics() throws {
+        let frameBudgetMs = 17.0 // ~60 FPS
+        let warmupFrames = 120
+        let measuredFrames = 600 // More samples for better statistics
+
+        guard renderer != nil else { throw XCTSkip("Renderer not initialized") }
+
+        // Enable metrics for this test
+        let previousMetricsState = enableEngineMetrics
+        enableEngineMetrics = true
+        defer { enableEngineMetrics = previousMetricsState }
+
+        // Reset any existing metrics
+        EngineProfiler.shared.reset()
+
+        // Warmup
+        for _ in 0 ..< warmupFrames {
+            renderer.draw(in: renderer.metalView)
+        }
+
+        // Reset after warmup to get clean measurements
+        EngineProfiler.shared.reset()
+
+        // Measured run (no GPU sync - real-world conditions)
+        for _ in 0 ..< measuredFrames {
+            renderer.draw(in: renderer.metalView)
+        }
+
+        // Get snapshot
+        let snapshot = EngineProfiler.shared.snapshot()
+
+        print("=== EngineProfiler CPU Frame Metrics ===")
+        print(String(format: "  Samples: %d", snapshot.cpuFrame.sampleCount))
+        print(String(format: "  Mean: %.2f ms (%.1f FPS)", snapshot.cpuFrame.meanMs, 1000.0 / snapshot.cpuFrame.meanMs))
+        print(String(format: "  P95: %.2f ms (%.1f FPS)", snapshot.cpuFrame.p95Ms, 1000.0 / snapshot.cpuFrame.p95Ms))
+        print(String(format: "  P99: %.2f ms (%.1f FPS)", snapshot.cpuFrame.p99Ms, 1000.0 / snapshot.cpuFrame.p99Ms))
+        print(String(format: "  Min: %.2f ms", snapshot.cpuFrame.minMs))
+        print(String(format: "  Max: %.2f ms", snapshot.cpuFrame.maxMs))
+        print("=========================================")
+
+        // Assert we collected samples
+        XCTAssertGreaterThan(snapshot.cpuFrame.sampleCount, 0, "No CPU frame samples collected")
+
+        // Assert mean frame time is under budget
+        XCTAssertLessThanOrEqual(
+            snapshot.cpuFrame.meanMs,
+            frameBudgetMs,
+            String(format: "❌ Mean CPU frame time %.2f ms exceeded budget %.2f ms",
+                   snapshot.cpuFrame.meanMs, frameBudgetMs)
+        )
+
+        // Assert p95 is reasonable (allow 20% over budget for variance)
+        XCTAssertLessThanOrEqual(
+            snapshot.cpuFrame.p95Ms,
+            frameBudgetMs * 1.2,
+            String(format: "❌ P95 CPU frame time %.2f ms exceeded %.2f ms",
+                   snapshot.cpuFrame.p95Ms, frameBudgetMs * 1.2)
+        )
+    }
+
+    func test_EngineProfiler_GPUMetrics() throws {
+        let warmupFrames = 120
+        let measuredFrames = 600
+
+        guard renderer != nil else { throw XCTSkip("Renderer not initialized") }
+        guard renderer.metalView.device != nil else {
+            throw XCTSkip("Metal device not available")
+        }
+
+        // Enable metrics
+        let previousMetricsState = enableEngineMetrics
+        enableEngineMetrics = true
+        defer { enableEngineMetrics = previousMetricsState }
+
+        EngineProfiler.shared.reset()
+
+        // Warmup
+        for _ in 0 ..< warmupFrames {
+            renderer.draw(in: renderer.metalView)
+        }
+
+        EngineProfiler.shared.reset()
+
+        // Measured run
+        for _ in 0 ..< measuredFrames {
+            renderer.draw(in: renderer.metalView)
+        }
+
+        // Wait a bit for completion handlers to fire
+        Thread.sleep(forTimeInterval: 0.5)
+
+        let snapshot = EngineProfiler.shared.snapshot()
+
+        print("=== EngineProfiler GPU Metrics ===")
+        print(String(format: "  Samples: %d", snapshot.gpuCommandBuffer.sampleCount))
+        print(String(format: "  Mean: %.2f ms", snapshot.gpuCommandBuffer.meanMs))
+        print(String(format: "  P95: %.2f ms", snapshot.gpuCommandBuffer.p95Ms))
+        print(String(format: "  P99: %.2f ms", snapshot.gpuCommandBuffer.p99Ms))
+        print(String(format: "  Min: %.2f ms", snapshot.gpuCommandBuffer.minMs))
+        print(String(format: "  Max: %.2f ms", snapshot.gpuCommandBuffer.maxMs))
+        print("===================================")
+
+        // Note: GPU times can be zero/invalid on some systems, so we don't assert they exist
+        // Just log the results for informational purposes
+        if snapshot.gpuCommandBuffer.sampleCount > 0 {
+            print("✅ GPU metrics collection working")
+        } else {
+            print("ℹ️ GPU metrics not available on this system (gpuStartTime/gpuEndTime not supported)")
+        }
+    }
 }

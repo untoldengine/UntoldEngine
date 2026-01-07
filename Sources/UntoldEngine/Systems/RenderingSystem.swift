@@ -25,10 +25,13 @@ func UpdateRenderingSystem(in view: MTKView) {
 
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
         renderInfo.lastCommandBuffer = commandBuffer
+
+        EngineProfiler.shared.beginScope(.renderPrep)
         performFrustumCulling(commandBuffer: commandBuffer)
 
         executeGaussianDepth(commandBuffer)
         executeBitonicSort(commandBuffer)
+        EngineProfiler.shared.endScope(.renderPrep)
 
         if let renderPassDescriptor = view.currentRenderPassDescriptor {
             renderInfo.renderPassDescriptor = renderPassDescriptor
@@ -42,12 +45,16 @@ func UpdateRenderingSystem(in view: MTKView) {
             let sortedPasses = try! topologicalSortGraph(graph: graph)
 
             // execute it
+            EngineProfiler.shared.beginScope(.encode)
             executeGraph(graph, sortedPasses, commandBuffer)
+            EngineProfiler.shared.endScope(.encode)
         }
 
         if let drawable = view.currentDrawable {
             commandBuffer.present(drawable)
         }
+
+        EngineProfiler.shared.attach(to: commandBuffer, label: "MainFrame")
 
         commandBuffer.addCompletedHandler { _ in
             // Signal that this command buffer slot is now available
