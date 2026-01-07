@@ -12,20 +12,16 @@ import MetalKit
 @testable import UntoldEngine
 import XCTest
 
-final class PrimitivesTest: XCTestCase {
+final class PrimitivesTest: BaseRenderSetup {
     override func setUp() {
         super.setUp()
-
-        // Initialize renderer to ensure Metal device and renderInfo are available
-        guard UntoldRenderer.create() != nil else {
-            XCTFail("❌ Failed to initialize renderer")
-            return
-        }
     }
 
     override func tearDown() {
         super.tearDown()
     }
+
+    override func initializeAssets() {}
 
     // MARK: - Cube Tests
 
