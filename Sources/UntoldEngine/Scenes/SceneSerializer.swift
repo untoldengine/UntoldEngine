@@ -629,6 +629,9 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
             let filename = assetInstance.assetURL.deletingPathExtension().lastPathComponent
             let withExtension = assetInstance.assetURL.pathExtension
 
+            // Apply parent entity's transform
+            applyLocalTransform()
+
             switch meshLoadingMode {
             case .sync:
                 setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil)
