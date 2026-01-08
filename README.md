@@ -165,7 +165,8 @@ untoldengine-create create MyGame
 ```
 
 **Features:**
-- ✅ Create projects for macOS, iOS, iOS AR, and visionOS
+- ✅ Create projects for macOS, iOS, iOS AR, visionOS, and **multi-platform**
+- ✅ Multi-platform: One project for macOS, iOS, and visionOS
 - ✅ Automated asset folder structure creation
 - ✅ Perfect for CI/CD pipelines and scripting
 - ✅ Update existing projects without touching custom code

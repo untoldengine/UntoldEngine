@@ -883,4 +883,347 @@ final class BuildSystemTests: XCTestCase {
         XCTAssertFalse(gameSceneContent.contains("import UntoldEngineXR"),
                        "GameScene should NOT import UntoldEngineXR")
     }
+
+    // MARK: - Multi-Platform Tests
+
+    func testMultiPlatformTargetProperties() throws {
+        // Given: A multi-platform build target
+        let target = BuildTarget.multi(
+            macOS: .v14,
+            iOS: .v17,
+            visionOS: .v2
+        )
+
+        // Then: Should have correct platform name
+        XCTAssertEqual(target.platformName, "Multi-Platform",
+                       "Multi-platform target should have 'Multi-Platform' as platformName")
+
+        // Should contain all three platforms
+        let platforms = target.platforms
+        XCTAssertEqual(platforms.count, 3, "Multi-platform target should have 3 platforms")
+        XCTAssertTrue(platforms.contains("macOS"), "Should include macOS")
+        XCTAssertTrue(platforms.contains("iOS"), "Should include iOS")
+        XCTAssertTrue(platforms.contains("visionOS"), "Should include visionOS")
+
+        // Should return correct deployment targets for each platform
+        XCTAssertEqual(target.deploymentTarget(for: "macOS"), "14.0",
+                       "Should return macOS deployment target")
+        XCTAssertEqual(target.deploymentTarget(for: "iOS"), "17.0",
+                       "Should return iOS deployment target")
+        XCTAssertEqual(target.deploymentTarget(for: "visionOS"), "2.0",
+                       "Should return visionOS deployment target")
+        XCTAssertNil(target.deploymentTarget(for: "tvOS"),
+                     "Should return nil for unsupported platform")
+    }
+
+    func testMultiPlatformTemplateStructure() throws {
+        // Given: Build settings for a multi-platform project
+        let settings = BuildSettings(
+            projectName: "MyMultiPlatformGame",
+            bundleIdentifier: "com.test.multiplatform",
+            outputPath: tempDirectory,
+            target: .multi(macOS: .v14, iOS: .v17, visionOS: .v2)
+        )
+
+        // When: Getting template files
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: Should contain platform-specific folders for macOS
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} macOS/AppDelegate.swift"],
+                        "Should have macOS-specific AppDelegate")
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} macOS/GameViewController.swift"],
+                        "Should have macOS-specific GameViewController")
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} macOS/Base.lproj/Main.storyboard"],
+                        "Should have macOS-specific storyboard")
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} macOS/Info.plist"],
+                        "Should have macOS-specific Info.plist")
+
+        // Should contain platform-specific folders for iOS
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} iOS/AppDelegate.swift"],
+                        "Should have iOS-specific AppDelegate")
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} iOS/GameViewController.swift"],
+                        "Should have iOS-specific GameViewController")
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} iOS/Base.lproj/Main.storyboard"],
+                        "Should have iOS-specific storyboard")
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} iOS/Info.plist"],
+                        "Should have iOS-specific Info.plist")
+
+        // Should contain platform-specific folders for iOS AR
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} iOS AR/AppDelegate.swift"],
+                        "Should have iOS AR-specific AppDelegate")
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} iOS AR/GameViewController.swift"],
+                        "Should have iOS AR-specific GameViewController")
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} iOS AR/Info.plist"],
+                        "Should have iOS AR-specific Info.plist")
+
+        // Should contain platform-specific folders for visionOS
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} visionOS/{{PROJECT_NAME}}App.swift"],
+                        "Should have visionOS-specific App file")
+        XCTAssertNotNil(templateFiles["{{PROJECT_NAME}} visionOS/Info.plist"],
+                        "Should have visionOS-specific Info.plist")
+
+        // Should contain shared GameScene
+        XCTAssertNotNil(templateFiles["Sources/{{PROJECT_NAME}}/GameScene.swift"],
+                        "Should have shared GameScene in Sources folder")
+
+        // Should NOT contain Package.swift (uses XcodeGen)
+        XCTAssertNil(templateFiles["Package.swift"],
+                     "Multi-platform template should not include Package.swift")
+    }
+
+    func testMultiPlatformXcodeGenSpec() throws {
+        // Given: Build settings for a multi-platform project
+        let settings = BuildSettings(
+            projectName: "MyMultiPlatformGame",
+            bundleIdentifier: "com.test.multiplatform",
+            outputPath: tempDirectory,
+            target: .multi(macOS: .v14, iOS: .v17, visionOS: .v2)
+        )
+
+        // When: Generating XcodeGen YAML spec
+        let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
+
+        // Then: Should define all platform targets
+        XCTAssertTrue(yamlContent.contains("MyMultiPlatformGame macOS:"),
+                      "Should define macOS target")
+        XCTAssertTrue(yamlContent.contains("MyMultiPlatformGame iOS:"),
+                      "Should define iOS target")
+        XCTAssertTrue(yamlContent.contains("MyMultiPlatformGame iOS AR:"),
+                      "Should define iOS AR target")
+        XCTAssertTrue(yamlContent.contains("MyMultiPlatformGame visionOS:"),
+                      "Should define visionOS target")
+
+        // Should specify correct platforms
+        XCTAssertTrue(yamlContent.contains("platform: macOS"),
+                      "Should specify macOS platform")
+        XCTAssertTrue(yamlContent.contains("platform: iOS"),
+                      "Should specify iOS platform")
+        XCTAssertTrue(yamlContent.contains("platform: visionOS"),
+                      "Should specify visionOS platform")
+
+        // Should specify correct deployment targets
+        XCTAssertTrue(yamlContent.contains("deploymentTarget: 14.0"),
+                      "Should specify macOS deployment target")
+        XCTAssertTrue(yamlContent.contains("deploymentTarget: 17.0"),
+                      "Should specify iOS deployment target")
+        XCTAssertTrue(yamlContent.contains("deploymentTarget: 2.0"),
+                      "Should specify visionOS deployment target")
+
+        // Should include all necessary packages
+        XCTAssertTrue(yamlContent.contains("UntoldEngine:"),
+                      "Should include UntoldEngine package")
+        XCTAssertTrue(yamlContent.contains("UntoldEngineXR:"),
+                      "Should include UntoldEngineXR package for visionOS")
+        XCTAssertTrue(yamlContent.contains("UntoldEngineAR:"),
+                      "Should include UntoldEngineAR package for iOS AR")
+
+        // Should specify correct source paths for each target
+        XCTAssertTrue(yamlContent.contains("path: MyMultiPlatformGame macOS"),
+                      "Should include macOS source path")
+        XCTAssertTrue(yamlContent.contains("path: MyMultiPlatformGame iOS"),
+                      "Should include iOS source path")
+        XCTAssertTrue(yamlContent.contains("path: MyMultiPlatformGame iOS AR"),
+                      "Should include iOS AR source path")
+        XCTAssertTrue(yamlContent.contains("path: MyMultiPlatformGame visionOS"),
+                      "Should include visionOS source path")
+
+        // All targets should share the same Sources folder
+        // Each target references it twice: once for the source path and once for GameData
+        let sourcesPattern = "path: Sources/MyMultiPlatformGame"
+        let occurrences = yamlContent.components(separatedBy: sourcesPattern).count - 1
+        XCTAssertEqual(occurrences, 8,
+                       "All 4 targets should reference shared Sources folder (2 refs per target)")
+    }
+
+    func testMultiPlatformWithTeamID() throws {
+        // Given: Multi-platform settings with team ID
+        let settings = BuildSettings(
+            projectName: "MyGame",
+            bundleIdentifier: "com.test.game",
+            outputPath: tempDirectory,
+            target: .multi(macOS: .v14, iOS: .v17, visionOS: .v2),
+            teamID: "ABC123XYZ"
+        )
+
+        // When: Generating XcodeGen YAML spec
+        let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
+
+        // Then: Team ID should be present for all targets
+        let teamIDPattern = "DEVELOPMENT_TEAM: ABC123XYZ"
+        let occurrences = yamlContent.components(separatedBy: teamIDPattern).count - 1
+        XCTAssertGreaterThanOrEqual(occurrences, 4,
+                                    "Team ID should be set for all targets")
+    }
+
+    func testMultiPlatformBundleIdentifiers() throws {
+        // Given: Multi-platform settings
+        let bundleID = "com.company.mygame"
+        let settings = BuildSettings(
+            projectName: "MyGame",
+            bundleIdentifier: bundleID,
+            outputPath: tempDirectory,
+            target: .multi(macOS: .v14, iOS: .v17, visionOS: .v2)
+        )
+
+        // When: Generating XcodeGen YAML spec
+        let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
+
+        // Then: Bundle identifier should be consistent across non-AR targets
+        XCTAssertTrue(yamlContent.contains("PRODUCT_BUNDLE_IDENTIFIER: \(bundleID)"),
+                      "Should set bundle identifier for regular targets")
+
+        // iOS AR should have .ar suffix
+        XCTAssertTrue(yamlContent.contains("PRODUCT_BUNDLE_IDENTIFIER: \(bundleID).ar"),
+                      "iOS AR target should have .ar suffix")
+    }
+
+    func testMultiPlatformDependenciesConfiguration() throws {
+        // Given: Multi-platform settings
+        let settings = BuildSettings(
+            projectName: "MyGame",
+            bundleIdentifier: "com.test.game",
+            outputPath: tempDirectory,
+            target: .multi(macOS: .v14, iOS: .v17, visionOS: .v2)
+        )
+
+        // When: Generating XcodeGen YAML spec
+        let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
+
+        // Then: Each target should have appropriate dependencies
+        // macOS and iOS (non-AR) should have UntoldEngine
+        let lines = yamlContent.components(separatedBy: "\n")
+        var inMacOSTarget = false
+        var inIOSTarget = false
+        var inIOSARTarget = false
+        var inVisionOSTarget = false
+
+        for line in lines {
+            if line.contains("MyGame macOS:") {
+                inMacOSTarget = true
+                inIOSTarget = false
+                inIOSARTarget = false
+                inVisionOSTarget = false
+            } else if line.contains("MyGame iOS AR:") {
+                inMacOSTarget = false
+                inIOSTarget = false
+                inIOSARTarget = true
+                inVisionOSTarget = false
+            } else if line.contains("MyGame iOS:") {
+                inMacOSTarget = false
+                inIOSTarget = true
+                inIOSARTarget = false
+                inVisionOSTarget = false
+            } else if line.contains("MyGame visionOS:") {
+                inMacOSTarget = false
+                inIOSTarget = false
+                inIOSARTarget = false
+                inVisionOSTarget = true
+            }
+
+            // Check that dependencies appear in the right sections
+            if line.contains("- package: UntoldEngine") {
+                XCTAssertTrue(inMacOSTarget || inIOSTarget || inIOSARTarget || inVisionOSTarget,
+                              "UntoldEngine should be in a target section")
+            }
+            if line.contains("- package: UntoldEngineAR") {
+                XCTAssertTrue(inIOSARTarget, "UntoldEngineAR should only be in iOS AR target")
+            }
+            if line.contains("- package: UntoldEngineXR") {
+                XCTAssertTrue(inVisionOSTarget, "UntoldEngineXR should only be in visionOS target")
+            }
+        }
+    }
+
+    func testMultiPlatformOptimizationSettings() throws {
+        // Given: Multi-platform settings with specific optimization level
+        let settings = BuildSettings(
+            projectName: "MyGame",
+            bundleIdentifier: "com.test.game",
+            outputPath: tempDirectory,
+            target: .multi(macOS: .v14, iOS: .v17, visionOS: .v2),
+            includeDebugInfo: true,
+            optimizationLevel: .speed
+        )
+
+        // When: Generating XcodeGen YAML spec
+        let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
+
+        // Then: All targets should have the same optimization settings
+        let releaseOptPattern = "SWIFT_OPTIMIZATION_LEVEL: -O"
+        let debugOptPattern = "SWIFT_OPTIMIZATION_LEVEL: -Onone"
+        let debugInfoPattern = "DEBUG_INFORMATION_FORMAT: dwarf-with-dsym"
+
+        XCTAssertTrue(yamlContent.contains(releaseOptPattern),
+                      "Should contain speed optimization for release")
+        XCTAssertTrue(yamlContent.contains(debugOptPattern),
+                      "Should contain no optimization for debug")
+        XCTAssertTrue(yamlContent.contains(debugInfoPattern),
+                      "Should include debug information")
+    }
+
+    func testMultiPlatformTemplateDoesNotIncludeStandardSinglePlatformFiles() throws {
+        // Given: Multi-platform build settings
+        let settings = BuildSettings(
+            projectName: "MyGame",
+            bundleIdentifier: "com.test.game",
+            outputPath: tempDirectory,
+            target: .multi(macOS: .v14, iOS: .v17, visionOS: .v2)
+        )
+
+        // When: Getting template files
+        let templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
+
+        // Then: Should NOT include single-platform file paths
+        XCTAssertNil(templateFiles["Sources/{{PROJECT_NAME}}/AppDelegate.swift"],
+                     "Should not have single-platform AppDelegate path")
+        XCTAssertNil(templateFiles["Sources/{{PROJECT_NAME}}/GameViewController.swift"],
+                     "Should not have single-platform GameViewController path")
+        XCTAssertNil(templateFiles["Sources/{{PROJECT_NAME}}/Info.plist"],
+                     "Should not have single-platform Info.plist path")
+        XCTAssertNil(templateFiles["Sources/{{PROJECT_NAME}}/Base.lproj/Main.storyboard"],
+                     "Should not have single-platform storyboard path")
+
+        // Should have README (common to all)
+        XCTAssertNotNil(templateFiles["README.md"],
+                        "Should include README.md")
+    }
+
+    func testSinglePlatformTemplatesDoNotIncludeMultiPlatformStructure() throws {
+        // Given: Single platform targets
+        let macOSSettings = BuildSettings(
+            projectName: "MacGame",
+            bundleIdentifier: "com.test.mac",
+            outputPath: tempDirectory,
+            target: .macOS(deployment: .v14)
+        )
+
+        let iOSSettings = BuildSettings(
+            projectName: "iOSGame",
+            bundleIdentifier: "com.test.ios",
+            outputPath: tempDirectory,
+            target: .iOS(deployment: .v17)
+        )
+
+        let visionSettings = BuildSettings(
+            projectName: "VisionGame",
+            bundleIdentifier: "com.test.vision",
+            outputPath: tempDirectory,
+            target: .visionOS(deployment: .v2)
+        )
+
+        // When: Getting template files for each
+        let macOSTemplates = BuildTemplates.getTemplateFiles(for: macOSSettings.target)
+        let iOSTemplates = BuildTemplates.getTemplateFiles(for: iOSSettings.target)
+        let visionTemplates = BuildTemplates.getTemplateFiles(for: visionSettings.target)
+
+        // Then: None should have platform-specific folder structure
+        for templates in [macOSTemplates, iOSTemplates, visionTemplates] {
+            XCTAssertNil(templates["{{PROJECT_NAME}} macOS/AppDelegate.swift"],
+                         "Single-platform should not have multi-platform folder structure")
+            XCTAssertNil(templates["{{PROJECT_NAME}} iOS/AppDelegate.swift"],
+                         "Single-platform should not have multi-platform folder structure")
+            XCTAssertNil(templates["{{PROJECT_NAME}} visionOS/{{PROJECT_NAME}}App.swift"],
+                         "Single-platform should not have multi-platform folder structure")
+        }
+    }
 }

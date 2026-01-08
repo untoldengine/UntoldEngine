@@ -62,6 +62,10 @@ untoldengine-create create MobileGame --platform ios --bundle-id com.company.gam
 
 # Create a visionOS project
 untoldengine-create create VRGame --platform visionos
+
+# Create a multi-platform project (macOS, iOS, visionOS)
+mkdir CrossPlatformGame && cd CrossPlatformGame
+untoldengine-create create CrossPlatformGame --platform multi --team-id YOUR_TEAM_ID
 ```
 
 ## Commands
@@ -74,7 +78,7 @@ Creates a new UntoldEngine game project with the specified configuration.
 - `projectName` - Name of the project to create
 
 **Options:**
-- `--platform <platform>` - Target platform: `macos`, `ios`, `ios-ar`, `visionos` (default: `macos`)
+- `--platform <platform>` - Target platform: `macos`, `ios`, `ios-ar`, `visionos`, `multi` (default: `macos`)
 - `--bundle-id <id>` - Bundle identifier (e.g., `com.company.game`)
 - `--output <path>` - Output directory (default: current directory)
 - `--macos-version <version>` - macOS deployment version: `13`, `14`, `15` (default: `15`)
@@ -97,6 +101,10 @@ untoldengine-create create ARGame --platform ios-ar --bundle-id com.company.arga
 
 # Create visionOS project with custom output
 untoldengine-create create VRGame --platform visionos --output ~/Projects
+
+# Create multi-platform project
+mkdir MultiGame && cd MultiGame
+untoldengine-create create MultiGame --platform multi --team-id ABCD1234EF
 ```
 
 ### `update` - Update an existing project
