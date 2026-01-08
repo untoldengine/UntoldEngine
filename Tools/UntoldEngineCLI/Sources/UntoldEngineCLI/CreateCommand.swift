@@ -29,6 +29,13 @@ struct CreateCommand: AsyncParsableCommand {
 
           # Create visionOS project with custom output location
           untoldengine-create create VRGame --platform visionos --output ~/Projects
+
+          # Create multi-platform project (macOS, iOS, visionOS)
+          mkdir CrossPlatformGame && cd CrossPlatformGame
+          untoldengine-create create CrossPlatformGame --platform multi --team-id YOUR_TEAM_ID
+
+          # Create multi-platform with custom deployment targets
+          untoldengine-create create MyGame --platform multi --macos-version 14 --ios-version 17 --visionos-version 2
         """
     )
 
@@ -39,7 +46,7 @@ struct CreateCommand: AsyncParsableCommand {
 
     // MARK: - Options
 
-    @Option(name: .shortAndLong, help: "Target platform (macos, ios, ios-ar, visionos)")
+    @Option(name: .shortAndLong, help: "Target platform (macos, ios, ios-ar, visionos, multi)")
     var platform: String = "macos"
 
     @Option(name: .long, help: "Bundle identifier (e.g., com.company.game)")
@@ -140,6 +147,12 @@ struct CreateCommand: AsyncParsableCommand {
             let version = parseVisionOSVersion(visionosVersion)
             buildTarget = .visionOS(deployment: version)
 
+        case "multi":
+            let macOS = parseMacOSVersion(macosVersion)
+            let iOS = parseIOSVersion(iosVersion)
+            let visionOS = parseVisionOSVersion(visionosVersion)
+            buildTarget = .multi(macOS: macOS, iOS: iOS, visionOS: visionOS)
+
         default:
             throw CLIError.invalidPlatform(platform)
         }
@@ -213,7 +226,23 @@ struct CreateCommand: AsyncParsableCommand {
         print("📋 Configuration:")
         print("   Project Name:    \(settings.projectName)")
         print("   Bundle ID:       \(settings.bundleIdentifier)")
-        print("   Platform:        \(settings.target.platformName) \(settings.target.deploymentTarget)")
+
+        // Handle multi-platform display differently
+        if case .multi = settings.target {
+            print("   Platform:        Multi-Platform")
+            if let macOSVersion = settings.target.deploymentTarget(for: "macOS") {
+                print("     - macOS:       \(macOSVersion)")
+            }
+            if let iOSVersion = settings.target.deploymentTarget(for: "iOS") {
+                print("     - iOS:         \(iOSVersion)")
+            }
+            if let visionOSVersion = settings.target.deploymentTarget(for: "visionOS") {
+                print("     - visionOS:    \(visionOSVersion)")
+            }
+        } else {
+            print("   Platform:        \(settings.target.platformName) \(settings.target.deploymentTarget)")
+        }
+
         if settings.isIOSAR {
             print("   AR Support:      Enabled")
         }
@@ -269,7 +298,7 @@ enum CLIError: LocalizedError {
         case let .invalidBundleIdentifier(bundleId):
             return "Invalid bundle identifier: \(bundleId). Use format: com.company.app"
         case let .invalidPlatform(platform):
-            return "Invalid platform: \(platform). Valid options: macos, ios, ios-ar, visionos"
+            return "Invalid platform: \(platform). Valid options: macos, ios, ios-ar, visionos, multi"
         case let .invalidOptimization(opt):
             return "Invalid optimization: \(opt). Valid options: none, speed, size"
         case let .buildFailed(message):

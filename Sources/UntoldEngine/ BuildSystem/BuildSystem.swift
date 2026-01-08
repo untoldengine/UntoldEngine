@@ -36,12 +36,14 @@ import Foundation
         case macOS(deployment: MacOSVersion)
         case iOS(deployment: IOSVersion)
         case visionOS(deployment: VisionOSVersion)
+        case multi(macOS: MacOSVersion, iOS: IOSVersion, visionOS: VisionOSVersion)
 
         public var platformName: String {
             switch self {
             case .macOS: return "macOS"
             case .iOS: return "iOS"
             case .visionOS: return "visionOS"
+            case .multi: return "Multi-Platform"
             }
         }
 
@@ -50,6 +52,32 @@ import Foundation
             case let .macOS(version): return version.rawValue
             case let .iOS(version): return version.rawValue
             case let .visionOS(version): return version.rawValue
+            case let .multi(macOS, _, _): return macOS.rawValue // Default to macOS version
+            }
+        }
+
+        public var platforms: [String] {
+            switch self {
+            case .macOS: return ["macOS"]
+            case .iOS: return ["iOS"]
+            case .visionOS: return ["visionOS"]
+            case .multi: return ["macOS", "iOS", "visionOS"]
+            }
+        }
+
+        public func deploymentTarget(for platform: String) -> String? {
+            switch self {
+            case let .macOS(version) where platform == "macOS": return version.rawValue
+            case let .iOS(version) where platform == "iOS": return version.rawValue
+            case let .visionOS(version) where platform == "visionOS": return version.rawValue
+            case let .multi(macOS, iOS, visionOS):
+                switch platform {
+                case "macOS": return macOS.rawValue
+                case "iOS": return iOS.rawValue
+                case "visionOS": return visionOS.rawValue
+                default: return nil
+                }
+            default: return nil
             }
         }
     }
@@ -299,7 +327,9 @@ import Foundation
 
             // Get template files for the target
             let templateFiles: [String: String]
-            if settings.isIOSAR, case .iOS = settings.target {
+            if case .multi = settings.target {
+                templateFiles = BuildTemplates.getTemplateFilesForMultiPlatform()
+            } else if settings.isIOSAR, case .iOS = settings.target {
                 templateFiles = BuildTemplates.getTemplateFilesForIOSAR()
             } else {
                 templateFiles = BuildTemplates.getTemplateFiles(for: settings.target)
@@ -319,6 +349,7 @@ import Foundation
             }
 
             // Create GameData directory structure
+            // Both single-platform and multi-platform use Sources/{ProjectName}/GameData
             let gameDataDir = projectDir
                 .appendingPathComponent("Sources")
                 .appendingPathComponent(settings.projectName)
@@ -337,6 +368,7 @@ import Foundation
         private func bundleGameData(to projectDir: URL, settings: BuildSettings) async throws -> [String] {
             var bundledAssets: [String] = []
 
+            // Both single-platform and multi-platform use Sources/{ProjectName}/GameData
             let gameDataDir = projectDir
                 .appendingPathComponent("Sources")
                 .appendingPathComponent(settings.projectName)
