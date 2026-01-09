@@ -637,12 +637,38 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                 setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil)
                 // Apply overrides synchronously after import
                 applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
+
+                // Setup animations (skeleton is now available)
+                if sceneDataEntity.hasAnimationComponent == true {
+                    for animations in sceneDataEntity.animations {
+                        let animationFilename = animations.deletingPathExtension().lastPathComponent
+                        let animationFilenameExt = animations.pathExtension
+                        setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                        changeAnimation(entityId: entityId, name: animationFilename)
+                    }
+                    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                        animationComponent.animationsFilenames = sceneDataEntity.animations
+                    }
+                }
             case .asyncDefault:
                 setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
                     if success {
                         Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
                         // Apply overrides after async import completes
                         applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
+
+                        // Setup animations (skeleton is now available)
+                        if sceneDataEntity.hasAnimationComponent == true {
+                            for animations in sceneDataEntity.animations {
+                                let animationFilename = animations.deletingPathExtension().lastPathComponent
+                                let animationFilenameExt = animations.pathExtension
+                                setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                                changeAnimation(entityId: entityId, name: animationFilename)
+                            }
+                            if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                                animationComponent.animationsFilenames = sceneDataEntity.animations
+                            }
+                        }
                     } else {
                         Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
                     }
@@ -656,6 +682,19 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
             case .sync:
                 setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
                 applyLocalTransform()
+
+                // Setup animations (skeleton is now available)
+                if sceneDataEntity.hasAnimationComponent == true {
+                    for animations in sceneDataEntity.animations {
+                        let animationFilename = animations.deletingPathExtension().lastPathComponent
+                        let animationFilenameExt = animations.pathExtension
+                        setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                        changeAnimation(entityId: entityId, name: animationFilename)
+                    }
+                    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                        animationComponent.animationsFilenames = sceneDataEntity.animations
+                    }
+                }
             case .asyncDefault:
                 let fallbackLabel = withExtension.isEmpty ? filename : "\(filename).\(withExtension)"
                 let meshLabel = sceneDataEntity.name.isEmpty ? fallbackLabel : sceneDataEntity.name
@@ -663,6 +702,19 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                     applyLocalTransform()
                     if success {
                         Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
+
+                        // Setup animations (skeleton is now available)
+                        if sceneDataEntity.hasAnimationComponent == true {
+                            for animations in sceneDataEntity.animations {
+                                let animationFilename = animations.deletingPathExtension().lastPathComponent
+                                let animationFilenameExt = animations.pathExtension
+                                setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                                changeAnimation(entityId: entityId, name: animationFilename)
+                            }
+                            if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                                animationComponent.animationsFilenames = sceneDataEntity.animations
+                            }
+                        }
                     } else {
                         Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
                     }
@@ -698,20 +750,14 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
             }
         }
 
-        if sceneDataEntity.hasAnimationComponent == true {
-            for animations in sceneDataEntity.animations {
-                let animationFilename = animations.deletingPathExtension().lastPathComponent
-                let animationFilenameExt = animations.pathExtension
-
-                setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-
-                changeAnimation(entityId: entityId, name: animationFilename)
-            }
-
-            if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                animationComponent.animationsFilenames = sceneDataEntity.animations
-            }
-        }
+        // Animation setup is now handled inside mesh loading completion handlers
+        // (for asset instances and rendering components) to ensure skeleton component is available.
+        // For entities without meshes (cameras, lights, empty parents), animations wouldn't apply anyway
+        // since they require a skeleton, which comes from mesh loading.
+        //
+        // Note: For multi-mesh assets, the skeleton is on child entities, not the parent.
+        // If sceneDataEntity has hasAnimationComponent but is a multi-mesh parent, the animations
+        // should actually be applied to the specific child entity that has the skeleton.
 
         if sceneDataEntity.hasKineticComponent == true {
             setEntityKinetics(entityId: entityId)
