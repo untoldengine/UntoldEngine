@@ -214,7 +214,7 @@ To kickstart development, download prebuilt demo assets:
 - **Animations**: Running, idle, and other character motions
 - **Textures**: Sample materials
 
-[Download Demo Assets v1.0](https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1)
+[Download Demo Assets v1.0](https://haroldserrano.gumroad.com/l/iqjlac)
 
 Extract and copy into your project's `GameData/` directory.
 
