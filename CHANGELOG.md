@@ -1,4 +1,13 @@
 # Changelog
+## v0.7.1 - 2026-01-10
+### 🐞 Fixes
+- [Patch] Added a profiler to the engine (6be0955…)
+- [Patch] added multi-platform support build system (d6642d1…)
+- [Patch]fixed the space in the Build system path (31497f0…)
+- [Patch]Added apply transform to parents in deserializer (907cde3…)
+- [Patch]Fixed async loading not setting skeleton component (ea52f24…)
+### 📚 Docs
+- [Docs]Added docs explaining how to start a project (2496315…)
 ## v0.7.0 - 2026-01-06
 ### 🐞 Fixes
 - [Patch] re-enabled renderer tests in pre-commit (fd67537…)
