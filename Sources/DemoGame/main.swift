@@ -156,13 +156,13 @@
             // -----------------------------------------------------
             registerCustomSystem(ballSystemUpdate)
             registerCustomSystem(dribblingSystemUpdate)
-            registerCustomSystem(cameraFollowUpdate)
+            // registerCustomSystem(cameraFollowUpdate)
 
             // Input (WASD) for the demo
             InputSystem.shared.registerKeyboardEvents()
 
             // Disable SSAO
-            SSAOParams.shared.enabled = true
+            SSAOParams.shared.enabled = false
             // Test Fast quality (8 samples, half-res)
             SSAOParams.shared.quality = .high
         }
@@ -193,11 +193,21 @@
             // Camera + lighting
             moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
             ambientIntensity = 0.4
+
+            let waypoints = [
+                CameraWaypoint(position: simd_float3(0, 3, 10), lookAt: .zero, segmentDuration: 2.0),
+                CameraWaypoint(position: simd_float3(10, 3, 0), lookAt: .zero, segmentDuration: 2.0),
+                CameraWaypoint(position: simd_float3(0, 3, -10), lookAt: .zero, segmentDuration: 2.0),
+                CameraWaypoint(position: simd_float3(-10, 3, 0), lookAt: .zero, segmentDuration: 2.0),
+            ]
+
+            startCameraPath(waypoints: waypoints, mode: .loop)
         }
 
-        func update(deltaTime _: Float) {
+        func update(deltaTime dt: Float) {
             // Skip logic if not in game mode
             if gameMode == false { return }
+            updateCameraPath(deltaTime: dt)
         }
 
         func handleInput() {
