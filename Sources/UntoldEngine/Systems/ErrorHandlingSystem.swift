@@ -74,6 +74,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case metalLibraryNotFound = 1063
     case metalDeviceNotFound = 1064
     case noGaussianComponent = 1065
+    case missingCameraWaypoints = 1066
 
     public var description: String {
         switch self {
@@ -205,6 +206,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Metal Device not found"
         case .noGaussianComponent:
             return "Gaussian Component missing"
+        case .missingCameraWaypoints:
+            return "Camera has no waypoints"
         }
     }
 }

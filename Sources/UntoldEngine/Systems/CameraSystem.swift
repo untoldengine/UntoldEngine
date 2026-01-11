@@ -20,6 +20,9 @@ public final class CameraSystem {
         get { _activeCamera }
         set { _activeCamera = newValue }
     }
+
+    // Camera path state (internal access for path functions)
+    fileprivate var pathState: CameraPathState?
 }
 
 public enum CameraMoveSpace {
@@ -417,4 +420,312 @@ public func cameraOrbitTarget(entityId: EntityID,
                  eye: cameraComponent.localPosition,
                  target: centerTransform.position,
                  up: simd_float3(0, 1, 0))
+}
+
+// MARK: - Camera Path Types
+
+/// Represents a single waypoint in a camera path with position, rotation, and duration to next waypoint
+public struct CameraWaypoint {
+    /// World position of the camera at this waypoint
+    public var position: simd_float3
+    /// Rotation of the camera at this waypoint (quaternion)
+    public var rotation: simd_quatf
+    /// Duration in seconds to travel from this waypoint to the next
+    public var segmentDuration: Float
+
+    public init(position: simd_float3, rotation: simd_quatf, segmentDuration: Float) {
+        self.position = position
+        self.rotation = rotation
+        self.segmentDuration = segmentDuration
+    }
+
+    /// Convenience initializer using look-at direction
+    public init(position: simd_float3, lookAt: simd_float3, up: simd_float3 = simd_float3(0, 1, 0), segmentDuration: Float) {
+        self.position = position
+        rotation = simd_normalize(simd_conjugate(quaternion_lookAt(eye: position, target: lookAt, up: up)))
+        self.segmentDuration = segmentDuration
+    }
+}
+
+/// Defines how the camera path should behave when reaching the end
+public enum CameraPathMode {
+    /// Play once and stop at the last waypoint
+    case once
+    /// Loop back to the first waypoint and repeat
+    case loop
+}
+
+/// Settings for camera path playback
+public struct CameraPathSettings {
+    /// Whether to start playback immediately upon calling startCameraPath
+    public var startImmediately: Bool
+    /// Optional callback invoked when path completes (not called in loop mode)
+    public var onComplete: (() -> Void)?
+
+    public init(startImmediately: Bool = true, onComplete: (() -> Void)? = nil) {
+        self.startImmediately = startImmediately
+        self.onComplete = onComplete
+    }
+
+    public static let `default` = CameraPathSettings()
+}
+
+/// Internal state for active camera path playback
+struct CameraPathState {
+    var waypoints: [CameraWaypoint]
+    var mode: CameraPathMode
+    var settings: CameraPathSettings
+
+    var currentSegmentIndex: Int = 0
+    var segmentT: Float = 0.0 // Normalized time [0, 1] within current segment
+    var totalDuration: Float = 0.0
+    var isActive: Bool = true
+
+    init(waypoints: [CameraWaypoint], mode: CameraPathMode, settings: CameraPathSettings) {
+        self.waypoints = waypoints
+        self.mode = mode
+        self.settings = settings
+        totalDuration = waypoints.reduce(0) { $0 + $1.segmentDuration }
+    }
+
+    /// Returns the current and next waypoint for interpolation
+    func getCurrentSegment() -> (current: CameraWaypoint, next: CameraWaypoint)? {
+        guard currentSegmentIndex < waypoints.count else { return nil }
+
+        let current = waypoints[currentSegmentIndex]
+
+        // Determine next index based on mode
+        let nextIndex: Int
+        if mode == .loop {
+            nextIndex = (currentSegmentIndex + 1) % waypoints.count
+        } else {
+            // In .once mode, check if there's a next waypoint
+            guard currentSegmentIndex + 1 < waypoints.count else { return nil }
+            nextIndex = currentSegmentIndex + 1
+        }
+
+        let next = waypoints[nextIndex]
+        return (current, next)
+    }
+}
+
+// MARK: - Camera Path Following API
+
+/**
+ Camera Path Following System
+
+ This API enables the active camera to follow a deterministic path through a sequence of waypoints,
+ interpolating both position and rotation smoothly over time. Designed for repeatable benchmark
+ camera paths and cinematic sequences.
+
+ ## Basic Usage
+
+ ```swift
+ // Define waypoints with explicit rotations
+ let waypoints = [
+     CameraWaypoint(
+         position: simd_float3(0, 5, 10),
+         rotation: simd_quatf(angle: 0, axis: simd_float3(0, 1, 0)),
+         segmentDuration: 2.0
+     ),
+     CameraWaypoint(
+         position: simd_float3(10, 5, 10),
+         rotation: simd_quatf(angle: Float.pi / 4, axis: simd_float3(0, 1, 0)),
+         segmentDuration: 2.0
+     ),
+     CameraWaypoint(
+         position: simd_float3(10, 5, 0),
+         rotation: simd_quatf(angle: Float.pi / 2, axis: simd_float3(0, 1, 0)),
+         segmentDuration: 2.0
+     )
+ ]
+
+ // Start path in once mode (stops at end)
+ startCameraPath(waypoints: waypoints, mode: .once)
+
+ // Update every frame in your game loop
+ updateCameraPath(deltaTime: deltaTime)
+ ```
+
+ ## Look-At Waypoints
+
+ You can use the convenience initializer to create waypoints that look at a target:
+
+ ```swift
+ let waypoint = CameraWaypoint(
+     position: simd_float3(0, 5, 10),
+     lookAt: simd_float3(0, 0, 0),  // Look at origin
+     up: simd_float3(0, 1, 0),      // World up
+     segmentDuration: 2.0
+ )
+ ```
+
+ ## Looping Paths
+
+ ```swift
+ // Path will loop continuously from last waypoint back to first
+ startCameraPath(waypoints: waypoints, mode: .loop)
+ ```
+
+ ## Completion Callbacks
+
+ ```swift
+ let settings = CameraPathSettings(startImmediately: true) {
+     print("Camera path completed!")
+ }
+ startCameraPath(waypoints: waypoints, mode: .once, settings: settings)
+ ```
+
+ ## Control Methods
+
+ ```swift
+ // Check if path is active
+ if isCameraPathActive() {
+     // Stop the path
+     stopCameraPath()
+ }
+ ```
+
+ */
+
+/// Starts the active camera following a predefined path of waypoints
+/// - Parameters:
+///   - waypoints: Ordered array of waypoints defining the camera path
+///   - mode: Playback mode (.once or .loop)
+///   - settings: Additional settings for path playback
+public func startCameraPath(waypoints: [CameraWaypoint], mode: CameraPathMode = .once, settings: CameraPathSettings = .default) {
+    // Validate input
+    guard !waypoints.isEmpty else {
+        handleError(.missingCameraWaypoints)
+        return
+    }
+
+    guard CameraSystem.shared.activeCamera != nil else {
+        handleError(.noActiveCamera)
+        return
+    }
+
+    // Handle single waypoint case - just snap to it
+    if waypoints.count == 1 {
+        let waypoint = waypoints[0]
+        if let entityId = CameraSystem.shared.activeCamera {
+            applyCameraTransform(entityId: entityId, position: waypoint.position, rotation: waypoint.rotation)
+        }
+        settings.onComplete?()
+        return
+    }
+
+    // Initialize path state
+    var state = CameraPathState(waypoints: waypoints, mode: mode, settings: settings)
+    state.isActive = settings.startImmediately
+    CameraSystem.shared.pathState = state
+
+    // Apply initial position if starting immediately
+    if settings.startImmediately, let entityId = CameraSystem.shared.activeCamera {
+        let firstWaypoint = waypoints[0]
+        applyCameraTransform(entityId: entityId, position: firstWaypoint.position, rotation: firstWaypoint.rotation)
+    }
+}
+
+/// Stops any active camera path playback
+public func stopCameraPath() {
+    CameraSystem.shared.pathState = nil
+}
+
+/// Returns true if a camera path is currently active
+public func isCameraPathActive() -> Bool {
+    CameraSystem.shared.pathState?.isActive ?? false
+}
+
+/// Updates the camera path state and applies interpolated transform to the active camera
+/// - Parameter deltaTime: Time elapsed since last update in seconds
+/// - Note: This should be called every frame from the main update loop
+public func updateCameraPath(deltaTime: Float) {
+    guard var state = CameraSystem.shared.pathState, state.isActive else { return }
+    guard let entityId = CameraSystem.shared.activeCamera else {
+        handleError(.noActiveCamera)
+        CameraSystem.shared.pathState = nil
+        return
+    }
+
+    // Get current segment
+    guard let segment = state.getCurrentSegment() else {
+        // No valid segment - we've reached the end in .once mode
+        // Snap to final waypoint and stop
+        if state.mode == .once, !state.waypoints.isEmpty {
+            let finalWaypoint = state.waypoints[state.waypoints.count - 1]
+            applyCameraTransform(entityId: entityId, position: finalWaypoint.position, rotation: finalWaypoint.rotation)
+            state.isActive = false
+            CameraSystem.shared.pathState = state
+            state.settings.onComplete?()
+        } else {
+            CameraSystem.shared.pathState = nil
+        }
+        return
+    }
+
+    let currentWaypoint = segment.current
+    let nextWaypoint = segment.next
+
+    // Validate segment duration
+    guard currentWaypoint.segmentDuration > 0 else {
+        // Invalid duration, advance to next segment
+        state.currentSegmentIndex += 1
+        state.segmentT = 0.0
+        CameraSystem.shared.pathState = state
+        return
+    }
+
+    // Advance time within segment
+    state.segmentT += deltaTime / currentWaypoint.segmentDuration
+
+    // Check if we've completed the current segment
+    if state.segmentT >= 1.0 {
+        // Handle segment overflow by carrying excess time to next segment
+        let overflow = state.segmentT - 1.0
+        state.segmentT = 0.0
+        state.currentSegmentIndex += 1
+
+        // In loop mode, wrap around to start
+        if state.mode == .loop, state.currentSegmentIndex >= state.waypoints.count {
+            state.currentSegmentIndex = 0
+        }
+        // In once mode, getCurrentSegment() will return nil on next update when we reach the end
+
+        // Store state and recursively handle the overflow time to ensure smooth transition
+        // This prevents flickering when transitioning between segments
+        CameraSystem.shared.pathState = state
+        if overflow > 0, state.mode == .loop {
+            // Recursively update with remaining time to smooth the transition
+            updateCameraPath(deltaTime: overflow * currentWaypoint.segmentDuration)
+            return
+        }
+    }
+
+    // Clamp t to [0, 1] for safety
+    let t = min(max(state.segmentT, 0.0), 1.0)
+
+    // Interpolate position (linear)
+    let position = currentWaypoint.position + (nextWaypoint.position - currentWaypoint.position) * t
+
+    // Interpolate rotation (slerp for smooth rotation)
+    let rotation = simd_slerp(currentWaypoint.rotation, nextWaypoint.rotation, t)
+
+    // Apply transform to camera
+    applyCameraTransform(entityId: entityId, position: position, rotation: rotation)
+
+    // Store updated state
+    CameraSystem.shared.pathState = state
+}
+
+/// Applies position and rotation to a camera entity
+private func applyCameraTransform(entityId: EntityID, position: simd_float3, rotation: simd_quatf) {
+    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+        return
+    }
+
+    cameraComponent.localPosition = position
+    cameraComponent.rotation = simd_normalize(rotation)
+
+    updateCameraViewMatrix(entityId: entityId)
 }
