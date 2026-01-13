@@ -254,6 +254,30 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         ])
     }
 
+    func testBuildGameModeGraph_BypassPostProcessing_UsesBypassPass() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        bypassPostProcessing = true
+        defer { bypassPostProcessing = false }
+
+        let (graph, finalPassID) = buildGameModeGraph()
+
+        XCTAssertEqual(finalPassID, "precomp", "Final pass should be precomp")
+        XCTAssertNotNil(graph["postProcessBypass"], "Bypass pass should exist when bypassPostProcessing is enabled")
+        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["lightPass"],
+                       "Bypass pass should depend on lightPass")
+
+        XCTAssertNil(graph["depthOfField"], "Depth of field pass should not exist when bypassing post-processing")
+        XCTAssertNil(graph["chromatic"], "Chromatic pass should not exist when bypassing post-processing")
+        XCTAssertNil(graph["bloomThreshold"], "Bloom threshold pass should not exist when bypassing post-processing")
+
+        let precompDeps = graph["precomp"]?.dependencies.sorted() ?? []
+        XCTAssertTrue(precompDeps.contains("postProcessBypass"),
+                      "Precomp should depend on postProcessBypass when bypassing post-processing")
+        XCTAssertTrue(precompDeps.contains("gaussian"),
+                      "Precomp should still depend on gaussian pass")
+    }
+
     // MARK: - Gaussian Pass Integration Tests
 
     func testBuildGameModeGraph_GaussianPassExists() {

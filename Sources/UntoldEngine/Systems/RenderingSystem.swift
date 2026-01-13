@@ -165,10 +165,32 @@ public func buildGameModeGraph() -> RenderGraphResult {
     let gaussianPass = RenderPass(id: "gaussian", dependencies: ["model"], execute: RenderPasses.gaussianExecution)
     graph[gaussianPass.id] = gaussianPass
 
-    let postProcess = postProcessingEffects(graph: &graph, deferredPassId: "lightPass", geometryPassId: "model")
+    let postProcessID: String
+    if bypassPostProcessing {
+        let bypassPass = RenderPass(
+            id: "postProcessBypass",
+            dependencies: ["lightPass"],
+            execute: { _ in
+                guard let deferredDescriptor = renderInfo.deferredRenderPassDescriptor else {
+                    return
+                }
+                renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0].texture =
+                    deferredDescriptor.colorAttachments[0].texture
+            }
+        )
+        graph[bypassPass.id] = bypassPass
+        postProcessID = bypassPass.id
+    } else {
+        let postProcess = postProcessingEffects(graph: &graph, deferredPassId: "lightPass", geometryPassId: "model")
+        postProcessID = postProcess.id
+    }
 
     // PreComposite depends on both post-processing and gaussian
-    let preCompPass = RenderPass(id: "precomp", dependencies: [postProcess.id, gaussianPass.id], execute: RenderPasses.preCompositeExecution)
+    let preCompPass = RenderPass(
+        id: "precomp",
+        dependencies: [postProcessID, gaussianPass.id],
+        execute: RenderPasses.preCompositeExecution
+    )
     graph[preCompPass.id] = preCompPass
 
     return (graph, preCompPass.id)
