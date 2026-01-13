@@ -45,7 +45,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         let renderer = UntoldRenderer(configuration: configuration)
 
         guard let device = MTLCreateSystemDefaultDevice() else {
-            assertionFailure("Metal device is not available.")
+            Logger.logError(message: "Metal device is not available.")
             return nil
         }
         renderer.metalView.device = device

@@ -206,6 +206,7 @@ public let commandBufferSemaphore = DispatchSemaphore(value: maxInFlightCommandB
 
 // Engine profiling/benchmarking
 public var enableEngineMetrics: Bool = false
+public var bypassPostProcessing = false
 
 public class ToneMappingParams: ObservableObject {
     static let shared = ToneMappingParams()

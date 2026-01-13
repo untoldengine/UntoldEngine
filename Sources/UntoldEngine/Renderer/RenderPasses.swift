@@ -1266,99 +1266,6 @@ public enum RenderPasses {
             textureResources.shadowMap, index: Int(lightPassShadowTextureIndex.rawValue)
         )
 
-        // point lights
-        /*
-         if let pointLightBuffer = bufferResources.pointLightBuffer {
-
-             let headerSize = MemoryLayout<UInt32>.stride * 4
-             let MAX_POINT_LIGHTS = 1024
-
-             // Grab lights and cap to buffer capacity
-             let src = getPointLights()
-             let capped = min(src.count, MAX_POINT_LIGHTS)
-
-             // Write count at offset 0
-             pointLightBuffer.contents().storeBytes(of: UInt32(capped), toByteOffset: 0, as: UInt32.self)
-
-             // Copy the contiguous bytes of the array after the header
-             let dst = pointLightBuffer.contents().advanced(by: headerSize)
-
-             src.withUnsafeBytes{ raw in
-                 let stride = MemoryLayout<PointLightUniform>.stride
-                 let nBytes = capped * stride
-                 dst.copyMemory(from: raw.baseAddress!, byteCount: nBytes)
-             }
-
-             renderEncoder.setFragmentBuffer(
-                 pointLightBuffer, offset: 0, index: Int(lightPassPointLightsIndex.rawValue)
-             )
-         } else {
-             handleError(.bufferAllocationFailed, bufferResources.pointLightBuffer!.label!)
-             return
-         }
-
-         // spot light
-         if let spotLightBuffer = bufferResources.spotLightBuffer {
-
-             let headerSize = MemoryLayout<UInt32>.stride * 4
-             let MAX_POINT_LIGHTS = 1024
-
-             // Grab lights and cap to buffer capacity
-             let src = getSpotLights()
-             let capped = min(src.count, MAX_POINT_LIGHTS)
-
-             // Write count at offset 0
-             spotLightBuffer.contents().storeBytes(of: UInt32(capped), toByteOffset: 0, as: UInt32.self)
-
-             // Copy the contiguous bytes of the array after the header
-             let dst = spotLightBuffer.contents().advanced(by: headerSize)
-
-             src.withUnsafeBytes{ raw in
-                 let stride = MemoryLayout<SpotLightUniform>.stride
-                 let nBytes = capped * stride
-                 dst.copyMemory(from: raw.baseAddress!, byteCount: nBytes)
-             }
-
-             renderEncoder.setFragmentBuffer(
-                 spotLightBuffer, offset: 0, index: Int(lightPassSpotLightsIndex.rawValue)
-             )
-
-         } else {
-             handleError(.bufferAllocationFailed, bufferResources.spotLightBuffer!.label!)
-             return
-         }
-
-         // area light
-         if let areaLightBuffer = bufferResources.areaLightBuffer {
-
-             let headerSize = MemoryLayout<UInt32>.stride * 4
-             let MAX_POINT_LIGHTS = 1024
-
-             // Grab lights and cap to buffer capacity
-             let src = getAreaLights()
-             let capped = min(src.count, MAX_POINT_LIGHTS)
-
-             // Write count at offset 0
-             areaLightBuffer.contents().storeBytes(of: UInt32(capped), toByteOffset: 0, as: UInt32.self)
-
-             // Copy the contiguous bytes of the array after the header
-             let dst = areaLightBuffer.contents().advanced(by: headerSize)
-
-             src.withUnsafeBytes{ raw in
-                 let stride = MemoryLayout<AreaLightUniform>.stride
-                 let nBytes = capped * stride
-                 dst.copyMemory(from: raw.baseAddress!, byteCount: nBytes)
-             }
-
-             renderEncoder.setFragmentBuffer(
-                 areaLightBuffer, offset: 0, index: Int(lightPassAreaLightsIndex.rawValue)
-             )
-
-         } else {
-             handleError(.bufferAllocationFailed, bufferResources.areaLightBuffer!.label!)
-             return
-         }
-         */
         let MAX_POINT_LIGHTS = 1024
         let headerSize = 16
         // Point
@@ -1528,8 +1435,13 @@ public enum RenderPasses {
                 renderInfo.offscreenRenderPassDescriptor?.depthAttachment.texture, index: Int(prePassDepthTextureIndex.rawValue)
             )
         } else {
+            let postProcessColorTexture = renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0].texture
+            let finalColorTexture = bypassPostProcessing
+                ? (renderInfo.deferredRenderPassDescriptor?.colorAttachments[0].texture ?? postProcessColorTexture)
+                : postProcessColorTexture
+
             renderEncoder.setFragmentTexture(
-                renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0].texture,
+                finalColorTexture,
                 index: Int(prePassFinalTextureIndex.rawValue)
             )
 
