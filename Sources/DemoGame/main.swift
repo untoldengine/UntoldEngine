@@ -161,8 +161,11 @@
             // Input (WASD) for the demo
             InputSystem.shared.registerKeyboardEvents()
 
+            // bypass Post FX effects
+            bypassPostProcessing = true
+            
             // Disable SSAO
-            SSAOParams.shared.enabled = true
+            SSAOParams.shared.enabled = false
             // Test Fast quality (8 samples, half-res)
             SSAOParams.shared.quality = .high
         }
@@ -219,7 +222,7 @@
 
             // Step 1. Create and configure the window
             window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+                contentRect: NSRect(x: 0, y: 0, width: 1920, height: 1080),
                 styleMask: [.titled, .closable, .resizable],
                 backing: .buffered,
                 defer: false
