@@ -163,7 +163,7 @@
 
             // bypass Post FX effects
             bypassPostProcessing = true
-            
+
             // Disable SSAO
             SSAOParams.shared.enabled = false
             // Test Fast quality (8 samples, half-res)
