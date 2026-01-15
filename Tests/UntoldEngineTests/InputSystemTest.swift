@@ -78,6 +78,8 @@ final class InputSystemTests: XCTestCase {
         XCTAssertEqual(input.kVK_ANSI_X, 7)
         XCTAssertEqual(input.kVK_ANSI_Y, 16)
         XCTAssertEqual(input.kVK_ANSI_Z, 6)
+        XCTAssertEqual(input.kVK_ANSI_J, 38)
+        XCTAssertEqual(input.kVK_ANSI_K, 40)
         XCTAssertEqual(input.kVK_ANSI_Space, 49)
     }
 

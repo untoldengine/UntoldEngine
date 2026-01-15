@@ -13,6 +13,7 @@
 
 public struct KeyState {
     public var wPressed = false, aPressed = false, sPressed = false, dPressed = false
+    public var jPressed = false, kPressed = false, lPressed = false
     public var qPressed = false, ePressed = false
     public var spacePressed = false, shiftPressed = false, ctrlPressed = false
     public var altPressed = false
@@ -82,6 +83,9 @@ public extension InputSystem {
             case kVK_ANSI_Q: keyState.qPressed = true
             case kVK_ANSI_E: keyState.ePressed = true
             case kVK_ANSI_Space: keyState.spacePressed = true
+            case kVK_ANSI_J: keyState.jPressed = true
+            case kVK_ANSI_K: keyState.kPressed = true
+            case kVK_ANSI_L: keyState.lPressed = true
             // case kVK_ANSI_G: print("G pressed")
             default: break
             }
@@ -97,6 +101,9 @@ public extension InputSystem {
             case kVK_ANSI_S: keyState.sPressed = false
             case kVK_ANSI_Q: keyState.qPressed = false
             case kVK_ANSI_E: keyState.ePressed = false
+            case kVK_ANSI_J: keyState.jPressed = false
+            case kVK_ANSI_K: keyState.kPressed = false
+            case kVK_ANSI_L: keyState.lPressed = false
             case kVK_ANSI_Space: keyState.spacePressed = false
             // case kVK_ANSI_G: print("G released")
             default: break
