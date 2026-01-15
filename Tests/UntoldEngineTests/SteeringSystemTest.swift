@@ -114,6 +114,23 @@ final class SteeringSystemTests: XCTestCase {
         XCTAssertEqual(steering, expectedSteering)
     }
 
+    func testPursuitWithOffset() {
+        translateTo(entityId: targetEntityId, position: simd_float3(5, 10, 0))
+
+        let physicsComponent = scene.get(component: PhysicsComponents.self, for: targetEntityId)
+
+        physicsComponent?.velocity = simd_float3(2, 0, 0)
+
+        updatePhysicsSystem(deltaTime: 0.01)
+
+        let targetOffset = simd_float3(0.0, -10.0, 0.0)
+        let steering = pursuit(entityId: entityId, targetEntity: targetEntityId, maxSpeed: maxSpeed, targetOffset: targetOffset)
+
+        let expectedSteering = simd_float3(5, 0, 0) // Offset flattens to XZ plane
+
+        XCTAssertEqual(steering, expectedSteering)
+    }
+
     // MARK: - Evade Test
 
     func testEvade() {
@@ -383,6 +400,41 @@ final class SteeringSystemTests: XCTestCase {
         let finalTargetEntityPosition = getLocalPosition(entityId: targetEntityId)
 
         XCTAssertEqual(distance(finalPosition, finalTargetEntityPosition), 0.0, accuracy: 0.1, "distances between entities is not close enough")
+    }
+
+    func testSteerPursuitWithOffset() {
+        translateTo(entityId: entityId, position: simd_float3(0.0, 0.0, 1.0))
+        translateTo(entityId: targetEntityId, position: simd_float3(0.0, 5.0, -5.0))
+
+        clearVelocity(entityId: entityId)
+        clearVelocity(entityId: targetEntityId)
+
+        let targetPosition = simd_float3(20.0, 5.0, 0.0)
+        let targetOffset = simd_float3(0.0, -5.0, 0.0)
+
+        let deltaTime: Float = 0.01
+        var t: Float = 0.0
+        let maxSimulationTime: Float = 10.0
+
+        while t < maxSimulationTime {
+            steerSeek(entityId: targetEntityId, targetPosition: targetPosition, maxSpeed: 1.0, deltaTime: 0.01)
+            steerPursuit(entityId: entityId, targetEntity: targetEntityId, maxSpeed: maxSpeed * 10.0, deltaTime: 0.01, targetOffset: targetOffset)
+
+            updatePhysicsSystem(deltaTime: deltaTime)
+            t += deltaTime
+
+            let position = getLocalPosition(entityId: entityId)
+            let targetEntityPosition = getLocalPosition(entityId: targetEntityId) + targetOffset
+            if distance(position, targetEntityPosition) < 0.1 {
+                break
+            }
+        }
+
+        let finalPosition = getLocalPosition(entityId: entityId)
+        let finalTargetEntityPosition = getLocalPosition(entityId: targetEntityId) + targetOffset
+
+        XCTAssertEqual(distance(finalPosition, finalTargetEntityPosition), 0.0, accuracy: 0.1, "offset pursuit did not converge")
+        XCTAssertEqual(finalPosition.y, 0.0, accuracy: 0.1, "pursuer should stay on XZ plane")
     }
 
     func testSteerFollowPath() {
