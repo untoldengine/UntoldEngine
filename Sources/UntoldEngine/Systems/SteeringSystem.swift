@@ -20,6 +20,14 @@ func setWaypointIndex(for entityId: EntityID, index: Int) {
     entityWaypointIndices[entityId] = index
 }
 
+private func safeNormalize(_ vector: simd_float3, fallback: simd_float3 = simd_float3(0.0, 0.0, 0.0)) -> simd_float3 {
+    let magnitude = length(vector)
+    guard magnitude > 0.0001 else {
+        return fallback
+    }
+    return vector / magnitude
+}
+
 public func getDistanceFromPath(for entityId: EntityID, path: [simd_float3]) -> Float? {
     // Return nil if the path is empty
     guard !path.isEmpty else {
@@ -35,13 +43,18 @@ public func getDistanceFromPath(for entityId: EntityID, path: [simd_float3]) -> 
     let startPoint = path[currentWaypointIndex]
     let endPoint = path[nextWaypointIndex]
 
-    // Compute the direction vector and normalize it
-    let direction = simd_normalize(endPoint - startPoint)
+    let segment = endPoint - startPoint
+    let segmentLength = length(segment)
+    guard segmentLength > 0.0001 else {
+        return distance(entityPosition, startPoint)
+    }
+    let direction = segment / segmentLength
 
     // Project the entity's position onto the line segment
     let offset = entityPosition - startPoint
     let projection = dot(offset, direction)
-    let closestPointOnPath = startPoint + projection * direction
+    let clampedProjection = max(0.0, min(segmentLength, projection))
+    let closestPointOnPath = startPoint + clampedProjection * direction
 
     // Compute the distance from the entity's position to the closest point
     return distance(entityPosition, closestPointOnPath)
@@ -61,7 +74,7 @@ func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float) -> s
     let position = getLocalPosition(entityId: entityId)
 
     // calculate the desired velocity towards the target
-    let desiredVelocity = normalize(targetPosition - position) * maxSpeed
+    let desiredVelocity = safeNormalize(targetPosition - position) * maxSpeed
 
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
@@ -84,7 +97,7 @@ public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Floa
     let position = getLocalPosition(entityId: entityId)
 
     // Calculate the desired velocity away from the threat
-    let desiredVelocity = normalize(position - threatPosition) * maxSpeed
+    let desiredVelocity = safeNormalize(position - threatPosition) * maxSpeed
 
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
@@ -109,10 +122,10 @@ public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
     let distance = length(toTarget)
 
     // Adjust speed based on distance to target
-    let speed = min(maxSpeed, maxSpeed * (distance / slowingRadius))
+    let speed = (slowingRadius > 0.0) ? min(maxSpeed, maxSpeed * (distance / slowingRadius)) : maxSpeed
 
     // Calculate the desired velocity
-    let desiredVelocity = normalize(toTarget) * speed
+    let desiredVelocity = safeNormalize(toTarget) * speed
 
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
@@ -147,9 +160,12 @@ public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float)
 
     // Estimate where the target entity will be based on its current velocity
     let toTarget = targetPosition - position
-    let relativeHeading = dot(normalize(physicsTargetComponent.velocity), normalize(physicsComponent.velocity))
+    let relativeHeading = dot(
+        safeNormalize(physicsTargetComponent.velocity),
+        safeNormalize(physicsComponent.velocity)
+    )
 
-    let predictionTime = (relativeHeading > 0.95) ? (length(toTarget) / maxSpeed) : 0.5
+    let predictionTime = (maxSpeed > 0.0 && relativeHeading > 0.95) ? (length(toTarget) / maxSpeed) : 0.5
     let futurePosition = targetPosition + physicsTargetComponent.velocity * predictionTime
 
     // Seek towards the predicted future position of target entity
@@ -175,14 +191,14 @@ public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float) -
 
     // Estimate where the threat will be based on its velocity
     let toThreat = threatPosition - position
-    let predictionTime = length(toThreat) / maxSpeed
+    let predictionTime = (maxSpeed > 0.0) ? (length(toThreat) / maxSpeed) : 0.0
     let futureThreatPosition = threatPosition + physicsThreatComponent.velocity * predictionTime
 
     // Flee from the predicted future position of the threat
     return flee(entityId: entityId, threatPosition: futureThreatPosition, maxSpeed: maxSpeed)
 }
 
-public func alignOrientation(entityId: EntityID, targetDirection _: simd_float3, deltaTime: Float, turnSpeed: Float) {
+public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, deltaTime: Float, turnSpeed: Float) {
     if gameMode == false {
         return
     }
@@ -193,14 +209,18 @@ public func alignOrientation(entityId: EntityID, targetDirection _: simd_float3,
 
     // Retrieve the entity's current velocity
     let velocity = getVelocity(entityId: entityId)
+    var desiredDirection = targetDirection
+    if length(desiredDirection) <= 0.001 {
+        desiredDirection = velocity
+    }
 
     // Align the entity's orientation to its movement direction
-    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
-        let forwardDirection = normalize(velocity) // Forward direction based on movement
+    if length(desiredDirection) > 0.001 { // Avoid division by zero for stationary entities
+        let forwardDirection = safeNormalize(desiredDirection) // Forward direction based on target
         let upVector = simd_float3(0, 1, 0) // Assuming Y-up coordinate system
 
         // Calculate the right vector using cross product
-        let rightVector = normalize(cross(upVector, forwardDirection))
+        let rightVector = safeNormalize(cross(upVector, forwardDirection))
 
         // Recalculate the true up vector for orthogonality
         let correctedUpVector = cross(forwardDirection, rightVector)
@@ -256,6 +276,10 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
     let relativePosition = currentPosition - centerPosition
 
     // Calculate angular velocity (speed around the orbit)
+    guard radius > 0.0, maxSpeed > 0.0 else {
+        return
+    }
+
     let angularVelocity = maxSpeed / radius // radians per second
 
     // Increment angle based on angular velocity and deltaTime
@@ -271,7 +295,7 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
     translateTo(entityId: entityId, position: newPosition)
 
     // Align the entity's orientation to face its tangential direction
-    let tangentialDirection = normalize(simd_float3(-sin(currentAngle), 0.0, cos(currentAngle)))
+    let tangentialDirection = safeNormalize(simd_float3(-sin(currentAngle), 0.0, cos(currentAngle)))
     alignOrientation(entityId: entityId, targetDirection: tangentialDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
@@ -308,7 +332,7 @@ public func steerSeek(entityId: EntityID, targetPosition: simd_float3, maxSpeed:
 
     // Align orientation to face the target
     let currentPosition = getPosition(entityId: entityId)
-    let targetDirection = normalize(targetPosition - currentPosition)
+    let targetDirection = safeNormalize(targetPosition - currentPosition)
 
     alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
@@ -342,63 +366,65 @@ public func steerArrive(entityId: EntityID, targetPosition: simd_float3, maxSpee
 
     // Align orientation to face the target
     let currentPosition = getPosition(entityId: entityId)
-    let targetDirection = normalize(targetPosition - currentPosition)
+    let targetDirection = safeNormalize(targetPosition - currentPosition)
 
     alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
-public func steerWithWASD(entityId: EntityID, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, weight: Float = 1.0) {
-    if gameMode == false {
-        return
+#if os(macOS)
+    public func steerWithWASD(entityId: EntityID, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, weight: Float = 1.0) {
+        if gameMode == false {
+            return
+        }
+
+        if isPhysicsComponentPaused(entityId: entityId) {
+            return
+        }
+
+        // Check for invalid deltaTime
+        guard deltaTime > 0 else {
+            handleError(.invalidDeltaTime, entityId)
+            return
+        }
+
+        guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+            handleError(.noPhysicsComponent, entityId)
+            return
+        }
+
+        let currentPosition = getLocalPosition(entityId: entityId)
+        var targetPosition = currentPosition
+
+        if InputSystem.shared.keyState.wPressed {
+            targetPosition.z += 1.0
+        }
+
+        if InputSystem.shared.keyState.sPressed {
+            targetPosition.z -= 1.0
+        }
+
+        if InputSystem.shared.keyState.aPressed {
+            targetPosition.x -= 1.0
+        }
+
+        if InputSystem.shared.keyState.dPressed {
+            targetPosition.x += 1.0
+        }
+
+        // Use the seek behavior to calculate the steering velocity adjustment
+        let finalVelocity = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed) * weight
+
+        // Convert the velocity adjustment into a force for the physics system
+        let steeringForce = (finalVelocity * physicsComponent.mass)
+        applyForce(entityId: entityId, force: steeringForce)
+
+        // Align orientation to face the target
+
+        let targetDirection = safeNormalize(targetPosition - currentPosition)
+
+        alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
     }
-
-    if isPhysicsComponentPaused(entityId: entityId) {
-        return
-    }
-
-    // Check for invalid deltaTime
-    guard deltaTime > 0 else {
-        handleError(.invalidDeltaTime, entityId)
-        return
-    }
-
-    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        handleError(.noPhysicsComponent, entityId)
-        return
-    }
-
-    let currentPosition = getLocalPosition(entityId: entityId)
-    var targetPosition = currentPosition
-
-    if InputSystem.shared.keyState.wPressed {
-        targetPosition.z += 1.0
-    }
-
-    if InputSystem.shared.keyState.sPressed {
-        targetPosition.z -= 1.0
-    }
-
-    if InputSystem.shared.keyState.aPressed {
-        targetPosition.x -= 1.0
-    }
-
-    if InputSystem.shared.keyState.dPressed {
-        targetPosition.x += 1.0
-    }
-
-    // Use the seek behavior to calculate the steering velocity adjustment
-    let finalVelocity = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed) * weight
-
-    // Convert the velocity adjustment into a force for the physics system
-    let steeringForce = (finalVelocity * physicsComponent.mass)
-    applyForce(entityId: entityId, force: steeringForce)
-
-    // Align orientation to face the target
-
-    let targetDirection = normalize(targetPosition - currentPosition)
-
-    alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
-}
+#endif
 
 public func steerFlee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
     if gameMode == false {
@@ -429,7 +455,7 @@ public func steerFlee(entityId: EntityID, threatPosition: simd_float3, maxSpeed:
 
     // Align orientation to face away from the threat
     let currentPosition = getPosition(entityId: entityId)
-    let threatDirection = normalize(threatPosition - currentPosition)
+    let threatDirection = safeNormalize(threatPosition - currentPosition)
     let fleeDirection = -threatDirection
 
     alignOrientation(entityId: entityId, targetDirection: fleeDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
@@ -473,12 +499,16 @@ public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: F
 
     // Estimate where the target entity will be based on its current velocity
     let toTarget = targetPosition - position
-    let relativeHeading = dot(normalize(physicsTargetComponent.velocity), normalize(physicsComponent.velocity))
+    let relativeHeading = dot(
+        safeNormalize(physicsTargetComponent.velocity),
+        safeNormalize(physicsComponent.velocity)
+    )
 
-    let predictionTime = (relativeHeading > 0.95) ? (length(toTarget) / maxSpeed) : 0.5
+    let predictionTime = (maxSpeed > 0.0 && relativeHeading > 0.95) ? (length(toTarget) / maxSpeed) : 0.5
     let futurePosition = targetPosition + physicsTargetComponent.velocity * predictionTime
 
-    alignOrientation(entityId: entityId, targetDirection: futurePosition, deltaTime: deltaTime, turnSpeed: turnSpeed)
+    let futureDirection = futurePosition - position
+    alignOrientation(entityId: entityId, targetDirection: futureDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
 public func steerFollowPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, waypointThreshold: Float = 0.5, weight: Float = 1.0) {
@@ -502,7 +532,7 @@ public func steerFollowPath(entityId: EntityID, path: [simd_float3], maxSpeed: F
     var waypointIndex = getWaypointIndex(for: entityId)
 
     // Target the current waypoint
-    let targetWaypoint = path[waypointIndex]
+    var targetWaypoint = path[waypointIndex]
     let distanceToWaypoint = length(targetWaypoint - currentPosition)
 
     // Check if the entity has reached the current waypoint
@@ -512,6 +542,7 @@ public func steerFollowPath(entityId: EntityID, path: [simd_float3], maxSpeed: F
             waypointIndex = 0 // Loop back to the first waypoint (or stop if needed)
         }
         setWaypointIndex(for: entityId, index: waypointIndex)
+        targetWaypoint = path[waypointIndex]
     }
 
     // Seek toward the current waypoint
@@ -525,7 +556,8 @@ public func steerFollowPath(entityId: EntityID, path: [simd_float3], maxSpeed: F
     // Apply the force for movement
     applyForce(entityId: entityId, force: finalVelocity * physicsComponent.mass)
 
-    alignOrientation(entityId: entityId, targetDirection: targetWaypoint, deltaTime: deltaTime, turnSpeed: turnSpeed)
+    let targetDirection = targetWaypoint - currentPosition
+    alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
 public func steerAvoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceRadius: Float, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
@@ -558,7 +590,7 @@ public func steerAvoidObstacles(entityId: EntityID, obstacles: [EntityID], avoid
         // Only consider obstacles within the avoidance radius
         if distanceToObstacle < avoidanceRadius, distanceToObstacle > 0.01 {
             // Calculate avoidance force proportional to the distance (closer obstacles have stronger repulsion)
-            let normalizedDirection = normalize(directionToObstacle)
+            let normalizedDirection = safeNormalize(directionToObstacle)
             let forceMagnitude = (avoidanceRadius - distanceToObstacle) / avoidanceRadius
             let repulsionForce = -normalizedDirection * forceMagnitude * maxSpeed
             avoidanceForce += repulsionForce
@@ -580,5 +612,5 @@ public func steerAvoidObstacles(entityId: EntityID, obstacles: [EntityID], avoid
 
     // Align the entity's orientation to its movement direction
     let velocity = getVelocity(entityId: entityId)
-    alignOrientation(entityId: entityId, targetDirection: normalize(velocity), deltaTime: deltaTime, turnSpeed: turnSpeed)
+    alignOrientation(entityId: entityId, targetDirection: safeNormalize(velocity), deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
