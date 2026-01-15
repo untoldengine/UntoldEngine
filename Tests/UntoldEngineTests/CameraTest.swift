@@ -153,6 +153,7 @@ final class CameraTests: XCTestCase {
 
     func testCameraFollowNoSmooth() {
         let target = createEntity()
+        registerComponent(entityId: target, componentType: LocalTransformComponent.self)
         translateTo(entityId: target, position: simd_float3(10, 0, 0))
         setEntityName(entityId: target, name: "Target")
 
@@ -167,5 +168,38 @@ final class CameraTests: XCTestCase {
             return
         }
         XCTAssertEqual(cam.localPosition, simd_float3(10, 2, -5))
+    }
+
+    func testCameraFollowDeadZone() {
+        let target = createEntity()
+        registerComponent(entityId: target, componentType: LocalTransformComponent.self)
+        translateTo(entityId: target, position: simd_float3(0.5, 0, 0))
+
+        moveCameraTo(entityId: camera, 0, 0, 0)
+        guard let cam = scene.get(component: CameraComponent.self, for: camera) else {
+            return
+        }
+        cam.rotation = .init(simd_float4x4.identity)
+        updateCameraViewMatrix(entityId: camera)
+
+        cameraFollowDeadZone(entityId: camera,
+                             targetEntity: target,
+                             offset: simd_float3(0, 0, 0),
+                             deadZoneExtents: simd_float3(1, 1, 1),
+                             smoothFactor: 0,
+                             deltaTime: 0)
+
+        XCTAssertEqual(cam.localPosition, simd_float3(0, 0, 0))
+
+        translateTo(entityId: target, position: simd_float3(3, 0, 0))
+
+        cameraFollowDeadZone(entityId: camera,
+                             targetEntity: target,
+                             offset: simd_float3(0, 0, 0),
+                             deadZoneExtents: simd_float3(1, 1, 1),
+                             smoothFactor: 0,
+                             deltaTime: 0)
+
+        XCTAssertEqual(cam.localPosition, simd_float3(2, 0, 0))
     }
 }

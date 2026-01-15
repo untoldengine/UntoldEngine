@@ -387,6 +387,72 @@ public func cameraFollowLocal(entityId: EntityID,
     updateCameraViewMatrix(entityId: entityId)
 }
 
+public func cameraFollowDeadZone(entityId: EntityID,
+                                 targetEntity: EntityID,
+                                 offset: simd_float3 = simd_float3(0, 0, 0),
+                                 deadZoneExtents: simd_float3,
+                                 smoothFactor: Float = 0.0,
+                                 deltaTime: Float = 0.0)
+{
+    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+        return
+    }
+    guard let targetTransform = scene.get(component: LocalTransformComponent.self, for: targetEntity) else {
+        return
+    }
+
+    let cameraPosition = cameraComponent.localPosition
+    let targetPosition = targetTransform.position + offset
+    let toTarget = targetPosition - cameraPosition
+
+    let xAxis = rightDirectionVector(from: cameraComponent.rotation)
+    let yAxis = upDirectionVector(from: cameraComponent.rotation)
+    let zAxis = forwardDirectionVector(from: cameraComponent.rotation)
+
+    let localTarget = simd_float3(
+        simd_dot(toTarget, xAxis),
+        simd_dot(toTarget, yAxis),
+        simd_dot(toTarget, zAxis)
+    )
+
+    let extents = simd_abs(deadZoneExtents)
+    var correctionLocal = simd_float3(0, 0, 0)
+
+    if localTarget.x > extents.x {
+        correctionLocal.x = localTarget.x - extents.x
+    } else if localTarget.x < -extents.x {
+        correctionLocal.x = localTarget.x + extents.x
+    }
+
+    if localTarget.y > extents.y {
+        correctionLocal.y = localTarget.y - extents.y
+    } else if localTarget.y < -extents.y {
+        correctionLocal.y = localTarget.y + extents.y
+    }
+
+    if localTarget.z > extents.z {
+        correctionLocal.z = localTarget.z - extents.z
+    } else if localTarget.z < -extents.z {
+        correctionLocal.z = localTarget.z + extents.z
+    }
+
+    if length(correctionLocal) <= 0.0001 {
+        return
+    }
+
+    let correctionWorld = xAxis * correctionLocal.x + yAxis * correctionLocal.y + zAxis * correctionLocal.z
+    let desiredPosition = cameraPosition + correctionWorld
+
+    if smoothFactor > 0, deltaTime > 0 {
+        let t = min(smoothFactor * deltaTime, 1.0)
+        cameraComponent.localPosition = cameraPosition + (desiredPosition - cameraPosition) * t
+    } else {
+        cameraComponent.localPosition = desiredPosition
+    }
+
+    updateCameraViewMatrix(entityId: entityId)
+}
+
 public func cameraOrbitTarget(entityId: EntityID,
                               centerEntity: EntityID,
                               radius: Float,
