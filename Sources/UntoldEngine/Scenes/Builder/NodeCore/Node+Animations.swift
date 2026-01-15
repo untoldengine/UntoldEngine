@@ -10,6 +10,7 @@
 public protocol NodeAnimations: NodeProtocol {
     func setAnimations(resource: String, name: String) -> Self
     func changeAnimation(name: String, withPause pause: Bool) -> Self
+    func setAnimationPlaybackSpeed(speed: Float) -> Self
 }
 
 public extension NodeAnimations {
@@ -20,6 +21,11 @@ public extension NodeAnimations {
 
     func changeAnimation(name: String, withPause pause: Bool = false) -> Self {
         UntoldEngine.changeAnimation(entityId: entityID, name: name, withPause: pause)
+        return self
+    }
+
+    func setAnimationPlaybackSpeed(speed: Float) -> Self {
+        UntoldEngine.setAnimationPlaybackSpeed(entityId: entityID, speed: speed)
         return self
     }
 }

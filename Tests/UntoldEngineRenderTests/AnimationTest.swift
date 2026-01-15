@@ -52,6 +52,24 @@ final class AnimationTests: BaseRenderSetup {
         }
     }
 
+    func test_animationPlaybackSpeedScalesDeltaTime() {
+        guard let player = findEntity(name: "player") else {
+            XCTFail("Missing player entity")
+            return
+        }
+
+        guard let animationComponent = scene.get(component: AnimationComponent.self, for: player) else {
+            XCTFail("Missing AnimationComponent for player entity")
+            return
+        }
+
+        animationComponent.currentTime = 0.0
+        setAnimationPlaybackSpeed(entityId: player, speed: 2.0)
+        AnimationSystem.shared.update(0.25)
+
+        XCTAssertEqual(animationComponent.currentTime, 0.5, accuracy: 0.0001)
+    }
+
     private func runSamples(save: (_ tex: MTLTexture, _ name: String) -> Void) throws {
         var last: Float = 0
         for s in samples {
