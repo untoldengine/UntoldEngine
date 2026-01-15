@@ -34,7 +34,7 @@ public final class InputSystem {
     public let kVK_ANSI_Q: UInt16 = 12, kVK_ANSI_E: UInt16 = 14
     public let kVK_ANSI_1: UInt16 = 18, kVK_ANSI_2: UInt16 = 19
     public let kVK_ANSI_G: UInt16 = 5, kVK_ANSI_X: UInt16 = 7, kVK_ANSI_Y: UInt16 = 16, kVK_ANSI_Z: UInt16 = 6
-    public let kVK_ANSI_Space: UInt16 = 49
+    public let kVK_ANSI_Space: UInt16 = 49, kVK_ANSI_J: UInt16 = 38, kVK_ANSI_K: UInt16 = 40
 
     public var keyState = KeyState()
     public var gamePadState = GamePadState()
