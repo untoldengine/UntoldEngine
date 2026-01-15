@@ -63,7 +63,7 @@ private func updateAnimationSystem(deltaTime: Float) {
             continue
         }
 
-        animationComponent.currentTime += deltaTime
+        animationComponent.currentTime += deltaTime * animationComponent.playbackSpeed
 
         guard let animationClip = animationComponent.currentAnimation else { return }
 
@@ -112,6 +112,24 @@ public func changeAnimation(entityId: EntityID, name: String, withPause: Bool = 
 
     animationComponent.currentAnimation = animationClip
     animationComponent.pause = withPause
+}
+
+public func setAnimationPlaybackSpeed(entityId: EntityID, speed: Float) {
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+        handleError(.noAnimationComponent, entityId)
+        return
+    }
+
+    animationComponent.playbackSpeed = max(0.0, speed)
+}
+
+public func getAnimationPlaybackSpeed(entityId: EntityID) -> Float {
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+        handleError(.noAnimationComponent, entityId)
+        return 1.0
+    }
+
+    return animationComponent.playbackSpeed
 }
 
 public func getAllAnimationClips(entityId: EntityID) -> [String] {

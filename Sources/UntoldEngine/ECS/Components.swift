@@ -124,6 +124,7 @@ public class AnimationComponent: Component {
     var currentAnimation: AnimationClip?
     public var animationsFilenames: [URL] = []
     var pause: Bool = false
+    var playbackSpeed: Float = 1.0
     var currentTime: Float = 0.0
     public required init() {}
 

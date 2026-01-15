@@ -151,6 +151,7 @@ struct EntityData: Codable {
     var axisOfRotations: simd_float3 = .zero
     var scale: simd_float3 = .one
     var animations: [URL] = []
+    var animationPlaybackSpeed: Float = 1.0
     var mass: Float = .init(1.0)
     var lightData: LightData? = nil
     var cameraData: CameraData? = nil
@@ -263,6 +264,7 @@ public func serializeScene() -> SceneData {
         // Animation properties
         if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
             entityData.animations = animationComponent.animationsFilenames
+            entityData.animationPlaybackSpeed = animationComponent.playbackSpeed
         }
 
         entityData.hasAnimationComponent = hasComponent(entityId: entityId, componentType: AnimationComponent.self)
@@ -648,6 +650,7 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                     }
                     if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
                         animationComponent.animationsFilenames = sceneDataEntity.animations
+                        animationComponent.playbackSpeed = sceneDataEntity.animationPlaybackSpeed
                     }
                 }
             case .asyncDefault:
@@ -667,6 +670,7 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                             }
                             if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
                                 animationComponent.animationsFilenames = sceneDataEntity.animations
+                                animationComponent.playbackSpeed = sceneDataEntity.animationPlaybackSpeed
                             }
                         }
                     } else {
@@ -693,6 +697,7 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                     }
                     if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
                         animationComponent.animationsFilenames = sceneDataEntity.animations
+                        animationComponent.playbackSpeed = sceneDataEntity.animationPlaybackSpeed
                     }
                 }
             case .asyncDefault:
@@ -713,6 +718,7 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                             }
                             if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
                                 animationComponent.animationsFilenames = sceneDataEntity.animations
+                                animationComponent.playbackSpeed = sceneDataEntity.animationPlaybackSpeed
                             }
                         }
                     } else {
