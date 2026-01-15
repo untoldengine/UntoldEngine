@@ -136,7 +136,7 @@ public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
     return desiredVelocity - physicsComponent.velocity
 }
 
-public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float) -> simd_float3 {
+public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float, targetOffset: simd_float3 = simd_float3(0.0, 0.0, 0.0)) -> simd_float3 {
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
@@ -156,7 +156,7 @@ public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float)
     }
 
     let position = getLocalPosition(entityId: entityId)
-    let targetPosition = getLocalPosition(entityId: targetEntity)
+    let targetPosition = getLocalPosition(entityId: targetEntity) + targetOffset
 
     // Estimate where the target entity will be based on its current velocity
     let toTarget = targetPosition - position
@@ -461,7 +461,7 @@ public func steerFlee(entityId: EntityID, threatPosition: simd_float3, maxSpeed:
     alignOrientation(entityId: entityId, targetDirection: fleeDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
-public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
+public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, targetOffset: simd_float3 = simd_float3(0.0, 0.0, 0.0)) {
     if gameMode == false {
         return
     }
@@ -487,7 +487,7 @@ public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: F
     }
 
     // Use the pursuit behavior to calculate the steering velocity adjustment
-    let finalVelocity = pursuit(entityId: entityId, targetEntity: targetEntity, maxSpeed: maxSpeed)
+    let finalVelocity = pursuit(entityId: entityId, targetEntity: targetEntity, maxSpeed: maxSpeed, targetOffset: targetOffset)
 
     // Convert the velocity adjustment into a force for the physics system
     let steeringForce = (finalVelocity * physicsComponent.mass)
@@ -495,7 +495,7 @@ public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: F
 
     // Align orientation to face the predicted target position
     let position = getPosition(entityId: entityId)
-    let targetPosition = getPosition(entityId: targetEntity)
+    let targetPosition = getPosition(entityId: targetEntity) + targetOffset
 
     // Estimate where the target entity will be based on its current velocity
     let toTarget = targetPosition - position
