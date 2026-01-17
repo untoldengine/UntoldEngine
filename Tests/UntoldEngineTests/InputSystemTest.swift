@@ -19,8 +19,8 @@ final class InputSystemTests: XCTestCase {
         input.delegate = nil
 
         input.keyState = KeyState()
-        input.gamePadState = GamePadState()
-        input.currentGamepad = nil
+        input.gameControllerState = GameControllerState()
+        input.currentGameController = nil
 
         input.currentPanGestureState = nil
         input.currentPinchGestureState = nil
@@ -146,7 +146,7 @@ final class InputSystemTests: XCTestCase {
     // MARK: - GamePadState (no hardware)
 
     func test_manual_gamepad_state_flip() {
-        var gp = InputSystem.shared.gamePadState
+        var gp = InputSystem.shared.gameControllerState
         XCTAssertFalse(gp.aPressed)
         XCTAssertFalse(gp.bPressed)
         XCTAssertFalse(gp.leftThumbStickActive)

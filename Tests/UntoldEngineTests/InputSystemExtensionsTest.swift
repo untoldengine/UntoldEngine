@@ -19,8 +19,8 @@ final class InputSystemExtensionsTests: XCTestCase {
         input.delegate = nil
 
         input.keyState = KeyState()
-        input.gamePadState = GamePadState()
-        input.currentGamepad = nil
+        input.gameControllerState = GameControllerState()
+        input.currentGameController = nil
 
         input.currentPanGestureState = nil
         input.currentPinchGestureState = nil
