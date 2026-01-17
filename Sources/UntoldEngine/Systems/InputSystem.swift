@@ -11,10 +11,32 @@ import Foundation
 import GameController
 import simd
 
-public struct GamePadState {
+public struct GameControllerState {
     public var aPressed = false
     public var bPressed = false
+    public var xPressed = false
+    public var yPressed = false
+
+    public var dpadUpPressed = false
+    public var dpadDownPressed = false
+    public var dpadLeftPressed = false
+    public var dpadRightPressed = false
+
+    public var leftShoulderPressed = false
+    public var rightShoulderPressed = false
+    public var leftTriggerPressed = false
+    public var rightTriggerPressed = false
+    public var leftTriggerValue: Float = 0
+    public var rightTriggerValue: Float = 0
+
+    public var leftThumbstickX: Float = 0
+    public var leftThumbstickY: Float = 0
+    public var rightThumbstickX: Float = 0
+    public var rightThumbstickY: Float = 0
     public var leftThumbStickActive = false
+    public var rightThumbStickActive = false
+    public var leftThumbstickPressed = false
+    public var rightThumbstickPressed = false
 }
 
 public enum PanGestureState { case began, changed, ended }
@@ -37,8 +59,8 @@ public final class InputSystem {
     public let kVK_ANSI_Space: UInt16 = 49, kVK_ANSI_J: UInt16 = 38, kVK_ANSI_K: UInt16 = 40
 
     public var keyState = KeyState()
-    public var gamePadState = GamePadState()
-    public var currentGamepad: GCExtendedGamepad?
+    public var gameControllerState = GameControllerState()
+    public var currentGameController: GCExtendedGamepad?
 
     // Shared state
     public var currentPanGestureState: PanGestureState?
@@ -55,9 +77,9 @@ public final class InputSystem {
     public var pinchDelta: simd_float3 = .init(0, 0, 0)
     public var previousScale: CGFloat = 1
 
-    init() { setupGameController() }
+    init() { registerGameControllerEvents() }
 
-    private func setupGameController() {
+    public func registerGameControllerEvents() {
         NotificationCenter.default.addObserver(self,
                                                selector: #selector(controllerDidConnect(_:)),
                                                name: .GCControllerDidConnect, object: nil)
@@ -70,19 +92,68 @@ public final class InputSystem {
     }
 
     @objc private func controllerDidConnect(_ note: Notification) {
-        guard let controller = note.object as? GCController, let gamepad = controller.extendedGamepad else { return }
-        currentGamepad = gamepad
-        configureGamepadHandlers(gamepad)
+        guard let controller = note.object as? GCController, let gameController = controller.extendedGamepad else { return }
+        currentGameController = gameController
+        configureGameControllerHandlers(gameController)
+        Logger.log(message: "Game Controller \(controller.vendorName ?? "unknown vendor") connected and Configured")
     }
 
     @objc private func controllerDidDisconnect(_ note: Notification) {
         guard let controller = note.object as? GCController else { return }
-        if currentGamepad === controller.extendedGamepad { currentGamepad = nil }
+        if currentGameController === controller.extendedGamepad { currentGameController = nil }
+        Logger.log(message: "Game Controller \(controller.vendorName ?? "unknown vendor") disconnected")
     }
 
-    private func configureGamepadHandlers(_ gamepad: GCExtendedGamepad) {
-        gamepad.buttonA.pressedChangedHandler = { [weak self] _, _, pressed in self?.gamePadState.aPressed = pressed }
-        gamepad.buttonB.pressedChangedHandler = { [weak self] _, _, pressed in self?.gamePadState.bPressed = pressed }
-        // add thumbstick/trigger mapping as needed…
+    private func configureGameControllerHandlers(_ gameController: GCExtendedGamepad) {
+        gameController.buttonA.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.aPressed = pressed }
+        gameController.buttonB.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.bPressed = pressed }
+        gameController.buttonX.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.xPressed = pressed }
+        gameController.buttonY.pressedChangedHandler = { [weak self] _, _, pressed in self?.gameControllerState.yPressed = pressed }
+
+        gameController.dpad.valueChangedHandler = { [weak self] _, xValue, yValue in
+            guard let self else { return }
+            gameControllerState.dpadUpPressed = yValue > 0.5
+            gameControllerState.dpadDownPressed = yValue < -0.5
+            gameControllerState.dpadLeftPressed = xValue < -0.5
+            gameControllerState.dpadRightPressed = xValue > 0.5
+        }
+
+        gameController.leftShoulder.pressedChangedHandler = { [weak self] _, _, pressed in
+            self?.gameControllerState.leftShoulderPressed = pressed
+        }
+        gameController.rightShoulder.pressedChangedHandler = { [weak self] _, _, pressed in
+            self?.gameControllerState.rightShoulderPressed = pressed
+        }
+
+        gameController.leftTrigger.valueChangedHandler = { [weak self] _, value, pressed in
+            guard let self else { return }
+            gameControllerState.leftTriggerValue = value
+            gameControllerState.leftTriggerPressed = pressed
+        }
+        gameController.rightTrigger.valueChangedHandler = { [weak self] _, value, pressed in
+            guard let self else { return }
+            gameControllerState.rightTriggerValue = value
+            gameControllerState.rightTriggerPressed = pressed
+        }
+
+        gameController.leftThumbstick.valueChangedHandler = { [weak self] _, xValue, yValue in
+            guard let self else { return }
+            gameControllerState.leftThumbstickX = xValue
+            gameControllerState.leftThumbstickY = yValue
+            gameControllerState.leftThumbStickActive = abs(xValue) > 0.1 || abs(yValue) > 0.1
+        }
+        gameController.rightThumbstick.valueChangedHandler = { [weak self] _, xValue, yValue in
+            guard let self else { return }
+            gameControllerState.rightThumbstickX = xValue
+            gameControllerState.rightThumbstickY = yValue
+            gameControllerState.rightThumbStickActive = abs(xValue) > 0.1 || abs(yValue) > 0.1
+        }
+
+        gameController.leftThumbstickButton?.pressedChangedHandler = { [weak self] _, _, pressed in
+            self?.gameControllerState.leftThumbstickPressed = pressed
+        }
+        gameController.rightThumbstickButton?.pressedChangedHandler = { [weak self] _, _, pressed in
+            self?.gameControllerState.rightThumbstickPressed = pressed
+        }
     }
 }
