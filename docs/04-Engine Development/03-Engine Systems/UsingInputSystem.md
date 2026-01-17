@@ -9,21 +9,39 @@ sidebar_position: 6
 The Input System in the Untold Engine allows you to detect user inputs, such as keystrokes and mouse movements, to control entities and interact with the game. This guide will explain how to use the Input System effectively.
 
 
-## How to Use the Input System
+## How to Use the Input System (Keyboard)
 
 ### Step 1: Detect Keystrokes
+
 To detect if a specific key is pressed, use the keyState object from the Input System.
 
 Example: Detecting the 'W' Key
 
 ```swift
-if inputSystem.keyState.wPressed == true {
-    // Your code here
+func init(){
+// Make sure that you have enabled keyevents in your init function:
+InputSystem.shared.registerKeyboardEvents()
+}
+
+// Then in the handleInput callback, you can do this:
+
+func handleInput() {
+    // Skip logic if not in game mode
+    if gameMode == false { return }
+    
+    let inputSystem = InputSystem.shared
+
+    // Handle input here
+    if inputSystem.keyState.wPressed{
+        Logger.log(message: "w pressed")
+    }
 }
 ```
 You can use the same logic for other keys like A, S, and D:
 
 ```swift
+let inputSystem = InputSystem.shared
+    
 if inputSystem.keyState.aPressed == true {
     // Move left
 }
@@ -43,6 +61,9 @@ Here’s an example function that moves a car entity based on keyboard inputs:
 
 ```swift
 func moveCar(entityId: EntityID, dt: Float) {
+    
+    let inputSystem = InputSystem.shared
+        
     // Ensure we are in game mode
     if gameMode == false {
         return
@@ -72,6 +93,32 @@ func moveCar(entityId: EntityID, dt: Float) {
 
     // Apply the translation to the entity
     translateTo(entityId: entityId, position: position)
+}
+```
+
+## How to Use the Input System with a Game Controller
+
+To detect if a specific button is pressed, use the gameControllerState object from the Input System.
+
+Example: Detecting the 'A' button
+
+```swift
+func init(){
+// Make sure that you have enabled game controller events in your init function:
+    InputSystem.shared.registerGameControllerEvents()
+}
+
+// Then in the handleInput callback, you can do this:
+
+func handleInput() {
+    // Skip logic if not in game mode
+    if gameMode == false { return }
+    let inputSystem = InputSystem.shared
+
+    // Handle input here
+    if inputSystem.gameControllerState.aPressed {
+        Logger.log(message: "Pressed A key")
+    }
 }
 ```
 
