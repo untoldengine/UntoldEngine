@@ -227,7 +227,9 @@ public func setEntityMeshAsync(
             handleError(.filenameNotFound, filename)
             await loadFallbackMesh(entityId: entityId, filename: filename)
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
-            completion?(false)
+            await MainActor.run {
+                completion?(false)
+            }
             return
         }
 
@@ -235,7 +237,9 @@ public func setEntityMeshAsync(
             handleError(.fileTypeNotSupported, url.pathExtension)
             await loadFallbackMesh(entityId: entityId, filename: filename)
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
-            completion?(false)
+            await MainActor.run {
+                completion?(false)
+            }
             return
         }
 
@@ -256,7 +260,9 @@ public func setEntityMeshAsync(
             handleError(.assetDataMissing, filename)
             await loadFallbackMesh(entityId: entityId, filename: filename)
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
-            completion?(false)
+            await MainActor.run {
+                completion?(false)
+            }
             return
         }
 
@@ -269,7 +275,9 @@ public func setEntityMeshAsync(
                 handleError(.assetDataMissing, "No mesh with asset name \(assetNameExist)")
                 await loadFallbackMesh(entityId: entityId, filename: filename)
                 await AssetLoadingState.shared.finishLoading(entityId: entityId)
-                completion?(false)
+                await MainActor.run {
+                    completion?(false)
+                }
                 return
             }
         }
@@ -375,7 +383,9 @@ public func setEntityMeshAsync(
         }
 
         await AssetLoadingState.shared.finishLoading(entityId: entityId)
-        completion?(true)
+        await MainActor.run {
+            completion?(true)
+        }
     }
 }
 
@@ -486,14 +496,18 @@ public func loadSceneAsync(
         guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
             handleError(.filenameNotFound, filename)
             await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
-            completion?(false)
+            await MainActor.run {
+                completion?(false)
+            }
             return
         }
 
         if url.pathExtension == "dae" {
             handleError(.fileTypeNotSupported, url.pathExtension)
             await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
-            completion?(false)
+            await MainActor.run {
+                completion?(false)
+            }
             return
         }
 
@@ -510,39 +524,36 @@ public func loadSceneAsync(
         }
 
         // Process on main thread
+        var didLoadMeshes = true
         await MainActor.run {
             if meshes.isEmpty {
                 handleError(.assetDataMissing, filename)
-                Task {
-                    await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
-                }
-                completion?(false)
+                didLoadMeshes = false
                 return
             }
 
-            for mesh in meshes {
-                if mesh.count > 0 {
-                    let entityId = createEntity()
+            for mesh in meshes where mesh.count > 0 {
+                let entityId = createEntity()
 
-                    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-                        registerTransformComponent(entityId: entityId)
-                    }
-
-                    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-                        registerSceneGraphComponent(entityId: entityId)
-                    }
-
-                    associateMeshesToEntity(entityId: entityId, meshes: mesh)
-                    registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-                    setEntityName(entityId: entityId, name: mesh.first!.assetName)
-                    setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+                if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+                    registerTransformComponent(entityId: entityId)
                 }
-            }
 
-            Task {
-                await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
+                if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+                    registerSceneGraphComponent(entityId: entityId)
+                }
+
+                associateMeshesToEntity(entityId: entityId, meshes: mesh)
+                registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
+                setEntityName(entityId: entityId, name: mesh.first!.assetName)
+                setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
             }
-            completion?(true)
+        }
+
+        await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
+
+        await MainActor.run {
+            completion?(didLoadMeshes)
         }
     }
 }

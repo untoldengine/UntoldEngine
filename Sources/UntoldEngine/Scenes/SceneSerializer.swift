@@ -652,25 +652,29 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                 }
             case .asyncDefault:
                 setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
-                    if success {
-                        Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
-                        // Apply overrides after async import completes
-                        applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
+                    Task {
+                        await MainActor.run {
+                            if success {
+                                Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
+                                // Apply overrides after async import completes
+                                applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
 
-                        // Setup animations (skeleton is now available)
-                        if sceneDataEntity.hasAnimationComponent == true {
-                            for animations in sceneDataEntity.animations {
-                                let animationFilename = animations.deletingPathExtension().lastPathComponent
-                                let animationFilenameExt = animations.pathExtension
-                                setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                                changeAnimation(entityId: entityId, name: animationFilename)
-                            }
-                            if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                                animationComponent.animationsFilenames = sceneDataEntity.animations
+                                // Setup animations (skeleton is now available)
+                                if sceneDataEntity.hasAnimationComponent == true {
+                                    for animations in sceneDataEntity.animations {
+                                        let animationFilename = animations.deletingPathExtension().lastPathComponent
+                                        let animationFilenameExt = animations.pathExtension
+                                        setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                                        changeAnimation(entityId: entityId, name: animationFilename)
+                                    }
+                                    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                                        animationComponent.animationsFilenames = sceneDataEntity.animations
+                                    }
+                                }
+                            } else {
+                                Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
                             }
                         }
-                    } else {
-                        Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
                     }
                 }
             }
@@ -699,24 +703,28 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                 let fallbackLabel = withExtension.isEmpty ? filename : "\(filename).\(withExtension)"
                 let meshLabel = sceneDataEntity.name.isEmpty ? fallbackLabel : sceneDataEntity.name
                 setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
-                    applyLocalTransform()
-                    if success {
-                        Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
+                    Task {
+                        await MainActor.run {
+                            applyLocalTransform()
+                            if success {
+                                Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
 
-                        // Setup animations (skeleton is now available)
-                        if sceneDataEntity.hasAnimationComponent == true {
-                            for animations in sceneDataEntity.animations {
-                                let animationFilename = animations.deletingPathExtension().lastPathComponent
-                                let animationFilenameExt = animations.pathExtension
-                                setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                                changeAnimation(entityId: entityId, name: animationFilename)
-                            }
-                            if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                                animationComponent.animationsFilenames = sceneDataEntity.animations
+                                // Setup animations (skeleton is now available)
+                                if sceneDataEntity.hasAnimationComponent == true {
+                                    for animations in sceneDataEntity.animations {
+                                        let animationFilename = animations.deletingPathExtension().lastPathComponent
+                                        let animationFilenameExt = animations.pathExtension
+                                        setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                                        changeAnimation(entityId: entityId, name: animationFilename)
+                                    }
+                                    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                                        animationComponent.animationsFilenames = sceneDataEntity.animations
+                                    }
+                                }
+                            } else {
+                                Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
                             }
                         }
-                    } else {
-                        Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
                     }
                 }
             }
