@@ -390,6 +390,7 @@ class BaseRenderSetup: XCTestCase {
         let stadium = createEntity()
         setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdz")
         translateBy(entityId: stadium, position: simd_float3(0.0, -0.5, 0.0))
+        setEntityName(entityId: stadium, name: "stadium")
 
         // Player (animated, named for lookup)
         let player = createEntity()
