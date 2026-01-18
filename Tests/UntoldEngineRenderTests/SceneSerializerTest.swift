@@ -14,7 +14,7 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-final class SceneSerializerTests: XCTestCase {
+final class SceneSerializerTests: BaseRenderSetup {
     // MARK: - Setup and Teardown
 
     override func setUp() {
@@ -22,14 +22,6 @@ final class SceneSerializerTests: XCTestCase {
         // Clean up any existing entities
         destroyAllEntities()
         Logger.logLevel = .none
-
-        guard let device = MTLCreateSystemDefaultDevice() else {
-            assertionFailure("Metal device is not available.")
-            return
-        }
-
-        renderInfo.device = device
-        vertexDescriptor.model = MDLVertexDescriptor()
     }
 
     override func tearDown() {
@@ -201,6 +193,46 @@ final class SceneSerializerTests: XCTestCase {
 
         // Verify all entities were recreated
         XCTAssertEqual(getAllGameEntities().count, originalCount, "Should recreate all entities")
+    }
+
+    func testRoundTripBaseSceneViaJSONFile() {
+        // Recreate the base scene from BaseRenderSetup.
+        initializeAssets()
+
+        let originalSceneData = serializeScene()
+        let serializedAuthoredCount = originalSceneData.entities.count
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("base_scene_roundtrip.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(originalSceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write base scene JSON: \(error)")
+            return
+        }
+
+        destroyAllEntities()
+        XCTAssertEqual(getAllGameEntities().count, 0, "Scene should be empty after destroying all entities")
+
+        guard let loadedSceneData = loadGameScene(from: sceneURL) else {
+            XCTFail("Failed to load base scene JSON")
+            return
+        }
+
+        deserializeScene(sceneData: loadedSceneData, meshLoadingMode: .sync)
+
+        let authoredEntities = getAllGameEntities().filter { entityId in
+            !hasComponent(entityId: entityId, componentType: DerivedAssetNodeComponent.self)
+        }
+
+        XCTAssertEqual(authoredEntities.count, serializedAuthoredCount, "Should recreate all authored entities")
+        XCTAssertTrue(authoredEntities.contains { getEntityName(entityId: $0) == "player" }, "Player entity should be recreated")
+        XCTAssertTrue(authoredEntities.contains { getEntityName(entityId: $0) == "ball" }, "Ball entity should be recreated")
+        XCTAssertTrue(authoredEntities.contains { getEntityName(entityId: $0) == "stadium" }, "Stadium entity should be recreated")
+
+        try? FileManager.default.removeItem(at: sceneURL)
     }
 
     // MARK: - Entity Component Tests
