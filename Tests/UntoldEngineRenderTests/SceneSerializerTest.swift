@@ -14,6 +14,12 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+private final class TestCustomComponent: Component, Codable {
+    var intValue: Int = 0
+    var label: String = ""
+    required init() {}
+}
+
 final class SceneSerializerTests: BaseRenderSetup {
     // MARK: - Setup and Teardown
 
@@ -231,6 +237,323 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertTrue(authoredEntities.contains { getEntityName(entityId: $0) == "player" }, "Player entity should be recreated")
         XCTAssertTrue(authoredEntities.contains { getEntityName(entityId: $0) == "ball" }, "Ball entity should be recreated")
         XCTAssertTrue(authoredEntities.contains { getEntityName(entityId: $0) == "stadium" }, "Stadium entity should be recreated")
+
+        try? FileManager.default.removeItem(at: sceneURL)
+    }
+
+    func testRoundChangeNameTripBaseSceneViaJSONFile() {
+        // Recreate the base scene from BaseRenderSetup.
+        initializeAssets()
+
+        guard let player = findEntity(name: "player") else {
+            XCTFail("Player should exist")
+            return
+        }
+
+        setEntityName(entityId: player, name: "new_player")
+
+        let originalSceneData = serializeScene()
+        let serializedAuthoredCount = originalSceneData.entities.count
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("base_scene_roundtrip.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(originalSceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write base scene JSON: \(error)")
+            return
+        }
+
+        destroyAllEntities()
+        XCTAssertEqual(getAllGameEntities().count, 0, "Scene should be empty after destroying all entities")
+
+        guard let loadedSceneData = loadGameScene(from: sceneURL) else {
+            XCTFail("Failed to load base scene JSON")
+            return
+        }
+
+        deserializeScene(sceneData: loadedSceneData, meshLoadingMode: .sync)
+
+        let authoredEntities = getAllGameEntities().filter { entityId in
+            !hasComponent(entityId: entityId, componentType: DerivedAssetNodeComponent.self)
+        }
+
+        XCTAssertEqual(authoredEntities.count, serializedAuthoredCount, "Should recreate all authored entities")
+        XCTAssertTrue(authoredEntities.contains { getEntityName(entityId: $0) == "new_player" }, "Player entity should be recreated")
+
+        try? FileManager.default.removeItem(at: sceneURL)
+    }
+
+    func testRoundChangeChildNameTripBaseSceneViaJSONFile() {
+        // Recreate the base scene from BaseRenderSetup.
+        initializeAssets()
+
+        guard let stadium = findEntity(name: "stadium") else {
+            XCTFail("Stadium should exist")
+            return
+        }
+
+        let children: [EntityID] = getEntityChildren(parentId: stadium)
+
+        // change name to 3rd child
+        setEntityName(entityId: children[2], name: "new_child_name")
+        XCTAssertEqual(getEntityName(entityId: children[2]), "new_child_name")
+
+        let originalSceneData = serializeScene()
+        let serializedAuthoredCount = originalSceneData.entities.count
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("base_scene_roundtrip.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(originalSceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write base scene JSON: \(error)")
+            return
+        }
+
+        destroyAllEntities()
+        XCTAssertEqual(getAllGameEntities().count, 0, "Scene should be empty after destroying all entities")
+
+        guard let loadedSceneData = loadGameScene(from: sceneURL) else {
+            XCTFail("Failed to load base scene JSON")
+            return
+        }
+
+        deserializeScene(sceneData: loadedSceneData, meshLoadingMode: .sync)
+
+        let authoredEntities = getAllGameEntities().filter { entityId in
+            !hasComponent(entityId: entityId, componentType: DerivedAssetNodeComponent.self)
+        }
+
+        guard let stadiumEntityID = authoredEntities.first(
+            where: { getEntityName(entityId: $0) == "stadium" }
+        ) else {
+            XCTFail("Failed to find stadium id")
+            return
+        }
+
+        // get all the children
+        let newChildren = getEntityChildren(parentId: stadiumEntityID)
+
+        XCTAssertTrue(newChildren.contains { getEntityName(entityId: $0) == "new_child_name" }, "Child entity should have new name")
+
+        try? FileManager.default.removeItem(at: sceneURL)
+    }
+
+    func testRoundTripCustomComponentViaJSON() {
+        encodeCustomComponent(type: TestCustomComponent.self) { existing, decoded in
+            existing.intValue = decoded.intValue
+            existing.label = decoded.label
+        }
+
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "CustomComponentEntity")
+        registerComponent(entityId: entityId, componentType: TestCustomComponent.self)
+
+        guard let component = scene.get(component: TestCustomComponent.self, for: entityId) else {
+            XCTFail("Custom component should exist")
+            return
+        }
+
+        component.intValue = 42
+        component.label = "hello"
+
+        let sceneData = serializeScene()
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("custom_component_roundtrip.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(sceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write custom component JSON: \(error)")
+            return
+        }
+
+        destroyAllEntities()
+
+        guard let loadedSceneData = loadGameScene(from: sceneURL) else {
+            XCTFail("Failed to load custom component JSON")
+            return
+        }
+
+        deserializeScene(sceneData: loadedSceneData)
+
+        guard let recreated = findEntity(name: "CustomComponentEntity"),
+              let recreatedComponent = scene.get(component: TestCustomComponent.self, for: recreated)
+        else {
+            XCTFail("Custom component should be restored after deserialization")
+            return
+        }
+
+        XCTAssertEqual(recreatedComponent.intValue, 42, "Custom component intValue should round-trip")
+        XCTAssertEqual(recreatedComponent.label, "hello", "Custom component label should round-trip")
+
+        try? FileManager.default.removeItem(at: sceneURL)
+    }
+
+    func testRoundTripAnimationComponentViaJSON() {
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "AnimatedEntity")
+        setEntityMesh(entityId: entityId, filename: "redplayer", withExtension: "usdz")
+
+        let animationURL = LoadingSystem.shared.resourceURL(forResource: "running", withExtension: "usdz")
+        guard let animationURL else {
+            XCTFail("Missing animation resource")
+            return
+        }
+
+        setEntityAnimations(entityId: entityId, filename: "running", withExtension: "usdz", name: "running")
+
+        guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+            XCTFail("AnimationComponent should exist")
+            return
+        }
+        animationComponent.animationsFilenames = [animationURL]
+
+        let sceneData = serializeScene()
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("animation_roundtrip.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(sceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write animation JSON: \(error)")
+            return
+        }
+
+        destroyAllEntities()
+
+        guard let loadedSceneData = loadGameScene(from: sceneURL) else {
+            XCTFail("Failed to load animation JSON")
+            return
+        }
+
+        deserializeScene(sceneData: loadedSceneData, meshLoadingMode: .sync)
+
+        guard let recreated = findEntity(name: "AnimatedEntity"),
+              let recreatedAnimation = scene.get(component: AnimationComponent.self, for: recreated)
+        else {
+            XCTFail("Animation component should be restored after deserialization")
+            return
+        }
+
+        XCTAssertEqual(recreatedAnimation.currentAnimation?.name, "running",
+                       "Animation name should match")
+
+        try? FileManager.default.removeItem(at: sceneURL)
+    }
+
+    func testMaterialTextureURLsRoundTripViaJSON() {
+        guard let ball = findEntity(name: "ball") else {
+            return
+        }
+
+        let baseColorURL = getMaterialTextureURL(entityId: ball, type: .baseColor)
+        let roughnessURL = getMaterialTextureURL(entityId: ball, type: .roughness)
+        let metallicURL = getMaterialTextureURL(entityId: ball, type: .metallic)
+        let normalURL = getMaterialTextureURL(entityId: ball, type: .normal)
+
+        let sceneData = serializeScene()
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("material_urls_roundtrip.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(sceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write material JSON: \(error)")
+            return
+        }
+
+        destroyAllEntities()
+
+        guard let loadedSceneData = loadGameScene(from: sceneURL) else {
+            XCTFail("Failed to load material JSON")
+            return
+        }
+
+        deserializeScene(sceneData: loadedSceneData, meshLoadingMode: .sync)
+
+        guard let recreated = findEntity(name: "ball")
+        else {
+            XCTFail("Render component should be restored after deserialization")
+            return
+        }
+
+        XCTAssertEqual(getMaterialTextureURL(entityId: recreated, type: .baseColor), baseColorURL, "Base color URL should match")
+        XCTAssertEqual(getMaterialTextureURL(entityId: recreated, type: .roughness), roughnessURL, "Roughness URL should match")
+        XCTAssertEqual(getMaterialTextureURL(entityId: recreated, type: .metallic), metallicURL, "Metallic URL should match")
+        XCTAssertEqual(getMaterialTextureURL(entityId: recreated, type: .normal), normalURL, "Normal URL should match")
+
+        try? FileManager.default.removeItem(at: sceneURL)
+    }
+
+    func testAssetInstanceOverridesRoundTripViaJSON() {
+        let rootId = createEntity()
+        setEntityName(entityId: rootId, name: "AssetRoot")
+        registerSceneGraphComponent(entityId: rootId)
+
+        registerComponent(entityId: rootId, componentType: AssetInstanceComponent.self)
+        guard let assetInstance = scene.get(component: AssetInstanceComponent.self, for: rootId) else {
+            XCTFail("AssetInstanceComponent should exist on root entity")
+            return
+        }
+        assetInstance.assetURL = URL(fileURLWithPath: "/tmp/test.usdz")
+        assetInstance.assetName = "test"
+        assetInstance.importMode = "preserveHierarchy"
+        assetInstance.rootPrimPath = nil
+
+        let childId = createEntity()
+        setEntityName(entityId: childId, name: "OverrideChild")
+        registerSceneGraphComponent(entityId: childId)
+        registerTransformComponent(entityId: childId)
+        setParent(childId: childId, parentId: rootId)
+        translateTo(entityId: childId, position: simd_float3(1.0, 2.0, 3.0))
+        scaleTo(entityId: childId, scale: simd_float3(2.0, 2.0, 2.0))
+
+        registerComponent(entityId: childId, componentType: DerivedAssetNodeComponent.self)
+        guard let derivedComp = scene.get(component: DerivedAssetNodeComponent.self, for: childId) else {
+            XCTFail("DerivedAssetNodeComponent should exist on child entity")
+            return
+        }
+        derivedComp.assetRootEntityId = rootId
+        derivedComp.nodePath = "Root/Child#0"
+
+        let sceneData = serializeScene()
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("asset_instance_overrides.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(sceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write asset instance JSON: \(error)")
+            return
+        }
+
+        guard let loadedSceneData = loadGameScene(from: sceneURL),
+              let loadedRoot = loadedSceneData.entities.first,
+              let overrides = loadedRoot.assetInstance?.overrides
+        else {
+            XCTFail("Failed to load asset instance overrides")
+            return
+        }
+
+        XCTAssertEqual(overrides.count, 1, "Should round-trip one override")
+        XCTAssertEqual(overrides.first?.nodePath, "Root/Child#0", "Override nodePath should round-trip")
+        XCTAssertEqual(overrides.first?.name, "OverrideChild", "Override name should round-trip")
+        XCTAssertEqual(overrides.first?.transform?.position, simd_float3(1.0, 2.0, 3.0), "Override position should round-trip")
+        XCTAssertEqual(overrides.first?.transform?.scale, simd_float3(2.0, 2.0, 2.0), "Override scale should round-trip")
 
         try? FileManager.default.removeItem(at: sceneURL)
     }
