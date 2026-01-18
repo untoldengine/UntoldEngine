@@ -427,6 +427,48 @@ final class SceneSerializerTests: XCTestCase {
         SSAOParams.shared.intensity = 0.0
     }
 
+    // MARK: - Asset Instance Override Tests
+
+    func testSerializeSceneStoresDerivedNodeNameOverride() {
+        let rootId = createEntity()
+        setEntityName(entityId: rootId, name: "AssetRoot")
+
+        registerComponent(entityId: rootId, componentType: AssetInstanceComponent.self)
+        guard let assetInstance = scene.get(component: AssetInstanceComponent.self, for: rootId) else {
+            XCTFail("AssetInstanceComponent should exist on root entity")
+            return
+        }
+        assetInstance.assetURL = URL(fileURLWithPath: "/tmp/test.usdz")
+        assetInstance.assetName = "test"
+        assetInstance.importMode = "preserveHierarchy"
+        assetInstance.rootPrimPath = nil
+
+        let childId = createEntity()
+        setEntityName(entityId: childId, name: "RenamedChild")
+        setParent(childId: childId, parentId: rootId)
+
+        registerComponent(entityId: childId, componentType: DerivedAssetNodeComponent.self)
+        guard let derivedComp = scene.get(component: DerivedAssetNodeComponent.self, for: childId) else {
+            XCTFail("DerivedAssetNodeComponent should exist on child entity")
+            return
+        }
+        derivedComp.assetRootEntityId = rootId
+        derivedComp.nodePath = "Root/Child#0"
+
+        let sceneData = serializeScene()
+
+        XCTAssertEqual(sceneData.entities.count, 1, "Only the asset root should be serialized")
+        guard let serializedRoot = sceneData.entities.first else {
+            XCTFail("Serialized root entity should exist")
+            return
+        }
+        XCTAssertEqual(serializedRoot.name, "AssetRoot", "Root entity name should match")
+        XCTAssertNotNil(serializedRoot.assetInstance, "Asset instance data should be serialized")
+        XCTAssertEqual(serializedRoot.assetInstance?.overrides.count, 1, "Should serialize one derived override")
+        XCTAssertEqual(serializedRoot.assetInstance?.overrides.first?.nodePath, "Root/Child#0", "Override nodePath should match")
+        XCTAssertEqual(serializedRoot.assetInstance?.overrides.first?.name, "RenamedChild", "Override name should match")
+    }
+
     // MARK: - Deserialization Tests
 
     func testDeserializeEmptyScene() {

@@ -131,6 +131,7 @@ struct AssetOverrideData: Codable {
     var transform: LocalTransformOverrideData?
     var material: MaterialData?
     var visibility: Bool?
+    var name: String?
 }
 
 struct AssetInstanceData: Codable {
@@ -408,11 +409,14 @@ public func serializeScene() -> SceneData {
 
                         let visibilityOverride: Bool? = nil // TODO: track visibility if needed
 
+                        let entityName = getEntityName(entityId: childId)
+
                         let override = AssetOverrideData(
                             nodePath: derivedComp.nodePath,
                             transform: transformOverride,
                             material: materialOverride,
-                            visibility: visibilityOverride
+                            visibility: visibilityOverride,
+                            name: entityName
                         )
                         overrides.append(override)
                     }
@@ -1039,6 +1043,11 @@ private func applyAssetInstanceOverrides(entityId: EntityID, overrides: [AssetOv
             if let renderComp = scene.get(component: RenderComponent.self, for: derivedEntityId) {
                 renderComp.isVisible = visibility
             }
+        }
+
+        // apply entity name override
+        if let entityName = override.name {
+            setEntityName(entityId: derivedEntityId, name: entityName)
         }
 
         appliedCount += 1
