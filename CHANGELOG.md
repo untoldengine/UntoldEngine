@@ -1,4 +1,22 @@
 # Changelog
+## v0.8.0 - 2026-01-19
+### 🐞 Fixes
+- [Patch] Fixed demo game (d1db248…)
+- [Patch] added flag to bypass post-procesing (edecb29…)
+- [Patch] Updated the demo game to bypass post-fx (fcea465…)
+- [Patch] Formatted game demo main (2afb46d…)
+- [Patch] set animation playback speed (181b81e…)
+- [Patch] added j and k keys to input system (c42ee76…)
+- [Patch] Improve steering pursuit (b431051…)
+- [Patch] Improve steering pursuit to have an offset (6ed6595…)
+- [Patch] added a camera dead zone behavior (5c898e8…)
+- [Patch] remove animation playback from sereializer (c51b7d2…)
+- [Patch] fixed crash with loading scene with async (407ba24…)
+- [Patch] added support for gamepad for more keys (c6882a6…)
+### 📚 Docs
+- [docs] added game controller input docs (3e63c82…)
+### 🚀 Features
+- [Feature] Added camera waypoint system (9cec140…)
 ## v0.7.1 - 2026-01-10
 ### 🐞 Fixes
 - [Patch] Added a profiler to the engine (6be0955…)
