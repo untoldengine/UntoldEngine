@@ -64,26 +64,11 @@ public func resetCameraToDefaultTransform(entityId: EntityID) {
 }
 
 public func moveCameraTo(entityId: EntityID, _ translationX: Float, _ translationY: Float, _ translationZ: Float) {
-    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
-        return
-    }
-
-    cameraComponent.localPosition.x = translationX
-    cameraComponent.localPosition.y = translationY
-    cameraComponent.localPosition.z = translationZ
-
-    updateCameraViewMatrix(entityId: entityId)
+    translateTo(entityId: entityId, position: simd_float3(translationX, translationY, translationZ))
 }
 
 public func moveCameraBy(entityId: EntityID, delU: Float, delV: Float, delN: Float) {
-    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
-        return
-    }
-
-    cameraComponent.localPosition.x += delU * cameraComponent.xAxis.x + delV * cameraComponent.yAxis.x + delN * cameraComponent.zAxis.x
-    cameraComponent.localPosition.y += delU * cameraComponent.xAxis.y + delV * cameraComponent.yAxis.y + delN * cameraComponent.zAxis.y
-    cameraComponent.localPosition.z += delU * cameraComponent.xAxis.z + delV * cameraComponent.yAxis.z + delN * cameraComponent.zAxis.z
-    updateCameraViewMatrix(entityId: entityId)
+    translateBy(entityId: entityId, position: simd_float3(delU, delV, delN))
 }
 
 public func cameraMoveBy(entityId: EntityID, delta: simd_float3, space: CameraMoveSpace = .local) {
@@ -95,11 +80,10 @@ public func cameraMoveBy(entityId: EntityID, delta: simd_float3, space: CameraMo
     case .local:
         moveCameraBy(entityId: entityId, delU: delta.x, delV: delta.y, delN: delta.z)
     case .world:
-        guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
             return
         }
-        cameraComponent.localPosition += delta
-        updateCameraViewMatrix(entityId: entityId)
+        applyCameraLocalTransform(entityId: entityId, position: localTransformComponent.position + delta)
     }
 }
 
@@ -126,6 +110,29 @@ public func updateCameraViewMatrix(entityId: EntityID) {
     )
 
     cameraComponent.localOrientation = cameraComponent.zAxis
+}
+
+private func applyCameraLocalTransform(entityId: EntityID, position: simd_float3? = nil, rotation: simd_quatf? = nil) {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+
+    if let position {
+        localTransformComponent.position = position
+    }
+
+    if let rotation {
+        localTransformComponent.rotation = simd_normalize(rotation)
+    }
+
+    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+        return
+    }
+
+    cameraComponent.localPosition = localTransformComponent.position
+    cameraComponent.rotation = localTransformComponent.rotation
+    updateCameraViewMatrix(entityId: entityId)
 }
 
 public func orbitAround(entityId: EntityID, uPosition: simd_float2) {
@@ -159,10 +166,10 @@ public func orbitAround(entityId: EntityID, uPosition: simd_float2) {
     direction = simd_normalize(direction)
     newUpAxis = simd_normalize(newUpAxis)
 
-    cameraComponent.localPosition = cameraComponent.orbitTarget + direction * length
+    let newPosition = cameraComponent.orbitTarget + direction * length
 
     // compute the matrix
-    cameraLookAt(entityId: entityId, eye: cameraComponent.localPosition, target: cameraComponent.orbitTarget, up: newUpAxis)
+    cameraLookAt(entityId: entityId, eye: newPosition, target: cameraComponent.orbitTarget, up: newUpAxis)
 }
 
 // Returns a right-handed matrix which looks from a point (the "eye") at a target point, given the up vector.
@@ -177,11 +184,7 @@ public func cameraLookAt(entityId: EntityID, eye: simd_float3, target: simd_floa
 
     let q0 = quaternion_lookAt(eye: eye, target: target, up: up)
     let q1 = simd_conjugate(q0)
-    cameraComponent.rotation = simd_normalize(q1)
-
-    cameraComponent.localPosition = eye
-
-    updateCameraViewMatrix(entityId: entityId)
+    applyCameraLocalTransform(entityId: entityId, position: eye, rotation: simd_normalize(q1))
 }
 
 public func getCameraEye(entityId: EntityID) -> simd_float3 {
@@ -228,9 +231,7 @@ public func cameraLookAboutAxis(entityId: EntityID, uDelta: simd_float2) {
 
     let newRotation: simd_quatf = simd_mul(rotationY, cameraComponent.rotation)
 
-    cameraComponent.rotation = simd_mul(newRotation, rotationX)
-
-    updateCameraViewMatrix(entityId: entityId)
+    applyCameraLocalTransform(entityId: entityId, rotation: simd_mul(newRotation, rotationX))
 }
 
 public func moveCameraAlongAxis(entityId: EntityID, uDelta: simd_float3) {
@@ -259,11 +260,15 @@ public func orbitCameraAround(entityId: EntityID, uDelta: simd_float2) {
 }
 
 public func getCameraPosition(entityId: EntityID) -> simd_float3 {
+    if let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) {
+        return localTransformComponent.position
+    }
+
     guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
         return .zero
     }
 
-    return simd_float3(cameraComponent.viewSpace.columns.3.x, cameraComponent.viewSpace.columns.3.y, cameraComponent.viewSpace.columns.3.z)
+    return cameraComponent.localPosition
 }
 
 public func moveCameraWithInput(entityId: EntityID, input: (w: Bool, a: Bool, s: Bool, d: Bool, q: Bool, e: Bool), speed: Float, deltaTime: Float) {
@@ -326,10 +331,7 @@ public func rotateCamera(entityId: EntityID, pitch: Float, yaw: Float, sensitivi
 
     let newRotation: simd_quatf = simd_mul(rotationY, cameraComponent.rotation)
 
-    cameraComponent.rotation = simd_mul(newRotation, rotationX)
-
-    // Recompute view matrix to update the orientation vectors
-    updateCameraViewMatrix(entityId: entityId)
+    applyCameraLocalTransform(entityId: entityId, rotation: simd_mul(newRotation, rotationX))
 }
 
 public func cameraFollow(entityId: EntityID,
@@ -338,7 +340,10 @@ public func cameraFollow(entityId: EntityID,
                          smoothFactor: Float = 0.0,
                          deltaTime: Float = 0.0)
 {
-    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+    guard scene.get(component: CameraComponent.self, for: entityId) != nil else {
+        return
+    }
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         return
     }
     guard let targetTransform = scene.get(component: LocalTransformComponent.self, for: targetEntity) else {
@@ -346,16 +351,14 @@ public func cameraFollow(entityId: EntityID,
     }
 
     let desiredPosition = targetTransform.position + offset
-    let currentPosition = cameraComponent.localPosition
+    let currentPosition = localTransformComponent.position
 
     if smoothFactor > 0, deltaTime > 0 {
         let t = min(smoothFactor * deltaTime, 1.0)
-        cameraComponent.localPosition = currentPosition + (desiredPosition - currentPosition) * t
+        applyCameraLocalTransform(entityId: entityId, position: currentPosition + (desiredPosition - currentPosition) * t)
     } else {
-        cameraComponent.localPosition = desiredPosition
+        applyCameraLocalTransform(entityId: entityId, position: desiredPosition)
     }
-
-    updateCameraViewMatrix(entityId: entityId)
 }
 
 public func cameraFollowLocal(entityId: EntityID,
@@ -364,7 +367,10 @@ public func cameraFollowLocal(entityId: EntityID,
                               smoothFactor: Float = 0.0,
                               deltaTime: Float = 0.0)
 {
-    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+    guard scene.get(component: CameraComponent.self, for: entityId) != nil else {
+        return
+    }
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         return
     }
     guard let targetTransform = scene.get(component: LocalTransformComponent.self, for: targetEntity) else {
@@ -375,16 +381,14 @@ public func cameraFollowLocal(entityId: EntityID,
     let rotationMatrix = transformQuaternionToMatrix3x3(q: targetTransform.rotation)
     let rotatedOffset = rotationMatrix * localOffset
     let desiredPosition = targetTransform.position + rotatedOffset
-    let currentPosition = cameraComponent.localPosition
+    let currentPosition = localTransformComponent.position
 
     if smoothFactor > 0, deltaTime > 0 {
         let t = min(smoothFactor * deltaTime, 1.0)
-        cameraComponent.localPosition = currentPosition + (desiredPosition - currentPosition) * t
+        applyCameraLocalTransform(entityId: entityId, position: currentPosition + (desiredPosition - currentPosition) * t)
     } else {
-        cameraComponent.localPosition = desiredPosition
+        applyCameraLocalTransform(entityId: entityId, position: desiredPosition)
     }
-
-    updateCameraViewMatrix(entityId: entityId)
 }
 
 public func cameraFollowDeadZone(entityId: EntityID,
@@ -397,11 +401,14 @@ public func cameraFollowDeadZone(entityId: EntityID,
     guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
         return
     }
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+        return
+    }
     guard let targetTransform = scene.get(component: LocalTransformComponent.self, for: targetEntity) else {
         return
     }
 
-    let cameraPosition = cameraComponent.localPosition
+    let cameraPosition = localTransformComponent.position
     let targetPosition = targetTransform.position + offset
     let toTarget = targetPosition - cameraPosition
 
@@ -445,12 +452,10 @@ public func cameraFollowDeadZone(entityId: EntityID,
 
     if smoothFactor > 0, deltaTime > 0 {
         let t = min(smoothFactor * deltaTime, 1.0)
-        cameraComponent.localPosition = cameraPosition + (desiredPosition - cameraPosition) * t
+        applyCameraLocalTransform(entityId: entityId, position: cameraPosition + (desiredPosition - cameraPosition) * t)
     } else {
-        cameraComponent.localPosition = desiredPosition
+        applyCameraLocalTransform(entityId: entityId, position: desiredPosition)
     }
-
-    updateCameraViewMatrix(entityId: entityId)
 }
 
 public func cameraOrbitTarget(entityId: EntityID,
@@ -479,11 +484,11 @@ public func cameraOrbitTarget(entityId: EntityID,
     // New position on orbit
     let newX = cos(angle) * radius
     let newZ = sin(angle) * radius
-    cameraComponent.localPosition = simd_float3(newX, center.y, newZ) + center
+    let newPosition = simd_float3(newX, center.y, newZ) + center
 
     // Aim at the center entity
     cameraLookAt(entityId: entityId,
-                 eye: cameraComponent.localPosition,
+                 eye: newPosition,
                  target: centerTransform.position,
                  up: simd_float3(0, 1, 0))
 }
@@ -786,12 +791,5 @@ public func updateCameraPath(deltaTime: Float) {
 
 /// Applies position and rotation to a camera entity
 private func applyCameraTransform(entityId: EntityID, position: simd_float3, rotation: simd_quatf) {
-    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
-        return
-    }
-
-    cameraComponent.localPosition = position
-    cameraComponent.rotation = simd_normalize(rotation)
-
-    updateCameraViewMatrix(entityId: entityId)
+    applyCameraLocalTransform(entityId: entityId, position: position, rotation: simd_normalize(rotation))
 }

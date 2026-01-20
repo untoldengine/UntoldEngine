@@ -11,6 +11,16 @@
 import Foundation
 import simd
 
+private func syncCameraTransformIfNeeded(entityId: EntityID, localTransformComponent: LocalTransformComponent) {
+    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+        return
+    }
+
+    cameraComponent.localPosition = localTransformComponent.position
+    cameraComponent.rotation = localTransformComponent.rotation
+    updateCameraViewMatrix(entityId: entityId)
+}
+
 public func getLocalPosition(entityId: EntityID) -> simd_float3 {
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
@@ -156,6 +166,7 @@ public func translateTo(entityId: EntityID, position: simd_float3) {
     }
 
     localTransformComponent.position = position
+    syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
 }
 
 public func translateBy(entityId: EntityID, position: simd_float3) {
@@ -166,6 +177,16 @@ public func translateBy(entityId: EntityID, position: simd_float3) {
 
     guard isValid(position) else {
         handleError(.valueisNaN, "Position", entityId)
+        return
+    }
+
+    if scene.get(component: CameraComponent.self, for: entityId) != nil {
+        let xAxis = rightDirectionVector(from: localTransformComponent.rotation)
+        let yAxis = upDirectionVector(from: localTransformComponent.rotation)
+        let zAxis = forwardDirectionVector(from: localTransformComponent.rotation)
+
+        localTransformComponent.position += position.x * xAxis + position.y * yAxis + position.z * zAxis
+        syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
         return
     }
 
@@ -200,6 +221,7 @@ public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
     n.columns.2 = m.columns.2
 
     localTransformComponent.rotation = transformMatrix3nToQuaternion(m: n)
+    syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
 }
 
 /// Orient an entity so its forward axis points at a target position.
@@ -231,6 +253,7 @@ public func lookAt(entityId: EntityID,
     rotationMatrix = simd_float3x3(columns: (r, u, f))
 
     localTransformComponent.rotation = transformMatrix3nToQuaternion(m: rotationMatrix)
+    syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
 }
 
 public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
@@ -262,6 +285,7 @@ public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
     let newQ = simd_normalize(simd_mul(q, pq))
 
     localTransformComponent.rotation = newQ
+    syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
 }
 
 public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
@@ -274,6 +298,7 @@ public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
     let q = simd_normalize(simd_quatf(rotUpperLeft))
 
     localTransformComponent.rotation = q
+    syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
 }
 
 public func rotateTo(entityId: EntityID, pitch: Float, yaw: Float, roll: Float) {
@@ -285,6 +310,7 @@ public func rotateTo(entityId: EntityID, pitch: Float, yaw: Float, roll: Float) 
     let q = simd_normalize(transformEulerAnglesToQuaternion(pitch: pitch, yaw: yaw, roll: roll))
 
     localTransformComponent.rotation = q
+    syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
 }
 
 public func scaleTo(entityId: EntityID, scale: simd_float3) {

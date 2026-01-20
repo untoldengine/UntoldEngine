@@ -38,10 +38,39 @@ final class CameraTests: XCTestCase {
         XCTAssertEqual(cameraComponent.localPosition, simd_float3(10, 20, 30))
     }
 
+    func testTranslateToSyncsLocalTransform() {
+        translateTo(entityId: camera, position: simd_float3(2, 4, 6))
+        guard let localTransform = scene.get(component: LocalTransformComponent.self, for: camera) else {
+            return
+        }
+        guard let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
+            return
+        }
+        XCTAssertEqual(localTransform.position, simd_float3(2, 4, 6))
+        XCTAssertEqual(cameraComponent.localPosition, simd_float3(2, 4, 6))
+        XCTAssertEqual(getCameraPosition(entityId: camera), simd_float3(2, 4, 6))
+    }
+
     func testTranslateBy() {
         moveCameraTo(entityId: camera, 0, 0, 0)
         moveCameraBy(entityId: camera, delU: 1, delV: 2, delN: 3)
         XCTAssertNotEqual(getCameraPosition(entityId: camera), simd_float3(0, 0, 0))
+    }
+
+    func testTranslateByUsesCameraAxes() {
+        translateTo(entityId: camera, position: .zero)
+        rotateTo(entityId: camera, angle: 90, axis: simd_float3(0, 1, 0))
+
+        translateBy(entityId: camera, position: simd_float3(0, 0, 1))
+
+        guard let localTransform = scene.get(component: LocalTransformComponent.self, for: camera) else {
+            return
+        }
+
+        let forward = forwardDirectionVector(from: localTransform.rotation)
+        XCTAssertEqual(localTransform.position.x, forward.x, accuracy: 0.0001)
+        XCTAssertEqual(localTransform.position.y, forward.y, accuracy: 0.0001)
+        XCTAssertEqual(localTransform.position.z, forward.z, accuracy: 0.0001)
     }
 
     // MARK: - View Matrix Update
