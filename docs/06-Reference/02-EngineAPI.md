@@ -223,6 +223,28 @@ let panel = createEntity()
 createAreaLight(entityId: panel)
 ```
 
+### Enable or Disable PostFX
+
+Toggle post-processing effects globally through the PostFX facade:
+
+```swift
+PostFX.setEnabled(.colorGrading, false)
+
+PostFX.enableVignette(false)
+```
+
+### SSAO Controls
+
+SSAO is managed through a dedicated API because it affects render quality and pipelines:
+
+```swift
+SSAO.setEnabled(true)
+SSAO.setQuality(.high)
+SSAO.setRadius(0.8)
+SSAO.setBias(0.02)
+SSAO.setIntensity(1.2)
+```
+
 ---
 
 # Animation 
@@ -384,4 +406,3 @@ All custom systems must be registered during initialization so the engine knows 
 ```swift
 registerCustomSystem(dribblingSystemUpdate)
 ```
-

@@ -165,9 +165,8 @@
             bypassPostProcessing = true
 
             // Disable SSAO
-            SSAOParams.shared.enabled = false
-            // Test Fast quality (8 samples, half-res)
-            SSAOParams.shared.quality = .high
+            SSAO.setEnabled(false)
+            SSAO.setQuality(.high)
         }
 
         // Build the same demo scene procedurally.
