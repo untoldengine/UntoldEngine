@@ -118,6 +118,29 @@ final class ECSTests: XCTestCase {
         XCTAssertNotEqual(entityId, wrongId, "entities should not match")
     }
 
+    func testFindEntityWithDuplicateNamesReturnsFirstValidMatch() {
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+
+        let firstEntity = createEntity()
+        let secondEntity = createEntity()
+
+        setEntityName(entityId: firstEntity, name: "dup")
+        setEntityName(entityId: secondEntity, name: "dup")
+
+        XCTAssertEqual(findEntity(name: "dup"), firstEntity, "Should return first entity assigned with the name")
+
+        destroyEntity(entityId: firstEntity)
+
+        XCTAssertEqual(findEntity(name: "dup"), secondEntity, "Should skip stale entity and return next valid match")
+
+        if let list = reverseEntityNameMap["dup"] {
+            XCTAssertEqual(list, [secondEntity], "Stale entries should be pruned from the reverse name map")
+        } else {
+            XCTFail("Expected reverse name map to contain remaining entity")
+        }
+    }
+
     func testGetAllEntityComponentTypes() {
         // Arrange
         let entityId = createEntity()

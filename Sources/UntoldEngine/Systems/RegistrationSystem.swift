@@ -855,8 +855,28 @@ func getMeshesForEntity(entityId: EntityID) -> [Mesh]? {
 }
 
 public func setEntityName(entityId: EntityID, name: String) {
+    if let previousName = entityNameMap[entityId], !previousName.isEmpty {
+        if var list = reverseEntityNameMap[previousName] {
+            list.removeAll { $0 == entityId }
+            if list.isEmpty {
+                reverseEntityNameMap.removeValue(forKey: previousName)
+            } else {
+                reverseEntityNameMap[previousName] = list
+            }
+        }
+    }
+
+    if name.isEmpty {
+        entityNameMap.removeValue(forKey: entityId)
+        return
+    }
+
     entityNameMap[entityId] = name
-    reverseEntityNameMap[name] = entityId
+    var list = reverseEntityNameMap[name] ?? []
+    if list.contains(entityId) == false {
+        list.append(entityId)
+    }
+    reverseEntityNameMap[name] = list
 }
 
 public func getEntityName(entityId: EntityID) -> String {
@@ -870,13 +890,34 @@ func removeEntityName(entityId: EntityID) {
     if let stored = entityNameMap[entityId],
        stored.isEmpty == false
     {
-        reverseEntityNameMap.removeValue(forKey: stored)
+        if var list = reverseEntityNameMap[stored] {
+            list.removeAll { $0 == entityId }
+            if list.isEmpty {
+                reverseEntityNameMap.removeValue(forKey: stored)
+            } else {
+                reverseEntityNameMap[stored] = list
+            }
+        }
     }
     entityNameMap.removeValue(forKey: entityId)
 }
 
 public func findEntity(name: String) -> EntityID? {
-    reverseEntityNameMap[name]
+    guard var list = reverseEntityNameMap[name], !list.isEmpty else {
+        return nil
+    }
+
+    list = list.filter { id in
+        scene.exists(id) && entityNameMap[id] == name
+    }
+
+    if list.isEmpty {
+        reverseEntityNameMap.removeValue(forKey: name)
+        return nil
+    }
+
+    reverseEntityNameMap[name] = list
+    return list.first
 }
 
 /*
