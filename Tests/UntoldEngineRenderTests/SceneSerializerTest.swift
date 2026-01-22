@@ -1148,4 +1148,39 @@ final class SceneSerializerTests: BaseRenderSetup {
         // applyIBL should remain false (its default value)
         XCTAssertFalse(applyIBL, "applyIBL should be false by default when no environment data is provided")
     }
+
+    func testProceduralMeshSerializationDeserialization() {
+        destroyAllEntities()
+        scene.finalizePendingDestroys()
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "ProcCube")
+        let meshes = BasicPrimitives.createCube()
+        setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: "Cube")
+
+        let sceneData = serializeScene()
+
+        destroyAllEntities()
+        scene.finalizePendingDestroys()
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .sync)
+
+        guard let loadedId = findEntity(name: "ProcCube") else {
+            XCTFail("Expected to find procedural entity after deserialization")
+            return
+        }
+
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: loadedId) else {
+            XCTFail("Expected RenderComponent on deserialized procedural entity")
+            return
+        }
+
+        XCTAssertFalse(renderComponent.mesh.isEmpty, "Procedural mesh should be recreated on deserialize")
+        XCTAssertEqual(renderComponent.assetName, "Cube")
+        XCTAssertTrue(renderComponent.assetURL.path.hasPrefix("/primitive/"))
+    }
 }
