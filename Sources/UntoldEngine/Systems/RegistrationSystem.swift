@@ -395,8 +395,19 @@ private func loadFallbackMesh(entityId: EntityID, filename: String) async {
         Logger.logWarning(message: "Failed to load mesh '\(filename)'. Using fallback cube.")
         let fallbackMeshes = BasicPrimitives.createCube()
         let dummyURL = URL(fileURLWithPath: "/fallback/\(filename)")
+        let fallbackName = "Fallback_\(filename)"
+
+        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+            registerTransformComponent(entityId: entityId)
+        }
+
+        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+            registerSceneGraphComponent(entityId: entityId)
+        }
+
         associateMeshesToEntity(entityId: entityId, meshes: fallbackMeshes)
-        registerRenderComponent(entityId: entityId, meshes: fallbackMeshes, url: dummyURL, assetName: "Fallback_\(filename)")
+        registerRenderComponent(entityId: entityId, meshes: fallbackMeshes, url: dummyURL, assetName: fallbackName)
+        setEntityName(entityId: entityId, name: fallbackName)
     }
 }
 
