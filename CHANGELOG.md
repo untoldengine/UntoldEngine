@@ -1,4 +1,10 @@
 # Changelog
+## v0.8.1 - 2026-01-26
+### 🐞 Fixes
+- [Patch]consolidated the camera transform api (9914211…)
+- [Patch] Added helper util functions for postFX and SSAO (b19c2b2…)
+- [Patch] Fix find entity name (fb579f9…)
+- [Patch] Fixed the serialization of primitives (80f2ea7…)
 ## v0.8.0 - 2026-01-19
 ### 🐞 Fixes
 - [Patch] Fixed demo game (d1db248…)
