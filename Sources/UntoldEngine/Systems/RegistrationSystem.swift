@@ -392,7 +392,7 @@ public func setEntityMeshAsync(
 /// Load a fallback cube mesh when async loading fails
 private func loadFallbackMesh(entityId: EntityID, filename: String) async {
     await MainActor.run {
-        Logger.logWarning(message: "Failed to load mesh '\(filename)'. Using fallback cube.")
+        Logger.logWarning(message: "Failed to load mesh '\(filename)'. Rendering fallback cube instead.")
         let fallbackMeshes = BasicPrimitives.createCube()
         let dummyURL = URL(fileURLWithPath: "/fallback/\(filename)")
         let fallbackName = "Fallback_\(filename)"
@@ -408,6 +408,19 @@ private func loadFallbackMesh(entityId: EntityID, filename: String) async {
         associateMeshesToEntity(entityId: entityId, meshes: fallbackMeshes)
         registerRenderComponent(entityId: entityId, meshes: fallbackMeshes, url: dummyURL, assetName: fallbackName)
         setEntityName(entityId: entityId, name: fallbackName)
+
+        // Assign default skin to prevent shader validation errors
+        // Fallback primitives don't have skeletons, so create an empty skin
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+            handleError(.noRenderComponent, entityId)
+            return
+        }
+
+        let skin = Skin()
+
+        for index in renderComponent.mesh.indices {
+            renderComponent.mesh[index].skin = skin
+        }
     }
 }
 
