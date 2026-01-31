@@ -76,7 +76,7 @@ public struct Mesh {
     var skin: Skin?
     public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: 2)
 
-    init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip _: Bool) {
+    init?(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip _: Bool) {
         modelMDLMesh = modelIOMesh
 
         // Get the mesh's own transform first, then check parent
@@ -124,7 +124,9 @@ public struct Mesh {
         do {
             localMetalKitMesh = try MTKMesh(mesh: modelIOMesh, device: device)
         } catch {
-            fatalError("Failed to create MTKMesh: \(error)")
+            Logger.logError(message: "Failed to create MTKMesh for '\(assetName)': \(error.localizedDescription)")
+            Logger.logError(message: "This may be due to memory pressure, corrupted mesh data, or GPU buffer allocation failure.")
+            return nil
         }
         metalKitMesh = localMetalKitMesh
 
@@ -190,8 +192,31 @@ public struct Mesh {
         progressHandler: ((Int, Int) -> Void)? = nil
     ) async -> [Mesh] {
         // Perform heavy I/O work on background thread
-        let asset = await Task.detached {
+        let asset = await Task.detached { () -> MDLAsset? in
             let bufferAllocator = MTKMeshBufferAllocator(device: device)
+
+            // Validate file exists and get size
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                Logger.logError(message: "Asset file not found: \(url.path)")
+                return nil
+            }
+
+            do {
+                let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+                if let fileSize = attributes[.size] as? UInt64 {
+                    let fileSizeMB = Double(fileSize) / (1024 * 1024)
+                    Logger.log(message: "Loading asset: \(url.lastPathComponent) (\(String(format: "%.2f", fileSizeMB)) MB)")
+
+                    // Warn for very large files (> 500 MB)
+                    if fileSizeMB > 500 {
+                        Logger.logWarning(message: "Large asset detected (\(String(format: "%.2f", fileSizeMB)) MB). Loading may take time and consume significant memory.")
+                    }
+                }
+            } catch {
+                Logger.logWarning(message: "Could not determine file size: \(error.localizedDescription)")
+            }
+
+            // Wrap asset creation in error handling to catch parsing/corruption issues
             let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
 
             // Apply coordinate system conversion
@@ -208,22 +233,62 @@ public struct Mesh {
             return asset
         }.value
 
+        // Handle asset loading failure
+        guard let asset else {
+            Logger.logError(message: "Failed to load asset from: \(url.lastPathComponent)")
+            return makeDefaultMesh()
+        }
+
         // Create Metal resources on main thread
         return await MainActor.run {
             let textureLoader = TextureLoader(device: device)
             let objects = asset.childObjects(of: MDLObject.self)
 
+            // Count total meshes
+            var totalMeshCount = 0
+            for object in objects {
+                if let _ = object as? MDLMesh {
+                    totalMeshCount += 1
+                } else if object.conforms(to: MDLObjectContainerComponent.self) {
+                    func countMeshes(_ obj: MDLObject) -> Int {
+                        var count = 0
+                        if let _ = obj as? MDLMesh { count += 1 }
+                        for child in obj.children.objects {
+                            count += countMeshes(child)
+                        }
+                        return count
+                    }
+                    totalMeshCount += countMeshes(object)
+                }
+            }
+
+            // Check against MAX_ENTITIES
+            let willEnforceLimit = totalMeshCount > MAX_ENTITIES
+            if willEnforceLimit {
+                Logger.logWarning(message: "⚠️  Asset contains \(totalMeshCount) meshes but MAX_ENTITIES is set to \(MAX_ENTITIES)")
+                Logger.logWarning(message: "Only the first \(MAX_ENTITIES) meshes will be loaded to prevent crashes.")
+                Logger.logWarning(message: "To load all meshes, increase MAX_ENTITIES in Globals.swift to at least \(totalMeshCount)")
+            }
+
             var allMeshes: [Mesh] = []
-            var processedCount = 0
-            let totalObjects = objects.count
+            var processedMeshes = 0
 
             for object in objects {
+                // Enforce MAX_ENTITIES limit
+                if processedMeshes >= MAX_ENTITIES {
+                    Logger.logWarning(message: "🛑 Reached MAX_ENTITIES limit (\(MAX_ENTITIES)). Stopped loading.")
+                    Logger.logWarning(message: "Loaded \(processedMeshes)/\(totalMeshCount) meshes.")
+                    break
+                }
+
                 let meshes = makeMeshes(object: object, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip)
                 allMeshes.append(contentsOf: meshes)
+                processedMeshes += meshes.count
 
-                processedCount += 1
-                progressHandler?(processedCount, totalObjects)
+                progressHandler?(processedMeshes, min(totalMeshCount, MAX_ENTITIES))
             }
+
+            Logger.log(message: "✅ Loaded \(processedMeshes)/\(totalMeshCount) meshes" + (willEnforceLimit ? " (MAX_ENTITIES limit enforced)" : ""))
 
             if !allMeshes.isEmpty {
                 return allMeshes
@@ -272,8 +337,31 @@ public struct Mesh {
         progressHandler: ((Int, Int) -> Void)? = nil
     ) async -> [[Mesh]] {
         // Perform heavy I/O work on background thread
-        let asset = await Task.detached {
+        let asset = await Task.detached { () -> MDLAsset? in
             let bufferAllocator = MTKMeshBufferAllocator(device: device)
+
+            // Validate file exists and get size
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                Logger.logError(message: "Asset file not found: \(url.path)")
+                return nil
+            }
+
+            do {
+                let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+                if let fileSize = attributes[.size] as? UInt64 {
+                    let fileSizeMB = Double(fileSize) / (1024 * 1024)
+                    Logger.log(message: "Loading scene asset: \(url.lastPathComponent) (\(String(format: "%.2f", fileSizeMB)) MB)")
+
+                    // Warn for very large files (> 500 MB)
+                    if fileSizeMB > 500 {
+                        Logger.logWarning(message: "Large scene asset detected (\(String(format: "%.2f", fileSizeMB)) MB). Loading may take time and consume significant memory.")
+                    }
+                }
+            } catch {
+                Logger.logWarning(message: "Could not determine file size: \(error.localizedDescription)")
+            }
+
+            // Wrap asset creation in error handling to catch parsing/corruption issues
             let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
 
             // Apply coordinate system conversion
@@ -289,6 +377,12 @@ public struct Mesh {
 
             return asset
         }.value
+
+        // Handle asset loading failure
+        guard let asset else {
+            Logger.logError(message: "Failed to load scene asset from: \(url.lastPathComponent)")
+            return [makeDefaultMesh()]
+        }
 
         // Create Metal resources on main thread with yielding
         let textureLoader = TextureLoader(device: device)
@@ -312,23 +406,86 @@ public struct Mesh {
             }
         }
 
+        // Check against MAX_ENTITIES hard limit
+        let willEnforceLimit = totalMeshCount > MAX_ENTITIES
+        let meshesToLoad = min(totalMeshCount, MAX_ENTITIES)
+
+        if willEnforceLimit {
+            Logger.logWarning(message: "⚠️  Scene contains \(totalMeshCount) meshes but MAX_ENTITIES is set to \(MAX_ENTITIES)")
+            Logger.logWarning(message: "Only the first \(MAX_ENTITIES) meshes will be loaded to prevent crashes.")
+            Logger.logWarning(message: "To load all meshes, increase MAX_ENTITIES in Globals.swift to at least \(totalMeshCount)")
+            Logger.logWarning(message: "Note: Increasing MAX_ENTITIES will use more memory (~\(totalMeshCount * 2)KB additional).")
+        } else {
+            // Soft warnings for large scenes even within limits
+            let maxRecommendedMeshes = MAX_ENTITIES / 2
+            let criticalMeshCount = Int(Double(MAX_ENTITIES) * 0.8)
+
+            if totalMeshCount > criticalMeshCount {
+                Logger.logWarning(message: "Scene contains \(totalMeshCount) meshes (approaching MAX_ENTITIES limit of \(MAX_ENTITIES))")
+                Logger.logWarning(message: "Loading may take time and consume significant memory.")
+            } else if totalMeshCount > maxRecommendedMeshes {
+                Logger.log(message: "Scene contains \(totalMeshCount) meshes (within MAX_ENTITIES limit of \(MAX_ENTITIES))")
+            }
+        }
+
         var meshGroups: [[Mesh]] = []
         var processedMeshes = 0
+        var failedMeshes = 0
 
         // Process objects in small batches to keep UI responsive
         let batchSize = 3 // Process 3 objects at a time, then yield
+        let enableVerboseLogging = totalMeshCount > 1000 // Only log progress for very large scenes
+
         for (index, object) in objects.enumerated() {
+            // ENFORCE MAX_ENTITIES LIMIT - stop loading if we've hit the limit
+            if processedMeshes >= MAX_ENTITIES {
+                let remainingMeshes = totalMeshCount - processedMeshes
+                Logger.logWarning(message: "🛑 Reached MAX_ENTITIES limit (\(MAX_ENTITIES)). Stopped loading.")
+                Logger.logWarning(message: "Loaded \(processedMeshes)/\(totalMeshCount) meshes successfully.")
+                Logger.logWarning(message: "\(remainingMeshes) meshes were not loaded.")
+                Logger.logWarning(message: "Increase MAX_ENTITIES in Globals.swift to \(totalMeshCount) to load the complete scene.")
+                break // Exit the loop - we've hit the entity limit
+            }
+
+            // Log progress every 200 objects for very large files (reduce spam)
+            if enableVerboseLogging, index % 200 == 0, index > 0 {
+                Logger.log(message: "Processing object \(index)/\(objects.count) (\(Int((Double(index) / Double(objects.count)) * 100))% complete)...")
+            }
+
             await MainActor.run {
+                // Wrap mesh creation to catch crashes from memory pressure
                 let meshes = makeMeshes(object: object, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: true)
+
+                if meshes.isEmpty, object is MDLMesh {
+                    failedMeshes += 1
+                    if failedMeshes <= 10 { // Only log first 10 failures to avoid spam
+                        Logger.logWarning(message: "Failed to create mesh from object at index \(index). Skipping.")
+                    }
+                }
+
                 meshGroups.append(meshes)
                 processedMeshes += meshes.count
-                progressHandler?(processedMeshes, totalMeshCount)
+                progressHandler?(processedMeshes, min(meshesToLoad, totalMeshCount))
             }
 
             // After every batch, give UI time to update
             if (index + 1) % batchSize == 0 {
                 try? await Task.sleep(nanoseconds: 16_000_000) // 16ms (~1 frame at 60fps)
             }
+        }
+
+        // Log completion statistics
+        let successfulMeshes = processedMeshes
+        let wasLimitEnforced = totalMeshCount > MAX_ENTITIES && processedMeshes >= MAX_ENTITIES
+
+        if wasLimitEnforced {
+            Logger.log(message: "✅ Partial mesh loading complete: \(successfulMeshes)/\(totalMeshCount) meshes loaded (MAX_ENTITIES limit enforced)")
+        } else {
+            Logger.log(message: "✅ Mesh loading complete: \(successfulMeshes)/\(totalMeshCount) meshes loaded successfully")
+        }
+
+        if failedMeshes > 0 {
+            Logger.logWarning(message: "\(failedMeshes) meshes failed to load and were skipped")
         }
 
         // If the scene had no objects (or everything failed), return a single fallback group
@@ -386,8 +543,16 @@ public struct Mesh {
         progressHandler: ((Int, Int) -> Void)? = nil
     ) async -> [Mesh] {
         // Perform heavy I/O work on background thread
-        let matchedObject = await Task.detached {
+        let matchedObject = await Task.detached { () -> MDLObject? in
             let bufferAllocator = MTKMeshBufferAllocator(device: device)
+
+            // Validate file exists
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                Logger.logError(message: "Asset file not found: \(url.path)")
+                return nil
+            }
+
+            // Wrap asset creation in error handling
             let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
 
             // Apply coordinate system conversion
@@ -440,7 +605,11 @@ public struct Mesh {
         var meshes = [Mesh]()
 
         if let mdlMesh = object as? MDLMesh {
-            meshes.append(Mesh(modelIOMesh: mdlMesh, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip))
+            if let mesh = Mesh(modelIOMesh: mdlMesh, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip) {
+                meshes.append(mesh)
+            } else {
+                Logger.logWarning(message: "Skipped mesh '\(mdlMesh.name)' due to creation failure. Continuing with remaining meshes.")
+            }
         }
 
         if object.conforms(to: MDLObjectContainerComponent.self) {
@@ -746,7 +915,10 @@ struct TextureLoader {
         let size = 64
         let desc = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm_srgb, width: size, height: size, mipmapped: true)
         desc.usage = [.shaderRead]
-        let tex = renderInfo.device.makeTexture(descriptor: desc)!
+        guard let tex = renderInfo.device.makeTexture(descriptor: desc) else {
+            Logger.logError(message: "Failed to create default texture. GPU may be out of memory.")
+            fatalError("Critical: Unable to create default texture. Metal device may be unavailable.")
+        }
 
         var pixels = [UInt8](repeating: 0, count: size * size * 4)
         for y in 0 ..< size {

@@ -63,13 +63,16 @@ final class MeshUniformBufferTests: XCTestCase {
         )
 
         // Create the Mesh instance
-        let mesh = Mesh(
+        guard let mesh = Mesh(
             modelIOMesh: mdlMesh,
             vertexDescriptor: vertexDescriptor,
             textureLoader: textureLoader,
             device: device,
             flip: false
-        )
+        ) else {
+            XCTFail("Failed to create Mesh")
+            return
+        }
 
         // Assert: spaceUniform should contain exactly 2 elements
         XCTAssertEqual(mesh.spaceUniform.count, 2, "❌ spaceUniform should contain exactly 2 buffers")
@@ -119,13 +122,16 @@ final class MeshUniformBufferTests: XCTestCase {
         )
 
         // Create the Mesh instance
-        var mesh = Mesh(
+        guard var mesh = Mesh(
             modelIOMesh: mdlMesh,
             vertexDescriptor: vertexDescriptor,
             textureLoader: textureLoader,
             device: device,
             flip: false
-        )
+        ) else {
+            XCTFail("Failed to create Mesh")
+            return
+        }
 
         // Verify buffers exist before cleanup
         XCTAssertEqual(mesh.spaceUniform.count, 2, "❌ spaceUniform should initially contain 2 buffers")
@@ -163,13 +169,16 @@ final class MeshUniformBufferTests: XCTestCase {
             allocator: bufferAllocator
         )
 
-        let mesh = Mesh(
+        guard let mesh = Mesh(
             modelIOMesh: mdlMesh,
             vertexDescriptor: vertexDescriptor,
             textureLoader: textureLoader,
             device: device,
             flip: false
-        )
+        ) else {
+            XCTFail("Failed to create Mesh")
+            return
+        }
 
         // Set currentEye to 0
         renderInfo.currentEye = 0
@@ -228,13 +237,16 @@ final class MeshUniformBufferTests: XCTestCase {
             allocator: bufferAllocator
         )
 
-        let mesh = Mesh(
+        guard let mesh = Mesh(
             modelIOMesh: mdlMesh,
             vertexDescriptor: vertexDescriptor,
             textureLoader: textureLoader,
             device: device,
             flip: false
-        )
+        ) else {
+            XCTFail("Failed to create Mesh")
+            return
+        }
 
         // Set currentEye to 1
         renderInfo.currentEye = 1
@@ -337,13 +349,16 @@ final class MeshUniformBufferTests: XCTestCase {
             allocator: bufferAllocator
         )
 
-        let mesh = Mesh(
+        guard let mesh = Mesh(
             modelIOMesh: mdlMesh,
             vertexDescriptor: vertexDescriptor,
             textureLoader: textureLoader,
             device: device,
             flip: false
-        )
+        ) else {
+            XCTFail("Failed to create Mesh")
+            return
+        }
 
         // Write different data to each eye's buffer
         var uniformsEye0 = Uniforms()

@@ -24,7 +24,7 @@ public extension EntityID {
 var componentCounter = 0
 var globalEntityCounter: UInt32 = 0
 let MAX_COMPONENTS = 64
-let MAX_ENTITIES = 1000
+let MAX_ENTITIES = 5000
 
 var maxNumPointLights: Int = 100
 var maxNumSpotLights: Int = 100
