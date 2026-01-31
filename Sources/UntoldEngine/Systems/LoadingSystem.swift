@@ -24,6 +24,26 @@ public final class LoadingSystem {
 }
 
 public func getResourceURL(resourceName: String, ext: String, subName: String?) -> URL? {
+    // 0) Check if resourceName is an absolute path (starts with "/" or "~")
+    // This provides better UX - users can provide absolute paths without setting assetBasePath
+    let fm = FileManager.default
+    if resourceName.hasPrefix("/") || resourceName.hasPrefix("~") {
+        // Expand tilde if present
+        let expandedPath = NSString(string: resourceName).expandingTildeInPath
+        let absoluteURL = URL(fileURLWithPath: expandedPath)
+
+        // If extension is provided in the path, use it directly
+        if fm.fileExists(atPath: absoluteURL.path) {
+            return absoluteURL
+        }
+
+        // Otherwise, try appending the extension
+        let urlWithExt = absoluteURL.appendingPathExtension(ext)
+        if fm.fileExists(atPath: urlWithExt.path) {
+            return urlWithExt
+        }
+    }
+
     // Flat layout (no top-level "Assets")
     var searchPaths: [[String]] = [
         ["Models", resourceName, "\(resourceName).\(ext)"],
@@ -39,8 +59,6 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
 
     // 1) External base path (folder OR .bundle OR already a Resources dir)
     if let basePath = assetBasePath {
-        let fm = FileManager.default
-
         // If .bundle, hop into Contents/Resources on macOS
         let base: URL = {
             if basePath.pathExtension == "bundle",
