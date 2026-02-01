@@ -1,4 +1,8 @@
 # Changelog
+## v0.8.2 - 2026-02-01
+### 🐞 Fixes
+- [Patch] fixed crash when loading large number of models (c812695…)
+- [Patch] Load absolute path models (ac06ff9…)
 ## v0.8.1 - 2026-01-26
 ### 🐞 Fixes
 - [Patch]consolidated the camera transform api (9914211…)
