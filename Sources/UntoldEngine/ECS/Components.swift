@@ -278,6 +278,27 @@ public class DerivedAssetNodeComponent: Component {
     }
 }
 
+// MARK: - LOD Component
+
+public struct LODLevel {
+    public var mesh: [Mesh] // Meshes for this lod
+    public var maxDistance: Float // Switch to next LOD beyond this
+    public var screenPercentage: Float // Optional: screen-space threshold
+    public var url: URL? // URL to the LOD file (for display purposes)
+}
+
+public class LODComponent: Component {
+    public var lodLevels: [LODLevel] = [] // Sorted by distance (LOD0 first)
+    public var currentLOD: Int = 0 // Active LOD index
+    public var fadeTransition: Bool = false // Enable cross-fade
+    public var transitionDuration: Float = 0.3 // Fade time in seconds
+    public var transitionProgress: Float = 0.0 // Current fade (0-1)
+    public var previousLOD: Int? // For blending
+    public var forcedLOD: Int? // Manual override (-1 = auto)
+
+    public required init() {}
+}
+
 // MARK: - USC Scripting Component
 
 public class ScriptComponent: Component, Codable {

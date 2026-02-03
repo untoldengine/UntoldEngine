@@ -142,6 +142,21 @@ struct AssetInstanceData: Codable {
     var overrides: [AssetOverrideData]
 }
 
+// MARK: - LOD Data
+
+struct LODLevelData: Codable {
+    var url: URL
+    var maxDistance: Float
+    var screenPercentage: Float
+}
+
+struct LODData: Codable {
+    var lodLevels: [LODLevelData]
+    var currentLOD: Int
+    var fadeTransition: Bool
+    var transitionDuration: Float
+}
+
 struct EntityData: Codable {
     var uuid: UUID = .init() // Unique identifier for this entity
     var parentUUID: UUID? = nil // UUID of the parent entity, if any
@@ -165,11 +180,15 @@ struct EntityData: Codable {
     var hasSpotLightComponent: Bool?
     var hasAreaLightComponent: Bool?
     var hasCameraComponent: Bool?
+    var hasLODComponent: Bool?
 
     var customComponents: [String: Data]? = nil
 
     // New Asset Instance system
     var assetInstance: AssetInstanceData? = nil
+
+    // LOD system
+    var lodData: LODData? = nil
 }
 
 private func isProceduralAssetURL(_ url: URL) -> Bool {
@@ -384,6 +403,38 @@ public func serializeScene() -> SceneData {
             entityData.cameraData?.eye = getCameraEye(entityId: entityId)
             entityData.cameraData?.target = getCameraTarget(entityId: entityId)
             entityData.cameraData?.up = getCameraUp(entityId: entityId)
+        }
+
+        // LOD properties
+        let hasLOD: Bool = hasComponent(entityId: entityId, componentType: LODComponent.self)
+
+        if hasLOD {
+            entityData.hasLODComponent = hasLOD
+
+            if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
+                var lodLevelsData: [LODLevelData] = []
+
+                for lodLevel in lodComponent.lodLevels {
+                    // Only serialize if URL is available
+                    if let url = lodLevel.url {
+                        let lodLevelData = LODLevelData(
+                            url: url,
+                            maxDistance: lodLevel.maxDistance,
+                            screenPercentage: lodLevel.screenPercentage
+                        )
+                        lodLevelsData.append(lodLevelData)
+                    }
+                }
+
+                if !lodLevelsData.isEmpty {
+                    entityData.lodData = LODData(
+                        lodLevels: lodLevelsData,
+                        currentLOD: lodComponent.currentLOD,
+                        fadeTransition: lodComponent.fadeTransition,
+                        transitionDuration: lodComponent.transitionDuration
+                    )
+                }
+            }
         }
 
         // custom component
@@ -984,6 +1035,59 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                 cameraComponent.up = up
 
                 cameraLookAt(entityId: entityId, eye: eye, target: target, up: up)
+            }
+        }
+
+        // LOD Component
+        if sceneDataEntity.hasLODComponent == true {
+            if let lodData = sceneDataEntity.lodData {
+                switch meshLoadingMode {
+                case .sync:
+                    // Synchronous LOD loading not yet implemented
+                    Logger.logWarning(message: "[SceneSerializer] Synchronous LOD loading not supported, skipping LOD for '\(sceneDataEntity.name)'")
+                case .asyncDefault:
+                    // Register LOD component first
+                    setEntityLodComponent(entityId: entityId)
+
+                    // Track completion
+                    var loadedCount = 0
+                    let totalLevels = lodData.lodLevels.count
+
+                    // Load each LOD level using the granular API
+                    for (index, lodLevelData) in lodData.lodLevels.enumerated() {
+                        let url = lodLevelData.url
+                        let filename = url.deletingPathExtension().lastPathComponent
+                        let ext = url.pathExtension
+                        let maxDistance = lodLevelData.maxDistance
+
+                        addLODLevel(
+                            entityId: entityId,
+                            lodIndex: index,
+                            fileName: filename,
+                            withExtension: ext,
+                            maxDistance: maxDistance
+                        ) { success in
+                            if success {
+                                loadedCount += 1
+                                // When all levels are loaded, restore LOD settings
+                                if loadedCount == totalLevels {
+                                    Logger.log(message: "✅ LOD loaded for '\(sceneDataEntity.name)' with \(totalLevels) levels")
+                                    Task {
+                                        await MainActor.run {
+                                            if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
+                                                lodComponent.currentLOD = lodData.currentLOD
+                                                lodComponent.fadeTransition = lodData.fadeTransition
+                                                lodComponent.transitionDuration = lodData.transitionDuration
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Logger.logWarning(message: "⚠️ Failed to load LOD level \(index) for '\(sceneDataEntity.name)'")
+                            }
+                        }
+                    }
+                }
             }
         }
 

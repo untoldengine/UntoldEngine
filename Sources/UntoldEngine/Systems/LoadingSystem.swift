@@ -229,3 +229,38 @@ public func reloadScript(named name: String) -> Bool {
     Logger.log(message: "🔄 Reloaded script: \(script.name)")
     return true
 }
+
+/// Find LOD file URLs for a given base path
+/// Returns array of URLs for each LOD level found
+public func findLODFiles(basePath: URL, lodCount: Int = 4) -> [URL] {
+    var lodURLs: [URL] = []
+
+    // Strip existing LOD suffix if present (e.g., tree_LOD0.usdz -> tree.usdz)
+    let fileNameWithoutExt = basePath.deletingPathExtension().lastPathComponent
+    let baseDirectory = basePath.deletingLastPathComponent()
+    let ext = basePath.pathExtension
+
+    // Remove _LOD\d+ pattern if it exists
+    let baseFileName: String
+    if let range = fileNameWithoutExt.range(of: "_LOD[0-9]+$", options: .regularExpression) {
+        baseFileName = String(fileNameWithoutExt[..<range.lowerBound])
+    } else {
+        baseFileName = fileNameWithoutExt
+    }
+
+    for lodIndex in 0 ..< lodCount {
+        // Construct LOD file path: baseName_LOD{N}.ext
+        let lodFileName = "\(baseFileName)_LOD\(lodIndex).\(ext)"
+        let lodPath = baseDirectory.appendingPathComponent(lodFileName)
+
+        // Check if file exists
+        guard FileManager.default.fileExists(atPath: lodPath.path) else {
+            Logger.logWarning(message: "LOD\(lodIndex) not found: \(lodPath.lastPathComponent)")
+            break
+        }
+
+        lodURLs.append(lodPath)
+    }
+
+    return lodURLs
+}

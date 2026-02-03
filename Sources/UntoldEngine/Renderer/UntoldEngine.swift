@@ -241,6 +241,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         traverseSceneGraph()
         handleInputCallback?()
 
+        LODSystem.shared.update(deltaTime: fixedStep)
+
         if gameMode == true {
             AnimationSystem.shared.update(timeSinceLastUpdate)
 
