@@ -548,12 +548,10 @@ public func loadSceneAsync(
         }
 
         // Process on main thread
-        var didLoadMeshes = true
-        await MainActor.run {
+        let didLoadMeshes: Bool = await MainActor.run {
             if meshes.isEmpty {
                 handleError(.assetDataMissing, filename)
-                didLoadMeshes = false
-                return
+                return false
             }
 
             for mesh in meshes where mesh.count > 0 {
@@ -572,6 +570,7 @@ public func loadSceneAsync(
                 setEntityName(entityId: entityId, name: mesh.first!.assetName)
                 setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
             }
+            return true
         }
 
         await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
@@ -1082,5 +1081,267 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
     gaussianComponent.spaceUniform = (0 ..< 2).compactMap { _ in
         renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
                                      options: [MTLResourceOptions.storageModeShared])
+    }
+}
+
+// MARK: - Granular LOD Management Functions
+
+/// Set up LOD component for an entity
+/// Call this before adding LOD levels
+public func setEntityLodComponent(entityId: EntityID) {
+    if !hasComponent(entityId: entityId, componentType: LODComponent.self) {
+        registerComponent(entityId: entityId, componentType: LODComponent.self)
+        Logger.log(message: "✅ LODComponent registered for entity")
+    } else {
+        Logger.logWarning(message: "LODComponent already exists on entity")
+    }
+}
+
+/// Add a single LOD level to an entity
+/// Entity must have LODComponent set via setEntityLodComponent() first
+public func addLODLevel(
+    entityId: EntityID,
+    lodIndex: Int,
+    fileName: String,
+    withExtension: String,
+    maxDistance: Float,
+    screenPercentage: Float = 0.0,
+    completion: ((Bool) -> Void)? = nil
+) {
+    Task {
+        // Check if LODComponent exists
+        guard hasComponent(entityId: entityId, componentType: LODComponent.self) else {
+            Logger.logError(message: "Entity does not have LODComponent. Call setEntityLodComponent() first.")
+            await MainActor.run {
+                completion?(false)
+            }
+            return
+        }
+
+        // Get file URL using standard resource loading
+        guard let url = LoadingSystem.shared.resourceURL(forResource: fileName, withExtension: withExtension) else {
+            Logger.logError(message: "Failed to find LOD file: \(fileName).\(withExtension)")
+            await MainActor.run {
+                completion?(false)
+            }
+            return
+        }
+
+        // Load meshes for this LOD
+        var meshes = await Mesh.loadMeshesAsync(
+            url: url,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
+        // Assign empty skin to all meshes (required by shaders)
+        let skin = Skin()
+        for index in meshes.indices {
+            meshes[index].skin = skin
+        }
+
+        // Create LOD level
+        let lodLevel = LODLevel(
+            mesh: meshes,
+            maxDistance: maxDistance,
+            screenPercentage: screenPercentage,
+            url: url
+        )
+
+        await MainActor.run {
+            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+                handleError(.componentNotFound, "LODComponent")
+                completion?(false)
+                return
+            }
+
+            // Add LOD level at the specified index
+            if lodIndex < 0 {
+                Logger.logWarning(message: "Invalid LOD index \(lodIndex), appending to end")
+                lodComponent.lodLevels.append(lodLevel)
+            } else if lodIndex >= lodComponent.lodLevels.count {
+                // Ensure array is large enough by padding with empty slots if needed
+                // This handles out-of-order additions (e.g., adding LOD2 before LOD1)
+                while lodComponent.lodLevels.count < lodIndex {
+                    // Pad with placeholder (will be replaced when proper LOD is added)
+                    let placeholder = LODLevel(mesh: [], maxDistance: 0, screenPercentage: 0, url: URL(fileURLWithPath: ""))
+                    lodComponent.lodLevels.append(placeholder)
+                }
+                // Now append the actual LOD at the correct index
+                lodComponent.lodLevels.append(lodLevel)
+            } else {
+                // Replace existing LOD at this index
+                lodComponent.lodLevels[lodIndex] = lodLevel
+            }
+
+            // If this is LOD0, create or update RenderComponent
+            if lodIndex == 0 {
+                if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+                    // Update existing RenderComponent
+                    renderComponent.mesh = meshes
+                    renderComponent.assetURL = url
+                    renderComponent.assetName = meshes.first?.assetName ?? url.deletingPathExtension().lastPathComponent
+                } else {
+                    // Create new RenderComponent
+                    let assetName = meshes.first?.assetName ?? url.deletingPathExtension().lastPathComponent
+                    registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: assetName)
+                    associateMeshesToEntity(entityId: entityId, meshes: meshes)
+                }
+            }
+
+            Logger.log(message: "✅ Added LOD level \(lodIndex) to entity")
+            completion?(true)
+        }
+    }
+}
+
+/// Remove a specific LOD level by index
+public func removeLODLevel(
+    entityId: EntityID,
+    lodIndex: Int
+) {
+    guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+        Logger.logWarning(message: "Entity does not have LODComponent")
+        return
+    }
+
+    // Validate index
+    guard lodIndex >= 0, lodIndex < lodComponent.lodLevels.count else {
+        Logger.logWarning(message: "Invalid LOD index: \(lodIndex)")
+        return
+    }
+
+    // Remove the LOD level
+    lodComponent.lodLevels.remove(at: lodIndex)
+
+    // If we removed the current LOD, reset to LOD0
+    if lodComponent.currentLOD == lodIndex {
+        lodComponent.currentLOD = 0
+
+        // Update render component to show LOD0 if available
+        if !lodComponent.lodLevels.isEmpty,
+           let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
+        {
+            renderComponent.mesh = lodComponent.lodLevels[0].mesh
+        }
+    } else if lodComponent.currentLOD > lodIndex {
+        // Adjust current LOD index if we removed something before it
+        lodComponent.currentLOD -= 1
+    }
+
+    Logger.log(message: "✅ Removed LOD level \(lodIndex)")
+}
+
+/// Replace an existing LOD level with a new mesh file
+public func replaceLODLevel(
+    entityId: EntityID,
+    lodIndex: Int,
+    fileName: String,
+    withExtension: String,
+    maxDistance: Float,
+    screenPercentage: Float = 0.0,
+    completion: ((Bool) -> Void)? = nil
+) {
+    Task {
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+            Logger.logWarning(message: "Entity does not have LODComponent")
+            await MainActor.run {
+                completion?(false)
+            }
+            return
+        }
+
+        // Validate index
+        guard lodIndex >= 0, lodIndex < lodComponent.lodLevels.count else {
+            Logger.logWarning(message: "Invalid LOD index: \(lodIndex)")
+            await MainActor.run {
+                completion?(false)
+            }
+            return
+        }
+
+        // Get file URL using standard resource loading
+        guard let newURL = LoadingSystem.shared.resourceURL(forResource: fileName, withExtension: withExtension) else {
+            Logger.logError(message: "Failed to find LOD file: \(fileName).\(withExtension)")
+            await MainActor.run {
+                completion?(false)
+            }
+            return
+        }
+
+        // Load new meshes
+        var meshes = await Mesh.loadMeshesAsync(
+            url: newURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
+        // Assign empty skin to all meshes
+        let skin = Skin()
+        for index in meshes.indices {
+            meshes[index].skin = skin
+        }
+
+        // Create new LOD level
+        let newLodLevel = LODLevel(
+            mesh: meshes,
+            maxDistance: maxDistance,
+            screenPercentage: screenPercentage,
+            url: newURL
+        )
+
+        await MainActor.run {
+            // Replace the LOD level
+            lodComponent.lodLevels[lodIndex] = newLodLevel
+
+            // If this is the current LOD or LOD0, update render component
+            if lodComponent.currentLOD == lodIndex,
+               let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
+            {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = newURL
+                renderComponent.assetName = meshes.first?.assetName ?? newURL.deletingPathExtension().lastPathComponent
+            }
+
+            Logger.log(message: "✅ Replaced LOD level \(lodIndex)")
+            completion?(true)
+        }
+    }
+}
+
+/// Get the number of LOD levels for an entity
+public func getLODLevelCount(entityId: EntityID) -> Int {
+    guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+        return 0
+    }
+    return lodComponent.lodLevels.count
+}
+
+/// Register LOD component for an existing entity with pre-loaded LOD levels
+/// Useful for testing or when you've manually created LOD levels
+public func registerLODComponent(
+    entityId: EntityID,
+    lodLevels: [LODLevel]
+) {
+    guard !lodLevels.isEmpty else {
+        Logger.logWarning(message: "Cannot register LODComponent with empty lodLevels")
+        return
+    }
+
+    registerComponent(entityId: entityId, componentType: LODComponent.self)
+
+    guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+        handleError(.componentNotFound, "LODComponent")
+        return
+    }
+
+    lodComponent.lodLevels = lodLevels
+    lodComponent.currentLOD = 0
+
+    // Update render component with LOD0 if it exists
+    if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+        renderComponent.mesh = lodLevels[0].mesh
     }
 }

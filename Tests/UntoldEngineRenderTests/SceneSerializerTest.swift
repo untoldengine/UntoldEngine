@@ -1183,4 +1183,136 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertEqual(renderComponent.assetName, "Cube")
         XCTAssertTrue(renderComponent.assetURL.path.hasPrefix("/primitive/"))
     }
+
+    // MARK: - LOD Component Tests
+
+    func testSerializeLODComponent() {
+        // Create entity with LOD component
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "LODEntity")
+        registerTransformComponent(entityId: entityId)
+        registerComponent(entityId: entityId, componentType: LODComponent.self)
+
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+            XCTFail("LODComponent should exist")
+            return
+        }
+
+        // Create mock LOD levels with URLs
+        let lod0URL = URL(fileURLWithPath: "/GameData/Models/tree/tree_LOD0.usdz")
+        let lod1URL = URL(fileURLWithPath: "/GameData/Models/tree/tree_LOD1.usdz")
+        let lod2URL = URL(fileURLWithPath: "/GameData/Models/tree/tree_LOD2.usdz")
+
+        // Create empty mesh arrays for testing (we only care about serialization)
+        let emptyMeshes: [Mesh] = []
+
+        lodComponent.lodLevels = [
+            LODLevel(mesh: emptyMeshes, maxDistance: 10.0, screenPercentage: 0.0, url: lod0URL),
+            LODLevel(mesh: emptyMeshes, maxDistance: 25.0, screenPercentage: 0.0, url: lod1URL),
+            LODLevel(mesh: emptyMeshes, maxDistance: 50.0, screenPercentage: 0.0, url: lod2URL),
+        ]
+        lodComponent.currentLOD = 1
+        lodComponent.fadeTransition = true
+        lodComponent.transitionDuration = 0.5
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Verify LOD data was serialized
+        XCTAssertEqual(sceneData.entities.count, 1, "Should have one entity")
+        XCTAssertTrue(sceneData.entities[0].hasLODComponent == true, "Should have LOD component flag")
+        XCTAssertNotNil(sceneData.entities[0].lodData, "LOD data should not be nil")
+
+        let lodData = sceneData.entities[0].lodData!
+        XCTAssertEqual(lodData.lodLevels.count, 3, "Should have 3 LOD levels")
+        XCTAssertEqual(lodData.currentLOD, 1, "Current LOD should match")
+        XCTAssertTrue(lodData.fadeTransition, "Fade transition should be enabled")
+        XCTAssertEqual(lodData.transitionDuration, 0.5, "Transition duration should match")
+
+        // Verify LOD level data
+        XCTAssertEqual(lodData.lodLevels[0].url, lod0URL, "LOD0 URL should match")
+        XCTAssertEqual(lodData.lodLevels[0].maxDistance, 10.0, "LOD0 distance should match")
+
+        XCTAssertEqual(lodData.lodLevels[1].url, lod1URL, "LOD1 URL should match")
+        XCTAssertEqual(lodData.lodLevels[1].maxDistance, 25.0, "LOD1 distance should match")
+
+        XCTAssertEqual(lodData.lodLevels[2].url, lod2URL, "LOD2 URL should match")
+        XCTAssertEqual(lodData.lodLevels[2].maxDistance, 50.0, "LOD2 distance should match")
+    }
+
+    func testSerializeLODComponentWithoutURLs() {
+        // Test that LOD levels without URLs are not serialized
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "LODEntityNoURLs")
+        registerTransformComponent(entityId: entityId)
+        registerComponent(entityId: entityId, componentType: LODComponent.self)
+
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+            XCTFail("LODComponent should exist")
+            return
+        }
+
+        // Create LOD levels without URLs (url = nil)
+        let emptyMeshes: [Mesh] = []
+        lodComponent.lodLevels = [
+            LODLevel(mesh: emptyMeshes, maxDistance: 10.0, screenPercentage: 0.0, url: nil),
+            LODLevel(mesh: emptyMeshes, maxDistance: 25.0, screenPercentage: 0.0, url: nil),
+        ]
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Verify LOD component exists but no LOD data was serialized (because URLs are nil)
+        XCTAssertEqual(sceneData.entities.count, 1, "Should have one entity")
+        XCTAssertTrue(sceneData.entities[0].hasLODComponent == true, "Should have LOD component flag")
+        XCTAssertNil(sceneData.entities[0].lodData, "LOD data should be nil when no URLs are present")
+    }
+
+    func testSerializeLODComponentMixedURLs() {
+        // Test that only LOD levels with URLs are serialized
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "LODEntityMixed")
+        registerTransformComponent(entityId: entityId)
+        registerComponent(entityId: entityId, componentType: LODComponent.self)
+
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+            XCTFail("LODComponent should exist")
+            return
+        }
+
+        let lod0URL = URL(fileURLWithPath: "/GameData/Models/tree/tree_LOD0.usdz")
+        let lod2URL = URL(fileURLWithPath: "/GameData/Models/tree/tree_LOD2.usdz")
+        let emptyMeshes: [Mesh] = []
+
+        lodComponent.lodLevels = [
+            LODLevel(mesh: emptyMeshes, maxDistance: 10.0, screenPercentage: 0.0, url: lod0URL),
+            LODLevel(mesh: emptyMeshes, maxDistance: 25.0, screenPercentage: 0.0, url: nil), // No URL
+            LODLevel(mesh: emptyMeshes, maxDistance: 50.0, screenPercentage: 0.0, url: lod2URL),
+        ]
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Verify only LOD levels with URLs were serialized
+        XCTAssertNotNil(sceneData.entities[0].lodData, "LOD data should exist")
+        let lodData = sceneData.entities[0].lodData!
+        XCTAssertEqual(lodData.lodLevels.count, 2, "Should only serialize LOD levels with URLs")
+        XCTAssertEqual(lodData.lodLevels[0].url, lod0URL, "First serialized LOD should be LOD0")
+        XCTAssertEqual(lodData.lodLevels[1].url, lod2URL, "Second serialized LOD should be LOD2")
+    }
+
+    func testSerializeEntityWithoutLODComponent() {
+        // Verify entities without LOD component don't have LOD data
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "RegularEntity")
+        registerTransformComponent(entityId: entityId)
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Verify no LOD data
+        XCTAssertEqual(sceneData.entities.count, 1, "Should have one entity")
+        XCTAssertNil(sceneData.entities[0].hasLODComponent, "Should not have LOD component flag")
+        XCTAssertNil(sceneData.entities[0].lodData, "Should not have LOD data")
+    }
 }
