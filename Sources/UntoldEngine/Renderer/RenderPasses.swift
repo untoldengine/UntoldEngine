@@ -273,6 +273,11 @@ public enum RenderPasses {
             // Skip entities that are pending destroy
             if scene.mask(for: entityId) == nil { continue }
 
+            // Skip batched entities if batching is enabled
+            if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) {
+                continue
+            }
+
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
             if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
 
@@ -381,6 +386,122 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
+    public static let batchedShadowExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        // Skip if batching is disabled or no batches exist
+        guard BatchingSystem.shared.isEnabled(),
+              !BatchingSystem.shared.batchGroups.isEmpty
+        else { return }
+
+        guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
+            handleError(.pipelineStateNulled, "shadowPipeline is nil")
+            return
+        }
+
+        if shadowPipeline.success == false {
+            handleError(.pipelineStateNulled, shadowPipeline.name!)
+            return
+        }
+
+        // Shadow system should already be updated by shadowExecution
+        guard let dirLight = shadowSystem.dirLightSpaceMatrix else { return }
+
+        guard let shadowDescriptor = renderInfo.shadowRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Shadow render pass descriptor not initialized")
+            return
+        }
+
+        // Reuse existing shadow descriptor (already configured by shadowExecution)
+        shadowDescriptor.depthAttachment.loadAction = .load
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: shadowDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "Batched Shadow Pass")
+            return
+        }
+
+        defer {
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "Batched Shadow Pass"
+        renderEncoder.pushDebugGroup("Batched Shadow Pass")
+
+        renderEncoder.setRenderPipelineState(shadowPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(shadowPipeline.depthState!)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        renderEncoder.setDepthBias(0.005, slopeScale: 1.0, clamp: 1.0)
+        renderEncoder.setViewport(
+            MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0))
+
+        // Set light space matrix (same as shadowExecution)
+        renderEncoder.setVertexBytes(
+            &shadowSystem.dirLightSpaceMatrix, length: MemoryLayout<simd_float4x4>.stride,
+            index: Int(shadowPassLightMatrixUniform.rawValue)
+        )
+
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        // Create identity uniform (batched vertices are already in world space)
+        var batchUniforms = Uniforms()
+        let viewMatrix = cameraComponent.viewSpace
+        let modelMatrix = matrix_identity_float4x4
+        let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+
+        batchUniforms.modelMatrix = modelMatrix
+        batchUniforms.viewMatrix = viewMatrix
+        batchUniforms.modelViewMatrix = modelViewMatrix
+        batchUniforms.normalMatrix = matrix_identity_float3x3
+        batchUniforms.cameraPosition = cameraComponent.localPosition
+        batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+        // Render each batch group (shadows only need positions)
+        for batchGroup in BatchingSystem.shared.batchGroups {
+            guard let positionBuffer = batchGroup.positionBuffer,
+                  let indexBuffer = batchGroup.indexBuffer
+            else { continue }
+
+            // Set uniforms
+            renderEncoder.setVertexBytes(
+                &batchUniforms,
+                length: MemoryLayout<Uniforms>.stride,
+                index: Int(shadowPassModelUniform.rawValue)
+            )
+
+            // Set position buffer (shadows only need positions)
+            renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassModelPositionIndex.rawValue))
+
+            // Static batched objects don't have armature
+            var hasArmature = false
+            renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
+
+            // Set dummy joint buffers (shader expects them even when hasArmature is false)
+            renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassJointIdIndex.rawValue)) // Dummy
+            renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassJointWeightsIndex.rawValue)) // Dummy
+
+            // Dummy joint transform buffer
+            var identityMatrix = matrix_identity_float4x4
+            renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
+
+            // SINGLE SHADOW DRAW CALL FOR ENTIRE BATCH
+            renderEncoder.drawIndexedPrimitives(
+                type: .triangle,
+                indexCount: batchGroup.indexCount,
+                indexType: .uint32,
+                indexBuffer: indexBuffer,
+                indexBufferOffset: 0
+            )
+        }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
     public static let modelExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
         guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[.model] else {
             handleError(.pipelineStateNulled, "modelPipeline is nil")
@@ -451,6 +572,11 @@ public enum RenderPasses {
         for entityId in visibleEntityIds {
             // Skip entities that are pending destroy
             if scene.mask(for: entityId) == nil { continue }
+
+            // Skip batched entities if batching is enabled
+            if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) {
+                continue
+            }
 
             if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
             if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
@@ -583,6 +709,12 @@ public enum RenderPasses {
 
                     renderEncoder.setFragmentSamplerState(subMesh.material?.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
 
+                    // set metallic
+                    renderEncoder.setFragmentTexture(
+                        subMesh.material?.metallic.texture, index: Int(modelPassMetallicTextureIndex.rawValue)
+                    )
+
+                    // set normal
                     // set normal
                     var hasNormal: Bool = ((subMesh.material?.normal.texture) != nil)
                     renderEncoder.setFragmentBytes(
@@ -634,6 +766,210 @@ public enum RenderPasses {
                     )
                 }
             }
+        }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
+    public static let batchedModelExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        // Skip if batching is disabled or no batches exist
+        guard BatchingSystem.shared.isEnabled(),
+              !BatchingSystem.shared.batchGroups.isEmpty
+        else {
+            return
+        }
+
+        guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[.model] else {
+            handleError(.pipelineStateNulled, "modelPipeline is nil")
+            return
+        }
+
+        if modelPipeline.success == false {
+            handleError(.pipelineStateNulled, modelPipeline.name!)
+            return
+        }
+
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        guard let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Offscreen render pass descriptor not initialized")
+            return
+        }
+
+        // Reuse existing offscreen descriptor (already configured by modelExecution)
+        encoderDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = .load
+        encoderDescriptor.colorAttachments[Int(normalTarget.rawValue)].loadAction = .load
+        encoderDescriptor.colorAttachments[Int(positionTarget.rawValue)].loadAction = .load
+        encoderDescriptor.colorAttachments[Int(materialTarget.rawValue)].loadAction = .load
+        encoderDescriptor.colorAttachments[Int(emissiveTarget.rawValue)].loadAction = .load
+        encoderDescriptor.depthAttachment.loadAction = .load
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "Batched Model Pass")
+            return
+        }
+
+        defer {
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "Batched Model Pass"
+        renderEncoder.pushDebugGroup("Batched Model Pass")
+
+        renderEncoder.setRenderPipelineState(modelPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(modelPipeline.depthState)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        // Create identity uniform (batched vertices are already in world space)
+        var batchUniforms = Uniforms()
+        let viewMatrix = cameraComponent.viewSpace
+        let modelMatrix = matrix_identity_float4x4
+        let modelViewMatrix = simd_mul(viewMatrix, modelMatrix) // Same calculation as modelExecution
+        let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
+
+        let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
+
+        let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
+        /*
+         // update uniforms
+         var modelUniforms = Uniforms()
+
+         var modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
+
+         let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+
+         let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+
+         let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
+
+         let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
+
+         let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
+         */
+
+        batchUniforms.modelMatrix = modelMatrix
+        batchUniforms.viewMatrix = viewMatrix
+        batchUniforms.modelViewMatrix = modelViewMatrix
+        batchUniforms.normalMatrix = normalMatrix
+        batchUniforms.cameraPosition = cameraComponent.localPosition
+        batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+        // Render each batch group
+        for batchGroup in BatchingSystem.shared.batchGroups {
+            guard let positionBuffer = batchGroup.positionBuffer,
+                  let normalBuffer = batchGroup.normalBuffer,
+                  let uvBuffer = batchGroup.uvBuffer,
+                  let tangentBuffer = batchGroup.tangentBuffer,
+                  let indexBuffer = batchGroup.indexBuffer
+            else { continue }
+
+            // Get material from first entity in batch
+            guard let firstEntityId = batchGroup.entityIds.first,
+                  let renderComponent = scene.get(component: RenderComponent.self, for: firstEntityId),
+                  let firstMesh = renderComponent.mesh.first,
+                  let firstSubmesh = firstMesh.submeshes.first,
+                  let material = firstSubmesh.material
+            else { continue }
+
+            // Set uniforms
+            renderEncoder.setVertexBytes(
+                &batchUniforms,
+                length: MemoryLayout<Uniforms>.stride,
+                index: Int(modelPassUniformIndex.rawValue)
+            )
+
+            // Set vertex buffers - now using separate buffers for each attribute
+            renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
+            renderEncoder.setVertexBuffer(normalBuffer, offset: 0, index: Int(modelPassNormalIndex.rawValue))
+            renderEncoder.setVertexBuffer(uvBuffer, offset: 0, index: Int(modelPassUVIndex.rawValue))
+            renderEncoder.setVertexBuffer(tangentBuffer, offset: 0, index: Int(modelPassTangentIndex.rawValue))
+
+            // Static batched objects don't have armature, but shader expects these buffers
+            // Set dummy buffers for joint data to avoid validation errors
+            renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue)) // Dummy buffer
+            renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue)) // Dummy buffer
+
+            // Create a minimal dummy joint transform buffer (single identity matrix)
+            // This is required because Metal validation doesn't allow nil buffers
+            var identityMatrix = matrix_identity_float4x4
+            renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
+
+            // No armature for static batched objects
+            var hasArmature = false
+            renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(modelPassHasArmature.rawValue))
+
+            // Set fragment uniforms
+            renderEncoder.setFragmentBytes(
+                &batchUniforms,
+                length: MemoryLayout<Uniforms>.stride,
+                index: Int(modelPassFragmentUniformIndex.rawValue)
+            )
+
+            // Set material properties (same as normal rendering)
+            var stScale: Float = material.stScale
+            renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
+
+            renderEncoder.setFragmentTexture(material.baseColor.texture, index: Int(modelPassBaseTextureIndex.rawValue))
+            renderEncoder.setFragmentSamplerState(material.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
+
+            renderEncoder.setFragmentTexture(material.roughness.texture, index: Int(modelPassRoughnessTextureIndex.rawValue))
+            renderEncoder.setFragmentSamplerState(material.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
+
+            // Set metallic texture
+            renderEncoder.setFragmentTexture(material.metallic.texture, index: Int(modelPassMetallicTextureIndex.rawValue))
+
+            var hasNormal: Bool = (material.normal.texture != nil)
+            renderEncoder.setFragmentBytes(&hasNormal, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentHasNormalTextureIndex.rawValue))
+            Logger.log(message: "  🎨 Material baseColor: \(material.baseColorValue)")
+            var materialParameters = MaterialParametersUniform()
+            materialParameters.specular = material.specular
+            materialParameters.specularTint = material.specularTint
+            materialParameters.subsurface = material.subsurface
+            materialParameters.anisotropic = material.anisotropic
+            materialParameters.sheen = material.sheen
+            materialParameters.sheenTint = material.sheenTint
+            materialParameters.clearCoat = material.clearCoat
+            materialParameters.clearCoatGloss = material.clearCoatGloss
+            materialParameters.baseColor = material.baseColorValue
+            materialParameters.roughness = material.roughnessValue
+            materialParameters.metallic = material.metallicValue
+            materialParameters.ior = material.ior
+            materialParameters.edgeTint = material.edgeTint
+            materialParameters.interactWithLight = material.interactWithLight
+            materialParameters.emmissive = material.emissiveValue
+
+            materialParameters.hasTexture = simd_int4(
+                Int32(material.hasBaseMap ? 1 : 0),
+                Int32(material.hasRoughMap ? 1 : 0),
+                Int32(material.hasMetalMap ? 1 : 0),
+                0
+            )
+
+            renderEncoder.setFragmentBytes(
+                &materialParameters,
+                length: MemoryLayout<MaterialParametersUniform>.stride,
+                index: Int(modelPassFragmentMaterialParameterIndex.rawValue)
+            )
+
+            renderEncoder.setFragmentTexture(material.normal.texture, index: Int(modelPassNormalTextureIndex.rawValue))
+            renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
+
+            // SINGLE DRAW CALL FOR ENTIRE BATCH
+            Logger.log(message: "✅ Drawing batch \(batchGroup.id): \(batchGroup.indexCount) indices, \(batchGroup.vertexCount) vertices")
+            renderEncoder.drawIndexedPrimitives(
+                type: .triangle,
+                indexCount: batchGroup.indexCount,
+                indexType: .uint32,
+                indexBuffer: indexBuffer,
+                indexBufferOffset: 0
+            )
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)

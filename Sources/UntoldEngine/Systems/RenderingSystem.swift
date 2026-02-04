@@ -159,7 +159,13 @@ public func buildGameModeGraph() -> RenderGraphResult {
     )
     graph[shadowPass.id] = shadowPass
 
-    gBufferPass(graph: &graph, shadowPass: shadowPass)
+    // Add batched shadow pass (runs after regular shadow pass)
+    let batchedShadowPass = RenderPass(
+        id: "batchedShadow", dependencies: [shadowPass.id], execute: RenderPasses.batchedShadowExecution
+    )
+    graph[batchedShadowPass.id] = batchedShadowPass
+
+    gBufferPass(graph: &graph, shadowPass: batchedShadowPass)
 
     // Gaussian pass depends on model pass - needs depth buffer from 3D models
     let gaussianPass = RenderPass(id: "gaussian", dependencies: ["model"], execute: RenderPasses.gaussianExecution)
@@ -202,15 +208,24 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
         id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
     )
     graph[modelPass.id] = modelPass
+    // Add batched model pass (runs after regular model pass)
+    let batchedModelPass = RenderPass(
+        id: "batchedModel", dependencies: [modelPass.id], execute: RenderPasses.batchedModelExecution
+    )
+    graph[batchedModelPass.id] = batchedModelPass
+    // Update SSAO to depend on batched pass
+    let ssaoPass = RenderPass(
+        id: "ssao",
+        dependencies: [batchedModelPass.id], // Changed from "model" to "batchedModel"
+        execute: RenderPasses.ssaoOptimizedExecution
+    )
 
-    // Use optimized SSAO pipeline with quality-aware execution
-    let ssaoPass = RenderPass(id: "ssao", dependencies: [modelPass.id], execute: RenderPasses.ssaoOptimizedExecution)
     graph[ssaoPass.id] = ssaoPass
 
     // Note: ssaoOptimizedExecution handles all blur/upsample internally
     // No need for separate ssaoBlur pass in the graph
 
-    let lightPass = RenderPass(id: "lightPass", dependencies: [modelPass.id, shadowPass.id, ssaoPass.id], execute: RenderPasses.lightExecution)
+    let lightPass = RenderPass(id: "lightPass", dependencies: [batchedModelPass.id, modelPass.id, shadowPass.id, ssaoPass.id], execute: RenderPasses.lightExecution)
     graph[lightPass.id] = lightPass
 }
 

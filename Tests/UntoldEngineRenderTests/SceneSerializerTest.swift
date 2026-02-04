@@ -1315,4 +1315,278 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertNil(sceneData.entities[0].hasLODComponent, "Should not have LOD component flag")
         XCTAssertNil(sceneData.entities[0].lodData, "Should not have LOD data")
     }
+
+    // MARK: - Static Batch Component Tests
+
+    func testSerializeSingleEntityWithStaticBatchComponent() {
+        // Create entity with mesh and static batch component
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "StaticCube")
+        registerTransformComponent(entityId: entityId)
+        let meshes = BasicPrimitives.createCube()
+        setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: "Cube")
+
+        // Mark as static
+        setEntityStaticBatchComponent(entityId: entityId)
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Verify StaticBatchComponent was serialized
+        XCTAssertEqual(sceneData.entities.count, 1, "Should have one entity")
+        XCTAssertTrue(sceneData.entities[0].hasStaticBatchComponent == true, "Should have static batch component flag")
+    }
+
+    func testDeserializeSingleEntityWithStaticBatchComponent() {
+        // Create entity with mesh and static batch component
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "StaticCube")
+        let meshes = BasicPrimitives.createCube()
+        setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: "Cube")
+        setEntityStaticBatchComponent(entityId: entityId)
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Clear scene
+        destroyAllEntities()
+        scene.finalizePendingDestroys()
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+
+        // Deserialize
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .sync)
+
+        // Verify entity was recreated with StaticBatchComponent
+        guard let recreatedId = findEntity(name: "StaticCube") else {
+            XCTFail("Expected to find StaticCube after deserialization")
+            return
+        }
+
+        XCTAssertTrue(
+            hasComponent(entityId: recreatedId, componentType: StaticBatchComponent.self),
+            "StaticBatchComponent should be restored after deserialization"
+        )
+    }
+
+    func testSerializeParentWithStaticBatchChildren() {
+        // Create parent entity (USDZ root)
+        let parentId = createEntity()
+        setEntityName(entityId: parentId, name: "TreeRoot")
+        registerTransformComponent(entityId: parentId)
+        registerSceneGraphComponent(entityId: parentId)
+
+        // Create child entities with meshes
+        let child1 = createEntity()
+        setEntityName(entityId: child1, name: "TreeTrunk")
+        registerTransformComponent(entityId: child1)
+        registerSceneGraphComponent(entityId: child1)
+        let mesh1 = BasicPrimitives.createCylinder()
+        setEntityMeshDirect(entityId: child1, meshes: mesh1, assetName: "Cylinder")
+        setParent(childId: child1, parentId: parentId)
+        setEntityStaticBatchComponent(entityId: child1)
+
+        let child2 = createEntity()
+        setEntityName(entityId: child2, name: "TreeLeaves")
+        registerTransformComponent(entityId: child2)
+        registerSceneGraphComponent(entityId: child2)
+        let mesh2 = BasicPrimitives.createSphere()
+        setEntityMeshDirect(entityId: child2, meshes: mesh2, assetName: "Sphere")
+        setParent(childId: child2, parentId: parentId)
+        setEntityStaticBatchComponent(entityId: child2)
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Verify parent has StaticBatchComponent flag (due to recursive check)
+        XCTAssertEqual(sceneData.entities.count, 3, "Should have parent + 2 children")
+        let parentData = sceneData.entities.first { $0.name == "TreeRoot" }
+        XCTAssertNotNil(parentData, "Parent entity should exist in scene data")
+        XCTAssertTrue(
+            parentData?.hasStaticBatchComponent == true,
+            "Parent should have static batch component flag when children have the component"
+        )
+    }
+
+    func testRoundTripStaticBatchComponentViaJSON() {
+        // Create entity with static batch component
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "StaticEntity")
+        let meshes = BasicPrimitives.createCube()
+        setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: "Cube")
+        setEntityStaticBatchComponent(entityId: entityId)
+
+        // Serialize to JSON
+        let sceneData = serializeScene()
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("static_batch_roundtrip.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(sceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write static batch JSON: \(error)")
+            return
+        }
+
+        // Clear scene
+        destroyAllEntities()
+        scene.finalizePendingDestroys()
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+
+        // Load and deserialize
+        guard let loadedSceneData = loadGameScene(from: sceneURL) else {
+            XCTFail("Failed to load static batch JSON")
+            return
+        }
+
+        deserializeScene(sceneData: loadedSceneData, meshLoadingMode: .sync)
+
+        // Verify component was restored
+        guard let recreatedId = findEntity(name: "StaticEntity") else {
+            XCTFail("Expected to find StaticEntity after deserialization")
+            return
+        }
+
+        XCTAssertTrue(
+            hasComponent(entityId: recreatedId, componentType: StaticBatchComponent.self),
+            "StaticBatchComponent should be restored after JSON round-trip"
+        )
+
+        // Cleanup
+        try? FileManager.default.removeItem(at: sceneURL)
+    }
+
+    func testRoundTripStaticBatchComponentWithHierarchyViaJSON() {
+        // Create hierarchy: Parent with two static children
+        let parentId = createEntity()
+        setEntityName(entityId: parentId, name: "StaticGroup")
+        registerTransformComponent(entityId: parentId)
+        registerSceneGraphComponent(entityId: parentId)
+
+        let child1 = createEntity()
+        setEntityName(entityId: child1, name: "StaticChild1")
+        registerTransformComponent(entityId: child1)
+        registerSceneGraphComponent(entityId: child1)
+        let mesh1 = BasicPrimitives.createCube()
+        setEntityMeshDirect(entityId: child1, meshes: mesh1, assetName: "Cube")
+        setParent(childId: child1, parentId: parentId)
+        setEntityStaticBatchComponent(entityId: child1)
+
+        let child2 = createEntity()
+        setEntityName(entityId: child2, name: "StaticChild2")
+        registerTransformComponent(entityId: child2)
+        registerSceneGraphComponent(entityId: child2)
+        let mesh2 = BasicPrimitives.createSphere()
+        setEntityMeshDirect(entityId: child2, meshes: mesh2, assetName: "Sphere")
+        setParent(childId: child2, parentId: parentId)
+        setEntityStaticBatchComponent(entityId: child2)
+
+        // Serialize to JSON
+        let sceneData = serializeScene()
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("static_batch_hierarchy_roundtrip.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(sceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write static batch hierarchy JSON: \(error)")
+            return
+        }
+
+        // Clear scene
+        destroyAllEntities()
+        scene.finalizePendingDestroys()
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+
+        // Load and deserialize
+        guard let loadedSceneData = loadGameScene(from: sceneURL) else {
+            XCTFail("Failed to load static batch hierarchy JSON")
+            return
+        }
+
+        deserializeScene(sceneData: loadedSceneData, meshLoadingMode: .sync)
+
+        // Verify all entities were recreated
+        guard let recreatedParent = findEntity(name: "StaticGroup"),
+              let recreatedChild1 = findEntity(name: "StaticChild1"),
+              let recreatedChild2 = findEntity(name: "StaticChild2")
+        else {
+            XCTFail("Expected to find all entities after deserialization")
+            return
+        }
+
+        // Verify children have StaticBatchComponent
+        XCTAssertTrue(
+            hasComponent(entityId: recreatedChild1, componentType: StaticBatchComponent.self),
+            "Child1 should have StaticBatchComponent after deserialization"
+        )
+        XCTAssertTrue(
+            hasComponent(entityId: recreatedChild2, componentType: StaticBatchComponent.self),
+            "Child2 should have StaticBatchComponent after deserialization"
+        )
+
+        // Verify hierarchy was restored
+        let parent = getEntityParent(entityId: recreatedChild1)
+        XCTAssertEqual(parent, recreatedParent, "Child1 should have correct parent")
+        let parent2 = getEntityParent(entityId: recreatedChild2)
+        XCTAssertEqual(parent2, recreatedParent, "Child2 should have correct parent")
+
+        // Cleanup
+        try? FileManager.default.removeItem(at: sceneURL)
+    }
+
+    func testSerializeEntityWithoutStaticBatchComponent() {
+        // Verify entities without StaticBatchComponent don't have the flag
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "DynamicEntity")
+        registerTransformComponent(entityId: entityId)
+        let meshes = BasicPrimitives.createCube()
+        setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: "Cube")
+
+        // Serialize without marking as static
+        let sceneData = serializeScene()
+
+        // Verify no StaticBatchComponent flag
+        XCTAssertEqual(sceneData.entities.count, 1, "Should have one entity")
+        XCTAssertNil(sceneData.entities[0].hasStaticBatchComponent, "Should not have static batch component flag")
+    }
+
+    func testSerializeRecursiveHierarchyCheck() {
+        // Test that hasStaticBatchInHierarchy checks deeply nested children
+        let root = createEntity()
+        setEntityName(entityId: root, name: "Root")
+        registerTransformComponent(entityId: root)
+        registerSceneGraphComponent(entityId: root)
+
+        let level1 = createEntity()
+        setEntityName(entityId: level1, name: "Level1")
+        registerTransformComponent(entityId: level1)
+        registerSceneGraphComponent(entityId: level1)
+        setParent(childId: level1, parentId: root)
+
+        let level2 = createEntity()
+        setEntityName(entityId: level2, name: "Level2")
+        registerTransformComponent(entityId: level2)
+        registerSceneGraphComponent(entityId: level2)
+        let meshes = BasicPrimitives.createCube()
+        setEntityMeshDirect(entityId: level2, meshes: meshes, assetName: "Cube")
+        setParent(childId: level2, parentId: level1)
+        setEntityStaticBatchComponent(entityId: level2) // Only deepest child has component
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Both root and level1 should have the flag due to recursive check
+        let rootData = sceneData.entities.first { $0.name == "Root" }
+        let level1Data = sceneData.entities.first { $0.name == "Level1" }
+        let level2Data = sceneData.entities.first { $0.name == "Level2" }
+
+        XCTAssertTrue(rootData?.hasStaticBatchComponent == true, "Root should have flag (child hierarchy contains component)")
+        XCTAssertTrue(level1Data?.hasStaticBatchComponent == true, "Level1 should have flag (child hierarchy contains component)")
+        XCTAssertTrue(level2Data?.hasStaticBatchComponent == true, "Level2 should have flag (has component directly)")
+    }
 }

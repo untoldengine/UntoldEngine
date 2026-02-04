@@ -63,6 +63,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         // Verify all passes are created
         XCTAssertNotNil(graph["model"], "Model pass should be created")
+        XCTAssertNotNil(graph["batchedModel"], "Batched model pass should be created")
         XCTAssertNotNil(graph["ssao"], "SSAO pass should be created (handles blur internally)")
         XCTAssertNotNil(graph["lightPass"], "Light pass should be created")
     }
@@ -76,11 +77,12 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         // Verify dependencies
         XCTAssertEqual(graph["model"]?.dependencies, ["shadow"], "Model pass should depend on shadow pass")
-        XCTAssertEqual(graph["ssao"]?.dependencies, ["model"], "SSAO pass should depend on model pass")
+        XCTAssertEqual(graph["batchedModel"]?.dependencies, ["model"], "Batched model pass should depend on model pass")
+        XCTAssertEqual(graph["ssao"]?.dependencies, ["batchedModel"], "SSAO pass should depend on batched model pass")
 
         let lightDeps = graph["lightPass"]?.dependencies.sorted()
-        let expectedLightDeps = ["model", "shadow", "ssao"].sorted()
-        XCTAssertEqual(lightDeps, expectedLightDeps, "Light pass should depend on model, shadow, and ssao (blur handled internally)")
+        let expectedLightDeps = ["batchedModel", "model", "shadow", "ssao"].sorted()
+        XCTAssertEqual(lightDeps, expectedLightDeps, "Light pass should depend on batchedModel, model, shadow, and ssao")
     }
 
     func testGBufferPass_TopologicalOrder() {
@@ -96,9 +98,11 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         // Verify correct ordering constraints
         assertTopologicalConstraints(order: order, constraints: [
             ("shadow", "model"),
-            ("model", "ssao"),
+            ("model", "batchedModel"),
+            ("batchedModel", "ssao"),
             ("shadow", "lightPass"),
             ("model", "lightPass"),
+            ("batchedModel", "lightPass"),
             ("ssao", "lightPass"),
         ])
     }
