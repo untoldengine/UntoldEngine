@@ -70,6 +70,12 @@ func finalizePendingDestroys() {
         removeEntityScenegraph(entityId: entityId)
         removeEntityName(entityId: entityId)
         removeEntityLight(entityId: entityId)
+        removeEntityStaticBatch(entityId: entityId)
+        removeEntityLOD(entityId: entityId)
+        removeEntityGaussian(entityId: entityId)
+        removeEntityCamera(entityId: entityId)
+        removeEntityAssetInstance(entityId: entityId)
+        removeEntityScript(entityId: entityId)
     }
 
     scene.finalizePendingDestroys()
@@ -1081,6 +1087,92 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
     gaussianComponent.spaceUniform = (0 ..< 2).compactMap { _ in
         renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
                                      options: [MTLResourceOptions.storageModeShared])
+    }
+}
+
+// MARK: Static Batching
+
+public func setEntityStaticBatchComponent(entityId: EntityID) {
+    // Only process entities with RenderComponent (skip empty parent entities)
+    if let _ = scene.get(component: RenderComponent.self, for: entityId) {
+        if !hasComponent(entityId: entityId, componentType: StaticBatchComponent.self) {
+            registerComponent(entityId: entityId, componentType: StaticBatchComponent.self)
+            Logger.log(message: "✅ StaticBatchComponent registered for entity \(entityId)")
+        } else {
+            Logger.logWarning(message: "StaticBatchComponent already exists on entity \(entityId)")
+        }
+    }
+
+    // Recursively mark all children as static
+    let children = getEntityChildren(parentId: entityId)
+    for childId in children {
+        setEntityStaticBatchComponent(entityId: childId)
+    }
+}
+
+public func removeEntityStaticBatchComponent(entityId: EntityID) {
+    // Remove from this entity if it has the component
+    if let _ = scene.get(component: StaticBatchComponent.self, for: entityId) {
+        scene.remove(component: StaticBatchComponent.self, from: entityId)
+        Logger.log(message: "✅ StaticBatchComponent removed from entity \(entityId)")
+    }
+
+    // Recursively remove from all children
+    let children = getEntityChildren(parentId: entityId)
+    for childId in children {
+        removeEntityStaticBatchComponent(entityId: childId)
+    }
+}
+
+// Internal cleanup function for entity destruction (non-recursive, called per entity)
+func removeEntityStaticBatch(entityId: EntityID) {
+    if scene.get(component: StaticBatchComponent.self, for: entityId) != nil {
+        scene.remove(component: StaticBatchComponent.self, from: entityId)
+    }
+}
+
+func removeEntityLOD(entityId: EntityID) {
+    if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
+        // Clear LOD levels (meshes will be cleaned up by RenderComponent cleanup)
+        lodComponent.lodLevels.removeAll()
+        scene.remove(component: LODComponent.self, from: entityId)
+    }
+}
+
+func removeEntityGaussian(entityId: EntityID) {
+    if let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) {
+        // Release Metal buffers
+        gaussianComponent.splatData = nil
+        gaussianComponent.gaussianSortedIndices = nil
+        gaussianComponent.spaceUniform.removeAll()
+        scene.remove(component: GaussianComponent.self, from: entityId)
+    }
+}
+
+func removeEntityCamera(entityId: EntityID) {
+    if scene.get(component: CameraComponent.self, for: entityId) != nil {
+        scene.remove(component: CameraComponent.self, from: entityId)
+    }
+    if scene.get(component: SceneCameraComponent.self, for: entityId) != nil {
+        scene.remove(component: SceneCameraComponent.self, from: entityId)
+    }
+}
+
+func removeEntityAssetInstance(entityId: EntityID) {
+    if scene.get(component: AssetInstanceComponent.self, for: entityId) != nil {
+        scene.remove(component: AssetInstanceComponent.self, from: entityId)
+    }
+    if scene.get(component: DerivedAssetNodeComponent.self, for: entityId) != nil {
+        scene.remove(component: DerivedAssetNodeComponent.self, from: entityId)
+    }
+}
+
+func removeEntityScript(entityId: EntityID) {
+    if let scriptComponent = scene.get(component: ScriptComponent.self, for: entityId) {
+        // Clean up scripts
+        scriptComponent.scripts.removeAll()
+        scriptComponent.scriptFilePaths = nil
+        scene.remove(component: ScriptComponent.self, from: entityId)
     }
 }
 

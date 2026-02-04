@@ -1136,3 +1136,22 @@ public func getAlphaForImmersionMode() -> Float {
         return 0.0
     }
 }
+
+// Generate batches for all static entities
+public func generateBatches() {
+    BatchingSystem.shared.generateBatches()
+}
+
+// Clear all batches
+
+public func clearSceneBatches() {
+    BatchingSystem.shared.clearBatches()
+}
+
+public func enableBatching(_ enabled: Bool) {
+    BatchingSystem.shared.setEnabled(enabled)
+}
+
+public func isBatchingEnabled() -> Bool {
+    BatchingSystem.shared.isEnabled()
+}

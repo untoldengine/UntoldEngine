@@ -181,6 +181,7 @@ struct EntityData: Codable {
     var hasAreaLightComponent: Bool?
     var hasCameraComponent: Bool?
     var hasLODComponent: Bool?
+    var hasStaticBatchComponent: Bool?
 
     var customComponents: [String: Data]? = nil
 
@@ -435,6 +436,28 @@ public func serializeScene() -> SceneData {
                     )
                 }
             }
+        }
+
+        // Static Batch properties
+        // Check if entity or any of its children have StaticBatchComponent
+        func hasStaticBatchInHierarchy(entityId: EntityID) -> Bool {
+            // Check self
+            if hasComponent(entityId: entityId, componentType: StaticBatchComponent.self) {
+                return true
+            }
+            // Check children recursively
+            let children = getEntityChildren(parentId: entityId)
+            for child in children {
+                if hasStaticBatchInHierarchy(entityId: child) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        // Only set the flag if true (leave as nil otherwise)
+        if hasStaticBatchInHierarchy(entityId: entityId) {
+            entityData.hasStaticBatchComponent = true
         }
 
         // custom component
@@ -717,6 +740,11 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                 // Apply overrides synchronously after import
                 applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
 
+                // Restore Static Batch Component (sync mode - mesh already loaded)
+                if sceneDataEntity.hasStaticBatchComponent == true {
+                    setEntityStaticBatchComponent(entityId: entityId)
+                }
+
                 // Setup animations (skeleton is now available)
                 if sceneDataEntity.hasAnimationComponent == true {
                     for animations in sceneDataEntity.animations {
@@ -737,6 +765,11 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                                 Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
                                 // Apply overrides after async import completes
                                 applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
+
+                                // Restore Static Batch Component (meshes now loaded)
+                                if sceneDataEntity.hasStaticBatchComponent == true {
+                                    setEntityStaticBatchComponent(entityId: entityId)
+                                }
 
                                 // Setup animations (skeleton is now available)
                                 if sceneDataEntity.hasAnimationComponent == true {
@@ -768,9 +801,19 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                     let meshes = createProceduralMeshes(assetName: sceneDataEntity.assetName)
                     setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
                     applyLocalTransform()
+
+                    // Restore Static Batch Component (procedural mesh already loaded)
+                    if sceneDataEntity.hasStaticBatchComponent == true {
+                        setEntityStaticBatchComponent(entityId: entityId)
+                    }
                 } else {
                     setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
                     applyLocalTransform()
+
+                    // Restore Static Batch Component (sync mode - mesh already loaded)
+                    if sceneDataEntity.hasStaticBatchComponent == true {
+                        setEntityStaticBatchComponent(entityId: entityId)
+                    }
                 }
 
                 // Setup animations (skeleton is now available)
@@ -790,6 +833,11 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                     let meshes = createProceduralMeshes(assetName: sceneDataEntity.assetName)
                     setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
                     applyLocalTransform()
+
+                    // Restore Static Batch Component (procedural mesh already loaded)
+                    if sceneDataEntity.hasStaticBatchComponent == true {
+                        setEntityStaticBatchComponent(entityId: entityId)
+                    }
                 } else {
                     let fallbackLabel = withExtension.isEmpty ? filename : "\(filename).\(withExtension)"
                     let meshLabel = sceneDataEntity.name.isEmpty ? fallbackLabel : sceneDataEntity.name
@@ -799,6 +847,11 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                                 applyLocalTransform()
                                 if success {
                                     Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
+
+                                    // Restore Static Batch Component (mesh now loaded)
+                                    if sceneDataEntity.hasStaticBatchComponent == true {
+                                        setEntityStaticBatchComponent(entityId: entityId)
+                                    }
 
                                     // Setup animations (skeleton is now available)
                                     if sceneDataEntity.hasAnimationComponent == true {
@@ -1090,6 +1143,9 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                 }
             }
         }
+
+        // Static Batch Component is now restored inside mesh loading completion handlers
+        // (moved there to ensure RenderComponent exists before adding StaticBatchComponent)
 
         // custom components
         if let customComponents = sceneDataEntity.customComponents {

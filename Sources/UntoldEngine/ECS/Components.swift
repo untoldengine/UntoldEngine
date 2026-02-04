@@ -299,6 +299,16 @@ public class LODComponent: Component {
     public required init() {}
 }
 
+// MARK: Static Batching Component
+
+public class StaticBatchComponent: Component {
+    public var isStatic: Bool = true // Object doesn't move
+    public var batchGroupId: UUID? // Assigned during batching
+    public var canBatch: Bool = true // User can disable batching per object
+
+    public required init() {}
+}
+
 // MARK: - USC Scripting Component
 
 public class ScriptComponent: Component, Codable {
