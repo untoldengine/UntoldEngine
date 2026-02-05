@@ -152,3 +152,19 @@ public struct BoundingSphere {
         return AABB(min: center - r, max: center + r)
     }
 }
+
+public extension AABB {
+    /// Calculate distance from this AABB to a point
+    /// Returns 0 if point is inside the AABB
+    func distanceToPoint(_ point: simd_float3) -> Float {
+        let dx = Swift.max(min.x - point.x, 0.0, point.x - max.x)
+        let dy = Swift.max(min.y - point.y, 0.0, point.y - max.y)
+        let dz = Swift.max(min.z - point.z, 0.0, point.z - max.z)
+        return sqrt(dx * dx + dy * dy + dz * dz)
+    }
+
+    /// Check if AABB intersects with a sphere (useful for radius checks)
+    func intersectsSphere(center: simd_float3, radius: Float) -> Bool {
+        distanceToPoint(center) <= radius
+    }
+}
