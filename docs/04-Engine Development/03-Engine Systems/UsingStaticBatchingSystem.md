@@ -8,7 +8,45 @@ sidebar_position: 11
 
 The Untold Engine provides a static batching system that dramatically reduces draw calls by combining static (non-moving) geometry into optimized batches.
 
-## Quick Start
+> **Choose Your Path:** You can set up Static Batching via the **Editor** (no code required) or **programmatically** in Swift.
+
+---
+
+## Using the Editor
+
+### Step 1: Mark Entities as Static
+
+1. **Select an entity** with a Render Component in the Scene Hierarchy
+2. In the **Inspector**, find the **"Static Batching"** section
+3. Toggle **"Mark as Static"** (or "Mark Children as Static" for parent entities)
+
+### Step 2: Enable the Batching System
+
+1. Open the **Static Batching panel** in the editor sidebar
+2. Toggle **"Enable Batching"** to ON
+
+### Step 3: Generate Batches
+
+1. Click **"Generate Batches"**
+2. A success message will appear
+3. The **Active Batches** count shows how many batch groups were created
+
+### Managing Batches
+
+- **Clear Batches**: Removes all generated batches
+- **Regenerate**: Click "Generate Batches" again after marking new entities
+
+### Important Notes
+
+- **Moving a static entity** automatically removes it from batching and regenerates batches
+- Batches are grouped by **material** — objects with the same material are combined
+- You can mark/unmark entities as static at any time, then regenerate
+
+---
+
+## Using Code
+
+### Quick Start
 
 ### Basic Static Batching Setup
 
@@ -241,6 +279,7 @@ setEntityMeshAsync(entityId: cityBlock, filename: "city_block", withExtension: "
     }
 }
 ```
+---
 
 ## Best Practices
 

@@ -1,4 +1,8 @@
 # Changelog
+## v0.9.0 - 2026-02-04
+### 🚀 Features
+- [Feature] Added LOD support (bdae196…)
+- [Feature] Added static batching support (1930fa6…)
 ## v0.8.2 - 2026-02-01
 ### 🐞 Fixes
 - [Patch] fixed crash when loading large number of models (c812695…)
