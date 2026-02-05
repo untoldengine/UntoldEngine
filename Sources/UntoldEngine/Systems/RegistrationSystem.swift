@@ -609,6 +609,8 @@ func removeEntityMesh(entityId: EntityID) {
     scene.remove(component: SkeletonComponent.self, from: entityId)
 
     OctreeSystem.shared.unregisterEntity(entityId)
+
+    MemoryBudgetManager.shared.unregisterMesh(entityId: entityId)
 }
 
 public func setEntitySkeleton(entityId: EntityID, filename: String, withExtension: String) {
@@ -873,6 +875,8 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
     localTransformComponent.boundingBox = boundingBox
 
     OctreeSystem.shared.registerEntity(entityId)
+
+    MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshes: meshes)
 }
 
 func associateMeshesToEntity(entityId: EntityID, meshes: [Mesh]) {
