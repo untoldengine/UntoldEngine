@@ -75,6 +75,9 @@ public func setParent(childId: EntityID, parentId: EntityID, offset: simd_float3
 
     // propagate level changes to descendants
     updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
+
+    // Mark child and descendants as dirty for spatial partitioning
+    OctreeSystem.shared.markDirty(childId)
 }
 
 public func removeParent(childId: EntityID) {
@@ -128,6 +131,9 @@ public func removeParent(childId: EntityID) {
 
     // update all child descendants
     updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
+
+    // Mark child as dirty for spatial partitioning
+    OctreeSystem.shared.markDirty(childId)
 }
 
 public func getEntityChildren(parentId: EntityID) -> [EntityID] {

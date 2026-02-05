@@ -167,6 +167,7 @@ public func translateTo(entityId: EntityID, position: simd_float3) {
 
     localTransformComponent.position = position
     syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
+    OctreeSystem.shared.markDirty(entityId)
 }
 
 public func translateBy(entityId: EntityID, position: simd_float3) {
@@ -187,12 +188,14 @@ public func translateBy(entityId: EntityID, position: simd_float3) {
 
         localTransformComponent.position += position.x * xAxis + position.y * yAxis + position.z * zAxis
         syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
+        OctreeSystem.shared.markDirty(entityId)
         return
     }
 
     localTransformComponent.position.x += position.x
     localTransformComponent.position.y += position.y
     localTransformComponent.position.z += position.z
+    OctreeSystem.shared.markDirty(entityId)
 }
 
 public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
@@ -222,6 +225,7 @@ public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
 
     localTransformComponent.rotation = transformMatrix3nToQuaternion(m: n)
     syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
+    OctreeSystem.shared.markDirty(entityId)
 }
 
 /// Orient an entity so its forward axis points at a target position.
@@ -254,6 +258,7 @@ public func lookAt(entityId: EntityID,
 
     localTransformComponent.rotation = transformMatrix3nToQuaternion(m: rotationMatrix)
     syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
+    OctreeSystem.shared.markDirty(entityId)
 }
 
 public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
@@ -286,6 +291,7 @@ public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
 
     localTransformComponent.rotation = newQ
     syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
+    OctreeSystem.shared.markDirty(entityId)
 }
 
 public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
@@ -299,6 +305,7 @@ public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
 
     localTransformComponent.rotation = q
     syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
+    OctreeSystem.shared.markDirty(entityId)
 }
 
 public func rotateTo(entityId: EntityID, pitch: Float, yaw: Float, roll: Float) {
@@ -311,6 +318,7 @@ public func rotateTo(entityId: EntityID, pitch: Float, yaw: Float, roll: Float) 
 
     localTransformComponent.rotation = q
     syncCameraTransformIfNeeded(entityId: entityId, localTransformComponent: localTransformComponent)
+    OctreeSystem.shared.markDirty(entityId)
 }
 
 public func scaleTo(entityId: EntityID, scale: simd_float3) {
@@ -322,6 +330,7 @@ public func scaleTo(entityId: EntityID, scale: simd_float3) {
     localTransformComponent.scale.x = scale.x
     localTransformComponent.scale.y = scale.y
     localTransformComponent.scale.z = scale.z
+    OctreeSystem.shared.markDirty(entityId)
 }
 
 public func getScale(entityId: EntityID) -> simd_float3 {
@@ -367,4 +376,5 @@ public func applyAxisRotations(entityId: EntityID, axis: simd_float3) {
     let combinedRotation: simd_float4x4 = rotZMatrix * rotYMatrix * rotXMatrix
 
     rotateTo(entityId: entityId, rotation: combinedRotation)
+    // Note: markDirty is called inside rotateTo, no need to call again
 }
