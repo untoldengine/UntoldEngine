@@ -420,4 +420,299 @@ final class StreamingRegionTests: XCTestCase {
 
         wait(for: [expectation], timeout: 5.0)
     }
+
+    // MARK: - Update Load/Unload Tests
+
+    func testUpdateLoadsRegionsBasedOnCameraPositionAndStreamingRadius() async {
+        // Configure manager
+        manager.enabled = true
+        manager.streamingRadius = 50.0
+        manager.checkInterval = 0.0 // No delay for testing
+
+        // Create a region within streaming radius of the camera position
+        let region = StreamingRegion(
+            bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
+            priority: 1,
+            assetURLs: [] // No assets for faster testing
+        )
+        manager.registerRegion(region)
+
+        // Camera at origin - region is at distance 0
+        let cameraPos = simd_float3(5, 5, 5)
+        manager.update(cameraPosition: cameraPos, deltaTime: 1.0)
+
+        // Wait for async loading to complete
+        try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+
+        XCTAssertTrue(manager.isRegionLoaded(id: region.id),
+                      "Region within streaming radius should be loaded")
+    }
+
+    func testUpdateDoesNotLoadRegionsOutsideStreamingRadius() async {
+        manager.enabled = true
+        manager.streamingRadius = 10.0
+        manager.checkInterval = 0.0
+
+        // Create a region far from camera
+        let region = StreamingRegion(
+            bounds: AABB(min: simd_float3(100, 100, 100), max: simd_float3(110, 110, 110)),
+            priority: 1,
+            assetURLs: []
+        )
+        manager.registerRegion(region)
+
+        // Camera at origin - region is far away
+        let cameraPos = simd_float3(0, 0, 0)
+        manager.update(cameraPosition: cameraPos, deltaTime: 1.0)
+
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertFalse(manager.isRegionLoaded(id: region.id),
+                       "Region outside streaming radius should not be loaded")
+    }
+
+    func testUpdateUnloadsRegionsBasedOnCameraPositionAndUnloadRadius() async {
+        manager.enabled = true
+        manager.streamingRadius = 50.0
+        manager.unloadRadius = 60.0
+        manager.checkInterval = 0.0
+
+        // Create and force load a region
+        let region = StreamingRegion(
+            bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
+            priority: 1,
+            assetURLs: []
+        )
+        manager.registerRegion(region)
+
+        // Force load the region first
+        let loaded = await manager.forceLoadRegion(id: region.id)
+        XCTAssertTrue(loaded, "Region should be force loaded")
+
+        // Move camera far away beyond unload radius
+        let farCameraPos = simd_float3(200, 200, 200)
+        manager.update(cameraPosition: farCameraPos, deltaTime: 1.0)
+
+        // Wait for async unloading
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertFalse(manager.isRegionLoaded(id: region.id),
+                       "Region beyond unload radius should be unloaded")
+    }
+
+    func testUpdateDoesNotUnloadRegionsWithinUnloadRadius() async {
+        manager.enabled = true
+        manager.streamingRadius = 50.0
+        manager.unloadRadius = 100.0
+        manager.checkInterval = 0.0
+
+        // Create and force load a region
+        let region = StreamingRegion(
+            bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
+            priority: 1,
+            assetURLs: []
+        )
+        manager.registerRegion(region)
+
+        let loaded = await manager.forceLoadRegion(id: region.id)
+        XCTAssertTrue(loaded)
+
+        // Camera still within unload radius (distance ~70 < 100)
+        let cameraPos = simd_float3(60, 60, 0)
+        manager.update(cameraPosition: cameraPos, deltaTime: 1.0)
+
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertTrue(manager.isRegionLoaded(id: region.id),
+                      "Region within unload radius should remain loaded")
+    }
+
+    // MARK: - Force Load/Unload Tests
+
+    func testForceLoadRegionSuccessfullyLoadsAndSetsStateToLoaded() async {
+        let region = StreamingRegion(
+            bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
+            priority: 1,
+            assetURLs: [] // No assets for testing
+        )
+        manager.registerRegion(region)
+
+        XCTAssertFalse(manager.isRegionLoaded(id: region.id),
+                       "Region should not be loaded initially")
+
+        let success = await manager.forceLoadRegion(id: region.id)
+
+        XCTAssertTrue(success, "forceLoadRegion should return true on success")
+        XCTAssertTrue(manager.isRegionLoaded(id: region.id),
+                      "Region state should be loaded after forceLoadRegion")
+
+        // Verify state through getRegion
+        let loadedRegion = manager.getRegion(id: region.id)
+        XCTAssertEqual(loadedRegion?.state, .loaded,
+                       "Region state should be .loaded")
+    }
+
+    func testForceLoadRegionWithNonexistentId() async {
+        let nonexistentId = UUID()
+
+        let success = await manager.forceLoadRegion(id: nonexistentId)
+
+        XCTAssertFalse(success, "forceLoadRegion should return false for nonexistent region")
+    }
+
+    func testForceUnloadRegionSuccessfullyUnloadsAndSetsStateToUnloaded() async {
+        let region = StreamingRegion(
+            bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
+            priority: 1,
+            assetURLs: []
+        )
+        manager.registerRegion(region)
+
+        // First load the region
+        let loaded = await manager.forceLoadRegion(id: region.id)
+        XCTAssertTrue(loaded, "Region should be loaded first")
+        XCTAssertTrue(manager.isRegionLoaded(id: region.id))
+
+        // Now unload it
+        let success = await manager.forceUnloadRegion(id: region.id)
+
+        XCTAssertTrue(success, "forceUnloadRegion should return true on success")
+        XCTAssertFalse(manager.isRegionLoaded(id: region.id),
+                       "Region should not be loaded after forceUnloadRegion")
+
+        // Verify state through getRegion
+        let unloadedRegion = manager.getRegion(id: region.id)
+        XCTAssertEqual(unloadedRegion?.state, .unloaded,
+                       "Region state should be .unloaded")
+    }
+
+    func testForceUnloadRegionWithNonexistentId() async {
+        let nonexistentId = UUID()
+
+        let success = await manager.forceUnloadRegion(id: nonexistentId)
+
+        // Returns true because isRegionLoaded returns false for nonexistent regions
+        XCTAssertTrue(success, "forceUnloadRegion returns true when region is not loaded")
+    }
+
+    func testForceUnloadRegionThatIsAlreadyUnloaded() async {
+        let region = StreamingRegion(
+            bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
+            priority: 1,
+            assetURLs: []
+        )
+        manager.registerRegion(region)
+
+        // Region is already unloaded, try to unload again
+        let success = await manager.forceUnloadRegion(id: region.id)
+
+        XCTAssertTrue(success, "forceUnloadRegion should succeed for already unloaded region")
+        XCTAssertEqual(manager.getRegion(id: region.id)?.state, .unloaded)
+    }
+
+    // MARK: - Max Concurrent Loads Tests
+
+    func testUpdateRespectsMaxConcurrentLoads() async {
+        manager.enabled = true
+        manager.streamingRadius = 100.0
+        manager.maxConcurrentLoads = 2
+        manager.checkInterval = 0.0
+
+        // Create 5 regions all within streaming radius
+        var regions: [StreamingRegion] = []
+        for i in 0 ..< 5 {
+            let region = StreamingRegion(
+                bounds: AABB(
+                    min: simd_float3(Float(i * 5), 0, 0),
+                    max: simd_float3(Float(i * 5 + 4), 4, 4)
+                ),
+                priority: 1,
+                assetURLs: []
+            )
+            regions.append(region)
+            manager.registerRegion(region)
+        }
+
+        // Camera at origin - all regions are within streaming radius
+        let cameraPos = simd_float3(10, 2, 2)
+        manager.update(cameraPosition: cameraPos, deltaTime: 1.0)
+
+        // Check stats immediately after update to see active loads
+        let stats = manager.getStats()
+
+        // The manager should respect maxConcurrentLoads
+        // Note: Due to async nature, loads may complete quickly with empty assets
+        XCTAssertLessThanOrEqual(stats.activeLoads, manager.maxConcurrentLoads,
+                                 "Active loads should not exceed maxConcurrentLoads")
+    }
+
+    func testMaxConcurrentLoadsWithDifferentValues() async {
+        manager.enabled = true
+        manager.streamingRadius = 200.0
+        manager.checkInterval = 0.0
+
+        // Test with maxConcurrentLoads = 1
+        manager.maxConcurrentLoads = 1
+
+        // Create multiple regions
+        for i in 0 ..< 4 {
+            let region = StreamingRegion(
+                bounds: AABB(
+                    min: simd_float3(Float(i * 10), 0, 0),
+                    max: simd_float3(Float(i * 10 + 5), 5, 5)
+                ),
+                priority: 1,
+                assetURLs: []
+            )
+            manager.registerRegion(region)
+        }
+
+        let cameraPos = simd_float3(20, 2, 2)
+        manager.update(cameraPosition: cameraPos, deltaTime: 1.0)
+
+        let stats = manager.getStats()
+        XCTAssertLessThanOrEqual(stats.activeLoads, 1,
+                                 "Should respect maxConcurrentLoads of 1")
+    }
+
+    func testUpdateLoadsMoreRegionsAsSlotsBecomeAvailable() async {
+        manager.enabled = true
+        manager.streamingRadius = 100.0
+        manager.maxConcurrentLoads = 2
+        manager.checkInterval = 0.0
+
+        // Create 4 regions
+        var regionIds: [UUID] = []
+        for i in 0 ..< 4 {
+            let region = StreamingRegion(
+                bounds: AABB(
+                    min: simd_float3(Float(i * 5), 0, 0),
+                    max: simd_float3(Float(i * 5 + 4), 4, 4)
+                ),
+                priority: 1,
+                assetURLs: []
+            )
+            regionIds.append(region.id)
+            manager.registerRegion(region)
+        }
+
+        let cameraPos = simd_float3(10, 2, 2)
+
+        // First update
+        manager.update(cameraPosition: cameraPos, deltaTime: 1.0)
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        // Second update - should load more regions as slots become available
+        manager.update(cameraPosition: cameraPos, deltaTime: 1.0)
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        // Third update
+        manager.update(cameraPosition: cameraPos, deltaTime: 1.0)
+        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        // Eventually all regions should be loaded
+        let loadedCount = regionIds.filter { manager.isRegionLoaded(id: $0) }.count
+        XCTAssertEqual(loadedCount, 4,
+                       "All regions should eventually be loaded after multiple updates")
+    }
 }
