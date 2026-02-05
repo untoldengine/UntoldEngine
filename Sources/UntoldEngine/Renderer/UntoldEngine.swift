@@ -214,8 +214,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     {
         EngineProfiler.shared.beginFrame()
 
-        MemoryBudgetManager.shared.beginFrame()
-
         // finalize destroys once per frame
         if needsFinalizeDestroys {
             needsFinalizeDestroys = false
@@ -225,11 +223,30 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             }
         }
 
+        MemoryBudgetManager.shared.beginFrame()
+
         // must have a valid camera
         guard CameraSystem.shared.activeCamera != .invalid else {
             handleError(.noActiveCamera)
             EngineProfiler.shared.endFrame()
             return false
+        }
+
+        // Get camera position
+        if let camera = CameraSystem.shared.activeCamera,
+           let transform = scene.get(component: WorldTransformComponent.self, for: camera)
+        {
+            let cameraPos = simd_float3(
+                transform.space.columns.3.x,
+                transform.space.columns.3.y,
+                transform.space.columns.3.z
+            )
+
+            // Update streaming
+            StreamingRegionManager.shared.update(
+                cameraPosition: cameraPos,
+                deltaTime: fixedStep
+            )
         }
 
         frameCount += 1
