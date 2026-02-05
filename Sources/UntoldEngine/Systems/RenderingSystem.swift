@@ -63,6 +63,7 @@ func UpdateRenderingSystem(in view: MTKView) {
             DispatchQueue.main.async {
                 needsFinalizeDestroys = true
                 visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
+                MemoryBudgetManager.shared.markUsed(entityIds: visibleEntityIds)
             }
         }
 

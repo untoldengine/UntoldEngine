@@ -214,6 +214,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     {
         EngineProfiler.shared.beginFrame()
 
+        MemoryBudgetManager.shared.beginFrame()
+
         // finalize destroys once per frame
         if needsFinalizeDestroys {
             needsFinalizeDestroys = false
