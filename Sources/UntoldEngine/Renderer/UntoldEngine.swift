@@ -243,6 +243,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         LODSystem.shared.update(deltaTime: fixedStep)
 
+        OctreeSystem.shared.updateDirtyBounds()
+
         if gameMode == true {
             AnimationSystem.shared.update(timeSinceLastUpdate)
 
