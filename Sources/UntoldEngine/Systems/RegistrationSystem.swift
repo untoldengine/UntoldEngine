@@ -1445,3 +1445,112 @@ public func registerLODComponent(
         renderComponent.mesh = lodLevels[0].mesh
     }
 }
+
+// Geometry Streaming
+/// Enable streaming for an entity that already has a mesh
+/// Call this AFTER setEntityMesh() or setEntityMeshAsync()
+/// For multi-mesh assets, this enables streaming on all child entities with RenderComponents
+public func enableStreaming(
+    entityId: EntityID,
+    streamingRadius: Float = 100.0,
+    unloadRadius: Float = 150.0,
+    priority: Int = 0
+) {
+    // Try direct RenderComponent first (single-mesh entity)
+    if scene.get(component: RenderComponent.self, for: entityId) != nil {
+        enableStreamingForSingleEntity(
+            entityId: entityId,
+            streamingRadius: streamingRadius,
+            unloadRadius: unloadRadius,
+            priority: priority
+        )
+        return
+    }
+
+    // No direct RenderComponent - check children (multi-mesh asset)
+    if let sceneGraph = scene.get(component: ScenegraphComponent.self, for: entityId),
+       !sceneGraph.children.isEmpty
+    {
+        var enabledCount = 0
+        for childId in sceneGraph.children {
+            if scene.get(component: RenderComponent.self, for: childId) != nil {
+                enableStreamingForSingleEntity(
+                    entityId: childId,
+                    streamingRadius: streamingRadius,
+                    unloadRadius: unloadRadius,
+                    priority: priority
+                )
+                enabledCount += 1
+            }
+        }
+        if enabledCount > 0 {
+            Logger.log(message: "✅ Enabled streaming for \(enabledCount) child entities")
+        } else {
+            Logger.logWarning(message: "Cannot enable streaming: entity \(entityId) has no children with RenderComponents")
+        }
+        return
+    }
+
+    Logger.logWarning(message: "Cannot enable streaming: entity \(entityId) has no RenderComponent")
+}
+
+/// Internal helper to enable streaming on a single entity with a RenderComponent
+private func enableStreamingForSingleEntity(
+    entityId: EntityID,
+    streamingRadius: Float,
+    unloadRadius: Float,
+    priority: Int
+) {
+    guard let render = scene.get(component: RenderComponent.self, for: entityId) else {
+        return
+    }
+
+    // Register streaming component
+    registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+
+    guard let streaming = scene.get(component: StreamingComponent.self, for: entityId) else {
+        return
+    }
+
+    // Extract filename info from the render component's URL
+    let url = render.assetURL
+    streaming.assetFilename = url.deletingPathExtension().lastPathComponent
+    streaming.assetExtension = url.pathExtension
+
+    streaming.streamingRadius = streamingRadius
+    streaming.unloadRadius = unloadRadius
+    streaming.priority = priority
+    streaming.state = .loaded // Already has mesh
+
+    // Register with streaming system for tracking
+    GeometryStreamingSystem.shared.registerLoadedEntity(entityId)
+}
+
+/// Create a streaming entity that loads mesh on demand (deferred loading)
+public func createStreamingEntity(
+    filename: String,
+    withExtension ext: String,
+    streamingRadius: Float = 100.0,
+    unloadRadius: Float = 150.0,
+    priority: Int = 0
+) -> EntityID {
+    let entityId = createEntity()
+
+    // Register required components
+    registerTransformComponent(entityId: entityId)
+    registerSceneGraphComponent(entityId: entityId)
+    registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+
+    guard let streaming = scene.get(component: StreamingComponent.self, for: entityId) else {
+        return entityId
+    }
+
+    streaming.assetFilename = filename
+    streaming.assetExtension = ext
+    streaming.streamingRadius = streamingRadius
+    streaming.unloadRadius = unloadRadius
+    streaming.priority = priority
+    streaming.state = .unloaded // Will load when camera is near
+
+    return entityId
+}
