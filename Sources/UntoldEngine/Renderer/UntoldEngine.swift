@@ -242,8 +242,14 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 transform.space.columns.3.z
             )
 
-            // Update streaming
+            // Update streaming region manager
             StreamingRegionManager.shared.update(
+                cameraPosition: cameraPos,
+                deltaTime: fixedStep
+            )
+
+            // Update geometry streaming (component-based)
+            GeometryStreamingSystem.shared.update(
                 cameraPosition: cameraPos,
                 deltaTime: fixedStep
             )

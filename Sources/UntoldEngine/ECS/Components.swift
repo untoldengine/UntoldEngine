@@ -309,6 +309,64 @@ public class StaticBatchComponent: Component {
     public required init() {}
 }
 
+// MARK: Geometry Streaming
+
+/// State of an entity's streamed mesh
+public enum MeshStreamingState: String {
+    case unloaded // No mesh data loaded
+    case loading // Async load in progress
+    case loaded // Mesh is fully loaded
+    case unloading // Being unloaded
+}
+
+/// Component that marks an entity for geometry streaming
+public class StreamingComponent: Component {
+    /// Distance from camera at which mesh starts loading
+    public var streamingRadius: Float = 100.0
+
+    /// Distance from camera beyond which mesh unloads
+    public var unloadRadius: Float = 150.0
+
+    /// Higher priority entities load first (default: 0)
+    public var priority: Int = 0
+
+    /// Filename of the asset (without extension)
+    public var assetFilename: String = ""
+
+    /// File extension (e.g., "usdz")
+    public var assetExtension: String = ""
+
+    /// Optional: specific mesh name within the asset
+    public var assetName: String?
+
+    /// Current streaming state
+    public var state: MeshStreamingState = .unloaded
+
+    /// Frame when entity was last visible (for LRU eviction)
+    public var lastVisibleFrame: Int = 0
+
+    /// Task handle for cancellation
+    var loadTask: Task<Void, Never>?
+
+    public required init() {}
+
+    /// Convenience initializer
+    public convenience init(
+        filename: String,
+        withExtension ext: String,
+        streamingRadius: Float = 100.0,
+        unloadRadius: Float = 150.0,
+        priority: Int = 0
+    ) {
+        self.init()
+        assetFilename = filename
+        assetExtension = ext
+        self.streamingRadius = streamingRadius
+        self.unloadRadius = unloadRadius
+        self.priority = priority
+    }
+}
+
 // MARK: - USC Scripting Component
 
 public class ScriptComponent: Component, Codable {
