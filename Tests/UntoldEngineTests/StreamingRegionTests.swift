@@ -128,18 +128,18 @@ final class StreamingRegionTests: XCTestCase {
 
     func testStreamingRegionInitialization() {
         let bounds = AABB(min: simd_float3(0, 0, 0), max: simd_float3(100, 50, 100))
-        let urls = [URL(fileURLWithPath: "/test/asset.usdz")]
+        let assets = [AssetReference(filename: "asset", withExtension: "usdz")]
         let memorySize = 1024 * 1024 // 1 MB
 
         let region = StreamingRegion(
             bounds: bounds,
             priority: 5,
-            assetURLs: urls,
+            assets: assets,
             estimatedMemorySize: memorySize
         )
 
         XCTAssertEqual(region.priority, 5)
-        XCTAssertEqual(region.assetURLs.count, 1)
+        XCTAssertEqual(region.assets.count, 1)
         XCTAssertEqual(region.estimatedMemorySize, memorySize)
         XCTAssertEqual(region.state, .unloaded)
         XCTAssertTrue(region.loadedEntities.isEmpty)
@@ -183,7 +183,10 @@ final class StreamingRegionTests: XCTestCase {
         XCTAssertEqual(stats.totalRegions, 0)
         XCTAssertEqual(stats.loadedRegions, 0)
         XCTAssertEqual(stats.loadingRegions, 0)
-        XCTAssertEqual(stats.totalMemoryUsed, 0)
+        XCTAssertEqual(stats.estimatedMemory, 0)
+        XCTAssertEqual(stats.regionMemory, 0)
+        XCTAssertEqual(stats.totalRootEntities, 0)
+        XCTAssertEqual(stats.totalEntitiesWithChildren, 0)
         XCTAssertEqual(stats.activeLoads, 0)
     }
 
@@ -312,29 +315,29 @@ final class StreamingRegionTests: XCTestCase {
         let region = StreamingRegion(
             bounds: AABB(min: .zero, max: simd_float3(10, 10, 10)),
             priority: 1,
-            assetURLs: []
+            assets: []
         )
 
         manager.registerRegion(region)
 
-        XCTAssertTrue(region.assetURLs.isEmpty,
+        XCTAssertTrue(region.assets.isEmpty,
                       "Region should handle empty asset list")
     }
 
     func testRegionWithMultipleAssets() {
-        let urls = [
-            URL(fileURLWithPath: "/test/asset1.usdz"),
-            URL(fileURLWithPath: "/test/asset2.usdz"),
-            URL(fileURLWithPath: "/test/asset3.usdz"),
+        let assets = [
+            AssetReference(filename: "asset1", withExtension: "usdz"),
+            AssetReference(filename: "asset2", withExtension: "usdz"),
+            AssetReference(filename: "asset3", withExtension: "usdz"),
         ]
 
         let region = StreamingRegion(
             bounds: AABB(min: .zero, max: simd_float3(10, 10, 10)),
             priority: 1,
-            assetURLs: urls
+            assets: assets
         )
 
-        XCTAssertEqual(region.assetURLs.count, 3,
+        XCTAssertEqual(region.assets.count, 3,
                        "Region should handle multiple assets")
     }
 
@@ -433,7 +436,7 @@ final class StreamingRegionTests: XCTestCase {
         let region = StreamingRegion(
             bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
             priority: 1,
-            assetURLs: [] // No assets for faster testing
+            assets: [] // No assets for faster testing
         )
         manager.registerRegion(region)
 
@@ -457,7 +460,7 @@ final class StreamingRegionTests: XCTestCase {
         let region = StreamingRegion(
             bounds: AABB(min: simd_float3(100, 100, 100), max: simd_float3(110, 110, 110)),
             priority: 1,
-            assetURLs: []
+            assets: []
         )
         manager.registerRegion(region)
 
@@ -481,7 +484,7 @@ final class StreamingRegionTests: XCTestCase {
         let region = StreamingRegion(
             bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
             priority: 1,
-            assetURLs: []
+            assets: []
         )
         manager.registerRegion(region)
 
@@ -510,7 +513,7 @@ final class StreamingRegionTests: XCTestCase {
         let region = StreamingRegion(
             bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
             priority: 1,
-            assetURLs: []
+            assets: []
         )
         manager.registerRegion(region)
 
@@ -533,7 +536,7 @@ final class StreamingRegionTests: XCTestCase {
         let region = StreamingRegion(
             bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
             priority: 1,
-            assetURLs: [] // No assets for testing
+            assets: [] // No assets for testing
         )
         manager.registerRegion(region)
 
@@ -564,7 +567,7 @@ final class StreamingRegionTests: XCTestCase {
         let region = StreamingRegion(
             bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
             priority: 1,
-            assetURLs: []
+            assets: []
         )
         manager.registerRegion(region)
 
@@ -599,7 +602,7 @@ final class StreamingRegionTests: XCTestCase {
         let region = StreamingRegion(
             bounds: AABB(min: simd_float3(0, 0, 0), max: simd_float3(10, 10, 10)),
             priority: 1,
-            assetURLs: []
+            assets: []
         )
         manager.registerRegion(region)
 
@@ -627,7 +630,7 @@ final class StreamingRegionTests: XCTestCase {
                     max: simd_float3(Float(i * 5 + 4), 4, 4)
                 ),
                 priority: 1,
-                assetURLs: []
+                assets: []
             )
             regions.append(region)
             manager.registerRegion(region)
@@ -662,7 +665,7 @@ final class StreamingRegionTests: XCTestCase {
                     max: simd_float3(Float(i * 10 + 5), 5, 5)
                 ),
                 priority: 1,
-                assetURLs: []
+                assets: []
             )
             manager.registerRegion(region)
         }
@@ -690,7 +693,7 @@ final class StreamingRegionTests: XCTestCase {
                     max: simd_float3(Float(i * 5 + 4), 4, 4)
                 ),
                 priority: 1,
-                assetURLs: []
+                assets: []
             )
             regionIds.append(region.id)
             manager.registerRegion(region)
