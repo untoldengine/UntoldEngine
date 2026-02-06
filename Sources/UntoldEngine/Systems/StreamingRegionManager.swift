@@ -178,22 +178,18 @@ extension StreamingRegionManager {
 
         // Load all assets in this region
         var loadedEntities: [EntityID] = []
-        for url in region.assetURLs {
+        for asset in region.assets {
             let entity = createEntity()
-            let filename = url.deletingPathExtension().lastPathComponent
-            let ext = url.pathExtension
-            await setEntityMeshAsync(entityId: entity, filename: filename, withExtension: ext)
+            await setEntityMeshAsync(entityId: entity, filename: asset.filename, withExtension: asset.fileExtension)
             loadedEntities.append(entity)
 
-            // Register memory usage
-            if let rc = scene.get(component: RenderComponent.self, for: entity) {
-                let meshSize = calculateMeshArrayMemory(rc.mesh)
-                let textureSize = calculateMeshArrayTotalMemory(rc.mesh) - meshSize
-                MemoryBudgetManager.shared.registerMesh(
-                    entityId: entity,
-                    meshSizeBytes: meshSize,
-                    textureSizeBytes: textureSize
-                )
+            // Register memory usage for root entity
+            registerEntityMemory(entityId: entity)
+
+            // Register memory usage for all child entities (multi-mesh assets)
+            let children = getEntityChildren(parentId: entity)
+            for childId in children {
+                registerEntityMemory(entityId: childId)
             }
         }
 
@@ -213,6 +209,23 @@ extension StreamingRegionManager {
         await loadRegion(id: id)
         return isRegionLoaded(id: id)
     }
+
+    /// Register an entity's mesh memory with the budget manager
+    private func registerEntityMemory(entityId: EntityID) {
+        guard let rc = scene.get(component: RenderComponent.self, for: entityId),
+              !rc.mesh.isEmpty
+        else {
+            return
+        }
+
+        let meshSize = calculateMeshArrayMemory(rc.mesh)
+        let textureSize = calculateMeshArrayTotalMemory(rc.mesh) - meshSize
+        MemoryBudgetManager.shared.registerMesh(
+            entityId: entityId,
+            meshSizeBytes: meshSize,
+            textureSizeBytes: textureSize
+        )
+    }
 }
 
 // MARK: - Unloading
@@ -230,9 +243,18 @@ extension StreamingRegionManager {
         regions[id] = region
         regionLock.unlock()
 
-        // Destroy entities and unregister memory
+        // Unregister memory for all entities (including children) before destroying
         for entity in region.loadedEntities {
+            // Unregister children first (multi-mesh assets)
+            let children = getEntityChildren(parentId: entity)
+            for childId in children {
+                MemoryBudgetManager.shared.unregisterMesh(entityId: childId)
+            }
+
+            // Unregister root entity
             MemoryBudgetManager.shared.unregisterMesh(entityId: entity)
+
+            // Destroy entity (this also destroys children)
             destroyEntity(entityId: entity)
         }
 
@@ -256,11 +278,22 @@ extension StreamingRegionManager {
 // MARK: - Stats
 
 public struct StreamingStats {
+    // Region counts
     public var totalRegions: Int
     public var loadedRegions: Int
     public var loadingRegions: Int
-    public var totalMemoryUsed: Int
     public var activeLoads: Int
+
+    // Entity counts (including children)
+    public var totalRootEntities: Int
+    public var totalEntitiesWithChildren: Int
+
+    // Region-specific memory (only streaming region entities)
+    public var regionMemory: Int // Actual memory used by streaming region entities
+    public var estimatedMemory: Int // User-specified estimate from region.estimatedMemorySize
+
+    // Total engine memory (all entities, not just streaming)
+    public var totalEngineMemory: Int // From MemoryBudgetManager (entire engine)
 }
 
 public extension StreamingRegionManager {
@@ -268,28 +301,62 @@ public extension StreamingRegionManager {
         regionLock.lock()
         defer { regionLock.unlock() }
 
-        var loaded = 0
-        var loading = 0
-        var totalMemory = 0
+        var loadedCount = 0
+        var loadingCount = 0
+        var estimatedMemory = 0
+        var rootEntityCount = 0
+        var totalEntityCount = 0
+        var regionMemory = 0
 
         for region in regions.values {
             switch region.state {
             case .loaded:
-                loaded += 1
-                totalMemory += region.estimatedMemorySize
+                loadedCount += 1
+                estimatedMemory += region.estimatedMemorySize
+
+                // Count root entities and calculate region memory
+                rootEntityCount += region.loadedEntities.count
+
+                // Count all entities including children and sum their memory
+                for entity in region.loadedEntities {
+                    totalEntityCount += 1
+
+                    // Add root entity memory
+                    if let size = MemoryBudgetManager.shared.getMemorySize(for: entity) {
+                        regionMemory += size
+                    }
+
+                    // Add children memory
+                    let children = getEntityChildren(parentId: entity)
+                    totalEntityCount += children.count
+                    for childId in children {
+                        if let size = MemoryBudgetManager.shared.getMemorySize(for: childId) {
+                            regionMemory += size
+                        }
+                    }
+                }
+
             case .loading:
-                loading += 1
+                loadingCount += 1
+
             default:
                 break
             }
         }
 
+        // Get total engine memory from MemoryBudgetManager
+        let memStats = MemoryBudgetManager.shared.getStats()
+
         return StreamingStats(
             totalRegions: regions.count,
-            loadedRegions: loaded,
-            loadingRegions: loading,
-            totalMemoryUsed: totalMemory,
-            activeLoads: activeLoadTasks.count
+            loadedRegions: loadedCount,
+            loadingRegions: loadingCount,
+            activeLoads: activeLoadTasks.count,
+            totalRootEntities: rootEntityCount,
+            totalEntitiesWithChildren: totalEntityCount,
+            regionMemory: regionMemory,
+            estimatedMemory: estimatedMemory,
+            totalEngineMemory: memStats.meshMemoryUsed + memStats.textureMemoryUsed
         )
     }
 

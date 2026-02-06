@@ -17,12 +17,23 @@ public enum StreamingState: String, Codable {
     case unloading
 }
 
+/// Reference to an asset by filename and extension
+public struct AssetReference: Equatable, Hashable {
+    public let filename: String
+    public let fileExtension: String
+
+    public init(filename: String, withExtension ext: String) {
+        self.filename = filename
+        fileExtension = ext
+    }
+}
+
 /// A region of the world that can be streamed in/out
 public struct StreamingRegion: Identifiable {
     public let id: UUID
     public let bounds: AABB
     public let priority: Int // Higher = load first
-    public let assetURLs: [URL] // What to load
+    public let assets: [AssetReference] // What to load
     public var state: StreamingState
     public var loadedEntities: [EntityID] // Created entities
     public var estimatedMemorySize: Int // Bytes
@@ -31,13 +42,13 @@ public struct StreamingRegion: Identifiable {
         id: UUID = UUID(),
         bounds: AABB,
         priority: Int = 0,
-        assetURLs: [URL] = [],
+        assets: [AssetReference] = [],
         estimatedMemorySize: Int = 0
     ) {
         self.id = id
         self.bounds = bounds
         self.priority = priority
-        self.assetURLs = assetURLs
+        self.assets = assets
         state = .unloaded
         loadedEntities = []
         self.estimatedMemorySize = estimatedMemorySize
