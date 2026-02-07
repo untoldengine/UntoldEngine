@@ -1253,6 +1253,9 @@ public func addLODLevel(
             meshes[index].skin = skin
         }
 
+        // Cache meshes for streaming reload support
+        MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: [meshes])
+
         // Create LOD level
         let lodLevel = LODLevel(
             mesh: meshes,
@@ -1305,6 +1308,56 @@ public func addLODLevel(
             Logger.log(message: "✅ Added LOD level \(lodIndex) to entity")
             completion?(true)
         }
+    }
+}
+
+/// Add multiple LOD levels to an entity with a single completion handler.
+/// This is useful when you need to wait for all LOD levels to load before performing
+/// additional setup (e.g., enabling static batching).
+///
+/// - Parameters:
+///   - entityId: The entity to add LOD levels to
+///   - levels: Array of tuples containing (lodIndex, fileName, withExtension, maxDistance, screenPercentage)
+///   - completion: Called when all LOD levels have finished loading. Returns true only if ALL levels loaded successfully.
+///
+/// Example:
+/// ```swift
+/// addLODLevels(entityId: tree, levels: [
+///     (0, "tree_LOD0", "usdz", 50.0, 0.0),
+///     (1, "tree_LOD1", "usdz", 100.0, 0.0),
+///     (2, "tree_LOD2", "usdz", 200.0, 0.0)
+/// ]) { success in
+///     if success {
+///         setEntityStaticBatchComponent(entityId: tree)
+///         generateBatches()
+///     }
+/// }
+/// ```
+public func addLODLevels(
+    entityId: EntityID,
+    levels: [(lodIndex: Int, fileName: String, withExtension: String, maxDistance: Float, screenPercentage: Float)],
+    completion: @escaping (Bool) -> Void
+) {
+    let group = DispatchGroup()
+    var allSuccess = true
+
+    for level in levels {
+        group.enter()
+        addLODLevel(
+            entityId: entityId,
+            lodIndex: level.lodIndex,
+            fileName: level.fileName,
+            withExtension: level.withExtension,
+            maxDistance: level.maxDistance,
+            screenPercentage: level.screenPercentage
+        ) { success in
+            if !success { allSuccess = false }
+            group.leave()
+        }
+    }
+
+    group.notify(queue: .main) {
+        completion(allSuccess)
     }
 }
 

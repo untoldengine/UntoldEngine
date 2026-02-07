@@ -35,6 +35,9 @@ public class LODSystem {
     private func updateEntityLOD(entityId: EntityID, cameraPosition: simd_float3, deltaTime: Float) {
         guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else { return }
 
+        // Skip if no LOD levels loaded yet (async loading may still be in progress)
+        guard !lodComponent.lodLevels.isEmpty else { return }
+
         // Calculate distance
         let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
 

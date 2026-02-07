@@ -126,18 +126,28 @@ public class GeometryStreamingSystem {
         streaming.state = .loading
         activeLoads.insert(entityId)
 
+        // Check if entity has LOD component
+        let hasLOD = scene.get(component: LODComponent.self, for: entityId) != nil
+
         let filename = streaming.assetFilename
         let ext = streaming.assetExtension
         let assetName = streaming.assetName
 
         let task = Task {
-            // Load mesh asynchronously - returns true on success
-            let success = await self.loadMeshAsync(
-                entityId: entityId,
-                filename: filename,
-                withExtension: ext,
-                assetName: assetName
-            )
+            var success: Bool
+
+            if hasLOD {
+                // LOD entity: reload all LOD levels and set correct one for current distance
+                success = await self.reloadLODEntity(entityId: entityId)
+            } else {
+                // Regular entity: load single mesh
+                success = await self.loadMeshAsync(
+                    entityId: entityId,
+                    filename: filename,
+                    withExtension: ext,
+                    assetName: assetName
+                )
+            }
 
             // Update state on completion
             await MainActor.run {
@@ -171,6 +181,109 @@ public class GeometryStreamingSystem {
         }
 
         streaming.loadTask = task
+    }
+
+    /// Reload all LOD levels for an LOD entity and set display to correct LOD for current distance
+    private func reloadLODEntity(entityId: EntityID) async -> Bool {
+        // Gather LOD level info on main thread
+        let lodInfo: [(index: Int, url: URL, assetName: String, maxDistance: Float)] = await MainActor.run {
+            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+                return []
+            }
+            var info: [(Int, URL, String, Float)] = []
+            for (index, level) in lodComponent.lodLevels.enumerated() {
+                if let url = level.url {
+                    let name = level.assetName ?? url.deletingPathExtension().lastPathComponent
+                    info.append((index, url, name, level.maxDistance))
+                }
+            }
+            return info
+        }
+
+        guard !lodInfo.isEmpty else {
+            Logger.logError(message: "LOD entity has no LOD levels with URLs")
+            return false
+        }
+
+        // Load all LOD level meshes
+        var loadedMeshes: [Int: [Mesh]] = [:]
+        var anySuccess = false
+
+        for (lodIndex, url, assetName, _) in lodInfo {
+            if let meshes = await MeshResourceManager.shared.loadMesh(url: url, meshName: assetName) {
+                // Retain for this entity
+                MeshResourceManager.shared.retain(url: url, meshName: assetName, for: entityId)
+                loadedMeshes[lodIndex] = meshes
+                anySuccess = true
+            } else {
+                Logger.logWarning(message: "Failed to reload LOD\(lodIndex) for entity \(entityId)")
+            }
+        }
+
+        guard anySuccess else {
+            Logger.logError(message: "Failed to reload any LOD levels for entity \(entityId)")
+            return false
+        }
+
+        // Update components on main thread
+        await MainActor.run {
+            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId),
+                  let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
+            else { return }
+
+            // Update all LOD level meshes
+            let skin = Skin()
+            for (lodIndex, meshes) in loadedMeshes {
+                guard lodIndex < lodComponent.lodLevels.count else { continue }
+
+                var updatedMeshes = meshes
+                for i in updatedMeshes.indices {
+                    if updatedMeshes[i].skin == nil {
+                        updatedMeshes[i].skin = skin
+                    }
+                }
+
+                lodComponent.lodLevels[lodIndex].mesh = updatedMeshes
+                lodComponent.lodLevels[lodIndex].residencyState = .resident
+            }
+
+            // Calculate camera distance to select correct LOD
+            var selectedLOD = lodComponent.lodLevels.count - 1 // Default to lowest detail
+
+            if let camera = CameraSystem.shared.activeCamera,
+               let cameraComponent = scene.get(component: CameraComponent.self, for: camera),
+               let transform = scene.get(component: WorldTransformComponent.self, for: entityId),
+               let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+            {
+                let cameraPos = cameraComponent.localPosition
+                let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
+                let worldCenter = transform.space * simd_float4(center, 1.0)
+                let distance = simd_distance(cameraPos, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
+
+                // Find appropriate LOD for this distance
+                for (index, level) in lodComponent.lodLevels.enumerated() {
+                    if distance <= level.maxDistance, lodComponent.isLODResident(index) {
+                        selectedLOD = index
+                        break
+                    }
+                }
+            }
+
+            // Set render component to show the correct LOD
+            if selectedLOD < lodComponent.lodLevels.count, lodComponent.isLODResident(selectedLOD) {
+                let lodLevel = lodComponent.lodLevels[selectedLOD]
+                renderComponent.mesh = lodLevel.mesh
+                if let url = lodLevel.url {
+                    renderComponent.assetURL = url
+                    renderComponent.assetName = lodLevel.assetName ?? url.deletingPathExtension().lastPathComponent
+                }
+                lodComponent.currentLOD = selectedLOD
+                lodComponent.desiredLOD = selectedLOD
+                lodComponent.isUsingFallback = false
+            }
+        }
+
+        return true
     }
 
     /// Load mesh asynchronously - returns true on success, false on failure
@@ -259,6 +372,14 @@ public class GeometryStreamingSystem {
         // Clear render component mesh (but don't call cleanUp - cache owns it)
         if let render = scene.get(component: RenderComponent.self, for: entityId) {
             render.mesh = [] // Just clear reference, don't clean up GPU resources
+        }
+
+        // If entity has LOD, clear all LOD level meshes
+        if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
+            for i in lodComponent.lodLevels.indices {
+                lodComponent.lodLevels[i].mesh = []
+                lodComponent.lodLevels[i].residencyState = .notResident
+            }
         }
 
         // Unregister from memory budget

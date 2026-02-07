@@ -185,6 +185,8 @@ public class BatchingSystem {
 
     // Generate batches for all static entities in the scene
     public func generateBatches() {
+        Logger.log(message: "🔨 Starting static batch generation...")
+
         // Update all world transforms before batching
         // (batching needs accurate world positions)
         traverseSceneGraph()
@@ -196,6 +198,8 @@ public class BatchingSystem {
         let renderId = getComponentId(for: RenderComponent.self)
         let staticBatchId = getComponentId(for: StaticBatchComponent.self)
         let entities = queryEntitiesWithComponentIds([transformId, renderId, staticBatchId], in: scene)
+
+        Logger.log(message: "📋 Found \(entities.count) entities with StaticBatchComponent")
 
         // Group meshes by material AND LOD level
         var materialGroups: [String: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4, lodIndex: Int)]] = [:]
@@ -211,7 +215,9 @@ public class BatchingSystem {
             else { continue }
 
             // Skip entities with empty meshes (not yet loaded by streaming)
-            if renderComponent.mesh.isEmpty { continue }
+            if renderComponent.mesh.isEmpty {
+                continue
+            }
 
             // Skip entities with animations
             if scene.get(component: SkeletonComponent.self, for: entityId) != nil { continue }
@@ -224,12 +230,15 @@ public class BatchingSystem {
             // Get current LOD index (0 if no LOD component)
             let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
 
+            // Get the source asset URL to ensure we only batch textures from the same file
+            let assetURL = renderComponent.assetURL
+
             // Process each mesh in the render component
             for (meshIndex, mesh) in renderComponent.mesh.enumerated() {
                 for (submeshIndex, submesh) in mesh.submeshes.enumerated() {
                     guard let material = submesh.material else { continue }
 
-                    let matHash = getMaterialHash(material: material)
+                    let matHash = getMaterialHash(material: material, assetURL: assetURL)
                     // Include LOD in batch key to avoid mixing different LOD levels
                     let batchKey = "\(matHash)_LOD\(lodIndex)"
                     let finalTransform = simd_mul(worldTransform.space, mesh.localSpace)
@@ -248,12 +257,16 @@ public class BatchingSystem {
             }
         }
 
+        Logger.log(message: "📦 Found \(materialGroups.count) material groups")
+
         // Create batch groups
         for (batchKey, meshGroup) in materialGroups {
             // Only batch if we have multiple meshes with same material+LOD
             if meshGroup.count < 2 {
                 continue
             }
+
+            Logger.log(message: "🔗 Batching \(meshGroup.count) meshes with material: \(batchKey.prefix(20))...")
 
             // Convert to format expected by createBatchGroup
             let convertedGroup = meshGroup.map { item in
@@ -275,6 +288,10 @@ public class BatchingSystem {
                 }
             }
         }
+
+        Logger.log(message: "✅ Created \(batchGroups.count) batch groups")
+        let totalBatchedMeshes = batchGroups.reduce(0) { $0 + $1.entityIds.count }
+        Logger.log(message: "📊 Batching Stats: \(totalBatchedMeshes) meshes → \(batchGroups.count) draw calls")
     }
 
     private func createBatchGroup(
@@ -432,14 +449,22 @@ public class BatchingSystem {
     }
 
     // Generate a hash representing material properties for batching compatibility
-    private func getMaterialHash(material: Material) -> String {
+    // assetURL is included to ensure textures from different USDZ files don't incorrectly batch together
+    private func getMaterialHash(material: Material, assetURL: URL? = nil) -> String {
         var components: [String] = []
 
+        // Include asset URL to scope batching to the same source file
+        // This prevents "embedded_Basecolor_map" from dungeon.usdz batching with
+        // "embedded_Basecolor_map" from chair.usdz (different actual textures)
+        components.append(assetURL?.absoluteString ?? "unknown_asset")
+
         // Texture URLs (or "none" if no texture)
-        components.append(material.baseColorURL?.absoluteString ?? "none")
-        components.append(material.roughnessURL?.absoluteString ?? "none")
-        components.append(material.metallicURL?.absoluteString ?? "none")
-        components.append(material.normalURL?.absoluteString ?? "none")
+        // Normalize embedded URLs to use just the texture filename for batching
+        // e.g., "usdz-embedded://MeshName/TextureName" -> "TextureName"
+        components.append(normalizeTextureURL(material.baseColorURL))
+        components.append(normalizeTextureURL(material.roughnessURL))
+        components.append(normalizeTextureURL(material.metallicURL))
+        components.append(normalizeTextureURL(material.normalURL))
 
         // Base color value (important for meshes without textures)
         components.append(String(format: "%.2f,%.2f,%.2f,%.2f",
@@ -458,6 +483,23 @@ public class BatchingSystem {
         components.append("\(material.interactWithLight)")
 
         return components.joined(separator: "|")
+    }
+
+    // Normalize texture URL for batching - extracts just the texture filename
+    // This allows meshes with the same texture but different embedded paths to batch together
+    private func normalizeTextureURL(_ url: URL?) -> String {
+        guard let url else { return "none" }
+
+        let urlString = url.absoluteString
+
+        // Handle usdz-embedded URLs: "usdz-embedded://MeshName/TextureName" -> "TextureName"
+        if urlString.hasPrefix("usdz-embedded://") {
+            // Extract just the texture filename (last path component)
+            return url.lastPathComponent
+        }
+
+        // For regular file URLs, use the full path (they should already be shared)
+        return urlString
     }
 
     // Check if two materials are compatible for batching

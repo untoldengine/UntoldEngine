@@ -927,7 +927,7 @@ public enum RenderPasses {
 
             var hasNormal: Bool = (material.normal.texture != nil)
             renderEncoder.setFragmentBytes(&hasNormal, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentHasNormalTextureIndex.rawValue))
-            Logger.log(message: "  🎨 Material baseColor: \(material.baseColorValue)")
+            // Logger.log(message: "  🎨 Material baseColor: \(material.baseColorValue)")
             var materialParameters = MaterialParametersUniform()
             materialParameters.specular = material.specular
             materialParameters.specularTint = material.specularTint
@@ -962,7 +962,7 @@ public enum RenderPasses {
             renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
 
             // SINGLE DRAW CALL FOR ENTIRE BATCH
-            Logger.log(message: "✅ Drawing batch \(batchGroup.id): \(batchGroup.indexCount) indices, \(batchGroup.vertexCount) vertices")
+            // Logger.log(message: "✅ Drawing batch \(batchGroup.id): \(batchGroup.indexCount) indices, \(batchGroup.vertexCount) vertices")
             renderEncoder.drawIndexedPrimitives(
                 type: .triangle,
                 indexCount: batchGroup.indexCount,
