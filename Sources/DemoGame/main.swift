@@ -134,29 +134,13 @@
                 }
             } else {
                 // --- Option 2: Build the exact same scene in code ---
-                buildSceneInCode()
+                //buildSceneInCode()
+                //setupLOD()
+                //setupBatching()
+                setupLODWithBatching()
             }
 
-            // -----------------------------------------------------
-            // Extend behavior by registering custom components
-            // (attach data to specific entities)
-            // -----------------------------------------------------
-            if let ball = findEntity(name: "ball") {
-                registerComponent(entityId: ball, componentType: BallComponent.self)
-            }
-
-            if let player = findEntity(name: "player") {
-                registerComponent(entityId: player, componentType: DribblinComponent.self)
-            }
-
-            registerComponent(entityId: findGameCamera(), componentType: CameraFollowComponent.self)
-
-            // -----------------------------------------------------
-            // Register systems (run every frame)
-            // -----------------------------------------------------
-            registerCustomSystem(ballSystemUpdate)
-            registerCustomSystem(dribblingSystemUpdate)
-            registerCustomSystem(cameraFollowUpdate)
+            
 
             // Input (WASD) for the demo
             InputSystem.shared.registerKeyboardEvents()
@@ -195,6 +179,91 @@
             // Camera + lighting
             moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
             ambientIntensity = 0.4
+            
+            
+            // -----------------------------------------------------
+            // Extend behavior by registering custom components
+            // (attach data to specific entities)
+            // -----------------------------------------------------
+            if let ball = findEntity(name: "ball") {
+                registerComponent(entityId: ball, componentType: BallComponent.self)
+            }
+
+            if let player = findEntity(name: "player") {
+                registerComponent(entityId: player, componentType: DribblinComponent.self)
+            }
+
+            registerComponent(entityId: findGameCamera(), componentType: CameraFollowComponent.self)
+
+            // -----------------------------------------------------
+            // Register systems (run every frame)
+            // -----------------------------------------------------
+            registerCustomSystem(ballSystemUpdate)
+            registerCustomSystem(dribblingSystemUpdate)
+            registerCustomSystem(cameraFollowUpdate)
+        }
+        
+        private func setupLOD(){
+            // Create entity
+            let tree = createEntity()
+
+            // Add LOD component
+            setEntityLodComponent(entityId: tree)
+
+            // Add LOD levels (from highest to lowest detail)
+            addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "usdz", maxDistance: 50.0)
+            addLODLevel(entityId: tree, lodIndex: 1, fileName: "tree_LOD1", withExtension: "usdz", maxDistance: 100.0)
+            addLODLevel(entityId: tree, lodIndex: 2, fileName: "tree_LOD2", withExtension: "usdz", maxDistance: 200.0)
+            addLODLevel(entityId: tree, lodIndex: 3, fileName: "tree_LOD3", withExtension: "usdz", maxDistance: 400.0)
+        }
+       
+        private func setupBatching(){
+            let stadium = createEntity()
+            setEntityMeshAsync(entityId: stadium, filename: "tree_LOD0", withExtension: "usdz") { success in
+                if success {
+                    print("Scene loaded successfully")
+                    
+                    // Mark as static AFTER mesh is loaded
+                    setEntityStaticBatchComponent(entityId: stadium)
+                    
+                    // Enable batching system
+                    enableBatching(true)
+                    
+                    // Generate batches
+                    generateBatches()
+                }
+            }
+        }
+        
+        
+        private func setupLODWithBatching() {
+            // Create multiple trees with LOD + Batching (no streaming)
+            for i in 0..<1 {
+                let tree = createEntity()
+                setEntityName(entityId: tree, name: "Tree_\(i)")
+                
+                // Position the tree
+                let x = Float(i % 5) * 10.0
+                let z = Float(i / 5) * 10.0
+                translateTo(entityId: tree, position: simd_float3(x, 0, z))
+                
+                // 1. Add LOD component
+                setEntityLodComponent(entityId: tree)
+                
+                // 2. Load all LOD levels upfront (no streaming)
+                addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "usdz", maxDistance: 50.0)
+                addLODLevel(entityId: tree, lodIndex: 1, fileName: "tree_LOD1", withExtension: "usdz", maxDistance: 100.0)
+                addLODLevel(entityId: tree, lodIndex: 2, fileName: "tree_LOD2", withExtension: "usdz", maxDistance: 200.0)
+                
+                // 3. Mark as static for batching
+                setEntityStaticBatchComponent(entityId: tree)
+            }
+            
+            // 4. Enable batching and generate
+            enableBatching(true)
+            generateBatches()
+            
+            print("20 trees configured with LOD + Batching")
         }
 
         func update(deltaTime _: Float) {
@@ -207,6 +276,17 @@
             if gameMode == false { return }
 
             // Handle input here
+            
+            // Always allow camera WASDQE input, regardless of editor state
+            let input = (
+                w: InputSystem.shared.keyState.wPressed,
+                a: InputSystem.shared.keyState.aPressed,
+                s: InputSystem.shared.keyState.sPressed,
+                d: InputSystem.shared.keyState.dPressed,
+                q: InputSystem.shared.keyState.qPressed,
+                e: InputSystem.shared.keyState.ePressed
+            )
+            moveCameraWithInput(entityId: findGameCamera(), input: input, speed: 10, deltaTime: 0.1)
         }
     }
 

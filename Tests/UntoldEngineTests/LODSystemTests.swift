@@ -373,4 +373,73 @@ final class LODSystemTests: XCTestCase {
         let entityIndex = getEntityIndex(testEntity)
         XCTAssertTrue(scene.entities[Int(entityIndex)].freed, "Entity should be freed after destruction")
     }
+
+    // MARK: - LODLevel assetName Tests
+
+    func testLODLevelStoresAssetName() {
+        // Given: Create a LODLevel with explicit assetName
+        let testURL = URL(fileURLWithPath: "/path/to/model.usdz")
+        let lodLevel = LODLevel(
+            mesh: [],
+            maxDistance: 100.0,
+            screenPercentage: 0.5,
+            url: testURL,
+            assetName: "custom_asset_name"
+        )
+
+        // Then: assetName should be stored
+        XCTAssertEqual(lodLevel.assetName, "custom_asset_name", "LODLevel should store explicit assetName")
+        XCTAssertEqual(lodLevel.url, testURL, "LODLevel should store URL")
+    }
+
+    func testLODLevelAssetNameDefaultsToNil() {
+        // Given: Create a LODLevel without assetName and empty mesh
+        let lodLevel = LODLevel(mesh: [], maxDistance: 50.0)
+
+        // Then: assetName should be nil (no mesh to extract from)
+        XCTAssertNil(lodLevel.assetName, "LODLevel assetName should be nil when no mesh provided")
+    }
+
+    func testLODLevelURLForStreamingReload() {
+        // Given: Create LODLevels with URLs (simulating addLODLevel behavior)
+        let testURL1 = URL(fileURLWithPath: "/path/to/model_LOD0.usdz")
+        let testURL2 = URL(fileURLWithPath: "/path/to/model_LOD1.usdz")
+
+        let lodComponent = LODComponent()
+        lodComponent.lodLevels = [
+            LODLevel(mesh: [], maxDistance: 50, url: testURL1, assetName: "model_LOD0"),
+            LODLevel(mesh: [], maxDistance: 100, url: testURL2, assetName: "model_LOD1"),
+        ]
+
+        // Then: URLs should be accessible for streaming reload
+        XCTAssertEqual(lodComponent.lodLevels[0].url, testURL1, "LOD0 URL should be stored")
+        XCTAssertEqual(lodComponent.lodLevels[1].url, testURL2, "LOD1 URL should be stored")
+        XCTAssertEqual(lodComponent.lodLevels[0].assetName, "model_LOD0", "LOD0 assetName should be stored")
+        XCTAssertEqual(lodComponent.lodLevels[1].assetName, "model_LOD1", "LOD1 assetName should be stored")
+    }
+
+    func testLODSystemHandlesEmptyLODLevels() {
+        // Simulates the scenario where LODSystem.update() is called before
+        // async LOD level loading completes (entity has LODComponent but no levels yet)
+        let entity = createEntity()
+        registerTransformComponent(entityId: entity)
+
+        // Add LODComponent with NO levels (simulating async load in progress)
+        registerComponent(entityId: entity, componentType: LODComponent.self)
+
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entity) else {
+            XCTFail("Failed to get LOD component")
+            return
+        }
+
+        // Verify lodLevels is empty
+        XCTAssertTrue(lodComponent.lodLevels.isEmpty, "LOD levels should be empty")
+
+        // This should NOT crash - the system should gracefully skip entities with empty LOD levels
+        LODSystem.shared.update(deltaTime: 0.016)
+
+        // Entity should still have its LODComponent intact
+        XCTAssertTrue(hasComponent(entityId: entity, componentType: LODComponent.self),
+                      "LODComponent should still exist after update")
+    }
 }

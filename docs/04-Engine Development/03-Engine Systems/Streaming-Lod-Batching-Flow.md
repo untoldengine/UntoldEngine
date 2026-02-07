@@ -388,33 +388,34 @@ Streaming is optional. LOD and Batching work together without any streaming syst
 import UntoldEngine
 
 private func setupLODWithBatching() {
-    // Create multiple trees with LOD + Batching (no streaming)
     for i in 0..<20 {
         let tree = createEntity()
         setEntityName(entityId: tree, name: "Tree_\(i)")
         
-        // Position the tree
+        // Capture position values for the closure
         let x = Float(i % 5) * 10.0
         let z = Float(i / 5) * 10.0
-        translateTo(entityId: tree, position: simd_float3(x, 0, z))
         
-        // 1. Add LOD component
         setEntityLodComponent(entityId: tree)
         
-        // 2. Load all LOD levels upfront (no streaming)
-        addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "usdz", maxDistance: 50.0)
-        addLODLevel(entityId: tree, lodIndex: 1, fileName: "tree_LOD1", withExtension: "usdz", maxDistance: 100.0)
-        addLODLevel(entityId: tree, lodIndex: 2, fileName: "tree_LOD2", withExtension: "usdz", maxDistance: 200.0)
-        
-        // 3. Mark as static for batching
-        setEntityStaticBatchComponent(entityId: tree)
+        addLODLevels(entityId: tree, levels: [
+            (0, "tree_LOD0", "usdz", 50.0, 0.0),
+            (1, "tree_LOD1", "usdz", 100.0, 0.0),
+            (2, "tree_LOD2", "usdz", 200.0, 0.0)
+        ]) { success in
+            if success {
+                // Apply transform AFTER mesh is loaded
+                translateTo(entityId: tree, position: simd_float3(x, 0, z))
+                setEntityStaticBatchComponent(entityId: tree)
+            }
+        }
     }
     
-    // 4. Enable batching and generate
-    enableBatching(true)
-    generateBatches()
-    
-    print("20 trees configured with LOD + Batching")
+    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        enableBatching(true)
+        generateBatches()
+        print("20 trees configured with LOD + Batching")
+    }
 }
 ```
 

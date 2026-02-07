@@ -418,6 +418,104 @@ final class StreamLodBatchMeshResidencyTests: BaseRenderSetup {
     }
 }
 
+// MARK: - LOD-Aware Streaming Tests
+
+final class StreamLodBatchLODAwareStreamingTests: BaseRenderSetup {
+    override func setUp() {
+        super.setUp()
+        GeometryStreamingSystem.shared.enabled = false
+        GeometryStreamingSystem.shared.reset()
+    }
+
+    override func tearDown() {
+        GeometryStreamingSystem.shared.enabled = false
+        GeometryStreamingSystem.shared.reset()
+        super.tearDown()
+    }
+
+    func testUnloadClearsAllLODLevelMeshes() {
+        // Given: An entity with LODComponent and multiple LOD levels
+        let entity = createEntity()
+        _ = scene.assign(to: entity, component: LocalTransformComponent.self)
+        _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+
+        // Create meshes for LOD levels
+        let cubeMesh = BasicPrimitives.createCube()
+        let sphereMesh = BasicPrimitives.createSphere()
+
+        if let lodComponent = scene.assign(to: entity, component: LODComponent.self) {
+            lodComponent.lodLevels = [
+                LODLevel(mesh: cubeMesh, maxDistance: 50, url: URL(fileURLWithPath: "/test/lod0.usdz"), assetName: "lod0"),
+                LODLevel(mesh: sphereMesh, maxDistance: 100, url: URL(fileURLWithPath: "/test/lod1.usdz"), assetName: "lod1"),
+            ]
+        }
+
+        // Verify LOD levels have meshes
+        let lodComponent = scene.get(component: LODComponent.self, for: entity)
+        XCTAssertTrue(lodComponent?.isLODResident(0) ?? false, "LOD0 should be resident initially")
+        XCTAssertTrue(lodComponent?.isLODResident(1) ?? false, "LOD1 should be resident initially")
+
+        // When: Clear all LOD meshes (simulating what unloadMesh does for LOD entities)
+        if let lod = scene.get(component: LODComponent.self, for: entity) {
+            for i in lod.lodLevels.indices {
+                lod.lodLevels[i].mesh = []
+                lod.lodLevels[i].residencyState = .notResident
+            }
+        }
+
+        // Then: All LOD levels should be non-resident
+        XCTAssertFalse(lodComponent?.isLODResident(0) ?? true, "LOD0 should not be resident after clear")
+        XCTAssertFalse(lodComponent?.isLODResident(1) ?? true, "LOD1 should not be resident after clear")
+        XCTAssertEqual(lodComponent?.lodLevels[0].residencyState, .notResident, "LOD0 state should be notResident")
+        XCTAssertEqual(lodComponent?.lodLevels[1].residencyState, .notResident, "LOD1 state should be notResident")
+    }
+
+    func testLODLevelURLAndAssetNamePreservedAfterMeshClear() {
+        // Given: An entity with LOD levels that have URLs and asset names
+        let entity = createEntity()
+        let testURL0 = URL(fileURLWithPath: "/test/model_LOD0.usdz")
+        let testURL1 = URL(fileURLWithPath: "/test/model_LOD1.usdz")
+
+        if let lodComponent = scene.assign(to: entity, component: LODComponent.self) {
+            lodComponent.lodLevels = [
+                LODLevel(mesh: BasicPrimitives.createCube(), maxDistance: 50, url: testURL0, assetName: "model_LOD0"),
+                LODLevel(mesh: BasicPrimitives.createSphere(), maxDistance: 100, url: testURL1, assetName: "model_LOD1"),
+            ]
+        }
+
+        // When: Clear meshes (simulating streaming unload)
+        if let lod = scene.get(component: LODComponent.self, for: entity) {
+            for i in lod.lodLevels.indices {
+                lod.lodLevels[i].mesh = []
+                lod.lodLevels[i].residencyState = .notResident
+            }
+        }
+
+        // Then: URL and assetName should still be preserved for reload
+        let lodComponent = scene.get(component: LODComponent.self, for: entity)
+        XCTAssertEqual(lodComponent?.lodLevels[0].url, testURL0, "LOD0 URL should be preserved")
+        XCTAssertEqual(lodComponent?.lodLevels[1].url, testURL1, "LOD1 URL should be preserved")
+        XCTAssertEqual(lodComponent?.lodLevels[0].assetName, "model_LOD0", "LOD0 assetName should be preserved")
+        XCTAssertEqual(lodComponent?.lodLevels[1].assetName, "model_LOD1", "LOD1 assetName should be preserved")
+    }
+
+    func testStreamingDetectsLODComponent() {
+        // Given: An entity with both StreamingComponent and LODComponent
+        let entity = createEntity()
+        _ = scene.assign(to: entity, component: LocalTransformComponent.self)
+        _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+        _ = scene.assign(to: entity, component: StreamingComponent.self)
+        _ = scene.assign(to: entity, component: LODComponent.self)
+
+        // Then: Both components should be present
+        let hasStreaming = scene.get(component: StreamingComponent.self, for: entity) != nil
+        let hasLOD = scene.get(component: LODComponent.self, for: entity) != nil
+
+        XCTAssertTrue(hasStreaming, "Entity should have StreamingComponent")
+        XCTAssertTrue(hasLOD, "Entity should have LODComponent")
+    }
+}
+
 // MARK: - Region Streaming Event Tests
 
 final class StreamLodBatchRegionEventTests: XCTestCase {

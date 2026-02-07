@@ -292,14 +292,17 @@ public struct LODLevel {
     public var mesh: [Mesh] // Meshes for this lod
     public var maxDistance: Float // Switch to next LOD beyond this
     public var screenPercentage: Float // Optional: screen-space threshold
-    public var url: URL? // URL to the LOD file (for display purposes)
+    public var url: URL? // URL to the LOD file (for streaming reload)
+    public var assetName: String? // Mesh name within the file (for streaming reload)
     public var residencyState: LODResidencyState = .unknown // Streaming state
 
-    public init(mesh: [Mesh], maxDistance: Float, screenPercentage: Float = 0.0, url: URL? = nil) {
+    public init(mesh: [Mesh], maxDistance: Float, screenPercentage: Float = 0.0, url: URL? = nil, assetName: String? = nil) {
         self.mesh = mesh
         self.maxDistance = maxDistance
         self.screenPercentage = screenPercentage
         self.url = url
+        // Auto-extract assetName from mesh if not provided
+        self.assetName = assetName ?? mesh.first?.assetName
         residencyState = mesh.isEmpty ? .notResident : .resident
     }
 }
