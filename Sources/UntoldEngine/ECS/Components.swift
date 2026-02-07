@@ -280,23 +280,70 @@ public class DerivedAssetNodeComponent: Component {
 
 // MARK: - LOD Component
 
+/// Residency state for a LOD level's mesh
+public enum LODResidencyState {
+    case unknown // Not yet checked
+    case resident // Mesh is loaded in memory
+    case notResident // Mesh not loaded
+    case loading // Mesh is being loaded
+}
+
 public struct LODLevel {
     public var mesh: [Mesh] // Meshes for this lod
     public var maxDistance: Float // Switch to next LOD beyond this
     public var screenPercentage: Float // Optional: screen-space threshold
     public var url: URL? // URL to the LOD file (for display purposes)
+    public var residencyState: LODResidencyState = .unknown // Streaming state
+
+    public init(mesh: [Mesh], maxDistance: Float, screenPercentage: Float = 0.0, url: URL? = nil) {
+        self.mesh = mesh
+        self.maxDistance = maxDistance
+        self.screenPercentage = screenPercentage
+        self.url = url
+        residencyState = mesh.isEmpty ? .notResident : .resident
+    }
 }
 
 public class LODComponent: Component {
     public var lodLevels: [LODLevel] = [] // Sorted by distance (LOD0 first)
-    public var currentLOD: Int = 0 // Active LOD index
+    public var currentLOD: Int = 0 // Active LOD index (what's actually rendering)
+    public var desiredLOD: Int = 0 // What LOD we want based on distance
     public var fadeTransition: Bool = false // Enable cross-fade
     public var transitionDuration: Float = 0.3 // Fade time in seconds
     public var transitionProgress: Float = 0.0 // Current fade (0-1)
     public var previousLOD: Int? // For blending
     public var forcedLOD: Int? // Manual override (-1 = auto)
 
+    /// True if currentLOD != desiredLOD due to missing mesh
+    public var isUsingFallback: Bool = false
+
+    /// Mesh asset identifier for batching (material hash + LOD)
+    public var activeMeshAssetID: String = ""
+
     public required init() {}
+
+    /// Check if the desired LOD level has a resident mesh
+    public func isLODResident(_ lodIndex: Int) -> Bool {
+        guard lodIndex >= 0, lodIndex < lodLevels.count else { return false }
+        return !lodLevels[lodIndex].mesh.isEmpty
+    }
+
+    /// Find the best available fallback LOD (coarser than desired)
+    public func findFallbackLOD(from desiredIndex: Int) -> Int? {
+        // Try coarser LODs first (higher index = lower detail)
+        for i in (desiredIndex + 1) ..< lodLevels.count {
+            if isLODResident(i) {
+                return i
+            }
+        }
+        // Then try finer LODs (lower index = higher detail)
+        for i in (0 ..< desiredIndex).reversed() {
+            if isLODResident(i) {
+                return i
+            }
+        }
+        return nil
+    }
 }
 
 // MARK: Static Batching Component

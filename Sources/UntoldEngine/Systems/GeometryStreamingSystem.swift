@@ -37,6 +37,7 @@ public class GeometryStreamingSystem {
         guard enabled else { return }
 
         currentFrame += 1
+        MeshResourceManager.shared.currentFrame = currentFrame // Keep cache LRU updated
 
         // Throttle updates
         timeSinceLastUpdate += deltaTime
@@ -60,7 +61,8 @@ public class GeometryStreamingSystem {
 
             switch streaming.state {
             case .unloaded:
-                if distance <= streaming.streamingRadius {
+                // Small epsilon to handle floating-point boundary cases (e.g., 200.0001 vs 200.0)
+                if distance <= streaming.streamingRadius + 1.0 {
                     loadCandidates.append((entityId, distance, streaming.priority))
                 }
 
@@ -77,9 +79,10 @@ public class GeometryStreamingSystem {
 
         // Also check loaded entities that might now be out of range
         // (they may not be in the octree query if they're far away)
+        let nearbySet = Set(nearbyEntities) // O(1) lookup
         for entityId in loadedStreamingEntities {
             // Skip if already processed via octree query
-            if nearbyEntities.contains(entityId) { continue }
+            if nearbySet.contains(entityId) { continue }
 
             guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
                   streaming.state == .loaded
@@ -128,8 +131,8 @@ public class GeometryStreamingSystem {
         let assetName = streaming.assetName
 
         let task = Task {
-            // Load mesh asynchronously
-            await loadMeshAsync(
+            // Load mesh asynchronously - returns true on success
+            let success = await self.loadMeshAsync(
                 entityId: entityId,
                 filename: filename,
                 withExtension: ext,
@@ -138,46 +141,97 @@ public class GeometryStreamingSystem {
 
             // Update state on completion
             await MainActor.run {
-                if let s = scene.get(component: StreamingComponent.self, for: entityId) {
-                    s.state = .loaded
-                    s.lastVisibleFrame = self.currentFrame
+                if success {
+                    if let s = scene.get(component: StreamingComponent.self, for: entityId) {
+                        s.state = .loaded
+                        s.lastVisibleFrame = self.currentFrame
+
+                        // Emit residency event
+                        if let render = scene.get(component: RenderComponent.self, for: entityId) {
+                            let event = AssetResidencyChangedEvent(
+                                entityId: entityId,
+                                assetURL: render.assetURL,
+                                meshName: render.assetName,
+                                isResident: true
+                            )
+                            SystemEventBus.shared.queueResidencyChange(event)
+                        }
+                    }
+                    self.loadedStreamingEntities.insert(entityId)
+                    SystemIntegrationMonitor.shared.recordStreamingLoad()
+                } else {
+                    // Load failed - reset to unloaded so it can retry
+                    if let s = scene.get(component: StreamingComponent.self, for: entityId) {
+                        s.state = .unloaded
+                    }
+                    Logger.logError(message: "Failed to stream mesh for entity \(entityId)")
                 }
                 self.activeLoads.remove(entityId)
-                self.loadedStreamingEntities.insert(entityId) // Track loaded entity
-
-                Logger.log(message: "✅ Streamed in mesh for entity \(entityId)")
             }
         }
 
         streaming.loadTask = task
     }
 
+    /// Load mesh asynchronously - returns true on success, false on failure
     private func loadMeshAsync(
         entityId: EntityID,
         filename: String,
         withExtension ext: String,
         assetName: String?
-    ) async {
-        // Use existing async mesh loading
-        await setEntityMeshAsync(
-            entityId: entityId,
-            filename: filename,
+    ) async -> Bool {
+        // Build URL
+        guard let url = LoadingSystem.shared.resourceURL(
+            forResource: filename,
             withExtension: ext,
-            assetName: assetName
-        )
-
-        // Register with memory budget
-        await MainActor.run {
-            if let rc = scene.get(component: RenderComponent.self, for: entityId) {
-                let meshSize = calculateMeshArrayMemory(rc.mesh)
-                let textureSize = calculateMeshArrayTotalMemory(rc.mesh) - meshSize
-                MemoryBudgetManager.shared.registerMesh(
-                    entityId: entityId,
-                    meshSizeBytes: meshSize,
-                    textureSizeBytes: textureSize
-                )
-            }
+            subResource: nil
+        ) else {
+            Logger.logError(message: "Could not find resource: \(filename).\(ext)")
+            return false
         }
+
+        // Determine mesh name (use assetName if provided, otherwise filename)
+        let meshName = assetName ?? filename
+
+        // Load from cache or file
+        guard let meshes = await MeshResourceManager.shared.loadMesh(url: url, meshName: meshName) else {
+            Logger.logError(message: "Failed to load mesh: \(meshName) from \(filename).\(ext)")
+            return false
+        }
+
+        // Retain the mesh for this entity
+        MeshResourceManager.shared.retain(url: url, meshName: meshName, for: entityId)
+
+        // Update render component on main thread
+        await MainActor.run {
+            if let render = scene.get(component: RenderComponent.self, for: entityId) {
+                render.mesh = meshes
+                render.assetURL = url
+                render.assetName = meshName
+
+                // Ensure skin is set up (required for shader validation)
+                // Meshes without skeletons need a default Skin()
+                let skin = Skin()
+                for index in render.mesh.indices {
+                    if render.mesh[index].skin == nil {
+                        render.mesh[index].skin = skin
+                    }
+                }
+            } else {
+                // Create render component if needed
+                registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: meshName)
+            }
+
+            // Register with memory budget
+            let meshSize = calculateMeshArrayMemory(meshes)
+            MemoryBudgetManager.shared.registerMesh(
+                entityId: entityId,
+                meshSizeBytes: meshSize,
+                textureSizeBytes: 0
+            )
+        }
+
+        return true
     }
 
     private func unloadMesh(entityId: EntityID) {
@@ -191,30 +245,45 @@ public class GeometryStreamingSystem {
         streaming.loadTask?.cancel()
         streaming.loadTask = nil
 
-        // Clean up mesh GPU resources before clearing
+        // Capture asset info before clearing for event
+        var assetURL = URL(fileURLWithPath: "")
+        var meshName = ""
         if let render = scene.get(component: RenderComponent.self, for: entityId) {
-            // Call cleanUp on each mesh to release GPU buffers
-            for i in 0 ..< render.mesh.count {
-                render.mesh[i].cleanUp()
-            }
-            render.mesh = []
+            assetURL = render.assetURL
+            meshName = render.assetName
+        }
+
+        // Release mesh reference (don't clean up - cache may still need it)
+        MeshResourceManager.shared.release(entityId: entityId)
+
+        // Clear render component mesh (but don't call cleanUp - cache owns it)
+        if let render = scene.get(component: RenderComponent.self, for: entityId) {
+            render.mesh = [] // Just clear reference, don't clean up GPU resources
         }
 
         // Unregister from memory budget
         MemoryBudgetManager.shared.unregisterMesh(entityId: entityId)
-
-        // Clear from entity mesh map
-        entityMeshMap.removeValue(forKey: entityId)
 
         // Remove from loaded tracking set
         loadedStreamingEntities.remove(entityId)
 
         streaming.state = .unloaded
 
-        Logger.log(message: "🗑️ Streamed out mesh for entity \(entityId)")
+        // Emit residency event (mesh evicted)
+        let event = AssetResidencyChangedEvent(
+            entityId: entityId,
+            assetURL: assetURL,
+            meshName: meshName,
+            isResident: false
+        )
+        SystemEventBus.shared.queueResidencyChange(event)
+        SystemIntegrationMonitor.shared.recordStreamingUnload()
     }
 
     private func evictLRU() {
+        // First, evict any unused cached files
+        MeshResourceManager.shared.evictUnused()
+
         // Use tracked loaded entities instead of querying all entities
         var candidates: [(EntityID, Int)] = [] // (entity, lastVisibleFrame)
 
@@ -256,14 +325,22 @@ public class GeometryStreamingSystem {
               streaming.state == .unloaded
         else { return }
 
-        await loadMeshAsync(
+        streaming.state = .loading
+
+        let success = await loadMeshAsync(
             entityId: entityId,
             filename: streaming.assetFilename,
             withExtension: streaming.assetExtension,
             assetName: streaming.assetName
         )
-        streaming.state = .loaded
-        loadedStreamingEntities.insert(entityId)
+
+        if success {
+            streaming.state = .loaded
+            streaming.lastVisibleFrame = currentFrame
+            loadedStreamingEntities.insert(entityId)
+        } else {
+            streaming.state = .unloaded
+        }
     }
 
     /// Force unload an entity's mesh immediately
@@ -316,10 +393,40 @@ public class GeometryStreamingSystem {
 }
 
 /// Statistics for geometry streaming
-public struct GeometryStreamingStats {
+public struct GeometryStreamingStats: CustomStringConvertible {
     public var totalStreamingEntities: Int
     public var loadedCount: Int
     public var loadingCount: Int
     public var unloadedCount: Int
     public var activeLoads: Int
+
+    public var description: String {
+        "Streaming: \(loadedCount) loaded, \(loadingCount) loading, \(unloadedCount) unloaded (\(activeLoads) active)"
+    }
+}
+
+// MARK: - Debug Helpers
+
+public extension GeometryStreamingSystem {
+    /// Print streaming and cache stats to console (for debugging)
+    func printStats() {
+        let streamingStats = getStats()
+        let cacheStats = MeshResourceManager.shared.getStats()
+        let memoryStats = MemoryBudgetManager.shared.getStats()
+
+        Logger.log(message: """
+        ┌─ Streaming Stats ─────────────────────────────
+        │ Entities: \(streamingStats.loadedCount) loaded, \(streamingStats.loadingCount) loading, \(streamingStats.unloadedCount) unloaded
+        │ Active loads: \(streamingStats.activeLoads)/\(maxConcurrentLoads)
+        ├─ Cache Stats ────────────────────────────────────
+        │ Cached files: \(cacheStats.cachedMeshCount)
+        │ Total refs: \(cacheStats.totalReferences)
+        │ Evictable: \(cacheStats.evictableCount)
+        │ Memory: \(cacheStats.totalMemoryBytes / 1024) KB
+        ├─ Memory Budget ──────────────────────────────────
+        │ Used: \(memoryStats.meshMemoryUsed / 1024 / 1024) MB / \(memoryStats.budgetLimit / 1024 / 1024) MB (\(Int(memoryStats.utilizationPercent * 100))%)
+        │ Tracked entities: \(memoryStats.trackedEntityCount)
+        └──────────────────────────────────────────────────
+        """)
+    }
 }

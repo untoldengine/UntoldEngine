@@ -242,13 +242,16 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 transform.space.columns.3.z
             )
 
-            // Update streaming region manager
+            // === SYSTEM INTEGRATION PIPELINE ===
+            // Order matters: Streaming -> LOD -> Batching -> Render
+
+            // 1. Update streaming region manager
             StreamingRegionManager.shared.update(
                 cameraPosition: cameraPos,
                 deltaTime: fixedStep
             )
 
-            // Update geometry streaming (component-based)
+            // 2. Update geometry streaming (decides what meshes exist in memory)
             GeometryStreamingSystem.shared.update(
                 cameraPosition: cameraPos,
                 deltaTime: fixedStep
@@ -266,7 +269,17 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         traverseSceneGraph()
         handleInputCallback?()
 
+        // 3. LOD selection (decides which representation is active, checks residency)
         LODSystem.shared.update(deltaTime: fixedStep)
+
+        // 4. Flush events (residency and LOD change events are processed)
+        SystemEventBus.shared.flushEvents()
+
+        // 5. Batching incremental update (consumes LOD change events)
+        BatchingSystem.shared.tick()
+
+        // 6. Integration stats monitoring
+        SystemIntegrationMonitor.shared.tick()
 
         OctreeSystem.shared.updateDirtyBounds()
 

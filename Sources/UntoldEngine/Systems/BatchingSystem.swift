@@ -31,20 +31,160 @@ public struct BatchGroup {
     var boundingBox: (min: simd_float3, max: simd_float3)
 }
 
+/// Tracks an entity's batch membership
+public struct EntityBatchInfo {
+    public var batchId: UUID
+    public var lodIndex: Int
+    public var materialHash: String
+}
+
 // Manages all batching operations
 public class BatchingSystem {
     public static let shared = BatchingSystem()
 
     public private(set) var batchGroups: [BatchGroup] = []
-    private var entityToBatch: [EntityID: UUID] = [:] // Track which batch an entity belongs to
+    private var entityToBatch: [EntityID: EntityBatchInfo] = [:] // Track which batch an entity belongs to
     private var batchingEnabled: Bool = false
 
-    private init() {}
+    // Dirty tracking for incremental updates
+    private var dirtyBatchIds: Set<UUID> = []
+    private var pendingEntityRemovals: [(EntityID, UUID)] = [] // (entity, oldBatchId)
+    private var pendingEntityAdditions: [EntityID] = []
+    private var isSubscribed: Bool = false
+
+    private init() {
+        subscribeToEvents()
+    }
+
+    // MARK: - Event Subscription
+
+    private func subscribeToEvents() {
+        guard !isSubscribed else { return }
+        isSubscribed = true
+
+        // Subscribe to LOD changes
+        SystemEventBus.shared.subscribeToLODChanges { [weak self] event in
+            self?.handleLODChange(event)
+        }
+
+        // Subscribe to residency changes (for eviction handling)
+        SystemEventBus.shared.subscribeToResidencyChanges { [weak self] event in
+            self?.handleResidencyChange(event)
+        }
+    }
+
+    private func handleLODChange(_ event: EntityLODChangedEvent) {
+        guard batchingEnabled else { return }
+
+        // Check if entity is batched
+        if let batchInfo = entityToBatch[event.entityId] {
+            // LOD changed - need to move entity to different batch
+            pendingEntityRemovals.append((event.entityId, batchInfo.batchId))
+            pendingEntityAdditions.append(event.entityId)
+            dirtyBatchIds.insert(batchInfo.batchId)
+        }
+    }
+
+    private func handleResidencyChange(_ event: AssetResidencyChangedEvent) {
+        guard batchingEnabled else { return }
+
+        if !event.isResident {
+            // Mesh evicted - remove entity from batch if batched
+            if let batchInfo = entityToBatch[event.entityId] {
+                pendingEntityRemovals.append((event.entityId, batchInfo.batchId))
+                dirtyBatchIds.insert(batchInfo.batchId)
+            }
+        } else {
+            // Mesh became resident - entity might be eligible for batching
+            if entityToBatch[event.entityId] == nil {
+                // Check if entity should be batched
+                if let _ = scene.get(component: StaticBatchComponent.self, for: event.entityId) {
+                    pendingEntityAdditions.append(event.entityId)
+                }
+            }
+        }
+    }
+
+    // MARK: - Per-Frame Tick (Incremental Updates)
+
+    /// Called each frame to process pending batch updates
+    public func tick() {
+        guard batchingEnabled else { return }
+        guard !pendingEntityRemovals.isEmpty || !pendingEntityAdditions.isEmpty else { return }
+
+        // Process removals
+        for (entityId, batchId) in pendingEntityRemovals {
+            removeEntityFromBatch(entityId: entityId, batchId: batchId)
+        }
+        pendingEntityRemovals.removeAll(keepingCapacity: true)
+
+        // Process additions (re-add to correct batch based on current LOD)
+        for entityId in pendingEntityAdditions {
+            addEntityToBatch(entityId: entityId)
+        }
+        pendingEntityAdditions.removeAll(keepingCapacity: true)
+
+        // Rebuild dirty batches
+        rebuildDirtyBatches()
+    }
+
+    private func removeEntityFromBatch(entityId: EntityID, batchId: UUID) {
+        // Remove from tracking
+        entityToBatch.removeValue(forKey: entityId)
+
+        // Find and update the batch group
+        if let batchIndex = batchGroups.firstIndex(where: { $0.id == batchId }) {
+            batchGroups[batchIndex].entityIds.removeAll { $0 == entityId }
+            batchGroups[batchIndex].meshIndices.removeAll { $0.entityId == entityId }
+            dirtyBatchIds.insert(batchId)
+        }
+    }
+
+    private func addEntityToBatch(entityId: EntityID) {
+        guard let staticBatch = scene.get(component: StaticBatchComponent.self, for: entityId),
+              staticBatch.canBatch,
+              let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+              !renderComponent.mesh.isEmpty
+        else { return }
+
+        // Get LOD index if entity has LOD
+        let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
+
+        // Get material hash from first submesh
+        guard let material = renderComponent.mesh.first?.submeshes.first?.material else { return }
+        let matHash = getMaterialHash(material: material)
+
+        // Create batch key including LOD
+        let batchKey = "\(matHash)_LOD\(lodIndex)"
+
+        // Find or create batch for this key
+        if let existingBatch = batchGroups.first(where: { $0.materialHash == batchKey }) {
+            // Add to existing batch
+            entityToBatch[entityId] = EntityBatchInfo(batchId: existingBatch.id, lodIndex: lodIndex, materialHash: matHash)
+            if let idx = batchGroups.firstIndex(where: { $0.id == existingBatch.id }) {
+                batchGroups[idx].entityIds.append(entityId)
+                dirtyBatchIds.insert(existingBatch.id)
+            }
+        } else {
+            // Will be handled in next full rebuild or we can create a new batch
+            // For v1, mark for rebuild
+            dirtyBatchIds.insert(UUID()) // Trigger rebuild
+        }
+    }
+
+    private func rebuildDirtyBatches() {
+        guard !dirtyBatchIds.isEmpty else { return }
+
+        // For v1, do a full rebuild if there are dirty batches
+        // A more sophisticated implementation would rebuild only affected batches
+        generateBatches()
+
+        SystemIntegrationMonitor.shared.recordBatchRebuild()
+        dirtyBatchIds.removeAll()
+    }
 
     // Generate batches for all static entities in the scene
     public func generateBatches() {
-        Logger.log(message: "🔨 Starting static batch generation...")
-
         // Update all world transforms before batching
         // (batching needs accurate world positions)
         traverseSceneGraph()
@@ -57,10 +197,8 @@ public class BatchingSystem {
         let staticBatchId = getComponentId(for: StaticBatchComponent.self)
         let entities = queryEntitiesWithComponentIds([transformId, renderId, staticBatchId], in: scene)
 
-        Logger.log(message: "📋 Found \(entities.count) entities with StaticBatchComponent")
-
-        // Group meshes by material
-        var materialGroups: [String: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4)]] = [:]
+        // Group meshes by material AND LOD level
+        var materialGroups: [String: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4, lodIndex: Int)]] = [:]
 
         // Iterate through all entities with StaticBatchComponent
         for entityId in entities {
@@ -72,6 +210,9 @@ public class BatchingSystem {
                   let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
             else { continue }
 
+            // Skip entities with empty meshes (not yet loaded by streaming)
+            if renderComponent.mesh.isEmpty { continue }
+
             // Skip entities with animations
             if scene.get(component: SkeletonComponent.self, for: entityId) != nil { continue }
             if scene.get(component: AnimationComponent.self, for: entityId) != nil { continue }
@@ -80,61 +221,60 @@ public class BatchingSystem {
             if scene.get(component: GizmoComponent.self, for: entityId) != nil { continue }
             if scene.get(component: LightComponent.self, for: entityId) != nil { continue }
 
+            // Get current LOD index (0 if no LOD component)
+            let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
+
             // Process each mesh in the render component
             for (meshIndex, mesh) in renderComponent.mesh.enumerated() {
                 for (submeshIndex, submesh) in mesh.submeshes.enumerated() {
                     guard let material = submesh.material else { continue }
 
                     let matHash = getMaterialHash(material: material)
+                    // Include LOD in batch key to avoid mixing different LOD levels
+                    let batchKey = "\(matHash)_LOD\(lodIndex)"
                     let finalTransform = simd_mul(worldTransform.space, mesh.localSpace)
 
-                    if materialGroups[matHash] == nil {
-                        materialGroups[matHash] = []
+                    if materialGroups[batchKey] == nil {
+                        materialGroups[batchKey] = []
                     }
-                    materialGroups[matHash]!.append((
+                    materialGroups[batchKey]!.append((
                         entityId: entityId,
                         mesh: mesh,
-                        meshIndex: submeshIndex, // Store submesh index for later use
-                        transform: finalTransform
+                        meshIndex: submeshIndex,
+                        transform: finalTransform,
+                        lodIndex: lodIndex
                     ))
-
-                    Logger.log(message: "  → Entity \(entityId): mesh[\(meshIndex)].submesh[\(submeshIndex)] with material hash \(matHash.prefix(8))...")
                 }
             }
-        }
-
-        Logger.log(message: "📦 Found \(materialGroups.count) material groups")
-
-        // Log material group details
-        for (matHash, meshGroup) in materialGroups {
-            Logger.log(message: "  Material \(matHash.prefix(8))... has \(meshGroup.count) submeshes")
         }
 
         // Create batch groups
-        for (matHash, meshGroup) in materialGroups {
-            // Only batch if we have multiple meshes with same material
+        for (batchKey, meshGroup) in materialGroups {
+            // Only batch if we have multiple meshes with same material+LOD
             if meshGroup.count < 2 {
-                Logger.log(message: "⏭️  Skipping material \(matHash.prefix(8))... (only \(meshGroup.count) submesh, need ≥2 for batching)")
                 continue
             }
 
-            Logger.log(message: "🔗 Batching \(meshGroup.count) meshes with material hash: \(matHash.prefix(20))...")
+            // Convert to format expected by createBatchGroup
+            let convertedGroup = meshGroup.map { item in
+                (entityId: item.entityId, mesh: item.mesh, meshIndex: item.meshIndex, transform: item.transform)
+            }
 
-            if let batchGroup = createBatchGroup(from: meshGroup, materialHash: matHash) {
+            if let batchGroup = createBatchGroup(from: convertedGroup, materialHash: batchKey) {
                 batchGroups.append(batchGroup)
 
-                // Track entity to batch mapping
+                // Track entity to batch mapping with LOD info
+                let lodIndex = meshGroup.first?.lodIndex ?? 0
+                let matHash = String(batchKey.split(separator: "_").first ?? "")
                 for item in meshGroup {
-                    entityToBatch[item.entityId] = batchGroup.id
+                    entityToBatch[item.entityId] = EntityBatchInfo(
+                        batchId: batchGroup.id,
+                        lodIndex: lodIndex,
+                        materialHash: matHash
+                    )
                 }
             }
         }
-
-        Logger.log(message: "✅ Created \(batchGroups.count) batch groups")
-
-        // Print statistics
-        let totalBatchedMeshes = batchGroups.reduce(0) { $0 + $1.entityIds.count }
-        Logger.log(message: "📊 Batching Stats: \(totalBatchedMeshes) meshes → \(batchGroups.count) draw calls")
     }
 
     private func createBatchGroup(
@@ -274,8 +414,13 @@ public class BatchingSystem {
 
     // Get batch group for an entity
     public func getBatchGroup(for entityId: EntityID) -> BatchGroup? {
-        guard let batchId = entityToBatch[entityId] else { return nil }
-        return batchGroups.first { $0.id == batchId }
+        guard let batchInfo = entityToBatch[entityId] else { return nil }
+        return batchGroups.first { $0.id == batchInfo.batchId }
+    }
+
+    // Get batch info for an entity
+    public func getBatchInfo(for entityId: EntityID) -> EntityBatchInfo? {
+        entityToBatch[entityId]
     }
 
     public func setEnabled(_ enabled: Bool) {
