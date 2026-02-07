@@ -456,4 +456,450 @@ final class StaticBatchingTest: BaseRenderSetup {
 
         XCTAssertLessThan(drawCallsWithBatching, drawCallsWithoutBatching, "❌ Batching should reduce draw calls")
     }
+
+    // MARK: - Event-Driven Batch Update Tests
+
+    func testBatchingSystemMovesEntityToNewBatchOnLODChange() {
+        // Given: Create batched entities with LOD components
+        // Note: BatchingSystem requires at least 2 entities with same material+LOD to form a batch
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
+        // Create 4 entities at LOD 0
+        var lod0Entities: [EntityID] = []
+        for i in 0 ..< 4 {
+            let entity = createEntity()
+
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+            }
+
+            if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                transform.position = simd_float3(Float(i) * 2.0, 0, 0)
+            }
+
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+
+            if let lodComponent = scene.assign(to: entity, component: LODComponent.self) {
+                lodComponent.currentLOD = 0
+                lodComponent.lodLevels = [
+                    LODLevel(mesh: meshes, maxDistance: 50),
+                    LODLevel(mesh: meshes, maxDistance: 100),
+                ]
+            }
+
+            setEntityStaticBatchComponent(entityId: entity)
+            lod0Entities.append(entity)
+        }
+
+        // Enable batching and generate initial batches
+        enableBatching(true)
+        generateBatches()
+
+        // Verify initial batch state - all entities at LOD 0
+        let targetEntity1 = lod0Entities[0]
+        let targetEntity2 = lod0Entities[1]
+        let initialBatchInfo = BatchingSystem.shared.getBatchInfo(for: targetEntity1)
+        XCTAssertNotNil(initialBatchInfo, "❌ Entity should be batched initially")
+        XCTAssertEqual(initialBatchInfo?.lodIndex, 0, "❌ Initial LOD index should be 0")
+
+        // Record initial batch ID to verify change
+        let initialBatchId = initialBatchInfo?.batchId
+
+        // When: Move TWO entities to LOD 1 (need at least 2 for a batch)
+        for targetEntity in [targetEntity1, targetEntity2] {
+            let lodChangeEvent = EntityLODChangedEvent(
+                entityId: targetEntity,
+                previousLODIndex: 0,
+                newLODIndex: 1,
+                meshAssetID: "ball_LOD1"
+            )
+            SystemEventBus.shared.queueLODChange(lodChangeEvent)
+
+            // Update the entity's LOD component to match the event
+            if let lodComponent = scene.get(component: LODComponent.self, for: targetEntity) {
+                lodComponent.currentLOD = 1
+            }
+        }
+
+        SystemEventBus.shared.flushEvents()
+
+        // Process pending batch updates
+        BatchingSystem.shared.tick()
+
+        // Then: Entities should be moved to a new batch with LOD 1
+        let updatedBatchInfo = BatchingSystem.shared.getBatchInfo(for: targetEntity1)
+        XCTAssertNotNil(updatedBatchInfo, "❌ Entity should still be batched after LOD change")
+        XCTAssertEqual(updatedBatchInfo?.lodIndex, 1, "❌ LOD index should be updated to 1")
+
+        // Verify entity moved to a different batch
+        XCTAssertNotEqual(updatedBatchInfo?.batchId, initialBatchId, "❌ Entity should be in a different batch after LOD change")
+
+        print("✅ Entities successfully moved to new batch on LOD change")
+    }
+
+    func testBatchingSystemRemovesEntityOnMeshEviction() {
+        // Given: Create batched entities
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        var entities: [EntityID] = []
+        for i in 0 ..< 4 {
+            let entity = createEntity()
+
+            let meshes = Mesh.loadMeshes(
+                url: ballURL,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                flip: true
+            )
+
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+                renderComponent.assetName = "ball"
+            }
+
+            _ = scene.assign(to: entity, component: LocalTransformComponent.self)
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+            entities.append(entity)
+        }
+
+        // Enable batching and generate initial batches
+        enableBatching(true)
+        generateBatches()
+
+        // Verify entity is batched
+        let targetEntity = entities[0]
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: targetEntity), "❌ Entity should be batched initially")
+
+        // Verify batch has the expected entities
+        let initialBatchInfo = BatchingSystem.shared.getBatchInfo(for: targetEntity)
+        XCTAssertNotNil(initialBatchInfo, "❌ Entity should have batch info")
+
+        // When: Emit a residency change event indicating mesh eviction AND clear the mesh
+        // (simulating actual streaming eviction behavior)
+        if let renderComponent = scene.get(component: RenderComponent.self, for: targetEntity) {
+            renderComponent.mesh = [] // Clear mesh to simulate eviction
+        }
+
+        let evictionEvent = AssetResidencyChangedEvent(
+            entityId: targetEntity,
+            assetURL: ballURL,
+            meshName: "ball",
+            isResident: false
+        )
+        SystemEventBus.shared.queueResidencyChange(evictionEvent)
+        SystemEventBus.shared.flushEvents()
+
+        // Process pending batch updates
+        BatchingSystem.shared.tick()
+
+        // Then: Entity should be removed from batch (or remaining batch rebuilt without it)
+        // Since generateBatches() skips entities with empty meshes, the entity won't be in any batch
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: targetEntity), "❌ Entity should be removed from batch after mesh eviction")
+
+        // Verify other entities are still batched (3 remaining should still form a batch)
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entities[1]), "❌ Other entities should still be batched")
+
+        print("✅ Entity successfully removed from batch on mesh eviction")
+    }
+
+    func testBatchingSystemAddsEntityWhenMeshBecomesResident() {
+        // Given: Create an entity without mesh initially
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        // First, create some batched entities so there's a batch to join
+        for i in 0 ..< 3 {
+            let entity = createEntity()
+            let meshes = Mesh.loadMeshes(
+                url: ballURL,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                flip: true
+            )
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+            }
+            _ = scene.assign(to: entity, component: LocalTransformComponent.self)
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+        }
+
+        // Create target entity with StaticBatchComponent but empty mesh
+        let targetEntity = createEntity()
+        if let renderComponent = scene.assign(to: targetEntity, component: RenderComponent.self) {
+            renderComponent.mesh = [] // Empty initially
+            renderComponent.assetURL = ballURL
+            renderComponent.assetName = "ball"
+        }
+        _ = scene.assign(to: targetEntity, component: LocalTransformComponent.self)
+        _ = scene.assign(to: targetEntity, component: WorldTransformComponent.self)
+        setEntityStaticBatchComponent(entityId: targetEntity)
+
+        // Enable batching and generate initial batches
+        enableBatching(true)
+        generateBatches()
+
+        // Verify target entity is NOT batched (no mesh)
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: targetEntity), "❌ Entity should not be batched without mesh")
+
+        // When: Load mesh for the entity
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+        if let renderComponent = scene.get(component: RenderComponent.self, for: targetEntity) {
+            renderComponent.mesh = meshes
+        }
+
+        // Emit residency change event indicating mesh became resident
+        let residencyEvent = AssetResidencyChangedEvent(
+            entityId: targetEntity,
+            assetURL: ballURL,
+            meshName: "ball",
+            isResident: true
+        )
+        SystemEventBus.shared.queueResidencyChange(residencyEvent)
+        SystemEventBus.shared.flushEvents()
+
+        // Process pending batch updates
+        BatchingSystem.shared.tick()
+
+        // Then: Entity should be added to batch
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: targetEntity), "❌ Entity should be batched after mesh becomes resident")
+
+        print("✅ Entity successfully added to batch when mesh became resident")
+    }
+
+    func testTickProcessesPendingRemovalsAndAdditions() {
+        // Given: Create batched entities
+        // Note: tick() triggers rebuildDirtyBatches() which calls generateBatches() and rebuilds from scratch
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
+        // Create entities at LOD 0
+        var lod0Entities: [EntityID] = []
+        for i in 0 ..< 4 {
+            let entity = createEntity()
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+            }
+            if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                transform.position = simd_float3(Float(i) * 2.0, 0, 0)
+            }
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            if let lodComponent = scene.assign(to: entity, component: LODComponent.self) {
+                lodComponent.currentLOD = 0
+                lodComponent.lodLevels = [
+                    LODLevel(mesh: meshes, maxDistance: 50),
+                    LODLevel(mesh: meshes, maxDistance: 100),
+                ]
+            }
+            setEntityStaticBatchComponent(entityId: entity)
+            lod0Entities.append(entity)
+        }
+
+        // Create 2 entities at LOD 1 (so LOD-changed entities have a batch to join)
+        var lod1Entities: [EntityID] = []
+        for i in 0 ..< 2 {
+            let entity = createEntity()
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+            }
+            if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                transform.position = simd_float3(Float(i) * 2.0, 10, 0)
+            }
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            if let lodComponent = scene.assign(to: entity, component: LODComponent.self) {
+                lodComponent.currentLOD = 1
+                lodComponent.lodLevels = [
+                    LODLevel(mesh: meshes, maxDistance: 50),
+                    LODLevel(mesh: meshes, maxDistance: 100),
+                ]
+            }
+            setEntityStaticBatchComponent(entityId: entity)
+            lod1Entities.append(entity)
+        }
+
+        enableBatching(true)
+        generateBatches()
+
+        // Verify we have 2 batches (LOD 0 and LOD 1)
+        XCTAssertGreaterThanOrEqual(BatchingSystem.shared.batchGroups.count, 2, "❌ Should have at least 2 batch groups")
+
+        // Target entities for the test
+        let entityToEvict = lod0Entities[0]
+        let entityToChangeLOD = lod0Entities[1]
+
+        // Verify both are batched
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entityToEvict), "❌ Entity to evict should be batched")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entityToChangeLOD), "❌ Entity to change LOD should be batched")
+
+        // Queue an eviction for entityToEvict AND clear its mesh
+        if let renderComponent = scene.get(component: RenderComponent.self, for: entityToEvict) {
+            renderComponent.mesh = []
+        }
+        let evictionEvent = AssetResidencyChangedEvent(
+            entityId: entityToEvict,
+            assetURL: ballURL,
+            meshName: "ball",
+            isResident: false
+        )
+        SystemEventBus.shared.queueResidencyChange(evictionEvent)
+
+        // Queue an LOD change for entityToChangeLOD
+        let lodChangeEvent = EntityLODChangedEvent(
+            entityId: entityToChangeLOD,
+            previousLODIndex: 0,
+            newLODIndex: 1,
+            meshAssetID: "ball_LOD1"
+        )
+        SystemEventBus.shared.queueLODChange(lodChangeEvent)
+
+        // Update entityToChangeLOD's LOD component
+        if let lodComponent = scene.get(component: LODComponent.self, for: entityToChangeLOD) {
+            lodComponent.currentLOD = 1
+        }
+
+        // Flush events to handlers
+        SystemEventBus.shared.flushEvents()
+
+        // When: Call tick to process all pending changes
+        BatchingSystem.shared.tick()
+
+        // Then: entityToEvict should be removed (no mesh), entityToChangeLOD should be in LOD 1 batch
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: entityToEvict), "❌ Evicted entity should be removed from batch")
+
+        let changedEntityBatchInfo = BatchingSystem.shared.getBatchInfo(for: entityToChangeLOD)
+        XCTAssertNotNil(changedEntityBatchInfo, "❌ LOD-changed entity should still be batched")
+        XCTAssertEqual(changedEntityBatchInfo?.lodIndex, 1, "❌ LOD-changed entity should have LOD index 1")
+
+        // Verify LOD 1 entities are still batched
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: lod1Entities[0]), "❌ LOD 1 entities should still be batched")
+
+        print("✅ tick() correctly processed both eviction and LOD change")
+    }
+
+    func testGenerateBatchesCreatesSeparateBatchesForDifferentLODs() {
+        // Given: Create entities with same material but different LOD levels
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
+        // Create entities at LOD 0
+        var lod0Entities: [EntityID] = []
+        for i in 0 ..< 3 {
+            let entity = createEntity()
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+            }
+            if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                transform.position = simd_float3(Float(i) * 2.0, 0, 0)
+            }
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            if let lodComponent = scene.assign(to: entity, component: LODComponent.self) {
+                lodComponent.currentLOD = 0
+            }
+            setEntityStaticBatchComponent(entityId: entity)
+            lod0Entities.append(entity)
+        }
+
+        // Create entities at LOD 1
+        var lod1Entities: [EntityID] = []
+        for i in 0 ..< 3 {
+            let entity = createEntity()
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+            }
+            if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                transform.position = simd_float3(Float(i) * 2.0, 5, 0)
+            }
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            if let lodComponent = scene.assign(to: entity, component: LODComponent.self) {
+                lodComponent.currentLOD = 1
+            }
+            setEntityStaticBatchComponent(entityId: entity)
+            lod1Entities.append(entity)
+        }
+
+        // When: Generate batches
+        generateBatches()
+
+        // Then: Should have at least 2 separate batches (one for each LOD level)
+        XCTAssertGreaterThanOrEqual(BatchingSystem.shared.batchGroups.count, 2, "❌ Should have at least 2 batches for different LODs")
+
+        // Verify LOD 0 entities are in a batch with LOD index 0
+        for entity in lod0Entities {
+            let batchInfo = BatchingSystem.shared.getBatchInfo(for: entity)
+            XCTAssertNotNil(batchInfo, "❌ LOD 0 entity should be batched")
+            XCTAssertEqual(batchInfo?.lodIndex, 0, "❌ LOD 0 entity should have LOD index 0")
+        }
+
+        // Verify LOD 1 entities are in a batch with LOD index 1
+        for entity in lod1Entities {
+            let batchInfo = BatchingSystem.shared.getBatchInfo(for: entity)
+            XCTAssertNotNil(batchInfo, "❌ LOD 1 entity should be batched")
+            XCTAssertEqual(batchInfo?.lodIndex, 1, "❌ LOD 1 entity should have LOD index 1")
+        }
+
+        // Verify LOD 0 and LOD 1 entities are NOT in the same batch
+        let lod0BatchId = BatchingSystem.shared.getBatchInfo(for: lod0Entities[0])?.batchId
+        let lod1BatchId = BatchingSystem.shared.getBatchInfo(for: lod1Entities[0])?.batchId
+
+        XCTAssertNotNil(lod0BatchId, "❌ LOD 0 batch ID should exist")
+        XCTAssertNotNil(lod1BatchId, "❌ LOD 1 batch ID should exist")
+        XCTAssertNotEqual(lod0BatchId, lod1BatchId, "❌ LOD 0 and LOD 1 entities should be in different batches")
+
+        // Verify batch materialHash includes LOD suffix
+        for batchGroup in BatchingSystem.shared.batchGroups {
+            XCTAssertTrue(batchGroup.materialHash.contains("_LOD"), "❌ Batch key should include LOD suffix")
+        }
+
+        print("✅ generateBatches() correctly creates separate batches for different LOD levels")
+        print("   Batch groups created: \(BatchingSystem.shared.batchGroups.count)")
+        for (index, batch) in BatchingSystem.shared.batchGroups.enumerated() {
+            print("   Batch \(index): \(batch.entityIds.count) entities, key: \(batch.materialHash)")
+        }
+    }
 }
