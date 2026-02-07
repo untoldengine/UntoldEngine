@@ -201,6 +201,37 @@ extension StreamingRegionManager {
         activeLoadTasks.removeValue(forKey: id)
         regionLock.unlock()
 
+        // Emit residency events for each loaded entity (for LOD/Batching integration)
+        for (index, entity) in loadedEntities.enumerated() {
+            let asset = region.assets[index]
+            let assetURL = URL(fileURLWithPath: asset.filename + "." + asset.fileExtension)
+
+            SystemEventBus.shared.queueResidencyChange(
+                AssetResidencyChangedEvent(
+                    entityId: entity,
+                    assetURL: assetURL,
+                    meshName: asset.filename,
+                    isResident: true
+                )
+            )
+
+            // Also emit for children (multi-mesh assets)
+            let children = getEntityChildren(parentId: entity)
+            for childId in children {
+                SystemEventBus.shared.queueResidencyChange(
+                    AssetResidencyChangedEvent(
+                        entityId: childId,
+                        assetURL: assetURL,
+                        meshName: asset.filename,
+                        isResident: true
+                    )
+                )
+            }
+        }
+
+        // Record stats
+        SystemIntegrationMonitor.shared.recordRegionLoad()
+
         Logger.log(message: "✅ Loaded region \(id) with \(loadedEntities.count) entities")
     }
 
@@ -240,8 +271,38 @@ extension StreamingRegionManager {
             return
         }
         region.state = .unloading
+        let assets = region.assets
         regions[id] = region
         regionLock.unlock()
+
+        // Emit residency events BEFORE destroying (so LOD/Batching can update)
+        for (index, entity) in region.loadedEntities.enumerated() {
+            let asset = index < assets.count ? assets[index] : AssetReference(filename: "unknown", withExtension: "usdz")
+            let assetURL = URL(fileURLWithPath: asset.filename + "." + asset.fileExtension)
+
+            // Emit for children first (multi-mesh assets)
+            let children = getEntityChildren(parentId: entity)
+            for childId in children {
+                SystemEventBus.shared.queueResidencyChange(
+                    AssetResidencyChangedEvent(
+                        entityId: childId,
+                        assetURL: assetURL,
+                        meshName: asset.filename,
+                        isResident: false
+                    )
+                )
+            }
+
+            // Emit for root entity
+            SystemEventBus.shared.queueResidencyChange(
+                AssetResidencyChangedEvent(
+                    entityId: entity,
+                    assetURL: assetURL,
+                    meshName: asset.filename,
+                    isResident: false
+                )
+            )
+        }
 
         // Unregister memory for all entities (including children) before destroying
         for entity in region.loadedEntities {
@@ -264,6 +325,9 @@ extension StreamingRegionManager {
         region.loadedEntities = []
         regions[id] = region
         regionLock.unlock()
+
+        // Record stats
+        SystemIntegrationMonitor.shared.recordRegionUnload()
 
         Logger.log(message: "🗑️  Unloaded region \(id)")
     }

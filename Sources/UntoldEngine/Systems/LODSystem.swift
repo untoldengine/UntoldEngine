@@ -15,8 +15,10 @@ public class LODSystem {
     private init() {}
 
     public func update(deltaTime: Float) {
-        // Get active camer
-        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else { return }
+        // Get active camera
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else { return }
 
         let cameraPosition = cameraComponent.localPosition
 
@@ -31,38 +33,69 @@ public class LODSystem {
     }
 
     private func updateEntityLOD(entityId: EntityID, cameraPosition: simd_float3, deltaTime: Float) {
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else { return }
+
         // Calculate distance
         let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
 
-        // Get current LOD Component
-        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else { return }
+        // Select desired LOD level based on distance
+        let desiredLOD = selectLODLevel(
+            distance: distance,
+            lodComponent: lodComponent,
+            currentLOD: lodComponent.desiredLOD
+        )
 
-        // Select new LOD level
-        let newLOD = selectLODLevel(distance: distance, lodComponent: lodComponent, currentLOD: lodComponent.currentLOD)
+        lodComponent.desiredLOD = desiredLOD
+
+        // Resolve actual LOD (check residency, find fallback if needed)
+        let actualLOD = resolveActualLOD(
+            entityId: entityId,
+            lodComponent: lodComponent,
+            desiredLOD: desiredLOD
+        )
 
         // Apply the LOD (handles transitions, updates render component)
-        applyLOD(entityId: entityId, newLOD: newLOD, deltaTime: deltaTime)
+        applyLOD(entityId: entityId, newLOD: actualLOD, deltaTime: deltaTime)
+    }
+
+    /// Resolve desired LOD to actual LOD, falling back if mesh not resident
+    private func resolveActualLOD(
+        entityId _: EntityID,
+        lodComponent: LODComponent,
+        desiredLOD: Int
+    ) -> Int {
+        // Check if desired LOD mesh is resident
+        if lodComponent.isLODResident(desiredLOD) {
+            lodComponent.isUsingFallback = false
+            return desiredLOD
+        }
+
+        // Desired LOD not resident - find fallback
+        if let fallbackLOD = lodComponent.findFallbackLOD(from: desiredLOD) {
+            lodComponent.isUsingFallback = true
+            SystemIntegrationMonitor.shared.recordLODFallback()
+            return fallbackLOD
+        }
+
+        // No fallback available - stay at current LOD
+        lodComponent.isUsingFallback = true
+        return lodComponent.currentLOD
     }
 
     private func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
-        guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId), let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) else { return 0.0 }
+        guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
+              let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
+        else { return 0.0 }
 
         // Get entity center from AABB
         let boundingBox = localTransform.boundingBox
         let localCenter = (boundingBox.min + boundingBox.max) * 0.5
 
-        // Tranform to world space
+        // Transform to world space
         let worldCenter = worldTransform.space * simd_float4(localCenter, 1.0)
 
         // Calculate distance from camera to entity center
-        let distance = simd_distance(cameraPosition, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
-
-        // Optional: Adjust by object size (larger objects can have more lods)
-        // Uncomment below to enable size-aware LOD
-        // let objectSize = simd_length(boundingBox.max - boundingBox.min)
-        // return distance / max(objectSize * 0.5, 1.0)
-
-        return distance
+        return simd_distance(cameraPosition, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
     }
 
     private func selectLODLevel(distance: Float, lodComponent: LODComponent, currentLOD: Int) -> Int {
@@ -93,22 +126,22 @@ public class LODSystem {
     }
 
     private func applyLOD(entityId: EntityID, newLOD: Int, deltaTime: Float) {
-        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId), let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-            return
-        }
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId),
+              let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
+        else { return }
 
-        let currentLOD = lodComponent.currentLOD
+        let previousLODIndex = lodComponent.currentLOD
 
         // No change needed
-        if newLOD == currentLOD, lodComponent.previousLOD == nil {
+        if newLOD == previousLODIndex, lodComponent.previousLOD == nil {
             return
         }
 
         // Handle fade transitions
         if LODConfig.shared.enableFadeTransitions {
-            if newLOD != currentLOD {
+            if newLOD != previousLODIndex {
                 // Start transition
-                lodComponent.previousLOD = currentLOD
+                lodComponent.previousLOD = previousLODIndex
                 lodComponent.currentLOD = newLOD
                 lodComponent.transitionProgress = 0.0
             }
@@ -130,13 +163,36 @@ public class LODSystem {
         }
 
         // Update render component with new LOD meshes
-        // Safety check: ensure LOD level exists and has valid mesh data
         if newLOD >= 0, newLOD < lodComponent.lodLevels.count {
             let lodLevel = lodComponent.lodLevels[newLOD]
             // Skip placeholder LODs (empty mesh arrays)
             if !lodLevel.mesh.isEmpty {
                 renderComponent.mesh = lodLevel.mesh
+
+                // Generate mesh asset ID for batching
+                let meshAssetID = generateMeshAssetID(lodLevel: lodLevel, lodIndex: newLOD)
+                let previousAssetID = lodComponent.activeMeshAssetID
+                lodComponent.activeMeshAssetID = meshAssetID
+
+                // Emit LOD change event if LOD actually changed
+                if newLOD != previousLODIndex {
+                    SystemIntegrationMonitor.shared.recordLODSwitch()
+
+                    let event = EntityLODChangedEvent(
+                        entityId: entityId,
+                        previousLODIndex: previousLODIndex,
+                        newLODIndex: newLOD,
+                        meshAssetID: meshAssetID
+                    )
+                    SystemEventBus.shared.queueLODChange(event)
+                }
             }
         }
+    }
+
+    /// Generate a unique ID for the mesh at a given LOD level
+    private func generateMeshAssetID(lodLevel: LODLevel, lodIndex: Int) -> String {
+        let urlString = lodLevel.url?.absoluteString ?? "unknown"
+        return "\(urlString)_LOD\(lodIndex)"
     }
 }

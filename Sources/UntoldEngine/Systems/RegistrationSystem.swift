@@ -102,6 +102,9 @@ private func setEntityMeshCommon(
 
     let meshes = meshLoader(url)
 
+    // Cache meshes for streaming system (so reloads don't require disk I/O)
+    MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: meshes)
+
     if meshes.isEmpty {
         handleError(.assetDataMissing, filename)
         return
@@ -260,6 +263,9 @@ public func setEntityMeshAsync(
                 await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: current, totalMeshes: total)
             }
         }
+
+        // Cache meshes for streaming system (so reloads don't require disk I/O)
+        MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: meshes)
 
         // Process on main thread - validate meshes first
         if meshes.isEmpty {
@@ -479,6 +485,9 @@ public func loadScene(filename: String, withExtension: String, coordinateConvers
 
     meshes = Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, coordinateConversion: coordinateConversion)
 
+    // Cache meshes for streaming system (so reloads don't require disk I/O)
+    MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: meshes)
+
     if meshes.isEmpty {
         handleError(.assetDataMissing, filename)
         return
@@ -552,6 +561,9 @@ public func loadSceneAsync(
                 await AssetLoadingState.shared.updateProgress(entityId: sceneLoadEntityId, currentMesh: current, totalMeshes: total)
             }
         }
+
+        // Cache meshes for streaming system (so reloads don't require disk I/O)
+        MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: meshes)
 
         // Process on main thread
         let didLoadMeshes: Bool = await MainActor.run {
@@ -1516,6 +1528,7 @@ private func enableStreamingForSingleEntity(
     let url = render.assetURL
     streaming.assetFilename = url.deletingPathExtension().lastPathComponent
     streaming.assetExtension = url.pathExtension
+    streaming.assetName = render.assetName // The specific mesh name within the USDZ
 
     streaming.streamingRadius = streamingRadius
     streaming.unloadRadius = unloadRadius
