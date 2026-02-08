@@ -76,6 +76,34 @@ addLODLevel(entityId: tree, lodIndex: 3, fileName: "tree_LOD3", withExtension: "
 - LOD2 renders between 100-200 units
 - LOD3 (lowest detail) renders beyond 200 units
 
+### Loading Multiple LOD Levels (Recommended)
+
+Use `addLODLevels` to load all LOD levels with a single completion handler. This is especially important when combining LOD with static batching:
+
+```swift
+let tree = createEntity()
+setEntityLodComponent(entityId: tree)
+
+// Load all LOD levels and wait for completion
+addLODLevels(entityId: tree, levels: [
+    (0, "tree_LOD0", "usdz", 50.0, 0.0),
+    (1, "tree_LOD1", "usdz", 100.0, 0.0),
+    (2, "tree_LOD2", "usdz", 200.0, 0.0),
+    (3, "tree_LOD3", "usdz", 400.0, 0.0)
+]) { success in
+    if success {
+        print("All LOD levels loaded")
+        
+        // Apply transforms AFTER mesh is loaded
+        translateTo(entityId: tree, position: simd_float3(10, 0, 5))
+        
+        // Apply static batching if necessary
+    }
+}
+```
+
+> **Important:** When using LOD with async loading, apply transforms (`translateTo`, `rotateTo`, `scaleTo`) inside the completion handler. Transforms applied before the mesh loads may not take effect.
+
 ### With Initial Mesh Loading
 
 You can also load an initial mesh synchronously before adding LOD levels:
@@ -112,33 +140,6 @@ addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "
     }
 }
 ```
-
-### Loading Multiple LOD Levels (Recommended)
-
-Use `addLODLevels` to load all LOD levels with a single completion handler. This is especially important when combining LOD with static batching:
-
-```swift
-let tree = createEntity()
-setEntityLodComponent(entityId: tree)
-
-// Load all LOD levels and wait for completion
-addLODLevels(entityId: tree, levels: [
-    (0, "tree_LOD0", "usdz", 50.0, 0.0),
-    (1, "tree_LOD1", "usdz", 100.0, 0.0),
-    (2, "tree_LOD2", "usdz", 200.0, 0.0),
-    (3, "tree_LOD3", "usdz", 400.0, 0.0)
-]) { success in
-    if success {
-        print("All LOD levels loaded")
-        
-        // Apply transforms AFTER mesh is loaded
-        translateTo(entityId: tree, position: simd_float3(10, 0, 5))
-        
-    }
-}
-```
-
-> **Important:** When using LOD with async loading, apply transforms (`translateTo`, `rotateTo`, `scaleTo`) inside the completion handler. Transforms applied before the mesh loads may not take effect.
 
 ## File Organization
 
