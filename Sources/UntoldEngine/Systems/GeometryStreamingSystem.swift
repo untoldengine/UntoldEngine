@@ -53,6 +53,11 @@ public class GeometryStreamingSystem {
 
         // Check nearby entities for loading
         for entityId in nearbyEntities {
+            // Check if entity still exists (Octree may contain stale IDs)
+            guard scene.exists(entityId) else {
+                continue
+            }
+            
             guard let streaming = scene.get(component: StreamingComponent.self, for: entityId) else {
                 continue
             }
@@ -80,9 +85,17 @@ public class GeometryStreamingSystem {
         // Also check loaded entities that might now be out of range
         // (they may not be in the octree query if they're far away)
         let nearbySet = Set(nearbyEntities) // O(1) lookup
+        var staleEntityIds: [EntityID] = []
+        
         for entityId in loadedStreamingEntities {
             // Skip if already processed via octree query
             if nearbySet.contains(entityId) { continue }
+            
+            // Check if entity still exists first (handles destroyed/recreated entities)
+            guard scene.exists(entityId) else {
+                staleEntityIds.append(entityId)
+                continue
+            }
 
             guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
                   streaming.state == .loaded
@@ -92,6 +105,11 @@ public class GeometryStreamingSystem {
             if distance > streaming.unloadRadius {
                 unloadCandidates.append(entityId)
             }
+        }
+        
+        // Clean up stale entity IDs
+        for staleId in staleEntityIds {
+            loadedStreamingEntities.remove(staleId)
         }
 
         // Process unloads first (free memory)
@@ -407,13 +425,25 @@ public class GeometryStreamingSystem {
 
         // Use tracked loaded entities instead of querying all entities
         var candidates: [(EntityID, Int)] = [] // (entity, lastVisibleFrame)
+        var staleEntityIds: [EntityID] = []
 
         for entityId in loadedStreamingEntities {
+            // Check if entity still exists
+            guard scene.exists(entityId) else {
+                staleEntityIds.append(entityId)
+                continue
+            }
+            
             guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
                   streaming.state == .loaded
             else { continue }
 
             candidates.append((entityId, streaming.lastVisibleFrame))
+        }
+        
+        // Clean up stale entity IDs
+        for staleId in staleEntityIds {
+            loadedStreamingEntities.remove(staleId)
         }
 
         // Sort by oldest first
