@@ -1959,4 +1959,104 @@ final class SceneSerializerTests: BaseRenderSetup {
         // Verify entity was still created
         XCTAssertEqual(getAllGameEntities().count, 1, "Entity should be created even without completion handler")
     }
+
+    func testDeserializeSceneCompletionHandler_invokedAfterAllAsyncLoadsComplete() async throws {
+        // Given: Create multiple entities with render components that will trigger async loading
+        let entityNames = ["AsyncEntity1", "AsyncEntity2", "AsyncEntity3"]
+        for name in entityNames {
+            let entityId = createEntity()
+            setEntityName(entityId: entityId, name: name)
+            registerTransformComponent(entityId: entityId)
+            translateTo(entityId: entityId, position: simd_float3(Float.random(in: 0 ... 10), 0, 0))
+
+            // Use a real file reference that will trigger async loading
+            let meshes = BasicPrimitives.createCube()
+            let mockURL = URL(fileURLWithPath: "/test/ball.usdz")
+            registerRenderComponent(entityId: entityId, meshes: meshes, url: mockURL, assetName: "ball")
+        }
+
+        var sceneData = serializeScene()
+        sceneData.environment = nil // Bypass HDR generation
+
+        // When: Clear scene and deserialize with async mode
+        destroyAllEntities()
+        scene.finalizePendingDestroys()
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+
+        XCTAssertEqual(getAllGameEntities().count, 0, "Scene should be empty before deserialize")
+
+        // Track which async loads have been triggered
+        var asyncLoadsTriggered = 0
+        let loadTrackingLock = NSLock()
+
+        // Mock the resource URL function to track async load operations
+        let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
+        LoadingSystem.shared.resourceURLFn = { name, ext, _ in
+            if name == "ball", ext == "usdz" {
+                loadTrackingLock.lock()
+                asyncLoadsTriggered += 1
+                loadTrackingLock.unlock()
+                // Return the actual ball.usdz to trigger real async loading
+                return Bundle.module.url(forResource: name, withExtension: ext)
+            }
+            return nil
+        }
+        defer {
+            LoadingSystem.shared.resourceURLFn = originalResourceURLFn
+        }
+
+        // When: Deserialize and track completion
+        let completionExpectation = XCTestExpectation(description: "Completion handler invoked")
+        var completionCallTime: Date?
+        var entitiesAtCompletionTime = 0
+        var meshLoadedStates: [Bool] = []
+
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .asyncDefault) {
+            completionCallTime = Date()
+
+            // Capture state at completion time
+            let entities = getAllGameEntities()
+            entitiesAtCompletionTime = entities.count
+
+            // Check render components exist and have meshes
+            for entity in entities {
+                if let renderComp = scene.get(component: RenderComponent.self, for: entity) {
+                    meshLoadedStates.append(!renderComp.mesh.isEmpty)
+                }
+                // Also check children for multi-mesh assets
+                if let sceneGraph = scene.get(component: ScenegraphComponent.self, for: entity) {
+                    for childId in sceneGraph.children {
+                        if let childRenderComp = scene.get(component: RenderComponent.self, for: childId) {
+                            meshLoadedStates.append(!childRenderComp.mesh.isEmpty)
+                        }
+                    }
+                }
+            }
+
+            completionExpectation.fulfill()
+        }
+
+        // Then: Wait for completion and verify it was called after all loads finished
+        await fulfillment(of: [completionExpectation], timeout: 15.0)
+
+        // Verify completion was actually called
+        XCTAssertNotNil(completionCallTime, "Completion handler should have been called")
+
+        // Verify all async loads were triggered (3 entities with ball.usdz)
+        loadTrackingLock.lock()
+        let triggeredCount = asyncLoadsTriggered
+        loadTrackingLock.unlock()
+        XCTAssertEqual(triggeredCount, entityNames.count, "Should have triggered \(entityNames.count) async loads")
+
+        // Verify entities exist at completion time (root entities + possible children)
+        XCTAssertGreaterThanOrEqual(entitiesAtCompletionTime, entityNames.count,
+                                    "Should have at least \(entityNames.count) entities when completion is called")
+
+        // Verify all meshes were loaded when completion was called
+        XCTAssertFalse(meshLoadedStates.isEmpty, "Should have captured mesh load states")
+        for (index, isLoaded) in meshLoadedStates.enumerated() {
+            XCTAssertTrue(isLoaded, "Mesh \(index) should be loaded when completion handler is called")
+        }
+    }
 }
