@@ -64,10 +64,10 @@ public struct Scene {
 
     private mutating func destroyEntityFinalize(at entityIndexInt: Int) {
         let oldId = entities[entityIndexInt].entityId
-        
+
         // Unregister from spatial systems before destroying
         OctreeSystem.shared.unregisterEntity(oldId)
-        
+
         let idx = getEntityIndex(oldId)
         let newVersion = getEntityVersion(oldId) &+ 1
         let tombstone = createEntityId(idx, newVersion)
