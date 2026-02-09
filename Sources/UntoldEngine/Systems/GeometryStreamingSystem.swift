@@ -57,7 +57,7 @@ public class GeometryStreamingSystem {
             guard scene.exists(entityId) else {
                 continue
             }
-            
+
             guard let streaming = scene.get(component: StreamingComponent.self, for: entityId) else {
                 continue
             }
@@ -86,11 +86,11 @@ public class GeometryStreamingSystem {
         // (they may not be in the octree query if they're far away)
         let nearbySet = Set(nearbyEntities) // O(1) lookup
         var staleEntityIds: [EntityID] = []
-        
+
         for entityId in loadedStreamingEntities {
             // Skip if already processed via octree query
             if nearbySet.contains(entityId) { continue }
-            
+
             // Check if entity still exists first (handles destroyed/recreated entities)
             guard scene.exists(entityId) else {
                 staleEntityIds.append(entityId)
@@ -106,7 +106,7 @@ public class GeometryStreamingSystem {
                 unloadCandidates.append(entityId)
             }
         }
-        
+
         // Clean up stale entity IDs
         for staleId in staleEntityIds {
             loadedStreamingEntities.remove(staleId)
@@ -249,15 +249,19 @@ public class GeometryStreamingSystem {
                   let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
             else { return }
 
-            // Update all LOD level meshes
-            let skin = Skin()
+            // Update all LOD level meshes - create fresh copies for each LOD level
             for (lodIndex, meshes) in loadedMeshes {
                 guard lodIndex < lodComponent.lodLevels.count else { continue }
 
-                var updatedMeshes = meshes
+                // Create a unique Skin instance for each LOD level to avoid sharing issues
+                let levelSkin = Skin()
+                // IMPORTANT: Create copies of meshes with fresh uniform buffers for this entity
+                // Without this, multiple entities sharing the same cached mesh would overwrite
+                // each other's uniform data during rendering, causing entities to disappear
+                var updatedMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
                 for i in updatedMeshes.indices {
                     if updatedMeshes[i].skin == nil {
-                        updatedMeshes[i].skin = skin
+                        updatedMeshes[i].skin = levelSkin
                     }
                 }
 
@@ -336,21 +340,28 @@ public class GeometryStreamingSystem {
         // Update render component on main thread
         await MainActor.run {
             if let render = scene.get(component: RenderComponent.self, for: entityId) {
-                render.mesh = meshes
-                render.assetURL = url
-                render.assetName = meshName
+                // Create copies of meshes with fresh uniform buffers for this entity
+                // Without this, multiple entities sharing cached meshes would overwrite
+                // each other's uniform data during rendering
+                var entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
 
                 // Ensure skin is set up (required for shader validation)
                 // Meshes without skeletons need a default Skin()
                 let skin = Skin()
-                for index in render.mesh.indices {
-                    if render.mesh[index].skin == nil {
-                        render.mesh[index].skin = skin
+                for index in entityMeshes.indices {
+                    if entityMeshes[index].skin == nil {
+                        entityMeshes[index].skin = skin
                     }
                 }
+
+                render.mesh = entityMeshes
+                render.assetURL = url
+                render.assetName = meshName
             } else {
                 // Create render component if needed
-                registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: meshName)
+                // Note: registerRenderComponent should also handle buffer creation
+                let entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
+                registerRenderComponent(entityId: entityId, meshes: entityMeshes, url: url, assetName: meshName)
             }
 
             // Register with memory budget
@@ -433,14 +444,14 @@ public class GeometryStreamingSystem {
                 staleEntityIds.append(entityId)
                 continue
             }
-            
+
             guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
                   streaming.state == .loaded
             else { continue }
 
             candidates.append((entityId, streaming.lastVisibleFrame))
         }
-        
+
         // Clean up stale entity IDs
         for staleId in staleEntityIds {
             loadedStreamingEntities.remove(staleId)

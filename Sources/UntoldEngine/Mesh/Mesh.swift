@@ -152,6 +152,18 @@ public struct Mesh {
         skin = nil
     }
 
+    /// Create a copy of this mesh with fresh uniform buffers.
+    /// Use this when assigning cached meshes to a new entity to avoid buffer sharing.
+    func copyWithNewUniformBuffers() -> Mesh {
+        var copy = self
+        // Create new uniform buffers for this entity
+        copy.spaceUniform = (0 ..< 2).compactMap { _ in
+            renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
+                                         options: [MTLResourceOptions.storageModeShared])
+        }
+        return copy
+    }
+
     // Load meshes from a file URL
     static func loadMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, flip: Bool, coordinateConversion: CoordinateSystemConversion = .autoDetect) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
