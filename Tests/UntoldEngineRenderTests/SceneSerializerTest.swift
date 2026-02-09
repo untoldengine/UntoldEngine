@@ -1589,4 +1589,374 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertTrue(level1Data?.hasStaticBatchComponent == true, "Level1 should have flag (child hierarchy contains component)")
         XCTAssertTrue(level2Data?.hasStaticBatchComponent == true, "Level2 should have flag (has component directly)")
     }
+
+    // MARK: - Geometry Streaming Component Tests
+
+    func testSerializeStreamingComponent() {
+        // Create entity with streaming component
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "StreamedEntity")
+        registerTransformComponent(entityId: entityId)
+        registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+
+        guard let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) else {
+            XCTFail("StreamingComponent should exist")
+            return
+        }
+
+        // Set streaming properties
+        streamingComponent.streamingRadius = 250.0
+        streamingComponent.unloadRadius = 350.0
+        streamingComponent.priority = 10
+        streamingComponent.assetFilename = "tree_LOD0"
+        streamingComponent.assetExtension = "usdz"
+        streamingComponent.assetName = "Tree"
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Verify StreamingComponent was serialized
+        XCTAssertEqual(sceneData.entities.count, 1, "Should have one entity")
+        XCTAssertTrue(sceneData.entities[0].hasStreamingComponent == true, "Should have streaming component flag")
+        XCTAssertNotNil(sceneData.entities[0].streamingData, "Streaming data should not be nil")
+
+        let streamingData = sceneData.entities[0].streamingData!
+        XCTAssertEqual(streamingData.streamingRadius, 250.0, "Streaming radius should match")
+        XCTAssertEqual(streamingData.unloadRadius, 350.0, "Unload radius should match")
+        XCTAssertEqual(streamingData.priority, 10, "Priority should match")
+        XCTAssertEqual(streamingData.assetFilename, "tree_LOD0", "Asset filename should match")
+        XCTAssertEqual(streamingData.assetExtension, "usdz", "Asset extension should match")
+        XCTAssertEqual(streamingData.assetName, "Tree", "Asset name should match")
+    }
+
+    func testDeserializeStreamingComponent() {
+        // Create entity with streaming component
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "StreamedEntity")
+        registerTransformComponent(entityId: entityId)
+        registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+
+        guard let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) else {
+            XCTFail("StreamingComponent should exist")
+            return
+        }
+
+        streamingComponent.streamingRadius = 200.0
+        streamingComponent.unloadRadius = 300.0
+        streamingComponent.priority = 5
+        streamingComponent.assetFilename = "rock_LOD1"
+        streamingComponent.assetExtension = "usdz"
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Clear scene
+        destroyAllEntities()
+        scene.finalizePendingDestroys()
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+
+        // Deserialize
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .sync)
+
+        // Verify entity was recreated with StreamingComponent
+        guard let recreatedId = findEntity(name: "StreamedEntity") else {
+            XCTFail("Expected to find StreamedEntity after deserialization")
+            return
+        }
+
+        XCTAssertTrue(
+            hasComponent(entityId: recreatedId, componentType: StreamingComponent.self),
+            "StreamingComponent should be restored after deserialization"
+        )
+
+        // Verify streaming component properties were restored
+        guard let recreatedComponent = scene.get(component: StreamingComponent.self, for: recreatedId) else {
+            XCTFail("StreamingComponent should exist on recreated entity")
+            return
+        }
+
+        XCTAssertEqual(recreatedComponent.streamingRadius, 200.0, "Streaming radius should be restored")
+        XCTAssertEqual(recreatedComponent.unloadRadius, 300.0, "Unload radius should be restored")
+        XCTAssertEqual(recreatedComponent.priority, 5, "Priority should be restored")
+        XCTAssertEqual(recreatedComponent.assetFilename, "rock_LOD1", "Asset filename should be restored")
+        XCTAssertEqual(recreatedComponent.assetExtension, "usdz", "Asset extension should be restored")
+        XCTAssertEqual(recreatedComponent.state, .unloaded, "State should be unloaded after deserialization")
+    }
+
+    func testRoundTripStreamingComponentViaJSON() {
+        // Create entity with streaming component
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "StreamedTree")
+        registerTransformComponent(entityId: entityId)
+
+        // Add a mesh so the transform is properly serialized
+        let meshes = BasicPrimitives.createCube()
+        setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: "Cube")
+
+        translateTo(entityId: entityId, position: simd_float3(10.0, 0.0, 5.0))
+        registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+
+        guard let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) else {
+            XCTFail("StreamingComponent should exist")
+            return
+        }
+
+        streamingComponent.streamingRadius = 150.0
+        streamingComponent.unloadRadius = 250.0
+        streamingComponent.priority = 8
+        streamingComponent.assetFilename = "tree"
+        streamingComponent.assetExtension = "usdz"
+        streamingComponent.assetName = "TreeMesh"
+
+        // Serialize to JSON
+        let sceneData = serializeScene()
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("streaming_roundtrip.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(sceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write streaming JSON: \(error)")
+            return
+        }
+
+        // Clear scene
+        destroyAllEntities()
+        scene.finalizePendingDestroys()
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+
+        // Load and deserialize
+        guard let loadedSceneData = loadGameScene(from: sceneURL) else {
+            XCTFail("Failed to load streaming JSON")
+            return
+        }
+
+        deserializeScene(sceneData: loadedSceneData, meshLoadingMode: .sync)
+
+        // Verify component was restored
+        guard let recreatedId = findEntity(name: "StreamedTree") else {
+            XCTFail("Expected to find StreamedTree after deserialization")
+            return
+        }
+
+        XCTAssertTrue(
+            hasComponent(entityId: recreatedId, componentType: StreamingComponent.self),
+            "StreamingComponent should be restored after JSON round-trip"
+        )
+
+        guard let recreatedComponent = scene.get(component: StreamingComponent.self, for: recreatedId) else {
+            XCTFail("StreamingComponent should exist after round-trip")
+            return
+        }
+
+        XCTAssertEqual(recreatedComponent.streamingRadius, 150.0, "Streaming radius should round-trip")
+        XCTAssertEqual(recreatedComponent.unloadRadius, 250.0, "Unload radius should round-trip")
+        XCTAssertEqual(recreatedComponent.priority, 8, "Priority should round-trip")
+        XCTAssertEqual(recreatedComponent.assetFilename, "tree", "Asset filename should round-trip")
+        XCTAssertEqual(recreatedComponent.assetExtension, "usdz", "Asset extension should round-trip")
+        XCTAssertEqual(recreatedComponent.assetName, "TreeMesh", "Asset name should round-trip")
+
+        // Cleanup
+        try? FileManager.default.removeItem(at: sceneURL)
+    }
+
+    func testSerializeEntityWithoutStreamingComponent() {
+        // Verify entities without StreamingComponent don't have streaming data
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "RegularEntity")
+        registerTransformComponent(entityId: entityId)
+
+        // Serialize without streaming
+        let sceneData = serializeScene()
+
+        // Verify no StreamingComponent flag or data
+        XCTAssertEqual(sceneData.entities.count, 1, "Should have one entity")
+        XCTAssertNil(sceneData.entities[0].hasStreamingComponent, "Should not have streaming component flag")
+        XCTAssertNil(sceneData.entities[0].streamingData, "Should not have streaming data")
+    }
+
+    func testSerializeLODWithStreamingComponent() {
+        // Test entity with both LOD and Streaming components
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "LODStreamEntity")
+        registerTransformComponent(entityId: entityId)
+        registerComponent(entityId: entityId, componentType: LODComponent.self)
+        registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+
+        // Setup LOD
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+            XCTFail("LODComponent should exist")
+            return
+        }
+
+        let lod0URL = URL(fileURLWithPath: "/GameData/Models/tree/tree_LOD0.usdz")
+        let lod1URL = URL(fileURLWithPath: "/GameData/Models/tree/tree_LOD1.usdz")
+        let emptyMeshes: [Mesh] = []
+
+        lodComponent.lodLevels = [
+            LODLevel(mesh: emptyMeshes, maxDistance: 50.0, screenPercentage: 0.0, url: lod0URL),
+            LODLevel(mesh: emptyMeshes, maxDistance: 100.0, screenPercentage: 0.0, url: lod1URL),
+        ]
+
+        // Setup Streaming
+        guard let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) else {
+            XCTFail("StreamingComponent should exist")
+            return
+        }
+
+        streamingComponent.streamingRadius = 200.0
+        streamingComponent.unloadRadius = 300.0
+        streamingComponent.priority = 7
+        streamingComponent.assetFilename = "tree_LOD0"
+        streamingComponent.assetExtension = "usdz"
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Verify both components were serialized
+        XCTAssertEqual(sceneData.entities.count, 1, "Should have one entity")
+        XCTAssertTrue(sceneData.entities[0].hasLODComponent == true, "Should have LOD component flag")
+        XCTAssertTrue(sceneData.entities[0].hasStreamingComponent == true, "Should have streaming component flag")
+        XCTAssertNotNil(sceneData.entities[0].lodData, "LOD data should not be nil")
+        XCTAssertNotNil(sceneData.entities[0].streamingData, "Streaming data should not be nil")
+
+        // Verify LOD data
+        let lodData = sceneData.entities[0].lodData!
+        XCTAssertEqual(lodData.lodLevels.count, 2, "Should have 2 LOD levels")
+
+        // Verify Streaming data
+        let streamingData = sceneData.entities[0].streamingData!
+        XCTAssertEqual(streamingData.streamingRadius, 200.0, "Streaming radius should match")
+        XCTAssertEqual(streamingData.priority, 7, "Priority should match")
+    }
+
+    func testRoundTripStreamingStaticBatchViaJSON() {
+        // Test entity with Streaming + StaticBatch components
+        // Note: Testing all three (LOD + Streaming + StaticBatch) requires actual LOD files
+        // which are not available in unit tests. This test verifies Streaming + StaticBatch work together.
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "ComplexEntity")
+        registerTransformComponent(entityId: entityId)
+        let meshes = BasicPrimitives.createCube()
+        setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: "Cube")
+
+        // Add Streaming component
+        registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+        guard let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) else {
+            XCTFail("StreamingComponent should exist")
+            return
+        }
+
+        streamingComponent.streamingRadius = 100.0
+        streamingComponent.unloadRadius = 150.0
+        streamingComponent.priority = 5
+        streamingComponent.assetFilename = "cube_LOD0"
+        streamingComponent.assetExtension = "usdz"
+
+        // Add StaticBatch component
+        setEntityStaticBatchComponent(entityId: entityId)
+
+        // Serialize to JSON
+        let sceneData = serializeScene()
+        let tempDir = FileManager.default.temporaryDirectory
+        let sceneURL = tempDir.appendingPathComponent("complex_roundtrip.json")
+
+        do {
+            let jsonData = try JSONEncoder().encode(sceneData)
+            try jsonData.write(to: sceneURL)
+        } catch {
+            XCTFail("Failed to write complex JSON: \(error)")
+            return
+        }
+
+        // Clear scene
+        destroyAllEntities()
+        scene.finalizePendingDestroys()
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+
+        // Load and deserialize
+        guard let loadedSceneData = loadGameScene(from: sceneURL) else {
+            XCTFail("Failed to load complex JSON")
+            return
+        }
+
+        deserializeScene(sceneData: loadedSceneData, meshLoadingMode: .sync)
+
+        // Verify components were restored
+        guard let recreatedId = findEntity(name: "ComplexEntity") else {
+            XCTFail("Expected to find ComplexEntity after deserialization")
+            return
+        }
+
+        XCTAssertTrue(
+            hasComponent(entityId: recreatedId, componentType: StreamingComponent.self),
+            "StreamingComponent should be restored"
+        )
+        XCTAssertTrue(
+            hasComponent(entityId: recreatedId, componentType: StaticBatchComponent.self),
+            "StaticBatchComponent should be restored"
+        )
+
+        // Verify streaming properties
+        guard let recreatedStreaming = scene.get(component: StreamingComponent.self, for: recreatedId) else {
+            XCTFail("StreamingComponent should exist after round-trip")
+            return
+        }
+
+        XCTAssertEqual(recreatedStreaming.streamingRadius, 100.0, "Streaming radius should round-trip")
+        XCTAssertEqual(recreatedStreaming.unloadRadius, 150.0, "Unload radius should round-trip")
+        XCTAssertEqual(recreatedStreaming.priority, 5, "Priority should round-trip")
+
+        // Cleanup
+        try? FileManager.default.removeItem(at: sceneURL)
+    }
+
+    // MARK: - Completion Handler Tests
+
+    func testDeserializeSceneCompletionHandler() {
+        // Create a simple entity
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "CompletionTestEntity")
+        registerTransformComponent(entityId: entityId)
+        translateTo(entityId: entityId, position: simd_float3(1.0, 2.0, 3.0))
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Clear scene
+        destroyAllEntities()
+
+        // Test completion handler is called
+        let expectation = XCTestExpectation(description: "Completion handler should be called")
+
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .sync) {
+            // Verify entity was recreated before completion handler
+            let entities = getAllGameEntities()
+            XCTAssertEqual(entities.count, 1, "Entity should be recreated before completion")
+
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: 1.0)
+    }
+
+    func testDeserializeSceneCompletionHandlerWithNoCallback() {
+        // Test that deserialize works without a completion handler
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "NoCallbackEntity")
+        registerTransformComponent(entityId: entityId)
+
+        let sceneData = serializeScene()
+        destroyAllEntities()
+
+        // Should not crash when no completion handler is provided
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .sync)
+
+        // Verify entity was still created
+        XCTAssertEqual(getAllGameEntities().count, 1, "Entity should be created even without completion handler")
+    }
 }
