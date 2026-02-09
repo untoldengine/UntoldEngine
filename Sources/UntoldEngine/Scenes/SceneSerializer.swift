@@ -157,6 +157,17 @@ struct LODData: Codable {
     var transitionDuration: Float
 }
 
+// MARK: - Geometry Streaming Data
+
+struct StreamingData: Codable {
+    var streamingRadius: Float
+    var unloadRadius: Float
+    var priority: Int
+    var assetFilename: String
+    var assetExtension: String
+    var assetName: String?
+}
+
 struct EntityData: Codable {
     var uuid: UUID = .init() // Unique identifier for this entity
     var parentUUID: UUID? = nil // UUID of the parent entity, if any
@@ -182,6 +193,7 @@ struct EntityData: Codable {
     var hasCameraComponent: Bool?
     var hasLODComponent: Bool?
     var hasStaticBatchComponent: Bool?
+    var hasStreamingComponent: Bool?
 
     var customComponents: [String: Data]? = nil
 
@@ -190,6 +202,9 @@ struct EntityData: Codable {
 
     // LOD system
     var lodData: LODData? = nil
+
+    // Geometry Streaming system
+    var streamingData: StreamingData? = nil
 }
 
 private func isProceduralAssetURL(_ url: URL) -> Bool {
@@ -460,6 +475,24 @@ public func serializeScene() -> SceneData {
             entityData.hasStaticBatchComponent = true
         }
 
+        // Geometry Streaming properties
+        let hasStreaming: Bool = hasComponent(entityId: entityId, componentType: StreamingComponent.self)
+
+        if hasStreaming {
+            entityData.hasStreamingComponent = hasStreaming
+
+            if let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) {
+                entityData.streamingData = StreamingData(
+                    streamingRadius: streamingComponent.streamingRadius,
+                    unloadRadius: streamingComponent.unloadRadius,
+                    priority: streamingComponent.priority,
+                    assetFilename: streamingComponent.assetFilename,
+                    assetExtension: streamingComponent.assetExtension,
+                    assetName: streamingComponent.assetName
+                )
+            }
+        }
+
         // custom component
         var customComponents: [String: Data] = [:]
 
@@ -639,8 +672,54 @@ public enum MeshLoadingMode {
     case sync
 }
 
-public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingMode = .asyncDefault) {
+/// Tracks async loading operations during scene deserialization
+private class AsyncLoadTracker {
+    private var pendingLoads = 0
+    private var completedLoads = 0
+    private let lock = NSLock()
+    var completion: (() -> Void)?
+
+    /// Register a new async operation
+    func registerLoad() {
+        lock.lock()
+        pendingLoads += 1
+        lock.unlock()
+    }
+
+    /// Mark an async operation as complete
+    func completeLoad() {
+        lock.lock()
+        completedLoads += 1
+        let shouldComplete = (completedLoads >= pendingLoads && pendingLoads > 0)
+        lock.unlock()
+
+        if shouldComplete {
+            completion?()
+        }
+    }
+
+    /// Check if we should call completion immediately (no async ops)
+    func checkCompletion() {
+        lock.lock()
+        let hasNoAsyncOps = (pendingLoads == 0)
+        lock.unlock()
+
+        if hasNoAsyncOps {
+            completion?()
+        }
+    }
+}
+
+public func deserializeScene(
+    sceneData: SceneData,
+    meshLoadingMode: MeshLoadingMode = .asyncDefault,
+    completion: (() -> Void)? = nil
+) {
     var uuidToEntityMap: [UUID: EntityID] = [:]
+
+    // Track async loading operations for completion callback
+    let loadTracker = AsyncLoadTracker()
+    loadTracker.completion = completion
 
     if let env = sceneData.environment {
         applyIBL = env.applyIBL ?? false
@@ -758,6 +837,7 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                     }
                 }
             case .asyncDefault:
+                loadTracker.registerLoad()
                 setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
                     Task {
                         await MainActor.run {
@@ -786,6 +866,7 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                             } else {
                                 Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
                             }
+                            loadTracker.completeLoad()
                         }
                     }
                 }
@@ -841,6 +922,7 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                 } else {
                     let fallbackLabel = withExtension.isEmpty ? filename : "\(filename).\(withExtension)"
                     let meshLabel = sceneDataEntity.name.isEmpty ? fallbackLabel : sceneDataEntity.name
+                    loadTracker.registerLoad()
                     setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
                         Task {
                             await MainActor.run {
@@ -868,6 +950,7 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                                 } else {
                                     Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
                                 }
+                                loadTracker.completeLoad()
                             }
                         }
                     }
@@ -1113,6 +1196,7 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                         let ext = url.pathExtension
                         let maxDistance = lodLevelData.maxDistance
 
+                        loadTracker.registerLoad()
                         addLODLevel(
                             entityId: entityId,
                             lodIndex: index,
@@ -1138,6 +1222,7 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
                             } else {
                                 Logger.logWarning(message: "⚠️ Failed to load LOD level \(index) for '\(sceneDataEntity.name)'")
                             }
+                            loadTracker.completeLoad()
                         }
                     }
                 }
@@ -1146,6 +1231,28 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
 
         // Static Batch Component is now restored inside mesh loading completion handlers
         // (moved there to ensure RenderComponent exists before adding StaticBatchComponent)
+
+        // Geometry Streaming Component
+        if sceneDataEntity.hasStreamingComponent == true {
+            if let streamingData = sceneDataEntity.streamingData {
+                // Register streaming component
+                registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+
+                if let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) {
+                    streamingComponent.streamingRadius = streamingData.streamingRadius
+                    streamingComponent.unloadRadius = streamingData.unloadRadius
+                    streamingComponent.priority = streamingData.priority
+                    streamingComponent.assetFilename = streamingData.assetFilename
+                    streamingComponent.assetExtension = streamingData.assetExtension
+                    streamingComponent.assetName = streamingData.assetName
+                    streamingComponent.state = MeshStreamingState.unloaded
+
+                    Logger.log(message: "✅ Streaming component restored for '\(sceneDataEntity.name)'")
+                } else {
+                    Logger.logWarning(message: "⚠️ Failed to restore streaming component for '\(sceneDataEntity.name)'")
+                }
+            }
+        }
 
         // custom components
         if let customComponents = sceneDataEntity.customComponents {
@@ -1168,6 +1275,9 @@ public func deserializeScene(sceneData: SceneData, meshLoadingMode: MeshLoadingM
 
         setParent(childId: childId, parentId: parentId)
     }
+
+    // Check if all async loads are complete (or if there were no async loads)
+    loadTracker.checkCompletion()
 }
 
 // Notification posted when asset instance has finished loading and overrides have been applied
