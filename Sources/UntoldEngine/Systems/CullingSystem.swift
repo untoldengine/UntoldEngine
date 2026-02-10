@@ -210,13 +210,9 @@ func initFrustumCulllingCompute() {
 
     tripleBufferResources.entityAABB = TripleBuffer(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
 
-    // count
-    bufferResources.visibleCountBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride, options: .storageModeShared)
-
-    // reset visible count
-    bufferResources.visibleCountBuffer?.contents().storeBytes(of: UInt32(0), as: UInt32.self)
-
-    bufferResources.visibilityBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride * MAX_ENTITIES, options: .storageModeShared)
+    // Per-frame visibility outputs (triple-buffered)
+    tripleBufferResources.visibleCount = TripleBuffer<UInt32>(device: renderInfo.device, initialCapacity: 1)
+    tripleBufferResources.visibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
 
     // Reduce scan buffers
     bufferResources.reduceScanFlags = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * MAX_ENTITIES, options: .storageModePrivate)
@@ -242,22 +238,15 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    // clear up visible count buffer
-    let blit = commandBuffer.makeBlitCommandEncoder()!
-    blit.fill(buffer: bufferResources.visibleCountBuffer!, range: 0 ..< MemoryLayout<UInt32>.stride, value: 0)
-    blit.endEncoding()
+    // Capture and advance submit index so in-flight frames don't reuse the same slot.
+    let submitFrameIndex = cullSubmitIndex
+    cullSubmitIndex += 1
 
     let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
 
     // build the frustum
     var frustum = buildFrustum(from: viewProjection)
     frustum = padFrustum(frustum, sidePad: 3.0)
-
-    let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
-
-    computeEncoder.label = "Frustum Culling pass"
-
-    computeEncoder.setComputePipelineState(frustumCullingPipeline.pipelineState!)
 
     guard let frustumTripleBuffer = tripleBufferResources.frustumPlane else {
         handleError(.bufferAllocationFailed, "Frustum cull buffer")
@@ -269,24 +258,30 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    guard let visibilityCountBuffer = bufferResources.visibleCountBuffer else {
-        handleError(.bufferAllocationFailed, "visbility count buffer in frustum culling")
+    guard let visibleCountTriple = tripleBufferResources.visibleCount else {
+        handleError(.bufferAllocationFailed, "visible count triple buffer in frustum culling")
         return
     }
 
-    guard let visibilityBuffer = bufferResources.visibilityBuffer else {
-        handleError(.bufferAllocationFailed, "visibility buffer in frustum culling")
+    guard let visibilityTriple = tripleBufferResources.visibility else {
+        handleError(.bufferAllocationFailed, "visibility triple buffer in frustum culling")
         return
     }
 
-    let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: cullFrameIndex)
+    let visibleCountBuffer = visibleCountTriple.bufferForWrite(frame: submitFrameIndex)
+
+    // clear up visible count buffer
+    let blit = commandBuffer.makeBlitCommandEncoder()!
+    blit.fill(buffer: visibleCountBuffer, range: 0 ..< MemoryLayout<UInt32>.stride, value: 0)
+    blit.endEncoding()
+
+    let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: submitFrameIndex)
     let frustumWritePointer = frustumWriteBuffer.contents().bindMemory(to: simd_float4.self, capacity: planeCount)
     for i in 0 ..< planeCount {
         frustumWritePointer[i] = simd_float4(frustum.planes[i].n, frustum.planes[i].d)
     }
 
-    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: cullFrameIndex)
-    computeEncoder.setBuffer(frustumReadBuffer, offset: 0, index: Int(frustumCullingPassPlanesIndex.rawValue))
+    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: submitFrameIndex)
 
     let transformId = getComponentId(for: WorldTransformComponent.self)
     let renderId = getComponentId(for: RenderComponent.self)
@@ -326,34 +321,44 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         entityAABBContainer.append(entityAABB)
     }
 
-    // ensure we have enough capacity
-
     let count = entityAABBContainer.count
+
+    // ensure we have enough capacity
     entityAABBTripleBuffer.ensureCapacity(count)
+    visibilityTriple.ensureCapacity(count)
+
+    guard count > 0 else {
+        return
+    }
+
+    let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+
+    computeEncoder.label = "Frustum Culling pass"
+
+    computeEncoder.setComputePipelineState(frustumCullingPipeline.pipelineState!)
+
+    computeEncoder.setBuffer(frustumReadBuffer, offset: 0, index: Int(frustumCullingPassPlanesIndex.rawValue))
 
     // write current frame's data
-    let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: cullFrameIndex)
+    let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: submitFrameIndex)
 
     entityAABBContainer.withUnsafeBytes { src in
         entityAABBWriteBuffer.contents().copyMemory(from: src.baseAddress!, byteCount: src.count)
     }
 
     // pick the buffer the gpu should read
-    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: cullFrameIndex)
+    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: submitFrameIndex)
+
+    let visibilityBuffer = visibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
     computeEncoder.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(frustumCullingPassObjectIndex.rawValue))
 
     var count32 = UInt32(count)
     computeEncoder.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(frustumCullingPassObjectCountIndex.rawValue))
 
-    computeEncoder.setBuffer(bufferResources.visibleCountBuffer, offset: 0, index: Int(frustumCullingPassVisibleCountIndex.rawValue))
+    computeEncoder.setBuffer(visibleCountBuffer, offset: 0, index: Int(frustumCullingPassVisibleCountIndex.rawValue))
 
-    computeEncoder.setBuffer(bufferResources.visibilityBuffer, offset: 0, index: Int(frustumCullingPassVisibilityIndex.rawValue))
-
-    guard count > 0 else {
-        computeEncoder.endEncoding()
-        return
-    }
+    computeEncoder.setBuffer(visibilityBuffer, offset: 0, index: Int(frustumCullingPassVisibilityIndex.rawValue))
 
     let tew = frustumCullingPipeline.pipelineState?.threadExecutionWidth // e.g. 32/64
     let maxT = frustumCullingPipeline.pipelineState?.maxTotalThreadsPerThreadgroup // device cap
@@ -373,10 +378,11 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     computeEncoder.endEncoding()
 
     commandBuffer.addCompletedHandler { _ in
-        let visibleCount = visibilityCountBuffer.contents().load(as: UInt32.self)
+        let visibleCount = visibleCountBuffer.contents().load(as: UInt32.self)
         let visibleEntities = visibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
 
         var nextVisibleIds: [EntityID] = []
+        nextVisibleIds.reserveCapacity(Int(visibleCount))
         for i in 0 ..< Int(visibleCount) {
             let index = visibleEntities[i].index
             let version = visibleEntities[i].version
@@ -384,8 +390,10 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         }
 
         // Swap into the write slot on the render thread
-        tripleVisibleEntities.setWrite(frame: cullFrameIndex, with: nextVisibleIds)
-        cullFrameIndex += 1
+        DispatchQueue.main.async {
+            tripleVisibleEntities.setWrite(frame: submitFrameIndex, with: nextVisibleIds)
+            cullFrameIndex = max(cullFrameIndex, submitFrameIndex + 1)
+        }
     }
 }
 
@@ -415,12 +423,11 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    let numBlocks = (Int32(MAX_ENTITIES) + BLOCK_SIZE - 1) / BLOCK_SIZE
+    // Capture and advance submit index so in-flight frames don't reuse the same slot.
+    let submitFrameIndex = cullSubmitIndex
+    cullSubmitIndex += 1
 
-    // clear up visible count buffer
-    let blit = commandBuffer.makeBlitCommandEncoder()!
-    blit.fill(buffer: bufferResources.visibleCountBuffer!, range: 0 ..< MemoryLayout<UInt32>.stride, value: 0)
-    blit.endEncoding()
+    let numBlocks = (Int32(MAX_ENTITIES) + BLOCK_SIZE - 1) / BLOCK_SIZE
 
     let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
 
@@ -438,23 +445,30 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    guard let visibilityCountBuffer = bufferResources.visibleCountBuffer else {
-        handleError(.bufferAllocationFailed, "visbility count buffer in frustum culling")
+    guard let visibleCountTriple = tripleBufferResources.visibleCount else {
+        handleError(.bufferAllocationFailed, "visible count triple buffer in frustum culling")
         return
     }
 
-    guard let visibilityBuffer = bufferResources.visibilityBuffer else {
-        handleError(.bufferAllocationFailed, "visibility buffer in frustum culling")
+    guard let visibilityTriple = tripleBufferResources.visibility else {
+        handleError(.bufferAllocationFailed, "visibility triple buffer in frustum culling")
         return
     }
 
-    let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: cullFrameIndex)
+    let visibleCountBuffer = visibleCountTriple.bufferForWrite(frame: submitFrameIndex)
+
+    // clear up visible count buffer
+    let blit = commandBuffer.makeBlitCommandEncoder()!
+    blit.fill(buffer: visibleCountBuffer, range: 0 ..< MemoryLayout<UInt32>.stride, value: 0)
+    blit.endEncoding()
+
+    let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: submitFrameIndex)
     let frustumWritePointer = frustumWriteBuffer.contents().bindMemory(to: simd_float4.self, capacity: planeCount)
     for i in 0 ..< planeCount {
         frustumWritePointer[i] = simd_float4(frustum.planes[i].n, frustum.planes[i].d)
     }
 
-    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: cullFrameIndex)
+    let frustumReadBuffer = frustumTripleBuffer.bufferForRead(frame: submitFrameIndex)
 
     let transformId = getComponentId(for: WorldTransformComponent.self)
     let renderId = getComponentId(for: RenderComponent.self)
@@ -496,22 +510,25 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     let count = entityAABBContainer.count
 
+    // ensure we have enough capacity
+    entityAABBTripleBuffer.ensureCapacity(count)
+    visibilityTriple.ensureCapacity(count)
+
     guard count > 0 else {
         return
     }
 
-    // ensure we have enough capacity
-    entityAABBTripleBuffer.ensureCapacity(count)
-
     // write current frame's data
-    let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: cullFrameIndex)
+    let entityAABBWriteBuffer = entityAABBTripleBuffer.bufferForWrite(frame: submitFrameIndex)
 
     entityAABBContainer.withUnsafeBytes { src in
         entityAABBWriteBuffer.contents().copyMemory(from: src.baseAddress!, byteCount: src.count)
     }
 
     // pick the buffer the gpu should read
-    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: cullFrameIndex)
+    let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: submitFrameIndex)
+
+    let visibilityBuffer = visibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
     var count32 = UInt32(count)
 
@@ -597,8 +614,8 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         computeEncoderCompact.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(compactPassCountIndex.rawValue))
 
-        computeEncoderCompact.setBuffer(bufferResources.visibilityBuffer, offset: 0, index: Int(compactPassVisibilityIndicesIndex.rawValue))
-        computeEncoderCompact.setBuffer(bufferResources.visibleCountBuffer, offset: 0, index: Int(compactPassVisibilityCountIndex.rawValue))
+        computeEncoderCompact.setBuffer(visibilityBuffer, offset: 0, index: Int(compactPassVisibilityIndicesIndex.rawValue))
+        computeEncoderCompact.setBuffer(visibleCountBuffer, offset: 0, index: Int(compactPassVisibilityCountIndex.rawValue))
 
         let w = min(reduceScanScatterCompactedPipeline.pipelineState!.maxTotalThreadsPerThreadgroup, 256)
         let numThreadgroups = (Int(count32) + w - 1) / w
@@ -609,10 +626,11 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     }
 
     commandBuffer.addCompletedHandler { _ in
-        let visibleCount = visibilityCountBuffer.contents().load(as: UInt32.self)
+        let visibleCount = visibleCountBuffer.contents().load(as: UInt32.self)
         let visibleEntities = visibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
 
         var nextVisibleIds: [EntityID] = []
+        nextVisibleIds.reserveCapacity(Int(visibleCount))
         for i in 0 ..< Int(visibleCount) {
             let index = visibleEntities[i].index
             let version = visibleEntities[i].version
@@ -621,8 +639,8 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         // Swap into the write slot on the render thread
         DispatchQueue.main.async {
-            tripleVisibleEntities.setWrite(frame: cullFrameIndex, with: nextVisibleIds)
-            cullFrameIndex += 1
+            tripleVisibleEntities.setWrite(frame: submitFrameIndex, with: nextVisibleIds)
+            cullFrameIndex = max(cullFrameIndex, submitFrameIndex + 1)
         }
     }
 }

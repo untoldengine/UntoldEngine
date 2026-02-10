@@ -77,10 +77,6 @@ public struct BufferResources {
     // ssao kernel
     var ssaoKernelBuffer: MTLBuffer?
 
-    // Frustum Plane Buffer
-    var visibleCountBuffer: MTLBuffer?
-    var visibilityBuffer: MTLBuffer?
-
     // Frustum Culling reduce-scan
     var reduceScanFlags: MTLBuffer?
     var reduceScanIndices: MTLBuffer?
@@ -91,6 +87,8 @@ public struct BufferResources {
 public struct TripleBufferResources {
     var frustumPlane: TripleBuffer<simd_float4>?
     var entityAABB: TripleBuffer<EntityAABB>?
+    var visibleCount: TripleBuffer<UInt32>?
+    var visibility: TripleBuffer<VisibleEntity>?
 }
 
 public struct VertexDescriptors {
