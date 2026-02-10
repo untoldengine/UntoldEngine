@@ -17,6 +17,16 @@ When used together, these systems provide powerful performance optimization:
 - Batching reduces CPU overhead by minimizing draw calls
 - Streaming reduces memory usage by only keeping nearby geometry loaded
 
+Before using the examples below, assume your scene has:
+- A valid active camera (used for LOD switching and streaming distance checks)
+- Entity transforms in world space before runtime optimization kicks in
+- Mesh/material naming consistency across LOD levels (to avoid mismatched assets)
+- A clear decision on whether setup happens procedurally at runtime or from a serialized scene file
+
+In practice, there are two common workflows:
+- **Procedural setup**: You create entities and configure LOD/batching/streaming in code during scene initialization.
+- **Scene deserialization**: You load a saved scene where components were already authored, then finalize runtime systems in completion callbacks.
+
 ## LOD + Batching
 
 This combination is ideal for scenes with many static objects that remain loaded throughout the scene lifetime. The LOD system manages visual quality based on distance, while batching reduces draw calls for objects using the same material.
@@ -25,6 +35,8 @@ This combination is ideal for scenes with many static objects that remain loaded
 - All entities must have their meshes loaded before calling `generateBatches()`
 - Use the completion callback from `addLODLevels()` to ensure meshes are ready
 - Enable batching and generate batches only after all entities are configured
+
+Why this order matters: batching relies on mesh/material data that is only guaranteed after async LOD loading completes. If `generateBatches()` runs too early, some entities may be missing from batches, causing inconsistent draw-call reduction.
 
 ```swift
 private func setupLODWithBatching() {
@@ -65,6 +77,15 @@ private func setupLODWithBatching() {
 }
 ```
 
+For LOD + batching loaded from a scene file, the key is to defer batch generation until playSceneAt reports completion (after async mesh loading finishes):
+
+```swift
+playSceneAt(url:url){ 
+    enableBatching(true)
+    generateBatches()
+}
+```
+
 ## LOD + Batching + Streaming
 
 This combination is ideal for large open-world scenes where you have many objects spread across a large area. Streaming ensures only nearby geometry is loaded into memory, LOD manages visual quality, and batching reduces draw calls for loaded objects.
@@ -75,6 +96,11 @@ This combination is ideal for large open-world scenes where you have many object
 - Set `unloadRadius` larger than `streamingRadius` to provide a buffer zone
 - Batching works with streamed geometry - batches are automatically updated as objects load/unload
 - The order matters: LOD component → Load meshes → Transform → Enable streaming → Mark for batching
+
+This setup is best treated as a lifecycle:
+1. Author LOD levels and streaming radii based on gameplay visibility needs.
+2. Wait for asset load completion before enabling dependent systems.
+3. Activate batching once entities are fully initialized, then let streaming maintain runtime memory pressure.
 
 **Radius Guidelines:**
 - `streamingRadius`: Should be greater than your farthest LOD distance plus a buffer (e.g., if farthest LOD is 200, use 250)
@@ -130,6 +156,20 @@ private func setupLODBatchingStreaming() {
             }
         }
     }
+}
+```
+
+When loading LOD + batching + streaming from a scene file, deserialization restores component state first, then your completion handler enables systems that depend on fully loaded geometry:
+
+```swift
+playSceneAt(url: sceneURL) {
+  // Called after deserializeScene completion (async LOD/mesh loads done)
+
+  enableBatching(true)
+  generateBatches()
+
+  GeometryStreamingSystem.shared.enabled = true
+  print("Scene loaded with LOD + Batching + Streaming enabled")
 }
 ```
 
