@@ -1,4 +1,39 @@
 # Changelog
+## v0.10.0 - 2026-02-10
+### 🐞 Fixes
+- [Patch] Added Octree system (9fe2680…)
+- [Patch] Implement Memory Budget Manager (e98dcda…)
+- [Patch] implemented streaming region system (da25c60…)
+- [Patch] Improved streaming region (70d681c…)
+- [Patch]: Implement Geometry Streaming System (c650cb5…)
+- [Patch] Fixed Geometry streaming with lod and batching (e5e155c…)
+- [Patch] Updated octreetree when entities are destroyed (9f43778…)
+- [patch] fixed issue with lod system dissapearing entity (61854bc…)
+- [Patch] Added geometry streaming to serializer/deserializer (4794537…)
+- [Patch] Fixed flickering issue (85e09dc…)
+- [Patch] Updated playSceneAt with completion handler (33145dd…)
+### 📚 Docs
+- [Docs] Updated docs related to lod and static batching (d17a1f5…)
+- [Docs] Added docs to geometry system (6f331e2…)
+### 🚀 Features
+- [Feature] Implemented Geometry streaming (36a94f8…)
+## v0.10.0 - 2026-02-10
+### 🐞 Fixes
+- [Patch] Added Octree system (9fe2680…)
+- [Patch] Implement Memory Budget Manager (e98dcda…)
+- [Patch] implemented streaming region system (da25c60…)
+- [Patch] Improved streaming region (70d681c…)
+- [Patch]: Implement Geometry Streaming System (c650cb5…)
+- [Patch] Fixed Geometry streaming with lod and batching (e5e155c…)
+- [Patch] Updated octreetree when entities are destroyed (9f43778…)
+- [patch] fixed issue with lod system dissapearing entity (61854bc…)
+- [Patch] Added geometry streaming to serializer/deserializer (4794537…)
+- [Patch] Fixed flickering issue (85e09dc…)
+### 📚 Docs
+- [Docs] Updated docs related to lod and static batching (d17a1f5…)
+- [Docs] Added docs to geometry system (6f331e2…)
+### 🚀 Features
+- [Feature] Implemented Geometry streaming (36a94f8…)
 ## v0.9.0 - 2026-02-04
 ### 🚀 Features
 - [Feature] Added LOD support (bdae196…)
