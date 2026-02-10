@@ -197,6 +197,7 @@ struct VisibleEntity { var index: UInt32; var version: UInt32 }
 public var visibleEntityIds: [EntityID] = []
 public var tripleVisibleEntities = TripleCPUBuffer<EntityID>(inFlight: 3, initialCapacity: MAX_ENTITIES)
 public var cullFrameIndex: Int = 0
+public var cullSubmitIndex: Int = 0
 public var needsFinalizeDestroys: Bool = false
 var hasPendingDestroys: Bool = false
 
