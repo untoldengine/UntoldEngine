@@ -870,13 +870,9 @@ public enum RenderPasses {
                   let indexBuffer = batchGroup.indexBuffer
             else { continue }
 
-            // Get material from first entity in batch
-            guard let firstEntityId = batchGroup.entityIds.first,
-                  let renderComponent = scene.get(component: RenderComponent.self, for: firstEntityId),
-                  let firstMesh = renderComponent.mesh.first,
-                  let firstSubmesh = firstMesh.submeshes.first,
-                  let material = firstSubmesh.material
-            else { continue }
+            // Use the material captured when this batch was built.
+            // This guarantees batched shading matches the grouped submesh material.
+            let material = batchGroup.material
 
             // Set uniforms
             renderEncoder.setVertexBytes(
