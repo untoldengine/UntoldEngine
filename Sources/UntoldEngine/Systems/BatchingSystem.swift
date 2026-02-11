@@ -16,6 +16,7 @@ import simd
 public struct BatchGroup {
     var id: UUID
     var materialHash: String // Identifier for material compatibility
+    var material: Material // Representative material for this batch
 
     // Separate buffers for each vertex attribute (simpler than interleaved)
     var positionBuffer: MTLBuffer?
@@ -202,7 +203,7 @@ public class BatchingSystem {
         Logger.log(message: "📋 Found \(entities.count) entities with StaticBatchComponent")
 
         // Group meshes by material AND LOD level
-        var materialGroups: [String: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4, lodIndex: Int)]] = [:]
+        var materialGroups: [String: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4, lodIndex: Int, material: Material)]] = [:]
 
         // Iterate through all entities with StaticBatchComponent
         for entityId in entities {
@@ -251,7 +252,8 @@ public class BatchingSystem {
                         mesh: mesh,
                         meshIndex: submeshIndex,
                         transform: finalTransform,
-                        lodIndex: lodIndex
+                        lodIndex: lodIndex,
+                        material: material
                     ))
                 }
             }
@@ -273,7 +275,9 @@ public class BatchingSystem {
                 (entityId: item.entityId, mesh: item.mesh, meshIndex: item.meshIndex, transform: item.transform)
             }
 
-            if let batchGroup = createBatchGroup(from: convertedGroup, materialHash: batchKey) {
+            guard let batchMaterial = meshGroup.first?.material else { continue }
+
+            if let batchGroup = createBatchGroup(from: convertedGroup, materialHash: batchKey, material: batchMaterial) {
                 batchGroups.append(batchGroup)
 
                 // Track entity to batch mapping with LOD info
@@ -296,7 +300,8 @@ public class BatchingSystem {
 
     private func createBatchGroup(
         from meshGroup: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4)],
-        materialHash: String
+        materialHash: String,
+        material: Material
     ) -> BatchGroup? {
         var allPositions: [simd_float4] = [] // Changed to float4 to match vertex descriptor
         var allNormals: [simd_float4] = [] // Changed to float4 to match vertex descriptor
@@ -405,6 +410,7 @@ public class BatchingSystem {
         return BatchGroup(
             id: UUID(),
             materialHash: materialHash,
+            material: material,
             positionBuffer: positionBuffer,
             normalBuffer: normalBuffer,
             uvBuffer: uvBuffer,
