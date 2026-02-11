@@ -1,4 +1,7 @@
 # Changelog
+## v0.10.1 - 2026-02-11
+### 🐞 Fixes
+- [Patch] Fixed static batch material issues (ae1f0c3…)
 ## v0.10.0 - 2026-02-10
 ### 🐞 Fixes
 - [Patch] Added Octree system (9fe2680…)
