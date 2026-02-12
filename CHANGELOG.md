@@ -1,4 +1,7 @@
 # Changelog
+## v0.10.2 - 2026-02-12
+### 🐞 Fixes
+- [Patch] Increase default MAX_ENTITIES to 20000 (e1b2bc9…)
 ## v0.10.1 - 2026-02-11
 ### 🐞 Fixes
 - [Patch] Fixed static batch material issues (ae1f0c3…)
