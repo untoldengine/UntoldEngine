@@ -406,9 +406,6 @@ public class BatchingSystem {
         tangentBuffer.label = "Batch Tangent Buffer"
         indexBuffer.label = "Batch Index Buffer"
 
-        Logger.log(message: "  ✅ Created batch buffers: \(allPositions.count) positions, \(allIndices.count) indices")
-        Logger.log(message: "    Bounds: min=\(minBounds), max=\(maxBounds)")
-
         return BatchGroup(
             id: UUID(),
             materialHash: materialHash,
