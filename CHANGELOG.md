@@ -1,4 +1,12 @@
 # Changelog
+## v0.10.3 - 2026-02-13
+### 🐞 Fixes
+- [Patch] Fixed async xr crash with large scenes (0783d1a…)
+- [Patch] Fixed static batching texture scramble (f111115…)
+- [Patch] Fixed usdz transform loading (83b4188…)
+- [Patch] Fix light transform regression (cbe85e3…)
+- [Patch] formated files (2eedb14…)
+- [Patch] Removed unused logs (ad329f4…)
 ## v0.10.2 - 2026-02-12
 ### 🐞 Fixes
 - [Patch] Increase default MAX_ENTITIES to 20000 (e1b2bc9…)
