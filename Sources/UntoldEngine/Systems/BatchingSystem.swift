@@ -466,13 +466,14 @@ public class BatchingSystem {
         // "embedded_Basecolor_map" from chair.usdz (different actual textures)
         components.append(assetURL?.absoluteString ?? "unknown_asset")
 
-        // Texture URLs (or "none" if no texture)
-        // Normalize embedded URLs to use just the texture filename for batching
-        // e.g., "usdz-embedded://MeshName/TextureName" -> "TextureName"
-        components.append(normalizeTextureURL(material.baseColorURL))
-        components.append(normalizeTextureURL(material.roughnessURL))
-        components.append(normalizeTextureURL(material.metallicURL))
-        components.append(normalizeTextureURL(material.normalURL))
+        // Texture identity:
+        // - Use canonical URL identity when available (stable across asset instances).
+        // - Preserve full embedded pseudo-URL to avoid filename-only collisions.
+        // - If URL metadata is missing, fall back to texture label/presence.
+        components.append(textureIdentity(material.baseColor.texture, material.baseColorURL))
+        components.append(textureIdentity(material.roughness.texture, material.roughnessURL))
+        components.append(textureIdentity(material.metallic.texture, material.metallicURL))
+        components.append(textureIdentity(material.normal.texture, material.normalURL))
 
         // Base color value (important for meshes without textures)
         components.append(String(format: "%.2f,%.2f,%.2f,%.2f",
@@ -486,6 +487,13 @@ public class BatchingSystem {
         components.append(String(format: "%.2f", material.metallicValue))
         components.append(String(format: "%.2f", material.specular))
         components.append(String(format: "%.2f", material.ior))
+        components.append(String(format: "%.2f", material.stScale))
+
+        // Texture flags are included to prevent grouping materials that differ only by map presence.
+        components.append("\(material.hasBaseMap)")
+        components.append("\(material.hasRoughMap)")
+        components.append("\(material.hasMetalMap)")
+        components.append("\(material.hasNormalMap)")
 
         // Flags
         components.append("\(material.interactWithLight)")
@@ -493,21 +501,23 @@ public class BatchingSystem {
         return components.joined(separator: "|")
     }
 
-    // Normalize texture URL for batching - extracts just the texture filename
-    // This allows meshes with the same texture but different embedded paths to batch together
+    // Returns a stable texture identity string.
+    // For embedded URLs, we preserve the full pseudo-URL so different embedded textures
+    // with the same filename do not collide.
+    private func textureIdentity(_ texture: MTLTexture?, _ url: URL?) -> String {
+        if let url {
+            return normalizeTextureURL(url)
+        }
+        if let texture {
+            return "present:\(texture.label ?? "no_label")"
+        }
+        return "none"
+    }
+
+    // Normalize texture URL for batching compatibility.
     private func normalizeTextureURL(_ url: URL?) -> String {
         guard let url else { return "none" }
-
-        let urlString = url.absoluteString
-
-        // Handle usdz-embedded URLs: "usdz-embedded://MeshName/TextureName" -> "TextureName"
-        if urlString.hasPrefix("usdz-embedded://") {
-            // Extract just the texture filename (last path component)
-            return url.lastPathComponent
-        }
-
-        // For regular file URLs, use the full path (they should already be shared)
-        return urlString
+        return url.standardized.absoluteString
     }
 
     // Check if two materials are compatible for batching
@@ -596,16 +606,21 @@ public class BatchingSystem {
         let submesh = mesh.submeshes[submeshIndex]
 
         let indexBuffer = submesh.metalKitSubmesh.indexBuffer.buffer
+        let indexBufferOffset = submesh.metalKitSubmesh.indexBuffer.offset
         let indexCount = submesh.metalKitSubmesh.indexCount
         let indexType = submesh.metalKitSubmesh.indexType
 
         if indexType == .uint16 {
-            let rawIndices = indexBuffer.contents().bindMemory(to: UInt16.self, capacity: indexCount)
+            let rawIndices = indexBuffer.contents()
+                .advanced(by: indexBufferOffset)
+                .bindMemory(to: UInt16.self, capacity: indexCount)
             for i in 0 ..< indexCount {
                 indices.append(UInt32(rawIndices[i]) + indexOffset)
             }
         } else if indexType == .uint32 {
-            let rawIndices = indexBuffer.contents().bindMemory(to: UInt32.self, capacity: indexCount)
+            let rawIndices = indexBuffer.contents()
+                .advanced(by: indexBufferOffset)
+                .bindMemory(to: UInt32.self, capacity: indexCount)
             for i in 0 ..< indexCount {
                 indices.append(rawIndices[i] + indexOffset)
             }
