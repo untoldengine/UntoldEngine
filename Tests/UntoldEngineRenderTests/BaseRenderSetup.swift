@@ -389,7 +389,7 @@ class BaseRenderSetup: XCTestCase {
         // Stadium (static mesh)
         let stadium = createEntity()
         setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdz")
-        translateBy(entityId: stadium, position: simd_float3(0.0, -0.5, 0.0))
+        translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
         setEntityName(entityId: stadium, name: "stadium")
 
         // Player (animated, named for lookup)
@@ -401,7 +401,7 @@ class BaseRenderSetup: XCTestCase {
         let ball = createEntity()
         setEntityMesh(entityId: ball, filename: "ball", withExtension: "usdz")
         setEntityName(entityId: ball, name: "ball")
-        translateBy(entityId: ball, position: simd_float3(0.0, 0.6, 3.0))
+        translateBy(entityId: ball, position: simd_float3(0.0, 0.4, 3.0))
         ambientIntensity = 0.4
 
         let sunEntity: EntityID = createEntity()
