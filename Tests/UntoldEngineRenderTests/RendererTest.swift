@@ -52,7 +52,8 @@ final class RendererTests: BaseRenderSetup {
         let expectedViewport = simd_make_float2(Float(windowWidth), Float(windowHeight))
         XCTAssertEqual(renderInfo.viewPort, expectedViewport, "❌ Viewport dimensions are incorrect.")
     }
-
+/* Uncomment to generate reference images*/
+    /*
     func testGenerateReferenceImages() {
         // Ensure renderer and metalview are properly initialized
         XCTAssertNotNil(renderer, "Renderer should be initialized")
@@ -117,6 +118,7 @@ final class RendererTests: BaseRenderSetup {
         // Wait for the execution
         wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
     }
+     */
 
     func testColorTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
