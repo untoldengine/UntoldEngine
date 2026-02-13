@@ -444,29 +444,31 @@ public func setEntityMeshDirect(entityId: EntityID, meshes: [Mesh], assetName: S
         return
     }
 
-    // Single mesh case
-    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-        registerTransformComponent(entityId: entityId)
-    }
+    withWorldMutationGate {
+        // Single mesh case
+        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+            registerTransformComponent(entityId: entityId)
+        }
 
-    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-        registerSceneGraphComponent(entityId: entityId)
-    }
+        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+            registerSceneGraphComponent(entityId: entityId)
+        }
 
-    associateMeshesToEntity(entityId: entityId, meshes: meshes)
-    let dummyURL = URL(fileURLWithPath: "/primitive/\(assetName)")
-    registerRenderComponent(entityId: entityId, meshes: meshes, url: dummyURL, assetName: assetName)
-    // Primitives don't have skeletons, so we skip setEntitySkeleton
+        associateMeshesToEntity(entityId: entityId, meshes: meshes)
+        let dummyURL = URL(fileURLWithPath: "/primitive/\(assetName)")
+        registerRenderComponent(entityId: entityId, meshes: meshes, url: dummyURL, assetName: assetName)
+        // Primitives don't have skeletons, so we skip setEntitySkeleton
 
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        handleError(.noRenderComponent, entityId)
-        return
-    }
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+            handleError(.noRenderComponent, entityId)
+            return
+        }
 
-    let skin = Skin()
+        let skin = Skin()
 
-    for index in renderComponent.mesh.indices {
-        renderComponent.mesh[index].skin = skin
+        for index in renderComponent.mesh.indices {
+            renderComponent.mesh[index].skin = skin
+        }
     }
 }
 
@@ -741,20 +743,24 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
     }
 
     if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+        withWorldMutationGate {
+            addClips(to: animationComponent)
+        }
+
+        return
+    }
+
+    withWorldMutationGate {
+        // register Animation Component
+        registerComponent(entityId: entityId, componentType: AnimationComponent.self)
+
+        guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+            handleError(.noAnimationComponent, entityId)
+            return
+        }
+
         addClips(to: animationComponent)
-
-        return
     }
-
-    // register Skeleton Component
-    registerComponent(entityId: entityId, componentType: AnimationComponent.self)
-
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
-        handleError(.noAnimationComponent, entityId)
-        return
-    }
-
-    addClips(to: animationComponent)
 }
 
 func removeEntityAnimations(entityId: EntityID) {
@@ -767,12 +773,14 @@ func removeEntityAnimations(entityId: EntityID) {
 }
 
 public func setEntityKinetics(entityId: EntityID) {
-    if let _ = scene.get(component: PhysicsComponents.self, for: entityId) {
-        registerComponent(entityId: entityId, componentType: KineticComponent.self)
-    } else {
-        // Components doesn't exist, create and register it
-        registerComponent(entityId: entityId, componentType: PhysicsComponents.self)
-        registerComponent(entityId: entityId, componentType: KineticComponent.self)
+    withWorldMutationGate {
+        if let _ = scene.get(component: PhysicsComponents.self, for: entityId) {
+            registerComponent(entityId: entityId, componentType: KineticComponent.self)
+        } else {
+            // Components doesn't exist, create and register it
+            registerComponent(entityId: entityId, componentType: PhysicsComponents.self)
+            registerComponent(entityId: entityId, componentType: KineticComponent.self)
+        }
     }
 }
 
@@ -1074,23 +1082,13 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         return
     }
 
-    registerComponent(entityId: entityId, componentType: GaussianComponent.self)
-
-    guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
-        handleError(.noRenderComponent, entityId)
-        return
-    }
-
-    gaussianComponent.splatCount = UInt(splats.count)
-    var temSplatCount = UInt(splats.count)
+    let splatCount = UInt(splats.count)
+    var temSplatCount = splatCount
     let tempPowerOfTwoSplatCount: UInt = nextPowerOf2(x: &temSplatCount)
 
-    gaussianComponent.gaussianSortedIndices = renderInfo.device.makeBuffer(length: MemoryLayout<UInt64>.stride * Int(tempPowerOfTwoSplatCount), options: .storageModeShared)
+    let gaussianSortedIndices = renderInfo.device.makeBuffer(length: MemoryLayout<UInt64>.stride * Int(tempPowerOfTwoSplatCount), options: .storageModeShared)
 
-    gaussianComponent.splatData = renderInfo.device.makeBuffer(length: MemoryLayout<GaussianSplat>.stride * Int(gaussianComponent.splatCount), options: .storageModeShared)
-
-    // Copy to GPU buffer
-    guard let splatBuffer = gaussianComponent.splatData else {
+    guard let splatBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<GaussianSplat>.stride * Int(splatCount), options: .storageModeShared) else {
         handleError(.bufferAllocationFailed, "Gaussian splat buffer is nil")
         return
     }
@@ -1104,15 +1102,37 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         pointer[index] = splat
     }
 
-    gaussianComponent.spaceUniform = (0 ..< 2).compactMap { _ in
+    let spaceUniform = (0 ..< 2).compactMap { _ in
         renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
                                      options: [MTLResourceOptions.storageModeShared])
+    }
+
+    withWorldMutationGate {
+        registerComponent(entityId: entityId, componentType: GaussianComponent.self)
+
+        guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
+            handleError(.noRenderComponent, entityId)
+            return
+        }
+
+        gaussianComponent.splatCount = splatCount
+        gaussianComponent.gaussianSortedIndices = gaussianSortedIndices
+        gaussianComponent.splatData = splatBuffer
+        gaussianComponent.spaceUniform = spaceUniform
     }
 }
 
 // MARK: Static Batching
 
 public func setEntityStaticBatchComponent(entityId: EntityID) {
+    // XR can render from a dedicated thread while scene data is being mutated here.
+    // Gate rendering while we recursively tag the hierarchy as static-batchable.
+    withWorldMutationGate {
+        setEntityStaticBatchComponentRecursive(entityId: entityId)
+    }
+}
+
+private func setEntityStaticBatchComponentRecursive(entityId: EntityID) {
     // Only process entities with RenderComponent (skip empty parent entities)
     if let _ = scene.get(component: RenderComponent.self, for: entityId) {
         if !hasComponent(entityId: entityId, componentType: StaticBatchComponent.self) {
@@ -1126,7 +1146,7 @@ public func setEntityStaticBatchComponent(entityId: EntityID) {
     // Recursively mark all children as static
     let children = getEntityChildren(parentId: entityId)
     for childId in children {
-        setEntityStaticBatchComponent(entityId: childId)
+        setEntityStaticBatchComponentRecursive(entityId: childId)
     }
 }
 
@@ -1201,11 +1221,13 @@ func removeEntityScript(entityId: EntityID) {
 /// Set up LOD component for an entity
 /// Call this before adding LOD levels
 public func setEntityLodComponent(entityId: EntityID) {
-    if !hasComponent(entityId: entityId, componentType: LODComponent.self) {
-        registerComponent(entityId: entityId, componentType: LODComponent.self)
-        Logger.log(message: "✅ LODComponent registered for entity")
-    } else {
-        Logger.logWarning(message: "LODComponent already exists on entity")
+    withWorldMutationGate {
+        if !hasComponent(entityId: entityId, componentType: LODComponent.self) {
+            registerComponent(entityId: entityId, componentType: LODComponent.self)
+            Logger.log(message: "✅ LODComponent registered for entity")
+        } else {
+            Logger.logWarning(message: "LODComponent already exists on entity")
+        }
     }
 }
 
@@ -1265,48 +1287,50 @@ public func addLODLevel(
         )
 
         await MainActor.run {
-            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
-                handleError(.componentNotFound, "LODComponent")
-                completion?(false)
-                return
-            }
-
-            // Add LOD level at the specified index
-            if lodIndex < 0 {
-                Logger.logWarning(message: "Invalid LOD index \(lodIndex), appending to end")
-                lodComponent.lodLevels.append(lodLevel)
-            } else if lodIndex >= lodComponent.lodLevels.count {
-                // Ensure array is large enough by padding with empty slots if needed
-                // This handles out-of-order additions (e.g., adding LOD2 before LOD1)
-                while lodComponent.lodLevels.count < lodIndex {
-                    // Pad with placeholder (will be replaced when proper LOD is added)
-                    let placeholder = LODLevel(mesh: [], maxDistance: 0, screenPercentage: 0, url: URL(fileURLWithPath: ""))
-                    lodComponent.lodLevels.append(placeholder)
+            withWorldMutationGate {
+                guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+                    handleError(.componentNotFound, "LODComponent")
+                    completion?(false)
+                    return
                 }
-                // Now append the actual LOD at the correct index
-                lodComponent.lodLevels.append(lodLevel)
-            } else {
-                // Replace existing LOD at this index
-                lodComponent.lodLevels[lodIndex] = lodLevel
-            }
 
-            // If this is LOD0, create or update RenderComponent
-            if lodIndex == 0 {
-                if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
-                    // Update existing RenderComponent
-                    renderComponent.mesh = meshes
-                    renderComponent.assetURL = url
-                    renderComponent.assetName = meshes.first?.assetName ?? url.deletingPathExtension().lastPathComponent
+                // Add LOD level at the specified index
+                if lodIndex < 0 {
+                    Logger.logWarning(message: "Invalid LOD index \(lodIndex), appending to end")
+                    lodComponent.lodLevels.append(lodLevel)
+                } else if lodIndex >= lodComponent.lodLevels.count {
+                    // Ensure array is large enough by padding with empty slots if needed
+                    // This handles out-of-order additions (e.g., adding LOD2 before LOD1)
+                    while lodComponent.lodLevels.count < lodIndex {
+                        // Pad with placeholder (will be replaced when proper LOD is added)
+                        let placeholder = LODLevel(mesh: [], maxDistance: 0, screenPercentage: 0, url: URL(fileURLWithPath: ""))
+                        lodComponent.lodLevels.append(placeholder)
+                    }
+                    // Now append the actual LOD at the correct index
+                    lodComponent.lodLevels.append(lodLevel)
                 } else {
-                    // Create new RenderComponent
-                    let assetName = meshes.first?.assetName ?? url.deletingPathExtension().lastPathComponent
-                    registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: assetName)
-                    associateMeshesToEntity(entityId: entityId, meshes: meshes)
+                    // Replace existing LOD at this index
+                    lodComponent.lodLevels[lodIndex] = lodLevel
                 }
-            }
 
-            Logger.log(message: "✅ Added LOD level \(lodIndex) to entity")
-            completion?(true)
+                // If this is LOD0, create or update RenderComponent
+                if lodIndex == 0 {
+                    if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+                        // Update existing RenderComponent
+                        renderComponent.mesh = meshes
+                        renderComponent.assetURL = url
+                        renderComponent.assetName = meshes.first?.assetName ?? url.deletingPathExtension().lastPathComponent
+                    } else {
+                        // Create new RenderComponent
+                        let assetName = meshes.first?.assetName ?? url.deletingPathExtension().lastPathComponent
+                        registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: assetName)
+                        associateMeshesToEntity(entityId: entityId, meshes: meshes)
+                    }
+                }
+
+                Logger.log(message: "✅ Added LOD level \(lodIndex) to entity")
+                completion?(true)
+            }
         }
     }
 }
@@ -1357,7 +1381,9 @@ public func addLODLevels(
     }
 
     group.notify(queue: .main) {
-        completion(allSuccess)
+        withWorldMutationGate {
+            completion(allSuccess)
+        }
     }
 }
 
@@ -1366,36 +1392,38 @@ public func removeLODLevel(
     entityId: EntityID,
     lodIndex: Int
 ) {
-    guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
-        Logger.logWarning(message: "Entity does not have LODComponent")
-        return
-    }
-
-    // Validate index
-    guard lodIndex >= 0, lodIndex < lodComponent.lodLevels.count else {
-        Logger.logWarning(message: "Invalid LOD index: \(lodIndex)")
-        return
-    }
-
-    // Remove the LOD level
-    lodComponent.lodLevels.remove(at: lodIndex)
-
-    // If we removed the current LOD, reset to LOD0
-    if lodComponent.currentLOD == lodIndex {
-        lodComponent.currentLOD = 0
-
-        // Update render component to show LOD0 if available
-        if !lodComponent.lodLevels.isEmpty,
-           let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
-        {
-            renderComponent.mesh = lodComponent.lodLevels[0].mesh
+    withWorldMutationGate {
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+            Logger.logWarning(message: "Entity does not have LODComponent")
+            return
         }
-    } else if lodComponent.currentLOD > lodIndex {
-        // Adjust current LOD index if we removed something before it
-        lodComponent.currentLOD -= 1
-    }
 
-    Logger.log(message: "✅ Removed LOD level \(lodIndex)")
+        // Validate index
+        guard lodIndex >= 0, lodIndex < lodComponent.lodLevels.count else {
+            Logger.logWarning(message: "Invalid LOD index: \(lodIndex)")
+            return
+        }
+
+        // Remove the LOD level
+        lodComponent.lodLevels.remove(at: lodIndex)
+
+        // If we removed the current LOD, reset to LOD0
+        if lodComponent.currentLOD == lodIndex {
+            lodComponent.currentLOD = 0
+
+            // Update render component to show LOD0 if available
+            if !lodComponent.lodLevels.isEmpty,
+               let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
+            {
+                renderComponent.mesh = lodComponent.lodLevels[0].mesh
+            }
+        } else if lodComponent.currentLOD > lodIndex {
+            // Adjust current LOD index if we removed something before it
+            lodComponent.currentLOD -= 1
+        }
+
+        Logger.log(message: "✅ Removed LOD level \(lodIndex)")
+    }
 }
 
 /// Replace an existing LOD level with a new mesh file
@@ -1458,20 +1486,34 @@ public func replaceLODLevel(
         )
 
         await MainActor.run {
-            // Replace the LOD level
-            lodComponent.lodLevels[lodIndex] = newLodLevel
+            withWorldMutationGate {
+                guard let currentLODComponent = scene.get(component: LODComponent.self, for: entityId) else {
+                    Logger.logWarning(message: "Entity does not have LODComponent")
+                    completion?(false)
+                    return
+                }
 
-            // If this is the current LOD or LOD0, update render component
-            if lodComponent.currentLOD == lodIndex,
-               let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
-            {
-                renderComponent.mesh = meshes
-                renderComponent.assetURL = newURL
-                renderComponent.assetName = meshes.first?.assetName ?? newURL.deletingPathExtension().lastPathComponent
+                guard lodIndex >= 0, lodIndex < currentLODComponent.lodLevels.count else {
+                    Logger.logWarning(message: "Invalid LOD index: \(lodIndex)")
+                    completion?(false)
+                    return
+                }
+
+                // Replace the LOD level
+                currentLODComponent.lodLevels[lodIndex] = newLodLevel
+
+                // If this is the current LOD or LOD0, update render component
+                if currentLODComponent.currentLOD == lodIndex,
+                   let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
+                {
+                    renderComponent.mesh = meshes
+                    renderComponent.assetURL = newURL
+                    renderComponent.assetName = meshes.first?.assetName ?? newURL.deletingPathExtension().lastPathComponent
+                }
+
+                Logger.log(message: "✅ Replaced LOD level \(lodIndex)")
+                completion?(true)
             }
-
-            Logger.log(message: "✅ Replaced LOD level \(lodIndex)")
-            completion?(true)
         }
     }
 }
@@ -1495,19 +1537,21 @@ public func registerLODComponent(
         return
     }
 
-    registerComponent(entityId: entityId, componentType: LODComponent.self)
+    withWorldMutationGate {
+        registerComponent(entityId: entityId, componentType: LODComponent.self)
 
-    guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
-        handleError(.componentNotFound, "LODComponent")
-        return
-    }
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+            handleError(.componentNotFound, "LODComponent")
+            return
+        }
 
-    lodComponent.lodLevels = lodLevels
-    lodComponent.currentLOD = 0
+        lodComponent.lodLevels = lodLevels
+        lodComponent.currentLOD = 0
 
-    // Update render component with LOD0 if it exists
-    if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
-        renderComponent.mesh = lodLevels[0].mesh
+        // Update render component with LOD0 if it exists
+        if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+            renderComponent.mesh = lodLevels[0].mesh
+        }
     }
 }
 
@@ -1521,42 +1565,46 @@ public func enableStreaming(
     unloadRadius: Float = 150.0,
     priority: Int = 0
 ) {
-    // Try direct RenderComponent first (single-mesh entity)
-    if scene.get(component: RenderComponent.self, for: entityId) != nil {
-        enableStreamingForSingleEntity(
-            entityId: entityId,
-            streamingRadius: streamingRadius,
-            unloadRadius: unloadRadius,
-            priority: priority
-        )
-        return
-    }
+    // Enabling streaming mutates ECS/component state and streaming tracking sets.
+    // Pause XR scene traversal while this registration pass runs.
+    withWorldMutationGate {
+        // Try direct RenderComponent first (single-mesh entity)
+        if scene.get(component: RenderComponent.self, for: entityId) != nil {
+            enableStreamingForSingleEntity(
+                entityId: entityId,
+                streamingRadius: streamingRadius,
+                unloadRadius: unloadRadius,
+                priority: priority
+            )
+            return
+        }
 
-    // No direct RenderComponent - check children (multi-mesh asset)
-    if let sceneGraph = scene.get(component: ScenegraphComponent.self, for: entityId),
-       !sceneGraph.children.isEmpty
-    {
-        var enabledCount = 0
-        for childId in sceneGraph.children {
-            if scene.get(component: RenderComponent.self, for: childId) != nil {
-                enableStreamingForSingleEntity(
-                    entityId: childId,
-                    streamingRadius: streamingRadius,
-                    unloadRadius: unloadRadius,
-                    priority: priority
-                )
-                enabledCount += 1
+        // No direct RenderComponent - check children (multi-mesh asset)
+        if let sceneGraph = scene.get(component: ScenegraphComponent.self, for: entityId),
+           !sceneGraph.children.isEmpty
+        {
+            var enabledCount = 0
+            for childId in sceneGraph.children {
+                if scene.get(component: RenderComponent.self, for: childId) != nil {
+                    enableStreamingForSingleEntity(
+                        entityId: childId,
+                        streamingRadius: streamingRadius,
+                        unloadRadius: unloadRadius,
+                        priority: priority
+                    )
+                    enabledCount += 1
+                }
             }
+            if enabledCount > 0 {
+                Logger.log(message: "✅ Enabled streaming for \(enabledCount) child entities")
+            } else {
+                Logger.logWarning(message: "Cannot enable streaming: entity \(entityId) has no children with RenderComponents")
+            }
+            return
         }
-        if enabledCount > 0 {
-            Logger.log(message: "✅ Enabled streaming for \(enabledCount) child entities")
-        } else {
-            Logger.logWarning(message: "Cannot enable streaming: entity \(entityId) has no children with RenderComponents")
-        }
-        return
-    }
 
-    Logger.logWarning(message: "Cannot enable streaming: entity \(entityId) has no RenderComponent")
+        Logger.logWarning(message: "Cannot enable streaming: entity \(entityId) has no RenderComponent")
+    }
 }
 
 /// Internal helper to enable streaming on a single entity with a RenderComponent
@@ -1600,23 +1648,25 @@ public func createStreamingEntity(
     unloadRadius: Float = 150.0,
     priority: Int = 0
 ) -> EntityID {
-    let entityId = createEntity()
+    withWorldMutationGate {
+        let entityId = createEntity()
 
-    // Register required components
-    registerTransformComponent(entityId: entityId)
-    registerSceneGraphComponent(entityId: entityId)
-    registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+        // Register required components
+        registerTransformComponent(entityId: entityId)
+        registerSceneGraphComponent(entityId: entityId)
+        registerComponent(entityId: entityId, componentType: StreamingComponent.self)
 
-    guard let streaming = scene.get(component: StreamingComponent.self, for: entityId) else {
+        guard let streaming = scene.get(component: StreamingComponent.self, for: entityId) else {
+            return entityId
+        }
+
+        streaming.assetFilename = filename
+        streaming.assetExtension = ext
+        streaming.streamingRadius = streamingRadius
+        streaming.unloadRadius = unloadRadius
+        streaming.priority = priority
+        streaming.state = .unloaded // Will load when camera is near
+
         return entityId
     }
-
-    streaming.assetFilename = filename
-    streaming.assetExtension = ext
-    streaming.streamingRadius = streamingRadius
-    streaming.unloadRadius = unloadRadius
-    streaming.priority = priority
-    streaming.state = .unloaded // Will load when camera is near
-
-    return entityId
 }

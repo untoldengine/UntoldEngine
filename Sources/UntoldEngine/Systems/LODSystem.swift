@@ -140,54 +140,56 @@ public class LODSystem {
             return
         }
 
-        // Handle fade transitions
-        if LODConfig.shared.enableFadeTransitions {
-            if newLOD != previousLODIndex {
-                // Start transition
-                lodComponent.previousLOD = previousLODIndex
-                lodComponent.currentLOD = newLOD
-                lodComponent.transitionProgress = 0.0
-            }
-
-            // Update transition
-            if lodComponent.previousLOD != nil {
-                lodComponent.transitionProgress += deltaTime / LODConfig.shared.fadeTransitionTime
-
-                if lodComponent.transitionProgress >= 1.0 {
-                    // Transition complete
-                    lodComponent.previousLOD = nil
+        withWorldMutationGate {
+            // Handle fade transitions
+            if LODConfig.shared.enableFadeTransitions {
+                if newLOD != previousLODIndex {
+                    // Start transition
+                    lodComponent.previousLOD = previousLODIndex
+                    lodComponent.currentLOD = newLOD
                     lodComponent.transitionProgress = 0.0
                 }
+
+                // Update transition
+                if lodComponent.previousLOD != nil {
+                    lodComponent.transitionProgress += deltaTime / LODConfig.shared.fadeTransitionTime
+
+                    if lodComponent.transitionProgress >= 1.0 {
+                        // Transition complete
+                        lodComponent.previousLOD = nil
+                        lodComponent.transitionProgress = 0.0
+                    }
+                }
+            } else {
+                // Instant switch
+                lodComponent.currentLOD = newLOD
+                lodComponent.previousLOD = nil
             }
-        } else {
-            // Instant switch
-            lodComponent.currentLOD = newLOD
-            lodComponent.previousLOD = nil
-        }
 
-        // Update render component with new LOD meshes
-        if newLOD >= 0, newLOD < lodComponent.lodLevels.count {
-            let lodLevel = lodComponent.lodLevels[newLOD]
-            // Skip placeholder LODs (empty mesh arrays)
-            if !lodLevel.mesh.isEmpty {
-                renderComponent.mesh = lodLevel.mesh
+            // Update render component with new LOD meshes
+            if newLOD >= 0, newLOD < lodComponent.lodLevels.count {
+                let lodLevel = lodComponent.lodLevels[newLOD]
+                // Skip placeholder LODs (empty mesh arrays)
+                if !lodLevel.mesh.isEmpty {
+                    renderComponent.mesh = lodLevel.mesh
 
-                // Generate mesh asset ID for batching
-                let meshAssetID = generateMeshAssetID(lodLevel: lodLevel, lodIndex: newLOD)
-                let previousAssetID = lodComponent.activeMeshAssetID
-                lodComponent.activeMeshAssetID = meshAssetID
+                    // Generate mesh asset ID for batching
+                    let meshAssetID = generateMeshAssetID(lodLevel: lodLevel, lodIndex: newLOD)
+                    let previousAssetID = lodComponent.activeMeshAssetID
+                    lodComponent.activeMeshAssetID = meshAssetID
 
-                // Emit LOD change event if LOD actually changed
-                if newLOD != previousLODIndex {
-                    SystemIntegrationMonitor.shared.recordLODSwitch()
+                    // Emit LOD change event if LOD actually changed
+                    if newLOD != previousLODIndex {
+                        SystemIntegrationMonitor.shared.recordLODSwitch()
 
-                    let event = EntityLODChangedEvent(
-                        entityId: entityId,
-                        previousLODIndex: previousLODIndex,
-                        newLODIndex: newLOD,
-                        meshAssetID: meshAssetID
-                    )
-                    SystemEventBus.shared.queueLODChange(event)
+                        let event = EntityLODChangedEvent(
+                            entityId: entityId,
+                            previousLODIndex: previousLODIndex,
+                            newLODIndex: newLOD,
+                            meshAssetID: meshAssetID
+                        )
+                        SystemEventBus.shared.queueLODChange(event)
+                    }
                 }
             }
         }

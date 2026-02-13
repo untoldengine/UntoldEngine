@@ -9,6 +9,52 @@
 
 import Foundation
 
+/// Synchronous loading gate for render threads that can't `await`.
+/// Mirrors `AssetLoadingState` activity count and is safe to query from any thread.
+public final class AssetLoadingGate {
+    public static let shared = AssetLoadingGate()
+
+    private let lock = NSLock()
+    private var activeLoads: Int = 0
+
+    private init() {}
+
+    public func beginLoading() {
+        lock.lock()
+        activeLoads += 1
+        lock.unlock()
+    }
+
+    public func finishLoading() {
+        lock.lock()
+        activeLoads = max(0, activeLoads - 1)
+        lock.unlock()
+    }
+
+    public var isLoadingAny: Bool {
+        lock.lock()
+        let value = activeLoads > 0
+        lock.unlock()
+        return value
+    }
+}
+
+/// Execute a world-mutation critical section while pausing XR scene traversal.
+@inline(__always)
+public func withWorldMutationGate<T>(_ body: () throws -> T) rethrows -> T {
+    AssetLoadingGate.shared.beginLoading()
+    defer { AssetLoadingGate.shared.finishLoading() }
+    return try body()
+}
+
+/// Async variant for world-mutation critical sections.
+@inline(__always)
+public func withWorldMutationGate<T>(_ body: () async throws -> T) async rethrows -> T {
+    AssetLoadingGate.shared.beginLoading()
+    defer { AssetLoadingGate.shared.finishLoading() }
+    return try await body()
+}
+
 /// Loading phase enum
 public enum LoadingPhase {
     case loading // Loading meshes from disk
@@ -46,6 +92,10 @@ public actor AssetLoadingState {
 
     /// Start tracking loading for an entity
     public func startLoading(entityId: EntityID, filename: String, totalMeshes: Int = 0) {
+        if loadingEntities[entityId] == nil {
+            AssetLoadingGate.shared.beginLoading()
+        }
+
         loadingEntities[entityId] = LoadingProgress(
             entityId: entityId,
             filename: filename,
@@ -69,7 +119,9 @@ public actor AssetLoadingState {
 
     /// Mark entity as finished loading
     public func finishLoading(entityId: EntityID) {
-        loadingEntities.removeValue(forKey: entityId)
+        if loadingEntities.removeValue(forKey: entityId) != nil {
+            AssetLoadingGate.shared.finishLoading()
+        }
     }
 
     /// Check if a specific entity is loading
