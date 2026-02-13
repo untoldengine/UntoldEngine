@@ -47,6 +47,12 @@ public struct AreaLight {
     var twoSided: Bool = false // Whether the light emits from both sides
 }
 
+private func applyDefaultLightOrientation(entityId: EntityID) {
+    // Light shaders/systems assume local forward points along +Y by default.
+    // Rotate +Z-forward entities (identity rotation) into +Y-forward.
+    rotateTo(entityId: entityId, angle: -90.0, axis: simd_float3(1.0, 0.0, 0.0))
+}
+
 public func createDirLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
     registerComponent(entityId: entityId, componentType: DirectionalLightComponent.self)
@@ -54,6 +60,7 @@ public func createDirLight(entityId: EntityID) {
     registerSceneGraphComponent(entityId: entityId)
 
     setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
+    applyDefaultLightOrientation(entityId: entityId)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -79,6 +86,7 @@ public func createPointLight(entityId: EntityID) {
     registerSceneGraphComponent(entityId: entityId)
 
     setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
+    applyDefaultLightOrientation(entityId: entityId)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -104,6 +112,7 @@ public func createSpotLight(entityId: EntityID) {
     registerSceneGraphComponent(entityId: entityId)
 
     setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
+    applyDefaultLightOrientation(entityId: entityId)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
@@ -130,6 +139,7 @@ public func createAreaLight(entityId: EntityID) {
     registerSceneGraphComponent(entityId: entityId)
 
     setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
+    applyDefaultLightOrientation(entityId: entityId)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
         handleError(.noLightComponent)
