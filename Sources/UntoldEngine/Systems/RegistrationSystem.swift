@@ -853,6 +853,33 @@ func removeEntityTransforms(entityId: EntityID) {
     scene.remove(component: WorldTransformComponent.self, from: entityId)
 }
 
+private func transformsApproximatelyEqual(_ lhs: simd_float4x4, _ rhs: simd_float4x4, epsilon: Float = 0.0001) -> Bool {
+    let delta0 = simd_length(lhs.columns.0 - rhs.columns.0)
+    let delta1 = simd_length(lhs.columns.1 - rhs.columns.1)
+    let delta2 = simd_length(lhs.columns.2 - rhs.columns.2)
+    let delta3 = simd_length(lhs.columns.3 - rhs.columns.3)
+    return delta0 < epsilon && delta1 < epsilon && delta2 < epsilon && delta3 < epsilon
+}
+
+private func resolveMeshTransformsForRender(_ meshes: [Mesh]) -> [Mesh] {
+    let hasAncestorTransforms = meshes.contains { mesh in
+        transformsApproximatelyEqual(mesh.localSpace, mesh.worldSpace) == false
+    }
+
+    guard hasAncestorTransforms else {
+        return meshes
+    }
+
+    var resolvedMeshes = meshes
+    for index in resolvedMeshes.indices {
+        // Flatten full USD ancestry into mesh-local render transform.
+        // ECS entity local transform remains user/scene driven.
+        resolvedMeshes[index].localSpace = resolvedMeshes[index].worldSpace
+    }
+
+    return resolvedMeshes
+}
+
 func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, assetName: String) {
     // check if a render component already exist. If so, remove it and clean up its mesh
     removeEntityMesh(entityId: entityId)
@@ -869,34 +896,20 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
         return
     }
 
-    renderComponent.mesh = meshes
+    let resolvedMeshes = resolveMeshTransformsForRender(meshes)
+
+    renderComponent.mesh = resolvedMeshes
     renderComponent.assetName = assetName
     renderComponent.assetURL = url
-    entityMeshMap[entityId] = meshes
+    entityMeshMap[entityId] = resolvedMeshes
 
-    let boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
-
-    // Use localSpace transform instead of worldSpace
-    // This ensures child entities get their transform relative to their parent
-    let transformMatrix = meshes[0].localSpace
-
-    localTransformComponent.position = simd_float3(transformMatrix.columns.3.x, transformMatrix.columns.3.y, transformMatrix.columns.3.z)
-
-    localTransformComponent.scale = .one
-
-    localTransformComponent.rotation = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(transformMatrix))
-
-    let euler = transformQuaternionToEulerAngles(q: localTransformComponent.rotation)
-
-    localTransformComponent.rotationX = euler.pitch
-    localTransformComponent.rotationY = euler.yaw
-    localTransformComponent.rotationZ = euler.roll
+    let boundingBox = Mesh.computeMeshBoundingBox(for: resolvedMeshes)
 
     localTransformComponent.boundingBox = boundingBox
 
     OctreeSystem.shared.registerEntity(entityId)
 
-    MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshes: meshes)
+    MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshes: resolvedMeshes)
 }
 
 func associateMeshesToEntity(entityId: EntityID, meshes: [Mesh]) {

@@ -18,6 +18,17 @@ private extension simd_float3 {
     }
 }
 
+private extension simd_float4x4 {
+    func isApproximatelyEqual(to other: simd_float4x4, epsilon: Float = 0.0001) -> Bool {
+        let delta0 = simd_length(columns.0 - other.columns.0)
+        let delta1 = simd_length(columns.1 - other.columns.1)
+        let delta2 = simd_length(columns.2 - other.columns.2)
+        let delta3 = simd_length(columns.3 - other.columns.3)
+
+        return delta0 < epsilon && delta1 < epsilon && delta2 < epsilon && delta3 < epsilon
+    }
+}
+
 public enum CoordinateSystemConversion {
     case autoDetect // Check USD up-axis and convert only if needed
     case forceZUpToYUp // Always apply Z-up to Y-up conversion
@@ -65,6 +76,19 @@ private func orientationTransformForAsset(_ asset: MDLAsset, conversion: Coordin
     }
 }
 
+private func composedWorldTransform(for object: MDLObject) -> simd_float4x4 {
+    var result = simd_float4x4.identity
+    var current: MDLObject? = object
+
+    while let node = current {
+        let local = node.transform?.matrix ?? .identity
+        result = simd_mul(local, result)
+        current = node.parent
+    }
+
+    return result
+}
+
 public struct Mesh {
     public let metalKitMesh: MTKMesh
     public var submeshes: [SubMesh] = []
@@ -79,19 +103,23 @@ public struct Mesh {
     init?(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip _: Bool) {
         modelMDLMesh = modelIOMesh
 
-        // Get the mesh's own transform first, then check parent
-        // This respects the hierarchy: mesh transform relative to parent
+        // Keep mesh-local transform for ECS local-space semantics.
         let meshTransform = modelIOMesh.transform?.matrix ?? .identity
-        let parentTransform = modelIOMesh.parent?.transform?.matrix ?? .identity
-
-        // Combine parent and mesh transforms
-        let combinedTransform = simd_mul(parentTransform, meshTransform)
-
-        // Store world space transform (no orientation adjustment needed - engine and USD both use Y-up)
-        worldSpace = combinedTransform
 
         // Store local space transform
         localSpace = meshTransform
+
+        // Compose full ModelIO ancestry chain (root -> ... -> mesh) for world space.
+        worldSpace = composedWorldTransform(for: modelIOMesh)
+
+#if DEBUG
+        if localSpace.isApproximatelyEqual(to: .identity),
+           worldSpace.isApproximatelyEqual(to: .identity) == false
+        {
+            let meshName = modelIOMesh.name.isEmpty ? "<unnamed-mesh>" : modelIOMesh.name
+            Logger.log(message: "USD import: mesh '\(meshName)' has identity local transform but non-identity composed world transform from ancestor Xforms.")
+        }
+#endif
 
         // Set asset name from parent, or use the mesh's own name if no parent
         assetName = modelIOMesh.parent?.name ?? modelIOMesh.name
@@ -634,6 +662,10 @@ public struct Mesh {
     }
 
     static func computeMeshBoundingBox(for meshes: [Mesh]) -> (min: simd_float3, max: simd_float3) {
+        guard meshes.isEmpty == false else {
+            return (min: .zero, max: .zero)
+        }
+
         // Start with infinity bounds to ensure proper min/max comparisons
         var combinedMin = simd_float3(Float.infinity, Float.infinity, Float.infinity)
         var combinedMax = simd_float3(-Float.infinity, -Float.infinity, -Float.infinity)
@@ -641,18 +673,29 @@ public struct Mesh {
         for mesh in meshes {
             let meshMin = mesh.boundingBox.min
             let meshMax = mesh.boundingBox.max
+            let corners: [simd_float3] = [
+                simd_float3(meshMin.x, meshMin.y, meshMin.z),
+                simd_float3(meshMin.x, meshMin.y, meshMax.z),
+                simd_float3(meshMin.x, meshMax.y, meshMin.z),
+                simd_float3(meshMin.x, meshMax.y, meshMax.z),
+                simd_float3(meshMax.x, meshMin.y, meshMin.z),
+                simd_float3(meshMax.x, meshMin.y, meshMax.z),
+                simd_float3(meshMax.x, meshMax.y, meshMin.z),
+                simd_float3(meshMax.x, meshMax.y, meshMax.z),
+            ]
 
-            // Update combined bounds
-            combinedMin = simd_float3(
-                min(combinedMin.x, meshMin.x),
-                min(combinedMin.y, meshMin.y),
-                min(combinedMin.z, meshMin.z)
-            )
-            combinedMax = simd_float3(
-                max(combinedMax.x, meshMax.x),
-                max(combinedMax.y, meshMax.y),
-                max(combinedMax.z, meshMax.z)
-            )
+            var transformedMin = simd_float3(Float.infinity, Float.infinity, Float.infinity)
+            var transformedMax = simd_float3(-Float.infinity, -Float.infinity, -Float.infinity)
+
+            for corner in corners {
+                let transformed = simd_mul(mesh.localSpace, simd_float4(corner.x, corner.y, corner.z, 1.0))
+                let transformedPoint = simd_float3(transformed.x, transformed.y, transformed.z)
+                transformedMin = simd_min(transformedMin, transformedPoint)
+                transformedMax = simd_max(transformedMax, transformedPoint)
+            }
+
+            combinedMin = simd_min(combinedMin, transformedMin)
+            combinedMax = simd_max(combinedMax, transformedMax)
         }
 
         return (min: combinedMin, max: combinedMax)
