@@ -112,14 +112,14 @@ public struct Mesh {
         // Compose full ModelIO ancestry chain (root -> ... -> mesh) for world space.
         worldSpace = composedWorldTransform(for: modelIOMesh)
 
-#if DEBUG
-        if localSpace.isApproximatelyEqual(to: .identity),
-           worldSpace.isApproximatelyEqual(to: .identity) == false
-        {
-            let meshName = modelIOMesh.name.isEmpty ? "<unnamed-mesh>" : modelIOMesh.name
-            Logger.log(message: "USD import: mesh '\(meshName)' has identity local transform but non-identity composed world transform from ancestor Xforms.")
-        }
-#endif
+        #if DEBUG
+            if localSpace.isApproximatelyEqual(to: .identity),
+               worldSpace.isApproximatelyEqual(to: .identity) == false
+            {
+                let meshName = modelIOMesh.name.isEmpty ? "<unnamed-mesh>" : modelIOMesh.name
+                Logger.log(message: "USD import: mesh '\(meshName)' has identity local transform but non-identity composed world transform from ancestor Xforms.")
+            }
+        #endif
 
         // Set asset name from parent, or use the mesh's own name if no parent
         assetName = modelIOMesh.parent?.name ?? modelIOMesh.name
