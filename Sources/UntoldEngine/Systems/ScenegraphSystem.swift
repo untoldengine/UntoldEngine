@@ -48,92 +48,96 @@ func updateTransformSystem(entityId: EntityID) {
 }
 
 public func setParent(childId: EntityID, parentId: EntityID, offset: simd_float3 = simd_float3(0.0, 0.0, 0.0)) {
-    // get current child level
-    guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: childId) else {
-        handleError(.noScenegraphComponent, childId)
-        return
+    withWorldMutationGate {
+        // get current child level
+        guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: childId) else {
+            handleError(.noScenegraphComponent, childId)
+            return
+        }
+
+        guard let parentScenegraphComponent = scene.get(component: ScenegraphComponent.self, for: parentId) else {
+            handleError(.noScenegraphComponent, parentId)
+            return
+        }
+
+        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: childId) else {
+            handleError(.noLocalTransformComponent, childId)
+            return
+        }
+
+        // set position the entity will be with respect to the parent
+        localTransformComponent.position += offset
+
+        let currentLevel = parentScenegraphComponent.level
+        scenegraphComponent.parent = parentId
+        scenegraphComponent.level = currentLevel + 1
+
+        parentScenegraphComponent.children.append(childId)
+
+        // propagate level changes to descendants
+        updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
+
+        // Mark child and descendants as dirty for spatial partitioning
+        OctreeSystem.shared.markDirty(childId)
     }
-
-    guard let parentScenegraphComponent = scene.get(component: ScenegraphComponent.self, for: parentId) else {
-        handleError(.noScenegraphComponent, parentId)
-        return
-    }
-
-    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: childId) else {
-        handleError(.noLocalTransformComponent, childId)
-        return
-    }
-
-    // set position the entity will be with respect to the parent
-    localTransformComponent.position += offset
-
-    let currentLevel = parentScenegraphComponent.level
-    scenegraphComponent.parent = parentId
-    scenegraphComponent.level = currentLevel + 1
-
-    parentScenegraphComponent.children.append(childId)
-
-    // propagate level changes to descendants
-    updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
-
-    // Mark child and descendants as dirty for spatial partitioning
-    OctreeSystem.shared.markDirty(childId)
 }
 
 public func removeParent(childId: EntityID) {
-    // get current child level
-    guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: childId) else {
-        handleError(.noScenegraphComponent, childId)
-        return
+    withWorldMutationGate {
+        // get current child level
+        guard let scenegraphComponent = scene.get(component: ScenegraphComponent.self, for: childId) else {
+            handleError(.noScenegraphComponent, childId)
+            return
+        }
+
+        guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: childId) else {
+            handleError(.noLocalTransformComponent, childId)
+            return
+        }
+
+        guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: childId) else {
+            handleError(.noWorldTransformComponent, childId)
+            return
+        }
+
+        // set the current local tranform of the ball to the world transform before the detachment
+
+        localTransformComponent.position = simd_float3(worldTransformComponent.space.columns.3.x, worldTransformComponent.space.columns.3.y, worldTransformComponent.space.columns.3.z)
+
+        localTransformComponent.scale = simd_float3(worldTransformComponent.space.columns.0.x, worldTransformComponent.space.columns.1.y, worldTransformComponent.space.columns.2.z)
+
+        localTransformComponent.rotation = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(worldTransformComponent.space))
+
+        // does it have a parent?
+        let currentLevel = scenegraphComponent.level
+
+        // if current level is equal to zero, it means it doesn't have a parent, there is nothing to unlink
+        if currentLevel == 0 {
+            return
+        }
+
+        // if it does have a parent, get the parent Id
+        let parentId: EntityID = scenegraphComponent.parent
+
+        // update the child info
+        scenegraphComponent.parent = .invalid
+        scenegraphComponent.level = currentLevel - 1
+
+        // Remove the child from the parent list
+        guard let parentScenegraphComponent = scene.get(component: ScenegraphComponent.self, for: parentId) else {
+            handleError(.noScenegraphComponent, parentId)
+            return
+        }
+
+        // remove all instances of childId
+        parentScenegraphComponent.children.removeAll { $0 == childId }
+
+        // update all child descendants
+        updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
+
+        // Mark child as dirty for spatial partitioning
+        OctreeSystem.shared.markDirty(childId)
     }
-
-    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: childId) else {
-        handleError(.noLocalTransformComponent, childId)
-        return
-    }
-
-    guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: childId) else {
-        handleError(.noWorldTransformComponent, childId)
-        return
-    }
-
-    // set the current local tranform of the ball to the world transform before the detachment
-
-    localTransformComponent.position = simd_float3(worldTransformComponent.space.columns.3.x, worldTransformComponent.space.columns.3.y, worldTransformComponent.space.columns.3.z)
-
-    localTransformComponent.scale = simd_float3(worldTransformComponent.space.columns.0.x, worldTransformComponent.space.columns.1.y, worldTransformComponent.space.columns.2.z)
-
-    localTransformComponent.rotation = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(worldTransformComponent.space))
-
-    // does it have a parent?
-    let currentLevel = scenegraphComponent.level
-
-    // if current level is equal to zero, it means it doesn't have a parent, there is nothing to unlink
-    if currentLevel == 0 {
-        return
-    }
-
-    // if it does have a parent, get the parent Id
-    let parentId: EntityID = scenegraphComponent.parent
-
-    // update the child info
-    scenegraphComponent.parent = .invalid
-    scenegraphComponent.level = currentLevel - 1
-
-    // Remove the child from the parent list
-    guard let parentScenegraphComponent = scene.get(component: ScenegraphComponent.self, for: parentId) else {
-        handleError(.noScenegraphComponent, parentId)
-        return
-    }
-
-    // remove all instances of childId
-    parentScenegraphComponent.children.removeAll { $0 == childId }
-
-    // update all child descendants
-    updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
-
-    // Mark child as dirty for spatial partitioning
-    OctreeSystem.shared.markDirty(childId)
 }
 
 public func getEntityChildren(parentId: EntityID) -> [EntityID] {

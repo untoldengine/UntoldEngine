@@ -159,7 +159,9 @@
 
             // 5. Perform any rendering-related work that doesn't rely on the device anchor info
             guard let renderer else { return }
-            renderer.updateXR()
+            if !AssetLoadingGate.shared.isLoadingAny {
+                renderer.updateXR()
+            }
 
             // 6. Call endupdate() to mark the end of the update phase
             frame.endUpdate()
@@ -207,6 +209,17 @@
                     renderer!.initSizeableResources()
                     print("✓ Updated VisionOS viewport to: \(actualViewPort)")
                 }
+            }
+
+            // During async scene loads, avoid traversing ECS from the XR render thread.
+            // This prevents races between MainActor scene mutation and XR rendering.
+            if AssetLoadingGate.shared.isLoadingAny {
+                drawable.encodePresent(commandBuffer: commandBuffer)
+                commandBuffer.addCompletedHandler { _ in
+                    commandBufferSemaphore.signal()
+                }
+                commandBuffer.commit()
+                return
             }
 
             // Run per-frame work ONCE (not per-eye) to avoid double execution and memory churn

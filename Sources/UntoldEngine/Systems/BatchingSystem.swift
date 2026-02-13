@@ -186,116 +186,118 @@ public class BatchingSystem {
 
     // Generate batches for all static entities in the scene
     public func generateBatches() {
-        Logger.log(message: "🔨 Starting static batch generation...")
+        withWorldMutationGate {
+            Logger.log(message: "🔨 Starting static batch generation...")
 
-        // Update all world transforms before batching
-        // (batching needs accurate world positions)
-        traverseSceneGraph()
+            // Update all world transforms before batching
+            // (batching needs accurate world positions)
+            traverseSceneGraph()
 
-        // Clear existing batches
-        clearBatches()
+            // Clear existing batches
+            clearBatches()
 
-        let transformId = getComponentId(for: WorldTransformComponent.self)
-        let renderId = getComponentId(for: RenderComponent.self)
-        let staticBatchId = getComponentId(for: StaticBatchComponent.self)
-        let entities = queryEntitiesWithComponentIds([transformId, renderId, staticBatchId], in: scene)
+            let transformId = getComponentId(for: WorldTransformComponent.self)
+            let renderId = getComponentId(for: RenderComponent.self)
+            let staticBatchId = getComponentId(for: StaticBatchComponent.self)
+            let entities = queryEntitiesWithComponentIds([transformId, renderId, staticBatchId], in: scene)
 
-        Logger.log(message: "📋 Found \(entities.count) entities with StaticBatchComponent")
+            Logger.log(message: "📋 Found \(entities.count) entities with StaticBatchComponent")
 
-        // Group meshes by material AND LOD level
-        var materialGroups: [String: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4, lodIndex: Int, material: Material)]] = [:]
+            // Group meshes by material AND LOD level
+            var materialGroups: [String: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4, lodIndex: Int, material: Material)]] = [:]
 
-        // Iterate through all entities with StaticBatchComponent
-        for entityId in entities {
-            // Check if entity has required components
-            guard let staticBatch = scene.get(component: StaticBatchComponent.self, for: entityId),
-                  staticBatch.canBatch,
-                  let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
-                  let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
-                  let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
-            else { continue }
+            // Iterate through all entities with StaticBatchComponent
+            for entityId in entities {
+                // Check if entity has required components
+                guard let staticBatch = scene.get(component: StaticBatchComponent.self, for: entityId),
+                      staticBatch.canBatch,
+                      let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                      let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
+                      let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
+                else { continue }
 
-            // Skip entities with empty meshes (not yet loaded by streaming)
-            if renderComponent.mesh.isEmpty {
-                continue
-            }
+                // Skip entities with empty meshes (not yet loaded by streaming)
+                if renderComponent.mesh.isEmpty {
+                    continue
+                }
 
-            // Skip entities with animations
-            if scene.get(component: SkeletonComponent.self, for: entityId) != nil { continue }
-            if scene.get(component: AnimationComponent.self, for: entityId) != nil { continue }
+                // Skip entities with animations
+                if scene.get(component: SkeletonComponent.self, for: entityId) != nil { continue }
+                if scene.get(component: AnimationComponent.self, for: entityId) != nil { continue }
 
-            // Skip gizmos and special entities
-            if scene.get(component: GizmoComponent.self, for: entityId) != nil { continue }
-            if scene.get(component: LightComponent.self, for: entityId) != nil { continue }
+                // Skip gizmos and special entities
+                if scene.get(component: GizmoComponent.self, for: entityId) != nil { continue }
+                if scene.get(component: LightComponent.self, for: entityId) != nil { continue }
 
-            // Get current LOD index (0 if no LOD component)
-            let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
+                // Get current LOD index (0 if no LOD component)
+                let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
 
-            // Get the source asset URL to ensure we only batch textures from the same file
-            let assetURL = renderComponent.assetURL
+                // Get the source asset URL to ensure we only batch textures from the same file
+                let assetURL = renderComponent.assetURL
 
-            // Process each mesh in the render component
-            for (meshIndex, mesh) in renderComponent.mesh.enumerated() {
-                for (submeshIndex, submesh) in mesh.submeshes.enumerated() {
-                    guard let material = submesh.material else { continue }
+                // Process each mesh in the render component
+                for (meshIndex, mesh) in renderComponent.mesh.enumerated() {
+                    for (submeshIndex, submesh) in mesh.submeshes.enumerated() {
+                        guard let material = submesh.material else { continue }
 
-                    let matHash = getMaterialHash(material: material, assetURL: assetURL)
-                    // Include LOD in batch key to avoid mixing different LOD levels
-                    let batchKey = "\(matHash)_LOD\(lodIndex)"
-                    let finalTransform = simd_mul(worldTransform.space, mesh.localSpace)
+                        let matHash = getMaterialHash(material: material, assetURL: assetURL)
+                        // Include LOD in batch key to avoid mixing different LOD levels
+                        let batchKey = "\(matHash)_LOD\(lodIndex)"
+                        let finalTransform = simd_mul(worldTransform.space, mesh.localSpace)
 
-                    if materialGroups[batchKey] == nil {
-                        materialGroups[batchKey] = []
+                        if materialGroups[batchKey] == nil {
+                            materialGroups[batchKey] = []
+                        }
+                        materialGroups[batchKey]!.append((
+                            entityId: entityId,
+                            mesh: mesh,
+                            meshIndex: submeshIndex,
+                            transform: finalTransform,
+                            lodIndex: lodIndex,
+                            material: material
+                        ))
                     }
-                    materialGroups[batchKey]!.append((
-                        entityId: entityId,
-                        mesh: mesh,
-                        meshIndex: submeshIndex,
-                        transform: finalTransform,
-                        lodIndex: lodIndex,
-                        material: material
-                    ))
                 }
             }
-        }
 
-        Logger.log(message: "📦 Found \(materialGroups.count) material groups")
+            Logger.log(message: "📦 Found \(materialGroups.count) material groups")
 
-        // Create batch groups
-        for (batchKey, meshGroup) in materialGroups {
-            // Only batch if we have multiple meshes with same material+LOD
-            if meshGroup.count < 2 {
-                continue
-            }
+            // Create batch groups
+            for (batchKey, meshGroup) in materialGroups {
+                // Only batch if we have multiple meshes with same material+LOD
+                if meshGroup.count < 2 {
+                    continue
+                }
 
-            Logger.log(message: "🔗 Batching \(meshGroup.count) meshes with material: \(batchKey.prefix(20))...")
+                Logger.log(message: "🔗 Batching \(meshGroup.count) meshes with material: \(batchKey.prefix(20))...")
 
-            // Convert to format expected by createBatchGroup
-            let convertedGroup = meshGroup.map { item in
-                (entityId: item.entityId, mesh: item.mesh, meshIndex: item.meshIndex, transform: item.transform)
-            }
+                // Convert to format expected by createBatchGroup
+                let convertedGroup = meshGroup.map { item in
+                    (entityId: item.entityId, mesh: item.mesh, meshIndex: item.meshIndex, transform: item.transform)
+                }
 
-            guard let batchMaterial = meshGroup.first?.material else { continue }
+                guard let batchMaterial = meshGroup.first?.material else { continue }
 
-            if let batchGroup = createBatchGroup(from: convertedGroup, materialHash: batchKey, material: batchMaterial) {
-                batchGroups.append(batchGroup)
+                if let batchGroup = createBatchGroup(from: convertedGroup, materialHash: batchKey, material: batchMaterial) {
+                    batchGroups.append(batchGroup)
 
-                // Track entity to batch mapping with LOD info
-                let lodIndex = meshGroup.first?.lodIndex ?? 0
-                let matHash = String(batchKey.split(separator: "_").first ?? "")
-                for item in meshGroup {
-                    entityToBatch[item.entityId] = EntityBatchInfo(
-                        batchId: batchGroup.id,
-                        lodIndex: lodIndex,
-                        materialHash: matHash
-                    )
+                    // Track entity to batch mapping with LOD info
+                    let lodIndex = meshGroup.first?.lodIndex ?? 0
+                    let matHash = String(batchKey.split(separator: "_").first ?? "")
+                    for item in meshGroup {
+                        entityToBatch[item.entityId] = EntityBatchInfo(
+                            batchId: batchGroup.id,
+                            lodIndex: lodIndex,
+                            materialHash: matHash
+                        )
+                    }
                 }
             }
-        }
 
-        Logger.log(message: "✅ Created \(batchGroups.count) batch groups")
-        let totalBatchedMeshes = batchGroups.reduce(0) { $0 + $1.entityIds.count }
-        Logger.log(message: "📊 Batching Stats: \(totalBatchedMeshes) meshes → \(batchGroups.count) draw calls")
+            Logger.log(message: "✅ Created \(batchGroups.count) batch groups")
+            let totalBatchedMeshes = batchGroups.reduce(0) { $0 + $1.entityIds.count }
+            Logger.log(message: "📊 Batching Stats: \(totalBatchedMeshes) meshes → \(batchGroups.count) draw calls")
+        }
     }
 
     private func createBatchGroup(
