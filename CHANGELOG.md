@@ -1,4 +1,7 @@
 # Changelog
+## v0.10.4 - 2026-02-14
+### 🐞 Fixes
+- [Patch] decouple internal color from drawable. Fixed render graph (0b28be7…)
 ## v0.10.3 - 2026-02-13
 ### 🐞 Fixes
 - [Patch] Fixed async xr crash with large scenes (0783d1a…)
