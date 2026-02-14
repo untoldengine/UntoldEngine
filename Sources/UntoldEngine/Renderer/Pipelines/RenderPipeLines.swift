@@ -110,11 +110,12 @@ public typealias RenderPipelineInitBlock = () -> RenderPipeline?
 // MARK: Grid pipeline
 
 public func InitGridPipeline() -> RenderPipeline? {
-    CreatePipeline(
+    let wf = renderInfo.colorPipeline.working
+    return CreatePipeline(
         vertexShader: "vertexGridShader",
         fragmentShader: "fragmentGridShader",
         vertexDescriptor: createGridVertexDescriptor(),
-        colorFormats: [.bgra8Unorm_srgb],
+        colorFormats: [wf.environment],
         depthFormat: renderInfo.depthPixelFormat,
         depthCompareFunction: MTLCompareFunction.less,
         depthEnabled: false,
@@ -139,12 +140,14 @@ public func InitShadowPipeline() -> RenderPipeline? {
 
 // MARK: Model pipeline
 
+private var wf: WorkingColorFormats { renderInfo.colorPipeline.working }
+
 public func InitModelPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexModelShader",
         fragmentShader: "fragmentModelShader",
         vertexDescriptor: createModelVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float, .rgba8Unorm, .rgba8Unorm],
+        colorFormats: [wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition, wf.gBufferMaterial, wf.gBufferEmissive],
         depthFormat: renderInfo.depthPixelFormat,
         name: "Model Pipeline"
     )
@@ -157,7 +160,7 @@ public func InitLightPipeline() -> RenderPipeline? {
         vertexShader: "vertexLightShader",
         fragmentShader: "fragmentLightShader",
         vertexDescriptor: createLightVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.sceneColor],
         depthFormat: .invalid,
         depthEnabled: false,
         name: "Light Pipeline"
@@ -171,7 +174,7 @@ public func InitGeometryPipeline() -> RenderPipeline? {
         vertexShader: "vertexGeometryShader",
         fragmentShader: "fragmentGeometryShader",
         vertexDescriptor: createGeometryVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [wf.gizmo, .rgba16Float, .rgba16Float],
         depthFormat: renderInfo.depthPixelFormat,
         name: "Geometry Pipeline"
     )
@@ -184,7 +187,7 @@ public func InitHighlightPipeline() -> RenderPipeline? {
         vertexShader: "vertexGeometryShader",
         fragmentShader: "fragmentGeometryShader",
         vertexDescriptor: createGeometryVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.gizmo],
         depthFormat: renderInfo.depthPixelFormat,
         depthCompareFunction: .always,
         depthEnabled: false,
@@ -199,7 +202,7 @@ public func InitLightVisualPipeline() -> RenderPipeline? {
         vertexShader: "vertexLightVisualShader",
         fragmentShader: "fragmentLightVisualShader",
         vertexDescriptor: createLightVisualVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.gizmo],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: true,
         name: "Light Visual Pipeline"
@@ -213,7 +216,7 @@ public func InitOutlinePipeline() -> RenderPipeline? {
         vertexShader: "vertexOutlineShader",
         fragmentShader: "fragmentOutlineShader",
         vertexDescriptor: createOutlineVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        colorFormats: [wf.gizmo, .rgba16Float, .rgba16Float],
         depthFormat: renderInfo.depthPixelFormat,
         depthCompareFunction: .lessEqual,
         depthEnabled: true,
@@ -228,8 +231,8 @@ public func InitCompositePipeline() -> RenderPipeline? {
         vertexShader: "vertexCompositeShader",
         fragmentShader: "fragmentCompositeShader",
         vertexDescriptor: createCompositeVertexDescriptor(),
-        colorFormats: [.bgra8Unorm_srgb],
-        depthFormat: renderInfo.depthPixelFormat,
+        colorFormats: [renderInfo.presentColorPixelFormat],
+        depthFormat: renderInfo.presentDepthPixelFormat,
         depthEnabled: false,
         name: "Composite Pipeline"
     )
@@ -242,8 +245,8 @@ public func InitPreCompositePipeline() -> RenderPipeline? {
         vertexShader: "vertexPreCompositeShader",
         fragmentShader: "fragmentPreCompositeShader",
         vertexDescriptor: createPreCompositeVertexDescriptor(),
-        colorFormats: [.bgra8Unorm_srgb],
-        depthFormat: renderInfo.depthPixelFormat,
+        colorFormats: [wf.sceneComposite],
+        depthFormat: .invalid,
         depthEnabled: false,
         blendEnabled: true,
         name: "Pre-Composite Pipeline"
@@ -257,7 +260,7 @@ public func InitTonemappingPipeline() -> RenderPipeline? {
         vertexShader: "vertexTonemappingShader",
         fragmentShader: "fragmentTonemappingShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.postProcess],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Tone-mapping Pipeline"
@@ -271,24 +274,10 @@ public func InitBlurPipeline() -> RenderPipeline? {
         vertexShader: "vertexBlurShader",
         fragmentShader: "fragmentBlurShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.postProcess],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Blur Pipeline"
-    )
-}
-
-// MARK: Color grading pipeline
-
-public func InitColorGradingPipeline() -> RenderPipeline? {
-    CreatePipeline(
-        vertexShader: "vertexColorGradingShader",
-        fragmentShader: "fragmentColorGradingShader",
-        vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
-        depthFormat: renderInfo.depthPixelFormat,
-        depthEnabled: false,
-        name: "ColorGrading Pipeline"
     )
 }
 
@@ -299,7 +288,7 @@ public func InitColorCorrectionPipeline() -> RenderPipeline? {
         vertexShader: "vertexColorCorrectionShader",
         fragmentShader: "fragmentColorCorrectionShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.postProcess],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Color Correction Pipeline"
@@ -313,7 +302,7 @@ public func InitBloomThresholdPipeline() -> RenderPipeline? {
         vertexShader: "vertexBloomThresholdShader",
         fragmentShader: "fragmentBloomThresholdShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.postProcess],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Bloom Threshold Pipeline"
@@ -327,7 +316,7 @@ public func InitBloomCompositePipeline() -> RenderPipeline? {
         vertexShader: "vertexBloomCompositeShader",
         fragmentShader: "fragmentBloomCompositeShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.postProcess],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         blendEnabled: true,
@@ -342,7 +331,7 @@ public func InitVignettePipeline() -> RenderPipeline? {
         vertexShader: "vertexVignetteShader",
         fragmentShader: "fragmentVignetteShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.postProcess],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Vignette Pipeline"
@@ -356,7 +345,7 @@ public func InitChromaticAberrationPipeline() -> RenderPipeline? {
         vertexShader: "vertexChromaticAberrationShader",
         fragmentShader: "fragmentChromaticAberrationShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.postProcess],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Chromatic Aberration Pipeline"
@@ -370,7 +359,7 @@ public func InitDepthOfFieldPipeline() -> RenderPipeline? {
         vertexShader: "vertexDepthOfFieldShader",
         fragmentShader: "fragmentDepthOfFieldShader",
         vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.postProcess],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Depth of Field Pipeline"
@@ -447,7 +436,7 @@ public func InitGaussianPipeline() -> RenderPipeline? {
         vertexShader: "vertexGaussianShader",
         fragmentShader: "fragmentGaussianShader",
         vertexDescriptor: createGaussianVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat],
+        colorFormats: [wf.gaussian],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         blendEnabled: false,
@@ -463,7 +452,7 @@ public func InitEnvironmentPipeline() -> RenderPipeline? {
         vertexShader: "vertexEnvironmentShader",
         fragmentShader: "fragmentEnvironmentShader",
         vertexDescriptor: createEnvironmentVertexDescriptor(),
-        colorFormats: [.bgra8Unorm_srgb],
+        colorFormats: [wf.environment],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Environment Pipeline"
@@ -529,11 +518,35 @@ public func InitIBLPreFilterPipeline() -> RenderPipeline? {
         vertexShader: "vertexIBLPreFilterShader",
         fragmentShader: "fragmentIBLPreFilterShader",
         vertexDescriptor: createIBLPreFilterVertexDescriptor(),
-        colorFormats: [renderInfo.colorPixelFormat, renderInfo.colorPixelFormat, renderInfo.colorPixelFormat],
+        colorFormats: [wf.ibl, wf.ibl, wf.ibl],
         depthFormat: .invalid,
         depthCompareFunction: .less,
         depthEnabled: false,
         name: "IBL-Pre Filer Pipeline"
+    )
+}
+
+public func InitLookPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexLookShader",
+        fragmentShader: "fragmentLookShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [wf.lookOutput],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Look Pipeline"
+    )
+}
+
+public func InitOutputTransformPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexOutputTransformShader",
+        fragmentShader: "fragmentOutputTransformShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.presentColorPixelFormat],
+        depthFormat: renderInfo.presentDepthPixelFormat,
+        depthEnabled: false,
+        name: "Output Transform Pipeline"
     )
 }
 
@@ -551,7 +564,6 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.preComposite, InitPreCompositePipeline),
         (.tonemapping, InitTonemappingPipeline),
         (.blur, InitBlurPipeline),
-        (.colorGrading, InitColorGradingPipeline),
         (.colorCorrection, InitColorCorrectionPipeline),
         (.bloomThreshold, InitBloomThresholdPipeline),
         (.bloomComposite, InitBloomCompositePipeline),
@@ -565,6 +577,8 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.environment, InitEnvironmentPipeline),
         (.iblPreFilter, InitIBLPreFilterPipeline),
         (.gaussian, InitGaussianPipeline),
+        (.look, InitLookPipeline),
+        (.outputTransform, InitOutputTransformPipeline),
     ]
 }
 

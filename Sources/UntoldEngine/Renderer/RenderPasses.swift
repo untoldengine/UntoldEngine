@@ -1693,13 +1693,13 @@ public enum RenderPasses {
             return
         }
 
-        guard let renderPassDescriptor = renderInfo.renderPassDescriptor else {
+        guard let renderPassDescriptor = renderInfo.sceneCompositeRenderPassDescriptor else {
             handleError(.renderPassCreationFailed, "Main render pass descriptor not initialized")
             return
         }
 
         // set the states for the pipeline
-
+        renderPassDescriptor.colorAttachments[0].texture = textureResources.sceneCompositeTexture
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
 

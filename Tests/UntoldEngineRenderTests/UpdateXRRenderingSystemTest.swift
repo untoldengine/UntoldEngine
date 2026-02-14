@@ -38,7 +38,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
 
         // Build the render graph using the same logic as UpdateXRRenderingSystem
-        let (graph, preCompID) = buildGameModeGraph()
+        let (graph, finalPassID) = buildGameModeGraph()
 
         // Verify that full immersion mode creates the environment pass
         XCTAssertNotNil(graph["environment"], "Full immersion mode should create environment pass")
@@ -49,9 +49,11 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         XCTAssertNotNil(graph["model"], "Model pass should exist")
         XCTAssertNotNil(graph["lightPass"], "Light pass should exist")
         XCTAssertNotNil(graph["precomp"], "Pre-composite pass should exist")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNotNil(graph["outputTransform"], "Output transform pass should exist")
 
         // Verify the final pass ID is correct
-        XCTAssertEqual(preCompID, "precomp", "Final pass ID should be precomp")
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
         // Verify shadow depends on environment in full immersion
         XCTAssertEqual(graph["shadow"]?.dependencies, ["environment"],
@@ -61,9 +63,9 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         let sortedPasses = try! topologicalSortGraph(graph: graph)
         XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
 
-        // Verify precomp is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "precomp",
-                       "Precomp should be the last pass in the sorted order")
+        // Verify outputTransform is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in the sorted order")
 
         // Verify environment comes before composite in the sorted order
         let order = sortedPasses.map(\.id)
@@ -108,7 +110,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
 
         // Build the render graph using the same logic as UpdateXRRenderingSystem
-        let (graph, preCompID) = buildGameModeGraph()
+        let (graph, finalPassID) = buildGameModeGraph()
 
         // Verify that passthrough mode does not create environment or grid passes
         XCTAssertNil(graph["environment"], "Passthrough mode should not create environment pass")
@@ -119,9 +121,11 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         XCTAssertNotNil(graph["model"], "Model pass should exist")
         XCTAssertNotNil(graph["lightPass"], "Light pass should exist")
         XCTAssertNotNil(graph["precomp"], "Pre-composite pass should exist")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNotNil(graph["outputTransform"], "Output transform pass should exist")
 
         // Verify the final pass ID is correct
-        XCTAssertEqual(preCompID, "precomp", "Final pass ID should be precomp")
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
         // Verify shadow has no base pass dependency in passthrough mode
         XCTAssertEqual(graph["shadow"]?.dependencies, [],
@@ -131,9 +135,9 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         let sortedPasses = try! topologicalSortGraph(graph: graph)
         XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
 
-        // Verify precomp is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "precomp",
-                       "Precomp should be the last pass in the sorted order")
+        // Verify outputTransform is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in the sorted order")
     }
 
     func testUpdateXRRenderingSystem_PassthroughHasNoBasePass() {
@@ -154,24 +158,24 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - Final Pass Tests
 
-    func testUpdateXRRenderingSystem_PrecompIsTheFinalPass() {
+    func testUpdateXRRenderingSystem_OutputTransformIsTheFinalPass() {
         // Test with full immersion
         renderInfo.immersionStyle = .full
 
-        let (graph, preCompID) = buildGameModeGraph()
+        let (graph, finalPassID) = buildGameModeGraph()
 
-        // Verify preCompID is "precomp"
-        XCTAssertEqual(preCompID, "precomp", "buildGameModeGraph should return 'precomp' as final pass ID")
+        // Verify final pass is outputTransform
+        XCTAssertEqual(finalPassID, "outputTransform", "buildGameModeGraph should return 'outputTransform' as final pass ID")
 
         // Verify the dependency chain is correct
         let sortedPasses = try! topologicalSortGraph(graph: graph)
 
-        // Verify precomp is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "precomp",
-                       "Precomp should be the last pass in topological order")
+        // Verify outputTransform is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in topological order")
     }
 
-    func testUpdateXRRenderingSystem_PrecompIsLastInTopologicalOrder() {
+    func testUpdateXRRenderingSystem_OutputTransformIsLastInTopologicalOrder() {
         // Test with passthrough mode
         renderInfo.immersionStyle = .mixed
 
@@ -180,13 +184,13 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         // Sort the graph
         let sortedPasses = try! topologicalSortGraph(graph: graph)
 
-        // Verify precomp is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "precomp",
-                       "Precomp should be the last pass in the render graph")
+        // Verify outputTransform is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in the render graph")
     }
 
-    func testUpdateXRRenderingSystem_PrecompIsCorrectFinalPassInAllModes() {
-        // Test in all immersion modes to ensure precomp is the final pass
+    func testUpdateXRRenderingSystem_OutputTransformIsCorrectFinalPassInAllModes() {
+        // Test in all immersion modes to ensure outputTransform is the final pass
 
         let modes: [(UntoldImmersionMode, String)] = [
             (.none, "none"),
@@ -197,17 +201,17 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         for (mode, description) in modes {
             renderInfo.immersionStyle = mode
 
-            let (graph, preCompID) = buildGameModeGraph()
+            let (graph, finalPassID) = buildGameModeGraph()
 
-            // Verify precomp is the final pass
-            XCTAssertEqual(preCompID, "precomp",
-                           "Final pass should be 'precomp' in \(description) mode")
+            // Verify outputTransform is the final pass
+            XCTAssertEqual(finalPassID, "outputTransform",
+                           "Final pass should be 'outputTransform' in \(description) mode")
 
             // Verify topological ordering
             let sortedPasses = try! topologicalSortGraph(graph: graph)
 
-            XCTAssertEqual(sortedPasses.last?.id, preCompID,
-                           "Precomp should be the last pass in \(description) mode")
+            XCTAssertEqual(sortedPasses.last?.id, finalPassID,
+                           "outputTransform should be the last pass in \(description) mode")
         }
     }
 
@@ -234,7 +238,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
 
         XCTAssertTrue(sortedPasses.count > 0, "Should have a valid sorted pass list")
         XCTAssertNotNil(graph["environment"], "Full immersion should have environment pass")
-        XCTAssertEqual(sortedPasses.last?.id, "precomp", "Precomp should be the final pass")
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform", "outputTransform should be the final pass")
     }
 
     func testUpdateXRRenderingSystem_FullWorkflowWithPassthrough() {
@@ -259,7 +263,7 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
         XCTAssertTrue(sortedPasses.count > 0, "Should have a valid sorted pass list")
         XCTAssertNil(graph["environment"], "Passthrough should not have environment pass")
         XCTAssertNil(graph["grid"], "Passthrough should not have grid pass")
-        XCTAssertEqual(sortedPasses.last?.id, "precomp", "Precomp should be the final pass")
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform", "outputTransform should be the final pass")
     }
 
     // MARK: - Helper Methods

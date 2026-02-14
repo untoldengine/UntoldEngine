@@ -409,6 +409,10 @@ typedef enum{
       gaussianRenderViewPortIndex,
   }GaussianRenderBufferIndices;
 
+typedef enum{
+      outputTransformPassEncodingModeIndex
+  }OutputTransformBufferIndices;
+
 //Ray tracing structs
 #define GEOMETRY_MASK_TRIANGLE 1
 #define GEOMETRY_MASK_SPHERE   2

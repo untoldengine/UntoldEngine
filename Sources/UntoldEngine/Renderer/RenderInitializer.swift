@@ -369,9 +369,20 @@ func initRenderPassDescriptors() {
         ],
         depthAttachment: (textureResources.depthMap, .load, .dontCare, nil) // Load existing depth from models
     )
+
+    renderInfo.sceneCompositeRenderPassDescriptor = createRenderPassDescriptor(
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        colorAttachments: [
+            (textureResources.sceneCompositeTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+        ],
+        depthAttachment: nil
+    )
 }
 
 func initTextureResources() {
+    let wf = renderInfo.colorPipeline.working
+
     // Shadow Texture
     textureResources.shadowMap = createTexture(
         device: renderInfo.device,
@@ -387,10 +398,10 @@ func initTextureResources() {
     textureResources.colorMap = createTexture(
         device: renderInfo.device,
         label: "Color Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.gBufferAlbedo,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        usage: [.shaderRead, .renderTarget],
         storageMode: .shared
     )
 
@@ -398,7 +409,7 @@ func initTextureResources() {
     textureResources.normalMap = createTexture(
         device: renderInfo.device,
         label: "Normal Texture",
-        pixelFormat: .rgba16Float,
+        pixelFormat: wf.gBufferNormal,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -409,7 +420,7 @@ func initTextureResources() {
     textureResources.positionMap = createTexture(
         device: renderInfo.device,
         label: "Position Texture",
-        pixelFormat: .rgba16Float,
+        pixelFormat: wf.gBufferPosition,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -420,7 +431,7 @@ func initTextureResources() {
     textureResources.emissiveMap = createTexture(
         device: renderInfo.device,
         label: "Emissive Texture",
-        pixelFormat: .rgba8Unorm,
+        pixelFormat: wf.gBufferEmissive,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -475,7 +486,7 @@ func initTextureResources() {
     textureResources.materialMap = createTexture(
         device: renderInfo.device,
         label: "Material Texture",
-        pixelFormat: .rgba8Unorm,
+        pixelFormat: wf.gBufferMaterial,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -486,7 +497,7 @@ func initTextureResources() {
     textureResources.deferredColorMap = createTexture(
         device: renderInfo.device,
         label: "Deferred Color Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.sceneColor,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -497,7 +508,7 @@ func initTextureResources() {
     textureResources.tonemapTexture = createTexture(
         device: renderInfo.device,
         label: "Tonemap Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.sceneColor,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -508,7 +519,7 @@ func initTextureResources() {
     textureResources.blurTextureHor = createTexture(
         device: renderInfo.device,
         label: "Blur Texture Hor",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.postProcess,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -518,18 +529,7 @@ func initTextureResources() {
     textureResources.blurTextureVer = createTexture(
         device: renderInfo.device,
         label: "Blur Texture Ver",
-        pixelFormat: renderInfo.colorPixelFormat,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
-    )
-
-    // Color grading Map debug texture
-    textureResources.colorGradingTexture = createTexture(
-        device: renderInfo.device,
-        label: "Color Grading Debug Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.postProcess,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -540,7 +540,7 @@ func initTextureResources() {
     textureResources.colorCorrectionTexture = createTexture(
         device: renderInfo.device,
         label: "Color Correction Debug Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.postProcess,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -551,7 +551,7 @@ func initTextureResources() {
     textureResources.bloomThresholdTextuture = createTexture(
         device: renderInfo.device,
         label: "Bloom Threshold Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.postProcess,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -562,7 +562,7 @@ func initTextureResources() {
     textureResources.bloomCompositeTexture = createTexture(
         device: renderInfo.device,
         label: "Bloom Composite Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.postProcess,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -573,7 +573,7 @@ func initTextureResources() {
     textureResources.vignetteTexture = createTexture(
         device: renderInfo.device,
         label: "Vignette Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.postProcess,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -584,7 +584,7 @@ func initTextureResources() {
     textureResources.chromaticAberrationTexture = createTexture(
         device: renderInfo.device,
         label: "Chromatic Aberration Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.postProcess,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -595,7 +595,7 @@ func initTextureResources() {
     textureResources.depthOfFieldTexture = createTexture(
         device: renderInfo.device,
         label: "Depth of Field Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.postProcess,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -606,7 +606,7 @@ func initTextureResources() {
     textureResources.ssaoTexture = createTexture(
         device: renderInfo.device,
         label: "SSAO Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: SSAOParams.shared.quality.textureFormat,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -617,7 +617,7 @@ func initTextureResources() {
     textureResources.ssaoBlurTexture = createTexture(
         device: renderInfo.device,
         label: "SSAO Blur Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: SSAOParams.shared.quality.textureFormat,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -639,7 +639,7 @@ func initTextureResources() {
     textureResources.gizmoColorTexture = createTexture(
         device: renderInfo.device,
         label: "Gizmo Color Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.gizmo,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -650,7 +650,7 @@ func initTextureResources() {
     textureResources.environmentColorMap = createTexture(
         device: renderInfo.device,
         label: "Environment Color Texture",
-        pixelFormat: .bgra8Unorm_srgb,
+        pixelFormat: wf.environment,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -661,7 +661,27 @@ func initTextureResources() {
     textureResources.gaussianColorMap = createTexture(
         device: renderInfo.device,
         label: "Gaussian Color Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.gaussian,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+
+    textureResources.sceneCompositeTexture = createTexture(
+        device: renderInfo.device,
+        label: "Scene Composite Texture",
+        pixelFormat: wf.sceneComposite,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+
+    textureResources.lookTexture = createTexture(
+        device: renderInfo.device,
+        label: "Look Output Texture",
+        pixelFormat: wf.lookOutput,
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         usage: [.shaderRead, .renderTarget, .shaderWrite],
@@ -688,6 +708,7 @@ func initTextureResources() {
 }
 
 func initIBLResources() {
+    let wf = renderInfo.colorPipeline.working
     let width = Int(renderInfo.viewPort.x)
     let height = Int(renderInfo.viewPort.y)
 
@@ -695,7 +716,7 @@ func initIBLResources() {
     textureResources.irradianceMap = createTexture(
         device: renderInfo.device,
         label: "IBL Irradiance Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.ibl,
         width: width,
         height: height,
         usage: [.shaderRead, .shaderWrite, .renderTarget],
@@ -707,7 +728,7 @@ func initIBLResources() {
     textureResources.specularMap = createTexture(
         device: renderInfo.device,
         label: "IBL Specular Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.ibl,
         width: width,
         height: height,
         usage: [.shaderRead, .shaderWrite, .renderTarget],
@@ -719,7 +740,7 @@ func initIBLResources() {
     textureResources.iblBRDFMap = createTexture(
         device: renderInfo.device,
         label: "IBL BRDF Texture",
-        pixelFormat: renderInfo.colorPixelFormat,
+        pixelFormat: wf.ibl,
         width: width,
         height: height,
         usage: [.shaderRead, .shaderWrite, .renderTarget],

@@ -115,7 +115,5 @@ fragment float4 fragmentColorGradingShader(VertexCompositeOutput vertexOut [[sta
     color = colorContrast(color, contrast);
     color *= (1.0+brightness);
     color = colorSaturation(color, saturation);
-    // Apply ACES Filmic Tone Mapping
-    color.rgb = ACESFilmicToneMapping(color.rgb);
     return float4(max(color,0.0), 1.0);
 }
