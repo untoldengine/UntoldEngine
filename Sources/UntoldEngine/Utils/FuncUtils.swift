@@ -287,42 +287,89 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
 public func textureToCGImage(texture: MTLTexture) -> CGImage? {
     let width = texture.width
     let height = texture.height
-    let bytesPerPixel = 8 // 16-bit float per channel (4  channels: RGBA)
-    let alignment = 256
-    let unalignedBytesPerRow = width * bytesPerPixel
-    let bytesPerRow = ((unalignedBytesPerRow + alignment - 1) / alignment) * alignment // align to 256 bytes
-    let dataSize = bytesPerRow * height
-
-    // Allocate memory to store pixel data
-    let rawData = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 1)
-    defer { rawData.deallocate() }
-
-    // Copy texture data into the buffer
     let region = MTLRegionMake2D(0, 0, width, height)
-    texture.getBytes(rawData, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
 
-    // Create a CGImage from the raw pixel data
-    let colorSpace = CGColorSpace(name: CGColorSpace.linearSRGB)!
-    // or CGColorSpace(name: CGColorSpace.displayP3)!
+    func makeRGBA8Image(from rgbaData: UnsafeMutableRawPointer, isSRGB: Bool) -> CGImage? {
+        let colorSpace = CGColorSpace(name: isSRGB ? CGColorSpace.sRGB : CGColorSpace.linearSRGB)!
+        let bitmapInfo: CGBitmapInfo = [
+            CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+            CGBitmapInfo(rawValue: CGImageByteOrderInfo.order32Big.rawValue),
+        ]
+        let bytesPerRow = width * 4
+        guard let context = CGContext(
+            data: rgbaData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo.rawValue
+        ) else { return nil }
+        return context.makeImage()
+    }
 
-    // let colorSpace = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)!
-    let bitmapInfo: CGBitmapInfo = [
-        .floatComponents,
-        CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
-        CGBitmapInfo(rawValue: CGImageByteOrderInfo.order16Little.rawValue),
-    ]
+    switch texture.pixelFormat {
+    case .rgba16Float:
+        let bytesPerPixel = 8 // RGBA16F
+        let bytesPerRow = width * bytesPerPixel
+        let dataSize = bytesPerRow * height
+        let rawData = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 1)
+        defer { rawData.deallocate() }
 
-    guard let context = CGContext(
-        data: rawData,
-        width: width,
-        height: height,
-        bitsPerComponent: 16, // 16 bits per channel
-        bytesPerRow: unalignedBytesPerRow, // Use unaligned row size
-        space: colorSpace,
-        bitmapInfo: bitmapInfo.rawValue
-    ) else { return nil }
+        texture.getBytes(rawData, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
 
-    return context.makeImage()
+        let colorSpace = CGColorSpace(name: CGColorSpace.linearSRGB)!
+        let bitmapInfo: CGBitmapInfo = [
+            .floatComponents,
+            CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+            CGBitmapInfo(rawValue: CGImageByteOrderInfo.order16Little.rawValue),
+        ]
+
+        guard let context = CGContext(
+            data: rawData,
+            width: width,
+            height: height,
+            bitsPerComponent: 16,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo.rawValue
+        ) else { return nil }
+        return context.makeImage()
+
+    case .rgba8Unorm, .rgba8Unorm_srgb:
+        let bytesPerRow = width * 4
+        let dataSize = bytesPerRow * height
+        let rawData = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 1)
+        defer { rawData.deallocate() }
+
+        texture.getBytes(rawData, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
+        return makeRGBA8Image(from: rawData, isSRGB: texture.pixelFormat == .rgba8Unorm_srgb)
+
+    case .bgra8Unorm, .bgra8Unorm_srgb:
+        let bytesPerRow = width * 4
+        let pixelCount = width * height
+        let dataSize = bytesPerRow * height
+
+        let bgraData = UnsafeMutablePointer<UInt8>.allocate(capacity: dataSize)
+        defer { bgraData.deallocate() }
+        texture.getBytes(bgraData, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
+
+        let rgbaData = UnsafeMutablePointer<UInt8>.allocate(capacity: dataSize)
+        defer { rgbaData.deallocate() }
+
+        for i in 0 ..< pixelCount {
+            let s = i * 4
+            rgbaData[s + 0] = bgraData[s + 2] // R
+            rgbaData[s + 1] = bgraData[s + 1] // G
+            rgbaData[s + 2] = bgraData[s + 0] // B
+            rgbaData[s + 3] = bgraData[s + 3] // A
+        }
+
+        return makeRGBA8Image(from: UnsafeMutableRawPointer(rgbaData), isSRGB: texture.pixelFormat == .bgra8Unorm_srgb)
+
+    default:
+        return nil
+    }
 }
 
 public func depthTextureToCGImage(texture: MTLTexture) -> CGImage? {

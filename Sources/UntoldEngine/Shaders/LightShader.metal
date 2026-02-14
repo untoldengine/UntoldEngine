@@ -284,8 +284,6 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     
     indirectLighting *= ambientOcclusion*iblParam.ambientIntensity;
     
-    indirectLighting = ACESFilmicToneMapping(indirectLighting);
-    
     // Compute BRDF
     LightContribution brdf;
     

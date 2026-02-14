@@ -189,9 +189,11 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertNotNil(graph["lightPass"], "Light pass should exist")
         XCTAssertNotNil(graph["gaussian"], "Gaussian pass should exist")
         XCTAssertNotNil(graph["precomp"], "Pre-composite pass should exist")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNotNil(graph["outputTransform"], "Output transform pass should exist")
 
         // Verify final pass
-        XCTAssertEqual(finalPassID, "precomp", "Final pass should be precomp")
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
     }
 
     func testBuildGameModeGraph_GridMode() {
@@ -255,6 +257,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             ("chromatic", "bloomThreshold"),
             ("bloomThreshold", "precomp"),
             ("gaussian", "precomp"),
+            ("precomp", "look"),
+            ("look", "outputTransform"),
         ])
     }
 
@@ -266,10 +270,12 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         let (graph, finalPassID) = buildGameModeGraph()
 
-        XCTAssertEqual(finalPassID, "precomp", "Final pass should be precomp")
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
         XCTAssertNotNil(graph["postProcessBypass"], "Bypass pass should exist when bypassPostProcessing is enabled")
         XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["lightPass"],
                        "Bypass pass should depend on lightPass")
+        XCTAssertNotNil(graph["look"], "Look pass should exist when bypassing post-processing")
+        XCTAssertNotNil(graph["outputTransform"], "Output transform should exist when bypassing post-processing")
 
         XCTAssertNil(graph["depthOfField"], "Depth of field pass should not exist when bypassing post-processing")
         XCTAssertNil(graph["chromatic"], "Chromatic pass should not exist when bypassing post-processing")
@@ -280,6 +286,11 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                       "Precomp should depend on postProcessBypass when bypassing post-processing")
         XCTAssertTrue(precompDeps.contains("gaussian"),
                       "Precomp should still depend on gaussian pass")
+
+        XCTAssertEqual(graph["look"]?.dependencies, ["precomp"],
+                       "Look should depend on precomp when bypassing post-processing")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
+                       "Output transform should depend on look when bypassing post-processing")
     }
 
     // MARK: - Gaussian Pass Integration Tests

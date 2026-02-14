@@ -41,3 +41,5 @@ using namespace metal;
 #include "../Shaders/debugShader.metal"
 #include "../Shaders/GizmoShader.metal"
 
+#include "../Shaders/LookShader.metal"
+#include "../Shaders/OutputTransformShader.metal"

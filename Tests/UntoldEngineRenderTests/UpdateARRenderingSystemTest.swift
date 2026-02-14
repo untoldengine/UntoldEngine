@@ -38,7 +38,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
 
         // Build the render graph using the same logic as UpdateARRenderingSystem
-        let (graph, preCompID) = buildGameModeGraph()
+        let (graph, finalPassID) = buildGameModeGraph()
 
         // Verify that AR mode does not create environment or grid passes
         XCTAssertNil(graph["environment"], "AR mode should not create environment pass")
@@ -49,9 +49,11 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         XCTAssertNotNil(graph["model"], "Model pass should exist")
         XCTAssertNotNil(graph["lightPass"], "Light pass should exist")
         XCTAssertNotNil(graph["precomp"], "Pre-composite pass should exist")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNotNil(graph["outputTransform"], "Output transform pass should exist")
 
         // Verify the final pass ID is correct
-        XCTAssertEqual(preCompID, "precomp", "Final pass ID should be precomp")
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
         // Verify shadow has no base pass dependency in AR mode
         XCTAssertEqual(graph["shadow"]?.dependencies, [],
@@ -61,9 +63,9 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         let sortedPasses = try! topologicalSortGraph(graph: graph)
         XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
 
-        // Verify precomp is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "precomp",
-                       "Precomp should be the last pass in the sorted order")
+        // Verify outputTransform is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in the sorted order")
     }
 
     func testUpdateARRenderingSystem_ARModeHasNoBasePass() {
@@ -86,12 +88,12 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         // Set up AR mode
         renderInfo.immersionStyle = .ar
 
-        let (arGraph, arPreCompID) = buildGameModeGraph()
+        let (arGraph, arFinalPassID) = buildGameModeGraph()
 
         // Set up passthrough mode for comparison
         renderInfo.immersionStyle = .mixed
 
-        let (passthroughGraph, passthroughPreCompID) = buildGameModeGraph()
+        let (passthroughGraph, passthroughFinalPassID) = buildGameModeGraph()
 
         // Verify both modes produce the same graph structure
         XCTAssertEqual(arGraph.count, passthroughGraph.count,
@@ -104,7 +106,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         XCTAssertNil(passthroughGraph["grid"], "Passthrough should not have grid pass")
 
         // Verify both have the same final pass
-        XCTAssertEqual(arPreCompID, passthroughPreCompID,
+        XCTAssertEqual(arFinalPassID, passthroughFinalPassID,
                        "AR and passthrough should have the same final pass")
 
         // Verify shadow dependencies are the same
@@ -114,24 +116,24 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - Final Pass Tests
 
-    func testUpdateARRenderingSystem_PrecompIsTheFinalPass() {
+    func testUpdateARRenderingSystem_OutputTransformIsTheFinalPass() {
         // Test with AR mode
         renderInfo.immersionStyle = .ar
 
-        let (graph, preCompID) = buildGameModeGraph()
+        let (graph, finalPassID) = buildGameModeGraph()
 
-        // Verify preCompID is "precomp"
-        XCTAssertEqual(preCompID, "precomp", "buildGameModeGraph should return 'precomp' as final pass ID")
+        // Verify final pass is outputTransform
+        XCTAssertEqual(finalPassID, "outputTransform", "buildGameModeGraph should return 'outputTransform' as final pass ID")
 
         // Verify the dependency chain is correct
         let sortedPasses = try! topologicalSortGraph(graph: graph)
 
-        // Verify precomp is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "precomp",
-                       "Precomp should be the last pass in topological order")
+        // Verify outputTransform is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in topological order")
     }
 
-    func testUpdateARRenderingSystem_PrecompIsLastInTopologicalOrder() {
+    func testUpdateARRenderingSystem_OutputTransformIsLastInTopologicalOrder() {
         // Test with AR mode
         renderInfo.immersionStyle = .ar
 
@@ -140,9 +142,9 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         // Sort the graph
         let sortedPasses = try! topologicalSortGraph(graph: graph)
 
-        // Verify precomp is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "precomp",
-                       "Precomp should be the last pass in the render graph")
+        // Verify outputTransform is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in the render graph")
     }
 
     func testUpdateARRenderingSystem_ARModeIncludedInAllModes() {
@@ -158,17 +160,17 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         for (mode, description) in modes {
             renderInfo.immersionStyle = mode
 
-            let (graph, preCompID) = buildGameModeGraph()
+            let (graph, finalPassID) = buildGameModeGraph()
 
-            // Verify precomp is the final pass for all modes
-            XCTAssertEqual(preCompID, "precomp",
-                           "Final pass should be 'precomp' in \(description) mode")
+            // Verify outputTransform is the final pass for all modes
+            XCTAssertEqual(finalPassID, "outputTransform",
+                           "Final pass should be 'outputTransform' in \(description) mode")
 
             // Verify topological ordering
             let sortedPasses = try! topologicalSortGraph(graph: graph)
 
-            XCTAssertEqual(sortedPasses.last?.id, preCompID,
-                           "Precomp should be the last pass in \(description) mode")
+            XCTAssertEqual(sortedPasses.last?.id, finalPassID,
+                           "outputTransform should be the last pass in \(description) mode")
         }
     }
 
@@ -196,7 +198,7 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         XCTAssertTrue(sortedPasses.count > 0, "Should have a valid sorted pass list")
         XCTAssertNil(graph["environment"], "AR mode should not have environment pass")
         XCTAssertNil(graph["grid"], "AR mode should not have grid pass")
-        XCTAssertEqual(sortedPasses.last?.id, "precomp", "Precomp should be the final pass")
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform", "outputTransform should be the final pass")
     }
 
     func testUpdateARRenderingSystem_ARModeGraphTopologicalConstraints() {
@@ -228,8 +230,9 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
         XCTAssertNotNil(graph["chromatic"], "Chromatic aberration pass should exist")
         XCTAssertNotNil(graph["bloomThreshold"], "Bloom threshold pass should exist")
         XCTAssertNotNil(graph["bloomComposite"], "Bloom composite pass should exist")
-        XCTAssertNotNil(graph["colorgrading"], "Color grading pass should exist")
         XCTAssertNotNil(graph["vignette"], "Vignette pass should exist")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNotNil(graph["outputTransform"], "Output transform pass should exist")
 
         // Verify post-processing chain dependencies
         let sortedPasses = try! topologicalSortGraph(graph: graph)
@@ -239,9 +242,10 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
             ("lightPass", "depthOfField"),
             ("depthOfField", "chromatic"),
             ("chromatic", "bloomThreshold"),
-            ("bloomComposite", "colorgrading"),
-            ("colorgrading", "vignette"),
+            ("bloomComposite", "vignette"),
             ("vignette", "precomp"),
+            ("precomp", "look"),
+            ("look", "outputTransform"),
         ])
     }
 

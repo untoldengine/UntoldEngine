@@ -72,6 +72,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
         renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
 
+        renderInfo.presentColorPixelFormat = renderer.metalView.colorPixelFormat
+        renderInfo.presentDepthPixelFormat = renderer.metalView.depthStencilPixelFormat
+        renderInfo.colorPipeline = .standard(presentFormat: renderInfo.presentColorPixelFormat)
+        renderInfo.colorPixelFormat = renderInfo.colorPipeline.working.sceneColor
+
         do {
             let mainLibrary = try renderInfo.device.makeLibraryFromBundle()
             renderInfo.library = mainLibrary
@@ -105,6 +110,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         renderInfo.fence = renderInfo.device.makeFence()
         renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
         renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
+
+        renderInfo.presentColorPixelFormat = view.colorPixelFormat
+        renderInfo.presentDepthPixelFormat = view.depthStencilPixelFormat
+        renderInfo.colorPipeline = .standard(presentFormat: renderInfo.presentColorPixelFormat)
+        renderInfo.colorPixelFormat = renderInfo.colorPipeline.working.sceneColor
 
         do {
             let mainLibrary = try renderInfo.device.makeLibraryFromBundle()
@@ -370,6 +380,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
         renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
 
+        renderInfo.presentColorPixelFormat = colorPixelFormat
+        renderInfo.presentDepthPixelFormat = depthPixelFormat
+        renderInfo.colorPipeline = .standard(presentFormat: renderInfo.presentColorPixelFormat)
+        renderInfo.colorPixelFormat = renderInfo.colorPipeline.working.sceneColor
+
         do {
             let mainLibrary = try renderInfo.device.makeLibraryFromBundle()
             renderInfo.library = mainLibrary
@@ -434,6 +449,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         renderInfo.fence = renderInfo.device.makeFence()
         renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
         renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
+
+        renderInfo.presentColorPixelFormat = view.colorPixelFormat
+        renderInfo.presentDepthPixelFormat = view.depthStencilPixelFormat
+        renderInfo.colorPipeline = .standard(presentFormat: renderInfo.presentColorPixelFormat)
+        renderInfo.colorPixelFormat = renderInfo.colorPipeline.working.sceneColor
 
         do {
             let mainLibrary = try renderInfo.device.makeLibraryFromBundle()

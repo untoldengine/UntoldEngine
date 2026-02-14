@@ -28,24 +28,26 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         renderInfo.immersionStyle = .none
 
         // Build the render graph
-        let (graph, preCompID) = buildGameModeGraph()
+        let (graph, finalPassID) = buildGameModeGraph()
 
         // Verify essential passes exist
         XCTAssertNotNil(graph["shadow"], "Shadow pass should exist")
         XCTAssertNotNil(graph["model"], "Model pass should exist")
         XCTAssertNotNil(graph["lightPass"], "Light pass should exist")
         XCTAssertNotNil(graph["precomp"], "Pre-composite pass should exist")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNotNil(graph["outputTransform"], "Output transform pass should exist")
 
         // Verify the final pass ID is correct
-        XCTAssertEqual(preCompID, "precomp", "Final pass ID should be precomp")
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
         // Verify the graph can be topologically sorted
         let sortedPasses = try! topologicalSortGraph(graph: graph)
         XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
 
-        // Verify precomp is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "precomp",
-                       "Precomp should be the last pass in the sorted order")
+        // Verify outputTransform is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in the sorted order")
     }
 
     func testUpdateiOSRenderingSystem_iOSModeHasBasePass() {
@@ -81,24 +83,24 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - Final Pass Tests
 
-    func testUpdateiOSRenderingSystem_PrecompIsTheFinalPass() {
+    func testUpdateiOSRenderingSystem_OutputTransformIsTheFinalPass() {
         // Test with iOS mode
         renderInfo.immersionStyle = .none
 
-        let (graph, preCompID) = buildGameModeGraph()
+        let (graph, finalPassID) = buildGameModeGraph()
 
-        // Verify preCompID is "precomp"
-        XCTAssertEqual(preCompID, "precomp", "buildGameModeGraph should return 'precomp' as final pass ID")
+        // Verify final pass is outputTransform
+        XCTAssertEqual(finalPassID, "outputTransform", "buildGameModeGraph should return 'outputTransform' as final pass ID")
 
         // Verify the dependency chain is correct
         let sortedPasses = try! topologicalSortGraph(graph: graph)
 
-        // Verify precomp is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "precomp",
-                       "Precomp should be the last pass in topological order")
+        // Verify outputTransform is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in topological order")
     }
 
-    func testUpdateiOSRenderingSystem_PrecompIsLastInTopologicalOrder() {
+    func testUpdateiOSRenderingSystem_OutputTransformIsLastInTopologicalOrder() {
         // Test with iOS mode
         renderInfo.immersionStyle = .none
 
@@ -107,9 +109,9 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         // Sort the graph
         let sortedPasses = try! topologicalSortGraph(graph: graph)
 
-        // Verify precomp is the last pass
-        XCTAssertEqual(sortedPasses.last?.id, "precomp",
-                       "Precomp should be the last pass in the render graph")
+        // Verify outputTransform is the last pass
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
+                       "outputTransform should be the last pass in the render graph")
     }
 
     func testUpdateiOSRenderingSystem_iOSModeWithPostProcessing() {
@@ -123,8 +125,9 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         XCTAssertNotNil(graph["chromatic"], "Chromatic aberration pass should exist")
         XCTAssertNotNil(graph["bloomThreshold"], "Bloom threshold pass should exist")
         XCTAssertNotNil(graph["bloomComposite"], "Bloom composite pass should exist")
-        XCTAssertNotNil(graph["colorgrading"], "Color grading pass should exist")
         XCTAssertNotNil(graph["vignette"], "Vignette pass should exist")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNotNil(graph["outputTransform"], "Output transform pass should exist")
 
         // Verify post-processing chain dependencies
         let sortedPasses = try! topologicalSortGraph(graph: graph)
@@ -134,9 +137,10 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
             ("lightPass", "depthOfField"),
             ("depthOfField", "chromatic"),
             ("chromatic", "bloomThreshold"),
-            ("bloomComposite", "colorgrading"),
-            ("colorgrading", "vignette"),
+            ("bloomComposite", "vignette"),
             ("vignette", "precomp"),
+            ("precomp", "look"),
+            ("look", "outputTransform"),
         ])
     }
 
@@ -179,7 +183,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         let sortedPasses = try! topologicalSortGraph(graph: graph)
 
         XCTAssertTrue(sortedPasses.count > 0, "Should have a valid sorted pass list")
-        XCTAssertEqual(sortedPasses.last?.id, "precomp", "Precomp should be the final pass")
+        XCTAssertEqual(sortedPasses.last?.id, "outputTransform", "outputTransform should be the final pass")
     }
 
     // MARK: - Comparison Tests

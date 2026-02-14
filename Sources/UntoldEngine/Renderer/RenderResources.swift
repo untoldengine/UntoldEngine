@@ -42,6 +42,10 @@ public struct RenderInfo {
     public var depthPixelFormat: MTLPixelFormat!
     public var viewPort: simd_float2!
     public var immersionStyle: UntoldImmersionMode = .none
+    public var sceneCompositeRenderPassDescriptor: MTLRenderPassDescriptor!
+    public var presentColorPixelFormat: MTLPixelFormat = .bgra8Unorm_srgb
+    public var presentDepthPixelFormat: MTLPixelFormat = .depth32Float
+    public var colorPipeline: ColorPipelineConfig = .standard(presentFormat: .bgra8Unorm_srgb)
 }
 
 public struct BufferResources {
@@ -127,7 +131,6 @@ public struct TextureResources {
 
     public var tonemapTexture: MTLTexture?
     public var blurDebugTextures: MTLTexture?
-    public var colorGradingTexture: MTLTexture?
     public var colorCorrectionTexture: MTLTexture?
     public var blurTextureHor: MTLTexture?
     public var blurTextureVer: MTLTexture?
@@ -159,6 +162,9 @@ public struct TextureResources {
 
     // Gaussian
     public var gaussianColorMap: MTLTexture?
+
+    public var sceneCompositeTexture: MTLTexture?
+    public var lookTexture: MTLTexture?
 }
 
 public struct AccelStructResources {

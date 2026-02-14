@@ -723,6 +723,7 @@ final class SceneSerializerTests: BaseRenderSetup {
         ColorGradingParams.shared.contrast = 1.2
         ColorGradingParams.shared.saturation = 1.1
         ColorGradingParams.shared.temperature = 0.05
+        ColorGradingParams.shared.enabled = true
 
         // Serialize
         let sceneData = serializeScene()
@@ -732,12 +733,14 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertEqual(sceneData.colorGrading?.brightness, 0.1, "Brightness should match")
         XCTAssertEqual(sceneData.colorGrading?.contrast, 1.2, "Contrast should match")
         XCTAssertEqual(sceneData.colorGrading?.saturation, 1.1, "Saturation should match")
+        XCTAssertTrue(sceneData.colorGrading?.enabled == true, "Color grading enabled flag should match")
 
         // Reset
         ColorGradingParams.shared.brightness = 0.0
         ColorGradingParams.shared.contrast = 1.0
         ColorGradingParams.shared.saturation = 1.0
         ColorGradingParams.shared.temperature = 0.0
+        ColorGradingParams.shared.enabled = false
     }
 
     func testSerializeDepthOfFieldSettings() {
@@ -859,6 +862,15 @@ final class SceneSerializerTests: BaseRenderSetup {
     func testDeserializePostProcessingEffects() {
         // Create scene data with post-processing
         var sceneData = SceneData()
+        sceneData.colorGrading = ColorGradingData(
+            brightness: 0.2,
+            contrast: 1.1,
+            saturation: 1.05,
+            exposure: 0.1,
+            temperature: 0.2,
+            tint: -0.1,
+            enabled: true
+        )
         sceneData.bloom = BloomThresholdData(threshold: 2.0, intensity: 1.5, enabled: true)
         sceneData.vignette = VignetteData(intensity: 0.5, radius: 0.6, softness: 0.4, center: simd_float2(0.5, 0.5), enabled: true)
 
@@ -872,8 +884,10 @@ final class SceneSerializerTests: BaseRenderSetup {
 
         XCTAssertEqual(VignetteParams.shared.intensity, 0.5, accuracy: 0.01, "Vignette intensity should be applied")
         XCTAssertTrue(VignetteParams.shared.enabled, "Vignette should be enabled")
+        XCTAssertTrue(ColorGradingParams.shared.enabled, "Color grading should be enabled")
 
         // Cleanup
+        ColorGradingParams.shared.enabled = false
         BloomThresholdParams.shared.enabled = false
         VignetteParams.shared.enabled = false
     }

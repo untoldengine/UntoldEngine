@@ -27,7 +27,6 @@ public extension RenderPipelineType {
     static let preComposite: RenderPipelineType = "preComposite"
     static let tonemapping: RenderPipelineType = "tonemapping"
     static let blur: RenderPipelineType = "blur"
-    static let colorGrading: RenderPipelineType = "colorGrading"
     static let colorCorrection: RenderPipelineType = "colorCorrection"
     static let bloomThreshold: RenderPipelineType = "bloomThreshold"
     static let bloomComposite: RenderPipelineType = "bloomComposite"
@@ -41,4 +40,6 @@ public extension RenderPipelineType {
     static let environment: RenderPipelineType = "environment"
     static let iblPreFilter: RenderPipelineType = "iblPreFilter"
     static let gaussian: RenderPipelineType = "gaussian"
+    static let look: RenderPipelineType = "look"
+    static let outputTransform: RenderPipelineType = "outputTransform"
 }

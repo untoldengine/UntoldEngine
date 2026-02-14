@@ -200,7 +200,21 @@ public func buildGameModeGraph() -> RenderGraphResult {
     )
     graph[preCompPass.id] = preCompPass
 
-    return (graph, preCompPass.id)
+    let lookPass = RenderPass(
+        id: "look",
+        dependencies: [preCompPass.id],
+        execute: lookRenderPass
+    )
+    graph[lookPass.id] = lookPass
+
+    let outputPass = RenderPass(
+        id: "outputTransform",
+        dependencies: [lookPass.id],
+        execute: outputTransformRenderPass
+    )
+    graph[outputPass.id] = outputPass
+
+    return (graph, outputPass.id)
 }
 
 // G-Buffer Pass
@@ -291,10 +305,7 @@ func postProcessingEffects(graph: inout [String: RenderPass], deferredPassId: St
     let bloomCompositePass = RenderPass(id: "bloomComposite", dependencies: [previousPassID], execute: bloomCompositeRenderPass)
     graph[bloomCompositePass.id] = bloomCompositePass
 
-    let colorgradingPass = RenderPass(id: "colorgrading", dependencies: [bloomCompositePass.id], execute: colorGradingRenderPass)
-    graph[colorgradingPass.id] = colorgradingPass
-
-    let vignettePass = RenderPass(id: "vignette", dependencies: [colorgradingPass.id], execute: vignetteRenderPass)
+    let vignettePass = RenderPass(id: "vignette", dependencies: [bloomCompositePass.id], execute: vignetteRenderPass)
 
     graph[vignettePass.id] = vignettePass
 
@@ -398,21 +409,6 @@ func colorGradingCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-var colorGradingRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
-    guard let sourceTexture = textureResources.bloomCompositeTexture,
-          let destinationTexture = textureResources.colorGradingTexture,
-          let pipeline = PipelineManager.shared.renderPipelinesByType[.colorGrading]
-    else {
-        return
-    }
-    RenderPasses.executePostProcess(
-        pipeline,
-        source: sourceTexture,
-        destination: destinationTexture,
-        customization: colorGradingCustomization
-    )(commandBuffer)
-}
-
 func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderCommandEncoder) -> Void {
     { encoder in
         var dir = direction
@@ -506,7 +502,7 @@ func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
 }
 
 var vignetteRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
-    guard let sourceTexture = textureResources.colorGradingTexture,
+    guard let sourceTexture = textureResources.bloomCompositeTexture,
           let destinationTexture = textureResources.vignetteTexture,
           let pipeline = PipelineManager.shared.renderPipelinesByType[.vignette]
     else {
@@ -631,6 +627,91 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
 
     var frustumPlanes = simd_float2(near, far)
     encoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(depthOfFieldPassFrustumIndex.rawValue))
+}
+
+func outputTransformCustomization(encoder: MTLRenderCommandEncoder) {
+    var mode = renderInfo.colorPipeline.present.encodingMode.rawValue
+
+    encoder.setFragmentBytes(
+        &mode,
+        length: MemoryLayout<Int32>.stride,
+        index: Int(outputTransformPassEncodingModeIndex.rawValue)
+    )
+}
+
+public var lookRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+    guard let sourceTexture = textureResources.sceneCompositeTexture else {
+        handleError(.renderPassCreationFailed, "Look Pass: source texture is nil")
+        return
+    }
+    guard let destinationTexture = textureResources.lookTexture else {
+        handleError(.renderPassCreationFailed, "Look Pass: destination texture is nil")
+        return
+    }
+    guard let pipeline = PipelineManager.shared.renderPipelinesByType[.look] else {
+        handleError(.pipelineStateNulled, "Look Pipeline is nil")
+        return
+    }
+    if !pipeline.success {
+        handleError(.pipelineStateNulled, pipeline.name ?? "Look Pipeline")
+        return
+    }
+
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: colorGradingCustomization
+    )(commandBuffer)
+}
+
+public var outputTransformRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+    guard let sourceTexture = textureResources.lookTexture else {
+        handleError(.renderPassCreationFailed, "Output Transform Pass: source texture is nil")
+        return
+    }
+    guard let pipeline = PipelineManager.shared.renderPipelinesByType[.outputTransform] else {
+        handleError(.pipelineStateNulled, "Output Transform Pipeline is nil")
+        return
+    }
+    if !pipeline.success {
+        handleError(.pipelineStateNulled, pipeline.name ?? "Output Transform Pipeline")
+        return
+    }
+    guard let renderPassDescriptor = renderInfo.renderPassDescriptor else {
+        handleError(.renderPassCreationFailed, "Output Transform Pass: render pass descriptor is nil")
+        return
+    }
+
+    renderPassDescriptor.colorAttachments[0].loadAction = .clear
+    renderPassDescriptor.colorAttachments[0].storeAction = .store
+    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
+
+    guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+        handleError(.renderPassCreationFailed, "Output Transform Pass: encoder creation failed")
+        return
+    }
+
+    renderEncoder.label = "Output Transform Pass"
+    renderEncoder.pushDebugGroup("Output Transform Pass")
+
+    renderEncoder.setRenderPipelineState(pipeline.pipelineState!)
+    renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
+    renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+    renderEncoder.setFragmentTexture(sourceTexture, index: 0)
+
+    outputTransformCustomization(encoder: renderEncoder)
+
+    renderEncoder.drawIndexedPrimitives(
+        type: .triangle,
+        indexCount: 6,
+        indexType: .uint16,
+        indexBuffer: bufferResources.quadIndexBuffer!,
+        indexBufferOffset: 0
+    )
+
+    renderEncoder.popDebugGroup()
+    renderEncoder.endEncoding()
 }
 
 /*
