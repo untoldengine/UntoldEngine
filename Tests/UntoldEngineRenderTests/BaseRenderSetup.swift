@@ -95,14 +95,19 @@ class BaseRenderSetup: XCTestCase {
         super.tearDown()
     }
 
-    // Temp solution until I figure out how to get culling working inside this test routine
+    // Seed visibleEntityIds and tripleVisibleEntities so rendering works without GPU culling.
+    // The new render timing snapshots from tripleVisibleEntities at frame start, so we must
+    // populate the read slot that will be accessed on the first frame.
     func setVisibleEntities() {
         let transformId = getComponentId(for: WorldTransformComponent.self)
         let renderId = getComponentId(for: RenderComponent.self)
         let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
-        for entity in entities {
-            visibleEntityIds.append(entity)
+        visibleEntityIds = Array(entities)
+
+        // Seed all triple buffer slots so snapshotForRead returns valid data regardless of frame index
+        for frame in 0 ..< 3 {
+            tripleVisibleEntities.setWrite(frame: frame, with: visibleEntityIds)
         }
     }
 

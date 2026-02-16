@@ -154,12 +154,15 @@
             // 3. Call startUpdate() to mark the start of the update phase
             frame.startUpdate()
 
+            // Snapshot loading gate once per frame to keep update/submission behavior consistent.
+            let loading = AssetLoadingGate.shared.isLoadingAny
+
             // 4. Apply user interactions to the content and update any app-spefic data
             /* TODO: */
 
             // 5. Perform any rendering-related work that doesn't rely on the device anchor info
             guard let renderer else { return }
-            if !AssetLoadingGate.shared.isLoadingAny {
+            if !loading {
                 renderer.updateXR()
             }
 
@@ -185,13 +188,13 @@
             let deviceAnchor = worldTracking.queryDeviceAnchor(atTimestamp: presentationTimeCA)
             drawable.deviceAnchor = deviceAnchor
 
-            executeXRSystemPass(frame: frame, drawable: drawable)
+            executeXRSystemPass(frame: frame, drawable: drawable, loading: loading)
 
             // 13. Call endSubmission to mark the end of the GPU submission
             frame.endSubmission()
         }
 
-        func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable) {
+        func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool) {
             // Wait for available command buffer slot to prevent unbounded memory growth
             commandBufferSemaphore.wait()
 
@@ -211,23 +214,21 @@
                 }
             }
 
-            // During async scene loads, avoid traversing ECS from the XR render thread.
-            // This prevents races between MainActor scene mutation and XR rendering.
-            if AssetLoadingGate.shared.isLoadingAny {
-                drawable.encodePresent(commandBuffer: commandBuffer)
-                commandBuffer.addCompletedHandler { _ in
-                    commandBufferSemaphore.signal()
-                }
-                commandBuffer.commit()
-                return
+            // Update visible entity list only when not loading (avoids reading mutating ECS data).
+            // When loading, we render from the last-known-good visible list.
+            if !loading {
+                visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
             }
 
-            // Run per-frame work ONCE (not per-eye) to avoid double execution and memory churn
-            EngineProfiler.shared.beginScope(.renderPrep)
-            performFrustumCulling(commandBuffer: commandBuffer)
-            executeGaussianDepth(commandBuffer)
-            executeBitonicSort(commandBuffer)
-            EngineProfiler.shared.endScope(.renderPrep)
+            // Skip render prep (culling, gaussian, bitonic) while loading - these traverse ECS.
+            // The render graph still executes using the stale visibleEntityIds.
+            if !loading {
+                EngineProfiler.shared.beginScope(.renderPrep)
+                performFrustumCulling(commandBuffer: commandBuffer)
+                executeGaussianDepth(commandBuffer)
+                executeBitonicSort(commandBuffer)
+                EngineProfiler.shared.endScope(.renderPrep)
+            }
 
             for (viewIndex, view) in drawable.views.enumerated() {
                 let anchor = drawable.deviceAnchor
