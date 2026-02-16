@@ -20,18 +20,30 @@ public typealias UpdateRenderingSystemCallback = (MTKView) -> Void
 public typealias UpdateXRRenderingSystemCallback = (RenderingSystemContext) -> Void
 
 func UpdateRenderingSystem(in view: MTKView) {
+    // Snapshot loading gate once per frame. While loading, keep rendering from the
+    // last-known-good visible list and skip ECS traversal to avoid race conditions.
+    let loading = AssetLoadingGate.shared.isLoadingAny
+
+    // Update visible entity list only when not loading (avoids reading mutating ECS data)
+    if !loading {
+        visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
+    }
+
     // Wait for available command buffer slot to prevent unbounded memory growth
     commandBufferSemaphore.wait()
 
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
         renderInfo.lastCommandBuffer = commandBuffer
 
-        EngineProfiler.shared.beginScope(.renderPrep)
-        performFrustumCulling(commandBuffer: commandBuffer)
-
-        executeGaussianDepth(commandBuffer)
-        executeBitonicSort(commandBuffer)
-        EngineProfiler.shared.endScope(.renderPrep)
+        // Skip render prep (culling, gaussian, bitonic) while loading - these traverse ECS.
+        // The render graph still executes using the stale visibleEntityIds.
+        if !loading {
+            EngineProfiler.shared.beginScope(.renderPrep)
+            performFrustumCulling(commandBuffer: commandBuffer)
+            executeGaussianDepth(commandBuffer)
+            executeBitonicSort(commandBuffer)
+            EngineProfiler.shared.endScope(.renderPrep)
+        }
 
         if let renderPassDescriptor = view.currentRenderPassDescriptor {
             renderInfo.renderPassDescriptor = renderPassDescriptor
@@ -62,7 +74,6 @@ func UpdateRenderingSystem(in view: MTKView) {
 
             DispatchQueue.main.async {
                 needsFinalizeDestroys = true
-                visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
                 MemoryBudgetManager.shared.markUsed(entityIds: visibleEntityIds)
             }
         }
@@ -93,8 +104,10 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
 
     // Note: Semaphore signaling is handled by executeXRSystemPass completion handler
     commandBuffer.addCompletedHandler { _ in
-        needsFinalizeDestroys = true
-        visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
+        DispatchQueue.main.async {
+            needsFinalizeDestroys = true
+            MemoryBudgetManager.shared.markUsed(entityIds: visibleEntityIds)
+        }
     }
 }
 
