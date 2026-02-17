@@ -29,8 +29,14 @@
         private var renderer: UntoldRenderer?
         private var _isRunning = false
         private let lock = NSLock()
+        private var lastWorldTrackingRecoveryAttemptTime: CFTimeInterval = 0
+        private let worldTrackingRecoveryCooldownSeconds: CFTimeInterval = 2.0
 
         private let layerRenderer: LayerRenderer?
+
+        // Cache last valid device anchor to use when ARKit returns nil
+        // (prevents "Presenting a drawable without a device anchor" error)
+        private var lastValidDeviceAnchor: DeviceAnchor?
 
         // Reuse render pass descriptors to avoid allocation churn (2 eyes × 90 FPS = 180 allocs/sec)
         private let passDescriptorLeft = MTLRenderPassDescriptor()
@@ -185,10 +191,34 @@
             // apply the anchor to your frame
             let presentationInstant = drawable.frameTiming.presentationTime
             let presentationTimeCA: TimeInterval = compositorInstantToCATime(presentationInstant)
-            let deviceAnchor = worldTracking.queryDeviceAnchor(atTimestamp: presentationTimeCA)
-            drawable.deviceAnchor = deviceAnchor
+            var deviceAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: presentationTimeCA)
 
-            executeXRSystemPass(frame: frame, drawable: drawable, loading: loading)
+            // If predicted-time query misses, retry at "now" to reduce one-frame anchor gaps.
+            if deviceAnchor == nil {
+                let nowTimestamp = CACurrentMediaTime()
+                if let retryAnchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: nowTimestamp) {
+                    deviceAnchor = retryAnchor
+                }
+            }
+
+            // Use current anchor if valid, otherwise fall back to last valid anchor.
+            // This prevents "Presenting a drawable without a device anchor" while maintaining
+            // stable rendering. We must always present the drawable once we have it.
+            if let anchor = deviceAnchor {
+                lastValidDeviceAnchor = anchor
+                drawable.deviceAnchor = anchor
+            } else if let cachedAnchor = lastValidDeviceAnchor {
+                drawable.deviceAnchor = cachedAnchor
+            }
+            // Note: If we have no cached anchor either, drawable.deviceAnchor remains nil
+            // and the render loop will skip rendering but still present (required by compositor)
+
+            // Re-check loading state right before render pass to catch any mutations that started
+            // after our initial snapshot. This provides a second layer of protection against races.
+            let loadingNow = AssetLoadingGate.shared.isLoadingAny
+            let effectiveLoading = loading || loadingNow
+
+            executeXRSystemPass(frame: frame, drawable: drawable, loading: effectiveLoading)
 
             // 13. Call endSubmission to mark the end of the GPU submission
             frame.endSubmission()
@@ -220,7 +250,7 @@
                 visibleEntityIds = tripleVisibleEntities.snapshotForRead(frame: cullFrameIndex)
             }
 
-            // Skip render prep (culling, gaussian, bitonic) while loading - these traverse ECS.
+            // Skip render prep (culling, gaussian, bitonic) while loading.
             // The render graph still executes using the stale visibleEntityIds.
             if !loading {
                 EngineProfiler.shared.beginScope(.renderPrep)
@@ -279,6 +309,43 @@
             }
 
             commandBuffer.commit()
+        }
+
+        private func queryDeviceAnchorIfTrackingRunning(atTimestamp timestamp: TimeInterval) -> DeviceAnchor? {
+            #if canImport(ARKit)
+                guard worldTracking.state == .running else {
+                    scheduleWorldTrackingRecoveryIfNeeded()
+                    return nil
+                }
+                return worldTracking.queryDeviceAnchor(atTimestamp: timestamp)
+            #else
+                _ = timestamp
+                return nil
+            #endif
+        }
+
+        private func scheduleWorldTrackingRecoveryIfNeeded() {
+            #if canImport(ARKit)
+                let now = CACurrentMediaTime()
+                guard now - lastWorldTrackingRecoveryAttemptTime >= worldTrackingRecoveryCooldownSeconds else {
+                    return
+                }
+
+                lastWorldTrackingRecoveryAttemptTime = now
+
+                let worldTracking = worldTracking
+                let arSession = arSession
+
+                Task {
+                    do {
+                        guard worldTracking.state != .running else { return }
+                        try await arSession.run([worldTracking])
+                        print("✓ XR world tracking restarted")
+                    } catch {
+                        print("⚠️ XR world tracking recovery failed: \(error)")
+                    }
+                }
+            #endif
         }
 
         func createPoseForTiming(at timing: LayerRenderer.Frame.Timing) -> DeviceAnchor? {
