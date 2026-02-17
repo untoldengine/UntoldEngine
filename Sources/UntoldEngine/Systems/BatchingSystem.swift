@@ -269,8 +269,6 @@ public class BatchingSystem {
                     continue
                 }
 
-                Logger.log(message: "🔗 Batching \(meshGroup.count) meshes with material: \(batchKey.prefix(20))...")
-
                 // Convert to format expected by createBatchGroup
                 let convertedGroup = meshGroup.map { item in
                     (entityId: item.entityId, mesh: item.mesh, meshIndex: item.meshIndex, transform: item.transform)

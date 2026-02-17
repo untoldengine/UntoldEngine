@@ -253,12 +253,19 @@ public func setEntityMeshAsync(
         }
 
         // Load meshes asynchronously
+        let progressUpdateStride = 25
+        var lastProgressSent = 0
         let meshes = await Mesh.loadSceneMeshesAsync(
             url: url,
             vertexDescriptor: vertexDescriptor.model,
             device: renderInfo.device,
             coordinateConversion: coordinateConversion
         ) { current, total in
+            guard total > 0 else { return }
+            let shouldReport = current == total || (current - lastProgressSent) >= progressUpdateStride
+            guard shouldReport else { return }
+            lastProgressSent = current
+
             Task {
                 await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: current, totalMeshes: total)
             }
@@ -332,8 +339,7 @@ public func setEntityMeshAsync(
                 }
             }
 
-            // Process mesh groups in batches to keep UI responsive
-            let batchSize = 10 // Larger batches for registration (faster than mesh loading)
+            // Process mesh groups without artificial delays to maximize import throughput.
             for (index, mesh) in nonEmptyMeshes.enumerated() {
                 let childEntityId = await MainActor.run { () -> EntityID in
                     let childEntityId = createEntity()
@@ -377,11 +383,6 @@ public func setEntityMeshAsync(
 
                 // Update registration progress
                 await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: index + 1, totalMeshes: nonEmptyMeshes.count)
-
-                // Yield after each batch
-                if (index + 1) % batchSize == 0 {
-                    try? await Task.sleep(nanoseconds: 8_000_000) // 8ms (faster than mesh loading)
-                }
             }
         }
 
@@ -553,12 +554,19 @@ public func loadSceneAsync(
         }
 
         // Load scene meshes asynchronously
+        let progressUpdateStride = 25
+        var lastProgressSent = 0
         let meshes = await Mesh.loadSceneMeshesAsync(
             url: url,
             vertexDescriptor: vertexDescriptor.model,
             device: renderInfo.device,
             coordinateConversion: coordinateConversion
         ) { current, total in
+            guard total > 0 else { return }
+            let shouldReport = current == total || (current - lastProgressSent) >= progressUpdateStride
+            guard shouldReport else { return }
+            lastProgressSent = current
+
             Task {
                 await AssetLoadingState.shared.updateProgress(entityId: sceneLoadEntityId, currentMesh: current, totalMeshes: total)
             }
@@ -1150,7 +1158,6 @@ private func setEntityStaticBatchComponentRecursive(entityId: EntityID) {
     if let _ = scene.get(component: RenderComponent.self, for: entityId) {
         if !hasComponent(entityId: entityId, componentType: StaticBatchComponent.self) {
             registerComponent(entityId: entityId, componentType: StaticBatchComponent.self)
-            Logger.log(message: "✅ StaticBatchComponent registered for entity \(entityId)")
         } else {
             Logger.logWarning(message: "StaticBatchComponent already exists on entity \(entityId)")
         }
