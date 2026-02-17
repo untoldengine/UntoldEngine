@@ -387,10 +387,13 @@ public enum RenderPasses {
     }
 
     public static let batchedShadowExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-        // Skip if batching is disabled or no batches exist
-        guard BatchingSystem.shared.isEnabled(),
-              !BatchingSystem.shared.batchGroups.isEmpty
-        else { return }
+        // Skip if batching is disabled
+        guard BatchingSystem.shared.isEnabled() else { return }
+
+        // Take a snapshot of batch groups to avoid race condition during iteration.
+        // If generateBatches() modifies the array while we iterate, we'd crash.
+        let batchGroupsSnapshot = BatchingSystem.shared.batchGroups
+        guard !batchGroupsSnapshot.isEmpty else { return }
 
         guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
             handleError(.pipelineStateNulled, "shadowPipeline is nil")
@@ -462,7 +465,7 @@ public enum RenderPasses {
         batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
         // Render each batch group (shadows only need positions)
-        for batchGroup in BatchingSystem.shared.batchGroups {
+        for batchGroup in batchGroupsSnapshot {
             guard let positionBuffer = batchGroup.positionBuffer,
                   let indexBuffer = batchGroup.indexBuffer
             else { continue }
@@ -772,12 +775,13 @@ public enum RenderPasses {
     }
 
     public static let batchedModelExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
-        // Skip if batching is disabled or no batches exist
-        guard BatchingSystem.shared.isEnabled(),
-              !BatchingSystem.shared.batchGroups.isEmpty
-        else {
-            return
-        }
+        // Skip if batching is disabled
+        guard BatchingSystem.shared.isEnabled() else { return }
+
+        // Take a snapshot of batch groups to avoid race condition during iteration.
+        // If generateBatches() modifies the array while we iterate, we'd crash.
+        let batchGroupsSnapshot = BatchingSystem.shared.batchGroups
+        guard !batchGroupsSnapshot.isEmpty else { return }
 
         guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[.model] else {
             handleError(.pipelineStateNulled, "modelPipeline is nil")
@@ -862,7 +866,7 @@ public enum RenderPasses {
         batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
         // Render each batch group
-        for batchGroup in BatchingSystem.shared.batchGroups {
+        for batchGroup in batchGroupsSnapshot {
             guard let positionBuffer = batchGroup.positionBuffer,
                   let normalBuffer = batchGroup.normalBuffer,
                   let uvBuffer = batchGroup.uvBuffer,
