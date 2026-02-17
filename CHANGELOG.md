@@ -1,4 +1,10 @@
 # Changelog
+## v0.10.5 - 2026-02-17
+### 🐞 Fixes
+- [Patch] address rendering init delay during large scenes (b1cea8f…)
+- [Patch] added guards to vision xr code (52dec24…)
+- [Patch] improve loading speed (689ce4a…)
+- [Patch] Cleaned up demo game (28441fd…)
 ## v0.10.4 - 2026-02-14
 ### 🐞 Fixes
 - [Patch] decouple internal color from drawable. Fixed render graph (0b28be7…)
