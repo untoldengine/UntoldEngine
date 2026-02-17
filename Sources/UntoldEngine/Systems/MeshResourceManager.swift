@@ -51,6 +51,9 @@ public class MeshResourceManager {
     /// EntityID -> (URL, meshName) mapping (tracks which entity uses which specific mesh)
     private var entityToMesh: [EntityID: (url: URL, meshName: String)] = [:]
 
+    /// Tracks in-flight file loads so concurrent callers for the same URL share a single parse/load.
+    private var inFlightLoadWaiters: [URL: [CheckedContinuation<Bool, Never>]] = [:]
+
     /// Thread-safe access queue
     private let accessQueue = DispatchQueue(label: "com.untoldengine.meshresource", attributes: .concurrent)
 
@@ -85,13 +88,12 @@ public extension MeshResourceManager {
 
     /// Load entire USDZ file and cache all meshes by name
     private func loadAndCacheFile(url: URL) async {
-        // Check if already loaded with actual mesh data
-        let alreadyCached = accessQueue.sync {
-            resources[url]?.meshesByName.isEmpty == false
-        }
-        if alreadyCached {
+        // Single-flight gate: one loader per URL; all other callers await completion.
+        let shouldLoad = await waitForExistingLoadOrBecomeLoader(url: url)
+        guard shouldLoad else {
             return
         }
+        defer { finishInFlightLoad(url: url) }
 
         // Load all meshes from file
         let meshArrays = await Mesh.loadSceneMeshesAsync(
@@ -102,12 +104,6 @@ public extension MeshResourceManager {
         )
 
         guard !meshArrays.isEmpty else { return }
-
-        // Check again in case another task loaded while we were waiting
-        let stillNeedsCache = accessQueue.sync {
-            resources[url]?.meshesByName.isEmpty != false
-        }
-        guard stillNeedsCache else { return }
 
         // Build mesh dictionary keyed by asset name
         var meshesByName: [String: [Mesh]] = [:]
@@ -120,8 +116,10 @@ public extension MeshResourceManager {
             totalMemory += meshArray.reduce(0) { $0 + calculateMeshMemory($1) }
         }
 
+        guard !meshesByName.isEmpty else { return }
+
         // Cache the resource (preserve any existing refCounts from retain calls)
-        accessQueue.async(flags: .barrier) {
+        accessQueue.sync(flags: .barrier) {
             let existingRefCounts = self.resources[url]?.refCountByName ?? [:]
             self.resources[url] = MeshResource(
                 meshesByName: meshesByName,
@@ -174,12 +172,6 @@ public extension MeshResourceManager {
     /// Cache pre-loaded meshes (call this from setEntityMeshAsync to populate cache)
     /// This allows streaming to use cached data instead of reloading from disk
     func cacheLoadedMeshes(url: URL, meshArrays: [[Mesh]]) {
-        // Skip if already cached with actual mesh data
-        let alreadyCached = accessQueue.sync {
-            resources[url]?.meshesByName.isEmpty == false
-        }
-        if alreadyCached { return }
-
         // Build mesh dictionary keyed by asset name
         var meshesByName: [String: [Mesh]] = [:]
         var totalMemory = 0
@@ -193,8 +185,12 @@ public extension MeshResourceManager {
 
         guard !meshesByName.isEmpty else { return }
 
-        // Cache the resource (preserve any existing refCounts)
-        accessQueue.async(flags: .barrier) {
+        // Cache the resource (preserve any existing refCounts) and wake any waiters.
+        let waiters: [CheckedContinuation<Bool, Never>] = accessQueue.sync(flags: .barrier) {
+            if self.resources[url]?.meshesByName.isEmpty == false {
+                return []
+            }
+
             let existingRefCounts = self.resources[url]?.refCountByName ?? [:]
             self.resources[url] = MeshResource(
                 meshesByName: meshesByName,
@@ -203,6 +199,45 @@ public extension MeshResourceManager {
                 sourceURL: url,
                 lastAccessFrame: self.currentFrame
             )
+            return self.inFlightLoadWaiters.removeValue(forKey: url) ?? []
+        }
+
+        for waiter in waiters {
+            waiter.resume(returning: false)
+        }
+    }
+}
+
+// MARK: - In-Flight Coordination
+
+private extension MeshResourceManager {
+    /// Returns true if the caller should perform the file load; false if it should wait/return.
+    func waitForExistingLoadOrBecomeLoader(url: URL) async -> Bool {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+            accessQueue.sync(flags: .barrier) {
+                if self.resources[url]?.meshesByName.isEmpty == false {
+                    continuation.resume(returning: false)
+                    return
+                }
+
+                if self.inFlightLoadWaiters[url] != nil {
+                    self.inFlightLoadWaiters[url]!.append(continuation)
+                    return
+                }
+
+                // First caller becomes loader.
+                self.inFlightLoadWaiters[url] = []
+                continuation.resume(returning: true)
+            }
+        }
+    }
+
+    func finishInFlightLoad(url: URL) {
+        let waiters: [CheckedContinuation<Bool, Never>] = accessQueue.sync(flags: .barrier) {
+            self.inFlightLoadWaiters.removeValue(forKey: url) ?? []
+        }
+        for waiter in waiters {
+            waiter.resume(returning: false)
         }
     }
 }

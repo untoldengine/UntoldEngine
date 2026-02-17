@@ -270,64 +270,72 @@ public struct Mesh {
             return makeDefaultMesh()
         }
 
-        // Create Metal resources on main thread
-        return await MainActor.run {
-            let textureLoader = TextureLoader(device: device)
-            let objects = asset.childObjects(of: MDLObject.self)
+        // Create Metal resources off-main to maximize parallelism across async loads.
+        let textureLoader = TextureLoader(device: device)
+        let objects = asset.childObjects(of: MDLObject.self)
 
-            // Count total meshes
-            var totalMeshCount = 0
-            for object in objects {
-                if let _ = object as? MDLMesh {
-                    totalMeshCount += 1
-                } else if object.conforms(to: MDLObjectContainerComponent.self) {
-                    func countMeshes(_ obj: MDLObject) -> Int {
-                        var count = 0
-                        if let _ = obj as? MDLMesh { count += 1 }
-                        for child in obj.children.objects {
-                            count += countMeshes(child)
-                        }
-                        return count
+        // Count total meshes
+        var totalMeshCount = 0
+        for object in objects {
+            if let _ = object as? MDLMesh {
+                totalMeshCount += 1
+            } else if object.conforms(to: MDLObjectContainerComponent.self) {
+                func countMeshes(_ obj: MDLObject) -> Int {
+                    var count = 0
+                    if let _ = obj as? MDLMesh { count += 1 }
+                    for child in obj.children.objects {
+                        count += countMeshes(child)
                     }
-                    totalMeshCount += countMeshes(object)
+                    return count
                 }
+                totalMeshCount += countMeshes(object)
             }
-
-            // Check against MAX_ENTITIES
-            let willEnforceLimit = totalMeshCount > MAX_ENTITIES
-            if willEnforceLimit {
-                Logger.logWarning(message: "⚠️  Asset contains \(totalMeshCount) meshes but MAX_ENTITIES is set to \(MAX_ENTITIES)")
-                Logger.logWarning(message: "Only the first \(MAX_ENTITIES) meshes will be loaded to prevent crashes.")
-                Logger.logWarning(message: "To load all meshes, increase MAX_ENTITIES in Globals.swift to at least \(totalMeshCount)")
-            }
-
-            var allMeshes: [Mesh] = []
-            var processedMeshes = 0
-
-            for object in objects {
-                // Enforce MAX_ENTITIES limit
-                if processedMeshes >= MAX_ENTITIES {
-                    Logger.logWarning(message: "🛑 Reached MAX_ENTITIES limit (\(MAX_ENTITIES)). Stopped loading.")
-                    Logger.logWarning(message: "Loaded \(processedMeshes)/\(totalMeshCount) meshes.")
-                    break
-                }
-
-                let meshes = makeMeshes(object: object, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip)
-                allMeshes.append(contentsOf: meshes)
-                processedMeshes += meshes.count
-
-                progressHandler?(processedMeshes, min(totalMeshCount, MAX_ENTITIES))
-            }
-
-            Logger.log(message: "✅ Loaded \(processedMeshes)/\(totalMeshCount) meshes" + (willEnforceLimit ? " (MAX_ENTITIES limit enforced)" : ""))
-
-            if !allMeshes.isEmpty {
-                return allMeshes
-            }
-
-            // Fallback to default mesh
-            return makeDefaultMesh()
         }
+
+        // Check against MAX_ENTITIES
+        let willEnforceLimit = totalMeshCount > MAX_ENTITIES
+        if willEnforceLimit {
+            Logger.logWarning(message: "⚠️  Asset contains \(totalMeshCount) meshes but MAX_ENTITIES is set to \(MAX_ENTITIES)")
+            Logger.logWarning(message: "Only the first \(MAX_ENTITIES) meshes will be loaded to prevent crashes.")
+            Logger.logWarning(message: "To load all meshes, increase MAX_ENTITIES in Globals.swift to at least \(totalMeshCount)")
+        }
+
+        var allMeshes: [Mesh] = []
+        allMeshes.reserveCapacity(min(totalMeshCount, MAX_ENTITIES))
+        var processedMeshes = 0
+        let totalForProgress = min(totalMeshCount, MAX_ENTITIES)
+        let progressStride = totalForProgress > 200 ? 25 : 1
+        var lastReportedProgress = 0
+
+        for object in objects {
+            // Enforce MAX_ENTITIES limit
+            if processedMeshes >= MAX_ENTITIES {
+                Logger.logWarning(message: "🛑 Reached MAX_ENTITIES limit (\(MAX_ENTITIES)). Stopped loading.")
+                Logger.logWarning(message: "Loaded \(processedMeshes)/\(totalMeshCount) meshes.")
+                break
+            }
+
+            let meshes = makeMeshes(object: object, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip)
+            allMeshes.append(contentsOf: meshes)
+            processedMeshes += meshes.count
+
+            if let progressHandler {
+                let shouldReport = processedMeshes == totalForProgress || (processedMeshes - lastReportedProgress) >= progressStride
+                if shouldReport {
+                    lastReportedProgress = processedMeshes
+                    progressHandler(processedMeshes, totalForProgress)
+                }
+            }
+        }
+
+        Logger.log(message: "✅ Loaded \(processedMeshes)/\(totalMeshCount) meshes" + (willEnforceLimit ? " (MAX_ENTITIES limit enforced)" : ""))
+
+        if !allMeshes.isEmpty {
+            return allMeshes
+        }
+
+        // Fallback to default mesh
+        return makeDefaultMesh()
     }
 
     static func loadSceneMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, coordinateConversion: CoordinateSystemConversion = .autoDetect) -> [[Mesh]] {
@@ -415,7 +423,7 @@ public struct Mesh {
             return [makeDefaultMesh()]
         }
 
-        // Create Metal resources on main thread with yielding
+        // Create Metal resources off-main to maximize parallelism across async loads.
         let textureLoader = TextureLoader(device: device)
         let objects = asset.childObjects(of: MDLObject.self)
 
@@ -463,9 +471,9 @@ public struct Mesh {
         var processedMeshes = 0
         var failedMeshes = 0
 
-        // Process objects in small batches to keep UI responsive
-        let batchSize = 3 // Process 3 objects at a time, then yield
         let enableVerboseLogging = totalMeshCount > 1000 // Only log progress for very large scenes
+        let progressStride = meshesToLoad > 200 ? 25 : 1
+        var lastReportedProgress = 0
 
         for (index, object) in objects.enumerated() {
             // ENFORCE MAX_ENTITIES LIMIT - stop loading if we've hit the limit
@@ -483,25 +491,25 @@ public struct Mesh {
                 Logger.log(message: "Processing object \(index)/\(objects.count) (\(Int((Double(index) / Double(objects.count)) * 100))% complete)...")
             }
 
-            await MainActor.run {
-                // Wrap mesh creation to catch crashes from memory pressure
-                let meshes = makeMeshes(object: object, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: true)
+            // Wrap mesh creation to catch crashes from memory pressure
+            let meshes = makeMeshes(object: object, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: true)
 
-                if meshes.isEmpty, object is MDLMesh {
-                    failedMeshes += 1
-                    if failedMeshes <= 10 { // Only log first 10 failures to avoid spam
-                        Logger.logWarning(message: "Failed to create mesh from object at index \(index). Skipping.")
-                    }
+            if meshes.isEmpty, object is MDLMesh {
+                failedMeshes += 1
+                if failedMeshes <= 10 { // Only log first 10 failures to avoid spam
+                    Logger.logWarning(message: "Failed to create mesh from object at index \(index). Skipping.")
                 }
-
-                meshGroups.append(meshes)
-                processedMeshes += meshes.count
-                progressHandler?(processedMeshes, min(meshesToLoad, totalMeshCount))
             }
 
-            // After every batch, give UI time to update
-            if (index + 1) % batchSize == 0 {
-                try? await Task.sleep(nanoseconds: 16_000_000) // 16ms (~1 frame at 60fps)
+            meshGroups.append(meshes)
+            processedMeshes += meshes.count
+
+            if let progressHandler {
+                let shouldReport = processedMeshes == meshesToLoad || (processedMeshes - lastReportedProgress) >= progressStride
+                if shouldReport {
+                    lastReportedProgress = processedMeshes
+                    progressHandler(processedMeshes, min(meshesToLoad, totalMeshCount))
+                }
             }
         }
 
@@ -604,31 +612,37 @@ public struct Mesh {
             return matched
         }.value
 
-        // Create Metal resources on main thread
-        return await MainActor.run {
-            guard let mdlObject = matchedObject else {
-                return []
-            }
-
-            let textureLoader = TextureLoader(device: device)
-            var meshGroup: [Mesh] = []
-
-            let children = mdlObject.children.objects
-            let totalChildren = children.count
-            var processedCount = 0
-
-            for child in children {
-                if let mesh = child as? MDLMesh {
-                    let meshes = makeMeshes(object: mesh, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: renderInfo.device, flip: true)
-                    meshGroup.append(contentsOf: meshes)
-                }
-
-                processedCount += 1
-                progressHandler?(processedCount, totalChildren)
-            }
-
-            return meshGroup
+        // Create Metal resources off-main to maximize parallelism across async loads.
+        guard let mdlObject = matchedObject else {
+            return []
         }
+
+        let textureLoader = TextureLoader(device: device)
+        var meshGroup: [Mesh] = []
+
+        let children = mdlObject.children.objects
+        let totalChildren = children.count
+        let progressStride = totalChildren > 200 ? 10 : 1
+        var processedCount = 0
+        var lastReportedProgress = 0
+
+        for child in children {
+            if let mesh = child as? MDLMesh {
+                let meshes = makeMeshes(object: mesh, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: renderInfo.device, flip: true)
+                meshGroup.append(contentsOf: meshes)
+            }
+
+            processedCount += 1
+            if let progressHandler {
+                let shouldReport = processedCount == totalChildren || (processedCount - lastReportedProgress) >= progressStride
+                if shouldReport {
+                    lastReportedProgress = processedCount
+                    progressHandler(processedCount, totalChildren)
+                }
+            }
+        }
+
+        return meshGroup
     }
 
     // Recursively find and create Mesh objects from ModelIO hierarchy
@@ -838,10 +852,22 @@ public struct Material {
     }
 }
 
-struct TextureLoader {
+final class TextureLoader {
     let device: MTLDevice
+    private let mtkLoader: MTKTextureLoader
+    private var textureCache: [TextureCacheKey: MTLTexture] = [:]
 
-    fileprivate func textureViewMatchingSRGB(_ tex: MTLTexture, wantSRGB: Bool) -> MTLTexture {
+    private struct TextureCacheKey: Hashable {
+        let id: String
+        let isSRGB: Bool
+    }
+
+    init(device: MTLDevice) {
+        self.device = device
+        mtkLoader = MTKTextureLoader(device: device)
+    }
+
+    private func textureViewMatchingSRGB(_ tex: MTLTexture, wantSRGB: Bool) -> MTLTexture {
         let pairs: [MTLPixelFormat: (linear: MTLPixelFormat, srgb: MTLPixelFormat)] = [
             .rgba8Unorm: (.rgba8Unorm, .rgba8Unorm_srgb),
             .rgba8Unorm_srgb: (.rgba8Unorm, .rgba8Unorm_srgb),
@@ -864,8 +890,6 @@ struct TextureLoader {
     {
         guard let property else { return nil }
 
-        let loader = MTKTextureLoader(device: device)
-
         let options: [MTKTextureLoader.Option: Any] = [
             .textureUsage: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue,
             .textureStorageMode: MTLStorageMode.private.rawValue,
@@ -878,12 +902,19 @@ struct TextureLoader {
         if let sampler = property.textureSamplerValue,
            let mdlTex = sampler.texture
         {
+            let textureName = mdlTex.name.isEmpty ? "embedded_\(mapType.replacingOccurrences(of: " ", with: "_"))" : mdlTex.name
+            let cacheKey = TextureCacheKey(id: "usdz-embedded://\(assetName)/\(textureName)", isSRGB: isSRGB)
+            if let cached = textureCache[cacheKey] {
+                outputURL = URL(string: cacheKey.id)
+                outputMDLTexture = mdlTex
+                return cached
+            }
+
             do {
-                let tex = try loader.newTexture(texture: mdlTex, options: options)
+                let tex = try mtkLoader.newTexture(texture: mdlTex, options: options)
 
                 // Generate a reference URL for embedded textures
                 // Use the texture's name or generate one based on the property semantic
-                let textureName = mdlTex.name.isEmpty ? "embedded_\(mapType.replacingOccurrences(of: " ", with: "_"))" : mdlTex.name
                 // Create a pseudo-URL that indicates this is embedded in the USDZ
                 // Format: usdz-embedded://assetName/textureName
                 let pseudoURL = URL(string: "usdz-embedded://\(assetName)/\(textureName)")
@@ -893,6 +924,7 @@ struct TextureLoader {
                 outputMDLTexture = mdlTex
 
                 let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
+                textureCache[cacheKey] = texView
                 return texView
             } catch {
                 handleError(.textureFailedLoading)
@@ -901,9 +933,15 @@ struct TextureLoader {
 
         // URL (absolute or resolved by USD/MDL)
         if let url = property.urlValue {
-            if let tex = try? loader.newTexture(URL: url, options: options) {
+            let cacheKey = TextureCacheKey(id: url.standardizedFileURL.path, isSRGB: isSRGB)
+            if let cached = textureCache[cacheKey] {
+                outputURL = url
+                return cached
+            }
+            if let tex = try? mtkLoader.newTexture(URL: url, options: options) {
                 outputURL = url
                 let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
+                textureCache[cacheKey] = texView
                 return texView
             }
         }
@@ -912,20 +950,32 @@ struct TextureLoader {
         if let str = property.stringValue, !str.isEmpty {
             // 1) Try as-is (absolute or already-resolved)
             if let url = URL(string: str), url.isFileURL {
-                if let tex = try? loader.newTexture(URL: url, options: options) {
+                let cacheKey = TextureCacheKey(id: url.standardizedFileURL.path, isSRGB: isSRGB)
+                if let cached = textureCache[cacheKey] {
+                    outputURL = url
+                    return cached
+                }
+                if let tex = try? mtkLoader.newTexture(URL: url, options: options) {
                     outputURL = url
                     let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
+                    textureCache[cacheKey] = texView
                     return texView
                 }
             }
             // 2) Try against known asset base
             if let base = assetBasePath {
                 let candidate = base.appendingPathComponent(str)
+                let cacheKey = TextureCacheKey(id: candidate.standardizedFileURL.path, isSRGB: isSRGB)
+                if let cached = textureCache[cacheKey] {
+                    outputURL = candidate
+                    return cached
+                }
                 if FileManager.default.fileExists(atPath: candidate.path),
-                   let tex = try? loader.newTexture(URL: candidate, options: options)
+                   let tex = try? mtkLoader.newTexture(URL: candidate, options: options)
                 {
                     outputURL = candidate
                     let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
+                    textureCache[cacheKey] = texView
                     return texView
                 }
             }
@@ -933,10 +983,12 @@ struct TextureLoader {
             let name = URL(fileURLWithPath: str).deletingPathExtension().lastPathComponent
             let ext = URL(fileURLWithPath: str).pathExtension
             if let url = getResourceURL(resourceName: name, ext: ext.isEmpty ? "png" : ext, subName: nil),
-               let tex = try? loader.newTexture(URL: url, options: options)
+               let tex = try? mtkLoader.newTexture(URL: url, options: options)
             {
+                let cacheKey = TextureCacheKey(id: url.standardizedFileURL.path, isSRGB: isSRGB)
                 outputURL = url
                 let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
+                textureCache[cacheKey] = texView
                 return texView
             }
         }
@@ -987,6 +1039,23 @@ func createTextureDescriptor(device: MTLDevice,
                              texture: MTLTexture?,
                              wrapMode: WrapMode) -> TextureDescriptor
 {
+    let sampler = cachedSamplerState(device: device, wrapMode: wrapMode)
+    return TextureDescriptor(texture: texture, sampler: sampler, wrapMode: wrapMode)
+}
+
+private enum TextureSamplerCache {
+    static var cache: [WrapMode: MTLSamplerState] = [:]
+    static let lock = NSLock()
+}
+
+private func cachedSamplerState(device: MTLDevice, wrapMode: WrapMode) -> MTLSamplerState? {
+    TextureSamplerCache.lock.lock()
+    defer { TextureSamplerCache.lock.unlock() }
+
+    if let existing = TextureSamplerCache.cache[wrapMode] {
+        return existing
+    }
+
     let samplerDescriptor = MTLSamplerDescriptor()
     samplerDescriptor.minFilter = .linear
     samplerDescriptor.magFilter = .linear
@@ -995,6 +1064,9 @@ func createTextureDescriptor(device: MTLDevice,
     samplerDescriptor.tAddressMode = (wrapMode == .repeat) ? .repeat : .clampToEdge
 
     let sampler = device.makeSamplerState(descriptor: samplerDescriptor)
+    if let sampler {
+        TextureSamplerCache.cache[wrapMode] = sampler
+    }
 
-    return TextureDescriptor(texture: texture, sampler: sampler, wrapMode: wrapMode)
+    return sampler
 }
