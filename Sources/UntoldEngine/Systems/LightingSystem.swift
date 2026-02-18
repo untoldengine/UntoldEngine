@@ -53,13 +53,18 @@ private func applyDefaultLightOrientation(entityId: EntityID) {
     rotateTo(entityId: entityId, angle: -90.0, axis: simd_float3(1.0, 0.0, 0.0))
 }
 
+private func assignDefaultProceduralLightMesh(entityId: EntityID) {
+    let meshes = BasicPrimitives.createCube(extent: 0.5)
+    setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: "default_cube")
+}
+
 public func createDirLight(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LightComponent.self)
     registerComponent(entityId: entityId, componentType: DirectionalLightComponent.self)
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
+    assignDefaultProceduralLightMesh(entityId: entityId)
     applyDefaultLightOrientation(entityId: entityId)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
@@ -85,7 +90,7 @@ public func createPointLight(entityId: EntityID) {
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
+    assignDefaultProceduralLightMesh(entityId: entityId)
     applyDefaultLightOrientation(entityId: entityId)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
@@ -111,7 +116,7 @@ public func createSpotLight(entityId: EntityID) {
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
+    assignDefaultProceduralLightMesh(entityId: entityId)
     applyDefaultLightOrientation(entityId: entityId)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
@@ -138,7 +143,7 @@ public func createAreaLight(entityId: EntityID) {
     registerTransformComponent(entityId: entityId)
     registerSceneGraphComponent(entityId: entityId)
 
-    setEntityMesh(entityId: entityId, filename: "default_cube", withExtension: "usdz")
+    assignDefaultProceduralLightMesh(entityId: entityId)
     applyDefaultLightOrientation(entityId: entityId)
 
     guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
