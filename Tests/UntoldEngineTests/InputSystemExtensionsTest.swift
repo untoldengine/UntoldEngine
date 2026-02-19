@@ -373,9 +373,8 @@ final class InputSystemExtensionsTests: XCTestCase {
             let input = InputSystem.shared
 
             // Verify stub methods exist on non-visionOS platforms
-            input.registerXREvents(view: NSObject())
+            input.registerXREvents()
             input.unregisterXREvents()
-            input.updateHandTracking(session: NSObject())
 
             // No crashes - stubs work
             XCTAssertTrue(true)

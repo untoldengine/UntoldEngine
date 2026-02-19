@@ -378,3 +378,15 @@ public func applyAxisRotations(entityId: EntityID, axis: simd_float3) {
     rotateTo(entityId: entityId, rotation: combinedRotation)
     // Note: markDirty is called inside rotateTo, no need to call again
 }
+
+public func worldPositionToLocal(entityId: EntityID, worldPosition: simd_float3) -> simd_float3 {
+    guard let parentId = getEntityParent(entityId: entityId),
+          let parentWorld = scene.get(component: WorldTransformComponent.self, for: parentId)
+    else {
+        return worldPosition
+    }
+
+    let worldPoint = simd_float4(worldPosition.x, worldPosition.y, worldPosition.z, 1.0)
+    let localPoint = simd_mul(simd_inverse(parentWorld.space), worldPoint)
+    return simd_float3(localPoint.x, localPoint.y, localPoint.z)
+}
