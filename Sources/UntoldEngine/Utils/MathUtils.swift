@@ -671,3 +671,94 @@ func nextPowerOf2(x: inout UInt) -> UInt {
     x |= x >> 16
     return x + 1
 }
+
+func rayAABBIntersectionDistance(
+    rayOrigin: simd_float3,
+    rayDirection: simd_float3,
+    minBounds: simd_float3,
+    maxBounds: simd_float3
+) -> Float? {
+    guard isFiniteVector3(rayOrigin),
+          isFiniteVector3(rayDirection),
+          isFiniteVector3(minBounds),
+          isFiniteVector3(maxBounds)
+    else {
+        return nil
+    }
+
+    let epsilon: Float = 0.000_001
+    var tMin = -Float.greatestFiniteMagnitude
+    var tMax = Float.greatestFiniteMagnitude
+
+    for axis in 0 ..< 3 {
+        let origin = rayOrigin[axis]
+        let direction = rayDirection[axis]
+        let minValue = minBounds[axis]
+        let maxValue = maxBounds[axis]
+
+        if abs(direction) <= epsilon {
+            if origin < minValue || origin > maxValue {
+                return nil
+            }
+            continue
+        }
+
+        let invDirection = 1.0 / direction
+        var t1 = (minValue - origin) * invDirection
+        var t2 = (maxValue - origin) * invDirection
+
+        if t1 > t2 {
+            swap(&t1, &t2)
+        }
+
+        tMin = max(tMin, t1)
+        tMax = min(tMax, t2)
+
+        if tMin > tMax {
+            return nil
+        }
+    }
+
+    if tMax < 0 {
+        return nil
+    }
+
+    return tMin >= 0 ? tMin : tMax
+}
+
+@inline(__always)
+func isFiniteVector3(_ vector: simd_float3) -> Bool {
+    vector.x.isFinite && vector.y.isFinite && vector.z.isFinite
+}
+
+public func rayPlaneIntersection(
+    rayOrigin: simd_float3,
+    rayDirection: simd_float3,
+    planePoint: simd_float3,
+    planeNormal: simd_float3
+) -> simd_float3? {
+    let denominator = simd_dot(planeNormal, rayDirection)
+    if abs(denominator) <= 0.0001 {
+        return nil
+    }
+
+    let t = simd_dot(planePoint - rayOrigin, planeNormal) / denominator
+    if t < 0 {
+        return nil
+    }
+
+    return rayOrigin + rayDirection * t
+}
+
+public func projectDirectionOntoPlane(_ direction: simd_float3, planeNormal: simd_float3) -> simd_float3? {
+    let projected = direction - planeNormal * simd_dot(direction, planeNormal)
+    let lenSquared = simd_length_squared(projected)
+    guard lenSquared > 0.0001 else { return nil }
+    return projected / sqrt(lenSquared)
+}
+
+public func signedAngleAroundAxis(from: simd_float3, to: simd_float3, axis: simd_float3) -> Float {
+    let dotValue = simd_clamp(simd_dot(from, to), -1.0, 1.0)
+    let crossValue = simd_cross(from, to)
+    return atan2(simd_dot(axis, crossValue), dotValue)
+}

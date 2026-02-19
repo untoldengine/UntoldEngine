@@ -7,196 +7,120 @@
 //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
 
+import Foundation
 import simd
 
 #if os(visionOS)
-    import ARKit
-    import RealityKit
-    import SwiftUI
+    public enum XRSpatialInteractionPhase: Sendable {
+        case began
+        case changed
+        case ended
+        case cancelled
+    }
+
+    public enum XRSpatialManipulationIntent: Sendable {
+        case automatic
+        case translate
+        case rotate
+    }
+
+    public struct XRSpatialInputSnapshot: Sendable {
+        public var phase: XRSpatialInteractionPhase
+        public var intent: XRSpatialManipulationIntent
+        public var rayOriginWorld: simd_float3
+        public var rayDirectionWorld: simd_float3
+        public var inputDevicePositionWorld: simd_float3?
+        public var inputDeviceOrientationWorld: simd_quatf?
+        public var timestamp: TimeInterval
+
+        public init(
+            phase: XRSpatialInteractionPhase,
+            intent: XRSpatialManipulationIntent,
+            rayOriginWorld: simd_float3,
+            rayDirectionWorld: simd_float3,
+            inputDevicePositionWorld: simd_float3? = nil,
+            inputDeviceOrientationWorld: simd_quatf? = nil,
+            timestamp: TimeInterval = ProcessInfo.processInfo.systemUptime
+        ) {
+            self.phase = phase
+            self.intent = intent
+            self.rayOriginWorld = rayOriginWorld
+            self.rayDirectionWorld = rayDirectionWorld
+            self.inputDevicePositionWorld = inputDevicePositionWorld
+            self.inputDeviceOrientationWorld = inputDeviceOrientationWorld
+            self.timestamp = timestamp
+        }
+    }
+
+    private final class XRSpatialInputQueue {
+        private let lock = NSLock()
+        private var pending: [XRSpatialInputSnapshot] = []
+        private let maxPending = 128
+
+        func enqueue(_ snapshot: XRSpatialInputSnapshot) {
+            lock.lock()
+            defer { lock.unlock() }
+            if pending.count >= maxPending {
+                pending.removeFirst(pending.count - maxPending + 1)
+            }
+            pending.append(snapshot)
+        }
+
+        func drain() -> [XRSpatialInputSnapshot] {
+            lock.lock()
+            defer { lock.unlock() }
+            let snapshots = pending
+            pending.removeAll(keepingCapacity: true)
+            return snapshots
+        }
+
+        func clear() {
+            lock.lock()
+            defer { lock.unlock() }
+            pending.removeAll(keepingCapacity: true)
+        }
+    }
 #endif
-
-public struct SpatialInputState {
-    public var primaryTapActive = false
-    public var primaryDragActive = false
-    public var secondaryTapActive = false
-    public var handTrackingActive = false
-
-    public var leftHandPosition: simd_float3 = .zero
-    public var rightHandPosition: simd_float3 = .zero
-    public var leftHandPinching = false
-    public var rightHandPinching = false
-
-    public var gazePosition: simd_float3 = .zero
-    public var gazeDirection: simd_float3 = .zero
-}
 
 public extension InputSystem {
     #if !os(visionOS)
-        func registerXREvents(view _: Any) {}
+        func registerXREvents() {}
         func unregisterXREvents() {}
-        func updateHandTracking(session _: Any) {}
     #else
-        private static var spatialInputState = SpatialInputState()
+        private static let xrEventStateLock = NSLock()
+        private static var xrInputEventsEnabled = false
+        private static let xrSpatialInputQueue = XRSpatialInputQueue()
 
-        var xrInputState: SpatialInputState {
-            get { Self.spatialInputState }
-            set { Self.spatialInputState = newValue }
+        func registerXREvents() {
+            Self.xrEventStateLock.lock()
+            Self.xrInputEventsEnabled = true
+            Self.xrEventStateLock.unlock()
         }
 
-        func registerXREvents(view: some View) -> some View {
-            view
-                .gesture(createSpatialTapGesture())
-                .gesture(createSpatialDragGesture())
-                .gesture(createSpatialMagnifyGesture())
+        func unregisterXREvents() {
+            Self.xrEventStateLock.lock()
+            Self.xrInputEventsEnabled = false
+            Self.xrEventStateLock.unlock()
+            Self.xrSpatialInputQueue.clear()
         }
 
-        // MARK: - Spatial Tap Gesture (Primary Selection)
-
-        private func createSpatialTapGesture() -> some Gesture {
-            SpatialTapGesture(count: 1, coordinateSpace: .local)
-                .onEnded { value in
-                    // Convert CGPoint to simd_float3
-                    let location3D = simd_float3(Float(value.location.x), Float(value.location.y), 0.0)
-                    self.handleSpatialTap(at: location3D)
-                }
+        var xrEventsEnabled: Bool {
+            Self.xrEventStateLock.lock()
+            let enabled = Self.xrInputEventsEnabled
+            Self.xrEventStateLock.unlock()
+            return enabled
         }
 
-        private func handleSpatialTap(at location: simd_float3) {
-            xrInputState.primaryTapActive = true
-
-            // Update mouse-equivalent position for compatibility
-            mouseX = location.x
-            mouseY = location.y
-
-            // Simulate tap
-            keyState.leftMousePressed = true
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                self?.keyState.leftMousePressed = false
-                self?.xrInputState.primaryTapActive = false
-            }
+        func enqueueXRSpatialSnapshot(_ snapshot: XRSpatialInputSnapshot) {
+            Self.xrSpatialInputQueue.enqueue(snapshot)
         }
 
-        // MARK: - Spatial Drag Gesture (Camera Orbit/Pan)
-
-        private func createSpatialDragGesture() -> some Gesture {
-            DragGesture(minimumDistance: 10, coordinateSpace: .local)
-                .onChanged { value in
-                    self.handleSpatialDragChanged(value)
-                }
-                .onEnded { value in
-                    self.handleSpatialDragEnded(value)
-                }
+        func drainXRSpatialSnapshots() -> [XRSpatialInputSnapshot] {
+            Self.xrSpatialInputQueue.drain()
         }
 
-        private func handleSpatialDragChanged(_ value: DragGesture.Value) {
-            if !xrInputState.primaryDragActive {
-                xrInputState.primaryDragActive = true
-                cameraControlMode = .orbiting
-                initialPanLocation = CGPoint(x: CGFloat(value.location.x), y: CGFloat(value.location.y))
-            }
-
-            // Update deltas for camera control
-            let translation = value.translation
-            panDelta.x = Float(translation.width)
-            panDelta.y = Float(translation.height)
-
-            mouseDeltaX = Float(translation.width)
-            mouseDeltaY = Float(translation.height)
-        }
-
-        private func handleSpatialDragEnded(_: DragGesture.Value) {
-            xrInputState.primaryDragActive = false
-            cameraControlMode = .idle
-            panDelta = .init(0, 0)
-            mouseDeltaX = 0
-            mouseDeltaY = 0
-        }
-
-        // MARK: - Spatial Magnify Gesture (Pinch to Zoom)
-
-        private func createSpatialMagnifyGesture() -> some Gesture {
-            MagnifyGesture(minimumScaleDelta: 0.0)
-                .onChanged { value in
-                    self.handleMagnifyChanged(value)
-                }
-                .onEnded { value in
-                    self.handleMagnifyEnded(value)
-                }
-        }
-
-        private func handleMagnifyChanged(_ value: MagnifyGesture.Value) {
-            currentPinchGestureState = .changed
-
-            let currentScale = CGFloat(value.magnification)
-            let scaleDelta = currentScale - previousScale
-
-            pinchDelta.z = Float(scaleDelta)
-            previousScale = currentScale
-        }
-
-        private func handleMagnifyEnded(_: MagnifyGesture.Value) {
-            currentPinchGestureState = .ended
-            pinchDelta = .init(0, 0, 0)
-            previousScale = 1.0
-        }
-
-        // MARK: - Hand Tracking (Advanced Input)
-
-        func updateHandTracking(session _: ARKitSession) {
-            // TODO: Implement hand tracking using visionOS 2.0 ARKit APIs
-            // The ARKitSession API has changed in visionOS 2.0
-            // Need to use HandTrackingProvider and HandAnchor for proper implementation
-
-            xrInputState.handTrackingActive = false
-
-            // Note: This is a placeholder for future implementation
-            // In a real implementation, you'd:
-            // 1. Request hand tracking authorization
-            // 2. Query HandTrackingProvider for hand anchors
-            // 3. Extract joint positions and gestures from HandAnchor
-            // 4. Update xrInputState with hand positions and pinch states
-        }
-
-        // MARK: - Eye Tracking (Gaze Input)
-
-        func updateGazeTracking(anchor: AnchorEntity?) {
-            guard let anchor else { return }
-
-            // Extract gaze position and direction from anchor
-            let transform = anchor.transform
-            xrInputState.gazePosition = simd_float3(
-                transform.translation.x,
-                transform.translation.y,
-                transform.translation.z
-            )
-
-            // Forward direction from transform
-            let forward = transform.matrix.columns.2
-            xrInputState.gazeDirection = simd_normalize(simd_float3(
-                forward.x,
-                forward.y,
-                forward.z
-            ))
-        }
-
-        // MARK: - Helper Methods for XR
-
-        func isUserPinching() -> Bool {
-            xrInputState.leftHandPinching || xrInputState.rightHandPinching
-        }
-
-        func getPinchPosition() -> simd_float3? {
-            if xrInputState.rightHandPinching {
-                return xrInputState.rightHandPosition
-            } else if xrInputState.leftHandPinching {
-                return xrInputState.leftHandPosition
-            }
-            return nil
-        }
-
-        func getGazeTarget(maxDistance: Float = 10.0) -> simd_float3 {
-            xrInputState.gazePosition + xrInputState.gazeDirection * maxDistance
+        func clearXRSpatialSnapshots() {
+            Self.xrSpatialInputQueue.clear()
         }
     #endif
 }
