@@ -1171,6 +1171,14 @@ private func setEntityStaticBatchComponentRecursive(entityId: EntityID) {
 }
 
 public func removeEntityStaticBatchComponent(entityId: EntityID) {
+    // XR can render from a dedicated thread while scene data is being mutated here.
+    // Gate rendering while we recursively untag the hierarchy from static batching.
+    withWorldMutationGate {
+        removeEntityStaticBatchComponentRecursive(entityId: entityId)
+    }
+}
+
+private func removeEntityStaticBatchComponentRecursive(entityId: EntityID) {
     // Remove from this entity if it has the component
     if let _ = scene.get(component: StaticBatchComponent.self, for: entityId) {
         scene.remove(component: StaticBatchComponent.self, from: entityId)
@@ -1180,7 +1188,7 @@ public func removeEntityStaticBatchComponent(entityId: EntityID) {
     // Recursively remove from all children
     let children = getEntityChildren(parentId: entityId)
     for childId in children {
-        removeEntityStaticBatchComponent(entityId: childId)
+        removeEntityStaticBatchComponentRecursive(entityId: childId)
     }
 }
 
