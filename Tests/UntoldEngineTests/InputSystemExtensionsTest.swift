@@ -266,11 +266,11 @@ final class InputSystemExtensionsTests: XCTestCase {
     #if os(visionOS)
         func test_spatialInputState_defaults() {
             let input = InputSystem.shared
-            let xrState = input.xrInputState
+            let xrState = input.xrSpatialInputState
 
-            XCTAssertFalse(xrState.primaryTapActive)
-            XCTAssertFalse(xrState.primaryDragActive)
-            XCTAssertFalse(xrState.secondaryTapActive)
+            XCTAssertFalse(xrState.spatialTapActive)
+            XCTAssertFalse(xrState.spatialDragActive)
+            XCTAssertFalse(xrState.spatialPinchActive)
             XCTAssertFalse(xrState.handTrackingActive)
 
             XCTAssertEqual(xrState.leftHandPosition, simd_float3.zero)
@@ -286,31 +286,31 @@ final class InputSystemExtensionsTests: XCTestCase {
             let input = InputSystem.shared
 
             // Simulate spatial tap
-            input.xrInputState.primaryTapActive = true
+            input.xrSpatialInputState.spatialTapActive = true
             input.keyState.leftMousePressed = true
             input.mouseX = 100
             input.mouseY = 200
 
-            XCTAssertTrue(input.xrInputState.primaryTapActive)
+            XCTAssertTrue(input.xrSpatialInputState.spatialTapActive)
             XCTAssertTrue(input.keyState.leftMousePressed)
             XCTAssertEqual(input.mouseX, 100)
             XCTAssertEqual(input.mouseY, 200)
 
             // Reset after tap
-            input.xrInputState.primaryTapActive = false
+            input.xrSpatialInputState.spatialTapActive = false
             input.keyState.leftMousePressed = false
 
-            XCTAssertFalse(input.xrInputState.primaryTapActive)
+            XCTAssertFalse(input.xrSpatialInputState.spatialTapActive)
         }
 
         func test_spatialDrag_orbiting() {
             let input = InputSystem.shared
 
             // Begin drag
-            input.xrInputState.primaryDragActive = true
+            input.xrSpatialInputState.spatialDragActive = true
             input.cameraControlMode = .orbiting
 
-            XCTAssertTrue(input.xrInputState.primaryDragActive)
+            XCTAssertTrue(input.xrSpatialInputState.spatialDragActive)
             XCTAssertEqual(input.cameraControlMode, .orbiting)
 
             // Update drag
@@ -322,11 +322,11 @@ final class InputSystemExtensionsTests: XCTestCase {
             XCTAssertEqual(input.panDelta.y, -15)
 
             // End drag
-            input.xrInputState.primaryDragActive = false
+            input.xrSpatialInputState.spatialDragActive = false
             input.cameraControlMode = .idle
             input.panDelta = .init(0, 0)
 
-            XCTAssertFalse(input.xrInputState.primaryDragActive)
+            XCTAssertFalse(input.xrSpatialInputState.spatialDragActive)
             XCTAssertEqual(input.cameraControlMode, .idle)
         }
 
@@ -334,20 +334,20 @@ final class InputSystemExtensionsTests: XCTestCase {
             let input = InputSystem.shared
 
             // Enable hand tracking
-            input.xrInputState.handTrackingActive = true
-            input.xrInputState.leftHandPosition = simd_float3(1, 2, 3)
-            input.xrInputState.rightHandPosition = simd_float3(4, 5, 6)
+            input.xrSpatialInputState.handTrackingActive = true
+            input.xrSpatialInputState.leftHandPosition = simd_float3(1, 2, 3)
+            input.xrSpatialInputState.rightHandPosition = simd_float3(4, 5, 6)
 
-            XCTAssertTrue(input.xrInputState.handTrackingActive)
-            XCTAssertEqual(input.xrInputState.leftHandPosition, simd_float3(1, 2, 3))
-            XCTAssertEqual(input.xrInputState.rightHandPosition, simd_float3(4, 5, 6))
+            XCTAssertTrue(input.xrSpatialInputState.handTrackingActive)
+            XCTAssertEqual(input.xrSpatialInputState.leftHandPosition, simd_float3(1, 2, 3))
+            XCTAssertEqual(input.xrSpatialInputState.rightHandPosition, simd_float3(4, 5, 6))
 
             // Pinching gestures
-            input.xrInputState.leftHandPinching = true
-            input.xrInputState.rightHandPinching = false
+            input.xrSpatialInputState.leftHandPinching = true
+            input.xrSpatialInputState.rightHandPinching = false
 
-            XCTAssertTrue(input.xrInputState.leftHandPinching)
-            XCTAssertFalse(input.xrInputState.rightHandPinching)
+            XCTAssertTrue(input.xrSpatialInputState.leftHandPinching)
+            XCTAssertFalse(input.xrSpatialInputState.rightHandPinching)
 
             // Test helper methods
             XCTAssertTrue(input.isUserPinching())
@@ -358,11 +358,11 @@ final class InputSystemExtensionsTests: XCTestCase {
             let input = InputSystem.shared
 
             // Set gaze position and direction
-            input.xrInputState.gazePosition = simd_float3(0, 1.5, 0)
-            input.xrInputState.gazeDirection = simd_float3(0, 0, -1)
+            input.xrSpatialInputState.gazePosition = simd_float3(0, 1.5, 0)
+            input.xrSpatialInputState.gazeDirection = simd_float3(0, 0, -1)
 
-            XCTAssertEqual(input.xrInputState.gazePosition, simd_float3(0, 1.5, 0))
-            XCTAssertEqual(input.xrInputState.gazeDirection, simd_float3(0, 0, -1))
+            XCTAssertEqual(input.xrSpatialInputState.gazePosition, simd_float3(0, 1.5, 0))
+            XCTAssertEqual(input.xrSpatialInputState.gazeDirection, simd_float3(0, 0, -1))
 
             // Test gaze target calculation
             let target = input.getGazeTarget(maxDistance: 5.0)
