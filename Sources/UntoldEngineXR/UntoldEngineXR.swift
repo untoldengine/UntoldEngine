@@ -23,46 +23,10 @@
         case full
     }
 
-    private struct XRSpatialTranslationSession {
-        var entityId: EntityID
-        var planePoint: simd_float3
-        var planeNormal: simd_float3
-        var grabOffset: simd_float3
-        var initialEntityWorldPosition: simd_float3
-        var initialInputDevicePositionWorld: simd_float3?
-    }
-
-    private struct XRSpatialRotationSession {
-        var entityId: EntityID
-        var initialRotation: simd_quatf
-        var initialRayDirectionProjected: simd_float3?
-        var initialInputDeviceForwardProjected: simd_float3?
-        var rotationAxisWorld: simd_float3
-    }
-
-    private struct XRSpatialPendingSession {
-        var entityId: EntityID
-        var translation: XRSpatialTranslationSession
-        var rotation: XRSpatialRotationSession
-    }
-
-    private enum XRSpatialManipulationSession {
-        case none
-        case pending(XRSpatialPendingSession)
-        case translating(XRSpatialTranslationSession)
-        case rotating(XRSpatialRotationSession)
-    }
-
     public final class UntoldEngineXR {
         private var renderer: UntoldRenderer?
         private var _isRunning = false
         private let lock = NSLock()
-        private var spatialManipulationSession: XRSpatialManipulationSession = .none
-        private let spatialInputEpsilon: Float = 0.0001
-        private let spatialIntentTranslationThresholdMeters: Float = 0.01
-        private let spatialIntentRotationThresholdRadians: Float = 0.08
-        private let spatialIntentDominanceRatio: Float = 1.15
-        public var spatialInteractionDebugLogging = false
         private var lastWorldTrackingRecoveryAttemptTime: CFTimeInterval = 0
         private let worldTrackingRecoveryCooldownSeconds: CFTimeInterval = 2.0
 
@@ -138,7 +102,8 @@
 
         public func clearSpatialInput() {
             InputSystem.shared.clearXRSpatialSnapshots()
-            spatialManipulationSession = .none
+            InputSystem.shared.xrSpatialInputState = XRSpatialInputState()
+            resetAllSpatialInteractionTracking()
         }
 
         private func configureSpatialEventBridge() {
@@ -148,19 +113,27 @@
                 guard InputSystem.shared.xrEventsEnabled else { return }
 
                 for event in events {
-                    guard let selectionRay = event.selectionRay else { continue }
+                    // Extract selection ray if available
+                    let origin: simd_float3
+                    let direction: simd_float3
 
-                    let origin = simd_float3(
-                        Float(selectionRay.origin.x),
-                        Float(selectionRay.origin.y),
-                        Float(selectionRay.origin.z)
-                    )
-
-                    let direction = simd_float3(
-                        Float(selectionRay.direction.x),
-                        Float(selectionRay.direction.y),
-                        Float(selectionRay.direction.z)
-                    )
+                    if let selectionRay = event.selectionRay {
+                        origin = simd_float3(
+                            Float(selectionRay.origin.x),
+                            Float(selectionRay.origin.y),
+                            Float(selectionRay.origin.z)
+                        )
+                        direction = simd_float3(
+                            Float(selectionRay.direction.x),
+                            Float(selectionRay.direction.y),
+                            Float(selectionRay.direction.z)
+                        )
+                    } else {
+                        // No selection ray (can happen on .ended) - use zero vectors
+                        // The state update logic will handle this gracefully
+                        origin = .zero
+                        direction = .zero
+                    }
 
                     let inputDevicePositionWorld: simd_float3?
                     let inputDeviceOrientationWorld: simd_quatf?
@@ -195,9 +168,25 @@
                         phase = .began
                     }
 
+                    let chirality: XRSpatialChirality?
+                    if let eventChirality = event.chirality {
+                        switch eventChirality {
+                        case .left:
+                            chirality = .left
+                        case .right:
+                            chirality = .right
+                        @unknown default:
+                            chirality = nil
+                        }
+                    } else {
+                        chirality = nil
+                    }
+
                     let snapshot = XRSpatialInputSnapshot(
+                        interactionId: event.id.hashValue,
                         phase: phase,
                         intent: .automatic,
+                        chirality: chirality,
                         rayOriginWorld: origin,
                         rayDirectionWorld: direction,
                         inputDevicePositionWorld: inputDevicePositionWorld,
@@ -271,8 +260,8 @@
             // Snapshot loading gate once per frame to keep update/submission behavior consistent.
             let loading = AssetLoadingGate.shared.isLoadingAny
 
-            // 4. Apply user interactions to the content and update any app-spefic data
-            applySpatialManipulationStep()
+            // 4. Update spatial input state from queued events
+            updateSpatialInputState()
 
             // 5. Perform any rendering-related work that doesn't rely on the device anchor info
             guard let renderer else { return }
@@ -332,314 +321,355 @@
             frame.endSubmission()
         }
 
-        private func applySpatialManipulationStep() {
+        private let spatialInputEpsilon: Float = 0.0001
+        private let dragTranslationThresholdMeters: Float = 0.01
+        private let dragRotationThresholdRadians: Float = 0.08
+        private let zoomActivationThresholdMeters: Float = 0.0005
+        private let maxZoomDeltaPerFrame: Float = 0.08
+        private let rotateActivationThresholdRadians: Float = 0.01
+        private let maxRotateDeltaPerFrame: Float = 0.35
+        private var interactionActive = false
+        private var primaryInteractionId: Int?
+        private var interactionExceededDragThreshold = false
+        private var interactionInitialInputDevicePositionWorld: simd_float3?
+        private var interactionLastInputDevicePositionWorld: simd_float3?
+        private var interactionInitialRayDirectionWorld: simd_float3?
+        private var interactionPickedEntity: EntityID?
+        private var leftHandPositionValid = false
+        private var rightHandPositionValid = false
+        private var lastTwoHandPinchDistanceMeters: Float?
+        private var lastTwoHandPinchVectorWorld: simd_float3?
+
+        private func updateSpatialInputState() {
             let snapshots = InputSystem.shared.drainXRSpatialSnapshots()
-            guard !snapshots.isEmpty else { return }
+            var state = InputSystem.shared.xrSpatialInputState
+
+            // Tap is edge-triggered. Clear stale value when entering a new frame.
+            let hadTap = state.spatialTapActive
+            let hadZoom = state.spatialZoomActive || abs(state.spatialZoomDelta) > 0
+            let hadRotate = state.spatialRotateActive || abs(state.spatialRotateDeltaRadians) > 0
+            let hadPinchDrag = simd_length_squared(state.spatialPinchDragDelta) > 0
+            state.spatialTapActive = false
+            state.spatialZoomActive = false
+            state.spatialZoomDelta = 0
+            state.spatialRotateActive = false
+            state.spatialRotateDeltaRadians = 0
+            state.spatialPinchDragDelta = .zero
+
+            guard !snapshots.isEmpty else {
+                if hadTap || hadZoom || hadRotate || hadPinchDrag {
+                    InputSystem.shared.xrSpatialInputState = state
+                }
+                return
+            }
 
             for snapshot in snapshots {
+                updateHandTrackingState(from: snapshot, state: &state)
+                updateTwoHandPinchGestures(state: &state, phase: snapshot.phase)
+
+                let isPrimarySnapshot = !interactionActive || snapshot.interactionId == primaryInteractionId
+                guard isPrimarySnapshot else {
+                    state.spatialPinchActive = interactionActive || state.leftHandPinching || state.rightHandPinching
+                    continue
+                }
+
+                let phaseBeforeEvent = state.currentPhase
+                state.currentPhase = snapshot.phase
+                state.timestamp = snapshot.timestamp
+
+                let rayDirectionRaw = snapshot.rayDirectionWorld
+                let rayLengthSquared = simd_length_squared(rayDirectionRaw)
+                let hasValidRay = rayLengthSquared.isFinite && rayLengthSquared > (spatialInputEpsilon * spatialInputEpsilon)
+                let normalizedRayDirection: simd_float3? = hasValidRay ? (rayDirectionRaw / sqrt(rayLengthSquared)) : nil
+
+                if hasValidRay {
+                    state.rayOriginWorld = snapshot.rayOriginWorld
+                    state.rayDirectionWorld = snapshot.rayDirectionWorld
+                }
+                if let inputDevicePositionWorld = snapshot.inputDevicePositionWorld {
+                    state.inputDevicePositionWorld = inputDevicePositionWorld
+                }
+                if let inputDeviceOrientationWorld = snapshot.inputDeviceOrientationWorld {
+                    state.inputDeviceOrientationWorld = inputDeviceOrientationWorld
+                }
+
+                let pickedEntityFromSnapshot: EntityID?
+                if let normalizedRayDirection,
+                   let (pickedEntity, _) = pickEntity(rayOrigin: snapshot.rayOriginWorld, rayDirection: normalizedRayDirection)
+                {
+                    pickedEntityFromSnapshot = pickedEntity
+                } else {
+                    pickedEntityFromSnapshot = nil
+                }
+
                 switch snapshot.phase {
                 case .began:
-                    beginSpatialManipulation(snapshot)
+                    interactionActive = true
+                    primaryInteractionId = snapshot.interactionId
+                    interactionExceededDragThreshold = false
+                    interactionInitialInputDevicePositionWorld = snapshot.inputDevicePositionWorld
+                    interactionLastInputDevicePositionWorld = snapshot.inputDevicePositionWorld
+                    interactionInitialRayDirectionWorld = normalizedRayDirection
+                    interactionPickedEntity = pickedEntityFromSnapshot
+
+                    state.spatialDragActive = false
+                    state.spatialPinchDragDelta = .zero
+                    state.pickedEntityId = pickedEntityFromSnapshot
+
                 case .changed:
-                    // Some visionOS streams emit active/changed without explicit began.
-                    // Bootstrap manipulation from first changed event.
-                    if case .none = spatialManipulationSession {
-                        beginSpatialManipulation(snapshot)
+                    if !interactionActive {
+                        interactionActive = true
+                        primaryInteractionId = snapshot.interactionId
+                        interactionExceededDragThreshold = false
+                        interactionInitialInputDevicePositionWorld = snapshot.inputDevicePositionWorld
+                        interactionLastInputDevicePositionWorld = snapshot.inputDevicePositionWorld
+                        interactionInitialRayDirectionWorld = normalizedRayDirection
+                        interactionPickedEntity = nil
+                        state.pickedEntityId = nil
                     }
-                    updateSpatialManipulation(snapshot)
-                case .ended, .cancelled:
-                    endSpatialManipulation()
-                }
-            }
-        }
 
-        private func beginSpatialManipulation(_ snapshot: XRSpatialInputSnapshot) {
-            let rayDirectionRaw = snapshot.rayDirectionWorld
-            let rayLengthSquared = simd_length_squared(rayDirectionRaw)
-            guard rayLengthSquared.isFinite, rayLengthSquared > spatialInputEpsilon else { return }
-            let rayDirection = rayDirectionRaw / sqrt(rayLengthSquared)
+                    state.spatialPinchDragDelta = computePinchDragDelta(currentInputDevicePositionWorld: snapshot.inputDevicePositionWorld)
 
-            guard let (pickedEntity, hitDistance) = pickEntity(rayOrigin: snapshot.rayOriginWorld, rayDirection: rayDirection) else {
-                endSpatialManipulation()
-                return
-            }
+                    if let pickedEntityFromSnapshot {
+                        interactionPickedEntity = pickedEntityFromSnapshot
+                        state.pickedEntityId = pickedEntityFromSnapshot
+                    }
 
-            activeEntity = pickedEntity
-
-            let translationSession = makeTranslationSession(
-                snapshot: snapshot,
-                pickedEntity: pickedEntity,
-                hitDistance: hitDistance,
-                rayDirection: rayDirection
-            )
-
-            let rotationSession = makeRotationSession(
-                snapshot: snapshot,
-                pickedEntity: pickedEntity,
-                rayDirection: rayDirection
-            )
-
-            switch snapshot.intent {
-            case .automatic:
-                if let rotationSession {
-                    spatialManipulationSession = .pending(.init(
-                        entityId: pickedEntity,
-                        translation: translationSession,
-                        rotation: rotationSession
-                    ))
-                } else {
-                    spatialManipulationSession = .translating(translationSession)
-                }
-
-            case .translate:
-                spatialManipulationSession = .translating(translationSession)
-
-            case .rotate:
-                guard let rotationSession else {
-                    endSpatialManipulation()
-                    return
-                }
-                spatialManipulationSession = .rotating(rotationSession)
-            }
-        }
-
-        private func makeTranslationSession(
-            snapshot: XRSpatialInputSnapshot,
-            pickedEntity: EntityID,
-            hitDistance: Float,
-            rayDirection: simd_float3
-        ) -> XRSpatialTranslationSession {
-            let hitPoint = snapshot.rayOriginWorld + rayDirection * hitDistance
-            let entityPosition = getPosition(entityId: pickedEntity)
-            let planeNormal = -rayDirection
-            let grabOffset = entityPosition - hitPoint
-
-            return .init(
-                entityId: pickedEntity,
-                planePoint: hitPoint,
-                planeNormal: planeNormal,
-                grabOffset: grabOffset,
-                initialEntityWorldPosition: entityPosition,
-                initialInputDevicePositionWorld: snapshot.inputDevicePositionWorld
-            )
-        }
-
-        private func makeRotationSession(
-            snapshot: XRSpatialInputSnapshot,
-            pickedEntity: EntityID,
-            rayDirection: simd_float3
-        ) -> XRSpatialRotationSession? {
-            guard let localTransform = scene.get(component: LocalTransformComponent.self, for: pickedEntity) else {
-                return nil
-            }
-
-            let axis = simd_float3(0, 1, 0)
-            let projectedRay = projectDirectionOntoPlane(rayDirection, planeNormal: axis)
-
-            let projectedInputForward: simd_float3?
-            if let inputOrientation = snapshot.inputDeviceOrientationWorld {
-                let forward = simd_act(inputOrientation, simd_float3(0, 0, -1))
-                projectedInputForward = projectDirectionOntoPlane(forward, planeNormal: axis)
-            } else {
-                projectedInputForward = nil
-            }
-
-            guard projectedRay != nil || projectedInputForward != nil else {
-                return nil
-            }
-
-            return .init(
-                entityId: pickedEntity,
-                initialRotation: localTransform.rotation,
-                initialRayDirectionProjected: projectedRay,
-                initialInputDeviceForwardProjected: projectedInputForward,
-                rotationAxisWorld: axis
-            )
-        }
-
-        private func updateSpatialManipulation(_ snapshot: XRSpatialInputSnapshot) {
-            let rayDirectionRaw = snapshot.rayDirectionWorld
-            let rayLengthSquared = simd_length_squared(rayDirectionRaw)
-            guard rayLengthSquared.isFinite, rayLengthSquared > spatialInputEpsilon else { return }
-            let rayDirection = rayDirectionRaw / sqrt(rayLengthSquared)
-
-            switch spatialManipulationSession {
-            case let .pending(pending):
-                guard scene.mask(for: pending.entityId) != nil else {
-                    endSpatialManipulation()
-                    return
-                }
-
-                let translationMagnitude: Float
-                if let initialInputDevicePosition = pending.translation.initialInputDevicePositionWorld,
-                   let currentInputDevicePosition = snapshot.inputDevicePositionWorld
-                {
-                    translationMagnitude = simd_length(currentInputDevicePosition - initialInputDevicePosition)
-                } else {
-                    translationMagnitude = 0
-                }
-
-                let rotationMagnitude: Float
-                if let initialInputForward = pending.rotation.initialInputDeviceForwardProjected,
-                   let currentInputOrientation = snapshot.inputDeviceOrientationWorld
-                {
-                    let currentForward = simd_act(currentInputOrientation, simd_float3(0, 0, -1))
-                    if let currentInputForwardProjected = projectDirectionOntoPlane(currentForward, planeNormal: pending.rotation.rotationAxisWorld) {
-                        rotationMagnitude = abs(signedAngleAroundAxis(
-                            from: initialInputForward,
-                            to: currentInputForwardProjected,
-                            axis: pending.rotation.rotationAxisWorld
-                        ))
+                    let translationDelta: Float
+                    if let initialInputDevicePositionWorld = interactionInitialInputDevicePositionWorld,
+                       let currentInputDevicePositionWorld = snapshot.inputDevicePositionWorld
+                    {
+                        translationDelta = simd_length(currentInputDevicePositionWorld - initialInputDevicePositionWorld)
                     } else {
-                        rotationMagnitude = 0
+                        translationDelta = 0
                     }
-                } else if let initialRayProjected = pending.rotation.initialRayDirectionProjected,
-                          let currentRayProjected = projectDirectionOntoPlane(rayDirection, planeNormal: pending.rotation.rotationAxisWorld)
-                {
-                    rotationMagnitude = abs(signedAngleAroundAxis(
-                        from: initialRayProjected,
-                        to: currentRayProjected,
-                        axis: pending.rotation.rotationAxisWorld
-                    ))
-                } else {
-                    rotationMagnitude = 0
+
+                    let rotationDelta: Float
+                    if let initialRayDirectionWorld = interactionInitialRayDirectionWorld,
+                       let normalizedRayDirection
+                    {
+                        rotationDelta = angularDistanceRadians(from: initialRayDirectionWorld, to: normalizedRayDirection)
+                    } else {
+                        rotationDelta = 0
+                    }
+
+                    if translationDelta >= dragTranslationThresholdMeters || rotationDelta >= dragRotationThresholdRadians {
+                        interactionExceededDragThreshold = true
+                    }
+                    state.spatialDragActive = interactionExceededDragThreshold
+
+                case .ended:
+                    let hadInteractionContext = interactionActive || phaseBeforeEvent == .began || phaseBeforeEvent == .changed
+                    let isTap = hadInteractionContext && !interactionExceededDragThreshold
+
+                    state.spatialTapActive = isTap
+                    state.spatialDragActive = false
+                    state.spatialPinchDragDelta = .zero
+                    state.pickedEntityId = isTap ? interactionPickedEntity : nil
+
+                    resetSpatialInteractionTracking()
+
+                case .cancelled:
+                    state.spatialTapActive = false
+                    state.spatialDragActive = false
+                    state.spatialPinchDragDelta = .zero
+                    state.pickedEntityId = nil
+
+                    resetSpatialInteractionTracking()
                 }
 
-                let translationReady = translationMagnitude >= spatialIntentTranslationThresholdMeters
-                let rotationReady = rotationMagnitude >= spatialIntentRotationThresholdRadians
+                state.spatialPinchActive = interactionActive || state.leftHandPinching || state.rightHandPinching
+            }
 
-                guard translationReady || rotationReady else { return }
+            state.handTrackingActive = state.leftHandPinching || state.rightHandPinching
+            InputSystem.shared.xrSpatialInputState = state
+        }
 
-                let translationScore = translationMagnitude / max(spatialIntentTranslationThresholdMeters, spatialInputEpsilon)
-                let rotationScore = rotationMagnitude / max(spatialIntentRotationThresholdRadians, spatialInputEpsilon)
+        private func updateHandTrackingState(from snapshot: XRSpatialInputSnapshot, state: inout XRSpatialInputState) {
+            guard let chirality = snapshot.chirality else { return }
 
-                if translationReady, !rotationReady {
-                    spatialManipulationSession = .translating(pending.translation)
-                } else if rotationReady, !translationReady {
-                    spatialManipulationSession = .rotating(pending.rotation)
-                } else if translationScore >= rotationScore * spatialIntentDominanceRatio {
-                    spatialManipulationSession = .translating(pending.translation)
-                } else if rotationScore >= translationScore * spatialIntentDominanceRatio {
-                    spatialManipulationSession = .rotating(pending.rotation)
-                } else {
-                    spatialManipulationSession = translationScore >= rotationScore
-                        ? .translating(pending.translation)
-                        : .rotating(pending.rotation)
+            switch chirality {
+            case .left:
+                if let position = snapshot.inputDevicePositionWorld {
+                    state.leftHandPosition = position
+                    leftHandPositionValid = true
+                }
+                switch snapshot.phase {
+                case .began, .changed:
+                    state.leftHandPinching = true
+                case .ended, .cancelled:
+                    state.leftHandPinching = false
+                    leftHandPositionValid = false
                 }
 
-                // Apply immediately once intent is auto-locked.
-                switch spatialManipulationSession {
-                case let .translating(translation):
-                    applySpatialTranslation(snapshot, rayDirection: rayDirection, translation: translation)
-                case let .rotating(rotation):
-                    applySpatialRotation(snapshot, rayDirection: rayDirection, rotation: rotation)
-                default:
-                    break
+            case .right:
+                if let position = snapshot.inputDevicePositionWorld {
+                    state.rightHandPosition = position
+                    rightHandPositionValid = true
                 }
-
-            case let .translating(translation):
-                applySpatialTranslation(snapshot, rayDirection: rayDirection, translation: translation)
-
-            case let .rotating(rotation):
-                applySpatialRotation(snapshot, rayDirection: rayDirection, rotation: rotation)
-
-            case .none:
-                break
+                switch snapshot.phase {
+                case .began, .changed:
+                    state.rightHandPinching = true
+                case .ended, .cancelled:
+                    state.rightHandPinching = false
+                    rightHandPositionValid = false
+                }
             }
         }
 
-        private func applySpatialTranslation(
-            _ snapshot: XRSpatialInputSnapshot,
-            rayDirection: simd_float3,
-            translation: XRSpatialTranslationSession
-        ) {
-            guard scene.mask(for: translation.entityId) != nil else {
-                endSpatialManipulation()
-                return
-            }
+        private func updateTwoHandPinchGestures(state: inout XRSpatialInputState, phase: XRSpatialInteractionPhase) {
+            let rotateAxisWorld = resolveTwoHandRotateAxisWorld()
+            state.spatialRotateAxisWorld = rotateAxisWorld
 
-            // Preferred path: pose delta drag. selectionRay can remain static across active events.
-            if let initialInputDevicePosition = translation.initialInputDevicePositionWorld,
-               let currentInputDevicePosition = snapshot.inputDevicePositionWorld
-            {
-                let inputDeviceDelta = currentInputDevicePosition - initialInputDevicePosition
-                if simd_length_squared(inputDeviceDelta) > (spatialInputEpsilon * spatialInputEpsilon) {
-                    let targetWorldPosition = translation.initialEntityWorldPosition + inputDeviceDelta
-                    let targetLocalPosition = worldPositionToLocal(
-                        entityId: translation.entityId,
-                        worldPosition: targetWorldPosition
-                    )
-                    translateTo(entityId: translation.entityId, position: targetLocalPosition)
-                    return
-                }
-            }
-
-            guard let hitPoint = rayPlaneIntersection(
-                rayOrigin: snapshot.rayOriginWorld,
-                rayDirection: rayDirection,
-                planePoint: translation.planePoint,
-                planeNormal: translation.planeNormal
-            ) else {
-                return
-            }
-
-            let targetWorldPosition = hitPoint + translation.grabOffset
-            let targetLocalPosition = worldPositionToLocal(
-                entityId: translation.entityId,
-                worldPosition: targetWorldPosition
-            )
-            translateTo(entityId: translation.entityId, position: targetLocalPosition)
-        }
-
-        private func applySpatialRotation(
-            _ snapshot: XRSpatialInputSnapshot,
-            rayDirection: simd_float3,
-            rotation: XRSpatialRotationSession
-        ) {
-            guard scene.mask(for: rotation.entityId) != nil else {
-                endSpatialManipulation()
-                return
-            }
-
-            // Preferred path: pose orientation delta for robust pinch-rotate behavior.
-            if let initialInputForward = rotation.initialInputDeviceForwardProjected,
-               let currentInputOrientation = snapshot.inputDeviceOrientationWorld
-            {
-                let currentForward = simd_act(currentInputOrientation, simd_float3(0, 0, -1))
-                if let currentInputForwardProjected = projectDirectionOntoPlane(currentForward, planeNormal: rotation.rotationAxisWorld) {
-                    let signedAngle = signedAngleAroundAxis(
-                        from: initialInputForward,
-                        to: currentInputForwardProjected,
-                        axis: rotation.rotationAxisWorld
-                    )
-
-                    let deltaRotation = simd_quatf(angle: signedAngle, axis: rotation.rotationAxisWorld)
-                    let targetRotation = simd_normalize(simd_mul(deltaRotation, rotation.initialRotation))
-                    rotateTo(entityId: rotation.entityId, rotation: getMatrix4x4FromQuaternion(q: targetRotation))
-                    return
-                }
-            }
-
-            // Fallback path: ray direction projection.
-            guard let initialRayProjected = rotation.initialRayDirectionProjected,
-                  let currentRayProjected = projectDirectionOntoPlane(rayDirection, planeNormal: rotation.rotationAxisWorld)
+            guard state.leftHandPinching,
+                  state.rightHandPinching,
+                  leftHandPositionValid,
+                  rightHandPositionValid
             else {
+                lastTwoHandPinchDistanceMeters = nil
+                lastTwoHandPinchVectorWorld = nil
+                state.spatialZoomActive = false
+                state.spatialZoomDelta = 0
+                state.spatialRotateActive = false
+                state.spatialRotateDeltaRadians = 0
                 return
             }
 
-            let signedAngle = signedAngleAroundAxis(
-                from: initialRayProjected,
-                to: currentRayProjected,
-                axis: rotation.rotationAxisWorld
-            )
+            let currentPinchVectorWorld = state.rightHandPosition - state.leftHandPosition
+            let currentDistance = simd_length(currentPinchVectorWorld)
+            guard currentDistance.isFinite, currentDistance > spatialInputEpsilon else {
+                lastTwoHandPinchDistanceMeters = nil
+                lastTwoHandPinchVectorWorld = nil
+                state.spatialZoomActive = false
+                state.spatialZoomDelta = 0
+                state.spatialRotateActive = false
+                state.spatialRotateDeltaRadians = 0
+                return
+            }
 
-            let deltaRotation = simd_quatf(angle: signedAngle, axis: rotation.rotationAxisWorld)
-            let targetRotation = simd_normalize(simd_mul(deltaRotation, rotation.initialRotation))
-            rotateTo(entityId: rotation.entityId, rotation: getMatrix4x4FromQuaternion(q: targetRotation))
+            guard phase == .changed else {
+                lastTwoHandPinchDistanceMeters = currentDistance
+                lastTwoHandPinchVectorWorld = currentPinchVectorWorld
+                state.spatialZoomActive = false
+                state.spatialZoomDelta = 0
+                state.spatialRotateActive = false
+                state.spatialRotateDeltaRadians = 0
+                return
+            }
+
+            var zoomDelta: Float = 0
+            if let previousDistance = lastTwoHandPinchDistanceMeters {
+                zoomDelta = currentDistance - previousDistance
+                if zoomDelta.isFinite {
+                    zoomDelta = simd_clamp(zoomDelta, -maxZoomDeltaPerFrame, maxZoomDeltaPerFrame)
+                    if abs(zoomDelta) < zoomActivationThresholdMeters {
+                        zoomDelta = 0
+                    }
+                } else {
+                    zoomDelta = 0
+                }
+            }
+            state.spatialZoomDelta = zoomDelta
+            state.spatialZoomActive = zoomDelta != 0
+
+            let rotateDelta = computeTwoHandRotateDelta(currentPinchVectorWorld: currentPinchVectorWorld, axisWorld: rotateAxisWorld)
+            state.spatialRotateDeltaRadians = rotateDelta
+            state.spatialRotateActive = rotateDelta != 0
+
+            lastTwoHandPinchDistanceMeters = currentDistance
+            lastTwoHandPinchVectorWorld = currentPinchVectorWorld
         }
 
-        private func endSpatialManipulation() {
-            spatialManipulationSession = .none
+        private func resolveTwoHandRotateAxisWorld() -> simd_float3 {
+            if let camera = CameraSystem.shared.activeCamera {
+                let cameraForwardRaw = getForwardAxisVector(entityId: camera)
+                let cameraForwardLengthSquared = simd_length_squared(cameraForwardRaw)
+                if cameraForwardLengthSquared.isFinite, cameraForwardLengthSquared > (spatialInputEpsilon * spatialInputEpsilon) {
+                    return cameraForwardRaw / sqrt(cameraForwardLengthSquared)
+                }
+            }
+            return simd_float3(0, 0, -1)
+        }
+
+        private func computeTwoHandRotateDelta(currentPinchVectorWorld: simd_float3, axisWorld: simd_float3) -> Float {
+            guard let previousPinchVectorWorld = lastTwoHandPinchVectorWorld,
+                  let previousProjected = projectVectorOntoPlane(previousPinchVectorWorld, planeNormal: axisWorld),
+                  let currentProjected = projectVectorOntoPlane(currentPinchVectorWorld, planeNormal: axisWorld)
+            else {
+                return 0
+            }
+
+            let sine = simd_dot(axisWorld, simd_cross(previousProjected, currentProjected))
+            let cosine = simd_clamp(simd_dot(previousProjected, currentProjected), -1.0, 1.0)
+            var rotateDelta = atan2(sine, cosine)
+            guard rotateDelta.isFinite else { return 0 }
+
+            rotateDelta = simd_clamp(rotateDelta, -maxRotateDeltaPerFrame, maxRotateDeltaPerFrame)
+            if abs(rotateDelta) < rotateActivationThresholdRadians {
+                return 0
+            }
+            return rotateDelta
+        }
+
+        private func projectVectorOntoPlane(_ vector: simd_float3, planeNormal: simd_float3) -> simd_float3? {
+            let projected = vector - planeNormal * simd_dot(vector, planeNormal)
+            let projectedLengthSquared = simd_length_squared(projected)
+            guard projectedLengthSquared.isFinite, projectedLengthSquared > (spatialInputEpsilon * spatialInputEpsilon) else {
+                return nil
+            }
+            return projected / sqrt(projectedLengthSquared)
+        }
+
+        private func resetAllSpatialInteractionTracking() {
+            resetSpatialInteractionTracking()
+            leftHandPositionValid = false
+            rightHandPositionValid = false
+            lastTwoHandPinchDistanceMeters = nil
+            lastTwoHandPinchVectorWorld = nil
+        }
+
+        private func resetSpatialInteractionTracking() {
+            interactionActive = false
+            primaryInteractionId = nil
+            interactionExceededDragThreshold = false
+            interactionInitialInputDevicePositionWorld = nil
+            interactionLastInputDevicePositionWorld = nil
+            interactionInitialRayDirectionWorld = nil
+            interactionPickedEntity = nil
+            lastTwoHandPinchDistanceMeters = nil
+            lastTwoHandPinchVectorWorld = nil
+        }
+
+        private func computePinchDragDelta(currentInputDevicePositionWorld: simd_float3?) -> simd_float3 {
+            guard let previousInputPosition = interactionLastInputDevicePositionWorld,
+                  let currentInputPosition = currentInputDevicePositionWorld
+            else {
+                interactionLastInputDevicePositionWorld = currentInputDevicePositionWorld
+                return .zero
+            }
+
+            defer { interactionLastInputDevicePositionWorld = currentInputPosition }
+
+            let delta = currentInputPosition - previousInputPosition
+            guard delta.x.isFinite, delta.y.isFinite, delta.z.isFinite else {
+                return .zero
+            }
+            return delta
+        }
+
+        private func angularDistanceRadians(from: simd_float3, to: simd_float3) -> Float {
+            let fromLengthSquared = simd_length_squared(from)
+            let toLengthSquared = simd_length_squared(to)
+            guard fromLengthSquared > (spatialInputEpsilon * spatialInputEpsilon),
+                  toLengthSquared > (spatialInputEpsilon * spatialInputEpsilon)
+            else {
+                return 0
+            }
+
+            let fromNormalized = from / sqrt(fromLengthSquared)
+            let toNormalized = to / sqrt(toLengthSquared)
+            let cosine = simd_clamp(simd_dot(fromNormalized, toNormalized), -1.0, 1.0)
+            return acos(cosine)
         }
 
         func executeXRSystemPass(frame _: LayerRenderer.Frame, drawable: LayerRenderer.Drawable, loading: Bool) {
