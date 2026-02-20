@@ -163,6 +163,48 @@ private func setEntityMeshCommon(
                 registerSceneGraphComponent(entityId: childEntityId)
             }
 
+            // Extract full transform (translation, rotation, scale) from mesh's worldSpace
+            // BEFORE registerRenderComponent. This ensures the entity holds the complete
+            // authored transform from the USDZ, while the mesh itself remains at identity.
+            if let firstMesh = mesh.first {
+                let transform = firstMesh.worldSpace
+
+                // Extract translation
+                let translation = simd_float3(
+                    transform.columns.3.x,
+                    transform.columns.3.y,
+                    transform.columns.3.z
+                )
+
+                // Extract scale from the length of each basis vector
+                let scaleX = simd_length(simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z))
+                let scaleY = simd_length(simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z))
+                let scaleZ = simd_length(simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z))
+                let scale = simd_float3(scaleX, scaleY, scaleZ)
+
+                // Extract rotation by normalizing the scaled rotation matrix
+                var rotationMatrix = matrix_float3x3(
+                    simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z) / scaleX,
+                    simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z) / scaleY,
+                    simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z) / scaleZ
+                )
+                let rotation = transformMatrix3nToQuaternion(m: rotationMatrix)
+
+                // Convert quaternion to Euler angles for editor display
+                let eulerAngles = transformQuaternionToEulerAngles(q: rotation)
+
+                // Apply to entity's local transform
+                if let localTransform = scene.get(component: LocalTransformComponent.self, for: childEntityId) {
+                    localTransform.position = translation
+                    localTransform.rotation = rotation
+                    localTransform.scale = scale
+                    // Update Euler angle cache for editor inspector
+                    localTransform.rotationX = eulerAngles.pitch
+                    localTransform.rotationY = eulerAngles.yaw
+                    localTransform.rotationZ = eulerAngles.roll
+                }
+            }
+
             associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
 
             registerRenderComponent(entityId: childEntityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
@@ -350,6 +392,48 @@ public func setEntityMeshAsync(
 
                     if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
                         registerSceneGraphComponent(entityId: childEntityId)
+                    }
+
+                    // Extract full transform (translation, rotation, scale) from mesh's worldSpace
+                    // BEFORE registerRenderComponent. This ensures the entity holds the complete
+                    // authored transform from the USDZ, while the mesh itself remains at identity.
+                    if let firstMesh = mesh.first {
+                        let transform = firstMesh.worldSpace
+
+                        // Extract translation
+                        let translation = simd_float3(
+                            transform.columns.3.x,
+                            transform.columns.3.y,
+                            transform.columns.3.z
+                        )
+
+                        // Extract scale from the length of each basis vector
+                        let scaleX = simd_length(simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z))
+                        let scaleY = simd_length(simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z))
+                        let scaleZ = simd_length(simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z))
+                        let scale = simd_float3(scaleX, scaleY, scaleZ)
+
+                        // Extract rotation by normalizing the scaled rotation matrix
+                        var rotationMatrix = matrix_float3x3(
+                            simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z) / scaleX,
+                            simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z) / scaleY,
+                            simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z) / scaleZ
+                        )
+                        let rotation = transformMatrix3nToQuaternion(m: rotationMatrix)
+
+                        // Convert quaternion to Euler angles for editor display
+                        let eulerAngles = transformQuaternionToEulerAngles(q: rotation)
+
+                        // Apply to entity's local transform
+                        if let localTransform = scene.get(component: LocalTransformComponent.self, for: childEntityId) {
+                            localTransform.position = translation
+                            localTransform.rotation = rotation
+                            localTransform.scale = scale
+                            // Update Euler angle cache for editor inspector
+                            localTransform.rotationX = eulerAngles.pitch
+                            localTransform.rotationY = eulerAngles.yaw
+                            localTransform.rotationZ = eulerAngles.roll
+                        }
                     }
 
                     associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
@@ -880,9 +964,10 @@ private func resolveMeshTransformsForRender(_ meshes: [Mesh]) -> [Mesh] {
 
     var resolvedMeshes = meshes
     for index in resolvedMeshes.indices {
-        // Flatten full USD ancestry into mesh-local render transform.
-        // ECS entity local transform remains user/scene driven.
-        resolvedMeshes[index].localSpace = resolvedMeshes[index].worldSpace
+        // For multi-mesh USDZ files, the full transform is extracted to the entity.
+        // Set mesh localSpace to identity so the mesh renders at the entity's transform.
+        // This aligns with Unity/Unreal behavior where imported transforms go to the GameObject/Actor.
+        resolvedMeshes[index].localSpace = matrix_identity_float4x4
     }
 
     return resolvedMeshes
