@@ -1,4 +1,15 @@
 # Changelog
+## v0.10.6 - 2026-02-21
+### 🐞 Fixes
+- [Patch] replace usdz files with procedural generated meshes (11c881d…)
+- [Patch] Added scene picking system (d179cec…)
+- [Patch] Gated static batch remove entity (56f9b51…)
+- [Patch] Added spatial input for XR (b19e413…)
+- [Patch] fix children transforms from usdz file (17f8449…)
+- [Patch] Added vision spatial input support (6475991…)
+- [Patch] Improved vision input system (cb07dd8…)
+### 📚 Docs
+- [Docs] added using spatial input documentation (6a14e46…)
 ## v0.10.5 - 2026-02-17
 ### 🐞 Fixes
 - [Patch] address rendering init delay during large scenes (b1cea8f…)
