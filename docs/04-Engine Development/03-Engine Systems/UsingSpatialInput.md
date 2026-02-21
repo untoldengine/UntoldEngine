@@ -6,54 +6,50 @@ sidebar_position: 13
 
 # Spatial Input (vision Pro)
 
-This guide explains how Apple Vision Pro hand gestures map into Untold
-Engine's spatial input system, and how to translate those signals into
-entity manipulation inside your scene.
+Spatial input in Untold Engine follows a simple pipeline:
 
-All gestures are processed through the engine's `InputSystem+XR` and exposed via
-`XRSpatialInputState`.
+1. visionOS emits raw spatial events.
+2. UntoldEngineXR converts each event into an XRSpatialInputSnapshot.
+3. Snapshots are queued in InputSystem.
+4. XRSpatialGestureRecognizer processes snapshots each frame.
+5. The engine publishes a single XRSpatialInputState your game reads in handleInput().
 
-------------------------------------------------------------------------
+That separation keeps the system flexible: the OS-facing code stays in UntoldEngineXR, while gesture classification stays in
+the recognizer.
 
-## Required Setup
+## What You Get in Game Code
 
-You must enable XR input events when gameplay starts:
+From XRSpatialInputState, you can read:
 
-``` swift
-InputSystem.shared.registerXREvents() // Required
-```
+- spatialTapActive
+- spatialDragActive
+- spatialPinchActive
+- spatialPinchDragDelta
+- spatialZoomActive + spatialZoomDelta
+- spatialRotateActive + spatialRotateDeltaRadians
+- pickedEntityId
 
-Disable XR input events when gameplay ends:
+So your game logic can stay focused on behavior (select, move, rotate, scale), not event parsing.
 
-``` swift
-InputSystem.shared.unregisterXREvents()
-```
+## Important Setup Step
 
-This ensures the engine begins listening to Vision Pro spatial hand
-tracking events.\
-Without registering XR events, `xrSpatialInputState` will remain
-inactive.
+You must enable XR event ingestion:
 
-------------------------------------------------------------------------
+InputSystem.shared.registerXREvents()
 
-## Understanding the Gesture Model
+If you skip this, the callback still receives OS events, but the engine ignores them.
 
-Vision Pro gestures are mapped into three major categories inside Untold
-Engine:
+## Typical Frame Usage
 
-1.  **Tap (Selection)**
-2.  **Pinch + Drag (Single-Hand Manipulation)**
-3.  **Two-Hand Gestures (Zoom + Rotate)** (in development)
+In your handleInput():
 
-The engine separates *gesture detection* from *entity manipulation*.
+- Poll InputSystem.shared.xrSpatialInputState.
+- React to edge-triggered gestures like tap.
+- Apply continuous updates for drag/zoom/rotate while active.
 
--   `InputSystem` detects and tracks gesture state.
--   `SpatialManipulationSystem` applies transformations.
-
-This separation keeps your game logic clean and predictable.
-
-------------------------------------------------------------------------
-
+For object manipulation, use SpatialManipulationSystem for robust pinch-driven transforms, then layer custom behavior on top
+when needed.
+  
 ## Quick Example
 
 This example shows how to drag and rotate a mesh using the engine:
@@ -276,18 +272,4 @@ Use these helpers from `SpatialManipulationSystem.shared`:
 -   `applyTwoHandZoomIfNeeded(from:sensitivity:)`\
     Provides zoom delta signal. You must define what zoom means in your
     app.
-
-------------------------------------------------------------------------
-
-# Recommended Pattern for Production
-
-In most games:
-
--   Use **tap** for selection
--   Use **single-hand pinch** for move/rotate
--   Use **two-hand gestures** for scaling large actors or world
-    manipulation
--   Keep camera manipulation separate from object manipulation
-
-This prevents gesture ambiguity and improves UX consistency.
 

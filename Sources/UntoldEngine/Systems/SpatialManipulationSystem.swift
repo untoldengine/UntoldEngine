@@ -23,9 +23,17 @@
     private struct SpatialRotationSession {
         var entityId: EntityID
         var initialRotation: simd_quatf
-        var initialRayDirectionProjected: simd_float3?
-        var initialInputDeviceForwardProjected: simd_float3?
+        var initialProjectedDirection: simd_float3
         var rotationAxisWorld: simd_float3
+        var rotationInputMode: SpatialRotationInputMode
+        var lastProjectedDirection: simd_float3
+        var accumulatedAngleRadians: Float
+        var smoothedDeltaRadians: Float
+    }
+
+    private enum SpatialRotationInputMode {
+        case inputDeviceForward
+        case rayDirection
     }
 
     private struct SpatialPendingSession {
@@ -49,6 +57,9 @@
         public var intentDominanceRatio: Float = 1.15
         public var minZoomScale: Float = 0.05
         public var maxZoomScale: Float = 20.0
+        public var maxRotationDeltaPerFrameRadians: Float = 0.12
+        public var rotationDeltaSmoothingFactor: Float = 0.25
+        public var rotationDeltaDeadzoneRadians: Float = 0.002
 
         private var manipulationSession: SpatialManipulationSession = .none
 
@@ -111,7 +122,15 @@
                 projectedInputForward = nil
             }
 
-            if projectedRay == nil, projectedInputForward == nil {
+            let rotationInputMode: SpatialRotationInputMode
+            let initialProjectedDirection: simd_float3
+            if let projectedInputForward {
+                rotationInputMode = .inputDeviceForward
+                initialProjectedDirection = projectedInputForward
+            } else if let projectedRay {
+                rotationInputMode = .rayDirection
+                initialProjectedDirection = projectedRay
+            } else {
                 manipulationSession = .translating(translation)
                 return
             }
@@ -119,9 +138,12 @@
             let rotation = SpatialRotationSession(
                 entityId: entityId,
                 initialRotation: localRotation,
-                initialRayDirectionProjected: projectedRay,
-                initialInputDeviceForwardProjected: projectedInputForward,
-                rotationAxisWorld: rotationAxis
+                initialProjectedDirection: initialProjectedDirection,
+                rotationAxisWorld: rotationAxis,
+                rotationInputMode: rotationInputMode,
+                lastProjectedDirection: initialProjectedDirection,
+                accumulatedAngleRadians: 0,
+                smoothedDeltaRadians: 0
             )
 
             manipulationSession = .pending(SpatialPendingSession(translation: translation, rotation: rotation))
@@ -145,35 +167,38 @@
                 }
 
                 let rotationMagnitude: Float
-                if let initialInputForward = pending.rotation.initialInputDeviceForwardProjected,
-                   let currentInputOrientation = state.inputDeviceOrientationWorld
-                {
-                    let currentForward = simd_act(currentInputOrientation, simd_float3(0, 0, -1))
-                    if let currentInputForwardProjected = projectDirectionOntoPlane(
-                        currentForward,
+                switch pending.rotation.rotationInputMode {
+                case .inputDeviceForward:
+                    if let currentInputOrientation = state.inputDeviceOrientationWorld {
+                        let currentForward = simd_act(currentInputOrientation, simd_float3(0, 0, -1))
+                        if let currentInputForwardProjected = projectDirectionOntoPlane(
+                            currentForward,
+                            planeNormal: pending.rotation.rotationAxisWorld
+                        ) {
+                            rotationMagnitude = abs(signedAngleAroundAxis(
+                                from: pending.rotation.initialProjectedDirection,
+                                to: currentInputForwardProjected,
+                                axis: pending.rotation.rotationAxisWorld
+                            ))
+                        } else {
+                            rotationMagnitude = 0
+                        }
+                    } else {
+                        rotationMagnitude = 0
+                    }
+                case .rayDirection:
+                    if let currentRayProjected = projectDirectionOntoPlane(
+                        rayDirection,
                         planeNormal: pending.rotation.rotationAxisWorld
                     ) {
                         rotationMagnitude = abs(signedAngleAroundAxis(
-                            from: initialInputForward,
-                            to: currentInputForwardProjected,
+                            from: pending.rotation.initialProjectedDirection,
+                            to: currentRayProjected,
                             axis: pending.rotation.rotationAxisWorld
                         ))
                     } else {
                         rotationMagnitude = 0
                     }
-                } else if let initialRayProjected = pending.rotation.initialRayDirectionProjected,
-                          let currentRayProjected = projectDirectionOntoPlane(
-                              rayDirection,
-                              planeNormal: pending.rotation.rotationAxisWorld
-                          )
-                {
-                    rotationMagnitude = abs(signedAngleAroundAxis(
-                        from: initialRayProjected,
-                        to: currentRayProjected,
-                        axis: pending.rotation.rotationAxisWorld
-                    ))
-                } else {
-                    rotationMagnitude = 0
                 }
 
                 let translationReady = translationMagnitude >= intentTranslationThresholdMeters
@@ -206,7 +231,13 @@
                 updateSpatialDragTranslation(from: state, session: translation)
 
             case let .rotating(rotation):
-                updateSpatialDragRotation(from: state, rayDirection: rayDirection, session: rotation)
+                var updatedRotation = rotation
+                let continueRotation = updateSpatialDragRotation(from: state, rayDirection: rayDirection, session: &updatedRotation)
+                if continueRotation {
+                    manipulationSession = .rotating(updatedRotation)
+                } else {
+                    endSpatialManipulation()
+                }
 
             case .none:
                 break
@@ -279,44 +310,77 @@
             translateTo(entityId: session.entityId, position: targetLocalPosition)
         }
 
-        private func updateSpatialDragRotation(from state: XRSpatialInputState, rayDirection: simd_float3, session: SpatialRotationSession) {
+        private func updateSpatialDragRotation(from state: XRSpatialInputState, rayDirection: simd_float3, session: inout SpatialRotationSession) -> Bool {
             guard scene.mask(for: session.entityId) != nil else {
-                endSpatialManipulation()
-                return
+                return false
             }
 
-            if let initialInputForward = session.initialInputDeviceForwardProjected,
-               let currentInputOrientation = state.inputDeviceOrientationWorld
-            {
-                let currentForward = simd_act(currentInputOrientation, simd_float3(0, 0, -1))
-                if let currentInputForwardProjected = projectDirectionOntoPlane(
-                    currentForward,
-                    planeNormal: session.rotationAxisWorld
-                ) {
-                    let signedAngle = signedAngleAroundAxis(
-                        from: initialInputForward,
-                        to: currentInputForwardProjected,
-                        axis: session.rotationAxisWorld
+            let currentProjectedDirection: simd_float3?
+            switch session.rotationInputMode {
+            case .inputDeviceForward:
+                if let currentInputOrientation = state.inputDeviceOrientationWorld {
+                    let currentForward = simd_act(currentInputOrientation, simd_float3(0, 0, -1))
+                    currentProjectedDirection = projectDirectionOntoPlane(
+                        currentForward,
+                        planeNormal: session.rotationAxisWorld
                     )
-                    let deltaRotation = simd_quatf(angle: signedAngle, axis: session.rotationAxisWorld)
-                    let targetRotation = simd_normalize(simd_mul(deltaRotation, session.initialRotation))
-                    rotateTo(entityId: session.entityId, rotation: getMatrix4x4FromQuaternion(q: targetRotation))
-                    return
+                } else {
+                    currentProjectedDirection = nil
                 }
+            case .rayDirection:
+                currentProjectedDirection = projectDirectionOntoPlane(
+                    rayDirection,
+                    planeNormal: session.rotationAxisWorld
+                )
             }
 
-            guard let initialRayProjected = session.initialRayDirectionProjected,
-                  let currentRayProjected = projectDirectionOntoPlane(rayDirection, planeNormal: session.rotationAxisWorld)
-            else { return }
+            guard let currentProjectedDirection else {
+                return true
+            }
 
-            let signedAngle = signedAngleAroundAxis(
-                from: initialRayProjected,
-                to: currentRayProjected,
+            var incrementalDelta = signedAngleAroundAxis(
+                from: session.lastProjectedDirection,
+                to: currentProjectedDirection,
                 axis: session.rotationAxisWorld
             )
-            let deltaRotation = simd_quatf(angle: signedAngle, axis: session.rotationAxisWorld)
+            guard incrementalDelta.isFinite else {
+                session.lastProjectedDirection = currentProjectedDirection
+                return true
+            }
+
+            incrementalDelta = simd_clamp(
+                incrementalDelta,
+                -maxRotationDeltaPerFrameRadians,
+                maxRotationDeltaPerFrameRadians
+            )
+
+            if abs(incrementalDelta) < rotationDeltaDeadzoneRadians {
+                incrementalDelta = 0
+            }
+
+            let smoothing = simd_clamp(rotationDeltaSmoothingFactor, 0, 1)
+            let reversingDirection = session.smoothedDeltaRadians * incrementalDelta < 0
+            if reversingDirection {
+                // Avoid cross-sign blending drag when user flips twist direction.
+                session.smoothedDeltaRadians = incrementalDelta
+            } else {
+                session.smoothedDeltaRadians = simd_mix(session.smoothedDeltaRadians, incrementalDelta, smoothing)
+            }
+
+            if abs(session.smoothedDeltaRadians) >= rotationDeltaDeadzoneRadians {
+                session.accumulatedAngleRadians += session.smoothedDeltaRadians
+            }
+
+            if !session.accumulatedAngleRadians.isFinite {
+                session.accumulatedAngleRadians = 0
+                session.smoothedDeltaRadians = 0
+            }
+
+            let deltaRotation = simd_quatf(angle: session.accumulatedAngleRadians, axis: session.rotationAxisWorld)
             let targetRotation = simd_normalize(simd_mul(deltaRotation, session.initialRotation))
             rotateTo(entityId: session.entityId, rotation: getMatrix4x4FromQuaternion(q: targetRotation))
+            session.lastProjectedDirection = currentProjectedDirection
+            return true
         }
 
         private func resolveManipulationTarget(explicitEntityId: EntityID?, state: XRSpatialInputState) -> EntityID? {

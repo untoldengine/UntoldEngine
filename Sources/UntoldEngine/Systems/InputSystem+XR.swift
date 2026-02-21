@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import os
 import simd
 
 public enum XRSpatialInteractionPhase: Sendable {
@@ -22,7 +23,7 @@ public enum XRSpatialChirality: Sendable {
     case right
 }
 
-public struct XRSpatialInputState {
+public struct XRSpatialInputState: Sendable {
     // Gesture detection (engine detects these)
     public var spatialTapActive = false
     public var spatialDragActive = false
@@ -103,31 +104,30 @@ public struct XRSpatialInputState {
     }
 
     private final class XRSpatialInputQueue {
-        private let lock = NSLock()
-        private var pending: [XRSpatialInputSnapshot] = []
+        private let lock = OSAllocatedUnfairLock(initialState: [XRSpatialInputSnapshot]())
         private let maxPending = 128
 
         func enqueue(_ snapshot: XRSpatialInputSnapshot) {
-            lock.lock()
-            defer { lock.unlock() }
-            if pending.count >= maxPending {
-                pending.removeFirst(pending.count - maxPending + 1)
+            lock.withLock { pending in
+                if pending.count >= maxPending {
+                    pending.removeFirst(pending.count - maxPending + 1)
+                }
+                pending.append(snapshot)
             }
-            pending.append(snapshot)
         }
 
         func drain() -> [XRSpatialInputSnapshot] {
-            lock.lock()
-            defer { lock.unlock() }
-            let snapshots = pending
-            pending.removeAll(keepingCapacity: true)
-            return snapshots
+            lock.withLock { pending in
+                let snapshots = pending
+                pending.removeAll(keepingCapacity: true)
+                return snapshots
+            }
         }
 
         func clear() {
-            lock.lock()
-            defer { lock.unlock() }
-            pending.removeAll(keepingCapacity: true)
+            lock.withLock { pending in
+                pending.removeAll(keepingCapacity: true)
+            }
         }
     }
 #endif
@@ -142,42 +142,44 @@ public extension InputSystem {
         func registerXREvents() {}
         func unregisterXREvents() {}
     #else
-        private static let xrEventStateLock = NSLock()
-        private static var xrInputEventsEnabled = false
+        private struct XREventState {
+            var inputEventsEnabled = false
+            var spatialInputState = XRSpatialInputState()
+        }
+
+        private static let xrEventStateLock = OSAllocatedUnfairLock(initialState: XREventState())
         private static let xrSpatialInputQueue = XRSpatialInputQueue()
-        private static var _xrSpatialInputState = XRSpatialInputState()
 
         var xrSpatialInputState: XRSpatialInputState {
             get {
-                Self.xrEventStateLock.lock()
-                defer { Self.xrEventStateLock.unlock() }
-                return Self._xrSpatialInputState
+                Self.xrEventStateLock.withLock { state in
+                    state.spatialInputState
+                }
             }
             set {
-                Self.xrEventStateLock.lock()
-                defer { Self.xrEventStateLock.unlock() }
-                Self._xrSpatialInputState = newValue
+                Self.xrEventStateLock.withLock { state in
+                    state.spatialInputState = newValue
+                }
             }
         }
 
         func registerXREvents() {
-            Self.xrEventStateLock.lock()
-            Self.xrInputEventsEnabled = true
-            Self.xrEventStateLock.unlock()
+            Self.xrEventStateLock.withLock { state in
+                state.inputEventsEnabled = true
+            }
         }
 
         func unregisterXREvents() {
-            Self.xrEventStateLock.lock()
-            Self.xrInputEventsEnabled = false
-            Self.xrEventStateLock.unlock()
+            Self.xrEventStateLock.withLock { state in
+                state.inputEventsEnabled = false
+            }
             Self.xrSpatialInputQueue.clear()
         }
 
         var xrEventsEnabled: Bool {
-            Self.xrEventStateLock.lock()
-            let enabled = Self.xrInputEventsEnabled
-            Self.xrEventStateLock.unlock()
-            return enabled
+            Self.xrEventStateLock.withLock { state in
+                state.inputEventsEnabled
+            }
         }
 
         func enqueueXRSpatialSnapshot(_ snapshot: XRSpatialInputSnapshot) {
@@ -248,8 +250,25 @@ public extension InputSystem {
             return nil
         }
 
-        func getGazeTarget(maxDistance: Float = 10.0) -> simd_float3 {
-            xrSpatialInputState.gazePosition + xrSpatialInputState.gazeDirection * maxDistance
+        func getGazeTarget(maxDistance: Float = 10.0) -> simd_float3? {
+            let position = xrSpatialInputState.gazePosition
+            let direction = xrSpatialInputState.gazeDirection
+
+            guard
+                position.x.isFinite, position.y.isFinite, position.z.isFinite,
+                direction.x.isFinite, direction.y.isFinite, direction.z.isFinite,
+                maxDistance.isFinite, maxDistance > 0
+            else {
+                return nil
+            }
+
+            let directionLengthSquared = simd_length_squared(direction)
+            guard directionLengthSquared > 0 else {
+                return nil
+            }
+
+            let normalizedDirection = direction / sqrt(directionLengthSquared)
+            return position + normalizedDirection * maxDistance
         }
     #endif
 }

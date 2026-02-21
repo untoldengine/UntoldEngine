@@ -105,6 +105,16 @@ final class XRInputSystemSpatialTests: XCTestCase {
             XCTAssertEqual(input.getGazeTarget(maxDistance: 2.0), simd_float3(0, 1, -2))
         }
 
+        func test_getGazeTarget_returnsNilWhenDirectionIsInvalid() {
+            let input = InputSystem.shared
+            var state = XRSpatialInputState()
+            state.gazePosition = simd_float3(0, 1, 0)
+            state.gazeDirection = .zero
+            input.xrSpatialInputState = state
+
+            XCTAssertNil(input.getGazeTarget(maxDistance: 2.0))
+        }
+
         func test_getPinchPosition_prefersRightThenLeftThenInputDevice() {
             let input = InputSystem.shared
             var state = XRSpatialInputState()
