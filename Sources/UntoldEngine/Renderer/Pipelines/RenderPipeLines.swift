@@ -22,6 +22,14 @@ public struct RenderPipeline {
     }
 }
 
+public enum PipelineBlendMode {
+    case none
+    case alphaStraight
+    case alphaPremultiplied
+    case additive
+    case gaussianFrontToBack
+}
+
 public func CreatePipeline(
     vertexShader: String,
     fragmentShader: String?,
@@ -30,8 +38,7 @@ public func CreatePipeline(
     depthFormat: MTLPixelFormat,
     depthCompareFunction: MTLCompareFunction = .lessEqual,
     depthEnabled: Bool = true,
-    blendEnabled: Bool = false,
-    gaussianBlending: Bool = false,
+    blendMode: PipelineBlendMode = .none,
     name: String
 ) -> RenderPipeline? {
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
@@ -62,7 +69,22 @@ public func CreatePipeline(
         for (index, format) in colorFormats.enumerated() {
             let attachment = pipelineDescriptor.colorAttachments[index]
             attachment?.pixelFormat = format
-            if blendEnabled {
+
+            switch blendMode {
+            case .none:
+                attachment?.isBlendingEnabled = false
+
+            case .alphaStraight:
+                attachment?.isBlendingEnabled = true
+                attachment?.rgbBlendOperation = .add
+                attachment?.sourceRGBBlendFactor = .sourceAlpha
+                attachment?.destinationRGBBlendFactor = .oneMinusSourceAlpha
+
+                attachment?.alphaBlendOperation = .add
+                attachment?.sourceAlphaBlendFactor = .one
+                attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+
+            case .alphaPremultiplied:
                 attachment?.isBlendingEnabled = true
                 attachment?.rgbBlendOperation = .add
                 attachment?.sourceRGBBlendFactor = .one
@@ -72,7 +94,17 @@ public func CreatePipeline(
                 attachment?.sourceAlphaBlendFactor = .one
                 attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
 
-            } else if gaussianBlending {
+            case .additive:
+                attachment?.isBlendingEnabled = true
+                attachment?.rgbBlendOperation = .add
+                attachment?.sourceRGBBlendFactor = .one
+                attachment?.destinationRGBBlendFactor = .one
+
+                attachment?.alphaBlendOperation = .add
+                attachment?.sourceAlphaBlendFactor = .one
+                attachment?.destinationAlphaBlendFactor = .one
+
+            case .gaussianFrontToBack:
                 attachment?.isBlendingEnabled = true
                 attachment?.rgbBlendOperation = .add
                 attachment?.sourceRGBBlendFactor = .oneMinusDestinationAlpha
@@ -119,7 +151,7 @@ public func InitGridPipeline() -> RenderPipeline? {
         depthFormat: renderInfo.depthPixelFormat,
         depthCompareFunction: MTLCompareFunction.less,
         depthEnabled: false,
-        blendEnabled: true,
+        blendMode: .alphaStraight,
         name: "Grid Pipeline"
     )
 }
@@ -161,7 +193,7 @@ public func InitLightPipeline() -> RenderPipeline? {
         fragmentShader: "fragmentLightShader",
         vertexDescriptor: createLightVertexDescriptor(),
         colorFormats: [wf.sceneColor],
-        depthFormat: .invalid,
+        depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Light Pipeline"
     )
@@ -248,7 +280,7 @@ public func InitPreCompositePipeline() -> RenderPipeline? {
         colorFormats: [wf.sceneComposite],
         depthFormat: .invalid,
         depthEnabled: false,
-        blendEnabled: true,
+        blendMode: .none,
         name: "Pre-Composite Pipeline"
     )
 }
@@ -319,7 +351,7 @@ public func InitBloomCompositePipeline() -> RenderPipeline? {
         colorFormats: [wf.postProcess],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
-        blendEnabled: true,
+        blendMode: .none,
         name: "Bloom Composite Pipeline"
     )
 }
@@ -439,8 +471,7 @@ public func InitGaussianPipeline() -> RenderPipeline? {
         colorFormats: [wf.gaussian],
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
-        blendEnabled: false,
-        gaussianBlending: true, // ✅ Enable alpha blending for Gaussian splatting
+        blendMode: .gaussianFrontToBack,
         name: "Gaussian Pipeline"
     )
 }
@@ -550,6 +581,20 @@ public func InitOutputTransformPipeline() -> RenderPipeline? {
     )
 }
 
+public func InitTransparencyPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexModelShader",
+        fragmentShader: "fragmentTransparencyShader",
+        vertexDescriptor: createModelVertexDescriptor(),
+        colorFormats: [wf.sceneColor],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .lessEqual,
+        depthEnabled: false, // depth test enabled, writes disabled
+        blendMode: .alphaPremultiplied,
+        name: "Transparency Pipeline"
+    )
+}
+
 public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)] {
     [
         (.grid, InitGridPipeline),
@@ -579,6 +624,7 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.gaussian, InitGaussianPipeline),
         (.look, InitLookPipeline),
         (.outputTransform, InitOutputTransformPipeline),
+        (.transparency, InitTransparencyPipeline),
     ]
 }
 

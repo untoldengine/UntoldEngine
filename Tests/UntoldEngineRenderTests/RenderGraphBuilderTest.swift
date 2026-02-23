@@ -272,8 +272,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
         XCTAssertNotNil(graph["postProcessBypass"], "Bypass pass should exist when bypassPostProcessing is enabled")
-        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["lightPass"],
-                       "Bypass pass should depend on lightPass")
+        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["transparency"],
+                       "Bypass pass should depend on transparency")
         XCTAssertNotNil(graph["look"], "Look pass should exist when bypassing post-processing")
         XCTAssertNotNil(graph["outputTransform"], "Output transform should exist when bypassing post-processing")
 

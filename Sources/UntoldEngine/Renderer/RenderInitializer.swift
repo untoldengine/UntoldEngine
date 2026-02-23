@@ -319,7 +319,8 @@ func initRenderPassDescriptors() {
         height: Int(renderInfo.viewPort.y),
         colorAttachments: [
             (textureResources.deferredColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-        ]
+        ],
+        depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
     )
 
     // SSAO Render Pass

@@ -158,7 +158,8 @@ class BaseRenderSetup: XCTestCase {
         let mode: String
         if targetName.contains("ColorTarget") ||
             targetName.contains("LightPassColor") ||
-            targetName.contains("NormalTarget")
+            targetName.contains("NormalTarget") ||
+            targetName.contains("TransparencyTarget")
         {
             mode = "rgb"
         } else {
@@ -351,7 +352,11 @@ class BaseRenderSetup: XCTestCase {
 
         let chosenMode: String
         if let mode { chosenMode = mode }
-        else if referenceName.contains("ColorTarget") || referenceName.contains("LightPassColor") || referenceName.contains("NormalTarget") {
+        else if referenceName.contains("ColorTarget") ||
+            referenceName.contains("LightPassColor") ||
+            referenceName.contains("NormalTarget") ||
+            referenceName.contains("TransparencyTarget")
+        {
             chosenMode = "rgb"
         } else {
             chosenMode = "gray"
@@ -407,6 +412,12 @@ class BaseRenderSetup: XCTestCase {
         setEntityMesh(entityId: ball, filename: "ball", withExtension: "usdz")
         setEntityName(entityId: ball, name: "ball")
         translateBy(entityId: ball, position: simd_float3(0.0, 0.4, 3.0))
+
+        // transparent grass
+        let grass = createEntity()
+        setEntityMesh(entityId: grass, filename: "grass", withExtension: "usdz")
+        translateBy(entityId: grass, position: simd_float3(2.0, 1.0, 3.0))
+
         ambientIntensity = 0.4
 
         let sunEntity: EntityID = createEntity()

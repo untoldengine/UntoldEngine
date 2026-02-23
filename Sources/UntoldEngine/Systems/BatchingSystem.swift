@@ -151,6 +151,13 @@ public class BatchingSystem {
         // Get LOD index if entity has LOD
         let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
 
+        let hasTransparentSubmesh = renderComponent.mesh.contains { mesh in
+            mesh.submeshes.contains { submesh in
+                submesh.material?.hasTransparency ?? false
+            }
+        }
+        if hasTransparentSubmesh { return }
+
         // Get material hash from first submesh
         guard let material = renderComponent.mesh.first?.submeshes.first?.material else { return }
         let matHash = getMaterialHash(material: material)
@@ -232,6 +239,13 @@ public class BatchingSystem {
                 // Get current LOD index (0 if no LOD component)
                 let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
 
+                let hasTransparentSubmesh = renderComponent.mesh.contains { mesh in
+                    mesh.submeshes.contains { submesh in
+                        submesh.material?.hasTransparency ?? false
+                    }
+                }
+                if hasTransparentSubmesh { continue }
+
                 // Get the source asset URL to ensure we only batch textures from the same file
                 let assetURL = renderComponent.assetURL
 
@@ -239,6 +253,7 @@ public class BatchingSystem {
                 for (meshIndex, mesh) in renderComponent.mesh.enumerated() {
                     for (submeshIndex, submesh) in mesh.submeshes.enumerated() {
                         guard let material = submesh.material else { continue }
+                        if material.hasTransparency { continue }
 
                         let matHash = getMaterialHash(material: material, assetURL: assetURL)
                         // Include LOD in batch key to avoid mixing different LOD levels
@@ -483,6 +498,8 @@ public class BatchingSystem {
         components.append(String(format: "%.2f", material.specular))
         components.append(String(format: "%.2f", material.ior))
         components.append(String(format: "%.2f", material.stScale))
+        components.append("\(material.alphaMode.rawValue)")
+        components.append(String(format: "%.2f", material.alphaCutoff))
 
         // Texture flags are included to prevent grouping materials that differ only by map presence.
         components.append("\(material.hasBaseMap)")

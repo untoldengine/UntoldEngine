@@ -67,26 +67,23 @@ func simdFromColor(_ color: Color) -> simd_float4 {
     return simd_float4(Float(red), Float(green), Float(blue), Float(alpha))
 }
 
-public func updateMaterialColor(entityId: EntityID, color: Color) {
+public func updateMaterialColor(entityId: EntityID, color: Color, meshIndex: Int = 0, submeshIndex: Int = 0) {
     // Convert SwiftUI.Color to internal format and update material
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+    guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { material in
+        material.baseColorValue = simdFromColor(color)
+        // Keep alpha mode behavior intuitive for direct color alpha edits.
+        if material.baseColorValue.w < 0.999 {
+            material.alphaMode = .blend
+        } else if material.alphaMode == .blend, !material.hasBaseMap {
+            material.alphaMode = .opaque
+        }
+    }) else {
         return
     }
 
-    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
-
-    material.baseColorValue = simdFromColor(color)
-    renderComponent.mesh[0].submeshes[0].material = material
+    refreshStaticBatchingForMaterialChange(entityId: entityId)
 }
 
-public func getMaterialBaseColor(entityId: EntityID) -> simd_float4 {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return .one
-    }
-
-    guard let material = renderComponent.mesh.first?.submeshes.first?.material else {
-        return .one
-    }
-
-    return material.baseColorValue
+public func getMaterialBaseColor(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> simd_float4 {
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.baseColorValue ?? .one
 }

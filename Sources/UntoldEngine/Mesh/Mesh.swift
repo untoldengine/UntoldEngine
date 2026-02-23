@@ -765,10 +765,192 @@ public enum WrapMode: Int, CaseIterable, Identifiable, CustomStringConvertible {
     }
 }
 
+public enum MaterialAlphaMode: Int32, CaseIterable, Identifiable, CustomStringConvertible {
+    case opaque = 0
+    case mask = 1
+    case blend = 2
+
+    public var id: Int32 { rawValue }
+
+    public var description: String {
+        switch self {
+        case .opaque: return "Opaque"
+        case .mask: return "Mask"
+        case .blend: return "Blend"
+        }
+    }
+}
+
 public struct TextureDescriptor {
     public var texture: MTLTexture?
     public var sampler: MTLSamplerState?
     public var wrapMode: WrapMode = .clampToEdge
+}
+
+private func clamp01(_ value: Float) -> Float {
+    max(0.0, min(1.0, value))
+}
+
+private func normalizedMaterialPropertyName(_ name: String) -> String {
+    String(name.lowercased().filter { $0.isLetter || $0.isNumber })
+}
+
+private func materialPropertyScalar(_ property: MDLMaterialProperty?) -> Float? {
+    guard let property else { return nil }
+
+    switch property.type {
+    case .float:
+        return property.floatValue
+    case .float2:
+        return property.float2Value.x
+    case .float3:
+        return property.float3Value.x
+    case .float4:
+        return property.float4Value.x
+    case .color:
+        return Float(property.color?.alpha ?? 1.0)
+    case .string:
+        guard let value = property.stringValue else { return nil }
+        return Float(value.trimmingCharacters(in: .whitespacesAndNewlines))
+    default:
+        return nil
+    }
+}
+
+private func materialPropertyString(_ property: MDLMaterialProperty?) -> String? {
+    guard let property else { return nil }
+
+    switch property.type {
+    case .string:
+        return property.stringValue?.lowercased()
+    case .float, .float2, .float3, .float4, .color:
+        if let scalar = materialPropertyScalar(property) {
+            return String(scalar)
+        }
+        return nil
+    default:
+        return nil
+    }
+}
+
+private func rgbFromCGColor(_ color: CGColor) -> simd_float3 {
+    guard let components = color.components else {
+        return simd_float3(1.0, 1.0, 1.0)
+    }
+
+    switch components.count {
+    case 0:
+        return simd_float3(1.0, 1.0, 1.0)
+    case 1:
+        let v = Float(components[0])
+        return simd_float3(v, v, v)
+    case 2:
+        let v = Float(components[0])
+        return simd_float3(v, v, v)
+    default:
+        return simd_float3(Float(components[0]), Float(components[1]), Float(components[2]))
+    }
+}
+
+private func decodeBaseColorFactor(_ property: MDLMaterialProperty?) -> (value: simd_float4, hasExplicitAlpha: Bool)? {
+    guard let property else { return nil }
+
+    switch property.type {
+    case .color:
+        guard let cgColor = property.color else { return nil }
+        let rgb = rgbFromCGColor(cgColor)
+        return (simd_float4(rgb.x, rgb.y, rgb.z, Float(cgColor.alpha)), true)
+    case .float4:
+        let v = property.float4Value
+        return (simd_float4(v.x, v.y, v.z, v.w), true)
+    case .float3:
+        let v = property.float3Value
+        return (simd_float4(v.x, v.y, v.z, 1.0), false)
+    case .float2:
+        let v = property.float2Value
+        return (simd_float4(v.x, v.y, 0.0, 1.0), false)
+    case .float:
+        let v = property.floatValue
+        return (simd_float4(v, v, v, 1.0), false)
+    default:
+        return nil
+    }
+}
+
+private func decodeAlphaModeFromMaterialMetadata(_ mdlMaterial: MDLMaterial) -> MaterialAlphaMode? {
+    for index in 0 ..< mdlMaterial.count {
+        guard let property = mdlMaterial[index] else { continue }
+        let key = normalizedMaterialPropertyName(property.name)
+        let likelyAlphaModeProperty = key.contains("alphamode")
+            || key.contains("opacitymode")
+            || key.contains("transparencymode")
+            || key.contains("blendmode")
+
+        guard likelyAlphaModeProperty else { continue }
+
+        if let stringValue = materialPropertyString(property)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+            if stringValue.contains("blend") || stringValue.contains("transparent") {
+                return .blend
+            }
+            if stringValue.contains("mask") || stringValue.contains("cutout") || stringValue.contains("clip") {
+                return .mask
+            }
+            if stringValue.contains("opaque") || stringValue.contains("none") {
+                return .opaque
+            }
+        }
+
+        if let scalarValue = materialPropertyScalar(property) {
+            if scalarValue < 0.5 { return .opaque }
+            if scalarValue < 1.5 { return .mask }
+            return .blend
+        }
+    }
+    return nil
+}
+
+private func decodeAlphaCutoffFromMaterialMetadata(_ mdlMaterial: MDLMaterial) -> Float? {
+    for index in 0 ..< mdlMaterial.count {
+        guard let property = mdlMaterial[index] else { continue }
+        let key = normalizedMaterialPropertyName(property.name)
+        let likelyCutoffProperty = key.contains("alphacutoff")
+            || key.contains("alphathreshold")
+            || key.contains("maskcutoff")
+            || key.contains("maskthreshold")
+            || key.contains("opacitycutoff")
+            || key.contains("opacitythreshold")
+
+        guard likelyCutoffProperty else { continue }
+        if let scalarValue = materialPropertyScalar(property) {
+            return clamp01(scalarValue)
+        }
+    }
+    return nil
+}
+
+private func textureFormatHasAlpha(_ pixelFormat: MTLPixelFormat) -> Bool {
+    switch pixelFormat {
+    case .a8Unorm,
+         .rgba8Unorm,
+         .rgba8Unorm_srgb,
+         .bgra8Unorm,
+         .bgra8Unorm_srgb,
+         .rgba16Unorm,
+         .rgba16Float,
+         .rgba32Float,
+         .rgb10a2Unorm,
+         .bgra10_xr,
+         .bgra10_xr_srgb,
+         .bgr10a2Unorm:
+        return true
+    default:
+        return false
+    }
+}
+
+private func textureLikelyHasAlphaChannel(_ texture: MTLTexture?) -> Bool {
+    guard let texture else { return false }
+    return textureFormatHasAlpha(texture.pixelFormat)
 }
 
 public struct Material {
@@ -809,18 +991,23 @@ public struct Material {
     public var ior: Float = 1.5
     public var emit: Bool = false
     public var interactWithLight: Bool = true
+    public var alphaMode: MaterialAlphaMode = .opaque
+    public var alphaCutoff: Float = 0.5
 
     // Texture presence flags
     public var hasNormalMap: Bool { normal.texture != nil }
     public var hasBaseMap: Bool { baseColor.texture != nil }
     public var hasRoughMap: Bool { roughness.texture != nil }
     public var hasMetalMap: Bool { metallic.texture != nil }
+    public var hasTransparency: Bool { alphaMode == .blend }
 
     public var stScale: Float = 1.0
 
     init(mdlMaterial: MDLMaterial, textureLoader: TextureLoader, name: String) {
+        let baseColorProperty = mdlMaterial.property(with: .baseColor)
+
         // Load textures and set URLs
-        baseColor = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .baseColor), isSRGB: true, outputURL: &baseColorURL, outputMDLTexture: &baseColorMDLTexture, mapType: "Basecolor map", assetName: name), wrapMode: .repeat)
+        baseColor = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: baseColorProperty, isSRGB: true, outputURL: &baseColorURL, outputMDLTexture: &baseColorMDLTexture, mapType: "Basecolor map", assetName: name), wrapMode: .repeat)
 
         normal = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .tangentSpaceNormal), isSRGB: false, outputURL: &normalURL, outputMDLTexture: &normalMDLTexture, mapType: "Normal map", assetName: name), wrapMode: .clampToEdge)
 
@@ -828,9 +1015,42 @@ public struct Material {
 
         metallic = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .metallic), isSRGB: false, outputURL: &metallicURL, outputMDLTexture: &metallicMDLTexture, mapType: "Metallic map", assetName: name), wrapMode: .repeat)
 
-        baseColorValue = mdlMaterial.property(with: .baseColor)?.float4Value ?? baseColorValue
+        var baseColorHasExplicitAlpha = false
+        if let decodedBase = decodeBaseColorFactor(baseColorProperty) {
+            baseColorValue = decodedBase.value
+            baseColorHasExplicitAlpha = decodedBase.hasExplicitAlpha
+        }
         roughnessValue = mdlMaterial.property(with: .roughness)?.floatValue ?? roughnessValue
         metallicValue = mdlMaterial.property(with: .metallic)?.floatValue ?? metallicValue
+
+        // Opacity scalar modulates base alpha when provided by source material metadata.
+        let opacityScalar = materialPropertyScalar(mdlMaterial.property(with: .opacity))
+        if let opacityScalar {
+            baseColorValue.w = clamp01(baseColorValue.w * opacityScalar)
+        }
+
+        // Import alpha metadata first; if unavailable, infer from common fallback signals.
+        let explicitAlphaMode = decodeAlphaModeFromMaterialMetadata(mdlMaterial)
+        let explicitAlphaCutoff = decodeAlphaCutoffFromMaterialMetadata(mdlMaterial)
+
+        if let explicitAlphaMode {
+            alphaMode = explicitAlphaMode
+            if let explicitAlphaCutoff {
+                alphaCutoff = explicitAlphaCutoff
+            }
+        } else {
+            let hasAlphaFactor = baseColorHasExplicitAlpha && baseColorValue.w < 0.999
+            let opacityBelowOne = (opacityScalar ?? 1.0) < 0.999
+
+            if hasAlphaFactor || opacityBelowOne {
+                alphaMode = .blend
+            } else if textureLikelyHasAlphaChannel(baseColor.texture) {
+                alphaMode = .mask
+                alphaCutoff = explicitAlphaCutoff ?? 0.5
+            } else {
+                alphaMode = .opaque
+            }
+        }
 
         // if textures exist, the roughnessValue and MetallicValue act as modulators
         if roughness.texture != nil {

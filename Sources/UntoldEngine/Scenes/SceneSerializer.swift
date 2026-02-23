@@ -113,6 +113,9 @@ struct MaterialData: Codable {
     var emissiveValue: simd_float3 = .zero
     var roughnessValue: Float = 1.0
     var metallicValue: Float = 0.0
+    var opacity: Float? = nil
+    var alphaCutoff: Float? = nil
+    var alphaMode: Int32? = nil // MaterialAlphaMode rawValue
     var baseColorURL: URL? = nil
     var roughnessURL: URL? = nil
     var metallicURL: URL? = nil
@@ -282,6 +285,9 @@ public func serializeScene() -> SceneData {
             let roughnessValue: Float = getMaterialRoughness(entityId: entityId)
             let metallicValue: Float = getMaterialMetallic(entityId: entityId)
             let emissiveValue: simd_float3 = getMaterialEmmissive(entityId: entityId)
+            let opacity: Float = getMaterialOpacity(entityId: entityId)
+            let alphaCutoff: Float = getMaterialAlphaCutoff(entityId: entityId)
+            let alphaModeRawValue: Int32 = getMaterialAlphaMode(entityId: entityId).rawValue
 
             var baseColorURL: URL?
             var roughnessURL: URL?
@@ -304,7 +310,19 @@ public func serializeScene() -> SceneData {
                 normalURL = normalTexture
             }
 
-            entityData.materialData = MaterialData(baseColorValue: baseColor, emissiveValue: emissiveValue, roughnessValue: roughnessValue, metallicValue: metallicValue, baseColorURL: baseColorURL, roughnessURL: roughnessURL, metallicURL: metallicURL, normalURL: normalURL)
+            entityData.materialData = MaterialData(
+                baseColorValue: baseColor,
+                emissiveValue: emissiveValue,
+                roughnessValue: roughnessValue,
+                metallicValue: metallicValue,
+                opacity: opacity,
+                alphaCutoff: alphaCutoff,
+                alphaMode: alphaModeRawValue,
+                baseColorURL: baseColorURL,
+                roughnessURL: roughnessURL,
+                metallicURL: metallicURL,
+                normalURL: normalURL
+            )
         }
 
         // Rendering properties
@@ -531,11 +549,17 @@ public func serializeScene() -> SceneData {
                             let roughness = getMaterialRoughness(entityId: childId)
                             let metallic = getMaterialMetallic(entityId: childId)
                             let emissive = getMaterialEmmissive(entityId: childId)
+                            let opacity = getMaterialOpacity(entityId: childId)
+                            let alphaCutoff = getMaterialAlphaCutoff(entityId: childId)
+                            let alphaModeRawValue = getMaterialAlphaMode(entityId: childId).rawValue
                             materialOverride = MaterialData(
                                 baseColorValue: baseColor,
                                 emissiveValue: emissive,
                                 roughnessValue: roughness,
-                                metallicValue: metallic
+                                metallicValue: metallic,
+                                opacity: opacity,
+                                alphaCutoff: alphaCutoff,
+                                alphaMode: alphaModeRawValue
                             )
                         }
 
@@ -972,6 +996,17 @@ public func deserializeScene(
                 updateMaterialRoughness(entityId: entityId, roughness: roughnessValue)
                 updateMaterialMetallic(entityId: entityId, metallic: metallicValue)
                 updateMaterialEmmisive(entityId: entityId, emmissive: emissiveValue)
+                if let opacity = materialData.opacity {
+                    updateMaterialOpacity(entityId: entityId, opacity: opacity)
+                }
+                if let alphaCutoff = materialData.alphaCutoff {
+                    updateMaterialAlphaCutoff(entityId: entityId, cutoff: alphaCutoff)
+                }
+                if let alphaModeRawValue = materialData.alphaMode,
+                   let alphaMode = MaterialAlphaMode(rawValue: alphaModeRawValue)
+                {
+                    updateMaterialAlphaMode(entityId: entityId, mode: alphaMode)
+                }
 
                 if let baseColorURL = materialData.baseColorURL {
                     updateMaterialTexture(entityId: entityId, textureType: .baseColor, path: baseColorURL)
@@ -1334,6 +1369,17 @@ private func applyAssetInstanceOverrides(entityId: EntityID, overrides: [AssetOv
                 updateMaterialRoughness(entityId: derivedEntityId, roughness: material.roughnessValue)
                 updateMaterialMetallic(entityId: derivedEntityId, metallic: material.metallicValue)
                 updateMaterialEmmisive(entityId: derivedEntityId, emmissive: material.emissiveValue)
+                if let opacity = material.opacity {
+                    updateMaterialOpacity(entityId: derivedEntityId, opacity: opacity)
+                }
+                if let alphaCutoff = material.alphaCutoff {
+                    updateMaterialAlphaCutoff(entityId: derivedEntityId, cutoff: alphaCutoff)
+                }
+                if let alphaModeRawValue = material.alphaMode,
+                   let alphaMode = MaterialAlphaMode(rawValue: alphaModeRawValue)
+                {
+                    updateMaterialAlphaMode(entityId: derivedEntityId, mode: alphaMode)
+                }
 
                 if let baseColorURL = material.baseColorURL {
                     updateMaterialTexture(entityId: derivedEntityId, textureType: .baseColor, path: baseColorURL)

@@ -105,13 +105,23 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     float3 tint = isBaseColorZero ? float3(1.0) : materialParameter.baseColor.rgb;
     
     float4 inBaseColor = (materialParameter.hasTexture.x == 1)
-        ? float4(sampledColor.rgb * tint, sampledColor.a)
-    : float4(tint,1.0);
+        ? float4(sampledColor.rgb * tint, sampledColor.a * materialParameter.baseColor.a)
+    : float4(tint, materialParameter.baseColor.a);
     
     
-    // Avoid black base color
-    inBaseColor = (computeLuma(inBaseColor.rgb)<=0.01)?float4(float3(0.1),1.0):inBaseColor;
+    // Avoid black base color while preserving authored alpha.
+    inBaseColor = (computeLuma(inBaseColor.rgb) <= 0.01)
+        ? float4(float3(0.1), inBaseColor.a)
+        : inBaseColor;
    
+    if (materialParameter.alphaMode == 2) {
+        discard_fragment();
+    }
+
+    if (materialParameter.alphaMode == 1 && inBaseColor.a < materialParameter.alphaCutoff) {
+        discard_fragment();
+    }
+
     gBufferOut.color = inBaseColor;
     
     //normal map is in Tangent space

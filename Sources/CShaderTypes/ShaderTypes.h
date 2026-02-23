@@ -297,6 +297,8 @@ typedef struct{
     float clearCoat;
     float clearCoatGloss;
     float ior;
+    float alphaCutoff;
+    int alphaMode; // 0=opaque, 1=mask, 2=blend
     bool interactWithLight;
 }MaterialParametersUniform;
 
@@ -412,6 +414,47 @@ typedef enum{
 typedef enum{
       outputTransformPassEncodingModeIndex
   }OutputTransformBufferIndices;
+
+// Transparency
+typedef enum{
+    transparencyPassFragmentUniformIndex,
+    transparencyPassFragmentHasNormalTextureIndex,
+    transparencyPassFragmentMaterialParameterIndex,
+    transparencyPassFragmentSTScaleIndex,
+}TransparencyPassFragmentBufferIndices;
+
+typedef enum{
+    transparencyPassBaseTextureIndex,
+    transparencyPassRoughnessTextureIndex,
+    transparencyPassMetallicTextureIndex,
+    transparencyPassNormalTextureIndex,
+}TransparencyPassTextureIndices;
+
+typedef enum{
+    transparencyPassBaseSamplerIndex,
+    transparencyPassNormalSamplerIndex,
+    transparencyPassMaterialSamplerIndex
+}TransparencyPassSamplerIndices;
+
+typedef enum {
+    transparencyPassLightOrthoViewMatrixIndex = 4, // starts after TransparencyPassFragmentBufferIndices
+    transparencyPassLightParamsIndex,
+    transparencyPassCameraPositionIndex,           // simd_float3 (camera position)
+    transparencyPassPointLightsIndex,              // PointLightBlock
+    transparencyPassSpotLightsIndex,               // SpotLightBlock
+    transparencyPassAreaLightsIndex,               // AreaLightBlock
+    transparencyPassIBLParamIndex,                 // IBLParamsUniform
+    transparencyPassIBLRotationAngleIndex,         // float
+} TransparencyPassLightingBufferIndices;
+
+typedef enum {
+    transparencyPassAreaLTCMatTextureIndex = 4,    // starts after TransparencyPassTextureIndices
+    transparencyPassAreaLTCMagTextureIndex,        // LTC magnitude texture
+    transparencyPassIBLIrradianceTextureIndex,     // IBL irradiance map
+    transparencyPassIBLSpecularTextureIndex,       // IBL specular map
+    transparencyPassIBLBRDFMapTextureIndex,        // IBL BRDF lookup table
+    transparencyPassShadowTextureIndex,
+} TransparencyPassLightingTextureIndices;
 
 //Ray tracing structs
 #define GEOMETRY_MASK_TRIANGLE 1

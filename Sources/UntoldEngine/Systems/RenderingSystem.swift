@@ -181,6 +181,14 @@ public func buildGameModeGraph() -> RenderGraphResult {
 
     gBufferPass(graph: &graph, shadowPass: batchedShadowPass)
 
+    // Transparent forward pass after deferred lighting.
+    let transparencyPass = RenderPass(
+        id: "transparency",
+        dependencies: ["lightPass"],
+        execute: RenderPasses.transparencyExecution
+    )
+    graph[transparencyPass.id] = transparencyPass
+
     // Gaussian pass depends on model pass - needs depth buffer from 3D models
     let gaussianPass = RenderPass(id: "gaussian", dependencies: ["model"], execute: RenderPasses.gaussianExecution)
     graph[gaussianPass.id] = gaussianPass
@@ -189,7 +197,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
     if bypassPostProcessing {
         let bypassPass = RenderPass(
             id: "postProcessBypass",
-            dependencies: ["lightPass"],
+            dependencies: [transparencyPass.id],
             execute: { _ in
                 guard let deferredDescriptor = renderInfo.deferredRenderPassDescriptor else {
                     return
@@ -201,7 +209,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
         graph[bypassPass.id] = bypassPass
         postProcessID = bypassPass.id
     } else {
-        let postProcess = postProcessingEffects(graph: &graph, deferredPassId: "lightPass", geometryPassId: "model")
+        let postProcess = postProcessingEffects(graph: &graph, deferredPassId: transparencyPass.id, geometryPassId: "model")
         postProcessID = postProcess.id
     }
 
