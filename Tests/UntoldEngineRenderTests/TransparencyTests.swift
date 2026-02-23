@@ -322,6 +322,9 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
         updateMaterialAlphaMode(entityId: midEntity, mode: .blend)
         updateMaterialAlphaMode(entityId: farEntity, mode: .blend)
 
+        // Propagate local transforms so world-space distance sorting is meaningful.
+        traverseSceneGraph()
+
         // Refresh visible entities to include new ones
         setVisibleEntities()
 

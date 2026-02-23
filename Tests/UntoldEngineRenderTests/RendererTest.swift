@@ -97,11 +97,11 @@ final class RendererTests: BaseRenderSetup {
                  texture: textureResources.iblBRDFMap!
              )
 
-             //                self.testGenerateRenderTarget(
-             //                    targetName: "DepthTarget",
-             //                    texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
-             //                    isDepthTexture: true
-             //                )
+             self.testGenerateRenderTarget(
+                 targetName: "DepthTarget",
+                 texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
+                 isDepthTexture: true
+             )
 
              self.testGenerateRenderTarget(
                  targetName: "LightPassColor",
@@ -330,27 +330,26 @@ final class RendererTests: BaseRenderSetup {
 //
 //        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
 //    }
-    /*
-     func testDepthTarget() {
-         XCTAssertNotNil(renderer, "Renderer should be initialized")
-         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
 
-         renderer.draw(in: renderer.metalView)
+    func testDepthTarget() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
 
-         let expectation = XCTestExpectation(description: "DepthTarget test")
+        renderer.draw(in: renderer.metalView)
 
-         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-             self.psnrTest(
-                 targetName: "DepthTarget",
-                 texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
-                 isDepthTexture: true
-             )
-             expectation.fulfill()
-         }
+        let expectation = XCTestExpectation(description: "DepthTarget test")
 
-         wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
-     }
-     */
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            self.psnrTest(
+                targetName: "DepthTarget",
+                texture: renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture!,
+                isDepthTexture: true
+            )
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+    }
 
     func testDefaultMeshCreation() {
         let mesh = Mesh.makeDefaultMesh()

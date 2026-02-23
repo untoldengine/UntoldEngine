@@ -375,44 +375,86 @@ public func textureToCGImage(texture: MTLTexture) -> CGImage? {
 public func depthTextureToCGImage(texture: MTLTexture) -> CGImage? {
     let width = texture.width
     let height = texture.height
-    let bytesPerPixel = 4 // 32-bit float
-    let alignment = 256
+    guard width > 0, height > 0 else { return nil }
+
+    // Depth test snapshots currently use Depth32Float.
+    guard texture.pixelFormat == .depth32Float else { return nil }
+
+    let bytesPerPixel = MemoryLayout<Float>.stride
     let unalignedBytesPerRow = width * bytesPerPixel
-    let bytesPerRow = ((unalignedBytesPerRow + alignment - 1) / alignment) * alignment
-    let dataSize = bytesPerRow * height
+    let alignedBytesPerRow = ((unalignedBytesPerRow + 255) / 256) * 256
+    let bytesPerImage = alignedBytesPerRow * height
 
-    // Allocate memory to store pixel data
-    let rawData = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 1)
-    defer { rawData.deallocate() }
-
-    // Copy texture data into the buffer
-    let region = MTLRegionMake2D(0, 0, width, height)
-    texture.getBytes(rawData, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
-
-    // Convert depth values to grayscale
-    var convertedData = [UInt8](repeating: 0, count: width * height)
-    let floatData = rawData.bindMemory(to: Float.self, capacity: width * height)
-
-    for i in 0 ..< width * height {
-        let depthValue = floatData[i]
-        // Normalize depth values to [0, 255] for visualization
-        let normalizedValue = UInt8(min(max(depthValue * 255.0, 0.0), 255.0))
-        convertedData[i] = normalizedValue
+    guard let commandQueue = renderInfo.commandQueue,
+          let readbackBuffer = renderInfo.device.makeBuffer(length: bytesPerImage, options: .storageModeShared),
+          let commandBuffer = commandQueue.makeCommandBuffer(),
+          let blitEncoder = commandBuffer.makeBlitCommandEncoder()
+    else {
+        return nil
     }
 
-    // Create a grayscale CGImage for depth texture
-    guard let colorSpace = CGColorSpace(name: CGColorSpace.linearGray),
-          let context = CGContext(
-              data: &convertedData,
-              width: width,
-              height: height,
-              bitsPerComponent: 8, // 8 bits per channel for grayscale
-              bytesPerRow: width, // 1 byte per pixel
-              space: colorSpace,
-              bitmapInfo: CGImageAlphaInfo.none.rawValue
-          ) else { return nil }
+    blitEncoder.copy(
+        from: texture,
+        sourceSlice: 0,
+        sourceLevel: 0,
+        sourceOrigin: MTLOriginMake(0, 0, 0),
+        sourceSize: MTLSizeMake(width, height, 1),
+        to: readbackBuffer,
+        destinationOffset: 0,
+        destinationBytesPerRow: alignedBytesPerRow,
+        destinationBytesPerImage: bytesPerImage,
+        options: .depthFromDepthStencil
+    )
+    blitEncoder.endEncoding()
 
-    return context.makeImage()
+    commandBuffer.commit()
+    commandBuffer.waitUntilCompleted()
+
+    // Match the shader debug intent: linearize depth and remap to a useful visible range.
+    // Invert the result so near geometry appears bright and far/background appears dark.
+    let projectionNear = max(near, 0.0001)
+    let projectionFar = max(far, projectionNear + 0.0001)
+    let sceneNear = max(projectionNear, 0.1)
+    let sceneFar = min(projectionFar, 50.0)
+    let sceneRange = max(sceneFar - sceneNear, 0.0001)
+
+    func linearizeDepth(_ depth: Float) -> Float {
+        projectionNear * projectionFar / (projectionFar + depth * (projectionNear - projectionFar))
+    }
+
+    var grayscaleBytes = [UInt8](repeating: 0, count: width * height)
+    let floatsPerRow = alignedBytesPerRow / bytesPerPixel
+    let depthFloats = readbackBuffer.contents().bindMemory(to: Float.self, capacity: floatsPerRow * height)
+
+    for y in 0 ..< height {
+        let rowStart = y * floatsPerRow
+        let outRowStart = y * width
+        for x in 0 ..< width {
+            let rawDepth = depthFloats[rowStart + x]
+            let finiteDepth = rawDepth.isFinite ? rawDepth : 1.0
+            let linearDepth = linearizeDepth(finiteDepth)
+            let normalizedDepth = max(0.0, min(1.0, (linearDepth - sceneNear) / sceneRange))
+            let visualDepth = 1.0 - normalizedDepth
+            grayscaleBytes[outRowStart + x] = UInt8(max(0, min(255, Int(visualDepth * 255.0))))
+        }
+    }
+
+    let colorSpace = CGColorSpaceCreateDeviceGray()
+    guard let provider = CGDataProvider(data: Data(grayscaleBytes) as CFData) else { return nil }
+
+    return CGImage(
+        width: width,
+        height: height,
+        bitsPerComponent: 8,
+        bitsPerPixel: 8,
+        bytesPerRow: width,
+        space: colorSpace,
+        bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
+        provider: provider,
+        decode: nil,
+        shouldInterpolate: false,
+        intent: .defaultIntent
+    )
 }
 
 public func saveCGImageToDisk(_ image: CGImage, fileName: String, directory: URL = FileManager.default.temporaryDirectory) {
