@@ -1,5 +1,30 @@
 // swift-tools-version: 6.0
 import PackageDescription
+import Foundation
+
+let engineResources: [Resource] = {
+    var resources: [Resource] = [
+        .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"), // macOS
+        .copy("UntoldEngineKernels/UntoldEngineKernels-ios.metallib"), // iOS (device)
+        .copy("UntoldEngineKernels/UntoldEngineKernels-iossim.metallib"), // iOS (simulator)
+        .copy("UntoldEngineKernels/UntoldEngineKernels-tvos.metallib"), // tvOS (device)
+        .copy("UntoldEngineKernels/UntoldEngineKernels-tvossim.metallib"), // tvOS (simulator)
+        .copy("UntoldEngineKernels/UntoldEngineKernels-xros.metallib"), // visionOS (device)
+        .copy("UntoldEngineKernels/UntoldEngineKernels-xrossim.metallib"), // visionOS (simulator)
+    ]
+
+    // Keep model resources optional so package builds still succeed when that folder is absent.
+    if FileManager.default.fileExists(atPath: "Sources/UntoldEngine/Resources/Models") {
+        resources.append(.process("Resources/Models"))
+    }
+
+    resources.append(contentsOf: [
+        .process("Resources/HDR"),
+        .process("Resources/textures"),
+    ])
+
+    return resources
+}()
 
 let package = Package(
     name: "UntoldEngine",
@@ -42,18 +67,7 @@ let package = Package(
             exclude: ["Shaders"],
 
             // 📦 Ship prebuilt metallibs for each platform; pick at runtime.
-            resources: [
-                .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"), // macOS
-                .copy("UntoldEngineKernels/UntoldEngineKernels-ios.metallib"), // iOS (device)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-iossim.metallib"), // iOS (simulator)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-tvos.metallib"), // tvOS (device)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-tvossim.metallib"), // tvOS (simulator)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-xros.metallib"), // visionOS (device)
-                .copy("UntoldEngineKernels/UntoldEngineKernels-xrossim.metallib"), // visionOS (simulator)
-                .process("Resources/Models"),
-                .process("Resources/HDR"),
-                .process("Resources/textures"),
-            ],
+            resources: engineResources,
             swiftSettings: [
                 .swiftLanguageMode(.v5),
             ],
