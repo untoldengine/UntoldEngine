@@ -1,4 +1,7 @@
 # Changelog
+## v0.10.7 - 2026-02-23
+### 🐞 Fixes
+- [Patch] fix transparency mesh pass (56e22a2…)
 ## v0.10.6 - 2026-02-21
 ### 🐞 Fixes
 - [Patch] replace usdz files with procedural generated meshes (11c881d…)
