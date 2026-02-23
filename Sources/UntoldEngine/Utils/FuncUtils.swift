@@ -539,55 +539,106 @@ public func getAssetURLString(entityId: EntityID) -> String? {
     return renderComponent.assetURL.deletingPathExtension().lastPathComponent
 }
 
-public func updateMaterialTexture(entityId: EntityID, textureType: TextureType, path: URL) {
+func hasMaterialSlot(renderComponent: RenderComponent, meshIndex: Int, submeshIndex: Int) -> Bool {
+    guard renderComponent.mesh.indices.contains(meshIndex) else { return false }
+    return renderComponent.mesh[meshIndex].submeshes.indices.contains(submeshIndex)
+}
+
+func getMaterial(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Material? {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+          hasMaterialSlot(renderComponent: renderComponent, meshIndex: meshIndex, submeshIndex: submeshIndex)
+    else {
+        return nil
+    }
+
+    return renderComponent.mesh[meshIndex].submeshes[submeshIndex].material
+}
+
+@discardableResult
+func updateMaterial(
+    entityId: EntityID,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0,
+    mutate: (inout Material) -> Void
+) -> Bool {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+          hasMaterialSlot(renderComponent: renderComponent, meshIndex: meshIndex, submeshIndex: submeshIndex),
+          var material = renderComponent.mesh[meshIndex].submeshes[submeshIndex].material
+    else {
+        return false
+    }
+
+    mutate(&material)
+    renderComponent.mesh[meshIndex].submeshes[submeshIndex].material = material
+    return true
+}
+
+public func updateMaterialTexture(
+    entityId: EntityID,
+    textureType: TextureType,
+    path: URL,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0
+) {
     let filename = path.deletingPathExtension().lastPathComponent
     let withExtension = path.pathExtension
     let folderName = path.deletingLastPathComponent().lastPathComponent
 
-    updateMaterialTexture(entityId: entityId, textureType: textureType, textureName: filename, withExtension: withExtension, subResource: folderName)
+    updateMaterialTexture(
+        entityId: entityId,
+        textureType: textureType,
+        textureName: filename,
+        withExtension: withExtension,
+        subResource: folderName,
+        meshIndex: meshIndex,
+        submeshIndex: submeshIndex
+    )
 }
 
-public func removeMaterialTexture(entityId: EntityID, textureType: TextureType) {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return
+public func removeMaterialTexture(
+    entityId: EntityID,
+    textureType: TextureType,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0
+) {
+    let didUpdate = updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex) { updatedMaterial in
+        switch textureType {
+        case .baseColor:
+            updatedMaterial.baseColor.texture = nil
+            updatedMaterial.baseColorURL = nil
+        // Keep baseColorMDLTexture for restore functionality
+        case .roughness:
+            updatedMaterial.roughness.texture = nil
+            updatedMaterial.roughnessURL = nil
+            // Keep roughnessMDLTexture for restore functionality
+            updatedMaterial.roughnessValue = 1.0
+        case .metallic:
+            updatedMaterial.metallic.texture = nil
+            updatedMaterial.metallicURL = nil
+            // Keep metallicMDLTexture for restore functionality
+            updatedMaterial.metallicValue = 0.0
+        case .normal:
+            updatedMaterial.normal.texture = nil
+            updatedMaterial.normalURL = nil
+            // Keep normalMDLTexture for restore functionality
+        }
     }
 
-    guard let material = renderComponent.mesh[0].submeshes[0].material else { return }
+    guard didUpdate else { return }
 
-    var updatedMaterial = material
-
-    switch textureType {
-    case .baseColor:
-        updatedMaterial.baseColor.texture = nil
-        updatedMaterial.baseColorURL = nil
-    // Keep baseColorMDLTexture for restore functionality
-    case .roughness:
-        updatedMaterial.roughness.texture = nil
-        updatedMaterial.roughnessURL = nil
-        // Keep roughnessMDLTexture for restore functionality
-        updatedMaterial.roughnessValue = 1.0
-    case .metallic:
-        updatedMaterial.metallic.texture = nil
-        updatedMaterial.metallicURL = nil
-        // Keep metallicMDLTexture for restore functionality
-        updatedMaterial.metallicValue = 0.0
-    case .normal:
-        updatedMaterial.normal.texture = nil
-        updatedMaterial.normalURL = nil
-        // Keep normalMDLTexture for restore functionality
-    }
-
-    renderComponent.mesh[0].submeshes[0].material = updatedMaterial
     print("\(textureType) textured updated succesfully.")
+    refreshStaticBatchingForMaterialChange(entityId: entityId)
 }
 
-func updateMaterialTexture(entityId: EntityID, textureType: TextureType, textureName: String, withExtension: String, subResource: String) {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return
-    }
-
-    guard let material = renderComponent.mesh[0].submeshes[0].material else { return }
-
+func updateMaterialTexture(
+    entityId: EntityID,
+    textureType: TextureType,
+    textureName: String,
+    withExtension: String,
+    subResource: String,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0
+) {
     let textureLoader = MTKTextureLoader(device: renderInfo.device)
 
     let textureLoaderOptions = [
@@ -603,42 +654,46 @@ func updateMaterialTexture(entityId: EntityID, textureType: TextureType, texture
 
     do {
         let texture = try textureLoader.newTexture(URL: url, options: textureLoaderOptions)
-        var updatedMaterial = material
 
-        switch textureType {
-        case .baseColor:
-            updatedMaterial.baseColor.texture = texture
-            updatedMaterial.baseColorURL = url
-        // Keep baseColorMDLTexture for restore functionality
-        case .roughness:
-            updatedMaterial.roughness.texture = texture
-            updatedMaterial.roughnessURL = url
-            // Keep roughnessMDLTexture for restore functionality
-            updatedMaterial.roughnessValue = 1.0
-        case .metallic:
-            updatedMaterial.metallic.texture = texture
-            updatedMaterial.metallicURL = url
-            // Keep metallicMDLTexture for restore functionality
-            updatedMaterial.metallicValue = 1.0
-        case .normal:
-            updatedMaterial.normal.texture = texture
-            updatedMaterial.normalURL = url
-            // Keep normalMDLTexture for restore functionality
+        let didUpdate = updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex) { updatedMaterial in
+            switch textureType {
+            case .baseColor:
+                updatedMaterial.baseColor.texture = texture
+                updatedMaterial.baseColorURL = url
+            // Keep baseColorMDLTexture for restore functionality
+            case .roughness:
+                updatedMaterial.roughness.texture = texture
+                updatedMaterial.roughnessURL = url
+                // Keep roughnessMDLTexture for restore functionality
+                updatedMaterial.roughnessValue = 1.0
+            case .metallic:
+                updatedMaterial.metallic.texture = texture
+                updatedMaterial.metallicURL = url
+                // Keep metallicMDLTexture for restore functionality
+                updatedMaterial.metallicValue = 1.0
+            case .normal:
+                updatedMaterial.normal.texture = texture
+                updatedMaterial.normalURL = url
+                // Keep normalMDLTexture for restore functionality
+            }
         }
 
-        renderComponent.mesh[0].submeshes[0].material = updatedMaterial
+        guard didUpdate else { return }
+
         Logger.log(message: "\(textureType) textured updated succesfully.")
+        refreshStaticBatchingForMaterialChange(entityId: entityId)
     } catch {
         handleError(.textureFailedLoading)
     }
 }
 
-public func getMaterialTextureURL(entityId: EntityID, type: TextureType) -> URL? {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return nil
-    }
-
-    let material = renderComponent.mesh.first?.submeshes.first?.material
+public func getMaterialTextureURL(
+    entityId: EntityID,
+    type: TextureType,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0
+) -> URL? {
+    let material = getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)
 
     switch type {
     case .baseColor: return material?.baseColorURL
@@ -655,12 +710,13 @@ public func isEmbeddedUSDZTexture(_ url: URL?) -> Bool {
 }
 
 // Helper to get MDLTexture for embedded textures
-public func getMaterialMDLTexture(entityId: EntityID, type: TextureType) -> MDLTexture? {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return nil
-    }
-
-    let material = renderComponent.mesh.first?.submeshes.first?.material
+public func getMaterialMDLTexture(
+    entityId: EntityID,
+    type: TextureType,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0
+) -> MDLTexture? {
+    let material = getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)
 
     switch type {
     case .baseColor: return material?.baseColorMDLTexture
@@ -671,8 +727,13 @@ public func getMaterialMDLTexture(entityId: EntityID, type: TextureType) -> MDLT
 }
 
 // Check if an original embedded texture can be restored
-public func canRestoreEmbeddedTexture(entityId: EntityID, type: TextureType) -> Bool {
-    getMaterialMDLTexture(entityId: entityId, type: type) != nil
+public func canRestoreEmbeddedTexture(
+    entityId: EntityID,
+    type: TextureType,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0
+) -> Bool {
+    getMaterialMDLTexture(entityId: entityId, type: type, meshIndex: meshIndex, submeshIndex: submeshIndex) != nil
 }
 
 // Helper to match sRGB texture format (same logic as in TextureLoader)
@@ -691,12 +752,13 @@ private func textureViewMatchingSRGB(_ tex: MTLTexture, wantSRGB: Bool) -> MTLTe
 }
 
 // Restore the original embedded texture from USDZ
-public func restoreEmbeddedTexture(entityId: EntityID, textureType: TextureType) {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return
-    }
-
-    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
+public func restoreEmbeddedTexture(
+    entityId: EntityID,
+    textureType: TextureType,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0
+) {
+    guard var material = getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex) else { return }
 
     // Get the stored MDLTexture for this texture type
     let mdlTexture: MDLTexture?
@@ -754,81 +816,132 @@ public func restoreEmbeddedTexture(entityId: EntityID, textureType: TextureType)
             material.normalURL = pseudoURL
         }
 
-        renderComponent.mesh[0].submeshes[0].material = material
+        guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0 = material }) else {
+            return
+        }
         Logger.log(message: "\(textureType) texture restored successfully.")
+        refreshStaticBatchingForMaterialChange(entityId: entityId)
     } catch {
         Logger.log(message: "Failed to restore \(textureType) texture: \(error)")
         handleError(.textureFailedLoading)
     }
 }
 
-public func getMaterialRoughness(entityId: EntityID) -> Float {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return .zero
-    }
-
-    guard let material = renderComponent.mesh.first?.submeshes.first?.material else {
-        return .zero
-    }
-
-    return material.roughnessValue
+public func getMaterialRoughness(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Float {
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.roughnessValue ?? .zero
 }
 
-public func updateMaterialRoughness(entityId: EntityID, roughness: Float) {
+public func updateMaterialRoughness(entityId: EntityID, roughness: Float, meshIndex: Int = 0, submeshIndex: Int = 0) {
+    guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0.roughnessValue = roughness }) else {
+        return
+    }
+    refreshStaticBatchingForMaterialChange(entityId: entityId)
+}
+
+public func getMaterialMetallic(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Float {
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.metallicValue ?? .zero
+}
+
+public func updateMaterialMetallic(entityId: EntityID, metallic: Float, meshIndex: Int = 0, submeshIndex: Int = 0) {
+    guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0.metallicValue = metallic }) else {
+        return
+    }
+    refreshStaticBatchingForMaterialChange(entityId: entityId)
+}
+
+public func getMaterialEmmissive(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> simd_float3 {
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.emissiveValue ?? .zero
+}
+
+public func updateMaterialEmmisive(entityId: EntityID, emmissive: simd_float3, meshIndex: Int = 0, submeshIndex: Int = 0) {
+    guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0.emissiveValue = emmissive }) else {
+        return
+    }
+    refreshStaticBatchingForMaterialChange(entityId: entityId)
+}
+
+public func getMaterialAlphaMode(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> MaterialAlphaMode {
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.alphaMode ?? .opaque
+}
+
+public func updateMaterialAlphaMode(entityId: EntityID, mode: MaterialAlphaMode, meshIndex: Int = 0, submeshIndex: Int = 0) {
+    guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0.alphaMode = mode }) else {
+        return
+    }
+    refreshStaticBatchingForMaterialChange(entityId: entityId)
+}
+
+public func getMaterialAlphaCutoff(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Float {
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.alphaCutoff ?? 0.5
+}
+
+public func updateMaterialAlphaCutoff(entityId: EntityID, cutoff: Float, meshIndex: Int = 0, submeshIndex: Int = 0) {
+    let clampedCutoff = max(0.0, min(1.0, cutoff))
+    guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0.alphaCutoff = clampedCutoff }) else {
+        return
+    }
+    refreshStaticBatchingForMaterialChange(entityId: entityId)
+}
+
+public func getMaterialOpacity(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Float {
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.baseColorValue.w ?? 1.0
+}
+
+public func updateMaterialOpacity(
+    entityId: EntityID,
+    opacity: Float,
+    applyToAllSubmeshes: Bool = true
+) {
+    let clampedOpacity = max(0.0, min(1.0, opacity))
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
 
-    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
+    if applyToAllSubmeshes {
+        var didAnyUpdate = false
 
-    material.roughnessValue = roughness
-    renderComponent.mesh[0].submeshes[0].material = material
-}
+        for meshIndex in renderComponent.mesh.indices {
+            for submeshIndex in renderComponent.mesh[meshIndex].submeshes.indices {
+                let didUpdate = updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex) { material in
+                    material.baseColorValue.w = clampedOpacity
+                    if clampedOpacity < 0.999 {
+                        material.alphaMode = .blend
+                    }
+                }
+                didAnyUpdate = didAnyUpdate || didUpdate
+            }
+        }
 
-public func getMaterialMetallic(entityId: EntityID) -> Float {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return .zero
-    }
-
-    guard let material = renderComponent.mesh.first?.submeshes.first?.material else {
-        return .zero
-    }
-
-    return material.metallicValue
-}
-
-public func updateMaterialMetallic(entityId: EntityID, metallic: Float) {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        if didAnyUpdate {
+            refreshStaticBatchingForMaterialChange(entityId: entityId)
+        }
         return
     }
 
-    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
-
-    material.metallicValue = metallic
-    renderComponent.mesh[0].submeshes[0].material = material
+    updateMaterialOpacity(
+        entityId: entityId,
+        opacity: clampedOpacity,
+        meshIndex: 0,
+        submeshIndex: 0
+    )
 }
 
-public func getMaterialEmmissive(entityId: EntityID) -> simd_float3 {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return .zero
-    }
-
-    guard let material = renderComponent.mesh.first?.submeshes.first?.material else {
-        return .zero
-    }
-
-    return material.emissiveValue
-}
-
-public func updateMaterialEmmisive(entityId: EntityID, emmissive: simd_float3) {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+public func updateMaterialOpacity(
+    entityId: EntityID,
+    opacity: Float,
+    meshIndex: Int,
+    submeshIndex: Int
+) {
+    let clampedOpacity = max(0.0, min(1.0, opacity))
+    guard updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { material in
+        material.baseColorValue.w = clampedOpacity
+        if clampedOpacity < 0.999 {
+            material.alphaMode = .blend
+        }
+    }) else {
         return
     }
-
-    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
-
-    material.emissiveValue = emmissive
-    renderComponent.mesh[0].submeshes[0].material = material
+    refreshStaticBatchingForMaterialChange(entityId: entityId)
 }
 
 func makeFloat4Texture(data: [simd_float4],
@@ -1067,36 +1180,21 @@ func generateSSAONoiseTexture(device: MTLDevice, size: Int = 4) -> MTLTexture? {
     return texture
 }
 
-public func getMaterialSTScale(entityId: EntityID) -> Float {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return 1.0
-    }
-
-    guard let material = renderComponent.mesh[0].submeshes[0].material else { return 1.0 }
-
-    return material.stScale
+public func getMaterialSTScale(entityId: EntityID, meshIndex: Int = 0, submeshIndex: Int = 0) -> Float {
+    getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex)?.stScale ?? 1.0
 }
 
-public func updateMaterialSTScale(entityId: EntityID, stScale: Float) {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return
-    }
-
-    guard var material = renderComponent.mesh.first?.submeshes.first?.material else {
-        return
-    }
-
-    material.stScale = stScale
-
-    renderComponent.mesh[0].submeshes[0].material = material
+public func updateMaterialSTScale(entityId: EntityID, stScale: Float, meshIndex: Int = 0, submeshIndex: Int = 0) {
+    _ = updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex, mutate: { $0.stScale = stScale })
 }
 
-public func getTextureWrapMode(entityId: EntityID, textureType: TextureType) -> WrapMode? {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return nil
-    }
-
-    guard let material = renderComponent.mesh[0].submeshes[0].material else { return nil }
+public func getTextureWrapMode(
+    entityId: EntityID,
+    textureType: TextureType,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0
+) -> WrapMode? {
+    guard let material = getMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex) else { return nil }
 
     switch textureType {
     case .baseColor:
@@ -1112,13 +1210,13 @@ public func getTextureWrapMode(entityId: EntityID, textureType: TextureType) -> 
     return nil
 }
 
-public func updateTextureSampler(entityId: EntityID, textureType: TextureType, wrapMode: WrapMode) {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return
-    }
-
-    guard var material = renderComponent.mesh[0].submeshes[0].material else { return }
-
+public func updateTextureSampler(
+    entityId: EntityID,
+    textureType: TextureType,
+    wrapMode: WrapMode,
+    meshIndex: Int = 0,
+    submeshIndex: Int = 0
+) {
     let samplerDescriptor = MTLSamplerDescriptor()
     samplerDescriptor.minFilter = .linear
     samplerDescriptor.magFilter = .linear
@@ -1128,22 +1226,22 @@ public func updateTextureSampler(entityId: EntityID, textureType: TextureType, w
 
     let sampler = renderInfo.device.makeSamplerState(descriptor: samplerDescriptor)
 
-    switch textureType {
-    case .baseColor:
-        material.baseColor.sampler = sampler
-        material.baseColor.wrapMode = wrapMode
-    case .normal:
-        material.normal.sampler = sampler
-        material.normal.wrapMode = wrapMode
-    case .roughness:
-        material.roughness.sampler = sampler
-        material.roughness.wrapMode = wrapMode
-    case .metallic:
-        material.metallic.sampler = sampler
-        material.metallic.wrapMode = wrapMode
+    _ = updateMaterial(entityId: entityId, meshIndex: meshIndex, submeshIndex: submeshIndex) { material in
+        switch textureType {
+        case .baseColor:
+            material.baseColor.sampler = sampler
+            material.baseColor.wrapMode = wrapMode
+        case .normal:
+            material.normal.sampler = sampler
+            material.normal.wrapMode = wrapMode
+        case .roughness:
+            material.roughness.sampler = sampler
+            material.roughness.wrapMode = wrapMode
+        case .metallic:
+            material.metallic.sampler = sampler
+            material.metallic.wrapMode = wrapMode
+        }
     }
-
-    renderComponent.mesh[0].submeshes[0].material = material
 }
 
 func getTextureType(from filename: String) -> TextureType? {
@@ -1186,6 +1284,15 @@ public func getAlphaForImmersionMode() -> Float {
 
 // Generate batches for all static entities
 public func generateBatches() {
+    BatchingSystem.shared.generateBatches()
+}
+
+func refreshStaticBatchingForMaterialChange(entityId: EntityID) {
+    guard BatchingSystem.shared.isEnabled(),
+          scene.get(component: StaticBatchComponent.self, for: entityId) != nil
+    else {
+        return
+    }
     BatchingSystem.shared.generateBatches()
 }
 

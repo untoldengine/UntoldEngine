@@ -42,4 +42,5 @@ public extension RenderPipelineType {
     static let gaussian: RenderPipelineType = "gaussian"
     static let look: RenderPipelineType = "look"
     static let outputTransform: RenderPipelineType = "outputTransform"
+    static let transparency: RenderPipelineType = "transparency"
 }

@@ -456,6 +456,14 @@ final class SceneSerializerTests: BaseRenderSetup {
             return
         }
 
+        let expectedOpacity: Float = 0.35
+        let expectedAlphaCutoff: Float = 0.42
+        let expectedAlphaMode: MaterialAlphaMode = .mask
+
+        updateMaterialOpacity(entityId: ball, opacity: expectedOpacity)
+        updateMaterialAlphaCutoff(entityId: ball, cutoff: expectedAlphaCutoff)
+        updateMaterialAlphaMode(entityId: ball, mode: expectedAlphaMode)
+
         let baseColorURL = getMaterialTextureURL(entityId: ball, type: .baseColor)
         let roughnessURL = getMaterialTextureURL(entityId: ball, type: .roughness)
         let metallicURL = getMaterialTextureURL(entityId: ball, type: .metallic)
@@ -493,6 +501,9 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertEqual(getMaterialTextureURL(entityId: recreated, type: .roughness), roughnessURL, "Roughness URL should match")
         XCTAssertEqual(getMaterialTextureURL(entityId: recreated, type: .metallic), metallicURL, "Metallic URL should match")
         XCTAssertEqual(getMaterialTextureURL(entityId: recreated, type: .normal), normalURL, "Normal URL should match")
+        XCTAssertEqual(getMaterialOpacity(entityId: recreated), expectedOpacity, accuracy: 0.0001, "Opacity should round-trip")
+        XCTAssertEqual(getMaterialAlphaCutoff(entityId: recreated), expectedAlphaCutoff, accuracy: 0.0001, "Alpha cutoff should round-trip")
+        XCTAssertEqual(getMaterialAlphaMode(entityId: recreated), expectedAlphaMode, "Alpha mode should round-trip")
 
         try? FileManager.default.removeItem(at: sceneURL)
     }
@@ -528,6 +539,17 @@ final class SceneSerializerTests: BaseRenderSetup {
         derivedComp.assetRootEntityId = rootId
         derivedComp.nodePath = "Root/Child#0"
 
+        let childMeshes = BasicPrimitives.createCube()
+        setEntityMeshDirect(entityId: childId, meshes: childMeshes, assetName: "Cube")
+
+        let expectedOverrideOpacity: Float = 0.28
+        let expectedOverrideCutoff: Float = 0.61
+        let expectedOverrideModeRawValue: Int32 = MaterialAlphaMode.mask.rawValue
+
+        updateMaterialOpacity(entityId: childId, opacity: expectedOverrideOpacity)
+        updateMaterialAlphaCutoff(entityId: childId, cutoff: expectedOverrideCutoff)
+        updateMaterialAlphaMode(entityId: childId, mode: .mask)
+
         let sceneData = serializeScene()
 
         let tempDir = FileManager.default.temporaryDirectory
@@ -554,6 +576,21 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertEqual(overrides.first?.name, "OverrideChild", "Override name should round-trip")
         XCTAssertEqual(overrides.first?.transform?.position, simd_float3(1.0, 2.0, 3.0), "Override position should round-trip")
         XCTAssertEqual(overrides.first?.transform?.scale, simd_float3(2.0, 2.0, 2.0), "Override scale should round-trip")
+        guard let materialOverride = overrides.first?.material else {
+            XCTFail("Override material should round-trip")
+            return
+        }
+        guard let overrideOpacity = materialOverride.opacity else {
+            XCTFail("Override opacity should be present")
+            return
+        }
+        guard let overrideAlphaCutoff = materialOverride.alphaCutoff else {
+            XCTFail("Override alpha cutoff should be present")
+            return
+        }
+        XCTAssertEqual(overrideOpacity, expectedOverrideOpacity, accuracy: 0.0001, "Override opacity should round-trip")
+        XCTAssertEqual(overrideAlphaCutoff, expectedOverrideCutoff, accuracy: 0.0001, "Override alpha cutoff should round-trip")
+        XCTAssertEqual(materialOverride.alphaMode, expectedOverrideModeRawValue, "Override alpha mode should round-trip")
 
         try? FileManager.default.removeItem(at: sceneURL)
     }
