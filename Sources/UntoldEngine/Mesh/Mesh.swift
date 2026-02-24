@@ -156,8 +156,7 @@ public struct Mesh {
             return SubMesh(
                 modelIOSubmesh: mdlSubmesh,
                 metalKitSubmesh: localMetalKitMesh.submeshes[index],
-                textureLoader: textureLoader,
-                name: assetName
+                textureLoader: textureLoader
             )
         } ?? []
 
@@ -739,12 +738,12 @@ public struct SubMesh {
         self.metalKitSubmesh = metalKitSubmesh
     }
 
-    init(modelIOSubmesh: MDLSubmesh, metalKitSubmesh: MTKSubmesh, textureLoader: TextureLoader, name: String) {
+    init(modelIOSubmesh: MDLSubmesh, metalKitSubmesh: MTKSubmesh, textureLoader: TextureLoader) {
         self.metalKitSubmesh = metalKitSubmesh
 
         // Fallback to an empty material if none is provided
         if let mdlMaterial = modelIOSubmesh.material {
-            material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader, name: name)
+            material = Material(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
         } else {
             material = nil
         }
@@ -1003,17 +1002,23 @@ public struct Material {
 
     public var stScale: Float = 1.0
 
+    @available(*, deprecated, message: "Material name is no longer used for initialization.")
     init(mdlMaterial: MDLMaterial, textureLoader: TextureLoader, name: String) {
+        _ = name
+        self.init(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
+    }
+
+    init(mdlMaterial: MDLMaterial, textureLoader: TextureLoader) {
         let baseColorProperty = mdlMaterial.property(with: .baseColor)
 
         // Load textures and set URLs
-        baseColor = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: baseColorProperty, isSRGB: true, outputURL: &baseColorURL, outputMDLTexture: &baseColorMDLTexture, mapType: "Basecolor map", assetName: name), wrapMode: .repeat)
+        baseColor = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: baseColorProperty, isSRGB: true, outputURL: &baseColorURL, outputMDLTexture: &baseColorMDLTexture, mapType: "Basecolor map"), wrapMode: .repeat)
 
-        normal = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .tangentSpaceNormal), isSRGB: false, outputURL: &normalURL, outputMDLTexture: &normalMDLTexture, mapType: "Normal map", assetName: name), wrapMode: .clampToEdge)
+        normal = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .tangentSpaceNormal), isSRGB: false, outputURL: &normalURL, outputMDLTexture: &normalMDLTexture, mapType: "Normal map"), wrapMode: .clampToEdge)
 
-        roughness = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .roughness), isSRGB: false, outputURL: &roughnessURL, outputMDLTexture: &roughnessMDLTexture, mapType: "Roughness map", assetName: name), wrapMode: .repeat)
+        roughness = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .roughness), isSRGB: false, outputURL: &roughnessURL, outputMDLTexture: &roughnessMDLTexture, mapType: "Roughness map"), wrapMode: .repeat)
 
-        metallic = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .metallic), isSRGB: false, outputURL: &metallicURL, outputMDLTexture: &metallicMDLTexture, mapType: "Metallic map", assetName: name), wrapMode: .repeat)
+        metallic = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .metallic), isSRGB: false, outputURL: &metallicURL, outputMDLTexture: &metallicMDLTexture, mapType: "Metallic map"), wrapMode: .repeat)
 
         var baseColorHasExplicitAlpha = false
         if let decodedBase = decodeBaseColorFactor(baseColorProperty) {
@@ -1101,12 +1106,35 @@ final class TextureLoader {
         return tex.makeTextureView(pixelFormat: target) ?? tex
     }
 
+    /// Build a stable identity URL for USDZ-embedded textures.
+    /// Uses the package-relative path when available (from ModelIO stringValue),
+    /// so identical embedded textures shared across meshes get the same identity.
+    private func embeddedTextureURL(from property: MDLMaterialProperty, fallbackTextureName: String) -> URL? {
+        if let propertyString = property.stringValue,
+           let openBracket = propertyString.lastIndex(of: "["),
+           let closeBracket = propertyString.lastIndex(of: "]"),
+           openBracket < closeBracket
+        {
+            let start = propertyString.index(after: openBracket)
+            let rawInnerPath = String(propertyString[start ..< closeBracket])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: "\\", with: "/")
+
+            if !rawInnerPath.isEmpty {
+                let encodedPath = rawInnerPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? rawInnerPath
+                return URL(string: "usdz-embedded://\(encodedPath)")
+            }
+        }
+
+        let encodedFallback = fallbackTextureName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? fallbackTextureName
+        return URL(string: "usdz-embedded://\(encodedFallback)")
+    }
+
     func loadTexture(from property: MDLMaterialProperty?,
                      isSRGB: Bool,
                      outputURL: inout URL?,
                      outputMDLTexture: inout MDLTexture?,
-                     mapType: String,
-                     assetName: String) -> MTLTexture?
+                     mapType: String) -> MTLTexture?
     {
         guard let property else { return nil }
 
@@ -1123,9 +1151,11 @@ final class TextureLoader {
            let mdlTex = sampler.texture
         {
             let textureName = mdlTex.name.isEmpty ? "embedded_\(mapType.replacingOccurrences(of: " ", with: "_"))" : mdlTex.name
-            let cacheKey = TextureCacheKey(id: "usdz-embedded://\(assetName)/\(textureName)", isSRGB: isSRGB)
+            let stableEmbeddedURL = embeddedTextureURL(from: property, fallbackTextureName: textureName)
+            let stableIdentity = stableEmbeddedURL?.absoluteString ?? "usdz-embedded://\(textureName)"
+            let cacheKey = TextureCacheKey(id: stableIdentity, isSRGB: isSRGB)
             if let cached = textureCache[cacheKey] {
-                outputURL = URL(string: cacheKey.id)
+                outputURL = stableEmbeddedURL ?? URL(string: cacheKey.id)
                 outputMDLTexture = mdlTex
                 return cached
             }
@@ -1133,12 +1163,7 @@ final class TextureLoader {
             do {
                 let tex = try mtkLoader.newTexture(texture: mdlTex, options: options)
 
-                // Generate a reference URL for embedded textures
-                // Use the texture's name or generate one based on the property semantic
-                // Create a pseudo-URL that indicates this is embedded in the USDZ
-                // Format: usdz-embedded://assetName/textureName
-                let pseudoURL = URL(string: "usdz-embedded://\(assetName)/\(textureName)")
-                outputURL = pseudoURL
+                outputURL = stableEmbeddedURL
 
                 // Store the MDLTexture reference for later use (e.g., texture extraction)
                 outputMDLTexture = mdlTex

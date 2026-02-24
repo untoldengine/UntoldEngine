@@ -1059,4 +1059,59 @@ final class StaticBatchingTest: BaseRenderSetup {
         print("   Dungeon batch ID: \(dungeonBatchId?.uuidString ?? "nil")")
         print("   Chair batch ID: \(chairBatchId?.uuidString ?? "nil")")
     }
+
+    func testLegacyEmbeddedPseudoURLsDoNotSplitBatching() {
+        // Legacy embedded pseudo-URLs were mesh-scoped:
+        // usdz-embedded://<meshName>/embedded_Basecolor_map
+        // Even with different mesh hosts, entities should still batch together
+        // when they share the same source asset and embedded texture token.
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
+        var entities: [EntityID] = []
+        for i in 0 ..< 3 {
+            let entity = createEntity()
+
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+            }
+
+            if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                transform.position = simd_float3(Float(i) * 2.0, 0, 0)
+            }
+
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+
+            let legacyEmbeddedURL = URL(string: "usdz-embedded://SM_Env_Ceiling_Stone_\(i)/embedded_Basecolor_map")!
+            let didUpdate = updateMaterial(entityId: entity) { material in
+                material.baseColorURL = legacyEmbeddedURL
+            }
+            XCTAssertTrue(didUpdate, "❌ Failed to update material for entity \(entity)")
+
+            entities.append(entity)
+        }
+
+        generateBatches()
+        XCTAssertGreaterThan(BatchingSystem.shared.batchGroups.count, 0, "❌ Should create at least one batch")
+
+        let firstBatchId = BatchingSystem.shared.getBatchInfo(for: entities[0])?.batchId
+        XCTAssertNotNil(firstBatchId, "❌ First entity should be batched")
+
+        for entity in entities {
+            let batchInfo = BatchingSystem.shared.getBatchInfo(for: entity)
+            XCTAssertNotNil(batchInfo, "❌ Entity should be batched")
+            XCTAssertEqual(batchInfo?.batchId, firstBatchId, "❌ Legacy embedded URL host differences should not split batches")
+        }
+    }
 }

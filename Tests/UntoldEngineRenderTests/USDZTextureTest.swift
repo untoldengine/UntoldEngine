@@ -64,7 +64,11 @@ final class USDZTextureTest: BaseRenderSetup {
         if let baseColorURL = getMaterialTextureURL(entityId: entity, type: .baseColor) {
             // Then: Check if it's an embedded URL
             XCTAssertEqual(baseColorURL.scheme, "usdz-embedded", "Embedded texture should have usdz-embedded:// scheme")
-            XCTAssertTrue(baseColorURL.absoluteString.contains("Mesh_SoccerPlayer1"), "URL should reference the model name")
+            XCTAssertFalse(baseColorURL.absoluteString.contains("Mesh_SoccerPlayer1"), "Embedded URL identity should not be mesh-scoped")
+            XCTAssertTrue(
+                baseColorURL.absoluteString.contains("textures/") || baseColorURL.absoluteString.contains("embedded_"),
+                "Embedded URL should use package-relative texture path when available, otherwise fallback token"
+            )
         }
     }
 
