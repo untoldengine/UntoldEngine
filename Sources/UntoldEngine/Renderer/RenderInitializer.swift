@@ -107,6 +107,12 @@ func createTexture(
     return texture
 }
 
+@inline(__always)
+func calculateHZBMipCount(width: Int, height: Int) -> Int {
+    let maxDim = max(1, max(width, height))
+    return Int(floor(log2(Double(maxDim)))) + 1
+}
+
 func configureAttachment(
     descriptor: MTLRenderPassAttachmentDescriptor?,
     texture: MTLTexture?,
@@ -383,6 +389,11 @@ func initRenderPassDescriptors() {
 
 func initTextureResources() {
     let wf = renderInfo.colorPipeline.working
+    let viewportWidth = max(1, Int(renderInfo.viewPort.x))
+    let viewportHeight = max(1, Int(renderInfo.viewPort.y))
+
+    // Recreated on resize/init. Mark invalid until a new pyramid is built from depth.
+    renderInfo.hzbIsValid = false
 
     // Shadow Texture
     textureResources.shadowMap = createTexture(
@@ -400,8 +411,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Color Texture",
         pixelFormat: wf.gBufferAlbedo,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget],
         storageMode: .shared
     )
@@ -411,8 +422,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Normal Texture",
         pixelFormat: wf.gBufferNormal,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -422,8 +433,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Position Texture",
         pixelFormat: wf.gBufferPosition,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -433,8 +444,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Emissive Texture",
         pixelFormat: wf.gBufferEmissive,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -444,8 +455,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Depth Texture",
         pixelFormat: renderInfo.depthPixelFormat,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget],
         storageMode: .private
     )
@@ -455,8 +466,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Deferred Depth Texture",
         pixelFormat: renderInfo.depthPixelFormat,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget],
         storageMode: .private
     )
@@ -466,8 +477,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "ssao Depth Texture",
         pixelFormat: renderInfo.depthPixelFormat,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget],
         storageMode: .private
     )
@@ -477,8 +488,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "ssao Blur Depth Texture",
         pixelFormat: renderInfo.depthPixelFormat,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget],
         storageMode: .private
     )
@@ -488,8 +499,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Material Texture",
         pixelFormat: wf.gBufferMaterial,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -499,8 +510,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Deferred Color Texture",
         pixelFormat: wf.sceneColor,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -510,8 +521,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Tonemap Texture",
         pixelFormat: wf.sceneColor,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -521,8 +532,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Blur Texture Hor",
         pixelFormat: wf.postProcess,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -531,8 +542,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Blur Texture Ver",
         pixelFormat: wf.postProcess,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -542,8 +553,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Color Correction Debug Texture",
         pixelFormat: wf.postProcess,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -553,8 +564,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Bloom Threshold Texture",
         pixelFormat: wf.postProcess,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -564,8 +575,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Bloom Composite Texture",
         pixelFormat: wf.postProcess,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -575,8 +586,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Vignette Texture",
         pixelFormat: wf.postProcess,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -586,8 +597,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Chromatic Aberration Texture",
         pixelFormat: wf.postProcess,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -597,8 +608,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Depth of Field Texture",
         pixelFormat: wf.postProcess,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -608,8 +619,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "SSAO Texture",
         pixelFormat: SSAOParams.shared.quality.textureFormat,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -619,8 +630,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "SSAO Blur Texture",
         pixelFormat: SSAOParams.shared.quality.textureFormat,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -630,8 +641,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Gizmo Depth Texture",
         pixelFormat: renderInfo.depthPixelFormat,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget],
         storageMode: .private
     )
@@ -641,8 +652,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Gizmo Color Texture",
         pixelFormat: wf.gizmo,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -652,8 +663,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Environment Color Texture",
         pixelFormat: wf.environment,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -663,8 +674,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Gaussian Color Texture",
         pixelFormat: wf.gaussian,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -673,8 +684,8 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Scene Composite Texture",
         pixelFormat: wf.sceneComposite,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
@@ -683,11 +694,47 @@ func initTextureResources() {
         device: renderInfo.device,
         label: "Look Output Texture",
         pixelFormat: wf.lookOutput,
-        width: Int(renderInfo.viewPort.x),
-        height: Int(renderInfo.viewPort.y),
+        width: viewportWidth,
+        height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+
+    // HZB depth pyramid texture and per-mip views
+    let hzbMipCount = calculateHZBMipCount(width: viewportWidth, height: viewportHeight)
+    textureResources.hzbDepthPyramid = createTexture(
+        device: renderInfo.device,
+        label: "HZB Depth Pyramid",
+        pixelFormat: .r32Float,
+        width: viewportWidth,
+        height: viewportHeight,
+        usage: [.shaderRead, .shaderWrite],
+        storageMode: .private,
+        mipMapLevels: hzbMipCount
+    )
+
+    textureResources.hzbMipViews.removeAll(keepingCapacity: true)
+    textureResources.hzbDebugMipTexture = nil
+    renderInfo.hzbMipCount = 0
+
+    if let hzbTexture = textureResources.hzbDepthPyramid {
+        textureResources.hzbMipViews.reserveCapacity(hzbTexture.mipmapLevelCount)
+        for level in 0 ..< hzbTexture.mipmapLevelCount {
+            if let mipView = hzbTexture.makeTextureView(
+                pixelFormat: hzbTexture.pixelFormat,
+                textureType: .type2D,
+                levels: level ..< (level + 1),
+                slices: 0 ..< 1
+            ) {
+                mipView.label = "HZB Depth Pyramid Mip \(level)"
+                textureResources.hzbMipViews.append(mipView)
+            } else {
+                Logger.logWarning(message: "Failed to create HZB mip view for level \(level)")
+            }
+        }
+
+        renderInfo.hzbMipCount = textureResources.hzbMipViews.count
+    }
 
     // Area light textures
 //    textureResources.areaTextureLTCMag = try? loadTexture(device: renderInfo.device, textureName: "ltc_mag", withExtension: "png")

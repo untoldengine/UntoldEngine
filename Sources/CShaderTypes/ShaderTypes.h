@@ -368,6 +368,34 @@ typedef enum{
     compactPassVisibilityCountIndex
 }ScatterCompactBufferIndices;
 
+// HZB build
+typedef enum{
+    hzbBuildPassMipLevelIndex,
+    hzbBuildPassSourceDimensionsIndex
+}HZBBuildBufferIndices;
+
+typedef enum{
+    hzbBuildPassDepthTextureIndex,
+    hzbBuildPassSourceMipTextureIndex,
+    hzbBuildPassDestMipTextureIndex
+}HZBBuildTextureIndices;
+
+// HZB occlusion culling
+typedef enum{
+    hzbCullPassFrustumIndex,
+    hzbCullPassEntityAABBIndex,
+    hzbCullPassEntityAABBCountIndex,
+    hzbCullPassVisibilityIndex,
+    hzbCullPassVisibleCountIndex,
+    hzbCullPassProjectionMatrixIndex,
+    hzbCullPassViewportIndex,
+    hzbCullPassMipCountIndex
+}HZBOcclusionCullingBufferIndices;
+
+typedef enum{
+    hzbCullPassDepthPyramidTextureIndex
+}HZBOcclusionCullingTextureIndices;
+
 typedef enum {
     imagePlaneARPositions    = 0,
 } ARBufferIndices;

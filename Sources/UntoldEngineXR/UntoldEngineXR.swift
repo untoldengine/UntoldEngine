@@ -405,6 +405,10 @@
                 EngineProfiler.shared.endScope(.encode)
             }
 
+            // Temporal HZB schedule for stereo:
+            // run once after both eyes are rendered so next frame culling can consume it.
+            buildHZBDepthPyramid(commandBuffer)
+
             drawable.encodePresent(commandBuffer: commandBuffer)
 
             EngineProfiler.shared.attach(to: commandBuffer, label: "XRFrame")

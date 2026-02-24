@@ -241,4 +241,176 @@ final class CullingTest: BaseRenderSetup {
 
         XCTAssertEqual(Int(visibleCount), expectedVisiblePairs.count)
     }
+
+    private func makeHZBTestTexture(depthValue: Float) -> MTLTexture {
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .r32Float,
+            width: 1,
+            height: 1,
+            mipmapped: false
+        )
+        descriptor.usage = [.shaderRead]
+        descriptor.storageMode = .shared
+        let texture = renderInfo.device.makeTexture(descriptor: descriptor)!
+
+        var value = depthValue
+        withUnsafeBytes(of: &value) { bytes in
+            texture.replace(
+                region: MTLRegionMake2D(0, 0, 1, 1),
+                mipmapLevel: 0,
+                withBytes: bytes.baseAddress!,
+                bytesPerRow: MemoryLayout<Float>.stride
+            )
+        }
+        return texture
+    }
+
+    private func makeVisibleEntity(center: simd_float3,
+                                   halfExtent: simd_float3,
+                                   index: UInt32 = 100,
+                                   version: UInt32 = 1) -> VisibleEntity
+    {
+        VisibleEntity(
+            center: simd_float4(center.x, center.y, center.z, 0),
+            halfExtent: simd_float4(halfExtent.x, halfExtent.y, halfExtent.z, 0),
+            index: index,
+            version: version,
+            pad0: 0,
+            pad1: 0
+        )
+    }
+
+    func test_executeHZBOcclusionCulling_keeps_visible_candidate_when_not_occluded() {
+        let originalHZBTexture = textureResources.hzbDepthPyramid
+        let originalHZBMipCount = renderInfo.hzbMipCount
+        let originalHZBValid = renderInfo.hzbIsValid
+        let originalViewport = renderInfo.viewPort
+        defer {
+            textureResources.hzbDepthPyramid = originalHZBTexture
+            renderInfo.hzbMipCount = originalHZBMipCount
+            renderInfo.hzbIsValid = originalHZBValid
+            renderInfo.viewPort = originalViewport
+        }
+
+        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: 1.0)
+        renderInfo.hzbMipCount = 1
+        renderInfo.hzbIsValid = true
+        renderInfo.viewPort = simd_float2(1920, 1080)
+
+        var candidateCount: UInt32 = 1
+        var candidate = makeVisibleEntity(center: simd_float3(0, 0, 0.6), halfExtent: simd_float3(0.1, 0.1, 0.1), index: 42, version: 9)
+        let inputCountBuffer = renderInfo.device.makeBuffer(bytes: &candidateCount, length: MemoryLayout<UInt32>.stride)!
+        let inputVisibilityBuffer = renderInfo.device.makeBuffer(bytes: &candidate, length: MemoryLayout<VisibleEntity>.stride)!
+        let outputCountBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride)!
+        let outputVisibilityBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride)!
+        memset(outputCountBuffer.contents(), 0, MemoryLayout<UInt32>.stride)
+
+        let commandBuffer = renderInfo.commandQueue.makeCommandBuffer()!
+        let didRun = executeHZBOcclusionCulling(
+            commandBuffer,
+            viewProjection: matrix_identity_float4x4,
+            dispatchCount: 1,
+            inputVisibilityBuffer: inputVisibilityBuffer,
+            inputVisibleCountBuffer: inputCountBuffer,
+            outputVisibilityBuffer: outputVisibilityBuffer,
+            outputVisibleCountBuffer: outputCountBuffer
+        )
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+
+        XCTAssertTrue(didRun, "Occlusion pass should run when HZB is valid")
+        let outputCount = outputCountBuffer.contents().load(as: UInt32.self)
+        XCTAssertEqual(outputCount, 1, "Candidate should remain visible")
+
+        let output = outputVisibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: 1)
+        XCTAssertEqual(output[0].index, 42)
+        XCTAssertEqual(output[0].version, 9)
+    }
+
+    func test_executeHZBOcclusionCulling_rejects_occluded_candidate() {
+        let originalHZBTexture = textureResources.hzbDepthPyramid
+        let originalHZBMipCount = renderInfo.hzbMipCount
+        let originalHZBValid = renderInfo.hzbIsValid
+        let originalViewport = renderInfo.viewPort
+        defer {
+            textureResources.hzbDepthPyramid = originalHZBTexture
+            renderInfo.hzbMipCount = originalHZBMipCount
+            renderInfo.hzbIsValid = originalHZBValid
+            renderInfo.viewPort = originalViewport
+        }
+
+        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: 0.2)
+        renderInfo.hzbMipCount = 1
+        renderInfo.hzbIsValid = true
+        renderInfo.viewPort = simd_float2(1920, 1080)
+
+        var candidateCount: UInt32 = 1
+        var candidate = makeVisibleEntity(center: simd_float3(0, 0, 0.8), halfExtent: simd_float3(0.1, 0.1, 0.1), index: 7, version: 3)
+        let inputCountBuffer = renderInfo.device.makeBuffer(bytes: &candidateCount, length: MemoryLayout<UInt32>.stride)!
+        let inputVisibilityBuffer = renderInfo.device.makeBuffer(bytes: &candidate, length: MemoryLayout<VisibleEntity>.stride)!
+        let outputCountBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride)!
+        let outputVisibilityBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride)!
+        memset(outputCountBuffer.contents(), 0, MemoryLayout<UInt32>.stride)
+
+        let commandBuffer = renderInfo.commandQueue.makeCommandBuffer()!
+        let didRun = executeHZBOcclusionCulling(
+            commandBuffer,
+            viewProjection: matrix_identity_float4x4,
+            dispatchCount: 1,
+            inputVisibilityBuffer: inputVisibilityBuffer,
+            inputVisibleCountBuffer: inputCountBuffer,
+            outputVisibilityBuffer: outputVisibilityBuffer,
+            outputVisibleCountBuffer: outputCountBuffer
+        )
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+
+        XCTAssertTrue(didRun, "Occlusion pass should run when HZB is valid")
+        let outputCount = outputCountBuffer.contents().load(as: UInt32.self)
+        XCTAssertEqual(outputCount, 0, "Candidate should be rejected as occluded")
+    }
+
+    func test_executeHZBOcclusionCulling_returns_false_when_hzb_invalid() {
+        let originalHZBTexture = textureResources.hzbDepthPyramid
+        let originalHZBMipCount = renderInfo.hzbMipCount
+        let originalHZBValid = renderInfo.hzbIsValid
+        let originalViewport = renderInfo.viewPort
+        defer {
+            textureResources.hzbDepthPyramid = originalHZBTexture
+            renderInfo.hzbMipCount = originalHZBMipCount
+            renderInfo.hzbIsValid = originalHZBValid
+            renderInfo.viewPort = originalViewport
+        }
+
+        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: 1.0)
+        renderInfo.hzbMipCount = 1
+        renderInfo.hzbIsValid = false
+        renderInfo.viewPort = simd_float2(1920, 1080)
+
+        var candidateCount: UInt32 = 1
+        var candidate = makeVisibleEntity(center: simd_float3(0, 0, 0.6), halfExtent: simd_float3(0.1, 0.1, 0.1))
+        let inputCountBuffer = renderInfo.device.makeBuffer(bytes: &candidateCount, length: MemoryLayout<UInt32>.stride)!
+        let inputVisibilityBuffer = renderInfo.device.makeBuffer(bytes: &candidate, length: MemoryLayout<VisibleEntity>.stride)!
+
+        var sentinel: UInt32 = 77
+        let outputCountBuffer = renderInfo.device.makeBuffer(bytes: &sentinel, length: MemoryLayout<UInt32>.stride)!
+        let outputVisibilityBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride)!
+
+        let commandBuffer = renderInfo.commandQueue.makeCommandBuffer()!
+        let didRun = executeHZBOcclusionCulling(
+            commandBuffer,
+            viewProjection: matrix_identity_float4x4,
+            dispatchCount: 1,
+            inputVisibilityBuffer: inputVisibilityBuffer,
+            inputVisibleCountBuffer: inputCountBuffer,
+            outputVisibilityBuffer: outputVisibilityBuffer,
+            outputVisibleCountBuffer: outputCountBuffer
+        )
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+
+        XCTAssertFalse(didRun, "Occlusion pass should not run when HZB is invalid")
+        let outputCount = outputCountBuffer.contents().load(as: UInt32.self)
+        XCTAssertEqual(outputCount, 77, "Output count should remain untouched when pass does not run")
+    }
 }
