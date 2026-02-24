@@ -514,8 +514,6 @@ public class BatchingSystem {
     }
 
     // Returns a stable texture identity string.
-    // For embedded URLs, we preserve the full pseudo-URL so different embedded textures
-    // with the same filename do not collide.
     private func textureIdentity(_ texture: MTLTexture?, _ url: URL?) -> String {
         if let url {
             return normalizeTextureURL(url)
@@ -529,6 +527,30 @@ public class BatchingSystem {
     // Normalize texture URL for batching compatibility.
     private func normalizeTextureURL(_ url: URL?) -> String {
         guard let url else { return "none" }
+
+        // Legacy embedded pseudo-URLs were generated as:
+        // usdz-embedded://<meshName>/embedded_<MapType>
+        // The meshName host differs per mesh even when the embedded texture is shared.
+        // Collapse this pattern to the texture token so shared embedded textures batch together.
+        if url.scheme == "usdz-embedded" {
+            let host = url.host ?? ""
+            let trimmedPath = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+
+            if !trimmedPath.isEmpty {
+                if trimmedPath.hasPrefix("embedded_"), !host.isEmpty {
+                    return "usdz-embedded://\(trimmedPath)"
+                }
+                if !host.isEmpty {
+                    return "usdz-embedded://\(host)/\(trimmedPath)"
+                }
+                return "usdz-embedded://\(trimmedPath)"
+            }
+
+            if !host.isEmpty {
+                return "usdz-embedded://\(host)"
+            }
+        }
+
         return url.standardized.absoluteString
     }
 
