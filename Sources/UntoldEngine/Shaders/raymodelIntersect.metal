@@ -25,8 +25,10 @@ kernel void rayModelIntersectKernel(uint2 tid [[thread_position_in_grid]],
 
 
     ray ray;
-    ray.origin=origin;
+    ray.origin = origin;
     ray.direction = direction;
+    ray.min_distance = 1e-4f;
+    ray.max_distance = INFINITY;
 
     intersector<triangle_data,instancing> i;
     typename intersector<triangle_data,instancing>::result_type intersection;
