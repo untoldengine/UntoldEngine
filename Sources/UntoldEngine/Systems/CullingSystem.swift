@@ -121,6 +121,18 @@ public func performFrustumCulling(commandBuffer: MTLCommandBuffer) {
     }
 }
 
+public func getHZBDebugStats() -> HZBDebugStats {
+    HZBDebugMonitor.shared.stats
+}
+
+public func setHZBDebugLogging(enabled: Bool) {
+    HZBDebugMonitor.shared.enableLogging = enabled
+}
+
+public func setHZBDebugMipLevel(_ mipLevel: Int) {
+    renderInfo.hzbDebugMipLevel = max(0, mipLevel)
+}
+
 func buildFrustum(from viewProj: simd_float4x4,
                   ndcNear: Float = 0, ndcFar: Float = 1) -> Frustum
 {
@@ -205,6 +217,22 @@ func initFrustumCulllingCompute() {
 
     createComputePipeline(into: &reduceScanScatterCompactedPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "scatterCompacted", pipelineName: "Stream and compact")
 
+    createComputePipeline(
+        into: &hzbBuildPyramidPipeline,
+        device: renderInfo.device,
+        library: renderInfo.library,
+        functionName: "hzbBuildDepthPyramid",
+        pipelineName: "HZB Build Pyramid"
+    )
+
+    createComputePipeline(
+        into: &hzbOcclusionCullingPipeline,
+        device: renderInfo.device,
+        library: renderInfo.library,
+        functionName: "hzbCullVisibleEntities",
+        pipelineName: "HZB Occlusion Culling"
+    )
+
     // Make and allocate buffers
     tripleBufferResources.frustumPlane = TripleBuffer<simd_float4>(device: renderInfo.device, initialCapacity: planeCount)
 
@@ -213,6 +241,8 @@ func initFrustumCulllingCompute() {
     // Per-frame visibility outputs (triple-buffered)
     tripleBufferResources.visibleCount = TripleBuffer<UInt32>(device: renderInfo.device, initialCapacity: 1)
     tripleBufferResources.visibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
+    tripleBufferResources.hzbCandidateVisibleCount = TripleBuffer<UInt32>(device: renderInfo.device, initialCapacity: 1)
+    tripleBufferResources.hzbCandidateVisibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
 
     // Reduce scan buffers
     bufferResources.reduceScanFlags = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * MAX_ENTITIES, options: .storageModePrivate)
@@ -225,6 +255,150 @@ func initFrustumCulllingCompute() {
 
     // clear up visible entity array
     visibleEntityIds.removeAll(keepingCapacity: true)
+}
+
+public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer) {
+    if hzbBuildPyramidPipeline.success == false {
+        handleError(.pipelineStateNulled, hzbBuildPyramidPipeline.name ?? "HZB Build Pyramid")
+        renderInfo.hzbIsValid = false
+        textureResources.hzbDebugMipTexture = nil
+        HZBDebugMonitor.shared.recordBuild(valid: false, mipCount: renderInfo.hzbMipCount, selectedMipLevel: max(0, renderInfo.hzbDebugMipLevel), selectedMipSize: .zero)
+        return
+    }
+
+    guard let depthTexture = textureResources.depthMap else {
+        handleError(.textureMissing, "Depth Texture")
+        renderInfo.hzbIsValid = false
+        textureResources.hzbDebugMipTexture = nil
+        HZBDebugMonitor.shared.recordBuild(valid: false, mipCount: renderInfo.hzbMipCount, selectedMipLevel: max(0, renderInfo.hzbDebugMipLevel), selectedMipSize: .zero)
+        return
+    }
+
+    guard !textureResources.hzbMipViews.isEmpty else {
+        renderInfo.hzbIsValid = false
+        textureResources.hzbDebugMipTexture = nil
+        HZBDebugMonitor.shared.recordBuild(valid: false, mipCount: renderInfo.hzbMipCount, selectedMipLevel: max(0, renderInfo.hzbDebugMipLevel), selectedMipSize: .zero)
+        return
+    }
+
+    guard let pipelineState = hzbBuildPyramidPipeline.pipelineState else {
+        handleError(.pipelineStateNulled, hzbBuildPyramidPipeline.name ?? "HZB Build Pyramid")
+        renderInfo.hzbIsValid = false
+        textureResources.hzbDebugMipTexture = nil
+        HZBDebugMonitor.shared.recordBuild(valid: false, mipCount: renderInfo.hzbMipCount, selectedMipLevel: max(0, renderInfo.hzbDebugMipLevel), selectedMipSize: .zero)
+        return
+    }
+
+    for level in 0 ..< textureResources.hzbMipViews.count {
+        let destMip = textureResources.hzbMipViews[level]
+        let sourceMip: MTLTexture? = (level > 0) ? textureResources.hzbMipViews[level - 1] : nil
+
+        let sourceWidth = level == 0 ? depthTexture.width : (sourceMip?.width ?? 1)
+        let sourceHeight = level == 0 ? depthTexture.height : (sourceMip?.height ?? 1)
+
+        var mipLevel = UInt32(level)
+        var sourceDimensions = simd_uint2(
+            UInt32(sourceWidth),
+            UInt32(sourceHeight)
+        )
+
+        let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+        computeEncoder.label = "HZB Build Mip \(level)"
+        computeEncoder.setComputePipelineState(pipelineState)
+        computeEncoder.setBytes(&mipLevel, length: MemoryLayout<UInt32>.stride, index: Int(hzbBuildPassMipLevelIndex.rawValue))
+        computeEncoder.setBytes(&sourceDimensions, length: MemoryLayout<simd_uint2>.stride, index: Int(hzbBuildPassSourceDimensionsIndex.rawValue))
+        computeEncoder.setTexture(depthTexture, index: Int(hzbBuildPassDepthTextureIndex.rawValue))
+        computeEncoder.setTexture(sourceMip, index: Int(hzbBuildPassSourceMipTextureIndex.rawValue))
+        computeEncoder.setTexture(destMip, index: Int(hzbBuildPassDestMipTextureIndex.rawValue))
+
+        let threadsPerThreadgroup = MTLSize(width: 8, height: 8, depth: 1)
+        let threadgroupsPerGrid = MTLSize(
+            width: (destMip.width + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
+            height: (destMip.height + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height,
+            depth: 1
+        )
+        computeEncoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
+        computeEncoder.endEncoding()
+    }
+
+    renderInfo.hzbIsValid = true
+
+    let selectedMipLevel = min(max(renderInfo.hzbDebugMipLevel, 0), textureResources.hzbMipViews.count - 1)
+    renderInfo.hzbDebugMipLevel = selectedMipLevel
+    let selectedMipTexture = textureResources.hzbMipViews[selectedMipLevel]
+    textureResources.hzbDebugMipTexture = selectedMipTexture
+
+    HZBDebugMonitor.shared.recordBuild(
+        valid: true,
+        mipCount: renderInfo.hzbMipCount,
+        selectedMipLevel: selectedMipLevel,
+        selectedMipSize: simd_int2(Int32(selectedMipTexture.width), Int32(selectedMipTexture.height))
+    )
+}
+
+@discardableResult
+func executeHZBOcclusionCulling(
+    _ commandBuffer: MTLCommandBuffer,
+    viewProjection: simd_float4x4,
+    dispatchCount: Int,
+    inputVisibilityBuffer: MTLBuffer,
+    inputVisibleCountBuffer: MTLBuffer,
+    outputVisibilityBuffer: MTLBuffer,
+    outputVisibleCountBuffer: MTLBuffer
+) -> Bool {
+    if renderInfo.hzbIsValid == false {
+        return false
+    }
+
+    guard let hzbDepthPyramid = textureResources.hzbDepthPyramid else {
+        renderInfo.hzbIsValid = false
+        return false
+    }
+
+    if hzbOcclusionCullingPipeline.success == false {
+        return false
+    }
+
+    guard let pipelineState = hzbOcclusionCullingPipeline.pipelineState else {
+        return false
+    }
+
+    // Reset output count before compacting surviving entities.
+    let blit = commandBuffer.makeBlitCommandEncoder()!
+    blit.fill(buffer: outputVisibleCountBuffer, range: 0 ..< MemoryLayout<UInt32>.stride, value: 0)
+    blit.endEncoding()
+
+    var viewport = simd_float2(renderInfo.viewPort.x, renderInfo.viewPort.y)
+    var mipCount = UInt32(max(0, renderInfo.hzbMipCount))
+    var viewProjectionMatrix = viewProjection
+
+    let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
+    computeEncoder.label = "HZB Occlusion Culling pass"
+    computeEncoder.setComputePipelineState(pipelineState)
+    computeEncoder.setBuffer(outputVisibilityBuffer, offset: 0, index: Int(hzbCullPassEntityAABBIndex.rawValue))
+    computeEncoder.setBuffer(inputVisibleCountBuffer, offset: 0, index: Int(hzbCullPassEntityAABBCountIndex.rawValue))
+    computeEncoder.setBuffer(inputVisibilityBuffer, offset: 0, index: Int(hzbCullPassVisibilityIndex.rawValue))
+    computeEncoder.setBuffer(outputVisibleCountBuffer, offset: 0, index: Int(hzbCullPassVisibleCountIndex.rawValue))
+    computeEncoder.setBytes(&viewProjectionMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(hzbCullPassProjectionMatrixIndex.rawValue))
+    computeEncoder.setBytes(&viewport, length: MemoryLayout<simd_float2>.stride, index: Int(hzbCullPassViewportIndex.rawValue))
+    computeEncoder.setBytes(&mipCount, length: MemoryLayout<UInt32>.stride, index: Int(hzbCullPassMipCountIndex.rawValue))
+    computeEncoder.setTexture(hzbDepthPyramid, index: Int(hzbCullPassDepthPyramidTextureIndex.rawValue))
+
+    let tew = pipelineState.threadExecutionWidth
+    let maxT = pipelineState.maxTotalThreadsPerThreadgroup
+    let target = 256
+    var block = min(target, maxT)
+    block = (block / tew) * tew
+    block = max(block, tew)
+
+    let threadgroups = max(1, (dispatchCount + block - 1) / block)
+    computeEncoder.dispatchThreadgroups(
+        MTLSize(width: threadgroups, height: 1, depth: 1),
+        threadsPerThreadgroup: MTLSize(width: block, height: 1, depth: 1)
+    )
+    computeEncoder.endEncoding()
+
+    return true
 }
 
 public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
@@ -268,11 +442,21 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    let visibleCountBuffer = visibleCountTriple.bufferForWrite(frame: submitFrameIndex)
+    guard let hzbCandidateVisibleCountTriple = tripleBufferResources.hzbCandidateVisibleCount else {
+        handleError(.bufferAllocationFailed, "HZB candidate count triple buffer in frustum culling")
+        return
+    }
 
-    // clear up visible count buffer
+    guard let hzbCandidateVisibilityTriple = tripleBufferResources.hzbCandidateVisibility else {
+        handleError(.bufferAllocationFailed, "HZB candidate visibility triple buffer in frustum culling")
+        return
+    }
+
+    let candidateVisibleCountBuffer = hzbCandidateVisibleCountTriple.bufferForWrite(frame: submitFrameIndex)
+
+    // clear up candidate visible count buffer
     let blit = commandBuffer.makeBlitCommandEncoder()!
-    blit.fill(buffer: visibleCountBuffer, range: 0 ..< MemoryLayout<UInt32>.stride, value: 0)
+    blit.fill(buffer: candidateVisibleCountBuffer, range: 0 ..< MemoryLayout<UInt32>.stride, value: 0)
     blit.endEncoding()
 
     let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: submitFrameIndex)
@@ -325,9 +509,11 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     // ensure we have enough capacity
     entityAABBTripleBuffer.ensureCapacity(count)
+    hzbCandidateVisibilityTriple.ensureCapacity(count)
     visibilityTriple.ensureCapacity(count)
 
     guard count > 0 else {
+        HZBDebugMonitor.shared.recordCull(candidateCount: 0, visibleCount: 0, usedHZB: false, optimizedPath: false)
         return
     }
 
@@ -349,16 +535,16 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     // pick the buffer the gpu should read
     let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: submitFrameIndex)
 
-    let visibilityBuffer = visibilityTriple.bufferForWrite(frame: submitFrameIndex)
+    let candidateVisibilityBuffer = hzbCandidateVisibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
     computeEncoder.setBuffer(entityAABBReadBuffer, offset: 0, index: Int(frustumCullingPassObjectIndex.rawValue))
 
     var count32 = UInt32(count)
     computeEncoder.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(frustumCullingPassObjectCountIndex.rawValue))
 
-    computeEncoder.setBuffer(visibleCountBuffer, offset: 0, index: Int(frustumCullingPassVisibleCountIndex.rawValue))
+    computeEncoder.setBuffer(candidateVisibleCountBuffer, offset: 0, index: Int(frustumCullingPassVisibleCountIndex.rawValue))
 
-    computeEncoder.setBuffer(visibilityBuffer, offset: 0, index: Int(frustumCullingPassVisibilityIndex.rawValue))
+    computeEncoder.setBuffer(candidateVisibilityBuffer, offset: 0, index: Int(frustumCullingPassVisibilityIndex.rawValue))
 
     let tew = frustumCullingPipeline.pipelineState?.threadExecutionWidth // e.g. 32/64
     let maxT = frustumCullingPipeline.pipelineState?.maxTotalThreadsPerThreadgroup // device cap
@@ -377,9 +563,33 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     computeEncoder.endEncoding()
 
+    let finalVisibleCountBuffer = visibleCountTriple.bufferForWrite(frame: submitFrameIndex)
+    let finalVisibilityBuffer = visibilityTriple.bufferForWrite(frame: submitFrameIndex)
+
+    let didRunOcclusion = executeHZBOcclusionCulling(
+        commandBuffer,
+        viewProjection: viewProjection,
+        dispatchCount: count,
+        inputVisibilityBuffer: candidateVisibilityBuffer,
+        inputVisibleCountBuffer: candidateVisibleCountBuffer,
+        outputVisibilityBuffer: finalVisibilityBuffer,
+        outputVisibleCountBuffer: finalVisibleCountBuffer
+    )
+
+    let resolvedVisibleCountBuffer = didRunOcclusion ? finalVisibleCountBuffer : candidateVisibleCountBuffer
+    let resolvedVisibilityBuffer = didRunOcclusion ? finalVisibilityBuffer : candidateVisibilityBuffer
+
     commandBuffer.addCompletedHandler { _ in
-        let visibleCount = visibleCountBuffer.contents().load(as: UInt32.self)
-        let visibleEntities = visibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
+        let candidateCount = Int(candidateVisibleCountBuffer.contents().load(as: UInt32.self))
+        let visibleCount = resolvedVisibleCountBuffer.contents().load(as: UInt32.self)
+        let visibleEntities = resolvedVisibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
+
+        HZBDebugMonitor.shared.recordCull(
+            candidateCount: candidateCount,
+            visibleCount: Int(visibleCount),
+            usedHZB: didRunOcclusion,
+            optimizedPath: false
+        )
 
         var nextVisibleIds: [EntityID] = []
         nextVisibleIds.reserveCapacity(Int(visibleCount))
@@ -455,11 +665,21 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         return
     }
 
-    let visibleCountBuffer = visibleCountTriple.bufferForWrite(frame: submitFrameIndex)
+    guard let hzbCandidateVisibleCountTriple = tripleBufferResources.hzbCandidateVisibleCount else {
+        handleError(.bufferAllocationFailed, "HZB candidate count triple buffer in frustum culling")
+        return
+    }
 
-    // clear up visible count buffer
+    guard let hzbCandidateVisibilityTriple = tripleBufferResources.hzbCandidateVisibility else {
+        handleError(.bufferAllocationFailed, "HZB candidate visibility triple buffer in frustum culling")
+        return
+    }
+
+    let candidateVisibleCountBuffer = hzbCandidateVisibleCountTriple.bufferForWrite(frame: submitFrameIndex)
+
+    // clear up candidate visible count buffer
     let blit = commandBuffer.makeBlitCommandEncoder()!
-    blit.fill(buffer: visibleCountBuffer, range: 0 ..< MemoryLayout<UInt32>.stride, value: 0)
+    blit.fill(buffer: candidateVisibleCountBuffer, range: 0 ..< MemoryLayout<UInt32>.stride, value: 0)
     blit.endEncoding()
 
     let frustumWriteBuffer = frustumTripleBuffer.bufferForWrite(frame: submitFrameIndex)
@@ -512,9 +732,11 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     // ensure we have enough capacity
     entityAABBTripleBuffer.ensureCapacity(count)
+    hzbCandidateVisibilityTriple.ensureCapacity(count)
     visibilityTriple.ensureCapacity(count)
 
     guard count > 0 else {
+        HZBDebugMonitor.shared.recordCull(candidateCount: 0, visibleCount: 0, usedHZB: false, optimizedPath: true)
         return
     }
 
@@ -528,7 +750,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     // pick the buffer the gpu should read
     let entityAABBReadBuffer = entityAABBTripleBuffer.bufferForRead(frame: submitFrameIndex)
 
-    let visibilityBuffer = visibilityTriple.bufferForWrite(frame: submitFrameIndex)
+    let candidateVisibilityBuffer = hzbCandidateVisibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
     var count32 = UInt32(count)
 
@@ -614,8 +836,8 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         computeEncoderCompact.setBytes(&count32, length: MemoryLayout<UInt32>.stride, index: Int(compactPassCountIndex.rawValue))
 
-        computeEncoderCompact.setBuffer(visibilityBuffer, offset: 0, index: Int(compactPassVisibilityIndicesIndex.rawValue))
-        computeEncoderCompact.setBuffer(visibleCountBuffer, offset: 0, index: Int(compactPassVisibilityCountIndex.rawValue))
+        computeEncoderCompact.setBuffer(candidateVisibilityBuffer, offset: 0, index: Int(compactPassVisibilityIndicesIndex.rawValue))
+        computeEncoderCompact.setBuffer(candidateVisibleCountBuffer, offset: 0, index: Int(compactPassVisibilityCountIndex.rawValue))
 
         let w = min(reduceScanScatterCompactedPipeline.pipelineState!.maxTotalThreadsPerThreadgroup, 256)
         let numThreadgroups = (Int(count32) + w - 1) / w
@@ -625,9 +847,33 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         computeEncoderCompact.endEncoding()
     }
 
+    let finalVisibleCountBuffer = visibleCountTriple.bufferForWrite(frame: submitFrameIndex)
+    let finalVisibilityBuffer = visibilityTriple.bufferForWrite(frame: submitFrameIndex)
+
+    let didRunOcclusion = executeHZBOcclusionCulling(
+        commandBuffer,
+        viewProjection: viewProjection,
+        dispatchCount: count,
+        inputVisibilityBuffer: candidateVisibilityBuffer,
+        inputVisibleCountBuffer: candidateVisibleCountBuffer,
+        outputVisibilityBuffer: finalVisibilityBuffer,
+        outputVisibleCountBuffer: finalVisibleCountBuffer
+    )
+
+    let resolvedVisibleCountBuffer = didRunOcclusion ? finalVisibleCountBuffer : candidateVisibleCountBuffer
+    let resolvedVisibilityBuffer = didRunOcclusion ? finalVisibilityBuffer : candidateVisibilityBuffer
+
     commandBuffer.addCompletedHandler { _ in
-        let visibleCount = visibleCountBuffer.contents().load(as: UInt32.self)
-        let visibleEntities = visibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
+        let candidateCount = Int(candidateVisibleCountBuffer.contents().load(as: UInt32.self))
+        let visibleCount = resolvedVisibleCountBuffer.contents().load(as: UInt32.self)
+        let visibleEntities = resolvedVisibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
+
+        HZBDebugMonitor.shared.recordCull(
+            candidateCount: candidateCount,
+            visibleCount: Int(visibleCount),
+            usedHZB: didRunOcclusion,
+            optimizedPath: true
+        )
 
         var nextVisibleIds: [EntityID] = []
         nextVisibleIds.reserveCapacity(Int(visibleCount))

@@ -71,6 +71,8 @@ var reduceScanMarkVisiblePipeline = ComputePipeline()
 var reduceScanLocalScanPipeline = ComputePipeline()
 var reduceScanBlockScanPipeline = ComputePipeline()
 var reduceScanScatterCompactedPipeline = ComputePipeline()
+var hzbBuildPyramidPipeline = ComputePipeline()
+var hzbOcclusionCullingPipeline = ComputePipeline()
 var bitonicSortPipeline = ComputePipeline()
 var gaussianDepthPipeline = ComputePipeline()
 // Environment Mesh
@@ -193,7 +195,15 @@ public struct EntityAABB {
     public var pad1: UInt32 = 0
 }
 
-struct VisibleEntity { var index: UInt32; var version: UInt32 }
+struct VisibleEntity {
+    var center: simd_float4
+    var halfExtent: simd_float4
+    var index: UInt32
+    var version: UInt32
+    var pad0: UInt32 = 0
+    var pad1: UInt32 = 0
+}
+
 public var visibleEntityIds: [EntityID] = []
 public var tripleVisibleEntities = TripleCPUBuffer<EntityID>(inFlight: 3, initialCapacity: MAX_ENTITIES)
 public var cullFrameIndex: Int = 0

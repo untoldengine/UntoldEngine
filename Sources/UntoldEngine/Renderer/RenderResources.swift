@@ -46,6 +46,9 @@ public struct RenderInfo {
     public var presentColorPixelFormat: MTLPixelFormat = .bgra8Unorm_srgb
     public var presentDepthPixelFormat: MTLPixelFormat = .depth32Float
     public var colorPipeline: ColorPipelineConfig = .standard(presentFormat: .bgra8Unorm_srgb)
+    public var hzbMipCount: Int = 0
+    public var hzbIsValid: Bool = false
+    public var hzbDebugMipLevel: Int = 0
 }
 
 public struct BufferResources {
@@ -93,6 +96,8 @@ public struct TripleBufferResources {
     var entityAABB: TripleBuffer<EntityAABB>?
     var visibleCount: TripleBuffer<UInt32>?
     var visibility: TripleBuffer<VisibleEntity>?
+    var hzbCandidateVisibleCount: TripleBuffer<UInt32>?
+    var hzbCandidateVisibility: TripleBuffer<VisibleEntity>?
 }
 
 public struct VertexDescriptors {
@@ -165,6 +170,11 @@ public struct TextureResources {
 
     public var sceneCompositeTexture: MTLTexture?
     public var lookTexture: MTLTexture?
+
+    // Hi-Z / HZB
+    public var hzbDepthPyramid: MTLTexture?
+    public var hzbMipViews: [MTLTexture] = []
+    public var hzbDebugMipTexture: MTLTexture?
 }
 
 public struct AccelStructResources {

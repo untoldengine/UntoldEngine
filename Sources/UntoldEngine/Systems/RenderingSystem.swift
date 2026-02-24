@@ -59,6 +59,11 @@ func UpdateRenderingSystem(in view: MTKView) {
             // execute it
             EngineProfiler.shared.beginScope(.encode)
             executeGraph(graph, sortedPasses, commandBuffer)
+            // Temporal HZB schedule:
+            // 1) current frame renders depth
+            // 2) build HZB from that depth
+            // 3) next frame culling consumes HZB
+            buildHZBDepthPyramid(commandBuffer)
             EngineProfiler.shared.endScope(.encode)
         }
 
@@ -101,6 +106,12 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
 
     // execute it
     executeGraph(graph, sortedPasses, commandBuffer)
+
+    // AR path renders a single eye through this callback, so build HZB here.
+    // XR stereo path builds once after both eyes in UntoldEngineXR.executeXRSystemPass.
+    if renderInfo.immersionStyle == .ar {
+        buildHZBDepthPyramid(commandBuffer)
+    }
 
     // Note: Semaphore signaling is handled by executeXRSystemPass completion handler
     commandBuffer.addCompletedHandler { _ in

@@ -15,8 +15,12 @@
 using namespace metal;
 
 struct VisibleEntity{
+    float4 center;
+    float4 halfExtent;
     uint index;
     uint version;
+    uint pad0;
+    uint pad1;
 };
 
 inline bool aabbInFrustum(float3 c, float3 e, constant FrustumPlanes & f){
@@ -49,8 +53,12 @@ kernel void cullFrustumAABB(constant FrustumPlanes &fru [[buffer(frustumCullingP
     
     if (vis){
         uint dst = atomic_fetch_add_explicit(outCount, 1u, memory_order_relaxed);
+        out[dst].center = obj.center;
+        out[dst].halfExtent = obj.halfExtent;
         out[dst].index = obj.index;
         out[dst].version = obj.version;
+        out[dst].pad0 = 0u;
+        out[dst].pad1 = 0u;
     }
 }
 
@@ -162,8 +170,12 @@ kernel void scatterCompacted(
     const uint globalIdx = localIdx + blockOffsets[blockId];
 
     if (f != 0u) {
+        outIndices[globalIdx].center = objs[gid].center;
+        outIndices[globalIdx].halfExtent = objs[gid].halfExtent;
         outIndices[globalIdx].index = objs[gid].index;  // or write {index,version}/entityID here
         outIndices[globalIdx].version = objs[gid].version;
+        outIndices[globalIdx].pad0 = 0u;
+        outIndices[globalIdx].pad1 = 0u;
     }
 
     // The last thread can compute total visible (exclusive prefix of last + last flag)
@@ -171,5 +183,4 @@ kernel void scatterCompacted(
         visibleCount[0] = globalIdx + f;
     }
 }
-
 

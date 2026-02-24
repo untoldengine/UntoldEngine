@@ -290,6 +290,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         // 6. Integration stats monitoring
         SystemIntegrationMonitor.shared.tick()
+        HZBDebugMonitor.shared.tick()
 
         OctreeSystem.shared.updateDirtyBounds()
 
