@@ -21,7 +21,7 @@ kernel void rayModelIntersectKernel(uint2 tid [[thread_position_in_grid]],
                              device MTLAccelerationStructureInstanceDescriptor   *instances                 [[buffer(rayModelBufferInstanceIndex)]],
                              constant simd_float3 &origin [[buffer(rayModelOriginIndex)]],
                              constant simd_float3 &direction [[buffer(rayModelDirectionIndex)]],
-                             device int &instanceHit [[buffer(rayModelInstanceHitIndex)]]){
+                             device RayModelPickOutput &pickOutput [[buffer(rayModelInstanceHitIndex)]]) {
 
 
     ray ray;
@@ -47,9 +47,15 @@ kernel void rayModelIntersectKernel(uint2 tid [[thread_position_in_grid]],
 //    }
 
     //check for an intersection with a triangle, if so, shade it
-    if(intersection.type==intersection_type::triangle){
-        instanceHit=intersection.instance_id;
-    }else{
-        instanceHit = -1;
+    if (intersection.type == intersection_type::triangle) {
+        pickOutput.instanceHit = intersection.instance_id;
+        pickOutput.distance = intersection.distance;
+        pickOutput.triangleIndex = intersection.primitive_id;
+        pickOutput.barycentric = intersection.triangle_barycentric_coord;
+    } else {
+        pickOutput.instanceHit = -1;
+        pickOutput.distance = INFINITY;
+        pickOutput.triangleIndex = 0;
+        pickOutput.barycentric = simd_float2(0.0, 0.0);
     }
 }

@@ -154,6 +154,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         initFrustumCulllingCompute()
 
         initGuassianComputePipelines()
+        initScenePickingSystem()
 
         initScriptingSystem()
 

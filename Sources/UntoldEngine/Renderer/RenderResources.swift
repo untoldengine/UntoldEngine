@@ -106,6 +106,7 @@ public struct BufferResources {
 
     // ray model
     public var rayModelInstanceBuffer: MTLBuffer?
+    public var rayModelPickOutputBuffer: MTLBuffer?
 
     // ssao kernel
     var ssaoKernelBuffer: MTLBuffer?

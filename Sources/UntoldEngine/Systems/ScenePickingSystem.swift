@@ -10,21 +10,151 @@
 import Foundation
 import simd
 
-public func pickEntity(rayOrigin: simd_float3, rayDirection: simd_float3, isGizmoActive: Bool = false) -> (EntityID, Float)? {
+public enum ScenePickingBackendPreference {
+    case automatic
+    case cpuOnly
+    case gpuPreferred
+    case gpuOnly
+}
+
+public struct ScenePickOptions {
+    public var isGizmoActive: Bool
+    public var gizmoOnly: Bool
+    public var maxDistance: Float
+    public var backend: ScenePickingBackendPreference
+
+    public init(
+        isGizmoActive: Bool = false,
+        gizmoOnly: Bool = false,
+        maxDistance: Float = .greatestFiniteMagnitude,
+        backend: ScenePickingBackendPreference = .automatic
+    ) {
+        self.isGizmoActive = isGizmoActive
+        self.gizmoOnly = gizmoOnly
+        self.maxDistance = maxDistance
+        self.backend = backend
+    }
+}
+
+public struct ScenePickHit {
+    public let entityId: EntityID
+    public let distance: Float
+    public let worldPosition: simd_float3
+    public let worldNormal: simd_float3?
+    public let triangleIndex: UInt32?
+
+    public init(
+        entityId: EntityID,
+        distance: Float,
+        worldPosition: simd_float3,
+        worldNormal: simd_float3? = nil,
+        triangleIndex: UInt32? = nil
+    ) {
+        self.entityId = entityId
+        self.distance = distance
+        self.worldPosition = worldPosition
+        self.worldNormal = worldNormal
+        self.triangleIndex = triangleIndex
+    }
+}
+
+private enum ScenePickingResolvedBackend {
+    case cpu
+    case gpu
+}
+
+public func initScenePickingSystem() {
+    scenePickingSystemInitialized = true
+    scenePickingDirtyEntities.removeAll()
+    initScenePickingGPUResources()
+}
+
+public func shutdownScenePickingSystem() {
+    shutdownScenePickingGPUResources()
+    scenePickingSystemInitialized = false
+    scenePickingDirtyEntities.removeAll()
+}
+
+public func pickEntity(
+    rayOrigin: simd_float3,
+    rayDirection: simd_float3,
+    options: ScenePickOptions = ScenePickOptions()
+) -> ScenePickHit? {
     let rayLengthSquared = simd_length_squared(rayDirection)
     guard rayLengthSquared.isFinite, rayLengthSquared > Float.ulpOfOne else { return nil }
     let normalizedRayDirection = rayDirection / sqrt(rayLengthSquared)
 
+    if options.backend == .gpuOnly, !scenePickingCanUseGPU() {
+        return nil
+    }
+
+    switch resolveScenePickingBackend(options.backend) {
+    case .cpu:
+        return pickEntityCPU(
+            rayOrigin: rayOrigin,
+            normalizedRayDirection: normalizedRayDirection,
+            options: options
+        )
+    case .gpu:
+        switch pickEntityGPU(
+            rayOrigin: rayOrigin,
+            normalizedRayDirection: normalizedRayDirection,
+            options: options,
+            allowNonBlockingRebuild: options.backend != .gpuOnly,
+            allowNonBlockingRayQuery: options.backend != .gpuOnly
+        ) {
+        case let .hit(hit):
+            return hit
+        case .miss:
+            return nil
+        case .pending:
+            break
+        case .error:
+            break
+        }
+
+        if options.backend == .gpuOnly {
+            return nil
+        }
+
+        return pickEntityCPU(
+            rayOrigin: rayOrigin,
+            normalizedRayDirection: normalizedRayDirection,
+            options: options
+        )
+    }
+}
+
+@available(*, deprecated, message: "Use pickEntity(rayOrigin:rayDirection:options:) to receive ScenePickHit.")
+public func pickEntity(
+    rayOrigin: simd_float3,
+    rayDirection: simd_float3,
+    isGizmoActive: Bool = false
+) -> (EntityID, Float)? {
+    guard let hit = pickEntity(
+        rayOrigin: rayOrigin,
+        rayDirection: rayDirection,
+        options: ScenePickOptions(isGizmoActive: isGizmoActive)
+    ) else {
+        return nil
+    }
+
+    return (hit.entityId, hit.distance)
+}
+
+private func pickEntityCPU(
+    rayOrigin: simd_float3,
+    normalizedRayDirection: simd_float3,
+    options: ScenePickOptions
+) -> ScenePickHit? {
     let transformId = getComponentId(for: WorldTransformComponent.self)
     let renderId = getComponentId(for: RenderComponent.self)
 
-    let candidates: [EntityID]
-    if isGizmoActive, !InputSystem.shared.keyState.shiftPressed {
-        let gizmoId = getComponentId(for: GizmoComponent.self)
-        candidates = queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
-    } else {
-        candidates = visibleEntityIds
-    }
+    let candidates = scenePickingCandidates(
+        options: options,
+        transformId: transformId,
+        renderId: renderId
+    )
 
     var bestEntity: EntityID?
     var bestDistance = Float.greatestFiniteMagnitude
@@ -65,6 +195,8 @@ public func pickEntity(rayOrigin: simd_float3, rayDirection: simd_float3, isGizm
             continue
         }
 
+        if distance > options.maxDistance { continue }
+
         if distance < bestDistance {
             bestDistance = distance
             bestEntity = entityId
@@ -72,7 +204,36 @@ public func pickEntity(rayOrigin: simd_float3, rayDirection: simd_float3, isGizm
     }
 
     guard let bestEntity else { return nil }
-    return (bestEntity, bestDistance)
+    let worldPosition = rayOrigin + normalizedRayDirection * bestDistance
+    return ScenePickHit(entityId: bestEntity, distance: bestDistance, worldPosition: worldPosition)
 }
 
-// TODO: Move the pickEntityGPU version here when ready.
+private func scenePickingCandidates(
+    options: ScenePickOptions,
+    transformId: Int,
+    renderId: Int
+) -> [EntityID] {
+    if options.gizmoOnly {
+        let gizmoId = getComponentId(for: GizmoComponent.self)
+        return queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
+    }
+
+    if options.isGizmoActive, !InputSystem.shared.keyState.shiftPressed {
+        let gizmoId = getComponentId(for: GizmoComponent.self)
+        return queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
+    }
+
+    return visibleEntityIds
+}
+
+@inline(__always)
+private func resolveScenePickingBackend(_ preference: ScenePickingBackendPreference) -> ScenePickingResolvedBackend {
+    switch preference {
+    case .cpuOnly:
+        return .cpu
+    case .gpuOnly:
+        return scenePickingCanUseGPU() ? .gpu : .cpu
+    case .gpuPreferred, .automatic:
+        return scenePickingCanUseGPU() ? .gpu : .cpu
+    }
+}
