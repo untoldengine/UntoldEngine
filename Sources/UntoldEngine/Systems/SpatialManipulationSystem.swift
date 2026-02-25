@@ -94,10 +94,14 @@
 
             let entityWorldPosition = getPosition(entityId: entityId)
             var hitPoint = entityWorldPosition
-            if let (hitEntity, hitDistance) = pickEntity(rayOrigin: state.rayOriginWorld, rayDirection: rayDirection),
-               hitEntity == entityId
+            if let hit = pickEntity(
+                rayOrigin: state.rayOriginWorld,
+                rayDirection: rayDirection,
+                options: ScenePickOptions(backend: .gpuPreferred)
+            ),
+                hit.entityId == entityId
             {
-                hitPoint = state.rayOriginWorld + rayDirection * hitDistance
+                hitPoint = hit.worldPosition
             }
 
             let translation = SpatialTranslationSession(

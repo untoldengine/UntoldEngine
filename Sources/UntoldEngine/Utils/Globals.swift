@@ -75,6 +75,13 @@ var hzbBuildPyramidPipeline = ComputePipeline()
 var hzbOcclusionCullingPipeline = ComputePipeline()
 var bitonicSortPipeline = ComputePipeline()
 var gaussianDepthPipeline = ComputePipeline()
+
+// Scene picking
+var scenePickingSystemInitialized: Bool = false
+var scenePickingDirtyEntities: Set<EntityID> = []
+var scenePickingGPUAvailable: Bool = false
+var scenePickingAccelStructResources = AccelStructResources()
+var scenePickingPipeline = ComputePipeline()
 // Environment Mesh
 var environmentMesh: MTKMesh!
 

@@ -103,9 +103,13 @@
                 let pickedEntityFromSnapshot: EntityID?
                 if shouldPickForSnapshot,
                    let normalizedRayDirection,
-                   let (pickedEntity, _) = pickEntity(rayOrigin: snapshot.rayOriginWorld, rayDirection: normalizedRayDirection)
+                   let hit = pickEntity(
+                       rayOrigin: snapshot.rayOriginWorld,
+                       rayDirection: normalizedRayDirection,
+                       options: ScenePickOptions(backend: .gpuPreferred)
+                   )
                 {
-                    pickedEntityFromSnapshot = pickedEntity
+                    pickedEntityFromSnapshot = hit.entityId
                 } else {
                     pickedEntityFromSnapshot = nil
                 }

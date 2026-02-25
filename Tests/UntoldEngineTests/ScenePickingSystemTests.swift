@@ -16,6 +16,9 @@ final class ScenePickingSystemTests: XCTestCase {
         super.setUp()
         scene = Scene()
         visibleEntityIds.removeAll()
+        scenePickingDirtyEntities.removeAll()
+        scenePickingSystemInitialized = false
+        scenePickingGPUAvailable = false
         entityNameMap.removeAll()
         reverseEntityNameMap.removeAll()
         entityMeshMap.removeAll()
@@ -69,16 +72,21 @@ final class ScenePickingSystemTests: XCTestCase {
 
         let result = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
-            rayDirection: simd_float3(1, 0, 0)
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
         )
 
-        guard let (pickedEntity, distance) = result else {
+        guard let hit = result else {
             XCTFail("Expected a valid hit result")
             return
         }
 
-        XCTAssertEqual(pickedEntity, nearerEntity, "Picker should choose the closest hit")
-        XCTAssertEqual(distance, 4.0, accuracy: 0.0001, "Expected entry distance at x = 4")
+        XCTAssertEqual(hit.entityId, nearerEntity, "Picker should choose the closest hit")
+        XCTAssertEqual(hit.distance, 4.0, accuracy: 0.0001, "Expected entry distance at x = 4")
+        XCTAssertEqual(hit.worldPosition.x, 4.0, accuracy: 0.0001)
+        XCTAssertEqual(hit.worldPosition.y, 0.0, accuracy: 0.0001)
+        XCTAssertEqual(hit.worldPosition.z, 0.0, accuracy: 0.0001)
+        XCTAssertNil(hit.triangleIndex, "CPU picker should not report triangle index")
     }
 
     func testPickEntitySkipsInvisibleEntities() {
@@ -88,11 +96,12 @@ final class ScenePickingSystemTests: XCTestCase {
 
         let result = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
-            rayDirection: simd_float3(1, 0, 0)
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
         )
 
         XCTAssertNotNil(result)
-        XCTAssertEqual(result?.0, visibleFarEntity, "Invisible entities should be ignored")
+        XCTAssertEqual(result?.entityId, visibleFarEntity, "Invisible entities should be ignored")
     }
 
     func testPickEntityReturnsNilForInvalidRayDirection() {
@@ -101,12 +110,14 @@ final class ScenePickingSystemTests: XCTestCase {
 
         let zeroDirection = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
-            rayDirection: simd_float3(0, 0, 0)
+            rayDirection: simd_float3(0, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
         )
 
         let nanDirection = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
-            rayDirection: simd_float3(.nan, 0, 0)
+            rayDirection: simd_float3(.nan, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
         )
 
         XCTAssertNil(zeroDirection)
@@ -122,11 +133,11 @@ final class ScenePickingSystemTests: XCTestCase {
         let result = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
             rayDirection: simd_float3(1, 0, 0),
-            isGizmoActive: true
+            options: ScenePickOptions(isGizmoActive: true, backend: .cpuOnly)
         )
 
         XCTAssertNotNil(result)
-        XCTAssertEqual(result?.0, gizmoEntity, "When gizmo mode is active, only gizmo entities should be considered")
+        XCTAssertEqual(result?.entityId, gizmoEntity, "When gizmo mode is active, only gizmo entities should be considered")
     }
 
     func testPickEntityGizmoModeWithShiftFallsBackToVisibleEntities() {
@@ -138,10 +149,51 @@ final class ScenePickingSystemTests: XCTestCase {
         let result = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
             rayDirection: simd_float3(1, 0, 0),
-            isGizmoActive: true
+            options: ScenePickOptions(isGizmoActive: true, backend: .cpuOnly)
         )
 
         XCTAssertNotNil(result)
-        XCTAssertEqual(result?.0, regularEntity, "Shift should disable gizmo-only filtering")
+        XCTAssertEqual(result?.entityId, regularEntity, "Shift should disable gizmo-only filtering")
+    }
+
+    func testPickEntityRespectsMaxDistance() {
+        let entity = createRenderableEntity(position: simd_float3(5, 0, 0))
+        visibleEntityIds = [entity]
+
+        let withinDistance = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(maxDistance: 4.1, backend: .cpuOnly)
+        )
+
+        let outsideDistance = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(maxDistance: 3.9, backend: .cpuOnly)
+        )
+
+        XCTAssertNotNil(withinDistance)
+        XCTAssertEqual(withinDistance?.entityId, entity)
+        XCTAssertNil(outsideDistance)
+    }
+
+    func testPickEntityGPUOnlyReturnsNilWhenGPUUnavailable() {
+        let entity = createRenderableEntity(position: simd_float3(5, 0, 0))
+        visibleEntityIds = [entity]
+
+        let gpuOnly = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .gpuOnly)
+        )
+
+        let cpuOnly = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+
+        XCTAssertNil(gpuOnly, "GPU-only picking should fail when GPU picker is unavailable")
+        XCTAssertEqual(cpuOnly?.entityId, entity, "CPU backend should still succeed with the same ray")
     }
 }

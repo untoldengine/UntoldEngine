@@ -321,6 +321,13 @@ typedef enum{
     rayModelInstanceHitIndex,
 }RayModelBufferIndices;
 
+typedef struct{
+    int instanceHit;
+    float distance;
+    unsigned int triangleIndex;
+    simd_float2 barycentric;
+}RayModelPickOutput;
+
 typedef enum{
     lightVisualPassPositionIndex,
     lightVisualPassUVIndex,
