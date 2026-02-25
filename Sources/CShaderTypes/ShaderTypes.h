@@ -371,7 +371,8 @@ typedef enum{
 // HZB build
 typedef enum{
     hzbBuildPassMipLevelIndex,
-    hzbBuildPassSourceDimensionsIndex
+    hzbBuildPassSourceDimensionsIndex,
+    hzbBuildPassReverseZIndex
 }HZBBuildBufferIndices;
 
 typedef enum{
@@ -389,7 +390,8 @@ typedef enum{
     hzbCullPassVisibleCountIndex,
     hzbCullPassProjectionMatrixIndex,
     hzbCullPassViewportIndex,
-    hzbCullPassMipCountIndex
+    hzbCullPassMipCountIndex,
+    hzbCullPassReverseZIndex
 }HZBOcclusionCullingBufferIndices;
 
 typedef enum{

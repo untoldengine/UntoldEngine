@@ -24,6 +24,7 @@ struct HZBVisibleEntity {
 kernel void hzbBuildDepthPyramid(
     constant uint &mipLevel [[buffer(hzbBuildPassMipLevelIndex)]],
     constant uint2 &sourceDimensions [[buffer(hzbBuildPassSourceDimensionsIndex)]],
+    constant uint &reverseZ [[buffer(hzbBuildPassReverseZIndex)]],
     depth2d<float, access::sample> depthTexture [[texture(hzbBuildPassDepthTextureIndex)]],
     texture2d<float, access::read> sourceMipTexture [[texture(hzbBuildPassSourceMipTextureIndex)]],
     texture2d<float, access::write> destMipTexture [[texture(hzbBuildPassDestMipTextureIndex)]],
@@ -34,7 +35,7 @@ kernel void hzbBuildDepthPyramid(
         return;
     }
 
-    float depth = 1.0;
+    float depth = (reverseZ != 0u) ? 0.0 : 1.0;
 
     if (mipLevel == 0u) {
         if (gid.x >= sourceDimensions.x || gid.y >= sourceDimensions.y) {
@@ -57,7 +58,11 @@ kernel void hzbBuildDepthPyramid(
         const float d2 = sourceMipTexture.read(p2).x;
         const float d3 = sourceMipTexture.read(p3).x;
 
-        depth = max(max(d0, d1), max(d2, d3));
+        if (reverseZ != 0u) {
+            depth = min(min(d0, d1), min(d2, d3));
+        } else {
+            depth = max(max(d0, d1), max(d2, d3));
+        }
     }
 
     destMipTexture.write(depth, gid);
@@ -67,6 +72,7 @@ static inline bool projectAABBToScreenRect(
     const float3 center,
     const float3 extent,
     constant float4x4 &viewProjection,
+    const bool reverseZ,
     thread float2 &uvMinOut,
     thread float2 &uvMaxOut,
     thread float &nearDepthOut
@@ -76,6 +82,7 @@ static inline bool projectAABBToScreenRect(
     float maxX = -1.0;
     float maxY = -1.0;
     float minZ = 1.0;
+    float maxZ = 0.0;
 
     for (uint i = 0u; i < 8u; ++i) {
         float3 corner = center;
@@ -94,6 +101,7 @@ static inline bool projectAABBToScreenRect(
         maxX = max(maxX, ndc.x);
         maxY = max(maxY, ndc.y);
         minZ = min(minZ, ndc.z);
+        maxZ = max(maxZ, ndc.z);
     }
 
     if (maxX < -1.0 || minX > 1.0 || maxY < -1.0 || minY > 1.0) {
@@ -113,7 +121,7 @@ static inline bool projectAABBToScreenRect(
 
     uvMinOut = uvMin;
     uvMaxOut = uvMax;
-    nearDepthOut = clamp(minZ, 0.0, 1.0);
+    nearDepthOut = clamp(reverseZ ? maxZ : minZ, 0.0, 1.0);
     return true;
 }
 
@@ -125,6 +133,7 @@ kernel void hzbCullVisibleEntities(
     constant float4x4 &viewProjection [[buffer(hzbCullPassProjectionMatrixIndex)]],
     constant float2 &viewport [[buffer(hzbCullPassViewportIndex)]],
     constant uint &mipCount [[buffer(hzbCullPassMipCountIndex)]],
+    constant uint &reverseZ [[buffer(hzbCullPassReverseZIndex)]],
     texture2d<float, access::sample> hzbDepthPyramid [[texture(hzbCullPassDepthPyramidTextureIndex)]],
     uint tid [[thread_position_in_grid]]
 ) {
@@ -138,7 +147,7 @@ kernel void hzbCullVisibleEntities(
     float2 uvMin;
     float2 uvMax;
     float nearDepth;
-    if (!projectAABBToScreenRect(candidate.center.xyz, candidate.halfExtent.xyz, viewProjection, uvMin, uvMax, nearDepth)) {
+    if (!projectAABBToScreenRect(candidate.center.xyz, candidate.halfExtent.xyz, viewProjection, reverseZ != 0u, uvMin, uvMax, nearDepth)) {
         uint dst = atomic_fetch_add_explicit(outVisibleCount, 1u, memory_order_relaxed);
         outVisible[dst] = candidate;
         return;
@@ -158,9 +167,13 @@ kernel void hzbCullVisibleEntities(
     float d1 = hzbDepthPyramid.sample(pointSampler, float2(uvMax.x, uvMin.y), level(float(mipLevel))).x;
     float d2 = hzbDepthPyramid.sample(pointSampler, float2(uvMin.x, uvMax.y), level(float(mipLevel))).x;
     float d3 = hzbDepthPyramid.sample(pointSampler, float2(uvMax.x, uvMax.y), level(float(mipLevel))).x;
-    float hzbDepth = max(max(d0, d1), max(d2, d3));
+    float hzbDepth = (reverseZ != 0u)
+        ? min(min(d0, d1), min(d2, d3))
+        : max(max(d0, d1), max(d2, d3));
 
-    bool isOccluded = (nearDepth > hzbDepth + 1e-4);
+    bool isOccluded = (reverseZ != 0u)
+        ? (nearDepth < hzbDepth - 1e-4)
+        : (nearDepth > hzbDepth + 1e-4);
     if (!isOccluded) {
         uint dst = atomic_fetch_add_explicit(outVisibleCount, 1u, memory_order_relaxed);
         outVisible[dst] = candidate;

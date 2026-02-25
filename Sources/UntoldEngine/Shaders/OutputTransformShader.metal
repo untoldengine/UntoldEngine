@@ -25,12 +25,19 @@ vertex VertexCompositeOutput vertexOutputTransformShader(VertexCompositeIn in [[
   return out;
 }
 
-fragment float4 fragmentOutputTransformShader(
+struct OutputTransformFragmentOut {
+  float4 color [[color(0)]];
+  float depth [[depth(any)]];
+};
+
+fragment OutputTransformFragmentOut fragmentOutputTransformShader(
   VertexCompositeOutput in [[stage_in]],
   texture2d<float> lookTexture [[texture(0)]],
+  depth2d<float> sourceDepthTexture [[texture(1)]],
   constant int &encodingMode [[buffer(outputTransformPassEncodingModeIndex)]]
 ) {
   constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
+  constexpr sampler depthSampler(min_filter::nearest, mag_filter::nearest, address::clamp_to_edge);
 
   float4 c = lookTexture.sample(s, in.uvCoords);
   c.rgb = max(c.rgb, 0.0);
@@ -39,6 +46,10 @@ fragment float4 fragmentOutputTransformShader(
       c.rgb = linearToSRGB(c.rgb);
   }
 
-  return c;
-}
+  float depth = sourceDepthTexture.sample(depthSampler, in.uvCoords);
 
+  OutputTransformFragmentOut out;
+  out.color = c;
+  out.depth = depth;
+  return out;
+}

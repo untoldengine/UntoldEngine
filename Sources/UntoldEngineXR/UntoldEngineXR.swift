@@ -35,6 +35,9 @@
         // Cache last valid device anchor to use when ARKit returns nil
         // (prevents "Presenting a drawable without a device anchor" error)
         private var lastValidDeviceAnchor: DeviceAnchor?
+        private var missingAnchorFrameCount: Int = 0
+        private var lastAnchorDiagnosticsLogTime: CFTimeInterval = 0
+        private let anchorDiagnosticsLogIntervalSeconds: CFTimeInterval = 1.0
 
         // Reuse render pass descriptors to avoid allocation churn (2 eyes × 90 FPS = 180 allocs/sec)
         private let passDescriptorLeft = MTLRenderPassDescriptor()
@@ -303,10 +306,23 @@
             // This prevents "Presenting a drawable without a device anchor" while maintaining
             // stable rendering. We must always present the drawable once we have it.
             if let anchor = deviceAnchor {
+                if missingAnchorFrameCount > 0 {
+                    print("✓ XR device anchor recovered after \(missingAnchorFrameCount) missing frame(s)")
+                }
+                missingAnchorFrameCount = 0
                 lastValidDeviceAnchor = anchor
                 drawable.deviceAnchor = anchor
             } else if let cachedAnchor = lastValidDeviceAnchor {
+                missingAnchorFrameCount += 1
+                if shouldLogAnchorDiagnostics() {
+                    print("⚠️ XR device anchor missing for \(missingAnchorFrameCount) frame(s); using cached anchor")
+                }
                 drawable.deviceAnchor = cachedAnchor
+            } else {
+                missingAnchorFrameCount += 1
+                if shouldLogAnchorDiagnostics() {
+                    print("⚠️ XR device anchor missing for \(missingAnchorFrameCount) frame(s); no cached anchor available")
+                }
             }
             // Note: If we have no cached anchor either, drawable.deviceAnchor remains nil
             // and the render loop will skip rendering but still present (required by compositor)
@@ -368,7 +384,8 @@
 
             for (viewIndex, view) in drawable.views.enumerated() {
                 let anchor = drawable.deviceAnchor
-                guard let originFromDevice: simd_float4x4 = anchor?.originFromAnchorTransform else {
+                let originFromDevice = anchor?.originFromAnchorTransform
+                guard let originFromDevice else {
                     continue
                 }
 
@@ -377,7 +394,7 @@
 
                 cameraMatrix = simd_inverse(cameraMatrix)
 
-                let projection: simd_float4x4 = drawable.computeProjection(convention: .rightUpForward, viewIndex: viewIndex)
+                let projection: simd_float4x4 = drawable.computeProjection(convention: .rightUpBack, viewIndex: viewIndex)
 
                 // Reuse pre-allocated pass descriptor to avoid allocation churn
                 let passDescriptor = viewIndex == 0 ? passDescriptorLeft : passDescriptorRight
@@ -390,7 +407,7 @@
                 passDescriptor.depthAttachment.texture = drawable.depthTextures[viewIndex]
                 passDescriptor.depthAttachment.loadAction = .clear
                 passDescriptor.depthAttachment.storeAction = .store
-                passDescriptor.depthAttachment.clearDepth = 1.0
+                passDescriptor.depthAttachment.clearDepth = 0.0
 
                 // call the visionXR render graph
                 guard let renderer else {
@@ -400,6 +417,7 @@
                 }
 
                 renderInfo.currentEye = viewIndex
+
                 EngineProfiler.shared.beginScope(.encode)
                 renderer.renderXR(commandBuffer: commandBuffer, passDescriptor: passDescriptor, viewMatrix: cameraMatrix, projectionMatrix: projection, eyeIndex: viewIndex)
                 EngineProfiler.shared.endScope(.encode)
@@ -419,6 +437,16 @@
             }
 
             commandBuffer.commit()
+        }
+
+        private func shouldLogAnchorDiagnostics() -> Bool {
+            let now = CACurrentMediaTime()
+            guard now - lastAnchorDiagnosticsLogTime >= anchorDiagnosticsLogIntervalSeconds else {
+                return false
+            }
+
+            lastAnchorDiagnosticsLogTime = now
+            return true
         }
 
         private func queryDeviceAnchorIfTrackingRunning(atTimestamp timestamp: TimeInterval) -> DeviceAnchor? {
@@ -456,18 +484,6 @@
                     }
                 }
             #endif
-        }
-
-        func createPoseForTiming(at timing: LayerRenderer.Frame.Timing) -> DeviceAnchor? {
-            guard worldTracking.state == .running else {
-                return nil
-            }
-
-            // Convert compositor time -> Core Animation time
-            let caTimestamp = compositorInstantToCATime(timing.presentationTime)
-
-            // Query ARKit for the predicted device anchor pose
-            return worldTracking.queryDeviceAnchor(atTimestamp: caTimestamp)
         }
 
         @inline(__always)
