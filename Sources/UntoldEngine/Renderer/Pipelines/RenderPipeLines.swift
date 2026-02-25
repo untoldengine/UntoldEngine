@@ -38,6 +38,7 @@ public func CreatePipeline(
     depthFormat: MTLPixelFormat,
     depthCompareFunction: MTLCompareFunction = .lessEqual,
     depthEnabled: Bool = true,
+    reverseZCompatible: Bool = true,
     blendMode: PipelineBlendMode = .none,
     name: String
 ) -> RenderPipeline? {
@@ -118,7 +119,10 @@ public func CreatePipeline(
 
         pipelineDescriptor.depthAttachmentPixelFormat = depthFormat
 
-        depthStateDescriptor.depthCompareFunction = depthCompareFunction
+        depthStateDescriptor.depthCompareFunction = sceneDepthCompareFunction(
+            depthCompareFunction,
+            reverseZCompatible: reverseZCompatible
+        )
         depthStateDescriptor.isDepthWriteEnabled = depthEnabled
 
         let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: pipelineDescriptor)
@@ -166,6 +170,7 @@ public func InitShadowPipeline() -> RenderPipeline? {
         colorFormats: [.invalid],
         depthFormat: renderInfo.depthPixelFormat,
         depthCompareFunction: MTLCompareFunction.less,
+        reverseZCompatible: false,
         name: "Shadow Pipeline"
     )
 }
@@ -576,7 +581,8 @@ public func InitOutputTransformPipeline() -> RenderPipeline? {
         vertexDescriptor: createPostProcessVertexDescriptor(),
         colorFormats: [renderInfo.presentColorPixelFormat],
         depthFormat: renderInfo.presentDepthPixelFormat,
-        depthEnabled: false,
+        depthCompareFunction: .always,
+        depthEnabled: true,
         name: "Output Transform Pipeline"
     )
 }

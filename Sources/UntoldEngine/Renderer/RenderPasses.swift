@@ -308,7 +308,8 @@ public enum RenderPasses {
                 // update uniforms
                 var modelUniforms = Uniforms()
 
-                var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
+                let rootMatrix = transformComponent.space
+                var modelMatrix = simd_mul(rootMatrix, mesh.localSpace)
 
                 let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 
@@ -547,6 +548,8 @@ public enum RenderPasses {
             .storeAction = .store
 
         encoderDescriptor.depthAttachment.storeAction = .store
+        encoderDescriptor.depthAttachment.loadAction = .clear
+        encoderDescriptor.depthAttachment.clearDepth = sceneDepthClearValue()
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
         else {
@@ -611,7 +614,8 @@ public enum RenderPasses {
                 // update uniforms
                 var modelUniforms = Uniforms()
 
-                var modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
+                let rootMatrix = worldTransformComponent.space
+                var modelMatrix = simd_mul(rootMatrix, mesh.localSpace)
 
                 let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 
@@ -1733,13 +1737,16 @@ public enum RenderPasses {
         // clear it so that it doesn't have any effect on the final output
         if gameMode == false {
             renderInfo.offscreenRenderPassDescriptor?.depthAttachment.loadAction = .clear
+            renderInfo.offscreenRenderPassDescriptor?.depthAttachment.clearDepth = sceneDepthClearValue()
             renderInfo.deferredRenderPassDescriptor?.colorAttachments[0]
                 .loadAction = .load
 
             renderInfo.gizmoRenderPassDescriptor?.colorAttachments[0].loadAction = .load
         } else {
             renderInfo.postProcessRenderPassDescriptor?.depthAttachment.loadAction = .clear
+            renderInfo.postProcessRenderPassDescriptor?.depthAttachment.clearDepth = sceneDepthClearValue()
             renderInfo.offscreenRenderPassDescriptor?.depthAttachment.loadAction = .clear
+            renderInfo.offscreenRenderPassDescriptor?.depthAttachment.clearDepth = sceneDepthClearValue()
             renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0]
                 .loadAction = .load
 
@@ -2025,7 +2032,8 @@ public enum RenderPasses {
 
             for mesh in renderComponent.mesh {
                 var modelUniforms = Uniforms()
-                let modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
+                let rootMatrix = worldTransformComponent.space
+                let modelMatrix = simd_mul(rootMatrix, mesh.localSpace)
                 let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
                 let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
                 let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
@@ -2263,7 +2271,8 @@ public enum RenderPasses {
             // update uniforms
             var gaussianUniform = Uniforms()
 
-            var modelMatrix = simd_mul(worldTransformComponent.space, .identity)
+            let rootMatrix = worldTransformComponent.space
+            var modelMatrix = simd_mul(rootMatrix, .identity)
 
             let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 

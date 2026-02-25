@@ -42,6 +42,7 @@ public struct RenderInfo {
     public var depthPixelFormat: MTLPixelFormat!
     public var viewPort: simd_float2!
     public var immersionStyle: UntoldImmersionMode = .none
+    public var reverseZEnabled: Bool = false
     public var sceneCompositeRenderPassDescriptor: MTLRenderPassDescriptor!
     public var presentColorPixelFormat: MTLPixelFormat = .bgra8Unorm_srgb
     public var presentDepthPixelFormat: MTLPixelFormat = .depth32Float
@@ -49,6 +50,31 @@ public struct RenderInfo {
     public var hzbMipCount: Int = 0
     public var hzbIsValid: Bool = false
     public var hzbDebugMipLevel: Int = 0
+}
+
+@inline(__always)
+public func sceneDepthClearValue() -> Double {
+    renderInfo.reverseZEnabled ? 0.0 : 1.0
+}
+
+@inline(__always)
+public func sceneDepthCompareFunction(_ original: MTLCompareFunction, reverseZCompatible: Bool = true) -> MTLCompareFunction {
+    guard reverseZCompatible, renderInfo.reverseZEnabled else {
+        return original
+    }
+
+    switch original {
+    case .less:
+        return .greater
+    case .lessEqual:
+        return .greaterEqual
+    case .greater:
+        return .less
+    case .greaterEqual:
+        return .lessEqual
+    default:
+        return original
+    }
 }
 
 public struct BufferResources {

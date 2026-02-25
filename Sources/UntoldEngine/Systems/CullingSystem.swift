@@ -301,12 +301,14 @@ public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer) {
             UInt32(sourceWidth),
             UInt32(sourceHeight)
         )
+        var reverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
 
         let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
         computeEncoder.label = "HZB Build Mip \(level)"
         computeEncoder.setComputePipelineState(pipelineState)
         computeEncoder.setBytes(&mipLevel, length: MemoryLayout<UInt32>.stride, index: Int(hzbBuildPassMipLevelIndex.rawValue))
         computeEncoder.setBytes(&sourceDimensions, length: MemoryLayout<simd_uint2>.stride, index: Int(hzbBuildPassSourceDimensionsIndex.rawValue))
+        computeEncoder.setBytes(&reverseZFlag, length: MemoryLayout<UInt32>.stride, index: Int(hzbBuildPassReverseZIndex.rawValue))
         computeEncoder.setTexture(depthTexture, index: Int(hzbBuildPassDepthTextureIndex.rawValue))
         computeEncoder.setTexture(sourceMip, index: Int(hzbBuildPassSourceMipTextureIndex.rawValue))
         computeEncoder.setTexture(destMip, index: Int(hzbBuildPassDestMipTextureIndex.rawValue))
@@ -370,6 +372,7 @@ func executeHZBOcclusionCulling(
 
     var viewport = simd_float2(renderInfo.viewPort.x, renderInfo.viewPort.y)
     var mipCount = UInt32(max(0, renderInfo.hzbMipCount))
+    var reverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
     var viewProjectionMatrix = viewProjection
 
     let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
@@ -382,6 +385,7 @@ func executeHZBOcclusionCulling(
     computeEncoder.setBytes(&viewProjectionMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(hzbCullPassProjectionMatrixIndex.rawValue))
     computeEncoder.setBytes(&viewport, length: MemoryLayout<simd_float2>.stride, index: Int(hzbCullPassViewportIndex.rawValue))
     computeEncoder.setBytes(&mipCount, length: MemoryLayout<UInt32>.stride, index: Int(hzbCullPassMipCountIndex.rawValue))
+    computeEncoder.setBytes(&reverseZFlag, length: MemoryLayout<UInt32>.stride, index: Int(hzbCullPassReverseZIndex.rawValue))
     computeEncoder.setTexture(hzbDepthPyramid, index: Int(hzbCullPassDepthPyramidTextureIndex.rawValue))
 
     let tew = pipelineState.threadExecutionWidth
@@ -418,8 +422,10 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
 
-    // build the frustum
-    var frustum = buildFrustum(from: viewProjection)
+    // Reverse-Z swaps near/far in NDC (near=1, far=0).
+    let frustumNdcNear: Float = renderInfo.reverseZEnabled ? 1.0 : 0.0
+    let frustumNdcFar: Float = renderInfo.reverseZEnabled ? 0.0 : 1.0
+    var frustum = buildFrustum(from: viewProjection, ndcNear: frustumNdcNear, ndcFar: frustumNdcFar)
     frustum = padFrustum(frustum, sidePad: 3.0)
 
     guard let frustumTripleBuffer = tripleBufferResources.frustumPlane else {
@@ -641,8 +647,10 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
 
-    // build the frustum
-    var frustum = buildFrustum(from: viewProjection)
+    // Reverse-Z swaps near/far in NDC (near=1, far=0).
+    let frustumNdcNear: Float = renderInfo.reverseZEnabled ? 1.0 : 0.0
+    let frustumNdcFar: Float = renderInfo.reverseZEnabled ? 0.0 : 1.0
+    var frustum = buildFrustum(from: viewProjection, ndcNear: frustumNdcNear, ndcFar: frustumNdcFar)
     frustum = padFrustum(frustum, sidePad: 3.0)
 
     guard let frustumTripleBuffer = tripleBufferResources.frustumPlane else {

@@ -294,7 +294,7 @@ func initRenderPassDescriptors() {
         colorAttachments: [
             (textureResources.environmentColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.depthMap, .dontCare, .dontCare, nil)
+        depthAttachment: (textureResources.depthMap, .dontCare, .dontCare, sceneDepthClearValue())
     )
 
     // Shadow Render Pass
@@ -316,7 +316,7 @@ func initRenderPassDescriptors() {
             (textureResources.materialMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
             (textureResources.emissiveMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
+        depthAttachment: (textureResources.depthMap, .dontCare, .store, sceneDepthClearValue())
     )
 
     // Deferred Render Pass
@@ -326,7 +326,7 @@ func initRenderPassDescriptors() {
         colorAttachments: [
             (textureResources.deferredColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
+        depthAttachment: (textureResources.depthMap, .dontCare, .store, sceneDepthClearValue())
     )
 
     // SSAO Render Pass
@@ -336,7 +336,7 @@ func initRenderPassDescriptors() {
         colorAttachments: [
             (textureResources.ssaoTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.ssaoDepthMap, .dontCare, .store, nil)
+        depthAttachment: (textureResources.ssaoDepthMap, .dontCare, .store, sceneDepthClearValue())
     )
 
     // SSAO Blur Render Pass
@@ -346,7 +346,7 @@ func initRenderPassDescriptors() {
         colorAttachments: [
             (textureResources.ssaoBlurTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.ssaoBlurDepthTexture, .dontCare, .store, nil)
+        depthAttachment: (textureResources.ssaoBlurDepthTexture, .dontCare, .store, sceneDepthClearValue())
     )
 
     // Post-Processing Render Pass
@@ -356,7 +356,7 @@ func initRenderPassDescriptors() {
         colorAttachments: [
             (textureResources.bloomCompositeTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
+        depthAttachment: (textureResources.depthMap, .dontCare, .store, sceneDepthClearValue())
     )
 
     // Gizmo Render Pass
@@ -364,7 +364,7 @@ func initRenderPassDescriptors() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         colorAttachments: [(textureResources.gizmoColorTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0))],
-        depthAttachment: (textureResources.gizmoDepthTexture, .dontCare, .store, nil)
+        depthAttachment: (textureResources.gizmoDepthTexture, .dontCare, .store, sceneDepthClearValue())
     )
 
     // Gaussian Offscreen Render Pass - shares depth buffer with 3D models
@@ -374,7 +374,7 @@ func initRenderPassDescriptors() {
         colorAttachments: [
             (textureResources.gaussianColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.depthMap, .load, .dontCare, nil) // Load existing depth from models
+        depthAttachment: (textureResources.depthMap, .load, .dontCare, sceneDepthClearValue()) // Load existing depth from models
     )
 
     renderInfo.sceneCompositeRenderPassDescriptor = createRenderPassDescriptor(

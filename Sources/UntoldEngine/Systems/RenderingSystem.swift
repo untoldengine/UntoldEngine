@@ -702,6 +702,10 @@ public var outputTransformRenderPass: (MTLCommandBuffer) -> Void = { commandBuff
         handleError(.renderPassCreationFailed, "Output Transform Pass: source texture is nil")
         return
     }
+    guard let sourceDepthTexture = textureResources.depthMap else {
+        handleError(.renderPassCreationFailed, "Output Transform Pass: source depth texture is nil")
+        return
+    }
     guard let pipeline = PipelineManager.shared.renderPipelinesByType[.outputTransform] else {
         handleError(.pipelineStateNulled, "Output Transform Pipeline is nil")
         return
@@ -728,9 +732,13 @@ public var outputTransformRenderPass: (MTLCommandBuffer) -> Void = { commandBuff
     renderEncoder.pushDebugGroup("Output Transform Pass")
 
     renderEncoder.setRenderPipelineState(pipeline.pipelineState!)
+    if let depthState = pipeline.depthState {
+        renderEncoder.setDepthStencilState(depthState)
+    }
     renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
     renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
     renderEncoder.setFragmentTexture(sourceTexture, index: 0)
+    renderEncoder.setFragmentTexture(sourceDepthTexture, index: 1)
 
     outputTransformCustomization(encoder: renderEncoder)
 

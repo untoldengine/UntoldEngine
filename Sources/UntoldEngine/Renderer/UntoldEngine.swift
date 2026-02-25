@@ -63,6 +63,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
         renderInfo.device = device
         renderInfo.commandQueue = commandQueue
+        renderInfo.reverseZEnabled = false
         renderInfo.colorPixelFormat = .rgba16Float
         renderInfo.depthPixelFormat = renderer.metalView.depthStencilPixelFormat
         renderInfo.viewPort = simd_float2(
@@ -102,6 +103,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         renderInfo.commandQueue = commandQueue
+        renderInfo.reverseZEnabled = false
         renderInfo.colorPixelFormat = .rgba16Float
         renderInfo.depthPixelFormat = view.depthStencilPixelFormat
         renderInfo.viewPort = simd_float2(
@@ -373,6 +375,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         renderInfo.device = device
         renderInfo.commandQueue = commandQueue
+        renderInfo.reverseZEnabled = true
         renderInfo.colorPixelFormat = colorPixelFormat
         renderInfo.depthPixelFormat = depthPixelFormat
         renderInfo.viewPort = viewPort
@@ -443,6 +446,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         renderInfo.commandQueue = commandQueue
+        renderInfo.reverseZEnabled = false
         renderInfo.colorPixelFormat = view.colorPixelFormat
         renderInfo.depthPixelFormat = view.depthStencilPixelFormat
         renderInfo.viewPort = simd_float2(Float(view.bounds.size.width), Float(view.bounds.size.height))
