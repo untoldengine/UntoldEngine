@@ -136,6 +136,11 @@ struct AssetOverrideData: Codable {
     var material: MaterialData?
     var visibility: Bool?
     var name: String?
+    // Explicit per-node static batching state for derived asset nodes.
+    // true  -> force static for this node
+    // false -> force non-static for this node
+    // nil   -> no override (legacy scenes)
+    var hasStaticBatchComponent: Bool?
 }
 
 struct AssetInstanceData: Codable {
@@ -572,7 +577,8 @@ public func serializeScene() -> SceneData {
                             transform: transformOverride,
                             material: materialOverride,
                             visibility: visibilityOverride,
-                            name: entityName
+                            name: entityName,
+                            hasStaticBatchComponent: hasComponent(entityId: childId, componentType: StaticBatchComponent.self)
                         )
                         overrides.append(override)
                     }
@@ -745,7 +751,18 @@ public func deserializeScene(
 
     // Track async loading operations for completion callback
     let loadTracker = AsyncLoadTracker()
-    loadTracker.completion = completion
+    loadTracker.completion = {
+        // Finalize static-batch membership for authored entities after all async imports finish.
+        // This preserves explicit opt-outs (entity flag not true) even if an ancestor marked
+        // static re-applied recursive tagging during mesh restoration.
+        for sceneDataEntity in sceneData.entities {
+            guard let entityId = uuidToEntityMap[sceneDataEntity.uuid] else { continue }
+            if sceneDataEntity.hasStaticBatchComponent != true {
+                removeEntityStaticBatch(entityId: entityId)
+            }
+        }
+        completion?()
+    }
 
     if let env = sceneData.environment {
         applyIBL = env.applyIBL ?? false
@@ -845,13 +862,14 @@ public func deserializeScene(
             switch meshLoadingMode {
             case .sync:
                 setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil)
-                // Apply overrides synchronously after import
-                applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
 
                 // Restore Static Batch Component (sync mode - mesh already loaded)
                 if sceneDataEntity.hasStaticBatchComponent == true {
                     setEntityStaticBatchComponent(entityId: entityId)
                 }
+                // Apply overrides synchronously after import (must run after static restore so
+                // per-node static opt-outs can remove static from selected children).
+                applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
 
                 // Setup animations (skeleton is now available)
                 if sceneDataEntity.hasAnimationComponent == true {
@@ -872,13 +890,13 @@ public func deserializeScene(
                         await MainActor.run {
                             if success {
                                 Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
-                                // Apply overrides after async import completes
-                                applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
-
                                 // Restore Static Batch Component (meshes now loaded)
                                 if sceneDataEntity.hasStaticBatchComponent == true {
                                     setEntityStaticBatchComponent(entityId: entityId)
                                 }
+                                // Apply overrides after async import completes (must run after static restore so
+                                // per-node static opt-outs can remove static from selected children).
+                                applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
 
                                 // Setup animations (skeleton is now available)
                                 if sceneDataEntity.hasAnimationComponent == true {
@@ -1400,6 +1418,16 @@ private func applyAssetInstanceOverrides(entityId: EntityID, overrides: [AssetOv
         if let visibility = override.visibility {
             if let renderComp = scene.get(component: RenderComponent.self, for: derivedEntityId) {
                 renderComp.isVisible = visibility
+            }
+        }
+
+        // Apply explicit static-batching override for this derived node.
+        if let hasStaticBatch = override.hasStaticBatchComponent {
+            if hasStaticBatch {
+                setEntityStaticBatchComponent(entityId: derivedEntityId)
+            } else {
+                // Remove only from this derived node; don't recursively affect sibling branches.
+                removeEntityStaticBatch(entityId: derivedEntityId)
             }
         }
 
