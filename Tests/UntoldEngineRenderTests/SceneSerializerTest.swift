@@ -1641,6 +1641,55 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertTrue(level2Data?.hasStaticBatchComponent == true, "Level2 should have flag (has component directly)")
     }
 
+    func testRoundTripParentStaticChildOptOutPersists() {
+        // Arrange: parent and child are both renderable and parented.
+        let parentId = createEntity()
+        setEntityName(entityId: parentId, name: "StaticParent")
+        registerTransformComponent(entityId: parentId)
+        registerSceneGraphComponent(entityId: parentId)
+        setEntityMeshDirect(entityId: parentId, meshes: BasicPrimitives.createCube(), assetName: "Cube")
+
+        let childId = createEntity()
+        setEntityName(entityId: childId, name: "DynamicChild")
+        registerTransformComponent(entityId: childId)
+        registerSceneGraphComponent(entityId: childId)
+        setEntityMeshDirect(entityId: childId, meshes: BasicPrimitives.createSphere(), assetName: "Sphere")
+        setParent(childId: childId, parentId: parentId)
+
+        // Mark parent static (recursively marks child), then explicitly opt-out child.
+        setEntityStaticBatchComponent(entityId: parentId)
+        XCTAssertTrue(hasComponent(entityId: parentId, componentType: StaticBatchComponent.self))
+        XCTAssertTrue(hasComponent(entityId: childId, componentType: StaticBatchComponent.self))
+
+        removeEntityStaticBatchComponent(entityId: childId)
+        XCTAssertFalse(hasComponent(entityId: childId, componentType: StaticBatchComponent.self))
+
+        // Serialize and reload.
+        let sceneData = serializeScene()
+        destroyAllEntities()
+        scene.finalizePendingDestroys()
+        entityNameMap.removeAll()
+        reverseEntityNameMap.removeAll()
+        deserializeScene(sceneData: sceneData, meshLoadingMode: .sync)
+
+        // Assert: parent remains static, child remains opted-out.
+        guard let recreatedParent = findEntity(name: "StaticParent"),
+              let recreatedChild = findEntity(name: "DynamicChild")
+        else {
+            XCTFail("Expected to find recreated parent and child")
+            return
+        }
+
+        XCTAssertTrue(
+            hasComponent(entityId: recreatedParent, componentType: StaticBatchComponent.self),
+            "Parent should remain static after round-trip"
+        )
+        XCTAssertFalse(
+            hasComponent(entityId: recreatedChild, componentType: StaticBatchComponent.self),
+            "Child opt-out should persist after round-trip"
+        )
+    }
+
     // MARK: - Geometry Streaming Component Tests
 
     func testSerializeStreamingComponent() {
