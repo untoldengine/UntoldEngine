@@ -34,6 +34,7 @@ func UpdateRenderingSystem(in view: MTKView) {
 
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
         renderInfo.lastCommandBuffer = commandBuffer
+        renderInfo.currentInFlightFrameSlot = acquireUniformFrameSlot()
 
         // Skip render prep (culling, gaussian, bitonic) while loading - these traverse ECS.
         // The render graph still executes using the stale visibleEntityIds.

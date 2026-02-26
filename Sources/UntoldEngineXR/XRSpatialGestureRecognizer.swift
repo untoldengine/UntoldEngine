@@ -106,7 +106,7 @@
                    let hit = pickEntity(
                        rayOrigin: snapshot.rayOriginWorld,
                        rayDirection: normalizedRayDirection,
-                       options: ScenePickOptions(backend: .gpuPreferred)
+                       options: ScenePickOptions(backend: .cpuOnly)
                    )
                 {
                     pickedEntityFromSnapshot = hit.entityId

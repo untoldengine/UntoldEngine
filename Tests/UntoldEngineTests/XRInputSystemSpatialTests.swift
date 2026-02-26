@@ -12,23 +12,31 @@ import simd
 import XCTest
 
 final class XRInputSystemSpatialTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        xrInputSingletonTestLock.lock()
+
+        #if os(visionOS)
+            let input = InputSystem.shared
+            input.unregisterXREvents()
+            input.clearXRSpatialSnapshots()
+            input.xrSpatialInputState = XRSpatialInputState()
+        #endif
+    }
+
+    override func tearDown() {
+        #if os(visionOS)
+            let input = InputSystem.shared
+            input.unregisterXREvents()
+            input.clearXRSpatialSnapshots()
+            input.xrSpatialInputState = XRSpatialInputState()
+        #endif
+
+        xrInputSingletonTestLock.unlock()
+        super.tearDown()
+    }
+
     #if os(visionOS)
-        override func setUp() {
-            super.setUp()
-            let input = InputSystem.shared
-            input.unregisterXREvents()
-            input.clearXRSpatialSnapshots()
-            input.xrSpatialInputState = XRSpatialInputState()
-        }
-
-        override func tearDown() {
-            let input = InputSystem.shared
-            input.unregisterXREvents()
-            input.clearXRSpatialSnapshots()
-            input.xrSpatialInputState = XRSpatialInputState()
-            super.tearDown()
-        }
-
         func test_registerAndUnregisterXREvents_toggleEnabledFlag() {
             let input = InputSystem.shared
 

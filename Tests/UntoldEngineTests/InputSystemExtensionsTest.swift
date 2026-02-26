@@ -15,6 +15,8 @@ final class InputSystemExtensionsTests: XCTestCase {
     // Reset the shared instance's mutable bits before each test
     override func setUp() {
         super.setUp()
+        xrInputSingletonTestLock.lock()
+
         let input = InputSystem.shared
         input.delegate = nil
 
@@ -40,6 +42,24 @@ final class InputSystemExtensionsTests: XCTestCase {
 
         input.pinchDelta = .init(0, 0, 0)
         input.previousScale = 1
+
+        #if os(visionOS)
+            input.unregisterXREvents()
+            input.clearXRSpatialSnapshots()
+            input.xrSpatialInputState = XRSpatialInputState()
+        #endif
+    }
+
+    override func tearDown() {
+        #if os(visionOS)
+            let input = InputSystem.shared
+            input.unregisterXREvents()
+            input.clearXRSpatialSnapshots()
+            input.xrSpatialInputState = XRSpatialInputState()
+        #endif
+
+        xrInputSingletonTestLock.unlock()
+        super.tearDown()
     }
 
     // MARK: - Mouse Input Tests

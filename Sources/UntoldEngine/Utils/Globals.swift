@@ -218,9 +218,35 @@ public var cullSubmitIndex: Int = 0
 public var needsFinalizeDestroys: Bool = false
 var hasPendingDestroys: Bool = false
 
-// Command buffer synchronization - limit in-flight frames to prevent memory accumulation
-private let maxInFlightCommandBuffers = 3
+// Command buffer synchronization - limit in-flight frames to prevent memory accumulation.
+public let maxInFlightCommandBuffers = 3
 public let commandBufferSemaphore = DispatchSemaphore(value: maxInFlightCommandBuffers)
+
+// Uniform buffering:
+// index by (in-flight frame slot, eye) to avoid CPU writes from newer frames clobbering
+// uniforms still in use by the GPU.
+public let stereoEyeCount = 2
+private var uniformFrameSlotCounter: Int = 0
+private let uniformFrameSlotLock = NSLock()
+
+@inline(__always)
+public func totalPerMeshUniformBuffers() -> Int {
+    maxInFlightCommandBuffers * stereoEyeCount
+}
+
+@inline(__always)
+public func acquireUniformFrameSlot() -> Int {
+    uniformFrameSlotLock.lock()
+    defer { uniformFrameSlotLock.unlock() }
+    let slot = uniformFrameSlotCounter % maxInFlightCommandBuffers
+    uniformFrameSlotCounter += 1
+    return slot
+}
+
+@inline(__always)
+public func currentUniformBufferIndex() -> Int {
+    (renderInfo.currentInFlightFrameSlot * stereoEyeCount) + renderInfo.currentEye
+}
 
 // Engine profiling/benchmarking
 public var enableEngineMetrics: Bool = false

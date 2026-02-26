@@ -355,6 +355,7 @@
                 commandBufferSemaphore.signal()
                 return
             }
+            renderInfo.currentInFlightFrameSlot = acquireUniformFrameSlot()
 
             // Update viewport to match actual drawable size (per-eye texture dimensions)
             if let firstColorTexture = drawable.colorTextures.first {
