@@ -60,7 +60,7 @@ public class RenderComponent: Component {
 public class GaussianComponent: Component {
     var splatData: MTLBuffer?
     var gaussianSortedIndices: MTLBuffer?
-    public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: 2)
+    public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: totalPerMeshUniformBuffers())
     var splatCount: UInt = 0
 
     public required init() {}

@@ -1208,7 +1208,7 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         pointer[index] = splat
     }
 
-    let spaceUniform = (0 ..< 2).compactMap { _ in
+    let spaceUniform = (0 ..< totalPerMeshUniformBuffers()).compactMap { _ in
         renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
                                      options: [MTLResourceOptions.storageModeShared])
     }

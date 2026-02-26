@@ -333,7 +333,7 @@ public enum RenderPasses {
 
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-                if let modelUniformBuffer = mesh.spaceUniform[renderInfo.currentEye] {
+                if let modelUniformBuffer = mesh.spaceUniform[currentUniformBufferIndex()] {
                     modelUniformBuffer.contents().copyMemory(
                         from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
                     )
@@ -343,7 +343,7 @@ public enum RenderPasses {
                 }
 
                 renderEncoder.setVertexBuffer(
-                    mesh.spaceUniform[renderInfo.currentEye], offset: 0, index: Int(shadowPassModelUniform.rawValue)
+                    mesh.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(shadowPassModelUniform.rawValue)
                 )
 
                 renderEncoder.setVertexBuffer(
@@ -639,7 +639,7 @@ public enum RenderPasses {
 
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-                if let modelUniformBuffer = mesh.spaceUniform[renderInfo.currentEye] {
+                if let modelUniformBuffer = mesh.spaceUniform[currentUniformBufferIndex()] {
                     modelUniformBuffer.contents().copyMemory(
                         from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
                     )
@@ -649,7 +649,7 @@ public enum RenderPasses {
                 }
 
                 renderEncoder.setVertexBuffer(
-                    mesh.spaceUniform[renderInfo.currentEye], offset: 0, index: Int(modelPassUniformIndex.rawValue)
+                    mesh.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(modelPassUniformIndex.rawValue)
                 )
 
                 // check if it has skeleton component
@@ -694,7 +694,7 @@ public enum RenderPasses {
                 renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
 
                 renderEncoder.setFragmentBuffer(
-                    mesh.spaceUniform[renderInfo.currentEye], offset: 0, index: Int(modelPassFragmentUniformIndex.rawValue)
+                    mesh.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(modelPassFragmentUniformIndex.rawValue)
                 )
 
                 for subMesh in mesh.submeshes {
@@ -2047,7 +2047,7 @@ public enum RenderPasses {
                 modelUniforms.cameraPosition = cameraComponent.localPosition
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-                if let modelUniformBuffer = mesh.spaceUniform[renderInfo.currentEye] {
+                if let modelUniformBuffer = mesh.spaceUniform[currentUniformBufferIndex()] {
                     modelUniformBuffer.contents().copyMemory(
                         from: &modelUniforms,
                         byteCount: MemoryLayout<Uniforms>.stride
@@ -2058,7 +2058,7 @@ public enum RenderPasses {
                 }
 
                 renderEncoder.setVertexBuffer(
-                    mesh.spaceUniform[renderInfo.currentEye],
+                    mesh.spaceUniform[currentUniformBufferIndex()],
                     offset: 0,
                     index: Int(modelPassUniformIndex.rawValue)
                 )
@@ -2110,7 +2110,7 @@ public enum RenderPasses {
                 )
 
                 renderEncoder.setFragmentBuffer(
-                    mesh.spaceUniform[renderInfo.currentEye],
+                    mesh.spaceUniform[currentUniformBufferIndex()],
                     offset: 0,
                     index: Int(transparencyPassFragmentUniformIndex.rawValue)
                 )
@@ -2296,7 +2296,7 @@ public enum RenderPasses {
 
             gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
 
-            if let gaussianUniformBuffer = gaussianComponent.spaceUniform[renderInfo.currentEye] {
+            if let gaussianUniformBuffer = gaussianComponent.spaceUniform[currentUniformBufferIndex()] {
                 gaussianUniformBuffer.contents().copyMemory(
                     from: &gaussianUniform, byteCount: MemoryLayout<Uniforms>.stride
                 )
@@ -2306,7 +2306,7 @@ public enum RenderPasses {
             }
 
             renderEncoder.setVertexBuffer(
-                gaussianComponent.spaceUniform[renderInfo.currentEye], offset: 0, index: Int(gaussianRenderUniformIndex.rawValue)
+                gaussianComponent.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(gaussianRenderUniformIndex.rawValue)
             )
 
             // bind data here

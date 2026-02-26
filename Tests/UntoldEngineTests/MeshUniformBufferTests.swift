@@ -75,7 +75,7 @@ final class MeshUniformBufferTests: XCTestCase {
         }
 
         // Assert: spaceUniform should contain exactly 2 elements
-        XCTAssertEqual(mesh.spaceUniform.count, 2, "❌ spaceUniform should contain exactly 2 buffers")
+        XCTAssertEqual(mesh.spaceUniform.count, 6, "❌ spaceUniform should contain exactly 6 buffers")
 
         // Assert: Both buffers should be non-nil MTLBuffer objects
         XCTAssertNotNil(mesh.spaceUniform[0], "❌ spaceUniform[0] should not be nil")
@@ -134,7 +134,7 @@ final class MeshUniformBufferTests: XCTestCase {
         }
 
         // Verify buffers exist before cleanup
-        XCTAssertEqual(mesh.spaceUniform.count, 2, "❌ spaceUniform should initially contain 2 buffers")
+        XCTAssertEqual(mesh.spaceUniform.count, 6, "❌ spaceUniform should initially contain 6 buffers")
         XCTAssertNotNil(mesh.spaceUniform[0], "❌ spaceUniform[0] should not be nil before cleanup")
         XCTAssertNotNil(mesh.spaceUniform[1], "❌ spaceUniform[1] should not be nil before cleanup")
 

@@ -19,6 +19,7 @@ import XCTest
 
         override func setUp() {
             super.setUp()
+            xrInputSingletonTestLock.lock()
 
             parentEntity = createEntity()
             childEntity = createEntity()
@@ -46,6 +47,7 @@ import XCTest
             destroyEntity(entityId: parentEntity)
             destroyEntity(entityId: standaloneEntity)
 
+            xrInputSingletonTestLock.unlock()
             super.tearDown()
         }
 

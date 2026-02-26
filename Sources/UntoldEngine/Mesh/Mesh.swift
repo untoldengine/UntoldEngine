@@ -98,7 +98,7 @@ public struct Mesh {
     var assetName: String
     var boundingBox: (min: simd_float3, max: simd_float3)
     var skin: Skin?
-    public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: 2)
+    public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: totalPerMeshUniformBuffers())
 
     init?(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip _: Bool) {
         modelMDLMesh = modelIOMesh
@@ -132,7 +132,7 @@ public struct Mesh {
 
         // allocate buffer
 
-        spaceUniform = (0 ..< 2).compactMap { _ in
+        spaceUniform = (0 ..< totalPerMeshUniformBuffers()).compactMap { _ in
             renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
                                          options: [MTLResourceOptions.storageModeShared])
         }
@@ -175,7 +175,7 @@ public struct Mesh {
     func copyWithNewUniformBuffers() -> Mesh {
         var copy = self
         // Create new uniform buffers for this entity
-        copy.spaceUniform = (0 ..< 2).compactMap { _ in
+        copy.spaceUniform = (0 ..< totalPerMeshUniformBuffers()).compactMap { _ in
             renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
                                          options: [MTLResourceOptions.storageModeShared])
         }
