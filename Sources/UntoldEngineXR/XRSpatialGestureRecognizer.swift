@@ -59,12 +59,6 @@
                 return
             }
 
-            // Reduce picking work: for each interaction in this frame, only the last `.changed`
-            // snapshot performs a pick test (plus `.began`, which preserves tap target behavior).
-            var lastChangedSnapshotIndexByInteraction: [Int: Int] = [:]
-            for (index, snapshot) in snapshots.enumerated() where snapshot.phase == .changed {
-                lastChangedSnapshotIndexByInteraction[snapshot.interactionId] = index
-            }
 
             for (snapshotIndex, snapshot) in snapshots.enumerated() {
                 updateHandTrackingState(from: snapshot, state: &state)
@@ -96,20 +90,20 @@
                     state.inputDeviceOrientationWorld = inputDeviceOrientationWorld
                 }
 
-                let isLastChangedForInteraction = lastChangedSnapshotIndexByInteraction[snapshot.interactionId] == snapshotIndex
-                let shouldPickForSnapshot = normalizedRayDirection != nil
-                    && (snapshot.phase == .began || (snapshot.phase == .changed && isLastChangedForInteraction))
+                let shouldPickForSnapshot = normalizedRayDirection != nil && (snapshot.phase == .began || (!interactionActive && snapshot.phase == .changed))
 
                 let pickedEntityFromSnapshot: EntityID?
+                var pickedEntityDistance: Float = Float.infinity
                 if shouldPickForSnapshot,
                    let normalizedRayDirection,
                    let hit = pickEntity(
                        rayOrigin: snapshot.rayOriginWorld,
                        rayDirection: normalizedRayDirection,
-                       options: ScenePickOptions(backend: .cpuOnly)
+                       options: ScenePickOptions(backend: .octreePreferred)
                    )
                 {
                     pickedEntityFromSnapshot = hit.entityId
+                    pickedEntityDistance = hit.distance
                 } else {
                     pickedEntityFromSnapshot = nil
                 }
@@ -128,6 +122,7 @@
                     state.spatialDragActive = false
                     state.spatialPinchDragDelta = .zero
                     state.pickedEntityId = pickedEntityFromSnapshot
+                    state.pickedEntityDistance = pickedEntityDistance
 
                 case .changed:
                     if !interactionActive {
@@ -138,8 +133,9 @@
                         interactionInitialInputDevicePositionWorld = snapshot.inputDevicePositionWorld
                         interactionLastInputDevicePositionWorld = snapshot.inputDevicePositionWorld
                         interactionInitialRayDirectionWorld = normalizedRayDirection
-                        interactionPickedEntity = nil
-                        state.pickedEntityId = nil
+                        interactionPickedEntity = pickedEntityFromSnapshot
+                        state.pickedEntityId = pickedEntityFromSnapshot
+                        state.pickedEntityDistance = pickedEntityDistance
                     }
 
                     state.spatialPinchDragDelta = computePinchDragDelta(currentInputDevicePositionWorld: snapshot.inputDevicePositionWorld)
