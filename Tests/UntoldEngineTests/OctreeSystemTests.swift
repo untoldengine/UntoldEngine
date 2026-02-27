@@ -13,12 +13,7 @@ import XCTest
 final class OctreeSystemTests: XCTestCase {
     override func setUp() {
         super.setUp()
-        // Clear global state for test isolation
-        OctreeSystem.shared.clear()
-        scene = Scene()
-        entityNameMap.removeAll()
-        reverseEntityNameMap.removeAll()
-        entityMeshMap.removeAll()
+        resetEngineTestState()
     }
 
     override func tearDown() {

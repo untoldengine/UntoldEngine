@@ -14,14 +14,7 @@ import XCTest
 final class DistanceTrackingTests: XCTestCase {
     override func setUp() {
         super.setUp()
-        scene = Scene()
-        visibleEntityIds.removeAll()
-        scenePickingDirtyEntities.removeAll()
-        scenePickingSystemInitialized = false
-        scenePickingGPUAvailable = false
-        entityNameMap.removeAll()
-        reverseEntityNameMap.removeAll()
-        entityMeshMap.removeAll()
+        resetEngineTestState()
     }
 
     override func tearDown() {
@@ -254,7 +247,7 @@ final class DistanceTrackingTests: XCTestCase {
 
     func testPickedEntityDistanceWithVariousDistances() {
         let testCases: [(position: simd_float3, expectedDistance: Float)] = [
-            (simd_float3(1, 0, 0), 0.0),    // Ray origin inside AABB
+            (simd_float3(1, 0, 0), 0.0), // Ray origin inside AABB
             (simd_float3(2, 0, 0), 1.0),
             (simd_float3(5, 0, 0), 4.0),
             (simd_float3(10, 0, 0), 9.0),

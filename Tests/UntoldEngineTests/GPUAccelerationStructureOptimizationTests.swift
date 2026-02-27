@@ -14,14 +14,7 @@ import XCTest
 final class GPUAccelerationStructureOptimizationTests: XCTestCase {
     override func setUp() {
         super.setUp()
-        scene = Scene()
-        visibleEntityIds.removeAll()
-        scenePickingDirtyEntities.removeAll()
-        scenePickingSystemInitialized = false
-        scenePickingGPUAvailable = false
-        entityNameMap.removeAll()
-        reverseEntityNameMap.removeAll()
-        entityMeshMap.removeAll()
+        resetEngineTestState()
     }
 
     override func tearDown() {

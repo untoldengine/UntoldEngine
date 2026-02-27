@@ -184,6 +184,7 @@ final class XRInputSystemSpatialTests: XCTestCase {
 }
 
 #if os(visionOS)
+
     // MARK: - Fix 1: Ray Picking During Dragging Tests
 
     final class RayPickingDuringDraggingTests: XCTestCase {
@@ -314,7 +315,7 @@ final class XRInputSystemSpatialTests: XCTestCase {
 
             // Simulate first .changed without .began (pinch starting)
             state.currentPhase = .changed
-            state.pickedEntityId = 123  // Would be set by picking on first .changed
+            state.pickedEntityId = 123 // Would be set by picking on first .changed
             input.xrSpatialInputState = state
 
             XCTAssertEqual(

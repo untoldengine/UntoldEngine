@@ -14,14 +14,7 @@ import XCTest
 final class ScenePickingSystemTests: XCTestCase {
     override func setUp() {
         super.setUp()
-        scene = Scene()
-        visibleEntityIds.removeAll()
-        scenePickingDirtyEntities.removeAll()
-        scenePickingSystemInitialized = false
-        scenePickingGPUAvailable = false
-        entityNameMap.removeAll()
-        reverseEntityNameMap.removeAll()
-        entityMeshMap.removeAll()
+        resetEngineTestState()
         InputSystem.shared.keyState.shiftPressed = false
         setIgnoreRayIntersectionWithTransparents(false)
     }
@@ -298,7 +291,7 @@ final class ScenePickingSystemTests: XCTestCase {
         OctreeSystem.shared.registerEntity(entity)
 
         let result = pickEntity(
-            rayOrigin: simd_float3(10, 0, 0),  // Ray starts behind entity
+            rayOrigin: simd_float3(10, 0, 0), // Ray starts behind entity
             rayDirection: simd_float3(-1, 0, 0), // Ray points backward
             options: ScenePickOptions(backend: .octreePreferred)
         )

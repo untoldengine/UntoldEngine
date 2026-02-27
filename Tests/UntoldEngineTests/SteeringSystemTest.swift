@@ -20,6 +20,7 @@ final class SteeringSystemTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        resetEngineTestState()
 
         entityId = createEntity()
         targetEntityId = createEntity()

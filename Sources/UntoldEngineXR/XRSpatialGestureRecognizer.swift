@@ -60,7 +60,6 @@
                 return
             }
 
-
             for (snapshotIndex, snapshot) in snapshots.enumerated() {
                 updateHandTrackingState(from: snapshot, state: &state)
                 updateTwoHandPinchGestures(state: &state, phase: snapshot.phase)
@@ -94,7 +93,7 @@
                 let shouldPickForSnapshot = normalizedRayDirection != nil && (snapshot.phase == .began || (!interactionActive && snapshot.phase == .changed))
 
                 let pickedEntityFromSnapshot: EntityID?
-                var pickedEntityDistance: Float = Float.infinity
+                var pickedEntityDistance = Float.infinity
                 if shouldPickForSnapshot,
                    let normalizedRayDirection,
                    let hit = pickEntity(
