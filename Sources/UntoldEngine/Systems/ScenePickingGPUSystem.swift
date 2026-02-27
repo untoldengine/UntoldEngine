@@ -231,6 +231,11 @@ private func scenePickingObjectHash(_ object: AnyObject) -> UInt64 {
     UInt64(bitPattern: Int64(ObjectIdentifier(object).hashValue))
 }
 
+private func isStaticEntity(_ entityId: EntityID) -> Bool {
+    // Entities with StaticBatchComponent are static and don't move
+    return hasComponent(entityId: entityId, componentType: StaticBatchComponent.self)
+}
+
 private func scenePickingComputeEntitySignature(_ entityId: EntityID) -> UInt64 {
     var hash: UInt64 = 1_469_598_103_934_665_603
     scenePickingHashCombine(&hash, entityId)
@@ -250,23 +255,27 @@ private func scenePickingComputeEntitySignature(_ entityId: EntityID) -> UInt64 
     scenePickingHashCombine(&hash, renderComponent.isVisible ? 1 : 0)
     scenePickingHashCombine(&hash, UInt64(renderComponent.mesh.count))
 
-    let m = worldTransform.space
-    scenePickingHashCombine(&hash, UInt64(m.columns.0.x.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.0.y.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.0.z.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.0.w.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.1.x.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.1.y.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.1.z.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.1.w.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.2.x.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.2.y.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.2.z.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.2.w.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.3.x.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.3.y.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.3.z.bitPattern))
-    scenePickingHashCombine(&hash, UInt64(m.columns.3.w.bitPattern))
+    // Only hash transform for static entities. Dynamic entities changing position should not
+    // trigger acceleration structure rebuilds - the signature stays same, only dirty tracking matters
+    if isStaticEntity(entityId) {
+        let m = worldTransform.space
+        scenePickingHashCombine(&hash, UInt64(m.columns.0.x.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.0.y.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.0.z.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.0.w.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.1.x.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.1.y.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.1.z.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.1.w.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.2.x.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.2.y.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.2.z.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.2.w.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.3.x.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.3.y.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.3.z.bitPattern))
+        scenePickingHashCombine(&hash, UInt64(m.columns.3.w.bitPattern))
+    }
 
     let positionVertexBufferIndex = Int(modelPassVerticesIndex.rawValue)
 
