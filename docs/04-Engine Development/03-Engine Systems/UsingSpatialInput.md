@@ -208,6 +208,33 @@ Common use cases:
 
 ------------------------------------------------------------------------
 
+## Anchored Pinch Drag Helper
+
+For stable translation (no per-frame delta accumulation), use the
+anchored lifecycle helper:
+
+``` swift
+func handleInput() {
+    let state = InputSystem.shared.xrSpatialInputState
+
+    SpatialManipulationSystem.shared.processAnchoredPinchDragLifecycle(
+        from: state,
+        entityId: sceneRootEntity
+    )
+}
+```
+
+This helper:
+
+-   Captures initial hand + entity world positions
+-   Applies absolute displacement from gesture start
+-   Cleans up session state on end/cancel
+
+Use this when moving large roots (buildings/scenes) where incremental
+delta jitter can become visible.
+
+------------------------------------------------------------------------
+
 ## Two-Hand Zoom Signal (Coming soon)
 
 Two hands pinching and moving closer/farther.
@@ -272,4 +299,3 @@ Use these helpers from `SpatialManipulationSystem.shared`:
 -   `applyTwoHandZoomIfNeeded(from:sensitivity:)`\
     Provides zoom delta signal. You must define what zoom means in your
     app.
-
