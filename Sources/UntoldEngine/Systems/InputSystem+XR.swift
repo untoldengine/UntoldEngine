@@ -43,6 +43,7 @@ public struct XRSpatialInputState: Sendable {
 
     // Picked entity (engine provides this via ray casting)
     public var pickedEntityId: EntityID?
+    public var pickedEntityDistance: Float = Float.infinity
 
     // Hand tracking (future expansion - placeholder)
     public var handTrackingActive = false
