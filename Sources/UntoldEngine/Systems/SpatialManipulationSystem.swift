@@ -99,13 +99,14 @@
             let rayLengthSquared = simd_length_squared(rayDirectionRaw)
             guard rayLengthSquared.isFinite, rayLengthSquared > (inputEpsilon * inputEpsilon) else { return }
             let rayDirection = rayDirectionRaw / sqrt(rayLengthSquared)
+            let pickingBackendPreference = InputSystem.shared.getXRSpatialPickingBackendPreference()
 
             let entityWorldPosition = getPosition(entityId: entityId)
             var hitPoint = entityWorldPosition
             if let hit = pickEntity(
                 rayOrigin: state.rayOriginWorld,
                 rayDirection: rayDirection,
-                options: ScenePickOptions(backend: .octreePreferred)
+                options: ScenePickOptions(backend: pickingBackendPreference)
             ),
                 hit.entityId == entityId
             {
