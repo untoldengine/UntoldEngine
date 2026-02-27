@@ -7,8 +7,7 @@ final class LODSystemTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        // Clean up before each test
-        destroyAllEntities()
+        resetEngineTestState()
         testEntity = createEntity()
         registerTransformComponent(entityId: testEntity)
     }

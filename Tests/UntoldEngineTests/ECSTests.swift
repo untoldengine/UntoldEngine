@@ -4,6 +4,7 @@ import XCTest
 final class ECSTests: XCTestCase {
     override func setUp() {
         super.setUp()
+        resetEngineTestState()
     }
 
     override func tearDown() {

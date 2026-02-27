@@ -20,6 +20,7 @@ final class SceneGraphTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        resetEngineTestState()
 
         // Create root, child, and grandchild entities
         rootEntity = createEntity()

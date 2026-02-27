@@ -18,6 +18,7 @@ final class TransformSystemTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        resetEngineTestState()
 
         entityId = createEntity()
         registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)

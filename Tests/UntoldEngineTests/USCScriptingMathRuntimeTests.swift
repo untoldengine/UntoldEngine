@@ -15,6 +15,7 @@ import XCTest
 final class USCScriptingMathRuntimeTests: XCTestCase {
     override func setUp() {
         super.setUp()
+        resetEngineTestState()
         initScriptingSystem()
     }
 

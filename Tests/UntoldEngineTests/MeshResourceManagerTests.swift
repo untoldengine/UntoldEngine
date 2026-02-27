@@ -12,6 +12,7 @@ import XCTest
 final class MeshResourceManagerTests: XCTestCase {
     override func setUp() {
         super.setUp()
+        resetEngineTestState()
         MeshResourceManager.shared.clearAll()
     }
 

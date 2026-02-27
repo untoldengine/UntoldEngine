@@ -166,45 +166,45 @@ private func pickEntityOctreeRay(
     options: ScenePickOptions
 ) -> ScenePickHit? {
     guard OctreeSystem.shared.enabled else { return nil }
-    
+
     // Use a sphere that encompasses reasonable hit distance for ray queries
     // Start with a large radius to find candidates
     let searchRadius: Float = 500.0
     let sphere = BoundingSphere(center: rayOrigin, radius: searchRadius)
     let candidateEntities = OctreeSystem.shared.query(sphere: sphere)
-    
+
     var bestEntity: EntityID?
     var bestDistance = Float.greatestFiniteMagnitude
-    
+
     for entityId in candidateEntities {
         guard scene.mask(for: entityId) != nil else { continue }
         if hasComponent(entityId: entityId, componentType: CameraComponent.self) { continue }
         if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) { continue }
-        
+
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
               let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
         else {
             continue
         }
-        
+
         if !renderComponent.isVisible { continue }
         if scenePickingShouldIgnoreEntityDueToTransparency(renderComponent) { continue }
-        
+
         // Test ray vs AABB intersection
         let localMin = simd_min(localTransform.boundingBox.min, localTransform.boundingBox.max)
         let localMax = simd_max(localTransform.boundingBox.min, localTransform.boundingBox.max)
-        
+
         let (worldMinRaw, worldMaxRaw) = worldAABB_MinMax(
             localMin: localMin,
             localMax: localMax,
             worldMatrix: worldTransform.space
         )
-        
+
         let worldMin = simd_min(worldMinRaw, worldMaxRaw)
         let worldMax = simd_max(worldMinRaw, worldMaxRaw)
         guard isFiniteVector3(worldMin), isFiniteVector3(worldMax) else { continue }
-        
+
         guard let distance = rayAABBIntersectionDistance(
             rayOrigin: rayOrigin,
             rayDirection: normalizedRayDirection,
@@ -213,15 +213,15 @@ private func pickEntityOctreeRay(
         ) else {
             continue
         }
-        
+
         if distance > options.maxDistance { continue }
-        
+
         if distance < bestDistance {
             bestDistance = distance
             bestEntity = entityId
         }
     }
-    
+
     guard let bestEntity else { return nil }
     let worldPosition = rayOrigin + normalizedRayDirection * bestDistance
     return ScenePickHit(entityId: bestEntity, distance: bestDistance, worldPosition: worldPosition)

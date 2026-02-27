@@ -233,7 +233,7 @@ private func scenePickingObjectHash(_ object: AnyObject) -> UInt64 {
 
 private func isStaticEntity(_ entityId: EntityID) -> Bool {
     // Entities with StaticBatchComponent are static and don't move
-    return hasComponent(entityId: entityId, componentType: StaticBatchComponent.self)
+    hasComponent(entityId: entityId, componentType: StaticBatchComponent.self)
 }
 
 private func scenePickingComputeEntitySignature(_ entityId: EntityID) -> UInt64 {

@@ -43,7 +43,7 @@ public struct XRSpatialInputState: Sendable {
 
     // Picked entity (engine provides this via ray casting)
     public var pickedEntityId: EntityID?
-    public var pickedEntityDistance: Float = Float.infinity
+    public var pickedEntityDistance: Float = .infinity
 
     // Hand tracking (future expansion - placeholder)
     public var handTrackingActive = false
@@ -140,7 +140,7 @@ public extension InputSystem {
             set {}
         }
 
-        func setXRSpatialPickingBackendPreference(_ preference: ScenePickingBackendPreference) {}
+        func setXRSpatialPickingBackendPreference(_: ScenePickingBackendPreference) {}
 
         func getXRSpatialPickingBackendPreference() -> ScenePickingBackendPreference {
             .octreePreferred

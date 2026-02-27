@@ -16,6 +16,7 @@ final class CameraTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        resetEngineTestState()
         camera = createEntity()
 
         CameraSystem.shared.activeCamera = camera
