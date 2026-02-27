@@ -1,4 +1,20 @@
 # Changelog
+## v0.10.9 - 2026-02-27
+### 🐞 Fixes
+- [Patch] Added occlusion culling (ccbd522…)
+- [Patch] Fixed static batching texture bug (443be64…)
+- [Patch] fixed ray-intersect compute (187a714…)
+- [Patch] Fix XR drifting (7165fba…)
+- [Patch] GPU ray picking (e61a1b9…)
+- [Patch] Added option to keep child entity as non-static batch (d07810b…)
+- [Patch] Fix Stereo ghosting (0cf4968…)
+- [Patch] Fixed Ray Picking During Dragging (d5e41df…)
+- [Patch] Implemented Octree-Based Ray Picking (9be0642…)
+- [Patch] Optimized GPU Acceleration Structures (f4a03a0…)
+- [Patch] Added Distance Tracking to Spatial Input State (4f2f43e…)
+- [Patch] Added Anchored Pinch Drag Helper (f02d578…)
+- [Patch] added function to set preferred ray intersection (9cee7ea…)
+- [Patch] added option to ignore ray intersect with transparent objects (4725abc…)
 ## v0.10.7 - 2026-02-23
 ### 🐞 Fixes
 - [Patch] fix transparency mesh pass (56e22a2…)
