@@ -80,6 +80,7 @@ var gaussianDepthPipeline = ComputePipeline()
 var scenePickingSystemInitialized: Bool = false
 var scenePickingDirtyEntities: Set<EntityID> = []
 var scenePickingGPUAvailable: Bool = false
+var scenePickingIgnoreRayIntersectionWithTransparents: Bool = false
 var scenePickingAccelStructResources = AccelStructResources()
 var scenePickingPipeline = ComputePipeline()
 // Environment Mesh

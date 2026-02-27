@@ -79,6 +79,14 @@ public func shutdownScenePickingSystem() {
     scenePickingDirtyEntities.removeAll()
 }
 
+public func setIgnoreRayIntersectionWithTransparents(_ enabled: Bool) {
+    scenePickingIgnoreRayIntersectionWithTransparents = enabled
+}
+
+public func isIgnoringRayIntersectionWithTransparents() -> Bool {
+    scenePickingIgnoreRayIntersectionWithTransparents
+}
+
 public func pickEntity(
     rayOrigin: simd_float3,
     rayDirection: simd_float3,
@@ -181,6 +189,7 @@ private func pickEntityOctreeRay(
         }
         
         if !renderComponent.isVisible { continue }
+        if scenePickingShouldIgnoreEntityDueToTransparency(renderComponent) { continue }
         
         // Test ray vs AABB intersection
         let localMin = simd_min(localTransform.boundingBox.min, localTransform.boundingBox.max)
@@ -248,6 +257,7 @@ private func pickEntityCPU(
         }
 
         if !renderComponent.isVisible { continue }
+        if scenePickingShouldIgnoreEntityDueToTransparency(renderComponent) { continue }
 
         let localMin = simd_min(localTransform.boundingBox.min, localTransform.boundingBox.max)
         let localMax = simd_max(localTransform.boundingBox.min, localTransform.boundingBox.max)
@@ -300,6 +310,21 @@ private func scenePickingCandidates(
     }
 
     return visibleEntityIds
+}
+
+@inline(__always)
+func scenePickingHasTransparentSubmesh(_ renderComponent: RenderComponent) -> Bool {
+    renderComponent.mesh.contains { mesh in
+        mesh.submeshes.contains { submesh in
+            submesh.material?.hasTransparency ?? false
+        }
+    }
+}
+
+@inline(__always)
+func scenePickingShouldIgnoreEntityDueToTransparency(_ renderComponent: RenderComponent) -> Bool {
+    scenePickingIgnoreRayIntersectionWithTransparents
+        && scenePickingHasTransparentSubmesh(renderComponent)
 }
 
 @inline(__always)
