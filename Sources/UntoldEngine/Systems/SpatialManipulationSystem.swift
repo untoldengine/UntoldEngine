@@ -97,7 +97,7 @@
             if let hit = pickEntity(
                 rayOrigin: state.rayOriginWorld,
                 rayDirection: rayDirection,
-                options: ScenePickOptions(backend: .cpuOnly)
+                options: ScenePickOptions(backend: .octreePreferred)
             ),
                 hit.entityId == entityId
             {
