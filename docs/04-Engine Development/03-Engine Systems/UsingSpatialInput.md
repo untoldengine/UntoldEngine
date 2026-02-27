@@ -283,6 +283,20 @@ Typical usage:
 `axisWorld` allows you to apply physically intuitive rotations rather
 than arbitrary axes.
 
+## Get distance to hit-entity
+
+To get the distance to an entity use the following:
+
+```swift
+// Get distance to hit-entity
+let state = InputSystem.shared.xrSpatialInputState
+if state.spatialTapActive, let entityId = state.pickedEntityId {
+    // get distance
+    let distance = state.pickedEntityDistance
+    print("Object distance: \(distance) meters")
+}
+```
+
 ------------------------------------------------------------------------
 
 # Spatial Helper Functions

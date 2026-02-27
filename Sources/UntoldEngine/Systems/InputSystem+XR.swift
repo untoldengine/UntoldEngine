@@ -140,12 +140,19 @@ public extension InputSystem {
             set {}
         }
 
+        func setXRSpatialPickingBackendPreference(_ preference: ScenePickingBackendPreference) {}
+
+        func getXRSpatialPickingBackendPreference() -> ScenePickingBackendPreference {
+            .octreePreferred
+        }
+
         func registerXREvents() {}
         func unregisterXREvents() {}
     #else
         private struct XREventState {
             var inputEventsEnabled = false
             var spatialInputState = XRSpatialInputState()
+            var spatialPickingBackendPreference: ScenePickingBackendPreference = .octreePreferred
         }
 
         private static let xrEventStateLock = OSAllocatedUnfairLock(initialState: XREventState())
@@ -193,6 +200,18 @@ public extension InputSystem {
 
         func clearXRSpatialSnapshots() {
             Self.xrSpatialInputQueue.clear()
+        }
+
+        func setXRSpatialPickingBackendPreference(_ preference: ScenePickingBackendPreference) {
+            Self.xrEventStateLock.withLock { state in
+                state.spatialPickingBackendPreference = preference
+            }
+        }
+
+        func getXRSpatialPickingBackendPreference() -> ScenePickingBackendPreference {
+            Self.xrEventStateLock.withLock { state in
+                state.spatialPickingBackendPreference
+            }
         }
 
         // MARK: - Helper Query Methods

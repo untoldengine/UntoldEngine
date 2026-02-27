@@ -21,6 +21,7 @@ final class XRInputSystemSpatialTests: XCTestCase {
             input.unregisterXREvents()
             input.clearXRSpatialSnapshots()
             input.xrSpatialInputState = XRSpatialInputState()
+            input.setXRSpatialPickingBackendPreference(.octreePreferred)
         #endif
     }
 
@@ -30,6 +31,7 @@ final class XRInputSystemSpatialTests: XCTestCase {
             input.unregisterXREvents()
             input.clearXRSpatialSnapshots()
             input.xrSpatialInputState = XRSpatialInputState()
+            input.setXRSpatialPickingBackendPreference(.octreePreferred)
         #endif
 
         xrInputSingletonTestLock.unlock()
@@ -83,6 +85,19 @@ final class XRInputSystemSpatialTests: XCTestCase {
 
             let drainedAgain = input.drainXRSpatialSnapshots()
             XCTAssertEqual(drainedAgain.count, 0)
+        }
+
+        func test_spatialPickingBackendHelper_updatesPreference() {
+            let input = InputSystem.shared
+
+            input.setXRSpatialPickingBackendPreference(.cpuOnly)
+            XCTAssertEqual(input.getXRSpatialPickingBackendPreference(), .cpuOnly)
+
+            input.setXRSpatialPickingBackendPreference(.gpuOnly)
+            XCTAssertEqual(input.getXRSpatialPickingBackendPreference(), .gpuOnly)
+
+            input.setXRSpatialPickingBackendPreference(.octreePreferred)
+            XCTAssertEqual(input.getXRSpatialPickingBackendPreference(), .octreePreferred)
         }
 
         func test_helperQueries_reflectXRSpatialInputState() {
@@ -162,6 +177,8 @@ final class XRInputSystemSpatialTests: XCTestCase {
             // Stub methods should still be callable.
             input.registerXREvents()
             input.unregisterXREvents()
+            input.setXRSpatialPickingBackendPreference(.cpuOnly)
+            XCTAssertEqual(input.getXRSpatialPickingBackendPreference(), .octreePreferred)
         }
     #endif
 }

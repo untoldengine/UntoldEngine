@@ -39,6 +39,7 @@
         func updateSpatialInputState() {
             let snapshots = InputSystem.shared.drainXRSpatialSnapshots()
             var state = InputSystem.shared.xrSpatialInputState
+            let pickingBackendPreference = InputSystem.shared.getXRSpatialPickingBackendPreference()
 
             // Tap is edge-triggered. Clear stale value when entering a new frame.
             let hadTap = state.spatialTapActive
@@ -99,7 +100,7 @@
                    let hit = pickEntity(
                        rayOrigin: snapshot.rayOriginWorld,
                        rayDirection: normalizedRayDirection,
-                       options: ScenePickOptions(backend: .octreePreferred)
+                       options: ScenePickOptions(backend: pickingBackendPreference)
                    )
                 {
                     pickedEntityFromSnapshot = hit.entityId
