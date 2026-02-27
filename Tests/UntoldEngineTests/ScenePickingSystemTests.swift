@@ -23,10 +23,12 @@ final class ScenePickingSystemTests: XCTestCase {
         reverseEntityNameMap.removeAll()
         entityMeshMap.removeAll()
         InputSystem.shared.keyState.shiftPressed = false
+        setIgnoreRayIntersectionWithTransparents(false)
     }
 
     override func tearDown() {
         InputSystem.shared.keyState.shiftPressed = false
+        setIgnoreRayIntersectionWithTransparents(false)
         super.tearDown()
     }
 
@@ -195,6 +197,14 @@ final class ScenePickingSystemTests: XCTestCase {
 
         XCTAssertNil(gpuOnly, "GPU-only picking should fail when GPU picker is unavailable")
         XCTAssertEqual(cpuOnly?.entityId, entity, "CPU backend should still succeed with the same ray")
+    }
+
+    func testSetIgnoreRayIntersectionWithTransparentsTogglesFlag() {
+        setIgnoreRayIntersectionWithTransparents(true)
+        XCTAssertTrue(isIgnoringRayIntersectionWithTransparents())
+
+        setIgnoreRayIntersectionWithTransparents(false)
+        XCTAssertFalse(isIgnoringRayIntersectionWithTransparents())
     }
 
     // MARK: - Octree-Based Ray Picking Tests

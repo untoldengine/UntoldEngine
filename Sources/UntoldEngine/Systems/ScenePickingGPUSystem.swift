@@ -254,6 +254,7 @@ private func scenePickingComputeEntitySignature(_ entityId: EntityID) -> UInt64 
 
     scenePickingHashCombine(&hash, renderComponent.isVisible ? 1 : 0)
     scenePickingHashCombine(&hash, UInt64(renderComponent.mesh.count))
+    scenePickingHashCombine(&hash, scenePickingHasTransparentSubmesh(renderComponent) ? 1 : 0)
 
     // Only hash transform for static entities. Dynamic entities changing position should not
     // trigger acceleration structure rebuilds - the signature stays same, only dirty tracking matters
@@ -310,6 +311,7 @@ private func scenePickingComputeSignature(
 
     scenePickingHashCombine(&hash, mode.rawValue)
     scenePickingHashCombine(&hash, UInt64(candidates.count))
+    scenePickingHashCombine(&hash, scenePickingIgnoreRayIntersectionWithTransparents ? 1 : 0)
 
     var orderInvariantXor: UInt64 = 0
     var orderInvariantSum: UInt64 = 0
@@ -337,6 +339,7 @@ private func scenePickingCreateAccelerationStructures(_ candidates: [EntityID]) 
         guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId) else { continue }
         guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else { continue }
         if !renderComponent.isVisible { continue }
+        if scenePickingShouldIgnoreEntityDueToTransparency(renderComponent) { continue }
 
         var geometryDescriptors: [MTLAccelerationStructureGeometryDescriptor] = []
 
