@@ -196,4 +196,132 @@ final class ScenePickingSystemTests: XCTestCase {
         XCTAssertNil(gpuOnly, "GPU-only picking should fail when GPU picker is unavailable")
         XCTAssertEqual(cpuOnly?.entityId, entity, "CPU backend should still succeed with the same ray")
     }
+
+    // MARK: - Octree-Based Ray Picking Tests
+
+    func testOctreePickingReturnsNearestEntity() {
+        let fartherEntity = createRenderableEntity(position: simd_float3(10, 0, 0))
+        let nearerEntity = createRenderableEntity(position: simd_float3(5, 0, 0))
+        visibleEntityIds = [fartherEntity, nearerEntity]
+
+        // Register entities with octree
+        OctreeSystem.shared.registerEntity(fartherEntity)
+        OctreeSystem.shared.registerEntity(nearerEntity)
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .octreePreferred)
+        )
+
+        guard let hit = result else {
+            XCTFail("Expected a valid hit result")
+            return
+        }
+
+        XCTAssertEqual(hit.entityId, nearerEntity, "Octree picker should choose the closest hit")
+        XCTAssertEqual(hit.distance, 4.0, accuracy: 0.0001, "Expected entry distance at x = 4")
+    }
+
+    func testOctreePickingSkipsInvisibleEntities() {
+        let hiddenNearEntity = createRenderableEntity(position: simd_float3(3, 0, 0), isVisible: false)
+        let visibleFarEntity = createRenderableEntity(position: simd_float3(8, 0, 0), isVisible: true)
+        visibleEntityIds = [hiddenNearEntity, visibleFarEntity]
+
+        OctreeSystem.shared.registerEntity(hiddenNearEntity)
+        OctreeSystem.shared.registerEntity(visibleFarEntity)
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .octreePreferred)
+        )
+
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.entityId, visibleFarEntity, "Octree picker should ignore invisible entities")
+    }
+
+    func testOctreePickingReturnsAccurateDistance() {
+        let entity = createRenderableEntity(position: simd_float3(7.5, 0, 0))
+        visibleEntityIds = [entity]
+
+        OctreeSystem.shared.registerEntity(entity)
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .octreePreferred)
+        )
+
+        guard let hit = result else {
+            XCTFail("Expected a valid hit result")
+            return
+        }
+
+        XCTAssertEqual(hit.distance, 6.5, accuracy: 0.0001, "Expected accurate distance calculation")
+    }
+
+    func testOctreePickingFallsBackToCPUWhenOctreeDisabled() {
+        let entity = createRenderableEntity(position: simd_float3(5, 0, 0))
+        visibleEntityIds = [entity]
+
+        // Disable octree
+        OctreeSystem.shared.enabled = false
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .octreePreferred)
+        )
+
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.entityId, entity, "Should fallback to CPU when Octree is disabled")
+
+        // Re-enable for other tests
+        OctreeSystem.shared.enabled = true
+    }
+
+    func testOctreePickingHandlesRayBehindEntity() {
+        let entity = createRenderableEntity(position: simd_float3(5, 0, 0))
+        visibleEntityIds = [entity]
+
+        OctreeSystem.shared.registerEntity(entity)
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(10, 0, 0),  // Ray starts behind entity
+            rayDirection: simd_float3(-1, 0, 0), // Ray points backward
+            options: ScenePickOptions(backend: .octreePreferred)
+        )
+
+        guard let hit = result else {
+            XCTFail("Expected a valid hit result")
+            return
+        }
+
+        XCTAssertEqual(hit.entityId, entity, "Octree picker should intersect ray pointing backward")
+        XCTAssertEqual(hit.distance, 4.0, accuracy: 0.0001, "Distance should be 4.0 (10 - 6) from x=10 to AABB at x=6")
+    }
+
+    func testOctreePickingRespectsMaxDistance() {
+        let entity = createRenderableEntity(position: simd_float3(5, 0, 0))
+        visibleEntityIds = [entity]
+
+        OctreeSystem.shared.registerEntity(entity)
+
+        let withinDistance = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(maxDistance: 4.1, backend: .octreePreferred)
+        )
+
+        let outsideDistance = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(maxDistance: 3.9, backend: .octreePreferred)
+        )
+
+        XCTAssertNotNil(withinDistance)
+        XCTAssertEqual(withinDistance?.entityId, entity)
+        XCTAssertNil(outsideDistance)
+    }
 }
