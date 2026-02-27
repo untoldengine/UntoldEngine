@@ -48,6 +48,12 @@
         case rotating(SpatialRotationSession)
     }
 
+    private struct AnchoredPinchDragSession {
+        var entityId: EntityID
+        var initialInputDevicePositionWorld: simd_float3
+        var initialEntityWorldPosition: simd_float3
+    }
+
     public final class SpatialManipulationSystem {
         public static let shared: SpatialManipulationSystem = .init()
 
@@ -62,11 +68,13 @@
         public var rotationDeltaDeadzoneRadians: Float = 0.002
 
         private var manipulationSession: SpatialManipulationSession = .none
+        private var anchoredPinchDragSession: AnchoredPinchDragSession?
 
         private init() {}
 
         public func reset() {
             manipulationSession = .none
+            anchoredPinchDragSession = nil
         }
 
         public func processPinchTransformLifecycle(from state: XRSpatialInputState) {
@@ -271,6 +279,81 @@
             let targetWorldPosition = currentWorldPosition + dragDelta
             let targetLocalPosition = worldPositionToLocal(entityId: target, worldPosition: targetWorldPosition)
             translateTo(entityId: target, position: targetLocalPosition)
+        }
+
+        /// Session-based anchored drag that avoids per-frame delta accumulation.
+        ///
+        /// Call this each frame from your input loop.
+        /// It captures the initial hand + entity world positions and applies absolute displacement.
+        public func processAnchoredPinchDragLifecycle(from state: XRSpatialInputState, entityId: EntityID? = nil, sensitivity: Float = 1.0) {
+            if state.currentPhase == .ended || state.currentPhase == .cancelled {
+                endAnchoredPinchDrag()
+                return
+            }
+
+            guard state.spatialPinchActive else {
+                if anchoredPinchDragSession != nil, state.spatialDragActive == false {
+                    endAnchoredPinchDrag()
+                }
+                return
+            }
+
+            if anchoredPinchDragSession == nil {
+                beginAnchoredPinchDragIfNeeded(from: state, entityId: entityId)
+            }
+
+            guard state.spatialDragActive,
+                  let session = anchoredPinchDragSession
+            else {
+                return
+            }
+
+            guard scene.mask(for: session.entityId) != nil else {
+                endAnchoredPinchDrag()
+                return
+            }
+
+            guard let currentInputDevicePosition = state.inputDevicePositionWorld else { return }
+            guard currentInputDevicePosition.x.isFinite,
+                  currentInputDevicePosition.y.isFinite,
+                  currentInputDevicePosition.z.isFinite
+            else { return }
+
+            let clampedSensitivity = max(sensitivity, 0)
+            let delta = (currentInputDevicePosition - session.initialInputDevicePositionWorld) * clampedSensitivity
+            guard delta.x.isFinite, delta.y.isFinite, delta.z.isFinite else { return }
+
+            let targetWorldPosition = session.initialEntityWorldPosition + delta
+            let targetLocalPosition = worldPositionToLocal(entityId: session.entityId, worldPosition: targetWorldPosition)
+            translateTo(entityId: session.entityId, position: targetLocalPosition)
+        }
+
+        public func beginAnchoredPinchDragIfNeeded(from state: XRSpatialInputState, entityId: EntityID? = nil) {
+            guard anchoredPinchDragSession == nil else { return }
+
+            guard let target = resolveManipulationTarget(explicitEntityId: entityId, state: state),
+                  scene.mask(for: target) != nil,
+                  let initialInputDevicePosition = state.inputDevicePositionWorld
+            else {
+                return
+            }
+
+            guard initialInputDevicePosition.x.isFinite,
+                  initialInputDevicePosition.y.isFinite,
+                  initialInputDevicePosition.z.isFinite
+            else {
+                return
+            }
+
+            anchoredPinchDragSession = AnchoredPinchDragSession(
+                entityId: target,
+                initialInputDevicePositionWorld: initialInputDevicePosition,
+                initialEntityWorldPosition: getPosition(entityId: target)
+            )
+        }
+
+        public func endAnchoredPinchDrag() {
+            anchoredPinchDragSession = nil
         }
 
         public func applyTwoHandZoomIfNeeded(from state: XRSpatialInputState, sensitivity _: Float = 1.0) {
