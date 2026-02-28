@@ -571,6 +571,111 @@ private func scenePickingExecuteRayVsModelHit(
     return true
 }
 
+/// Perform GPU ray-triangle intersection for a pre-filtered set of candidate entities.
+/// Builds a throwaway acceleration structure for only the provided candidates (no signature cache).
+func pickEntityGPUWithCandidates(
+    candidates: [EntityID],
+    rayOrigin: simd_float3,
+    normalizedRayDirection: simd_float3,
+    options: ScenePickOptions
+) -> ScenePickHit? {
+    guard scenePickingCanUseGPU() else { return nil }
+    guard !candidates.isEmpty else { return nil }
+
+    // Save current accel-struct state so we can restore it after this one-shot query.
+    let savedPrimitive = scenePickingAccelStructResources.primitiveAccelerationStructures
+    let savedTransforms = scenePickingAccelStructResources.instanceTransforms
+    let savedAccelIndex = scenePickingAccelStructResources.accelerationStructIndex
+    let savedEntityIndex = scenePickingAccelStructResources.entityIDIndex
+    let savedMask = scenePickingAccelStructResources.mask
+    let savedInstanceBuffer = scenePickingAccelStructResources.instanceBuffer
+    let savedInstanceAccel = scenePickingAccelStructResources.instanceAccelerationStructure
+
+    // Clear and build for candidates only.
+    scenePickingAccelStructResources.primitiveAccelerationStructures.removeAll()
+    scenePickingAccelStructResources.instanceTransforms.removeAll()
+    scenePickingAccelStructResources.accelerationStructIndex.removeAll()
+    scenePickingAccelStructResources.entityIDIndex.removeAll()
+    scenePickingAccelStructResources.mask.removeAll()
+    scenePickingAccelStructResources.instanceBuffer = nil
+    scenePickingAccelStructResources.instanceAccelerationStructure = nil
+
+    scenePickingCreateAccelerationStructures(candidates)
+    scenePickingCreateInstanceAccelerationStructure()
+
+    // Wait for the build to finish (cheap with few entities).
+    scenePickingLastBuildCommandBuffer?.waitUntilCompleted()
+    scenePickingLastBuildCommandBuffer = nil
+
+    defer {
+        // Restore previous accel-struct state.
+        scenePickingAccelStructResources.primitiveAccelerationStructures = savedPrimitive
+        scenePickingAccelStructResources.instanceTransforms = savedTransforms
+        scenePickingAccelStructResources.accelerationStructIndex = savedAccelIndex
+        scenePickingAccelStructResources.entityIDIndex = savedEntityIndex
+        scenePickingAccelStructResources.mask = savedMask
+        scenePickingAccelStructResources.instanceBuffer = savedInstanceBuffer
+        scenePickingAccelStructResources.instanceAccelerationStructure = savedInstanceAccel
+    }
+
+    guard let outputBuffer = bufferResources.rayModelPickOutputBuffer else { return nil }
+    scenePickingResetOutputBuffer(outputBuffer)
+
+    guard scenePickingPipeline.success,
+          let pipelineState = scenePickingPipeline.pipelineState,
+          let instanceAccelerationStructure = scenePickingAccelStructResources.instanceAccelerationStructure,
+          let instanceBuffer = scenePickingAccelStructResources.instanceBuffer
+    else {
+        return nil
+    }
+
+    guard let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() else { return nil }
+    guard let computeEncoder = commandBuffer.makeComputeCommandEncoder() else { return nil }
+    computeEncoder.label = "Scene Picking Octree+GPU Ray Hit pass"
+    computeEncoder.setComputePipelineState(pipelineState)
+    computeEncoder.setAccelerationStructure(
+        instanceAccelerationStructure,
+        bufferIndex: Int(rayModelAccelStructIndex.rawValue)
+    )
+    computeEncoder.setBuffer(instanceBuffer, offset: 0, index: Int(rayModelBufferInstanceIndex.rawValue))
+
+    var origin = rayOrigin
+    var direction = simd_normalize(normalizedRayDirection)
+    computeEncoder.setBytes(&origin, length: MemoryLayout<simd_float3>.stride, index: Int(rayModelOriginIndex.rawValue))
+    computeEncoder.setBytes(&direction, length: MemoryLayout<simd_float3>.stride, index: Int(rayModelDirectionIndex.rawValue))
+    computeEncoder.setBuffer(outputBuffer, offset: 0, index: Int(rayModelInstanceHitIndex.rawValue))
+
+    let threads = MTLSize(width: 1, height: 1, depth: 1)
+    computeEncoder.dispatchThreads(threads, threadsPerThreadgroup: threads)
+    computeEncoder.endEncoding()
+
+    commandBuffer.commit()
+    commandBuffer.waitUntilCompleted()
+
+    if commandBuffer.error != nil { return nil }
+
+    let output = outputBuffer.contents().assumingMemoryBound(to: RayModelPickOutput.self).pointee
+    let hitIndex = Int(output.instanceHit)
+
+    guard hitIndex >= 0,
+          hitIndex < scenePickingAccelStructResources.entityIDIndex.count
+    else {
+        return nil
+    }
+
+    guard output.distance.isFinite else { return nil }
+    if output.distance > options.maxDistance { return nil }
+
+    let entityId = scenePickingAccelStructResources.entityIDIndex[hitIndex]
+    let worldPosition = rayOrigin + normalizedRayDirection * output.distance
+    return ScenePickHit(
+        entityId: entityId,
+        distance: output.distance,
+        worldPosition: worldPosition,
+        triangleIndex: output.triangleIndex
+    )
+}
+
 func pickEntityGPU(
     rayOrigin: simd_float3,
     normalizedRayDirection: simd_float3,

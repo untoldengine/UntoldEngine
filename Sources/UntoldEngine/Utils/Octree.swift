@@ -153,6 +153,19 @@ public class Octree {
         return results
     }
 
+    /// Query all entities whose AABBs are intersected by a ray.
+    /// Returns `(EntityID, Float)` pairs sorted by intersection distance.
+    public func query(
+        rayOrigin: simd_float3,
+        rayDirection: simd_float3,
+        maxDistance: Float = .greatestFiniteMagnitude
+    ) -> [(EntityID, Float)] {
+        var results: [(EntityID, Float)] = []
+        queryNode(root, rayOrigin: rayOrigin, rayDirection: rayDirection, maxDistance: maxDistance, results: &results)
+        results.sort { $0.1 < $1.1 }
+        return results
+    }
+
     /// Get the bounds of a stored entity
     public func getBounds(for entityId: EntityID) -> AABB? {
         entityToBounds[entityId]
@@ -183,15 +196,15 @@ public class Octree {
     // MARK: - Private Implementation
 
     private func insertEntry(_ entry: OctreeEntry, into node: OctreeNode) {
-        // If not a leaf, find the appropriate child
+        // If not a leaf, find a child that fully contains the entry
         if let children = node.children {
             for child in children {
-                if child.bounds.intersects(entry.bounds) {
+                if child.bounds.contains(entry.bounds) {
                     insertEntry(entry, into: child)
                     return
                 }
             }
-            // Entry doesn't fit cleanly in any child, store at this level
+            // Entry spans multiple children, store at this level
             node.entries.append(entry)
             entityToNode[entry.entityId] = node
             return
@@ -278,6 +291,43 @@ public class Octree {
         if let children = node.children {
             for child in children {
                 queryNode(child, sphere: sphere, results: &results)
+            }
+        }
+    }
+
+    private func queryNode(
+        _ node: OctreeNode,
+        rayOrigin: simd_float3,
+        rayDirection: simd_float3,
+        maxDistance: Float,
+        results: inout [(EntityID, Float)]
+    ) {
+        // Early out if ray doesn't intersect this node's AABB
+        guard let _ = rayAABBIntersectionDistance(
+            rayOrigin: rayOrigin,
+            rayDirection: rayDirection,
+            minBounds: node.bounds.min,
+            maxBounds: node.bounds.max
+        ) else {
+            return
+        }
+
+        // Check entries stored at this node
+        for entry in node.entries {
+            if let distance = rayAABBIntersectionDistance(
+                rayOrigin: rayOrigin,
+                rayDirection: rayDirection,
+                minBounds: entry.bounds.min,
+                maxBounds: entry.bounds.max
+            ), distance <= maxDistance {
+                results.append((entry.entityId, distance))
+            }
+        }
+
+        // Recurse into children
+        if let children = node.children {
+            for child in children {
+                queryNode(child, rayOrigin: rayOrigin, rayDirection: rayDirection, maxDistance: maxDistance, results: &results)
             }
         }
     }
