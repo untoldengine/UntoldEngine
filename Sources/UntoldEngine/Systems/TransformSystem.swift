@@ -390,3 +390,17 @@ public func worldPositionToLocal(entityId: EntityID, worldPosition: simd_float3)
     let localPoint = simd_mul(simd_inverse(parentWorld.space), worldPoint)
     return simd_float3(localPoint.x, localPoint.y, localPoint.z)
 }
+
+// MARK: - Scene Root Transform
+
+/// Translate the entire scene by a delta without modifying individual entity transforms.
+/// This keeps static batches intact — no rebatching is needed.
+public func translateSceneBy(delta: simd_float3) {
+    SceneRootTransform.shared.position += delta
+}
+
+/// Translate the entire scene to an absolute position without modifying individual entity transforms.
+/// This keeps static batches intact — no rebatching is needed.
+public func translateSceneTo(position: simd_float3) {
+    SceneRootTransform.shared.position = position
+}
