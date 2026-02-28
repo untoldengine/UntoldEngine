@@ -46,7 +46,9 @@ public class GeometryStreamingSystem {
 
         // Use Octree for efficient spatial query - only check nearby entities for loading
         // Query with the max unload radius to catch all potentially relevant entities
-        let nearbyEntities = OctreeSystem.shared.queryNear(point: cameraPosition, radius: maxQueryRadius)
+        // Transform camera position into entity space (un-shifted by scene root).
+        let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraPosition)
+        let nearbyEntities = OctreeSystem.shared.queryNear(point: effectiveCameraPosition, radius: maxQueryRadius)
 
         var loadCandidates: [(EntityID, Float, Int)] = [] // (entity, distance, priority)
         var unloadCandidates: [EntityID] = []
@@ -62,7 +64,7 @@ public class GeometryStreamingSystem {
                 continue
             }
 
-            let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
+            let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
 
             switch streaming.state {
             case .unloaded:
@@ -101,7 +103,7 @@ public class GeometryStreamingSystem {
                   streaming.state == .loaded
             else { continue }
 
-            let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
+            let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
             if distance > streaming.unloadRadius {
                 unloadCandidates.append(entityId)
             }

@@ -376,6 +376,7 @@
             // Skip render prep (culling, gaussian, bitonic) while loading.
             // The render graph still executes using the stale visibleEntityIds.
             if !loading {
+                SceneRootTransform.shared.updateIfNeeded()
                 EngineProfiler.shared.beginScope(.renderPrep)
                 performFrustumCulling(commandBuffer: commandBuffer)
                 executeGaussianDepth(commandBuffer)

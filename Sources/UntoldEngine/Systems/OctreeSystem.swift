@@ -92,7 +92,10 @@ public class OctreeSystem {
               let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
         else { return [] }
 
-        let sphere = BoundingSphere(center: cameraComponent.localPosition, radius: radius)
+        // Entities live in un-shifted world space; transform the camera position by the
+        // inverse scene root so the spatial query matches entity positions.
+        let effectivePos = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+        let sphere = BoundingSphere(center: effectivePos, radius: radius)
         return octree.query(sphere: sphere)
     }
 

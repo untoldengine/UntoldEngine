@@ -96,51 +96,81 @@ public func pickEntity(
     guard rayLengthSquared.isFinite, rayLengthSquared > Float.ulpOfOne else { return nil }
     let normalizedRayDirection = rayDirection / sqrt(rayLengthSquared)
 
+    // Transform the ray into entity-local space by applying the inverse scene root.
+    // Entities live in un-shifted world space; the scene root only shifts the camera.
+    let srt = SceneRootTransform.shared
+    let localOrigin: simd_float3
+    let localDirection: simd_float3
+    if srt.isIdentity {
+        localOrigin = rayOrigin
+        localDirection = normalizedRayDirection
+    } else {
+        let invM = srt.inverseMatrix
+        let o = simd_mul(invM, simd_float4(rayOrigin, 1.0))
+        localOrigin = simd_float3(o.x, o.y, o.z)
+        let d = simd_mul(invM, simd_float4(normalizedRayDirection, 0.0))
+        localDirection = simd_normalize(simd_float3(d.x, d.y, d.z))
+    }
+
     if options.backend == .gpuOnly, !scenePickingCanUseGPU() {
         return nil
     }
 
+    var hit: ScenePickHit?
     switch resolveScenePickingBackend(options.backend) {
     case .octree:
-        return pickEntityOctreeRay(
-            rayOrigin: rayOrigin,
-            normalizedRayDirection: normalizedRayDirection,
+        hit = pickEntityOctreeRay(
+            rayOrigin: localOrigin,
+            normalizedRayDirection: localDirection,
             options: options
         )
     case .cpu:
-        return pickEntityCPU(
-            rayOrigin: rayOrigin,
-            normalizedRayDirection: normalizedRayDirection,
+        hit = pickEntityCPU(
+            rayOrigin: localOrigin,
+            normalizedRayDirection: localDirection,
             options: options
         )
     case .gpu:
         switch pickEntityGPU(
-            rayOrigin: rayOrigin,
-            normalizedRayDirection: normalizedRayDirection,
+            rayOrigin: localOrigin,
+            normalizedRayDirection: localDirection,
             options: options,
             allowNonBlockingRebuild: options.backend != .gpuOnly,
             allowNonBlockingRayQuery: options.backend != .gpuOnly
         ) {
-        case let .hit(hit):
-            return hit
+        case let .hit(h):
+            hit = h
         case .miss:
-            return nil
+            hit = nil
         case .pending:
             break
         case .error:
             break
         }
 
-        if options.backend == .gpuOnly {
+        if hit == nil, options.backend == .gpuOnly {
             return nil
         }
 
-        return pickEntityCPU(
-            rayOrigin: rayOrigin,
-            normalizedRayDirection: normalizedRayDirection,
-            options: options
-        )
+        if hit == nil {
+            hit = pickEntityCPU(
+                rayOrigin: localOrigin,
+                normalizedRayDirection: localDirection,
+                options: options
+            )
+        }
     }
+
+    // Back-transform hit position into the caller's (scene-root-shifted) world space.
+    guard let h = hit, !srt.isIdentity else { return hit }
+    let wp = simd_mul(srt.matrix, simd_float4(h.worldPosition, 1.0))
+    return ScenePickHit(
+        entityId: h.entityId,
+        distance: h.distance,
+        worldPosition: simd_float3(wp.x, wp.y, wp.z),
+        worldNormal: h.worldNormal,
+        triangleIndex: h.triangleIndex
+    )
 }
 
 @available(*, deprecated, message: "Use pickEntity(rayOrigin:rayDirection:options:) to receive ScenePickHit.")

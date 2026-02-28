@@ -257,8 +257,9 @@ public enum RenderPasses {
             MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0))
 
         // send buffer data
+        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(shadowSystem.dirLightSpaceMatrix!)
         renderEncoder.setVertexBytes(
-            &shadowSystem.dirLightSpaceMatrix, length: MemoryLayout<simd_float4x4>.stride,
+            &effectiveDirLightMatrix, length: MemoryLayout<simd_float4x4>.stride,
             index: Int(shadowPassLightMatrixUniform.rawValue)
         )
 
@@ -311,7 +312,7 @@ public enum RenderPasses {
                 let rootMatrix = transformComponent.space
                 var modelMatrix = simd_mul(rootMatrix, mesh.localSpace)
 
-                let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+                let viewMatrix: simd_float4x4 = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
 
                 let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
@@ -329,7 +330,7 @@ public enum RenderPasses {
 
                 modelUniforms.modelMatrix = modelMatrix
 
-                modelUniforms.cameraPosition = cameraComponent.localPosition
+                modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
 
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
@@ -440,8 +441,9 @@ public enum RenderPasses {
             MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0))
 
         // Set light space matrix (same as shadowExecution)
+        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(shadowSystem.dirLightSpaceMatrix!)
         renderEncoder.setVertexBytes(
-            &shadowSystem.dirLightSpaceMatrix, length: MemoryLayout<simd_float4x4>.stride,
+            &effectiveDirLightMatrix, length: MemoryLayout<simd_float4x4>.stride,
             index: Int(shadowPassLightMatrixUniform.rawValue)
         )
 
@@ -454,7 +456,7 @@ public enum RenderPasses {
 
         // Create identity uniform (batched vertices are already in world space)
         var batchUniforms = Uniforms()
-        let viewMatrix = cameraComponent.viewSpace
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
         let modelMatrix = matrix_identity_float4x4
         let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
@@ -462,7 +464,7 @@ public enum RenderPasses {
         batchUniforms.viewMatrix = viewMatrix
         batchUniforms.modelViewMatrix = modelViewMatrix
         batchUniforms.normalMatrix = matrix_identity_float3x3
-        batchUniforms.cameraPosition = cameraComponent.localPosition
+        batchUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
         batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
         // Render each batch group (shadows only need positions)
@@ -617,7 +619,7 @@ public enum RenderPasses {
                 let rootMatrix = worldTransformComponent.space
                 var modelMatrix = simd_mul(rootMatrix, mesh.localSpace)
 
-                let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+                let viewMatrix: simd_float4x4 = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
 
                 let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
@@ -635,7 +637,7 @@ public enum RenderPasses {
 
                 modelUniforms.modelMatrix = modelMatrix
 
-                modelUniforms.cameraPosition = cameraComponent.localPosition
+                modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
 
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
@@ -846,7 +848,7 @@ public enum RenderPasses {
 
         // Create identity uniform (batched vertices are already in world space)
         var batchUniforms = Uniforms()
-        let viewMatrix = cameraComponent.viewSpace
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
         let modelMatrix = matrix_identity_float4x4
         let modelViewMatrix = simd_mul(viewMatrix, modelMatrix) // Same calculation as modelExecution
         let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
@@ -875,7 +877,7 @@ public enum RenderPasses {
         batchUniforms.viewMatrix = viewMatrix
         batchUniforms.modelViewMatrix = modelViewMatrix
         batchUniforms.normalMatrix = normalMatrix
-        batchUniforms.cameraPosition = cameraComponent.localPosition
+        batchUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
         batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
         // Render each batch group
@@ -1586,10 +1588,12 @@ public enum RenderPasses {
         renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
-        renderEncoder.setFragmentBytes(&cameraComponent.localPosition, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
+        var effectiveCamPos = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+        renderEncoder.setFragmentBytes(&effectiveCamPos, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
 
+        var effectiveLightOrthoView = SceneRootTransform.shared.effectiveLightMatrix(shadowSystem.dirLightSpaceMatrix!)
         renderEncoder.setFragmentBytes(
-            &shadowSystem.dirLightSpaceMatrix, length: MemoryLayout<simd_float4x4>.stride,
+            &effectiveLightOrthoView, length: MemoryLayout<simd_float4x4>.stride,
             index: Int(lightPassLightOrthoViewMatrixIndex.rawValue)
         )
 
@@ -1887,14 +1891,16 @@ public enum RenderPasses {
         renderEncoder.setDepthStencilState(transparencyPipeline.depthState)
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
+        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(shadowSystem.dirLightSpaceMatrix!)
         renderEncoder.setFragmentBytes(
-            &shadowSystem.dirLightSpaceMatrix,
+            &effectiveDirLightMatrix,
             length: MemoryLayout<simd_float4x4>.stride,
             index: Int(transparencyPassLightOrthoViewMatrixIndex.rawValue)
         )
 
+        var effectiveCamPos = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
         renderEncoder.setFragmentBytes(
-            &cameraComponent.localPosition,
+            &effectiveCamPos,
             length: MemoryLayout<simd_float3>.stride,
             index: Int(transparencyPassCameraPositionIndex.rawValue)
         )
@@ -2034,7 +2040,7 @@ public enum RenderPasses {
                 var modelUniforms = Uniforms()
                 let rootMatrix = worldTransformComponent.space
                 let modelMatrix = simd_mul(rootMatrix, mesh.localSpace)
-                let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+                let viewMatrix: simd_float4x4 = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
                 let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
                 let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
                 let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
@@ -2044,7 +2050,7 @@ public enum RenderPasses {
                 modelUniforms.normalMatrix = normalMatrix
                 modelUniforms.viewMatrix = viewMatrix
                 modelUniforms.modelMatrix = modelMatrix
-                modelUniforms.cameraPosition = cameraComponent.localPosition
+                modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
                 if let modelUniformBuffer = mesh.spaceUniform[currentUniformBufferIndex()] {

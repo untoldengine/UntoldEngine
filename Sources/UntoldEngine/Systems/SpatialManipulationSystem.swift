@@ -54,6 +54,11 @@
         var initialEntityWorldPosition: simd_float3
     }
 
+    private struct AnchoredSceneDragSession {
+        var initialInputDevicePositionWorld: simd_float3
+        var initialScenePosition: simd_float3
+    }
+
     public final class SpatialManipulationSystem {
         public static let shared: SpatialManipulationSystem = .init()
 
@@ -69,12 +74,14 @@
 
         private var manipulationSession: SpatialManipulationSession = .none
         private var anchoredPinchDragSession: AnchoredPinchDragSession?
+        private var anchoredSceneDragSession: AnchoredSceneDragSession?
 
         private init() {}
 
         public func reset() {
             manipulationSession = .none
             anchoredPinchDragSession = nil
+            anchoredSceneDragSession = nil
         }
 
         public func processPinchTransformLifecycle(from state: XRSpatialInputState) {
@@ -355,6 +362,68 @@
 
         public func endAnchoredPinchDrag() {
             anchoredPinchDragSession = nil
+        }
+
+        // MARK: - Anchored Scene Drag
+
+        /// Session-based anchored drag that translates the entire scene root.
+        ///
+        /// Call this each frame from your input loop.
+        /// It captures the initial hand position + scene root position and applies absolute displacement
+        /// via `translateSceneTo`, keeping static batches intact.
+        public func processAnchoredSceneDragLifecycle(from state: XRSpatialInputState, sensitivity: Float = 1.0) {
+            if state.currentPhase == .ended || state.currentPhase == .cancelled {
+                endAnchoredSceneDrag()
+                return
+            }
+
+            guard state.spatialPinchActive else {
+                if anchoredSceneDragSession != nil, state.spatialDragActive == false {
+                    endAnchoredSceneDrag()
+                }
+                return
+            }
+
+            if anchoredSceneDragSession == nil {
+                beginAnchoredSceneDragIfNeeded(from: state)
+            }
+
+            guard state.spatialDragActive,
+                  let session = anchoredSceneDragSession
+            else {
+                return
+            }
+
+            guard let currentInputDevicePosition = state.inputDevicePositionWorld else { return }
+            guard currentInputDevicePosition.x.isFinite,
+                  currentInputDevicePosition.y.isFinite,
+                  currentInputDevicePosition.z.isFinite
+            else { return }
+
+            let clampedSensitivity = max(sensitivity, 0)
+            let delta = (currentInputDevicePosition - session.initialInputDevicePositionWorld) * clampedSensitivity
+            guard delta.x.isFinite, delta.y.isFinite, delta.z.isFinite else { return }
+
+            translateSceneTo(position: session.initialScenePosition + delta)
+        }
+
+        public func beginAnchoredSceneDragIfNeeded(from state: XRSpatialInputState) {
+            guard anchoredSceneDragSession == nil else { return }
+
+            guard let initialInputDevicePosition = state.inputDevicePositionWorld else { return }
+            guard initialInputDevicePosition.x.isFinite,
+                  initialInputDevicePosition.y.isFinite,
+                  initialInputDevicePosition.z.isFinite
+            else { return }
+
+            anchoredSceneDragSession = AnchoredSceneDragSession(
+                initialInputDevicePositionWorld: initialInputDevicePosition,
+                initialScenePosition: SceneRootTransform.shared.position
+            )
+        }
+
+        public func endAnchoredSceneDrag() {
+            anchoredSceneDragSession = nil
         }
 
         public func applyTwoHandZoomIfNeeded(from state: XRSpatialInputState, sensitivity _: Float = 1.0) {
