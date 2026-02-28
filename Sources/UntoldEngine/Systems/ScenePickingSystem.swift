@@ -11,13 +11,20 @@ import Foundation
 import simd
 
 public enum ScenePickingBackendPreference {
+    /// Automatic: octree broad-phase + GPU narrow-phase if available, otherwise GPU-only, else CPU.
     case automatic
+    /// CPU-only ray-AABB intersection (no GPU acceleration structures).
     case cpuOnly
-    case octreePreferred
+    /// Octree broad-phase (ray vs octree node AABBs) followed by GPU ray-triangle on the narrow
+    /// candidate set. Falls back to ray-AABB results when GPU is unavailable.
+    case octreeGPUPreferred
+    /// GPU ray-triangle for all visible entities (builds full acceleration structure).
     case gpuOnly
-    // Deprecated alias for backward compatibility
-    @available(*, deprecated, renamed: "octreePreferred")
-    static let gpuPreferred = octreePreferred
+    // Deprecated aliases for backward compatibility
+    @available(*, deprecated, renamed: "octreeGPUPreferred")
+    static let gpuPreferred = octreeGPUPreferred
+    @available(*, deprecated, renamed: "octreeGPUPreferred")
+    static let octreePreferred = octreeGPUPreferred
 }
 
 public struct ScenePickOptions {
@@ -119,7 +126,7 @@ public func pickEntity(
     var hit: ScenePickHit?
     switch resolveScenePickingBackend(options.backend) {
     case .octree:
-        hit = pickEntityOctreeRay(
+        hit = pickEntityOctreeGPU(
             rayOrigin: localOrigin,
             normalizedRayDirection: localDirection,
             options: options
@@ -190,71 +197,68 @@ public func pickEntity(
     return (hit.entityId, hit.distance)
 }
 
-private func pickEntityOctreeRay(
+private func pickEntityOctreeGPU(
     rayOrigin: simd_float3,
     normalizedRayDirection: simd_float3,
     options: ScenePickOptions
 ) -> ScenePickHit? {
     guard OctreeSystem.shared.enabled else { return nil }
 
-    // Use a sphere that encompasses reasonable hit distance for ray queries
-    // Start with a large radius to find candidates
-    let searchRadius: Float = 500.0
-    let sphere = BoundingSphere(center: rayOrigin, radius: searchRadius)
-    let candidateEntities = OctreeSystem.shared.query(sphere: sphere)
+    // --- Stage 1: Ray-traverse octree to find narrow candidate set ---
+    let octreeHits = OctreeSystem.shared.query(
+        rayOrigin: rayOrigin,
+        rayDirection: normalizedRayDirection,
+        maxDistance: options.maxDistance
+    )
 
-    var bestEntity: EntityID?
-    var bestDistance = Float.greatestFiniteMagnitude
+    guard !octreeHits.isEmpty else { return nil }
 
-    for entityId in candidateEntities {
+    // Filter candidates (cameras, invisible, transparency, gizmo mode).
+    let gizmoOnly = options.gizmoOnly
+        || (options.isGizmoActive && !InputSystem.shared.keyState.shiftPressed)
+
+    var filteredCandidates: [EntityID] = []
+    var bestAABBEntity: EntityID?
+    var bestAABBDistance = Float.greatestFiniteMagnitude
+
+    for (entityId, distance) in octreeHits {
         guard scene.mask(for: entityId) != nil else { continue }
         if hasComponent(entityId: entityId, componentType: CameraComponent.self) { continue }
         if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) { continue }
 
-        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
-              let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
-              let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
-        else {
-            continue
-        }
-
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { continue }
         if !renderComponent.isVisible { continue }
         if scenePickingShouldIgnoreEntityDueToTransparency(renderComponent) { continue }
 
-        // Test ray vs AABB intersection
-        let localMin = simd_min(localTransform.boundingBox.min, localTransform.boundingBox.max)
-        let localMax = simd_max(localTransform.boundingBox.min, localTransform.boundingBox.max)
-
-        let (worldMinRaw, worldMaxRaw) = worldAABB_MinMax(
-            localMin: localMin,
-            localMax: localMax,
-            worldMatrix: worldTransform.space
-        )
-
-        let worldMin = simd_min(worldMinRaw, worldMaxRaw)
-        let worldMax = simd_max(worldMinRaw, worldMaxRaw)
-        guard isFiniteVector3(worldMin), isFiniteVector3(worldMax) else { continue }
-
-        guard let distance = rayAABBIntersectionDistance(
-            rayOrigin: rayOrigin,
-            rayDirection: normalizedRayDirection,
-            minBounds: worldMin,
-            maxBounds: worldMax
-        ) else {
-            continue
+        if gizmoOnly {
+            guard hasComponent(entityId: entityId, componentType: GizmoComponent.self) else { continue }
         }
 
-        if distance > options.maxDistance { continue }
+        filteredCandidates.append(entityId)
 
-        if distance < bestDistance {
-            bestDistance = distance
-            bestEntity = entityId
+        // Track best AABB hit as fallback when GPU is unavailable.
+        if distance < bestAABBDistance {
+            bestAABBDistance = distance
+            bestAABBEntity = entityId
         }
     }
 
-    guard let bestEntity else { return nil }
-    let worldPosition = rayOrigin + normalizedRayDirection * bestDistance
-    return ScenePickHit(entityId: bestEntity, distance: bestDistance, worldPosition: worldPosition)
+    guard !filteredCandidates.isEmpty else { return nil }
+
+    // --- Stage 2: GPU ray-triangle intersection on narrow candidates ---
+    if let gpuHit = pickEntityGPUWithCandidates(
+        candidates: filteredCandidates,
+        rayOrigin: rayOrigin,
+        normalizedRayDirection: normalizedRayDirection,
+        options: options
+    ) {
+        return gpuHit
+    }
+
+    // Fallback: return best ray-AABB hit when GPU is unavailable.
+    guard let bestAABBEntity else { return nil }
+    let worldPosition = rayOrigin + normalizedRayDirection * bestAABBDistance
+    return ScenePickHit(entityId: bestAABBEntity, distance: bestAABBDistance, worldPosition: worldPosition)
 }
 
 private func pickEntityCPU(
@@ -364,8 +368,8 @@ private func resolveScenePickingBackend(_ preference: ScenePickingBackendPrefere
         return .cpu
     case .gpuOnly:
         return scenePickingCanUseGPU() ? .gpu : .cpu
-    case .octreePreferred:
-        // Prefer Octree (fast, no build overhead) -> GPU (precise) -> CPU (fallback)
+    case .octreeGPUPreferred:
+        // Prefer Octree broad-phase + GPU narrow-phase -> GPU (precise) -> CPU (fallback)
         if OctreeSystem.shared.enabled {
             return .octree
         }

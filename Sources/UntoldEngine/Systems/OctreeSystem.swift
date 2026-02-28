@@ -124,6 +124,17 @@ public class OctreeSystem {
         return octree.query(sphere: sphere)
     }
 
+    /// Query entities whose AABBs are intersected by a ray.
+    /// Returns `(EntityID, Float)` pairs sorted by intersection distance.
+    public func query(
+        rayOrigin: simd_float3,
+        rayDirection: simd_float3,
+        maxDistance: Float = .greatestFiniteMagnitude
+    ) -> [(EntityID, Float)] {
+        guard enabled else { return [] }
+        return octree.query(rayOrigin: rayOrigin, rayDirection: rayDirection, maxDistance: maxDistance)
+    }
+
     /// Get the stored bounds for an entity
     public func getBounds(for entityId: EntityID) -> AABB? {
         octree.getBounds(for: entityId)

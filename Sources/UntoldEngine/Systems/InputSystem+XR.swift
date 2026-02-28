@@ -143,7 +143,7 @@ public extension InputSystem {
         func setXRSpatialPickingBackendPreference(_: ScenePickingBackendPreference) {}
 
         func getXRSpatialPickingBackendPreference() -> ScenePickingBackendPreference {
-            .octreePreferred
+            .octreeGPUPreferred
         }
 
         func registerXREvents() {}
@@ -152,7 +152,7 @@ public extension InputSystem {
         private struct XREventState {
             var inputEventsEnabled = false
             var spatialInputState = XRSpatialInputState()
-            var spatialPickingBackendPreference: ScenePickingBackendPreference = .octreePreferred
+            var spatialPickingBackendPreference: ScenePickingBackendPreference = .octreeGPUPreferred
         }
 
         private static let xrEventStateLock = OSAllocatedUnfairLock(initialState: XREventState())

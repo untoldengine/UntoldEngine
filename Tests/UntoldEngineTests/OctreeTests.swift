@@ -193,6 +193,163 @@ final class OctreeTests: XCTestCase {
         XCTAssertEqual(stats.totalEntries, 20)
     }
 
+    // MARK: - Ray Query Tests
+
+    func testOctreeRayQueryHitsEntity() {
+        let octree = Octree(worldBounds: AABB(
+            min: simd_float3(-100, -100, -100),
+            max: simd_float3(100, 100, 100)
+        ))
+
+        let entity: EntityID = 1
+        octree.insert(entityId: entity, bounds: AABB(
+            min: simd_float3(4, -1, -1),
+            max: simd_float3(6, 1, 1)
+        ))
+
+        let results = octree.query(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0)
+        )
+
+        XCTAssertEqual(results.count, 1)
+        XCTAssertEqual(results[0].0, entity)
+        XCTAssertEqual(results[0].1, 4.0, accuracy: 0.001)
+    }
+
+    func testOctreeRayQueryMissesEntityNotInPath() {
+        let octree = Octree(worldBounds: AABB(
+            min: simd_float3(-100, -100, -100),
+            max: simd_float3(100, 100, 100)
+        ))
+
+        let entity: EntityID = 1
+        octree.insert(entityId: entity, bounds: AABB(
+            min: simd_float3(4, 10, 10),
+            max: simd_float3(6, 12, 12)
+        ))
+
+        let results = octree.query(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0)
+        )
+
+        XCTAssertTrue(results.isEmpty, "Ray along X axis should miss entity offset in Y/Z")
+    }
+
+    func testOctreeRayQueryRespectsMaxDistance() {
+        let octree = Octree(worldBounds: AABB(
+            min: simd_float3(-100, -100, -100),
+            max: simd_float3(100, 100, 100)
+        ))
+
+        let entity: EntityID = 1
+        octree.insert(entityId: entity, bounds: AABB(
+            min: simd_float3(9, -1, -1),
+            max: simd_float3(11, 1, 1)
+        ))
+
+        let withinRange = octree.query(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            maxDistance: 10.0
+        )
+        XCTAssertEqual(withinRange.count, 1)
+
+        let outOfRange = octree.query(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            maxDistance: 8.0
+        )
+        XCTAssertTrue(outOfRange.isEmpty, "Entity beyond maxDistance should not be returned")
+    }
+
+    func testOctreeRayQueryReturnsSortedByDistance() {
+        let octree = Octree(worldBounds: AABB(
+            min: simd_float3(-100, -100, -100),
+            max: simd_float3(100, 100, 100)
+        ))
+
+        let far: EntityID = 1
+        let near: EntityID = 2
+        let mid: EntityID = 3
+
+        octree.insert(entityId: far, bounds: AABB(
+            min: simd_float3(20, -1, -1), max: simd_float3(22, 1, 1)
+        ))
+        octree.insert(entityId: near, bounds: AABB(
+            min: simd_float3(4, -1, -1), max: simd_float3(6, 1, 1)
+        ))
+        octree.insert(entityId: mid, bounds: AABB(
+            min: simd_float3(10, -1, -1), max: simd_float3(12, 1, 1)
+        ))
+
+        let results = octree.query(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0)
+        )
+
+        XCTAssertEqual(results.count, 3)
+        XCTAssertEqual(results[0].0, near)
+        XCTAssertEqual(results[1].0, mid)
+        XCTAssertEqual(results[2].0, far)
+    }
+
+    func testOctreeRayQueryFindsSpanningEntities() {
+        // Entity sits on the boundary between two octants.
+        // With the contains-based insertion it stays at the parent level,
+        // so the ray should still find it regardless of which child the ray enters.
+        let octree = Octree(
+            worldBounds: AABB(
+                min: simd_float3(-100, -100, -100),
+                max: simd_float3(100, 100, 100)
+            ),
+            maxDepth: 4,
+            maxEntriesPerLeaf: 2,
+            minNodeSize: 1.0
+        )
+
+        // Insert enough entities to trigger subdivision
+        for i in 0 ..< 5 {
+            let offset = Float(i) * 10 + 20
+            octree.insert(entityId: EntityID(i + 10), bounds: AABB(
+                min: simd_float3(offset, offset, offset),
+                max: simd_float3(offset + 2, offset + 2, offset + 2)
+            ))
+        }
+
+        // Insert entity that spans the origin boundary (crosses octant boundaries)
+        let spanningEntity: EntityID = 99
+        octree.insert(entityId: spanningEntity, bounds: AABB(
+            min: simd_float3(-2, -2, -2),
+            max: simd_float3(2, 2, 2)
+        ))
+
+        // Ray along +X should find the spanning entity
+        let resultsPositiveX = octree.query(
+            rayOrigin: simd_float3(-50, 0, 0),
+            rayDirection: simd_float3(1, 0, 0)
+        )
+        let foundPositiveX = resultsPositiveX.contains { $0.0 == spanningEntity }
+        XCTAssertTrue(foundPositiveX, "Ray along +X should find entity spanning octant boundary")
+
+        // Ray along -X should also find it
+        let resultsNegativeX = octree.query(
+            rayOrigin: simd_float3(50, 0, 0),
+            rayDirection: simd_float3(-1, 0, 0)
+        )
+        let foundNegativeX = resultsNegativeX.contains { $0.0 == spanningEntity }
+        XCTAssertTrue(foundNegativeX, "Ray along -X should find entity spanning octant boundary")
+
+        // Ray along +Y should also find it
+        let resultsPositiveY = octree.query(
+            rayOrigin: simd_float3(0, -50, 0),
+            rayDirection: simd_float3(0, 1, 0)
+        )
+        let foundPositiveY = resultsPositiveY.contains { $0.0 == spanningEntity }
+        XCTAssertTrue(foundPositiveY, "Ray along +Y should find entity spanning octant boundary")
+    }
+
     // MARK: - Performance Tests
 
     func testOctreeQueryPerformance() {
