@@ -362,7 +362,7 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     color.diff += areaLightColor.diff;
     color.spec += areaLightColor.spec;
 
-    float4 finalcolor = float4((float3)color.diff + color.spec + indirectLighting,1.0);
+    float4 finalcolor = float4((float3)color.diff + color.spec + indirectLighting, albedo.a);
     
     return finalcolor;
 

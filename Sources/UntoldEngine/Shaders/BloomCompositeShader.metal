@@ -26,16 +26,18 @@ fragment float4 fragmentBloomCompositeShader(VertexCompositeOutput vertexOut [[s
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
 
-    float3 originalColor = finalTexture.sample(s, vertexOut.uvCoords).rgb;
+    float4 originalSample = finalTexture.sample(s, vertexOut.uvCoords);
+    float3 originalColor = originalSample.rgb;
+    float originalAlpha = originalSample.a;
     
     if(!enabled){
-        return float4(originalColor,1.0);
+        return float4(originalColor, originalAlpha);
     }
 
     float3 bloom = bloomTexture.sample(s, vertexOut.uvCoords).rgb;
 
     float3 finalColor = originalColor + bloom * intensity;
 
-    return float4(finalColor, 1.0);
+    return float4(finalColor, originalAlpha);
 
 }
