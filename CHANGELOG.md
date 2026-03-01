@@ -1,4 +1,9 @@
 # Changelog
+## v0.10.10 - 2026-03-01
+### 🐞 Fixes
+- [Patch] Added SceneRootTransform system and tests (be46bad…)
+- [Patch] Implemented Octree-GPU ray picking (5b6e7c3…)
+- [Patch] Add ground picking system and update spatial input docs (44b1886…)
 ## v0.10.9 - 2026-02-27
 ### 🐞 Fixes
 - [Patch] Added occlusion culling (ccbd522…)
