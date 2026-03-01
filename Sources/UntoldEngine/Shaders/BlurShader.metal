@@ -43,15 +43,15 @@ fragment float4 fragmentBlurShader(VertexCompositeOutput vertexOut [[stage_in]],
     uint height = finalTexture.get_height();
     float2 texelSize = 1.0 / float2(width, height);
 
-    float3 color = float3(0.0);
+    float4 color = float4(0.0);
     for (int i = 0; i < 5; i++) {
         float offset = blurSamples[i].x;
         float weight = blurSamples[i].y;
 
         float2 sampleOffset = direction * offset * texelSize*blurRadius;
-        color += weight * finalTexture.sample(s, vertexOut.uvCoords + sampleOffset).rgb;
+        color += weight * finalTexture.sample(s, vertexOut.uvCoords + sampleOffset);
     }
 
-    return float4(color, 1.0);
+    return color;
     
 }

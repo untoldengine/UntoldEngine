@@ -29,10 +29,12 @@ fragment float4 fragmentVignetteShader(VertexCompositeOutput vertexOut [[stage_i
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
     
-    float3 color = finalTexture.sample(s, vertexOut.uvCoords).rgb;
+    float4 colorSample = finalTexture.sample(s, vertexOut.uvCoords);
+    float3 color = colorSample.rgb;
+    float alpha = colorSample.a;
     
     if (!enabled){
-        return float4(color, 1.0);
+        return float4(color, alpha);
     }
     
     float2 toCenter = vertexOut.uvCoords - center;
@@ -49,7 +51,7 @@ fragment float4 fragmentVignetteShader(VertexCompositeOutput vertexOut [[stage_i
     // Apply
     color *= vignette;
 
-    return float4(color, 1.0);
+    return float4(color, alpha);
 }
 
 

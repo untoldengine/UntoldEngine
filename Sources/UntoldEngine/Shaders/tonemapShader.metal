@@ -51,7 +51,9 @@ fragment float4 fragmentTonemappingShader(VertexCompositeOutput vertexOut [[stag
         color.rgb = ACESFilmicToneMapping(color.rgb);
     }
     
-    color = pow(color,1.0/gamma);
+    float alpha = color.a;
+    color.rgb = pow(color.rgb, float3(1.0/gamma));
+    color.a = alpha;
     
     return color;
 
