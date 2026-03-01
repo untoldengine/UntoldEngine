@@ -38,8 +38,9 @@ fragment float4 fragmentChromaticAberrationShader(VertexCompositeOutput vertexOu
     float red   = finalTexture.sample(s, uv + offset).r;
     float green = finalTexture.sample(s, uv).g;
     float blue  = finalTexture.sample(s, uv - offset).b;
+    float alpha = finalTexture.sample(s, uv).a;
 
-    return float4(red, green, blue, 1.0);
+    return float4(red, green, blue, alpha);
 }
 
 
