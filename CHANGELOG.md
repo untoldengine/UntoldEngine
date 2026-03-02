@@ -1,4 +1,10 @@
 # Changelog
+## v0.10.11 - 2026-03-02
+### 🐞 Fixes
+- [Patch] Fixed transparency (56547cb…)
+- [Patch] Post process shaders reserve alpha (2ca49c3…)
+- [Patch] Incorrect premultiplied alpha compositing over a black (or undefined) background (9ce5a42…)
+- [Patch] Fix issue with transparency and vision pro (9b86723…)
 ## v0.10.10 - 2026-03-01
 ### 🐞 Fixes
 - [Patch] Added SceneRootTransform system and tests (be46bad…)
