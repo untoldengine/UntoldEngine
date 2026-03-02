@@ -14,6 +14,8 @@ import Metal
 import MetalKit
 
 public enum RenderPasses {
+    private static var transparencyXRDepthWriteState: MTLDepthStencilState?
+
     public static let gridExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
         guard let gridPipeline = PipelineManager.shared.renderPipelinesByType[.grid] else {
             handleError(.pipelineStateNulled, "gridPipeline is nil")
@@ -1888,7 +1890,25 @@ public enum RenderPasses {
         renderEncoder.pushDebugGroup("Transparency Pass")
 
         renderEncoder.setRenderPipelineState(transparencyPipeline.pipelineState!)
-        renderEncoder.setDepthStencilState(transparencyPipeline.depthState)
+
+        // XR passthrough: write transparent depth so compositor occlusion/depth edges
+        // match transparent silhouettes against camera passthrough.
+        if renderInfo.immersionStyle == .mixed {
+            if transparencyXRDepthWriteState == nil {
+                let depthStateDescriptor = MTLDepthStencilDescriptor()
+                depthStateDescriptor.depthCompareFunction = sceneDepthCompareFunction(.lessEqual)
+                depthStateDescriptor.isDepthWriteEnabled = true
+                transparencyXRDepthWriteState = renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)
+            }
+
+            if let xrDepthWriteState = transparencyXRDepthWriteState {
+                renderEncoder.setDepthStencilState(xrDepthWriteState)
+            } else {
+                renderEncoder.setDepthStencilState(transparencyPipeline.depthState)
+            }
+        } else {
+            renderEncoder.setDepthStencilState(transparencyPipeline.depthState)
+        }
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
         var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(shadowSystem.dirLightSpaceMatrix!)
