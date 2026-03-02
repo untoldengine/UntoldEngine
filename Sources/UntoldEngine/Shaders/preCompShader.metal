@@ -37,10 +37,10 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
     float4 modelColor = finalTexture.sample(s, vertexOut.uvCoords);
     float4 gaussianColor = gaussianTexture.sample(s, vertexOut.uvCoords);
     
-    float lumen = getLuminance(modelColor.rgb);
-    float blendFactor = (lumen == 0.0) ? 1.0 : 0.0;
-    // Blend: show grid if there's no model
-    float4 baseColor = mix(modelColor, (isPassthrough == false) ? envColor : float4(0.0,0.0,0.0,0.0), blendFactor);
+    // Composite scene color over environment using alpha.
+    // This guarantees transparent pixels blend against environment instead of black.
+    float4 background = (isPassthrough == false) ? envColor : float4(0.0, 0.0, 0.0, 0.0);
+    float4 baseColor = modelColor + background * (1.0 - modelColor.a);
     
     // Composite Gaussians (occlusion handled during Gaussian rendering)
     baseColor.rgb = gaussianColor.rgb + baseColor.rgb * (1.0 - gaussianColor.a);
