@@ -215,9 +215,10 @@ private func scenePickingCandidates(_ mode: ScenePickingCandidateMode) -> [Entit
     if mode == .gizmoOnly {
         let gizmoId = getComponentId(for: GizmoComponent.self)
         return queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
+            .filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
     }
 
-    return visibleEntityIds
+    return visibleEntityIds.filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
 }
 
 @inline(__always)
@@ -332,8 +333,7 @@ private func scenePickingCreateAccelerationStructures(_ candidates: [EntityID]) 
 
     for entityId in candidates {
         if scene.mask(for: entityId) == nil { continue }
-        if hasComponent(entityId: entityId, componentType: CameraComponent.self) { continue }
-        if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) { continue }
+        if scenePickingShouldIgnoreEntityForRayPicking(entityId) { continue }
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { continue }
         guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId) else { continue }

@@ -223,8 +223,7 @@ private func pickEntityOctreeGPU(
 
     for (entityId, distance) in octreeHits {
         guard scene.mask(for: entityId) != nil else { continue }
-        if hasComponent(entityId: entityId, componentType: CameraComponent.self) { continue }
-        if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) { continue }
+        if scenePickingShouldIgnoreEntityForRayPicking(entityId) { continue }
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { continue }
         if !renderComponent.isVisible { continue }
@@ -280,8 +279,7 @@ private func pickEntityCPU(
 
     for entityId in candidates {
         guard scene.mask(for: entityId) != nil else { continue }
-        if hasComponent(entityId: entityId, componentType: CameraComponent.self) { continue }
-        if hasComponent(entityId: entityId, componentType: SceneCameraComponent.self) { continue }
+        if scenePickingShouldIgnoreEntityForRayPicking(entityId) { continue }
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
@@ -336,14 +334,26 @@ private func scenePickingCandidates(
     if options.gizmoOnly {
         let gizmoId = getComponentId(for: GizmoComponent.self)
         return queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
+            .filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
     }
 
     if options.isGizmoActive, !InputSystem.shared.keyState.shiftPressed {
         let gizmoId = getComponentId(for: GizmoComponent.self)
         return queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
+            .filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
     }
 
-    return visibleEntityIds
+    return visibleEntityIds.filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
+}
+
+@inline(__always)
+func scenePickingShouldIgnoreEntityForRayPicking(_ entityId: EntityID) -> Bool {
+    let shouldIgnoreLightInGameMode =
+        gameMode && hasComponent(entityId: entityId, componentType: LightComponent.self)
+
+    return hasComponent(entityId: entityId, componentType: CameraComponent.self)
+        || hasComponent(entityId: entityId, componentType: SceneCameraComponent.self)
+        || shouldIgnoreLightInGameMode
 }
 
 @inline(__always)
