@@ -259,7 +259,7 @@ public enum RenderPasses {
             MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0))
 
         // send buffer data
-        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(shadowSystem.dirLightSpaceMatrix!)
+        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(dirLight)
         renderEncoder.setVertexBytes(
             &effectiveDirLightMatrix, length: MemoryLayout<simd_float4x4>.stride,
             index: Int(shadowPassLightMatrixUniform.rawValue)
@@ -443,7 +443,7 @@ public enum RenderPasses {
             MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0))
 
         // Set light space matrix (same as shadowExecution)
-        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(shadowSystem.dirLightSpaceMatrix!)
+        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(dirLight)
         renderEncoder.setVertexBytes(
             &effectiveDirLightMatrix, length: MemoryLayout<simd_float4x4>.stride,
             index: Int(shadowPassLightMatrixUniform.rawValue)
@@ -1593,7 +1593,8 @@ public enum RenderPasses {
         var effectiveCamPos = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
         renderEncoder.setFragmentBytes(&effectiveCamPos, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
 
-        var effectiveLightOrthoView = SceneRootTransform.shared.effectiveLightMatrix(shadowSystem.dirLightSpaceMatrix!)
+        let dirLightMatrix = shadowSystem.dirLightSpaceMatrix ?? matrix_identity_float4x4
+        var effectiveLightOrthoView = SceneRootTransform.shared.effectiveLightMatrix(dirLightMatrix)
         renderEncoder.setFragmentBytes(
             &effectiveLightOrthoView, length: MemoryLayout<simd_float4x4>.stride,
             index: Int(lightPassLightOrthoViewMatrixIndex.rawValue)
@@ -1911,7 +1912,8 @@ public enum RenderPasses {
         }
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
-        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(shadowSystem.dirLightSpaceMatrix!)
+        let dirLightMatrix = shadowSystem.dirLightSpaceMatrix ?? matrix_identity_float4x4
+        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(dirLightMatrix)
         renderEncoder.setFragmentBytes(
             &effectiveDirLightMatrix,
             length: MemoryLayout<simd_float4x4>.stride,
