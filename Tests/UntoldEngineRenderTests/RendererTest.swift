@@ -201,6 +201,34 @@ final class RendererTests: BaseRenderSetup {
         wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
     }
 
+    func testRenderWithoutDirectionalLightDoesNotCrash() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+
+        let dirLightComponentId = getComponentId(for: DirectionalLightComponent.self)
+        let localTransformComponentId = getComponentId(for: LocalTransformComponent.self)
+        let directionalLightEntities = queryEntitiesWithComponentIds([dirLightComponentId, localTransformComponentId], in: scene)
+
+        XCTAssertFalse(directionalLightEntities.isEmpty, "Test precondition failed: expected at least one directional light in scene")
+
+        for entityId in directionalLightEntities {
+            scene.remove(component: DirectionalLightComponent.self, from: entityId)
+        }
+
+        shadowSystem.updateViewFromSunPerspective()
+        XCTAssertNil(shadowSystem.dirLightSpaceMatrix, "Shadow matrix should be nil when the scene has no directional lights")
+
+        renderer.draw(in: renderer.metalView)
+
+        let expectation = XCTestExpectation(description: "Render frame completes without directional light")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            XCTAssertNotNil(renderInfo.lastCommandBuffer, "Renderer should still submit a command buffer")
+            expectation.fulfill()
+        }
+
+        wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+    }
+
     func testTransparencyTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
