@@ -1,4 +1,8 @@
 # Changelog
+## v0.10.12 - 2026-03-03
+### 🐞 Fixes
+- [Patch] Ray picking ignores light entities when gameMode is true (e1e07c9…)
+- [Patch] Directional-light nil safety in renderer - removed unsafe force unwrap path (eeec26e…)
 ## v0.10.11 - 2026-03-02
 ### 🐞 Fixes
 - [Patch] Fixed transparency (56547cb…)
