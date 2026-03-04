@@ -12,6 +12,7 @@ import QuartzCore
 import simd
 
 public struct HZBDebugStats {
+    public var frustumTestedCount: Int = 0
     public var hzbIsValid: Bool = false
     public var hzbMipCount: Int = 0
     public var selectedMipLevel: Int = 0
@@ -64,7 +65,8 @@ public final class HZBDebugMonitor {
         stats.hzbBuildsThisSecond += 1
     }
 
-    public func recordCull(candidateCount: Int, visibleCount: Int, usedHZB: Bool, optimizedPath: Bool) {
+    public func recordCull(testedCount: Int, candidateCount: Int, visibleCount: Int, usedHZB: Bool, optimizedPath: Bool) {
+        stats.frustumTestedCount = max(0, testedCount)
         stats.frustumCandidateCount = max(0, candidateCount)
         stats.visibleAfterOcclusionCount = max(0, visibleCount)
         stats.occludedCount = max(0, stats.frustumCandidateCount - stats.visibleAfterOcclusionCount)

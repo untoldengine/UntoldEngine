@@ -193,6 +193,13 @@ public class BatchingSystem {
 
     // Generate batches for all static entities in the scene
     public func generateBatches() {
+        #if ENGINE_STATS_ENABLED
+            let rebuildStart = CFAbsoluteTimeGetCurrent()
+            var inputMeshCount = 0
+            var outputBatchCount = 0
+            var outputBatchedMeshCount = 0
+        #endif
+
         withWorldMutationGate {
             Logger.log(message: "🔨 Starting static batch generation...")
 
@@ -276,6 +283,11 @@ public class BatchingSystem {
             }
 
             Logger.log(message: "📦 Found \(materialGroups.count) material groups")
+            #if ENGINE_STATS_ENABLED
+                inputMeshCount = materialGroups.values.reduce(0) { partialResult, meshGroup in
+                    partialResult + meshGroup.count
+                }
+            #endif
 
             // Create batch groups
             for (batchKey, meshGroup) in materialGroups {
@@ -310,7 +322,23 @@ public class BatchingSystem {
             Logger.log(message: "✅ Created \(batchGroups.count) batch groups")
             let totalBatchedMeshes = batchGroups.reduce(0) { $0 + $1.entityIds.count }
             Logger.log(message: "📊 Batching Stats: \(totalBatchedMeshes) meshes → \(batchGroups.count) draw calls")
+            #if ENGINE_STATS_ENABLED
+                outputBatchCount = batchGroups.count
+                outputBatchedMeshCount = totalBatchedMeshes
+            #endif
         }
+
+        #if ENGINE_STATS_ENABLED
+            let rebuildMs = (CFAbsoluteTimeGetCurrent() - rebuildStart) * 1000.0
+            EngineStatsMonitor.shared.update { snapshot in
+                snapshot.timing.batchingRebuildMs += rebuildMs
+                snapshot.batching.lastRebuildCostMs = rebuildMs
+                snapshot.batching.lastRebuildInputMeshCount = inputMeshCount
+                snapshot.batching.lastRebuildOutputBatchCount = outputBatchCount
+                snapshot.batching.batchGroupCount = outputBatchCount
+                snapshot.batching.batchedMeshCount = outputBatchedMeshCount
+            }
+        #endif
     }
 
     private func createBatchGroup(

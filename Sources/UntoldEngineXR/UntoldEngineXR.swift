@@ -260,6 +260,11 @@
 
             // 3. Call startUpdate() to mark the start of the update phase
             frame.startUpdate()
+            #if ENGINE_STATS_ENABLED
+                let xrFrameStartTime = CACurrentMediaTime()
+                EngineStatsMonitor.shared.beginFrame(timestampSeconds: xrFrameStartTime)
+                RenderStatsCollector.shared.reset()
+            #endif
 
             // Snapshot loading gate once per frame to keep update/submission behavior consistent.
             let loading = AssetLoadingGate.shared.isLoadingAny
@@ -270,7 +275,7 @@
             // 5. Perform any rendering-related work that doesn't rely on the device anchor info
             guard let renderer else { return }
             if !loading {
-                renderer.updateXR()
+                _ = renderer.updateXR(useExternalStatsLifecycle: true)
             }
 
             // 6. Call endupdate() to mark the end of the update phase
@@ -284,6 +289,11 @@
 
             // 9. Encode any drawing commands that depend on the device position or orientation
             guard let drawable = frame.queryDrawable() else {
+                #if ENGINE_STATS_ENABLED
+                    renderer.finalizeXRStatsAndMonitors(frameStartTime: xrFrameStartTime)
+                #else
+                    renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
+                #endif
                 frame.endSubmission()
                 return
             }
@@ -333,6 +343,11 @@
             let effectiveLoading = loading || loadingNow
 
             executeXRSystemPass(frame: frame, drawable: drawable, loading: effectiveLoading)
+            #if ENGINE_STATS_ENABLED
+                renderer.finalizeXRStatsAndMonitors(frameStartTime: xrFrameStartTime)
+            #else
+                renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
+            #endif
 
             // 13. Call endSubmission to mark the end of the GPU submission
             frame.endSubmission()
@@ -355,6 +370,9 @@
                 commandBufferSemaphore.signal()
                 return
             }
+            #if ENGINE_STATS_ENABLED
+                let renderTotalStart = CACurrentMediaTime()
+            #endif
             renderInfo.currentInFlightFrameSlot = acquireUniformFrameSlot()
 
             // Update viewport to match actual drawable size (per-eye texture dimensions)
@@ -377,11 +395,27 @@
             // The render graph still executes using the stale visibleEntityIds.
             if !loading {
                 SceneRootTransform.shared.updateIfNeeded()
+                #if ENGINE_STATS_ENABLED
+                    let renderPrepStart = CACurrentMediaTime()
+                    let cullingStart = CACurrentMediaTime()
+                #endif
                 EngineProfiler.shared.beginScope(.renderPrep)
                 performFrustumCulling(commandBuffer: commandBuffer)
+                #if ENGINE_STATS_ENABLED
+                    let cullingMs = (CACurrentMediaTime() - cullingStart) * 1000.0
+                    EngineStatsMonitor.shared.update { snapshot in
+                        snapshot.timing.cullingMs += cullingMs
+                    }
+                #endif
                 executeGaussianDepth(commandBuffer)
                 executeBitonicSort(commandBuffer)
                 EngineProfiler.shared.endScope(.renderPrep)
+                #if ENGINE_STATS_ENABLED
+                    let renderPrepMs = (CACurrentMediaTime() - renderPrepStart) * 1000.0
+                    EngineStatsMonitor.shared.update { snapshot in
+                        snapshot.timing.renderPrepMs += renderPrepMs
+                    }
+                #endif
             }
 
             for (viewIndex, view) in drawable.views.enumerated() {
@@ -420,9 +454,18 @@
 
                 renderInfo.currentEye = viewIndex
 
+                #if ENGINE_STATS_ENABLED
+                    let encodeStart = CACurrentMediaTime()
+                #endif
                 EngineProfiler.shared.beginScope(.encode)
                 renderer.renderXR(commandBuffer: commandBuffer, passDescriptor: passDescriptor, viewMatrix: cameraMatrix, projectionMatrix: projection, eyeIndex: viewIndex)
                 EngineProfiler.shared.endScope(.encode)
+                #if ENGINE_STATS_ENABLED
+                    let encodeMs = (CACurrentMediaTime() - encodeStart) * 1000.0
+                    EngineStatsMonitor.shared.update { snapshot in
+                        snapshot.timing.encodeMs += encodeMs
+                    }
+                #endif
             }
 
             // Temporal HZB schedule for stereo:
@@ -434,11 +477,26 @@
             EngineProfiler.shared.attach(to: commandBuffer, label: "XRFrame")
 
             // Add completion handler to signal semaphore when GPU work is done
-            commandBuffer.addCompletedHandler { _ in
+            commandBuffer.addCompletedHandler { cb in
+                #if ENGINE_STATS_ENABLED
+                    let gpuExecutionMs = (cb.gpuEndTime - cb.gpuStartTime) * 1000.0
+                    EngineStatsMonitor.shared.recordGPUCompletion(executionMs: gpuExecutionMs)
+                #endif
                 commandBufferSemaphore.signal()
             }
 
+            #if ENGINE_STATS_ENABLED
+                let submitStart = CACurrentMediaTime()
+            #endif
             commandBuffer.commit()
+            #if ENGINE_STATS_ENABLED
+                let submitMs = (CACurrentMediaTime() - submitStart) * 1000.0
+                let renderTotalMs = (CACurrentMediaTime() - renderTotalStart) * 1000.0
+                EngineStatsMonitor.shared.update { snapshot in
+                    snapshot.timing.submitMs += submitMs
+                    snapshot.timing.renderTotalMs += renderTotalMs
+                }
+            #endif
         }
 
         private func shouldLogAnchorDiagnostics() -> Bool {

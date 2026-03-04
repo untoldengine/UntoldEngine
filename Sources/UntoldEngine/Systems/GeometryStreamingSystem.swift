@@ -29,6 +29,8 @@ public class GeometryStreamingSystem {
     private var activeLoads: Set<EntityID> = []
     private var loadedStreamingEntities: Set<EntityID> = [] // Track loaded entities for efficient unload checks
     private var currentFrame: Int = 0
+    private var lastLoadCandidateCount: Int = 0
+    private var lastPendingLoadBacklog: Int = 0
 
     private init() {}
 
@@ -127,6 +129,8 @@ public class GeometryStreamingSystem {
 
         // Load within concurrent limit
         let availableSlots = maxConcurrentLoads - activeLoads.count
+        lastLoadCandidateCount = loadCandidates.count
+        lastPendingLoadBacklog = max(0, loadCandidates.count - max(0, availableSlots))
         for (entityId, _, _) in loadCandidates.prefix(availableSlots) {
             loadMesh(entityId: entityId)
         }
@@ -534,6 +538,8 @@ public class GeometryStreamingSystem {
             loadedStreamingEntities.removeAll()
             timeSinceLastUpdate = 0
             currentFrame = 0
+            lastLoadCandidateCount = 0
+            lastPendingLoadBacklog = 0
         }
     }
 
@@ -563,7 +569,9 @@ public class GeometryStreamingSystem {
             loadedCount: loaded,
             loadingCount: loading,
             unloadedCount: unloaded,
-            activeLoads: activeLoads.count
+            activeLoads: activeLoads.count,
+            loadCandidates: lastLoadCandidateCount,
+            pendingLoadBacklog: lastPendingLoadBacklog
         )
     }
 }
@@ -575,9 +583,11 @@ public struct GeometryStreamingStats: CustomStringConvertible {
     public var loadingCount: Int
     public var unloadedCount: Int
     public var activeLoads: Int
+    public var loadCandidates: Int
+    public var pendingLoadBacklog: Int
 
     public var description: String {
-        "Streaming: \(loadedCount) loaded, \(loadingCount) loading, \(unloadedCount) unloaded (\(activeLoads) active)"
+        "Streaming: \(loadedCount) loaded, \(loadingCount) loading, \(unloadedCount) unloaded (\(activeLoads) active, \(loadCandidates) candidates, \(pendingLoadBacklog) backlog)"
     }
 }
 

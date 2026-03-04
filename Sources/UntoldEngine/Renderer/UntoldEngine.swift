@@ -220,11 +220,99 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
     }
 
+    private enum StatsLifecycleMode {
+        case internalManaged
+        case externalManaged
+    }
+
+    #if ENGINE_STATS_ENABLED
+        private func publishEngineStats(frameStartTime: Double) {
+            let frameTotalMs = (CACurrentMediaTime() - frameStartTime) * 1000.0
+            let hzbStats = getHZBDebugStats()
+            let geometryStreamingStats = GeometryStreamingSystem.shared.getStats()
+            let meshResourceStats = MeshResourceManager.shared.getStats()
+            let integrationStats = SystemIntegrationMonitor.shared.stats
+            let batchGroups = BatchingSystem.shared.batchGroups
+            let batchedMeshCount = batchGroups.reduce(0) { $0 + $1.entityIds.count }
+            let gateBlockedMs = AssetLoadingGate.shared.consumeBlockedMsSinceLastSample()
+            let gateActiveLoads = AssetLoadingGate.shared.activeLoadCount
+            let drawStats = RenderStatsCollector.shared.snapshot()
+
+            EngineStatsMonitor.shared.update { snapshot in
+                snapshot.timing.frameTotalMs = frameTotalMs
+
+                snapshot.render.drawCallsTotal = drawStats.drawCallsTotal
+                snapshot.render.drawCallsOpaque = drawStats.drawCallsOpaque
+                snapshot.render.drawCallsTransparent = drawStats.drawCallsTransparent
+                snapshot.render.drawCallsShadow = drawStats.drawCallsShadow
+                snapshot.render.drawCallsBatched = drawStats.drawCallsBatched
+                snapshot.render.trianglesTotal = drawStats.trianglesTotal
+                snapshot.render.visibleInstances = max(visibleEntityIds.count, hzbStats.visibleAfterOcclusionCount)
+
+                snapshot.culling.frustumTested = hzbStats.frustumTestedCount
+                snapshot.culling.frustumPassed = hzbStats.frustumCandidateCount
+                snapshot.culling.frustumFailed = max(0, hzbStats.frustumTestedCount - hzbStats.frustumCandidateCount)
+                if hzbStats.usedHZBThisFrame {
+                    snapshot.culling.occlusionTested = hzbStats.frustumCandidateCount
+                    snapshot.culling.occlusionPassed = hzbStats.visibleAfterOcclusionCount
+                    snapshot.culling.occlusionFailed = hzbStats.occludedCount
+                } else {
+                    snapshot.culling.occlusionTested = 0
+                    snapshot.culling.occlusionPassed = 0
+                    snapshot.culling.occlusionFailed = 0
+                }
+                snapshot.culling.usedHZB = hzbStats.usedHZBThisFrame
+                snapshot.culling.optimizedFrustumPath = hzbStats.optimizedFrustumPath
+                snapshot.culling.hzbIsValid = hzbStats.hzbIsValid
+                snapshot.culling.hzbMipCount = hzbStats.hzbMipCount
+                snapshot.culling.selectedHZBMipLevel = hzbStats.selectedMipLevel
+                snapshot.culling.selectedHZBMipSize = hzbStats.selectedMipSize
+
+                snapshot.streaming.activeLoads = geometryStreamingStats.activeLoads
+                snapshot.streaming.loadCandidates = geometryStreamingStats.loadCandidates
+                snapshot.streaming.pendingLoadBacklog = geometryStreamingStats.pendingLoadBacklog
+                snapshot.streaming.residentMeshEntities = meshResourceStats.activeEntities
+                snapshot.streaming.cachedMeshResources = meshResourceStats.cachedMeshCount
+                snapshot.streaming.pendingUploadCount = gateActiveLoads
+                snapshot.streaming.blockedByGateMs = gateBlockedMs
+                snapshot.streaming.loadedStreamingEntities = geometryStreamingStats.loadedCount
+                snapshot.streaming.loadingStreamingEntities = geometryStreamingStats.loadingCount
+                snapshot.streaming.unloadedStreamingEntities = geometryStreamingStats.unloadedCount
+
+                snapshot.batching.batchGroupCount = batchGroups.count
+                snapshot.batching.batchedMeshCount = batchedMeshCount
+                snapshot.batching.rebuildsThisSecond = integrationStats.batchRebuildsThisSecond
+            }
+            EngineStatsMonitor.shared.completeFrame()
+        }
+    #endif
+
+    private func tickFrameMonitors() {
+        // Integration/HZB monitors remain runtime-driven and are available in all build configs.
+        SystemIntegrationMonitor.shared.tick()
+        HZBDebugMonitor.shared.tick()
+        #if ENGINE_STATS_ENABLED
+            EngineStatsMonitor.shared.tick()
+        #endif
+    }
+
     @discardableResult
     private func runFrame(beforeRender: (() -> Void)? = nil,
                           render: (() -> Void)? = nil,
-                          afterRender: (() -> Void)? = nil) -> Bool
+                          afterRender: (() -> Void)? = nil,
+                          statsLifecycle: StatsLifecycleMode = .internalManaged) -> Bool
     {
+        #if ENGINE_STATS_ENABLED
+            let frameStartTime: Double
+            switch statsLifecycle {
+            case .internalManaged:
+                frameStartTime = CACurrentMediaTime()
+                EngineStatsMonitor.shared.beginFrame(timestampSeconds: frameStartTime)
+                RenderStatsCollector.shared.reset()
+            case .externalManaged:
+                frameStartTime = 0.0
+            }
+        #endif
         EngineProfiler.shared.beginFrame()
 
         // finalize destroys once per frame
@@ -241,6 +329,15 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         // must have a valid camera
         guard CameraSystem.shared.activeCamera != .invalid else {
             handleError(.noActiveCamera)
+            #if ENGINE_STATS_ENABLED
+                if statsLifecycle == .internalManaged {
+                    let frameTotalMs = (CACurrentMediaTime() - frameStartTime) * 1000.0
+                    EngineStatsMonitor.shared.update { snapshot in
+                        snapshot.timing.frameTotalMs = frameTotalMs
+                    }
+                    EngineStatsMonitor.shared.completeFrame()
+                }
+            #endif
             EngineProfiler.shared.endFrame()
             return false
         }
@@ -259,16 +356,34 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             // Order matters: Streaming -> LOD -> Batching -> Render
 
             // 1. Update streaming region manager
+            #if ENGINE_STATS_ENABLED
+                let streamingRegionStart = CACurrentMediaTime()
+            #endif
             StreamingRegionManager.shared.update(
                 cameraPosition: cameraPos,
                 deltaTime: fixedStep
             )
+            #if ENGINE_STATS_ENABLED
+                let streamingRegionMs = (CACurrentMediaTime() - streamingRegionStart) * 1000.0
+                EngineStatsMonitor.shared.update { snapshot in
+                    snapshot.timing.streamingRegionMs += streamingRegionMs
+                }
+            #endif
 
             // 2. Update geometry streaming (decides what meshes exist in memory)
+            #if ENGINE_STATS_ENABLED
+                let geometryStreamingStart = CACurrentMediaTime()
+            #endif
             GeometryStreamingSystem.shared.update(
                 cameraPosition: cameraPos,
                 deltaTime: fixedStep
             )
+            #if ENGINE_STATS_ENABLED
+                let geometryStreamingMs = (CACurrentMediaTime() - geometryStreamingStart) * 1000.0
+                EngineStatsMonitor.shared.update { snapshot in
+                    snapshot.timing.geometryStreamingMs += geometryStreamingMs
+                }
+            #endif
         }
 
         frameCount += 1
@@ -277,6 +392,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         beforeRender?()
 
         // simulation/update pipeline
+        #if ENGINE_STATS_ENABLED
+            let updateStart = CACurrentMediaTime()
+        #endif
         EngineProfiler.shared.beginScope(.update)
         calculateDeltaTime()
         traverseSceneGraph()
@@ -289,11 +407,16 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         SystemEventBus.shared.flushEvents()
 
         // 5. Batching incremental update (consumes LOD change events)
+        #if ENGINE_STATS_ENABLED
+            let batchingTickStart = CACurrentMediaTime()
+        #endif
         BatchingSystem.shared.tick()
-
-        // 6. Integration stats monitoring
-        SystemIntegrationMonitor.shared.tick()
-        HZBDebugMonitor.shared.tick()
+        #if ENGINE_STATS_ENABLED
+            let batchingTickMs = (CACurrentMediaTime() - batchingTickStart) * 1000.0
+            EngineStatsMonitor.shared.update { snapshot in
+                snapshot.timing.batchingTickMs += batchingTickMs
+            }
+        #endif
 
         OctreeSystem.shared.updateDirtyBounds()
 
@@ -318,6 +441,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             gameUpdateCallback?(timeSinceLastUpdate)
         }
         EngineProfiler.shared.endScope(.update)
+        #if ENGINE_STATS_ENABLED
+            let updateMs = (CACurrentMediaTime() - updateStart) * 1000.0
+            EngineStatsMonitor.shared.update { snapshot in
+                snapshot.timing.updateMs = updateMs
+            }
+        #endif
 
         // render hook (platform-specific)
         render?()
@@ -325,6 +454,16 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         // post-render hook (e.g., editor)
         afterRender?()
 
+        #if ENGINE_STATS_ENABLED
+            if statsLifecycle == .internalManaged {
+                publishEngineStats(frameStartTime: frameStartTime)
+                tickFrameMonitors()
+            }
+        #else
+            if statsLifecycle == .internalManaged {
+                tickFrameMonitors()
+            }
+        #endif
         EngineProfiler.shared.endFrame()
         return true
     }
@@ -340,7 +479,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 guard let self else { return }
                 configuration.updateRenderingSystemCallback(view)
             },
-            afterRender: { [weak self] in self?.delegate?.didDraw(in: view) }
+            afterRender: { [weak self] in self?.delegate?.didDraw(in: view) },
+            statsLifecycle: .internalManaged
         )
     }
 
@@ -405,12 +545,24 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         return renderer
     }
 
-    public func updateXR() {
-        _ = runFrame()
+    @discardableResult
+    public func updateXR(useExternalStatsLifecycle: Bool = false) -> Bool {
+        runFrame(statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
     }
 
-    public func updateXR(render: @escaping () -> Void) {
-        _ = runFrame(render: render)
+    @discardableResult
+    public func updateXR(render: @escaping () -> Void, useExternalStatsLifecycle: Bool = false) -> Bool {
+        runFrame(render: render, statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
+    }
+
+    /// XR path finalization hook. Call this once after XR submission for the frame.
+    public func finalizeXRStatsAndMonitors(frameStartTime: Double) {
+        #if ENGINE_STATS_ENABLED
+            publishEngineStats(frameStartTime: frameStartTime)
+        #else
+            _ = frameStartTime
+        #endif
+        tickFrameMonitors()
     }
 
     public func renderXR(
