@@ -13,6 +13,22 @@ import CShaderTypes
 import Foundation
 import MetalKit
 
+private var pendingDestroyCompletions: [() -> Void] = []
+
+private func enqueuePendingDestroyCompletion(_ completion: (() -> Void)?) {
+    guard let completion else { return }
+    pendingDestroyCompletions.append(completion)
+}
+
+private func runPendingDestroyCompletions() {
+    guard pendingDestroyCompletions.isEmpty == false else { return }
+    let callbacks = pendingDestroyCompletions
+    pendingDestroyCompletions.removeAll(keepingCapacity: true)
+    for callback in callbacks {
+        callback()
+    }
+}
+
 public func createEntity() -> EntityID {
     globalEntityCounter += 1
     let entity = scene.newEntity()
@@ -46,8 +62,18 @@ public func destroyEntity(entityId: EntityID) {
     }
 }
 
-public func destroyAllEntities() {
+public func destroyAllEntities(completion: (() -> Void)? = nil) {
+    enqueuePendingDestroyCompletion(completion)
+
     let toDestroy = scene.getAllEntities()
+    if toDestroy.isEmpty {
+        // Deletions are deferred to frame finalization. If there is no pending work,
+        // fire completion immediately so callers can continue loading synchronously.
+        if hasPendingDestroys == false {
+            runPendingDestroyCompletions()
+        }
+        return
+    }
 
     for entity in toDestroy {
         destroyEntity(entityId: entity)
@@ -79,6 +105,7 @@ func finalizePendingDestroys() {
     }
 
     scene.finalizePendingDestroys()
+    runPendingDestroyCompletions()
 }
 
 private func setEntityMeshCommon(

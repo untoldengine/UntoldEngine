@@ -58,3 +58,52 @@ destroyEntity(entityId: entity)
 
 This ensures the entity is properly removed from all systems.
 
+---
+
+### Step 4: Destroy All Entities Safely
+
+Use `destroyAllEntities(completion:)` when you need to clear the world before loading new content.
+
+```swift
+destroyAllEntities {
+    // Safe point: pending destroys have been finalized.
+    // Load new content here (USDZ, deserializeScene, etc).
+}
+```
+
+Important behavior:
+
+- `destroyAllEntities` is a deferred operation. Entities are marked for destroy first.
+- Final cleanup runs during the engine frame finalization step (`finalizePendingDestroys()`).
+- The `completion` block runs only after that finalization step has finished.
+
+This prevents race conditions where new entities are created while old entities are still pending destroy.
+
+Example: clear world, then load a new USDZ
+
+```swift
+destroyAllEntities {
+    let entity = createEntity()
+    setEntityMeshAsync(entityId: entity, filename: "office", withExtension: "usdz")
+}
+```
+
+Example: `playSceneAt` pattern
+
+```swift
+public func playSceneAt(url: URL, completion: (() -> Void)? = nil) {
+    guard let scene = loadGameScene(from: url) else {
+        completion?()
+        return
+    }
+
+    destroyAllEntities {
+        deserializeScene(sceneData: scene) {
+            completion?()
+        }
+
+        // Early camera rebind during async mesh loading window.
+        CameraSystem.shared.activeCamera = findGameCamera()
+    }
+}
+```
