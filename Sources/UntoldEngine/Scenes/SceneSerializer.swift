@@ -1424,7 +1424,8 @@ private func applyAssetInstanceOverrides(entityId: EntityID, overrides: [AssetOv
         // Apply explicit static-batching override for this derived node.
         if let hasStaticBatch = override.hasStaticBatchComponent {
             if hasStaticBatch {
-                setEntityStaticBatchComponent(entityId: derivedEntityId)
+                // Per-node override should not recursively retag descendants.
+                setEntityStaticBatch(entityId: derivedEntityId)
             } else {
                 // Remove only from this derived node; don't recursively affect sibling branches.
                 removeEntityStaticBatch(entityId: derivedEntityId)
