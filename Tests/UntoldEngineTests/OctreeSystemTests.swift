@@ -232,6 +232,55 @@ final class OctreeSystemTests: XCTestCase {
         }
     }
 
+    func testScaleToUpdatesWorldTransformBeforeDirtyBoundsFlush() {
+        // Arrange: Entity created through RegistrationSystem has Local+World+Scenegraph.
+        let entityId = createEntity()
+        OctreeSystem.shared.registerEntity(entityId)
+
+        // Act: Scale via TransformSystem then flush octree dirty bounds in same frame.
+        scaleTo(entityId: entityId, scale: simd_float3(2, 2, 2))
+        OctreeSystem.shared.updateDirtyBounds()
+
+        // Assert: Octree bounds should match scaled world transform.
+        let updatedBounds = OctreeSystem.shared.getBounds(for: entityId)
+        XCTAssertNotNil(updatedBounds)
+        if let b = updatedBounds {
+            XCTAssertEqual(b.min.x, -2.0 as Float, accuracy: 0.001)
+            XCTAssertEqual(b.min.y, -2.0 as Float, accuracy: 0.001)
+            XCTAssertEqual(b.min.z, -2.0 as Float, accuracy: 0.001)
+            XCTAssertEqual(b.max.x, 2.0 as Float, accuracy: 0.001)
+            XCTAssertEqual(b.max.y, 2.0 as Float, accuracy: 0.001)
+            XCTAssertEqual(b.max.z, 2.0 as Float, accuracy: 0.001)
+        }
+    }
+
+    func testParentTranslateUpdatesChildOctreeBounds() {
+        // Arrange: Parent is a non-render root; child is renderable and registered in octree.
+        let parentId = createEntity()
+        let childId = createEntity()
+        setParent(childId: childId, parentId: parentId)
+
+        OctreeSystem.shared.registerEntity(childId)
+
+        // Ensure initial transforms are settled.
+        traverseSceneGraph()
+        OctreeSystem.shared.updateDirtyBounds()
+
+        var results = OctreeSystem.shared.query(sphere: BoundingSphere(center: .zero, radius: 5))
+        XCTAssertTrue(results.contains(childId), "Child should initially be near origin")
+
+        // Act: Move parent; child world transform should follow and octree should update child entry.
+        translateTo(entityId: parentId, position: simd_float3(100, 0, 0))
+        OctreeSystem.shared.updateDirtyBounds()
+
+        // Assert: Child no longer at origin and now found at translated location.
+        results = OctreeSystem.shared.query(sphere: BoundingSphere(center: .zero, radius: 5))
+        XCTAssertFalse(results.contains(childId), "Child should no longer be near origin after parent move")
+
+        results = OctreeSystem.shared.query(sphere: BoundingSphere(center: simd_float3(100, 0, 0), radius: 5))
+        XCTAssertTrue(results.contains(childId), "Child should be near translated parent location")
+    }
+
     func testEntityQueryAfterPositionUpdate() {
         // Arrange: Create entity and register
         let boundingBox = (min: simd_float3(-1, -1, -1), max: simd_float3(1, 1, 1))
