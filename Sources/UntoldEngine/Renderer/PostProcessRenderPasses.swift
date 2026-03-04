@@ -52,7 +52,7 @@ func executePostProcess(postProcessPipeline: RenderPipeline, uCommandBuffer: MTL
     )
 
     // set the draw command
-    renderEncoder.drawIndexedPrimitives(
+    renderEncoder.drawIndexedPrimitivesTracked(
         type: .triangle,
         indexCount: 6,
         indexType: .uint16,
@@ -101,7 +101,7 @@ func executeIBLPreFilterPass(uCommandBuffer: MTLCommandBuffer, _ envTexture: MTL
             renderEncoder.setFragmentTexture(envTexture, index: 0)
 
             // set the draw command
-            renderEncoder.drawIndexedPrimitives(
+            renderEncoder.drawIndexedPrimitivesTracked(
                 type: .triangle,
                 indexCount: 6,
                 indexType: .uint16,

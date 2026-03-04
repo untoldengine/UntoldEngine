@@ -70,6 +70,9 @@ let package = Package(
             // 📦 Ship prebuilt metallibs for each platform; pick at runtime.
             resources: engineResources,
             swiftSettings: [
+                // Compile engine stats collection only in debug by default.
+                // Release builds can still opt in explicitly with -DENGINE_STATS_ENABLED.
+                .define("ENGINE_STATS_ENABLED", .when(configuration: .debug)),
                 .swiftLanguageMode(.v5),
             ],
             linkerSettings: [
@@ -95,6 +98,10 @@ let package = Package(
             swiftSettings: [
                 // CompositorServices and ARKit only exist on visionOS
                 .define("VISIONOS_AVAILABLE", .when(platforms: [.visionOS])),
+                // Must mirror the engine flag so #if ENGINE_STATS_ENABLED blocks in this
+                // target are active; without it, xrFrameStartTime is never declared and
+                // finalizeXRStatsAndMonitors receives 0.0, producing garbage frameTotalMs.
+                .define("ENGINE_STATS_ENABLED", .when(configuration: .debug)),
                 .swiftLanguageMode(.v6),
             ],
             linkerSettings: [

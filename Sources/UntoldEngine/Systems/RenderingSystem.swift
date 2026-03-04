@@ -10,6 +10,7 @@
 import CShaderTypes
 import Foundation
 import MetalKit
+import QuartzCore
 
 public enum RenderingSystemContext {
     case view(_ view: MTKView)
@@ -33,6 +34,9 @@ func UpdateRenderingSystem(in view: MTKView) {
     commandBufferSemaphore.wait()
 
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
+        #if ENGINE_STATS_ENABLED
+            let renderTotalStart = CACurrentMediaTime()
+        #endif
         renderInfo.lastCommandBuffer = commandBuffer
         renderInfo.currentInFlightFrameSlot = acquireUniformFrameSlot()
 
@@ -40,11 +44,31 @@ func UpdateRenderingSystem(in view: MTKView) {
         // The render graph still executes using the stale visibleEntityIds.
         if !loading {
             SceneRootTransform.shared.updateIfNeeded()
+            #if ENGINE_STATS_ENABLED
+                let renderPrepStart = CACurrentMediaTime()
+            #endif
             EngineProfiler.shared.beginScope(.renderPrep)
+
+            #if ENGINE_STATS_ENABLED
+                let cullingStart = CACurrentMediaTime()
+            #endif
             performFrustumCulling(commandBuffer: commandBuffer)
+            #if ENGINE_STATS_ENABLED
+                let cullingMs = (CACurrentMediaTime() - cullingStart) * 1000.0
+                EngineStatsMonitor.shared.update { snapshot in
+                    snapshot.timing.cullingMs += cullingMs
+                }
+            #endif
+
             executeGaussianDepth(commandBuffer)
             executeBitonicSort(commandBuffer)
             EngineProfiler.shared.endScope(.renderPrep)
+            #if ENGINE_STATS_ENABLED
+                let renderPrepMs = (CACurrentMediaTime() - renderPrepStart) * 1000.0
+                EngineStatsMonitor.shared.update { snapshot in
+                    snapshot.timing.renderPrepMs += renderPrepMs
+                }
+            #endif
         }
 
         if let renderPassDescriptor = view.currentRenderPassDescriptor {
@@ -59,6 +83,9 @@ func UpdateRenderingSystem(in view: MTKView) {
             let sortedPasses = try! topologicalSortGraph(graph: graph)
 
             // execute it
+            #if ENGINE_STATS_ENABLED
+                let encodeStart = CACurrentMediaTime()
+            #endif
             EngineProfiler.shared.beginScope(.encode)
             executeGraph(graph, sortedPasses, commandBuffer)
             // Temporal HZB schedule:
@@ -67,6 +94,12 @@ func UpdateRenderingSystem(in view: MTKView) {
             // 3) next frame culling consumes HZB
             buildHZBDepthPyramid(commandBuffer)
             EngineProfiler.shared.endScope(.encode)
+            #if ENGINE_STATS_ENABLED
+                let encodeMs = (CACurrentMediaTime() - encodeStart) * 1000.0
+                EngineStatsMonitor.shared.update { snapshot in
+                    snapshot.timing.encodeMs += encodeMs
+                }
+            #endif
         }
 
         if let drawable = view.currentDrawable {
@@ -75,7 +108,11 @@ func UpdateRenderingSystem(in view: MTKView) {
 
         EngineProfiler.shared.attach(to: commandBuffer, label: "MainFrame")
 
-        commandBuffer.addCompletedHandler { _ in
+        commandBuffer.addCompletedHandler { cb in
+            #if ENGINE_STATS_ENABLED
+                let gpuExecutionMs = (cb.gpuEndTime - cb.gpuStartTime) * 1000.0
+                EngineStatsMonitor.shared.recordGPUCompletion(executionMs: gpuExecutionMs)
+            #endif
             // Signal that this command buffer slot is now available
             commandBufferSemaphore.signal()
 
@@ -85,7 +122,18 @@ func UpdateRenderingSystem(in view: MTKView) {
             }
         }
 
+        #if ENGINE_STATS_ENABLED
+            let submitStart = CACurrentMediaTime()
+        #endif
         commandBuffer.commit()
+        #if ENGINE_STATS_ENABLED
+            let submitMs = (CACurrentMediaTime() - submitStart) * 1000.0
+            let renderTotalMs = (CACurrentMediaTime() - renderTotalStart) * 1000.0
+            EngineStatsMonitor.shared.update { snapshot in
+                snapshot.timing.submitMs += submitMs
+                snapshot.timing.renderTotalMs += renderTotalMs
+            }
+        #endif
     } else {
         // Failed to create command buffer - release semaphore
         commandBufferSemaphore.signal()
@@ -93,6 +141,10 @@ func UpdateRenderingSystem(in view: MTKView) {
 }
 
 func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor) {
+    #if ENGINE_STATS_ENABLED
+        let shouldRecordStatsInThisCallback = (renderInfo.immersionStyle == .ar)
+        let renderTotalStart = shouldRecordStatsInThisCallback ? CACurrentMediaTime() : 0.0
+    #endif
     // Note: Per-frame work (culling, gaussian, bitonic) is done BEFORE the eye loop in XR
     // to avoid running it twice (once per eye). See executeXRSystemPass in UntoldEngineXR.swift
 
@@ -107,6 +159,9 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     let sortedPasses = try! topologicalSortGraph(graph: graph)
 
     // execute it
+    #if ENGINE_STATS_ENABLED
+        let encodeStart = shouldRecordStatsInThisCallback ? CACurrentMediaTime() : 0.0
+    #endif
     executeGraph(graph, sortedPasses, commandBuffer)
 
     // AR path renders a single eye through this callback, so build HZB here.
@@ -114,9 +169,25 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     if renderInfo.immersionStyle == .ar {
         buildHZBDepthPyramid(commandBuffer)
     }
+    #if ENGINE_STATS_ENABLED
+        if shouldRecordStatsInThisCallback {
+            let encodeMs = (CACurrentMediaTime() - encodeStart) * 1000.0
+            let renderTotalMs = (CACurrentMediaTime() - renderTotalStart) * 1000.0
+            EngineStatsMonitor.shared.update { snapshot in
+                snapshot.timing.encodeMs += encodeMs
+                snapshot.timing.renderTotalMs += renderTotalMs
+            }
+        }
+    #endif
 
     // Note: Semaphore signaling is handled by executeXRSystemPass completion handler
-    commandBuffer.addCompletedHandler { _ in
+    commandBuffer.addCompletedHandler { cb in
+        #if ENGINE_STATS_ENABLED
+            if renderInfo.immersionStyle == .ar {
+                let gpuExecutionMs = (cb.gpuEndTime - cb.gpuStartTime) * 1000.0
+                EngineStatsMonitor.shared.recordGPUCompletion(executionMs: gpuExecutionMs)
+            }
+        #endif
         DispatchQueue.main.async {
             needsFinalizeDestroys = true
             MemoryBudgetManager.shared.markUsed(entityIds: visibleEntityIds)
@@ -744,7 +815,7 @@ public var outputTransformRenderPass: (MTLCommandBuffer) -> Void = { commandBuff
 
     outputTransformCustomization(encoder: renderEncoder)
 
-    renderEncoder.drawIndexedPrimitives(
+    renderEncoder.drawIndexedPrimitivesTracked(
         type: .triangle,
         indexCount: 6,
         indexType: .uint16,

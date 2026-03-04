@@ -100,7 +100,7 @@ public enum RenderPasses {
 
         // send buffer data
 
-        renderEncoder.drawPrimitives(type: MTLPrimitiveType.triangle, vertexStart: 0, vertexCount: 6)
+        renderEncoder.drawPrimitivesTracked(type: MTLPrimitiveType.triangle, vertexStart: 0, vertexCount: 6)
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
@@ -197,7 +197,7 @@ public enum RenderPasses {
         renderEncoder.setFragmentTexture(textureResources.environmentTexture, index: 0)
 
         for submesh in environmentMesh.submeshes {
-            renderEncoder.drawIndexedPrimitives(
+            renderEncoder.drawIndexedPrimitivesTracked(
                 type: submesh.primitiveType,
                 indexCount: submesh.indexCount,
                 indexType: submesh.indexType,
@@ -376,12 +376,13 @@ public enum RenderPasses {
                 renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
 
                 for subMesh in mesh.submeshes {
-                    renderEncoder.drawIndexedPrimitives(
+                    renderEncoder.drawIndexedPrimitivesTracked(
                         type: subMesh.metalKitSubmesh.primitiveType,
                         indexCount: subMesh.metalKitSubmesh.indexCount,
                         indexType: subMesh.metalKitSubmesh.indexType,
                         indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
-                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset
+                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                        category: .shadow
                     )
                 }
             }
@@ -498,12 +499,14 @@ public enum RenderPasses {
             renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
 
             // SINGLE SHADOW DRAW CALL FOR ENTIRE BATCH
-            renderEncoder.drawIndexedPrimitives(
+            renderEncoder.drawIndexedPrimitivesTracked(
                 type: .triangle,
                 indexCount: batchGroup.indexCount,
                 indexType: .uint32,
                 indexBuffer: indexBuffer,
-                indexBufferOffset: 0
+                indexBufferOffset: 0,
+                category: .shadow,
+                batched: true
             )
         }
 
@@ -777,12 +780,13 @@ public enum RenderPasses {
 
                     renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
 
-                    renderEncoder.drawIndexedPrimitives(
+                    renderEncoder.drawIndexedPrimitivesTracked(
                         type: subMesh.metalKitSubmesh.primitiveType,
                         indexCount: subMesh.metalKitSubmesh.indexCount,
                         indexType: subMesh.metalKitSubmesh.indexType,
                         indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
-                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset
+                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                        category: .opaque
                     )
                 }
             }
@@ -987,12 +991,14 @@ public enum RenderPasses {
 
             // SINGLE DRAW CALL FOR ENTIRE BATCH
             // Logger.log(message: "✅ Drawing batch \(batchGroup.id): \(batchGroup.indexCount) indices, \(batchGroup.vertexCount) vertices")
-            renderEncoder.drawIndexedPrimitives(
+            renderEncoder.drawIndexedPrimitivesTracked(
                 type: .triangle,
                 indexCount: batchGroup.indexCount,
                 indexType: .uint32,
                 indexBuffer: indexBuffer,
-                indexBufferOffset: 0
+                indexBufferOffset: 0,
+                category: .opaque,
+                batched: true
             )
         }
 
@@ -1107,7 +1113,7 @@ public enum RenderPasses {
         )
         // set the draw command
 
-        renderEncoder.drawIndexedPrimitives(
+        renderEncoder.drawIndexedPrimitivesTracked(
             type: .triangle,
             indexCount: 6,
             indexType: .uint16,
@@ -1178,7 +1184,7 @@ public enum RenderPasses {
         )
         // set the draw command
 
-        renderEncoder.drawIndexedPrimitives(
+        renderEncoder.drawIndexedPrimitivesTracked(
             type: .triangle,
             indexCount: 6,
             indexType: .uint16,
@@ -1326,7 +1332,7 @@ public enum RenderPasses {
         renderEncoder.setFragmentBytes(&SSAOParams.shared.bias, length: MemoryLayout<Float>.stride, index: Int(ssaoPassBiasIndex.rawValue))
         renderEncoder.setFragmentBytes(&SSAOParams.shared.enabled, length: MemoryLayout<Bool>.stride, index: Int(ssaoPassEnabledIndex.rawValue))
 
-        renderEncoder.drawIndexedPrimitives(
+        renderEncoder.drawIndexedPrimitivesTracked(
             type: .triangle,
             indexCount: 6,
             indexType: .uint16,
@@ -1409,7 +1415,7 @@ public enum RenderPasses {
         var enabled = SSAOParams.shared.enabled
         renderEncoder.setFragmentBytes(&enabled, length: MemoryLayout<Bool>.stride, index: 1)
 
-        renderEncoder.drawIndexedPrimitives(
+        renderEncoder.drawIndexedPrimitivesTracked(
             type: .triangle,
             indexCount: 6,
             indexType: .uint16,
@@ -1460,7 +1466,7 @@ public enum RenderPasses {
         renderEncoder.setFragmentTexture(textureResources.ssaoTextureLowRes, index: 0)
         renderEncoder.setFragmentBytes(&SSAOParams.shared.enabled, length: MemoryLayout<Bool>.stride, index: 0)
 
-        renderEncoder.drawIndexedPrimitives(
+        renderEncoder.drawIndexedPrimitivesTracked(
             type: .triangle,
             indexCount: 6,
             indexType: .uint16,
@@ -1517,7 +1523,7 @@ public enum RenderPasses {
         var useDepthAware = SSAOParams.shared.quality.useDepthAwareUpsample
         renderEncoder.setFragmentBytes(&useDepthAware, length: MemoryLayout<Bool>.stride, index: 0)
 
-        renderEncoder.drawIndexedPrimitives(
+        renderEncoder.drawIndexedPrimitivesTracked(
             type: .triangle,
             indexCount: 6,
             indexType: .uint16,
@@ -1703,7 +1709,7 @@ public enum RenderPasses {
 
         // set the draw command
 
-        renderEncoder.drawIndexedPrimitives(
+        renderEncoder.drawIndexedPrimitivesTracked(
             type: .triangle,
             indexCount: 6,
             indexType: .uint16,
@@ -1834,7 +1840,7 @@ public enum RenderPasses {
 
         // set the draw command
 
-        renderEncoder.drawIndexedPrimitives(
+        renderEncoder.drawIndexedPrimitivesTracked(
             type: .triangle,
             indexCount: 6,
             indexType: .uint16,
@@ -2224,12 +2230,13 @@ public enum RenderPasses {
                         index: Int(transparencyPassNormalSamplerIndex.rawValue)
                     )
 
-                    renderEncoder.drawIndexedPrimitives(
+                    renderEncoder.drawIndexedPrimitivesTracked(
                         type: subMesh.metalKitSubmesh.primitiveType,
                         indexCount: subMesh.metalKitSubmesh.indexCount,
                         indexType: subMesh.metalKitSubmesh.indexType,
                         indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
-                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset
+                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                        category: .transparent
                     )
                 }
             }
@@ -2346,10 +2353,10 @@ public enum RenderPasses {
 
             renderEncoder.setVertexBuffer(gaussianComponent.splatData, offset: 0, index: Int(gaussianRenderSplatIndex.rawValue))
 
-            renderEncoder.drawPrimitives(type: .triangleStrip,
-                                         vertexStart: 0,
-                                         vertexCount: 4,
-                                         instanceCount: Int(gaussianComponent.splatCount))
+            renderEncoder.drawPrimitivesTracked(type: .triangleStrip,
+                                                vertexStart: 0,
+                                                vertexCount: 4,
+                                                instanceCount: Int(gaussianComponent.splatCount))
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
@@ -2410,7 +2417,7 @@ public enum RenderPasses {
             // Pass in individual post-process values
             customization(renderEncoder)
             // set the draw command
-            renderEncoder.drawIndexedPrimitives(
+            renderEncoder.drawIndexedPrimitivesTracked(
                 type: .triangle,
                 indexCount: 6,
                 indexType: .uint16,

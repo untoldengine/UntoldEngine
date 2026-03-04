@@ -519,7 +519,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     visibilityTriple.ensureCapacity(count)
 
     guard count > 0 else {
-        HZBDebugMonitor.shared.recordCull(candidateCount: 0, visibleCount: 0, usedHZB: false, optimizedPath: false)
+        HZBDebugMonitor.shared.recordCull(testedCount: 0, candidateCount: 0, visibleCount: 0, usedHZB: false, optimizedPath: false)
         return
     }
 
@@ -591,6 +591,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         let visibleEntities = resolvedVisibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
 
         HZBDebugMonitor.shared.recordCull(
+            testedCount: count,
             candidateCount: candidateCount,
             visibleCount: Int(visibleCount),
             usedHZB: didRunOcclusion,
@@ -744,7 +745,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     visibilityTriple.ensureCapacity(count)
 
     guard count > 0 else {
-        HZBDebugMonitor.shared.recordCull(candidateCount: 0, visibleCount: 0, usedHZB: false, optimizedPath: true)
+        HZBDebugMonitor.shared.recordCull(testedCount: 0, candidateCount: 0, visibleCount: 0, usedHZB: false, optimizedPath: true)
         return
     }
 
@@ -877,6 +878,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         let visibleEntities = resolvedVisibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
 
         HZBDebugMonitor.shared.recordCull(
+            testedCount: count,
             candidateCount: candidateCount,
             visibleCount: Int(visibleCount),
             usedHZB: didRunOcclusion,

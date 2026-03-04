@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import QuartzCore
 
 /// Synchronous loading gate for render threads that can't `await`.
 /// Mirrors `AssetLoadingState` activity count and is safe to query from any thread.
@@ -16,18 +17,33 @@ public final class AssetLoadingGate {
 
     private let lock = NSLock()
     private var activeLoads: Int = 0
+    #if ENGINE_STATS_ENABLED
+        private var activeSinceSeconds: Double?
+        private var accumulatedActiveSeconds: Double = 0.0
+    #endif
 
     private init() {}
 
     public func beginLoading() {
         lock.lock()
         activeLoads += 1
+        #if ENGINE_STATS_ENABLED
+            if activeLoads == 1 {
+                activeSinceSeconds = CACurrentMediaTime()
+            }
+        #endif
         lock.unlock()
     }
 
     public func finishLoading() {
         lock.lock()
         activeLoads = max(0, activeLoads - 1)
+        #if ENGINE_STATS_ENABLED
+            if activeLoads == 0, let start = activeSinceSeconds {
+                accumulatedActiveSeconds += max(0.0, CACurrentMediaTime() - start)
+                activeSinceSeconds = nil
+            }
+        #endif
         lock.unlock()
     }
 
@@ -36,6 +52,35 @@ public final class AssetLoadingGate {
         let value = activeLoads > 0
         lock.unlock()
         return value
+    }
+
+    public var activeLoadCount: Int {
+        #if ENGINE_STATS_ENABLED
+            lock.lock()
+            let value = activeLoads
+            lock.unlock()
+            return value
+        #else
+            return 0
+        #endif
+    }
+
+    /// Returns milliseconds that the loading gate has been active since the last sample.
+    public func consumeBlockedMsSinceLastSample() -> Double {
+        #if ENGINE_STATS_ENABLED
+            lock.lock()
+            let now = CACurrentMediaTime()
+            if let start = activeSinceSeconds {
+                accumulatedActiveSeconds += max(0.0, now - start)
+                activeSinceSeconds = now
+            }
+            let blockedMs = accumulatedActiveSeconds * 1000.0
+            accumulatedActiveSeconds = 0.0
+            lock.unlock()
+            return blockedMs
+        #else
+            return 0.0
+        #endif
     }
 }
 
