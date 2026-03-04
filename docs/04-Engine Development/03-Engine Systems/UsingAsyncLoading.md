@@ -16,6 +16,56 @@ The async loading system allows you to load USDZ files with many models without 
 ✅ **Progress tracking** - Monitor loading progress per entity or globally  
 ✅ **Fallback meshes** - Automatically loads a cube if loading fails  
 ✅ **Backward compatible** - Old synchronous APIs still work  
+✅ **Scene readiness guard** - Pause interaction while scene setup is unsafe  
+
+---
+
+## Scene Readiness Guard (Recommended)
+
+The engine now provides global scene readiness APIs:
+
+```swift
+setSceneReady(_ ready: Bool)
+isSceneReady() -> Bool
+```
+
+Use them to mark whether interaction systems should run safely.
+
+### When to Use It
+
+1. Use `setSceneReady(false)` before long or multi-step scene mutations.
+2. Use `setSceneReady(true)` after the scene is stable.
+3. Guard your input/update interaction paths with `isSceneReady()`.
+
+### When You Usually Do NOT Need It
+
+For standard `setEntityMeshAsync(...)` / streaming paths, the engine already uses loading gates internally.  
+You mainly need `setSceneReady(...)` for custom workflows outside those built-in paths.
+
+### Example: Custom Async Scene Setup
+
+```swift
+setSceneReady(false)
+
+let root = createEntity()
+setEntityMeshAsync(entityId: root, filename: "large_model", withExtension: "usdz") { success in
+    if success {
+        // custom post-load work: hierarchy edits, batching, metadata pass, etc.
+        setSceneReady(true)
+    } else {
+        setSceneReady(false)
+    }
+}
+```
+
+### Example: Guard Input (XR or macOS)
+
+```swift
+func handleInput() {
+    guard isSceneReady() else { return }
+    // safe input logic
+}
+```
 
 ---
 
@@ -322,4 +372,3 @@ func loadGameAssets() {
 ```
 
 ---
-

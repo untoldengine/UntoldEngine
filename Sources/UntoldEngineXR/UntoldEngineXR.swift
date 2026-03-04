@@ -115,6 +115,8 @@
 
             layerRenderer.onSpatialEvent = { events in
                 guard InputSystem.shared.xrEventsEnabled else { return }
+                guard isSceneReady() else { return }
+                guard AssetLoadingGate.shared.isLoadingAny == false else { return }
 
                 for event in events {
                     // Extract selection ray if available
@@ -268,9 +270,15 @@
 
             // Snapshot loading gate once per frame to keep update/submission behavior consistent.
             let loading = AssetLoadingGate.shared.isLoadingAny
+            let sceneReady = isSceneReady()
+            let allowSpatialInputProcessing = !loading && sceneReady
 
             // 4. Update spatial input state from queued events
-            updateSpatialInputState()
+            if allowSpatialInputProcessing {
+                updateSpatialInputState()
+            } else {
+                clearSpatialInput()
+            }
 
             // 5. Perform any rendering-related work that doesn't rely on the device anchor info
             guard let renderer else { return }

@@ -141,6 +141,13 @@ public extension InputSystem {
         }
 
         func setXRSpatialPickingBackendPreference(_: ScenePickingBackendPreference) {}
+        func setXRSceneReady(_ ready: Bool) {
+            setSceneReady(ready)
+        }
+
+        func isXRSceneReady() -> Bool {
+            isSceneReady()
+        }
 
         func getXRSpatialPickingBackendPreference() -> ScenePickingBackendPreference {
             .octreeGPUPreferred
@@ -206,6 +213,14 @@ public extension InputSystem {
             Self.xrEventStateLock.withLock { state in
                 state.spatialPickingBackendPreference = preference
             }
+        }
+
+        func setXRSceneReady(_ ready: Bool) {
+            setSceneReady(ready)
+        }
+
+        func isXRSceneReady() -> Bool {
+            isSceneReady()
         }
 
         func getXRSpatialPickingBackendPreference() -> ScenePickingBackendPreference {
