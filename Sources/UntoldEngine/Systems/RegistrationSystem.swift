@@ -1255,6 +1255,20 @@ private func setEntityStaticBatchComponentRecursive(entityId: EntityID) {
     }
 }
 
+/// Marks only this entity as static-batchable (non-recursive).
+/// Used by per-node override application where recursion would repeatedly
+/// revisit descendants and generate duplicate "already exists" warnings.
+public func setEntityStaticBatch(entityId: EntityID) {
+    withWorldMutationGate {
+        guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+            return
+        }
+        if !hasComponent(entityId: entityId, componentType: StaticBatchComponent.self) {
+            registerComponent(entityId: entityId, componentType: StaticBatchComponent.self)
+        }
+    }
+}
+
 public func removeEntityStaticBatchComponent(entityId: EntityID) {
     // XR can render from a dedicated thread while scene data is being mutated here.
     // Gate rendering while we recursively untag the hierarchy from static batching.
