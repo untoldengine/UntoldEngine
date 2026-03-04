@@ -77,8 +77,8 @@ public func setParent(childId: EntityID, parentId: EntityID, offset: simd_float3
         // propagate level changes to descendants
         updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
 
-        // Mark child and descendants as dirty for spatial partitioning
-        OctreeSystem.shared.markDirty(childId)
+        // Eagerly update world transforms and mark child hierarchy dirty for spatial partitioning
+        syncWorldTransformAndMarkOctreeDirty(entityId: childId)
     }
 }
 
@@ -104,7 +104,12 @@ public func removeParent(childId: EntityID) {
 
         localTransformComponent.position = simd_float3(worldTransformComponent.space.columns.3.x, worldTransformComponent.space.columns.3.y, worldTransformComponent.space.columns.3.z)
 
-        localTransformComponent.scale = simd_float3(worldTransformComponent.space.columns.0.x, worldTransformComponent.space.columns.1.y, worldTransformComponent.space.columns.2.z)
+        let upperLeft = matrix3x3_upper_left(worldTransformComponent.space)
+        localTransformComponent.scale = simd_float3(
+            length(upperLeft.columns.0),
+            length(upperLeft.columns.1),
+            length(upperLeft.columns.2)
+        )
 
         localTransformComponent.rotation = transformMatrix3nToQuaternion(m: matrix3x3_upper_left(worldTransformComponent.space))
 
@@ -135,8 +140,8 @@ public func removeParent(childId: EntityID) {
         // update all child descendants
         updateDescendantLevels(childId: childId, level: scenegraphComponent.level)
 
-        // Mark child as dirty for spatial partitioning
-        OctreeSystem.shared.markDirty(childId)
+        // Eagerly update world transforms and mark child hierarchy dirty for spatial partitioning
+        syncWorldTransformAndMarkOctreeDirty(entityId: childId)
     }
 }
 
