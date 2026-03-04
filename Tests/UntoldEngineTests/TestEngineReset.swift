@@ -29,4 +29,5 @@ func resetEngineTestState() {
     scenePickingGPUAvailable = false
     activeEntity = .invalid
     OctreeSystem.shared.clear()
+    setSceneReady(true)
 }

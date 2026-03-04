@@ -21,6 +21,7 @@ final class XRInputSystemSpatialTests: XCTestCase {
             input.unregisterXREvents()
             input.clearXRSpatialSnapshots()
             input.xrSpatialInputState = XRSpatialInputState()
+            input.setXRSceneReady(true)
             input.setXRSpatialPickingBackendPreference(.octreePreferred)
         #endif
     }
@@ -31,6 +32,7 @@ final class XRInputSystemSpatialTests: XCTestCase {
             input.unregisterXREvents()
             input.clearXRSpatialSnapshots()
             input.xrSpatialInputState = XRSpatialInputState()
+            input.setXRSceneReady(true)
             input.setXRSpatialPickingBackendPreference(.octreePreferred)
         #endif
 
@@ -98,6 +100,16 @@ final class XRInputSystemSpatialTests: XCTestCase {
 
             input.setXRSpatialPickingBackendPreference(.octreePreferred)
             XCTAssertEqual(input.getXRSpatialPickingBackendPreference(), .octreePreferred)
+        }
+
+        func test_sceneReadyHelper_updatesReadinessFlag() {
+            let input = InputSystem.shared
+
+            input.setXRSceneReady(false)
+            XCTAssertFalse(input.isXRSceneReady())
+
+            input.setXRSceneReady(true)
+            XCTAssertTrue(input.isXRSceneReady())
         }
 
         func test_helperQueries_reflectXRSpatialInputState() {
@@ -178,6 +190,9 @@ final class XRInputSystemSpatialTests: XCTestCase {
             input.registerXREvents()
             input.unregisterXREvents()
             input.setXRSpatialPickingBackendPreference(.cpuOnly)
+            input.setXRSceneReady(false)
+            XCTAssertFalse(input.isXRSceneReady())
+            setSceneReady(true)
             XCTAssertEqual(input.getXRSpatialPickingBackendPreference(), .octreePreferred)
         }
     #endif
