@@ -127,10 +127,14 @@ public func playSceneAt(url: URL, completion: (() -> Void)? = nil) {
         return
     }
 
-    destroyAllEntities()
-    deserializeScene(sceneData: scene) {
+    destroyAllEntities {
+        deserializeScene(sceneData: scene) {
+            completion?()
+        }
+
+        // Rebind as soon as authored entities are created to avoid referencing a destroyed
+        // startup camera while async mesh loads are still finishing.
         CameraSystem.shared.activeCamera = findGameCamera()
-        completion?()
     }
 }
 
