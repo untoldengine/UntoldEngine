@@ -141,6 +141,11 @@ public func playSceneAt(url: URL, completion: (() -> Void)? = nil) {
 /// Script registry to cache loaded scripts by name
 public var scriptRegistry: [String: USCScript] = [:]
 
+/// Clear all loaded USC scripts from the in-memory registry.
+public func clearScriptRegistry() {
+    scriptRegistry.removeAll()
+}
+
 /// Load all USC scripts from a directory
 /// - Parameter scriptsURL: URL to the Scripts directory. If nil, uses assetBasePath/Scripts
 /// - Returns: The number of scripts loaded successfully
