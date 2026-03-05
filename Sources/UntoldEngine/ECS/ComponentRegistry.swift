@@ -21,8 +21,8 @@ public enum ComponentRegistry {
     private static var handlersByComponentId: [Int: ComponentCleanupHandler] = [:]
     private static let registryLock = NSLock()
 
-    public static func register<T: Component>(
-        componentType: T.Type,
+    public static func register(
+        componentType: (some Component).Type,
         handlerId: String? = nil,
         priority: Int = 100,
         cleanup: @escaping (EntityID) -> Void
