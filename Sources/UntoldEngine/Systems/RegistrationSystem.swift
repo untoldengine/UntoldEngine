@@ -14,16 +14,26 @@ import Foundation
 import MetalKit
 
 private var pendingDestroyCompletions: [() -> Void] = []
+private let pendingDestroyCompletionsLock = NSLock()
 
 private func enqueuePendingDestroyCompletion(_ completion: (() -> Void)?) {
     guard let completion else { return }
+    pendingDestroyCompletionsLock.lock()
     pendingDestroyCompletions.append(completion)
+    pendingDestroyCompletionsLock.unlock()
 }
 
 private func runPendingDestroyCompletions() {
-    guard pendingDestroyCompletions.isEmpty == false else { return }
-    let callbacks = pendingDestroyCompletions
+    let callbacks: [() -> Void]
+    pendingDestroyCompletionsLock.lock()
+    guard pendingDestroyCompletions.isEmpty == false else {
+        pendingDestroyCompletionsLock.unlock()
+        return
+    }
+    callbacks = pendingDestroyCompletions
     pendingDestroyCompletions.removeAll(keepingCapacity: true)
+    pendingDestroyCompletionsLock.unlock()
+
     for callback in callbacks {
         callback()
     }
