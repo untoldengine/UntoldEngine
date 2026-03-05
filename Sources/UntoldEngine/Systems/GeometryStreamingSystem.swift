@@ -531,6 +531,14 @@ public class GeometryStreamingSystem {
         loadedStreamingEntities.insert(entityId)
     }
 
+    /// Remove an entity from streaming tracking sets.
+    public func unregisterEntity(_ entityId: EntityID) {
+        withWorldMutationGate {
+            activeLoads.remove(entityId)
+            loadedStreamingEntities.remove(entityId)
+        }
+    }
+
     /// Reset internal state (useful for tests and scene changes)
     public func reset() {
         withWorldMutationGate {

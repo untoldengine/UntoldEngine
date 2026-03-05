@@ -38,6 +38,18 @@ public struct Scene {
         entities[Int(entityIndex)].mask.reset(componentId)
     }
 
+    public mutating func removeAllComponents(from entityId: EntityID) {
+        let entityIndex = getEntityIndex(entityId)
+        let e = entities[Int(entityIndex)]
+
+        guard e.entityId == entityId, !e.freed else {
+            handleError(.entityMissing, entityId)
+            return
+        }
+
+        entities[Int(entityIndex)].mask.resetAll()
+    }
+
     // Phase A: mark entity for destroy
     public mutating func markDestroy(_ entityId: EntityID) {
         let idx = getEntityIndex(entityId)
