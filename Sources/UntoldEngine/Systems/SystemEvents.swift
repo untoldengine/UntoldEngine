@@ -69,9 +69,11 @@ public struct RegionStreamingEvent {
 // MARK: - Event Bus
 
 /// Simple event bus for decoupled system communication
-/// All systems run on main thread, so no synchronization needed
+/// Used from both render/update and async loading paths.
 public final class SystemEventBus {
     public static let shared = SystemEventBus()
+
+    private let lock = NSLock()
 
     // Subscriber storage
     private var residencySubscribers: [(AssetResidencyChangedEvent) -> Void] = []
@@ -87,54 +89,86 @@ public final class SystemEventBus {
     // MARK: - Subscriptions
 
     public func subscribeToResidencyChanges(_ handler: @escaping (AssetResidencyChangedEvent) -> Void) {
+        lock.lock()
         residencySubscribers.append(handler)
+        lock.unlock()
     }
 
     public func subscribeToLODChanges(_ handler: @escaping (EntityLODChangedEvent) -> Void) {
+        lock.lock()
         lodChangeSubscribers.append(handler)
+        lock.unlock()
     }
 
     public func subscribeToBatchingChanges(_ handler: @escaping (EntityBatchingChangedEvent) -> Void) {
+        lock.lock()
         batchingSubscribers.append(handler)
+        lock.unlock()
     }
 
     // MARK: - Queue Events (deferred until flush)
 
     public func queueResidencyChange(_ event: AssetResidencyChangedEvent) {
+        lock.lock()
         pendingResidencyEvents.append(event)
+        lock.unlock()
     }
 
     public func queueLODChange(_ event: EntityLODChangedEvent) {
+        lock.lock()
         pendingLODEvents.append(event)
+        lock.unlock()
     }
 
     // MARK: - Flush (process all queued events)
 
     public func flushEvents() {
+        let residencyEvents: [AssetResidencyChangedEvent]
+        let lodEvents: [EntityLODChangedEvent]
+        let residencyHandlers: [(AssetResidencyChangedEvent) -> Void]
+        let lodHandlers: [(EntityLODChangedEvent) -> Void]
+
+        lock.lock()
+        residencyEvents = pendingResidencyEvents
+        lodEvents = pendingLODEvents
+        pendingResidencyEvents.removeAll(keepingCapacity: true)
+        pendingLODEvents.removeAll(keepingCapacity: true)
+        residencyHandlers = residencySubscribers
+        lodHandlers = lodChangeSubscribers
+        lock.unlock()
+
         // Process residency events first (streaming -> LOD/batching)
-        for event in pendingResidencyEvents {
-            for subscriber in residencySubscribers {
+        for event in residencyEvents {
+            for subscriber in residencyHandlers {
                 subscriber(event)
             }
         }
-        pendingResidencyEvents.removeAll(keepingCapacity: true)
 
         // Then LOD events (LOD -> batching)
-        for event in pendingLODEvents {
-            for subscriber in lodChangeSubscribers {
+        for event in lodEvents {
+            for subscriber in lodHandlers {
                 subscriber(event)
             }
         }
+    }
+
+    /// Clear queued events while preserving active subscribers.
+    public func clearPendingEvents() {
+        lock.lock()
+        pendingResidencyEvents.removeAll(keepingCapacity: true)
         pendingLODEvents.removeAll(keepingCapacity: true)
+        lock.unlock()
     }
 
     /// Clear all subscribers and pending events (for testing/reset)
     public func reset() {
+        lock.lock()
         residencySubscribers.removeAll()
         lodChangeSubscribers.removeAll()
         batchingSubscribers.removeAll()
         pendingResidencyEvents.removeAll()
         pendingLODEvents.removeAll()
+        lock.unlock()
     }
 }
 
