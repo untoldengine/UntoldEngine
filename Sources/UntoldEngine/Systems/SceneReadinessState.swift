@@ -44,4 +44,3 @@ public func setSceneReady(_ ready: Bool) {
 public func isSceneReady() -> Bool {
     SceneReadinessState.shared.isReady()
 }
-

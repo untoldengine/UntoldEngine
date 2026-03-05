@@ -1,5 +1,5 @@
-@testable import UntoldEngine
 import Foundation
+@testable import UntoldEngine
 import XCTest
 
 private final class UnregisteredCleanupComponent: Component {
