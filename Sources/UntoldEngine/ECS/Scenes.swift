@@ -27,6 +27,10 @@ public struct Scene {
 
     public mutating func remove<T: Component>(component _: T.Type, from entityId: EntityID) {
         let entityIndex = getEntityIndex(entityId)
+        guard entityIndex < entities.count else {
+            handleError(.entityMissing, entityId)
+            return
+        }
         let e = entities[Int(entityIndex)]
 
         guard e.entityId == entityId, !e.freed else {
@@ -40,6 +44,10 @@ public struct Scene {
 
     public mutating func removeAllComponents(from entityId: EntityID) {
         let entityIndex = getEntityIndex(entityId)
+        guard entityIndex < entities.count else {
+            handleError(.entityMissing, entityId)
+            return
+        }
         let e = entities[Int(entityIndex)]
 
         guard e.entityId == entityId, !e.freed else {
@@ -53,6 +61,9 @@ public struct Scene {
     // Phase A: mark entity for destroy
     public mutating func markDestroy(_ entityId: EntityID) {
         let idx = getEntityIndex(entityId)
+        guard idx < entities.count else {
+            return
+        }
         guard entities[Int(idx)].entityId == entityId, !entities[Int(idx)].freed else {
             return
         }
@@ -110,6 +121,10 @@ public struct Scene {
     public mutating func assign<T: Component>(to entityId: EntityID, component _: T.Type) -> T? {
         let componentId = getComponentId(for: T.self)
         let entityIndex = getEntityIndex(entityId)
+        guard entityIndex < entities.count else {
+            handleError(.entityMissing, entityId)
+            return nil
+        }
         let e = entities[Int(entityIndex)]
         guard e.entityId == entityId, !e.freed, !e.pendingDestroy else {
             handleError(.entityMissing, entityId)
@@ -151,6 +166,11 @@ public struct Scene {
             return nil
         }
 
+        guard entityIndex < entities.count else {
+            handleError(.entityMissing, entityId)
+            return nil
+        }
+
         let e = entities[Int(entityIndex)]
         guard e.entityId == entityId, !e.freed else {
             handleError(.entityMissing, entityId)
@@ -183,6 +203,7 @@ public struct Scene {
 
     public func mask(for entityId: EntityID) -> ComponentMask? {
         let idx = getEntityIndex(entityId)
+        guard idx < entities.count else { return nil }
         let e = entities[Int(idx)]
         guard e.entityId == entityId, !e.freed, !e.pendingDestroy else { return nil }
         return e.mask
@@ -220,6 +241,7 @@ public func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Sce
 
 public func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> Bool {
     let entityIndex: EntityIndex = getEntityIndex(entityId)
+    guard entityIndex < scene.entities.count else { return false }
 
     let entityMask = scene.entities[Int(entityIndex)].mask
 
@@ -230,6 +252,7 @@ public func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> 
 
 func getAllEntityComponentsTypes(entityId: EntityID) -> [Any.Type] {
     let entityIndex: EntityIndex = getEntityIndex(entityId)
+    guard entityIndex < scene.entities.count else { return [] }
     let entityMask = scene.entities[Int(entityIndex)].mask
 
     var components: [Any.Type] = []
