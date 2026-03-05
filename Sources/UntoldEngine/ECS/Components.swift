@@ -12,6 +12,10 @@ import Metal
 import MetalKit
 import simd
 
+// IMPORTANT:
+// When adding a new Component Type in this file, register its cleanup handler
+// in RegistrationSystem.registerComponentCleanupHandlers().
+
 public class LocalTransformComponent: Component {
     public var position: simd_float3 = .zero
     public var rotation: simd_quatf = .init()

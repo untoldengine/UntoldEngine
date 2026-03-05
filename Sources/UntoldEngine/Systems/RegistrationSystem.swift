@@ -29,6 +29,103 @@ private func runPendingDestroyCompletions() {
     }
 }
 
+private let componentCleanupRegistrationLock = NSLock()
+private var componentCleanupHandlersRegistered = false
+
+func ensureComponentCleanupHandlersRegistered() {
+    componentCleanupRegistrationLock.lock()
+    defer { componentCleanupRegistrationLock.unlock() }
+
+    guard componentCleanupHandlersRegistered == false else { return }
+    registerComponentCleanupHandlers()
+    componentCleanupHandlersRegistered = true
+}
+
+private func registerComponentCleanupHandlers() {
+    ComponentRegistry.register(componentType: ScenegraphComponent.self, handlerId: "scenegraph", priority: 10) { entityId in
+        removeEntityScenegraph(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: RenderComponent.self, handlerId: "mesh", priority: 20) { entityId in
+        removeEntityMesh(entityId: entityId)
+    }
+    ComponentRegistry.register(componentType: SkeletonComponent.self, handlerId: "mesh", priority: 20) { entityId in
+        removeEntityMesh(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: AnimationComponent.self, handlerId: "animation", priority: 30) { entityId in
+        removeEntityAnimations(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: PhysicsComponents.self, handlerId: "kinetics", priority: 30) { entityId in
+        removeEntityKinetics(entityId: entityId)
+    }
+    ComponentRegistry.register(componentType: KineticComponent.self, handlerId: "kinetics", priority: 30) { entityId in
+        removeEntityKinetics(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: LightComponent.self, handlerId: "light", priority: 30) { entityId in
+        removeEntityLight(entityId: entityId)
+    }
+    ComponentRegistry.register(componentType: DirectionalLightComponent.self, handlerId: "light", priority: 30) { entityId in
+        removeEntityLight(entityId: entityId)
+    }
+    ComponentRegistry.register(componentType: PointLightComponent.self, handlerId: "light", priority: 30) { entityId in
+        removeEntityLight(entityId: entityId)
+    }
+    ComponentRegistry.register(componentType: SpotLightComponent.self, handlerId: "light", priority: 30) { entityId in
+        removeEntityLight(entityId: entityId)
+    }
+    ComponentRegistry.register(componentType: AreaLightComponent.self, handlerId: "light", priority: 30) { entityId in
+        removeEntityLight(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: StaticBatchComponent.self, handlerId: "staticBatch", priority: 30) { entityId in
+        removeEntityStaticBatch(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: LODComponent.self, handlerId: "lod", priority: 30) { entityId in
+        removeEntityLOD(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: GaussianComponent.self, handlerId: "gaussian", priority: 30) { entityId in
+        removeEntityGaussian(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: CameraComponent.self, handlerId: "camera", priority: 30) { entityId in
+        removeEntityCamera(entityId: entityId)
+    }
+    ComponentRegistry.register(componentType: SceneCameraComponent.self, handlerId: "camera", priority: 30) { entityId in
+        removeEntityCamera(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: AssetInstanceComponent.self, handlerId: "assetInstance", priority: 30) { entityId in
+        removeEntityAssetInstance(entityId: entityId)
+    }
+    ComponentRegistry.register(componentType: DerivedAssetNodeComponent.self, handlerId: "assetInstance", priority: 30) { entityId in
+        removeEntityAssetInstance(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: ScriptComponent.self, handlerId: "script", priority: 30) { entityId in
+        removeEntityScript(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: StreamingComponent.self, handlerId: "streaming", priority: 30) { entityId in
+        removeEntityStreaming(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: GizmoComponent.self, handlerId: "gizmo", priority: 30) { entityId in
+        removeEntityGizmo(entityId: entityId)
+    }
+
+    ComponentRegistry.register(componentType: LocalTransformComponent.self, handlerId: "transforms", priority: 90) { entityId in
+        removeEntityTransforms(entityId: entityId)
+    }
+    ComponentRegistry.register(componentType: WorldTransformComponent.self, handlerId: "transforms", priority: 90) { entityId in
+        removeEntityTransforms(entityId: entityId)
+    }
+}
+
 public func createEntity() -> EntityID {
     globalEntityCounter += 1
     let entity = scene.newEntity()
@@ -43,6 +140,12 @@ public func makeSpatial(entityId: EntityID) {
 }
 
 public func registerComponent(entityId: EntityID, componentType: (some Component).Type) {
+    ensureComponentCleanupHandlersRegistered()
+    if !ComponentRegistry.hasCleanupHandler(for: componentType) {
+        ComponentRegistry.register(componentType: componentType, priority: 50) { entityId in
+            scene.remove(component: componentType, from: entityId)
+        }
+    }
     _ = scene.assign(to: entityId, component: componentType)
 }
 
@@ -81,27 +184,32 @@ public func destroyAllEntities(completion: (() -> Void)? = nil) {
 }
 
 func finalizePendingDestroys() {
+    ensureComponentCleanupHandlersRegistered()
+
     visibleEntityIds.removeAll()
-    // clear any other systems from the entities
 
-    // Gather marked entities from scene
-    let pending: [EntityID] = scene.entities.enumerated().compactMap { _, e in (e.pendingDestroy && !e.freed) ? e.entityId : nil }
+    // Process pending entities iteratively so children marked during cleanup
+    // are also cleaned in the same finalize pass.
+    var cleanedPendingEntities: Set<EntityID> = []
 
-    // Clean up each entity
-    for entityId in pending {
-        removeEntityMesh(entityId: entityId)
-        removeEntityTransforms(entityId: entityId)
-        removeEntityAnimations(entityId: entityId)
-        removeEntityKinetics(entityId: entityId)
-        removeEntityScenegraph(entityId: entityId)
-        removeEntityName(entityId: entityId)
-        removeEntityLight(entityId: entityId)
-        removeEntityStaticBatch(entityId: entityId)
-        removeEntityLOD(entityId: entityId)
-        removeEntityGaussian(entityId: entityId)
-        removeEntityCamera(entityId: entityId)
-        removeEntityAssetInstance(entityId: entityId)
-        removeEntityScript(entityId: entityId)
+    while true {
+        let pending: [EntityID] = scene.entities.compactMap { entity in
+            guard entity.pendingDestroy, !entity.freed, !cleanedPendingEntities.contains(entity.entityId) else {
+                return nil
+            }
+            return entity.entityId
+        }
+
+        guard pending.isEmpty == false else {
+            break
+        }
+
+        for entityId in pending {
+            ComponentRegistry.cleanupAll(entityId: entityId)
+            removeEntityName(entityId: entityId) // Name data is not an ECS component.
+            scene.removeAllComponents(from: entityId) // Failsafe for unregistered component types.
+            cleanedPendingEntities.insert(entityId)
+        }
     }
 
     scene.finalizePendingDestroys()
@@ -724,22 +832,27 @@ public func loadSceneAsync(
 private var skeletonCache: [URL: MDLSkeleton?] = [:]
 
 func removeEntityMesh(entityId: EntityID) {
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        return
-    }
+    var removedAnyResourceOwner = false
 
-    renderComponent.cleanUp()
-    scene.remove(component: RenderComponent.self, from: entityId)
+    if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+        renderComponent.cleanUp()
+        scene.remove(component: RenderComponent.self, from: entityId)
+        removedAnyResourceOwner = true
+    }
 
     // deassocate entity to mesh
     deassociateMeshesToEntity(entityId: entityId)
+    MeshResourceManager.shared.release(entityId: entityId)
 
-    guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
-        return
+    if let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) {
+        skeletonComponent.cleanUp()
+        scene.remove(component: SkeletonComponent.self, from: entityId)
+        removedAnyResourceOwner = true
     }
 
-    skeletonComponent.cleanUp()
-    scene.remove(component: SkeletonComponent.self, from: entityId)
+    guard removedAnyResourceOwner else {
+        return
+    }
 
     OctreeSystem.shared.unregisterEntity(entityId)
 
@@ -904,21 +1017,41 @@ public func setEntityKinetics(entityId: EntityID) {
 }
 
 func removeEntityKinetics(entityId: EntityID) {
-    guard let kineticComponent = scene.get(component: KineticComponent.self, for: entityId) else {
-        return
+    if let kineticComponent = scene.get(component: KineticComponent.self, for: entityId) {
+        kineticComponent.clearForces()
+        scene.remove(component: KineticComponent.self, from: entityId)
     }
 
-    kineticComponent.clearForces()
-    scene.remove(component: KineticComponent.self, from: entityId)
-    scene.remove(component: PhysicsComponents.self, from: entityId)
+    if scene.get(component: PhysicsComponents.self, for: entityId) != nil {
+        scene.remove(component: PhysicsComponents.self, from: entityId)
+    }
 }
 
 func removeEntityLight(entityId: EntityID) {
-    guard scene.get(component: LightComponent.self, for: entityId) != nil else {
-        return
+    if let lightComponent = scene.get(component: LightComponent.self, for: entityId) {
+        lightComponent.lightType = nil
+        lightComponent.texture.directional = nil
+        lightComponent.texture.point = nil
+        lightComponent.texture.spot = nil
+        lightComponent.texture.area = nil
+        scene.remove(component: LightComponent.self, from: entityId)
     }
 
-    scene.remove(component: LightComponent.self, from: entityId)
+    if scene.get(component: DirectionalLightComponent.self, for: entityId) != nil {
+        scene.remove(component: DirectionalLightComponent.self, from: entityId)
+    }
+
+    if scene.get(component: PointLightComponent.self, for: entityId) != nil {
+        scene.remove(component: PointLightComponent.self, from: entityId)
+    }
+
+    if scene.get(component: SpotLightComponent.self, for: entityId) != nil {
+        scene.remove(component: SpotLightComponent.self, from: entityId)
+    }
+
+    if scene.get(component: AreaLightComponent.self, for: entityId) != nil {
+        scene.remove(component: AreaLightComponent.self, from: entityId)
+    }
 }
 
 func removeEntityScenegraph(entityId: EntityID) {
@@ -959,17 +1092,13 @@ public func registerSceneGraphComponent(entityId: EntityID) {
 }
 
 func removeEntityTransforms(entityId: EntityID) {
-    guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else {
-        return
+    if scene.get(component: LocalTransformComponent.self, for: entityId) != nil {
+        scene.remove(component: LocalTransformComponent.self, from: entityId)
     }
 
-    scene.remove(component: LocalTransformComponent.self, from: entityId)
-
-    guard scene.get(component: WorldTransformComponent.self, for: entityId) != nil else {
-        return
+    if scene.get(component: WorldTransformComponent.self, for: entityId) != nil {
+        scene.remove(component: WorldTransformComponent.self, from: entityId)
     }
-
-    scene.remove(component: WorldTransformComponent.self, from: entityId)
 }
 
 private func transformsApproximatelyEqual(_ lhs: simd_float4x4, _ rhs: simd_float4x4, epsilon: Float = 0.0001) -> Bool {
@@ -1367,6 +1496,23 @@ func removeEntityScript(entityId: EntityID) {
         scriptComponent.scripts.removeAll()
         scriptComponent.scriptFilePaths = nil
         scene.remove(component: ScriptComponent.self, from: entityId)
+    }
+}
+
+func removeEntityStreaming(entityId: EntityID) {
+    if let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) {
+        streamingComponent.loadTask?.cancel()
+        streamingComponent.loadTask = nil
+        scene.remove(component: StreamingComponent.self, from: entityId)
+    }
+
+    GeometryStreamingSystem.shared.unregisterEntity(entityId)
+    MeshResourceManager.shared.release(entityId: entityId)
+}
+
+func removeEntityGizmo(entityId: EntityID) {
+    if scene.get(component: GizmoComponent.self, for: entityId) != nil {
+        scene.remove(component: GizmoComponent.self, from: entityId)
     }
 }
 
