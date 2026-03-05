@@ -534,6 +534,13 @@ public class GeometryStreamingSystem {
     /// Remove an entity from streaming tracking sets.
     public func unregisterEntity(_ entityId: EntityID) {
         withWorldMutationGate {
+            if let streaming = scene.get(component: StreamingComponent.self, for: entityId) {
+                streaming.loadTask?.cancel()
+                streaming.loadTask = nil
+                if streaming.state == .loading || streaming.state == .unloading {
+                    streaming.state = .unloaded
+                }
+            }
             activeLoads.remove(entityId)
             loadedStreamingEntities.remove(entityId)
         }
@@ -542,6 +549,21 @@ public class GeometryStreamingSystem {
     /// Reset internal state (useful for tests and scene changes)
     public func reset() {
         withWorldMutationGate {
+            let streamingComponentId = getComponentId(for: StreamingComponent.self)
+            let entities = queryEntitiesWithComponentIds([streamingComponentId], in: scene)
+
+            for entityId in entities {
+                guard let streaming = scene.get(component: StreamingComponent.self, for: entityId) else {
+                    continue
+                }
+                streaming.loadTask?.cancel()
+                streaming.loadTask = nil
+                if streaming.state == .loading || streaming.state == .unloading {
+                    streaming.state = .unloaded
+                }
+            }
+
+            SystemEventBus.shared.clearPendingEvents()
             activeLoads.removeAll()
             loadedStreamingEntities.removeAll()
             timeSinceLastUpdate = 0
