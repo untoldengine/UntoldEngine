@@ -1,4 +1,18 @@
 # Changelog
+## v0.10.13 - 2026-03-05
+### 🐞 Fixes
+- [Patch] Added debug stats to engine (6e7c8df…)
+- [Patch] Removed static batch warning when loading scene (83dba21…)
+- [Patch] Fix destroy all entities function (5da30b2…)
+- [Patch] Fixed octree update bounds when dirty (a8b29a4…)
+- [Patch] Fixed octree update bounds when dirty corner cases (624b348…)
+- [Patch] fixed loading crash with xr (a00ebbe…)
+- [Patch] added component clean up (5e0c974…)
+- [Patch] XR shutdown implementation (f1effe4…)
+- [Patch] guarded scenes to avoid crashes (2f2714a…)
+- [Patch] Added completion locks (74551bf…)
+- [Patch] added function to remove usc scripts (31a9814…)
+- [Patch] Fixed Geometry Streaming System crash (d810d4c…)
 ## v0.10.12 - 2026-03-03
 ### 🐞 Fixes
 - [Patch] Ray picking ignores light entities when gameMode is true (e1e07c9…)
