@@ -16,10 +16,11 @@ When reviewing pull requests for this repository:
 - If something is unclear, ask for explanation rather than rejecting the PR.
 - Verify that **all source files and Metal shader files** include the proper copyright and license notice at the very top:
   ```swift
-  //  Copyright Untold Engine Studios
-  //  Licensed under the GNU LGPL v3.0 or later.
-  //  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
+  // Copyright (C) Untold Engine Studios
+  //
+  // This Source Code Form is subject to the terms of the Mozilla Public
+  // License, v. 2.0. If a copy of the MPL was not distributed with this
+  // file, You can obtain one at https://mozilla.org/MPL/2.0/.
   ```
 
 Final decision always rests with human maintainers; Copilot is here to provide helpful suggestions.
-

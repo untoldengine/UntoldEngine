@@ -173,4 +173,4 @@ When making changes to the CLI:
 ## License
 
 Copyright (C) Untold Engine Studios  
-Licensed under the GNU LGPL v3.0 or later.
+Licensed under the Mozilla Public License 2.0 (MPL-2.0).
