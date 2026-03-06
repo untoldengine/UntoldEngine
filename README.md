@@ -1,7 +1,7 @@
 <h1 align="center">
   <a href="https://github.com/untoldengine/UntoldEngine">
     <!-- Please provide path to your logo here -->
-    <img src="docs/images/untoldenginewhite.png" alt="Logo" width="459" height="53">
+    <img src="docs/images/untoldenginewhite.png" alt="Logo" width="600">
   </a>
 </h1>
 
