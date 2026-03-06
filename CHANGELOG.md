@@ -1,4 +1,9 @@
 # Changelog
+## v0.10.14 - 2026-03-06
+### 🐞 Fixes
+- [Patch] Real surface AR detection (86ef26a…)
+### 📚 Docs
+- [Docs] Updated logo in readme (eae2296…)
 ## v0.10.13 - 2026-03-05
 ### 🐞 Fixes
 - [Patch] Added debug stats to engine (6e7c8df…)
