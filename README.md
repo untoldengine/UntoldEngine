@@ -68,7 +68,7 @@ Click on image to play video:
 - Gaussian Splat Rendering: Native support for rendering 3D Gaussian Splats with Metal, enabling photorealistic scene reconstruction and novel view synthesis.
 - Untold Editor Integration: Optional visual editor for managing assets, entities, and scenes.
 - Swift Package Manager (SPM): Fully modular — integrate it easily into your own Xcode or Swift projects.
-- Open Source & Extensible: Licensed under LGPL-3.0, encouraging collaboration and custom extensions.
+- - Open Source & Extensible: Licensed under the Mozilla Public License 2.0 (MPL-2.0), encouraging collaboration while protecting improvements to the engine core.
 
 ## The Journey Ahead:
 
@@ -219,14 +219,31 @@ Together, we can make Untold Engine **better**!
 
 ## Contributing
 
-We welcome contributions to the Untold Engine! Here’s how you can help:
+We welcome contributions to Untold Engine.
 
-1. **Fix Bugs**: Review open issues labeled [help wanted](https://github.com/untoldengine/UntoldEngine/issues?q=label%3Ahelp+wanted).
-2. **Improve Features**: Enhance existing systems, such as adding collision detection to the physics system.
-3. **Create Tutorials**: Write how-to guides or share examples to help other developers.
-4. **Expand the Engine**: Suggest and implement new features like AI systems or advanced shaders.
+You can contribute in many ways:
 
-See the [Contribution Guidelines](https://untoldengine.github.io/UntoldEngine) for details.
+- **Fix Bugs** – Help resolve issues reported by the community.
+- **Improve Features** – Enhance existing systems such as rendering, physics, ECS, or XR support.
+- **Write Documentation** – Tutorials and guides help new developers learn the engine faster.
+- **Propose New Ideas** – Share ideas through GitHub Discussions.
+
+Before submitting a pull request, please read:
+
+- CONTRIBUTING.md
+- CONTRIBUTOR_LICENSE_AGREEMENT.md
+
+All contributions to Untold Engine are licensed under the **Mozilla Public License 2.0 (MPL-2.0)**.
+
+## Contributor License Agreement
+
+To ensure the long-term sustainability of the project, all contributors must agree to the project's **Contributor License Agreement (CLA)**.
+
+By submitting a pull request, you agree that your contributions may be distributed under the **Mozilla Public License 2.0 (MPL-2.0)**.
+
+See:
+
+CONTRIBUTOR_LICENSE_AGREEMENT.md
 
 ---
 
@@ -241,29 +258,48 @@ A huge thanks to the people helping shape the Untold Engine. Your support and co
   </a>
 </p>
 
+---
 
-## License  
+## License
 
-This project is licensed under the **LGPL v3.0**.  
+Untold Engine is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**.
 
-### What Does This Mean for You?  
-- **Developing a Game**: You can use the Untold Engine to build your game without needing to open source your game’s code.  
-- **Modifying the Engine**: If you make changes to the engine itself, those changes must be open-sourced under the LGPL v3.0.  
-- **Stronger Protections**: LGPL v3.0 adds explicit patent protection and compatibility with modern licenses like Apache-2.0 (used by OpenUSD).  
+This license allows developers to build commercial applications with Untold Engine while ensuring that improvements made to the engine itself remain open.
 
-### License in Plain Terms  
+### In simple terms
 
-| You want to…                                 | Allowed? | Obligations                                      |
-|----------------------------------------------|----------|--------------------------------------------------|
-| Build a game with Untold Engine              | ✅ Yes   | No need to open source your game’s code          |
-| Modify Untold Engine internals               | ✅ Yes   | Must share modifications under LGPL v3.0         |
-| Distribute the Untold Engine                 | ✅ Yes   | Keep the LGPL license intact                     |
-| Use for commercial projects                  | ✅ Yes   | No royalties or fees                             |
-| Combine with Apache-2.0 libs (e.g. OpenUSD)  | ✅ Yes   | Fully compatible under LGPL v3.0                 |
+| You want to… | Allowed? | Obligations |
+|--------------|----------|-------------|
+| Build a game using Untold Engine | ✅ Yes | Your game code can remain proprietary |
+| Use Untold Engine in commercial projects | ✅ Yes | No royalties required |
+| Modify the Untold Engine source code | ✅ Yes | Modified engine files must remain MPL-2.0 |
+| Create plugins or external tools | ✅ Yes | Plugins can use any license |
 
-For more details, see the full license text [here](https://www.gnu.org/licenses/lgpl-3.0.html).  
+### Why MPL-2.0?
 
-> 💡 Our philosophy: You’re free to build with Untold Engine however you like — but if you improve the engine itself, those improvements should be shared back so the whole community benefits.  
+MPL-2.0 strikes a balance between openness and flexibility:
+
+- Protects improvements to the **engine core**
+- Allows proprietary **games, apps, and plugins**
+- Encourages a healthy open ecosystem
+
+See the full license text in the `LICENSE` file or visit:
+
+https://www.mozilla.org/MPL/2.0/
+
+---
+
+## Trademark
+
+“Untold Engine” and the Untold Engine logo are trademarks of **Untold Engine Studios**.
+
+You may use the name to reference the project or describe software built with the engine.
+
+However, forks or derivative projects may not use the name in a way that implies official endorsement.
+
+See:
+
+TRADEMARKS.md
 
 ---
 
