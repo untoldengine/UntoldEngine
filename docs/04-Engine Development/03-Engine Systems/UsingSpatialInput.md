@@ -333,46 +333,23 @@ if state.spatialTapActive, let entityId = state.pickedEntityId {
 
 ------------------------------------------------------------------------
 
-## Get Ground Hit Position
+## Get Ground/Plane Hit Position
 
-To retrieve the exact world-space position where the user taps on the ground, use `pickGroundPosition`. This is useful for calibration workflows where you need to anchor a point on the ground and scale a model relative to it.
+To retrieve the exact world-space position where the user taps on the ground, use `pickRealSurfacePosition`. This is useful for calibration workflows where you need to anchor a point on the ground and scale a model relative to it.
 
 ```swift
 let state = InputSystem.shared.xrSpatialInputState
-if state.spatialTapActive {
-    if let groundHit = pickGroundPosition(
-        rayOrigin: state.rayOriginWorld,
-        rayDirection: state.rayDirectionWorld
-    ) {
-        // groundHit.worldPosition is the exact 3D point on the ground
-        // groundHit.distance is the ray travel distance to that point
-        anchorCalibrationPoint(at: groundHit.worldPosition) // pseudo-code to anchor entity
-    }
+
+if state.spatialTapActive{
+    if let hit = pickRealSurfacePosition(
+          rayOrigin: state.rayOriginWorld,
+          rayDirection: state.rayDirectionWorld,
+          filter: .horizontalAny
+      ) {
+          Logger.log(message: "Surface type: \(hit.surfaceKind)", vector: hit.worldPosition)
+      }
 }
 ```
-
-By default the ground plane is at y = 0. Pass a custom height with the `planeY` parameter:
-
-```swift
-let groundHit = pickGroundPosition(
-    rayOrigin: state.rayOriginWorld,
-    rayDirection: state.rayDirectionWorld,
-    planeY: 1.5  // ground at y = 1.5
-)
-```
-
-For arbitrary planes (walls, ramps, etc.), use `pickPlanePosition`:
-
-```swift
-let wallHit = pickPlanePosition(
-    rayOrigin: state.rayOriginWorld,
-    rayDirection: state.rayDirectionWorld,
-    planePoint: simd_float3(0, 0, 5),    // a point on the wall
-    planeNormal: simd_float3(0, 0, -1)   // wall faces toward camera
-)
-```
-
-Both functions return `nil` when the ray is parallel to the plane or pointing away from it.
 
 ------------------------------------------------------------------------
 

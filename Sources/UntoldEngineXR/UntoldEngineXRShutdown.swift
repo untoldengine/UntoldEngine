@@ -18,6 +18,7 @@
     public func resetUntoldWorldForXR(completion: (() -> Void)? = nil) {
         setSceneReady(false)
         InputSystem.shared.unregisterXREvents()
+        RealSurfacePlaneStore.shared.clear()
         USCSystem.shared.stopPlayMode()
         let wasStreamingEnabled = GeometryStreamingSystem.shared.enabled
         GeometryStreamingSystem.shared.enabled = false
