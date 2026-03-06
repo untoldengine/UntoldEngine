@@ -45,9 +45,13 @@
         private let passDescriptorRight = MTLRenderPassDescriptor()
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
 
+        // Task handle for the plane-update monitor so we can cancel it on shutdown.
+        private var planeMonitorTask: Task<Void, Never>?
+
         #if canImport(ARKit)
             private let arSession = ARKitSession()
             private let worldTracking = WorldTrackingProvider()
+            private let planeDetection = PlaneDetectionProvider(alignments: [.horizontal, .vertical])
         #else
             private let arSession: Any? = nil
             private let worldTracking: WorldTrackingProvider? = nil
@@ -68,13 +72,25 @@
             // Use unstructured Task to avoid blocking initialization
             let worldTracking = worldTracking
             let arSession = arSession
+            let planeDetection = planeDetection
             Task {
                 do {
                     guard worldTracking.state != .running else { return }
-                    try await arSession.run([worldTracking])
+                    var providers: [any DataProvider] = [worldTracking]
+                    if PlaneDetectionProvider.isSupported {
+                        providers.append(planeDetection)
+                    } else {
+                        print("⚠️ PlaneDetectionProvider is not supported on this device")
+                    }
+                    try await arSession.run(providers)
                 } catch {
-                    print("⚠️ Failed to start world tracking: \(error)")
+                    print("⚠️ Failed to start ARKit providers: \(error)")
                 }
+            }
+
+            // Start monitoring plane anchor updates in the background.
+            if PlaneDetectionProvider.isSupported {
+                startPlaneMonitor()
             }
 
             let configuration = layerRenderer.configuration
@@ -109,6 +125,7 @@
             InputSystem.shared.clearXRSpatialSnapshots()
             InputSystem.shared.xrSpatialInputState = XRSpatialInputState()
             resetAllSpatialInteractionTracking()
+            RealSurfacePlaneStore.shared.clear()
         }
 
         private func configureSpatialEventBridge() {
@@ -218,6 +235,9 @@
             lock.lock()
             _isRunning = false
             lock.unlock()
+            planeMonitorTask?.cancel()
+            planeMonitorTask = nil
+            RealSurfacePlaneStore.shared.clear()
         }
 
         public func runLoop() {
@@ -364,6 +384,69 @@
 
         private func updateSpatialInputState() {
             spatialGestureRecognizer.updateSpatialInputState()
+        }
+
+        // MARK: - Plane Detection
+
+        private func startPlaneMonitor() {
+            let planeDetection = planeDetection
+            planeMonitorTask = Task(priority: .utility) {
+                var trackedPlanes: [UUID: TrackedPlane] = [:]
+                for await update in planeDetection.anchorUpdates {
+                    if Task.isCancelled { break }
+                    let anchor = update.anchor
+                    switch update.event {
+                    case .added, .updated:
+                        let alignment: RealSurfaceAlignment
+                        switch anchor.alignment {
+                        case .horizontal:
+                            alignment = .horizontal
+                        case .vertical:
+                            alignment = .vertical
+                        @unknown default:
+                            alignment = .horizontal
+                        }
+
+                        let classification: RealSurfaceKind
+                        switch anchor.classification {
+                        case .floor:
+                            classification = .floor
+                        case .ceiling:
+                            classification = .ceiling
+                        case .wall:
+                            classification = .wall
+                        case .table:
+                            classification = .table
+                        case .seat:
+                            classification = .seat
+                        case .door:
+                            classification = .door
+                        case .window:
+                            classification = .window
+                        default:
+                            classification = .unknown
+                        }
+
+                        let tracked = TrackedPlane(
+                            id: anchor.id,
+                            originFromAnchorTransform: anchor.originFromAnchorTransform,
+                            extentWidth: anchor.geometry.extent.width,
+                            extentHeight: anchor.geometry.extent.height,
+                            alignment: alignment,
+                            classification: classification
+                        )
+                        trackedPlanes[anchor.id] = tracked
+
+                    case .removed:
+                        trackedPlanes.removeValue(forKey: anchor.id)
+
+                    @unknown default:
+                        break
+                    }
+
+                    RealSurfacePlaneStore.shared.update(planes: Array(trackedPlanes.values))
+                }
+            }
         }
 
         private func resetAllSpatialInteractionTracking() {
