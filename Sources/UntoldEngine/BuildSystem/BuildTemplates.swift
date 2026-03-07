@@ -146,7 +146,7 @@ import Foundation
 
                 // Load game content
                 loadBundledScripts()
-                loadAndPlayFirstScene()
+                loadAndPlayGameScene()
 
                 // Start game systems
                 startGameSystems()
@@ -171,11 +171,15 @@ import Foundation
             }
 
             /// Load and play the first available scene
-            private func loadAndPlayFirstScene() {
-                if let sceneURL = findFirstScene() {
-                    playSceneAt(url: sceneURL)
-                    Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
+            private func loadAndPlayGameScene(sceneName: String? = nil) {
+                setSceneReady(false)
+                if let sceneURL = findGameScene(name: sceneName) {
+                    playSceneAt(url: sceneURL) {
+                        setSceneReady(true)
+                        Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
+                    }
                 } else {
+                    setSceneReady(true)
                     Logger.log(message: "⚠️ No scene files found")
                 }
             }
@@ -189,8 +193,8 @@ import Foundation
 
             // MARK: - Asset Loading
 
-            /// Find the first scene in GameData/Scenes
-            private func findFirstScene() -> URL? {
+            /// Find a scene in GameData/Scenes by name, or the first JSON scene if no name is provided.
+            private func findGameScene(name: String? = nil) -> URL? {
                 guard let gameDataURL = Bundle.main.url(forResource: "GameData", withExtension: nil) else {
                     Logger.log(message: "⚠️ GameData directory not found")
                     return nil
@@ -205,7 +209,16 @@ import Foundation
                     return nil
                 }
 
-                return sceneFiles.first(where: { $0.pathExtension == "json" })
+                let jsonSceneFiles = sceneFiles.filter { $0.pathExtension.lowercased() == "json" }
+
+                guard let name = name, name.isEmpty == false else {
+                    return jsonSceneFiles.first
+                }
+
+                let sceneFileName = name.hasSuffix(".json") ? name : "\\(name).json"
+                return jsonSceneFiles.first {
+                    $0.lastPathComponent.caseInsensitiveCompare(sceneFileName) == .orderedSame
+                }
             }
 
             /// Load all USC scripts from GameData/Scripts
@@ -233,6 +246,7 @@ import Foundation
             func handleInput() {
                 // Skip logic if not in game mode
                 if gameMode == false { return }
+                if isSceneReady() == false { return }
 
                 // Add your custom input handling here
             }
@@ -610,7 +624,7 @@ import Foundation
 
                 // Load game content
                 loadBundledScripts()
-                loadAndPlayFirstScene()
+                loadAndPlayGameScene()
 
                 // Start game systems
                 startGameSystems()
@@ -635,11 +649,15 @@ import Foundation
             }
 
             /// Load and play the first available scene
-            private func loadAndPlayFirstScene() {
-                if let sceneURL = findFirstScene() {
-                    playSceneAt(url: sceneURL)
-                    Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
+            private func loadAndPlayGameScene(sceneName: String? = nil) {
+                setSceneReady(false)
+                if let sceneURL = findGameScene(name: sceneName) {
+                    playSceneAt(url: sceneURL) {
+                        setSceneReady(true)
+                        Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
+                    }
                 } else {
+                    setSceneReady(true)
                     Logger.log(message: "⚠️ No scene files found")
                 }
             }
@@ -653,8 +671,8 @@ import Foundation
 
             // MARK: - Asset Loading
 
-            /// Find the first scene in GameData/Scenes
-            private func findFirstScene() -> URL? {
+            /// Find a scene in GameData/Scenes by name, or the first JSON scene if no name is provided.
+            private func findGameScene(name: String? = nil) -> URL? {
                 guard let gameDataURL = Bundle.main.url(forResource: "GameData", withExtension: nil) else {
                     Logger.log(message: "⚠️ GameData directory not found")
                     return nil
@@ -669,7 +687,16 @@ import Foundation
                     return nil
                 }
 
-                return sceneFiles.first(where: { $0.pathExtension == "json" })
+                let jsonSceneFiles = sceneFiles.filter { $0.pathExtension.lowercased() == "json" }
+
+                guard let name = name, name.isEmpty == false else {
+                    return jsonSceneFiles.first
+                }
+
+                let sceneFileName = name.hasSuffix(".json") ? name : "\\(name).json"
+                return jsonSceneFiles.first {
+                    $0.lastPathComponent.caseInsensitiveCompare(sceneFileName) == .orderedSame
+                }
             }
 
             /// Load all USC scripts from GameData/Scripts
@@ -697,6 +724,7 @@ import Foundation
             func handleInput() {
                 // Skip logic if not in game mode
                 if gameMode == false { return }
+                if isSceneReady() == false { return }
 
                 // Add your custom input handling here
             }
@@ -805,7 +833,7 @@ import Foundation
 
                 // Load game content
                 loadBundledScripts()
-                loadAndPlayFirstScene()
+                loadAndPlayGameScene()
 
                 // Start game systems
                 startGameSystems()
@@ -830,11 +858,15 @@ import Foundation
             }
 
             /// Load and play the first available scene
-            private func loadAndPlayFirstScene() {
-                if let sceneURL = findFirstScene() {
-                    playSceneAt(url: sceneURL)
-                    Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
+            private func loadAndPlayGameScene(sceneName: String? = nil) {
+                setSceneReady(false)
+                if let sceneURL = findGameScene(name: sceneName) {
+                    playSceneAt(url: sceneURL) {
+                        setSceneReady(true)
+                        Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
+                    }
                 } else {
+                    setSceneReady(true)
                     Logger.log(message: "⚠️ No scene files found")
                 }
             }
@@ -848,8 +880,8 @@ import Foundation
 
             // MARK: - Asset Loading
 
-            /// Find the first scene in GameData/Scenes
-            private func findFirstScene() -> URL? {
+            /// Find a scene in GameData/Scenes by name, or the first JSON scene if no name is provided.
+            private func findGameScene(name: String? = nil) -> URL? {
                 guard let gameDataURL = Bundle.main.url(forResource: "GameData", withExtension: nil) else {
                     Logger.log(message: "⚠️ GameData directory not found")
                     return nil
@@ -864,7 +896,16 @@ import Foundation
                     return nil
                 }
 
-                return sceneFiles.first(where: { $0.pathExtension == "json" })
+                let jsonSceneFiles = sceneFiles.filter { $0.pathExtension.lowercased() == "json" }
+
+                guard let name = name, name.isEmpty == false else {
+                    return jsonSceneFiles.first
+                }
+
+                let sceneFileName = name.hasSuffix(".json") ? name : "\\(name).json"
+                return jsonSceneFiles.first {
+                    $0.lastPathComponent.caseInsensitiveCompare(sceneFileName) == .orderedSame
+                }
             }
 
             /// Load all USC scripts from GameData/Scripts
@@ -892,6 +933,7 @@ import Foundation
             func handleInput() {
                 // Skip logic if not in game mode
                 if gameMode == false { return }
+                if isSceneReady() == false { return }
 
                 // Add your custom input handling here
             }
@@ -1187,7 +1229,7 @@ import Foundation
             loadBundledScripts()
 
             Logger.log(message: "🎬 Searching for scene files...")
-            loadAndPlayFirstScene()
+            loadAndPlayGameScene()
 
             // Start game systems
             startGameSystems()
@@ -1235,12 +1277,16 @@ import Foundation
         }
 
         /// Load and play the first available scene
-        private func loadAndPlayFirstScene() {
-            if let sceneURL = findFirstScene() {
+        private func loadAndPlayGameScene(sceneName: String? = nil) {
+            setSceneReady(false)
+            if let sceneURL = findGameScene(name: sceneName) {
                 Logger.log(message: "✅ Found scene: \\(sceneURL.lastPathComponent)")
-                playSceneAt(url: sceneURL)
-                Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
+                playSceneAt(url: sceneURL) {
+                    setSceneReady(true)
+                    Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
+                }
             } else {
+                setSceneReady(true)
                 Logger.log(message: "⚠️ No scene files found - nothing will render")
                 Logger.log(message: "⚠️ Create a scene in the editor and rebuild the project")
             }
@@ -1250,6 +1296,8 @@ import Foundation
         private func startGameSystems() {
             gameMode = true
             AnimationSystem.shared.isEnabled = true
+            InputSystem.shared.registerXREvents()
+            InputSystem.shared.setXRSpatialPickingBackendPreference(.octreeGPUPreferred)
             USCSystem.shared.startPlayMode()
         }
 
@@ -1273,8 +1321,8 @@ import Foundation
             }
         }
 
-            /// Find the first scene in GameData/Scenes
-            private func findFirstScene() -> URL? {
+            /// Find a scene in GameData/Scenes by name, or the first JSON scene if no name is provided.
+            private func findGameScene(name: String? = nil) -> URL? {
                 guard let gameDataURL = Bundle.main.url(forResource: "GameData", withExtension: nil) else {
                     Logger.log(message: "⚠️ GameData directory not found")
                     return nil
@@ -1289,7 +1337,16 @@ import Foundation
                     return nil
                 }
 
-                return sceneFiles.first(where: { $0.pathExtension == "json" })
+                let jsonSceneFiles = sceneFiles.filter { $0.pathExtension.lowercased() == "json" }
+
+                guard let name = name, name.isEmpty == false else {
+                    return jsonSceneFiles.first
+                }
+
+                let sceneFileName = name.hasSuffix(".json") ? name : "\\(name).json"
+                return jsonSceneFiles.first {
+                    $0.lastPathComponent.caseInsensitiveCompare(sceneFileName) == .orderedSame
+                }
             }
 
             /// Load all USC scripts from GameData/Scripts
@@ -1317,6 +1374,12 @@ import Foundation
             func handleInput() {
                 // Skip logic if not in game mode
                 if gameMode == false { return }
+                if isSceneReady() == false { return }
+
+                let state = InputSystem.shared.xrSpatialInputState
+                if state.spatialTapActive, let entityId = state.pickedEntityId {
+                    Logger.log(message: "Tapped entity: \\(entityId)")
+                }
 
                 // Add your custom input handling here
             }
