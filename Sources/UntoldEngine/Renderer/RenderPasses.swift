@@ -20,6 +20,14 @@ public enum RenderPasses {
     private static var spatialDebugLineBufferCapacityVertices: Int = 0
     private static var spatialDebugLastLogTime: TimeInterval = 0
     private static var spatialDebugLastLogSignature: String = ""
+    private static let lodDebugPalette: [simd_float3] = [
+        simd_float3(1.0, 0.0, 0.0), // LOD0 = red
+        simd_float3(0.0, 1.0, 0.0), // LOD1 = green
+        simd_float3(0.0, 0.0, 1.0), // LOD2 = blue
+        simd_float3(1.0, 1.0, 0.0), // LOD3 = yellow
+        simd_float3(1.0, 0.0, 1.0), // LOD4 = magenta
+        simd_float3(0.0, 1.0, 1.0), // LOD5+ = cyan (palette wraps)
+    ]
 
     private struct SpatialDebugColorKey: Hashable {
         let r: UInt32
@@ -83,6 +91,50 @@ public enum RenderPasses {
             message: "[SpatialDebug] enabled=true leaves=\(totalLeaves) drawn=\(drawnLeaves) cap=\(cap)",
             category: "SpatialDebug"
         )
+    }
+
+    @inline(__always)
+    private static func lodDebugColor(for lodIndex: Int) -> simd_float3 {
+        let clamped = max(0, lodIndex)
+        return lodDebugPalette[clamped % lodDebugPalette.count]
+    }
+
+    @inline(__always)
+    private static func extractLODIndex(from materialHash: String) -> Int? {
+        guard let markerRange = materialHash.range(of: "_LOD", options: .backwards) else {
+            return nil
+        }
+
+        let suffix = materialHash[markerRange.upperBound...]
+        let digits = suffix.prefix { $0.isNumber }
+        guard !digits.isEmpty else { return nil }
+        return Int(digits)
+    }
+
+    @inline(__always)
+    private static func applyLODDebugColorOverride(
+        entityId: EntityID? = nil,
+        batchMaterialHash: String? = nil,
+        materialParameters: inout MaterialParametersUniform
+    ) {
+        guard SpatialDebugVisualization.shared.colorRenderablesByLOD else { return }
+
+        let lodIndex: Int?
+        if let entityId,
+           let lod = scene.get(component: LODComponent.self, for: entityId)
+        {
+            lodIndex = lod.currentLOD
+        } else if let batchMaterialHash {
+            lodIndex = extractLODIndex(from: batchMaterialHash)
+        } else {
+            lodIndex = nil
+        }
+
+        guard let lodIndex else { return }
+
+        let color = lodDebugColor(for: lodIndex)
+        materialParameters.baseColor = simd_float4(color.x, color.y, color.z, materialParameters.baseColor.w)
+        materialParameters.hasTexture.x = 0
     }
 
     public static let gridExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
@@ -837,6 +889,7 @@ public enum RenderPasses {
                         Int32(material.hasMetalMap ? 1 : 0),
                         0
                     )
+                    applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
 
                     renderEncoder.setFragmentBytes(
                         &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
@@ -1047,6 +1100,10 @@ public enum RenderPasses {
                 Int32(material.hasRoughMap ? 1 : 0),
                 Int32(material.hasMetalMap ? 1 : 0),
                 0
+            )
+            applyLODDebugColorOverride(
+                batchMaterialHash: batchGroup.materialHash,
+                materialParameters: &materialParameters
             )
 
             renderEncoder.setFragmentBytes(
@@ -2283,6 +2340,7 @@ public enum RenderPasses {
                         Int32(material.hasMetalMap ? 1 : 0),
                         0
                     )
+                    applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
 
                     renderEncoder.setFragmentBytes(
                         &materialParameters,
