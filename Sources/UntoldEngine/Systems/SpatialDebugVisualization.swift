@@ -35,6 +35,9 @@ public final class SpatialDebugVisualization {
     /// Color mode for octree leaf bounds.
     public var octreeLeafColorMode: SpatialDebugLeafColorMode = .plain
 
+    /// Color shaded renderables by active LOD index.
+    public var colorRenderablesByLOD: Bool = false
+
     private init() {}
 
     public func configureOctreeLeafBounds(
@@ -43,16 +46,22 @@ public final class SpatialDebugVisualization {
         occupiedOnly: Bool = true,
         colorMode: SpatialDebugLeafColorMode = .plain
     ) {
-        self.enabled = enabled
+        self.enabled = enabled || colorRenderablesByLOD
         showOctreeLeafBounds = enabled
         self.maxLeafNodeCount = max(0, maxLeafNodeCount)
         octreeLeafOccupiedOnly = occupiedOnly
         octreeLeafColorMode = colorMode
     }
 
+    public func configureLODLevelColoring(enabled: Bool) {
+        colorRenderablesByLOD = enabled
+        self.enabled = showOctreeLeafBounds || colorRenderablesByLOD
+    }
+
     public func disableAll() {
         enabled = false
         showOctreeLeafBounds = false
+        colorRenderablesByLOD = false
     }
 }
 
@@ -89,4 +98,9 @@ public func setOctreeLeafBoundsDebug(
 /// Disable all spatial debug visualization.
 public func disableSpatialDebugVisualization() {
     SpatialDebugVisualization.shared.disableAll()
+}
+
+/// Enable/disable LOD level debug coloring for renderables.
+public func setLODLevelDebug(enabled: Bool) {
+    SpatialDebugVisualization.shared.configureLODLevelColoring(enabled: enabled)
 }

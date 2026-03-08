@@ -1,47 +1,83 @@
-# Spatial Debugger (Octree Bounds)
+# Spatial Debugger
 
-Use Spatial Debugger to visualize octree bounds as wire boxes for spatial debugging.
+The **Spatial Debugger** provides visual overlays that help diagnose
+spatial systems in the engine, including:
 
-Current scope:
-- Octree leaf bounds visualization.
-- Runtime toggles for enable/disable, cap, and occupied-only filtering.
-- Optional residency/culling-based leaf coloring.
-- Console status line for quick verification.
+-   Octree spatial partitioning
+-   Streaming / residency behavior
+-   Frustum culling decisions
+-   LOD selection
 
-## Quick Start
+It renders **wireframe octree leaf bounds** and can color them based on
+runtime state to help identify issues such as:
 
-```swift
+-   incorrect spatial partitioning
+-   streaming thrashing
+-   over-resident regions
+-   unexpected culling
+-   incorrect LOD selection
+
+This tool is intended for debugging large scenes and spatial performance
+issues.
+
+------------------------------------------------------------------------
+
+# Octree Bounds Visualization
+
+The Spatial Debugger renders **octree leaf bounds** as wireframe boxes.
+
+Each leaf represents a spatial region managed by the engine's octree
+system.
+
+Leaf coloring can be configured to visualize:
+
+-   plain structure
+-   streaming/residency state
+-   runtime culling state
+
+------------------------------------------------------------------------
+
+# Quick Start
+
+``` swift
 import UntoldEngine
 
-// Optional: tighten world bounds to your scene for better visibility.
+// Optional: tighten world bounds to your scene for better visualization.
 OctreeSystem.shared.worldBounds = AABB(
     min: simd_float3(-40, -5, -40),
     max: simd_float3(40, 25, 40)
 )
 
 // Enable octree debug rendering.
-// maxLeafNodeCount: 0 = unlimited
-// occupiedOnly: true = leaves containing entries only
-// colorMode: .plain | .residency | .culling
 setOctreeLeafBoundsDebug(
     enabled: true,
-    maxLeafNodeCount: 0,
-    occupiedOnly: true,
+    maxLeafNodeCount: 0,   // 0 = unlimited
+    occupiedOnly: true,    // draw only leaves containing entries
     colorMode: .culling
 )
 ```
 
-Disable:
+Disable the spatial debugger:
 
-```swift
+``` swift
 disableSpatialDebugVisualization()
 ```
 
-## Phase 3 Usage (Color Modes)
+------------------------------------------------------------------------
 
-Baseline leaf bounds (single white color):
+# Visualization Modes
 
-```swift
+## Plain (structure only)
+
+Draws octree leaf bounds in a single color.
+
+Useful for verifying:
+
+-   octree subdivision
+-   spatial partitioning accuracy
+-   entity placement inside the tree
+
+``` swift
 setOctreeLeafBoundsDebug(
     enabled: true,
     maxLeafNodeCount: 0,
@@ -50,9 +86,19 @@ setOctreeLeafBoundsDebug(
 )
 ```
 
-Leaf bounds colored by streaming/LOD residency:
+------------------------------------------------------------------------
 
-```swift
+## Residency (Streaming / LOD)
+
+Colors leaves based on asset residency and streaming state.
+
+Useful for diagnosing:
+
+-   streaming radius problems
+-   assets that remain loaded too long
+-   streaming thrashing
+
+``` swift
 setOctreeLeafBoundsDebug(
     enabled: true,
     maxLeafNodeCount: 0,
@@ -61,9 +107,36 @@ setOctreeLeafBoundsDebug(
 )
 ```
 
-Leaf bounds colored by culling/visibility state:
+Color meanings:
 
-```swift
+  Color    Meaning
+  -------- ----------------------------------------
+  Green    assets resident
+  Yellow   loading/unloading
+  Red      unloaded
+  Orange   mixed residency states within the leaf
+  White    no residency signal found
+
+Residency information is derived from:
+
+-   `StreamingComponent`
+-   `LODComponent`
+
+If these components are missing, the leaf falls back to **white**.
+
+------------------------------------------------------------------------
+
+## Culling
+
+Colors leaves based on runtime visibility.
+
+Useful for diagnosing:
+
+-   frustum culling issues
+-   objects unexpectedly culled
+-   visibility system behavior
+
+``` swift
 setOctreeLeafBoundsDebug(
     enabled: true,
     maxLeafNodeCount: 0,
@@ -72,9 +145,31 @@ setOctreeLeafBoundsDebug(
 )
 ```
 
-Show all leaves (including empty leaves) with residency colors:
+Color meanings:
 
-```swift
+  Color    Meaning
+  -------- ------------------------------------------------------
+  Green    entity visible this frame
+  Blue     entity culled this frame
+  Gray     entity hidden (`RenderComponent.isVisible == false`)
+  Orange   leaf contains mixed visibility states
+  White    no culling signal found
+
+Culling colors are evaluated **per leaf each frame**, using:
+
+-   `visibleEntityIds`
+-   `RenderComponent.isVisible`
+
+Because visibility updates every frame, colors may change as the camera
+moves.
+
+------------------------------------------------------------------------
+
+# Showing Empty Leaves
+
+To visualize the full octree structure including empty regions:
+
+``` swift
 setOctreeLeafBoundsDebug(
     enabled: true,
     maxLeafNodeCount: 0,
@@ -83,55 +178,119 @@ setOctreeLeafBoundsDebug(
 )
 ```
 
-## API
+This can help diagnose:
 
-`setOctreeLeafBoundsDebug(enabled:maxLeafNodeCount:occupiedOnly:colorMode:)`
-- `enabled`: master toggle for octree leaf bounds drawing.
-- `maxLeafNodeCount`: maximum leaves drawn each frame (`0` means no cap).
-- `occupiedOnly`: when `true`, draw only occupied leaves. When `false`, draw all leaves.
-- `colorMode`:
-  - `.plain`: white wireframe
-  - `.residency`: color by residency states from `StreamingComponent`/`LODComponent`
-  - `.culling`: color by runtime visibility/culling state
+-   oversized nodes
+-   uneven spatial subdivision
+-   empty regions that remain allocated
 
-`disableSpatialDebugVisualization()`
-- Disables all spatial debug visualization.
+------------------------------------------------------------------------
 
-## Runtime Behavior
+# API
 
-- Draws in the spatial debug render pass after transparency.
-- Uses depth testing and does not write depth.
-- Default draw color is white wireframe.
-- Default filter behavior is leaves-only and occupied-only.
+## setOctreeLeafBoundsDebug
 
-Residency color mode (`colorMode = .residency`):
-- Green: loaded/resident.
-- Yellow: loading/unloading in progress.
-- Red: unloaded/not resident.
-- Orange: mixed resident + non-resident state inside the same leaf.
-- White: no residency signal found.
+    setOctreeLeafBoundsDebug(
+        enabled: Bool,
+        maxLeafNodeCount: Int,
+        occupiedOnly: Bool,
+        colorMode: SpatialDebugColorMode
+    )
 
-Culling color mode (`colorMode = .culling`):
-- Green: entity is present in `visibleEntityIds` this frame.
-- Blue: entity is not in `visibleEntityIds` (culled this frame).
-- Gray: entity has `RenderComponent.isVisible == false` (explicitly hidden).
-- Orange: leaf contains a mix of two or more of the states above (visible/culled/hidden).
-- White: no culling signal found in the leaf (for example: no `RenderComponent` entities).
+Parameters:
 
-Culling color evaluation is leaf-level and frame-based:
-- Colors are computed from all entities in each leaf, then a single leaf color is chosen.
-- `visibleEntityIds` is sampled for the current frame, so colors can change frame-to-frame with camera/culling updates.
+  Parameter          Description
+  ------------------ -----------------------------------------------------
+  enabled            Master toggle for octree visualization
+  maxLeafNodeCount   Maximum leaves drawn per frame (`0` = unlimited)
+  occupiedOnly       When true, only leaves containing entries are drawn
+  colorMode          Controls how leaf bounds are colored
 
-Requirements for color modes:
-- Ensure entities use `StreamingComponent` and/or `LODComponent`; otherwise the fallback color is white.
+Available color modes:
 
-## Console Status Line
+    .plain
+    .residency
+    .culling
 
-When enabled, the renderer prints a throttled status line:
+------------------------------------------------------------------------
 
-`[SpatialDebug] enabled=true leaves=<total> drawn=<drawn> cap=<cap>`
+## disableSpatialDebugVisualization
 
-This helps confirm:
-- The feature is enabled.
-- How many leaves exist.
-- Whether draw cap is limiting output.
+Disables all spatial debugging overlays.
+
+``` swift
+disableSpatialDebugVisualization()
+```
+
+------------------------------------------------------------------------
+
+# Runtime Behavior
+
+The spatial debugger:
+
+-   runs in a dedicated **spatial debug render pass**
+-   renders **after transparency**
+-   uses **depth testing**
+-   **does not write depth**
+
+This ensures the visualization remains readable without interfering with
+scene rendering.
+
+Default behavior:
+
+-   leaves only
+-   occupied leaves only
+-   white wireframe bounds
+
+------------------------------------------------------------------------
+
+# Console Status Output
+
+When enabled, the renderer periodically prints a status line:
+
+    [SpatialDebug] enabled=true leaves=<total> drawn=<drawn> cap=<cap>
+
+This provides quick feedback that the system is active and indicates:
+
+-   total octree leaf count
+-   number of leaves currently drawn
+-   whether the draw cap is limiting output
+
+------------------------------------------------------------------------
+
+# LOD Visualizer
+
+The engine also provides an **LOD visualizer** to display which LOD
+level each renderable is currently using.
+
+Enable it with:
+
+``` swift
+setLODLevelDebug(enabled: true)
+```
+
+This mode colors renderables by their active LOD level to help diagnose:
+
+-   incorrect LOD thresholds
+-   objects stuck in high-detail LODs
+-   aggressive LOD switching
+-   spatial LOD distribution across the scene
+
+------------------------------------------------------------------------
+
+# Recommended Debug Workflow
+
+When diagnosing spatial performance issues, a typical workflow is:
+
+1.  **Plain mode**
+    -   Verify octree subdivision
+2.  **Residency mode**
+    -   Confirm streaming behavior
+3.  **Culling mode**
+    -   Validate visibility decisions
+4.  **LOD visualizer**
+    -   Check LOD distribution
+
+Together these tools provide a full picture of how the engine is
+managing spatial data.
+
