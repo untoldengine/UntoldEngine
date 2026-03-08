@@ -174,6 +174,18 @@ public class OctreeSystem {
         octree.stats
     }
 
+    /// Snapshot leaf node bounds for debug visualization.
+    public func getLeafNodeBounds(occupiedOnly: Bool = true) -> [AABB] {
+        guard enabled else { return [] }
+        return octree.leafNodeBounds(occupiedOnly: occupiedOnly)
+    }
+
+    /// Snapshot leaf nodes (bounds + entity IDs) for debug visualization.
+    public func getLeafNodeSnapshots(occupiedOnly: Bool = true) -> [OctreeLeafSnapshot] {
+        guard enabled else { return [] }
+        return octree.leafNodeSnapshots(occupiedOnly: occupiedOnly)
+    }
+
     /// Number of registered entities
     public var entityCount: Int {
         registeredEntities.count

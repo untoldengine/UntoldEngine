@@ -41,6 +41,7 @@ public extension RenderPipelineType {
     static let environment: RenderPipelineType = "environment"
     static let iblPreFilter: RenderPipelineType = "iblPreFilter"
     static let gaussian: RenderPipelineType = "gaussian"
+    static let spatialDebug: RenderPipelineType = "spatialDebug"
     static let look: RenderPipelineType = "look"
     static let outputTransform: RenderPipelineType = "outputTransform"
     static let transparency: RenderPipelineType = "transparency"

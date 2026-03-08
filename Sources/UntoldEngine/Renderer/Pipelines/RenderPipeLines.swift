@@ -602,6 +602,19 @@ public func InitTransparencyPipeline() -> RenderPipeline? {
     )
 }
 
+public func InitSpatialDebugPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexSpatialDebugShader",
+        fragmentShader: "fragmentSpatialDebugShader",
+        vertexDescriptor: createGeometryVertexDescriptor(),
+        colorFormats: [wf.sceneColor],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .lessEqual,
+        depthEnabled: false, // keep scene depth intact
+        name: "Spatial Debug Pipeline"
+    )
+}
+
 public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)] {
     [
         (.grid, InitGridPipeline),
@@ -629,6 +642,7 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.environment, InitEnvironmentPipeline),
         (.iblPreFilter, InitIBLPreFilterPipeline),
         (.gaussian, InitGaussianPipeline),
+        (.spatialDebug, InitSpatialDebugPipeline),
         (.look, InitLookPipeline),
         (.outputTransform, InitOutputTransformPipeline),
         (.transparency, InitTransparencyPipeline),

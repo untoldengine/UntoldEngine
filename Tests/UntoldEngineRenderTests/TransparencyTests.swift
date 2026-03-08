@@ -295,8 +295,8 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
 
         XCTAssertNotNil(graph["transparency"],
                         "Transparency pass should exist when bypassing post-processing")
-        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["transparency"],
-                       "Bypass pass should depend on transparency")
+        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["spatialDebug"],
+                       "Bypass pass should depend on spatialDebug")
     }
 
     // MARK: - Test 5: Transparent objects sorted back-to-front

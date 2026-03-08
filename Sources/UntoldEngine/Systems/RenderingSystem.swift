@@ -274,6 +274,14 @@ public func buildGameModeGraph() -> RenderGraphResult {
     )
     graph[transparencyPass.id] = transparencyPass
 
+    // Spatial debug overlays are rendered on top of lit scene color.
+    let spatialDebugPass = RenderPass(
+        id: "spatialDebug",
+        dependencies: [transparencyPass.id],
+        execute: RenderPasses.spatialDebugBoundsExecution
+    )
+    graph[spatialDebugPass.id] = spatialDebugPass
+
     // Gaussian pass depends on model pass - needs depth buffer from 3D models
     let gaussianPass = RenderPass(id: "gaussian", dependencies: ["model"], execute: RenderPasses.gaussianExecution)
     graph[gaussianPass.id] = gaussianPass
@@ -282,7 +290,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
     if bypassPostProcessing {
         let bypassPass = RenderPass(
             id: "postProcessBypass",
-            dependencies: [transparencyPass.id],
+            dependencies: [spatialDebugPass.id],
             execute: { _ in
                 guard let deferredDescriptor = renderInfo.deferredRenderPassDescriptor else {
                     return
@@ -294,7 +302,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
         graph[bypassPass.id] = bypassPass
         postProcessID = bypassPass.id
     } else {
-        let postProcess = postProcessingEffects(graph: &graph, deferredPassId: transparencyPass.id, geometryPassId: "model")
+        let postProcess = postProcessingEffects(graph: &graph, deferredPassId: spatialDebugPass.id, geometryPassId: "model")
         postProcessID = postProcess.id
     }
 

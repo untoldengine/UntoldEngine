@@ -189,6 +189,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertNotNil(graph["shadow"], "Shadow pass should exist")
         XCTAssertNotNil(graph["model"], "Model pass should exist")
         XCTAssertNotNil(graph["lightPass"], "Light pass should exist")
+        XCTAssertNotNil(graph["transparency"], "Transparency pass should exist")
+        XCTAssertNotNil(graph["spatialDebug"], "Spatial debug pass should exist")
         XCTAssertNotNil(graph["gaussian"], "Gaussian pass should exist")
         XCTAssertNotNil(graph["precomp"], "Pre-composite pass should exist")
         XCTAssertNotNil(graph["look"], "Look pass should exist")
@@ -254,7 +256,9 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             ("shadow", "model"),
             ("model", "gaussian"),
             ("model", "lightPass"),
-            ("lightPass", "depthOfField"),
+            ("lightPass", "transparency"),
+            ("transparency", "spatialDebug"),
+            ("spatialDebug", "depthOfField"),
             ("depthOfField", "chromatic"),
             ("chromatic", "bloomThreshold"),
             ("bloomThreshold", "precomp"),
@@ -273,9 +277,12 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         let (graph, finalPassID) = buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
+        XCTAssertNotNil(graph["spatialDebug"], "Spatial debug pass should exist")
+        XCTAssertEqual(graph["spatialDebug"]?.dependencies, ["transparency"],
+                       "Spatial debug pass should depend on transparency")
         XCTAssertNotNil(graph["postProcessBypass"], "Bypass pass should exist when bypassPostProcessing is enabled")
-        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["transparency"],
-                       "Bypass pass should depend on transparency")
+        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["spatialDebug"],
+                       "Bypass pass should depend on spatialDebug")
         XCTAssertNotNil(graph["look"], "Look pass should exist when bypassing post-processing")
         XCTAssertNotNil(graph["outputTransform"], "Output transform should exist when bypassing post-processing")
 
