@@ -380,6 +380,49 @@ public class Octree {
 // MARK: - Debug Helpers
 
 extension Octree {
+    /// Snapshot leaf node bounds.
+    /// - Parameter occupiedOnly: When true, returns only leaf nodes containing entries.
+    public func leafNodeBounds(occupiedOnly: Bool = true) -> [AABB] {
+        var bounds: [AABB] = []
+        gatherLeafBounds(node: root, occupiedOnly: occupiedOnly, bounds: &bounds)
+        return bounds
+    }
+
+    /// Snapshot leaf node bounds with contained entity IDs.
+    /// - Parameter occupiedOnly: When true, returns only leaf nodes containing entries.
+    public func leafNodeSnapshots(occupiedOnly: Bool = true) -> [OctreeLeafSnapshot] {
+        var snapshots: [OctreeLeafSnapshot] = []
+        gatherLeafSnapshots(node: root, occupiedOnly: occupiedOnly, snapshots: &snapshots)
+        return snapshots
+    }
+
+    private func gatherLeafBounds(node: OctreeNode, occupiedOnly: Bool, bounds: inout [AABB]) {
+        if node.isLeaf {
+            if occupiedOnly == false || node.entries.isEmpty == false {
+                bounds.append(node.bounds)
+            }
+            return
+        }
+
+        for child in node.children ?? [] {
+            gatherLeafBounds(node: child, occupiedOnly: occupiedOnly, bounds: &bounds)
+        }
+    }
+
+    private func gatherLeafSnapshots(node: OctreeNode, occupiedOnly: Bool, snapshots: inout [OctreeLeafSnapshot]) {
+        if node.isLeaf {
+            let entityIds = node.entries.map(\.entityId)
+            if occupiedOnly == false || entityIds.isEmpty == false {
+                snapshots.append(OctreeLeafSnapshot(bounds: node.bounds, entityIds: entityIds))
+            }
+            return
+        }
+
+        for child in node.children ?? [] {
+            gatherLeafSnapshots(node: child, occupiedOnly: occupiedOnly, snapshots: &snapshots)
+        }
+    }
+
     /// Get statistics about the tree
     public var stats: OctreeStats {
         var stats = OctreeStats()
@@ -401,6 +444,16 @@ extension Octree {
                 gatherStats(node: child, stats: &stats)
             }
         }
+    }
+}
+
+public struct OctreeLeafSnapshot {
+    public var bounds: AABB
+    public var entityIds: [EntityID]
+
+    public init(bounds: AABB, entityIds: [EntityID]) {
+        self.bounds = bounds
+        self.entityIds = entityIds
     }
 }
 

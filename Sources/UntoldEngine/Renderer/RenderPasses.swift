@@ -16,6 +16,74 @@ import MetalKit
 
 public enum RenderPasses {
     private static var transparencyXRDepthWriteState: MTLDepthStencilState?
+    private static var spatialDebugLineBuffer: MTLBuffer?
+    private static var spatialDebugLineBufferCapacityVertices: Int = 0
+    private static var spatialDebugLastLogTime: TimeInterval = 0
+    private static var spatialDebugLastLogSignature: String = ""
+
+    private struct SpatialDebugColorKey: Hashable {
+        let r: UInt32
+        let g: UInt32
+        let b: UInt32
+        let a: UInt32
+    }
+
+    private struct SpatialDebugLineBatch {
+        let color: simd_float4
+        let vertexStart: Int
+        let vertexCount: Int
+    }
+
+    @inline(__always)
+    private static func appendAABBLineVertices(_ bounds: AABB, to vertices: inout [SIMD4<Float>]) {
+        let min = bounds.min
+        let max = bounds.max
+
+        vertices.append(contentsOf: [
+            // Bottom face
+            SIMD4(min.x, min.y, min.z, 1.0), SIMD4(max.x, min.y, min.z, 1.0),
+            SIMD4(max.x, min.y, min.z, 1.0), SIMD4(max.x, min.y, max.z, 1.0),
+            SIMD4(max.x, min.y, max.z, 1.0), SIMD4(min.x, min.y, max.z, 1.0),
+            SIMD4(min.x, min.y, max.z, 1.0), SIMD4(min.x, min.y, min.z, 1.0),
+
+            // Top face
+            SIMD4(min.x, max.y, min.z, 1.0), SIMD4(max.x, max.y, min.z, 1.0),
+            SIMD4(max.x, max.y, min.z, 1.0), SIMD4(max.x, max.y, max.z, 1.0),
+            SIMD4(max.x, max.y, max.z, 1.0), SIMD4(min.x, max.y, max.z, 1.0),
+            SIMD4(min.x, max.y, max.z, 1.0), SIMD4(min.x, max.y, min.z, 1.0),
+
+            // Vertical edges
+            SIMD4(min.x, min.y, min.z, 1.0), SIMD4(min.x, max.y, min.z, 1.0),
+            SIMD4(max.x, min.y, min.z, 1.0), SIMD4(max.x, max.y, min.z, 1.0),
+            SIMD4(max.x, min.y, max.z, 1.0), SIMD4(max.x, max.y, max.z, 1.0),
+            SIMD4(min.x, min.y, max.z, 1.0), SIMD4(min.x, max.y, max.z, 1.0),
+        ])
+    }
+
+    @inline(__always)
+    private static func spatialDebugColorKey(_ color: simd_float4) -> SpatialDebugColorKey {
+        SpatialDebugColorKey(
+            r: color.x.bitPattern,
+            g: color.y.bitPattern,
+            b: color.z.bitPattern,
+            a: color.w.bitPattern
+        )
+    }
+
+    @inline(__always)
+    private static func logSpatialDebugStatus(totalLeaves: Int, drawnLeaves: Int, cap: Int) {
+        let now = Date().timeIntervalSince1970
+        let signature = "\(totalLeaves)|\(drawnLeaves)|\(cap)"
+        let shouldLog = (now - spatialDebugLastLogTime) >= 1.0 || signature != spatialDebugLastLogSignature
+        guard shouldLog else { return }
+
+        spatialDebugLastLogTime = now
+        spatialDebugLastLogSignature = signature
+        Logger.log(
+            message: "[SpatialDebug] enabled=true leaves=\(totalLeaves) drawn=\(drawnLeaves) cap=\(cap)",
+            category: "SpatialDebug"
+        )
+    }
 
     public static let gridExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
         guard let gridPipeline = PipelineManager.shared.renderPipelinesByType[.grid] else {
@@ -2241,6 +2309,168 @@ public enum RenderPasses {
                     )
                 }
             }
+        }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
+    public static let spatialDebugBoundsExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+        let settings = SpatialDebugVisualization.shared
+        guard settings.enabled, settings.showOctreeLeafBounds else {
+            return
+        }
+
+        guard let spatialDebugPipeline = PipelineManager.shared.renderPipelinesByType[.spatialDebug] else {
+            handleError(.pipelineStateNulled, "spatialDebugPipeline is nil")
+            return
+        }
+
+        if !spatialDebugPipeline.success {
+            handleError(.pipelineStateNulled, spatialDebugPipeline.name ?? "Spatial Debug Pipeline")
+            return
+        }
+
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        guard let encoderDescriptor = renderInfo.deferredRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Deferred render pass descriptor not initialized")
+            return
+        }
+
+        let snapshot = SpatialDebugBoundsCollector.shared.collectSnapshot()
+        let leafBounds = snapshot.octreeLeafBounds
+        let maxLeafNodeCount = settings.maxLeafNodeCount
+        let drawNodeCount = maxLeafNodeCount > 0 ? min(maxLeafNodeCount, leafBounds.count) : leafBounds.count
+        logSpatialDebugStatus(totalLeaves: leafBounds.count, drawnLeaves: drawNodeCount, cap: maxLeafNodeCount)
+        guard !leafBounds.isEmpty else {
+            return
+        }
+        guard drawNodeCount > 0 else {
+            return
+        }
+
+        var groupedBounds: [SpatialDebugColorKey: (color: simd_float4, bounds: [AABB])] = [:]
+        var groupOrder: [SpatialDebugColorKey] = []
+        groupOrder.reserveCapacity(4)
+
+        for i in 0 ..< drawNodeCount {
+            let item = leafBounds[i]
+            let key = spatialDebugColorKey(item.color)
+            if groupedBounds[key] == nil {
+                groupedBounds[key] = (color: item.color, bounds: [])
+                groupOrder.append(key)
+            }
+            groupedBounds[key]?.bounds.append(item.bounds)
+        }
+
+        var lineVertices: [SIMD4<Float>] = []
+        lineVertices.reserveCapacity(drawNodeCount * 24)
+        var batches: [SpatialDebugLineBatch] = []
+        batches.reserveCapacity(groupOrder.count)
+
+        for key in groupOrder {
+            guard let group = groupedBounds[key] else { continue }
+            let vertexStart = lineVertices.count
+
+            for bounds in group.bounds {
+                appendAABBLineVertices(bounds, to: &lineVertices)
+            }
+
+            let vertexCount = lineVertices.count - vertexStart
+            if vertexCount > 0 {
+                batches.append(
+                    SpatialDebugLineBatch(
+                        color: group.color,
+                        vertexStart: vertexStart,
+                        vertexCount: vertexCount
+                    )
+                )
+            }
+        }
+
+        let requiredVertexCount = lineVertices.count
+        guard requiredVertexCount > 0 else {
+            return
+        }
+
+        let vertexStride = MemoryLayout<SIMD4<Float>>.stride
+        let requiredLength = requiredVertexCount * vertexStride
+
+        if spatialDebugLineBuffer == nil || spatialDebugLineBufferCapacityVertices < requiredVertexCount {
+            let grownCapacity = max(requiredVertexCount, max(spatialDebugLineBufferCapacityVertices * 2, 1024))
+            spatialDebugLineBuffer = renderInfo.device.makeBuffer(
+                length: grownCapacity * vertexStride,
+                options: .storageModeShared
+            )
+            spatialDebugLineBuffer?.label = "Spatial Debug Leaf Bounds Buffer"
+            spatialDebugLineBufferCapacityVertices = grownCapacity
+        }
+
+        guard let lineBuffer = spatialDebugLineBuffer else {
+            handleError(.bufferAllocationFailed, "Spatial Debug Leaf Bounds Buffer")
+            return
+        }
+
+        lineVertices.withUnsafeBytes { rawBuffer in
+            guard let src = rawBuffer.baseAddress else { return }
+            lineBuffer.contents().copyMemory(from: src, byteCount: requiredLength)
+        }
+
+        // Render as overlay on top of lit scene while preserving depth testing.
+        encoderDescriptor.colorAttachments[0].loadAction = .load
+        encoderDescriptor.colorAttachments[0].storeAction = .store
+        encoderDescriptor.depthAttachment.loadAction = .load
+        encoderDescriptor.depthAttachment.storeAction = .store
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor) else {
+            handleError(.renderPassCreationFailed, "Spatial Debug Bounds Pass")
+            return
+        }
+
+        defer {
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "Spatial Debug Bounds Pass"
+        renderEncoder.pushDebugGroup("Spatial Debug Bounds Pass")
+
+        renderEncoder.setRenderPipelineState(spatialDebugPipeline.pipelineState!)
+        if let depthState = spatialDebugPipeline.depthState {
+            renderEncoder.setDepthStencilState(depthState)
+        }
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+        renderEncoder.setCullMode(.none)
+
+        var viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        var projectionMatrix = renderInfo.perspectiveSpace
+        var modelMatrix = matrix_identity_float4x4
+        var scale = simd_float3(repeating: 1.0)
+
+        renderEncoder.setVertexBuffer(lineBuffer, offset: 0, index: 0)
+        renderEncoder.setVertexBytes(&viewMatrix, length: MemoryLayout<simd_float4x4>.stride, index: 1)
+        renderEncoder.setVertexBytes(&projectionMatrix, length: MemoryLayout<simd_float4x4>.stride, index: 2)
+        renderEncoder.setVertexBytes(&modelMatrix, length: MemoryLayout<simd_float4x4>.stride, index: 3)
+        renderEncoder.setVertexBytes(&scale, length: MemoryLayout<simd_float3>.stride, index: 4)
+
+        for batch in batches {
+            var debugColor = batch.color
+            renderEncoder.setFragmentBytes(
+                &debugColor,
+                length: MemoryLayout<simd_float4>.stride,
+                index: 0
+            )
+            renderEncoder.drawPrimitivesTracked(
+                type: .line,
+                vertexStart: batch.vertexStart,
+                vertexCount: batch.vertexCount,
+                category: .other
+            )
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)

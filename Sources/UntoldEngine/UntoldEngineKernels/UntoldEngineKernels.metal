@@ -41,6 +41,7 @@ using namespace metal;
 #include "../Shaders/ARShader.metal"
 #include "../Shaders/SSAOBilateralBlurShader.metal"
 #include "../Shaders/SSAOUpsampleShader.metal"
+#include "../Shaders/spatialDebugShader.metal"
 
 // Gaussian kernels
 #include "../Shaders/BitonicSort.metal"
