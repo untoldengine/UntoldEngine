@@ -1,4 +1,10 @@
 # Changelog
+## v0.10.15 - 2026-03-09
+### 🐞 Fixes
+- [Patch] Updated Build Template (934ede5…)
+- [Patch] Added Spatial debugger improvements (fccf860…)
+- [Patch] Implemented LOD Visualizer (431bf8c…)
+- [Patch] Improved spatial picking control (12d3c1d…)
 ## v0.10.14 - 2026-03-06
 ### 🐞 Fixes
 - [Patch] Real surface AR detection (86ef26a…)
