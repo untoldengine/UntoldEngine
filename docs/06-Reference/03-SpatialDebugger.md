@@ -248,8 +248,6 @@ Default behavior:
 
 When enabled, the renderer periodically prints a status line:
 
-    [SpatialDebug] enabled=true leaves=<total> drawn=<drawn> cap=<cap>
-
 This provides quick feedback that the system is active and indicates:
 
 -   total octree leaf count
