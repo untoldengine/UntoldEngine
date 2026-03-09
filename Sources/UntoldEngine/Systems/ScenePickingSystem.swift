@@ -95,6 +95,11 @@ public func isIgnoringRayIntersectionWithTransparents() -> Bool {
     scenePickingIgnoreRayIntersectionWithTransparents
 }
 
+@inline(__always)
+func scenePickingMarkEntityDirty(_ entityId: EntityID) {
+    scenePickingDirtyEntities.insert(entityId)
+}
+
 public func pickEntity(
     rayOrigin: simd_float3,
     rayDirection: simd_float3,
@@ -218,13 +223,16 @@ private func pickEntityOctreeGPU(
     let gizmoOnly = options.gizmoOnly
         || (options.isGizmoActive && !InputSystem.shared.keyState.shiftPressed)
 
-    var filteredCandidates: [EntityID] = []
-    var bestAABBEntity: EntityID?
-    var bestAABBDistance = Float.greatestFiniteMagnitude
+    var meshCandidates: [EntityID] = []
+    var bestBoundsEntity: EntityID?
+    var bestBoundsDistance = Float.greatestFiniteMagnitude
+    var bestMeshAABBEntity: EntityID?
+    var bestMeshAABBDistance = Float.greatestFiniteMagnitude
 
     for (entityId, distance) in octreeHits {
         guard scene.mask(for: entityId) != nil else { continue }
         if scenePickingShouldIgnoreEntityForRayPicking(entityId) { continue }
+        if scenePickingShouldIgnoreEntityDueToInteractionSettings(entityId) { continue }
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { continue }
         if !renderComponent.isVisible { continue }
@@ -234,31 +242,51 @@ private func pickEntityOctreeGPU(
             guard hasComponent(entityId: entityId, componentType: GizmoComponent.self) else { continue }
         }
 
-        filteredCandidates.append(entityId)
-
-        // Track best AABB hit as fallback when GPU is unavailable.
-        if distance < bestAABBDistance {
-            bestAABBDistance = distance
-            bestAABBEntity = entityId
+        let hitRepresentation = scenePickingHitRepresentationMode(for: entityId)
+        switch hitRepresentation {
+        case .none:
+            continue
+        case .bounds:
+            if distance < bestBoundsDistance {
+                bestBoundsDistance = distance
+                bestBoundsEntity = entityId
+            }
+        case .mesh:
+            meshCandidates.append(entityId)
+            if distance < bestMeshAABBDistance {
+                bestMeshAABBDistance = distance
+                bestMeshAABBEntity = entityId
+            }
         }
     }
 
-    guard !filteredCandidates.isEmpty else { return nil }
-
-    // --- Stage 2: GPU ray-triangle intersection on narrow candidates ---
-    if let gpuHit = pickEntityGPUWithCandidates(
-        candidates: filteredCandidates,
-        rayOrigin: rayOrigin,
-        normalizedRayDirection: normalizedRayDirection,
-        options: options
-    ) {
+    // --- Stage 2: GPU ray-triangle intersection on mesh-mode candidates ---
+    if !meshCandidates.isEmpty,
+       let gpuHit = pickEntityGPUWithCandidates(
+           candidates: meshCandidates,
+           rayOrigin: rayOrigin,
+           normalizedRayDirection: normalizedRayDirection,
+           options: options
+       )
+    {
+        if let bestBoundsEntity, bestBoundsDistance < gpuHit.distance {
+            let worldPosition = rayOrigin + normalizedRayDirection * bestBoundsDistance
+            return ScenePickHit(entityId: bestBoundsEntity, distance: bestBoundsDistance, worldPosition: worldPosition)
+        }
         return gpuHit
     }
 
-    // Fallback: return best ray-AABB hit when GPU is unavailable.
-    guard let bestAABBEntity else { return nil }
-    let worldPosition = rayOrigin + normalizedRayDirection * bestAABBDistance
-    return ScenePickHit(entityId: bestAABBEntity, distance: bestAABBDistance, worldPosition: worldPosition)
+    // Fallback: return best ray-AABB hit (bounds-mode always, mesh-mode when GPU unavailable).
+    if let bestBoundsEntity,
+       bestBoundsDistance <= bestMeshAABBDistance || bestMeshAABBEntity == nil
+    {
+        let worldPosition = rayOrigin + normalizedRayDirection * bestBoundsDistance
+        return ScenePickHit(entityId: bestBoundsEntity, distance: bestBoundsDistance, worldPosition: worldPosition)
+    }
+
+    guard let bestMeshAABBEntity else { return nil }
+    let worldPosition = rayOrigin + normalizedRayDirection * bestMeshAABBDistance
+    return ScenePickHit(entityId: bestMeshAABBEntity, distance: bestMeshAABBDistance, worldPosition: worldPosition)
 }
 
 private func pickEntityCPU(
@@ -281,6 +309,7 @@ private func pickEntityCPU(
     for entityId in candidates {
         guard scene.mask(for: entityId) != nil else { continue }
         if scenePickingShouldIgnoreEntityForRayPicking(entityId) { continue }
+        if scenePickingShouldIgnoreEntityDueToInteractionSettings(entityId) { continue }
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
@@ -336,15 +365,19 @@ private func scenePickingCandidates(
         let gizmoId = getComponentId(for: GizmoComponent.self)
         return queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
             .filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
+            .filter { !scenePickingShouldIgnoreEntityDueToInteractionSettings($0) }
     }
 
     if options.isGizmoActive, !InputSystem.shared.keyState.shiftPressed {
         let gizmoId = getComponentId(for: GizmoComponent.self)
         return queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
             .filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
+            .filter { !scenePickingShouldIgnoreEntityDueToInteractionSettings($0) }
     }
 
-    return visibleEntityIds.filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
+    return visibleEntityIds
+        .filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
+        .filter { !scenePickingShouldIgnoreEntityDueToInteractionSettings($0) }
 }
 
 @inline(__always)
@@ -355,6 +388,28 @@ func scenePickingShouldIgnoreEntityForRayPicking(_ entityId: EntityID) -> Bool {
     return hasComponent(entityId: entityId, componentType: CameraComponent.self)
         || hasComponent(entityId: entityId, componentType: SceneCameraComponent.self)
         || shouldIgnoreLightInGameMode
+}
+
+@inline(__always)
+func scenePickingIsParticipationEnabled(for entityId: EntityID) -> Bool {
+    scene.get(component: PickInteractionComponent.self, for: entityId)?.participatesInPicking ?? true
+}
+
+@inline(__always)
+func scenePickingHitRepresentationMode(for entityId: EntityID) -> PickHitRepresentationMode {
+    scene.get(component: PickInteractionComponent.self, for: entityId)?.hitRepresentationMode ?? .mesh
+}
+
+@inline(__always)
+func scenePickingUsesMeshHitRepresentation(_ entityId: EntityID) -> Bool {
+    scenePickingIsParticipationEnabled(for: entityId)
+        && scenePickingHitRepresentationMode(for: entityId) == .mesh
+}
+
+@inline(__always)
+func scenePickingShouldIgnoreEntityDueToInteractionSettings(_ entityId: EntityID) -> Bool {
+    guard scenePickingIsParticipationEnabled(for: entityId) else { return true }
+    return scenePickingHitRepresentationMode(for: entityId) == .none
 }
 
 @inline(__always)

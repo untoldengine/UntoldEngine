@@ -62,6 +62,19 @@ public class RenderComponent: Component {
     }
 }
 
+public enum PickHitRepresentationMode: Int, Codable, Sendable, CaseIterable {
+    case none
+    case bounds
+    case mesh
+}
+
+public class PickInteractionComponent: Component {
+    public var participatesInPicking: Bool = true
+    public var hitRepresentationMode: PickHitRepresentationMode = .mesh
+
+    public required init() {}
+}
+
 public class GaussianComponent: Component {
     var splatData: MTLBuffer?
     var gaussianSortedIndices: MTLBuffer?
