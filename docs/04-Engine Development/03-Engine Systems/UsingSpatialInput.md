@@ -123,6 +123,41 @@ state.
 
 ------------------------------------------------------------------------
 
+## Picking Participation And Hit Representation
+
+Use these APIs to control whether an entity can be selected by spatial tap/ray picking and what hit representation it uses.
+
+``` swift
+setEntityPickParticipation(entityId: entityId, enabled: false) // visible, not pickable
+setEntityPickHitRepresentationMode(entityId: entityId, mode: .bounds) // pick using bounds
+setEntityPickHitRepresentationMode(entityId: entityId, mode: .mesh) // pick using mesh (default)
+```
+
+Available APIs:
+
+-   `setEntityPickParticipation(entityId:enabled:)`
+-   `getEntityPickParticipation(entityId:)`
+-   `setEntityPickHitRepresentationMode(entityId:mode:)`
+-   `getEntityPickHitRepresentationMode(entityId:)`
+
+Hit representation modes:
+
+-   `.none`\
+    Never pickable.
+-   `.bounds`\
+    Pick using bounds intersection.
+-   `.mesh`\
+    Pick using mesh-capable path (default behavior).
+
+Behavior rules:
+
+-   Default for existing entities: pick participation is enabled, hit mode is `.mesh`.
+-   `enabled == false` means the entity is never returned by picking, regardless of mode.
+-   `mode == .none` also means the entity is never returned by picking.
+-   CPU and octree/GPU-preferred backends both respect these settings.
+
+------------------------------------------------------------------------
+
 # Raw Gesture Examples
 
 It is strongly recommended to use the Spatial Helper functions instead

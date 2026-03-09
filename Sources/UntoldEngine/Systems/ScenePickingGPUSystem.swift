@@ -217,9 +217,12 @@ private func scenePickingCandidates(_ mode: ScenePickingCandidateMode) -> [Entit
         let gizmoId = getComponentId(for: GizmoComponent.self)
         return queryEntitiesWithComponentIds([transformId, renderId, gizmoId], in: scene)
             .filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
+            .filter { scenePickingUsesMeshHitRepresentation($0) }
     }
 
-    return visibleEntityIds.filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
+    return visibleEntityIds
+        .filter { !scenePickingShouldIgnoreEntityForRayPicking($0) }
+        .filter { scenePickingUsesMeshHitRepresentation($0) }
 }
 
 @inline(__always)
@@ -257,6 +260,8 @@ private func scenePickingComputeEntitySignature(_ entityId: EntityID) -> UInt64 
     scenePickingHashCombine(&hash, renderComponent.isVisible ? 1 : 0)
     scenePickingHashCombine(&hash, UInt64(renderComponent.mesh.count))
     scenePickingHashCombine(&hash, scenePickingHasTransparentSubmesh(renderComponent) ? 1 : 0)
+    scenePickingHashCombine(&hash, scenePickingIsParticipationEnabled(for: entityId) ? 1 : 0)
+    scenePickingHashCombine(&hash, UInt64(scenePickingHitRepresentationMode(for: entityId).rawValue))
 
     // Only hash transform for static entities. Dynamic entities changing position should not
     // trigger acceleration structure rebuilds - the signature stays same, only dirty tracking matters
@@ -335,6 +340,7 @@ private func scenePickingCreateAccelerationStructures(_ candidates: [EntityID]) 
     for entityId in candidates {
         if scene.mask(for: entityId) == nil { continue }
         if scenePickingShouldIgnoreEntityForRayPicking(entityId) { continue }
+        if !scenePickingUsesMeshHitRepresentation(entityId) { continue }
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { continue }
         guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId) else { continue }
@@ -668,6 +674,8 @@ func pickEntityGPUWithCandidates(
     if output.distance > options.maxDistance { return nil }
 
     let entityId = scenePickingAccelStructResources.entityIDIndex[hitIndex]
+    guard scene.mask(for: entityId) != nil else { return nil }
+    if !scenePickingUsesMeshHitRepresentation(entityId) { return nil }
     let worldPosition = rayOrigin + normalizedRayDirection * output.distance
     return ScenePickHit(
         entityId: entityId,
@@ -737,6 +745,8 @@ func pickEntityGPU(
     if output.distance > options.maxDistance { return .miss }
 
     let entityId = scenePickingAccelStructResources.entityIDIndex[hitIndex]
+    guard scene.mask(for: entityId) != nil else { return .miss }
+    if !scenePickingUsesMeshHitRepresentation(entityId) { return .miss }
     let worldPosition = rayOrigin + normalizedRayDirection * output.distance
     return .hit(ScenePickHit(
         entityId: entityId,

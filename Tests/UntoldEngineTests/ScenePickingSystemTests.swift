@@ -37,7 +37,9 @@ final class ScenePickingSystemTests: XCTestCase {
         position: simd_float3,
         bounds: (min: simd_float3, max: simd_float3) = (min: simd_float3(-1, -1, -1), max: simd_float3(1, 1, 1)),
         isVisible: Bool = true,
-        isGizmo: Bool = false
+        isGizmo: Bool = false,
+        pickParticipation: Bool? = nil,
+        hitRepresentationMode: PickHitRepresentationMode? = nil
     ) -> EntityID {
         let entityId = createEntity()
         registerComponent(entityId: entityId, componentType: RenderComponent.self)
@@ -57,8 +59,31 @@ final class ScenePickingSystemTests: XCTestCase {
         if isGizmo {
             registerComponent(entityId: entityId, componentType: GizmoComponent.self)
         }
+        if let pickParticipation {
+            setEntityPickParticipation(entityId: entityId, enabled: pickParticipation)
+        }
+        if let hitRepresentationMode {
+            setEntityPickHitRepresentationMode(entityId: entityId, mode: hitRepresentationMode)
+        }
 
         return entityId
+    }
+
+    func testPickInteractionDefaultsPreserveCurrentBehavior() {
+        let entity = createRenderableEntity(position: simd_float3(5, 0, 0))
+        visibleEntityIds = [entity]
+
+        XCTAssertTrue(getEntityPickParticipation(entityId: entity))
+        XCTAssertEqual(getEntityPickHitRepresentationMode(entityId: entity), .mesh)
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.entityId, entity)
     }
 
     func testPickEntityReturnsNearestIntersection() {
@@ -173,6 +198,89 @@ final class ScenePickingSystemTests: XCTestCase {
         XCTAssertNil(outsideDistance)
     }
 
+    func testPickEntitySkipsNonParticipatingEntitiesInCPUPath() {
+        let nonPickableNearEntity = createRenderableEntity(
+            position: simd_float3(3, 0, 0),
+            pickParticipation: false
+        )
+        let pickableFarEntity = createRenderableEntity(position: simd_float3(8, 0, 0))
+        visibleEntityIds = [nonPickableNearEntity, pickableFarEntity]
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+
+        XCTAssertEqual(result?.entityId, pickableFarEntity)
+    }
+
+    func testPickEntitySkipsHitRepresentationNoneInCPUPath() {
+        let noneModeEntity = createRenderableEntity(
+            position: simd_float3(3, 0, 0),
+            hitRepresentationMode: PickHitRepresentationMode.none
+        )
+        let pickableFarEntity = createRenderableEntity(position: simd_float3(8, 0, 0))
+        visibleEntityIds = [noneModeEntity, pickableFarEntity]
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+
+        XCTAssertEqual(result?.entityId, pickableFarEntity)
+    }
+
+    func testPickEntityBoundsModeHitsInCPUPath() {
+        let boundsModeEntity = createRenderableEntity(
+            position: simd_float3(5, 0, 0),
+            hitRepresentationMode: .bounds
+        )
+        visibleEntityIds = [boundsModeEntity]
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+
+        XCTAssertEqual(result?.entityId, boundsModeEntity)
+    }
+
+    func testPickEntityMeshModePreservesCPUBehavior() {
+        let meshModeEntity = createRenderableEntity(
+            position: simd_float3(5, 0, 0),
+            hitRepresentationMode: .mesh
+        )
+        visibleEntityIds = [meshModeEntity]
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+
+        XCTAssertEqual(result?.entityId, meshModeEntity)
+    }
+
+    func testPickEntityPrefersParentWhenChildIsNonPickableInCPUPath() {
+        let decorativeChild = createRenderableEntity(
+            position: simd_float3(3, 0, 0),
+            pickParticipation: false
+        )
+        let parent = createRenderableEntity(position: simd_float3(8, 0, 0))
+        visibleEntityIds = [decorativeChild, parent]
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+
+        XCTAssertEqual(result?.entityId, parent)
+    }
+
     func testPickEntityGPUOnlyReturnsNilWhenGPUUnavailable() {
         let entity = createRenderableEntity(position: simd_float3(5, 0, 0))
         visibleEntityIds = [entity]
@@ -215,7 +323,7 @@ final class ScenePickingSystemTests: XCTestCase {
         let result = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
             rayDirection: simd_float3(1, 0, 0),
-            options: ScenePickOptions(backend: .octreePreferred)
+            options: ScenePickOptions(backend: .octreeGPUPreferred)
         )
 
         guard let hit = result else {
@@ -238,7 +346,7 @@ final class ScenePickingSystemTests: XCTestCase {
         let result = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
             rayDirection: simd_float3(1, 0, 0),
-            options: ScenePickOptions(backend: .octreePreferred)
+            options: ScenePickOptions(backend: .octreeGPUPreferred)
         )
 
         XCTAssertNotNil(result)
@@ -254,7 +362,7 @@ final class ScenePickingSystemTests: XCTestCase {
         let result = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
             rayDirection: simd_float3(1, 0, 0),
-            options: ScenePickOptions(backend: .octreePreferred)
+            options: ScenePickOptions(backend: .octreeGPUPreferred)
         )
 
         guard let hit = result else {
@@ -275,7 +383,7 @@ final class ScenePickingSystemTests: XCTestCase {
         let result = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
             rayDirection: simd_float3(1, 0, 0),
-            options: ScenePickOptions(backend: .octreePreferred)
+            options: ScenePickOptions(backend: .octreeGPUPreferred)
         )
 
         XCTAssertNotNil(result)
@@ -294,7 +402,7 @@ final class ScenePickingSystemTests: XCTestCase {
         let result = pickEntity(
             rayOrigin: simd_float3(10, 0, 0), // Ray starts behind entity
             rayDirection: simd_float3(-1, 0, 0), // Ray points backward
-            options: ScenePickOptions(backend: .octreePreferred)
+            options: ScenePickOptions(backend: .octreeGPUPreferred)
         )
 
         guard let hit = result else {
@@ -315,17 +423,147 @@ final class ScenePickingSystemTests: XCTestCase {
         let withinDistance = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
             rayDirection: simd_float3(1, 0, 0),
-            options: ScenePickOptions(maxDistance: 4.1, backend: .octreePreferred)
+            options: ScenePickOptions(maxDistance: 4.1, backend: .octreeGPUPreferred)
         )
 
         let outsideDistance = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
             rayDirection: simd_float3(1, 0, 0),
-            options: ScenePickOptions(maxDistance: 3.9, backend: .octreePreferred)
+            options: ScenePickOptions(maxDistance: 3.9, backend: .octreeGPUPreferred)
         )
 
         XCTAssertNotNil(withinDistance)
         XCTAssertEqual(withinDistance?.entityId, entity)
         XCTAssertNil(outsideDistance)
+    }
+
+    func testOctreePickingSkipsNonParticipatingEntities() {
+        let nonPickableNearEntity = createRenderableEntity(
+            position: simd_float3(3, 0, 0),
+            pickParticipation: false
+        )
+        let pickableFarEntity = createRenderableEntity(position: simd_float3(8, 0, 0))
+        visibleEntityIds = [nonPickableNearEntity, pickableFarEntity]
+
+        OctreeSystem.shared.registerEntity(nonPickableNearEntity)
+        OctreeSystem.shared.registerEntity(pickableFarEntity)
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .octreeGPUPreferred)
+        )
+
+        XCTAssertEqual(result?.entityId, pickableFarEntity)
+    }
+
+    func testOctreePickingSkipsHitRepresentationNone() {
+        let noneModeEntity = createRenderableEntity(
+            position: simd_float3(3, 0, 0),
+            hitRepresentationMode: PickHitRepresentationMode.none
+        )
+        let pickableFarEntity = createRenderableEntity(position: simd_float3(8, 0, 0))
+        visibleEntityIds = [noneModeEntity, pickableFarEntity]
+
+        OctreeSystem.shared.registerEntity(noneModeEntity)
+        OctreeSystem.shared.registerEntity(pickableFarEntity)
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .octreeGPUPreferred)
+        )
+
+        XCTAssertEqual(result?.entityId, pickableFarEntity)
+    }
+
+    func testOctreePickingPrefersParentWhenChildIsNonPickable() {
+        let decorativeChild = createRenderableEntity(
+            position: simd_float3(3, 0, 0),
+            pickParticipation: false
+        )
+        let parent = createRenderableEntity(position: simd_float3(8, 0, 0))
+        visibleEntityIds = [decorativeChild, parent]
+
+        OctreeSystem.shared.registerEntity(decorativeChild)
+        OctreeSystem.shared.registerEntity(parent)
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .octreeGPUPreferred)
+        )
+
+        XCTAssertEqual(result?.entityId, parent)
+    }
+
+    func testUpdatingPickInteractionStateTakesEffectImmediately() {
+        let entity = createRenderableEntity(position: simd_float3(5, 0, 0))
+        visibleEntityIds = [entity]
+
+        var result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+        XCTAssertEqual(result?.entityId, entity)
+
+        setEntityPickParticipation(entityId: entity, enabled: false)
+        result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+        XCTAssertNil(result)
+
+        setEntityPickParticipation(entityId: entity, enabled: true)
+        result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+        XCTAssertEqual(result?.entityId, entity)
+    }
+
+    func testDestroyedEntityDoesNotLeaveStalePickState() {
+        let entity = createRenderableEntity(position: simd_float3(5, 0, 0))
+        visibleEntityIds = [entity]
+
+        let beforeDestroy = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+        XCTAssertEqual(beforeDestroy?.entityId, entity)
+
+        destroyEntity(entityId: entity)
+        finalizePendingDestroys()
+
+        let afterDestroy = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+        XCTAssertNil(afterDestroy)
+    }
+
+    func testPickInteractionSettingsPersistThroughSceneSerialization() {
+        let entity = createEntity()
+        setEntityPickParticipation(entityId: entity, enabled: false)
+        setEntityPickHitRepresentationMode(entityId: entity, mode: .bounds)
+
+        let snapshot = serializeScene()
+        resetEngineTestState()
+        deserializeScene(sceneData: snapshot, meshLoadingMode: .sync)
+
+        let entities = scene.getAllEntities()
+        XCTAssertEqual(entities.count, 1)
+        guard let restored = entities.first else {
+            XCTFail("Expected one restored entity")
+            return
+        }
+
+        XCTAssertFalse(getEntityPickParticipation(entityId: restored))
+        XCTAssertEqual(getEntityPickHitRepresentationMode(entityId: restored), .bounds)
     }
 }

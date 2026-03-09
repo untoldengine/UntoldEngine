@@ -137,6 +137,8 @@ struct AssetOverrideData: Codable {
     var material: MaterialData?
     var visibility: Bool?
     var name: String?
+    var pickParticipation: Bool?
+    var pickHitRepresentationMode: Int?
     // Explicit per-node static batching state for derived asset nodes.
     // true  -> force static for this node
     // false -> force non-static for this node
@@ -204,6 +206,8 @@ struct EntityData: Codable {
     var hasLODComponent: Bool?
     var hasStaticBatchComponent: Bool?
     var hasStreamingComponent: Bool?
+    var pickParticipation: Bool? = nil
+    var pickHitRepresentationMode: Int? = nil
 
     var customComponents: [String: Data]? = nil
 
@@ -333,6 +337,10 @@ public func serializeScene() -> SceneData {
 
         // Rendering properties
         entityData.hasRenderingComponent = hasComponent(entityId: entityId, componentType: RenderComponent.self)
+        if let pickInteractionComponent = scene.get(component: PickInteractionComponent.self, for: entityId) {
+            entityData.pickParticipation = pickInteractionComponent.participatesInPicking
+            entityData.pickHitRepresentationMode = pickInteractionComponent.hitRepresentationMode.rawValue
+        }
 
         // Transform properties
         if scene.get(component: LocalTransformComponent.self, for: entityId) != nil {
@@ -579,6 +587,8 @@ public func serializeScene() -> SceneData {
                             material: materialOverride,
                             visibility: visibilityOverride,
                             name: entityName,
+                            pickParticipation: scene.get(component: PickInteractionComponent.self, for: childId)?.participatesInPicking,
+                            pickHitRepresentationMode: scene.get(component: PickInteractionComponent.self, for: childId)?.hitRepresentationMode.rawValue,
                             hasStaticBatchComponent: hasComponent(entityId: childId, componentType: StaticBatchComponent.self)
                         )
                         overrides.append(override)
@@ -850,6 +860,14 @@ public func deserializeScene(
         setEntityName(entityId: entityId, name: sceneDataEntity.name)
         registerTransformComponent(entityId: entityId)
         registerSceneGraphComponent(entityId: entityId)
+        if let pickParticipation = sceneDataEntity.pickParticipation {
+            setEntityPickParticipation(entityId: entityId, enabled: pickParticipation)
+        }
+        if let pickHitRepresentationMode = sceneDataEntity.pickHitRepresentationMode,
+           let mode = PickHitRepresentationMode(rawValue: pickHitRepresentationMode)
+        {
+            setEntityPickHitRepresentationMode(entityId: entityId, mode: mode)
+        }
 
         // Check for new Asset Instance system
         if let assetInstance = sceneDataEntity.assetInstance {
@@ -1420,6 +1438,14 @@ private func applyAssetInstanceOverrides(entityId: EntityID, overrides: [AssetOv
             if let renderComp = scene.get(component: RenderComponent.self, for: derivedEntityId) {
                 renderComp.isVisible = visibility
             }
+        }
+        if let pickParticipation = override.pickParticipation {
+            setEntityPickParticipation(entityId: derivedEntityId, enabled: pickParticipation)
+        }
+        if let pickHitRepresentationMode = override.pickHitRepresentationMode,
+           let mode = PickHitRepresentationMode(rawValue: pickHitRepresentationMode)
+        {
+            setEntityPickHitRepresentationMode(entityId: derivedEntityId, mode: mode)
         }
 
         // Apply explicit static-batching override for this derived node.

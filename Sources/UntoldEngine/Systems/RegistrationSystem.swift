@@ -128,6 +128,10 @@ private func registerComponentCleanupHandlers() {
         removeEntityGizmo(entityId: entityId)
     }
 
+    ComponentRegistry.register(componentType: PickInteractionComponent.self, handlerId: "pickInteraction", priority: 30) { entityId in
+        removeEntityPickInteraction(entityId: entityId)
+    }
+
     ComponentRegistry.register(componentType: LocalTransformComponent.self, handlerId: "transforms", priority: 90) { entityId in
         removeEntityTransforms(entityId: entityId)
     }
@@ -1396,6 +1400,44 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
 
 // MARK: Static Batching
 
+public func setEntityPickParticipation(entityId: EntityID, enabled: Bool) {
+    withWorldMutationGate {
+        if scene.get(component: PickInteractionComponent.self, for: entityId) == nil {
+            registerComponent(entityId: entityId, componentType: PickInteractionComponent.self)
+        }
+
+        guard let pickInteractionComponent = scene.get(component: PickInteractionComponent.self, for: entityId) else {
+            return
+        }
+
+        pickInteractionComponent.participatesInPicking = enabled
+        scenePickingMarkEntityDirty(entityId)
+    }
+}
+
+public func getEntityPickParticipation(entityId: EntityID) -> Bool {
+    scene.get(component: PickInteractionComponent.self, for: entityId)?.participatesInPicking ?? true
+}
+
+public func setEntityPickHitRepresentationMode(entityId: EntityID, mode: PickHitRepresentationMode) {
+    withWorldMutationGate {
+        if scene.get(component: PickInteractionComponent.self, for: entityId) == nil {
+            registerComponent(entityId: entityId, componentType: PickInteractionComponent.self)
+        }
+
+        guard let pickInteractionComponent = scene.get(component: PickInteractionComponent.self, for: entityId) else {
+            return
+        }
+
+        pickInteractionComponent.hitRepresentationMode = mode
+        scenePickingMarkEntityDirty(entityId)
+    }
+}
+
+public func getEntityPickHitRepresentationMode(entityId: EntityID) -> PickHitRepresentationMode {
+    scene.get(component: PickInteractionComponent.self, for: entityId)?.hitRepresentationMode ?? .mesh
+}
+
 public func setEntityStaticBatchComponent(entityId: EntityID) {
     // XR can render from a dedicated thread while scene data is being mutated here.
     // Gate rendering while we recursively tag the hierarchy as static-batchable.
@@ -1523,6 +1565,13 @@ func removeEntityStreaming(entityId: EntityID) {
 func removeEntityGizmo(entityId: EntityID) {
     if scene.get(component: GizmoComponent.self, for: entityId) != nil {
         scene.remove(component: GizmoComponent.self, from: entityId)
+    }
+}
+
+func removeEntityPickInteraction(entityId: EntityID) {
+    if scene.get(component: PickInteractionComponent.self, for: entityId) != nil {
+        scene.remove(component: PickInteractionComponent.self, from: entityId)
+        scenePickingMarkEntityDirty(entityId)
     }
 }
 
