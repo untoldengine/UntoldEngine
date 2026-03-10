@@ -233,15 +233,40 @@ public final class SystemIntegrationMonitor {
             stats.regionUnloadsThisSecond > 0
     }
 
-    public func recordStreamingLoad() { stats.streamingLoadsThisSecond += 1 }
-    public func recordStreamingUnload() { stats.streamingUnloadsThisSecond += 1 }
-    public func recordLODSwitch() { stats.lodSwitchesThisSecond += 1 }
-    public func recordLODFallback() { stats.lodFallbacksThisSecond += 1 }
-    public func recordBatchRebuild() { stats.batchRebuildsThisSecond += 1 }
-    public func setResidentMeshCount(_ count: Int) { stats.residentMeshCount = count }
+    public func recordStreamingLoad() {
+        stats.streamingLoadsThisSecond += 1
+    }
 
-    // Region streaming
-    public func recordRegionLoad() { stats.regionLoadsThisSecond += 1 }
-    public func recordRegionUnload() { stats.regionUnloadsThisSecond += 1 }
-    public func setLoadedRegionCount(_ count: Int) { stats.loadedRegionCount = count }
+    public func recordStreamingUnload() {
+        stats.streamingUnloadsThisSecond += 1
+    }
+
+    public func recordLODSwitch() {
+        stats.lodSwitchesThisSecond += 1
+    }
+
+    public func recordLODFallback() {
+        stats.lodFallbacksThisSecond += 1
+    }
+
+    public func recordBatchRebuild() {
+        stats.batchRebuildsThisSecond += 1
+    }
+
+    public func setResidentMeshCount(_ count: Int) {
+        stats.residentMeshCount = count
+    }
+
+    /// Region streaming
+    public func recordRegionLoad() {
+        stats.regionLoadsThisSecond += 1
+    }
+
+    public func recordRegionUnload() {
+        stats.regionUnloadsThisSecond += 1
+    }
+
+    public func setLoadedRegionCount(_ count: Int) {
+        stats.loadedRegionCount = count
+    }
 }

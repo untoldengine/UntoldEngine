@@ -24,7 +24,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - iOS Rendering System Tests
 
-    func testUpdateiOSRenderingSystem_iOSModeConfiguresRenderGraphCorrectly() {
+    func testUpdateiOSRenderingSystem_iOSModeConfiguresRenderGraphCorrectly() throws {
         // Set up iOS mode (none immersion style)
         renderInfo.immersionStyle = .none
 
@@ -43,7 +43,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass ID should be outputTransform")
 
         // Verify the graph can be topologically sorted
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
         XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
 
         // Verify outputTransform is the last pass
@@ -84,7 +84,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - Final Pass Tests
 
-    func testUpdateiOSRenderingSystem_OutputTransformIsTheFinalPass() {
+    func testUpdateiOSRenderingSystem_OutputTransformIsTheFinalPass() throws {
         // Test with iOS mode
         renderInfo.immersionStyle = .none
 
@@ -94,28 +94,28 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         XCTAssertEqual(finalPassID, "outputTransform", "buildGameModeGraph should return 'outputTransform' as final pass ID")
 
         // Verify the dependency chain is correct
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
 
         // Verify outputTransform is the last pass
         XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
                        "outputTransform should be the last pass in topological order")
     }
 
-    func testUpdateiOSRenderingSystem_OutputTransformIsLastInTopologicalOrder() {
+    func testUpdateiOSRenderingSystem_OutputTransformIsLastInTopologicalOrder() throws {
         // Test with iOS mode
         renderInfo.immersionStyle = .none
 
         let (graph, _) = buildGameModeGraph()
 
         // Sort the graph
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
 
         // Verify outputTransform is the last pass
         XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
                        "outputTransform should be the last pass in the render graph")
     }
 
-    func testUpdateiOSRenderingSystem_iOSModeWithPostProcessing() {
+    func testUpdateiOSRenderingSystem_iOSModeWithPostProcessing() throws {
         // Set up iOS mode
         renderInfo.immersionStyle = .none
 
@@ -131,7 +131,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         XCTAssertNotNil(graph["outputTransform"], "Output transform pass should exist")
 
         // Verify post-processing chain dependencies
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
         let order = sortedPasses.map(\.id)
 
         assertTopologicalConstraints(order: order, constraints: [
@@ -145,14 +145,14 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         ])
     }
 
-    func testUpdateiOSRenderingSystem_iOSModeGraphTopologicalConstraints() {
+    func testUpdateiOSRenderingSystem_iOSModeGraphTopologicalConstraints() throws {
         // Set up iOS mode
         renderInfo.immersionStyle = .none
 
         let (graph, _) = buildGameModeGraph()
 
         // Sort the graph
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
         let order = sortedPasses.map(\.id)
 
         // Verify topological constraints for iOS mode
@@ -165,7 +165,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - Integration Tests
 
-    func testUpdateiOSRenderingSystem_FullWorkflowWithiOSMode() {
+    func testUpdateiOSRenderingSystem_FullWorkflowWithiOSMode() throws {
         // Simulate the full rendering workflow for iOS
         renderInfo.immersionStyle = .none
 
@@ -181,7 +181,7 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
         let (graph, _) = buildGameModeGraph()
 
         // Verify the entire graph is valid
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
 
         XCTAssertTrue(sortedPasses.count > 0, "Should have a valid sorted pass list")
         XCTAssertEqual(sortedPasses.last?.id, "outputTransform", "outputTransform should be the final pass")

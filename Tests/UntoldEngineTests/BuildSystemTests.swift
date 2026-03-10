@@ -155,7 +155,7 @@ final class BuildSystemTests: XCTestCase {
 
     // MARK: - Template Generation Tests
 
-    func testAppDelegateSwiftGeneratedWithExpectedContent() throws {
+    func testAppDelegateSwiftGeneratedWithExpectedContent() {
         // Given: Build settings for a project
         let projectName = "MyGameProject"
         let settings = BuildSettings(
@@ -192,7 +192,7 @@ final class BuildSystemTests: XCTestCase {
                       "AppDelegate.swift should import Cocoa")
     }
 
-    func testMacOSGameSceneSwiftGeneratedWithExpectedContent() throws {
+    func testMacOSGameSceneSwiftGeneratedWithExpectedContent() {
         // Given: Build settings for a macOS project
         let projectName = "MyGameProject"
         let settings = BuildSettings(
@@ -233,7 +233,7 @@ final class BuildSystemTests: XCTestCase {
                       "GameScene.swift should contain handleInput method")
     }
 
-    func testMacOSGameViewControllerSwiftGeneratedWithExpectedContent() throws {
+    func testMacOSGameViewControllerSwiftGeneratedWithExpectedContent() {
         // Given: Build settings for a macOS project
         let projectName = "MyGameProject"
         let settings = BuildSettings(
@@ -272,7 +272,7 @@ final class BuildSystemTests: XCTestCase {
                       "GameViewController.swift should initialize GameScene")
     }
 
-    func testMainStoryboardGeneratedCorrectly() throws {
+    func testMainStoryboardGeneratedCorrectly() {
         // Given: Build settings for a project
         let projectName = "MyGameProject"
         let settings = BuildSettings(
@@ -309,7 +309,7 @@ final class BuildSystemTests: XCTestCase {
                       "Main.storyboard should contain project name placeholder")
     }
 
-    func testInfoPlistGeneratedWithCorrectBundleIdentifier() throws {
+    func testInfoPlistGeneratedWithCorrectBundleIdentifier() {
         // Given: Build settings for a project
         let projectName = "MyGameProject"
         let bundleID = "com.mycompany.mygame"
@@ -396,7 +396,7 @@ final class BuildSystemTests: XCTestCase {
 
     // MARK: - iOS Template Tests
 
-    func testIOSAppDelegateSwiftGeneratedWithExpectedContent() throws {
+    func testIOSAppDelegateSwiftGeneratedWithExpectedContent() {
         // Given: Build settings for an iOS project
         let settings = BuildSettings(
             projectName: "MyiOSGame",
@@ -428,7 +428,7 @@ final class BuildSystemTests: XCTestCase {
                       "iOS AppDelegate should have lifecycle methods")
     }
 
-    func testIOSGameSceneSwiftGeneratedWithExpectedContent() throws {
+    func testIOSGameSceneSwiftGeneratedWithExpectedContent() {
         // Given: Build settings for an iOS project
         let settings = BuildSettings(
             projectName: "MyiOSGame",
@@ -466,7 +466,7 @@ final class BuildSystemTests: XCTestCase {
                       "iOS GameScene.swift should contain handleInput method")
     }
 
-    func testIOSGameViewControllerSwiftGeneratedWithExpectedContent() throws {
+    func testIOSGameViewControllerSwiftGeneratedWithExpectedContent() {
         // Given: Build settings for an iOS project
         let settings = BuildSettings(
             projectName: "MyiOSGame",
@@ -508,7 +508,7 @@ final class BuildSystemTests: XCTestCase {
                       "iOS GameViewController should support landscape orientation")
     }
 
-    func testIOSARGameViewControllerSwiftGeneratedWithExpectedContent() throws {
+    func testIOSARGameViewControllerSwiftGeneratedWithExpectedContent() {
         // When: Getting template files for iOS AR
         let templateFiles = BuildTemplates.getTemplateFilesForIOSAR()
 
@@ -544,7 +544,7 @@ final class BuildSystemTests: XCTestCase {
                        "iOS AR GameViewController should NOT contain GameScene class (it's in separate file)")
     }
 
-    func testIOSMainStoryboardGeneratedCorrectly() throws {
+    func testIOSMainStoryboardGeneratedCorrectly() {
         // Given: Build settings for an iOS project
         let settings = BuildSettings(
             projectName: "MyiOSGame",
@@ -576,7 +576,7 @@ final class BuildSystemTests: XCTestCase {
                       "iOS storyboard should use MTKView")
     }
 
-    func testIOSInfoPlistContainsRequiredKeys() throws {
+    func testIOSInfoPlistContainsRequiredKeys() {
         // Given: Build settings for an iOS project
         let settings = BuildSettings(
             projectName: "MyiOSGame",
@@ -620,7 +620,7 @@ final class BuildSystemTests: XCTestCase {
                        "iOS Info.plist should not contain placeholder {{BUNDLE_IDENTIFIER}}")
     }
 
-    func testIOSARInfoPlistContainsARPermissions() throws {
+    func testIOSARInfoPlistContainsARPermissions() {
         // When: Getting template files for iOS AR
         let templateFiles = BuildTemplates.getTemplateFilesForIOSAR()
 
@@ -648,7 +648,7 @@ final class BuildSystemTests: XCTestCase {
                       "iOS AR Info.plist should use $(PRODUCT_BUNDLE_IDENTIFIER) for CFBundleIdentifier")
     }
 
-    func testIOSTemplateDoesNotIncludePackageSwift() throws {
+    func testIOSTemplateDoesNotIncludePackageSwift() {
         // Given: Build settings for an iOS project
         let settings = BuildSettings(
             projectName: "MyiOSGame",
@@ -670,7 +670,7 @@ final class BuildSystemTests: XCTestCase {
                         "iOS template should include AppDelegate.swift")
     }
 
-    func testIOSARTemplateDoesNotIncludePackageSwift() throws {
+    func testIOSARTemplateDoesNotIncludePackageSwift() {
         // When: Getting template files for iOS AR
         let templateFiles = BuildTemplates.getTemplateFilesForIOSAR()
 
@@ -686,7 +686,7 @@ final class BuildSystemTests: XCTestCase {
                         "iOS AR template should include separate GameScene.swift file")
     }
 
-    func testIOSARGameSceneSwiftSeparateFile() throws {
+    func testIOSARGameSceneSwiftSeparateFile() {
         // When: Getting template files for iOS AR
         let templateFiles = BuildTemplates.getTemplateFilesForIOSAR()
 
@@ -720,7 +720,7 @@ final class BuildSystemTests: XCTestCase {
 
     // MARK: - visionOS Template Tests
 
-    func testVisionOSAppSwiftGeneratedWithExpectedContent() throws {
+    func testVisionOSAppSwiftGeneratedWithExpectedContent() {
         // Given: Build settings for a visionOS project
         let settings = BuildSettings(
             projectName: "MyVisionGame",
@@ -765,7 +765,7 @@ final class BuildSystemTests: XCTestCase {
                        "visionOS App should NOT contain GameScene class (it's in separate file)")
     }
 
-    func testVisionOSInfoPlistContainsRequiredKeys() throws {
+    func testVisionOSInfoPlistContainsRequiredKeys() {
         // Given: Build settings for a visionOS project
         let settings = BuildSettings(
             projectName: "MyVisionGame",
@@ -801,7 +801,7 @@ final class BuildSystemTests: XCTestCase {
                       "visionOS Info.plist should use $(PRODUCT_BUNDLE_IDENTIFIER) for CFBundleIdentifier")
     }
 
-    func testVisionOSTemplateDoesNotIncludePackageSwift() throws {
+    func testVisionOSTemplateDoesNotIncludePackageSwift() {
         // Given: Build settings for a visionOS project
         let settings = BuildSettings(
             projectName: "MyVisionGame",
@@ -823,7 +823,7 @@ final class BuildSystemTests: XCTestCase {
                         "visionOS template should include App.swift")
     }
 
-    func testVisionOSTemplateUsesSwiftUINotAppDelegate() throws {
+    func testVisionOSTemplateUsesSwiftUINotAppDelegate() {
         // Given: Build settings for a visionOS project
         let settings = BuildSettings(
             projectName: "MyVisionGame",
@@ -848,7 +848,7 @@ final class BuildSystemTests: XCTestCase {
                         "visionOS template should include separate GameScene.swift file")
     }
 
-    func testVisionOSGameSceneSwiftSeparateFile() throws {
+    func testVisionOSGameSceneSwiftSeparateFile() {
         // Given: Build settings for a visionOS project
         let settings = BuildSettings(
             projectName: "MyVisionGame",
@@ -888,7 +888,7 @@ final class BuildSystemTests: XCTestCase {
 
     // MARK: - Multi-Platform Tests
 
-    func testMultiPlatformTargetProperties() throws {
+    func testMultiPlatformTargetProperties() {
         // Given: A multi-platform build target
         let target = BuildTarget.multi(
             macOS: .v14,
@@ -918,7 +918,7 @@ final class BuildSystemTests: XCTestCase {
                      "Should return nil for unsupported platform")
     }
 
-    func testMultiPlatformTemplateStructure() throws {
+    func testMultiPlatformTemplateStructure() {
         // Given: Build settings for a multi-platform project
         let settings = BuildSettings(
             projectName: "MyMultiPlatformGame",
@@ -1163,7 +1163,7 @@ final class BuildSystemTests: XCTestCase {
                       "Should include debug information")
     }
 
-    func testMultiPlatformTemplateDoesNotIncludeStandardSinglePlatformFiles() throws {
+    func testMultiPlatformTemplateDoesNotIncludeStandardSinglePlatformFiles() {
         // Given: Multi-platform build settings
         let settings = BuildSettings(
             projectName: "MyGame",
@@ -1190,7 +1190,7 @@ final class BuildSystemTests: XCTestCase {
                         "Should include README.md")
     }
 
-    func testSinglePlatformTemplatesDoNotIncludeMultiPlatformStructure() throws {
+    func testSinglePlatformTemplatesDoNotIncludeMultiPlatformStructure() {
         // Given: Single platform targets
         let macOSSettings = BuildSettings(
             projectName: "MacGame",

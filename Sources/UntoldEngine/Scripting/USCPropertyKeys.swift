@@ -27,7 +27,7 @@ public enum ScriptProperty: String {
     case intensity
     case color
 
-    // Engine properties
+    /// Engine properties
     case deltaTime // Time elapsed since last frame
 }
 

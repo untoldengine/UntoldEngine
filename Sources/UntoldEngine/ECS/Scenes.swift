@@ -59,7 +59,7 @@ public struct Scene {
         entities[Int(entityIndex)].mask.resetAll()
     }
 
-    // Phase A: mark entity for destroy
+    /// Phase A: mark entity for destroy
     public mutating func markDestroy(_ entityId: EntityID) {
         let idx = getEntityIndex(entityId)
         guard idx < entities.count else {
@@ -77,7 +77,7 @@ public struct Scene {
         }
     }
 
-    // Phase B: Finalizze (call one per frame)
+    /// Phase B: Finalizze (call one per frame)
     public mutating func finalizePendingDestroys() {
         for i in entities.indices {
             if entities[i].pendingDestroy, !entities[i].freed {
@@ -118,7 +118,7 @@ public struct Scene {
         }
     }
 
-    /* explicitly specify type*/
+    /** explicitly specify type */
     public mutating func assign<T: Component>(to entityId: EntityID, component _: T.Type) -> T? {
         let componentId = getComponentId(for: T.self)
         let entityIndex = getEntityIndex(entityId)
@@ -286,7 +286,7 @@ public func getAllEntityComponentsIds(entityId: EntityID) -> [Int] {
     return componentIdsArray
 }
 
-// Custom System registry
+/// Custom System registry
 var customSystems: [(Float) -> Void] = []
 
 public func registerCustomSystem(_ system: @escaping (Float) -> Void) {

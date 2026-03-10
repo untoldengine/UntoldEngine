@@ -55,8 +55,13 @@ public final class TripleBuffer<T> {
         }
     }
 
-    @inline(__always) private func writeIndex(_ frame: Int) -> Int { frame % inFlight }
-    @inline(__always) private func readIndex(_ frame: Int) -> Int { (frame + inFlight - 1) % inFlight }
+    @inline(__always) private func writeIndex(_ frame: Int) -> Int {
+        frame % inFlight
+    }
+
+    @inline(__always) private func readIndex(_ frame: Int) -> Int {
+        (frame + inFlight - 1) % inFlight
+    }
 
     @inline(__always) public func bufferForWrite(frame: Int) -> MTLBuffer {
         buffers[writeIndex(frame)]
@@ -67,7 +72,7 @@ public final class TripleBuffer<T> {
     }
 }
 
-// CPU Triple-buffer for plain Swift arrays (non MTLBuffers)
+/// CPU Triple-buffer for plain Swift arrays (non MTLBuffers)
 public final class TripleCPUBuffer<T> {
     private let inFlight: Int
     private var slots: [[T]]
@@ -82,8 +87,13 @@ public final class TripleCPUBuffer<T> {
         }
     }
 
-    @inline(__always) private func writeIndex(_ frame: Int) -> Int { frame % inFlight }
-    @inline(__always) private func readIndex(_ frame: Int) -> Int { (frame + inFlight - 1) % inFlight }
+    @inline(__always) private func writeIndex(_ frame: Int) -> Int {
+        frame % inFlight
+    }
+
+    @inline(__always) private func readIndex(_ frame: Int) -> Int {
+        (frame + inFlight - 1) % inFlight
+    }
 
     /// Publish the next frame's data into the write slot.
     public func setWrite(frame: Int, with data: [T]) {

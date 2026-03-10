@@ -21,7 +21,7 @@ final class ECSTests: XCTestCase {
         super.tearDown()
     }
 
-    func testCreateEntity() throws {
+    func testCreateEntity() {
         // Create a new entity
         let entityId = createEntity()
 
@@ -34,7 +34,7 @@ final class ECSTests: XCTestCase {
         XCTAssertEqual(scene.entities[Int(index)].entityId, entityId, "Entity ID should match the created entity")
     }
 
-    func testCreateEntityReusesFreedEntityIndex() throws {
+    func testCreateEntityReusesFreedEntityIndex() {
         // Create and destroy an entity
 
         let entityId = createEntity()
@@ -50,7 +50,7 @@ final class ECSTests: XCTestCase {
         XCTAssertEqual(newIndex, getEntityIndex(entityId), "Entity index should be reused")
     }
 
-    func testDestroyEntityMarksEntityAsFreed() throws {
+    func testDestroyEntityMarksEntityAsFreed() {
         // Create an entity
         let entityId = createEntity()
         let entityIndex = getEntityIndex(entityId)
@@ -64,7 +64,7 @@ final class ECSTests: XCTestCase {
         XCTAssertEqual(scene.freeEntities.last, entityIndex, "Freed entity index should be added to freeEntities")
     }
 
-    func testDestroyEntityIncrementsEntityIDVersion() throws {
+    func testDestroyEntityIncrementsEntityIDVersion() {
         // Create an entity
         let entityId = createEntity()
         let entityIndex = getEntityIndex(entityId)

@@ -24,7 +24,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - UpdateRenderingSystem Environment Mode Tests
 
-    func testUpdateRenderingSystem_EnvironmentModeConfiguresRenderGraphCorrectly() {
+    func testUpdateRenderingSystem_EnvironmentModeConfiguresRenderGraphCorrectly() throws {
         // Set up for macOS/iOS rendering with environment
         renderInfo.immersionStyle = .none
         renderEnvironment = true
@@ -52,7 +52,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
                        "Shadow should depend on environment in environment mode")
 
         // Verify the graph can be topologically sorted
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
         XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
 
         // Verify outputTransform is the last pass
@@ -87,7 +87,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - UpdateRenderingSystem Grid Mode Tests
 
-    func testUpdateRenderingSystem_GridModeConfiguresRenderGraphCorrectly() {
+    func testUpdateRenderingSystem_GridModeConfiguresRenderGraphCorrectly() throws {
         // Set up for macOS/iOS rendering with grid
         renderInfo.immersionStyle = .none
         renderEnvironment = false
@@ -115,7 +115,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
                        "Shadow should depend on grid in grid mode")
 
         // Verify the graph can be topologically sorted
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
         XCTAssertTrue(sortedPasses.count > 0, "Sorted passes should not be empty")
 
         // Verify outputTransform is the last pass
@@ -150,7 +150,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - Final Pass Tests
 
-    func testUpdateRenderingSystem_OutputTransformIsTheFinalPass() {
+    func testUpdateRenderingSystem_OutputTransformIsTheFinalPass() throws {
         // Test with environment mode
         renderInfo.immersionStyle = .none
         renderEnvironment = true
@@ -161,7 +161,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         XCTAssertEqual(finalPassID, "outputTransform", "buildGameModeGraph should return 'outputTransform' as final pass ID")
 
         // Verify the dependency chain is correct
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
         _ = sortedPasses.map(\.id)
 
         // Verify outputTransform is the last pass
@@ -169,7 +169,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
                        "outputTransform should be the last pass in topological order")
     }
 
-    func testUpdateRenderingSystem_OutputTransformIsLastInTopologicalOrder() {
+    func testUpdateRenderingSystem_OutputTransformIsLastInTopologicalOrder() throws {
         // Test with grid mode
         renderInfo.immersionStyle = .none
         renderEnvironment = false
@@ -177,14 +177,14 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         let (graph, _) = buildGameModeGraph()
 
         // Sort the graph
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
 
         // Verify outputTransform is the last pass
         XCTAssertEqual(sortedPasses.last?.id, "outputTransform",
                        "outputTransform should be the last pass in the render graph")
     }
 
-    func testUpdateRenderingSystem_OutputTransformIsCorrectFinalPassInAllRenderModes() {
+    func testUpdateRenderingSystem_OutputTransformIsCorrectFinalPassInAllRenderModes() throws {
         // Test both environment and grid modes to ensure outputTransform is the final pass
 
         let modes: [(Bool, String)] = [
@@ -203,7 +203,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
                            "Final pass should be 'outputTransform' in \(description) mode")
 
             // Verify topological ordering
-            let sortedPasses = try! topologicalSortGraph(graph: graph)
+            let sortedPasses = try topologicalSortGraph(graph: graph)
 
             XCTAssertEqual(sortedPasses.last?.id, finalPassID,
                            "outputTransform should be the last pass in \(description) mode")
@@ -253,7 +253,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
 
     // MARK: - Integration Tests
 
-    func testUpdateRenderingSystem_FullWorkflowWithEnvironmentMode() {
+    func testUpdateRenderingSystem_FullWorkflowWithEnvironmentMode() throws {
         // Simulate the full UpdateRenderingSystem workflow
         renderInfo.immersionStyle = .none
         renderEnvironment = true
@@ -262,7 +262,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         let (graph, _) = buildGameModeGraph()
 
         // Verify the entire graph is valid
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
 
         XCTAssertTrue(sortedPasses.count > 0, "Should have a valid sorted pass list")
         XCTAssertNotNil(graph["environment"], "Environment mode should have environment pass")
@@ -275,7 +275,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         }
     }
 
-    func testUpdateRenderingSystem_FullWorkflowWithGridMode() {
+    func testUpdateRenderingSystem_FullWorkflowWithGridMode() throws {
         // Simulate the full UpdateRenderingSystem workflow
         renderInfo.immersionStyle = .none
         renderEnvironment = false
@@ -284,7 +284,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         let (graph, _) = buildGameModeGraph()
 
         // Verify the entire graph is valid
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
 
         XCTAssertTrue(sortedPasses.count > 0, "Should have a valid sorted pass list")
         XCTAssertNotNil(graph["grid"], "Grid mode should have grid pass")
@@ -297,7 +297,7 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         }
     }
 
-    func testUpdateRenderingSystem_GraphTopologicalOrderIsConsistent() {
+    func testUpdateRenderingSystem_GraphTopologicalOrderIsConsistent() throws {
         // Verify that multiple calls produce consistent topological ordering
 
         renderInfo.immersionStyle = .none
@@ -306,8 +306,8 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         let (graph1, _) = buildGameModeGraph()
         let (graph2, _) = buildGameModeGraph()
 
-        let sorted1 = try! topologicalSortGraph(graph: graph1)
-        let sorted2 = try! topologicalSortGraph(graph: graph2)
+        let sorted1 = try topologicalSortGraph(graph: graph1)
+        let sorted2 = try topologicalSortGraph(graph: graph2)
 
         // Both should have the same number of passes
         XCTAssertEqual(sorted1.count, sorted2.count,

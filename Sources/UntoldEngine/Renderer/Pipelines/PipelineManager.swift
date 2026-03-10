@@ -9,11 +9,13 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 public final class PipelineManager {
-    // Thread-safe shared instance
+    /// Thread-safe shared instance
     public static let shared: PipelineManager = .init()
 
     var _renderPipelinesByType: [RenderPipelineType: RenderPipeline] = [:]
-    public var renderPipelinesByType: [RenderPipelineType: RenderPipeline] { _renderPipelinesByType }
+    public var renderPipelinesByType: [RenderPipelineType: RenderPipeline] {
+        _renderPipelinesByType
+    }
 
     func initRenderPipelines(_ pipelines: [(RenderPipelineType, RenderPipelineInitBlock)]) {
         for (type, initBlock) in pipelines {

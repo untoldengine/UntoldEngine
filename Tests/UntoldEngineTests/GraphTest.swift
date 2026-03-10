@@ -21,7 +21,7 @@ final class GraphTest: XCTestCase {
         super.tearDown()
     }
 
-    func testGraphLogicalOrder() {
+    func testGraphLogicalOrder() throws {
         // build a render graph
         var graph = [String: RenderPass]()
 
@@ -34,7 +34,7 @@ final class GraphTest: XCTestCase {
         let nodeC = RenderPass(id: "nodeC", dependencies: [nodeB.id], execute: nil)
         graph[nodeC.id] = nodeC
         // sorted it
-        let sortedPasses = try! topologicalSortGraph(graph: graph)
+        let sortedPasses = try topologicalSortGraph(graph: graph)
 
         let expectedOrder = [nodeA.id, nodeB.id, nodeC.id]
         var actualOrder: [String] = []
@@ -46,7 +46,7 @@ final class GraphTest: XCTestCase {
         XCTAssertEqual(actualOrder, expectedOrder, "The nodes are not in the expected order.")
     }
 
-    func testGraphWithBranchingDependency() {
+    func testGraphWithBranchingDependency() throws {
         var graph = [String: RenderPass]()
 
         let nodeA = RenderPass(id: "nodeA", dependencies: [], execute: nil)
@@ -56,19 +56,19 @@ final class GraphTest: XCTestCase {
 
         [nodeA, nodeB, nodeC, nodeD].forEach { graph[$0.id] = $0 }
 
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
 
         let actualOrder = sorted.map(\.id)
 
         // nodeA must come before nodeB and nodeC
-        XCTAssertTrue(actualOrder.firstIndex(of: "nodeA")! < actualOrder.firstIndex(of: "nodeB")!)
-        XCTAssertTrue(actualOrder.firstIndex(of: "nodeA")! < actualOrder.firstIndex(of: "nodeC")!)
+        XCTAssertTrue(try XCTUnwrap(actualOrder.firstIndex(of: "nodeA")) < actualOrder.firstIndex(of: "nodeB")!)
+        XCTAssertTrue(try XCTUnwrap(actualOrder.firstIndex(of: "nodeA")) < actualOrder.firstIndex(of: "nodeC")!)
         // nodeB and nodeC must come before nodeD
-        XCTAssertTrue(actualOrder.firstIndex(of: "nodeB")! < actualOrder.firstIndex(of: "nodeD")!)
-        XCTAssertTrue(actualOrder.firstIndex(of: "nodeC")! < actualOrder.firstIndex(of: "nodeD")!)
+        XCTAssertTrue(try XCTUnwrap(actualOrder.firstIndex(of: "nodeB")) < actualOrder.firstIndex(of: "nodeD")!)
+        XCTAssertTrue(try XCTUnwrap(actualOrder.firstIndex(of: "nodeC")) < actualOrder.firstIndex(of: "nodeD")!)
     }
 
-    func testGraphWithSharedDependency() {
+    func testGraphWithSharedDependency() throws {
         var graph = [String: RenderPass]()
 
         let nodeA = RenderPass(id: "nodeA", dependencies: [], execute: nil)
@@ -78,28 +78,28 @@ final class GraphTest: XCTestCase {
 
         [nodeA, nodeB, nodeC, nodeD].forEach { graph[$0.id] = $0 }
 
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
         let actualOrder = sorted.map(\.id)
 
         // Validate partial order constraints
-        let indexA = actualOrder.firstIndex(of: "nodeA")!
-        let indexB = actualOrder.firstIndex(of: "nodeB")!
-        let indexC = actualOrder.firstIndex(of: "nodeC")!
-        let indexD = actualOrder.firstIndex(of: "nodeD")!
+        let indexA = try XCTUnwrap(actualOrder.firstIndex(of: "nodeA"))
+        let indexB = try XCTUnwrap(actualOrder.firstIndex(of: "nodeB"))
+        let indexC = try XCTUnwrap(actualOrder.firstIndex(of: "nodeC"))
+        let indexD = try XCTUnwrap(actualOrder.firstIndex(of: "nodeD"))
 
         XCTAssertTrue(indexA < indexB, "nodeA must come before nodeB")
         XCTAssertTrue(indexB < indexC, "nodeB must come before nodeC")
         XCTAssertTrue(indexA < indexD, "nodeA must come before nodeD")
     }
 
-    func testGraphWithNoDependencies() {
+    func testGraphWithNoDependencies() throws {
         let nodeA = RenderPass(id: "nodeA", dependencies: [], execute: nil)
         let nodeB = RenderPass(id: "nodeB", dependencies: [], execute: nil)
         let nodeC = RenderPass(id: "nodeC", dependencies: [], execute: nil)
 
         let graph = [nodeA.id: nodeA, nodeB.id: nodeB, nodeC.id: nodeC]
 
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
         let actualOrder = sorted.map(\.id)
 
         // The order doesn't matter as long as all nodes are included
@@ -123,7 +123,7 @@ final class GraphTest: XCTestCase {
         }
     }
 
-    func testGraphWithSharedDependency_usingHelper() {
+    func testGraphWithSharedDependency_usingHelper() throws {
         var graph = [String: RenderPass]()
 
         let nodeA = RenderPass(id: "nodeA", dependencies: [], execute: nil)
@@ -133,7 +133,7 @@ final class GraphTest: XCTestCase {
 
         [nodeA, nodeB, nodeC, nodeD].forEach { graph[$0.id] = $0 }
 
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
         let actualOrder = sorted.map(\.id)
 
         assertTopologicalConstraints(order: actualOrder, constraints: [

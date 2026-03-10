@@ -35,10 +35,22 @@ testrenderer:
 	python3 -m pip install --user --break-system-packages opencv-python-headless scikit-image
 	UNTOLD_KEEP_ARTIFACTS=$(KEEP) swift test --parallel --num-workers 1 --filter UntoldEngineRenderTests
 
+# Required SwiftFormat version
+SWIFTFORMAT_VERSION := 0.60.1
+
+# Verify installed SwiftFormat matches the required version
+check-swiftformat-version:
+	@INSTALLED=$$(swiftformat --version 2>&1 | awk '{print $$NF}'); \
+	if [ "$$INSTALLED" != "$(SWIFTFORMAT_VERSION)" ]; then \
+		echo "Error: swiftformat $(SWIFTFORMAT_VERSION) required, but found $$INSTALLED"; \
+		echo "Run: brew install swiftformat@$(SWIFTFORMAT_VERSION) or: brew upgrade swiftformat"; \
+		exit 1; \
+	fi
+
 # Lint Swift files using SwiftFormat
-lint:
+lint: check-swiftformat-version
 	swiftformat --lint . --swiftversion 5.8 --reporter github-actions-log
 
 # Auto-format Swift files (for convenience)
-format:
+format: check-swiftformat-version
 	swiftformat . --swiftversion 5.8 --quiet

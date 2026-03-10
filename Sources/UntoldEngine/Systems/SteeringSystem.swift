@@ -302,7 +302,7 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
 
 // High Level Steering Behaviors
 
-// movement helper functions
+/// movement helper functions
 public func steerSeek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, weight: Float = 1.0) {
     if gameMode == false {
         return

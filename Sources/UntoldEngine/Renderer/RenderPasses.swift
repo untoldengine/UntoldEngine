@@ -87,10 +87,10 @@ public enum RenderPasses {
 
         spatialDebugLastLogTime = now
         spatialDebugLastLogSignature = signature
-        Logger.log(
-            message: "[SpatialDebug] enabled=true leaves=\(totalLeaves) drawn=\(drawnLeaves) cap=\(cap)",
-            category: "SpatialDebug"
-        )
+//        Logger.log(
+//            message: "[SpatialDebug] enabled=true leaves=\(totalLeaves) drawn=\(drawnLeaves) cap=\(cap)",
+//            category: "SpatialDebug"
+//        )
     }
 
     @inline(__always)
@@ -351,7 +351,8 @@ public enum RenderPasses {
 
         guard
             let renderEncoder = commandBuffer.makeRenderCommandEncoder(
-                descriptor: shadowDescriptor)
+                descriptor: shadowDescriptor
+            )
         else {
             handleError(.renderPassCreationFailed, "shadow Pass")
             return
@@ -377,7 +378,8 @@ public enum RenderPasses {
 
         renderEncoder.setDepthBias(0.005, slopeScale: 1.0, clamp: 1.0)
         renderEncoder.setViewport(
-            MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0))
+            MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0)
+        )
 
         // send buffer data
         var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(dirLight)
@@ -562,7 +564,8 @@ public enum RenderPasses {
 
         renderEncoder.setDepthBias(0.005, slopeScale: 1.0, clamp: 1.0)
         renderEncoder.setViewport(
-            MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0))
+            MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0)
+        )
 
         // Set light space matrix (same as shadowExecution)
         var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(dirLight)

@@ -14,10 +14,10 @@
     import SwiftUI
     import UntoldEngine
 
-    // DribblinComponent stores data related to the player’s dribbling behavior.
-    // It defines how fast the player can move, how hard they can kick the ball,
-    // and the current input direction. This component will be attached to entities
-    // (like a player) that can dribble the ball.
+    /// DribblinComponent stores data related to the player’s dribbling behavior.
+    /// It defines how fast the player can move, how hard they can kick the ball,
+    /// and the current input direction. This component will be attached to entities
+    /// (like a player) that can dribble the ball.
     public class DribblinComponent: Component, Codable {
         public required init() {}
         var maxSpeed: Float = 5.0 // Maximum movement speed for dribbling

@@ -36,7 +36,7 @@ public func executeGraph(
     }
 }
 
-// Creates a Directed Acyclic (non-cyclical) Graph
+/// Creates a Directed Acyclic (non-cyclical) Graph
 public func topologicalSortGraph(graph: [String: RenderPass]) throws -> [RenderPass] {
     var sortedPasses = [RenderPass]()
     var visited = Set<String>()

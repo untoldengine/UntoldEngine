@@ -138,8 +138,8 @@ final class MathFunctionsTests: XCTestCase {
 
     // MARK: quaternion conversions
 
-    // reference this site for testing- https://www.andre-gaschler.com/rotationconverter/
-    // I tested rotation ZYX - euler angles 45.0,30.0,60.0
+    /// reference this site for testing- https://www.andre-gaschler.com/rotationconverter/
+    /// I tested rotation ZYX - euler angles 45.0,30.0,60.0
     func testQuatToMatrix() {
         var q = simd_quatf()
         q.vector.x = 0.2005621

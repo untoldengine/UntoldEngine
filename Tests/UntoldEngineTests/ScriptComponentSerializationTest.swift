@@ -50,8 +50,8 @@ final class ScriptComponentSerializationTest: XCTestCase {
         let jsonString = String(data: jsonData, encoding: .utf8)
         XCTAssertNotNil(jsonString)
         print("Encoded JSON:\n\(jsonString ?? "nil")")
-        XCTAssertTrue(jsonString!.contains("TestScript"), "JSON should contain TestScript")
-        XCTAssertTrue(jsonString!.contains("test.uscript"), "JSON should contain test.uscript")
+        XCTAssertTrue(try XCTUnwrap(jsonString?.contains("TestScript")), "JSON should contain TestScript")
+        XCTAssertTrue(try XCTUnwrap(jsonString?.contains("test.uscript")), "JSON should contain test.uscript")
 
         // Decode back to ensure round-trip
         let decoder = JSONDecoder()

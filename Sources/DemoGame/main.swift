@@ -13,22 +13,22 @@
     import SwiftUI
     import UntoldEngine
 
-    // GameScene is where you initialize your game and write game-specific logic.
+    /// GameScene is where you initialize your game and write game-specific logic.
     class GameScene {
-        // Toggle between Editor-loaded scene (true) and Code-built scene (false).
+        /// Toggle between Editor-loaded scene (true) and Code-built scene (false).
         var useEditorScene: Bool = false
 
         // Demo assets location + scene file name (adjust as needed).
         private let demoAssetsRelativePath = "DemoGameAssets/Assets"
         private let sceneFilename = "soccergamedemo.json"
 
-        // Resolve ~/Desktop/DemoGameAssets/Assets
+        /// Resolve ~/Desktop/DemoGameAssets/Assets
         private func demoAssetsBaseURL() -> URL? {
             FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first?
                 .appendingPathComponent(demoAssetsRelativePath)
         }
 
-        // Resolve the full scene URL if it exists.
+        /// Resolve the full scene URL if it exists.
         private func demoSceneURL() -> URL? {
             guard let base = demoAssetsBaseURL() else { return nil }
             let url = base.appendingPathComponent(sceneFilename)
@@ -149,7 +149,7 @@
             SSAO.setQuality(.high)
         }
 
-        // Build the same demo scene procedurally.
+        /// Build the same demo scene procedurally.
         private func buildSceneInCode() {
             // Stadium (static mesh)
             let stadium = createEntity()

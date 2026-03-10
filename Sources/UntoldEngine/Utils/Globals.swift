@@ -84,10 +84,10 @@ var scenePickingGPUAvailable: Bool = false
 var scenePickingIgnoreRayIntersectionWithTransparents: Bool = false
 var scenePickingAccelStructResources = AccelStructResources()
 var scenePickingPipeline = ComputePipeline()
-// Environment Mesh
+/// Environment Mesh
 var environmentMesh: MTKMesh!
 
-// ibl
+/// ibl
 public var iblSuccessful: Bool = false
 
 // let usdRotation:simd_float4x4=matrix4x4Identity()
@@ -126,7 +126,9 @@ public enum TextureType: String, CaseIterable, Identifiable {
     case metallic
     case normal
 
-    public var id: Self { self } // Satisfies Identifiable conformance
+    public var id: Self {
+        self
+    } // Satisfies Identifiable conformance
 
     public var displayName: String {
         switch self {
@@ -145,7 +147,7 @@ public var applyIBL: Bool = false
 public var renderEnvironment: Bool = false
 public var ambientIntensity: Float = 1.0
 
-// hightlight
+/// hightlight
 public let boundingBoxVertexCount = 24
 
 var envRotationAngle: Float = 0
@@ -166,7 +168,7 @@ public var assetBasePath: URL?
 
 public var activeEntity: EntityID = .invalid
 
-// Transform Manipulation mode
+/// Transform Manipulation mode
 public enum TransformManipulationMode {
     case translate
     case rotate
@@ -179,14 +181,14 @@ public enum TransformAxis {
     case x, y, z, none
 }
 
-// mtk view color
-// Graphite Gray
+/// mtk view color
+/// Graphite Gray
 let mtkBackgroundColor = MTLClearColorMake(40.0 / 255.0, 40.0 / 255.0, 45.0 / 255.0, 1.0)
 
 let fixedStep: Float = 1.0 / 60.0
 var physicsAccumulator: Float = 0
 
-// ssao kernel size
+/// ssao kernel size
 var ssaoKernelSize: Int = 64
 
 // Camera defaults
@@ -194,7 +196,7 @@ public let cameraDefaultEye: simd_float3 = .init(0.0, 1.0, 4.0)
 public let cameraTargetDefault: simd_float3 = .init(0.0, 0.0, -2.0)
 public let cameraUpDefault: simd_float3 = .init(0.0, 1.0, 0.0)
 
-// Culling
+/// Culling
 public struct EntityAABB {
     public var center: simd_float4
     public var halfExtent: simd_float4
@@ -324,7 +326,7 @@ public class DepthOfFieldParams: ObservableObject {
     @Published public var enabled: Bool = false
 }
 
-// SSAO Quality Settings
+/// SSAO Quality Settings
 public enum SSAOQuality: Int, CaseIterable {
     case fast = 0
     case balanced = 1

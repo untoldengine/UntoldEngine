@@ -15,29 +15,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get latest tag
-        id: latest-tag
-        run: echo "::set-output name=tag::${GITHUB_REF#refs/tags/}"
+      - name: Extract version from tag
+        id: tag
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-      - name: Generate Changelog
+      - name: Extract release notes from CHANGELOG.md
         id: changelog
         run: |
-          previous_tag=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
-          if [[ -z "$previous_tag" ]]; then
-            echo "No previous tag found, showing all commits."
-            git log --pretty=format:"- %s" > changelog.txt
-          else
-            echo "Generating changelog from $previous_tag to ${{ steps.latest-tag.outputs.tag }}"
-            git log $previous_tag..HEAD --pretty=format:"- %s" > changelog.txt
-          fi
-          echo "::set-output name=changelog::$(cat changelog.txt)"
+          VERSION="${{ steps.tag.outputs.version }}"
+          # Pull the block that starts with "## <VERSION>" and ends before the next "## "
+          {
+            echo 'notes<<EOF'
+            echo "Untold Engine ${VERSION} is out! Here are the recent changes:"
+            echo ""
+            awk "/^## ${VERSION} /{found=1;next} found && /^## /{exit} found{print}" CHANGELOG.md
+            echo EOF
+          } >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.latest-tag.outputs.tag }}
-          release_name: "Release ${{ steps.latest-tag.outputs.tag }}"
-          body: "${{ steps.changelog.outputs.changelog }}"
+          tag_name: ${{ steps.tag.outputs.version }}
+          name: "Release ${{ steps.tag.outputs.version }}"
+          body: ${{ steps.changelog.outputs.notes }}
           draft: false
           prerelease: false
 

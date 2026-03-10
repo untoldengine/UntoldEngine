@@ -12,8 +12,8 @@
     import SwiftUI
     import UntoldEngine
 
-    // BallState represents the different states a ball can be in during gameplay.
-    // This makes it easier to manage transitions like idle → kick → moving → decelerating.
+    /// BallState represents the different states a ball can be in during gameplay.
+    /// This makes it easier to manage transitions like idle → kick → moving → decelerating.
     enum BallState: Codable {
         case idle
         case kick
@@ -21,8 +21,8 @@
         case decelerating
     }
 
-    // BallComponent is a custom ECS component that stores the ball's state and motion data.
-    // Every entity with this component will behave like a ball in the game.
+    /// BallComponent is a custom ECS component that stores the ball's state and motion data.
+    /// Every entity with this component will behave like a ball in the game.
     public class BallComponent: Component, Codable {
         var motionAccumulator: simd_float3 = .zero // Used to accumulate velocity for smoother force application
         var state: BallState = .idle // Current state of the ball (idle, moving, etc.)
@@ -30,8 +30,8 @@
         public required init() {}
     }
 
-    // ballSystemUpdate runs once per frame and updates all entities that have a BallComponent.
-    // This is where we apply physics, update states, and define how the ball behaves.
+    /// ballSystemUpdate runs once per frame and updates all entities that have a BallComponent.
+    /// This is where we apply physics, update states, and define how the ball behaves.
     public func ballSystemUpdate(deltaTime: Float) {
         // Get the ID of the BallComponent so we can query entities that use it
         let customId = getComponentId(for: BallComponent.self)
@@ -68,8 +68,8 @@
         }
     }
 
-    // Apply a force to the ball to simulate a kick or strong push.
-    // Uses an accumulator to smooth motion and applies both linear and angular forces.
+    /// Apply a force to the ball to simulate a kick or strong push.
+    /// Uses an accumulator to smooth motion and applies both linear and angular forces.
     func applyVelocity(finalVelocity: simd_float3, deltaTime: Float, ball: EntityID) {
         guard let customComponent = scene.get(component: BallComponent.self, for: ball) else { return }
 
@@ -95,8 +95,8 @@
         clearAngularVelocity(entityId: ball)
     }
 
-    // Gradually slow down the ball by applying counter-forces.
-    // Works similarly to applyVelocity, but reduces motion instead of adding it.
+    /// Gradually slow down the ball by applying counter-forces.
+    /// Works similarly to applyVelocity, but reduces motion instead of adding it.
     func decelerate(deltaTime: Float, ball: EntityID) {
         guard let customComponent = scene.get(component: BallComponent.self, for: ball) else { return }
 

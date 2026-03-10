@@ -13,9 +13,9 @@
     import SwiftUI
     import UntoldEngine
 
-    // CameraFollowComponent defines how a camera should follow a target entity.
-    // It stores the name of the target and the offset from that target.
-    // This makes it possible to create a third-person or top-down camera easily.
+    /// CameraFollowComponent defines how a camera should follow a target entity.
+    /// It stores the name of the target and the offset from that target.
+    /// This makes it possible to create a third-person or top-down camera easily.
     public class CameraFollowComponent: Component, Codable {
         var targetName: String = "ball" // The name of the entity the camera should follow
         var offset: simd_float3 = .init(0.0, 1.0, 5.0) // The offset position relative to the target

@@ -30,7 +30,7 @@ public func loadTexture(
     isSRGB: Bool = false,
     withExtension: String
 ) throws -> MTLTexture {
-    /// Load texture data with optimal parameters for sampling
+    // Load texture data with optimal parameters for sampling
 
     let textureLoader = MTKTextureLoader(device: device)
 
@@ -115,7 +115,8 @@ public func loadHDR(_ textureName: String, from directory: URL? = nil) throws ->
     descriptor.sampleCount = 1
     descriptor.textureType = .type2D
     descriptor.mipmapLevelCount = Int(
-        1 + floorf(log2f(fmaxf(Float(cgImage.width), Float(cgImage.height)))))
+        1 + floorf(log2f(fmaxf(Float(cgImage.width), Float(cgImage.height))))
+    )
 
     guard let texture = renderInfo.device.makeTexture(descriptor: descriptor) else {
         throw LoadError.textureCreationFailed
@@ -133,8 +134,7 @@ public func readArrayOfStructsFromFile<T: Codable>(filePath: URL) -> [T]? {
     do {
         let jsonData = try Data(contentsOf: filePath)
         let decoder = JSONDecoder()
-        let dataArray = try decoder.decode([T].self, from: jsonData)
-        return dataArray
+        return try decoder.decode([T].self, from: jsonData)
     } catch {
         print("Error reading file: \(error.localizedDescription)")
         return nil
@@ -147,8 +147,7 @@ public func readArrayOfStructsFromFile<T: Codable>(filePath: String, directoryUR
     do {
         let jsonData = try Data(contentsOf: fileURL)
         let decoder = JSONDecoder()
-        let dataArray = try decoder.decode([T].self, from: jsonData)
-        return dataArray
+        return try decoder.decode([T].self, from: jsonData)
     } catch {
         print("Error reading file: \(error.localizedDescription)")
         return nil
@@ -532,9 +531,7 @@ func quaternionDerivative(q: simd_quatf, omega: simd_float3) -> simd_quatf {
 }
 
 public func isWASDPressed() -> Bool {
-    let isPressed: Bool = InputSystem.shared.keyState.aPressed || InputSystem.shared.keyState.wPressed || InputSystem.shared.keyState.sPressed || InputSystem.shared.keyState.dPressed
-
-    return isPressed
+    InputSystem.shared.keyState.aPressed || InputSystem.shared.keyState.wPressed || InputSystem.shared.keyState.sPressed || InputSystem.shared.keyState.dPressed
 }
 
 public func generateEntityName(prefix: String = "Entity") -> String {
@@ -746,13 +743,13 @@ public func getMaterialTextureURL(
     }
 }
 
-// Helper to check if a URL represents an embedded USDZ texture
+/// Helper to check if a URL represents an embedded USDZ texture
 public func isEmbeddedUSDZTexture(_ url: URL?) -> Bool {
     guard let url else { return false }
     return url.scheme == "usdz-embedded"
 }
 
-// Helper to get MDLTexture for embedded textures
+/// Helper to get MDLTexture for embedded textures
 public func getMaterialMDLTexture(
     entityId: EntityID,
     type: TextureType,
@@ -769,7 +766,7 @@ public func getMaterialMDLTexture(
     }
 }
 
-// Check if an original embedded texture can be restored
+/// Check if an original embedded texture can be restored
 public func canRestoreEmbeddedTexture(
     entityId: EntityID,
     type: TextureType,
@@ -779,7 +776,7 @@ public func canRestoreEmbeddedTexture(
     getMaterialMDLTexture(entityId: entityId, type: type, meshIndex: meshIndex, submeshIndex: submeshIndex) != nil
 }
 
-// Helper to match sRGB texture format (same logic as in TextureLoader)
+/// Helper to match sRGB texture format (same logic as in TextureLoader)
 private func textureViewMatchingSRGB(_ tex: MTLTexture, wantSRGB: Bool) -> MTLTexture {
     let pairs: [MTLPixelFormat: (linear: MTLPixelFormat, srgb: MTLPixelFormat)] = [
         .rgba8Unorm: (.rgba8Unorm, .rgba8Unorm_srgb),
@@ -794,7 +791,7 @@ private func textureViewMatchingSRGB(_ tex: MTLTexture, wantSRGB: Bool) -> MTLTe
     return tex.makeTextureView(pixelFormat: target) ?? tex
 }
 
-// Restore the original embedded texture from USDZ
+/// Restore the original embedded texture from USDZ
 public func restoreEmbeddedTexture(
     entityId: EntityID,
     textureType: TextureType,
@@ -1168,7 +1165,7 @@ func generateSSAOKernel(sampleCount: Int = 64) -> [SIMD3<Float>] {
     return kernel
 }
 
-// Helper function for lerp
+/// Helper function for lerp
 func mix(_ a: Float, _ b: Float, _ t: Float) -> Float {
     a * (1.0 - t) + b * t
 }
@@ -1314,7 +1311,9 @@ func loadTextureType(entityId: EntityID, assetName: String, path: URL) {
     updateMaterialTexture(entityId: entityId, textureType: textureType, path: path)
 }
 
-func align(_ n: Int, to alignment: Int) -> Int { (n + alignment - 1) & ~(alignment - 1) }
+func align(_ n: Int, to alignment: Int) -> Int {
+    (n + alignment - 1) & ~(alignment - 1)
+}
 
 public func getAlphaForImmersionMode() -> Float {
     switch renderInfo.immersionStyle {
@@ -1325,7 +1324,7 @@ public func getAlphaForImmersionMode() -> Float {
     }
 }
 
-// Generate batches for all static entities
+/// Generate batches for all static entities
 public func generateBatches() {
     BatchingSystem.shared.generateBatches()
 }

@@ -410,7 +410,7 @@ public class MemoryBudgetManager {
     }
 }
 
-// Memory budget presets
+/// Memory budget presets
 public extension MemoryBudgetManager {
     /// Apply low-memory preset (mobile/older devices)
     func applyLowMemoryPreset() {

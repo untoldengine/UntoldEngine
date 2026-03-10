@@ -86,15 +86,15 @@ final class SceneSerializerTests: BaseRenderSetup {
 
     // MARK: - Load Scene from File Tests
 
-    func testLoadSceneFromValidJSON() {
+    func testLoadSceneFromValidJSON() throws {
         // Create a temporary scene file
         let tempDir = FileManager.default.temporaryDirectory
         let testSceneURL = tempDir.appendingPathComponent("test_scene.json")
 
         // Create simple scene data
         let sceneData = SceneData()
-        let jsonData = try! JSONEncoder().encode(sceneData)
-        try! jsonData.write(to: testSceneURL)
+        let jsonData = try JSONEncoder().encode(sceneData)
+        try jsonData.write(to: testSceneURL)
 
         // Load the scene
         let loadedScene = loadGameScene(from: testSceneURL)
@@ -116,13 +116,13 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertNil(loadedScene, "Should return nil for non-existent file")
     }
 
-    func testLoadSceneFromCorruptedJSON() {
+    func testLoadSceneFromCorruptedJSON() throws {
         // Create a file with invalid JSON
         let tempDir = FileManager.default.temporaryDirectory
         let corruptedURL = tempDir.appendingPathComponent("corrupted_scene.json")
 
         let invalidJSON = "{ invalid json content }".data(using: .utf8)!
-        try! invalidJSON.write(to: corruptedURL)
+        try invalidJSON.write(to: corruptedURL)
 
         // Attempt to load
         let loadedScene = loadGameScene(from: corruptedURL)
@@ -136,7 +136,7 @@ final class SceneSerializerTests: BaseRenderSetup {
 
     // MARK: - Round-Trip Tests (Serialize -> Save -> Load -> Deserialize)
 
-    func testRoundTripSingleEntity() {
+    func testRoundTripSingleEntity() throws {
         // Create an entity
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "RoundTripEntity")
@@ -151,8 +151,8 @@ final class SceneSerializerTests: BaseRenderSetup {
         // Save to file
         let tempDir = FileManager.default.temporaryDirectory
         let sceneURL = tempDir.appendingPathComponent("roundtrip_scene.json")
-        let jsonData = try! JSONEncoder().encode(originalSceneData)
-        try! jsonData.write(to: sceneURL)
+        let jsonData = try JSONEncoder().encode(originalSceneData)
+        try jsonData.write(to: sceneURL)
 
         // Clear the scene
         destroyAllEntities()
@@ -1238,7 +1238,7 @@ final class SceneSerializerTests: BaseRenderSetup {
 
     // MARK: - LOD Component Tests
 
-    func testSerializeLODComponent() {
+    func testSerializeLODComponent() throws {
         // Create entity with LOD component
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "LODEntity")
@@ -1275,7 +1275,7 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertTrue(sceneData.entities[0].hasLODComponent == true, "Should have LOD component flag")
         XCTAssertNotNil(sceneData.entities[0].lodData, "LOD data should not be nil")
 
-        let lodData = sceneData.entities[0].lodData!
+        let lodData = try XCTUnwrap(sceneData.entities[0].lodData)
         XCTAssertEqual(lodData.lodLevels.count, 3, "Should have 3 LOD levels")
         XCTAssertEqual(lodData.currentLOD, 1, "Current LOD should match")
         XCTAssertTrue(lodData.fadeTransition, "Fade transition should be enabled")
@@ -1320,7 +1320,7 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertNil(sceneData.entities[0].lodData, "LOD data should be nil when no URLs are present")
     }
 
-    func testSerializeLODComponentMixedURLs() {
+    func testSerializeLODComponentMixedURLs() throws {
         // Test that only LOD levels with URLs are serialized
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "LODEntityMixed")
@@ -1347,7 +1347,7 @@ final class SceneSerializerTests: BaseRenderSetup {
 
         // Verify only LOD levels with URLs were serialized
         XCTAssertNotNil(sceneData.entities[0].lodData, "LOD data should exist")
-        let lodData = sceneData.entities[0].lodData!
+        let lodData = try XCTUnwrap(sceneData.entities[0].lodData)
         XCTAssertEqual(lodData.lodLevels.count, 2, "Should only serialize LOD levels with URLs")
         XCTAssertEqual(lodData.lodLevels[0].url, lod0URL, "First serialized LOD should be LOD0")
         XCTAssertEqual(lodData.lodLevels[1].url, lod2URL, "Second serialized LOD should be LOD2")
@@ -1693,7 +1693,7 @@ final class SceneSerializerTests: BaseRenderSetup {
 
     // MARK: - Geometry Streaming Component Tests
 
-    func testSerializeStreamingComponent() {
+    func testSerializeStreamingComponent() throws {
         // Create entity with streaming component
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "StreamedEntity")
@@ -1721,7 +1721,7 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertTrue(sceneData.entities[0].hasStreamingComponent == true, "Should have streaming component flag")
         XCTAssertNotNil(sceneData.entities[0].streamingData, "Streaming data should not be nil")
 
-        let streamingData = sceneData.entities[0].streamingData!
+        let streamingData = try XCTUnwrap(sceneData.entities[0].streamingData)
         XCTAssertEqual(streamingData.streamingRadius, 250.0, "Streaming radius should match")
         XCTAssertEqual(streamingData.unloadRadius, 350.0, "Unload radius should match")
         XCTAssertEqual(streamingData.priority, 10, "Priority should match")
@@ -1879,7 +1879,7 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertNil(sceneData.entities[0].streamingData, "Should not have streaming data")
     }
 
-    func testSerializeLODWithStreamingComponent() {
+    func testSerializeLODWithStreamingComponent() throws {
         // Test entity with both LOD and Streaming components
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "LODStreamEntity")
@@ -1925,11 +1925,11 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertNotNil(sceneData.entities[0].streamingData, "Streaming data should not be nil")
 
         // Verify LOD data
-        let lodData = sceneData.entities[0].lodData!
+        let lodData = try XCTUnwrap(sceneData.entities[0].lodData)
         XCTAssertEqual(lodData.lodLevels.count, 2, "Should have 2 LOD levels")
 
         // Verify Streaming data
-        let streamingData = sceneData.entities[0].streamingData!
+        let streamingData = try XCTUnwrap(sceneData.entities[0].streamingData)
         XCTAssertEqual(streamingData.streamingRadius, 200.0, "Streaming radius should match")
         XCTAssertEqual(streamingData.priority, 7, "Priority should match")
     }
@@ -2061,7 +2061,7 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertEqual(getAllGameEntities().count, 1, "Entity should be created even without completion handler")
     }
 
-    func testDeserializeSceneCompletionHandler_invokedAfterAllAsyncLoadsComplete() async throws {
+    func testDeserializeSceneCompletionHandler_invokedAfterAllAsyncLoadsComplete() async {
         // Given: Create multiple entities with render components that will trigger async loading
         let entityNames = ["AsyncEntity1", "AsyncEntity2", "AsyncEntity3"]
         for name in entityNames {

@@ -75,10 +75,10 @@ public enum USCInstruction: Codable {
     case loop(iterations: Int) // Repeat N times
     case endLoop // Close loop block
 
-    // Math
+    /// Math
     case math(MathInstruction)
 
-    // Action
+    /// Action
     case callAction(name: String, args: [String], result: String?)
 
     // Input
@@ -137,7 +137,7 @@ public enum USCInstruction: Codable {
     case getProperty(entity: String, key: String, as: String) // Read value into variable
     case setProperty(entity: String, key: String, value: Value)
 
-    // Variables
+    /// Variables
     case setVariable(name: String, value: Value) // Create/set variable directly
 
     // Debugging
@@ -262,7 +262,9 @@ public enum ExecutionMode: String, Codable {
 
 /// Use simd_float3 as the vector type in scripts.
 public extension simd_float3 {
-    init(x: Float, y: Float, z: Float) { self.init(x, y, z) }
+    init(x: Float, y: Float, z: Float) {
+        self.init(x, y, z)
+    }
 
     // Common vectors
     static let zero = simd_float3(0, 0, 0)

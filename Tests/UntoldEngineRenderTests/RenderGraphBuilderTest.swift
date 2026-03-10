@@ -87,14 +87,14 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(lightDeps, expectedLightDeps, "Light pass should depend on batchedModel, model, shadow, and ssao")
     }
 
-    func testGBufferPass_TopologicalOrder() {
+    func testGBufferPass_TopologicalOrder() throws {
         var graph = [String: RenderPass]()
         let shadowPass = RenderPass(id: "shadow", dependencies: [], execute: nil)
         graph[shadowPass.id] = shadowPass
 
         gBufferPass(graph: &graph, shadowPass: shadowPass)
 
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
         let order = sorted.map(\.id)
 
         // Verify correct ordering constraints
@@ -147,7 +147,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Bloom threshold should depend on chromatic and model")
     }
 
-    func testPostProcessingEffects_TopologicalOrder() {
+    func testPostProcessingEffects_TopologicalOrder() throws {
         var graph = [String: RenderPass]()
 
         BloomThresholdParams.shared.enabled = true
@@ -158,7 +158,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             geometryPassId: "model"
         )
 
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
         let order = sorted.map(\.id)
 
         // Verify correct ordering of post-processing chain
@@ -240,14 +240,14 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Shadow should depend on environment in full immersion mode")
     }
 
-    func testBuildGameModeGraph_ValidTopologicalOrder() {
+    func testBuildGameModeGraph_ValidTopologicalOrder() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         BloomThresholdParams.shared.enabled = false
 
         let (graph, _) = buildGameModeGraph()
 
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
         let order = sorted.map(\.id)
 
         // Verify key ordering constraints
@@ -366,13 +366,13 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         }
     }
 
-    func testBuildGameModeGraph_GaussianTopologicalPosition() {
+    func testBuildGameModeGraph_GaussianTopologicalPosition() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
 
         let (graph, _) = buildGameModeGraph()
 
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
         let order = sorted.map(\.id)
 
         // Gaussian must come after model

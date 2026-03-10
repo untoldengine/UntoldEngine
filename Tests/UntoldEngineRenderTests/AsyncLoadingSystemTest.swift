@@ -30,7 +30,7 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
 
     // MARK: - AssetLoadingState Tests
 
-    func test_assetLoadingState_startsWithNoActivity() async throws {
+    func test_assetLoadingState_startsWithNoActivity() async {
         // When/Then: Should report no loading
         let isLoading = await AssetLoadingState.shared.isLoadingAny()
         let count = await AssetLoadingState.shared.loadingCount()
@@ -39,7 +39,7 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
         XCTAssertEqual(isLoading, count > 0, "Loading state should be consistent")
     }
 
-    func test_assetLoadingState_tracksLoadingPhase() async throws {
+    func test_assetLoadingState_tracksLoadingPhase() async {
         // Given: Start loading for an entity
         let entityId: EntityID = 42
         await AssetLoadingState.shared.startLoading(entityId: entityId, filename: "test.usdz", totalMeshes: 10)
@@ -70,7 +70,7 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
         await AssetLoadingState.shared.finishLoading(entityId: entityId)
     }
 
-    func test_assetLoadingState_tracksRegisteringPhase() async throws {
+    func test_assetLoadingState_tracksRegisteringPhase() async {
         // Given: Start loading and move to registering phase
         let entityId: EntityID = 100
         await AssetLoadingState.shared.startLoading(entityId: entityId, filename: "test.usdz", totalMeshes: 100)
@@ -94,7 +94,7 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
         await AssetLoadingState.shared.finishLoading(entityId: entityId)
     }
 
-    func test_assetLoadingState_finishLoading_removesEntity() async throws {
+    func test_assetLoadingState_finishLoading_removesEntity() async {
         // Given: Loading entity
         let entityId: EntityID = 200
         await AssetLoadingState.shared.startLoading(entityId: entityId, filename: "test.usdz", totalMeshes: 10)
@@ -113,7 +113,7 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
         XCTAssertNil(progress, "Progress should be removed")
     }
 
-    func test_assetLoadingState_tracksMultipleEntities() async throws {
+    func test_assetLoadingState_tracksMultipleEntities() async {
         // Given: Multiple entities loading
         await AssetLoadingState.shared.startLoading(entityId: 1, filename: "model1.usdz", totalMeshes: 100)
         await AssetLoadingState.shared.startLoading(entityId: 2, filename: "model2.usdz", totalMeshes: 100)

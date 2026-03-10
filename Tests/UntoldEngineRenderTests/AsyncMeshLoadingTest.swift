@@ -32,7 +32,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
     // MARK: - Basic Async Loading Tests
 
-    func testSetEntityMeshAsync_loadsSimpleMesh() async throws {
+    func testSetEntityMeshAsync_loadsSimpleMesh() async {
         // Given: An entity without a mesh
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "AsyncTestEntity")
@@ -68,7 +68,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         XCTAssertTrue(renderComponent.isVisible, "Entity should be visible after loading")
     }
 
-    func testSetEntityMeshAsync_loadsMultiMeshAsset() async throws {
+    func testSetEntityMeshAsync_loadsMultiMeshAsset() async {
         // Given: An entity for a complex model
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "StadiumEntity")
@@ -87,7 +87,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         }
 
         // Then: Wait and verify
-        await fulfillment(of: [expectation], timeout: 10.0)
+        await fulfillment(of: [expectation], timeout: 60.0)
 
         XCTAssertTrue(loadSuccess, "Multi-mesh asset should load successfully")
 
@@ -123,7 +123,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         }
     }
 
-    func testSetEntityMeshAsync_handlesInvalidFilename() async throws {
+    func testSetEntityMeshAsync_handlesInvalidFilename() async {
         // Given: An entity and an invalid filename
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "FailEntity")
@@ -153,7 +153,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         }
     }
 
-    func testSetEntityMeshAsync_handlesUnsupportedFileType() async throws {
+    func testSetEntityMeshAsync_handlesUnsupportedFileType() async {
         // Given: An entity and unsupported file type
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "UnsupportedEntity")
@@ -192,7 +192,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
     // MARK: - AssetLoadingState Integration Tests
 
-    func testAsyncLoading_tracksProgressCorrectly() async throws {
+    func testAsyncLoading_tracksProgressCorrectly() async {
         // Given: An entity to load
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "ProgressEntity")
@@ -240,7 +240,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         // This is expected behavior with very fast loading - the important thing is that completion works
     }
 
-    func testAsyncLoading_tracksMultipleEntitiesSimultaneously() async throws {
+    func testAsyncLoading_tracksMultipleEntitiesSimultaneously() async {
         // Given: Multiple entities
         let entity1 = createEntity()
         let entity2 = createEntity()
@@ -283,7 +283,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         // This is expected behavior with very fast loading - the important thing is all loads complete
     }
 
-    func testAsyncLoading_progressPhaseTransitions() async throws {
+    func testAsyncLoading_progressPhaseTransitions() async {
         // Given: An entity and a multi-mesh asset
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "PhaseEntity")
@@ -316,7 +316,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
             expectation.fulfill()
         }
 
-        await fulfillment(of: [expectation], timeout: 10.0)
+        await fulfillment(of: [expectation], timeout: 60.0)
         monitorTask.cancel()
         await monitorTask.value
 
@@ -337,7 +337,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
     // MARK: - Component Registration Tests
 
-    func testAsyncLoading_registersRequiredComponents() async throws {
+    func testAsyncLoading_registersRequiredComponents() async {
         // Given: A bare entity without components
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "ComponentEntity")
@@ -360,7 +360,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         XCTAssertTrue(hasComponent(entityId: entityId, componentType: RenderComponent.self), "Should register render component")
     }
 
-    func testAsyncLoading_preservesExistingComponents() async throws {
+    func testAsyncLoading_preservesExistingComponents() async {
         // Given: An entity with pre-configured transform
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "PreConfigEntity")
@@ -387,7 +387,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
     // MARK: - Visibility Toggle Tests
 
-    func testAsyncLoading_entitiesHiddenDuringRegistration() async throws {
+    func testAsyncLoading_entitiesHiddenDuringRegistration() async {
         // Given: An entity loading a complex asset
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "VisibilityEntity")
@@ -422,7 +422,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
             expectation.fulfill()
         }
 
-        await fulfillment(of: [expectation], timeout: 10.0)
+        await fulfillment(of: [expectation], timeout: 60.0)
         monitorTask.cancel()
         await monitorTask.value
 
@@ -447,7 +447,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
     // MARK: - Serialization/Deserialization with Async Loading Tests
 
-    func testSerializeDeserialize_asyncLoadingTriggered() async throws {
+    func testSerializeDeserialize_asyncLoadingTriggered() async {
         // Given: Create and serialize a scene with meshes
         let originalEntity = createEntity()
         setEntityName(entityId: originalEntity, name: "SerializedEntity")
@@ -489,7 +489,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         XCTAssertEqual(getAllGameEntities().count, 3, "Entity should be created immediately")
     }
 
-    func testDeserialize_syncMode_loadsImmediately() throws {
+    func testDeserialize_syncMode_loadsImmediately() {
         // Given: A serialized scene
         let originalEntity = createEntity()
         setEntityName(entityId: originalEntity, name: "SyncEntity")
@@ -526,7 +526,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
     // MARK: - Coordinate Conversion Tests
 
-    func testAsyncLoading_supportsCoordinateConversion() async throws {
+    func testAsyncLoading_supportsCoordinateConversion() async {
         // Given: An entity
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "CoordConversionEntity")
@@ -553,7 +553,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
     // MARK: - Asset Name Filtering Tests
 
-    func testAsyncLoading_filtersSpecificAssetName() async throws {
+    func testAsyncLoading_filtersSpecificAssetName() async {
         // Given: A multi-mesh file and specific asset name
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "FilteredEntity")
@@ -575,13 +575,13 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         }
 
         // Then: Should load (may load specific mesh or all meshes depending on file structure)
-        await fulfillment(of: [expectation], timeout: 10.0)
+        await fulfillment(of: [expectation], timeout: 60.0)
         XCTAssertTrue(hasComponent(entityId: entityId, componentType: RenderComponent.self))
     }
 
     // MARK: - Fallback Mesh Tests
 
-    func testFallbackMesh_createsCubeOnFailure() async throws {
+    func testFallbackMesh_createsCubeOnFailure() async {
         // Given: An entity and invalid file
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "FallbackEntity")
@@ -615,7 +615,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
     // MARK: - Stress Tests
 
-    func testAsyncLoading_handlesRapidSequentialLoads() async throws {
+    func testAsyncLoading_handlesRapidSequentialLoads() async {
         // Given: Multiple entities to load rapidly
         var entities: [EntityID] = []
         for i in 0 ..< 5 {

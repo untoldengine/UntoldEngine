@@ -814,7 +814,7 @@ final class USCScriptingAPITest: XCTestCase {
         XCTAssertEqual(velocity.z, 0.0, accuracy: 0.1, "z Velocity should be updated correctly.")
     }
 
-    func testPositionUpdateWithForces_Scripted() {
+    func testPositionUpdateWithForces_Scripted() throws {
         let script = buildScript(name: "test") { s in
             s.onStart()
                 .setProperty(.mass, to: 2.0)
@@ -848,9 +848,9 @@ final class USCScriptingAPITest: XCTestCase {
 
         let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
 
-        let position = simd_float3(transformComponent!.position.x,
-                                   transformComponent!.position.y,
-                                   transformComponent!.position.z)
+        let position = try simd_float3(XCTUnwrap(transformComponent?.position.x),
+                                       XCTUnwrap(transformComponent?.position.y),
+                                       XCTUnwrap(transformComponent?.position.z))
 
         let expectedPosition = simd_float3(2.5, 0.0, 0)
 

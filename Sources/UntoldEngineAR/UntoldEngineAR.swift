@@ -26,7 +26,7 @@
 
     enum ARSystemState { case paused, running, stopped }
 
-    // Vertex data for an image plane
+    /// Vertex data for an image plane
     let kImagePlaneVertexData: [Float] = [
         -1.0, -1.0, 0.0, 1.0,
         1.0, -1.0, 1.0, 1.0,
@@ -43,16 +43,16 @@
             private let arSession: Any? = nil
         #endif
 
-        // Initialize to nil so the initializer does not need to assign it.
+        /// Initialize to nil so the initializer does not need to assign it.
         private let arFrame: ARFrame? = nil
-        // Provide a sensible default; can be changed later as needed.
+        /// Provide a sensible default; can be changed later as needed.
         private var arMode: UntoldARMode = .worldTracking
 
         // AR Camera feed textures
         public var capturedImageTextureY: CVMetalTexture?
         public var capturedImageTextureCbCr: CVMetalTexture?
 
-        // Captured image texture cache
+        /// Captured image texture cache
         var capturedImageTextureCache: CVMetalTextureCache!
 
         var imagePlaneVertexBuffer: MTLBuffer!

@@ -12,14 +12,14 @@
 import Foundation
 import simd
 
-/// A single transform applied to the entire scene without modifying individual entity transforms.
-///
-/// The scene root transform is implemented via a "virtual camera" trick:
-/// instead of moving every entity, we apply the *inverse* of this transform to the camera
-/// (and related matrices). This keeps static batching intact — no rebatching is needed
-/// when the scene moves.
-///
-/// Call `updateIfNeeded()` once per frame (before culling) to recompute cached matrices.
+// A single transform applied to the entire scene without modifying individual entity transforms.
+//
+// The scene root transform is implemented via a "virtual camera" trick:
+// instead of moving every entity, we apply the *inverse* of this transform to the camera
+// (and related matrices). This keeps static batching intact — no rebatching is needed
+// when the scene moves.
+//
+// Call `updateIfNeeded()` once per frame (before culling) to recompute cached matrices.
 
 /*
  The core rule

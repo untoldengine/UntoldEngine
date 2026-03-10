@@ -12,7 +12,7 @@
 import Foundation
 import simd
 
-// trig
+/// trig
 public func degreesToRadians(degrees: Float) -> Float {
     degrees * .pi / 180.0
 }
@@ -117,7 +117,8 @@ public func matrix4x4Identity() -> matrix_float4x4 {
             vector_float4(0, 1, 0, 0),
             vector_float4(0, 0, 1, 0),
             vector_float4(0, 0, 0, 1)
-        ))
+        )
+    )
 }
 
 public func getMatrix4x4FromQuaternion(q: simd_quatf) -> matrix_float4x4 {
@@ -144,15 +145,14 @@ public func getMatrix4x4FromQuaternion(q: simd_quatf) -> matrix_float4x4 {
     let m12: Float = 2 * (yz + xw)
     let m22: Float = 1 - 2 * (xx + yy)
 
-    let matrix = matrix_float4x4(
+    return matrix_float4x4(
         columns: (
             vector_float4(m00, m01, m02, 0.0),
             vector_float4(m10, m11, m12, 0.0),
             vector_float4(m20, m21, m22, 0.0),
             vector_float4(0.0, 0.0, 0.0, 1.0)
-        ))
-
-    return matrix
+        )
+    )
 }
 
 public func matrix4x4Rotation(radians: Float, axis: SIMD3<Float>) -> matrix_float4x4 {
@@ -169,7 +169,8 @@ public func matrix4x4Rotation(radians: Float, axis: SIMD3<Float>) -> matrix_floa
             vector_float4(x * y * ci - z * st, ct + y * y * ci, z * y * ci + x * st, 0),
             vector_float4(x * z * ci + y * st, y * z * ci - x * st, ct + z * z * ci, 0),
             vector_float4(0, 0, 0, 1)
-        ))
+        )
+    )
 }
 
 public func matrix4x4Rotation(pitch: Float, yaw: Float, roll: Float) -> matrix_float4x4 {
@@ -215,7 +216,8 @@ public func matrix4x4Translation(_ translationX: Float, _ translationY: Float, _
             vector_float4(0, 1, 0, 0),
             vector_float4(0, 0, 1, 0),
             vector_float4(translationX, translationY, translationZ, 1)
-        ))
+        )
+    )
 }
 
 public func matrix4x4Scale(_ scaleX: Float, _ scaleY: Float, _ scaleZ: Float) -> matrix_float4x4 {
@@ -225,7 +227,8 @@ public func matrix4x4Scale(_ scaleX: Float, _ scaleY: Float, _ scaleZ: Float) ->
             vector_float4(0, scaleY, 0, 0),
             vector_float4(0, 0, scaleZ, 0),
             vector_float4(0, 0, 0, 1)
-        ))
+        )
+    )
 }
 
 public func matrix3x3_upper_left(_ m: matrix_float4x4) -> matrix_float3x3 {
@@ -251,7 +254,8 @@ public func matrix_float4x4_from_double4x4(_ m: simd_double4x4) -> matrix_float4
             simd_make_float4(
                 Float(m.columns.3.x), Float(m.columns.3.y), Float(m.columns.3.z), Float(m.columns.3.w)
             )
-        ))
+        )
+    )
 }
 
 public func matrixPerspectiveRightHand(
@@ -266,7 +270,8 @@ public func matrixPerspectiveRightHand(
             vector_float4(0, ys, 0, 0),
             vector_float4(0, 0, zs, -1),
             vector_float4(0, 0, zs * nearZ, 0)
-        ))
+        )
+    )
 }
 
 public func matrix_look_at_right_hand(_ eye: simd_float3, _ target: simd_float3, _ up: simd_float3)
@@ -284,7 +289,8 @@ public func matrix_look_at_right_hand(_ eye: simd_float3, _ target: simd_float3,
             vector_float4(x.y, y.y, z.y, 0),
             vector_float4(x.z, y.z, z.z, 0),
             vector_float4(t.x, t.y, t.z, 1.0)
-        ))
+        )
+    )
 }
 
 public func matrix_ortho_right_hand(
@@ -299,7 +305,8 @@ public func matrix_ortho_right_hand(
                 (left + right) / (left - right), (top + bottom) / (bottom - top), nearZ / (nearZ - farZ),
                 1.0
             )
-        ))
+        )
+    )
 }
 
 public func quaternion_lookAt(eye: simd_float3, target: simd_float3, up: simd_float3) -> simd_quatf {
@@ -345,8 +352,7 @@ public func quaternion_lookAt(eye: simd_float3, target: simd_float3, up: simd_fl
 }
 
 public func getRotationQuaternion(axis: simd_float3, angle: Float) -> simd_quatf {
-    let q: simd_quatf = .init(angle: angle, axis: axis)
-    return q
+    .init(angle: angle, axis: axis)
 }
 
 public func forwardDirectionVector(from q: simd_quatf) -> simd_float3 {
@@ -382,8 +388,7 @@ public func rightDirectionVector(from q: simd_quatf) -> simd_float3 {
 }
 
 public func rotateVectorUsingQuaternion(q: simd_quatf, v: simd_float3) -> simd_float3 {
-    let vec: simd_float3 = simd_act(q, v)
-    return vec
+    simd_act(q, v)
 }
 
 public func transformQuaternionToMatrix3x3(q: simd_quatf) -> matrix_float3x3 {
@@ -543,9 +548,7 @@ public func makeAABB(uMin: simd_float3, uMax: simd_float3) -> [simd_float3] {
     let v6 = simd_float3(-width, -height, -depth)
     let v7 = simd_float3(-width, -height, depth)
 
-    let aabb: [simd_float3] = [v0, v1, v2, v3, v4, v5, v6, v7]
-
-    return aabb
+    return [v0, v1, v2, v3, v4, v5, v6, v7]
 }
 
 public func rayDirectionInWorldSpace(

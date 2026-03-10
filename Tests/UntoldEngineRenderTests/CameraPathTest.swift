@@ -92,7 +92,7 @@ final class CameraPathTests: BaseRenderSetup {
         XCTAssertLessThan(positionDelta, 1e-3, "Camera should snap to single waypoint position")
     }
 
-    func test_reachesFinalWaypoint() {
+    func test_reachesFinalWaypoint() throws {
         let camera = findGameCamera()
 
         let waypoints = [
@@ -101,7 +101,7 @@ final class CameraPathTests: BaseRenderSetup {
             CameraWaypoint(position: simd_float3(5, 1, 0), rotation: simd_quatf(angle: 0, axis: simd_float3(0, 1, 0)), segmentDuration: 0.5),
         ]
 
-        let finalPosition = waypoints.last!.position
+        let finalPosition = try XCTUnwrap(waypoints.last?.position)
 
         startCameraPath(waypoints: waypoints, mode: .once)
 

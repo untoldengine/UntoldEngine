@@ -56,7 +56,7 @@ final class RendererTests: BaseRenderSetup {
     }
 
     /* Uncomment to generate reference images*/
-    /*
+    /**
      func testGenerateReferenceImages() {
          // Ensure renderer and metalview are properly initialized
          XCTAssertNotNil(renderer, "Renderer should be initialized")
@@ -381,13 +381,13 @@ final class RendererTests: BaseRenderSetup {
         wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
     }
 
-    func testDefaultMeshCreation() {
+    func testDefaultMeshCreation() throws {
         let mesh = Mesh.makeDefaultMesh()
 
         XCTAssertGreaterThan(mesh[0].metalKitMesh.vertexCount, 0)
         XCTAssertGreaterThan(mesh[0].metalKitMesh.submeshes.count, 0)
         // verify attribute layout index 0 = position, 1 = uv, etc.
-        let vb = mesh[0].metalKitMesh.vertexBuffers.first!
+        let vb = try XCTUnwrap(mesh[0].metalKitMesh.vertexBuffers.first)
         XCTAssertGreaterThan(vb.length, 0)
     }
 

@@ -139,10 +139,10 @@ struct AssetOverrideData: Codable {
     var name: String?
     var pickParticipation: Bool?
     var pickHitRepresentationMode: Int?
-    // Explicit per-node static batching state for derived asset nodes.
-    // true  -> force static for this node
-    // false -> force non-static for this node
-    // nil   -> no override (legacy scenes)
+    /// Explicit per-node static batching state for derived asset nodes.
+    /// true  -> force static for this node
+    /// false -> force non-static for this node
+    /// nil   -> no override (legacy scenes)
     var hasStaticBatchComponent: Bool?
 }
 
@@ -211,13 +211,13 @@ struct EntityData: Codable {
 
     var customComponents: [String: Data]? = nil
 
-    // New Asset Instance system
+    /// New Asset Instance system
     var assetInstance: AssetInstanceData? = nil
 
-    // LOD system
+    /// LOD system
     var lodData: LODData? = nil
 
-    // Geometry Streaming system
+    /// Geometry Streaming system
     var streamingData: StreamingData? = nil
 }
 
@@ -486,8 +486,8 @@ public func serializeScene() -> SceneData {
             }
         }
 
-        // Static Batch properties
-        // Check if entity or any of its children have StaticBatchComponent
+        /// Static Batch properties
+        /// Check if entity or any of its children have StaticBatchComponent
         func hasStaticBatchInHierarchy(entityId: EntityID) -> Bool {
             // Check self
             if hasComponent(entityId: entityId, componentType: StaticBatchComponent.self) {
@@ -1357,7 +1357,7 @@ public func deserializeScene(
     loadTracker.checkCompletion()
 }
 
-// Notification posted when asset instance has finished loading and overrides have been applied
+/// Notification posted when asset instance has finished loading and overrides have been applied
 public extension Notification.Name {
     static let assetInstanceDidLoad = Notification.Name("assetInstanceDidLoad")
 }

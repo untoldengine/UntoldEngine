@@ -13,7 +13,7 @@ import simd
 import XCTest
 
 final class InputSystemExtensionsTests: XCTestCase {
-    // Reset the shared instance's mutable bits before each test
+    /// Reset the shared instance's mutable bits before each test
     override func setUp() {
         super.setUp()
         xrInputSingletonTestLock.lock()

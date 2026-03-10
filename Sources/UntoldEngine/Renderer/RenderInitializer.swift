@@ -174,7 +174,7 @@ func createRenderPassDescriptor(
 // Initialization routines
 
 func initBufferResources() {
-    // Initialize Grid Buffers
+    /// Initialize Grid Buffers
     func initGridBuffers() {
         bufferResources.gridVertexBuffer = createBuffer(
             device: renderInfo.device,
@@ -188,7 +188,7 @@ func initBufferResources() {
         )
     }
 
-    // Initialize Composite Buffers
+    /// Initialize Composite Buffers
     func initCompositeBuffers() {
         bufferResources.quadVerticesBuffer = createBuffer(
             device: renderInfo.device,
@@ -207,7 +207,7 @@ func initBufferResources() {
         )
     }
 
-    // Initialize Point Light Buffer
+    /// Initialize Point Light Buffer
     func initPointLightBuffer() {
         let maxLights = 1024
         let headerSize = MemoryLayout<UInt32>.stride * 4 // 4 * u32 (count + pad) = 16B
@@ -226,7 +226,7 @@ func initBufferResources() {
         )
     }
 
-    // Initialize Spot Light Buffer
+    /// Initialize Spot Light Buffer
     func initSpotLightBuffer() {
         let maxLights = 1024
         let headerSize = MemoryLayout<UInt32>.stride * 4 // 4 * u32 (count + pad) = 16B
@@ -242,7 +242,7 @@ func initBufferResources() {
         )
     }
 
-    // Initialize Area Light Buffer
+    /// Initialize Area Light Buffer
     func initAreaLightBuffer() {
         let maxLights = 1024
         let headerSize = MemoryLayout<UInt32>.stride * 4 // 4 * u32 (count + pad) = 16B
@@ -256,7 +256,7 @@ func initBufferResources() {
         bufferResources.areaLightBuffer = createEmptyBuffer(device: renderInfo.device, length: blockSize, options: options, label: "Area Light")
     }
 
-    // Initialize Bounding Box Buffer
+    /// Initialize Bounding Box Buffer
     func initBoundingBoxBuffer() {
         bufferResources.boundingBoxBuffer = createEmptyBuffer(
             device: renderInfo.device,
@@ -274,7 +274,7 @@ func initBufferResources() {
     initBoundingBoxBuffer()
 }
 
-// Initialize RTX Accumulation Buffer
+/// Initialize RTX Accumulation Buffer
 func initRTXAccumulationBuffer() {
     let width = Int(renderInfo.viewPort.x)
     let height = Int(renderInfo.viewPort.y)
@@ -819,21 +819,24 @@ func createShadowVertexDescriptor() -> MTLVertexDescriptor {
     vertexDescriptor.attributes[Int(shadowPassModelPositionIndex.rawValue)].format =
         MTLVertexFormat.float4
     vertexDescriptor.attributes[Int(shadowPassModelPositionIndex.rawValue)].bufferIndex = Int(
-        shadowPassModelPositionIndex.rawValue)
+        shadowPassModelPositionIndex.rawValue
+    )
     vertexDescriptor.attributes[Int(shadowPassModelPositionIndex.rawValue)].offset = 0
 
     // set joint id
     vertexDescriptor.attributes[Int(shadowPassJointIdIndex.rawValue)].format =
         MTLVertexFormat.ushort4
     vertexDescriptor.attributes[Int(shadowPassJointIdIndex.rawValue)].bufferIndex = Int(
-        shadowPassJointIdIndex.rawValue)
+        shadowPassJointIdIndex.rawValue
+    )
     vertexDescriptor.attributes[Int(shadowPassJointIdIndex.rawValue)].offset = 0
 
     // set joint weights
     vertexDescriptor.attributes[Int(shadowPassJointWeightsIndex.rawValue)].format =
         MTLVertexFormat.float4
     vertexDescriptor.attributes[Int(shadowPassJointWeightsIndex.rawValue)].bufferIndex = Int(
-        shadowPassJointWeightsIndex.rawValue)
+        shadowPassJointWeightsIndex.rawValue
+    )
     vertexDescriptor.attributes[Int(shadowPassJointWeightsIndex.rawValue)].offset = 0
 
     // stride
@@ -914,22 +917,28 @@ func createModelVertexDescriptor() -> MTLVertexDescriptor? {
     )
 
     vertexDescriptor.model.layouts[Int(modelPassVerticesIndex.rawValue)] = MDLVertexBufferLayout(
-        stride: MemoryLayout<simd_float4>.stride)
+        stride: MemoryLayout<simd_float4>.stride
+    )
 
     vertexDescriptor.model.layouts[Int(modelPassNormalIndex.rawValue)] = MDLVertexBufferLayout(
-        stride: MemoryLayout<simd_float4>.stride)
+        stride: MemoryLayout<simd_float4>.stride
+    )
 
     vertexDescriptor.model.layouts[Int(modelPassUVIndex.rawValue)] = MDLVertexBufferLayout(
-        stride: MemoryLayout<simd_float2>.stride)
+        stride: MemoryLayout<simd_float2>.stride
+    )
 
     vertexDescriptor.model.layouts[Int(modelPassTangentIndex.rawValue)] = MDLVertexBufferLayout(
-        stride: MemoryLayout<simd_float4>.stride)
+        stride: MemoryLayout<simd_float4>.stride
+    )
 
     vertexDescriptor.model.layouts[Int(modelPassJointIdIndex.rawValue)] = MDLVertexBufferLayout(
-        stride: MemoryLayout<simd_ushort4>.stride)
+        stride: MemoryLayout<simd_ushort4>.stride
+    )
 
     vertexDescriptor.model.layouts[Int(modelPassJointWeightsIndex.rawValue)] = MDLVertexBufferLayout(
-        stride: MemoryLayout<simd_float4>.stride)
+        stride: MemoryLayout<simd_float4>.stride
+    )
 
     guard let vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor.model) else {
         return nil
@@ -1099,9 +1108,7 @@ func createIBLPreFilterVertexDescriptor() -> MTLVertexDescriptor {
 
 func createGaussianVertexDescriptor() -> MTLVertexDescriptor {
     // tell the gpu how data is organized
-    let vertexDescriptor = MTLVertexDescriptor()
-
-    return vertexDescriptor
+    MTLVertexDescriptor()
 }
 
 func createEnvironmentVertexDescriptor() -> MTLVertexDescriptor {
@@ -1158,7 +1165,7 @@ func initSSAOResources() {
     textureResources.ssaoNoiseTexture = generateSSAONoiseTexture(device: renderInfo.device)
 }
 
-// Reinitialize SSAO textures when quality changes
+/// Reinitialize SSAO textures when quality changes
 func reinitSSAOTextures() {
     let quality = SSAOParams.shared.quality
     let scale = quality.resolutionScale

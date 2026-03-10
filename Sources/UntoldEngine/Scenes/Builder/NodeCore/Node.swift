@@ -16,7 +16,9 @@ public protocol NodeProtocol {
 
 open class Node: NodeProtocol, NodeTransform {
     var _entityID: EntityID
-    public var entityID: EntityID { _entityID }
+    public var entityID: EntityID {
+        _entityID
+    }
 
     public var subNodes: [any NodeProtocol] = []
 

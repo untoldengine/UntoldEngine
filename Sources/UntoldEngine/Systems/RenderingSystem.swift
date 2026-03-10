@@ -331,7 +331,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
     return (graph, outputPass.id)
 }
 
-// G-Buffer Pass
+/// G-Buffer Pass
 func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
     let modelPass = RenderPass(
         id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
@@ -358,7 +358,7 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
     graph[lightPass.id] = lightPass
 }
 
-// Post process passes
+/// Post process passes
 func postProcessingEffects(graph: inout [String: RenderPass], deferredPassId: String, geometryPassId: String) -> RenderPass {
     let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [deferredPassId], execute: depthOfFieldRenderPass)
 
@@ -426,7 +426,7 @@ func postProcessingEffects(graph: inout [String: RenderPass], deferredPassId: St
     return vignettePass
 }
 
-// Gaussian render graph
+/// Gaussian render graph
 public func buildGaussianGraph() -> RenderGraphResult {
     var graph = [String: RenderPass]()
 

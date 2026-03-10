@@ -842,7 +842,7 @@ public func loadSceneAsync(
     }
 }
 
-// Cache to avoid reloading USDZ files multiple times for skeleton checks
+/// Cache to avoid reloading USDZ files multiple times for skeleton checks
 private var skeletonCache: [URL: MDLSkeleton?] = [:]
 
 func removeEntityMesh(entityId: EntityID) {
@@ -961,7 +961,7 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
         return
     }
 
-    // Helper function to add animation clips
+    /// Helper function to add animation clips
     func addClips(to animationComponent: AnimationComponent) {
         for assetAnimation in assetAnimations {
             let animationClip = AnimationClip(animation: assetAnimation, animationName: name)
@@ -1499,7 +1499,7 @@ private func removeEntityStaticBatchComponentRecursive(entityId: EntityID) {
     }
 }
 
-// Internal cleanup function for entity destruction (non-recursive, called per entity)
+/// Internal cleanup function for entity destruction (non-recursive, called per entity)
 func removeEntityStaticBatch(entityId: EntityID) {
     if scene.get(component: StaticBatchComponent.self, for: entityId) != nil {
         scene.remove(component: StaticBatchComponent.self, from: entityId)
@@ -1914,7 +1914,7 @@ public func registerLODComponent(
     }
 }
 
-// Geometry Streaming
+/// Geometry Streaming
 /// Enable streaming for an entity that already has a mesh
 /// Call this AFTER setEntityMesh() or setEntityMeshAsync()
 /// For multi-mesh assets, this enables streaming on all child entities with RenderComponents

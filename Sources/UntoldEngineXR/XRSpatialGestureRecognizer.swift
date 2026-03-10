@@ -61,7 +61,7 @@
                 return
             }
 
-            for (snapshotIndex, snapshot) in snapshots.enumerated() {
+            for (_, snapshot) in snapshots.enumerated() {
                 updateHandTrackingState(from: snapshot, state: &state)
                 updateTwoHandPinchGestures(state: &state, phase: snapshot.phase)
 

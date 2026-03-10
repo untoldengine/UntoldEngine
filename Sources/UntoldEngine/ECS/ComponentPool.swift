@@ -16,10 +16,10 @@ struct TypeInfo {
     let type: Any.Type
 }
 
-// Global dictionary to store component IDs for each type
+/// Global dictionary to store component IDs for each type
 var componentIDs = [ObjectIdentifier: TypeInfo]()
 
-// Function to get or create a component ID for a specific type
+/// Function to get or create a component ID for a specific type
 public func getComponentId(for type: (some Any).Type) -> Int {
     let typeId = ObjectIdentifier(type)
 
@@ -61,7 +61,7 @@ public struct ComponentPool {
         return data.advanced(by: index * elementSize)
     }
 
-    // Add a new component to the pool at a specified index
+    /// Add a new component to the pool at a specified index
     public mutating func add<T: Component>(component: T, at index: Int) {
         guard let data else { fatalError("Data in ComponentPool is nil.") }
         let componentPointer = data.advanced(by: index * elementSize).assumingMemoryBound(to: T.self)
@@ -84,7 +84,9 @@ public struct ComponentMask: Equatable, Hashable {
         bits &= ~(1 &<< index)
     }
 
-    @inlinable public mutating func resetAll() { bits = 0 }
+    @inlinable public mutating func resetAll() {
+        bits = 0
+    }
 
     @inlinable public func test(_ index: Int) -> Bool {
         precondition(index >= 0 && index < 64)
@@ -96,8 +98,13 @@ public struct ComponentMask: Equatable, Hashable {
         (bits & other.bits) == other.bits
     }
 
-    @inlinable func intersects(_ other: ComponentMask) -> Bool { (bits & other.bits) != 0 }
-    @inlinable func isDisjoint(with other: ComponentMask) -> Bool { (bits & other.bits) == 0 }
+    @inlinable func intersects(_ other: ComponentMask) -> Bool {
+        (bits & other.bits) != 0
+    }
+
+    @inlinable func isDisjoint(with other: ComponentMask) -> Bool {
+        (bits & other.bits) == 0
+    }
 }
 
 @inlinable
