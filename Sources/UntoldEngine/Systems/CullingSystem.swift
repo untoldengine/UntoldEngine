@@ -45,7 +45,7 @@ func padFrustum(_ F: Frustum,
     return Frustum(planes: p)
 }
 
-// ---------- Local OBB → world AABB (handles rotation+scale safely) ----------
+/// ---------- Local OBB → world AABB (handles rotation+scale safely) ----------
 public func worldAABB_MinMax(localMin: simd_float3,
                              localMax: simd_float3,
                              worldMatrix M: simd_float4x4) -> (min: simd_float3, max: simd_float3)

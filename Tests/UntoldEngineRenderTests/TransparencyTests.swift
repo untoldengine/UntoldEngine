@@ -257,13 +257,13 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
         }
     }
 
-    func testTransparencyPass_topologicalPositionAfterLightBeforePostProcess() {
+    func testTransparencyPass_topologicalPositionAfterLightBeforePostProcess() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         bypassPostProcessing = false
 
         let (graph, _) = buildGameModeGraph()
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
         let order = sorted.map(\.id)
 
         guard let transparencyIndex = order.firstIndex(of: "transparency"),

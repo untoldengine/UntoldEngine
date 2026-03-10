@@ -11,8 +11,13 @@
 public struct RenderPipelineType: Hashable, ExpressibleByStringLiteral {
     let rawValue: String
 
-    public init(_ rawValue: String) { self.rawValue = rawValue }
-    public init(stringLiteral value: String) { rawValue = value }
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        rawValue = value
+    }
 }
 
 public extension RenderPipelineType {

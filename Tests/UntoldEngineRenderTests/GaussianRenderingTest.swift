@@ -104,10 +104,10 @@ final class GaussianRenderingTest: BaseRenderSetup {
                        "Final pass ID should be 'precomp'")
     }
 
-    func testBuildGaussianGraph_ValidTopologicalOrder() {
+    func testBuildGaussianGraph_ValidTopologicalOrder() throws {
         let (graph, _) = buildGaussianGraph()
 
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
         let order = sorted.map(\.id)
 
         XCTAssertEqual(order.count, 2, "Should have exactly 2 passes")
@@ -248,14 +248,14 @@ final class GaussianRenderingTest: BaseRenderSetup {
                              "Viewport height should be positive")
     }
 
-    func testGaussianGraph_CanBeSortedTopologically() {
+    func testGaussianGraph_CanBeSortedTopologically() throws {
         let (graph, _) = buildGaussianGraph()
 
         // Should not throw
         XCTAssertNoThrow(try topologicalSortGraph(graph: graph),
                          "Gaussian graph should be topologically sortable")
 
-        let sorted = try! topologicalSortGraph(graph: graph)
+        let sorted = try topologicalSortGraph(graph: graph)
         XCTAssertEqual(sorted.count, graph.count,
                        "Sorted passes should equal total passes")
     }

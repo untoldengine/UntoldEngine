@@ -77,7 +77,9 @@ public final class InputSystem {
     public var pinchDelta: simd_float3 = .init(0, 0, 0)
     public var previousScale: CGFloat = 1
 
-    init() { registerGameControllerEvents() }
+    init() {
+        registerGameControllerEvents()
+    }
 
     public func registerGameControllerEvents() {
         NotificationCenter.default.addObserver(self,

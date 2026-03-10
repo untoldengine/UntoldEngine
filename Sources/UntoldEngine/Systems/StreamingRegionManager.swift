@@ -358,7 +358,7 @@ public struct StreamingStats {
     public var regionMemory: Int // Actual memory used by streaming region entities
     public var estimatedMemory: Int // User-specified estimate from region.estimatedMemorySize
 
-    // Total engine memory (all entities, not just streaming)
+    /// Total engine memory (all entities, not just streaming)
     public var totalEngineMemory: Int // From MemoryBudgetManager (entire engine)
 }
 

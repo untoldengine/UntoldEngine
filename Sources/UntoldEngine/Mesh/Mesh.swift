@@ -183,7 +183,7 @@ public struct Mesh {
         return copy
     }
 
-    // Load meshes from a file URL
+    /// Load meshes from a file URL
     static func loadMeshes(url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, flip: Bool, coordinateConversion: CoordinateSystemConversion = .autoDetect) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
@@ -213,7 +213,7 @@ public struct Mesh {
         return makeDefaultMesh()
     }
 
-    // Load meshes asynchronously from a file URL
+    /// Load meshes asynchronously from a file URL
     static func loadMeshesAsync(
         url: URL,
         vertexDescriptor: MDLVertexDescriptor,
@@ -367,7 +367,7 @@ public struct Mesh {
         return meshGroups
     }
 
-    // Load scene meshes asynchronously from a file URL
+    /// Load scene meshes asynchronously from a file URL
     static func loadSceneMeshesAsync(
         url: URL,
         vertexDescriptor: MDLVertexDescriptor,
@@ -572,7 +572,7 @@ public struct Mesh {
         return []
     }
 
-    // Load a specific mesh by name asynchronously from a file URL
+    /// Load a specific mesh by name asynchronously from a file URL
     static func loadMeshWithNameAsync(
         name: String,
         url: URL,
@@ -607,9 +607,7 @@ public struct Mesh {
 
             // Find the matching object
             let topLevelObjects = asset.childObjects(of: MDLObject.self)
-            let matched = topLevelObjects.first { $0.name == name }
-
-            return matched
+            return topLevelObjects.first { $0.name == name }
         }.value
 
         // Create Metal resources off-main to maximize parallelism across async loads.
@@ -645,7 +643,7 @@ public struct Mesh {
         return meshGroup
     }
 
-    // Recursively find and create Mesh objects from ModelIO hierarchy
+    /// Recursively find and create Mesh objects from ModelIO hierarchy
     static func makeMeshes(object: MDLObject, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip: Bool) -> [Mesh] {
         var meshes = [Mesh]()
 
@@ -706,7 +704,7 @@ public struct Mesh {
         return (min: combinedMin, max: combinedMax)
     }
 
-    // Helper to create one fallback mesh
+    /// Helper to create one fallback mesh
     static func makeDefaultMesh() -> [Mesh] {
         let textureLoader = TextureLoader(device: renderInfo.device)
         let bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
@@ -755,7 +753,9 @@ public enum WrapMode: Int, CaseIterable, Identifiable, CustomStringConvertible {
     case clampToEdge
     case `repeat`
 
-    public var id: Int { rawValue }
+    public var id: Int {
+        rawValue
+    }
 
     public var description: String {
         switch self {
@@ -770,7 +770,9 @@ public enum MaterialAlphaMode: Int32, CaseIterable, Identifiable, CustomStringCo
     case mask = 1
     case blend = 2
 
-    public var id: Int32 { rawValue }
+    public var id: Int32 {
+        rawValue
+    }
 
     public var description: String {
         switch self {
@@ -994,12 +996,26 @@ public struct Material {
     public var alphaMode: MaterialAlphaMode = .opaque
     public var alphaCutoff: Float = 0.5
 
-    // Texture presence flags
-    public var hasNormalMap: Bool { normal.texture != nil }
-    public var hasBaseMap: Bool { baseColor.texture != nil }
-    public var hasRoughMap: Bool { roughness.texture != nil }
-    public var hasMetalMap: Bool { metallic.texture != nil }
-    public var hasTransparency: Bool { alphaMode == .blend }
+    /// Texture presence flags
+    public var hasNormalMap: Bool {
+        normal.texture != nil
+    }
+
+    public var hasBaseMap: Bool {
+        baseColor.texture != nil
+    }
+
+    public var hasRoughMap: Bool {
+        roughness.texture != nil
+    }
+
+    public var hasMetalMap: Bool {
+        metallic.texture != nil
+    }
+
+    public var hasTransparency: Bool {
+        alphaMode == .blend
+    }
 
     public var stScale: Float = 1.0
 

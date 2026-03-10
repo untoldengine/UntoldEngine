@@ -21,7 +21,7 @@ public enum ScenePickingBackendPreference {
     case octreeGPUPreferred
     /// GPU ray-triangle for all visible entities (builds full acceleration structure).
     case gpuOnly
-    // Deprecated aliases for backward compatibility
+    /// Deprecated aliases for backward compatibility
     @available(*, deprecated, renamed: "octreeGPUPreferred")
     static let gpuPreferred = octreeGPUPreferred
     @available(*, deprecated, renamed: "octreeGPUPreferred")

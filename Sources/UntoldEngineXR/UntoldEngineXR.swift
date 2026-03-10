@@ -45,7 +45,7 @@
         private let passDescriptorRight = MTLRenderPassDescriptor()
         private let spatialGestureRecognizer = XRSpatialGestureRecognizer()
 
-        // Task handle for the plane-update monitor so we can cancel it on shutdown.
+        /// Task handle for the plane-update monitor so we can cancel it on shutdown.
         private var planeMonitorTask: Task<Void, Never>?
 
         #if canImport(ARKit)
@@ -271,7 +271,7 @@
             }
         }
 
-        // Performs exactly one frame of rendering
+        /// Performs exactly one frame of rendering
         private func renderNewFrame() {
             // 1. Call queryNextFrame() to fetch the next frame to use for drawing
             guard let layerRenderer else { return }

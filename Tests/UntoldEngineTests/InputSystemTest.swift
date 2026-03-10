@@ -13,7 +13,7 @@ import simd
 import XCTest
 
 final class InputSystemTests: XCTestCase {
-    // Reset the shared instance’s mutable bits before each test
+    /// Reset the shared instance’s mutable bits before each test
     override func setUp() {
         super.setUp()
         let input = InputSystem.shared
@@ -89,7 +89,7 @@ final class InputSystemTests: XCTestCase {
     func test_mouseDelta_math() {
         let input = InputSystem.shared
 
-        // Simulate moving mouse and compute deltas like your render loop would
+        /// Simulate moving mouse and compute deltas like your render loop would
         func applyMouseMove(to x: Float, _ y: Float) {
             input.lastMouseX = input.mouseX
             input.lastMouseY = input.mouseY
@@ -173,8 +173,13 @@ final class InputSystemTests: XCTestCase {
             final class FakeButton {
                 typealias Handler = (AnyObject, Float, Bool) -> Void
                 var pressedChangedHandler: Handler?
-                func press() { pressedChangedHandler?(self, 1.0, true) }
-                func release() { pressedChangedHandler?(self, 0.0, false) }
+                func press() {
+                    pressedChangedHandler?(self, 1.0, true)
+                }
+
+                func release() {
+                    pressedChangedHandler?(self, 0.0, false)
+                }
             }
 
             final class FakeExtendedGamepad: NSObject {
@@ -182,8 +187,8 @@ final class InputSystemTests: XCTestCase {
                 let buttonB = FakeButton()
             }
 
-            // Local shim that reuses InputSystem’s logic for assigning handlers,
-            // implemented as a tiny friend that lives only in tests.
+            /// Local shim that reuses InputSystem’s logic for assigning handlers,
+            /// implemented as a tiny friend that lives only in tests.
             func installHandlers(_ gamepad: FakeExtendedGamepad, into input: InputSystem) {
                 // Mirror your closures’ behavior:
                 gamepad.buttonA.pressedChangedHandler = { [weak input] _, _, pressed in

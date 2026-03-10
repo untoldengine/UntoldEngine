@@ -552,7 +552,7 @@ public final class USCBuilder {
 
     // MARK: - Camera
 
-    // Direct camera movement without ScriptAction.
+    /// Direct camera movement without ScriptAction.
     @discardableResult
     public func cameraMoveTo(_ position: simd_float3) -> USCBuilder {
         instructions.append(.cameraMoveTo(entity: "self",
@@ -936,7 +936,7 @@ public extension USCBuilder {
 // MARK: - Camera/Physics/Steering Instruction Helpers
 
 public extension USCBuilder {
-    // Camera helpers
+    /// Camera helpers
     @discardableResult
     func cameraMoveBy(_ offset: simd_float3) -> USCBuilder {
         instructions.append(.cameraMoveBy(entity: "self",
@@ -1003,7 +1003,7 @@ public extension USCBuilder {
         return self
     }
 
-    // Physics helpers (instruction-based)
+    /// Physics helpers (instruction-based)
     @discardableResult
     func applyLinearImpulse(direction: Value, magnitude: Value) -> USCBuilder {
         instructions.append(.applyLinearImpulse(entity: "self",
@@ -1084,7 +1084,7 @@ public extension USCBuilder {
         return self
     }
 
-    // Steering (returning Vec3 into result variable if provided)
+    /// Steering (returning Vec3 into result variable if provided)
     @discardableResult
     func seek(targetPosition: Value, maxSpeed: Value, result: String? = nil) -> USCBuilder {
         instructions.append(.seek(entity: "self",

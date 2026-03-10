@@ -13,7 +13,7 @@ import Foundation
 import simd
 
 public final class CameraSystem {
-    // Thread-safe shared instance
+    /// Thread-safe shared instance
     public static let shared: CameraSystem = .init()
 
     var _activeCamera: EntityID?
@@ -22,7 +22,7 @@ public final class CameraSystem {
         set { _activeCamera = newValue }
     }
 
-    // Camera path state (internal access for path functions)
+    /// Camera path state (internal access for path functions)
     fileprivate var pathState: CameraPathState?
 }
 
@@ -173,7 +173,7 @@ public func orbitAround(entityId: EntityID, uPosition: simd_float2) {
     cameraLookAt(entityId: entityId, eye: newPosition, target: cameraComponent.orbitTarget, up: newUpAxis)
 }
 
-// Returns a right-handed matrix which looks from a point (the "eye") at a target point, given the up vector.
+/// Returns a right-handed matrix which looks from a point (the "eye") at a target point, given the up vector.
 public func cameraLookAt(entityId: EntityID, eye: simd_float3, target: simd_float3, up: simd_float3) {
     guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
         return
@@ -314,7 +314,7 @@ public func moveCameraWithInput(entityId: EntityID, input: (w: Bool, a: Bool, s:
     moveCameraBy(entityId: entityId, delU: delU, delV: delV, delN: delN)
 }
 
-// Function to rotate the camera based on mouse movement
+/// Function to rotate the camera based on mouse movement
 public func rotateCamera(entityId: EntityID, pitch: Float, yaw: Float, sensitivity: Float = 1.0) {
     guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
         return
@@ -583,7 +583,7 @@ struct CameraPathState {
 
 // MARK: - Camera Path Following API
 
-/**
+/*
  Camera Path Following System
 
  This API enables the active camera to follow a deterministic path through a sequence of waypoints,

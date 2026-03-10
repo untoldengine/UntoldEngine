@@ -86,7 +86,9 @@ final class GpuKernelTests: BaseRenderSetup {
 
     private struct SeededRNG {
         private var state: UInt64
-        init(_ seed: UInt64) { state = seed == 0 ? 0x554E_544F_4C44 : seed } // "UNTOLD" :)
+        init(_ seed: UInt64) {
+            state = seed == 0 ? 0x554E_544F_4C44 : seed
+        } // "UNTOLD" :)
         mutating func next() -> UInt32 {
             state ^= state << 13; state ^= state >> 7; state ^= state << 17
             return UInt32(truncatingIfNeeded: state)

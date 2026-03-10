@@ -28,7 +28,7 @@ final class CullingTest: BaseRenderSetup {
         destroyEntity(entityId: camera)
     }
 
-    // CPU reference test (same math as your GPU code)
+    /// CPU reference test (same math as your GPU code)
     @inline(__always)
     func cpuInFrustum(center c: simd_float3, extent e: simd_float3, planes: [simd_float4]) -> Bool {
         let epsilon: Float = 0.0001
@@ -180,7 +180,7 @@ final class CullingTest: BaseRenderSetup {
         var pad1: UInt32
     }
 
-    func test_kernel_matches_cpu_reference() {
+    func test_kernel_matches_cpu_reference() throws {
         // Frustum planes (nx,ny,nz,d). Keep it simple & deterministic.
         let planes: [simd_float4] = [
             simd_float4(1, 0, 0, 1), // x >= -1
@@ -209,18 +209,18 @@ final class CullingTest: BaseRenderSetup {
         // Buffers
         let aabbBuf = renderInfo.device.makeBuffer(bytes: &aabbs, length: MemoryLayout<EntityAABB>.stride * aabbs.count)!
         let planesBuf = renderInfo.device.makeBuffer(length: MemoryLayout<simd_float4>.stride * 6, options: [])!
-        let visibleCountBuf = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride, options: [])!
+        let visibleCountBuf = try XCTUnwrap(renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride, options: []))
         let visBuf = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride * aabbs.count, options: [])!
 
         // Zero visible count
         memset(visibleCountBuf.contents(), 0, MemoryLayout<UInt32>.stride)
 
         // Dispatch
-        let cmd = renderInfo.commandQueue.makeCommandBuffer()!
+        let cmd = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
 
-        _ = dispatchFrustumCull(
+        _ = try dispatchFrustumCull(
             cmd,
-            pipeline: frustumCullingPipeline.pipelineState!,
+            pipeline: XCTUnwrap(frustumCullingPipeline.pipelineState),
             frustumPlanes: planes,
             aabbs: aabbBuf,
             aabbCount: aabbs.count,
@@ -281,7 +281,7 @@ final class CullingTest: BaseRenderSetup {
         )
     }
 
-    func test_executeHZBOcclusionCulling_keeps_visible_candidate_when_not_occluded() {
+    func test_executeHZBOcclusionCulling_keeps_visible_candidate_when_not_occluded() throws {
         let originalHZBTexture = textureResources.hzbDepthPyramid
         let originalHZBMipCount = renderInfo.hzbMipCount
         let originalHZBValid = renderInfo.hzbIsValid
@@ -300,13 +300,13 @@ final class CullingTest: BaseRenderSetup {
 
         var candidateCount: UInt32 = 1
         var candidate = makeVisibleEntity(center: simd_float3(0, 0, 0.6), halfExtent: simd_float3(0.1, 0.1, 0.1), index: 42, version: 9)
-        let inputCountBuffer = renderInfo.device.makeBuffer(bytes: &candidateCount, length: MemoryLayout<UInt32>.stride)!
-        let inputVisibilityBuffer = renderInfo.device.makeBuffer(bytes: &candidate, length: MemoryLayout<VisibleEntity>.stride)!
-        let outputCountBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride)!
-        let outputVisibilityBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride)!
+        let inputCountBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(bytes: &candidateCount, length: MemoryLayout<UInt32>.stride))
+        let inputVisibilityBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(bytes: &candidate, length: MemoryLayout<VisibleEntity>.stride))
+        let outputCountBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride))
+        let outputVisibilityBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride))
         memset(outputCountBuffer.contents(), 0, MemoryLayout<UInt32>.stride)
 
-        let commandBuffer = renderInfo.commandQueue.makeCommandBuffer()!
+        let commandBuffer = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
         let didRun = executeHZBOcclusionCulling(
             commandBuffer,
             viewProjection: matrix_identity_float4x4,
@@ -328,7 +328,7 @@ final class CullingTest: BaseRenderSetup {
         XCTAssertEqual(output[0].version, 9)
     }
 
-    func test_executeHZBOcclusionCulling_rejects_occluded_candidate() {
+    func test_executeHZBOcclusionCulling_rejects_occluded_candidate() throws {
         let originalHZBTexture = textureResources.hzbDepthPyramid
         let originalHZBMipCount = renderInfo.hzbMipCount
         let originalHZBValid = renderInfo.hzbIsValid
@@ -347,13 +347,13 @@ final class CullingTest: BaseRenderSetup {
 
         var candidateCount: UInt32 = 1
         var candidate = makeVisibleEntity(center: simd_float3(0, 0, 0.8), halfExtent: simd_float3(0.1, 0.1, 0.1), index: 7, version: 3)
-        let inputCountBuffer = renderInfo.device.makeBuffer(bytes: &candidateCount, length: MemoryLayout<UInt32>.stride)!
-        let inputVisibilityBuffer = renderInfo.device.makeBuffer(bytes: &candidate, length: MemoryLayout<VisibleEntity>.stride)!
-        let outputCountBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride)!
-        let outputVisibilityBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride)!
+        let inputCountBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(bytes: &candidateCount, length: MemoryLayout<UInt32>.stride))
+        let inputVisibilityBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(bytes: &candidate, length: MemoryLayout<VisibleEntity>.stride))
+        let outputCountBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride))
+        let outputVisibilityBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride))
         memset(outputCountBuffer.contents(), 0, MemoryLayout<UInt32>.stride)
 
-        let commandBuffer = renderInfo.commandQueue.makeCommandBuffer()!
+        let commandBuffer = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
         let didRun = executeHZBOcclusionCulling(
             commandBuffer,
             viewProjection: matrix_identity_float4x4,
@@ -371,7 +371,7 @@ final class CullingTest: BaseRenderSetup {
         XCTAssertEqual(outputCount, 0, "Candidate should be rejected as occluded")
     }
 
-    func test_executeHZBOcclusionCulling_returns_false_when_hzb_invalid() {
+    func test_executeHZBOcclusionCulling_returns_false_when_hzb_invalid() throws {
         let originalHZBTexture = textureResources.hzbDepthPyramid
         let originalHZBMipCount = renderInfo.hzbMipCount
         let originalHZBValid = renderInfo.hzbIsValid
@@ -390,14 +390,14 @@ final class CullingTest: BaseRenderSetup {
 
         var candidateCount: UInt32 = 1
         var candidate = makeVisibleEntity(center: simd_float3(0, 0, 0.6), halfExtent: simd_float3(0.1, 0.1, 0.1))
-        let inputCountBuffer = renderInfo.device.makeBuffer(bytes: &candidateCount, length: MemoryLayout<UInt32>.stride)!
-        let inputVisibilityBuffer = renderInfo.device.makeBuffer(bytes: &candidate, length: MemoryLayout<VisibleEntity>.stride)!
+        let inputCountBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(bytes: &candidateCount, length: MemoryLayout<UInt32>.stride))
+        let inputVisibilityBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(bytes: &candidate, length: MemoryLayout<VisibleEntity>.stride))
 
         var sentinel: UInt32 = 77
-        let outputCountBuffer = renderInfo.device.makeBuffer(bytes: &sentinel, length: MemoryLayout<UInt32>.stride)!
-        let outputVisibilityBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride)!
+        let outputCountBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(bytes: &sentinel, length: MemoryLayout<UInt32>.stride))
+        let outputVisibilityBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride))
 
-        let commandBuffer = renderInfo.commandQueue.makeCommandBuffer()!
+        let commandBuffer = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
         let didRun = executeHZBOcclusionCulling(
             commandBuffer,
             viewProjection: matrix_identity_float4x4,

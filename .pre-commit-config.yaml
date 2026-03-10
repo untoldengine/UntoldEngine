@@ -49,6 +49,6 @@ repos:
         language: system
         types: [swift]
         pass_filenames: true
-        args: ["--lint", "--quiet"]
+        args: ["--lint", "--swiftversion", "5.8", "--quiet"]
         stages: [pre-commit]
     

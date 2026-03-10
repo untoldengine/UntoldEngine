@@ -13,7 +13,7 @@ import Foundation
 import Metal
 import simd
 
-// Represents a group of meshes batched together
+/// Represents a group of meshes batched together
 public struct BatchGroup {
     var id: UUID
     var materialHash: String // Identifier for material compatibility
@@ -40,7 +40,7 @@ public struct EntityBatchInfo {
     public var materialHash: String
 }
 
-// Manages all batching operations
+/// Manages all batching operations
 public class BatchingSystem {
     public static let shared = BatchingSystem()
 
@@ -192,7 +192,7 @@ public class BatchingSystem {
         dirtyBatchIds.removeAll()
     }
 
-    // Generate batches for all static entities in the scene
+    /// Generate batches for all static entities in the scene
     public func generateBatches() {
         #if ENGINE_STATS_ENABLED
             let rebuildStart = CFAbsoluteTimeGetCurrent()
@@ -258,7 +258,7 @@ public class BatchingSystem {
                 let assetURL = renderComponent.assetURL
 
                 // Process each mesh in the render component
-                for (meshIndex, mesh) in renderComponent.mesh.enumerated() {
+                for (_, mesh) in renderComponent.mesh.enumerated() {
                     for (submeshIndex, submesh) in mesh.submeshes.enumerated() {
                         guard let material = submesh.material else { continue }
                         if material.hasTransparency { continue }
@@ -465,24 +465,24 @@ public class BatchingSystem {
         )
     }
 
-    // Clear all existing batches
+    /// Clear all existing batches
     public func clearBatches() {
         batchGroups.removeAll()
         entityToBatch.removeAll()
     }
 
-    // Check if an entity is part of a batch
+    /// Check if an entity is part of a batch
     public func isBatched(entityId: EntityID) -> Bool {
         entityToBatch[entityId] != nil
     }
 
-    // Get batch group for an entity
+    /// Get batch group for an entity
     public func getBatchGroup(for entityId: EntityID) -> BatchGroup? {
         guard let batchInfo = entityToBatch[entityId] else { return nil }
         return batchGroups.first { $0.id == batchInfo.batchId }
     }
 
-    // Get batch info for an entity
+    /// Get batch info for an entity
     public func getBatchInfo(for entityId: EntityID) -> EntityBatchInfo? {
         entityToBatch[entityId]
     }
@@ -495,8 +495,8 @@ public class BatchingSystem {
         batchingEnabled
     }
 
-    // Generate a hash representing material properties for batching compatibility
-    // assetURL is included to ensure textures from different USDZ files don't incorrectly batch together
+    /// Generate a hash representing material properties for batching compatibility
+    /// assetURL is included to ensure textures from different USDZ files don't incorrectly batch together
     private func getMaterialHash(material: Material, assetURL: URL? = nil) -> String {
         var components: [String] = []
 
@@ -542,7 +542,7 @@ public class BatchingSystem {
         return components.joined(separator: "|")
     }
 
-    // Returns a stable texture identity string.
+    /// Returns a stable texture identity string.
     private func textureIdentity(_ texture: MTLTexture?, _ url: URL?) -> String {
         if let url {
             return normalizeTextureURL(url)
@@ -553,7 +553,7 @@ public class BatchingSystem {
         return "none"
     }
 
-    // Normalize texture URL for batching compatibility.
+    /// Normalize texture URL for batching compatibility.
     private func normalizeTextureURL(_ url: URL?) -> String {
         guard let url else { return "none" }
 
@@ -583,13 +583,13 @@ public class BatchingSystem {
         return url.standardized.absoluteString
     }
 
-    // Check if two materials are compatible for batching
+    /// Check if two materials are compatible for batching
     private func areMaterialsCompatible(_ mat1: Material, _ mat2: Material) -> Bool {
         getMaterialHash(material: mat1) == getMaterialHash(material: mat2)
     }
 
-    // Extract vertex data from a mesh and transform to world space
-    // Returns separate arrays for each attribute (using float4 to match shader expectations)
+    /// Extract vertex data from a mesh and transform to world space
+    /// Returns separate arrays for each attribute (using float4 to match shader expectations)
     private func extractVertices(from mesh: Mesh, worldTransform: simd_float4x4) -> (
         positions: [simd_float4],
         normals: [simd_float4],
@@ -661,7 +661,7 @@ public class BatchingSystem {
         return (positions, normals, uvs, tangents)
     }
 
-    // Extract indices from a mesh with offset applied
+    /// Extract indices from a mesh with offset applied
     private func extractIndices(from mesh: Mesh, submeshIndex: Int, indexOffset: UInt32) -> [UInt32] {
         var indices: [UInt32] = []
 

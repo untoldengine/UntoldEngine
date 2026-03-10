@@ -53,6 +53,7 @@ jobs:
 
       # ✅ Run renderer tests (Metal-based, with PSNR Python script)
       - name: Run renderer tests (incl. PSNR)
+        timeout-minutes: 30
         env:
           CI: true
           UNTOLD_PSNR_THRESHOLD: "33.5"   # tweak per suite/scene

@@ -178,7 +178,9 @@ public func InitShadowPipeline() -> RenderPipeline? {
 
 // MARK: Model pipeline
 
-private var wf: WorkingColorFormats { renderInfo.colorPipeline.working }
+private var wf: WorkingColorFormats {
+    renderInfo.colorPipeline.working
+}
 
 public func InitModelPipeline() -> RenderPipeline? {
     CreatePipeline(
@@ -527,7 +529,8 @@ public func InitEnvironmentPipeline() -> RenderPipeline? {
 
     // Initialize the layout
     mdlVertexDescriptor.layouts[0] = MDLVertexBufferLayout(
-        stride: 2 * MemoryLayout<simd_float3>.stride + MemoryLayout<simd_float2>.stride)
+        stride: 2 * MemoryLayout<simd_float3>.stride + MemoryLayout<simd_float2>.stride
+    )
 
     guard let bufferLayouts = mdlVertexDescriptor.layouts as? [MDLVertexBufferLayout] else {
         fatalError("Could not get the MDL layouts")

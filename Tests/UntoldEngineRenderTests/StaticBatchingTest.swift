@@ -162,7 +162,7 @@ final class StaticBatchingTest: BaseRenderSetup {
             return
         }
 
-        for i in 0 ..< 3 {
+        for _ in 0 ..< 3 {
             let entity = createEntity()
 
             let meshes = Mesh.loadMeshes(
@@ -210,7 +210,7 @@ final class StaticBatchingTest: BaseRenderSetup {
             return
         }
 
-        for i in 0 ..< 3 {
+        for _ in 0 ..< 3 {
             let entity = createEntity()
             let meshes = Mesh.loadMeshes(url: ballURL, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: true)
 
@@ -320,7 +320,7 @@ final class StaticBatchingTest: BaseRenderSetup {
                 return
             }
 
-            for i in 0 ..< 50 {
+            for _ in 0 ..< 50 {
                 let entity = createEntity()
 
                 let meshes = Mesh.loadMeshes(
@@ -416,7 +416,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         }
 
         let entityCount = 10
-        for i in 0 ..< entityCount {
+        for _ in 0 ..< entityCount {
             let entity = createEntity()
 
             let meshes = Mesh.loadMeshes(
@@ -557,7 +557,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         }
 
         var entities: [EntityID] = []
-        for i in 0 ..< 4 {
+        for _ in 0 ..< 4 {
             let entity = createEntity()
 
             let meshes = Mesh.loadMeshes(
@@ -627,7 +627,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         }
 
         // First, create some batched entities so there's a batch to join
-        for i in 0 ..< 3 {
+        for _ in 0 ..< 3 {
             let entity = createEntity()
             let meshes = Mesh.loadMeshes(
                 url: ballURL,
@@ -955,15 +955,15 @@ final class StaticBatchingTest: BaseRenderSetup {
         print("✅ Entities with normalized texture URLs are correctly batched together")
     }
 
-    func testEmbeddedURLNormalizationFormat() {
+    func testEmbeddedURLNormalizationFormat() throws {
         // This test documents the expected behavior of URL normalization:
         // - "usdz-embedded://SM_Mesh_Name/embedded_Basecolor_map" -> "embedded_Basecolor_map"
         // - Regular file URLs should remain unchanged
         // - "none" for nil URLs
 
         // Given: Create a URL that simulates an embedded USDZ texture path
-        let embeddedURL1 = URL(string: "usdz-embedded://SM_Env_Pillar_Stone_1/embedded_Basecolor_map")!
-        let embeddedURL2 = URL(string: "usdz-embedded://SM_Env_Pillar_Stone_2/embedded_Basecolor_map")!
+        let embeddedURL1 = try XCTUnwrap(URL(string: "usdz-embedded://SM_Env_Pillar_Stone_1/embedded_Basecolor_map"))
+        let embeddedURL2 = try XCTUnwrap(URL(string: "usdz-embedded://SM_Env_Pillar_Stone_2/embedded_Basecolor_map"))
         let regularURL = URL(fileURLWithPath: "/path/to/texture.png")
 
         // Then: Embedded URLs should have the same last path component
@@ -1061,7 +1061,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         print("   Chair batch ID: \(chairBatchId?.uuidString ?? "nil")")
     }
 
-    func testLegacyEmbeddedPseudoURLsDoNotSplitBatching() {
+    func testLegacyEmbeddedPseudoURLsDoNotSplitBatching() throws {
         // Legacy embedded pseudo-URLs were mesh-scoped:
         // usdz-embedded://<meshName>/embedded_Basecolor_map
         // Even with different mesh hosts, entities should still batch together
@@ -1094,7 +1094,7 @@ final class StaticBatchingTest: BaseRenderSetup {
             _ = scene.assign(to: entity, component: WorldTransformComponent.self)
             setEntityStaticBatchComponent(entityId: entity)
 
-            let legacyEmbeddedURL = URL(string: "usdz-embedded://SM_Env_Ceiling_Stone_\(i)/embedded_Basecolor_map")!
+            let legacyEmbeddedURL = try XCTUnwrap(URL(string: "usdz-embedded://SM_Env_Ceiling_Stone_\(i)/embedded_Basecolor_map"))
             let didUpdate = updateMaterial(entityId: entity) { material in
                 material.baseColorURL = legacyEmbeddedURL
             }

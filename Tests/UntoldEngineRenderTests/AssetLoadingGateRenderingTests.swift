@@ -366,7 +366,7 @@ final class AssetLoadingGateRenderingTests: BaseRenderSetup {
         // This test verifies that the test logic paths match the actual implementation patterns
         // in UpdateRenderingSystem and executeXRSystemPass
 
-        // Test the UpdateRenderingSystem pattern
+        /// Test the UpdateRenderingSystem pattern
         func simulateUpdateRenderingSystem() -> (visibleUpdated: Bool, renderPrepExecuted: Bool) {
             let loading = AssetLoadingGate.shared.isLoadingAny
             var visibleUpdated = false

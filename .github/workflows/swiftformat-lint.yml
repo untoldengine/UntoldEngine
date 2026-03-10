@@ -10,10 +10,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SwiftFormat
+      - name: Install SwiftFormat 0.60.1
         run: |
-          brew update
-          brew install swiftformat
+          SWIFTFORMAT_VERSION="0.60.1"
+          curl -Lo /tmp/swiftformat.zip \
+            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_macos.zip"
+          unzip -o /tmp/swiftformat.zip -d /tmp/swiftformat
+          chmod +x /tmp/swiftformat/swiftformat
+          sudo mv /tmp/swiftformat/swiftformat /usr/local/bin/swiftformat
 
       - name: Show versions
         run: |
@@ -21,5 +25,5 @@ jobs:
           swift --version
 
       - name: Run SwiftFormat (lint mode)
-        run: swiftformat --lint . --swiftversion 5.7 --reporter github-actions-log
+        run: swiftformat --lint . --swiftversion 5.8 --reporter github-actions-log
 

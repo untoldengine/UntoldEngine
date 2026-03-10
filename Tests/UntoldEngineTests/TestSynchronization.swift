@@ -10,6 +10,6 @@
 
 import Foundation
 
-// Guards tests that mutate InputSystem.shared XR spatial state so they do not
-// race when XCTest executes classes in parallel.
+/// Guards tests that mutate InputSystem.shared XR spatial state so they do not
+/// race when XCTest executes classes in parallel.
 let xrInputSingletonTestLock = NSLock()

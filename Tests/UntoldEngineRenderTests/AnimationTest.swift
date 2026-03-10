@@ -29,7 +29,7 @@ final class AnimationTests: BaseRenderSetup {
         }
     }
 
-    // Save all test poses first, then PSNR from files
+    /// Save all test poses first, then PSNR from files
     func test_referenceKeyframes() throws {
         // Phase A: render & save all
         let outDir = FileManager.default.temporaryDirectory

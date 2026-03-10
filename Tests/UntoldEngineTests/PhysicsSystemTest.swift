@@ -193,7 +193,7 @@ final class PhysicsSystemTests: XCTestCase {
         XCTAssertEqual(acceleration, simd_float3(5, 0, 0), "Acceleration should be correctly calculated.")
     }
 
-    func testLinearVelocityUpdateWithForces() {
+    func testLinearVelocityUpdateWithForces() throws {
         setMass(entityId: entityId, mass: 2.0)
 
         var t: Float = 0.0
@@ -204,12 +204,12 @@ final class PhysicsSystemTests: XCTestCase {
         }
 
         let velocity = scene.get(component: PhysicsComponents.self, for: entityId)?.velocity
-        XCTAssertEqual(velocity!.x, 5.0, accuracy: 0.1, "x Velocity should be updated correctly.")
-        XCTAssertEqual(velocity!.y, 0.0, accuracy: 0.1, "y Velocity should be updated correctly.")
-        XCTAssertEqual(velocity!.z, 0.0, accuracy: 0.1, "z Velocity should be updated correctly.")
+        XCTAssertEqual(try XCTUnwrap(velocity?.x), 5.0, accuracy: 0.1, "x Velocity should be updated correctly.")
+        XCTAssertEqual(try XCTUnwrap(velocity?.y), 0.0, accuracy: 0.1, "y Velocity should be updated correctly.")
+        XCTAssertEqual(try XCTUnwrap(velocity?.z), 0.0, accuracy: 0.1, "z Velocity should be updated correctly.")
     }
 
-    func testPositionUpdateWithForces() {
+    func testPositionUpdateWithForces() throws {
         setMass(entityId: entityId, mass: 2.0)
 
         var t: Float = 0.0
@@ -221,9 +221,9 @@ final class PhysicsSystemTests: XCTestCase {
 
         let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
 
-        let position = simd_float3(transformComponent!.position.x,
-                                   transformComponent!.position.y,
-                                   transformComponent!.position.z)
+        let position = try simd_float3(XCTUnwrap(transformComponent?.position.x),
+                                       XCTUnwrap(transformComponent?.position.y),
+                                       XCTUnwrap(transformComponent?.position.z))
 
         let expectedPosition = simd_float3(2.5, 0.0, 0)
 
@@ -232,21 +232,21 @@ final class PhysicsSystemTests: XCTestCase {
         XCTAssertEqual(position.z, expectedPosition.z, accuracy: 0.1, "z Position should be correctly calculated.")
     }
 
-    func testClampLinearSpeed() {
+    func testClampLinearSpeed() throws {
         if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
             physics.velocity = simd_float3(10, 0, 0)
         }
         clampLinearSpeed(entityId: entityId, minSpeed: 2, maxSpeed: 5)
-        let speed = simd_length(scene.get(component: PhysicsComponents.self, for: entityId)!.velocity)
+        let speed = try simd_length(XCTUnwrap(scene.get(component: PhysicsComponents.self, for: entityId)?.velocity))
         XCTAssertEqual(speed, 5, accuracy: 0.0001)
     }
 
-    func testApplyLinearDamping() {
+    func testApplyLinearDamping() throws {
         if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
             physics.velocity = simd_float3(10, 0, 0)
         }
         applyLinearDamping(entityId: entityId, dampingFactor: 0.5, deltaTime: 1.0)
-        let speed = simd_length(scene.get(component: PhysicsComponents.self, for: entityId)!.velocity)
+        let speed = try simd_length(XCTUnwrap(scene.get(component: PhysicsComponents.self, for: entityId)?.velocity))
         XCTAssertLessThan(speed, 10)
     }
 
@@ -259,7 +259,7 @@ final class PhysicsSystemTests: XCTestCase {
 
     // MARK: Linear forces with drag
 
-    func testLinearAccelerationWithDragForces() {
+    func testLinearAccelerationWithDragForces() throws {
         setMass(entityId: entityId, mass: 2.0)
         setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.0))
 
@@ -271,12 +271,12 @@ final class PhysicsSystemTests: XCTestCase {
         }
 
         let acceleration = scene.get(component: PhysicsComponents.self, for: entityId)?.acceleration
-        XCTAssertEqual(acceleration!.x, 3.18, accuracy: 0.01, "x Velocity should be updated correctly.")
-        XCTAssertEqual(acceleration!.y, 0.0, accuracy: 0.01, "y Velocity should be updated correctly.")
-        XCTAssertEqual(acceleration!.z, 0.0, accuracy: 0.01, "z Velocity should be updated correctly.")
+        XCTAssertEqual(try XCTUnwrap(acceleration?.x), 3.18, accuracy: 0.01, "x Velocity should be updated correctly.")
+        XCTAssertEqual(try XCTUnwrap(acceleration?.y), 0.0, accuracy: 0.01, "y Velocity should be updated correctly.")
+        XCTAssertEqual(try XCTUnwrap(acceleration?.z), 0.0, accuracy: 0.01, "z Velocity should be updated correctly.")
     }
 
-    func testLinearVelocityWithDragForces() {
+    func testLinearVelocityWithDragForces() throws {
         setMass(entityId: entityId, mass: 2.0)
         setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.0))
 
@@ -288,12 +288,12 @@ final class PhysicsSystemTests: XCTestCase {
         }
 
         let velocity = scene.get(component: PhysicsComponents.self, for: entityId)?.velocity
-        XCTAssertEqual(velocity!.x, 4.03, accuracy: 0.01, "x Velocity should be updated correctly.")
-        XCTAssertEqual(velocity!.y, 0.0, accuracy: 0.01, "y Velocity should be updated correctly.")
-        XCTAssertEqual(velocity!.z, 0.0, accuracy: 0.01, "z Velocity should be updated correctly.")
+        XCTAssertEqual(try XCTUnwrap(velocity?.x), 4.03, accuracy: 0.01, "x Velocity should be updated correctly.")
+        XCTAssertEqual(try XCTUnwrap(velocity?.y), 0.0, accuracy: 0.01, "y Velocity should be updated correctly.")
+        XCTAssertEqual(try XCTUnwrap(velocity?.z), 0.0, accuracy: 0.01, "z Velocity should be updated correctly.")
     }
 
-    func testPositionWithDragForces() {
+    func testPositionWithDragForces() throws {
         setMass(entityId: entityId, mass: 2.0)
         setLinearDragCoefficient(entityId: entityId, coefficients: simd_float2(0.9, 0.0))
 
@@ -306,7 +306,7 @@ final class PhysicsSystemTests: XCTestCase {
 
         let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
 
-        let position = simd_float3(transformComponent!.position)
+        let position = try simd_float3(XCTUnwrap(transformComponent?.position))
 
         let expectedPosition = simd_float3(2.16, 0.0, 0)
 
@@ -541,21 +541,21 @@ final class PhysicsSystemTests: XCTestCase {
                        simd_float3(0, 2, 0))
     }
 
-    func testClampAngularSpeed() {
+    func testClampAngularSpeed() throws {
         if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
             physics.angularVelocity = simd_float3(0, 10, 0)
         }
         clampAngularSpeed(entityId: entityId, maxAngularSpeed: 3.0)
-        let speed = simd_length(scene.get(component: PhysicsComponents.self, for: entityId)!.angularVelocity)
+        let speed = try simd_length(XCTUnwrap(scene.get(component: PhysicsComponents.self, for: entityId)?.angularVelocity))
         XCTAssertEqual(speed, 3.0, accuracy: 0.0001)
     }
 
-    func testApplyAngularDamping() {
+    func testApplyAngularDamping() throws {
         if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
             physics.angularVelocity = simd_float3(0, 5, 0)
         }
         applyAngularDamping(entityId: entityId, dampingFactor: 0.5, deltaTime: 1.0)
-        let speed = simd_length(scene.get(component: PhysicsComponents.self, for: entityId)!.angularVelocity)
+        let speed = try simd_length(XCTUnwrap(scene.get(component: PhysicsComponents.self, for: entityId)?.angularVelocity))
         XCTAssertLessThan(speed, 5)
     }
 }

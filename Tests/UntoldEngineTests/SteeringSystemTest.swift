@@ -202,7 +202,7 @@ final class SteeringSystemTests: XCTestCase {
             simd_float3(5, 0, 0), // Waypoint 2
         ]
 
-        // Mock functions
+        /// Mock functions
         func getWaypointIndex(for _: EntityID) -> Int {
             1 // Simulate that the entity is closest to the first waypoint
         }
@@ -244,7 +244,7 @@ final class SteeringSystemTests: XCTestCase {
             simd_float3(5, 0, 0), // Waypoint 2
         ]
 
-        // Mock functions
+        /// Mock functions
         func getWaypointIndex(for _: EntityID) -> Int {
             -10 // Simulate an invalid negative waypoint index
         }
@@ -439,7 +439,7 @@ final class SteeringSystemTests: XCTestCase {
         XCTAssertEqual(finalPosition.y, 0.0, accuracy: 0.1, "pursuer should stay on XZ plane")
     }
 
-    func testSteerFollowPath() {
+    func testSteerFollowPath() throws {
         let path: [simd_float3] = [
             simd_float3(1.0, 0.0, 0.0),
             simd_float3(5.0, 0.0, 0.0),
@@ -481,7 +481,7 @@ final class SteeringSystemTests: XCTestCase {
         }
 
         let finalPosition = getLocalPosition(entityId: entityId)
-        let lastWayPoint = path.last!
+        let lastWayPoint = try XCTUnwrap(path.last)
 
         XCTAssertLessThanOrEqual(distance(finalPosition, lastWayPoint), 0.5, "Entity should have reached last waypoint")
 

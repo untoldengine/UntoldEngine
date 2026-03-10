@@ -44,7 +44,7 @@ class BaseRenderSetup: XCTestCase {
         applyIBL = false
     }
 
-    // Set up a headless renderer.
+    /// Set up a headless renderer.
     override func setUp() {
         super.setUp()
         resetGlobalEngineState()
@@ -97,9 +97,9 @@ class BaseRenderSetup: XCTestCase {
         super.tearDown()
     }
 
-    // Seed visibleEntityIds and tripleVisibleEntities so rendering works without GPU culling.
-    // The new render timing snapshots from tripleVisibleEntities at frame start, so we must
-    // populate the read slot that will be accessed on the first frame.
+    /// Seed visibleEntityIds and tripleVisibleEntities so rendering works without GPU culling.
+    /// The new render timing snapshots from tripleVisibleEntities at frame start, so we must
+    /// populate the read slot that will be accessed on the first frame.
     func setVisibleEntities() {
         let transformId = getComponentId(for: WorldTransformComponent.self)
         let renderId = getComponentId(for: RenderComponent.self)
@@ -230,7 +230,7 @@ class BaseRenderSetup: XCTestCase {
         }
     }
 
-    // Utility to load reference image
+    /// Utility to load reference image
     func loadReferenceImage(refImageName: String) -> CGImage? {
         // Load the reference CGImage from file
         guard let url = Bundle.module.url(forResource: refImageName, withExtension: "png") else {
@@ -251,7 +251,7 @@ class BaseRenderSetup: XCTestCase {
         return cgImage
     }
 
-    // Matrix Comparison
+    /// Matrix Comparison
     func compareMatrices(_ m1: simd_float4x4, _ m2: simd_float4x4, tolerance: Float = 1e-5) -> Bool {
         for row in 0 ..< 4 {
             for col in 0 ..< 4 {

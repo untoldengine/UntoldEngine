@@ -36,6 +36,7 @@ module.exports = {
           editUrl: `https://github.com/${ORG}/${REPO}/edit/master/docs/`,
           showLastUpdateTime: true,
           showLastUpdateAuthor: true,
+          onlyIncludeVersions: ['current'],
         },
         blog: false,
         theme: { customCss: require.resolve('./src/css/custom.css') },

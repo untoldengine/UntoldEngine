@@ -80,13 +80,13 @@ public func sceneDepthCompareFunction(_ original: MTLCompareFunction, reverseZCo
 }
 
 public struct BufferResources {
-    // Point Lights
+    /// Point Lights
     var pointLightBuffer: MTLBuffer?
 
-    // Spot lights
+    /// Spot lights
     var spotLightBuffer: MTLBuffer?
 
-    // Area light
+    /// Area light
     var areaLightBuffer: MTLBuffer?
 
     var gridUniforms: MTLBuffer?
@@ -99,7 +99,7 @@ public struct BufferResources {
     public var quadTexCoordsBuffer: MTLBuffer?
     public var quadIndexBuffer: MTLBuffer?
 
-    // bounding box
+    /// bounding box
     public var boundingBoxBuffer: MTLBuffer?
 
     // ray tracing uniform
@@ -110,7 +110,7 @@ public struct BufferResources {
     public var rayModelInstanceBuffer: MTLBuffer?
     public var rayModelPickOutputBuffer: MTLBuffer?
 
-    // ssao kernel
+    /// ssao kernel
     var ssaoKernelBuffer: MTLBuffer?
 
     // Frustum Culling reduce-scan
@@ -191,10 +191,10 @@ public struct TextureResources {
     public var gizmoColorTexture: MTLTexture?
     public var gizmoDepthTexture: MTLTexture?
 
-    // SSAO
+    /// SSAO
     public var ssaoNoiseTexture: MTLTexture?
 
-    // Gaussian
+    /// Gaussian
     public var gaussianColorMap: MTLTexture?
 
     public var sceneCompositeTexture: MTLTexture?

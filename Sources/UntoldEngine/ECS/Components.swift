@@ -444,7 +444,7 @@ public class ScriptComponent: Component, Codable {
 
     public required init() {}
 
-    // Backward-compatible coding keys
+    /// Backward-compatible coding keys
     enum CodingKeys: String, CodingKey {
         case scripts
         case scriptFilePaths

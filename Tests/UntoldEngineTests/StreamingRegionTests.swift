@@ -617,7 +617,7 @@ final class StreamingRegionTests: XCTestCase {
 
     // MARK: - Max Concurrent Loads Tests
 
-    func testUpdateRespectsMaxConcurrentLoads() async {
+    func testUpdateRespectsMaxConcurrentLoads() {
         manager.enabled = true
         manager.streamingRadius = 100.0
         manager.maxConcurrentLoads = 2
@@ -651,7 +651,7 @@ final class StreamingRegionTests: XCTestCase {
                                  "Active loads should not exceed maxConcurrentLoads")
     }
 
-    func testMaxConcurrentLoadsWithDifferentValues() async {
+    func testMaxConcurrentLoadsWithDifferentValues() {
         manager.enabled = true
         manager.streamingRadius = 200.0
         manager.checkInterval = 0.0

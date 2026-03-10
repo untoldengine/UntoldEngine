@@ -235,7 +235,7 @@ public func handleError(_ error: ErrorHandlingSystem, _ argument: String, _ enti
     handleError(error, argument, name)
 }
 
-// warnings
+/// warnings
 public func handleWarning(_ error: ErrorHandlingSystem, _ name: String) {
     Logger.logWarning(message: "\(error.rawValue): \(error.description) for \(name)")
 }
