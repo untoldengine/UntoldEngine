@@ -230,6 +230,303 @@ func finalizePendingDestroys() {
     runPendingDestroyCompletions()
 }
 
+private struct ImportedLODLevelCandidate {
+    let lodIndex: Int
+    let sourceName: String
+    let meshes: [Mesh]
+}
+
+private struct ImportedLODGroupCandidate {
+    let baseName: String
+    let levels: [ImportedLODLevelCandidate]
+}
+
+private func resolveImportedSourceName(for mesh: Mesh) -> String? {
+    let sourceName = mesh.assetName.trimmingCharacters(in: .whitespacesAndNewlines)
+    return sourceName.isEmpty ? nil : sourceName
+}
+
+private func splitMeshGroupBySourceName(_ meshGroup: [Mesh]) -> [String: [Mesh]] {
+    var grouped: [String: [Mesh]] = [:]
+
+    for mesh in meshGroup {
+        guard let sourceName = resolveImportedSourceName(for: mesh) else {
+            continue
+        }
+        grouped[sourceName, default: []].append(mesh)
+    }
+
+    return grouped
+}
+
+private func detectImportedLODGroups(from meshGroups: [[Mesh]]) -> [ImportedLODGroupCandidate]? {
+    var meshesBySourceName: [String: [Mesh]] = [:]
+
+    for meshGroup in meshGroups {
+        let groupedBySourceName = splitMeshGroupBySourceName(meshGroup)
+        for (sourceName, sourceMeshes) in groupedBySourceName {
+            meshesBySourceName[sourceName, default: []].append(contentsOf: sourceMeshes)
+        }
+    }
+
+    let detectionResult = detectImportedLODGroups(fromSourceNames: Array(meshesBySourceName.keys))
+    if !detectionResult.ambiguousBaseNames.isEmpty {
+        let baseNames = detectionResult.ambiguousBaseNames.sorted().joined(separator: ", ")
+        Logger.logWarning(message: "Ambiguous imported LOD groups skipped: \(baseNames)")
+    }
+
+    var detectedGroups: [ImportedLODGroupCandidate] = []
+    detectedGroups.reserveCapacity(detectionResult.groups.count)
+
+    for group in detectionResult.groups {
+        if group.levels.contains(where: { $0.lodIndex == 0 }) == false {
+            Logger.logWarning(message: "Imported LOD group '\(group.baseName)' is missing LOD0.")
+        }
+
+        let missingIndices = missingLODIndices(for: group.levels)
+        if !missingIndices.isEmpty {
+            let indices = missingIndices.map(String.init).joined(separator: ", ")
+            Logger.logWarning(message: "Imported LOD group '\(group.baseName)' has sparse levels. Missing: \(indices)")
+        }
+
+        var meshLevels: [ImportedLODLevelCandidate] = []
+        meshLevels.reserveCapacity(group.levels.count)
+
+        for level in group.levels {
+            guard let sourceMeshes = meshesBySourceName[level.sourceName], !sourceMeshes.isEmpty else {
+                continue
+            }
+            meshLevels.append(
+                ImportedLODLevelCandidate(
+                    lodIndex: level.lodIndex,
+                    sourceName: level.sourceName,
+                    meshes: sourceMeshes
+                )
+            )
+        }
+
+        guard meshLevels.count >= 2 else {
+            continue
+        }
+
+        detectedGroups.append(
+            ImportedLODGroupCandidate(
+                baseName: group.baseName,
+                levels: meshLevels.sorted { $0.lodIndex < $1.lodIndex }
+            )
+        )
+    }
+
+    guard !detectedGroups.isEmpty else {
+        return nil
+    }
+
+    return detectedGroups.sorted { $0.baseName < $1.baseName }
+}
+
+private func meshesWithDefaultSkin(_ meshes: [Mesh]) -> [Mesh] {
+    var updatedMeshes = meshes
+    let defaultSkin = Skin()
+    for index in updatedMeshes.indices {
+        if updatedMeshes[index].skin == nil {
+            updatedMeshes[index].skin = defaultSkin
+        }
+    }
+    return updatedMeshes
+}
+
+private func buildImportedLODLevels(from group: ImportedLODGroupCandidate, url: URL) -> [LODLevel] {
+    let configuredDistances = LODConfig.shared.lodDistances
+    let maxLODIndex = group.levels.map(\.lodIndex).max() ?? 0
+    var lodLevels: [LODLevel] = (0 ... maxLODIndex).map { lodIndex in
+        LODLevel(
+            mesh: [],
+            maxDistance: defaultLODMaxDistance(for: lodIndex, configuredDistances: configuredDistances),
+            screenPercentage: 0.0,
+            url: nil,
+            assetName: nil
+        )
+    }
+
+    for level in group.levels {
+        let levelMeshes = meshesWithDefaultSkin(level.meshes)
+        lodLevels[level.lodIndex] = LODLevel(
+            mesh: levelMeshes,
+            maxDistance: defaultLODMaxDistance(for: level.lodIndex, configuredDistances: configuredDistances),
+            screenPercentage: 0.0,
+            url: url,
+            assetName: level.sourceName
+        )
+    }
+
+    return lodLevels
+}
+
+private func configureLODComponent(entityId: EntityID, lodLevels: [LODLevel], activeLODIndex: Int) {
+    if hasComponent(entityId: entityId, componentType: LODComponent.self) == false {
+        registerComponent(entityId: entityId, componentType: LODComponent.self)
+    }
+
+    if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
+        lodComponent.lodLevels = lodLevels
+        lodComponent.currentLOD = activeLODIndex
+        lodComponent.desiredLOD = activeLODIndex
+        lodComponent.previousLOD = nil
+        lodComponent.transitionProgress = 0.0
+        lodComponent.isUsingFallback = false
+    }
+}
+
+private func applyWorldTransform(_ transform: simd_float4x4, to entityId: EntityID) {
+    let translation = simd_float3(
+        transform.columns.3.x,
+        transform.columns.3.y,
+        transform.columns.3.z
+    )
+
+    let xAxisWorld = simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z)
+    let yAxisWorld = simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z)
+    let zAxisWorld = simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z)
+
+    let scaleX = simd_length(xAxisWorld)
+    let scaleY = simd_length(yAxisWorld)
+    let scaleZ = simd_length(zAxisWorld)
+    let scale = simd_float3(scaleX, scaleY, scaleZ)
+
+    let epsilon: Float = 1e-6
+    let nearZeroScaleAxis = scaleX < epsilon || scaleY < epsilon || scaleZ < epsilon
+
+    var xAxis = scaleX < epsilon ? simd_float3(1, 0, 0) : (xAxisWorld / scaleX)
+    var yAxis = scaleY < epsilon ? simd_float3(0, 1, 0) : (yAxisWorld / scaleY)
+    var zAxis = scaleZ < epsilon ? simd_float3(0, 0, 1) : (zAxisWorld / scaleZ)
+
+    xAxis = simd_normalize(xAxis)
+    yAxis = simd_normalize(yAxis)
+    zAxis = simd_normalize(zAxis)
+
+    let rotationMatrix = matrix_float3x3(xAxis, yAxis, zAxis)
+    let rotation = transformMatrix3nToQuaternion(m: rotationMatrix)
+    let eulerAngles = transformQuaternionToEulerAngles(q: rotation)
+
+    if nearZeroScaleAxis {
+        Logger.logWarning(message: "Near-zero scale axis detected while decomposing imported transform for entity \(entityId). Rotation basis was clamped.")
+    }
+
+    if let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId) {
+        localTransform.position = translation
+        localTransform.rotation = rotation
+        localTransform.scale = scale
+        localTransform.rotationX = eulerAngles.pitch
+        localTransform.rotationY = eulerAngles.yaw
+        localTransform.rotationZ = eulerAngles.roll
+    }
+}
+
+private func applyImportedTransformFromMeshGroup(_ meshGroup: [Mesh], to entityId: EntityID) {
+    guard let firstMesh = meshGroup.first else {
+        return
+    }
+    applyWorldTransform(firstMesh.worldSpace, to: entityId)
+}
+
+@discardableResult
+private func tryRegisterImportedLODGroup(
+    entityId: EntityID,
+    url: URL,
+    filename: String,
+    withExtension: String,
+    nonEmptyMeshes: [[Mesh]]
+) -> Bool {
+    guard let importedLODGroups = detectImportedLODGroups(from: nonEmptyMeshes) else {
+        return false
+    }
+
+    if importedLODGroups.count == 1, let importedLOD = importedLODGroups.first {
+        let lodLevels = buildImportedLODLevels(from: importedLOD, url: url)
+        guard let activeLODIndex = lodLevels.firstIndex(where: { !$0.mesh.isEmpty }) else {
+            return false
+        }
+
+        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+            registerTransformComponent(entityId: entityId)
+        }
+
+        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+            registerSceneGraphComponent(entityId: entityId)
+        }
+
+        let activeLOD = lodLevels[activeLODIndex]
+        let activeAssetName = activeLOD.assetName ?? importedLOD.baseName
+        associateMeshesToEntity(entityId: entityId, meshes: activeLOD.mesh)
+        registerRenderComponent(entityId: entityId, meshes: activeLOD.mesh, url: url, assetName: activeAssetName)
+        configureLODComponent(entityId: entityId, lodLevels: lodLevels, activeLODIndex: activeLODIndex)
+
+        setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+        Logger.log(message: "✅ Auto-detected imported LOD group '\(importedLOD.baseName)' with \(importedLOD.levels.count) levels")
+        return true
+    }
+
+    // Multiple LOD families in one USDZ: create asset root + one child entity per base group.
+    let assetInstanceComp = AssetInstanceComponent(
+        assetURL: url,
+        assetName: filename,
+        importMode: "preserveHierarchy",
+        rootPrimPath: nil
+    )
+    registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
+    if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
+        instanceComp.assetURL = assetInstanceComp.assetURL
+        instanceComp.assetName = assetInstanceComp.assetName
+        instanceComp.importMode = assetInstanceComp.importMode
+        instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
+    }
+
+    var createdChildren = 0
+
+    for (index, importedLOD) in importedLODGroups.enumerated() {
+        let lodLevels = buildImportedLODLevels(from: importedLOD, url: url)
+        guard let activeLODIndex = lodLevels.firstIndex(where: { !$0.mesh.isEmpty }) else {
+            continue
+        }
+
+        let childEntityId = createEntity()
+        if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
+            registerTransformComponent(entityId: childEntityId)
+        }
+        if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
+            registerSceneGraphComponent(entityId: childEntityId)
+        }
+
+        let activeLOD = lodLevels[activeLODIndex]
+        applyImportedTransformFromMeshGroup(activeLOD.mesh, to: childEntityId)
+        let activeAssetName = activeLOD.assetName ?? importedLOD.baseName
+        associateMeshesToEntity(entityId: childEntityId, meshes: activeLOD.mesh)
+        registerRenderComponent(entityId: childEntityId, meshes: activeLOD.mesh, url: url, assetName: activeAssetName)
+        configureLODComponent(entityId: childEntityId, lodLevels: lodLevels, activeLODIndex: activeLODIndex)
+
+        setEntityName(entityId: childEntityId, name: importedLOD.baseName)
+        setParent(childId: childEntityId, parentId: entityId)
+
+        let nodePath = generateStableNodePath(assetName: importedLOD.baseName, index: index)
+        let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: entityId, nodePath: nodePath)
+        registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
+        if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
+            derived.assetRootEntityId = derivedComp.assetRootEntityId
+            derived.nodePath = derivedComp.nodePath
+        }
+
+        setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
+        createdChildren += 1
+    }
+
+    guard createdChildren > 0 else {
+        return false
+    }
+
+    Logger.log(message: "✅ Auto-detected imported LOD groups: \(createdChildren) entities created from \(importedLODGroups.count) LOD families")
+    return true
+}
+
 private func setEntityMeshCommon(
     entityId: EntityID,
     filename: String,
@@ -268,6 +565,16 @@ private func setEntityMeshCommon(
             handleError(.assetDataMissing, "No mesh with asset name \(assetNameExist)")
             return
         }
+    }
+
+    if tryRegisterImportedLODGroup(
+        entityId: entityId,
+        url: url,
+        filename: filename,
+        withExtension: withExtension,
+        nonEmptyMeshes: nonEmptyMeshes
+    ) {
+        return
     }
 
     if nonEmptyMeshes.count == 1 {
@@ -312,46 +619,10 @@ private func setEntityMeshCommon(
                 registerSceneGraphComponent(entityId: childEntityId)
             }
 
-            // Extract full transform (translation, rotation, scale) from mesh's worldSpace
-            // BEFORE registerRenderComponent. This ensures the entity holds the complete
-            // authored transform from the USDZ, while the mesh itself remains at identity.
+            // Extract full transform (translation, rotation, scale) from mesh world space
+            // before RenderComponent registration.
             if let firstMesh = mesh.first {
-                let transform = firstMesh.worldSpace
-
-                // Extract translation
-                let translation = simd_float3(
-                    transform.columns.3.x,
-                    transform.columns.3.y,
-                    transform.columns.3.z
-                )
-
-                // Extract scale from the length of each basis vector
-                let scaleX = simd_length(simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z))
-                let scaleY = simd_length(simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z))
-                let scaleZ = simd_length(simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z))
-                let scale = simd_float3(scaleX, scaleY, scaleZ)
-
-                // Extract rotation by normalizing the scaled rotation matrix
-                var rotationMatrix = matrix_float3x3(
-                    simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z) / scaleX,
-                    simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z) / scaleY,
-                    simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z) / scaleZ
-                )
-                let rotation = transformMatrix3nToQuaternion(m: rotationMatrix)
-
-                // Convert quaternion to Euler angles for editor display
-                let eulerAngles = transformQuaternionToEulerAngles(q: rotation)
-
-                // Apply to entity's local transform
-                if let localTransform = scene.get(component: LocalTransformComponent.self, for: childEntityId) {
-                    localTransform.position = translation
-                    localTransform.rotation = rotation
-                    localTransform.scale = scale
-                    // Update Euler angle cache for editor inspector
-                    localTransform.rotationX = eulerAngles.pitch
-                    localTransform.rotationY = eulerAngles.yaw
-                    localTransform.rotationZ = eulerAngles.roll
-                }
+                applyWorldTransform(firstMesh.worldSpace, to: childEntityId)
             }
 
             associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
@@ -499,7 +770,19 @@ public func setEntityMeshAsync(
         // Track entities being loaded to hide them during registration
         var loadingEntityIds: [EntityID] = [entityId]
 
-        if nonEmptyMeshes.count == 1 {
+        let handledImportedLOD = await MainActor.run { () -> Bool in
+            tryRegisterImportedLODGroup(
+                entityId: entityId,
+                url: url,
+                filename: filename,
+                withExtension: withExtension,
+                nonEmptyMeshes: nonEmptyMeshes
+            )
+        }
+
+        if handledImportedLOD {
+            await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: nonEmptyMeshes.count, totalMeshes: nonEmptyMeshes.count)
+        } else if nonEmptyMeshes.count == 1 {
             await MainActor.run {
                 let mesh = nonEmptyMeshes[0]
                 associateMeshesToEntity(entityId: entityId, meshes: mesh)
@@ -543,46 +826,10 @@ public func setEntityMeshAsync(
                         registerSceneGraphComponent(entityId: childEntityId)
                     }
 
-                    // Extract full transform (translation, rotation, scale) from mesh's worldSpace
-                    // BEFORE registerRenderComponent. This ensures the entity holds the complete
-                    // authored transform from the USDZ, while the mesh itself remains at identity.
+                    // Extract full transform (translation, rotation, scale) from mesh world space
+                    // before RenderComponent registration.
                     if let firstMesh = mesh.first {
-                        let transform = firstMesh.worldSpace
-
-                        // Extract translation
-                        let translation = simd_float3(
-                            transform.columns.3.x,
-                            transform.columns.3.y,
-                            transform.columns.3.z
-                        )
-
-                        // Extract scale from the length of each basis vector
-                        let scaleX = simd_length(simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z))
-                        let scaleY = simd_length(simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z))
-                        let scaleZ = simd_length(simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z))
-                        let scale = simd_float3(scaleX, scaleY, scaleZ)
-
-                        // Extract rotation by normalizing the scaled rotation matrix
-                        var rotationMatrix = matrix_float3x3(
-                            simd_float3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z) / scaleX,
-                            simd_float3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z) / scaleY,
-                            simd_float3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z) / scaleZ
-                        )
-                        let rotation = transformMatrix3nToQuaternion(m: rotationMatrix)
-
-                        // Convert quaternion to Euler angles for editor display
-                        let eulerAngles = transformQuaternionToEulerAngles(q: rotation)
-
-                        // Apply to entity's local transform
-                        if let localTransform = scene.get(component: LocalTransformComponent.self, for: childEntityId) {
-                            localTransform.position = translation
-                            localTransform.rotation = rotation
-                            localTransform.scale = scale
-                            // Update Euler angle cache for editor inspector
-                            localTransform.rotationX = eulerAngles.pitch
-                            localTransform.rotationY = eulerAngles.yaw
-                            localTransform.rotationZ = eulerAngles.roll
-                        }
+                        applyWorldTransform(firstMesh.worldSpace, to: childEntityId)
                     }
 
                     associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
