@@ -70,6 +70,8 @@
         public var minZoomScale: Float = 0.05
         public var maxZoomScale: Float = 20.0
         public var maxRotationDeltaPerFrameRadians: Float = 0.12
+        public var maxTwoHandRotationDeltaPerFrameRadians: Float = 0.35
+        public var twoHandRotationDeadzoneRadians: Float = 0.001
         public var rotationDeltaSmoothingFactor: Float = 0.25
         public var rotationDeltaDeadzoneRadians: Float = 0.002
 
@@ -427,10 +429,82 @@
             anchoredSceneDragSession = nil
         }
 
-        public func applyTwoHandZoomIfNeeded(from state: XRSpatialInputState, sensitivity _: Float = 1.0) {
+        public func applyTwoHandZoomIfNeeded(
+            from state: XRSpatialInputState,
+            entityId: EntityID? = nil,
+            sensitivity: Float = 1.0
+        ) {
             guard state.leftHandPinching, state.rightHandPinching, state.spatialZoomActive else { return }
 
-            // process zoom
+            guard let target = resolveTwoHandTransformTarget(from: state, explicitEntityId: entityId),
+                  scene.mask(for: target) != nil
+            else {
+                return
+            }
+
+            let clampedSensitivity = max(sensitivity, 0)
+            let zoomDelta = InputSystem.shared.getSpatialZoomDelta() * clampedSensitivity
+            guard zoomDelta.isFinite else { return }
+
+            if abs(zoomDelta) < inputEpsilon {
+                return
+            }
+
+            let scaleFactor = max(0, 1 + zoomDelta)
+            var targetScale = getScale(entityId: target) * scaleFactor
+            targetScale.x = simd_clamp(targetScale.x, minZoomScale, maxZoomScale)
+            targetScale.y = simd_clamp(targetScale.y, minZoomScale, maxZoomScale)
+            targetScale.z = simd_clamp(targetScale.z, minZoomScale, maxZoomScale)
+
+            guard targetScale.x.isFinite, targetScale.y.isFinite, targetScale.z.isFinite else { return }
+            scaleTo(entityId: target, scale: targetScale)
+        }
+
+        public func applyTwoHandRotateIfNeeded(
+            from state: XRSpatialInputState,
+            entityId: EntityID? = nil,
+            sensitivity: Float = 1.0,
+            axisOverrideWorld: simd_float3? = nil
+        ) {
+            guard state.leftHandPinching, state.rightHandPinching, state.spatialRotateActive else { return }
+            guard let target = resolveTwoHandTransformTarget(from: state, explicitEntityId: entityId),
+                  scene.mask(for: target) != nil
+            else {
+                return
+            }
+
+            let clampedSensitivity = max(sensitivity, 0)
+            var deltaRadians = InputSystem.shared.getSpatialRotateDelta() * clampedSensitivity
+            guard deltaRadians.isFinite else { return }
+
+            deltaRadians = simd_clamp(
+                deltaRadians,
+                -maxTwoHandRotationDeltaPerFrameRadians,
+                maxTwoHandRotationDeltaPerFrameRadians
+            )
+            if abs(deltaRadians) < twoHandRotationDeadzoneRadians {
+                return
+            }
+
+            var axisWorld = axisOverrideWorld ?? InputSystem.shared.getSpatialRotateAxisWorld()
+            guard axisWorld.x.isFinite, axisWorld.y.isFinite, axisWorld.z.isFinite else { return }
+            let axisLengthSquared = simd_length_squared(axisWorld)
+            guard axisLengthSquared > (inputEpsilon * inputEpsilon) else { return }
+            axisWorld /= sqrt(axisLengthSquared)
+
+            let axisLocal = resolveAxisInTargetLocalSpace(axisWorld: axisWorld, targetEntityId: target)
+            let deltaRotation = simd_quatf(angle: deltaRadians, axis: axisLocal)
+            let currentLocalMatrix = getLocalOrientation(entityId: target)
+            let currentRotation = simd_normalize(simd_quatf(currentLocalMatrix))
+            let newRotation = simd_normalize(deltaRotation * currentRotation)
+
+            guard newRotation.vector.x.isFinite,
+                  newRotation.vector.y.isFinite,
+                  newRotation.vector.z.isFinite,
+                  newRotation.vector.w.isFinite
+            else { return }
+
+            rotateTo(entityId: target, rotation: getMatrix4x4FromQuaternion(q: newRotation))
         }
 
         private func updateSpatialDragTranslation(from state: XRSpatialInputState, session: SpatialTranslationSession) {
@@ -562,6 +636,39 @@
             case .none:
                 return nil
             }
+        }
+
+        private func resolveTwoHandTransformTarget(from state: XRSpatialInputState, explicitEntityId: EntityID? = nil) -> EntityID? {
+            if let explicitEntityId {
+                return explicitEntityId
+            }
+            guard let picked = state.pickedEntityId else { return nil }
+            if let parent = getEntityParent(entityId: picked), scene.mask(for: parent) != nil {
+                return parent
+            }
+            return picked
+        }
+
+        private func resolveAxisInTargetLocalSpace(axisWorld: simd_float3, targetEntityId: EntityID) -> simd_float3 {
+            guard let parentId = getEntityParent(entityId: targetEntityId),
+                  scene.mask(for: parentId) != nil
+            else {
+                return axisWorld
+            }
+
+            let parentWorldRotationMatrix = getOrientation(entityId: parentId)
+            let parentWorldRotation = simd_normalize(simd_quatf(parentWorldRotationMatrix))
+            var axisLocal = simd_act(parentWorldRotation.inverse, axisWorld)
+            guard axisLocal.x.isFinite, axisLocal.y.isFinite, axisLocal.z.isFinite else {
+                return axisWorld
+            }
+
+            let axisLengthSquared = simd_length_squared(axisLocal)
+            guard axisLengthSquared > (inputEpsilon * inputEpsilon) else {
+                return axisWorld
+            }
+            axisLocal /= sqrt(axisLengthSquared)
+            return axisLocal
         }
     }
 #endif

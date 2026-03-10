@@ -24,6 +24,7 @@
         private let maxZoomDeltaPerFrame: Float = 0.08
         private let rotateActivationThresholdRadians: Float = 0.01
         private let maxRotateDeltaPerFrame: Float = 0.35
+        private let dynamicRotateAxisCrossMagnitudeThreshold: Float = 0.01
         private var interactionActive = false
         private var primaryInteractionId: Int?
         private var interactionExceededDragThreshold = false
@@ -264,8 +265,8 @@
         }
 
         private func updateTwoHandPinchGestures(state: inout XRSpatialInputState, phase: XRSpatialInteractionPhase) {
-            let rotateAxisWorld = resolveTwoHandRotateAxisWorld()
-            state.spatialRotateAxisWorld = rotateAxisWorld
+            let defaultRotateAxisWorld = resolveCameraForwardRotateAxisWorld()
+            state.spatialRotateAxisWorld = defaultRotateAxisWorld
 
             guard state.leftHandPinching,
                   state.rightHandPinching,
@@ -318,15 +319,19 @@
             state.spatialZoomDelta = zoomDelta
             state.spatialZoomActive = zoomDelta != 0
 
-            let rotateDelta = computeTwoHandRotateDelta(currentPinchVectorWorld: currentPinchVectorWorld, axisWorld: rotateAxisWorld)
-            state.spatialRotateDeltaRadians = rotateDelta
-            state.spatialRotateActive = rotateDelta != 0
+            let rotateSignal = computeTwoHandRotateSignal(
+                currentPinchVectorWorld: currentPinchVectorWorld,
+                fallbackAxisWorld: defaultRotateAxisWorld
+            )
+            state.spatialRotateAxisWorld = rotateSignal.axisWorld
+            state.spatialRotateDeltaRadians = rotateSignal.deltaRadians
+            state.spatialRotateActive = rotateSignal.deltaRadians != 0
 
             lastTwoHandPinchDistanceMeters = currentDistance
             lastTwoHandPinchVectorWorld = currentPinchVectorWorld
         }
 
-        private func resolveTwoHandRotateAxisWorld() -> simd_float3 {
+        private func resolveCameraForwardRotateAxisWorld() -> simd_float3 {
             if let camera = CameraSystem.shared.activeCamera {
                 let cameraForwardRaw = getForwardAxisVector(entityId: camera)
                 let cameraForwardLengthSquared = simd_length_squared(cameraForwardRaw)
@@ -335,6 +340,56 @@
                 }
             }
             return simd_float3(0, 0, -1)
+        }
+
+        private func computeTwoHandRotateSignal(
+            currentPinchVectorWorld: simd_float3,
+            fallbackAxisWorld: simd_float3
+        ) -> (deltaRadians: Float, axisWorld: simd_float3) {
+            let axisMode = InputSystem.shared.getXRTwoHandRotateAxisMode()
+
+            switch axisMode {
+            case .cameraForward:
+                let rotateDelta = computeTwoHandRotateDelta(
+                    currentPinchVectorWorld: currentPinchVectorWorld,
+                    axisWorld: fallbackAxisWorld
+                )
+                return (rotateDelta, fallbackAxisWorld)
+
+            case .dynamic, .dynamicSnapped:
+                guard let previousPinchVectorWorld = lastTwoHandPinchVectorWorld,
+                      let previousPinchNormalized = normalizeVector(previousPinchVectorWorld),
+                      let currentPinchNormalized = normalizeVector(currentPinchVectorWorld)
+                else {
+                    return (0, fallbackAxisWorld)
+                }
+
+                let cross = simd_cross(previousPinchNormalized, currentPinchNormalized)
+                let crossLengthSquared = simd_length_squared(cross)
+                guard crossLengthSquared.isFinite,
+                      crossLengthSquared > (dynamicRotateAxisCrossMagnitudeThreshold * dynamicRotateAxisCrossMagnitudeThreshold)
+                else {
+                    return (0, fallbackAxisWorld)
+                }
+
+                let crossLength = sqrt(crossLengthSquared)
+                let cosine = simd_clamp(simd_dot(previousPinchNormalized, currentPinchNormalized), -1.0, 1.0)
+                var rotateDelta = atan2(crossLength, cosine)
+                guard rotateDelta.isFinite else {
+                    return (0, fallbackAxisWorld)
+                }
+
+                rotateDelta = simd_clamp(rotateDelta, 0, maxRotateDeltaPerFrame)
+                if abs(rotateDelta) < rotateActivationThresholdRadians {
+                    return (0, fallbackAxisWorld)
+                }
+
+                var axisWorld = cross / crossLength
+                if axisMode == .dynamicSnapped {
+                    axisWorld = snapToDominantAxis(axisWorld)
+                }
+                return (rotateDelta, axisWorld)
+            }
         }
 
         private func computeTwoHandRotateDelta(currentPinchVectorWorld: simd_float3, axisWorld: simd_float3) -> Float {
@@ -355,6 +410,25 @@
                 return 0
             }
             return rotateDelta
+        }
+
+        private func normalizeVector(_ vector: simd_float3) -> simd_float3? {
+            let lengthSquared = simd_length_squared(vector)
+            guard lengthSquared.isFinite, lengthSquared > (spatialInputEpsilon * spatialInputEpsilon) else {
+                return nil
+            }
+            return vector / sqrt(lengthSquared)
+        }
+
+        private func snapToDominantAxis(_ axis: simd_float3) -> simd_float3 {
+            let absoluteAxis = simd_abs(axis)
+            if absoluteAxis.x >= absoluteAxis.y, absoluteAxis.x >= absoluteAxis.z {
+                return simd_float3(axis.x >= 0 ? 1 : -1, 0, 0)
+            }
+            if absoluteAxis.y >= absoluteAxis.x, absoluteAxis.y >= absoluteAxis.z {
+                return simd_float3(0, axis.y >= 0 ? 1 : -1, 0)
+            }
+            return simd_float3(0, 0, axis.z >= 0 ? 1 : -1)
         }
 
         private func projectVectorOntoPlane(_ vector: simd_float3, planeNormal: simd_float3) -> simd_float3? {

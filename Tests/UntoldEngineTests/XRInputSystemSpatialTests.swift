@@ -113,6 +113,19 @@ final class XRInputSystemSpatialTests: XCTestCase {
             XCTAssertTrue(input.isXRSceneReady())
         }
 
+        func test_twoHandRotateAxisModeHelper_updatesPreference() {
+            let input = InputSystem.shared
+
+            input.setXRTwoHandRotateAxisMode(.cameraForward)
+            XCTAssertEqual(input.getXRTwoHandRotateAxisMode(), .cameraForward)
+
+            input.setXRTwoHandRotateAxisMode(.dynamic)
+            XCTAssertEqual(input.getXRTwoHandRotateAxisMode(), .dynamic)
+
+            input.setXRTwoHandRotateAxisMode(.dynamicSnapped)
+            XCTAssertEqual(input.getXRTwoHandRotateAxisMode(), .dynamicSnapped)
+        }
+
         func test_helperQueries_reflectXRSpatialInputState() {
             let input = InputSystem.shared
             var state = XRSpatialInputState()
@@ -124,6 +137,8 @@ final class XRInputSystemSpatialTests: XCTestCase {
             state.spatialRotateActive = true
             state.spatialRotateDeltaRadians = 0.33
             state.spatialRotateAxisWorld = simd_float3(0, 1, 0)
+            state.leftHandPinching = true
+            state.rightHandPinching = true
             state.spatialPinchDragDelta = simd_float3(0.1, -0.2, 0.3)
             state.gazePosition = simd_float3(0, 1, 0)
             state.gazeDirection = simd_float3(0, 0, -1)
@@ -137,8 +152,34 @@ final class XRInputSystemSpatialTests: XCTestCase {
             XCTAssertEqual(input.getSpatialZoomDelta(), 0.12, accuracy: 0.0001)
             XCTAssertEqual(input.getSpatialRotateDelta(), 0.33, accuracy: 0.0001)
             XCTAssertEqual(input.getSpatialRotateAxisWorld(), simd_float3(0, 1, 0))
+            XCTAssertTrue(input.hasTwoHandRotateSignal())
+            let rotateSignal = input.getTwoHandRotateSignal()
+            XCTAssertNotNil(rotateSignal)
+            XCTAssertEqual(rotateSignal?.deltaRadians, 0.33, accuracy: 0.0001)
+            XCTAssertEqual(rotateSignal?.axisWorld, simd_float3(0, 1, 0))
             XCTAssertEqual(input.getPinchDragDelta(), simd_float3(0.1, -0.2, 0.3))
             XCTAssertEqual(input.getGazeTarget(maxDistance: 2.0), simd_float3(0, 1, -2))
+        }
+
+        func test_twoHandRotateSignal_requiresBothHandsAndRotateState() {
+            let input = InputSystem.shared
+            var state = XRSpatialInputState()
+            state.leftHandPinching = true
+            state.rightHandPinching = false
+            state.spatialRotateActive = true
+            state.spatialRotateDeltaRadians = 0.2
+            state.spatialRotateAxisWorld = simd_float3(0, 1, 0)
+            input.xrSpatialInputState = state
+
+            XCTAssertFalse(input.hasTwoHandRotateSignal())
+            XCTAssertNil(input.getTwoHandRotateSignal())
+
+            state.rightHandPinching = true
+            state.spatialRotateActive = false
+            input.xrSpatialInputState = state
+
+            XCTAssertFalse(input.hasTwoHandRotateSignal())
+            XCTAssertNil(input.getTwoHandRotateSignal())
         }
 
         func test_getGazeTarget_returnsNilWhenDirectionIsInvalid() {
@@ -195,6 +236,10 @@ final class XRInputSystemSpatialTests: XCTestCase {
             XCTAssertFalse(input.isXRSceneReady())
             setSceneReady(true)
             XCTAssertEqual(input.getXRSpatialPickingBackendPreference(), .octreePreferred)
+            input.setXRTwoHandRotateAxisMode(.dynamic)
+            XCTAssertEqual(input.getXRTwoHandRotateAxisMode(), .dynamicSnapped)
+            XCTAssertFalse(input.hasTwoHandRotateSignal())
+            XCTAssertNil(input.getTwoHandRotateSignal())
         }
     #endif
 }
