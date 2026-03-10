@@ -1,4 +1,7 @@
 # Changelog
+## v0.10.16 - 2026-03-10
+### 🐞 Fixes
+- [Patch] Added two-hands spatial rotate (d46bbea…)
 ## v0.10.15 - 2026-03-09
 ### 🐞 Fixes
 - [Patch] Updated Build Template (934ede5…)
