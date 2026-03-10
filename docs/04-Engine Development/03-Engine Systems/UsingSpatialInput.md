@@ -304,53 +304,95 @@ Use this when panning an entire scene — for example, sliding a map, architectu
 
 ------------------------------------------------------------------------
 
-## Two-Hand Zoom Signal (Coming soon)
+## Two-Hand Zoom
 
-Two hands pinching and moving closer/farther.
+Apply the built-in zoom response:
 
-``` swift
+```swift
 let state = InputSystem.shared.xrSpatialInputState
-if state.leftHandPinching, state.rightHandPinching, state.spatialZoomActive {
-    let zoomDelta = InputSystem.shared.getSpatialZoomDelta()
-    // app-defined zoom response
-}
+
+SpatialManipulationSystem.shared.applyTwoHandZoomIfNeeded(
+    from: state,
+    sensitivity: 1.0
+)
 ```
 
-### Typical Behavior Options
+By default, the helper scales the parent of the picked entity when available.
+If you want to choose the exact target, pass `entityId`:
 
-You decide what zoom means:
+```swift
+let state = InputSystem.shared.xrSpatialInputState
 
--   Scale selected object
--   Move object closer/farther in world space
--   Adjust camera rig distance
--   Modify FOV (if using custom projection control)
+if let picked = state.pickedEntityId {
+    // Scale exactly what was hit
+    SpatialManipulationSystem.shared.applyTwoHandZoomIfNeeded(
+        from: state,
+        entityId: picked,
+        sensitivity: 1.0
+    )
 
-Untold Engine does not automatically change camera FOV.\
-You define the semantic meaning of zoom.
+    // Or scale its parent explicitly
+    if let parent = getEntityParent(entityId: picked) {
+        SpatialManipulationSystem.shared.applyTwoHandZoomIfNeeded(
+            from: state,
+            entityId: parent,
+            sensitivity: 1.0
+        )
+    }
+}
+```
 
 ------------------------------------------------------------------------
 
-## Two-Hand Rotate Signal (Coming soon)
+## Two-Hand Rotate
 
-Two hands pinching and rotating around each other.
+Use `setXRTwoHandRotateAxisMode` to control how the rotation axis is derived:
 
-``` swift
-let state = InputSystem.shared.xrSpatialInputState
-if state.leftHandPinching, state.rightHandPinching, state.spatialRotateActive {
-    let deltaRadians = InputSystem.shared.getSpatialRotateDelta()
-    let axisWorld = InputSystem.shared.getSpatialRotateAxisWorld()
-    // app-defined rotate response
-}
+```swift
+InputSystem.shared.setXRTwoHandRotateAxisMode(.dynamicSnapped)
 ```
 
-Typical usage:
+Available modes:
 
--   Rotate object in world space
--   Rotate parent actor
--   Rotate UI panel in 3D
+-   `.cameraForward`: rotates around camera-forward axis (screen-style twist)
+-   `.dynamic`: derives axis from actual two-hand motion
+-   `.dynamicSnapped`: dynamic axis snapped to dominant world axis (`x`, `y`, or `z`)
 
-`axisWorld` allows you to apply physically intuitive rotations rather
-than arbitrary axes.
+Apply the built-in rotate response:
+
+```swift
+let state = InputSystem.shared.xrSpatialInputState
+
+SpatialManipulationSystem.shared.applyTwoHandRotateIfNeeded(
+    from: state,
+    sensitivity: 1.5
+)
+```
+
+By default, the helper rotates the parent of the picked entity when available.
+If you want to choose the exact target, pass `entityId`:
+
+```swift
+let state = InputSystem.shared.xrSpatialInputState
+
+if let picked = state.pickedEntityId {
+    // Rotate exactly what was hit
+    SpatialManipulationSystem.shared.applyTwoHandRotateIfNeeded(
+        from: state,
+        entityId: picked,
+        sensitivity: 1.5
+    )
+
+    // Or rotate its parent explicitly
+    if let parent = getEntityParent(entityId: picked) {
+        SpatialManipulationSystem.shared.applyTwoHandRotateIfNeeded(
+            from: state,
+            entityId: parent,
+            sensitivity: 1.5
+        )
+    }
+}
+```
 
 ## Get distance to hit-entity
 

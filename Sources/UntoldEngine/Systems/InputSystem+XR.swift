@@ -24,6 +24,12 @@ public enum XRSpatialChirality: Sendable {
     case right
 }
 
+public enum XRSpatialTwoHandRotateAxisMode: Sendable, Equatable {
+    case cameraForward
+    case dynamic
+    case dynamicSnapped
+}
+
 public struct XRSpatialInputState: Sendable {
     // Gesture detection (engine detects these)
     public var spatialTapActive = false
@@ -156,11 +162,24 @@ public extension InputSystem {
 
         func registerXREvents() {}
         func unregisterXREvents() {}
+        func setXRTwoHandRotateAxisMode(_: XRSpatialTwoHandRotateAxisMode) {}
+        func getXRTwoHandRotateAxisMode() -> XRSpatialTwoHandRotateAxisMode {
+            .dynamicSnapped
+        }
+
+        func hasTwoHandRotateSignal() -> Bool {
+            false
+        }
+
+        func getTwoHandRotateSignal() -> (deltaRadians: Float, axisWorld: simd_float3)? {
+            nil
+        }
     #else
         private struct XREventState {
             var inputEventsEnabled = false
             var spatialInputState = XRSpatialInputState()
             var spatialPickingBackendPreference: ScenePickingBackendPreference = .octreeGPUPreferred
+            var twoHandRotateAxisMode: XRSpatialTwoHandRotateAxisMode = .dynamicSnapped
         }
 
         private static let xrEventStateLock = OSAllocatedUnfairLock(initialState: XREventState())
@@ -230,6 +249,18 @@ public extension InputSystem {
             }
         }
 
+        func setXRTwoHandRotateAxisMode(_ mode: XRSpatialTwoHandRotateAxisMode) {
+            Self.xrEventStateLock.withLock { state in
+                state.twoHandRotateAxisMode = mode
+            }
+        }
+
+        func getXRTwoHandRotateAxisMode() -> XRSpatialTwoHandRotateAxisMode {
+            Self.xrEventStateLock.withLock { state in
+                state.twoHandRotateAxisMode
+            }
+        }
+
         // MARK: - Helper Query Methods
 
         func hasSpatialTap() -> Bool {
@@ -262,6 +293,19 @@ public extension InputSystem {
 
         func getSpatialRotateAxisWorld() -> simd_float3 {
             xrSpatialInputState.spatialRotateAxisWorld
+        }
+
+        func hasTwoHandRotateSignal() -> Bool {
+            let state = xrSpatialInputState
+            return state.leftHandPinching && state.rightHandPinching && state.spatialRotateActive
+        }
+
+        func getTwoHandRotateSignal() -> (deltaRadians: Float, axisWorld: simd_float3)? {
+            let state = xrSpatialInputState
+            guard state.leftHandPinching, state.rightHandPinching, state.spatialRotateActive else {
+                return nil
+            }
+            return (state.spatialRotateDeltaRadians, state.spatialRotateAxisWorld)
         }
 
         func getPinchDragDelta() -> simd_float3 {
