@@ -430,6 +430,7 @@
                         let tracked = TrackedPlane(
                             id: anchor.id,
                             originFromAnchorTransform: anchor.originFromAnchorTransform,
+                            anchorFromExtentTransform: anchor.geometry.extent.anchorFromExtentTransform,
                             extentWidth: anchor.geometry.extent.width,
                             extentHeight: anchor.geometry.extent.height,
                             alignment: alignment,

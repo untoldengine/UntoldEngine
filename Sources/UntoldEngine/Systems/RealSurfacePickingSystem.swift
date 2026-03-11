@@ -77,6 +77,8 @@ public struct TrackedPlane: Sendable {
     public let id: UUID
     /// The full 4×4 transform that places the plane in world space (ARKit's originFromAnchorTransform).
     public let originFromAnchorTransform: simd_float4x4
+    /// Transform from extent-local space to anchor-local space (accounts for extent center offset).
+    public let anchorFromExtentTransform: simd_float4x4
     /// Plane extent along the plane's local X axis (width in meters).
     public let extentWidth: Float
     /// Plane extent along the plane's local Z axis (height/depth in meters).
@@ -89,6 +91,7 @@ public struct TrackedPlane: Sendable {
     public init(
         id: UUID,
         originFromAnchorTransform: simd_float4x4,
+        anchorFromExtentTransform: simd_float4x4 = matrix_identity_float4x4,
         extentWidth: Float,
         extentHeight: Float,
         alignment: RealSurfaceAlignment,
@@ -96,6 +99,7 @@ public struct TrackedPlane: Sendable {
     ) {
         self.id = id
         self.originFromAnchorTransform = originFromAnchorTransform
+        self.anchorFromExtentTransform = anchorFromExtentTransform
         self.extentWidth = extentWidth
         self.extentHeight = extentHeight
         self.alignment = alignment
@@ -144,12 +148,14 @@ public final class RealSurfacePlaneStore: @unchecked Sendable {
 ///   - rayOrigin: World-space ray origin (e.g. from `XRSpatialInputState.rayOriginWorld`).
 ///   - rayDirection: World-space ray direction (does not need to be normalized).
 ///   - filter: Which plane alignments to consider.
+///   - maxDistance: Maximum ray distance (in meters) to accept a hit. Defaults to unlimited.
 /// - Returns: A `RealSurfaceHit` with the world-space hit position, surface kind, distance,
 ///   and plane normal, or `nil` if no detected plane was hit.
 public func pickRealSurfacePosition(
     rayOrigin: simd_float3,
     rayDirection: simd_float3,
-    filter: RealSurfaceFilter = .any
+    filter: RealSurfaceFilter = .any,
+    maxDistance: Float = .greatestFiniteMagnitude
 ) -> RealSurfaceHit? {
     // Validate ray direction.
     let rayLengthSquared = simd_length_squared(rayDirection)
@@ -160,18 +166,21 @@ public func pickRealSurfacePosition(
     guard !planes.isEmpty else { return nil }
 
     // Prepare SceneRootTransform for entity-local ↔ world conversion.
+    // Cache SRT values to avoid redundant property accesses in the loop.
     let srt = SceneRootTransform.shared
+    let srtIsIdentity = srt.isIdentity
+    let srtInvM = srt.inverseMatrix
+    let srtM = srt.matrix
     let localRayOrigin: simd_float3
     let localRayDirection: simd_float3
 
-    if srt.isIdentity {
+    if srtIsIdentity {
         localRayOrigin = rayOrigin
         localRayDirection = normalizedRayDirection
     } else {
-        let invM = srt.inverseMatrix
-        let o = simd_mul(invM, simd_float4(rayOrigin, 1.0))
+        let o = simd_mul(srtInvM, simd_float4(rayOrigin, 1.0))
         localRayOrigin = simd_float3(o.x, o.y, o.z)
-        let d = simd_mul(invM, simd_float4(normalizedRayDirection, 0.0))
+        let d = simd_mul(srtInvM, simd_float4(normalizedRayDirection, 0.0))
         localRayDirection = simd_normalize(simd_float3(d.x, d.y, d.z))
     }
 
@@ -207,14 +216,13 @@ public func pickRealSurfacePosition(
         let localPlaneCenter: simd_float3
         let localPlaneNormal: simd_float3
 
-        if srt.isIdentity {
+        if srtIsIdentity {
             localPlaneCenter = planeCenter
             localPlaneNormal = planeNormal
         } else {
-            let invM = srt.inverseMatrix
-            let pc = simd_mul(invM, simd_float4(planeCenter, 1.0))
+            let pc = simd_mul(srtInvM, simd_float4(planeCenter, 1.0))
             localPlaneCenter = simd_float3(pc.x, pc.y, pc.z)
-            let pn = simd_mul(invM, simd_float4(planeNormal, 0.0))
+            let pn = simd_mul(srtInvM, simd_float4(planeNormal, 0.0))
             localPlaneNormal = simd_normalize(simd_float3(pn.x, pn.y, pn.z))
         }
 
@@ -229,35 +237,39 @@ public func pickRealSurfacePosition(
         }
 
         // Check that the hit falls within the plane's extent.
-        // Transform hit from local space back to the plane's own coordinate frame
-        // to compare against half-extents.
-        let inverseAnchor = simd_inverse(anchorTransform)
+        // Transform hit from local space to extent-local space, accounting for
+        // the extent's offset from the anchor origin (anchorFromExtentTransform).
+        let extentInWorld = anchorTransform * plane.anchorFromExtentTransform
+        let worldToExtent = simd_inverse(extentInWorld)
 
-        // First, bring hit back to world space so we can go to anchor-local.
+        // First, bring hit back to world space so we can go to extent-local.
         let hitWorld: simd_float3
-        if srt.isIdentity {
+        if srtIsIdentity {
             hitWorld = hitPosition
         } else {
-            let wp = simd_mul(srt.matrix, simd_float4(hitPosition, 1.0))
+            let wp = simd_mul(srtM, simd_float4(hitPosition, 1.0))
             hitWorld = simd_float3(wp.x, wp.y, wp.z)
         }
 
-        let hitInAnchor = simd_mul(inverseAnchor, simd_float4(hitWorld, 1.0))
+        let hitInExtent = simd_mul(worldToExtent, simd_float4(hitWorld, 1.0))
         let halfWidth = plane.extentWidth * 0.5
         let halfHeight = plane.extentHeight * 0.5
 
-        // In ARKit plane-local space, the plane lies in the XZ plane (Y ≈ 0).
-        guard abs(hitInAnchor.x) <= halfWidth, abs(hitInAnchor.z) <= halfHeight else {
+        // In extent-local space the plane lies in XZ. Check that the hit
+        // falls within the finite extent rectangle.
+        guard abs(hitInExtent.x) <= halfWidth,
+              abs(hitInExtent.z) <= halfHeight
+        else {
             continue
         }
 
         let distance = simd_length(hitPosition - localRayOrigin)
-        guard distance < bestDistance else { continue }
+        guard distance <= maxDistance, distance < bestDistance else { continue }
 
         // Compute final world-space position (with SRT applied).
         let finalWorldPosition: simd_float3
         let finalPlaneNormal: simd_float3
-        if srt.isIdentity {
+        if srtIsIdentity {
             finalWorldPosition = hitPosition
             finalPlaneNormal = planeNormal
         } else {
