@@ -26,7 +26,46 @@ jobs:
           # Pull the block that starts with "## <VERSION>" and ends before the next "## "
           {
             echo 'notes<<EOF'
-            echo "Untold Engine ${VERSION} is out! Here are the recent changes:"
+            echo "Untold Engine ${VERSION} is now available."
+            echo ""
+            echo "--------------------------------------------------"
+            echo "Getting Started"
+            echo "--------------------------------------------------"
+            echo ""
+            echo "Clone the repository and run the demo project:"
+            echo ""
+            echo "git clone https://github.com/untoldengine/UntoldEngine.git"
+            echo "cd UntoldEngine"
+            echo "swift run DemoGame"
+            echo ""
+            echo "This will build the engine and launch the demo using Swift Package Manager."
+            echo ""
+            echo "--------------------------------------------------"
+            echo "Using Untold Engine in Your Project"
+            echo "--------------------------------------------------"
+            echo ""
+            echo "Untold Engine can be added to your own projects as a Swift Package dependency:"
+            echo ""
+            echo "https://github.com/untoldengine/UntoldEngine"
+            echo ""
+            echo "Refer to the README for setup instructions and examples."
+            echo ""
+            echo "--------------------------------------------------"
+            echo "Documentation & Resources"
+            echo "--------------------------------------------------"
+            echo ""
+            echo "Repository:"
+            echo "https://github.com/untoldengine/UntoldEngine"
+            echo ""
+            echo "README:"
+            echo "https://github.com/untoldengine/UntoldEngine/blob/main/README.md"
+            echo ""
+            echo "GitHub Discussions:"
+            echo "https://github.com/untoldengine/UntoldEngine/discussions"
+            echo ""
+            echo "--------------------------------------------------"
+            echo "Changes in this Release"
+            echo "--------------------------------------------------"
             echo ""
             awk "/^## ${VERSION} /{found=1;next} found && /^## /{exit} found{print}" CHANGELOG.md
             echo EOF
@@ -40,4 +79,3 @@ jobs:
           body: ${{ steps.changelog.outputs.notes }}
           draft: false
           prerelease: false
-

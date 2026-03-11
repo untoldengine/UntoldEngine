@@ -10,14 +10,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install SwiftFormat 0.60.1
+      - name: Install SwiftFormat
         run: |
-          SWIFTFORMAT_VERSION="0.60.1"
-          curl -Lo /tmp/swiftformat.zip \
-            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_macos.zip"
+          SWIFTFORMAT_VERSION="$(awk -F':=' '/^SWIFTFORMAT_VERSION/ { gsub(/[[:space:]]/, "", $2); print $2 }' Makefile)"
+          if [ -z "$SWIFTFORMAT_VERSION" ]; then
+            echo "Unable to determine SWIFTFORMAT_VERSION from Makefile"
+            exit 1
+          fi
+          curl -fsSL -o /tmp/swiftformat.zip \
+            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip"
           unzip -o /tmp/swiftformat.zip -d /tmp/swiftformat
-          chmod +x /tmp/swiftformat/swiftformat
-          sudo mv /tmp/swiftformat/swiftformat /usr/local/bin/swiftformat
+          sudo install -m 755 /tmp/swiftformat/swiftformat /usr/local/bin/swiftformat
 
       - name: Show versions
         run: |
@@ -25,5 +28,4 @@ jobs:
           swift --version
 
       - name: Run SwiftFormat (lint mode)
-        run: swiftformat --lint . --swiftversion 5.8 --reporter github-actions-log
-
+        run: make lint

@@ -43,7 +43,7 @@ check-swiftformat-version:
 	@INSTALLED=$$(swiftformat --version 2>&1 | awk '{print $$NF}'); \
 	if [ "$$INSTALLED" != "$(SWIFTFORMAT_VERSION)" ]; then \
 		echo "Error: swiftformat $(SWIFTFORMAT_VERSION) required, but found $$INSTALLED"; \
-		echo "Run: brew install swiftformat@$(SWIFTFORMAT_VERSION) or: brew upgrade swiftformat"; \
+		echo "Install from: https://github.com/nicklockwood/SwiftFormat/releases/tag/$(SWIFTFORMAT_VERSION)"; \
 		exit 1; \
 	fi
 
