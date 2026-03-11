@@ -358,4 +358,93 @@ final class RealSurfacePickingSystemTests: XCTestCase {
         RealSurfacePlaneStore.shared.update(planes: [plane3])
         XCTAssertEqual(RealSurfacePlaneStore.shared.snapshot().count, 1)
     }
+
+    // MARK: - Max Distance
+
+    func testMaxDistanceRejectsFarHit() {
+        let plane = makeHorizontalPlane(centerY: 0, width: 10, depth: 10)
+        RealSurfacePlaneStore.shared.update(planes: [plane])
+
+        // Plane is 5m away; maxDistance=3 should reject.
+        let miss = pickRealSurfacePosition(
+            rayOrigin: simd_float3(0, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: .horizontalAny,
+            maxDistance: 3.0
+        )
+        XCTAssertNil(miss, "Hit beyond maxDistance should be rejected")
+    }
+
+    func testMaxDistanceAcceptsNearHit() {
+        let plane = makeHorizontalPlane(centerY: 0, width: 10, depth: 10)
+        RealSurfacePlaneStore.shared.update(planes: [plane])
+
+        // Plane is 5m away; maxDistance=6 should accept.
+        let hit = pickRealSurfacePosition(
+            rayOrigin: simd_float3(0, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: .horizontalAny,
+            maxDistance: 6.0
+        )
+        XCTAssertNotNil(hit)
+        XCTAssertEqual(hit?.distance ?? 0, 5.0, accuracy: 0.001)
+    }
+
+    // MARK: - Offset Extent Transform
+
+    func testHitWithOffsetExtentTransform() {
+        // Anchor at origin, but extent center is offset 2m in +X.
+        let extentOffset = float4x4(
+            simd_float4(1, 0, 0, 0),
+            simd_float4(0, 1, 0, 0),
+            simd_float4(0, 0, 1, 0),
+            simd_float4(2, 0, 0, 1)
+        )
+        let plane = TrackedPlane(
+            id: UUID(),
+            originFromAnchorTransform: .identity,
+            anchorFromExtentTransform: extentOffset,
+            extentWidth: 2,
+            extentHeight: 2,
+            alignment: .horizontal,
+            classification: .table
+        )
+        RealSurfacePlaneStore.shared.update(planes: [plane])
+
+        // Ray at x=2.5 — inside the offset extent (centered at x=2, half-width=1).
+        let hit = pickRealSurfacePosition(
+            rayOrigin: simd_float3(2.5, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: .horizontalAny
+        )
+        XCTAssertNotNil(hit, "Hit should register within offset extent")
+    }
+
+    func testMissAtAnchorOriginWithOffsetExtent() {
+        // Anchor at origin, but extent center is offset 2m in +X.
+        let extentOffset = float4x4(
+            simd_float4(1, 0, 0, 0),
+            simd_float4(0, 1, 0, 0),
+            simd_float4(0, 0, 1, 0),
+            simd_float4(2, 0, 0, 1)
+        )
+        let plane = TrackedPlane(
+            id: UUID(),
+            originFromAnchorTransform: .identity,
+            anchorFromExtentTransform: extentOffset,
+            extentWidth: 2,
+            extentHeight: 2,
+            alignment: .horizontal,
+            classification: .table
+        )
+        RealSurfacePlaneStore.shared.update(planes: [plane])
+
+        // Ray at x=0 — at the anchor origin, but outside the offset extent.
+        let miss = pickRealSurfacePosition(
+            rayOrigin: simd_float3(0, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: .horizontalAny
+        )
+        XCTAssertNil(miss, "Hit at anchor origin should miss the offset extent")
+    }
 }
