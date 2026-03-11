@@ -51,6 +51,7 @@ public struct XRSpatialInputState: Sendable {
     // Picked entity (engine provides this via ray casting)
     public var pickedEntityId: EntityID?
     public var pickedEntityDistance: Float = .infinity
+    public var pickedEntityWorldPosition: simd_float3?
 
     // Hand tracking (future expansion - placeholder)
     public var handTrackingActive = false
@@ -328,6 +329,10 @@ public extension InputSystem {
                 return xrSpatialInputState.inputDevicePositionWorld
             }
             return nil
+        }
+
+        func getPickedEntityWorldPosition() -> simd_float3? {
+            xrSpatialInputState.pickedEntityWorldPosition
         }
 
         func getGazeTarget(maxDistance: Float = 10.0) -> simd_float3? {
