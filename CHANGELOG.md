@@ -1,4 +1,10 @@
 # Changelog
+## v0.10.17 - 2026-03-11
+### 🐞 Fixes
+- [Patch] Added support to load lods from usd file (2410d67…)
+- [Patch] Added rotate functions to scene root transform (47c2518…)
+- [Patch] use anchorFromExtentTransform for accurate plane bounds check (3ef400f…)
+- [Patch] Expose picked entity world hit position (90a3d26…)
 ## v0.10.16 - 2026-03-10
 ### 🐞 Fixes
 - [Patch] Added two-hands spatial rotate (d46bbea…)
