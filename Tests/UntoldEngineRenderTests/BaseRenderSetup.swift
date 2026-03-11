@@ -22,6 +22,37 @@ class BaseRenderSetup: XCTestCase {
     let windowWidth = 1920
     let windowHeight = 1080
 
+    private func waitForOutstandingAssetLoadsToFinish(context: String, timeout: TimeInterval = 15.0) {
+        let drained = expectation(description: "Drain asset loading state (\(context))")
+        var finalLoadingCount = Int.max
+        var finalGateActive = true
+
+        Task {
+            let deadline = Date().addingTimeInterval(timeout)
+            while Date() < deadline {
+                let loadingCount = await AssetLoadingState.shared.loadingCount()
+                let gateActive = AssetLoadingGate.shared.isLoadingAny
+                finalLoadingCount = loadingCount
+                finalGateActive = gateActive
+
+                if loadingCount == 0, gateActive == false {
+                    drained.fulfill()
+                    return
+                }
+
+                try? await Task.sleep(nanoseconds: 25_000_000) // 25ms polling
+            }
+
+            drained.fulfill()
+        }
+
+        wait(for: [drained], timeout: timeout + 0.5)
+
+        if finalLoadingCount != 0 || finalGateActive {
+            XCTFail("Async loading state did not drain during \(context). loadingCount=\(finalLoadingCount), gateActive=\(finalGateActive)")
+        }
+    }
+
     private func resetGlobalEngineState() {
         scene = Scene()
         CameraSystem.shared.activeCamera = nil
@@ -42,11 +73,14 @@ class BaseRenderSetup: XCTestCase {
         timePassedSinceLastFrame = 0.0
         renderEnvironment = false
         applyIBL = false
+        currentGlobalTime = 0.0
     }
 
     /// Set up a headless renderer.
     override func setUp() {
         super.setUp()
+        waitForOutstandingAssetLoadsToFinish(context: "setUp")
+        LoadingSystem.shared.resourceURLFn = getResourceURL
         resetGlobalEngineState()
         ambientIntensity = 0.4
 
@@ -94,6 +128,8 @@ class BaseRenderSetup: XCTestCase {
     }
 
     override func tearDown() {
+        waitForOutstandingAssetLoadsToFinish(context: "tearDown")
+        LoadingSystem.shared.resourceURLFn = getResourceURL
         super.tearDown()
     }
 
