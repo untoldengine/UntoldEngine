@@ -38,11 +38,19 @@ import XCTest
 
             SpatialManipulationSystem.shared.reset()
             InputSystem.shared.xrSpatialInputState = XRSpatialInputState()
+            SceneRootTransform.shared.position = .zero
+            SceneRootTransform.shared.rotation = simd_quatf()
+            SceneRootTransform.shared.scale = .one
+            SceneRootTransform.shared.updateIfNeeded()
         }
 
         override func tearDown() {
             SpatialManipulationSystem.shared.reset()
             InputSystem.shared.xrSpatialInputState = XRSpatialInputState()
+            SceneRootTransform.shared.position = .zero
+            SceneRootTransform.shared.rotation = simd_quatf()
+            SceneRootTransform.shared.scale = .one
+            SceneRootTransform.shared.updateIfNeeded()
 
             destroyEntity(entityId: childEntity)
             destroyEntity(entityId: parentEntity)
@@ -336,6 +344,348 @@ import XCTest
             XCTAssertEqual(getLocalOrientation(entityId: standaloneEntity), simd_float3x3(1))
         }
 
+        func test_processAnchoredSceneRotateLifecycle_appliesAbsoluteYawFromGestureStart() {
+            rotateSceneToYaw(0)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            let startState = makeAnchoredSceneRotateState(
+                leftHandPosition: simd_float3(-1, 0, 0),
+                rightHandPosition: simd_float3(1, 0, 0)
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: startState)
+
+            let rotatedState = makeAnchoredSceneRotateState(
+                leftHandPosition: simd_float3(0, 0, -1),
+                rightHandPosition: simd_float3(0, 0, 1)
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: rotatedState)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+            XCTAssertEqual(rotatedForward.x, 1.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.z, 0.0, accuracy: 0.0001)
+        }
+
+        func test_processAnchoredSceneRotateLifecycle_appliesSensitivity() {
+            rotateSceneToYaw(0)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            let startState = makeAnchoredSceneRotateState(
+                leftHandPosition: simd_float3(-1, 0, 0),
+                rightHandPosition: simd_float3(1, 0, 0)
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: startState, sensitivity: 0.5)
+
+            let rotatedState = makeAnchoredSceneRotateState(
+                leftHandPosition: simd_float3(0, 0, -1),
+                rightHandPosition: simd_float3(0, 0, 1)
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: rotatedState, sensitivity: 0.5)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+            let halfSqrt2: Float = 0.70710677
+            XCTAssertEqual(rotatedForward.x, halfSqrt2, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.z, halfSqrt2, accuracy: 0.0001)
+        }
+
+        func test_processAnchoredSceneRotateLifecycle_requiresSpatialRotateSignal() {
+            rotateSceneToYaw(0)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            let startState = makeAnchoredSceneRotateState(
+                leftHandPosition: simd_float3(-1, 0, 0),
+                rightHandPosition: simd_float3(1, 0, 0),
+                rotateActive: false
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: startState)
+
+            let rotatedState = makeAnchoredSceneRotateState(
+                leftHandPosition: simd_float3(0, 0, -1),
+                rightHandPosition: simd_float3(0, 0, 1),
+                rotateActive: false
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: rotatedState)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+            XCTAssertEqual(rotatedForward.x, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.z, 1.0, accuracy: 0.0001)
+        }
+
+        func test_processAnchoredSceneManipulationLifecycle_prefersRotateOverDrag() {
+            resetSceneRootTransform()
+
+            let startState = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(0, 0, 0),
+                leftHandPosition: simd_float3(-1, 0, 0),
+                rightHandPosition: simd_float3(1, 0, 0),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: true,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: startState)
+
+            let rotatedState = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(2, 0, 0),
+                leftHandPosition: simd_float3(0, 0, -1),
+                rightHandPosition: simd_float3(0, 0, 1),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: true,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: rotatedState)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            XCTAssertEqual(SceneRootTransform.shared.position.x, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.z, 0.0, accuracy: 0.0001)
+
+            let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+            XCTAssertEqual(rotatedForward.x, 1.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.z, 0.0, accuracy: 0.0001)
+        }
+
+        func test_processAnchoredSceneManipulationLifecycle_waitsForRotateSignalBeforeLatching() {
+            resetSceneRootTransform()
+
+            // Start with two-hand pinch active but without rotate intent yet.
+            let pendingTwoHandState = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(0, 0, 0),
+                leftHandPosition: simd_float3(-1, 0, 0),
+                rightHandPosition: simd_float3(1, 0, 0),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: false,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: pendingTwoHandState)
+
+            // Rotate becomes active on a subsequent frame; lifecycle should latch to rotate (not drag).
+            let startRotate = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(0, 0, 0),
+                leftHandPosition: simd_float3(-1, 0, 0),
+                rightHandPosition: simd_float3(1, 0, 0),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: true,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: startRotate)
+
+            let rotateGesture = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(2, 0, 0),
+                leftHandPosition: simd_float3(0, 0, -1),
+                rightHandPosition: simd_float3(0, 0, 1),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: true,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: rotateGesture)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            XCTAssertEqual(SceneRootTransform.shared.position.x, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.z, 0.0, accuracy: 0.0001)
+
+            let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+            XCTAssertEqual(rotatedForward.x, 1.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.z, 0.0, accuracy: 0.0001)
+        }
+
+        func test_processAnchoredSceneManipulationLifecycle_runsDragWhenRotateInactive() {
+            resetSceneRootTransform()
+
+            let startState = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(0, 0, 0),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: false,
+                leftHandPinching: false,
+                rightHandPinching: false
+            )
+
+            // Exhaust deferral window + begin drag session.
+            let commitFrames = SpatialManipulationSystem.shared.manipulationClassificationFrames + 1
+            for _ in 0 ..< commitFrames {
+                SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: startState)
+            }
+
+            let draggedState = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(1, 0, 0),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: false,
+                leftHandPinching: false,
+                rightHandPinching: false
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: draggedState)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            XCTAssertEqual(SceneRootTransform.shared.position.x, 1.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.z, 0.0, accuracy: 0.0001)
+
+            let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+            XCTAssertEqual(rotatedForward.x, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.z, 1.0, accuracy: 0.0001)
+        }
+
+        func test_processAnchoredSceneManipulationLifecycle_latchesRotateAndPreventsDragSwitch() {
+            resetSceneRootTransform()
+
+            let startRotate = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(0, 0, 0),
+                leftHandPosition: simd_float3(-1, 0, 0),
+                rightHandPosition: simd_float3(1, 0, 0),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: true,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: startRotate)
+
+            let rotateGesture = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(0, 0, 0),
+                leftHandPosition: simd_float3(0, 0, -1),
+                rightHandPosition: simd_float3(0, 0, 1),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: true,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: rotateGesture)
+
+            // Rotate signal drops while pinch + drag remain active; unified lifecycle should stay latched to rotate.
+            let wouldBeDrag = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(3, 0, 0),
+                leftHandPosition: simd_float3(0, 0, -1),
+                rightHandPosition: simd_float3(0, 0, 1),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: false,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: wouldBeDrag)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            XCTAssertEqual(SceneRootTransform.shared.position.x, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.z, 0.0, accuracy: 0.0001)
+
+            let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+            XCTAssertEqual(rotatedForward.x, 1.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.z, 0.0, accuracy: 0.0001)
+        }
+
+        func test_processAnchoredSceneManipulationLifecycle_latchesDragAndPreventsRotateSwitch() {
+            resetSceneRootTransform()
+
+            let startDrag = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(0, 0, 0),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: false,
+                leftHandPinching: false,
+                rightHandPinching: false
+            )
+
+            // Exhaust deferral window + begin drag session.
+            let commitFrames = SpatialManipulationSystem.shared.manipulationClassificationFrames + 1
+            for _ in 0 ..< commitFrames {
+                SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: startDrag)
+            }
+
+            // Rotate signal appears mid-gesture; unified lifecycle should stay latched to drag.
+            let wouldBeRotate = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(1, 0, 0),
+                leftHandPosition: simd_float3(0, 0, -1),
+                rightHandPosition: simd_float3(0, 0, 1),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: true,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: wouldBeRotate)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            XCTAssertEqual(SceneRootTransform.shared.position.x, 1.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.z, 0.0, accuracy: 0.0001)
+
+            let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+            XCTAssertEqual(rotatedForward.x, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.z, 1.0, accuracy: 0.0001)
+        }
+
+        /// Core fix scenario: one hand pinches first (enters deferral), second hand
+        /// arrives within the deferral window — should classify as rotate, not drag.
+        func test_processAnchoredSceneManipulationLifecycle_secondHandDuringDeferralRoutesToRotate() {
+            resetSceneRootTransform()
+
+            // Frame 1: Single-hand pinch → enters deferral, does NOT latch to drag.
+            let singleHandPinch = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(0, 0, 0),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: false,
+                leftHandPinching: true,
+                rightHandPinching: false
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: singleHandPinch)
+
+            // Frame 2: Second hand arrives with rotate active → classify as rotate.
+            let twoHandRotateStart = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(0, 0, 0),
+                leftHandPosition: simd_float3(-1, 0, 0),
+                rightHandPosition: simd_float3(1, 0, 0),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: true,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: twoHandRotateStart)
+
+            // Frame 3: Rotate gesture with hand positions changed.
+            let rotateGesture = makeAnchoredSceneManipulationState(
+                inputDevicePositionWorld: simd_float3(2, 0, 0),
+                leftHandPosition: simd_float3(0, 0, -1),
+                rightHandPosition: simd_float3(0, 0, 1),
+                spatialPinchActive: true,
+                spatialDragActive: true,
+                spatialRotateActive: true,
+                leftHandPinching: true,
+                rightHandPinching: true
+            )
+            SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(from: rotateGesture)
+            SceneRootTransform.shared.updateIfNeeded()
+
+            // Should have rotated, NOT dragged.
+            XCTAssertEqual(SceneRootTransform.shared.position.x, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.y, 0.0, accuracy: 0.0001)
+            XCTAssertEqual(SceneRootTransform.shared.position.z, 0.0, accuracy: 0.0001)
+
+            let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+            XCTAssertEqual(rotatedForward.x, 1.0, accuracy: 0.0001)
+            XCTAssertEqual(rotatedForward.z, 0.0, accuracy: 0.0001)
+        }
+
         private func registerManipulationEntity(_ entityId: EntityID) {
             registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
             registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
@@ -375,6 +725,44 @@ import XCTest
             inputState.spatialRotateDeltaRadians = rotateDeltaRadians
             inputState.spatialRotateAxisWorld = rotateAxisWorld
             InputSystem.shared.xrSpatialInputState = inputState
+            return state
+        }
+
+        private func makeAnchoredSceneRotateState(
+            leftHandPosition: simd_float3,
+            rightHandPosition: simd_float3,
+            rotateActive: Bool = true
+        ) -> XRSpatialInputState {
+            var state = XRSpatialInputState()
+            state.currentPhase = .changed
+            state.spatialRotateActive = rotateActive
+            state.leftHandPinching = true
+            state.rightHandPinching = true
+            state.leftHandPosition = leftHandPosition
+            state.rightHandPosition = rightHandPosition
+            return state
+        }
+
+        private func makeAnchoredSceneManipulationState(
+            inputDevicePositionWorld: simd_float3,
+            leftHandPosition: simd_float3 = .zero,
+            rightHandPosition: simd_float3 = .zero,
+            spatialPinchActive: Bool = false,
+            spatialDragActive: Bool = false,
+            spatialRotateActive: Bool = false,
+            leftHandPinching: Bool = false,
+            rightHandPinching: Bool = false
+        ) -> XRSpatialInputState {
+            var state = XRSpatialInputState()
+            state.currentPhase = .changed
+            state.inputDevicePositionWorld = inputDevicePositionWorld
+            state.leftHandPosition = leftHandPosition
+            state.rightHandPosition = rightHandPosition
+            state.spatialPinchActive = spatialPinchActive
+            state.spatialDragActive = spatialDragActive
+            state.spatialRotateActive = spatialRotateActive
+            state.leftHandPinching = leftHandPinching
+            state.rightHandPinching = rightHandPinching
             return state
         }
 

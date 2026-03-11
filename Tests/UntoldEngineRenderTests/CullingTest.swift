@@ -19,11 +19,21 @@ final class CullingTest: BaseRenderSetup {
     override func setUp() {
         super.setUp()
 
+        SceneRootTransform.shared.position = .zero
+        SceneRootTransform.shared.rotation = simd_quatf()
+        SceneRootTransform.shared.scale = .one
+        SceneRootTransform.shared.updateIfNeeded()
+
         camera = createEntity()
         createGameCamera(entityId: camera)
     }
 
     override func tearDown() {
+        SceneRootTransform.shared.position = .zero
+        SceneRootTransform.shared.rotation = simd_quatf()
+        SceneRootTransform.shared.scale = .one
+        SceneRootTransform.shared.updateIfNeeded()
+
         super.tearDown()
         destroyEntity(entityId: camera)
     }
@@ -102,6 +112,12 @@ final class CullingTest: BaseRenderSetup {
         simd_dot(p.n, x) + p.d
     }
 
+    private func frustumPlanesAsFloat4(_ frustum: Frustum) -> [simd_float4] {
+        frustum.planes.map { plane in
+            simd_float4(plane.n.x, plane.n.y, plane.n.z, plane.d)
+        }
+    }
+
     func testBuildFrustum() {
         let windowWidth = 1280
         let windowHeight = 720
@@ -169,6 +185,39 @@ final class CullingTest: BaseRenderSetup {
         XCTAssertEqual(pointPlaneDistance(F.planes[5], ftr), 0, accuracy: eps)
         XCTAssertEqual(pointPlaneDistance(F.planes[5], fbl), 0, accuracy: eps)
         XCTAssertEqual(pointPlaneDistance(F.planes[5], fbr), 0, accuracy: eps)
+    }
+
+    func testBuildFrustumWithSceneRootYawMatchesBaselineClassification() {
+        let baselineViewProjection = matrix_identity_float4x4
+        let baselineFrustum = buildFrustum(from: baselineViewProjection, ndcNear: 0, ndcFar: 1)
+
+        SceneRootTransform.shared.rotation = simd_quatf(angle: .pi / 4.0, axis: simd_float3(0, 1, 0))
+        SceneRootTransform.shared.updateIfNeeded()
+
+        let rotatedViewProjection = SceneRootTransform.shared.effectiveViewMatrix(matrix_identity_float4x4)
+        let rotatedFrustum = buildFrustum(from: rotatedViewProjection, ndcNear: 0, ndcFar: 1)
+
+        let localCenter = simd_float3(0, 0, 0.6)
+        let localExtent = simd_float3(0.1, 0.1, 0.1)
+        let worldCenter = simd_act(SceneRootTransform.shared.rotation, localCenter)
+
+        let insideWithRotatedFrustum = cpuInFrustum(
+            center: localCenter,
+            extent: localExtent,
+            planes: frustumPlanesAsFloat4(rotatedFrustum)
+        )
+        let insideWithBaselineFrustum = cpuInFrustum(
+            center: worldCenter,
+            extent: localExtent,
+            planes: frustumPlanesAsFloat4(baselineFrustum)
+        )
+
+        XCTAssertEqual(
+            insideWithRotatedFrustum,
+            insideWithBaselineFrustum,
+            "Scene-root yaw should be equivalent to rotating world-space sample positions for frustum classification"
+        )
+        XCTAssertTrue(insideWithRotatedFrustum, "Sample should remain inside after yaw transform")
     }
 
     struct EntityAABB {
@@ -413,5 +462,75 @@ final class CullingTest: BaseRenderSetup {
         XCTAssertFalse(didRun, "Occlusion pass should not run when HZB is invalid")
         let outputCount = outputCountBuffer.contents().load(as: UInt32.self)
         XCTAssertEqual(outputCount, 77, "Output count should remain untouched when pass does not run")
+    }
+
+    func test_executeHZBOcclusionCulling_withSceneRootYawViewProjection_matchesBaselineOutcome() throws {
+        let originalHZBTexture = textureResources.hzbDepthPyramid
+        let originalHZBMipCount = renderInfo.hzbMipCount
+        let originalHZBValid = renderInfo.hzbIsValid
+        let originalViewport = renderInfo.viewPort
+        defer {
+            textureResources.hzbDepthPyramid = originalHZBTexture
+            renderInfo.hzbMipCount = originalHZBMipCount
+            renderInfo.hzbIsValid = originalHZBValid
+            renderInfo.viewPort = originalViewport
+        }
+
+        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: 1.0)
+        renderInfo.hzbMipCount = 1
+        renderInfo.hzbIsValid = true
+        renderInfo.viewPort = simd_float2(1920, 1080)
+
+        let localCenter = simd_float3(0, 0, 0.6)
+        let halfExtent = simd_float3(0.1, 0.1, 0.1)
+
+        SceneRootTransform.shared.rotation = simd_quatf(angle: .pi / 4.0, axis: simd_float3(0, 1, 0))
+        SceneRootTransform.shared.updateIfNeeded()
+
+        let rotatedCenter = simd_act(SceneRootTransform.shared.rotation, localCenter)
+        let baselineCandidate = makeVisibleEntity(center: rotatedCenter, halfExtent: halfExtent, index: 99, version: 5)
+        let localCandidate = makeVisibleEntity(center: localCenter, halfExtent: halfExtent, index: 99, version: 5)
+        let rotatedViewProjection = SceneRootTransform.shared.effectiveViewMatrix(matrix_identity_float4x4)
+
+        func runOcclusion(viewProjection: simd_float4x4, candidate: VisibleEntity) throws -> (didRun: Bool, visibleCount: UInt32, firstVisible: VisibleEntity?) {
+            var candidateCount: UInt32 = 1
+            var mutableCandidate = candidate
+            let inputCountBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(bytes: &candidateCount, length: MemoryLayout<UInt32>.stride))
+            let inputVisibilityBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(bytes: &mutableCandidate, length: MemoryLayout<VisibleEntity>.stride))
+            let outputCountBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride))
+            let outputVisibilityBuffer = try XCTUnwrap(renderInfo.device.makeBuffer(length: MemoryLayout<VisibleEntity>.stride))
+            memset(outputCountBuffer.contents(), 0, MemoryLayout<UInt32>.stride)
+
+            let commandBuffer = try XCTUnwrap(renderInfo.commandQueue.makeCommandBuffer())
+            let didRun = executeHZBOcclusionCulling(
+                commandBuffer,
+                viewProjection: viewProjection,
+                dispatchCount: 1,
+                inputVisibilityBuffer: inputVisibilityBuffer,
+                inputVisibleCountBuffer: inputCountBuffer,
+                outputVisibilityBuffer: outputVisibilityBuffer,
+                outputVisibleCountBuffer: outputCountBuffer
+            )
+            commandBuffer.commit()
+            commandBuffer.waitUntilCompleted()
+
+            let visibleCount = outputCountBuffer.contents().load(as: UInt32.self)
+            var firstVisible: VisibleEntity?
+            if visibleCount > 0 {
+                firstVisible = outputVisibilityBuffer.contents()
+                    .bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))[0]
+            }
+
+            return (didRun, visibleCount, firstVisible)
+        }
+
+        let baselineResult = try runOcclusion(viewProjection: matrix_identity_float4x4, candidate: baselineCandidate)
+        let rotatedResult = try runOcclusion(viewProjection: rotatedViewProjection, candidate: localCandidate)
+
+        XCTAssertTrue(baselineResult.didRun)
+        XCTAssertTrue(rotatedResult.didRun)
+        XCTAssertEqual(rotatedResult.visibleCount, baselineResult.visibleCount)
+        XCTAssertEqual(rotatedResult.firstVisible?.index, baselineResult.firstVisible?.index)
+        XCTAssertEqual(rotatedResult.firstVisible?.version, baselineResult.firstVisible?.version)
     }
 }

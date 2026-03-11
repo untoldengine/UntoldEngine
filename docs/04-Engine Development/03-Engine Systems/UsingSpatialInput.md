@@ -304,6 +304,123 @@ Use this when panning an entire scene — for example, sliding a map, architectu
 
 ------------------------------------------------------------------------
 
+## Anchored Scene Rotate Helper
+
+For rotating the **entire scene root** around world up (`+Y`) while preserving static batching, use the anchored scene rotate lifecycle. This requires a **two-hand pinch + twist** gesture (`spatialRotateActive` with both hands pinching):
+
+``` swift
+func handleInput() {
+    let state = InputSystem.shared.xrSpatialInputState
+
+    SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: state)
+}
+```
+
+This helper:
+
+-   Activates only when both hands are pinching and a two-hand rotate gesture is recognized
+-   Captures the initial two-hand vector direction + scene yaw on rotate start
+-   Applies absolute yaw from gesture start via `rotateSceneToYaw`, keeping static batches intact
+-   Ends automatically when either hand releases or the rotate gesture ends
+
+You can adjust rotation speed with the `sensitivity` parameter (defaults to `1.0`):
+
+``` swift
+SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: state, sensitivity: 0.5)
+```
+
+To manually end rotation (e.g. on a mode change), call:
+
+``` swift
+SpatialManipulationSystem.shared.endAnchoredSceneRotate()
+```
+
+Use this when aligning or calibrating an already-loaded large scene in place without rebatching.
+
+------------------------------------------------------------------------
+
+## Unified Scene Manipulation Helper
+
+To avoid drag/rotate gesture fighting, use the unified scene-root manipulation lifecycle:
+
+``` swift
+func handleInput() {
+    let state = InputSystem.shared.xrSpatialInputState
+
+    SpatialManipulationSystem.shared.processAnchoredSceneManipulationLifecycle(
+        from: state,
+        dragSensitivity: 1.0,
+        rotateSensitivity: 0.5
+    )
+}
+```
+
+Arbitration rules:
+
+-   When a pinch is first detected, classification is deferred for a few frames (`manipulationClassificationFrames`, default 3) so the second hand has time to arrive
+-   Two-hand pinch + twist (`spatialRotateActive` + both hands pinching) routes to scene rotate
+-   Otherwise, after the deferral window expires, pinch drag routes to scene drag
+-   The non-winning session is ended automatically
+-   Once a mode is chosen, it stays latched (`drag` or `rotate`) until the gesture ends/release happens
+
+You can tune the deferral window (set to 0 to commit immediately):
+
+``` swift
+SpatialManipulationSystem.shared.manipulationClassificationFrames = 4  // ~44ms at 90 Hz
+```
+
+To manually end the unified lifecycle (e.g. on a mode change), call:
+
+``` swift
+SpatialManipulationSystem.shared.endAnchoredSceneManipulation()
+```
+
+Use this as the default scene-root helper when your app supports both panning and rotation.
+
+------------------------------------------------------------------------
+
+## Combining Scene Drag, Rotate and Zoom
+
+All three scene-level gestures can live in the same input loop — they gate on different input conditions so they don't conflict:
+
+``` swift
+func handleInput() {
+    let state = InputSystem.shared.xrSpatialInputState
+
+    // Single-hand pinch + drag → pan the scene
+    SpatialManipulationSystem.shared.processAnchoredSceneDragLifecycle(from: state)
+
+    // Two-hand pinch + twist → rotate the scene (yaw)
+    SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: state)
+
+    // Two-hand pinch + spread/pinch → zoom an entity
+    SpatialManipulationSystem.shared.applyTwoHandZoomIfNeeded(from: state)
+}
+```
+
+For context-based entity vs. scene rotation — route two-hand twist to entity rotate when something is picked, and to scene rotate otherwise:
+
+``` swift
+func handleInput() {
+    let state = InputSystem.shared.xrSpatialInputState
+
+    // Scene-level drag (always active)
+    SpatialManipulationSystem.shared.processAnchoredSceneDragLifecycle(from: state)
+
+    if state.pickedEntityId != nil {
+        // Entity is picked → two-hand twist rotates the entity
+        SpatialManipulationSystem.shared.applyTwoHandRotateIfNeeded(from: state)
+    } else {
+        // Nothing picked → two-hand twist rotates the scene
+        SpatialManipulationSystem.shared.processAnchoredSceneRotateLifecycle(from: state)
+    }
+
+    SpatialManipulationSystem.shared.applyTwoHandZoomIfNeeded(from: state)
+}
+```
+
+------------------------------------------------------------------------
+
 ## Two-Hand Zoom
 
 Apply the built-in zoom response:
@@ -447,6 +564,21 @@ Use these helpers from `SpatialManipulationSystem.shared`:
 
 -   `endAnchoredSceneDrag()`\
     Manually ends an in-progress anchored scene drag session.
+
+-   `processAnchoredSceneRotateLifecycle(from:sensitivity:)`\
+    Anchored rotate for the entire scene root using two-hand pinch + twist.
+    Applies absolute yaw via `rotateSceneToYaw`.
+
+-   `endAnchoredSceneRotate()`\
+    Manually ends an in-progress anchored scene rotate session.
+
+-   `processAnchoredSceneManipulationLifecycle(from:dragSensitivity:rotateSensitivity:)`\
+    Unified scene-root helper with drag/rotate arbitration to prevent
+    gesture-fighting. Uses a deferral window (`manipulationClassificationFrames`) before
+    committing to drag so the second hand has time to arrive for rotate.
+
+-   `endAnchoredSceneManipulation()`\
+    Ends any in-progress unified scene manipulation (drag, rotate, or pending classification).
 
 -   `applyTwoHandZoomIfNeeded(from:sensitivity:)`\
     Provides zoom delta signal. You must define what zoom means in your

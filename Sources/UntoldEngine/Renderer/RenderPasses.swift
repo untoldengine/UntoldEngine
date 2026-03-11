@@ -2140,6 +2140,8 @@ public enum RenderPasses {
             index: Int(transparencyPassIBLRotationAngleIndex.rawValue)
         )
 
+        let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+
         // Build and sort transparent draw items back-to-front for correct alpha blending.
         var transparentEntities: [(entityId: EntityID, render: RenderComponent, world: WorldTransformComponent, distanceSq: Float)] = []
 
@@ -2177,7 +2179,7 @@ public enum RenderPasses {
                 worldTransformComponent.space.columns.3.y,
                 worldTransformComponent.space.columns.3.z
             )
-            let distanceSq = simd_length_squared(cameraComponent.localPosition - worldPosition)
+            let distanceSq = simd_length_squared(effectiveCameraPosition - worldPosition)
             transparentEntities.append((
                 entityId: entityId,
                 render: renderComponent,
@@ -2207,7 +2209,7 @@ public enum RenderPasses {
                 modelUniforms.normalMatrix = normalMatrix
                 modelUniforms.viewMatrix = viewMatrix
                 modelUniforms.modelMatrix = modelMatrix
-                modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+                modelUniforms.cameraPosition = effectiveCameraPosition
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
                 if let modelUniformBuffer = mesh.spaceUniform[currentUniformBufferIndex()] {
@@ -2578,6 +2580,8 @@ public enum RenderPasses {
         let transformId = getComponentId(for: WorldTransformComponent.self)
         let gaussianId = getComponentId(for: GaussianComponent.self)
         let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+        let effectiveViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
 
         for entityId in entities {
             guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
@@ -2601,7 +2605,7 @@ public enum RenderPasses {
             let rootMatrix = worldTransformComponent.space
             var modelMatrix = simd_mul(rootMatrix, .identity)
 
-            let viewMatrix: simd_float4x4 = cameraComponent.viewSpace
+            let viewMatrix: simd_float4x4 = effectiveViewMatrix
 
             let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
 
@@ -2619,7 +2623,7 @@ public enum RenderPasses {
 
             gaussianUniform.modelMatrix = modelMatrix
 
-            gaussianUniform.cameraPosition = cameraComponent.localPosition
+            gaussianUniform.cameraPosition = effectiveCameraPosition
 
             gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
 

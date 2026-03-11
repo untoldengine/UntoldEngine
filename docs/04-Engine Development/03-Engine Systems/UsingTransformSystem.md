@@ -130,6 +130,51 @@ Use these when you need to pan or reposition the entire world — for example, s
 
 ---
 
+### Step 4: Rotate the Entire Scene (Yaw)
+
+These functions rotate the **scene root** around world up (`+Y`) without modifying individual entity transforms. Static batches remain intact and no rebatching is required.
+
+#### Rotate Scene to an Absolute Yaw
+
+```swift
+rotateSceneToYaw(.pi / 2.0)
+```
+
+#### Rotate Scene by a Relative Yaw Delta
+
+```swift
+rotateSceneByYaw(.pi / 18.0) // +10 degrees
+```
+
+Use these when you need to align or calibrate a large loaded scene in-place (for example, Vision Pro room alignment) while keeping batching and culling efficient.
+
+---
+
+### Step 5: Scene-Root Space Conversion and Reset Helpers
+
+Use these helpers when converting between scene-local/entity space and visual world space:
+
+```swift
+let visual = sceneLocalToVisualWorld(simd_float3(1, 0, 0))
+let local = visualWorldToSceneLocal(visual)
+```
+
+To get an entity's visual world position (with scene-root transform applied):
+
+```swift
+let visualPosition = getVisualPosition(entityId: myEntity)
+```
+
+To return scene root to identity quickly:
+
+```swift
+resetSceneRootTransform()
+```
+
+This resets position/rotation/scale and refreshes root matrices immediately.
+
+---
+
 ## Tips and Best Practices
 - Use Local Transformations for Hierarchies:
     - For example, a car’s wheels (children) should use local transforms relative to the car body (parent).
@@ -139,3 +184,6 @@ Use these when you need to pan or reposition the entire world — for example, s
 - Use Scene-Level Translation for Batch-Safe Movement:
     - Use `translateSceneTo` / `translateSceneBy` instead of moving every entity individually.
     - This avoids breaking static batches and is ideal for spatial drag gestures on the whole scene.
+- Use Scene-Level Yaw Rotation for Batch-Safe Alignment:
+    - Use `rotateSceneToYaw` / `rotateSceneByYaw` to rotate large scenes around world up.
+    - This is ideal for scene alignment and calibration flows where static batching must stay active.
