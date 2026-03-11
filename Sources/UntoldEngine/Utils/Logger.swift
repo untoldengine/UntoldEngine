@@ -11,7 +11,7 @@
 import Foundation
 import simd
 
-public enum LogLevel: Int {
+public enum LogLevel: Int, Sendable {
     case none = 0
     case error
     case warning
@@ -20,7 +20,7 @@ public enum LogLevel: Int {
     case test
 }
 
-public struct LogEvent: Identifiable {
+public struct LogEvent: Identifiable, Sendable {
     public let id = UUID()
     public let timestamp = Date()
     public let level: LogLevel
@@ -36,15 +36,15 @@ public protocol LoggerSink: AnyObject {
 }
 
 public enum Logger {
-    public static var logLevel: LogLevel = .debug
+    nonisolated(unsafe) public static var logLevel: LogLevel = .debug
     #if canImport(AppKit)
-        private static var sinks = [WeakBox]()
+        nonisolated(unsafe) private static var sinks = [WeakBox]()
         private static let sinkQueue = DispatchQueue(label: "engine.logger.sinks", qos: .utility)
 
         private struct WeakBox { weak var value: LoggerSink? }
 
         // Backlog for events emitted before any sinks exist
-        private static var backlog: [LogEvent] = []
+        nonisolated(unsafe) private static var backlog: [LogEvent] = []
         private static let backlogLimit = 2000
     #endif
 

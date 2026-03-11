@@ -11,7 +11,7 @@
 import Foundation
 import simd
 
-public enum ScenePickingBackendPreference {
+public enum ScenePickingBackendPreference: Sendable {
     /// Automatic: octree broad-phase + GPU narrow-phase if available, otherwise GPU-only, else CPU.
     case automatic
     /// CPU-only ray-AABB intersection (no GPU acceleration structures).
@@ -28,7 +28,7 @@ public enum ScenePickingBackendPreference {
     static let octreePreferred = octreeGPUPreferred
 }
 
-public struct ScenePickOptions {
+public struct ScenePickOptions: Sendable {
     public var isGizmoActive: Bool
     public var gizmoOnly: Bool
     public var maxDistance: Float
@@ -47,7 +47,7 @@ public struct ScenePickOptions {
     }
 }
 
-public struct ScenePickHit {
+public struct ScenePickHit: Sendable {
     public let entityId: EntityID
     public let distance: Float
     public let worldPosition: simd_float3

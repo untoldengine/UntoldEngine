@@ -13,13 +13,13 @@ import Foundation
 import Metal
 import MetalKit
 
-public enum OutputEncodingMode: Int32 {
+public enum OutputEncodingMode: Int32, Sendable {
     case hardwareSRGB = 0
     case manualSRGBOETF = 1
     case hdrPassthrough = 2
 }
 
-public struct WorkingColorFormats {
+public struct WorkingColorFormats: Sendable {
     public var gBufferAlbedo: MTLPixelFormat
     public var gBufferNormal: MTLPixelFormat
     public var gBufferPosition: MTLPixelFormat
@@ -53,7 +53,7 @@ public struct WorkingColorFormats {
     )
 }
 
-public struct PresentOutputConfig {
+public struct PresentOutputConfig: Sendable {
     public var pixelFormat: MTLPixelFormat
     public var encodingMode: OutputEncodingMode
 
@@ -67,7 +67,7 @@ public struct PresentOutputConfig {
     }
 }
 
-public struct ColorPipelineConfig {
+public struct ColorPipelineConfig: Sendable {
     public var working: WorkingColorFormats
     public var present: PresentOutputConfig
 

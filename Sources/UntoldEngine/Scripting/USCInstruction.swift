@@ -229,7 +229,7 @@ public struct USCScript: Codable {
 }
 
 /// Script metadata
-public struct ScriptMetadata: Codable {
+public struct ScriptMetadata: Codable, Sendable {
     public var triggerType: TriggerType
     public var executionMode: ExecutionMode
 
@@ -245,14 +245,14 @@ public struct ScriptMetadata: Codable {
 }
 
 /// Trigger type for scripts
-public enum TriggerType: String, Codable {
+public enum TriggerType: String, Codable, Sendable {
     case event // OnCollision, OnTriggerEnter - runs once per event
     case perFrame // OnUpdate - runs every frame
     case manual // Called explicitly from code
 }
 
 /// Execution mode
-public enum ExecutionMode: String, Codable {
+public enum ExecutionMode: String, Codable, Sendable {
     case interpreted // Always run via interpreter
     case compiled // Always generate Swift code
     case auto // Engine decides (events=interpreted, perFrame=compiled)
