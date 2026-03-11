@@ -33,6 +33,7 @@
         private var interactionLastInputDevicePositionWorld: simd_float3?
         private var interactionInitialRayDirectionWorld: simd_float3?
         private var interactionPickedEntity: EntityID?
+        private var interactionPickedWorldPosition: simd_float3?
         private var leftHandPositionValid = false
         private var rightHandPositionValid = false
         private var lastTwoHandPinchDistanceMeters: Float?
@@ -96,6 +97,7 @@
 
                 let pickedEntityFromSnapshot: EntityID?
                 var pickedEntityDistance = Float.infinity
+                var pickedEntityWorldPosition: simd_float3?
                 if shouldPickForSnapshot,
                    let normalizedRayDirection,
                    let hit = pickEntity(
@@ -106,8 +108,10 @@
                 {
                     pickedEntityFromSnapshot = hit.entityId
                     pickedEntityDistance = hit.distance
+                    pickedEntityWorldPosition = hit.worldPosition
                 } else {
                     pickedEntityFromSnapshot = nil
+                    pickedEntityWorldPosition = nil
                 }
 
                 switch snapshot.phase {
@@ -120,11 +124,13 @@
                     interactionLastInputDevicePositionWorld = snapshot.inputDevicePositionWorld
                     interactionInitialRayDirectionWorld = normalizedRayDirection
                     interactionPickedEntity = pickedEntityFromSnapshot
+                    interactionPickedWorldPosition = pickedEntityWorldPosition
 
                     state.spatialDragActive = false
                     state.spatialPinchDragDelta = .zero
                     state.pickedEntityId = pickedEntityFromSnapshot
                     state.pickedEntityDistance = pickedEntityDistance
+                    state.pickedEntityWorldPosition = pickedEntityWorldPosition
 
                 case .changed:
                     if !interactionActive {
@@ -136,8 +142,10 @@
                         interactionLastInputDevicePositionWorld = snapshot.inputDevicePositionWorld
                         interactionInitialRayDirectionWorld = normalizedRayDirection
                         interactionPickedEntity = pickedEntityFromSnapshot
+                        interactionPickedWorldPosition = pickedEntityWorldPosition
                         state.pickedEntityId = pickedEntityFromSnapshot
                         state.pickedEntityDistance = pickedEntityDistance
+                        state.pickedEntityWorldPosition = pickedEntityWorldPosition
                     }
 
                     state.spatialPinchDragDelta = computePinchDragDelta(currentInputDevicePositionWorld: snapshot.inputDevicePositionWorld)
@@ -145,6 +153,8 @@
                     if let pickedEntityFromSnapshot {
                         interactionPickedEntity = pickedEntityFromSnapshot
                         state.pickedEntityId = pickedEntityFromSnapshot
+                        interactionPickedWorldPosition = pickedEntityWorldPosition
+                        state.pickedEntityWorldPosition = pickedEntityWorldPosition
                     }
 
                     let translationDelta: Float
@@ -205,6 +215,7 @@
                     state.spatialDragActive = false
                     state.spatialPinchDragDelta = .zero
                     state.pickedEntityId = isTap ? interactionPickedEntity : nil
+                    state.pickedEntityWorldPosition = isTap ? interactionPickedWorldPosition : nil
 
                     resetSpatialInteractionTracking()
 
@@ -213,6 +224,7 @@
                     state.spatialDragActive = false
                     state.spatialPinchDragDelta = .zero
                     state.pickedEntityId = nil
+                    state.pickedEntityWorldPosition = nil
 
                     resetSpatialInteractionTracking()
                 }
@@ -449,6 +461,7 @@
             interactionLastInputDevicePositionWorld = nil
             interactionInitialRayDirectionWorld = nil
             interactionPickedEntity = nil
+            interactionPickedWorldPosition = nil
             lastTwoHandPinchDistanceMeters = nil
             lastTwoHandPinchVectorWorld = nil
         }
