@@ -15,11 +15,13 @@ import Metal
 import MetalKit
 
 public enum RenderPasses {
-    private static var transparencyXRDepthWriteState: MTLDepthStencilState?
-    private static var spatialDebugLineBuffer: MTLBuffer?
-    private static var spatialDebugLineBufferCapacityVertices: Int = 0
-    private static var spatialDebugLastLogTime: TimeInterval = 0
-    private static var spatialDebugLastLogSignature: String = ""
+    public typealias RenderPassExecution = @Sendable (MTLCommandBuffer) -> Void
+
+    nonisolated(unsafe) private static var transparencyXRDepthWriteState: MTLDepthStencilState?
+    nonisolated(unsafe) private static var spatialDebugLineBuffer: MTLBuffer?
+    nonisolated(unsafe) private static var spatialDebugLineBufferCapacityVertices: Int = 0
+    nonisolated(unsafe) private static var spatialDebugLastLogTime: TimeInterval = 0
+    nonisolated(unsafe) private static var spatialDebugLastLogSignature: String = ""
     private static let lodDebugPalette: [simd_float3] = [
         simd_float3(1.0, 0.0, 0.0), // LOD0 = red
         simd_float3(0.0, 1.0, 0.0), // LOD1 = green
@@ -137,7 +139,7 @@ public enum RenderPasses {
         materialParameters.hasTexture.x = 0
     }
 
-    public static let gridExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let gridExecution: RenderPassExecution = { commandBuffer in
         guard let gridPipeline = PipelineManager.shared.renderPipelinesByType[.grid] else {
             handleError(.pipelineStateNulled, "gridPipeline is nil")
             return
@@ -226,7 +228,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    public static let executeEnvironmentPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let executeEnvironmentPass: RenderPassExecution = { commandBuffer in
         guard let environmentPipeline = PipelineManager.shared.renderPipelinesByType[.environment] else {
             handleError(.pipelineStateNulled, "environmentPipeline is nil")
             return
@@ -328,7 +330,7 @@ public enum RenderPasses {
         }
     }
 
-    public static let shadowExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let shadowExecution: RenderPassExecution = { commandBuffer in
         guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
             handleError(.pipelineStateNulled, "shadowPipeline is nil")
             return
@@ -514,7 +516,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    public static let batchedShadowExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let batchedShadowExecution: RenderPassExecution = { commandBuffer in
         // Skip if batching is disabled
         guard BatchingSystem.shared.isEnabled() else { return }
 
@@ -637,7 +639,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    public static let modelExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let modelExecution: RenderPassExecution = { commandBuffer in
         guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[.model] else {
             handleError(.pipelineStateNulled, "modelPipeline is nil")
             return
@@ -920,7 +922,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    public static let batchedModelExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let batchedModelExecution: RenderPassExecution = { commandBuffer in
         // Skip if batching is disabled
         guard BatchingSystem.shared.isEnabled() else { return }
 
@@ -1134,7 +1136,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    static let ssaoExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    static let ssaoExecution: RenderPassExecution = { commandBuffer in
         guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
@@ -1253,7 +1255,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    static let ssaoBlurExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    static let ssaoBlurExecution: RenderPassExecution = { commandBuffer in
         guard let ssaoBlurPipeline = PipelineManager.shared.renderPipelinesByType[.ssaoBlur] else {
             handleError(.pipelineStateNulled, "ssaoBlurPipeline is nil")
             return
@@ -1326,7 +1328,7 @@ public enum RenderPasses {
 
     // MARK: - Optimized SSAO Execution with Quality Tiers
 
-    public static let ssaoOptimizedExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let ssaoOptimizedExecution: RenderPassExecution = { commandBuffer in
         // Skip SSAO entirely if disabled
         if !SSAOParams.shared.enabled {
             return
@@ -1385,7 +1387,7 @@ public enum RenderPasses {
 
     // MARK: - Low-Resolution SSAO Pass
 
-    private static let ssaoLowResExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    private static let ssaoLowResExecution: RenderPassExecution = { commandBuffer in
         guard let camera = CameraSystem.shared.activeCamera,
               let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
         else {
@@ -1474,7 +1476,7 @@ public enum RenderPasses {
 
     // MARK: - Bilateral Blur (Separable, Two-Pass)
 
-    private static let ssaoBilateralBlurExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    private static let ssaoBilateralBlurExecution: RenderPassExecution = { commandBuffer in
         guard let bilateralPipeline = PipelineManager.shared.renderPipelinesByType[.ssaoBilateralBlur] else {
             handleError(.pipelineStateNulled, "ssaoBilateralBlur is nil")
             return
@@ -1557,7 +1559,7 @@ public enum RenderPasses {
 
     // MARK: - Simple Blur (Fast Path)
 
-    private static let ssaoSimpleBlurExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    private static let ssaoSimpleBlurExecution: RenderPassExecution = { commandBuffer in
         guard let ssaoBlurPipeline = PipelineManager.shared.renderPipelinesByType[.ssaoBlur] else {
             handleError(.pipelineStateNulled, "ssaoBlurPipeline is nil")
             return
@@ -1608,7 +1610,7 @@ public enum RenderPasses {
 
     // MARK: - Upsample Pass
 
-    private static let ssaoUpsampleExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    private static let ssaoUpsampleExecution: RenderPassExecution = { commandBuffer in
         guard let upsamplePipeline = PipelineManager.shared.renderPipelinesByType[.ssaoUpsample] else {
             handleError(.pipelineStateNulled, "ssaoUpsample is nil")
             return
@@ -1665,13 +1667,13 @@ public enum RenderPasses {
 
     // MARK: - Full-Res Bilateral Blur
 
-    private static let ssaoBilateralBlurFullResExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    private static let ssaoBilateralBlurFullResExecution: RenderPassExecution = { commandBuffer in
         // For now, use existing box blur for full-res
         // TODO: Implement dedicated full-res bilateral blur if needed
         ssaoBlurExecution(commandBuffer)
     }
 
-    public static let lightExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let lightExecution: RenderPassExecution = { commandBuffer in
         guard let lightPipeline = PipelineManager.shared.renderPipelinesByType[.light] else {
             handleError(.pipelineStateNulled, "lightPipeline is nil")
             return
@@ -1849,7 +1851,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    public static let preCompositeExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let preCompositeExecution: RenderPassExecution = { commandBuffer in
         guard let preCompositePipeline = PipelineManager.shared.renderPipelinesByType[.preComposite] else {
             handleError(.pipelineStateNulled, "preCompositePipeline is nil")
             return
@@ -1980,7 +1982,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    public static let transparencyExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let transparencyExecution: RenderPassExecution = { commandBuffer in
         guard let transparencyPipeline = PipelineManager.shared.renderPipelinesByType[.transparency] else {
             handleError(.pipelineStateNulled, "transparencyPipeline is nil")
             return
@@ -2377,7 +2379,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    public static let spatialDebugBoundsExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let spatialDebugBoundsExecution: RenderPassExecution = { commandBuffer in
         let settings = SpatialDebugVisualization.shared
         guard settings.enabled, settings.showOctreeLeafBounds else {
             return
@@ -2539,7 +2541,7 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
-    public static let gaussianExecution: (MTLCommandBuffer) -> Void = { commandBuffer in
+    public static let gaussianExecution: RenderPassExecution = { commandBuffer in
         guard let gaussianPipeline = PipelineManager.shared.renderPipelinesByType[.gaussian] else {
             handleError(.pipelineStateNulled, "Guassian Pipeline is nil")
             return

@@ -528,13 +528,13 @@ public enum CameraPathMode {
 }
 
 /// Settings for camera path playback
-public struct CameraPathSettings {
+public struct CameraPathSettings: Sendable {
     /// Whether to start playback immediately upon calling startCameraPath
     public var startImmediately: Bool
     /// Optional callback invoked when path completes (not called in loop mode)
-    public var onComplete: (() -> Void)?
+    public var onComplete: (@Sendable () -> Void)?
 
-    public init(startImmediately: Bool = true, onComplete: (() -> Void)? = nil) {
+    public init(startImmediately: Bool = true, onComplete: (@Sendable () -> Void)? = nil) {
         self.startImmediately = startImmediately
         self.onComplete = onComplete
     }

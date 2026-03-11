@@ -11,7 +11,7 @@ import Foundation
 import simd
 
 /// Axis-Aligned Bounding Box
-public struct AABB {
+public struct AABB: Sendable {
     public var min: simd_float3
     public var max: simd_float3
 
@@ -128,7 +128,7 @@ public struct AABB {
 }
 
 /// Bounding sphere for radius-based queries
-public struct BoundingSphere {
+public struct BoundingSphere: Sendable {
     public var center: simd_float3
     public var radius: Float
 
