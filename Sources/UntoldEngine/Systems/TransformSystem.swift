@@ -430,3 +430,70 @@ public func translateSceneBy(delta: simd_float3) {
 public func translateSceneTo(position: simd_float3) {
     SceneRootTransform.shared.position = position
 }
+
+/// Convert a point from scene-local/entity space to visual world space.
+public func sceneLocalToVisualWorld(_ position: simd_float3) -> simd_float3 {
+    SceneRootTransform.shared.sceneLocalToVisualWorld(position)
+}
+
+/// Convert a point from visual world space to scene-local/entity space.
+public func visualWorldToSceneLocal(_ position: simd_float3) -> simd_float3 {
+    SceneRootTransform.shared.visualWorldToSceneLocal(position)
+}
+
+/// Returns an entity's visual world position after scene-root transform is applied.
+public func getVisualPosition(entityId: EntityID) -> simd_float3 {
+    sceneLocalToVisualWorld(getPosition(entityId: entityId))
+}
+
+/// Reset the scene root transform to identity and refresh matrices immediately.
+public func resetSceneRootTransform() {
+    SceneRootTransform.shared.reset()
+}
+
+@inline(__always)
+private func normalizeSceneYawRadians(_ radians: Float) -> Float {
+    let twoPi = 2.0 * Float.pi
+    var wrapped = fmod(radians + Float.pi, twoPi)
+    if wrapped < 0.0 {
+        wrapped += twoPi
+    }
+    return wrapped - Float.pi
+}
+
+@inline(__always)
+func sceneYawRadians(from rotation: simd_quatf) -> Float {
+    let q = simd_normalize(rotation)
+    let sinyCosp = 2.0 * (q.real * q.imag.y + q.imag.x * q.imag.z)
+    let cosyCosp = 1.0 - 2.0 * (q.imag.y * q.imag.y + q.imag.z * q.imag.z)
+    return atan2(sinyCosp, cosyCosp)
+}
+
+/// Rotate the entire scene around world up (+Y) by a delta without modifying
+/// individual entity transforms. This keeps static batches intact.
+public func rotateSceneByYaw(_ deltaRadians: Float) {
+    guard deltaRadians.isFinite else {
+        handleError(.valueisNaN, "Scene yaw delta", .invalid)
+        return
+    }
+
+    let currentYaw = sceneYawRadians(from: SceneRootTransform.shared.rotation)
+    let targetYaw = normalizeSceneYawRadians(currentYaw + deltaRadians)
+    SceneRootTransform.shared.rotation = simd_normalize(
+        simd_quatf(angle: targetYaw, axis: simd_float3(0.0, 1.0, 0.0))
+    )
+}
+
+/// Rotate the entire scene to an absolute yaw around world up (+Y) without
+/// modifying individual entity transforms. This keeps static batches intact.
+public func rotateSceneToYaw(_ radians: Float) {
+    guard radians.isFinite else {
+        handleError(.valueisNaN, "Scene yaw", .invalid)
+        return
+    }
+
+    let targetYaw = normalizeSceneYawRadians(radians)
+    SceneRootTransform.shared.rotation = simd_normalize(
+        simd_quatf(angle: targetYaw, axis: simd_float3(0.0, 1.0, 0.0))
+    )
+}

@@ -77,6 +77,14 @@ public class SceneRootTransform {
 
     private init() {}
 
+    /// Reset scene-root transform to identity and refresh cached matrices immediately.
+    public func reset() {
+        position = .zero
+        rotation = simd_quatf()
+        scale = .one
+        updateIfNeeded()
+    }
+
     /// Recompute `matrix` and `inverseMatrix` if any property changed since the last call.
     /// Call this once at the top of each frame, before culling / rendering.
     public func updateIfNeeded() {
@@ -120,5 +128,21 @@ public class SceneRootTransform {
     public func effectiveLightMatrix(_ lightMatrix: simd_float4x4) -> simd_float4x4 {
         guard !isIdentity else { return lightMatrix }
         return simd_mul(lightMatrix, matrix)
+    }
+
+    /// Convert a point from scene-local/entity space to visual world space.
+    public func sceneLocalToVisualWorld(_ position: simd_float3) -> simd_float3 {
+        updateIfNeeded()
+        guard !isIdentity else { return position }
+        let p = simd_mul(matrix, simd_float4(position, 1.0))
+        return simd_float3(p.x, p.y, p.z)
+    }
+
+    /// Convert a point from visual world space back into scene-local/entity space.
+    public func visualWorldToSceneLocal(_ position: simd_float3) -> simd_float3 {
+        updateIfNeeded()
+        guard !isIdentity else { return position }
+        let p = simd_mul(inverseMatrix, simd_float4(position, 1.0))
+        return simd_float3(p.x, p.y, p.z)
     }
 }

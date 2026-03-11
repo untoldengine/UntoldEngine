@@ -60,6 +60,18 @@
         var initialScenePosition: simd_float3
     }
 
+    private struct AnchoredSceneRotateSession {
+        var initialProjectedDirectionWorld: simd_float3
+        var initialSceneYawRadians: Float
+    }
+
+    private enum AnchoredSceneManipulationMode {
+        case none
+        case pendingClassification
+        case drag
+        case rotate
+    }
+
     public final class SpatialManipulationSystem {
         public static let shared: SpatialManipulationSystem = .init()
 
@@ -75,9 +87,17 @@
         public var rotationDeltaSmoothingFactor: Float = 0.25
         public var rotationDeltaDeadzoneRadians: Float = 0.002
 
+        /// Number of frames to wait before committing to drag when only one hand is pinching.
+        /// This gives the second hand time to arrive for a two-hand rotate gesture.
+        /// Set to 0 to commit immediately (old behaviour).
+        public var manipulationClassificationFrames: Int = 3
+
         private var manipulationSession: SpatialManipulationSession = .none
         private var anchoredPinchDragSession: AnchoredPinchDragSession?
         private var anchoredSceneDragSession: AnchoredSceneDragSession?
+        private var anchoredSceneRotateSession: AnchoredSceneRotateSession?
+        private var anchoredSceneManipulationMode: AnchoredSceneManipulationMode = .none
+        private var classificationFramesRemaining: Int = 0
 
         private init() {}
 
@@ -85,6 +105,9 @@
             manipulationSession = .none
             anchoredPinchDragSession = nil
             anchoredSceneDragSession = nil
+            anchoredSceneRotateSession = nil
+            anchoredSceneManipulationMode = .none
+            classificationFramesRemaining = 0
         }
 
         public func processPinchTransformLifecycle(from state: XRSpatialInputState) {
@@ -427,6 +450,172 @@
 
         public func endAnchoredSceneDrag() {
             anchoredSceneDragSession = nil
+            if anchoredSceneManipulationMode == .drag {
+                anchoredSceneManipulationMode = .none
+            }
+        }
+
+        // MARK: - Unified Scene Manipulation
+
+        /// Unified scene-root manipulation lifecycle with drag/rotate arbitration.
+        ///
+        /// Arbitration policy:
+        /// - When a pinch is first detected, classification is deferred for
+        ///   `manipulationClassificationFrames` to give the second hand time to arrive.
+        /// - Two-hand rotate signal wins (`spatialRotateActive` + both hands pinching).
+        /// - Otherwise, anchored scene drag runs when pinch drag input is active.
+        /// - Once selected, mode stays latched for the active gesture until release/end.
+        /// - The non-winning session is ended to prevent gesture-fighting.
+        public func processAnchoredSceneManipulationLifecycle(
+            from state: XRSpatialInputState,
+            dragSensitivity: Float = 1.0,
+            rotateSensitivity: Float = 1.0
+        ) {
+            if state.currentPhase == .ended || state.currentPhase == .cancelled {
+                endAnchoredSceneManipulation()
+                return
+            }
+
+            let anyPinchActive = state.spatialPinchActive || state.leftHandPinching || state.rightHandPinching
+            if !anyPinchActive {
+                endAnchoredSceneManipulation()
+                return
+            }
+
+            // --- Mode classification (only when not yet committed) ---
+            if anchoredSceneManipulationMode == .none || anchoredSceneManipulationMode == .pendingClassification {
+                let twoHandPinch = state.leftHandPinching && state.rightHandPinching
+
+                if twoHandPinch {
+                    if state.spatialRotateActive {
+                        anchoredSceneManipulationMode = .rotate
+                        classificationFramesRemaining = 0
+                    } else {
+                        // Both hands pinching, rotate not yet classified — wait without counting down.
+                        anchoredSceneManipulationMode = .pendingClassification
+                        return
+                    }
+                } else if state.spatialPinchActive {
+                    // Single-hand pinch — defer to allow second hand to arrive.
+                    if anchoredSceneManipulationMode == .none {
+                        classificationFramesRemaining = manipulationClassificationFrames
+                    }
+
+                    if classificationFramesRemaining > 0 {
+                        classificationFramesRemaining -= 1
+                        anchoredSceneManipulationMode = .pendingClassification
+                        return
+                    }
+
+                    // Deferral expired — commit to drag.
+                    anchoredSceneManipulationMode = .drag
+                } else {
+                    return
+                }
+            }
+
+            // --- Execute committed mode ---
+            switch anchoredSceneManipulationMode {
+            case .rotate:
+                if anchoredSceneDragSession != nil {
+                    anchoredSceneDragSession = nil
+                }
+
+                if state.leftHandPinching, state.rightHandPinching {
+                    var rotateState = state
+                    // Keep rotate path latched for this gesture even if the signal momentarily drops.
+                    rotateState.spatialRotateActive = true
+                    processAnchoredSceneRotateLifecycle(from: rotateState, sensitivity: rotateSensitivity)
+                } else {
+                    anchoredSceneRotateSession = nil
+                }
+
+            case .drag:
+                if anchoredSceneRotateSession != nil {
+                    anchoredSceneRotateSession = nil
+                }
+                processAnchoredSceneDragLifecycle(from: state, sensitivity: dragSensitivity)
+
+            case .none, .pendingClassification:
+                break
+            }
+        }
+
+        /// End any in-progress unified scene manipulation (drag, rotate, or pending classification).
+        public func endAnchoredSceneManipulation() {
+            anchoredSceneDragSession = nil
+            anchoredSceneRotateSession = nil
+            anchoredSceneManipulationMode = .none
+            classificationFramesRemaining = 0
+        }
+
+        // MARK: - Anchored Scene Rotate
+
+        /// Session-based anchored rotation that rotates the entire scene root around world up (+Y).
+        ///
+        /// Call this each frame from your input loop.
+        /// It captures the initial rotation direction + scene yaw and applies absolute yaw via
+        /// `rotateSceneToYaw`, keeping static batches intact.
+        public func processAnchoredSceneRotateLifecycle(from state: XRSpatialInputState, sensitivity: Float = 1.0) {
+            if state.currentPhase == .ended || state.currentPhase == .cancelled {
+                endAnchoredSceneRotate()
+                return
+            }
+
+            guard state.spatialRotateActive, state.leftHandPinching, state.rightHandPinching else {
+                if anchoredSceneRotateSession != nil {
+                    endAnchoredSceneRotate()
+                }
+                return
+            }
+
+            if anchoredSceneRotateSession == nil {
+                beginAnchoredSceneRotateIfNeeded(from: state)
+            }
+
+            guard let session = anchoredSceneRotateSession else {
+                return
+            }
+
+            guard let currentProjectedDirection = projectedTwoHandVectorDirection(from: state) else {
+                return
+            }
+
+            var yawDelta = signedAngleAroundAxis(
+                from: session.initialProjectedDirectionWorld,
+                to: currentProjectedDirection,
+                axis: simd_float3(0, 1, 0)
+            )
+            guard yawDelta.isFinite else { return }
+
+            let clampedSensitivity = max(sensitivity, 0)
+            yawDelta *= clampedSensitivity
+
+            if abs(yawDelta) < twoHandRotationDeadzoneRadians {
+                yawDelta = 0
+            }
+
+            rotateSceneToYaw(session.initialSceneYawRadians + yawDelta)
+        }
+
+        private func beginAnchoredSceneRotateIfNeeded(from state: XRSpatialInputState) {
+            guard anchoredSceneRotateSession == nil else { return }
+
+            guard let projectedHandVector = projectedTwoHandVectorDirection(from: state) else {
+                return
+            }
+
+            anchoredSceneRotateSession = AnchoredSceneRotateSession(
+                initialProjectedDirectionWorld: projectedHandVector,
+                initialSceneYawRadians: sceneYawRadians(from: SceneRootTransform.shared.rotation)
+            )
+        }
+
+        public func endAnchoredSceneRotate() {
+            anchoredSceneRotateSession = nil
+            if anchoredSceneManipulationMode == .rotate {
+                anchoredSceneManipulationMode = .none
+            }
         }
 
         public func applyTwoHandZoomIfNeeded(
@@ -669,6 +858,14 @@
             }
             axisLocal /= sqrt(axisLengthSquared)
             return axisLocal
+        }
+
+        private func projectedTwoHandVectorDirection(from state: XRSpatialInputState) -> simd_float3? {
+            guard state.leftHandPinching, state.rightHandPinching else { return nil }
+
+            let vector = state.rightHandPosition - state.leftHandPosition
+            guard vector.x.isFinite, vector.y.isFinite, vector.z.isFinite else { return nil }
+            return projectDirectionOntoPlane(vector, planeNormal: simd_float3(0, 1, 0))
         }
     }
 #endif

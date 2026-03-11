@@ -421,7 +421,8 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let submitFrameIndex = cullSubmitIndex
     cullSubmitIndex += 1
 
-    let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
+    let effectiveViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+    let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, effectiveViewMatrix)
 
     // Reverse-Z swaps near/far in NDC (near=1, far=0).
     let frustumNdcNear: Float = renderInfo.reverseZEnabled ? 1.0 : 0.0
@@ -647,7 +648,8 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
     let numBlocks = (Int32(MAX_ENTITIES) + BLOCK_SIZE - 1) / BLOCK_SIZE
 
-    let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
+    let effectiveViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+    let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, effectiveViewMatrix)
 
     // Reverse-Z swaps near/far in NDC (near=1, far=0).
     let frustumNdcNear: Float = renderInfo.reverseZEnabled ? 1.0 : 0.0

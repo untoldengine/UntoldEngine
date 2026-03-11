@@ -18,11 +18,19 @@ final class ScenePickingSystemTests: XCTestCase {
         resetEngineTestState()
         InputSystem.shared.keyState.shiftPressed = false
         setIgnoreRayIntersectionWithTransparents(false)
+        SceneRootTransform.shared.position = .zero
+        SceneRootTransform.shared.rotation = simd_quatf()
+        SceneRootTransform.shared.scale = .one
+        SceneRootTransform.shared.updateIfNeeded()
     }
 
     override func tearDown() {
         InputSystem.shared.keyState.shiftPressed = false
         setIgnoreRayIntersectionWithTransparents(false)
+        SceneRootTransform.shared.position = .zero
+        SceneRootTransform.shared.rotation = simd_quatf()
+        SceneRootTransform.shared.scale = .one
+        SceneRootTransform.shared.updateIfNeeded()
         super.tearDown()
     }
 
@@ -108,6 +116,31 @@ final class ScenePickingSystemTests: XCTestCase {
         XCTAssertEqual(hit.worldPosition.y, 0.0, accuracy: 0.0001)
         XCTAssertEqual(hit.worldPosition.z, 0.0, accuracy: 0.0001)
         XCTAssertNil(hit.triangleIndex, "CPU picker should not report triangle index")
+    }
+
+    func testPickEntityWithSceneRootYawHitsExpectedWorldSpaceGeometry() {
+        SceneRootTransform.shared.rotation = simd_quatf(angle: .pi / 2.0, axis: simd_float3(0, 1, 0))
+        SceneRootTransform.shared.updateIfNeeded()
+
+        let entity = createRenderableEntity(position: simd_float3(0, 0, 5))
+        visibleEntityIds = [entity]
+
+        let result = pickEntity(
+            rayOrigin: simd_float3(0, 0, 0),
+            rayDirection: simd_float3(1, 0, 0),
+            options: ScenePickOptions(backend: .cpuOnly)
+        )
+
+        guard let hit = result else {
+            XCTFail("Expected a valid hit with scene-root yaw")
+            return
+        }
+
+        XCTAssertEqual(hit.entityId, entity)
+        XCTAssertEqual(hit.distance, 4.0, accuracy: 0.0001)
+        XCTAssertEqual(hit.worldPosition.x, 4.0, accuracy: 0.0001)
+        XCTAssertEqual(hit.worldPosition.y, 0.0, accuracy: 0.0001)
+        XCTAssertEqual(hit.worldPosition.z, 0.0, accuracy: 0.0001)
     }
 
     func testPickEntitySkipsInvisibleEntities() {

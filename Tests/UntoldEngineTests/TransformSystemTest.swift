@@ -21,12 +21,22 @@ final class TransformSystemTests: XCTestCase {
         super.setUp()
         resetEngineTestState()
 
+        SceneRootTransform.shared.position = .zero
+        SceneRootTransform.shared.rotation = simd_quatf()
+        SceneRootTransform.shared.scale = .one
+        SceneRootTransform.shared.updateIfNeeded()
+
         entityId = createEntity()
         registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
         registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
     }
 
     override func tearDown() {
+        SceneRootTransform.shared.position = .zero
+        SceneRootTransform.shared.rotation = simd_quatf()
+        SceneRootTransform.shared.scale = .one
+        SceneRootTransform.shared.updateIfNeeded()
+
         destroyEntity(entityId: entityId)
         super.tearDown()
     }
@@ -190,5 +200,84 @@ final class TransformSystemTests: XCTestCase {
         XCTAssertEqual(forward.x, 0, accuracy: 0.0001)
         XCTAssertEqual(forward.y, 0, accuracy: 0.0001)
         XCTAssertEqual(forward.z, 1, accuracy: 0.0001)
+    }
+
+    // MARK: - Scene Root Yaw Tests
+
+    func testRotateSceneToYawSetsAbsoluteYaw() {
+        rotateSceneToYaw(.pi / 2.0)
+        SceneRootTransform.shared.updateIfNeeded()
+
+        let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+        XCTAssertEqual(rotatedForward.x, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(rotatedForward.y, 0.0, accuracy: 0.0001)
+        XCTAssertEqual(rotatedForward.z, 0.0, accuracy: 0.0001)
+    }
+
+    func testRotateSceneByYawAccumulatesDelta() {
+        rotateSceneToYaw(0)
+        rotateSceneByYaw(.pi / 4.0)
+        rotateSceneByYaw(.pi / 4.0)
+        SceneRootTransform.shared.updateIfNeeded()
+
+        let rotatedForward = simd_act(SceneRootTransform.shared.rotation, simd_float3(0, 0, 1))
+        XCTAssertEqual(rotatedForward.x, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(rotatedForward.y, 0.0, accuracy: 0.0001)
+        XCTAssertEqual(rotatedForward.z, 0.0, accuracy: 0.0001)
+    }
+
+    func testSceneYawComposesWithTranslationAroundSceneRootPosition() {
+        translateSceneTo(position: simd_float3(10, 0, 0))
+        rotateSceneToYaw(.pi / 2.0)
+        SceneRootTransform.shared.updateIfNeeded()
+
+        let localPoint = simd_float4(1, 0, 0, 1)
+        let transformed = SceneRootTransform.shared.matrix * localPoint
+        XCTAssertEqual(transformed.x, 10.0, accuracy: 0.0001)
+        XCTAssertEqual(transformed.y, 0.0, accuracy: 0.0001)
+        XCTAssertEqual(transformed.z, -1.0, accuracy: 0.0001)
+    }
+
+    func testSceneSpaceConversionRoundTrip() {
+        translateSceneTo(position: simd_float3(10, 0, 0))
+        rotateSceneToYaw(.pi / 2.0)
+        SceneRootTransform.shared.updateIfNeeded()
+
+        let sceneLocal = simd_float3(1, 0, 0)
+        let visualWorld = sceneLocalToVisualWorld(sceneLocal)
+        let roundTrip = visualWorldToSceneLocal(visualWorld)
+
+        XCTAssertEqual(visualWorld.x, 10.0, accuracy: 0.0001)
+        XCTAssertEqual(visualWorld.y, 0.0, accuracy: 0.0001)
+        XCTAssertEqual(visualWorld.z, -1.0, accuracy: 0.0001)
+
+        XCTAssertEqual(roundTrip.x, sceneLocal.x, accuracy: 0.0001)
+        XCTAssertEqual(roundTrip.y, sceneLocal.y, accuracy: 0.0001)
+        XCTAssertEqual(roundTrip.z, sceneLocal.z, accuracy: 0.0001)
+    }
+
+    func testGetVisualPositionAppliesSceneRootTransform() {
+        translateTo(entityId: entityId, position: simd_float3(0, 0, 5))
+        rotateSceneToYaw(.pi / 2.0)
+        SceneRootTransform.shared.updateIfNeeded()
+
+        let visualPosition = getVisualPosition(entityId: entityId)
+        XCTAssertEqual(visualPosition.x, 5.0, accuracy: 0.0001)
+        XCTAssertEqual(visualPosition.y, 0.0, accuracy: 0.0001)
+        XCTAssertEqual(visualPosition.z, 0.0, accuracy: 0.0001)
+    }
+
+    func testResetSceneRootTransformRestoresIdentity() {
+        translateSceneTo(position: simd_float3(3, 4, 5))
+        rotateSceneToYaw(.pi / 3.0)
+        SceneRootTransform.shared.scale = simd_float3(2, 2, 2)
+        SceneRootTransform.shared.updateIfNeeded()
+
+        resetSceneRootTransform()
+
+        XCTAssertEqual(SceneRootTransform.shared.position, .zero)
+        XCTAssertEqual(SceneRootTransform.shared.scale, .one)
+        XCTAssertEqual(sceneYawRadians(from: SceneRootTransform.shared.rotation), 0.0, accuracy: 0.0001)
+        XCTAssertTrue(SceneRootTransform.shared.isIdentity)
     }
 }
