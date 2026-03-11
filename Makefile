@@ -18,6 +18,10 @@ hot-reload-shaders:
 build:
 	swift build
 
+# Build with strict Swift concurrency diagnostics and emit a migration report
+strict-concurrency-check:
+	bash ./scripts/strict-concurrency-guardrails.sh
+
 # Clean build artifact
 
 clean:
