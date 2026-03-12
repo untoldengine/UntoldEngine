@@ -21,9 +21,14 @@ private func enforceRegistrationMainActor() {
 private struct BoolCompletionBox: @unchecked Sendable {
     let callback: (Bool) -> Void
 
-    @MainActor
     func call(_ result: Bool) {
-        callback(result)
+        if Thread.isMainThread {
+            callback(result)
+            return
+        }
+        Task { @MainActor in
+            callback(result)
+        }
     }
 }
 
@@ -741,23 +746,23 @@ public func setEntityMeshAsync(
 ) {
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
 
-    // Ensure entity has required components
-    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-        registerTransformComponent(entityId: entityId)
-    }
-
-    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-        registerSceneGraphComponent(entityId: entityId)
-    }
-
-    Task { @MainActor in
+    Task {
         // Mark as loading
         await AssetLoadingState.shared.startLoading(entityId: entityId, filename: filename)
+
+        // Ensure entity has required components while loading gate is active.
+        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+            registerTransformComponent(entityId: entityId)
+        }
+
+        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+            registerSceneGraphComponent(entityId: entityId)
+        }
 
         // Get URL
         guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
             handleError(.filenameNotFound, filename)
-            await loadFallbackMesh(entityId: entityId, filename: filename)
+            loadFallbackMesh(entityId: entityId, filename: filename)
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
             completionBox?.call(false)
             return
@@ -765,7 +770,7 @@ public func setEntityMeshAsync(
 
         if url.pathExtension == "dae" {
             handleError(.fileTypeNotSupported, url.pathExtension)
-            await loadFallbackMesh(entityId: entityId, filename: filename)
+            loadFallbackMesh(entityId: entityId, filename: filename)
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
             completionBox?.call(false)
             return
@@ -791,7 +796,7 @@ public func setEntityMeshAsync(
         // Process on main thread - validate meshes first
         if meshes.isEmpty {
             handleError(.assetDataMissing, filename)
-            await loadFallbackMesh(entityId: entityId, filename: filename)
+            loadFallbackMesh(entityId: entityId, filename: filename)
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
             completionBox?.call(false)
             return
@@ -804,7 +809,7 @@ public func setEntityMeshAsync(
                 nonEmptyMeshes = [matchedMesh]
             } else {
                 handleError(.assetDataMissing, "No mesh with asset name \(assetNameExist)")
-                await loadFallbackMesh(entityId: entityId, filename: filename)
+                loadFallbackMesh(entityId: entityId, filename: filename)
                 await AssetLoadingState.shared.finishLoading(entityId: entityId)
                 completionBox?.call(false)
                 return
@@ -917,37 +922,35 @@ public func setEntityMeshAsync(
 }
 
 /// Load a fallback cube mesh when async loading fails
-private func loadFallbackMesh(entityId: EntityID, filename: String) async {
-    await MainActor.run {
-        Logger.logWarning(message: "Failed to load mesh '\(filename)'. Rendering fallback cube instead.")
-        let fallbackMeshes = BasicPrimitives.createCube()
-        let dummyURL = URL(fileURLWithPath: "/fallback/\(filename)")
-        let fallbackName = "Fallback_\(filename)"
+private func loadFallbackMesh(entityId: EntityID, filename: String) {
+    Logger.logWarning(message: "Failed to load mesh '\(filename)'. Rendering fallback cube instead.")
+    let fallbackMeshes = BasicPrimitives.createCube()
+    let dummyURL = URL(fileURLWithPath: "/fallback/\(filename)")
+    let fallbackName = "Fallback_\(filename)"
 
-        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-            registerTransformComponent(entityId: entityId)
-        }
+    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+        registerTransformComponent(entityId: entityId)
+    }
 
-        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-            registerSceneGraphComponent(entityId: entityId)
-        }
+    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+        registerSceneGraphComponent(entityId: entityId)
+    }
 
-        associateMeshesToEntity(entityId: entityId, meshes: fallbackMeshes)
-        registerRenderComponent(entityId: entityId, meshes: fallbackMeshes, url: dummyURL, assetName: fallbackName)
-        setEntityName(entityId: entityId, name: fallbackName)
+    associateMeshesToEntity(entityId: entityId, meshes: fallbackMeshes)
+    registerRenderComponent(entityId: entityId, meshes: fallbackMeshes, url: dummyURL, assetName: fallbackName)
+    setEntityName(entityId: entityId, name: fallbackName)
 
-        // Assign default skin to prevent shader validation errors
-        // Fallback primitives don't have skeletons, so create an empty skin
-        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-            handleError(.noRenderComponent, entityId)
-            return
-        }
+    // Assign default skin to prevent shader validation errors
+    // Fallback primitives don't have skeletons, so create an empty skin
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        handleError(.noRenderComponent, entityId)
+        return
+    }
 
-        let skin = Skin()
+    let skin = Skin()
 
-        for index in renderComponent.mesh.indices {
-            renderComponent.mesh[index].skin = skin
-        }
+    for index in renderComponent.mesh.indices {
+        renderComponent.mesh[index].skin = skin
     }
 }
 
@@ -1043,7 +1046,7 @@ public func loadSceneAsync(
 ) {
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
 
-    Task { @MainActor in
+    Task {
         // Create a temporary entity ID for tracking the scene load
         let sceneLoadEntityId = EntityID.max - 1 // Use a special ID for scene loading
 
@@ -1919,7 +1922,7 @@ public func addLODLevel(
 ) {
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
 
-    Task { @MainActor in
+    Task {
         // Check if LODComponent exists
         guard hasComponent(entityId: entityId, componentType: LODComponent.self) else {
             Logger.logError(message: "Entity does not have LODComponent. Call setEntityLodComponent() first.")
@@ -2109,7 +2112,7 @@ public func replaceLODLevel(
 ) {
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
 
-    Task { @MainActor in
+    Task {
         guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
             Logger.logWarning(message: "Entity does not have LODComponent")
             completionBox?.call(false)

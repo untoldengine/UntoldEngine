@@ -27,26 +27,83 @@ public extension InputSystem {
         func unregisterKeyboardEvents() {}
     #else
         func registerKeyboardEvents() {
-            NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            guard keyboardEventMonitorTokens.isEmpty else { return }
+            registerTextInputFocusObservers()
+
+            let flagsMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
                 self?.handleFlagsChanged(event)
                 return event
             }
+            if let flagsMonitor {
+                keyboardEventMonitorTokens.append(flagsMonitor)
+            }
 
-            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            let keyDownMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                 if self?.shouldHandleKey(event) == true {
                     self?.keyPressed(event.keyCode)
                     return nil // Mark event as handled
                 }
                 return event // Pass event to the system
             }
+            if let keyDownMonitor {
+                keyboardEventMonitorTokens.append(keyDownMonitor)
+            }
 
-            NSEvent.addLocalMonitorForEvents(matching: .keyUp) { [weak self] event in
+            let keyUpMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyUp) { [weak self] event in
                 if self?.shouldHandleKey(event) == true {
                     self?.keyReleased(event.keyCode)
                     return nil // Mark event as handled
                 }
                 return event
             }
+            if let keyUpMonitor {
+                keyboardEventMonitorTokens.append(keyUpMonitor)
+            }
+        }
+
+        func unregisterKeyboardEvents() {
+            for token in keyboardEventMonitorTokens {
+                NSEvent.removeMonitor(token)
+            }
+            keyboardEventMonitorTokens.removeAll()
+
+            for token in textInputObserverTokens {
+                NotificationCenter.default.removeObserver(token)
+            }
+            textInputObserverTokens.removeAll()
+            isTextInputFocused = false
+        }
+
+        private func registerTextInputFocusObservers() {
+            guard textInputObserverTokens.isEmpty else { return }
+
+            let begin = NotificationCenter.default.addObserver(
+                forName: NSText.didBeginEditingNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.isTextInputFocused = true
+            }
+
+            let end = NotificationCenter.default.addObserver(
+                forName: NSText.didEndEditingNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.isTextInputFocused = false
+            }
+
+            let resign = NotificationCenter.default.addObserver(
+                forName: NSWindow.didResignKeyNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.isTextInputFocused = false
+            }
+
+            textInputObserverTokens.append(begin)
+            textInputObserverTokens.append(end)
+            textInputObserverTokens.append(resign)
         }
 
         private func handleFlagsChanged(_ event: NSEvent) {
@@ -66,15 +123,7 @@ public extension InputSystem {
         }
 
         private func shouldHandleKey(_: NSEvent) -> Bool {
-            MainActor.assumeIsolated {
-                if let firstResponder = NSApp.keyWindow?.firstResponder {
-                    if firstResponder is NSTextView {
-                        return false // allow normal text input
-                    }
-                }
-
-                return true // handle the key event
-            }
+            !isTextInputFocused
         }
 
         func keyPressed(_ keyCode: UInt16) {

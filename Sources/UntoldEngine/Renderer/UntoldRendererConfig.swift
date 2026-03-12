@@ -31,6 +31,7 @@ public struct UntoldRendererConfig {
 }
 
 public extension UntoldRendererConfig {
+    @MainActor
     static var `default`: UntoldRendererConfig {
         UntoldRendererConfig(
             initPipelineBlocks: DefaultPipeLines(),
@@ -40,7 +41,9 @@ public extension UntoldRendererConfig {
             updateXRRenderingSystemCallback: { ctx in
                 switch ctx {
                 case let .view(v):
-                    UpdateRenderingSystem(in: v)
+                    Task { @MainActor in
+                        UpdateRenderingSystem(in: v)
+                    }
                 case let .xr(cb, desc):
                     UpdateXRRenderingSystem(commandBuffer: cb, passDescriptor: desc)
                 }

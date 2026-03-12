@@ -18,9 +18,10 @@ public enum RenderingSystemContext {
     case xr(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor)
 }
 
-public typealias UpdateRenderingSystemCallback = (MTKView) -> Void
+public typealias UpdateRenderingSystemCallback = @MainActor (MTKView) -> Void
 public typealias UpdateXRRenderingSystemCallback = (RenderingSystemContext) -> Void
 
+@MainActor
 func UpdateRenderingSystem(in view: MTKView) {
     // Snapshot loading gate once per frame. While loading, keep rendering from the
     // last-known-good visible list and skip ECS traversal to avoid race conditions.
@@ -109,6 +110,7 @@ func UpdateRenderingSystem(in view: MTKView) {
 
         EngineProfiler.shared.attach(to: commandBuffer, label: "MainFrame")
 
+        let visibleEntityIdsAtSubmission = visibleEntityIds
         commandBuffer.addCompletedHandler { cb in
             #if ENGINE_STATS_ENABLED
                 let gpuExecutionMs = (cb.gpuEndTime - cb.gpuStartTime) * 1000.0
@@ -117,10 +119,8 @@ func UpdateRenderingSystem(in view: MTKView) {
             // Signal that this command buffer slot is now available
             commandBufferSemaphore.signal()
 
-            DispatchQueue.main.async {
-                needsFinalizeDestroys = true
-                MemoryBudgetManager.shared.markUsed(entityIds: visibleEntityIds)
-            }
+            needsFinalizeDestroys = true
+            MemoryBudgetManager.shared.markUsed(entityIds: visibleEntityIdsAtSubmission)
         }
 
         #if ENGINE_STATS_ENABLED
@@ -182,6 +182,7 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
     #endif
 
     // Note: Semaphore signaling is handled by executeXRSystemPass completion handler
+    let visibleEntityIdsAtSubmission = visibleEntityIds
     commandBuffer.addCompletedHandler { cb in
         #if ENGINE_STATS_ENABLED
             if renderInfo.immersionStyle == .ar {
@@ -189,10 +190,8 @@ func UpdateXRRenderingSystem(commandBuffer: MTLCommandBuffer, passDescriptor: MT
                 EngineStatsMonitor.shared.recordGPUCompletion(executionMs: gpuExecutionMs)
             }
         #endif
-        DispatchQueue.main.async {
-            needsFinalizeDestroys = true
-            MemoryBudgetManager.shared.markUsed(entityIds: visibleEntityIds)
-        }
+        needsFinalizeDestroys = true
+        MemoryBudgetManager.shared.markUsed(entityIds: visibleEntityIdsAtSubmission)
     }
 }
 

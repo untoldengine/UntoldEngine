@@ -127,7 +127,7 @@ let package = Package(
             path: "Sources/UntoldEngineAR",
             swiftSettings: [
                 .define("AR_AVAILABLE", .when(platforms: [.iOS])),
-                .swiftLanguageMode(.v5),
+                .swiftLanguageMode(.v6),
             ],
             linkerSettings: [
                 .linkedFramework("Metal", .when(platforms: [.iOS])),
@@ -140,7 +140,7 @@ let package = Package(
             name: "DemoGame",
             dependencies: ["UntoldEngine"],
             path: "Sources/DemoGame",
-            swiftSettings: [.swiftLanguageMode(.v5)],
+            swiftSettings: [.swiftLanguageMode(.v6)],
             linkerSettings: [
                 .linkedFramework("Metal"),
                 .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
