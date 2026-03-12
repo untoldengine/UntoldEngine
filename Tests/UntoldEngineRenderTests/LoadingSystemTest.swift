@@ -13,14 +13,16 @@ import Foundation
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class LoadingSystemTest: XCTestCase {
-    override func setUp() {
+    override func setUp() async throws {
         let bundleURL = Bundle.module.resourceURL
         assetBasePath = bundleURL
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
+        try await super.tearDown()
     }
 
     func assertResourceExists(_ name: String, _ ext: String,

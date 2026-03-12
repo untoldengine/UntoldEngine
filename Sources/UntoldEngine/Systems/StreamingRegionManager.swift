@@ -11,6 +11,7 @@
 import Foundation
 import simd
 
+@MainActor
 public class StreamingRegionManager {
     public static let shared = StreamingRegionManager()
 
@@ -23,7 +24,6 @@ public class StreamingRegionManager {
 
     // Internal state
     private var regions: [UUID: StreamingRegion] = [:]
-    private let regionLock = NSLock()
     private var activeLoadTasks: [UUID: Task<Void, Never>] = [:]
     private var timeSinceLastCheck: Float = 0
 
@@ -35,38 +35,28 @@ public class StreamingRegionManager {
 public extension StreamingRegionManager {
     /// Register a new streaming region
     func registerRegion(_ region: StreamingRegion) {
-        regionLock.lock()
-        defer { regionLock.unlock() }
         regions[region.id] = region
         Logger.log(message: "Registered streaming region \(region.id)")
     }
 
     /// Remove a region
     func unregisterRegion(id: UUID) {
-        regionLock.lock()
-        defer { regionLock.unlock() }
         regions.removeValue(forKey: id)
     }
 
     /// Get a specific region
     func getRegion(id: UUID) -> StreamingRegion? {
-        regionLock.lock()
-        defer { regionLock.unlock() }
-        return regions[id]
+        regions[id]
     }
 
     /// Get all registered regions
     func getAllRegions() -> [StreamingRegion] {
-        regionLock.lock()
-        defer { regionLock.unlock() }
-        return Array(regions.values)
+        Array(regions.values)
     }
 
     /// Check if a region is loaded
     func isRegionLoaded(id: UUID) -> Bool {
-        regionLock.lock()
-        defer { regionLock.unlock() }
-        return regions[id]?.state == .loaded
+        regions[id]?.state == .loaded
     }
 }
 
@@ -86,13 +76,17 @@ public extension StreamingRegionManager {
 
         // Unload first to free memory
         for regionId in toUnload {
-            Task { await unloadRegion(id: regionId) }
+            Task { @MainActor in
+                await unloadRegion(id: regionId)
+            }
         }
 
         // Load new regions (respect concurrent limit)
         let availableSlots = maxConcurrentLoads - activeLoadTasks.count
         for regionId in toLoad.prefix(availableSlots) {
-            let task = Task { await loadRegion(id: regionId) }
+            let task = Task { @MainActor in
+                await loadRegion(id: regionId)
+            }
             activeLoadTasks[regionId] = task
         }
     }
@@ -105,14 +99,12 @@ extension StreamingRegionManager {
     private func findRegionsToLoad(_ cameraPos: simd_float3) -> [UUID] {
         var candidates: [(id: UUID, distance: Float, priority: Int)] = []
 
-        regionLock.lock()
         for (id, region) in regions where region.state == .unloaded {
             let distance = region.bounds.distanceToPoint(cameraPos)
             if distance <= streamingRadius {
                 candidates.append((id, distance, region.priority))
             }
         }
-        regionLock.unlock()
 
         // Sort: high priority first, then close distance
         candidates.sort { lhs, rhs in
@@ -129,14 +121,12 @@ extension StreamingRegionManager {
     private func findRegionsToUnload(_ cameraPos: simd_float3) -> [UUID] {
         var toUnload: [UUID] = []
 
-        regionLock.lock()
         for (id, region) in regions where region.state == .loaded {
             let distance = region.bounds.distanceToPoint(cameraPos)
             if distance > unloadRadius {
                 toUnload.append(id)
             }
         }
-        regionLock.unlock()
 
         return toUnload
     }
@@ -148,14 +138,11 @@ extension StreamingRegionManager {
     /// Load a region asynchronously
     private func loadRegion(id: UUID) async {
         // Mark as loading
-        regionLock.lock()
         guard var region = regions[id], region.state == .unloaded else {
-            regionLock.unlock()
             return
         }
         region.state = .loading
         regions[id] = region
-        regionLock.unlock()
 
         // Check memory
         if !MemoryBudgetManager.shared.canAccept(sizeBytes: region.estimatedMemorySize) {
@@ -171,10 +158,8 @@ extension StreamingRegionManager {
             }
 
             // Mark as unloaded and return
-            regionLock.lock()
             region.state = .unloaded
             regions[id] = region
-            regionLock.unlock()
             return
         }
 
@@ -182,7 +167,7 @@ extension StreamingRegionManager {
         var loadedEntities: [EntityID] = []
         for asset in region.assets {
             let entity = createEntity()
-            await setEntityMeshAsync(entityId: entity, filename: asset.filename, withExtension: asset.fileExtension)
+            setEntityMeshAsync(entityId: entity, filename: asset.filename, withExtension: asset.fileExtension)
             loadedEntities.append(entity)
 
             // Register memory usage for root entity
@@ -196,12 +181,10 @@ extension StreamingRegionManager {
         }
 
         // Mark as loaded
-        regionLock.lock()
         region.state = .loaded
         region.loadedEntities = loadedEntities
         regions[id] = region
         activeLoadTasks.removeValue(forKey: id)
-        regionLock.unlock()
 
         // Emit residency events for each loaded entity (for LOD/Batching integration)
         for (index, entity) in loadedEntities.enumerated() {
@@ -267,15 +250,12 @@ extension StreamingRegionManager {
     /// Unload a region asynchronously
     private func unloadRegion(id: UUID) async {
         // Mark as unloading
-        regionLock.lock()
         guard var region = regions[id], region.state == .loaded else {
-            regionLock.unlock()
             return
         }
         region.state = .unloading
         let assets = region.assets
         regions[id] = region
-        regionLock.unlock()
 
         // Emit residency events BEFORE destroying (so LOD/Batching can update)
         for (index, entity) in region.loadedEntities.enumerated() {
@@ -322,11 +302,9 @@ extension StreamingRegionManager {
         }
 
         // Mark as unloaded
-        regionLock.lock()
         region.state = .unloaded
         region.loadedEntities = []
         regions[id] = region
-        regionLock.unlock()
 
         // Record stats
         SystemIntegrationMonitor.shared.recordRegionUnload()
@@ -364,9 +342,6 @@ public struct StreamingStats {
 
 public extension StreamingRegionManager {
     func getStats() -> StreamingStats {
-        regionLock.lock()
-        defer { regionLock.unlock() }
-
         var loadedCount = 0
         var loadingCount = 0
         var estimatedMemory = 0
@@ -427,8 +402,6 @@ public extension StreamingRegionManager {
     }
 
     func getLoadedRegions() -> [StreamingRegion] {
-        regionLock.lock()
-        defer { regionLock.unlock() }
         return regions.values.filter { $0.state == .loaded }
     }
 }

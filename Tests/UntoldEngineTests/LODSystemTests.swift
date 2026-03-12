@@ -12,19 +12,19 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class LODSystemTests: XCTestCase {
     var testEntity: EntityID!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         testEntity = createEntity()
         registerTransformComponent(entityId: testEntity)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         destroyAllEntities()
-        super.tearDown()
     }
 
     // MARK: - LODComponent Tests

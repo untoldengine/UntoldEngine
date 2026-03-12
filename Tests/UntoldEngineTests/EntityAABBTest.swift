@@ -13,15 +13,9 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class EntityAABBTest: XCTestCase {
-    override func setUp() {
-        super.setUp()
-    }
-
-    override func tearDown() {
-        super.tearDown()
-    }
-
     private func makeTransform(translation t: simd_float3,
                                rotationZDegrees rz: Float = 0,
                                scale s: simd_float3 = .init(repeating: 1)) -> simd_float4x4

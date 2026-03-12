@@ -13,12 +13,12 @@ import Foundation
 import XCTest
 
 final class RenderGraphBuilderTest: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
+        try await super.tearDown()
     }
 
     // MARK: - addSceneBackgroundPass Tests

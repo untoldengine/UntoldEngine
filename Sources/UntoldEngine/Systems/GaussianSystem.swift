@@ -20,7 +20,7 @@ import Foundation
 import Metal
 import simd
 
-var maxNumOfGaussians: UInt64 = 1024 * 1024 * 5
+let maxNumOfGaussians: UInt64 = 1024 * 1024 * 5
 
 func initGuassianComputePipelines() {
     if renderInfo.device == nil {

@@ -10,10 +10,12 @@
 
 import simd
 
+@MainActor
 public protocol NodeProtocol {
     var entityID: EntityID { get }
 }
 
+@MainActor
 open class Node: NodeProtocol, NodeTransform {
     var _entityID: EntityID
     public var entityID: EntityID {
@@ -22,7 +24,7 @@ open class Node: NodeProtocol, NodeTransform {
 
     public var subNodes: [any NodeProtocol] = []
 
-    public init(entityID: EntityID? = nil, name: String? = nil, @SceneBuilder content: @escaping () -> [any NodeProtocol]) {
+    public init(entityID: EntityID? = nil, name: String? = nil, @SceneBuilder content: @escaping @MainActor () -> [any NodeProtocol]) {
         _entityID = entityID ?? createEntity()
         if let n = name { setEntityName(entityId: self.entityID, name: n) }
 

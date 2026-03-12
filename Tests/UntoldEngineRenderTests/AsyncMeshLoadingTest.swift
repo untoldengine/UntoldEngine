@@ -13,19 +13,22 @@
 import CShaderTypes
 import Foundation
 import simd
-@testable import UntoldEngine
+@preconcurrency @testable import UntoldEngine
 import XCTest
 
+extension LoadingProgress: @unchecked Sendable {}
+extension LoadingPhase: @unchecked Sendable {}
+
 final class AsyncMeshLoadingTest: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         LoadingSystem.shared.resourceURLFn = getResourceURL
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         LoadingSystem.shared.resourceURLFn = getResourceURL
         destroyAllEntities()
-        super.tearDown()
+        try await super.tearDown()
     }
 
     override func initializeAssets() {}

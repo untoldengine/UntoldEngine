@@ -12,11 +12,12 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class StreamingRegionTests: XCTestCase {
     var manager: StreamingRegionManager!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         manager = StreamingRegionManager.shared
         // Clear any existing regions
         for region in manager.getAllRegions() {
@@ -24,12 +25,11 @@ final class StreamingRegionTests: XCTestCase {
         }
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         // Clean up all regions after each test
         for region in manager.getAllRegions() {
             manager.unregisterRegion(id: region.id)
         }
-        super.tearDown()
     }
 
     // MARK: - AABB Distance Tests
@@ -375,55 +375,44 @@ final class StreamingRegionTests: XCTestCase {
 
     // MARK: - Thread Safety Tests
 
-    func testConcurrentRegionRegistration() {
-        let expectation = XCTestExpectation(description: "Concurrent registration")
-        expectation.expectedFulfillmentCount = 10
-
-        let queue = DispatchQueue(label: "test.concurrent", attributes: .concurrent)
-
-        for i in 0 ..< 10 {
-            queue.async {
-                let region = StreamingRegion(
-                    bounds: AABB(
-                        min: simd_float3(Float(i * 10), 0, 0),
-                        max: simd_float3(Float(i * 10 + 10), 10, 10)
-                    ),
-                    priority: 1
-                )
-                self.manager.registerRegion(region)
-                expectation.fulfill()
+    func testConcurrentRegionRegistration() async {
+        await withTaskGroup(of: Void.self) { group in
+            for i in 0 ..< 10 {
+                group.addTask { @MainActor in
+                    let region = StreamingRegion(
+                        bounds: AABB(
+                            min: simd_float3(Float(i * 10), 0, 0),
+                            max: simd_float3(Float(i * 10 + 10), 10, 10)
+                        ),
+                        priority: 1
+                    )
+                    self.manager.registerRegion(region)
+                }
             }
         }
-
-        wait(for: [expectation], timeout: 5.0)
 
         let allRegions = manager.getAllRegions()
         XCTAssertEqual(allRegions.count, 10,
                        "All regions should be registered despite concurrent access")
     }
 
-    func testConcurrentGetRegion() {
+    func testConcurrentGetRegion() async {
         // Register a region first
         let region = StreamingRegion(
             bounds: AABB(min: .zero, max: simd_float3(10, 10, 10)),
             priority: 1
         )
         manager.registerRegion(region)
+        let regionId = region.id
 
-        let expectation = XCTestExpectation(description: "Concurrent reads")
-        expectation.expectedFulfillmentCount = 100
-
-        let queue = DispatchQueue(label: "test.concurrent.read", attributes: .concurrent)
-
-        for _ in 0 ..< 100 {
-            queue.async {
-                let retrieved = self.manager.getRegion(id: region.id)
-                XCTAssertNotNil(retrieved)
-                expectation.fulfill()
+        await withTaskGroup(of: Void.self) { group in
+            for _ in 0 ..< 100 {
+                group.addTask { @MainActor in
+                    let retrieved = self.manager.getRegion(id: regionId)
+                    XCTAssertNotNil(retrieved)
+                }
             }
         }
-
-        wait(for: [expectation], timeout: 5.0)
     }
 
     // MARK: - Update Load/Unload Tests

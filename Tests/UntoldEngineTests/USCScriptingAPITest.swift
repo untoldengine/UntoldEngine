@@ -13,15 +13,15 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class USCScriptingAPITest: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         initScriptingSystem()
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
         destroyAllEntities()
     }
 

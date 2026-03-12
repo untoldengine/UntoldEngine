@@ -71,7 +71,7 @@ public struct RegionStreamingEvent {
 
 /// Simple event bus for decoupled system communication
 /// Used from both render/update and async loading paths.
-public final class SystemEventBus {
+public final class SystemEventBus: @unchecked Sendable {
     public static let shared = SystemEventBus()
 
     private let lock = NSLock()
@@ -201,12 +201,34 @@ public struct SystemIntegrationStats {
 }
 
 /// Tracks per-second stats for debugging system integration
-public final class SystemIntegrationMonitor {
+public final class SystemIntegrationMonitor: @unchecked Sendable {
     public static let shared = SystemIntegrationMonitor()
 
-    public private(set) var stats = SystemIntegrationStats()
+    private let lock = NSLock()
+    private var _stats = SystemIntegrationStats()
     private var lastResetTime: Double = 0
-    public var enableLogging: Bool = false
+    private var _enableLogging = false
+
+    public var stats: SystemIntegrationStats {
+        lock.lock()
+        let value = _stats
+        lock.unlock()
+        return value
+    }
+
+    public var enableLogging: Bool {
+        get {
+            lock.lock()
+            let value = _enableLogging
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _enableLogging = newValue
+            lock.unlock()
+        }
+    }
 
     private init() {
         lastResetTime = CACurrentMediaTime()
@@ -214,17 +236,25 @@ public final class SystemIntegrationMonitor {
 
     /// Call once per frame
     public func tick() {
+        var shouldLog = false
+        var snapshot = SystemIntegrationStats()
+
+        lock.lock()
         let now = CACurrentMediaTime()
         if now - lastResetTime >= 1.0 {
-            if enableLogging, hasActivity() {
-                Logger.log(message: "[Integration] Loads: \(stats.streamingLoadsThisSecond), Unloads: \(stats.streamingUnloadsThisSecond), LOD switches: \(stats.lodSwitchesThisSecond), Fallbacks: \(stats.lodFallbacksThisSecond), Batch rebuilds: \(stats.batchRebuildsThisSecond)")
-            }
-            stats.reset()
+            snapshot = _stats
+            shouldLog = _enableLogging && hasActivity(stats: snapshot)
+            _stats.reset()
             lastResetTime = now
+        }
+        lock.unlock()
+
+        if shouldLog {
+            Logger.log(message: "[Integration] Loads: \(snapshot.streamingLoadsThisSecond), Unloads: \(snapshot.streamingUnloadsThisSecond), LOD switches: \(snapshot.lodSwitchesThisSecond), Fallbacks: \(snapshot.lodFallbacksThisSecond), Batch rebuilds: \(snapshot.batchRebuildsThisSecond)")
         }
     }
 
-    private func hasActivity() -> Bool {
+    private func hasActivity(stats: SystemIntegrationStats) -> Bool {
         stats.streamingLoadsThisSecond > 0 ||
             stats.streamingUnloadsThisSecond > 0 ||
             stats.lodSwitchesThisSecond > 0 ||
@@ -234,39 +264,57 @@ public final class SystemIntegrationMonitor {
     }
 
     public func recordStreamingLoad() {
-        stats.streamingLoadsThisSecond += 1
+        lock.lock()
+        _stats.streamingLoadsThisSecond += 1
+        lock.unlock()
     }
 
     public func recordStreamingUnload() {
-        stats.streamingUnloadsThisSecond += 1
+        lock.lock()
+        _stats.streamingUnloadsThisSecond += 1
+        lock.unlock()
     }
 
     public func recordLODSwitch() {
-        stats.lodSwitchesThisSecond += 1
+        lock.lock()
+        _stats.lodSwitchesThisSecond += 1
+        lock.unlock()
     }
 
     public func recordLODFallback() {
-        stats.lodFallbacksThisSecond += 1
+        lock.lock()
+        _stats.lodFallbacksThisSecond += 1
+        lock.unlock()
     }
 
     public func recordBatchRebuild() {
-        stats.batchRebuildsThisSecond += 1
+        lock.lock()
+        _stats.batchRebuildsThisSecond += 1
+        lock.unlock()
     }
 
     public func setResidentMeshCount(_ count: Int) {
-        stats.residentMeshCount = count
+        lock.lock()
+        _stats.residentMeshCount = count
+        lock.unlock()
     }
 
     /// Region streaming
     public func recordRegionLoad() {
-        stats.regionLoadsThisSecond += 1
+        lock.lock()
+        _stats.regionLoadsThisSecond += 1
+        lock.unlock()
     }
 
     public func recordRegionUnload() {
-        stats.regionUnloadsThisSecond += 1
+        lock.lock()
+        _stats.regionUnloadsThisSecond += 1
+        lock.unlock()
     }
 
     public func setLoadedRegionCount(_ count: Int) {
-        stats.loadedRegionCount = count
+        lock.lock()
+        _stats.loadedRegionCount = count
+        lock.unlock()
     }
 }

@@ -34,6 +34,7 @@
         1.0, 1.0, 1.0, 0.0,
     ]
 
+    @MainActor
     public final class UntoldEngineAR {
         private var renderer: UntoldRenderer?
 

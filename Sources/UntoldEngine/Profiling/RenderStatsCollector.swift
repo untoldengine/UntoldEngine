@@ -27,7 +27,7 @@ public struct RenderDrawStats {
     public var trianglesTotal: Int = 0
 }
 
-public final class RenderStatsCollector {
+public final class RenderStatsCollector: @unchecked Sendable {
     public static let shared = RenderStatsCollector()
 
     #if ENGINE_STATS_ENABLED

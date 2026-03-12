@@ -90,7 +90,7 @@ jobs:
       - name: Run strict concurrency guardrails
         env:
           CI: true
-          MAX_UNIQUE_CONCURRENCY_WARNINGS: "302"
+          MAX_UNIQUE_CONCURRENCY_WARNINGS: "0"
         run: bash ./scripts/strict-concurrency-guardrails.sh
 
       - name: Upload strict concurrency artifacts

@@ -16,8 +16,8 @@ import XCTest
 final class CullingTest: BaseRenderSetup {
     var camera: EntityID!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
 
         SceneRootTransform.shared.position = .zero
         SceneRootTransform.shared.rotation = simd_quatf()
@@ -28,13 +28,13 @@ final class CullingTest: BaseRenderSetup {
         createGameCamera(entityId: camera)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         SceneRootTransform.shared.position = .zero
         SceneRootTransform.shared.rotation = simd_quatf()
         SceneRootTransform.shared.scale = .one
         SceneRootTransform.shared.updateIfNeeded()
 
-        super.tearDown()
+        try await super.tearDown()
         destroyEntity(entityId: camera)
     }
 

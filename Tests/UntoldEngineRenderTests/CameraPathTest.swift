@@ -15,8 +15,8 @@ import UniformTypeIdentifiers
 import XCTest
 
 final class CameraPathTests: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         // Ensure no camera path is active from previous tests
         stopCameraPath()
     }
@@ -393,9 +393,10 @@ final class CameraPathTests: BaseRenderSetup {
             CameraWaypoint(position: simd_float3(1, 0, 0), rotation: simd_quatf(angle: 0, axis: simd_float3(0, 1, 0)), segmentDuration: 0.1),
         ]
 
-        var callbackInvoked = false
+        final class CallbackFlag: @unchecked Sendable { var invoked = false }
+        let flag = CallbackFlag()
         let settings = CameraPathSettings(startImmediately: true) {
-            callbackInvoked = true
+            flag.invoked = true
         }
 
         startCameraPath(waypoints: waypoints, mode: .once, settings: settings)
@@ -405,7 +406,7 @@ final class CameraPathTests: BaseRenderSetup {
             updateCameraPath(deltaTime: 0.016)
         }
 
-        XCTAssertTrue(callbackInvoked, "Completion callback should be invoked when path finishes")
+        XCTAssertTrue(flag.invoked, "Completion callback should be invoked when path finishes")
     }
 
     // MARK: - Determinism Test

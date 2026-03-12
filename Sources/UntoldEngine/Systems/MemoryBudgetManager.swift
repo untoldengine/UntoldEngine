@@ -79,7 +79,7 @@ struct MemoryEntry {
 // MARK: - Memory Budget Manager
 
 /// Manages GPU memory budget for geometry streaming
-public class MemoryBudgetManager {
+public class MemoryBudgetManager: @unchecked Sendable {
     public static let shared = MemoryBudgetManager()
 
     // MARK: - Configuration

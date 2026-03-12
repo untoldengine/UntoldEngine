@@ -11,6 +11,8 @@
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class LODImportDetectionTests: XCTestCase {
     func testParseLODAssetNameValidCases() {
         let parsedUpper = parseLODAssetName("Tree_LOD0")

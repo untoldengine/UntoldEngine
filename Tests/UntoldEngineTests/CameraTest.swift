@@ -12,11 +12,12 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class CameraTests: XCTestCase {
     var camera: EntityID!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         camera = createEntity()
 
@@ -25,8 +26,7 @@ final class CameraTests: XCTestCase {
         Logger.logLevel = .none
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
         destroyEntity(entityId: camera)
     }
 

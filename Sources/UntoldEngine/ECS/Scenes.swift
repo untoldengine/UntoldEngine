@@ -11,6 +11,11 @@
 
 import Foundation
 
+@inline(__always)
+private func enforceSceneMainActor() {
+    MainActor.assumeIsolated {}
+}
+
 public struct EntityDesc {
     var entityId: EntityID
     var mask: ComponentMask
@@ -27,6 +32,7 @@ public struct Scene {
     }
 
     public mutating func remove<T: Component>(component _: T.Type, from entityId: EntityID) {
+        enforceSceneMainActor()
         let entityIndex = getEntityIndex(entityId)
         guard entityIndex < entities.count else {
             handleError(.entityMissing, entityId)
@@ -44,6 +50,7 @@ public struct Scene {
     }
 
     public mutating func removeAllComponents(from entityId: EntityID) {
+        enforceSceneMainActor()
         let entityIndex = getEntityIndex(entityId)
         guard entityIndex < entities.count else {
             handleError(.entityMissing, entityId)
@@ -61,6 +68,7 @@ public struct Scene {
 
     /// Phase A: mark entity for destroy
     public mutating func markDestroy(_ entityId: EntityID) {
+        enforceSceneMainActor()
         let idx = getEntityIndex(entityId)
         guard idx < entities.count else {
             return
@@ -72,6 +80,7 @@ public struct Scene {
     }
 
     public mutating func markDestroyAll() {
+        enforceSceneMainActor()
         for e in getAllEntities() {
             markDestroy(e)
         }
@@ -79,6 +88,7 @@ public struct Scene {
 
     /// Phase B: Finalizze (call one per frame)
     public mutating func finalizePendingDestroys() {
+        enforceSceneMainActor()
         for i in entities.indices {
             if entities[i].pendingDestroy, !entities[i].freed {
                 destroyEntityFinalize(at: i)
@@ -87,6 +97,7 @@ public struct Scene {
     }
 
     private mutating func destroyEntityFinalize(at entityIndexInt: Int) {
+        enforceSceneMainActor()
         let oldId = entities[entityIndexInt].entityId
 
         // Unregister from spatial systems before destroying
@@ -103,6 +114,7 @@ public struct Scene {
     }
 
     public mutating func newEntity() -> EntityID {
+        enforceSceneMainActor()
         if let newIndex = freeEntities.popLast() {
             let newId = createEntityId(newIndex, getEntityVersion(entities[Int(newIndex)].entityId))
             entities[Int(newIndex)].entityId = newId
@@ -120,6 +132,7 @@ public struct Scene {
 
     /** explicitly specify type */
     public mutating func assign<T: Component>(to entityId: EntityID, component _: T.Type) -> T? {
+        enforceSceneMainActor()
         let componentId = getComponentId(for: T.self)
         let entityIndex = getEntityIndex(entityId)
         guard entityIndex < entities.count else {
@@ -257,8 +270,9 @@ func getAllEntityComponentsTypes(entityId: EntityID) -> [Any.Type] {
     let entityMask = scene.entities[Int(entityIndex)].mask
 
     var components: [Any.Type] = []
+    let typeInfoById = componentTypeInfosSnapshot()
 
-    for (_, typeInfo) in componentIDs {
+    for (_, typeInfo) in typeInfoById {
         let componentId = typeInfo.id
 
         // check if the entity's mask includes this component
@@ -278,7 +292,7 @@ public func getAllEntityComponentsIds(entityId: EntityID) -> [Int] {
     for componentType in componentTypes {
         let typeId = ObjectIdentifier(componentType)
 
-        if let typeInfo = componentIDs[typeId] {
+        if let typeInfo = componentTypeInfo(for: typeId) {
             componentIdsArray.append(typeInfo.id)
         }
     }
@@ -287,14 +301,33 @@ public func getAllEntityComponentsIds(entityId: EntityID) -> [Int] {
 }
 
 /// Custom System registry
-var customSystems: [(Float) -> Void] = []
+private final class CustomSystemsState: @unchecked Sendable {
+    let lock = NSLock()
+    var systems: [(Float) -> Void] = []
+}
+
+private let customSystemsState = CustomSystemsState()
 
 public func registerCustomSystem(_ system: @escaping (Float) -> Void) {
-    customSystems.append(system)
+    enforceSceneMainActor()
+    customSystemsState.lock.lock()
+    customSystemsState.systems.append(system)
+    customSystemsState.lock.unlock()
 }
 
 public func updateCustomSystems(deltaTime: Float) {
-    for system in customSystems {
+    enforceSceneMainActor()
+    customSystemsState.lock.lock()
+    let systems = customSystemsState.systems
+    customSystemsState.lock.unlock()
+    for system in systems {
         system(deltaTime)
     }
+}
+
+func clearCustomSystems(keepingCapacity: Bool = true) {
+    enforceSceneMainActor()
+    customSystemsState.lock.lock()
+    customSystemsState.systems.removeAll(keepingCapacity: keepingCapacity)
+    customSystemsState.lock.unlock()
 }

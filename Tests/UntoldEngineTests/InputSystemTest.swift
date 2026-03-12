@@ -12,10 +12,11 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class InputSystemTests: XCTestCase {
     /// Reset the shared instance’s mutable bits before each test
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         let input = InputSystem.shared
         input.delegate = nil
 

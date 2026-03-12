@@ -15,13 +15,14 @@ import simd
 import XCTest
 
 /// Unit tests for Mesh.spaceUniform initialization, cleanup, and RenderPasses uniform buffer selection
+
+@MainActor
 final class MeshUniformBufferTests: XCTestCase {
     var device: MTLDevice!
     var vertexDescriptor: MDLVertexDescriptor!
     var textureLoader: TextureLoader!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
 
         guard let device = MTLCreateSystemDefaultDevice() else {
             XCTFail("Failed to create Metal device")
@@ -44,11 +45,10 @@ final class MeshUniformBufferTests: XCTestCase {
         textureLoader = TextureLoader(device: device)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         device = nil
         vertexDescriptor = nil
         textureLoader = nil
-        super.tearDown()
     }
 
     // MARK: - Test Case 1: Mesh.spaceUniform is initialized with two MTLBuffer objects

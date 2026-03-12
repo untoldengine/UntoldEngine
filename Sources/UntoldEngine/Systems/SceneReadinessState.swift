@@ -10,7 +10,7 @@
 
 import Foundation
 
-private final class SceneReadinessState {
+private final class SceneReadinessState: @unchecked Sendable {
     static let shared = SceneReadinessState()
 
     private let lock = NSLock()

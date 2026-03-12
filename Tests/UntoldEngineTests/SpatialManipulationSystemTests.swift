@@ -18,8 +18,7 @@ import XCTest
         private var childEntity: EntityID!
         private var standaloneEntity: EntityID!
 
-        override func setUp() {
-            super.setUp()
+        override func setUp() async throws {
             xrInputSingletonTestLock.lock()
 
             parentEntity = createEntity()
@@ -44,7 +43,7 @@ import XCTest
             SceneRootTransform.shared.updateIfNeeded()
         }
 
-        override func tearDown() {
+        override func tearDown() async throws {
             SpatialManipulationSystem.shared.reset()
             InputSystem.shared.xrSpatialInputState = XRSpatialInputState()
             SceneRootTransform.shared.position = .zero
@@ -57,7 +56,6 @@ import XCTest
             destroyEntity(entityId: standaloneEntity)
 
             xrInputSingletonTestLock.unlock()
-            super.tearDown()
         }
 
         func test_applyTwoHandZoomIfNeeded_scalesParentOfPickedEntity() {

@@ -20,16 +20,16 @@ final class GpuKernelTests: BaseRenderSetup {
 
     let BLOCK_SIZE = 256
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
 
         pLocal = reduceScanLocalScanPipeline.pipelineState
         pBlock = reduceScanBlockScanPipeline.pipelineState
         pCompact = reduceScanScatterCompactedPipeline.pipelineState
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
+        try await super.tearDown()
     }
 
     // MARK: - CPU reference

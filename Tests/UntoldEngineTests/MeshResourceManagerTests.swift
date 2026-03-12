@@ -10,9 +10,10 @@
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class MeshResourceManagerTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         MeshResourceManager.shared.clearAll()
     }

@@ -12,15 +12,15 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class OctreeSystemTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         OctreeSystem.shared.clear()
-        super.tearDown()
     }
 
     // MARK: - Helper Methods

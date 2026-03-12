@@ -12,12 +12,13 @@ import Foundation
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class BuildSystemTests: XCTestCase {
     var tempDirectory: URL!
     var buildSystem: BuildSystem!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         buildSystem = BuildSystem.shared
 
         // Create a temporary directory for test files
@@ -26,8 +27,7 @@ final class BuildSystemTests: XCTestCase {
         try? FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
 
         // Clean up temporary directory
         if let tempDirectory {

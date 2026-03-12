@@ -12,16 +12,16 @@ import Foundation
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class USCScriptingConditionRuntimeTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         initScriptingSystem()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         destroyAllEntities()
-        super.tearDown()
     }
 
     // MARK: - ifLess (property-based) runtime tests

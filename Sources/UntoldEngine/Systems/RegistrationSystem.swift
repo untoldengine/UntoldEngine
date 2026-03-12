@@ -13,10 +13,49 @@ import CShaderTypes
 import Foundation
 import MetalKit
 
-private var pendingDestroyCompletions: [() -> Void] = []
+@inline(__always)
+private func enforceRegistrationMainActor() {
+    MainActor.assumeIsolated {}
+}
+
+private struct BoolCompletionBox: @unchecked Sendable {
+    let callback: (Bool) -> Void
+
+    @MainActor
+    func call(_ result: Bool) {
+        callback(result)
+    }
+}
+
+private final class RegistrationRuntimeState: @unchecked Sendable {
+    let lock = NSLock()
+    var pendingDestroyCompletions: [() -> Void] = []
+    var componentCleanupHandlersRegistered = false
+    var skeletonCache: [URL: MDLSkeleton?] = [:]
+    var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
+    var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
+    var customComponentTypeNameById: [ObjectIdentifier: String] = [:]
+}
+
+private let registrationRuntimeState = RegistrationRuntimeState()
+
+private var pendingDestroyCompletions: [() -> Void] {
+    get {
+        registrationRuntimeState.lock.lock()
+        defer { registrationRuntimeState.lock.unlock() }
+        return registrationRuntimeState.pendingDestroyCompletions
+    }
+    set {
+        registrationRuntimeState.lock.lock()
+        registrationRuntimeState.pendingDestroyCompletions = newValue
+        registrationRuntimeState.lock.unlock()
+    }
+}
+
 private let pendingDestroyCompletionsLock = NSLock()
 
 private func enqueuePendingDestroyCompletion(_ completion: (() -> Void)?) {
+    enforceRegistrationMainActor()
     guard let completion else { return }
     pendingDestroyCompletionsLock.lock()
     pendingDestroyCompletions.append(completion)
@@ -24,6 +63,7 @@ private func enqueuePendingDestroyCompletion(_ completion: (() -> Void)?) {
 }
 
 private func runPendingDestroyCompletions() {
+    enforceRegistrationMainActor()
     let callbacks: [() -> Void]
     pendingDestroyCompletionsLock.lock()
     guard pendingDestroyCompletions.isEmpty == false else {
@@ -40,9 +80,21 @@ private func runPendingDestroyCompletions() {
 }
 
 private let componentCleanupRegistrationLock = NSLock()
-private var componentCleanupHandlersRegistered = false
+private var componentCleanupHandlersRegistered: Bool {
+    get {
+        registrationRuntimeState.lock.lock()
+        defer { registrationRuntimeState.lock.unlock() }
+        return registrationRuntimeState.componentCleanupHandlersRegistered
+    }
+    set {
+        registrationRuntimeState.lock.lock()
+        registrationRuntimeState.componentCleanupHandlersRegistered = newValue
+        registrationRuntimeState.lock.unlock()
+    }
+}
 
 func ensureComponentCleanupHandlersRegistered() {
+    enforceRegistrationMainActor()
     componentCleanupRegistrationLock.lock()
     defer { componentCleanupRegistrationLock.unlock() }
 
@@ -52,6 +104,7 @@ func ensureComponentCleanupHandlersRegistered() {
 }
 
 private func registerComponentCleanupHandlers() {
+    enforceRegistrationMainActor()
     ComponentRegistry.register(componentType: ScenegraphComponent.self, handlerId: "scenegraph", priority: 10) { entityId in
         removeEntityScenegraph(entityId: entityId)
     }
@@ -141,6 +194,7 @@ private func registerComponentCleanupHandlers() {
 }
 
 public func createEntity() -> EntityID {
+    enforceRegistrationMainActor()
     globalEntityCounter += 1
     let entity = scene.newEntity()
     makeSpatial(entityId: entity) // attach LocalTransform, WorldTransform, Scenegraph
@@ -148,12 +202,14 @@ public func createEntity() -> EntityID {
 }
 
 public func makeSpatial(entityId: EntityID) {
+    enforceRegistrationMainActor()
     registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
     registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
     registerComponent(entityId: entityId, componentType: ScenegraphComponent.self)
 }
 
 public func registerComponent(entityId: EntityID, componentType: (some Component).Type) {
+    enforceRegistrationMainActor()
     ensureComponentCleanupHandlersRegistered()
     if !ComponentRegistry.hasCleanupHandler(for: componentType) {
         ComponentRegistry.register(componentType: componentType, priority: 50) { entityId in
@@ -164,6 +220,7 @@ public func registerComponent(entityId: EntityID, componentType: (some Component
 }
 
 public func destroyEntity(entityId: EntityID) {
+    enforceRegistrationMainActor()
     if entityId == .invalid {
         return
     }
@@ -180,6 +237,7 @@ public func destroyEntity(entityId: EntityID) {
 }
 
 public func destroyAllEntities(completion: (() -> Void)? = nil) {
+    enforceRegistrationMainActor()
     enqueuePendingDestroyCompletion(completion)
 
     let toDestroy = scene.getAllEntities()
@@ -198,6 +256,7 @@ public func destroyAllEntities(completion: (() -> Void)? = nil) {
 }
 
 func finalizePendingDestroys() {
+    enforceRegistrationMainActor()
     ensureComponentCleanupHandlersRegistered()
 
     visibleEntityIds.removeAll()
@@ -680,6 +739,8 @@ public func setEntityMeshAsync(
     coordinateConversion: CoordinateSystemConversion = .autoDetect,
     completion: ((Bool) -> Void)? = nil
 ) {
+    let completionBox = completion.map { BoolCompletionBox(callback: $0) }
+
     // Ensure entity has required components
     if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
         registerTransformComponent(entityId: entityId)
@@ -689,7 +750,7 @@ public func setEntityMeshAsync(
         registerSceneGraphComponent(entityId: entityId)
     }
 
-    Task {
+    Task { @MainActor in
         // Mark as loading
         await AssetLoadingState.shared.startLoading(entityId: entityId, filename: filename)
 
@@ -698,9 +759,7 @@ public func setEntityMeshAsync(
             handleError(.filenameNotFound, filename)
             await loadFallbackMesh(entityId: entityId, filename: filename)
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
-            await MainActor.run {
-                completion?(false)
-            }
+            completionBox?.call(false)
             return
         }
 
@@ -708,15 +767,11 @@ public func setEntityMeshAsync(
             handleError(.fileTypeNotSupported, url.pathExtension)
             await loadFallbackMesh(entityId: entityId, filename: filename)
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
-            await MainActor.run {
-                completion?(false)
-            }
+            completionBox?.call(false)
             return
         }
 
         // Load meshes asynchronously
-        let progressUpdateStride = 25
-        var lastProgressSent = 0
         let meshes = await Mesh.loadSceneMeshesAsync(
             url: url,
             vertexDescriptor: vertexDescriptor.model,
@@ -724,9 +779,6 @@ public func setEntityMeshAsync(
             coordinateConversion: coordinateConversion
         ) { current, total in
             guard total > 0 else { return }
-            let shouldReport = current == total || (current - lastProgressSent) >= progressUpdateStride
-            guard shouldReport else { return }
-            lastProgressSent = current
 
             Task {
                 await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: current, totalMeshes: total)
@@ -741,9 +793,7 @@ public func setEntityMeshAsync(
             handleError(.assetDataMissing, filename)
             await loadFallbackMesh(entityId: entityId, filename: filename)
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
-            await MainActor.run {
-                completion?(false)
-            }
+            completionBox?.call(false)
             return
         }
 
@@ -756,9 +806,7 @@ public func setEntityMeshAsync(
                 handleError(.assetDataMissing, "No mesh with asset name \(assetNameExist)")
                 await loadFallbackMesh(entityId: entityId, filename: filename)
                 await AssetLoadingState.shared.finishLoading(entityId: entityId)
-                await MainActor.run {
-                    completion?(false)
-                }
+                completionBox?.call(false)
                 return
             }
         }
@@ -770,92 +818,82 @@ public func setEntityMeshAsync(
         // Track entities being loaded to hide them during registration
         var loadingEntityIds: [EntityID] = [entityId]
 
-        let handledImportedLOD = await MainActor.run { () -> Bool in
-            tryRegisterImportedLODGroup(
-                entityId: entityId,
-                url: url,
-                filename: filename,
-                withExtension: withExtension,
-                nonEmptyMeshes: nonEmptyMeshes
-            )
-        }
+        let handledImportedLOD = tryRegisterImportedLODGroup(
+            entityId: entityId,
+            url: url,
+            filename: filename,
+            withExtension: withExtension,
+            nonEmptyMeshes: nonEmptyMeshes
+        )
 
         if handledImportedLOD {
             await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: nonEmptyMeshes.count, totalMeshes: nonEmptyMeshes.count)
         } else if nonEmptyMeshes.count == 1 {
-            await MainActor.run {
-                let mesh = nonEmptyMeshes[0]
-                associateMeshesToEntity(entityId: entityId, meshes: mesh)
-                registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-                setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+            let mesh = nonEmptyMeshes[0]
+            associateMeshesToEntity(entityId: entityId, meshes: mesh)
+            registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
+            setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
 
-                // Hide during registration
-                if let renderComp = scene.get(component: RenderComponent.self, for: entityId) {
-                    renderComp.isVisible = false
-                }
+            // Hide during registration
+            if let renderComp = scene.get(component: RenderComponent.self, for: entityId) {
+                renderComp.isVisible = false
             }
             await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: 1, totalMeshes: 1)
         } else if nonEmptyMeshes.count > 1 {
             // Multi-mesh asset: mark root as AssetInstance, children as DerivedAssetNode
-            await MainActor.run {
-                let assetInstanceComp = AssetInstanceComponent(
-                    assetURL: url,
-                    assetName: assetName ?? filename,
-                    importMode: "preserveHierarchy",
-                    rootPrimPath: nil
-                )
-                registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
-                if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
-                    instanceComp.assetURL = assetInstanceComp.assetURL
-                    instanceComp.assetName = assetInstanceComp.assetName
-                    instanceComp.importMode = assetInstanceComp.importMode
-                    instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
-                }
+            let assetInstanceComp = AssetInstanceComponent(
+                assetURL: url,
+                assetName: assetName ?? filename,
+                importMode: "preserveHierarchy",
+                rootPrimPath: nil
+            )
+            registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
+            if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
+                instanceComp.assetURL = assetInstanceComp.assetURL
+                instanceComp.assetName = assetInstanceComp.assetName
+                instanceComp.importMode = assetInstanceComp.importMode
+                instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
             }
 
             // Process mesh groups without artificial delays to maximize import throughput.
             for (index, mesh) in nonEmptyMeshes.enumerated() {
-                let childEntityId = await MainActor.run { () -> EntityID in
-                    let childEntityId = createEntity()
+                let childEntityId = createEntity()
 
-                    if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
-                        registerTransformComponent(entityId: childEntityId)
-                    }
+                if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
+                    registerTransformComponent(entityId: childEntityId)
+                }
 
-                    if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
-                        registerSceneGraphComponent(entityId: childEntityId)
-                    }
+                if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
+                    registerSceneGraphComponent(entityId: childEntityId)
+                }
 
-                    // Extract full transform (translation, rotation, scale) from mesh world space
-                    // before RenderComponent registration.
-                    if let firstMesh = mesh.first {
-                        applyWorldTransform(firstMesh.worldSpace, to: childEntityId)
-                    }
+                // Extract full transform (translation, rotation, scale) from mesh world space
+                // before RenderComponent registration.
+                if let firstMesh = mesh.first {
+                    applyWorldTransform(firstMesh.worldSpace, to: childEntityId)
+                }
 
-                    associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
-                    registerRenderComponent(entityId: childEntityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
+                associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
+                registerRenderComponent(entityId: childEntityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
 
-                    let meshAssetName = mesh.first!.assetName
-                    setEntityName(entityId: childEntityId, name: meshAssetName)
-                    setParent(childId: childEntityId, parentId: entityId)
+                let meshAssetName = mesh.first!.assetName
+                setEntityName(entityId: childEntityId, name: meshAssetName)
+                setParent(childId: childEntityId, parentId: entityId)
 
-                    // Tag as derived node with stable nodePath
-                    let nodePath = generateStableNodePath(assetName: meshAssetName, index: index)
-                    let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: entityId, nodePath: nodePath)
-                    registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
-                    if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
-                        derived.assetRootEntityId = derivedComp.assetRootEntityId
-                        derived.nodePath = derivedComp.nodePath
-                    }
+                // Tag as derived node with stable nodePath
+                let nodePath = generateStableNodePath(assetName: meshAssetName, index: index)
+                let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: entityId, nodePath: nodePath)
+                registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
+                if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
+                    derived.assetRootEntityId = derivedComp.assetRootEntityId
+                    derived.nodePath = derivedComp.nodePath
+                }
 
-                    setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
+                setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
 
-                    // Hide during registration
-                    if let renderComp = scene.get(component: RenderComponent.self, for: childEntityId) {
-                        renderComp.isVisible = false
-                    }
-
-                    return childEntityId
+                // Hide during registration
+                if let renderComp = scene.get(component: RenderComponent.self, for: childEntityId) {
+                    renderComp.isVisible = false
                 }
 
                 // Add child to loading set
@@ -867,18 +905,14 @@ public func setEntityMeshAsync(
         }
 
         // Mark all entities as visible now that registration is complete
-        await MainActor.run {
-            for id in loadingEntityIds {
-                if let renderComp = scene.get(component: RenderComponent.self, for: id) {
-                    renderComp.isVisible = true
-                }
+        for id in loadingEntityIds {
+            if let renderComp = scene.get(component: RenderComponent.self, for: id) {
+                renderComp.isVisible = true
             }
         }
 
         await AssetLoadingState.shared.finishLoading(entityId: entityId)
-        await MainActor.run {
-            completion?(true)
-        }
+        completionBox?.call(true)
     }
 }
 
@@ -1007,7 +1041,9 @@ public func loadSceneAsync(
     coordinateConversion: CoordinateSystemConversion = .autoDetect,
     completion: ((Bool) -> Void)? = nil
 ) {
-    Task {
+    let completionBox = completion.map { BoolCompletionBox(callback: $0) }
+
+    Task { @MainActor in
         // Create a temporary entity ID for tracking the scene load
         let sceneLoadEntityId = EntityID.max - 1 // Use a special ID for scene loading
 
@@ -1018,24 +1054,18 @@ public func loadSceneAsync(
         guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
             handleError(.filenameNotFound, filename)
             await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
-            await MainActor.run {
-                completion?(false)
-            }
+            completionBox?.call(false)
             return
         }
 
         if url.pathExtension == "dae" {
             handleError(.fileTypeNotSupported, url.pathExtension)
             await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
-            await MainActor.run {
-                completion?(false)
-            }
+            completionBox?.call(false)
             return
         }
 
         // Load scene meshes asynchronously
-        let progressUpdateStride = 25
-        var lastProgressSent = 0
         let meshes = await Mesh.loadSceneMeshesAsync(
             url: url,
             vertexDescriptor: vertexDescriptor.model,
@@ -1043,9 +1073,6 @@ public func loadSceneAsync(
             coordinateConversion: coordinateConversion
         ) { current, total in
             guard total > 0 else { return }
-            let shouldReport = current == total || (current - lastProgressSent) >= progressUpdateStride
-            guard shouldReport else { return }
-            lastProgressSent = current
 
             Task {
                 await AssetLoadingState.shared.updateProgress(entityId: sceneLoadEntityId, currentMesh: current, totalMeshes: total)
@@ -1056,41 +1083,48 @@ public func loadSceneAsync(
         MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: meshes)
 
         // Process on main thread
-        let didLoadMeshes: Bool = await MainActor.run {
-            if meshes.isEmpty {
-                handleError(.assetDataMissing, filename)
-                return false
+        if meshes.isEmpty {
+            handleError(.assetDataMissing, filename)
+            await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
+            completionBox?.call(false)
+            return
+        }
+
+        for mesh in meshes where mesh.count > 0 {
+            let entityId = createEntity()
+
+            if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+                registerTransformComponent(entityId: entityId)
             }
 
-            for mesh in meshes where mesh.count > 0 {
-                let entityId = createEntity()
-
-                if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-                    registerTransformComponent(entityId: entityId)
-                }
-
-                if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-                    registerSceneGraphComponent(entityId: entityId)
-                }
-
-                associateMeshesToEntity(entityId: entityId, meshes: mesh)
-                registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-                setEntityName(entityId: entityId, name: mesh.first!.assetName)
-                setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+            if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+                registerSceneGraphComponent(entityId: entityId)
             }
-            return true
+
+            associateMeshesToEntity(entityId: entityId, meshes: mesh)
+            registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
+            setEntityName(entityId: entityId, name: mesh.first!.assetName)
+            setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
         }
 
         await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
-
-        await MainActor.run {
-            completion?(didLoadMeshes)
-        }
+        completionBox?.call(true)
     }
 }
 
 /// Cache to avoid reloading USDZ files multiple times for skeleton checks
-private var skeletonCache: [URL: MDLSkeleton?] = [:]
+private var skeletonCache: [URL: MDLSkeleton?] {
+    get {
+        registrationRuntimeState.lock.lock()
+        defer { registrationRuntimeState.lock.unlock() }
+        return registrationRuntimeState.skeletonCache
+    }
+    set {
+        registrationRuntimeState.lock.lock()
+        registrationRuntimeState.skeletonCache = newValue
+        registrationRuntimeState.lock.unlock()
+    }
+}
 
 func removeEntityMesh(entityId: EntityID) {
     var removedAnyResourceOwner = false
@@ -1121,6 +1155,7 @@ func removeEntityMesh(entityId: EntityID) {
 }
 
 public func setEntitySkeleton(entityId: EntityID, filename: String, withExtension: String) {
+    enforceRegistrationMainActor()
     guard let url: URL = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
         handleError(.filenameNotFound, filename)
         return
@@ -1530,14 +1565,48 @@ public func findEntity(name: String) -> EntityID? {
  }
  */
 
-var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
-var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
-var customComponentTypeNameById: [ObjectIdentifier: String] = [:]
+var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] {
+    get {
+        registrationRuntimeState.lock.lock()
+        defer { registrationRuntimeState.lock.unlock() }
+        return registrationRuntimeState.customComponentEncoderMap
+    }
+    set {
+        registrationRuntimeState.lock.lock()
+        registrationRuntimeState.customComponentEncoderMap = newValue
+        registrationRuntimeState.lock.unlock()
+    }
+}
+var customComponentDecoderMap: [String: (EntityID, Data) -> Void] {
+    get {
+        registrationRuntimeState.lock.lock()
+        defer { registrationRuntimeState.lock.unlock() }
+        return registrationRuntimeState.customComponentDecoderMap
+    }
+    set {
+        registrationRuntimeState.lock.lock()
+        registrationRuntimeState.customComponentDecoderMap = newValue
+        registrationRuntimeState.lock.unlock()
+    }
+}
+var customComponentTypeNameById: [ObjectIdentifier: String] {
+    get {
+        registrationRuntimeState.lock.lock()
+        defer { registrationRuntimeState.lock.unlock() }
+        return registrationRuntimeState.customComponentTypeNameById
+    }
+    set {
+        registrationRuntimeState.lock.lock()
+        registrationRuntimeState.customComponentTypeNameById = newValue
+        registrationRuntimeState.lock.unlock()
+    }
+}
 
 public func encodeCustomComponent<T: Component & Codable>(
     type: T.Type,
     merge: ((inout T, T) -> Void)? = nil
 ) {
+    enforceRegistrationMainActor()
     let encKey = ObjectIdentifier(type)
     let decKey = String(describing: type)
 
@@ -1805,7 +1874,9 @@ func removeEntityStreaming(entityId: EntityID) {
         scene.remove(component: StreamingComponent.self, from: entityId)
     }
 
-    GeometryStreamingSystem.shared.unregisterEntity(entityId)
+    MainActor.assumeIsolated {
+        GeometryStreamingSystem.shared.unregisterEntity(entityId)
+    }
     MeshResourceManager.shared.release(entityId: entityId)
 }
 
@@ -1848,22 +1919,20 @@ public func addLODLevel(
     screenPercentage: Float = 0.0,
     completion: ((Bool) -> Void)? = nil
 ) {
-    Task {
+    let completionBox = completion.map { BoolCompletionBox(callback: $0) }
+
+    Task { @MainActor in
         // Check if LODComponent exists
         guard hasComponent(entityId: entityId, componentType: LODComponent.self) else {
             Logger.logError(message: "Entity does not have LODComponent. Call setEntityLodComponent() first.")
-            await MainActor.run {
-                completion?(false)
-            }
+            completionBox?.call(false)
             return
         }
 
         // Get file URL using standard resource loading
         guard let url = LoadingSystem.shared.resourceURL(forResource: fileName, withExtension: withExtension) else {
             Logger.logError(message: "Failed to find LOD file: \(fileName).\(withExtension)")
-            await MainActor.run {
-                completion?(false)
-            }
+            completionBox?.call(false)
             return
         }
 
@@ -1892,52 +1961,50 @@ public func addLODLevel(
             url: url
         )
 
-        await MainActor.run {
-            withWorldMutationGate {
-                guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
-                    handleError(.componentNotFound, "LODComponent")
-                    completion?(false)
-                    return
-                }
+        let didAddLOD: Bool = withWorldMutationGate {
+            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
+                handleError(.componentNotFound, "LODComponent")
+                return false
+            }
 
                 // Add LOD level at the specified index
-                if lodIndex < 0 {
-                    Logger.logWarning(message: "Invalid LOD index \(lodIndex), appending to end")
-                    lodComponent.lodLevels.append(lodLevel)
-                } else if lodIndex >= lodComponent.lodLevels.count {
-                    // Ensure array is large enough by padding with empty slots if needed
-                    // This handles out-of-order additions (e.g., adding LOD2 before LOD1)
-                    while lodComponent.lodLevels.count < lodIndex {
-                        // Pad with placeholder (will be replaced when proper LOD is added)
-                        let placeholder = LODLevel(mesh: [], maxDistance: 0, screenPercentage: 0, url: URL(fileURLWithPath: ""))
-                        lodComponent.lodLevels.append(placeholder)
-                    }
-                    // Now append the actual LOD at the correct index
-                    lodComponent.lodLevels.append(lodLevel)
-                } else {
-                    // Replace existing LOD at this index
-                    lodComponent.lodLevels[lodIndex] = lodLevel
+            if lodIndex < 0 {
+                Logger.logWarning(message: "Invalid LOD index \(lodIndex), appending to end")
+                lodComponent.lodLevels.append(lodLevel)
+            } else if lodIndex >= lodComponent.lodLevels.count {
+                // Ensure array is large enough by padding with empty slots if needed
+                // This handles out-of-order additions (e.g., adding LOD2 before LOD1)
+                while lodComponent.lodLevels.count < lodIndex {
+                    // Pad with placeholder (will be replaced when proper LOD is added)
+                    let placeholder = LODLevel(mesh: [], maxDistance: 0, screenPercentage: 0, url: URL(fileURLWithPath: ""))
+                    lodComponent.lodLevels.append(placeholder)
                 }
-
-                // If this is LOD0, create or update RenderComponent
-                if lodIndex == 0 {
-                    if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
-                        // Update existing RenderComponent
-                        renderComponent.mesh = meshes
-                        renderComponent.assetURL = url
-                        renderComponent.assetName = meshes.first?.assetName ?? url.deletingPathExtension().lastPathComponent
-                    } else {
-                        // Create new RenderComponent
-                        let assetName = meshes.first?.assetName ?? url.deletingPathExtension().lastPathComponent
-                        registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: assetName)
-                        associateMeshesToEntity(entityId: entityId, meshes: meshes)
-                    }
-                }
-
-                Logger.log(message: "✅ Added LOD level \(lodIndex) to entity")
-                completion?(true)
+                // Now append the actual LOD at the correct index
+                lodComponent.lodLevels.append(lodLevel)
+            } else {
+                // Replace existing LOD at this index
+                lodComponent.lodLevels[lodIndex] = lodLevel
             }
+
+            // If this is LOD0, create or update RenderComponent
+            if lodIndex == 0 {
+                if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+                    // Update existing RenderComponent
+                    renderComponent.mesh = meshes
+                    renderComponent.assetURL = url
+                    renderComponent.assetName = meshes.first?.assetName ?? url.deletingPathExtension().lastPathComponent
+                } else {
+                    // Create new RenderComponent
+                    let assetName = meshes.first?.assetName ?? url.deletingPathExtension().lastPathComponent
+                    registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: assetName)
+                    associateMeshesToEntity(entityId: entityId, meshes: meshes)
+                }
+            }
+
+            Logger.log(message: "✅ Added LOD level \(lodIndex) to entity")
+            return true
         }
+        completionBox?.call(didAddLOD)
     }
 }
 
@@ -2042,30 +2109,26 @@ public func replaceLODLevel(
     screenPercentage: Float = 0.0,
     completion: ((Bool) -> Void)? = nil
 ) {
-    Task {
+    let completionBox = completion.map { BoolCompletionBox(callback: $0) }
+
+    Task { @MainActor in
         guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
             Logger.logWarning(message: "Entity does not have LODComponent")
-            await MainActor.run {
-                completion?(false)
-            }
+            completionBox?.call(false)
             return
         }
 
         // Validate index
         guard lodIndex >= 0, lodIndex < lodComponent.lodLevels.count else {
             Logger.logWarning(message: "Invalid LOD index: \(lodIndex)")
-            await MainActor.run {
-                completion?(false)
-            }
+            completionBox?.call(false)
             return
         }
 
         // Get file URL using standard resource loading
         guard let newURL = LoadingSystem.shared.resourceURL(forResource: fileName, withExtension: withExtension) else {
             Logger.logError(message: "Failed to find LOD file: \(fileName).\(withExtension)")
-            await MainActor.run {
-                completion?(false)
-            }
+            completionBox?.call(false)
             return
         }
 
@@ -2091,36 +2154,33 @@ public func replaceLODLevel(
             url: newURL
         )
 
-        await MainActor.run {
-            withWorldMutationGate {
-                guard let currentLODComponent = scene.get(component: LODComponent.self, for: entityId) else {
-                    Logger.logWarning(message: "Entity does not have LODComponent")
-                    completion?(false)
-                    return
-                }
-
-                guard lodIndex >= 0, lodIndex < currentLODComponent.lodLevels.count else {
-                    Logger.logWarning(message: "Invalid LOD index: \(lodIndex)")
-                    completion?(false)
-                    return
-                }
-
-                // Replace the LOD level
-                currentLODComponent.lodLevels[lodIndex] = newLodLevel
-
-                // If this is the current LOD or LOD0, update render component
-                if currentLODComponent.currentLOD == lodIndex,
-                   let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
-                {
-                    renderComponent.mesh = meshes
-                    renderComponent.assetURL = newURL
-                    renderComponent.assetName = meshes.first?.assetName ?? newURL.deletingPathExtension().lastPathComponent
-                }
-
-                Logger.log(message: "✅ Replaced LOD level \(lodIndex)")
-                completion?(true)
+        let didReplaceLOD: Bool = withWorldMutationGate {
+            guard let currentLODComponent = scene.get(component: LODComponent.self, for: entityId) else {
+                Logger.logWarning(message: "Entity does not have LODComponent")
+                return false
             }
+
+            guard lodIndex >= 0, lodIndex < currentLODComponent.lodLevels.count else {
+                Logger.logWarning(message: "Invalid LOD index: \(lodIndex)")
+                return false
+            }
+
+            // Replace the LOD level
+            currentLODComponent.lodLevels[lodIndex] = newLodLevel
+
+            // If this is the current LOD or LOD0, update render component
+            if currentLODComponent.currentLOD == lodIndex,
+               let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
+            {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = newURL
+                renderComponent.assetName = meshes.first?.assetName ?? newURL.deletingPathExtension().lastPathComponent
+            }
+
+            Logger.log(message: "✅ Replaced LOD level \(lodIndex)")
+            return true
         }
+        completionBox?.call(didReplaceLOD)
     }
 }
 
@@ -2243,7 +2303,9 @@ private func enableStreamingForSingleEntity(
     streaming.state = .loaded // Already has mesh
 
     // Register with streaming system for tracking
-    GeometryStreamingSystem.shared.registerLoadedEntity(entityId)
+    MainActor.assumeIsolated {
+        GeometryStreamingSystem.shared.registerLoadedEntity(entityId)
+    }
 }
 
 /// Create a streaming entity that loads mesh on demand (deferred loading)

@@ -13,6 +13,7 @@
 import Foundation
 
 /// System that manages and executes USC scripts
+@MainActor
 public class USCSystem {
     public static let shared = USCSystem()
 

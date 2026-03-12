@@ -17,26 +17,106 @@ public enum SpatialDebugLeafColorMode: String {
 }
 
 /// Runtime toggles for spatial debug visualization.
-public final class SpatialDebugVisualization {
+public final class SpatialDebugVisualization: @unchecked Sendable {
     public static let shared = SpatialDebugVisualization()
 
+    private let lock = NSLock()
+
     /// Master switch for all spatial debug rendering.
-    public var enabled: Bool = false
+    private var _enabled: Bool = false
+    public var enabled: Bool {
+        get {
+            lock.lock()
+            let value = _enabled
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _enabled = newValue
+            lock.unlock()
+        }
+    }
 
     /// Draw octree leaf node bounds.
-    public var showOctreeLeafBounds: Bool = false
+    private var _showOctreeLeafBounds: Bool = false
+    public var showOctreeLeafBounds: Bool {
+        get {
+            lock.lock()
+            let value = _showOctreeLeafBounds
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _showOctreeLeafBounds = newValue
+            lock.unlock()
+        }
+    }
 
     /// Max number of leaf nodes rendered per frame (0 = unlimited).
-    public var maxLeafNodeCount: Int = 2000
+    private var _maxLeafNodeCount: Int = 2000
+    public var maxLeafNodeCount: Int {
+        get {
+            lock.lock()
+            let value = _maxLeafNodeCount
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _maxLeafNodeCount = newValue
+            lock.unlock()
+        }
+    }
 
     /// When true, include only occupied octree leaves.
-    public var octreeLeafOccupiedOnly: Bool = true
+    private var _octreeLeafOccupiedOnly: Bool = true
+    public var octreeLeafOccupiedOnly: Bool {
+        get {
+            lock.lock()
+            let value = _octreeLeafOccupiedOnly
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _octreeLeafOccupiedOnly = newValue
+            lock.unlock()
+        }
+    }
 
     /// Color mode for octree leaf bounds.
-    public var octreeLeafColorMode: SpatialDebugLeafColorMode = .plain
+    private var _octreeLeafColorMode: SpatialDebugLeafColorMode = .plain
+    public var octreeLeafColorMode: SpatialDebugLeafColorMode {
+        get {
+            lock.lock()
+            let value = _octreeLeafColorMode
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _octreeLeafColorMode = newValue
+            lock.unlock()
+        }
+    }
 
     /// Color shaded renderables by active LOD index.
-    public var colorRenderablesByLOD: Bool = false
+    private var _colorRenderablesByLOD: Bool = false
+    public var colorRenderablesByLOD: Bool {
+        get {
+            lock.lock()
+            let value = _colorRenderablesByLOD
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _colorRenderablesByLOD = newValue
+            lock.unlock()
+        }
+    }
 
     private init() {}
 
@@ -46,22 +126,28 @@ public final class SpatialDebugVisualization {
         occupiedOnly: Bool = true,
         colorMode: SpatialDebugLeafColorMode = .plain
     ) {
-        self.enabled = enabled || colorRenderablesByLOD
-        showOctreeLeafBounds = enabled
-        self.maxLeafNodeCount = max(0, maxLeafNodeCount)
-        octreeLeafOccupiedOnly = occupiedOnly
-        octreeLeafColorMode = colorMode
+        lock.lock()
+        _enabled = enabled || _colorRenderablesByLOD
+        _showOctreeLeafBounds = enabled
+        _maxLeafNodeCount = max(0, maxLeafNodeCount)
+        _octreeLeafOccupiedOnly = occupiedOnly
+        _octreeLeafColorMode = colorMode
+        lock.unlock()
     }
 
     public func configureLODLevelColoring(enabled: Bool) {
-        colorRenderablesByLOD = enabled
-        self.enabled = showOctreeLeafBounds || colorRenderablesByLOD
+        lock.lock()
+        _colorRenderablesByLOD = enabled
+        _enabled = _showOctreeLeafBounds || _colorRenderablesByLOD
+        lock.unlock()
     }
 
     public func disableAll() {
-        enabled = false
-        showOctreeLeafBounds = false
-        colorRenderablesByLOD = false
+        lock.lock()
+        _enabled = false
+        _showOctreeLeafBounds = false
+        _colorRenderablesByLOD = false
+        lock.unlock()
     }
 }
 

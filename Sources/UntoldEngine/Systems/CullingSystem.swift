@@ -10,10 +10,10 @@
 
 import CShaderTypes
 import Foundation
-import Metal
+@preconcurrency import Metal
 import simd
 
-var useOptimizedCulling = false
+let useOptimizedCulling = false
 
 let kInFlight = 3
 let planeCount = 6
@@ -600,12 +600,10 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             optimizedPath: false
         )
 
-        var nextVisibleIds: [EntityID] = []
-        nextVisibleIds.reserveCapacity(Int(visibleCount))
-        for i in 0 ..< Int(visibleCount) {
+        let nextVisibleIds: [EntityID] = (0 ..< Int(visibleCount)).map { i in
             let index = visibleEntities[i].index
             let version = visibleEntities[i].version
-            nextVisibleIds.append(createEntityId(EntityIndex(index), EntityVersion(version)))
+            return createEntityId(EntityIndex(index), EntityVersion(version))
         }
 
         // Swap into the write slot on the render thread
@@ -888,12 +886,10 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             optimizedPath: true
         )
 
-        var nextVisibleIds: [EntityID] = []
-        nextVisibleIds.reserveCapacity(Int(visibleCount))
-        for i in 0 ..< Int(visibleCount) {
+        let nextVisibleIds: [EntityID] = (0 ..< Int(visibleCount)).map { i in
             let index = visibleEntities[i].index
             let version = visibleEntities[i].version
-            nextVisibleIds.append(createEntityId(EntityIndex(index), EntityVersion(version)))
+            return createEntityId(EntityIndex(index), EntityVersion(version))
         }
 
         // Swap into the write slot on the render thread

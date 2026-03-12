@@ -16,20 +16,48 @@ struct TypeInfo {
     let type: Any.Type
 }
 
-/// Global dictionary to store component IDs for each type
-var componentIDs = [ObjectIdentifier: TypeInfo]()
+private final class ComponentIDState: @unchecked Sendable {
+    let lock = NSLock()
+    var componentIDs: [ObjectIdentifier: TypeInfo] = [:]
+}
+
+private let componentIDState = ComponentIDState()
+
+@inline(__always)
+func componentTypeInfosSnapshot() -> [ObjectIdentifier: TypeInfo] {
+    componentIDState.lock.lock()
+    let snapshot = componentIDState.componentIDs
+    componentIDState.lock.unlock()
+    return snapshot
+}
+
+@inline(__always)
+func componentTypeInfo(for typeId: ObjectIdentifier) -> TypeInfo? {
+    componentIDState.lock.lock()
+    let typeInfo = componentIDState.componentIDs[typeId]
+    componentIDState.lock.unlock()
+    return typeInfo
+}
+
+@inline(__always)
+private func enforceECSMainActor() {
+    MainActor.assumeIsolated {}
+}
 
 /// Function to get or create a component ID for a specific type
 public func getComponentId(for type: (some Any).Type) -> Int {
+    enforceECSMainActor()
     let typeId = ObjectIdentifier(type)
 
-    if let typeInfo = componentIDs[typeId] {
+    if let typeInfo = componentTypeInfo(for: typeId) {
         return typeInfo.id
     } else {
         let id = componentCounter
         componentCounter += 1
 
-        componentIDs[typeId] = TypeInfo(id: id, type: type)
+        componentIDState.lock.lock()
+        componentIDState.componentIDs[typeId] = TypeInfo(id: id, type: type)
+        componentIDState.lock.unlock()
         return id
     }
 }

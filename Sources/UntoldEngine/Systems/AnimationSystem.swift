@@ -10,7 +10,7 @@
 
 import Foundation
 
-public final class AnimationSystem {
+public final class AnimationSystem: @unchecked Sendable {
     /// Thread-safe shared instance
     public static let shared: AnimationSystem = .init()
 

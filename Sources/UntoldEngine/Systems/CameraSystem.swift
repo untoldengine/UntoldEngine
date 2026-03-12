@@ -12,18 +12,44 @@
 import Foundation
 import simd
 
-public final class CameraSystem {
+public final class CameraSystem: @unchecked Sendable {
     /// Thread-safe shared instance
     public static let shared: CameraSystem = .init()
 
-    var _activeCamera: EntityID?
+    private let activeCameraLock = NSLock()
+    private let pathStateLock = NSLock()
+
+    private var _activeCamera: EntityID?
+    private var _pathState: CameraPathState?
+
+    private init() {}
+
     public var activeCamera: EntityID? {
-        get { _activeCamera }
-        set { _activeCamera = newValue }
+        get {
+            activeCameraLock.lock()
+            defer { activeCameraLock.unlock() }
+            return _activeCamera
+        }
+        set {
+            activeCameraLock.lock()
+            _activeCamera = newValue
+            activeCameraLock.unlock()
+        }
     }
 
     /// Camera path state (internal access for path functions)
-    fileprivate var pathState: CameraPathState?
+    fileprivate var pathState: CameraPathState? {
+        get {
+            pathStateLock.lock()
+            defer { pathStateLock.unlock() }
+            return _pathState
+        }
+        set {
+            pathStateLock.lock()
+            _pathState = newValue
+            pathStateLock.unlock()
+        }
+    }
 }
 
 public enum CameraMoveSpace {

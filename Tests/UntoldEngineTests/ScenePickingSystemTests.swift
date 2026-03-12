@@ -12,9 +12,10 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class ScenePickingSystemTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         InputSystem.shared.keyState.shiftPressed = false
         setIgnoreRayIntersectionWithTransparents(false)
@@ -24,14 +25,13 @@ final class ScenePickingSystemTests: XCTestCase {
         SceneRootTransform.shared.updateIfNeeded()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         InputSystem.shared.keyState.shiftPressed = false
         setIgnoreRayIntersectionWithTransparents(false)
         SceneRootTransform.shared.position = .zero
         SceneRootTransform.shared.rotation = simd_quatf()
         SceneRootTransform.shared.scale = .one
         SceneRootTransform.shared.updateIfNeeded()
-        super.tearDown()
     }
 
     private func makeTranslationMatrix(_ translation: simd_float3) -> simd_float4x4 {

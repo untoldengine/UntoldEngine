@@ -12,9 +12,10 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class GroundPickingSystemTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         SceneRootTransform.shared.position = .zero
         SceneRootTransform.shared.rotation = simd_quatf()
@@ -22,12 +23,11 @@ final class GroundPickingSystemTests: XCTestCase {
         SceneRootTransform.shared.updateIfNeeded()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         SceneRootTransform.shared.position = .zero
         SceneRootTransform.shared.rotation = simd_quatf()
         SceneRootTransform.shared.scale = .one
         SceneRootTransform.shared.updateIfNeeded()
-        super.tearDown()
     }
 
     // MARK: - pickGroundPosition

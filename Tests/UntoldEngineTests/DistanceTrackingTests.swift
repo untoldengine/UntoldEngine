@@ -12,14 +12,11 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-final class DistanceTrackingTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
-        resetEngineTestState()
-    }
 
-    override func tearDown() {
-        super.tearDown()
+@MainActor
+final class DistanceTrackingTests: XCTestCase {
+    override func setUp() async throws {
+        resetEngineTestState()
     }
 
     private func makeTranslationMatrix(_ translation: simd_float3) -> simd_float4x4 {
@@ -203,7 +200,7 @@ final class DistanceTrackingTests: XCTestCase {
         let result = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
             rayDirection: simd_float3(1, 0, 0),
-            options: ScenePickOptions(backend: .octreePreferred)
+            options: ScenePickOptions(backend: .octreeGPUPreferred)
         )
 
         guard let hit = result else {
@@ -230,7 +227,7 @@ final class DistanceTrackingTests: XCTestCase {
         let octreeResult = pickEntity(
             rayOrigin: simd_float3(0, 0, 0),
             rayDirection: simd_float3(1, 0, 0),
-            options: ScenePickOptions(backend: .octreePreferred)
+            options: ScenePickOptions(backend: .octreeGPUPreferred)
         )
 
         guard let cpuHit = cpuResult, let octreeHit = octreeResult else {

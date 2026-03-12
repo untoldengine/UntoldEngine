@@ -12,12 +12,13 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class SceneRootTransformTests: XCTestCase {
     let srt = SceneRootTransform.shared
     let eps: Float = 1e-4
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         // Reset to identity before each test
         srt.position = .zero
         srt.rotation = simd_quatf()

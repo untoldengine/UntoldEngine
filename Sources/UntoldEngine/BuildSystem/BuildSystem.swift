@@ -176,7 +176,7 @@ import Foundation
 
     // MARK: - Build System
 
-    public class BuildSystem {
+    public class BuildSystem: @unchecked Sendable {
         public static let shared = BuildSystem()
         private init() {}
 

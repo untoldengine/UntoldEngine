@@ -12,13 +12,14 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class TransformSystemTests: XCTestCase {
     var entityId: EntityID!
 
     // MARK: - Setup and Teardown
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
 
         SceneRootTransform.shared.position = .zero
@@ -31,14 +32,13 @@ final class TransformSystemTests: XCTestCase {
         registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         SceneRootTransform.shared.position = .zero
         SceneRootTransform.shared.rotation = simd_quatf()
         SceneRootTransform.shared.scale = .one
         SceneRootTransform.shared.updateIfNeeded()
 
         destroyEntity(entityId: entityId)
-        super.tearDown()
     }
 
     // MARK: - Position Tests

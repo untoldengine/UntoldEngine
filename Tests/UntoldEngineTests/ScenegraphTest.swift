@@ -12,6 +12,8 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class SceneGraphTests: XCTestCase {
     var rootEntity: EntityID!
     var childEntity: EntityID!
@@ -19,8 +21,7 @@ final class SceneGraphTests: XCTestCase {
 
     // MARK: - Setup and Teardown
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
 
         // Create root, child, and grandchild entities
@@ -33,11 +34,10 @@ final class SceneGraphTests: XCTestCase {
         registerTestEntities(entityId: grandchildEntity)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         destroyEntity(entityId: rootEntity)
         destroyEntity(entityId: childEntity)
         destroyEntity(entityId: grandchildEntity)
-        super.tearDown()
     }
 
     func registerTestEntities(entityId: EntityID) {

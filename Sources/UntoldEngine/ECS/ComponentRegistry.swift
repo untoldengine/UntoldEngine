@@ -19,8 +19,12 @@ public struct ComponentCleanupHandler {
 }
 
 public enum ComponentRegistry {
-    private static var handlersByComponentId: [Int: ComponentCleanupHandler] = [:]
-    private static let registryLock = NSLock()
+    private static let state = RegistryState()
+
+    @inline(__always)
+    private static func enforceMainActorAccess() {
+        MainActor.assumeIsolated {}
+    }
 
     public static func register(
         componentType: (some Component).Type,
@@ -28,6 +32,7 @@ public enum ComponentRegistry {
         priority: Int = 100,
         cleanup: @escaping (EntityID) -> Void
     ) {
+        enforceMainActorAccess()
         let componentId = getComponentId(for: componentType)
         let name = String(describing: componentType)
         let resolvedHandlerId = handlerId ?? name
@@ -39,9 +44,7 @@ public enum ComponentRegistry {
             cleanup: cleanup
         )
 
-        registryLock.lock()
-        handlersByComponentId[componentId] = handler
-        registryLock.unlock()
+        state.setHandler(handler, for: componentId)
     }
 
     public static func hasCleanupHandler(for componentType: (some Component).Type) -> Bool {
@@ -50,10 +53,8 @@ public enum ComponentRegistry {
     }
 
     public static func hasCleanupHandler(forComponentId componentId: Int) -> Bool {
-        registryLock.lock()
-        let exists = handlersByComponentId[componentId] != nil
-        registryLock.unlock()
-        return exists
+        enforceMainActorAccess()
+        return state.hasHandler(for: componentId)
     }
 
     public static func assertCleanupRegistered(
@@ -74,6 +75,7 @@ public enum ComponentRegistry {
     }
 
     public static func cleanupAll(entityId: EntityID) {
+        enforceMainActorAccess()
         let entityIndex = Int(getEntityIndex(entityId))
         guard entityIndex >= 0, entityIndex < scene.entities.count else {
             return
@@ -84,7 +86,7 @@ public enum ComponentRegistry {
             return
         }
 
-        registryLock.lock()
+        let handlersByComponentId = state.handlersSnapshot()
         var uniqueHandlers: [String: ComponentCleanupHandler] = [:]
         var missingHandlerComponentIds: [Int] = []
 
@@ -107,8 +109,6 @@ public enum ComponentRegistry {
             }
         }
 
-        registryLock.unlock()
-
         if missingHandlerComponentIds.isEmpty == false {
             let missingIds = missingHandlerComponentIds.map(String.init).sorted().joined(separator: ", ")
             Logger.logWarning(
@@ -130,15 +130,50 @@ public enum ComponentRegistry {
     }
 
     public static func registeredComponentTypeNames() -> Set<String> {
-        registryLock.lock()
-        let names = Set(handlersByComponentId.values.map(\.componentName))
-        registryLock.unlock()
-        return names
+        enforceMainActorAccess()
+        return state.componentTypeNames()
     }
 
     static func resetForTests() {
-        registryLock.lock()
-        handlersByComponentId.removeAll()
-        registryLock.unlock()
+        enforceMainActorAccess()
+        state.reset()
+    }
+
+    private final class RegistryState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var handlersByComponentId: [Int: ComponentCleanupHandler] = [:]
+
+        func setHandler(_ handler: ComponentCleanupHandler, for componentId: Int) {
+            lock.lock()
+            handlersByComponentId[componentId] = handler
+            lock.unlock()
+        }
+
+        func hasHandler(for componentId: Int) -> Bool {
+            lock.lock()
+            let exists = handlersByComponentId[componentId] != nil
+            lock.unlock()
+            return exists
+        }
+
+        func handlersSnapshot() -> [Int: ComponentCleanupHandler] {
+            lock.lock()
+            let snapshot = handlersByComponentId
+            lock.unlock()
+            return snapshot
+        }
+
+        func componentTypeNames() -> Set<String> {
+            lock.lock()
+            let names = Set(handlersByComponentId.values.map(\.componentName))
+            lock.unlock()
+            return names
+        }
+
+        func reset() {
+            lock.lock()
+            handlersByComponentId.removeAll()
+            lock.unlock()
+        }
     }
 }

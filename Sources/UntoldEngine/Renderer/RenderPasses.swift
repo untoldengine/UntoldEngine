@@ -17,11 +17,7 @@ import MetalKit
 public enum RenderPasses {
     public typealias RenderPassExecution = @Sendable (MTLCommandBuffer) -> Void
 
-    nonisolated(unsafe) private static var transparencyXRDepthWriteState: MTLDepthStencilState?
-    nonisolated(unsafe) private static var spatialDebugLineBuffer: MTLBuffer?
-    nonisolated(unsafe) private static var spatialDebugLineBufferCapacityVertices: Int = 0
-    nonisolated(unsafe) private static var spatialDebugLastLogTime: TimeInterval = 0
-    nonisolated(unsafe) private static var spatialDebugLastLogSignature: String = ""
+    private static let runtimeState = RuntimeState()
     private static let lodDebugPalette: [simd_float3] = [
         simd_float3(1.0, 0.0, 0.0), // LOD0 = red
         simd_float3(0.0, 1.0, 0.0), // LOD1 = green
@@ -42,6 +38,78 @@ public enum RenderPasses {
         let color: simd_float4
         let vertexStart: Int
         let vertexCount: Int
+    }
+
+    private final class RuntimeState: @unchecked Sendable {
+        let lock = NSLock()
+        var transparencyXRDepthWriteState: MTLDepthStencilState?
+        var spatialDebugLineBuffer: MTLBuffer?
+        var spatialDebugLineBufferCapacityVertices: Int = 0
+        var spatialDebugLastLogTime: TimeInterval = 0
+        var spatialDebugLastLogSignature: String = ""
+    }
+
+    @inline(__always)
+    private static func updateSpatialDebugLogState(now: TimeInterval, signature: String) -> Bool {
+        runtimeState.lock.lock()
+        let shouldLog =
+            (now - runtimeState.spatialDebugLastLogTime) >= 1.0
+            || signature != runtimeState.spatialDebugLastLogSignature
+        if shouldLog {
+            runtimeState.spatialDebugLastLogTime = now
+            runtimeState.spatialDebugLastLogSignature = signature
+        }
+        runtimeState.lock.unlock()
+        return shouldLog
+    }
+
+    @inline(__always)
+    private static func getOrCreateTransparencyXRDepthWriteState(device: MTLDevice) -> MTLDepthStencilState? {
+        runtimeState.lock.lock()
+        if let cached = runtimeState.transparencyXRDepthWriteState {
+            runtimeState.lock.unlock()
+            return cached
+        }
+        runtimeState.lock.unlock()
+
+        let depthStateDescriptor = MTLDepthStencilDescriptor()
+        depthStateDescriptor.depthCompareFunction = sceneDepthCompareFunction(.lessEqual)
+        depthStateDescriptor.isDepthWriteEnabled = true
+        let created = device.makeDepthStencilState(descriptor: depthStateDescriptor)
+
+        runtimeState.lock.lock()
+        if runtimeState.transparencyXRDepthWriteState == nil {
+            runtimeState.transparencyXRDepthWriteState = created
+        }
+        let result = runtimeState.transparencyXRDepthWriteState
+        runtimeState.lock.unlock()
+        return result
+    }
+
+    @inline(__always)
+    private static func ensureSpatialDebugLineBuffer(
+        device: MTLDevice,
+        requiredVertexCount: Int,
+        vertexStride: Int
+    ) -> MTLBuffer? {
+        runtimeState.lock.lock()
+        if runtimeState.spatialDebugLineBuffer == nil
+            || runtimeState.spatialDebugLineBufferCapacityVertices < requiredVertexCount
+        {
+            let grownCapacity = max(
+                requiredVertexCount,
+                max(runtimeState.spatialDebugLineBufferCapacityVertices * 2, 1024)
+            )
+            runtimeState.spatialDebugLineBuffer = device.makeBuffer(
+                length: grownCapacity * vertexStride,
+                options: .storageModeShared
+            )
+            runtimeState.spatialDebugLineBuffer?.label = "Spatial Debug Leaf Bounds Buffer"
+            runtimeState.spatialDebugLineBufferCapacityVertices = grownCapacity
+        }
+        let buffer = runtimeState.spatialDebugLineBuffer
+        runtimeState.lock.unlock()
+        return buffer
     }
 
     @inline(__always)
@@ -84,11 +152,8 @@ public enum RenderPasses {
     private static func logSpatialDebugStatus(totalLeaves: Int, drawnLeaves: Int, cap: Int) {
         let now = Date().timeIntervalSince1970
         let signature = "\(totalLeaves)|\(drawnLeaves)|\(cap)"
-        let shouldLog = (now - spatialDebugLastLogTime) >= 1.0 || signature != spatialDebugLastLogSignature
+        let shouldLog = updateSpatialDebugLogState(now: now, signature: signature)
         guard shouldLog else { return }
-
-        spatialDebugLastLogTime = now
-        spatialDebugLastLogSignature = signature
 //        Logger.log(
 //            message: "[SpatialDebug] enabled=true leaves=\(totalLeaves) drawn=\(drawnLeaves) cap=\(cap)",
 //            category: "SpatialDebug"
@@ -312,8 +377,9 @@ public enum RenderPasses {
             index: Int(envPassConstantIndex.rawValue)
         )
 
+        var environmentRotationAngle = envRotationAngle
         renderEncoder.setVertexBytes(
-            &envRotationAngle, length: MemoryLayout<Float>.stride,
+            &environmentRotationAngle, length: MemoryLayout<Float>.stride,
             index: Int(envPassRotationAngleIndex.rawValue)
         )
 
@@ -576,9 +642,7 @@ public enum RenderPasses {
             index: Int(shadowPassLightMatrixUniform.rawValue)
         )
 
-        guard let camera = CameraSystem.shared.activeCamera,
-              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
-        else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -941,9 +1005,7 @@ public enum RenderPasses {
             return
         }
 
-        guard let camera = CameraSystem.shared.activeCamera,
-              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
-        else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -1210,7 +1272,8 @@ public enum RenderPasses {
 
         renderEncoder.setFragmentTexture(textureResources.ssaoNoiseTexture, index: Int(ssaoNoiseMapTextureIndex.rawValue))
 
-        renderEncoder.setFragmentBytes(&ssaoKernelSize, length: MemoryLayout<Int>.stride, index: Int(ssaoPassKernelSizeIndex.rawValue))
+        var kernelSize = ssaoKernelSize
+        renderEncoder.setFragmentBytes(&kernelSize, length: MemoryLayout<Int>.stride, index: Int(ssaoPassKernelSizeIndex.rawValue))
 
         renderEncoder.setFragmentBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassViewPortIndex.rawValue))
 
@@ -1388,9 +1451,7 @@ public enum RenderPasses {
     // MARK: - Low-Resolution SSAO Pass
 
     private static let ssaoLowResExecution: RenderPassExecution = { commandBuffer in
-        guard let camera = CameraSystem.shared.activeCamera,
-              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
-        else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -1827,8 +1888,9 @@ public enum RenderPasses {
             index: Int(lightPassIBLParamIndex.rawValue)
         )
 
+        var lightPassRotationAngle = envRotationAngle
         renderEncoder.setFragmentBytes(
-            &envRotationAngle, length: MemoryLayout<Float>.stride,
+            &lightPassRotationAngle, length: MemoryLayout<Float>.stride,
             index: Int(lightPassIBLRotationAngleIndex.rawValue)
         )
 
@@ -1993,9 +2055,7 @@ public enum RenderPasses {
             return
         }
 
-        guard let camera = CameraSystem.shared.activeCamera,
-              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
-        else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -2032,14 +2092,7 @@ public enum RenderPasses {
         // XR passthrough: write transparent depth so compositor occlusion/depth edges
         // match transparent silhouettes against camera passthrough.
         if renderInfo.immersionStyle == .mixed {
-            if transparencyXRDepthWriteState == nil {
-                let depthStateDescriptor = MTLDepthStencilDescriptor()
-                depthStateDescriptor.depthCompareFunction = sceneDepthCompareFunction(.lessEqual)
-                depthStateDescriptor.isDepthWriteEnabled = true
-                transparencyXRDepthWriteState = renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)
-            }
-
-            if let xrDepthWriteState = transparencyXRDepthWriteState {
+            if let xrDepthWriteState = getOrCreateTransparencyXRDepthWriteState(device: renderInfo.device) {
                 renderEncoder.setDepthStencilState(xrDepthWriteState)
             } else {
                 renderEncoder.setDepthStencilState(transparencyPipeline.depthState)
@@ -2136,8 +2189,9 @@ public enum RenderPasses {
             index: Int(transparencyPassIBLParamIndex.rawValue)
         )
 
+        var transparencyPassRotationAngle = envRotationAngle
         renderEncoder.setFragmentBytes(
-            &envRotationAngle,
+            &transparencyPassRotationAngle,
             length: MemoryLayout<Float>.stride,
             index: Int(transparencyPassIBLRotationAngleIndex.rawValue)
         )
@@ -2395,9 +2449,7 @@ public enum RenderPasses {
             return
         }
 
-        guard let camera = CameraSystem.shared.activeCamera,
-              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
-        else {
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
@@ -2466,17 +2518,11 @@ public enum RenderPasses {
         let vertexStride = MemoryLayout<SIMD4<Float>>.stride
         let requiredLength = requiredVertexCount * vertexStride
 
-        if spatialDebugLineBuffer == nil || spatialDebugLineBufferCapacityVertices < requiredVertexCount {
-            let grownCapacity = max(requiredVertexCount, max(spatialDebugLineBufferCapacityVertices * 2, 1024))
-            spatialDebugLineBuffer = renderInfo.device.makeBuffer(
-                length: grownCapacity * vertexStride,
-                options: .storageModeShared
-            )
-            spatialDebugLineBuffer?.label = "Spatial Debug Leaf Bounds Buffer"
-            spatialDebugLineBufferCapacityVertices = grownCapacity
-        }
-
-        guard let lineBuffer = spatialDebugLineBuffer else {
+        guard let lineBuffer = ensureSpatialDebugLineBuffer(
+            device: renderInfo.device,
+            requiredVertexCount: requiredVertexCount,
+            vertexStride: vertexStride
+        ) else {
             handleError(.bufferAllocationFailed, "Spatial Debug Leaf Bounds Buffer")
             return
         }

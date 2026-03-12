@@ -17,6 +17,7 @@ import Foundation
 import simd
 
 /// Property access system for USC scripts
+@MainActor
 public class USCPropertyAccess {
     public static let shared = USCPropertyAccess()
 

@@ -17,16 +17,16 @@ import XCTest
 
 // MARK: - Event Bus Tests
 
+
+@MainActor
 final class StreamLodBatchEventBusTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         // Clear the event bus before each test
         SystemEventBus.shared.reset()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         SystemEventBus.shared.reset()
-        super.tearDown()
     }
 
     func testEventBusDeliversResidencyEvents() {
@@ -129,12 +129,12 @@ final class StreamLodBatchEventBusTests: XCTestCase {
 // MARK: - LOD Fallback Tests (with real meshes)
 
 final class StreamLodBatchFallbackTests: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
+        try await super.tearDown()
     }
 
     func testIsLODResident_WithMesh_ReturnsTrue() {
@@ -243,6 +243,8 @@ final class StreamLodBatchFallbackTests: BaseRenderSetup {
 
 // MARK: - Batch Key Tests
 
+
+@MainActor
 final class StreamLodBatchKeyTests: XCTestCase {
     func testEntityBatchInfoIncludesLODIndex() {
         // Given
@@ -275,9 +277,10 @@ final class StreamLodBatchKeyTests: XCTestCase {
 
 // MARK: - Integration Monitor Tests
 
+
+@MainActor
 final class StreamLodBatchMonitorTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         // Reset stats by calling tick after enough time (or just verify recording works)
     }
 
@@ -343,6 +346,8 @@ final class StreamLodBatchMonitorTests: XCTestCase {
 
 // MARK: - LOD Residency State Tests
 
+
+@MainActor
 final class StreamLodBatchResidencyStateTests: XCTestCase {
     func testLODResidencyStateEnum() {
         // Verify all states exist and are distinct
@@ -422,16 +427,16 @@ final class StreamLodBatchMeshResidencyTests: BaseRenderSetup {
 // MARK: - LOD-Aware Streaming Tests
 
 final class StreamLodBatchLODAwareStreamingTests: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         GeometryStreamingSystem.shared.enabled = false
         GeometryStreamingSystem.shared.reset()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         GeometryStreamingSystem.shared.enabled = false
         GeometryStreamingSystem.shared.reset()
-        super.tearDown()
+        try await super.tearDown()
     }
 
     func testUnloadClearsAllLODLevelMeshes() {
@@ -578,15 +583,15 @@ final class StreamLodBatchLODAwareStreamingTests: BaseRenderSetup {
 
 // MARK: - Region Streaming Event Tests
 
+
+@MainActor
 final class StreamLodBatchRegionEventTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         SystemEventBus.shared.reset()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         SystemEventBus.shared.reset()
-        super.tearDown()
     }
 
     func testRegionStreamingEventStructure() {

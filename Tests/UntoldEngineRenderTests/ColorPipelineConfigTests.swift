@@ -12,6 +12,8 @@ import Metal
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class ColorPipelineConfigTests: XCTestCase {
     func testPresentOutputConfig_usesHardwareSRGB_forSRGBFormats() {
         let bgra = PresentOutputConfig(pixelFormat: .bgra8Unorm_srgb)

@@ -36,26 +36,27 @@ public protocol LoggerSink: AnyObject {
 }
 
 public enum Logger {
-    nonisolated(unsafe) public static var logLevel: LogLevel = .debug
+    private static let state = LoggerState()
+    public static var logLevel: LogLevel {
+        get { state.logLevel }
+        set { state.logLevel = newValue }
+    }
+
     #if canImport(AppKit)
-        nonisolated(unsafe) private static var sinks = [WeakBox]()
         private static let sinkQueue = DispatchQueue(label: "engine.logger.sinks", qos: .utility)
-
-        private struct WeakBox { weak var value: LoggerSink? }
-
-        // Backlog for events emitted before any sinks exist
-        nonisolated(unsafe) private static var backlog: [LogEvent] = []
         private static let backlogLimit = 2000
     #endif
 
     public static func addSink(_ sink: LoggerSink) {
         #if canImport(AppKit)
+            let sinkBox = WeakBox(value: sink)
             sinkQueue.async {
-                sinks.append(WeakBox(value: sink))
-
-                // Replay backlog to the new sink (in order)
-                let snapshot = backlog
-                snapshot.forEach { sink.didLog($0) }
+                // Replay backlog to the new sink (in order).
+                let snapshot = state.addSinkAndSnapshotBacklog(sinkBox)
+                guard let sink = sinkBox.value else { return }
+                for event in snapshot {
+                    sink.didLog(event)
+                }
             }
         #endif
     }
@@ -72,15 +73,8 @@ public enum Logger {
                                  function: function, line: line, category: category)
 
             sinkQueue.async {
-                // Store in backlog (trim to ring size)
-                backlog.append(event)
-                if backlog.count > backlogLimit {
-                    backlog.removeFirst(backlog.count - backlogLimit)
-                }
-
-                // Notify sinks
-                sinks = sinks.filter { $0.value != nil }
-                sinks.forEach { $0.value?.didLog(event) }
+                let sinks = state.appendEventAndSnapshotSinks(event, backlogLimit: backlogLimit)
+                sinks.forEach { $0.didLog(event) }
             }
         #endif
     }
@@ -143,4 +137,51 @@ public enum Logger {
     }
 
     // …repeat same idea for simd_uint3, float4, 3x3, 4x4 (compose a string, print, emit)
+
+    #if canImport(AppKit)
+        private struct WeakBox: @unchecked Sendable { weak var value: LoggerSink? }
+    #endif
+
+    private final class LoggerState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var _logLevel: LogLevel = .debug
+
+        var logLevel: LogLevel {
+            get {
+                lock.lock()
+                defer { lock.unlock() }
+                return _logLevel
+            }
+            set {
+                lock.lock()
+                _logLevel = newValue
+                lock.unlock()
+            }
+        }
+
+        #if canImport(AppKit)
+            private var sinks: [WeakBox] = []
+            private var backlog: [LogEvent] = []
+
+            func addSinkAndSnapshotBacklog(_ sinkBox: WeakBox) -> [LogEvent] {
+                lock.lock()
+                sinks.append(sinkBox)
+                let snapshot = backlog
+                lock.unlock()
+                return snapshot
+            }
+
+            func appendEventAndSnapshotSinks(_ event: LogEvent, backlogLimit: Int) -> [LoggerSink] {
+                lock.lock()
+                backlog.append(event)
+                if backlog.count > backlogLimit {
+                    backlog.removeFirst(backlog.count - backlogLimit)
+                }
+                sinks = sinks.filter { $0.value != nil }
+                let liveSinks = sinks.compactMap(\.value)
+                lock.unlock()
+                return liveSinks
+            }
+        #endif
+    }
 }
