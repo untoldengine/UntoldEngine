@@ -112,11 +112,12 @@ public struct XRSpatialInputState: Sendable {
         }
     }
 
-    private final class XRSpatialInputQueue {
+    private final class XRSpatialInputQueue: @unchecked Sendable {
         private let lock = OSAllocatedUnfairLock(initialState: [XRSpatialInputSnapshot]())
-        private let maxPending = 128
+        private static let maxPending = 128
 
         func enqueue(_ snapshot: XRSpatialInputSnapshot) {
+            let maxPending = Self.maxPending
             lock.withLock { pending in
                 if pending.count >= maxPending {
                     pending.removeFirst(pending.count - maxPending + 1)

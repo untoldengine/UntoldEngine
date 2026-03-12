@@ -12,7 +12,7 @@
     import CompositorServices
     import Foundation
     import Metal
-    @preconcurrency import UntoldEngine
+    import UntoldEngine
     #if canImport(ARKit)
         import ARKit
         import SwiftUI
@@ -24,31 +24,8 @@
         case full
     }
 
-    // MARK: - XR Render Bridge
-
-    /// Nonisolated interface for `UntoldRenderer` methods called from the
-    /// CompositorServices render thread.  The conformance uses `@preconcurrency`
-    /// to acknowledge the `@MainActor` ↔ nonisolated mismatch, which is safe
-    /// because the engine’s mutable globals are lock-protected and the
-    /// CompositorServices contract guarantees sequential per-frame execution.
-    protocol XRRenderBridge: AnyObject {
-        @discardableResult
-        func updateXR(useExternalStatsLifecycle: Bool) -> Bool
-        func renderXR(
-            commandBuffer: MTLCommandBuffer,
-            passDescriptor: MTLRenderPassDescriptor,
-            viewMatrix: simd_float4x4,
-            projectionMatrix: simd_float4x4,
-            eyeIndex: Int
-        )
-        func finalizeXRStatsAndMonitors(frameStartTime: Double)
-        func initSizeableResources()
-    }
-
-    extension UntoldRenderer: @preconcurrency XRRenderBridge {}
-
     public final class UntoldEngineXR {
-        private var renderer: (any XRRenderBridge)?
+        private var renderer: UntoldRenderer?
         private var _isRunning = false
         private let lock = NSLock()
         private var lastWorldTrackingRecoveryAttemptTime: CFTimeInterval = 0
@@ -140,7 +117,7 @@
             gameUpdate: @escaping (_ deltaTime: Float) -> Void,
             handleInput: @escaping () -> Void
         ) {
-            (renderer as? UntoldRenderer)?.setupCallbacks(gameUpdate: gameUpdate, handleInput: handleInput)
+            renderer?.setupCallbacks(gameUpdate: gameUpdate, handleInput: handleInput)
         }
 
         public func enqueueSpatialInputSnapshot(_ snapshot: XRSpatialInputSnapshot) {

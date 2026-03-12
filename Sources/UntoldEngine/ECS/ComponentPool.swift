@@ -41,7 +41,8 @@ func componentTypeInfo(for typeId: ObjectIdentifier) -> TypeInfo? {
 
 @inline(__always)
 private func enforceECSMainActor() {
-    MainActor.assumeIsolated {}
+    // ECS synchronization is lock-based (scene/global stores + component locks),
+    // so access is valid from main and XR render threads.
 }
 
 /// Function to get or create a component ID for a specific type

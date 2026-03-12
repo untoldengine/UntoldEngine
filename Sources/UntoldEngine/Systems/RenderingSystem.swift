@@ -18,10 +18,9 @@ public enum RenderingSystemContext {
     case xr(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor)
 }
 
-public typealias UpdateRenderingSystemCallback = @MainActor (MTKView) -> Void
-public typealias UpdateXRRenderingSystemCallback = @MainActor (RenderingSystemContext) -> Void
+public typealias UpdateRenderingSystemCallback = (MTKView) -> Void
+public typealias UpdateXRRenderingSystemCallback = (RenderingSystemContext) -> Void
 
-@MainActor
 func UpdateRenderingSystem(in view: MTKView) {
     // Snapshot loading gate once per frame. While loading, keep rendering from the
     // last-known-good visible list and skip ECS traversal to avoid race conditions.

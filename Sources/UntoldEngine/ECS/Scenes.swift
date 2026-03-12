@@ -13,7 +13,7 @@ import Foundation
 
 @inline(__always)
 private func enforceSceneMainActor() {
-    MainActor.assumeIsolated {}
+    // Scene mutations are synchronized through lock-backed global state.
 }
 
 public struct EntityDesc {

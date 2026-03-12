@@ -83,7 +83,7 @@ let package = Package(
                 // Compile engine stats collection only in debug by default.
                 // Release builds can still opt in explicitly with -DENGINE_STATS_ENABLED.
                 .define("ENGINE_STATS_ENABLED", .when(configuration: .debug)),
-                .swiftLanguageMode(.v5),
+                .swiftLanguageMode(.v6),
             ],
             linkerSettings: [
                 // Common

@@ -19,7 +19,6 @@ public protocol UntoldRendererDelegate {
     func didDraw(in view: MTKView)
 }
 
-@MainActor
 public class UntoldRenderer: NSObject, MTKViewDelegate {
     public let metalView: MTKView
 

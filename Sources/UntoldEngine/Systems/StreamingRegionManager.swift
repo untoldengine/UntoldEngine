@@ -11,8 +11,7 @@
 import Foundation
 import simd
 
-@MainActor
-public class StreamingRegionManager {
+public class StreamingRegionManager: @unchecked Sendable {
     public static let shared = StreamingRegionManager()
 
     // Configuration
@@ -76,7 +75,7 @@ public extension StreamingRegionManager {
 
         // Unload first to free memory
         for regionId in toUnload {
-            Task { @MainActor in
+            Task {
                 await unloadRegion(id: regionId)
             }
         }
@@ -84,7 +83,7 @@ public extension StreamingRegionManager {
         // Load new regions (respect concurrent limit)
         let availableSlots = maxConcurrentLoads - activeLoadTasks.count
         for regionId in toLoad.prefix(availableSlots) {
-            let task = Task { @MainActor in
+            let task = Task {
                 await loadRegion(id: regionId)
             }
             activeLoadTasks[regionId] = task

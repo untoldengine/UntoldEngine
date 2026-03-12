@@ -13,8 +13,7 @@
 import Foundation
 
 /// System that manages and executes USC scripts
-@MainActor
-public class USCSystem {
+public class USCSystem: @unchecked Sendable {
     public static let shared = USCSystem()
 
     private let interpreter = USCInterpreter()

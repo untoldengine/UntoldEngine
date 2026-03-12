@@ -72,7 +72,7 @@
         case rotate
     }
 
-    public final class SpatialManipulationSystem {
+    public final class SpatialManipulationSystem: @unchecked Sendable {
         public static let shared: SpatialManipulationSystem = .init()
 
         public var inputEpsilon: Float = 0.0001
