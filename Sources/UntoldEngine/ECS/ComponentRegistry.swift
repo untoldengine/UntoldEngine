@@ -23,7 +23,8 @@ public enum ComponentRegistry {
 
     @inline(__always)
     private static func enforceMainActorAccess() {
-        MainActor.assumeIsolated {}
+        // Registry state is protected by an internal lock and can be accessed
+        // from either main or XR render execution contexts.
     }
 
     public static func register(

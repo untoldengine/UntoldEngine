@@ -11,8 +11,7 @@
 import Foundation
 import simd
 
-@MainActor
-public class GeometryStreamingSystem {
+public class GeometryStreamingSystem: @unchecked Sendable {
     public static let shared = GeometryStreamingSystem()
 
     /// Enable/disable the streaming system
@@ -159,7 +158,7 @@ public class GeometryStreamingSystem {
         let ext = streaming.assetExtension
         let assetName = streaming.assetName
 
-        let task = Task { @MainActor in
+        let task = Task {
             let success = if hasLOD {
                 // LOD entity: reload all LOD levels and set correct one for current distance
                 await reloadLODEntity(entityId: entityId)

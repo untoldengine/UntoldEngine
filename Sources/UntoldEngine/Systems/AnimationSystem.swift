@@ -22,7 +22,11 @@ public final class AnimationSystem: @unchecked Sendable {
         get { queue.sync { _isEnabled } }
         set {
             queue.sync(flags: .barrier) {
-                self._updateAnimationCallback = newValue ? updateAnimationSystem : updateAnimationSystemDummy
+                if newValue {
+                    self._updateAnimationCallback = updateAnimationSystem
+                } else {
+                    self._updateAnimationCallback = updateAnimationSystemDummy
+                }
                 self._isEnabled = newValue
             }
         }

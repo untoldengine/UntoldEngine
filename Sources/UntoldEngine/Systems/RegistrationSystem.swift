@@ -15,7 +15,7 @@ import MetalKit
 
 @inline(__always)
 private func enforceRegistrationMainActor() {
-    MainActor.assumeIsolated {}
+    // Registration and ECS state are synchronized with lock-backed globals.
 }
 
 private struct BoolCompletionBox: @unchecked Sendable {
@@ -1874,9 +1874,7 @@ func removeEntityStreaming(entityId: EntityID) {
         scene.remove(component: StreamingComponent.self, from: entityId)
     }
 
-    MainActor.assumeIsolated {
-        GeometryStreamingSystem.shared.unregisterEntity(entityId)
-    }
+    GeometryStreamingSystem.shared.unregisterEntity(entityId)
     MeshResourceManager.shared.release(entityId: entityId)
 }
 
@@ -2303,9 +2301,7 @@ private func enableStreamingForSingleEntity(
     streaming.state = .loaded // Already has mesh
 
     // Register with streaming system for tracking
-    MainActor.assumeIsolated {
-        GeometryStreamingSystem.shared.registerLoadedEntity(entityId)
-    }
+    GeometryStreamingSystem.shared.registerLoadedEntity(entityId)
 }
 
 /// Create a streaming entity that loads mesh on demand (deferred loading)

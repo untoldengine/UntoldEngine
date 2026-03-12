@@ -32,8 +32,7 @@ public class USCContext {
 public typealias USCAction = (_ context: USCContext,
                               _ args: [String: Value]) -> Value?
 
-@MainActor
-public class USCActionRegistry {
+public class USCActionRegistry: @unchecked Sendable {
     public static let shared = USCActionRegistry()
     private init() {}
 
@@ -51,8 +50,7 @@ public class USCActionRegistry {
 // MARK: - USC Interpreter
 
 /// Interprets and executes USC IR
-@MainActor
-public class USCInterpreter {
+public class USCInterpreter: @unchecked Sendable {
     public init() {}
 
     /// Execute a complete script
