@@ -29,6 +29,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     public var delegate: UntoldRendererDelegate?
     public var pendingResize = false
 
+    @MainActor
     init(configuration: UntoldRendererConfig? = nil) {
         self.configuration = configuration ?? .default
 
@@ -42,6 +43,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         super.init()
     }
 
+    @MainActor
     public static func create(configuration: UntoldRendererConfig? = nil) -> UntoldRenderer? {
         let renderer = UntoldRenderer(configuration: configuration)
 
@@ -92,6 +94,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         return renderer
     }
 
+    @MainActor
     public static func create(configuration: UntoldRendererConfig? = nil, device: MTLDevice, view: MTKView) -> UntoldRenderer? {
         let renderer = UntoldRenderer(configuration: configuration)
 
@@ -512,6 +515,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     // MARK: - XR Entry Point (VisionOS)
 
+    @MainActor
     public static func createXR(configuration: UntoldRendererConfig? = nil, device: MTLDevice, commandQueue: MTLCommandQueue, colorPixelFormat: MTLPixelFormat, depthPixelFormat: MTLPixelFormat, viewPort: simd_float2) -> UntoldRenderer? {
         let renderer = UntoldRenderer(configuration: configuration)
 
@@ -589,6 +593,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         configuration
     }
 
+    @MainActor
     public static func createiOS(configuration: UntoldRendererConfig? = nil, device: MTLDevice, view: MTKView, immersionStyle: UntoldImmersionMode = .none) -> UntoldRenderer? {
         let renderer = UntoldRenderer(configuration: configuration)
 
@@ -630,6 +635,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     // MARK: - AR Entry Point (iOS)
 
+    @MainActor
     public static func createAR(configuration: UntoldRendererConfig? = nil, device: MTLDevice, view: MTKView) -> UntoldRenderer? {
         createiOS(configuration: configuration, device: device, view: view, immersionStyle: .ar)
     }

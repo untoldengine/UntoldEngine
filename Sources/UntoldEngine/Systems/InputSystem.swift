@@ -10,6 +10,9 @@
 import Foundation
 import GameController
 import simd
+#if os(macOS)
+    import AppKit
+#endif
 
 public struct GameControllerState {
     public var aPressed = false
@@ -76,6 +79,12 @@ public final class InputSystem: @unchecked Sendable {
 
     public var pinchDelta: simd_float3 = .init(0, 0, 0)
     public var previousScale: CGFloat = 1
+
+    #if os(macOS)
+        var keyboardEventMonitorTokens: [Any] = []
+        var textInputObserverTokens: [NSObjectProtocol] = []
+        var isTextInputFocused = false
+    #endif
 
     init() {
         registerGameControllerEvents()

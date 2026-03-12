@@ -19,6 +19,20 @@ let kInFlight = 3
 let planeCount = 6
 let planeStride = MemoryLayout<simd_float4>.stride
 
+private final class VisibleSetPublishState: @unchecked Sendable {
+    let lock = NSLock()
+}
+
+private let visibleSetPublishState = VisibleSetPublishState()
+
+@inline(__always)
+private func publishVisibleEntities(frame submitFrameIndex: Int, entities: [EntityID]) {
+    visibleSetPublishState.lock.lock()
+    tripleVisibleEntities.setWrite(frame: submitFrameIndex, with: entities)
+    cullFrameIndex = max(cullFrameIndex, submitFrameIndex + 1)
+    visibleSetPublishState.lock.unlock()
+}
+
 struct Plane {
     var n: simd_float3
     var d: Float // plane: n·x + d = 0
@@ -606,11 +620,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             return createEntityId(EntityIndex(index), EntityVersion(version))
         }
 
-        // Swap into the write slot on the render thread
-        DispatchQueue.main.async {
-            tripleVisibleEntities.setWrite(frame: submitFrameIndex, with: nextVisibleIds)
-            cullFrameIndex = max(cullFrameIndex, submitFrameIndex + 1)
-        }
+        publishVisibleEntities(frame: submitFrameIndex, entities: nextVisibleIds)
     }
 }
 
@@ -892,10 +902,6 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             return createEntityId(EntityIndex(index), EntityVersion(version))
         }
 
-        // Swap into the write slot on the render thread
-        DispatchQueue.main.async {
-            tripleVisibleEntities.setWrite(frame: submitFrameIndex, with: nextVisibleIds)
-            cullFrameIndex = max(cullFrameIndex, submitFrameIndex + 1)
-        }
+        publishVisibleEntities(frame: submitFrameIndex, entities: nextVisibleIds)
     }
 }
