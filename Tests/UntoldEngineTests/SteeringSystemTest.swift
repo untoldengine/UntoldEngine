@@ -12,6 +12,8 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class SteeringSystemTests: XCTestCase {
     var entityId: EntityID!
     var targetEntityId: EntityID!
@@ -19,8 +21,7 @@ final class SteeringSystemTests: XCTestCase {
 
     // MARK: - Setup and Teardown
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
 
         entityId = createEntity()
@@ -32,10 +33,9 @@ final class SteeringSystemTests: XCTestCase {
         gameMode = true
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         destroyEntity(entityId: entityId)
         destroyEntity(entityId: targetEntityId)
-        super.tearDown()
     }
 
     func registerTestEntity(entity: EntityID) {

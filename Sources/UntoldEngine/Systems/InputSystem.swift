@@ -47,7 +47,7 @@ public protocol InputSystemDelegate: AnyObject {
     func didUpdateKeyState()
 }
 
-public final class InputSystem {
+public final class InputSystem: @unchecked Sendable {
     public static let shared: InputSystem = .init()
     public weak var delegate: InputSystemDelegate?
 

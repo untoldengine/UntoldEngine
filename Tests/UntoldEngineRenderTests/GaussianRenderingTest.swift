@@ -15,13 +15,13 @@ import simd
 import XCTest
 
 final class GaussianRenderingTest: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         destroyAllEntities()
-        super.tearDown()
+        try await super.tearDown()
     }
 
     override func initializeAssets() {

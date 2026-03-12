@@ -13,11 +13,28 @@ import Foundation
 import MetalKit
 import ModelIO
 
-public final class LoadingSystem {
-    public static var shared: LoadingSystem = .init()
+public final class LoadingSystem: @unchecked Sendable {
+    public static let shared: LoadingSystem = .init()
 
     public typealias GetResourceURLBlock = (String, String, String?) -> URL?
-    public var resourceURLFn: GetResourceURLBlock? = getResourceURL
+    private let lock = NSLock()
+    private var _resourceURLFn: GetResourceURLBlock? = getResourceURL
+
+    private init() {}
+
+    public var resourceURLFn: GetResourceURLBlock? {
+        get {
+            lock.lock()
+            let value = _resourceURLFn
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _resourceURLFn = newValue
+            lock.unlock()
+        }
+    }
 
     public func resourceURL(forResource resourceName: String, withExtension ext: String, subResource subName: String? = nil) -> URL? {
         resourceURLFn?(resourceName, ext, subName)
@@ -140,7 +157,33 @@ public func playSceneAt(url: URL, completion: (() -> Void)? = nil) {
 }
 
 /// Script registry to cache loaded scripts by name
-public var scriptRegistry: [String: USCScript] = [:]
+private final class ScriptRegistryStore: @unchecked Sendable {
+    static let shared = ScriptRegistryStore()
+
+    private let lock = NSLock()
+    private var scriptsByName: [String: USCScript] = [:]
+
+    private init() {}
+
+    var scripts: [String: USCScript] {
+        get {
+            lock.lock()
+            let value = scriptsByName
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            scriptsByName = newValue
+            lock.unlock()
+        }
+    }
+}
+
+public var scriptRegistry: [String: USCScript] {
+    get { ScriptRegistryStore.shared.scripts }
+    set { ScriptRegistryStore.shared.scripts = newValue }
+}
 
 /// Clear all loaded USC scripts from the in-memory registry.
 public func clearScriptRegistry() {

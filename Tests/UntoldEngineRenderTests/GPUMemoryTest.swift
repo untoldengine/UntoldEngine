@@ -17,13 +17,13 @@ import XCTest
 final class GPUMemoryTest: BaseRenderSetup {
     // MARK: - Setup and Teardown
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         destroyAllEntities()
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - Mesh.gpuMemorySize Tests

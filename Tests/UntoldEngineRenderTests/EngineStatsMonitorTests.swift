@@ -11,17 +11,19 @@
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class EngineStatsMonitorTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         EngineStatsMonitor.shared.reset()
         setEngineStatsLogging(enabled: false)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         setEngineStatsLogging(enabled: false)
         EngineStatsMonitor.shared.reset()
-        super.tearDown()
+        try await super.tearDown()
     }
 
     func testPublicAPI_returnsDefaultSnapshot() {

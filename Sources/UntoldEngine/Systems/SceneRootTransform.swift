@@ -49,7 +49,7 @@ import simd
  If you add a new render pass or post-process effect that reads cameraComponent.localPosition directly and combines it with G-buffer data, lighting will break when the scene is shifted. Always go through the SceneRootTransform.shared helpers for camera/light values that touch entity-space data.
  */
 
-public class SceneRootTransform {
+public class SceneRootTransform: @unchecked Sendable {
     public static let shared = SceneRootTransform()
 
     /// Scene-root position in world space.

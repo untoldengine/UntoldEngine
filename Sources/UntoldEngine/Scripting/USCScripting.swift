@@ -17,6 +17,7 @@
 import Foundation
 import simd
 
+@MainActor
 public func initScriptingSystem() {
     registerCoreMathActions()
 
@@ -43,6 +44,7 @@ public func initScriptingSystem() {
     }
 }
 
+@MainActor
 private func registerCoreMathActions() {
     let reg = USCActionRegistry.shared
 

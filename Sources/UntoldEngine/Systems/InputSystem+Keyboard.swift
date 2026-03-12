@@ -66,13 +66,15 @@ public extension InputSystem {
         }
 
         private func shouldHandleKey(_: NSEvent) -> Bool {
-            if let firstResponder = NSApp.keyWindow?.firstResponder {
-                if firstResponder is NSTextView {
-                    return false // allow normal text input
+            MainActor.assumeIsolated {
+                if let firstResponder = NSApp.keyWindow?.firstResponder {
+                    if firstResponder is NSTextView {
+                        return false // allow normal text input
+                    }
                 }
-            }
 
-            return true // handle the key event
+                return true // handle the key event
+            }
         }
 
         func keyPressed(_ keyCode: UInt16) {

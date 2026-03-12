@@ -42,7 +42,7 @@ public struct MeshResource {
 }
 
 /// Manages mesh resources with reference counting for efficient memory usage
-public class MeshResourceManager {
+public class MeshResourceManager: @unchecked Sendable {
     public static let shared = MeshResourceManager()
 
     /// URL -> MeshResource mapping (caches entire USDZ files)

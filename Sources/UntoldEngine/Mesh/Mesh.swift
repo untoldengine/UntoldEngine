@@ -11,6 +11,7 @@
 import CShaderTypes
 import Foundation
 import MetalKit
+@preconcurrency import ModelIO
 import simd
 
 private extension simd_float3 {
@@ -30,7 +31,7 @@ private extension simd_float4x4 {
     }
 }
 
-public enum CoordinateSystemConversion {
+public enum CoordinateSystemConversion: Sendable {
     case autoDetect // Check USD up-axis and convert only if needed
     case forceZUpToYUp // Always apply Z-up to Y-up conversion
     case none // Use transforms as-is from USD
@@ -220,7 +221,7 @@ public struct Mesh {
         device: MTLDevice,
         flip: Bool,
         coordinateConversion: CoordinateSystemConversion = .autoDetect,
-        progressHandler: ((Int, Int) -> Void)? = nil
+        progressHandler: (@Sendable (Int, Int) -> Void)? = nil
     ) async -> [Mesh] {
         // Perform heavy I/O work on background thread
         let asset = await Task.detached { () -> MDLAsset? in
@@ -373,7 +374,7 @@ public struct Mesh {
         vertexDescriptor: MDLVertexDescriptor,
         device: MTLDevice,
         coordinateConversion: CoordinateSystemConversion = .autoDetect,
-        progressHandler: ((Int, Int) -> Void)? = nil
+        progressHandler: (@Sendable (Int, Int) -> Void)? = nil
     ) async -> [[Mesh]] {
         // Perform heavy I/O work on background thread
         let asset = await Task.detached { () -> MDLAsset? in
@@ -1306,15 +1307,20 @@ func createTextureDescriptor(device: MTLDevice,
 }
 
 private enum TextureSamplerCache {
-    static var cache: [WrapMode: MTLSamplerState] = [:]
-    static let lock = NSLock()
+    final class State: @unchecked Sendable {
+        let lock = NSLock()
+        var cache: [WrapMode: MTLSamplerState] = [:]
+    }
+
+    static let state = State()
 }
 
 private func cachedSamplerState(device: MTLDevice, wrapMode: WrapMode) -> MTLSamplerState? {
-    TextureSamplerCache.lock.lock()
-    defer { TextureSamplerCache.lock.unlock() }
+    let state = TextureSamplerCache.state
+    state.lock.lock()
+    defer { state.lock.unlock() }
 
-    if let existing = TextureSamplerCache.cache[wrapMode] {
+    if let existing = state.cache[wrapMode] {
         return existing
     }
 
@@ -1327,7 +1333,7 @@ private func cachedSamplerState(device: MTLDevice, wrapMode: WrapMode) -> MTLSam
 
     let sampler = device.makeSamplerState(descriptor: samplerDescriptor)
     if let sampler {
-        TextureSamplerCache.cache[wrapMode] = sampler
+        state.cache[wrapMode] = sampler
     }
 
     return sampler

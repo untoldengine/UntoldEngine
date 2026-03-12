@@ -12,12 +12,13 @@ import Foundation
 import Metal
 import QuartzCore
 
-public final class EngineProfiler {
+public final class EngineProfiler: @unchecked Sendable {
     public static let shared = EngineProfiler()
 
     private let frameMetrics = FrameMetricsCollector()
     private let gpuMetrics = CommandBufferMetricsCollector()
     private let signposts = EngineSignposts()
+    private let lock = NSLock()
 
     private var frameStartTime: CFTimeInterval = 0.0
     private var isEnabled: Bool {
@@ -36,7 +37,9 @@ public final class EngineProfiler {
     public func beginFrame() {
         guard isEnabled else { return }
 
+        lock.lock()
         frameStartTime = CACurrentMediaTime()
+        lock.unlock()
         signposts.beginScope(.frame)
     }
 
@@ -44,7 +47,10 @@ public final class EngineProfiler {
         guard isEnabled else { return }
 
         let frameEndTime = CACurrentMediaTime()
-        let durationSeconds = frameEndTime - frameStartTime
+        lock.lock()
+        let start = frameStartTime
+        lock.unlock()
+        let durationSeconds = frameEndTime - start
         let durationMs = durationSeconds * 1000.0
 
         frameMetrics.record(durationMs)

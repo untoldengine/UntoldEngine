@@ -14,6 +14,8 @@ import UniformTypeIdentifiers
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 class BaseRenderSetup: XCTestCase {
     var renderer: UntoldRenderer!
     var window: NSWindow!
@@ -22,7 +24,7 @@ class BaseRenderSetup: XCTestCase {
     let windowWidth = 1920
     let windowHeight = 1080
 
-    private func waitForOutstandingAssetLoadsToFinish(context: String, timeout: TimeInterval = 15.0) {
+    private func waitForOutstandingAssetLoadsToFinish(context: String, timeout: TimeInterval = 15.0) async {
         let drained = expectation(description: "Drain asset loading state (\(context))")
         var finalLoadingCount = Int.max
         var finalGateActive = true
@@ -46,7 +48,7 @@ class BaseRenderSetup: XCTestCase {
             drained.fulfill()
         }
 
-        wait(for: [drained], timeout: timeout + 0.5)
+        await fulfillment(of: [drained], timeout: timeout + 0.5)
 
         if finalLoadingCount != 0 || finalGateActive {
             XCTFail("Async loading state did not drain during \(context). loadingCount=\(finalLoadingCount), gateActive=\(finalGateActive)")
@@ -57,14 +59,16 @@ class BaseRenderSetup: XCTestCase {
         scene = Scene()
         CameraSystem.shared.activeCamera = nil
         visibleEntityIds.removeAll(keepingCapacity: true)
-        tripleVisibleEntities = TripleCPUBuffer<EntityID>(inFlight: 3, initialCapacity: MAX_ENTITIES)
+        for frame in 0 ..< 3 {
+            tripleVisibleEntities.setWrite(frame: frame, with: [])
+        }
         cullFrameIndex = 0
         needsFinalizeDestroys = false
         hasPendingDestroys = false
         entityMeshMap.removeAll(keepingCapacity: true)
         entityNameMap.removeAll(keepingCapacity: true)
         reverseEntityNameMap.removeAll(keepingCapacity: true)
-        customSystems.removeAll(keepingCapacity: true)
+        clearCustomSystems(keepingCapacity: true)
         globalEntityCounter = 0
         timeSinceLastUpdatePreviousTime = nil
         timeSinceLastUpdate = nil
@@ -77,9 +81,8 @@ class BaseRenderSetup: XCTestCase {
     }
 
     /// Set up a headless renderer.
-    override func setUp() {
-        super.setUp()
-        waitForOutstandingAssetLoadsToFinish(context: "setUp")
+    override func setUp() async throws {
+        await waitForOutstandingAssetLoadsToFinish(context: "setUp")
         LoadingSystem.shared.resourceURLFn = getResourceURL
         resetGlobalEngineState()
         ambientIntensity = 0.4
@@ -127,10 +130,9 @@ class BaseRenderSetup: XCTestCase {
         setVisibleEntities()
     }
 
-    override func tearDown() {
-        waitForOutstandingAssetLoadsToFinish(context: "tearDown")
+    override func tearDown() async throws {
+        await waitForOutstandingAssetLoadsToFinish(context: "tearDown")
         LoadingSystem.shared.resourceURLFn = getResourceURL
-        super.tearDown()
     }
 
     /// Seed visibleEntityIds and tripleVisibleEntities so rendering works without GPU culling.

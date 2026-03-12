@@ -14,20 +14,20 @@ import Foundation
 import XCTest
 
 final class StaticBatchingTest: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
 
         // Clear any existing batches
         clearSceneBatches()
         enableBatching(false)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         // Clean up batches after tests
         clearSceneBatches()
         enableBatching(false)
 
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - Basic Functionality Tests

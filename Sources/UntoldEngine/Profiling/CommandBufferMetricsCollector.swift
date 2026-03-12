@@ -11,7 +11,7 @@
 import Foundation
 import Metal
 
-final class CommandBufferMetricsCollector {
+final class CommandBufferMetricsCollector: @unchecked Sendable {
     private let capacity: Int
     private var samples: [Double]
     private var writeIndex: Int

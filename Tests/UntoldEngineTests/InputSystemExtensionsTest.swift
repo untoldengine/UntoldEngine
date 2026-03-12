@@ -12,12 +12,11 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class InputSystemExtensionsTests: XCTestCase {
     /// Reset the shared instance's mutable bits before each test
-    override func setUp() {
-        super.setUp()
-        xrInputSingletonTestLock.lock()
-
+    override func setUp() async throws {
         let input = InputSystem.shared
         input.delegate = nil
 
@@ -51,16 +50,13 @@ final class InputSystemExtensionsTests: XCTestCase {
         #endif
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         #if os(visionOS)
             let input = InputSystem.shared
             input.unregisterXREvents()
             input.clearXRSpatialSnapshots()
             input.xrSpatialInputState = XRSpatialInputState()
         #endif
-
-        xrInputSingletonTestLock.unlock()
-        super.tearDown()
     }
 
     // MARK: - Mouse Input Tests

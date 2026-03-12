@@ -14,19 +14,19 @@ import simd
 import XCTest
 
 final class GeometryStreamingTest: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
 
         // Disable streaming system during setup to control test state
         GeometryStreamingSystem.shared.enabled = false
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         // Reset streaming system state
         GeometryStreamingSystem.shared.enabled = false
         GeometryStreamingSystem.shared.reset()
 
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - StreamingComponent Tests

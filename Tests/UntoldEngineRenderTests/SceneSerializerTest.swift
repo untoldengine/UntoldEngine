@@ -24,17 +24,17 @@ private final class TestCustomComponent: Component, Codable {
 final class SceneSerializerTests: BaseRenderSetup {
     // MARK: - Setup and Teardown
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         // Clean up any existing entities
         destroyAllEntities()
         Logger.logLevel = .none
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         // Clean up after each test
         destroyAllEntities()
-        super.tearDown()
+        try await super.tearDown()
     }
 
     // MARK: - Basic Serialization Tests
@@ -2145,9 +2145,7 @@ final class SceneSerializerTests: BaseRenderSetup {
         XCTAssertNotNil(completionCallTime, "Completion handler should have been called")
 
         // Verify all async loads were triggered (3 entities with ball.usdz)
-        loadTrackingLock.lock()
         let triggeredCount = asyncLoadsTriggered
-        loadTrackingLock.unlock()
         XCTAssertEqual(triggeredCount, entityNames.count, "Should have triggered \(entityNames.count) async loads")
 
         // Verify entities exist at completion time (root entities + possible children)

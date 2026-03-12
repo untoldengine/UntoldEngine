@@ -245,6 +245,13 @@ private func createProceduralMeshes(assetName: String) -> [Mesh] {
     return BasicPrimitives.createCube()
 }
 
+private func applyDeserializedLocalTransform(entityId: EntityID, entityData: EntityData) {
+    guard entityData.hasLocalTransformComponent == true else { return }
+    translateTo(entityId: entityId, position: entityData.position)
+    scaleTo(entityId: entityId, scale: entityData.scale)
+    applyAxisRotations(entityId: entityId, axis: entityData.axisOfRotations)
+}
+
 public func serializeScene() -> SceneData {
     var sceneData = SceneData()
     var entityIdToUUID: [EntityID: UUID] = [:]
@@ -716,7 +723,7 @@ public enum MeshLoadingMode {
 }
 
 /// Tracks async loading operations during scene deserialization
-private class AsyncLoadTracker {
+private final class AsyncLoadTracker: @unchecked Sendable {
     private var pendingLoads = 0
     private var completedLoads = 0
     private let lock = NSLock()
@@ -845,15 +852,6 @@ public func deserializeScene(
 
     for sceneDataEntity in sceneData.entities {
         let entityId = createEntity()
-        let applyLocalTransform = {
-            if sceneDataEntity.hasLocalTransformComponent == true {
-                translateTo(entityId: entityId, position: sceneDataEntity.position)
-                scaleTo(entityId: entityId, scale: sceneDataEntity.scale)
-                let axisOfRotation = sceneDataEntity.axisOfRotations
-
-                applyAxisRotations(entityId: entityId, axis: axisOfRotation)
-            }
-        }
 
         uuidToEntityMap[sceneDataEntity.uuid] = entityId
 
@@ -876,7 +874,7 @@ public func deserializeScene(
             let withExtension = assetInstance.assetURL.pathExtension
 
             // Apply parent entity's transform
-            applyLocalTransform()
+            applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
 
             switch meshLoadingMode {
             case .sync:
@@ -905,36 +903,32 @@ public func deserializeScene(
             case .asyncDefault:
                 loadTracker.registerLoad()
                 setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
-                    Task {
-                        await MainActor.run {
-                            if success {
-                                Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
-                                // Restore Static Batch Component (meshes now loaded)
-                                if sceneDataEntity.hasStaticBatchComponent == true {
-                                    setEntityStaticBatchComponent(entityId: entityId)
-                                }
-                                // Apply overrides after async import completes (must run after static restore so
-                                // per-node static opt-outs can remove static from selected children).
-                                applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
-
-                                // Setup animations (skeleton is now available)
-                                if sceneDataEntity.hasAnimationComponent == true {
-                                    for animations in sceneDataEntity.animations {
-                                        let animationFilename = animations.deletingPathExtension().lastPathComponent
-                                        let animationFilenameExt = animations.pathExtension
-                                        setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                                        changeAnimation(entityId: entityId, name: animationFilename)
-                                    }
-                                    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                                        animationComponent.animationsFilenames = sceneDataEntity.animations
-                                    }
-                                }
-                            } else {
-                                Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
-                            }
-                            loadTracker.completeLoad()
+                    if success {
+                        Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
+                        // Restore Static Batch Component (meshes now loaded)
+                        if sceneDataEntity.hasStaticBatchComponent == true {
+                            setEntityStaticBatchComponent(entityId: entityId)
                         }
+                        // Apply overrides after async import completes (must run after static restore so
+                        // per-node static opt-outs can remove static from selected children).
+                        applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
+
+                        // Setup animations (skeleton is now available)
+                        if sceneDataEntity.hasAnimationComponent == true {
+                            for animations in sceneDataEntity.animations {
+                                let animationFilename = animations.deletingPathExtension().lastPathComponent
+                                let animationFilenameExt = animations.pathExtension
+                                setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                                changeAnimation(entityId: entityId, name: animationFilename)
+                            }
+                            if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                                animationComponent.animationsFilenames = sceneDataEntity.animations
+                            }
+                        }
+                    } else {
+                        Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
                     }
+                    loadTracker.completeLoad()
                 }
             }
         } else if sceneDataEntity.hasRenderingComponent == true {
@@ -947,7 +941,7 @@ public func deserializeScene(
                 if isProcedural {
                     let meshes = createProceduralMeshes(assetName: sceneDataEntity.assetName)
                     setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
-                    applyLocalTransform()
+                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
 
                     // Restore Static Batch Component (procedural mesh already loaded)
                     if sceneDataEntity.hasStaticBatchComponent == true {
@@ -955,7 +949,7 @@ public func deserializeScene(
                     }
                 } else {
                     setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
-                    applyLocalTransform()
+                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
 
                     // Restore Static Batch Component (sync mode - mesh already loaded)
                     if sceneDataEntity.hasStaticBatchComponent == true {
@@ -979,7 +973,7 @@ public func deserializeScene(
                 if isProcedural {
                     let meshes = createProceduralMeshes(assetName: sceneDataEntity.assetName)
                     setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
-                    applyLocalTransform()
+                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
 
                     // Restore Static Batch Component (procedural mesh already loaded)
                     if sceneDataEntity.hasStaticBatchComponent == true {
@@ -990,35 +984,31 @@ public func deserializeScene(
                     let meshLabel = sceneDataEntity.name.isEmpty ? fallbackLabel : sceneDataEntity.name
                     loadTracker.registerLoad()
                     setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
-                        Task {
-                            await MainActor.run {
-                                applyLocalTransform()
-                                if success {
-                                    Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
+                        applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                        if success {
+                            Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
 
-                                    // Restore Static Batch Component (mesh now loaded)
-                                    if sceneDataEntity.hasStaticBatchComponent == true {
-                                        setEntityStaticBatchComponent(entityId: entityId)
-                                    }
-
-                                    // Setup animations (skeleton is now available)
-                                    if sceneDataEntity.hasAnimationComponent == true {
-                                        for animations in sceneDataEntity.animations {
-                                            let animationFilename = animations.deletingPathExtension().lastPathComponent
-                                            let animationFilenameExt = animations.pathExtension
-                                            setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                                            changeAnimation(entityId: entityId, name: animationFilename)
-                                        }
-                                        if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                                            animationComponent.animationsFilenames = sceneDataEntity.animations
-                                        }
-                                    }
-                                } else {
-                                    Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
-                                }
-                                loadTracker.completeLoad()
+                            // Restore Static Batch Component (mesh now loaded)
+                            if sceneDataEntity.hasStaticBatchComponent == true {
+                                setEntityStaticBatchComponent(entityId: entityId)
                             }
+
+                            // Setup animations (skeleton is now available)
+                            if sceneDataEntity.hasAnimationComponent == true {
+                                for animations in sceneDataEntity.animations {
+                                    let animationFilename = animations.deletingPathExtension().lastPathComponent
+                                    let animationFilenameExt = animations.pathExtension
+                                    setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                                    changeAnimation(entityId: entityId, name: animationFilename)
+                                }
+                                if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                                    animationComponent.animationsFilenames = sceneDataEntity.animations
+                                }
+                            }
+                        } else {
+                            Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
                         }
+                        loadTracker.completeLoad()
                     }
                 }
             }
@@ -1227,7 +1217,7 @@ public func deserializeScene(
         }
 
         if sceneDataEntity.assetInstance == nil, sceneDataEntity.hasRenderingComponent != true {
-            applyLocalTransform()
+            applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
         }
 
         if sceneDataEntity.hasCameraComponent == true {
@@ -1286,14 +1276,10 @@ public func deserializeScene(
                                 // When all levels are loaded, restore LOD settings
                                 if loadedCount == totalLevels {
                                     Logger.log(message: "✅ LOD loaded for '\(sceneDataEntity.name)' with \(totalLevels) levels")
-                                    Task {
-                                        await MainActor.run {
-                                            if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
-                                                lodComponent.currentLOD = lodData.currentLOD
-                                                lodComponent.fadeTransition = lodData.fadeTransition
-                                                lodComponent.transitionDuration = lodData.transitionDuration
-                                            }
-                                        }
+                                    if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
+                                        lodComponent.currentLOD = lodData.currentLOD
+                                        lodComponent.fadeTransition = lodData.fadeTransition
+                                        lodComponent.transitionDuration = lodData.transitionDuration
                                     }
                                 }
                             } else {

@@ -13,16 +13,16 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class USCScriptingMathRuntimeTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         initScriptingSystem()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         destroyAllEntities()
-        super.tearDown()
     }
 
     // MARK: - addFloat (var, var)

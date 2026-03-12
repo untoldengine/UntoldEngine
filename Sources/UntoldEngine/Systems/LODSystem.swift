@@ -11,7 +11,7 @@
 import Foundation
 import simd
 
-public class LODSystem {
+public class LODSystem: @unchecked Sendable {
     public static let shared = LODSystem()
     private init() {}
 
@@ -176,7 +176,6 @@ public class LODSystem {
 
                     // Generate mesh asset ID for batching
                     let meshAssetID = generateMeshAssetID(lodLevel: lodLevel, lodIndex: newLOD)
-                    let previousAssetID = lodComponent.activeMeshAssetID
                     lodComponent.activeMeshAssetID = meshAssetID
 
                     // Emit LOD change event if LOD actually changed

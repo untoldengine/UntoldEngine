@@ -24,8 +24,31 @@
         case full
     }
 
+    // MARK: - XR Render Bridge
+
+    /// Nonisolated interface for `UntoldRenderer` methods called from the
+    /// CompositorServices render thread.  The conformance uses `@preconcurrency`
+    /// to acknowledge the `@MainActor` ↔ nonisolated mismatch, which is safe
+    /// because the engine’s mutable globals are lock-protected and the
+    /// CompositorServices contract guarantees sequential per-frame execution.
+    protocol XRRenderBridge: AnyObject {
+        @discardableResult
+        func updateXR(useExternalStatsLifecycle: Bool) -> Bool
+        func renderXR(
+            commandBuffer: MTLCommandBuffer,
+            passDescriptor: MTLRenderPassDescriptor,
+            viewMatrix: simd_float4x4,
+            projectionMatrix: simd_float4x4,
+            eyeIndex: Int
+        )
+        func finalizeXRStatsAndMonitors(frameStartTime: Double)
+        func initSizeableResources()
+    }
+
+    extension UntoldRenderer: @preconcurrency XRRenderBridge {}
+
     public final class UntoldEngineXR {
-        private var renderer: UntoldRenderer?
+        private var renderer: (any XRRenderBridge)?
         private var _isRunning = false
         private let lock = NSLock()
         private var lastWorldTrackingRecoveryAttemptTime: CFTimeInterval = 0
@@ -57,6 +80,7 @@
             private let worldTracking: WorldTrackingProvider? = nil
         #endif
 
+        @MainActor
         public init?(layerRenderer: LayerRenderer, device: MTLDevice? = MTLCreateSystemDefaultDevice()) {
             guard let device, let commandQueue = device.makeCommandQueue() else { return nil }
 
@@ -65,6 +89,7 @@
             initUntoldXR(device: device, commandQueue: commandQueue, layerRenderer: layerRenderer)
         }
 
+        @MainActor
         public func initUntoldXR(device: MTLDevice, commandQueue: MTLCommandQueue, layerRenderer: LayerRenderer) {
             configureSpatialEventBridge()
 
@@ -110,11 +135,12 @@
             renderer = untoldrenderer
         }
 
+        @MainActor
         public func setupCallbacks(
             gameUpdate: @escaping (_ deltaTime: Float) -> Void,
             handleInput: @escaping () -> Void
         ) {
-            renderer?.setupCallbacks(gameUpdate: gameUpdate, handleInput: handleInput)
+            (renderer as? UntoldRenderer)?.setupCallbacks(gameUpdate: gameUpdate, handleInput: handleInput)
         }
 
         public func enqueueSpatialInputSnapshot(_ snapshot: XRSpatialInputSnapshot) {
@@ -304,7 +330,7 @@
             // 5. Perform any rendering-related work that doesn't rely on the device anchor info
             guard let renderer else { return }
             if !loading {
-                _ = renderer.updateXR(useExternalStatsLifecycle: true)
+                renderer.updateXR(useExternalStatsLifecycle: true)
             }
 
             // 6. Call endupdate() to mark the end of the update phase
@@ -378,7 +404,7 @@
                 renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
             #endif
 
-            // 13. Call endSubmission to mark the end of the GPU submission
+            // 13. Call endSubmission
             frame.endSubmission()
         }
 
@@ -473,7 +499,7 @@
                 let actualViewPort = simd_float2(Float(firstColorTexture.width), Float(firstColorTexture.height))
                 if renderInfo.viewPort != actualViewPort {
                     renderInfo.viewPort = actualViewPort
-                    renderer!.initSizeableResources()
+                    renderer?.initSizeableResources()
                     print("✓ Updated VisionOS viewport to: \(actualViewPort)")
                 }
             }

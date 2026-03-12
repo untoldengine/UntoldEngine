@@ -16,7 +16,7 @@ public enum EngineStatsLoggingProfile: Equatable {
     case verbose
 }
 
-public final class EngineStatsMonitor {
+public final class EngineStatsMonitor: @unchecked Sendable {
     public static let shared = EngineStatsMonitor()
 
     #if ENGINE_STATS_ENABLED

@@ -11,14 +11,11 @@
 @testable import UntoldEngine
 import XCTest
 
-final class ECSTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
-        resetEngineTestState()
-    }
 
-    override func tearDown() {
-        super.tearDown()
+@MainActor
+final class ECSTests: XCTestCase {
+    override func setUp() async throws {
+        resetEngineTestState()
     }
 
     func testCreateEntity() {

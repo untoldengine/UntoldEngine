@@ -18,9 +18,10 @@ public enum RenderingSystemContext {
     case xr(commandBuffer: MTLCommandBuffer, passDescriptor: MTLRenderPassDescriptor)
 }
 
-public typealias UpdateRenderingSystemCallback = (MTKView) -> Void
-public typealias UpdateXRRenderingSystemCallback = (RenderingSystemContext) -> Void
+public typealias UpdateRenderingSystemCallback = @MainActor (MTKView) -> Void
+public typealias UpdateXRRenderingSystemCallback = @MainActor (RenderingSystemContext) -> Void
 
+@MainActor
 func UpdateRenderingSystem(in view: MTKView) {
     // Snapshot loading gate once per frame. While loading, keep rendering from the
     // last-known-good visible list and skip ECS traversal to avoid race conditions.
@@ -466,7 +467,7 @@ func colorCorrectionCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-var colorCorrectionRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+let colorCorrectionRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.tonemapTexture,
           let destinationTexture = textureResources.colorCorrectionTexture,
           let pipeline = PipelineManager.shared.renderPipelinesByType[.colorCorrection]
@@ -547,7 +548,7 @@ func makeBlurCustomization(direction: simd_float2, radius: Float) -> (MTLRenderC
     }
 }
 
-var bloomThresholdRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+let bloomThresholdRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.chromaticAberrationTexture,
           let destinationTexture = textureResources.bloomThresholdTextuture,
           let pipeline = PipelineManager.shared.renderPipelinesByType[.bloomThreshold]
@@ -584,7 +585,7 @@ func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentTexture(textureResources.emissiveMap, index: 1)
 }
 
-var bloomCompositeRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+let bloomCompositeRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.blurTextureVer,
           let destinationTexture = textureResources.bloomCompositeTexture,
           let pipeline = PipelineManager.shared.renderPipelinesByType[.bloomComposite]
@@ -615,7 +616,7 @@ func bloomCompositeCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-var vignetteRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+let vignetteRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.bloomCompositeTexture,
           let destinationTexture = textureResources.vignetteTexture,
           let pipeline = PipelineManager.shared.renderPipelinesByType[.vignette]
@@ -662,7 +663,7 @@ func vignetteCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-var chromaticAberrationRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+let chromaticAberrationRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.depthOfFieldTexture,
           let destinationTexture = textureResources.chromaticAberrationTexture,
           let pipeline = PipelineManager.shared.renderPipelinesByType[.chromaticAberration]
@@ -697,7 +698,7 @@ func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-var depthOfFieldRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+let depthOfFieldRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.deferredColorMap,
           let destinationTexture = textureResources.depthOfFieldTexture,
           let pipeline = PipelineManager.shared.renderPipelinesByType[.depthOfField]
@@ -753,7 +754,7 @@ func outputTransformCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-public var lookRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.sceneCompositeTexture else {
         handleError(.renderPassCreationFailed, "Look Pass: source texture is nil")
         return
@@ -779,7 +780,7 @@ public var lookRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
     )(commandBuffer)
 }
 
-public var outputTransformRenderPass: (MTLCommandBuffer) -> Void = { commandBuffer in
+public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.lookTexture else {
         handleError(.renderPassCreationFailed, "Output Transform Pass: source texture is nil")
         return

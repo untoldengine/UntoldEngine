@@ -12,9 +12,10 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class ScriptComponentSerializationTest: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         // Initialize scripting system to register ScriptComponent
         initScriptingSystem()
     }

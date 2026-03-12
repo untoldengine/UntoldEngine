@@ -11,9 +11,10 @@
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class SpatialDebugVisualizationTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         SpatialDebugVisualization.shared.disableAll()
         SpatialDebugVisualization.shared.maxLeafNodeCount = 2000
@@ -21,9 +22,8 @@ final class SpatialDebugVisualizationTests: XCTestCase {
         SpatialDebugVisualization.shared.octreeLeafColorMode = .plain
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         SpatialDebugVisualization.shared.disableAll()
-        super.tearDown()
     }
 
     func testConfigureOctreeLeafBoundsUpdatesSettings() {

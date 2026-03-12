@@ -12,15 +12,17 @@ import Metal
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class RenderStatsCollectorTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         RenderStatsCollector.shared.reset()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         RenderStatsCollector.shared.reset()
-        super.tearDown()
+        try await super.tearDown()
     }
 
     func testRecordIndexedDraw_countsOpaqueAndTriangles() {

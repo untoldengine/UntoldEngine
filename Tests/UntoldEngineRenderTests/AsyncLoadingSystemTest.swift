@@ -10,18 +10,19 @@
 
 import CShaderTypes
 import Foundation
-@testable import UntoldEngine
+@preconcurrency @testable import UntoldEngine
 import XCTest
+
+extension LoadingProgress: @unchecked Sendable {}
+extension LoadingPhase: @unchecked Sendable {}
 
 final class AsyncLoadingSystemTest: BaseRenderSetup {
     override func setUp() async throws {
-        // Set up asset base path
-        let bundleURL = Bundle.module.resourceURL
-        assetBasePath = bundleURL
+        try await super.setUp()
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
+        try await super.tearDown()
 
         destroyAllEntities()
     }
@@ -151,7 +152,10 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
         }
 
         // When: Load meshes asynchronously
-        var progressUpdates: [(Int, Int)] = []
+        final class ProgressTracker: @unchecked Sendable {
+            var updates: [(Int, Int)] = []
+        }
+        let tracker = ProgressTracker()
         let meshes = await Mesh.loadMeshesAsync(
             url: url,
             vertexDescriptor: vertexDescriptor.model,
@@ -159,16 +163,16 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
             flip: true,
             coordinateConversion: .autoDetect,
             progressHandler: { current, total in
-                progressUpdates.append((current, total))
+                tracker.updates.append((current, total))
             }
         )
 
         // Then: Should load successfully
         XCTAssertFalse(meshes.isEmpty, "Should load at least one mesh")
-        XCTAssertFalse(progressUpdates.isEmpty, "Should receive progress updates")
+        XCTAssertFalse(tracker.updates.isEmpty, "Should receive progress updates")
 
         // Verify final progress matches mesh count
-        if let lastUpdate = progressUpdates.last {
+        if let lastUpdate = tracker.updates.last {
             XCTAssertEqual(lastUpdate.0, lastUpdate.1, "Final progress should show completion")
         }
     }
@@ -180,7 +184,10 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
         }
 
         // When: Load with progress tracking
-        var progressUpdates: [(Int, Int)] = []
+        final class ProgressTracker: @unchecked Sendable {
+            var updates: [(Int, Int)] = []
+        }
+        let tracker = ProgressTracker()
         _ = await Mesh.loadMeshesAsync(
             url: url,
             vertexDescriptor: vertexDescriptor.model,
@@ -188,14 +195,14 @@ final class AsyncLoadingSystemTest: BaseRenderSetup {
             flip: true,
             coordinateConversion: .autoDetect,
             progressHandler: { current, total in
-                progressUpdates.append((current, total))
+                tracker.updates.append((current, total))
             }
         )
 
         // Then: Progress should be monotonically increasing
-        for i in 0 ..< progressUpdates.count - 1 {
-            let (current, total) = progressUpdates[i]
-            let (nextCurrent, nextTotal) = progressUpdates[i + 1]
+        for i in 0 ..< tracker.updates.count - 1 {
+            let (current, total) = tracker.updates[i]
+            let (nextCurrent, nextTotal) = tracker.updates[i + 1]
 
             XCTAssertEqual(total, nextTotal, "Total should remain constant")
             XCTAssertLessThanOrEqual(current, nextCurrent, "Current should increase")

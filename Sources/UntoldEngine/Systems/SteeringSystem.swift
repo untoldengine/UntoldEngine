@@ -11,7 +11,33 @@
 import Foundation
 import simd
 
-var entityWaypointIndices: [EntityID: Int] = [:]
+private final class EntityWaypointIndexStore: @unchecked Sendable {
+    static let shared = EntityWaypointIndexStore()
+
+    private let lock = NSLock()
+    private var indicesByEntityId: [EntityID: Int] = [:]
+
+    private init() {}
+
+    var indices: [EntityID: Int] {
+        get {
+            lock.lock()
+            let value = indicesByEntityId
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            indicesByEntityId = newValue
+            lock.unlock()
+        }
+    }
+}
+
+var entityWaypointIndices: [EntityID: Int] {
+    get { EntityWaypointIndexStore.shared.indices }
+    set { EntityWaypointIndexStore.shared.indices = newValue }
+}
 
 func getWaypointIndex(for entityId: EntityID) -> Int {
     entityWaypointIndices[entityId] ?? 0 // Default to the first waypoint

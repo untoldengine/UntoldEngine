@@ -12,13 +12,14 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class PhysicsSystemTests: XCTestCase {
     var entityId: EntityID!
 
     // MARK: - Setup and Teardown
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
 
         entityId = createEntity()
@@ -29,9 +30,8 @@ final class PhysicsSystemTests: XCTestCase {
         registerComponent(entityId: entityId, componentType: ScenegraphComponent.self)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         destroyEntity(entityId: entityId)
-        super.tearDown()
     }
 
     // MARK: - Mass Tests

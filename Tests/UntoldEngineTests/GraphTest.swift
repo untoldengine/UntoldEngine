@@ -12,15 +12,9 @@ import Foundation
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class GraphTest: XCTestCase {
-    override func setUp() {
-        super.setUp()
-    }
-
-    override func tearDown() {
-        super.tearDown()
-    }
-
     func testGraphLogicalOrder() throws {
         // build a render graph
         var graph = [String: RenderPass]()
@@ -143,7 +137,7 @@ final class GraphTest: XCTestCase {
         ])
     }
 
-    func assertTopologicalConstraints(order: [String], constraints: [(before: String, after: String)], file: StaticString = #file, line: UInt = #line) {
+    func assertTopologicalConstraints(order: [String], constraints: [(before: String, after: String)], file: StaticString = #filePath, line: UInt = #line) {
         for (before, after) in constraints {
             guard let beforeIndex = order.firstIndex(of: before),
                   let afterIndex = order.firstIndex(of: after)

@@ -12,15 +12,17 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class ScriptComponentSceneIntegrationTest: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         // Initialize scripting system to register ScriptComponent
         initScriptingSystem()
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
+        try await super.tearDown()
     }
 
     func test_scriptComponent_serializesIntoCustomComponents() throws {

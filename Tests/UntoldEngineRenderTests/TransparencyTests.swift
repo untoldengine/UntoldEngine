@@ -16,12 +16,12 @@ import XCTest
 // MARK: - Material Alpha Decoding Tests
 
 final class MaterialAlphaDecodingTests: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
+        try await super.tearDown()
     }
 
     // MARK: - Test 1: Explicit alphaMode from MDLMaterial properties
@@ -190,12 +190,12 @@ final class MaterialAlphaDecodingTests: BaseRenderSetup {
 // MARK: - Transparency Pipeline & Render Graph Tests
 
 final class TransparencyRenderGraphTests: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
     }
 
-    override func tearDown() {
-        super.tearDown()
+    override func tearDown() async throws {
+        try await super.tearDown()
     }
 
     // MARK: - Test 4: Transparency pipeline initialization and render graph

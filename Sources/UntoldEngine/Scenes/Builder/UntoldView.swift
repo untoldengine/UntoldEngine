@@ -11,12 +11,13 @@
 import MetalKit
 import SwiftUI
 
+@MainActor
 public struct UntoldView: View {
     @State private var metalView: MTKView
     private var renderer: UntoldRenderer?
     private var content: [any NodeProtocol] = []
 
-    public init(renderer: UntoldRenderer? = nil, @SceneBuilder _ content: @escaping () -> [any NodeProtocol]) {
+    public init(renderer: UntoldRenderer? = nil, @SceneBuilder _ content: @escaping @MainActor () -> [any NodeProtocol]) {
         self.renderer = renderer ?? UntoldRenderer.create()
         metalView = self.renderer?.metalView ?? MTKView()
         self.content = content()

@@ -14,7 +14,7 @@
 /// Call this at the top of every XCTestCase.setUp() that creates entities or
 /// touches the ECS, to prevent stale entity IDs from causing out-of-bounds crashes
 /// when tests run sequentially.
-func resetEngineTestState() {
+@MainActor func resetEngineTestState() {
     scene = Scene()
     CameraSystem.shared.activeCamera = nil
     visibleEntityIds.removeAll()
@@ -24,7 +24,10 @@ func resetEngineTestState() {
     globalEntityCounter = 0
     needsFinalizeDestroys = false
     hasPendingDestroys = false
-    customSystems.removeAll()
+    clearCustomSystems()
+    for frame in 0 ..< 3 {
+        tripleVisibleEntities.setWrite(frame: frame, with: [])
+    }
     scenePickingDirtyEntities.removeAll()
     scenePickingSystemInitialized = false
     scenePickingGPUAvailable = false

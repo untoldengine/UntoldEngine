@@ -16,6 +16,7 @@ public enum Axis {
     case z
 }
 
+@MainActor
 public protocol NodeTransform: NodeProtocol {
     func registerTransformComponent() -> Self
 
@@ -24,6 +25,7 @@ public protocol NodeTransform: NodeProtocol {
     func scaleTo(x: Float, y: Float, z: Float) -> Self
 }
 
+@MainActor
 public extension NodeTransform {
     @discardableResult
     func registerTransformComponent() -> Self {

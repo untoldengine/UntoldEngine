@@ -12,7 +12,7 @@ import Foundation
 import simd
 
 /// Manages spatial partitioning for the scene
-public class OctreeSystem {
+public class OctreeSystem: @unchecked Sendable {
     public static let shared = OctreeSystem()
 
     /// World bounds for the octree

@@ -12,24 +12,24 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class SpatialDebugBoundsCollectorTests: XCTestCase {
     private let defaultColor = simd_float4(1.0, 1.0, 1.0, 1.0)
     private let residencyLoadedColor = simd_float4(0.25, 0.95, 0.35, 1.0)
     private let cullingVisibleColor = simd_float4(0.25, 0.95, 0.35, 1.0)
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         SpatialDebugVisualization.shared.disableAll()
         OctreeSystem.shared.clear()
         visibleEntityIds.removeAll()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         SpatialDebugVisualization.shared.disableAll()
         OctreeSystem.shared.clear()
         visibleEntityIds.removeAll()
-        super.tearDown()
     }
 
     func testCollectSnapshotReturnsEmptyWhenDebugDisabled() {

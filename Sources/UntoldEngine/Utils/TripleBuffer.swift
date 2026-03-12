@@ -73,8 +73,9 @@ public final class TripleBuffer<T> {
 }
 
 /// CPU Triple-buffer for plain Swift arrays (non MTLBuffers)
-public final class TripleCPUBuffer<T> {
+public final class TripleCPUBuffer<T>: @unchecked Sendable {
     private let inFlight: Int
+    private let lock = NSLock()
     private var slots: [[T]]
 
     public init(inFlight: Int = 3, initialCapacity: Int = 0) {
@@ -97,18 +98,25 @@ public final class TripleCPUBuffer<T> {
 
     /// Publish the next frame's data into the write slot.
     public func setWrite(frame: Int, with data: [T]) {
+        lock.lock()
         slots[writeIndex(frame)] = data
+        lock.unlock()
     }
 
     /// Get an immutable snapshot for rendering.
     public func snapshotForRead(frame: Int) -> [T] {
-        slots[readIndex(frame)]
+        lock.lock()
+        let snapshot = slots[readIndex(frame)]
+        lock.unlock()
+        return snapshot
     }
 
     /// Optional: pre-reserve capacity on all slots to avoid reallocs.
     public func ensureCapacity(_ needed: Int) {
+        lock.lock()
         for i in 0 ..< inFlight {
             if slots[i].capacity < needed { slots[i].reserveCapacity(needed) }
         }
+        lock.unlock()
     }
 }

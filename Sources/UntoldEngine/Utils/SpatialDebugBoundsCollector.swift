@@ -31,7 +31,7 @@ public struct SpatialDebugBoundsSnapshot {
 }
 
 /// Collects debug bounds from spatial systems without renderer coupling.
-public final class SpatialDebugBoundsCollector {
+public final class SpatialDebugBoundsCollector: @unchecked Sendable {
     public static let shared = SpatialDebugBoundsCollector()
 
     private let defaultOctreeColor = simd_float4(1.0, 1.0, 1.0, 1.0)

@@ -32,6 +32,7 @@ public class USCContext {
 public typealias USCAction = (_ context: USCContext,
                               _ args: [String: Value]) -> Value?
 
+@MainActor
 public class USCActionRegistry {
     public static let shared = USCActionRegistry()
     private init() {}
@@ -50,6 +51,7 @@ public class USCActionRegistry {
 // MARK: - USC Interpreter
 
 /// Interprets and executes USC IR
+@MainActor
 public class USCInterpreter {
     public init() {}
 
@@ -57,15 +59,12 @@ public class USCInterpreter {
     public func execute(script: USCScript, context: USCContext, forEvent event: String? = nil) {
         var pc = 0 // Program counter
         var inTargetEvent = (event == nil) // If no event specified, execute all
-        var currentEvent: String? = nil
 
         while pc < script.instructions.count {
             let instruction = script.instructions[pc]
 
             // Check if we hit an event instruction
             if case let .event(eventName) = instruction {
-                currentEvent = eventName
-
                 // Determine if we should execute this event block
                 if let targetEvent = event {
                     inTargetEvent = (eventName == targetEvent)
@@ -673,7 +672,7 @@ public class USCInterpreter {
                          turnSpeed: turn)
             return pc + 1
 
-        case let .steerFollowPath(entityRef):
+        case .steerFollowPath(_):
             Logger.log(message: "[USC] steerFollowPath not yet implemented - requires path handling")
             return pc + 1
 

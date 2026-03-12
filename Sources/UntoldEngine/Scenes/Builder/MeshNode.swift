@@ -12,12 +12,13 @@ import Foundation
 import simd
 import SwiftUI
 
+@MainActor
 public class MeshNode: Node, NodeAnimations, NodeKinetics {
     public convenience init(resource: String, entityID: EntityID? = nil, name: String? = nil) {
         self.init(resource: resource, entityID: entityID, name: name) {}
     }
 
-    public convenience init(resource: String, entityID: EntityID? = nil, name: String? = nil, @SceneBuilder content: @escaping () -> [any NodeProtocol]) {
+    public convenience init(resource: String, entityID: EntityID? = nil, name: String? = nil, @SceneBuilder content: @escaping @MainActor () -> [any NodeProtocol]) {
         self.init(entityID: entityID, name: name, content: content)
 
         if name == nil { setEntityName(entityId: self.entityID, name: resource) }

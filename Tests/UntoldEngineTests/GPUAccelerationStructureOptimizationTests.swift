@@ -12,14 +12,11 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-final class GPUAccelerationStructureOptimizationTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
-        resetEngineTestState()
-    }
 
-    override func tearDown() {
-        super.tearDown()
+@MainActor
+final class GPUAccelerationStructureOptimizationTests: XCTestCase {
+    override func setUp() async throws {
+        resetEngineTestState()
     }
 
     private func makeTranslationMatrix(_ translation: simd_float3) -> simd_float4x4 {

@@ -10,28 +10,36 @@
 
 import Foundation
 
-public final class LogStore: ObservableObject, LoggerSink {
+public final class LogStore: ObservableObject, LoggerSink, @unchecked Sendable {
     public static let shared = LogStore()
     @Published public private(set) var entries: [LogEvent] = []
 
-    private let queue = DispatchQueue(label: "engine.log.store", qos: .utility)
     private let maxEntries = 5000
 
     private init() {}
 
     public func didLog(_ event: LogEvent) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            entries.append(event)
-            if entries.count > maxEntries {
-                entries.removeFirst(entries.count - maxEntries)
-            }
+        Task { @MainActor in
+            LogStore.shared.append(event)
         }
     }
 
     public func clear() {
-        DispatchQueue.main.async { [weak self] in
-            self?.entries.removeAll()
+        Task { @MainActor in
+            LogStore.shared.clearEntries()
         }
+    }
+
+    @MainActor
+    private func append(_ event: LogEvent) {
+        entries.append(event)
+        if entries.count > maxEntries {
+            entries.removeFirst(entries.count - maxEntries)
+        }
+    }
+
+    @MainActor
+    private func clearEntries() {
+        entries.removeAll()
     }
 }

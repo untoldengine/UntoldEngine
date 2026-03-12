@@ -12,11 +12,10 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-final class XRInputSystemSpatialTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
-        xrInputSingletonTestLock.lock()
 
+@MainActor
+final class XRInputSystemSpatialTests: XCTestCase {
+    override func setUp() async throws {
         #if os(visionOS)
             let input = InputSystem.shared
             input.unregisterXREvents()
@@ -27,7 +26,7 @@ final class XRInputSystemSpatialTests: XCTestCase {
         #endif
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         #if os(visionOS)
             let input = InputSystem.shared
             input.unregisterXREvents()
@@ -36,9 +35,6 @@ final class XRInputSystemSpatialTests: XCTestCase {
             input.setXRSceneReady(true)
             input.setXRSpatialPickingBackendPreference(.octreePreferred)
         #endif
-
-        xrInputSingletonTestLock.unlock()
-        super.tearDown()
     }
 
     #if os(visionOS)
@@ -235,7 +231,7 @@ final class XRInputSystemSpatialTests: XCTestCase {
             input.setXRSceneReady(false)
             XCTAssertFalse(input.isXRSceneReady())
             setSceneReady(true)
-            XCTAssertEqual(input.getXRSpatialPickingBackendPreference(), .octreePreferred)
+            XCTAssertEqual(input.getXRSpatialPickingBackendPreference(), .octreeGPUPreferred)
             input.setXRTwoHandRotateAxisMode(.dynamic)
             XCTAssertEqual(input.getXRTwoHandRotateAxisMode(), .dynamicSnapped)
             XCTAssertFalse(input.hasTwoHandRotateSignal())
@@ -248,25 +244,20 @@ final class XRInputSystemSpatialTests: XCTestCase {
 
     // MARK: - Fix 1: Ray Picking During Dragging Tests
 
+    @MainActor
     final class RayPickingDuringDraggingTests: XCTestCase {
-        override func setUp() {
-            super.setUp()
-            xrInputSingletonTestLock.lock()
-
+        override func setUp() async throws {
             let input = InputSystem.shared
             input.unregisterXREvents()
             input.clearXRSpatialSnapshots()
             input.xrSpatialInputState = XRSpatialInputState()
         }
 
-        override func tearDown() {
+        override func tearDown() async throws {
             let input = InputSystem.shared
             input.unregisterXREvents()
             input.clearXRSpatialSnapshots()
             input.xrSpatialInputState = XRSpatialInputState()
-
-            xrInputSingletonTestLock.unlock()
-            super.tearDown()
         }
 
         func testPickingExecutesOnBeganPhase() {

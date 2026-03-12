@@ -41,7 +41,7 @@ public struct EntityBatchInfo {
 }
 
 /// Manages all batching operations
-public class BatchingSystem {
+public class BatchingSystem: @unchecked Sendable {
     public static let shared = BatchingSystem()
 
     public private(set) var batchGroups: [BatchGroup] = []
@@ -228,7 +228,7 @@ public class BatchingSystem {
                       staticBatch.canBatch,
                       let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
                       let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
-                      let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
+                      scene.get(component: LocalTransformComponent.self, for: entityId) != nil
                 else { continue }
 
                 // Skip entities with empty meshes (not yet loaded by streaming)

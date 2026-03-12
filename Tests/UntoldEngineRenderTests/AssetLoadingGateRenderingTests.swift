@@ -16,16 +16,16 @@ import XCTest
 // MARK: - AssetLoadingGate Rendering Integration Tests
 
 final class AssetLoadingGateRenderingTests: BaseRenderSetup {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         // Ensure loading gate starts in a clean state
         resetLoadingGate()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         // Clean up loading gate state
         resetLoadingGate()
-        super.tearDown()
+        try await super.tearDown()
     }
 
     /// Helper to reset the loading gate to a clean state

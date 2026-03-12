@@ -11,6 +11,7 @@
 import Foundation
 import simd
 
+@MainActor
 public class GeometryStreamingSystem {
     public static let shared = GeometryStreamingSystem()
 
@@ -158,15 +159,13 @@ public class GeometryStreamingSystem {
         let ext = streaming.assetExtension
         let assetName = streaming.assetName
 
-        let task = Task {
-            var success: Bool
-
-            if hasLOD {
+        let task = Task { @MainActor in
+            let success = if hasLOD {
                 // LOD entity: reload all LOD levels and set correct one for current distance
-                success = await self.reloadLODEntity(entityId: entityId)
+                await reloadLODEntity(entityId: entityId)
             } else {
                 // Regular entity: load single mesh
-                success = await self.loadMeshAsync(
+                await loadMeshAsync(
                     entityId: entityId,
                     filename: filename,
                     withExtension: ext,
@@ -174,36 +173,33 @@ public class GeometryStreamingSystem {
                 )
             }
 
-            // Update state on completion
-            await MainActor.run {
-                withWorldMutationGate {
-                    if success {
-                        if let s = scene.get(component: StreamingComponent.self, for: entityId) {
-                            s.state = .loaded
-                            s.lastVisibleFrame = self.currentFrame
+            withWorldMutationGate {
+                if success {
+                    if let s = scene.get(component: StreamingComponent.self, for: entityId) {
+                        s.state = .loaded
+                        s.lastVisibleFrame = currentFrame
 
-                            // Emit residency event
-                            if let render = scene.get(component: RenderComponent.self, for: entityId) {
-                                let event = AssetResidencyChangedEvent(
-                                    entityId: entityId,
-                                    assetURL: render.assetURL,
-                                    meshName: render.assetName,
-                                    isResident: true
-                                )
-                                SystemEventBus.shared.queueResidencyChange(event)
-                            }
+                        // Emit residency event
+                        if let render = scene.get(component: RenderComponent.self, for: entityId) {
+                            let event = AssetResidencyChangedEvent(
+                                entityId: entityId,
+                                assetURL: render.assetURL,
+                                meshName: render.assetName,
+                                isResident: true
+                            )
+                            SystemEventBus.shared.queueResidencyChange(event)
                         }
-                        self.loadedStreamingEntities.insert(entityId)
-                        SystemIntegrationMonitor.shared.recordStreamingLoad()
-                    } else {
-                        // Load failed - reset to unloaded so it can retry
-                        if let s = scene.get(component: StreamingComponent.self, for: entityId) {
-                            s.state = .unloaded
-                        }
-                        Logger.logError(message: "Failed to stream mesh for entity \(entityId)")
                     }
-                    self.activeLoads.remove(entityId)
+                    loadedStreamingEntities.insert(entityId)
+                    SystemIntegrationMonitor.shared.recordStreamingLoad()
+                } else {
+                    // Load failed - reset to unloaded so it can retry
+                    if let s = scene.get(component: StreamingComponent.self, for: entityId) {
+                        s.state = .unloaded
+                    }
+                    Logger.logError(message: "Failed to stream mesh for entity \(entityId)")
                 }
+                activeLoads.remove(entityId)
             }
         }
 
@@ -212,8 +208,7 @@ public class GeometryStreamingSystem {
 
     /// Reload all LOD levels for an LOD entity and set display to correct LOD for current distance
     private func reloadLODEntity(entityId: EntityID) async -> Bool {
-        // Gather LOD level info on main thread
-        let lodInfo: [(index: Int, url: URL, assetName: String, maxDistance: Float)] = await MainActor.run {
+        let lodInfo: [(index: Int, url: URL, assetName: String, maxDistance: Float)] = {
             guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
                 return []
             }
@@ -225,7 +220,7 @@ public class GeometryStreamingSystem {
                 }
             }
             return info
-        }
+        }()
 
         guard !lodInfo.isEmpty else {
             Logger.logError(message: "LOD entity has no LOD levels with URLs")
@@ -252,67 +247,64 @@ public class GeometryStreamingSystem {
             return false
         }
 
-        // Update components on main thread
-        await MainActor.run {
-            withWorldMutationGate {
-                guard let lodComponent = scene.get(component: LODComponent.self, for: entityId),
-                      let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
-                else { return }
+        withWorldMutationGate {
+            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId),
+                  let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
+            else { return }
 
-                // Update all LOD level meshes - create fresh copies for each LOD level
-                for (lodIndex, meshes) in loadedMeshes {
-                    guard lodIndex < lodComponent.lodLevels.count else { continue }
+            // Update all LOD level meshes - create fresh copies for each LOD level
+            for (lodIndex, meshes) in loadedMeshes {
+                guard lodIndex < lodComponent.lodLevels.count else { continue }
 
-                    // Create a unique Skin instance for each LOD level to avoid sharing issues
-                    let levelSkin = Skin()
-                    // IMPORTANT: Create copies of meshes with fresh uniform buffers for this entity
-                    // Without this, multiple entities sharing the same cached mesh would overwrite
-                    // each other's uniform data during rendering, causing entities to disappear
-                    var updatedMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
-                    for i in updatedMeshes.indices {
-                        if updatedMeshes[i].skin == nil {
-                            updatedMeshes[i].skin = levelSkin
-                        }
-                    }
-
-                    lodComponent.lodLevels[lodIndex].mesh = updatedMeshes
-                    lodComponent.lodLevels[lodIndex].residencyState = .resident
-                }
-
-                // Calculate camera distance to select correct LOD
-                var selectedLOD = lodComponent.lodLevels.count - 1 // Default to lowest detail
-
-                if let camera = CameraSystem.shared.activeCamera,
-                   let cameraComponent = scene.get(component: CameraComponent.self, for: camera),
-                   let transform = scene.get(component: WorldTransformComponent.self, for: entityId),
-                   let local = scene.get(component: LocalTransformComponent.self, for: entityId)
-                {
-                    let cameraPos = cameraComponent.localPosition
-                    let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
-                    let worldCenter = transform.space * simd_float4(center, 1.0)
-                    let distance = simd_distance(cameraPos, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
-
-                    // Find appropriate LOD for this distance
-                    for (index, level) in lodComponent.lodLevels.enumerated() {
-                        if distance <= level.maxDistance, lodComponent.isLODResident(index) {
-                            selectedLOD = index
-                            break
-                        }
+                // Create a unique Skin instance for each LOD level to avoid sharing issues
+                let levelSkin = Skin()
+                // IMPORTANT: Create copies of meshes with fresh uniform buffers for this entity
+                // Without this, multiple entities sharing the same cached mesh would overwrite
+                // each other's uniform data during rendering, causing entities to disappear
+                var updatedMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
+                for i in updatedMeshes.indices {
+                    if updatedMeshes[i].skin == nil {
+                        updatedMeshes[i].skin = levelSkin
                     }
                 }
 
-                // Set render component to show the correct LOD
-                if selectedLOD < lodComponent.lodLevels.count, lodComponent.isLODResident(selectedLOD) {
-                    let lodLevel = lodComponent.lodLevels[selectedLOD]
-                    renderComponent.mesh = lodLevel.mesh
-                    if let url = lodLevel.url {
-                        renderComponent.assetURL = url
-                        renderComponent.assetName = lodLevel.assetName ?? url.deletingPathExtension().lastPathComponent
+                lodComponent.lodLevels[lodIndex].mesh = updatedMeshes
+                lodComponent.lodLevels[lodIndex].residencyState = .resident
+            }
+
+            // Calculate camera distance to select correct LOD
+            var selectedLOD = lodComponent.lodLevels.count - 1 // Default to lowest detail
+
+            if let camera = CameraSystem.shared.activeCamera,
+               let cameraComponent = scene.get(component: CameraComponent.self, for: camera),
+               let transform = scene.get(component: WorldTransformComponent.self, for: entityId),
+               let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+            {
+                let cameraPos = cameraComponent.localPosition
+                let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
+                let worldCenter = transform.space * simd_float4(center, 1.0)
+                let distance = simd_distance(cameraPos, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
+
+                // Find appropriate LOD for this distance
+                for (index, level) in lodComponent.lodLevels.enumerated() {
+                    if distance <= level.maxDistance, lodComponent.isLODResident(index) {
+                        selectedLOD = index
+                        break
                     }
-                    lodComponent.currentLOD = selectedLOD
-                    lodComponent.desiredLOD = selectedLOD
-                    lodComponent.isUsingFallback = false
                 }
+            }
+
+            // Set render component to show the correct LOD
+            if selectedLOD < lodComponent.lodLevels.count, lodComponent.isLODResident(selectedLOD) {
+                let lodLevel = lodComponent.lodLevels[selectedLOD]
+                renderComponent.mesh = lodLevel.mesh
+                if let url = lodLevel.url {
+                    renderComponent.assetURL = url
+                    renderComponent.assetName = lodLevel.assetName ?? url.deletingPathExtension().lastPathComponent
+                }
+                lodComponent.currentLOD = selectedLOD
+                lodComponent.desiredLOD = selectedLOD
+                lodComponent.isUsingFallback = false
             }
         }
 
@@ -348,42 +340,39 @@ public class GeometryStreamingSystem {
         // Retain the mesh for this entity
         MeshResourceManager.shared.retain(url: url, meshName: meshName, for: entityId)
 
-        // Update render component on main thread
-        await MainActor.run {
-            withWorldMutationGate {
-                if let render = scene.get(component: RenderComponent.self, for: entityId) {
-                    // Create copies of meshes with fresh uniform buffers for this entity
-                    // Without this, multiple entities sharing cached meshes would overwrite
-                    // each other's uniform data during rendering
-                    var entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
+        withWorldMutationGate {
+            if let render = scene.get(component: RenderComponent.self, for: entityId) {
+                // Create copies of meshes with fresh uniform buffers for this entity
+                // Without this, multiple entities sharing cached meshes would overwrite
+                // each other's uniform data during rendering
+                var entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
 
-                    // Ensure skin is set up (required for shader validation)
-                    // Meshes without skeletons need a default Skin()
-                    let skin = Skin()
-                    for index in entityMeshes.indices {
-                        if entityMeshes[index].skin == nil {
-                            entityMeshes[index].skin = skin
-                        }
+                // Ensure skin is set up (required for shader validation)
+                // Meshes without skeletons need a default Skin()
+                let skin = Skin()
+                for index in entityMeshes.indices {
+                    if entityMeshes[index].skin == nil {
+                        entityMeshes[index].skin = skin
                     }
-
-                    render.mesh = entityMeshes
-                    render.assetURL = url
-                    render.assetName = meshName
-                } else {
-                    // Create render component if needed
-                    // Note: registerRenderComponent should also handle buffer creation
-                    let entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
-                    registerRenderComponent(entityId: entityId, meshes: entityMeshes, url: url, assetName: meshName)
                 }
 
-                // Register with memory budget
-                let meshSize = calculateMeshArrayMemory(meshes)
-                MemoryBudgetManager.shared.registerMesh(
-                    entityId: entityId,
-                    meshSizeBytes: meshSize,
-                    textureSizeBytes: 0
-                )
+                render.mesh = entityMeshes
+                render.assetURL = url
+                render.assetName = meshName
+            } else {
+                // Create render component if needed
+                // Note: registerRenderComponent should also handle buffer creation
+                let entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
+                registerRenderComponent(entityId: entityId, meshes: entityMeshes, url: url, assetName: meshName)
             }
+
+            // Register with memory budget
+            let meshSize = calculateMeshArrayMemory(meshes)
+            MemoryBudgetManager.shared.registerMesh(
+                entityId: entityId,
+                meshSizeBytes: meshSize,
+                textureSizeBytes: 0
+            )
         }
 
         return true

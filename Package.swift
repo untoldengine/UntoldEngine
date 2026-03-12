@@ -152,7 +152,7 @@ let package = Package(
             name: "UntoldEngineTests",
             dependencies: ["UntoldEngine"],
             path: "Tests/UntoldEngineTests",
-            swiftSettings: [.swiftLanguageMode(.v5)]
+            swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         // Render-specific test target
         .testTarget(
@@ -164,7 +164,7 @@ let package = Package(
                 .copy("Resources/compare_psnr.py"),
                 .process("Resources"),
             ],
-            swiftSettings: [.swiftLanguageMode(.v5)]
+            swiftSettings: [.swiftLanguageMode(.v6)]
         ),
     ]
 )

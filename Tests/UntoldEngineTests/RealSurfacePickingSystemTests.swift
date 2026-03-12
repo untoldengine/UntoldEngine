@@ -12,9 +12,10 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class RealSurfacePickingSystemTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         resetEngineTestState()
         SceneRootTransform.shared.position = .zero
         SceneRootTransform.shared.rotation = simd_quatf()
@@ -23,13 +24,12 @@ final class RealSurfacePickingSystemTests: XCTestCase {
         RealSurfacePlaneStore.shared.clear()
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         RealSurfacePlaneStore.shared.clear()
         SceneRootTransform.shared.position = .zero
         SceneRootTransform.shared.rotation = simd_quatf()
         SceneRootTransform.shared.scale = .one
         SceneRootTransform.shared.updateIfNeeded()
-        super.tearDown()
     }
 
     // MARK: - Helpers

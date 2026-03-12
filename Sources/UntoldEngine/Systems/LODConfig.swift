@@ -11,7 +11,32 @@
 import Foundation
 
 public struct LODConfig {
-    public static var shared = LODConfig()
+    private final class LODConfigStore: @unchecked Sendable {
+        static let shared = LODConfigStore()
+
+        private let lock = NSLock()
+        private var config = LODConfig()
+
+        private init() {}
+
+        func get() -> LODConfig {
+            lock.lock()
+            let value = config
+            lock.unlock()
+            return value
+        }
+
+        func set(_ value: LODConfig) {
+            lock.lock()
+            config = value
+            lock.unlock()
+        }
+    }
+
+    public static var shared: LODConfig {
+        get { LODConfigStore.shared.get() }
+        set { LODConfigStore.shared.set(newValue) }
+    }
 
     /// Default distance thresholds (in world units)
     public var lodDistances: [Float] = [

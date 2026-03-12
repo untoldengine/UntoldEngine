@@ -13,7 +13,7 @@ import QuartzCore
 
 /// Synchronous loading gate for render threads that can't `await`.
 /// Mirrors `AssetLoadingState` activity count and is safe to query from any thread.
-public final class AssetLoadingGate {
+public final class AssetLoadingGate: @unchecked Sendable {
     public static let shared = AssetLoadingGate()
 
     private let lock = NSLock()

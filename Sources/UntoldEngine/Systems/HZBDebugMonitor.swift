@@ -34,47 +34,79 @@ public struct HZBDebugStats {
     }
 }
 
-public final class HZBDebugMonitor {
+public final class HZBDebugMonitor: @unchecked Sendable {
     public static let shared = HZBDebugMonitor()
 
-    public private(set) var stats = HZBDebugStats()
-    public var enableLogging: Bool = false
-
+    private let lock = NSLock()
+    private var _stats = HZBDebugStats()
+    private var _enableLogging: Bool = false
     private var lastResetTime: Double = 0
+
+    public var stats: HZBDebugStats {
+        lock.lock()
+        let value = _stats
+        lock.unlock()
+        return value
+    }
+
+    public var enableLogging: Bool {
+        get {
+            lock.lock()
+            let value = _enableLogging
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _enableLogging = newValue
+            lock.unlock()
+        }
+    }
 
     private init() {
         lastResetTime = CACurrentMediaTime()
     }
 
     public func tick() {
+        var shouldLog = false
+        var snapshot = HZBDebugStats()
+
+        lock.lock()
         let now = CACurrentMediaTime()
         if now - lastResetTime >= 1.0 {
-            if enableLogging {
-                Logger.log(message: "[HZB] valid=\(stats.hzbIsValid) mips=\(stats.hzbMipCount) selectedMip=\(stats.selectedMipLevel) selectedSize=\(stats.selectedMipSize.x)x\(stats.selectedMipSize.y) candidates=\(stats.frustumCandidateCount) visible=\(stats.visibleAfterOcclusionCount) occluded=\(stats.occludedCount) usedHZB=\(stats.usedHZBThisFrame) builds/s=\(stats.hzbBuildsThisSecond) cullPasses/s=\(stats.hzbCullPassesThisSecond)")
-            }
-
-            stats.resetPerSecondCounters()
+            snapshot = _stats
+            shouldLog = _enableLogging
+            _stats.resetPerSecondCounters()
             lastResetTime = now
+        }
+        lock.unlock()
+
+        if shouldLog {
+            Logger.log(message: "[HZB] valid=\(snapshot.hzbIsValid) mips=\(snapshot.hzbMipCount) selectedMip=\(snapshot.selectedMipLevel) selectedSize=\(snapshot.selectedMipSize.x)x\(snapshot.selectedMipSize.y) candidates=\(snapshot.frustumCandidateCount) visible=\(snapshot.visibleAfterOcclusionCount) occluded=\(snapshot.occludedCount) usedHZB=\(snapshot.usedHZBThisFrame) builds/s=\(snapshot.hzbBuildsThisSecond) cullPasses/s=\(snapshot.hzbCullPassesThisSecond)")
         }
     }
 
     public func recordBuild(valid: Bool, mipCount: Int, selectedMipLevel: Int, selectedMipSize: simd_int2) {
-        stats.hzbIsValid = valid
-        stats.hzbMipCount = mipCount
-        stats.selectedMipLevel = selectedMipLevel
-        stats.selectedMipSize = selectedMipSize
-        stats.hzbBuildsThisSecond += 1
+        lock.lock()
+        _stats.hzbIsValid = valid
+        _stats.hzbMipCount = mipCount
+        _stats.selectedMipLevel = selectedMipLevel
+        _stats.selectedMipSize = selectedMipSize
+        _stats.hzbBuildsThisSecond += 1
+        lock.unlock()
     }
 
     public func recordCull(testedCount: Int, candidateCount: Int, visibleCount: Int, usedHZB: Bool, optimizedPath: Bool) {
-        stats.frustumTestedCount = max(0, testedCount)
-        stats.frustumCandidateCount = max(0, candidateCount)
-        stats.visibleAfterOcclusionCount = max(0, visibleCount)
-        stats.occludedCount = max(0, stats.frustumCandidateCount - stats.visibleAfterOcclusionCount)
-        stats.usedHZBThisFrame = usedHZB
-        stats.optimizedFrustumPath = optimizedPath
+        lock.lock()
+        _stats.frustumTestedCount = max(0, testedCount)
+        _stats.frustumCandidateCount = max(0, candidateCount)
+        _stats.visibleAfterOcclusionCount = max(0, visibleCount)
+        _stats.occludedCount = max(0, _stats.frustumCandidateCount - _stats.visibleAfterOcclusionCount)
+        _stats.usedHZBThisFrame = usedHZB
+        _stats.optimizedFrustumPath = optimizedPath
         if usedHZB {
-            stats.hzbCullPassesThisSecond += 1
+            _stats.hzbCullPassesThisSecond += 1
         }
+        lock.unlock()
     }
 }

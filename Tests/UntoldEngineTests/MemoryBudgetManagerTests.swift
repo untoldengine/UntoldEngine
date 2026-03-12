@@ -11,11 +11,12 @@
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class MemoryBudgetManagerTests: XCTestCase {
     var manager: MemoryBudgetManager!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         manager = MemoryBudgetManager.shared
         manager.clear()
         manager.enabled = true
@@ -24,9 +25,8 @@ final class MemoryBudgetManagerTests: XCTestCase {
         manager.lowWaterMark = 0.70
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         manager.clear()
-        super.tearDown()
     }
 
     // MARK: - Registration Tests
@@ -222,24 +222,18 @@ final class MemoryBudgetManagerTests: XCTestCase {
 
     // MARK: - Thread Safety Tests
 
-    func testConcurrentAccess() {
-        let expectation = XCTestExpectation(description: "Concurrent access completes")
-        expectation.expectedFulfillmentCount = 100
-
-        let queue = DispatchQueue(label: "test.concurrent", attributes: .concurrent)
-
-        for i in 0 ..< 100 {
-            queue.async {
-                let entityId = EntityID(i)
-                self.manager.registerMesh(entityId: entityId, meshSizeBytes: 1024)
-                self.manager.markUsed(entityId: entityId)
-                _ = self.manager.getStats()
-                _ = self.manager.getEvictionCandidates(count: 10)
-                expectation.fulfill()
+    func testConcurrentAccess() async {
+        await withTaskGroup(of: Void.self) { group in
+            for i in 0 ..< 100 {
+                group.addTask { @MainActor in
+                    let entityId = EntityID(i)
+                    self.manager.registerMesh(entityId: entityId, meshSizeBytes: 1024)
+                    self.manager.markUsed(entityId: entityId)
+                    _ = self.manager.getStats()
+                    _ = self.manager.getEvictionCandidates(count: 10)
+                }
             }
         }
-
-        wait(for: [expectation], timeout: 5.0)
         XCTAssertEqual(manager.entityCount, 100)
     }
 

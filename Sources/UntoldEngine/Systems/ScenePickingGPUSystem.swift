@@ -37,10 +37,67 @@ enum ScenePickGPUQueryResult {
     case error
 }
 
-private var scenePickingCacheState = ScenePickingCacheState()
-private var scenePickingBuildState = ScenePickingBuildState()
-private var scenePickingLastBuildCommandBuffer: MTLCommandBuffer?
-private var scenePickingAsyncQueryCommandBuffer: MTLCommandBuffer?
+private final class ScenePickingRuntimeState: @unchecked Sendable {
+    let lock = NSLock()
+    var cacheState = ScenePickingCacheState()
+    var buildState = ScenePickingBuildState()
+    var lastBuildCommandBuffer: MTLCommandBuffer?
+    var asyncQueryCommandBuffer: MTLCommandBuffer?
+}
+
+private let scenePickingRuntimeState = ScenePickingRuntimeState()
+
+private var scenePickingCacheState: ScenePickingCacheState {
+    get {
+        scenePickingRuntimeState.lock.lock()
+        defer { scenePickingRuntimeState.lock.unlock() }
+        return scenePickingRuntimeState.cacheState
+    }
+    set {
+        scenePickingRuntimeState.lock.lock()
+        scenePickingRuntimeState.cacheState = newValue
+        scenePickingRuntimeState.lock.unlock()
+    }
+}
+
+private var scenePickingBuildState: ScenePickingBuildState {
+    get {
+        scenePickingRuntimeState.lock.lock()
+        defer { scenePickingRuntimeState.lock.unlock() }
+        return scenePickingRuntimeState.buildState
+    }
+    set {
+        scenePickingRuntimeState.lock.lock()
+        scenePickingRuntimeState.buildState = newValue
+        scenePickingRuntimeState.lock.unlock()
+    }
+}
+
+private var scenePickingLastBuildCommandBuffer: MTLCommandBuffer? {
+    get {
+        scenePickingRuntimeState.lock.lock()
+        defer { scenePickingRuntimeState.lock.unlock() }
+        return scenePickingRuntimeState.lastBuildCommandBuffer
+    }
+    set {
+        scenePickingRuntimeState.lock.lock()
+        scenePickingRuntimeState.lastBuildCommandBuffer = newValue
+        scenePickingRuntimeState.lock.unlock()
+    }
+}
+
+private var scenePickingAsyncQueryCommandBuffer: MTLCommandBuffer? {
+    get {
+        scenePickingRuntimeState.lock.lock()
+        defer { scenePickingRuntimeState.lock.unlock() }
+        return scenePickingRuntimeState.asyncQueryCommandBuffer
+    }
+    set {
+        scenePickingRuntimeState.lock.lock()
+        scenePickingRuntimeState.asyncQueryCommandBuffer = newValue
+        scenePickingRuntimeState.lock.unlock()
+    }
+}
 
 func scenePickingCanUseGPU() -> Bool {
     scenePickingSystemInitialized

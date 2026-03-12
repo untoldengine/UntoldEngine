@@ -16,19 +16,16 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
+
+@MainActor
 final class PLYReaderTest: XCTestCase {
     var tempFileURL: URL?
 
-    override func setUp() {
-        super.setUp()
-    }
-
-    override func tearDown() {
+    override func tearDown() async throws {
         // Clean up temporary file
         if let url = tempFileURL {
             try? FileManager.default.removeItem(at: url)
         }
-        super.tearDown()
     }
 
     // MARK: - Test ASCII Format
