@@ -70,7 +70,7 @@ jobs:
           # UNTOLD_KEEP_ARTIFACTS: "1"    # rarely needed on CI
         run: |
           command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
-          swift test -v --disable-swift-testing --filter UntoldEngineRenderTests --skip 'UntoldEngineRenderTests.(AsyncLoadingSystemTest|AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
+          swift test -v --disable-swift-testing --parallel --num-workers 1 --filter UntoldEngineRenderTests --skip 'UntoldEngineRenderTests.(AsyncLoadingSystemTest|AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
 
       # ✅ Run async renderer tests in isolation to avoid cross-suite interference
       - name: Run async renderer tests
@@ -81,7 +81,7 @@ jobs:
           UNTOLD_PYTHON: "python3"
         run: |
           command -v "${UNTOLD_PYTHON}" >/dev/null 2>&1 || { echo "python not found"; exit 1; }
-          swift test -v --disable-swift-testing --filter 'UntoldEngineRenderTests.(AsyncLoadingSystemTest|AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
+          swift test -v --disable-swift-testing --parallel --num-workers 1 --filter 'UntoldEngineRenderTests.(AsyncLoadingSystemTest|AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
 
   swift6-guardrails:
     runs-on: macos-15
