@@ -2473,7 +2473,9 @@ public enum RenderPasses {
 
     public static let spatialDebugBoundsExecution: RenderPassExecution = { commandBuffer in
         let settings = SpatialDebugVisualization.shared
-        guard settings.enabled, settings.showOctreeLeafBounds else {
+        let shouldDrawOctreeBounds = settings.showOctreeLeafBounds
+        let shouldDrawStaticBatchCells = settings.showStaticBatchCellBounds
+        guard settings.enabled, (shouldDrawOctreeBounds || shouldDrawStaticBatchCells) else {
             return
         }
 
@@ -2498,14 +2500,21 @@ public enum RenderPasses {
         }
 
         let snapshot = SpatialDebugBoundsCollector.shared.collectSnapshot()
-        let leafBounds = snapshot.octreeLeafBounds
+        let leafBounds = shouldDrawOctreeBounds ? snapshot.octreeLeafBounds : []
+        let staticBatchCellBounds = shouldDrawStaticBatchCells ? snapshot.staticBatchCellBounds : []
+
         let maxLeafNodeCount = settings.maxLeafNodeCount
-        let drawNodeCount = maxLeafNodeCount > 0 ? min(maxLeafNodeCount, leafBounds.count) : leafBounds.count
-        logSpatialDebugStatus(totalLeaves: leafBounds.count, drawnLeaves: drawNodeCount, cap: maxLeafNodeCount)
-        guard !leafBounds.isEmpty else {
-            return
+        let drawLeafCount = maxLeafNodeCount > 0 ? min(maxLeafNodeCount, leafBounds.count) : leafBounds.count
+        if shouldDrawOctreeBounds {
+            logSpatialDebugStatus(totalLeaves: leafBounds.count, drawnLeaves: drawLeafCount, cap: maxLeafNodeCount)
         }
-        guard drawNodeCount > 0 else {
+
+        let maxStaticBatchCellCount = settings.maxStaticBatchCellCount
+        let drawStaticBatchCellCount = maxStaticBatchCellCount > 0
+            ? min(maxStaticBatchCellCount, staticBatchCellBounds.count)
+            : staticBatchCellBounds.count
+
+        guard drawLeafCount > 0 || drawStaticBatchCellCount > 0 else {
             return
         }
 
@@ -2513,7 +2522,7 @@ public enum RenderPasses {
         var groupOrder: [SpatialDebugColorKey] = []
         groupOrder.reserveCapacity(4)
 
-        for i in 0 ..< drawNodeCount {
+        for i in 0 ..< drawLeafCount {
             let item = leafBounds[i]
             let key = spatialDebugColorKey(item.color)
             if groupedBounds[key] == nil {
@@ -2523,8 +2532,19 @@ public enum RenderPasses {
             groupedBounds[key]?.bounds.append(item.bounds)
         }
 
+        for i in 0 ..< drawStaticBatchCellCount {
+            let item = staticBatchCellBounds[i]
+            let key = spatialDebugColorKey(item.color)
+            if groupedBounds[key] == nil {
+                groupedBounds[key] = (color: item.color, bounds: [])
+                groupOrder.append(key)
+            }
+            groupedBounds[key]?.bounds.append(item.bounds)
+        }
+
         var lineVertices: [SIMD4<Float>] = []
-        lineVertices.reserveCapacity(drawNodeCount * 24)
+        let drawBoundsCount = drawLeafCount + drawStaticBatchCellCount
+        lineVertices.reserveCapacity(drawBoundsCount * 24)
         var batches: [SpatialDebugLineBatch] = []
         batches.reserveCapacity(groupOrder.count)
 

@@ -16,6 +16,13 @@ public enum SpatialDebugLeafColorMode: String {
     case culling
 }
 
+public enum SpatialDebugBatchCellColorMode: String {
+    case plain
+    case culling
+    case lod
+    case cell
+}
+
 /// Runtime toggles for spatial debug visualization.
 public final class SpatialDebugVisualization: @unchecked Sendable {
     public static let shared = SpatialDebugVisualization()
@@ -118,6 +125,54 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         }
     }
 
+    /// Draw static batch cell bounds.
+    private var _showStaticBatchCellBounds: Bool = false
+    public var showStaticBatchCellBounds: Bool {
+        get {
+            lock.lock()
+            let value = _showStaticBatchCellBounds
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _showStaticBatchCellBounds = newValue
+            lock.unlock()
+        }
+    }
+
+    /// Max number of static batch cells rendered per frame (0 = unlimited).
+    private var _maxStaticBatchCellCount: Int = 2000
+    public var maxStaticBatchCellCount: Int {
+        get {
+            lock.lock()
+            let value = _maxStaticBatchCellCount
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _maxStaticBatchCellCount = newValue
+            lock.unlock()
+        }
+    }
+
+    /// Color mode for static batch cell bounds.
+    private var _staticBatchCellColorMode: SpatialDebugBatchCellColorMode = .plain
+    public var staticBatchCellColorMode: SpatialDebugBatchCellColorMode {
+        get {
+            lock.lock()
+            let value = _staticBatchCellColorMode
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _staticBatchCellColorMode = newValue
+            lock.unlock()
+        }
+    }
+
     private init() {}
 
     public func configureOctreeLeafBounds(
@@ -127,7 +182,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         colorMode: SpatialDebugLeafColorMode = .plain
     ) {
         lock.lock()
-        _enabled = enabled || _colorRenderablesByLOD
+        _enabled = enabled || _showStaticBatchCellBounds || _colorRenderablesByLOD
         _showOctreeLeafBounds = enabled
         _maxLeafNodeCount = max(0, maxLeafNodeCount)
         _octreeLeafOccupiedOnly = occupiedOnly
@@ -135,10 +190,23 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         lock.unlock()
     }
 
+    public func configureStaticBatchCellBounds(
+        enabled: Bool,
+        maxCellCount: Int = 2000,
+        colorMode: SpatialDebugBatchCellColorMode = .plain
+    ) {
+        lock.lock()
+        _enabled = _showOctreeLeafBounds || enabled || _colorRenderablesByLOD
+        _showStaticBatchCellBounds = enabled
+        _maxStaticBatchCellCount = max(0, maxCellCount)
+        _staticBatchCellColorMode = colorMode
+        lock.unlock()
+    }
+
     public func configureLODLevelColoring(enabled: Bool) {
         lock.lock()
         _colorRenderablesByLOD = enabled
-        _enabled = _showOctreeLeafBounds || _colorRenderablesByLOD
+        _enabled = _showOctreeLeafBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD
         lock.unlock()
     }
 
@@ -146,6 +214,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         lock.lock()
         _enabled = false
         _showOctreeLeafBounds = false
+        _showStaticBatchCellBounds = false
         _colorRenderablesByLOD = false
         lock.unlock()
     }
@@ -162,6 +231,19 @@ public func setOctreeLeafBoundsDebug(
         enabled: enabled,
         maxLeafNodeCount: maxLeafNodeCount,
         occupiedOnly: occupiedOnly,
+        colorMode: colorMode
+    )
+}
+
+/// Enable/disable static batch cell bounds visualization.
+public func setStaticBatchCellBoundsDebug(
+    enabled: Bool,
+    maxCellCount: Int = 2000,
+    colorMode: SpatialDebugBatchCellColorMode = .plain
+) {
+    SpatialDebugVisualization.shared.configureStaticBatchCellBounds(
+        enabled: enabled,
+        maxCellCount: maxCellCount,
         colorMode: colorMode
     )
 }

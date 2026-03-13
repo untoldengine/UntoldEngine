@@ -19,6 +19,9 @@ final class SpatialDebugVisualizationTests: XCTestCase {
         SpatialDebugVisualization.shared.maxLeafNodeCount = 2000
         SpatialDebugVisualization.shared.octreeLeafOccupiedOnly = true
         SpatialDebugVisualization.shared.octreeLeafColorMode = .plain
+        SpatialDebugVisualization.shared.showStaticBatchCellBounds = false
+        SpatialDebugVisualization.shared.maxStaticBatchCellCount = 2000
+        SpatialDebugVisualization.shared.staticBatchCellColorMode = .plain
     }
 
     override func tearDown() async throws {
@@ -76,8 +79,37 @@ final class SpatialDebugVisualizationTests: XCTestCase {
         XCTAssertTrue(settings.enabled, "Master debug should remain enabled while LOD coloring is on")
     }
 
+    func testConfigureStaticBatchCellBoundsUpdatesSettings() {
+        setStaticBatchCellBoundsDebug(
+            enabled: true,
+            maxCellCount: 64,
+            colorMode: .lod
+        )
+
+        let settings = SpatialDebugVisualization.shared
+        XCTAssertTrue(settings.enabled)
+        XCTAssertTrue(settings.showStaticBatchCellBounds)
+        XCTAssertEqual(settings.maxStaticBatchCellCount, 64)
+        XCTAssertEqual(settings.staticBatchCellColorMode, .lod)
+    }
+
+    func testConfigureStaticBatchCellBoundsClampsNegativeMaxCount() {
+        setStaticBatchCellBoundsDebug(
+            enabled: true,
+            maxCellCount: -5,
+            colorMode: .plain
+        )
+
+        XCTAssertEqual(
+            SpatialDebugVisualization.shared.maxStaticBatchCellCount,
+            0,
+            "maxStaticBatchCellCount should clamp to 0"
+        )
+    }
+
     func testDisableAllClearsOctreeAndLODDebugFlags() {
         setOctreeLeafBoundsDebug(enabled: true, colorMode: .residency)
+        setStaticBatchCellBoundsDebug(enabled: true, colorMode: .culling)
         setLODLevelDebug(enabled: true)
 
         disableSpatialDebugVisualization()
@@ -85,6 +117,7 @@ final class SpatialDebugVisualizationTests: XCTestCase {
         let settings = SpatialDebugVisualization.shared
         XCTAssertFalse(settings.enabled)
         XCTAssertFalse(settings.showOctreeLeafBounds)
+        XCTAssertFalse(settings.showStaticBatchCellBounds)
         XCTAssertFalse(settings.colorRenderablesByLOD)
     }
 }
