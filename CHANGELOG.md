@@ -1,4 +1,14 @@
 # Changelog
+## v0.11.0 - 2026-03-13
+### 🐞 Fixes
+- [Patch] Fix easy Sendable/static-value issues (4b3e497…)
+- [Patch] Initial migration to swift 6.0 (8f1e6e9…)
+- [Patch] Phase 2 for migration to swift 6.0 (e32e826…)
+- [Patch] Phase 3 for migration to swift 6.0 (344cae3…)
+### 📚 Docs
+- [docs] Updated readme (3ea1d09…)
+### 🚀 Features
+- [Feature] Migrated engine to swift 6.0 (d7c6fb9…)
 ## v0.10.17 - 2026-03-11
 ### 🐞 Fixes
 - [Patch] Added support to load lods from usd file (2410d67…)
