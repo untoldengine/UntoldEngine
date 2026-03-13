@@ -20,10 +20,18 @@ jobs:
           curl -fsSL -o /tmp/swiftformat.zip \
             "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip"
           unzip -o /tmp/swiftformat.zip -d /tmp/swiftformat
-          sudo install -m 755 /tmp/swiftformat/swiftformat /usr/local/bin/swiftformat
+          CURRENT_SWIFTFORMAT="$(command -v swiftformat || true)"
+          if [ -n "$CURRENT_SWIFTFORMAT" ]; then
+            INSTALL_PATH="$CURRENT_SWIFTFORMAT"
+          else
+            INSTALL_PATH="/usr/local/bin/swiftformat"
+          fi
+          sudo install -m 755 /tmp/swiftformat/swiftformat "$INSTALL_PATH"
+          echo "$(dirname "$INSTALL_PATH")" >> "$GITHUB_PATH"
 
       - name: Show versions
         run: |
+          which swiftformat
           swiftformat --version
           swift --version
 
