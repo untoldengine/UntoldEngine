@@ -21,6 +21,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         clearSceneBatches()
         enableBatching(false)
         BatchingSystem.shared.setBatchCellSize(32.0)
+        disableSpatialDebugVisualization()
     }
 
     override func tearDown() async throws {
@@ -28,6 +29,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         clearSceneBatches()
         enableBatching(false)
         BatchingSystem.shared.setBatchCellSize(32.0)
+        disableSpatialDebugVisualization()
 
         try await super.tearDown()
     }
@@ -52,6 +54,20 @@ final class StaticBatchingTest: BaseRenderSetup {
 
         setEntityStaticBatchComponent(entityId: entity)
         return entity
+    }
+
+    private func setVisibleEntitiesForSpatialDebug(_ entities: [EntityID]) {
+        visibleEntityIds = entities
+        for frame in 0 ..< 3 {
+            tripleVisibleEntities.setWrite(frame: frame, with: entities)
+        }
+    }
+
+    private func approximatelyEqual(_ lhs: simd_float4, _ rhs: simd_float4, epsilon: Float = 0.0001) -> Bool {
+        abs(lhs.x - rhs.x) <= epsilon &&
+            abs(lhs.y - rhs.y) <= epsilon &&
+            abs(lhs.z - rhs.z) <= epsilon &&
+            abs(lhs.w - rhs.w) <= epsilon
     }
 
     // MARK: - Basic Functionality Tests
@@ -500,6 +516,77 @@ final class StaticBatchingTest: BaseRenderSetup {
         XCTAssertTrue(visibleBatchIds.contains(cell0BatchId!), "❌ Visible set should include the visible batch")
         XCTAssertFalse(visibleBatchIds.contains(cell2BatchId!), "❌ Visible set should exclude non-visible batches")
         XCTAssertNotNil(BatchingSystem.shared.getBatchInfo(for: cell2EntityB), "❌ Non-visible entities should still remain batched")
+    }
+
+    func testSpatialDebugCollectorIncludesStaticBatchCellBounds() {
+        BatchingSystem.shared.setBatchCellSize(10.0)
+        enableBatching(true)
+
+        _ = createStaticCubeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        _ = createStaticCubeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        _ = createStaticCubeEntity(position: simd_float3(25.0, 0.0, 0.0))
+        _ = createStaticCubeEntity(position: simd_float3(27.0, 0.0, 0.0))
+        generateBatches()
+
+        setStaticBatchCellBoundsDebug(enabled: true, colorMode: .plain)
+        let snapshot = SpatialDebugBoundsCollector.shared.collectSnapshot()
+
+        XCTAssertEqual(snapshot.staticBatchCellBounds.count, 2, "❌ Expected one debug bound per populated static batch cell")
+    }
+
+    func testSpatialDebugCollectorStaticBatchCellsUseCullingColors() {
+        let visibleColor = simd_float4(0.25, 0.95, 0.35, 1.0)
+        let culledColor = simd_float4(0.30, 0.60, 1.00, 1.0)
+
+        BatchingSystem.shared.setBatchCellSize(10.0)
+        enableBatching(true)
+
+        let cell0EntityA = createStaticCubeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        let cell0EntityB = createStaticCubeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        let cell2EntityA = createStaticCubeEntity(position: simd_float3(25.0, 0.0, 0.0))
+        let cell2EntityB = createStaticCubeEntity(position: simd_float3(27.0, 0.0, 0.0))
+        generateBatches()
+
+        setVisibleEntitiesForSpatialDebug([cell0EntityA, cell0EntityB])
+        setStaticBatchCellBoundsDebug(enabled: true, colorMode: .culling)
+        let snapshot = SpatialDebugBoundsCollector.shared.collectSnapshot()
+
+        XCTAssertEqual(snapshot.staticBatchCellBounds.count, 2, "❌ Expected both batch cells to be represented")
+        XCTAssertTrue(
+            snapshot.staticBatchCellBounds.contains(where: { approximatelyEqual($0.color, visibleColor) }),
+            "❌ Expected a visible static batch cell color"
+        )
+        XCTAssertTrue(
+            snapshot.staticBatchCellBounds.contains(where: { approximatelyEqual($0.color, culledColor) }),
+            "❌ Expected a culled static batch cell color"
+        )
+        XCTAssertNotNil(BatchingSystem.shared.getBatchInfo(for: cell2EntityA), "❌ Culled cell entities should remain batched")
+        XCTAssertNotNil(BatchingSystem.shared.getBatchInfo(for: cell2EntityB), "❌ Culled cell entities should remain batched")
+    }
+
+    func testSpatialDebugCollectorStaticBatchCellsUseDistinctCellColors() {
+        BatchingSystem.shared.setBatchCellSize(10.0)
+        enableBatching(true)
+
+        _ = createStaticCubeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        _ = createStaticCubeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        _ = createStaticCubeEntity(position: simd_float3(25.0, 0.0, 0.0))
+        _ = createStaticCubeEntity(position: simd_float3(27.0, 0.0, 0.0))
+        generateBatches()
+
+        setStaticBatchCellBoundsDebug(enabled: true, colorMode: .cell)
+        let snapshot = SpatialDebugBoundsCollector.shared.collectSnapshot()
+
+        XCTAssertEqual(snapshot.staticBatchCellBounds.count, 2, "❌ Expected two static batch cells")
+        let uniqueColors = Set(snapshot.staticBatchCellBounds.map {
+            simd_uint4(
+                $0.color.x.bitPattern,
+                $0.color.y.bitPattern,
+                $0.color.z.bitPattern,
+                $0.color.w.bitPattern
+            )
+        })
+        XCTAssertEqual(uniqueColors.count, 2, "❌ Different static batch cells should use distinct debug colors in cell mode")
     }
 
     // MARK: - Statistics Tests

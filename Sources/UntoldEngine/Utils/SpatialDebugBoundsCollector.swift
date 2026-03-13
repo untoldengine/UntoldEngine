@@ -24,9 +24,14 @@ public struct SpatialDebugBound {
 /// Collected spatial debug bounds for a single frame.
 public struct SpatialDebugBoundsSnapshot {
     public var octreeLeafBounds: [SpatialDebugBound]
+    public var staticBatchCellBounds: [SpatialDebugBound]
 
-    public init(octreeLeafBounds: [SpatialDebugBound] = []) {
+    public init(
+        octreeLeafBounds: [SpatialDebugBound] = [],
+        staticBatchCellBounds: [SpatialDebugBound] = []
+    ) {
         self.octreeLeafBounds = octreeLeafBounds
+        self.staticBatchCellBounds = staticBatchCellBounds
     }
 }
 
@@ -43,6 +48,11 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
     private let cullingCulledColor = simd_float4(0.30, 0.60, 1.00, 1.0)
     private let cullingHiddenColor = simd_float4(0.55, 0.55, 0.55, 1.0)
     private let cullingMixedColor = simd_float4(1.00, 0.55, 0.15, 1.0)
+    private let staticBatchCellPlainColor = simd_float4(0.95, 0.85, 0.30, 1.0)
+    private let staticBatchCellLOD0Color = simd_float4(1.0, 0.0, 0.0, 1.0)
+    private let staticBatchCellLOD1Color = simd_float4(0.0, 1.0, 0.0, 1.0)
+    private let staticBatchCellLOD2Color = simd_float4(0.0, 0.0, 1.0, 1.0)
+    private let staticBatchCellLODMixedColor = simd_float4(1.00, 0.55, 0.15, 1.0)
 
     private init() {}
 
@@ -73,6 +83,37 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
                 }
                 snapshot.octreeLeafBounds.append(
                     SpatialDebugBound(bounds: leaf.bounds, color: color)
+                )
+            }
+        }
+
+        if settings.showStaticBatchCellBounds {
+            let batchGroups = BatchingSystem.shared.batchGroups
+            let cellSize = max(BatchingSystem.shared.getBatchCellSize(), 0.01)
+            let visibleSet: Set<EntityID> = settings.staticBatchCellColorMode == .culling
+                ? Set(visibleEntityIds)
+                : Set<EntityID>()
+
+            var cellGroups: [BatchCellID: [BatchGroup]] = [:]
+            cellGroups.reserveCapacity(batchGroups.count)
+            for group in batchGroups {
+                cellGroups[group.cellId, default: []].append(group)
+            }
+
+            snapshot.staticBatchCellBounds.reserveCapacity(cellGroups.count)
+            for (cellId, groups) in cellGroups {
+                guard !groups.isEmpty else { continue }
+                let color = staticBatchCellColor(
+                    cellId: cellId,
+                    for: groups,
+                    mode: settings.staticBatchCellColorMode,
+                    visibleSet: visibleSet
+                )
+                snapshot.staticBatchCellBounds.append(
+                    SpatialDebugBound(
+                        bounds: staticBatchCellBounds(for: cellId, cellSize: cellSize),
+                        color: color
+                    )
                 )
             }
         }
@@ -148,5 +189,113 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
         if hasCulled { return cullingCulledColor }
         if hasHidden { return cullingHiddenColor }
         return defaultOctreeColor
+    }
+
+    private func staticBatchCellColor(
+        cellId: BatchCellID,
+        for groups: [BatchGroup],
+        mode: SpatialDebugBatchCellColorMode,
+        visibleSet: Set<EntityID>
+    ) -> simd_float4 {
+        switch mode {
+        case .plain:
+            return staticBatchCellPlainColor
+        case .culling:
+            var hasVisible = false
+            var hasCulled = false
+
+            for group in groups {
+                for entityId in group.entityIds {
+                    if visibleSet.contains(entityId) {
+                        hasVisible = true
+                    } else {
+                        hasCulled = true
+                    }
+                    if hasVisible, hasCulled {
+                        return cullingMixedColor
+                    }
+                }
+            }
+
+            if hasVisible { return cullingVisibleColor }
+            if hasCulled { return cullingCulledColor }
+            return staticBatchCellPlainColor
+        case .lod:
+            var lodSet: Set<Int> = []
+            lodSet.reserveCapacity(groups.count)
+            for group in groups {
+                lodSet.insert(group.lodIndex)
+                if lodSet.count > 1 {
+                    return staticBatchCellLODMixedColor
+                }
+            }
+
+            guard let onlyLOD = lodSet.first else {
+                return staticBatchCellPlainColor
+            }
+
+            switch onlyLOD {
+            case 0:
+                return staticBatchCellLOD0Color
+            case 1:
+                return staticBatchCellLOD1Color
+            case 2:
+                return staticBatchCellLOD2Color
+            default:
+                return staticBatchCellLODMixedColor
+            }
+        case .cell:
+            return staticBatchCellColor(for: cellId)
+        }
+    }
+
+    private func staticBatchCellColor(for cellId: BatchCellID) -> simd_float4 {
+        // Stable per-cell pseudo-random hue so neighboring cells are easy to distinguish.
+        let x = Int64(cellId.x)
+        let y = Int64(cellId.y)
+        let z = Int64(cellId.z)
+        let signedSeed = (x &* 73_856_093) ^ (y &* 19_349_663) ^ (z &* 83_492_791)
+        let seed = UInt64(bitPattern: signedSeed)
+
+        let hue = Float(seed % 360) / 360.0
+        let saturation: Float = 0.75
+        let value: Float = 0.95
+        let rgb = hsvToRgb(h: hue, s: saturation, v: value)
+        return simd_float4(rgb.x, rgb.y, rgb.z, 1.0)
+    }
+
+    private func hsvToRgb(h: Float, s: Float, v: Float) -> simd_float3 {
+        let scaled = h * 6.0
+        let sector = Int(floor(scaled)) % 6
+        let fraction = scaled - floor(scaled)
+
+        let p = v * (1.0 - s)
+        let q = v * (1.0 - fraction * s)
+        let t = v * (1.0 - (1.0 - fraction) * s)
+
+        switch sector {
+        case 0:
+            return simd_float3(v, t, p)
+        case 1:
+            return simd_float3(q, v, p)
+        case 2:
+            return simd_float3(p, v, t)
+        case 3:
+            return simd_float3(p, q, v)
+        case 4:
+            return simd_float3(t, p, v)
+        default:
+            return simd_float3(v, p, q)
+        }
+    }
+
+    private func staticBatchCellBounds(for cellId: BatchCellID, cellSize: Float) -> AABB {
+        let minPoint = simd_float3(
+            Float(cellId.x) * cellSize,
+            Float(cellId.y) * cellSize,
+            Float(cellId.z) * cellSize
+        )
+        let maxPoint = minPoint + simd_float3(repeating: cellSize)
+        return AABB(min: minPoint, max: maxPoint)
     }
 }
