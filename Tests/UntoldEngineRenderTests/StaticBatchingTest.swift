@@ -20,14 +20,38 @@ final class StaticBatchingTest: BaseRenderSetup {
         // Clear any existing batches
         clearSceneBatches()
         enableBatching(false)
+        BatchingSystem.shared.setBatchCellSize(32.0)
     }
 
     override func tearDown() async throws {
         // Clean up batches after tests
         clearSceneBatches()
         enableBatching(false)
+        BatchingSystem.shared.setBatchCellSize(32.0)
 
         try await super.tearDown()
+    }
+
+    private func createStaticCubeEntity(position: simd_float3, lodIndex: Int = 0) -> EntityID {
+        let entity = createEntity()
+
+        if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+            renderComponent.mesh = BasicPrimitives.createCube()
+            renderComponent.assetURL = URL(fileURLWithPath: "/tmp/static_batch_cell_test.usdz")
+        }
+
+        if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+            transform.position = position
+        }
+
+        _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+
+        if let lodComponent = scene.assign(to: entity, component: LODComponent.self) {
+            lodComponent.currentLOD = lodIndex
+        }
+
+        setEntityStaticBatchComponent(entityId: entity)
+        return entity
     }
 
     // MARK: - Basic Functionality Tests
@@ -250,6 +274,53 @@ final class StaticBatchingTest: BaseRenderSetup {
         XCTAssertTrue(true, "Material grouping is tested implicitly")
     }
 
+    func testGenerateBatchesCreatesSeparateBatchesForDifferentCells() {
+        BatchingSystem.shared.setBatchCellSize(10.0)
+
+        let nearCellEntityA = createStaticCubeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        let nearCellEntityB = createStaticCubeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        let farCellEntityA = createStaticCubeEntity(position: simd_float3(25.0, 0.0, 0.0))
+        let farCellEntityB = createStaticCubeEntity(position: simd_float3(27.0, 0.0, 0.0))
+
+        generateBatches()
+
+        let nearBatchA = BatchingSystem.shared.getBatchInfo(for: nearCellEntityA)
+        let nearBatchB = BatchingSystem.shared.getBatchInfo(for: nearCellEntityB)
+        let farBatchA = BatchingSystem.shared.getBatchInfo(for: farCellEntityA)
+        let farBatchB = BatchingSystem.shared.getBatchInfo(for: farCellEntityB)
+
+        XCTAssertNotNil(nearBatchA, "❌ Near cell entity A should be batched")
+        XCTAssertNotNil(nearBatchB, "❌ Near cell entity B should be batched")
+        XCTAssertNotNil(farBatchA, "❌ Far cell entity A should be batched")
+        XCTAssertNotNil(farBatchB, "❌ Far cell entity B should be batched")
+
+        XCTAssertEqual(nearBatchA?.batchId, nearBatchB?.batchId, "❌ Entities in same cell should share a batch")
+        XCTAssertEqual(farBatchA?.batchId, farBatchB?.batchId, "❌ Entities in same far cell should share a batch")
+        XCTAssertNotEqual(nearBatchA?.batchId, farBatchA?.batchId, "❌ Entities in different cells should not share a batch")
+        XCTAssertNotEqual(nearBatchA?.cellId, farBatchA?.cellId, "❌ Different-cell entities should have different cell IDs")
+    }
+
+    func testGenerateBatchesMergesEntitiesWithinSameCellMaterialAndLOD() {
+        BatchingSystem.shared.setBatchCellSize(50.0)
+
+        let entityA = createStaticCubeEntity(position: simd_float3(1.0, 0.0, 0.0), lodIndex: 0)
+        let entityB = createStaticCubeEntity(position: simd_float3(4.0, 0.0, 0.0), lodIndex: 0)
+        let entityC = createStaticCubeEntity(position: simd_float3(8.0, 0.0, 0.0), lodIndex: 0)
+
+        generateBatches()
+
+        let batchInfoA = BatchingSystem.shared.getBatchInfo(for: entityA)
+        let batchInfoB = BatchingSystem.shared.getBatchInfo(for: entityB)
+        let batchInfoC = BatchingSystem.shared.getBatchInfo(for: entityC)
+
+        XCTAssertNotNil(batchInfoA, "❌ Entity A should be batched")
+        XCTAssertNotNil(batchInfoB, "❌ Entity B should be batched")
+        XCTAssertNotNil(batchInfoC, "❌ Entity C should be batched")
+
+        XCTAssertEqual(batchInfoA?.batchId, batchInfoB?.batchId, "❌ Same-cell entities should share a batch")
+        XCTAssertEqual(batchInfoA?.batchId, batchInfoC?.batchId, "❌ Same-cell entities should share a batch")
+    }
+
     // MARK: - Edge Cases
 
     func testBatchingExcludesAnimatedEntities() {
@@ -404,6 +475,31 @@ final class StaticBatchingTest: BaseRenderSetup {
         wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
 
         print("✅ Batching integrated successfully with rendering system")
+    }
+
+    func testVisibleBatchIdCollectionFiltersToVisibleEntities() {
+        BatchingSystem.shared.setBatchCellSize(10.0)
+        enableBatching(true)
+
+        let cell0EntityA = createStaticCubeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        let cell0EntityB = createStaticCubeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        let cell2EntityA = createStaticCubeEntity(position: simd_float3(25.0, 0.0, 0.0))
+        let cell2EntityB = createStaticCubeEntity(position: simd_float3(27.0, 0.0, 0.0))
+
+        generateBatches()
+        XCTAssertEqual(BatchingSystem.shared.batchGroups.count, 2, "❌ Expected two cell-based batches")
+
+        let cell0BatchId = BatchingSystem.shared.getBatchInfo(for: cell0EntityA)?.batchId
+        let cell2BatchId = BatchingSystem.shared.getBatchInfo(for: cell2EntityA)?.batchId
+        XCTAssertNotNil(cell0BatchId, "❌ Cell 0 batch should exist")
+        XCTAssertNotNil(cell2BatchId, "❌ Cell 2 batch should exist")
+
+        let visibleBatchIds = RenderPasses.collectVisibleBatchIds(from: [cell0EntityA, cell0EntityB])
+
+        XCTAssertEqual(visibleBatchIds.count, 1, "❌ Visible entity set should resolve to exactly one batch")
+        XCTAssertTrue(visibleBatchIds.contains(cell0BatchId!), "❌ Visible set should include the visible batch")
+        XCTAssertFalse(visibleBatchIds.contains(cell2BatchId!), "❌ Visible set should exclude non-visible batches")
+        XCTAssertNotNil(BatchingSystem.shared.getBatchInfo(for: cell2EntityB), "❌ Non-visible entities should still remain batched")
     }
 
     // MARK: - Statistics Tests

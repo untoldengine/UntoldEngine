@@ -13,9 +13,35 @@ import Foundation
 import Metal
 import simd
 
+public struct BatchCellID: Hashable, Sendable {
+    public var x: Int
+    public var y: Int
+    public var z: Int
+
+    public init(x: Int, y: Int, z: Int) {
+        self.x = x
+        self.y = y
+        self.z = z
+    }
+
+    public static let zero = BatchCellID(x: 0, y: 0, z: 0)
+}
+
+private struct BatchBuildKey: Hashable {
+    let cellId: BatchCellID
+    let materialHash: String
+    let lodIndex: Int
+
+    var materialLODHash: String {
+        "\(materialHash)_LOD\(lodIndex)"
+    }
+}
+
 /// Represents a group of meshes batched together
 public struct BatchGroup {
     var id: UUID
+    var cellId: BatchCellID
+    var lodIndex: Int
     var materialHash: String // Identifier for material compatibility
     var material: Material // Representative material for this batch
 
@@ -38,6 +64,7 @@ public struct EntityBatchInfo {
     public var batchId: UUID
     public var lodIndex: Int
     public var materialHash: String
+    public var cellId: BatchCellID = .zero
 }
 
 /// Manages all batching operations
@@ -53,6 +80,7 @@ public class BatchingSystem: @unchecked Sendable {
     private var pendingEntityRemovals: [(EntityID, UUID)] = [] // (entity, oldBatchId)
     private var pendingEntityAdditions: [EntityID] = []
     private var isSubscribed: Bool = false
+    private var batchCellSize: Float = 32.0
 
     private init() {
         subscribeToEvents()
@@ -146,6 +174,8 @@ public class BatchingSystem: @unchecked Sendable {
         guard let staticBatch = scene.get(component: StaticBatchComponent.self, for: entityId),
               staticBatch.canBatch,
               let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+              let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
+              let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId),
               !renderComponent.mesh.isEmpty
         else { return }
 
@@ -162,14 +192,17 @@ public class BatchingSystem: @unchecked Sendable {
         // Get material hash from first submesh
         guard let material = renderComponent.mesh.first?.submeshes.first?.material else { return }
         let matHash = getMaterialHash(material: material)
+        let cellId = resolveCellId(localTransform: localTransform, worldTransform: worldTransform)
 
-        // Create batch key including LOD
-        let batchKey = "\(matHash)_LOD\(lodIndex)"
+        let batchBuildKey = BatchBuildKey(cellId: cellId, materialHash: matHash, lodIndex: lodIndex)
+        let batchKey = batchBuildKey.materialLODHash
 
         // Find or create batch for this key
-        if let existingBatch = batchGroups.first(where: { $0.materialHash == batchKey }) {
+        if let existingBatch = batchGroups.first(where: {
+            $0.materialHash == batchKey && $0.cellId == batchBuildKey.cellId && $0.lodIndex == batchBuildKey.lodIndex
+        }) {
             // Add to existing batch
-            entityToBatch[entityId] = EntityBatchInfo(batchId: existingBatch.id, lodIndex: lodIndex, materialHash: matHash)
+            entityToBatch[entityId] = EntityBatchInfo(batchId: existingBatch.id, lodIndex: lodIndex, materialHash: matHash, cellId: cellId)
             if let idx = batchGroups.firstIndex(where: { $0.id == existingBatch.id }) {
                 batchGroups[idx].entityIds.append(entityId)
                 dirtyBatchIds.insert(existingBatch.id)
@@ -218,8 +251,8 @@ public class BatchingSystem: @unchecked Sendable {
 
             Logger.log(message: "📋 Found \(entities.count) entities with StaticBatchComponent")
 
-            // Group meshes by material AND LOD level
-            var materialGroups: [String: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4, lodIndex: Int, material: Material)]] = [:]
+            // Group meshes by cell + material + LOD
+            var materialGroups: [BatchBuildKey: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4, material: Material)]] = [:]
 
             // Iterate through all entities with StaticBatchComponent
             for entityId in entities {
@@ -228,7 +261,7 @@ public class BatchingSystem: @unchecked Sendable {
                       staticBatch.canBatch,
                       let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
                       let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
-                      scene.get(component: LocalTransformComponent.self, for: entityId) != nil
+                      let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
                 else { continue }
 
                 // Skip entities with empty meshes (not yet loaded by streaming)
@@ -246,6 +279,7 @@ public class BatchingSystem: @unchecked Sendable {
 
                 // Get current LOD index (0 if no LOD component)
                 let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
+                let cellId = resolveCellId(localTransform: localTransform, worldTransform: worldTransform)
 
                 let hasTransparentSubmesh = renderComponent.mesh.contains { mesh in
                     mesh.submeshes.contains { submesh in
@@ -264,19 +298,14 @@ public class BatchingSystem: @unchecked Sendable {
                         if material.hasTransparency { continue }
 
                         let matHash = getMaterialHash(material: material, assetURL: assetURL)
-                        // Include LOD in batch key to avoid mixing different LOD levels
-                        let batchKey = "\(matHash)_LOD\(lodIndex)"
+                        let batchKey = BatchBuildKey(cellId: cellId, materialHash: matHash, lodIndex: lodIndex)
                         let finalTransform = simd_mul(worldTransform.space, mesh.localSpace)
 
-                        if materialGroups[batchKey] == nil {
-                            materialGroups[batchKey] = []
-                        }
-                        materialGroups[batchKey]!.append((
+                        materialGroups[batchKey, default: []].append((
                             entityId: entityId,
                             mesh: mesh,
                             meshIndex: submeshIndex,
                             transform: finalTransform,
-                            lodIndex: lodIndex,
                             material: material
                         ))
                     }
@@ -304,17 +333,22 @@ public class BatchingSystem: @unchecked Sendable {
 
                 guard let batchMaterial = meshGroup.first?.material else { continue }
 
-                if let batchGroup = createBatchGroup(from: convertedGroup, materialHash: batchKey, material: batchMaterial) {
+                if let batchGroup = createBatchGroup(
+                    from: convertedGroup,
+                    materialHash: batchKey.materialLODHash,
+                    material: batchMaterial,
+                    cellId: batchKey.cellId,
+                    lodIndex: batchKey.lodIndex
+                ) {
                     batchGroups.append(batchGroup)
 
                     // Track entity to batch mapping with LOD info
-                    let lodIndex = meshGroup.first?.lodIndex ?? 0
-                    let matHash = String(batchKey.split(separator: "_").first ?? "")
                     for item in meshGroup {
                         entityToBatch[item.entityId] = EntityBatchInfo(
                             batchId: batchGroup.id,
-                            lodIndex: lodIndex,
-                            materialHash: matHash
+                            lodIndex: batchKey.lodIndex,
+                            materialHash: batchKey.materialHash,
+                            cellId: batchKey.cellId
                         )
                     }
                 }
@@ -345,7 +379,9 @@ public class BatchingSystem: @unchecked Sendable {
     private func createBatchGroup(
         from meshGroup: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4)],
         materialHash: String,
-        material: Material
+        material: Material,
+        cellId: BatchCellID,
+        lodIndex: Int
     ) -> BatchGroup? {
         var allPositions: [simd_float4] = [] // Changed to float4 to match vertex descriptor
         var allNormals: [simd_float4] = [] // Changed to float4 to match vertex descriptor
@@ -450,6 +486,8 @@ public class BatchingSystem: @unchecked Sendable {
 
         return BatchGroup(
             id: UUID(),
+            cellId: cellId,
+            lodIndex: lodIndex,
             materialHash: materialHash,
             material: material,
             positionBuffer: positionBuffer,
@@ -493,6 +531,14 @@ public class BatchingSystem: @unchecked Sendable {
 
     public func isEnabled() -> Bool {
         batchingEnabled
+    }
+
+    public func setBatchCellSize(_ size: Float) {
+        batchCellSize = max(size, 0.01)
+    }
+
+    public func getBatchCellSize() -> Float {
+        batchCellSize
     }
 
     /// Generate a hash representing material properties for batching compatibility
@@ -586,6 +632,25 @@ public class BatchingSystem: @unchecked Sendable {
     /// Check if two materials are compatible for batching
     private func areMaterialsCompatible(_ mat1: Material, _ mat2: Material) -> Bool {
         getMaterialHash(material: mat1) == getMaterialHash(material: mat2)
+    }
+
+    private func resolveCellId(localTransform: LocalTransformComponent, worldTransform: WorldTransformComponent) -> BatchCellID {
+        let (worldMin, worldMax) = worldAABB_MinMax(
+            localMin: localTransform.boundingBox.min,
+            localMax: localTransform.boundingBox.max,
+            worldMatrix: worldTransform.space
+        )
+        let worldCenter = (worldMin + worldMax) * 0.5
+        return cellId(for: worldCenter)
+    }
+
+    private func cellId(for worldCenter: simd_float3) -> BatchCellID {
+        let size = max(batchCellSize, 0.01)
+        return BatchCellID(
+            x: Int(floor(worldCenter.x / size)),
+            y: Int(floor(worldCenter.y / size)),
+            z: Int(floor(worldCenter.z / size))
+        )
     }
 
     /// Extract vertex data from a mesh and transform to world space

@@ -179,6 +179,24 @@ public enum RenderPasses {
     }
 
     @inline(__always)
+    static func collectVisibleBatchIds(from entityIds: [EntityID]) -> Set<UUID> {
+        var visibleBatchIds: Set<UUID> = []
+        visibleBatchIds.reserveCapacity(entityIds.count)
+
+        for entityId in entityIds {
+            guard let batchInfo = BatchingSystem.shared.getBatchInfo(for: entityId) else { continue }
+            visibleBatchIds.insert(batchInfo.batchId)
+        }
+
+        return visibleBatchIds
+    }
+
+    @inline(__always)
+    private static func visibleBatchIdsSnapshot() -> Set<UUID> {
+        collectVisibleBatchIds(from: visibleEntityIds)
+    }
+
+    @inline(__always)
     private static func applyLODDebugColorOverride(
         entityId: EntityID? = nil,
         batchMaterialHash: String? = nil,
@@ -592,6 +610,10 @@ public enum RenderPasses {
         // If generateBatches() modifies the array while we iterate, we'd crash.
         let batchGroupsSnapshot = BatchingSystem.shared.batchGroups
         guard !batchGroupsSnapshot.isEmpty else { return }
+        let visibleBatchIds = visibleBatchIdsSnapshot()
+        guard !visibleBatchIds.isEmpty else { return }
+        let visibleBatchGroups = batchGroupsSnapshot.filter { visibleBatchIds.contains($0.id) }
+        guard !visibleBatchGroups.isEmpty else { return }
 
         guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
             handleError(.pipelineStateNulled, "shadowPipeline is nil")
@@ -662,8 +684,8 @@ public enum RenderPasses {
         batchUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
         batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-        // Render each batch group (shadows only need positions)
-        for batchGroup in batchGroupsSnapshot {
+        // Render only batch groups that contain at least one visible entity.
+        for batchGroup in visibleBatchGroups {
             guard let positionBuffer = batchGroup.positionBuffer,
                   let indexBuffer = batchGroup.indexBuffer
             else { continue }
@@ -998,6 +1020,10 @@ public enum RenderPasses {
         // If generateBatches() modifies the array while we iterate, we'd crash.
         let batchGroupsSnapshot = BatchingSystem.shared.batchGroups
         guard !batchGroupsSnapshot.isEmpty else { return }
+        let visibleBatchIds = visibleBatchIdsSnapshot()
+        guard !visibleBatchIds.isEmpty else { return }
+        let visibleBatchGroups = batchGroupsSnapshot.filter { visibleBatchIds.contains($0.id) }
+        guard !visibleBatchGroups.isEmpty else { return }
 
         guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[.model] else {
             handleError(.pipelineStateNulled, "modelPipeline is nil")
@@ -1079,8 +1105,8 @@ public enum RenderPasses {
         batchUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
         batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-        // Render each batch group
-        for batchGroup in batchGroupsSnapshot {
+        // Render only batch groups that contain at least one visible entity.
+        for batchGroup in visibleBatchGroups {
             guard let positionBuffer = batchGroup.positionBuffer,
                   let normalBuffer = batchGroup.normalBuffer,
                   let uvBuffer = batchGroup.uvBuffer,
