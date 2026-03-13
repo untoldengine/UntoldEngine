@@ -6,12 +6,21 @@ on:
   pull_request:
     branches: [master, develop]
 
+env:
+  XCODE_VERSION: "26.0.1"
+
 jobs:
   build:
     runs-on: macos-15  # macOS Sequoia - required for Metal 4.0 support
 
     steps:
       - uses: actions/checkout@v4
+
+      # Pin Xcode so local/CI concurrency diagnostics stay aligned.
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
 
       # ✅ Ensure a consistent, modern Python environment
       - name: Set up Python
@@ -79,6 +88,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # Use the exact same toolchain as the build/test job.
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
 
       - name: Show toolchain versions
         run: |
