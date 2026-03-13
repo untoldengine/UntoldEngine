@@ -14,7 +14,7 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-/// Unit tests for Mesh.spaceUniform initialization, cleanup, and RenderPasses uniform buffer selection
+// Unit tests for Mesh.spaceUniform initialization, cleanup, and RenderPasses uniform buffer selection
 
 @MainActor
 final class MeshUniformBufferTests: XCTestCase {
@@ -23,7 +23,6 @@ final class MeshUniformBufferTests: XCTestCase {
     var textureLoader: TextureLoader!
 
     override func setUp() async throws {
-
         guard let device = MTLCreateSystemDefaultDevice() else {
             XCTFail("Failed to create Metal device")
             return

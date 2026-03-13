@@ -13,7 +13,6 @@ import Foundation
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class LoadingSystemTest: XCTestCase {
     override func setUp() async throws {

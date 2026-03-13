@@ -13,7 +13,6 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class EntityAABBTest: XCTestCase {
     private func makeTransform(translation t: simd_float3,

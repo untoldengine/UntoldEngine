@@ -12,7 +12,6 @@ import Foundation
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class USCScriptingConditionRuntimeTests: XCTestCase {
     override func setUp() async throws {

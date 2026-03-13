@@ -723,11 +723,27 @@ public enum MeshLoadingMode {
 }
 
 /// Tracks async loading operations during scene deserialization
+private struct VoidCompletionBox: @unchecked Sendable {
+    let callback: () -> Void
+
+    func call() {
+        if Thread.isMainThread {
+            callback()
+            return
+        }
+        Task { @MainActor in
+            callback()
+        }
+    }
+}
+
 private final class AsyncLoadTracker: @unchecked Sendable {
     private var pendingLoads = 0
     private var completedLoads = 0
+    private var didFinishRegistration = false
+    private var didCallCompletion = false
     private let lock = NSLock()
-    var completion: (() -> Void)?
+    var completion: VoidCompletionBox?
 
     /// Register a new async operation
     func registerLoad() {
@@ -740,23 +756,37 @@ private final class AsyncLoadTracker: @unchecked Sendable {
     func completeLoad() {
         lock.lock()
         completedLoads += 1
-        let shouldComplete = (completedLoads >= pendingLoads && pendingLoads > 0)
+        let callback = completionIfReadyLocked()
         lock.unlock()
 
-        if shouldComplete {
-            completion?()
-        }
+        dispatchCompletion(callback)
     }
 
-    /// Check if we should call completion immediately (no async ops)
-    func checkCompletion() {
+    /// Marks registration as complete and resolves completion if all async work is done.
+    func finishRegistration() {
         lock.lock()
-        let hasNoAsyncOps = (pendingLoads == 0)
+        didFinishRegistration = true
+        let callback = completionIfReadyLocked()
         lock.unlock()
 
-        if hasNoAsyncOps {
-            completion?()
+        dispatchCompletion(callback)
+    }
+
+    private func completionIfReadyLocked() -> VoidCompletionBox? {
+        guard didFinishRegistration, didCallCompletion == false else {
+            return nil
         }
+
+        guard completedLoads >= pendingLoads else {
+            return nil
+        }
+
+        didCallCompletion = true
+        return completion
+    }
+
+    private func dispatchCompletion(_ callback: VoidCompletionBox?) {
+        callback?.call()
     }
 }
 
@@ -769,18 +799,20 @@ public func deserializeScene(
 
     // Track async loading operations for completion callback
     let loadTracker = AsyncLoadTracker()
-    loadTracker.completion = {
+    loadTracker.completion = VoidCompletionBox(callback: {
         // Finalize static-batch membership for authored entities after all async imports finish.
         // This preserves explicit opt-outs (entity flag not true) even if an ancestor marked
         // static re-applied recursive tagging during mesh restoration.
-        for sceneDataEntity in sceneData.entities {
-            guard let entityId = uuidToEntityMap[sceneDataEntity.uuid] else { continue }
-            if sceneDataEntity.hasStaticBatchComponent != true {
-                removeEntityStaticBatch(entityId: entityId)
+        withWorldMutationGate {
+            for sceneDataEntity in sceneData.entities {
+                guard let entityId = uuidToEntityMap[sceneDataEntity.uuid] else { continue }
+                if sceneDataEntity.hasStaticBatchComponent != true {
+                    removeEntityStaticBatch(entityId: entityId)
+                }
             }
         }
         completion?()
-    }
+    })
 
     if let env = sceneData.environment {
         applyIBL = env.applyIBL ?? false
@@ -850,148 +882,69 @@ public func deserializeScene(
         }
     }
 
-    for sceneDataEntity in sceneData.entities {
-        let entityId = createEntity()
+    withWorldMutationGate {
+        for sceneDataEntity in sceneData.entities {
+            let entityId = createEntity()
 
-        uuidToEntityMap[sceneDataEntity.uuid] = entityId
+            uuidToEntityMap[sceneDataEntity.uuid] = entityId
 
-        setEntityName(entityId: entityId, name: sceneDataEntity.name)
-        registerTransformComponent(entityId: entityId)
-        registerSceneGraphComponent(entityId: entityId)
-        if let pickParticipation = sceneDataEntity.pickParticipation {
-            setEntityPickParticipation(entityId: entityId, enabled: pickParticipation)
-        }
-        if let pickHitRepresentationMode = sceneDataEntity.pickHitRepresentationMode,
-           let mode = PickHitRepresentationMode(rawValue: pickHitRepresentationMode)
-        {
-            setEntityPickHitRepresentationMode(entityId: entityId, mode: mode)
-        }
-
-        // Check for new Asset Instance system
-        if let assetInstance = sceneDataEntity.assetInstance {
-            // New asset instance workflow
-            let filename = assetInstance.assetURL.deletingPathExtension().lastPathComponent
-            let withExtension = assetInstance.assetURL.pathExtension
-
-            // Apply parent entity's transform
-            applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
-
-            switch meshLoadingMode {
-            case .sync:
-                setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil)
-
-                // Restore Static Batch Component (sync mode - mesh already loaded)
-                if sceneDataEntity.hasStaticBatchComponent == true {
-                    setEntityStaticBatchComponent(entityId: entityId)
-                }
-                // Apply overrides synchronously after import (must run after static restore so
-                // per-node static opt-outs can remove static from selected children).
-                applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
-
-                // Setup animations (skeleton is now available)
-                if sceneDataEntity.hasAnimationComponent == true {
-                    for animations in sceneDataEntity.animations {
-                        let animationFilename = animations.deletingPathExtension().lastPathComponent
-                        let animationFilenameExt = animations.pathExtension
-                        setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                        changeAnimation(entityId: entityId, name: animationFilename)
-                    }
-                    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                        animationComponent.animationsFilenames = sceneDataEntity.animations
-                    }
-                }
-            case .asyncDefault:
-                loadTracker.registerLoad()
-                setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
-                    if success {
-                        Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
-                        // Restore Static Batch Component (meshes now loaded)
-                        if sceneDataEntity.hasStaticBatchComponent == true {
-                            setEntityStaticBatchComponent(entityId: entityId)
-                        }
-                        // Apply overrides after async import completes (must run after static restore so
-                        // per-node static opt-outs can remove static from selected children).
-                        applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
-
-                        // Setup animations (skeleton is now available)
-                        if sceneDataEntity.hasAnimationComponent == true {
-                            for animations in sceneDataEntity.animations {
-                                let animationFilename = animations.deletingPathExtension().lastPathComponent
-                                let animationFilenameExt = animations.pathExtension
-                                setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                                changeAnimation(entityId: entityId, name: animationFilename)
-                            }
-                            if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                                animationComponent.animationsFilenames = sceneDataEntity.animations
-                            }
-                        }
-                    } else {
-                        Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
-                    }
-                    loadTracker.completeLoad()
-                }
+            setEntityName(entityId: entityId, name: sceneDataEntity.name)
+            registerTransformComponent(entityId: entityId)
+            registerSceneGraphComponent(entityId: entityId)
+            if let pickParticipation = sceneDataEntity.pickParticipation {
+                setEntityPickParticipation(entityId: entityId, enabled: pickParticipation)
             }
-        } else if sceneDataEntity.hasRenderingComponent == true {
-            // Legacy rendering component workflow (backward compatibility)
-            let filename = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
-            let withExtension = sceneDataEntity.assetURL.pathExtension
-            let isProcedural = isProceduralAssetURL(sceneDataEntity.assetURL)
-            switch meshLoadingMode {
-            case .sync:
-                if isProcedural {
-                    let meshes = createProceduralMeshes(assetName: sceneDataEntity.assetName)
-                    setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
-                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+            if let pickHitRepresentationMode = sceneDataEntity.pickHitRepresentationMode,
+               let mode = PickHitRepresentationMode(rawValue: pickHitRepresentationMode)
+            {
+                setEntityPickHitRepresentationMode(entityId: entityId, mode: mode)
+            }
 
-                    // Restore Static Batch Component (procedural mesh already loaded)
-                    if sceneDataEntity.hasStaticBatchComponent == true {
-                        setEntityStaticBatchComponent(entityId: entityId)
-                    }
-                } else {
-                    setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
-                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+            // Check for new Asset Instance system
+            if let assetInstance = sceneDataEntity.assetInstance {
+                // New asset instance workflow
+                let filename = assetInstance.assetURL.deletingPathExtension().lastPathComponent
+                let withExtension = assetInstance.assetURL.pathExtension
+
+                // Apply parent entity's transform
+                applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+
+                switch meshLoadingMode {
+                case .sync:
+                    setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil)
 
                     // Restore Static Batch Component (sync mode - mesh already loaded)
                     if sceneDataEntity.hasStaticBatchComponent == true {
                         setEntityStaticBatchComponent(entityId: entityId)
                     }
-                }
+                    // Apply overrides synchronously after import (must run after static restore so
+                    // per-node static opt-outs can remove static from selected children).
+                    applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
 
-                // Setup animations (skeleton is now available)
-                if sceneDataEntity.hasAnimationComponent == true {
-                    for animations in sceneDataEntity.animations {
-                        let animationFilename = animations.deletingPathExtension().lastPathComponent
-                        let animationFilenameExt = animations.pathExtension
-                        setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                        changeAnimation(entityId: entityId, name: animationFilename)
+                    // Setup animations (skeleton is now available)
+                    if sceneDataEntity.hasAnimationComponent == true {
+                        for animations in sceneDataEntity.animations {
+                            let animationFilename = animations.deletingPathExtension().lastPathComponent
+                            let animationFilenameExt = animations.pathExtension
+                            setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                            changeAnimation(entityId: entityId, name: animationFilename)
+                        }
+                        if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                            animationComponent.animationsFilenames = sceneDataEntity.animations
+                        }
                     }
-                    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                        animationComponent.animationsFilenames = sceneDataEntity.animations
-                    }
-                }
-            case .asyncDefault:
-                if isProcedural {
-                    let meshes = createProceduralMeshes(assetName: sceneDataEntity.assetName)
-                    setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
-                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
-
-                    // Restore Static Batch Component (procedural mesh already loaded)
-                    if sceneDataEntity.hasStaticBatchComponent == true {
-                        setEntityStaticBatchComponent(entityId: entityId)
-                    }
-                } else {
-                    let fallbackLabel = withExtension.isEmpty ? filename : "\(filename).\(withExtension)"
-                    let meshLabel = sceneDataEntity.name.isEmpty ? fallbackLabel : sceneDataEntity.name
+                case .asyncDefault:
                     loadTracker.registerLoad()
-                    setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
-                        applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                    setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
                         if success {
-                            Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
-
-                            // Restore Static Batch Component (mesh now loaded)
+                            Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
+                            // Restore Static Batch Component (meshes now loaded)
                             if sceneDataEntity.hasStaticBatchComponent == true {
                                 setEntityStaticBatchComponent(entityId: entityId)
                             }
+                            // Apply overrides after async import completes (must run after static restore so
+                            // per-node static opt-outs can remove static from selected children).
+                            applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
 
                             // Setup animations (skeleton is now available)
                             if sceneDataEntity.hasAnimationComponent == true {
@@ -1006,341 +959,430 @@ public func deserializeScene(
                                 }
                             }
                         } else {
-                            Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
+                            Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
                         }
                         loadTracker.completeLoad()
                     }
                 }
-            }
-
-            if let materialData = sceneDataEntity.materialData {
-                let baseColorValue: simd_float4 = materialData.baseColorValue
-                let roughnessValue: Float = materialData.roughnessValue
-                let metallicValue: Float = materialData.metallicValue
-                let emissiveValue: simd_float3 = materialData.emissiveValue
-
-                updateMaterialColor(entityId: entityId, color: colorFromSimd(baseColorValue))
-                updateMaterialRoughness(entityId: entityId, roughness: roughnessValue)
-                updateMaterialMetallic(entityId: entityId, metallic: metallicValue)
-                updateMaterialEmmisive(entityId: entityId, emmissive: emissiveValue)
-                if let opacity = materialData.opacity {
-                    updateMaterialOpacity(entityId: entityId, opacity: opacity)
-                }
-                if let alphaCutoff = materialData.alphaCutoff {
-                    updateMaterialAlphaCutoff(entityId: entityId, cutoff: alphaCutoff)
-                }
-                if let alphaModeRawValue = materialData.alphaMode,
-                   let alphaMode = MaterialAlphaMode(rawValue: alphaModeRawValue)
-                {
-                    updateMaterialAlphaMode(entityId: entityId, mode: alphaMode)
-                }
-
-                if let baseColorURL = materialData.baseColorURL {
-                    updateMaterialTexture(entityId: entityId, textureType: .baseColor, path: baseColorURL)
-                }
-
-                if let roughnessURL = materialData.roughnessURL {
-                    updateMaterialTexture(entityId: entityId, textureType: .roughness, path: roughnessURL)
-                }
-
-                if let metallicURL = materialData.metallicURL {
-                    updateMaterialTexture(entityId: entityId, textureType: .metallic, path: metallicURL)
-                }
-
-                if let normalURL = materialData.normalURL {
-                    updateMaterialTexture(entityId: entityId, textureType: .normal, path: normalURL)
-                }
-            }
-        }
-
-        // Animation setup is now handled inside mesh loading completion handlers
-        // (for asset instances and rendering components) to ensure skeleton component is available.
-        // For entities without meshes (cameras, lights, empty parents), animations wouldn't apply anyway
-        // since they require a skeleton, which comes from mesh loading.
-        //
-        // Note: For multi-mesh assets, the skeleton is on child entities, not the parent.
-        // If sceneDataEntity has hasAnimationComponent but is a multi-mesh parent, the animations
-        // should actually be applied to the specific child entity that has the skeleton.
-
-        if sceneDataEntity.hasKineticComponent == true {
-            setEntityKinetics(entityId: entityId)
-
-            guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
-                handleError(.noPhysicsComponent)
-                continue
-            }
-
-            physicsComponent.mass = sceneDataEntity.mass
-        }
-
-        if sceneDataEntity.hasDirLightComponent == true {
-            if let light = sceneDataEntity.lightData {
-                let color: simd_float3 = light.color
-                let intensity: Float = light.intensity
-
-                createDirLight(entityId: entityId)
-
-                guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
-                    handleError(.noLightComponent)
-                    continue
-                }
-
-                lightComponent.color = color
-                lightComponent.intensity = intensity
-
-                guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
-                    handleError(.noRenderComponent)
-                    continue
-                }
-
-                if let materialData = sceneDataEntity.materialData {
-                    let emmissiveValue: simd_float3 = materialData.emissiveValue
-                    updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
-                }
-            }
-        }
-
-        if sceneDataEntity.hasPointLightComponent == true {
-            if let light = sceneDataEntity.lightData {
-                let color: simd_float3 = light.color
-                let radius: Float = light.radius
-                let intensity: Float = light.intensity
-                let falloff: Float = light.falloff
-
-                createPointLight(entityId: entityId)
-
-                guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
-                    handleError(.noLightComponent)
-                    continue
-                }
-
-                guard let pointlightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
-                    handleError(.noPointLightComponent)
-                    continue
-                }
-
-                lightComponent.color = color
-                lightComponent.intensity = intensity
-                pointlightComponent.radius = radius
-                pointlightComponent.falloff = falloff
-
-                guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
-                    handleError(.noRenderComponent)
-                    continue
-                }
-
-                if let materialData = sceneDataEntity.materialData {
-                    let emmissiveValue: simd_float3 = materialData.emissiveValue
-                    updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
-                }
-            }
-        }
-
-        if sceneDataEntity.hasSpotLightComponent == true {
-            if let light = sceneDataEntity.lightData {
-                let color: simd_float3 = light.color
-                let radius: Float = light.radius
-                let intensity: Float = light.intensity
-                let falloff: Float = light.falloff
-                let coneAngle: Float = light.coneAngle
-
-                createSpotLight(entityId: entityId)
-
-                guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
-                    handleError(.noLightComponent)
-                    continue
-                }
-
-                guard let spotlightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
-                    handleError(.noSpotLightComponent)
-                    continue
-                }
-
-                lightComponent.color = color
-                lightComponent.intensity = intensity
-                spotlightComponent.radius = radius
-                spotlightComponent.falloff = falloff
-                spotlightComponent.coneAngle = coneAngle
-
-                guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
-                    handleError(.noRenderComponent)
-                    continue
-                }
-
-                if let materialData = sceneDataEntity.materialData {
-                    let emmissiveValue: simd_float3 = materialData.emissiveValue
-                    updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
-                }
-            }
-        }
-
-        if sceneDataEntity.hasAreaLightComponent == true {
-            if let light = sceneDataEntity.lightData {
-                let color: simd_float3 = light.color
-                let intensity: Float = light.intensity
-                let forward = light.forward
-                let right = light.right
-                let up = light.up
-                let bounds = light.bounds
-                let twoSided = light.twoSided
-
-                createAreaLight(entityId: entityId)
-
-                guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
-                    handleError(.noLightComponent)
-                    continue
-                }
-
-                guard let areaLightComponent = scene.get(component: AreaLightComponent.self, for: entityId) else {
-                    handleError(.noAreaLightComponent)
-                    continue
-                }
-
-                lightComponent.color = color
-                lightComponent.intensity = intensity
-                areaLightComponent.forward = forward
-                areaLightComponent.right = right
-                areaLightComponent.up = up
-                areaLightComponent.bounds = bounds
-                areaLightComponent.twoSided = twoSided
-
-                guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
-                    handleError(.noRenderComponent)
-                    continue
-                }
-
-                if let materialData = sceneDataEntity.materialData {
-                    let emmissiveValue: simd_float3 = materialData.emissiveValue
-                    updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
-                }
-            }
-        }
-
-        if sceneDataEntity.assetInstance == nil, sceneDataEntity.hasRenderingComponent != true {
-            applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
-        }
-
-        if sceneDataEntity.hasCameraComponent == true {
-            if let camera = sceneDataEntity.cameraData {
-                let eye = camera.eye
-                let target = camera.target
-                let up = camera.up
-
-                createGameCamera(entityId: entityId)
-
-                guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
-                    handleError(.noGameCamera)
-                    continue
-                }
-
-                cameraComponent.eye = eye
-                cameraComponent.target = target
-                cameraComponent.up = up
-
-                cameraLookAt(entityId: entityId, eye: eye, target: target, up: up)
-            }
-        }
-
-        // LOD Component
-        if sceneDataEntity.hasLODComponent == true {
-            if let lodData = sceneDataEntity.lodData {
+            } else if sceneDataEntity.hasRenderingComponent == true {
+                // Legacy rendering component workflow (backward compatibility)
+                let filename = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
+                let withExtension = sceneDataEntity.assetURL.pathExtension
+                let isProcedural = isProceduralAssetURL(sceneDataEntity.assetURL)
                 switch meshLoadingMode {
                 case .sync:
-                    // Synchronous LOD loading not yet implemented
-                    Logger.logWarning(message: "[SceneSerializer] Synchronous LOD loading not supported, skipping LOD for '\(sceneDataEntity.name)'")
+                    if isProcedural {
+                        let meshes = createProceduralMeshes(assetName: sceneDataEntity.assetName)
+                        setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
+                        applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+
+                        // Restore Static Batch Component (procedural mesh already loaded)
+                        if sceneDataEntity.hasStaticBatchComponent == true {
+                            setEntityStaticBatchComponent(entityId: entityId)
+                        }
+                    } else {
+                        setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
+                        applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+
+                        // Restore Static Batch Component (sync mode - mesh already loaded)
+                        if sceneDataEntity.hasStaticBatchComponent == true {
+                            setEntityStaticBatchComponent(entityId: entityId)
+                        }
+                    }
+
+                    // Setup animations (skeleton is now available)
+                    if sceneDataEntity.hasAnimationComponent == true {
+                        for animations in sceneDataEntity.animations {
+                            let animationFilename = animations.deletingPathExtension().lastPathComponent
+                            let animationFilenameExt = animations.pathExtension
+                            setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                            changeAnimation(entityId: entityId, name: animationFilename)
+                        }
+                        if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                            animationComponent.animationsFilenames = sceneDataEntity.animations
+                        }
+                    }
                 case .asyncDefault:
-                    // Register LOD component first
-                    setEntityLodComponent(entityId: entityId)
+                    if isProcedural {
+                        let meshes = createProceduralMeshes(assetName: sceneDataEntity.assetName)
+                        setEntityMeshDirect(entityId: entityId, meshes: meshes, assetName: sceneDataEntity.assetName)
+                        applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
 
-                    // Track completion
-                    var loadedCount = 0
-                    let totalLevels = lodData.lodLevels.count
-
-                    // Load each LOD level using the granular API
-                    for (index, lodLevelData) in lodData.lodLevels.enumerated() {
-                        let url = lodLevelData.url
-                        let filename = url.deletingPathExtension().lastPathComponent
-                        let ext = url.pathExtension
-                        let maxDistance = lodLevelData.maxDistance
-
+                        // Restore Static Batch Component (procedural mesh already loaded)
+                        if sceneDataEntity.hasStaticBatchComponent == true {
+                            setEntityStaticBatchComponent(entityId: entityId)
+                        }
+                    } else {
+                        let fallbackLabel = withExtension.isEmpty ? filename : "\(filename).\(withExtension)"
+                        let meshLabel = sceneDataEntity.name.isEmpty ? fallbackLabel : sceneDataEntity.name
                         loadTracker.registerLoad()
-                        addLODLevel(
-                            entityId: entityId,
-                            lodIndex: index,
-                            fileName: filename,
-                            withExtension: ext,
-                            maxDistance: maxDistance
-                        ) { success in
+                        setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
+                            applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
                             if success {
-                                loadedCount += 1
-                                // When all levels are loaded, restore LOD settings
-                                if loadedCount == totalLevels {
-                                    Logger.log(message: "✅ LOD loaded for '\(sceneDataEntity.name)' with \(totalLevels) levels")
-                                    if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
-                                        lodComponent.currentLOD = lodData.currentLOD
-                                        lodComponent.fadeTransition = lodData.fadeTransition
-                                        lodComponent.transitionDuration = lodData.transitionDuration
+                                Logger.log(message: "✅ Mesh loaded for \(meshLabel)")
+
+                                // Restore Static Batch Component (mesh now loaded)
+                                if sceneDataEntity.hasStaticBatchComponent == true {
+                                    setEntityStaticBatchComponent(entityId: entityId)
+                                }
+
+                                // Setup animations (skeleton is now available)
+                                if sceneDataEntity.hasAnimationComponent == true {
+                                    for animations in sceneDataEntity.animations {
+                                        let animationFilename = animations.deletingPathExtension().lastPathComponent
+                                        let animationFilenameExt = animations.pathExtension
+                                        setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
+                                        changeAnimation(entityId: entityId, name: animationFilename)
+                                    }
+                                    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+                                        animationComponent.animationsFilenames = sceneDataEntity.animations
                                     }
                                 }
                             } else {
-                                Logger.logWarning(message: "⚠️ Failed to load LOD level \(index) for '\(sceneDataEntity.name)'")
+                                Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
                             }
                             loadTracker.completeLoad()
                         }
                     }
                 }
+
+                if let materialData = sceneDataEntity.materialData {
+                    let baseColorValue: simd_float4 = materialData.baseColorValue
+                    let roughnessValue: Float = materialData.roughnessValue
+                    let metallicValue: Float = materialData.metallicValue
+                    let emissiveValue: simd_float3 = materialData.emissiveValue
+
+                    updateMaterialColor(entityId: entityId, color: colorFromSimd(baseColorValue))
+                    updateMaterialRoughness(entityId: entityId, roughness: roughnessValue)
+                    updateMaterialMetallic(entityId: entityId, metallic: metallicValue)
+                    updateMaterialEmmisive(entityId: entityId, emmissive: emissiveValue)
+                    if let opacity = materialData.opacity {
+                        updateMaterialOpacity(entityId: entityId, opacity: opacity)
+                    }
+                    if let alphaCutoff = materialData.alphaCutoff {
+                        updateMaterialAlphaCutoff(entityId: entityId, cutoff: alphaCutoff)
+                    }
+                    if let alphaModeRawValue = materialData.alphaMode,
+                       let alphaMode = MaterialAlphaMode(rawValue: alphaModeRawValue)
+                    {
+                        updateMaterialAlphaMode(entityId: entityId, mode: alphaMode)
+                    }
+
+                    if let baseColorURL = materialData.baseColorURL {
+                        updateMaterialTexture(entityId: entityId, textureType: .baseColor, path: baseColorURL)
+                    }
+
+                    if let roughnessURL = materialData.roughnessURL {
+                        updateMaterialTexture(entityId: entityId, textureType: .roughness, path: roughnessURL)
+                    }
+
+                    if let metallicURL = materialData.metallicURL {
+                        updateMaterialTexture(entityId: entityId, textureType: .metallic, path: metallicURL)
+                    }
+
+                    if let normalURL = materialData.normalURL {
+                        updateMaterialTexture(entityId: entityId, textureType: .normal, path: normalURL)
+                    }
+                }
             }
-        }
 
-        // Static Batch Component is now restored inside mesh loading completion handlers
-        // (moved there to ensure RenderComponent exists before adding StaticBatchComponent)
+            // Animation setup is now handled inside mesh loading completion handlers
+            // (for asset instances and rendering components) to ensure skeleton component is available.
+            // For entities without meshes (cameras, lights, empty parents), animations wouldn't apply anyway
+            // since they require a skeleton, which comes from mesh loading.
+            //
+            // Note: For multi-mesh assets, the skeleton is on child entities, not the parent.
+            // If sceneDataEntity has hasAnimationComponent but is a multi-mesh parent, the animations
+            // should actually be applied to the specific child entity that has the skeleton.
 
-        // Geometry Streaming Component
-        if sceneDataEntity.hasStreamingComponent == true {
-            if let streamingData = sceneDataEntity.streamingData {
-                // Register streaming component
-                registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+            if sceneDataEntity.hasKineticComponent == true {
+                setEntityKinetics(entityId: entityId)
 
-                if let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) {
-                    streamingComponent.streamingRadius = streamingData.streamingRadius
-                    streamingComponent.unloadRadius = streamingData.unloadRadius
-                    streamingComponent.priority = streamingData.priority
-                    streamingComponent.assetFilename = streamingData.assetFilename
-                    streamingComponent.assetExtension = streamingData.assetExtension
-                    streamingComponent.assetName = streamingData.assetName
-                    streamingComponent.state = MeshStreamingState.unloaded
+                guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+                    handleError(.noPhysicsComponent)
+                    continue
+                }
 
-                    Logger.log(message: "✅ Streaming component restored for '\(sceneDataEntity.name)'")
-                } else {
-                    Logger.logWarning(message: "⚠️ Failed to restore streaming component for '\(sceneDataEntity.name)'")
+                physicsComponent.mass = sceneDataEntity.mass
+            }
+
+            if sceneDataEntity.hasDirLightComponent == true {
+                if let light = sceneDataEntity.lightData {
+                    let color: simd_float3 = light.color
+                    let intensity: Float = light.intensity
+
+                    createDirLight(entityId: entityId)
+
+                    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+                        handleError(.noLightComponent)
+                        continue
+                    }
+
+                    lightComponent.color = color
+                    lightComponent.intensity = intensity
+
+                    guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+                        handleError(.noRenderComponent)
+                        continue
+                    }
+
+                    if let materialData = sceneDataEntity.materialData {
+                        let emmissiveValue: simd_float3 = materialData.emissiveValue
+                        updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
+                    }
+                }
+            }
+
+            if sceneDataEntity.hasPointLightComponent == true {
+                if let light = sceneDataEntity.lightData {
+                    let color: simd_float3 = light.color
+                    let radius: Float = light.radius
+                    let intensity: Float = light.intensity
+                    let falloff: Float = light.falloff
+
+                    createPointLight(entityId: entityId)
+
+                    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+                        handleError(.noLightComponent)
+                        continue
+                    }
+
+                    guard let pointlightComponent = scene.get(component: PointLightComponent.self, for: entityId) else {
+                        handleError(.noPointLightComponent)
+                        continue
+                    }
+
+                    lightComponent.color = color
+                    lightComponent.intensity = intensity
+                    pointlightComponent.radius = radius
+                    pointlightComponent.falloff = falloff
+
+                    guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+                        handleError(.noRenderComponent)
+                        continue
+                    }
+
+                    if let materialData = sceneDataEntity.materialData {
+                        let emmissiveValue: simd_float3 = materialData.emissiveValue
+                        updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
+                    }
+                }
+            }
+
+            if sceneDataEntity.hasSpotLightComponent == true {
+                if let light = sceneDataEntity.lightData {
+                    let color: simd_float3 = light.color
+                    let radius: Float = light.radius
+                    let intensity: Float = light.intensity
+                    let falloff: Float = light.falloff
+                    let coneAngle: Float = light.coneAngle
+
+                    createSpotLight(entityId: entityId)
+
+                    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+                        handleError(.noLightComponent)
+                        continue
+                    }
+
+                    guard let spotlightComponent = scene.get(component: SpotLightComponent.self, for: entityId) else {
+                        handleError(.noSpotLightComponent)
+                        continue
+                    }
+
+                    lightComponent.color = color
+                    lightComponent.intensity = intensity
+                    spotlightComponent.radius = radius
+                    spotlightComponent.falloff = falloff
+                    spotlightComponent.coneAngle = coneAngle
+
+                    guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+                        handleError(.noRenderComponent)
+                        continue
+                    }
+
+                    if let materialData = sceneDataEntity.materialData {
+                        let emmissiveValue: simd_float3 = materialData.emissiveValue
+                        updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
+                    }
+                }
+            }
+
+            if sceneDataEntity.hasAreaLightComponent == true {
+                if let light = sceneDataEntity.lightData {
+                    let color: simd_float3 = light.color
+                    let intensity: Float = light.intensity
+                    let forward = light.forward
+                    let right = light.right
+                    let up = light.up
+                    let bounds = light.bounds
+                    let twoSided = light.twoSided
+
+                    createAreaLight(entityId: entityId)
+
+                    guard let lightComponent = scene.get(component: LightComponent.self, for: entityId) else {
+                        handleError(.noLightComponent)
+                        continue
+                    }
+
+                    guard let areaLightComponent = scene.get(component: AreaLightComponent.self, for: entityId) else {
+                        handleError(.noAreaLightComponent)
+                        continue
+                    }
+
+                    lightComponent.color = color
+                    lightComponent.intensity = intensity
+                    areaLightComponent.forward = forward
+                    areaLightComponent.right = right
+                    areaLightComponent.up = up
+                    areaLightComponent.bounds = bounds
+                    areaLightComponent.twoSided = twoSided
+
+                    guard scene.get(component: RenderComponent.self, for: entityId) != nil else {
+                        handleError(.noRenderComponent)
+                        continue
+                    }
+
+                    if let materialData = sceneDataEntity.materialData {
+                        let emmissiveValue: simd_float3 = materialData.emissiveValue
+                        updateMaterialEmmisive(entityId: entityId, emmissive: emmissiveValue)
+                    }
+                }
+            }
+
+            if sceneDataEntity.assetInstance == nil, sceneDataEntity.hasRenderingComponent != true {
+                applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+            }
+
+            if sceneDataEntity.hasCameraComponent == true {
+                if let camera = sceneDataEntity.cameraData {
+                    let eye = camera.eye
+                    let target = camera.target
+                    let up = camera.up
+
+                    createGameCamera(entityId: entityId)
+
+                    guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
+                        handleError(.noGameCamera)
+                        continue
+                    }
+
+                    cameraComponent.eye = eye
+                    cameraComponent.target = target
+                    cameraComponent.up = up
+
+                    cameraLookAt(entityId: entityId, eye: eye, target: target, up: up)
+                }
+            }
+
+            // LOD Component
+            if sceneDataEntity.hasLODComponent == true {
+                if let lodData = sceneDataEntity.lodData {
+                    switch meshLoadingMode {
+                    case .sync:
+                        // Synchronous LOD loading not yet implemented
+                        Logger.logWarning(message: "[SceneSerializer] Synchronous LOD loading not supported, skipping LOD for '\(sceneDataEntity.name)'")
+                    case .asyncDefault:
+                        // Register LOD component first
+                        setEntityLodComponent(entityId: entityId)
+
+                        // Track completion
+                        let lodLoadCountLock = NSLock()
+                        var loadedCount = 0
+                        let totalLevels = lodData.lodLevels.count
+
+                        // Load each LOD level using the granular API
+                        for (index, lodLevelData) in lodData.lodLevels.enumerated() {
+                            let url = lodLevelData.url
+                            let filename = url.deletingPathExtension().lastPathComponent
+                            let ext = url.pathExtension
+                            let maxDistance = lodLevelData.maxDistance
+
+                            loadTracker.registerLoad()
+                            addLODLevel(
+                                entityId: entityId,
+                                lodIndex: index,
+                                fileName: filename,
+                                withExtension: ext,
+                                maxDistance: maxDistance
+                            ) { success in
+                                if success {
+                                    var finishedAllLevels = false
+                                    lodLoadCountLock.lock()
+                                    loadedCount += 1
+                                    finishedAllLevels = loadedCount == totalLevels
+                                    lodLoadCountLock.unlock()
+
+                                    // When all levels are loaded, restore LOD settings.
+                                    if finishedAllLevels {
+                                        Logger.log(message: "✅ LOD loaded for '\(sceneDataEntity.name)' with \(totalLevels) levels")
+                                        withWorldMutationGate {
+                                            if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
+                                                lodComponent.currentLOD = lodData.currentLOD
+                                                lodComponent.fadeTransition = lodData.fadeTransition
+                                                lodComponent.transitionDuration = lodData.transitionDuration
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    Logger.logWarning(message: "⚠️ Failed to load LOD level \(index) for '\(sceneDataEntity.name)'")
+                                }
+                                loadTracker.completeLoad()
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Static Batch Component is now restored inside mesh loading completion handlers
+            // (moved there to ensure RenderComponent exists before adding StaticBatchComponent)
+
+            // Geometry Streaming Component
+            if sceneDataEntity.hasStreamingComponent == true {
+                if let streamingData = sceneDataEntity.streamingData {
+                    // Register streaming component
+                    registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+
+                    if let streamingComponent = scene.get(component: StreamingComponent.self, for: entityId) {
+                        streamingComponent.streamingRadius = streamingData.streamingRadius
+                        streamingComponent.unloadRadius = streamingData.unloadRadius
+                        streamingComponent.priority = streamingData.priority
+                        streamingComponent.assetFilename = streamingData.assetFilename
+                        streamingComponent.assetExtension = streamingData.assetExtension
+                        streamingComponent.assetName = streamingData.assetName
+                        streamingComponent.state = MeshStreamingState.unloaded
+
+                        Logger.log(message: "✅ Streaming component restored for '\(sceneDataEntity.name)'")
+                    } else {
+                        Logger.logWarning(message: "⚠️ Failed to restore streaming component for '\(sceneDataEntity.name)'")
+                    }
+                }
+            }
+
+            // custom components
+            if let customComponents = sceneDataEntity.customComponents {
+                for (typeName, jsonData) in customComponents {
+                    if let deserializeFunc = customComponentDecoderMap[typeName] {
+                        deserializeFunc(entityId, jsonData)
+                    }
                 }
             }
         }
 
-        // custom components
-        if let customComponents = sceneDataEntity.customComponents {
-            for (typeName, jsonData) in customComponents {
-                if let deserializeFunc = customComponentDecoderMap[typeName] {
-                    deserializeFunc(entityId, jsonData)
-                }
+        // secon pass: rebuild hierarchy
+        for sceneDataEntity in sceneData.entities {
+            guard let childId = uuidToEntityMap[sceneDataEntity.uuid],
+                  let parentUUID = sceneDataEntity.parentUUID,
+                  let parentId = uuidToEntityMap[parentUUID]
+            else {
+                continue
             }
+
+            setParent(childId: childId, parentId: parentId)
         }
     }
 
-    // secon pass: rebuild hierarchy
-    for sceneDataEntity in sceneData.entities {
-        guard let childId = uuidToEntityMap[sceneDataEntity.uuid],
-              let parentUUID = sceneDataEntity.parentUUID,
-              let parentId = uuidToEntityMap[parentUUID]
-        else {
-            continue
-        }
-
-        setParent(childId: childId, parentId: parentId)
-    }
-
-    // Check if all async loads are complete (or if there were no async loads)
-    loadTracker.checkCompletion()
+    // Allow completion once all registrations are known and async work is finished.
+    loadTracker.finishRegistration()
 }
 
 /// Notification posted when asset instance has finished loading and overrides have been applied

@@ -11,7 +11,6 @@
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class SpatialDebugVisualizationTests: XCTestCase {
     override func setUp() async throws {

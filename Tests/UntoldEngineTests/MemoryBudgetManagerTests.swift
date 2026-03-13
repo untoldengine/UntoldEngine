@@ -11,7 +11,6 @@
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class MemoryBudgetManagerTests: XCTestCase {
     var manager: MemoryBudgetManager!

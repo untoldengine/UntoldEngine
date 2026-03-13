@@ -12,7 +12,6 @@ import Foundation
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class GraphTest: XCTestCase {
     func testGraphLogicalOrder() throws {

@@ -16,7 +16,6 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class PLYReaderTest: XCTestCase {
     var tempFileURL: URL?

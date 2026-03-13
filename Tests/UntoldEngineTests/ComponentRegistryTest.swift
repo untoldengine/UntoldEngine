@@ -16,7 +16,6 @@ private final class UnregisteredCleanupComponent: Component {
     required init() {}
 }
 
-
 @MainActor
 final class ComponentRegistryTest: XCTestCase {
     override func setUp() async throws {

@@ -10,7 +10,6 @@
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class MeshResourceManagerTests: XCTestCase {
     override func setUp() async throws {

@@ -12,7 +12,6 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class ScriptComponentSerializationTest: XCTestCase {
     override func setUp() async throws {

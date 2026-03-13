@@ -670,7 +670,7 @@ public class USCInterpreter: @unchecked Sendable {
                          turnSpeed: turn)
             return pc + 1
 
-        case .steerFollowPath(_):
+        case .steerFollowPath:
             Logger.log(message: "[USC] steerFollowPath not yet implemented - requires path handling")
             return pc + 1
 

@@ -54,7 +54,7 @@ public enum RenderPasses {
         runtimeState.lock.lock()
         let shouldLog =
             (now - runtimeState.spatialDebugLastLogTime) >= 1.0
-            || signature != runtimeState.spatialDebugLastLogSignature
+                || signature != runtimeState.spatialDebugLastLogSignature
         if shouldLog {
             runtimeState.spatialDebugLastLogTime = now
             runtimeState.spatialDebugLastLogSignature = signature
@@ -545,12 +545,9 @@ public enum RenderPasses {
                     offset: 0, index: Int(shadowPassModelPositionIndex.rawValue)
                 )
 
-                // check if it has skeleton component
-                var hasArmature = false
-
-                if let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) {
-                    hasArmature = true
-                }
+                // Only enable armature path when a valid joint transform buffer exists.
+                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
 
                 renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
 
@@ -564,7 +561,12 @@ public enum RenderPasses {
                     offset: 0, index: Int(shadowPassJointWeightsIndex.rawValue)
                 )
 
-                renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
+                if let jointTransformBuffer {
+                    renderEncoder.setVertexBuffer(jointTransformBuffer, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
+                } else {
+                    var identityMatrix = matrix_identity_float4x4
+                    renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
+                }
 
                 for subMesh in mesh.submeshes {
                     renderEncoder.drawIndexedPrimitivesTracked(
@@ -849,12 +851,9 @@ public enum RenderPasses {
                     mesh.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(modelPassUniformIndex.rawValue)
                 )
 
-                // check if it has skeleton component
-                var hasArmature = false
-
-                if let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) {
-                    hasArmature = true
-                }
+                // Only enable armature path when a valid joint transform buffer exists.
+                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
 
                 renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(modelPassHasArmature.rawValue))
 
@@ -888,7 +887,12 @@ public enum RenderPasses {
                     offset: 0, index: Int(modelPassJointWeightsIndex.rawValue)
                 )
 
-                renderEncoder.setVertexBuffer(mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
+                if let jointTransformBuffer {
+                    renderEncoder.setVertexBuffer(jointTransformBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
+                } else {
+                    var identityMatrix = matrix_identity_float4x4
+                    renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
+                }
 
                 renderEncoder.setFragmentBuffer(
                     mesh.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(modelPassFragmentUniformIndex.rawValue)
@@ -2284,10 +2288,9 @@ public enum RenderPasses {
                     index: Int(modelPassUniformIndex.rawValue)
                 )
 
-                var hasArmature = false
-                if scene.get(component: SkeletonComponent.self, for: entityId) != nil {
-                    hasArmature = true
-                }
+                // Only enable armature path when a valid joint transform buffer exists.
+                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
                 renderEncoder.setVertexBytes(
                     &hasArmature,
                     length: MemoryLayout<Bool>.stride,
@@ -2324,11 +2327,20 @@ public enum RenderPasses {
                     offset: 0,
                     index: Int(modelPassJointWeightsIndex.rawValue)
                 )
-                renderEncoder.setVertexBuffer(
-                    mesh.skin?.jointTransformsBuffer,
-                    offset: 0,
-                    index: Int(modelPassJointTransformIndex.rawValue)
-                )
+                if let jointTransformBuffer {
+                    renderEncoder.setVertexBuffer(
+                        jointTransformBuffer,
+                        offset: 0,
+                        index: Int(modelPassJointTransformIndex.rawValue)
+                    )
+                } else {
+                    var identityMatrix = matrix_identity_float4x4
+                    renderEncoder.setVertexBytes(
+                        &identityMatrix,
+                        length: MemoryLayout<simd_float4x4>.stride,
+                        index: Int(modelPassJointTransformIndex.rawValue)
+                    )
+                }
 
                 renderEncoder.setFragmentBuffer(
                     mesh.spaceUniform[currentUniformBufferIndex()],

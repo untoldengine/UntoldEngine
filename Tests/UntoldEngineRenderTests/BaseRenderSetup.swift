@@ -14,7 +14,6 @@ import UniformTypeIdentifiers
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 class BaseRenderSetup: XCTestCase {
     var renderer: UntoldRenderer!

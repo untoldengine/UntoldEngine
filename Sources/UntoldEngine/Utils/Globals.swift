@@ -220,15 +220,17 @@ var reverseEntityNameMap: [String: [EntityID]] {
     set { RuntimeGlobalsStore.shared.reverseEntityNameMap = newValue }
 }
 
-// Timing properties
+/// Timing properties
 var timeSinceLastUpdatePreviousTime: TimeInterval! {
     get { RuntimeGlobalsStore.shared.timeSinceLastUpdatePreviousTime }
     set { RuntimeGlobalsStore.shared.timeSinceLastUpdatePreviousTime = newValue }
 }
+
 public var timeSinceLastUpdate: Float! {
     get { RuntimeGlobalsStore.shared.timeSinceLastUpdate }
     set { RuntimeGlobalsStore.shared.timeSinceLastUpdate = newValue }
 }
+
 var firstUpdateCall: Bool {
     get { RuntimeGlobalsStore.shared.firstUpdateCall }
     set { RuntimeGlobalsStore.shared.firstUpdateCall = newValue }
@@ -238,6 +240,7 @@ var frameCount: Int {
     get { RuntimeGlobalsStore.shared.frameCount }
     set { RuntimeGlobalsStore.shared.frameCount = newValue }
 }
+
 var timePassedSinceLastFrame: Float {
     get { RuntimeGlobalsStore.shared.timePassedSinceLastFrame }
     set { RuntimeGlobalsStore.shared.timePassedSinceLastFrame = newValue }
@@ -485,7 +488,7 @@ var gaussianDepthPipeline: ComputePipeline {
     }
 }
 
-// Scene picking
+/// Scene picking
 var scenePickingAccelStructResources: AccelStructResources {
     get {
         let state = CoreRuntimeGlobals.shared
@@ -506,6 +509,7 @@ var scenePickingAccelStructResources: AccelStructResources {
         yield &state.scenePickingAccelStructResources
     }
 }
+
 var scenePickingPipeline: ComputePipeline {
     get {
         let state = CoreRuntimeGlobals.shared
@@ -526,6 +530,7 @@ var scenePickingPipeline: ComputePipeline {
         yield &state.scenePickingPipeline
     }
 }
+
 /// Environment Mesh
 var environmentMesh: MTKMesh! {
     get {
@@ -1071,6 +1076,7 @@ var componentCounter: Int {
     get { RuntimeGlobalsStore.shared.componentCounter }
     set { RuntimeGlobalsStore.shared.componentCounter = newValue }
 }
+
 var globalEntityCounter: UInt32 {
     get { RuntimeGlobalsStore.shared.globalEntityCounter }
     set { RuntimeGlobalsStore.shared.globalEntityCounter = newValue }
@@ -1159,6 +1165,7 @@ var envRotationAngle: Float {
     get { RuntimeGlobalsStore.shared.envRotationAngle }
     set { RuntimeGlobalsStore.shared.envRotationAngle = newValue }
 }
+
 public var hdrURL: String {
     get { RuntimeGlobalsStore.shared.hdrURL }
     set { RuntimeGlobalsStore.shared.hdrURL = newValue }
@@ -1249,19 +1256,23 @@ public var visibleEntityIds: [EntityID] {
     get { RuntimeGlobalsStore.shared.visibleEntityIds }
     set { RuntimeGlobalsStore.shared.visibleEntityIds = newValue }
 }
+
 public let tripleVisibleEntities = TripleCPUBuffer<EntityID>(inFlight: 3, initialCapacity: MAX_ENTITIES)
 public var cullFrameIndex: Int {
     get { RuntimeGlobalsStore.shared.cullFrameIndex }
     set { RuntimeGlobalsStore.shared.cullFrameIndex = newValue }
 }
+
 public var cullSubmitIndex: Int {
     get { RuntimeGlobalsStore.shared.cullSubmitIndex }
     set { RuntimeGlobalsStore.shared.cullSubmitIndex = newValue }
 }
+
 public var needsFinalizeDestroys: Bool {
     get { RuntimeGlobalsStore.shared.needsFinalizeDestroys }
     set { RuntimeGlobalsStore.shared.needsFinalizeDestroys = newValue }
 }
+
 var hasPendingDestroys: Bool {
     get { RuntimeGlobalsStore.shared.hasPendingDestroys }
     set { RuntimeGlobalsStore.shared.hasPendingDestroys = newValue }
@@ -1271,14 +1282,17 @@ var scenePickingSystemInitialized: Bool {
     get { RuntimeGlobalsStore.shared.scenePickingSystemInitialized }
     set { RuntimeGlobalsStore.shared.scenePickingSystemInitialized = newValue }
 }
+
 var scenePickingDirtyEntities: Set<EntityID> {
     get { RuntimeGlobalsStore.shared.scenePickingDirtyEntities }
     set { RuntimeGlobalsStore.shared.scenePickingDirtyEntities = newValue }
 }
+
 var scenePickingGPUAvailable: Bool {
     get { RuntimeGlobalsStore.shared.scenePickingGPUAvailable }
     set { RuntimeGlobalsStore.shared.scenePickingGPUAvailable = newValue }
 }
+
 var scenePickingIgnoreRayIntersectionWithTransparents: Bool {
     get { RuntimeGlobalsStore.shared.scenePickingIgnoreRayIntersectionWithTransparents }
     set { RuntimeGlobalsStore.shared.scenePickingIgnoreRayIntersectionWithTransparents = newValue }
@@ -1288,9 +1302,9 @@ var scenePickingIgnoreRayIntersectionWithTransparents: Bool {
 public let maxInFlightCommandBuffers = 3
 public let commandBufferSemaphore = DispatchSemaphore(value: maxInFlightCommandBuffers)
 
-// Uniform buffering:
-// index by (in-flight frame slot, eye) to avoid CPU writes from newer frames clobbering
-// uniforms still in use by the GPU.
+/// Uniform buffering:
+/// index by (in-flight frame slot, eye) to avoid CPU writes from newer frames clobbering
+/// uniforms still in use by the GPU.
 public let stereoEyeCount = 2
 
 private final class UniformFrameSlotState: @unchecked Sendable {
@@ -1325,7 +1339,7 @@ public func currentUniformBufferIndex() -> Int {
     (renderInfo.currentInFlightFrameSlot * stereoEyeCount) + renderInfo.currentEye
 }
 
-// Engine profiling/benchmarking
+/// Engine profiling/benchmarking
 public var enableEngineMetrics: Bool {
     get { RuntimeGlobalsStore.shared.enableEngineMetrics }
     set { RuntimeGlobalsStore.shared.enableEngineMetrics = newValue }

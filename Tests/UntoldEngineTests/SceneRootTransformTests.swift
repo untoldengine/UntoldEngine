@@ -12,7 +12,6 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class SceneRootTransformTests: XCTestCase {
     let srt = SceneRootTransform.shared

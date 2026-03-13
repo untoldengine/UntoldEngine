@@ -12,7 +12,6 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class InputSystemExtensionsTests: XCTestCase {
     /// Reset the shared instance's mutable bits before each test

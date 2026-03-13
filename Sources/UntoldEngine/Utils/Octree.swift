@@ -65,6 +65,7 @@ public class Octree {
 
     // MARK: - State
 
+    private let accessLock = NSRecursiveLock()
     public private(set) var root: OctreeNode
     private var entityToNode: [EntityID: OctreeNode] = [:]
     private var entityToBounds: [EntityID: AABB] = [:]
@@ -103,6 +104,8 @@ public class Octree {
 
     /// Insert an entity with its bounding box
     public func insert(entityId: EntityID, bounds: AABB) {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         // Remove if already exists (handles updates)
         if entityToBounds[entityId] != nil {
             remove(entityId: entityId)
@@ -117,6 +120,8 @@ public class Octree {
     /// Remove an entity from the tree
     @discardableResult
     public func remove(entityId: EntityID) -> Bool {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         guard let node = entityToNode[entityId] else {
             return false
         }
@@ -130,12 +135,16 @@ public class Octree {
 
     /// Update an entity's bounds (removes and re-inserts)
     public func update(entityId: EntityID, newBounds: AABB) {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         remove(entityId: entityId)
         insert(entityId: entityId, bounds: newBounds)
     }
 
     /// Query all entities within a bounding box
     public func query(range: AABB) -> [EntityID] {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         var results: [EntityID] = []
         queryNode(root, range: range, results: &results)
         return results
@@ -143,6 +152,8 @@ public class Octree {
 
     /// Query all entities within a sphere
     public func query(sphere: BoundingSphere) -> [EntityID] {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         var results: [EntityID] = []
         queryNode(root, sphere: sphere, results: &results)
         return results
@@ -150,6 +161,8 @@ public class Octree {
 
     /// Query all entities that intersect the frustum planes
     public func query(frustum: [simd_float4]) -> [EntityID] {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         var results: [EntityID] = []
         queryNode(root, frustum: frustum, results: &results)
         return results
@@ -162,6 +175,8 @@ public class Octree {
         rayDirection: simd_float3,
         maxDistance: Float = .greatestFiniteMagnitude
     ) -> [(EntityID, Float)] {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         var results: [(EntityID, Float)] = []
         queryNode(root, rayOrigin: rayOrigin, rayDirection: rayDirection, maxDistance: maxDistance, results: &results)
         results.sort { $0.1 < $1.1 }
@@ -170,16 +185,22 @@ public class Octree {
 
     /// Get the bounds of a stored entity
     public func getBounds(for entityId: EntityID) -> AABB? {
-        entityToBounds[entityId]
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        return entityToBounds[entityId]
     }
 
     /// Check if an entity exists in the tree
     public func contains(entityId: EntityID) -> Bool {
-        entityToNode[entityId] != nil
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        return entityToNode[entityId] != nil
     }
 
     /// Clear all entries from the tree
     public func clear() {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         root = OctreeNode(bounds: root.bounds, depth: 0)
         entityToNode.removeAll()
         entityToBounds.removeAll()
@@ -188,6 +209,8 @@ public class Octree {
 
     /// Rebuild the tree (useful after many removals)
     public func rebuild() {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         let allEntries = entityToBounds
         clear()
         for (entityId, bounds) in allEntries {
@@ -383,6 +406,8 @@ extension Octree {
     /// Snapshot leaf node bounds.
     /// - Parameter occupiedOnly: When true, returns only leaf nodes containing entries.
     public func leafNodeBounds(occupiedOnly: Bool = true) -> [AABB] {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         var bounds: [AABB] = []
         gatherLeafBounds(node: root, occupiedOnly: occupiedOnly, bounds: &bounds)
         return bounds
@@ -391,6 +416,8 @@ extension Octree {
     /// Snapshot leaf node bounds with contained entity IDs.
     /// - Parameter occupiedOnly: When true, returns only leaf nodes containing entries.
     public func leafNodeSnapshots(occupiedOnly: Bool = true) -> [OctreeLeafSnapshot] {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         var snapshots: [OctreeLeafSnapshot] = []
         gatherLeafSnapshots(node: root, occupiedOnly: occupiedOnly, snapshots: &snapshots)
         return snapshots
@@ -425,6 +452,8 @@ extension Octree {
 
     /// Get statistics about the tree
     public var stats: OctreeStats {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         var stats = OctreeStats()
         gatherStats(node: root, stats: &stats)
         return stats

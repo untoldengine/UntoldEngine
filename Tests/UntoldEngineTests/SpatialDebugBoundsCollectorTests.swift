@@ -12,7 +12,6 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class SpatialDebugBoundsCollectorTests: XCTestCase {
     private let defaultColor = simd_float4(1.0, 1.0, 1.0, 1.0)
