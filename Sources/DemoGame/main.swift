@@ -218,7 +218,7 @@
         var gameScene: GameScene!
 
         func applicationDidFinishLaunching(_: Notification) {
-            print("Launching Untold Engine v0.2")
+            print("Launching Untold Engine")
 
             // Step 1. Create and configure the window
             window = NSWindow(
@@ -228,7 +228,7 @@
                 defer: false
             )
 
-            window.title = "Untold Engine v0.2"
+            window.title = "Untold Engine"
             window.center()
 
             // Step 2. Initialize the renderer and connect metal content
