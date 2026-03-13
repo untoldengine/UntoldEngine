@@ -11,7 +11,6 @@
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class EngineStatsMonitorTests: XCTestCase {
     override func setUp() async throws {

@@ -17,7 +17,6 @@ import XCTest
 
 // MARK: - Event Bus Tests
 
-
 @MainActor
 final class StreamLodBatchEventBusTests: XCTestCase {
     override func setUp() async throws {
@@ -243,7 +242,6 @@ final class StreamLodBatchFallbackTests: BaseRenderSetup {
 
 // MARK: - Batch Key Tests
 
-
 @MainActor
 final class StreamLodBatchKeyTests: XCTestCase {
     func testEntityBatchInfoIncludesLODIndex() {
@@ -276,7 +274,6 @@ final class StreamLodBatchKeyTests: XCTestCase {
 }
 
 // MARK: - Integration Monitor Tests
-
 
 @MainActor
 final class StreamLodBatchMonitorTests: XCTestCase {
@@ -345,7 +342,6 @@ final class StreamLodBatchMonitorTests: XCTestCase {
 }
 
 // MARK: - LOD Residency State Tests
-
 
 @MainActor
 final class StreamLodBatchResidencyStateTests: XCTestCase {
@@ -582,7 +578,6 @@ final class StreamLodBatchLODAwareStreamingTests: BaseRenderSetup {
 }
 
 // MARK: - Region Streaming Event Tests
-
 
 @MainActor
 final class StreamLodBatchRegionEventTests: XCTestCase {

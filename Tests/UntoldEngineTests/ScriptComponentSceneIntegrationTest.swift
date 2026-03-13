@@ -12,7 +12,6 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class ScriptComponentSceneIntegrationTest: XCTestCase {
     override func setUp() async throws {

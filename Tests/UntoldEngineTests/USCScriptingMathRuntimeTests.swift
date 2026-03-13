@@ -13,7 +13,6 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class USCScriptingMathRuntimeTests: XCTestCase {
     override func setUp() async throws {

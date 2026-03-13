@@ -12,7 +12,6 @@ import Metal
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class RenderStatsCollectorTests: XCTestCase {
     override func setUp() async throws {

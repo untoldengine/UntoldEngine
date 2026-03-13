@@ -15,16 +15,39 @@ import simd
 public class OctreeSystem: @unchecked Sendable {
     public static let shared = OctreeSystem()
 
+    private let accessLock = NSRecursiveLock()
+
     /// World bounds for the octree
     public var worldBounds: AABB {
-        didSet {
-            rebuildOctree()
+        get {
+            accessLock.lock()
+            defer { accessLock.unlock() }
+            return _worldBounds
+        }
+        set {
+            accessLock.lock()
+            _worldBounds = newValue
+            rebuildOctreeLocked()
+            accessLock.unlock()
         }
     }
 
     /// Whether the system is enabled
-    public var enabled: Bool = true
+    public var enabled: Bool {
+        get {
+            accessLock.lock()
+            defer { accessLock.unlock() }
+            return _enabled
+        }
+        set {
+            accessLock.lock()
+            _enabled = newValue
+            accessLock.unlock()
+        }
+    }
 
+    private var _worldBounds: AABB
+    private var _enabled: Bool = true
     private var octree: Octree
     private var registeredEntities: Set<EntityID> = []
     private var dirtyEntities: Set<EntityID> = [] // Entities needing bounds update
@@ -35,7 +58,7 @@ public class OctreeSystem: @unchecked Sendable {
             min: simd_float3(repeating: -1000),
             max: simd_float3(repeating: 1000)
         )
-        worldBounds = defaultBounds
+        _worldBounds = defaultBounds
         octree = Octree(
             worldBounds: defaultBounds,
             maxDepth: 8,
@@ -47,7 +70,9 @@ public class OctreeSystem: @unchecked Sendable {
     /// Register an entity with the spatial system
     /// Call this when an entity gets a RenderComponent
     public func registerEntity(_ entityId: EntityID) {
-        guard enabled else { return }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return }
         guard !registeredEntities.contains(entityId) else { return }
 
         if let bounds = calculateWorldBounds(for: entityId) {
@@ -59,6 +84,8 @@ public class OctreeSystem: @unchecked Sendable {
     /// Unregister an entity from the spatial system
     /// Call this when an entity is destroyed or loses its RenderComponent
     public func unregisterEntity(_ entityId: EntityID) {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         guard registeredEntities.contains(entityId) else { return }
 
         octree.remove(entityId: entityId)
@@ -69,7 +96,9 @@ public class OctreeSystem: @unchecked Sendable {
     /// Mark an entity as needing bounds update
     /// Call this when an entity's transform changes
     public func markDirty(_ entityId: EntityID) {
-        guard enabled else { return }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return }
         guard registeredEntities.contains(entityId) else { return }
         dirtyEntities.insert(entityId)
     }
@@ -77,7 +106,9 @@ public class OctreeSystem: @unchecked Sendable {
     /// Update all dirty entity bounds
     /// Call this once per frame, after transforms are updated
     public func updateDirtyBounds() {
-        guard enabled else { return }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return }
 
         for entityId in dirtyEntities {
             if let bounds = calculateWorldBounds(for: entityId) {
@@ -89,7 +120,9 @@ public class OctreeSystem: @unchecked Sendable {
 
     /// Query entities within a radius of the camera
     public func queryNearCamera(radius: Float) -> [EntityID] {
-        guard enabled else { return [] }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return [] }
         guard let camera = CameraSystem.shared.activeCamera,
               let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
         else { return [] }
@@ -103,25 +136,33 @@ public class OctreeSystem: @unchecked Sendable {
 
     /// Query entities within a sphere
     public func query(sphere: BoundingSphere) -> [EntityID] {
-        guard enabled else { return [] }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return [] }
         return octree.query(sphere: sphere)
     }
 
     /// Query entities within a bounding box
     public func query(range: AABB) -> [EntityID] {
-        guard enabled else { return [] }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return [] }
         return octree.query(range: range)
     }
 
     /// Query entities within the frustum
     public func query(frustum: [simd_float4]) -> [EntityID] {
-        guard enabled else { return [] }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return [] }
         return octree.query(frustum: frustum)
     }
 
     /// Query entities within a radius of a point
     public func queryNear(point: simd_float3, radius: Float) -> [EntityID] {
-        guard enabled else { return [] }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return [] }
         let sphere = BoundingSphere(center: point, radius: radius)
         return octree.query(sphere: sphere)
     }
@@ -133,20 +174,30 @@ public class OctreeSystem: @unchecked Sendable {
         rayDirection: simd_float3,
         maxDistance: Float = .greatestFiniteMagnitude
     ) -> [(EntityID, Float)] {
-        guard enabled else { return [] }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return [] }
         return octree.query(rayOrigin: rayOrigin, rayDirection: rayDirection, maxDistance: maxDistance)
     }
 
     /// Get the stored bounds for an entity
     public func getBounds(for entityId: EntityID) -> AABB? {
-        octree.getBounds(for: entityId)
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        return octree.getBounds(for: entityId)
     }
 
     /// Rebuild the entire octree
     /// Useful after loading a new scene or many changes
     public func rebuildOctree() {
+        accessLock.lock()
+        rebuildOctreeLocked()
+        accessLock.unlock()
+    }
+
+    private func rebuildOctreeLocked() {
         octree = Octree(
-            worldBounds: worldBounds,
+            worldBounds: _worldBounds,
             maxDepth: 8,
             maxEntriesPerLeaf: 16,
             minNodeSize: 1.0
@@ -164,6 +215,8 @@ public class OctreeSystem: @unchecked Sendable {
 
     /// Clear all spatial data
     public func clear() {
+        accessLock.lock()
+        defer { accessLock.unlock() }
         octree.clear()
         registeredEntities.removeAll()
         dirtyEntities.removeAll()
@@ -171,24 +224,32 @@ public class OctreeSystem: @unchecked Sendable {
 
     /// Get octree statistics for debugging
     public var stats: OctreeStats {
-        octree.stats
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        return octree.stats
     }
 
     /// Snapshot leaf node bounds for debug visualization.
     public func getLeafNodeBounds(occupiedOnly: Bool = true) -> [AABB] {
-        guard enabled else { return [] }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return [] }
         return octree.leafNodeBounds(occupiedOnly: occupiedOnly)
     }
 
     /// Snapshot leaf nodes (bounds + entity IDs) for debug visualization.
     public func getLeafNodeSnapshots(occupiedOnly: Bool = true) -> [OctreeLeafSnapshot] {
-        guard enabled else { return [] }
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        guard _enabled else { return [] }
         return octree.leafNodeSnapshots(occupiedOnly: occupiedOnly)
     }
 
     /// Number of registered entities
     public var entityCount: Int {
-        registeredEntities.count
+        accessLock.lock()
+        defer { accessLock.unlock() }
+        return registeredEntities.count
     }
 
     /// Calculate world-space bounding box for an entity

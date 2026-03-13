@@ -12,7 +12,6 @@ import Foundation
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class BuildSystemTests: XCTestCase {
     var tempDirectory: URL!
@@ -28,7 +27,6 @@ final class BuildSystemTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-
         // Clean up temporary directory
         if let tempDirectory {
             try? FileManager.default.removeItem(at: tempDirectory)

@@ -24,6 +24,9 @@ final class AnimationTests: BaseRenderSetup {
     ]
 
     func test_generateReferenceKeyframes() throws {
+        guard ProcessInfo.processInfo.environment["UNTOLD_REGENERATE_REFERENCES"] == "1" else {
+            throw XCTSkip("Reference generation is opt-in. Set UNTOLD_REGENERATE_REFERENCES=1 to run.")
+        }
         try runSamples { tex, name in
             self.testGenerateRenderTarget(targetName: name, texture: tex)
         }
@@ -73,6 +76,8 @@ final class AnimationTests: BaseRenderSetup {
     }
 
     private func runSamples(save: (_ tex: MTLTexture, _ name: String) -> Void) throws {
+        resetAnimationPlaybackState()
+
         var last: Float = 0
         for s in samples {
             let dt = s.time - last
@@ -92,6 +97,24 @@ final class AnimationTests: BaseRenderSetup {
             save(colorTex, s.name)
             last = s.time
         }
+    }
+
+    private func resetAnimationPlaybackState() {
+        guard let player = findEntity(name: "player") else {
+            XCTFail("Missing player entity")
+            return
+        }
+
+        guard let animationComponent = scene.get(component: AnimationComponent.self, for: player) else {
+            XCTFail("Missing AnimationComponent for player entity")
+            return
+        }
+
+        setAnimationPlaybackSpeed(entityId: player, speed: 1.0)
+        animationComponent.currentTime = 0.0
+        animationComponent.pause = false
+        changeAnimation(entityId: player, name: "running")
+        currentGlobalTime = 0.0
     }
 
     override func initializeAssets() {

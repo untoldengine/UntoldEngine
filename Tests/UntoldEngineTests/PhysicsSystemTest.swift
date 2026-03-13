@@ -12,7 +12,6 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class PhysicsSystemTests: XCTestCase {
     var entityId: EntityID!

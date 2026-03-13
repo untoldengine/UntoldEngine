@@ -1580,6 +1580,7 @@ var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] {
         registrationRuntimeState.lock.unlock()
     }
 }
+
 var customComponentDecoderMap: [String: (EntityID, Data) -> Void] {
     get {
         registrationRuntimeState.lock.lock()
@@ -1592,6 +1593,7 @@ var customComponentDecoderMap: [String: (EntityID, Data) -> Void] {
         registrationRuntimeState.lock.unlock()
     }
 }
+
 var customComponentTypeNameById: [ObjectIdentifier: String] {
     get {
         registrationRuntimeState.lock.lock()
@@ -1968,7 +1970,7 @@ public func addLODLevel(
                 return false
             }
 
-                // Add LOD level at the specified index
+            // Add LOD level at the specified index
             if lodIndex < 0 {
                 Logger.logWarning(message: "Invalid LOD index \(lodIndex), appending to end")
                 lodComponent.lodLevels.append(lodLevel)

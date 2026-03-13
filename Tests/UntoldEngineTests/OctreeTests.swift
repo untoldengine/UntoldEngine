@@ -16,7 +16,6 @@ import simd
 @testable import UntoldEngine
 import XCTest
 
-
 @MainActor
 final class OctreeTests: XCTestCase {
     // MARK: - AABB Tests
