@@ -243,16 +243,26 @@
             RealSurfacePlaneStore.shared.clear()
         }
 
+        private func isRunning() -> Bool {
+            lock.lock()
+            let running = _isRunning
+            lock.unlock()
+            return running
+        }
+
         public func runLoop() {
             while true {
+                var shouldExit = false
                 autoreleasepool {
-                    lock.lock()
-                    let running = _isRunning
-                    lock.unlock()
+                    let running = isRunning()
 
-                    if !running { return }
+                    if !running {
+                        shouldExit = true
+                        return
+                    }
 
                     guard let layerRenderer else {
+                        shouldExit = true
                         return
                     }
 
@@ -265,12 +275,14 @@
                         renderNewFrame()
 
                     case .invalidated:
-                        return
+                        shouldExit = true
 
                     @unknown default:
-                        return
+                        shouldExit = true
                     }
                 }
+
+                if shouldExit { break }
             }
         }
 
@@ -278,6 +290,7 @@
         private func renderNewFrame() {
             // 1. Call queryNextFrame() to fetch the next frame to use for drawing
             guard let layerRenderer else { return }
+            guard isRunning() else { return }
 
             guard let frame = layerRenderer.queryNextFrame() else { return }
 
@@ -316,8 +329,18 @@
             // 7. Call wait(until:tolerace) to puase your render loop until the optimal rendering time
             LayerRenderer.Clock().wait(until: timing.optimalInputTime, tolerance: .zero)
 
+            // The compositor or app state can transition while waiting. If not running anymore,
+            // skip submission entirely to avoid using an invalid frame.
+            guard isRunning(), layerRenderer.state == .running else { return }
+
             // 8. Call startSubmission() to mark the start of submission phase
             frame.startSubmission()
+            var shouldEndSubmission = true
+            defer {
+                if shouldEndSubmission, layerRenderer.state == .running {
+                    frame.endSubmission()
+                }
+            }
 
             // 9. Encode any drawing commands that depend on the device position or orientation
             guard let drawable = frame.queryDrawable() else {
@@ -326,7 +349,9 @@
                 #else
                     renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
                 #endif
-                frame.endSubmission()
+                // queryDrawable() can fail during shutdown/teardown; in that case the
+                // frame is already invalid and endSubmission() must not be called.
+                shouldEndSubmission = false
                 return
             }
 
@@ -380,9 +405,6 @@
             #else
                 renderer.finalizeXRStatsAndMonitors(frameStartTime: 0.0)
             #endif
-
-            // 13. Call endSubmission
-            frame.endSubmission()
         }
 
         private func updateSpatialInputState() {
