@@ -20,32 +20,101 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Maximum concurrent mesh loads
     public var maxConcurrentLoads: Int = 3
 
+    /// Max unload operations processed each streaming update tick.
+    /// Lower values reduce frame spikes when many entities leave range at once.
+    public var maxUnloadsPerUpdate: Int = 12
+
     /// How often to check for load/unload (seconds)
     public var updateInterval: Float = 0.1
 
     /// Maximum radius to query from octree (should cover largest unload radius)
     public var maxQueryRadius: Float = 500.0
 
+    private let stateLock = NSLock()
     private var timeSinceLastUpdate: Float = 0
     private var activeLoads: Set<EntityID> = []
     private var loadedStreamingEntities: Set<EntityID> = [] // Track loaded entities for efficient unload checks
     private var currentFrame: Int = 0
     private var lastLoadCandidateCount: Int = 0
     private var lastPendingLoadBacklog: Int = 0
+    private var diagnostics: GeometryStreamingDiagnosticsSnapshot = .init()
+    private var cumulativeAsyncLoadMs: Double = 0.0
+    private var completedAsyncLoads: Int = 0
 
     private init() {}
 
+    @inline(__always)
+    private func withStateLock<T>(_ body: () throws -> T) rethrows -> T {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        return try body()
+    }
+
+    private func reserveActiveLoad(entityId: EntityID) -> Bool {
+        withStateLock {
+            if activeLoads.contains(entityId) {
+                return false
+            }
+            activeLoads.insert(entityId)
+            return true
+        }
+    }
+
+    private func releaseActiveLoad(entityId: EntityID) {
+        withStateLock {
+            _ = activeLoads.remove(entityId)
+        }
+    }
+
+    private func activeLoadCountSnapshot() -> Int {
+        withStateLock { activeLoads.count }
+    }
+
+    private func loadedStreamingEntitiesSnapshot() -> [EntityID] {
+        withStateLock { Array(loadedStreamingEntities) }
+    }
+
+    private func markLoadedStreamingEntity(_ entityId: EntityID) {
+        withStateLock {
+            _ = loadedStreamingEntities.insert(entityId)
+        }
+    }
+
+    private func unmarkLoadedStreamingEntity(_ entityId: EntityID) {
+        withStateLock {
+            _ = loadedStreamingEntities.remove(entityId)
+        }
+    }
+
     /// Called every frame from the engine's update loop
     public func update(cameraPosition: simd_float3, deltaTime: Float) {
-        guard enabled else { return }
+        guard enabled else {
+            withStateLock {
+                diagnostics.updateFrame = currentFrame
+                diagnostics.updateTriggered = false
+                diagnostics.updateWorkMs = 0
+            }
+            return
+        }
 
         currentFrame += 1
         MeshResourceManager.shared.currentFrame = currentFrame // Keep cache LRU updated
 
+        let activeLoadsAtStart = activeLoadCountSnapshot()
+
         // Throttle updates
         timeSinceLastUpdate += deltaTime
-        guard timeSinceLastUpdate >= updateInterval else { return }
+        guard timeSinceLastUpdate >= updateInterval else {
+            withStateLock {
+                diagnostics.updateFrame = currentFrame
+                diagnostics.updateTriggered = false
+                diagnostics.updateWorkMs = 0
+                diagnostics.activeLoadsAtUpdateStart = activeLoadsAtStart
+            }
+            return
+        }
         timeSinceLastUpdate = 0
+        let updateStart = CFAbsoluteTimeGetCurrent()
 
         // Use Octree for efficient spatial query - only check nearby entities for loading
         // Query with the max unload radius to catch all potentially relevant entities
@@ -54,7 +123,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let nearbyEntities = OctreeSystem.shared.queryNear(point: effectiveCameraPosition, radius: maxQueryRadius)
 
         var loadCandidates: [(EntityID, Float, Int)] = [] // (entity, distance, priority)
-        var unloadCandidates: [EntityID] = []
+        var unloadCandidates: [(EntityID, Float)] = [] // (entity, distance)
 
         // Check nearby entities for loading
         for entityId in nearbyEntities {
@@ -79,7 +148,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             case .loaded:
                 streaming.lastVisibleFrame = currentFrame
                 if distance > streaming.unloadRadius {
-                    unloadCandidates.append(entityId)
+                    unloadCandidates.append((entityId, distance))
                 }
 
             case .loading, .unloading:
@@ -92,7 +161,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let nearbySet = Set(nearbyEntities) // O(1) lookup
         var staleEntityIds: [EntityID] = []
 
-        for entityId in loadedStreamingEntities {
+        let trackedLoadedSnapshot = loadedStreamingEntitiesSnapshot()
+        for entityId in trackedLoadedSnapshot {
             // Skip if already processed via octree query
             if nearbySet.contains(entityId) { continue }
 
@@ -108,18 +178,22 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
             let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
             if distance > streaming.unloadRadius {
-                unloadCandidates.append(entityId)
+                unloadCandidates.append((entityId, distance))
             }
         }
 
         // Clean up stale entity IDs
         for staleId in staleEntityIds {
-            loadedStreamingEntities.remove(staleId)
+            unmarkLoadedStreamingEntity(staleId)
         }
 
-        // Process unloads first (free memory)
-        for entityId in unloadCandidates {
+        // Process unloads first (free memory), but cap per update to smooth spikes.
+        unloadCandidates.sort { lhs, rhs in lhs.1 > rhs.1 } // farthest first
+        let unloadBudget = max(1, maxUnloadsPerUpdate)
+        var processedUnloads = 0
+        for (entityId, _) in unloadCandidates.prefix(unloadBudget) {
             unloadMesh(entityId: entityId)
+            processedUnloads += 1
         }
 
         // Sort load candidates: high priority first, then closest
@@ -129,27 +203,51 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
 
         // Load within concurrent limit
-        let availableSlots = maxConcurrentLoads - activeLoads.count
+        let availableSlots = maxConcurrentLoads - activeLoadCountSnapshot()
         lastLoadCandidateCount = loadCandidates.count
         lastPendingLoadBacklog = max(0, loadCandidates.count - max(0, availableSlots))
-        for (entityId, _, _) in loadCandidates.prefix(availableSlots) {
+        let loadsToStart = max(0, availableSlots)
+        var startedLoads = 0
+        for (entityId, _, _) in loadCandidates.prefix(loadsToStart) {
             loadMesh(entityId: entityId)
+            startedLoads += 1
         }
 
         // Memory pressure check
+        var evictionTriggered = false
+        var evictedByLRU = 0
         if MemoryBudgetManager.shared.shouldEvict() {
-            evictLRU()
+            evictionTriggered = true
+            evictedByLRU = evictLRU()
+        }
+
+        let updateWorkMs = (CFAbsoluteTimeGetCurrent() - updateStart) * 1000.0
+        let activeLoadsAtEnd = activeLoadCountSnapshot()
+        withStateLock {
+            diagnostics.updateFrame = currentFrame
+            diagnostics.updateTriggered = true
+            diagnostics.updateWorkMs = updateWorkMs
+            diagnostics.nearbyEntitiesQueried = nearbyEntities.count
+            diagnostics.unloadCandidates = unloadCandidates.count
+            diagnostics.processedUnloads = processedUnloads
+            diagnostics.loadCandidates = loadCandidates.count
+            diagnostics.startedLoads = startedLoads
+            diagnostics.availableLoadSlots = loadsToStart
+            diagnostics.activeLoadsAtUpdateStart = activeLoadsAtStart
+            diagnostics.activeLoadsAtUpdateEnd = activeLoadsAtEnd
+            diagnostics.evictionTriggered = evictionTriggered
+            diagnostics.evictionsPerformed = evictedByLRU
         }
     }
 
     private func loadMesh(entityId: EntityID) {
         guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
-              streaming.state == .unloaded,
-              !activeLoads.contains(entityId)
+              streaming.state == .unloaded
         else { return }
+        guard reserveActiveLoad(entityId: entityId) else { return }
 
         streaming.state = .loading
-        activeLoads.insert(entityId)
+        BatchingSystem.shared.notifyEntityStreamingStarted(entityId: entityId)
 
         // Check if entity has LOD component
         let hasLOD = scene.get(component: LODComponent.self, for: entityId) != nil
@@ -159,6 +257,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let assetName = streaming.assetName
 
         let task = Task {
+            let asyncLoadStart = CFAbsoluteTimeGetCurrent()
             let success = if hasLOD {
                 // LOD entity: reload all LOD levels and set correct one for current distance
                 await reloadLODEntity(entityId: entityId)
@@ -171,8 +270,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     assetName: assetName
                 )
             }
+            let asyncLoadMs = (CFAbsoluteTimeGetCurrent() - asyncLoadStart) * 1000.0
 
+            var applyMs: Double = 0
             withWorldMutationGate {
+                let applyStart = CFAbsoluteTimeGetCurrent()
                 if success {
                     if let s = scene.get(component: StreamingComponent.self, for: entityId) {
                         s.state = .loaded
@@ -189,7 +291,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                             SystemEventBus.shared.queueResidencyChange(event)
                         }
                     }
-                    loadedStreamingEntities.insert(entityId)
+                    markLoadedStreamingEntity(entityId)
                     SystemIntegrationMonitor.shared.recordStreamingLoad()
                 } else {
                     // Load failed - reset to unloaded so it can retry
@@ -198,8 +300,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     }
                     Logger.logError(message: "Failed to stream mesh for entity \(entityId)")
                 }
-                activeLoads.remove(entityId)
+                releaseActiveLoad(entityId: entityId)
+                applyMs = (CFAbsoluteTimeGetCurrent() - applyStart) * 1000.0
             }
+            recordLoadCompletion(success: success, asyncLoadMs: asyncLoadMs, applyMs: applyMs, wasLODReload: hasLOD)
         }
 
         streaming.loadTask = task
@@ -382,8 +486,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
               streaming.state == .loaded
         else { return }
 
+        let unloadStart = CFAbsoluteTimeGetCurrent()
         withWorldMutationGate {
             streaming.state = .unloading
+            BatchingSystem.shared.notifyEntityRetiring(entityId: entityId)
 
             // Cancel any pending load
             streaming.loadTask?.cancel()
@@ -417,7 +523,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             MemoryBudgetManager.shared.unregisterMesh(entityId: entityId)
 
             // Remove from loaded tracking set
-            loadedStreamingEntities.remove(entityId)
+            unmarkLoadedStreamingEntity(entityId)
 
             streaming.state = .unloaded
 
@@ -431,9 +537,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             SystemEventBus.shared.queueResidencyChange(event)
             SystemIntegrationMonitor.shared.recordStreamingUnload()
         }
+        let unloadMs = (CFAbsoluteTimeGetCurrent() - unloadStart) * 1000.0
+        updateLastUnloadDuration(unloadMs)
     }
 
-    private func evictLRU() {
+    private func evictLRU() -> Int {
         // First, evict any unused cached files
         MeshResourceManager.shared.evictUnused()
 
@@ -441,7 +549,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         var candidates: [(EntityID, Int)] = [] // (entity, lastVisibleFrame)
         var staleEntityIds: [EntityID] = []
 
-        for entityId in loadedStreamingEntities {
+        let trackedLoadedSnapshot = loadedStreamingEntitiesSnapshot()
+        for entityId in trackedLoadedSnapshot {
             // Check if entity still exists
             guard scene.exists(entityId) else {
                 staleEntityIds.append(entityId)
@@ -457,13 +566,14 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         // Clean up stale entity IDs
         for staleId in staleEntityIds {
-            loadedStreamingEntities.remove(staleId)
+            unmarkLoadedStreamingEntity(staleId)
         }
 
         // Sort by oldest first
         candidates.sort { $0.1 < $1.1 }
 
         // Evict until memory pressure relieved
+        var evictedCount = 0
         for (entityId, _) in candidates {
             guard MemoryBudgetManager.shared.shouldEvict() else { break }
 
@@ -471,6 +581,35 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             if visibleEntityIds.contains(entityId) { continue }
 
             unloadMesh(entityId: entityId)
+            evictedCount += 1
+        }
+        return evictedCount
+    }
+
+    private func recordLoadCompletion(success: Bool, asyncLoadMs: Double, applyMs: Double, wasLODReload: Bool) {
+        withStateLock {
+            diagnostics.lastAsyncLoadMs = asyncLoadMs
+            diagnostics.lastApplyLoadedMeshMs = applyMs
+            if wasLODReload {
+                diagnostics.lastAsyncReloadLODMs = asyncLoadMs
+            }
+            if success {
+                completedAsyncLoads += 1
+                cumulativeAsyncLoadMs += asyncLoadMs
+            } else {
+                diagnostics.lastFailedAsyncLoadMs = asyncLoadMs
+            }
+            if completedAsyncLoads > 0 {
+                diagnostics.averageAsyncLoadMs = cumulativeAsyncLoadMs / Double(completedAsyncLoads)
+            } else {
+                diagnostics.averageAsyncLoadMs = 0
+            }
+        }
+    }
+
+    private func updateLastUnloadDuration(_ unloadMs: Double) {
+        withStateLock {
+            diagnostics.lastUnloadMeshMs = unloadMs
         }
     }
 
@@ -503,7 +642,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             if success {
                 streaming.state = .loaded
                 streaming.lastVisibleFrame = currentFrame
-                loadedStreamingEntities.insert(entityId)
+                markLoadedStreamingEntity(entityId)
             } else {
                 streaming.state = .unloaded
             }
@@ -517,7 +656,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     /// Register an entity that already has its mesh loaded (called by enableStreaming)
     public func registerLoadedEntity(_ entityId: EntityID) {
-        loadedStreamingEntities.insert(entityId)
+        markLoadedStreamingEntity(entityId)
     }
 
     /// Remove an entity from streaming tracking sets.
@@ -530,8 +669,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     streaming.state = .unloaded
                 }
             }
-            activeLoads.remove(entityId)
-            loadedStreamingEntities.remove(entityId)
+            releaseActiveLoad(entityId: entityId)
+            unmarkLoadedStreamingEntity(entityId)
         }
     }
 
@@ -553,12 +692,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
 
             SystemEventBus.shared.clearPendingEvents()
-            activeLoads.removeAll()
-            loadedStreamingEntities.removeAll()
+            withStateLock {
+                activeLoads.removeAll()
+                loadedStreamingEntities.removeAll()
+            }
             timeSinceLastUpdate = 0
             currentFrame = 0
             lastLoadCandidateCount = 0
             lastPendingLoadBacklog = 0
+            diagnostics = .init()
+            cumulativeAsyncLoadMs = 0
+            completedAsyncLoads = 0
         }
     }
 
@@ -588,11 +732,39 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             loadedCount: loaded,
             loadingCount: loading,
             unloadedCount: unloaded,
-            activeLoads: activeLoads.count,
+            activeLoads: activeLoadCountSnapshot(),
             loadCandidates: lastLoadCandidateCount,
             pendingLoadBacklog: lastPendingLoadBacklog
         )
     }
+
+    public func getDiagnosticsSnapshot() -> GeometryStreamingDiagnosticsSnapshot {
+        withStateLock { diagnostics }
+    }
+}
+
+public struct GeometryStreamingDiagnosticsSnapshot: Sendable {
+    public var updateFrame: Int = 0
+    public var updateTriggered: Bool = false
+    public var updateWorkMs: Double = 0.0
+    public var nearbyEntitiesQueried: Int = 0
+    public var unloadCandidates: Int = 0
+    public var processedUnloads: Int = 0
+    public var loadCandidates: Int = 0
+    public var startedLoads: Int = 0
+    public var availableLoadSlots: Int = 0
+    public var activeLoadsAtUpdateStart: Int = 0
+    public var activeLoadsAtUpdateEnd: Int = 0
+    public var evictionTriggered: Bool = false
+    public var evictionsPerformed: Int = 0
+    public var lastAsyncLoadMs: Double = 0.0
+    public var averageAsyncLoadMs: Double = 0.0
+    public var lastApplyLoadedMeshMs: Double = 0.0
+    public var lastAsyncReloadLODMs: Double = 0.0
+    public var lastUnloadMeshMs: Double = 0.0
+    public var lastFailedAsyncLoadMs: Double = 0.0
+
+    public init() {}
 }
 
 /// Statistics for geometry streaming

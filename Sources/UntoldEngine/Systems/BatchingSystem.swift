@@ -27,6 +27,15 @@ public struct BatchCellID: Hashable, Sendable {
     public static let zero = BatchCellID(x: 0, y: 0, z: 0)
 }
 
+public enum StaticBatchCellRenderState: String, Sendable {
+    case unloaded
+    case streaming
+    case renderableUnbatched
+    case batchPending
+    case renderableBatched
+    case retiring
+}
+
 private struct BatchBuildKey: Hashable {
     let cellId: BatchCellID
     let materialHash: String
@@ -37,12 +46,368 @@ private struct BatchBuildKey: Hashable {
     }
 }
 
+private typealias BatchMeshItem = (
+    entityId: EntityID,
+    mesh: Mesh,
+    meshIndex: Int,
+    transform: simd_float4x4,
+    material: Material
+)
+
+private struct BatchCandidate {
+    let entityId: EntityID
+    let renderComponent: RenderComponent
+    let worldTransform: WorldTransformComponent
+    let lodIndex: Int
+    let cellId: BatchCellID
+}
+
+private struct BatchCellLifecycleRecord {
+    var state: StaticBatchCellRenderState = .unloaded
+    var nextBatchBuildFrame: Int = 0
+    var dirtySinceFrame: Int = 0
+}
+
+private struct RetiringBatchArtifact {
+    let cellId: BatchCellID
+    let groups: [BatchGroup]
+    let retireAfterFrame: Int
+}
+
+public struct BatchingTickDiagnostics: Sendable {
+    public var tickFrame: Int = 0
+    public var pendingEntityRemovals: Int = 0
+    public var pendingEntityAdditions: Int = 0
+    public var promotedCells: Int = 0
+    public var consideredBatchPendingCells: Int = 0
+    public var dirtyCellsBeforePrune: Int = 0
+    public var dirtyCellsAfterPrune: Int = 0
+    public var pendingBatchCells: Int = 0
+    public var deferredByQuiescence: Int = 0
+    public var deferredByVisibility: Int = 0
+    public var deferredByWorkBudget: Int = 0
+    public var skippedByComplexityGuard: Int = 0
+    public var dispatchedBuilds: Int = 0
+    public var appliedArtifacts: Int = 0
+    public var inFlightBuildCells: Int = 0
+    public var readyArtifactsQueued: Int = 0
+    public var rebuiltCells: Int = 0
+    public var rebuiltBatchGroups: Int = 0
+    public var rebuiltVertices: Int = 0
+    public var rebuiltIndices: Int = 0
+    public var rebuiltBufferBytes: Int = 0
+    public var rebuildWorkMs: Double = 0.0
+    public var maxCellRebuildMs: Double = 0.0
+    public var maxCell: BatchCellID?
+    public var retiringArtifactsQueued: Int = 0
+
+    public init() {}
+}
+
+/// Runtime tuning controls for streamed static batching behavior.
+///
+/// Use this to set how aggressively the engine upgrades cells from
+/// `renderableUnbatched` to `renderableBatched`.
+///
+/// High values converge to batched rendering faster but risk CPU spikes.
+/// Low values prioritize frame stability and smooth traversal.
+public struct RuntimeBatchingTuning: Sendable {
+    /// Maximum dirty cells considered for rebuild scheduling per tick.
+    /// Lower values reduce worst-case tick work but can delay convergence.
+    public var maxDirtyCellsPerTick: Int
+
+    /// Maximum cells dispatched for background artifact build per tick.
+    /// Lower values reduce background CPU pressure and contention.
+    public var maxBuildDispatchesPerTick: Int
+
+    /// Maximum completed artifacts applied (swapped to batched) per tick.
+    /// Lower values smooth swap bursts when many builds finish together.
+    public var maxArtifactAppliesPerTick: Int
+
+    /// Per-tick work budget guard (estimated vertices).
+    /// Helps cap rebuild cost even if few cells are selected.
+    public var maxRebuildVerticesPerTick: Int
+
+    /// Per-tick work budget guard (estimated indices).
+    /// Pair this with vertex and byte budgets to prevent spikes.
+    public var maxRebuildIndicesPerTick: Int
+
+    /// Per-tick work budget guard (estimated combined buffer bytes).
+    /// Useful when cell meshes are dense or have many attributes.
+    public var maxRebuildBufferBytesPerTick: Int
+
+    /// Per-cell runtime eligibility guard (vertices).
+    /// Cells above this stay unbatched at runtime to avoid pathological stalls.
+    public var maxRuntimeCellVertices: Int
+
+    /// Per-cell runtime eligibility guard (indices).
+    /// Use this with vertex/bytes guards for heavy architecture cells.
+    public var maxRuntimeCellIndices: Int
+
+    /// Per-cell runtime eligibility guard (estimated bytes).
+    /// If exceeded, cell remains unbatched during traversal.
+    public var maxRuntimeCellBufferBytes: Int
+
+    /// Minimum stable frames before a dirty cell may enter rebuild work.
+    /// Higher values avoid churn during frequent residency/LOD changes.
+    public var quiescenceFramesBeforeBatchBuild: Int
+
+    /// Frames a cell remains "recently visible" for scheduling priority.
+    /// Larger windows keep near-past visible cells eligible longer.
+    public var recentVisibilityWindowFrames: Int
+
+    /// If true, only visible/recently-visible cells are promoted/rebuilt.
+    /// Strongly recommended for large streamed scenes.
+    public var visibilityGatedBatchBuildEnabled: Bool
+
+    /// Deferred retirement artifacts processed per tick.
+    /// Lower values smooth teardown cost; higher values reclaim memory faster.
+    public var maxRetirementsPerTick: Int
+
+    /// Safety delay (frames) before retired batch GPU resources are released.
+    /// Increase when testing for GPU in-flight safety issues.
+    public var batchRetireDelayFrames: Int
+
+    public init(
+        maxDirtyCellsPerTick: Int = 8,
+        maxBuildDispatchesPerTick: Int = 4,
+        maxArtifactAppliesPerTick: Int = 4,
+        maxRebuildVerticesPerTick: Int = 120_000,
+        maxRebuildIndicesPerTick: Int = 220_000,
+        maxRebuildBufferBytesPerTick: Int = 6 * 1024 * 1024,
+        maxRuntimeCellVertices: Int = 160_000,
+        maxRuntimeCellIndices: Int = 300_000,
+        maxRuntimeCellBufferBytes: Int = 8 * 1024 * 1024,
+        quiescenceFramesBeforeBatchBuild: Int = 1,
+        recentVisibilityWindowFrames: Int = 120,
+        visibilityGatedBatchBuildEnabled: Bool = true,
+        maxRetirementsPerTick: Int = 8,
+        batchRetireDelayFrames: Int = 3
+    ) {
+        self.maxDirtyCellsPerTick = maxDirtyCellsPerTick
+        self.maxBuildDispatchesPerTick = maxBuildDispatchesPerTick
+        self.maxArtifactAppliesPerTick = maxArtifactAppliesPerTick
+        self.maxRebuildVerticesPerTick = maxRebuildVerticesPerTick
+        self.maxRebuildIndicesPerTick = maxRebuildIndicesPerTick
+        self.maxRebuildBufferBytesPerTick = maxRebuildBufferBytesPerTick
+        self.maxRuntimeCellVertices = maxRuntimeCellVertices
+        self.maxRuntimeCellIndices = maxRuntimeCellIndices
+        self.maxRuntimeCellBufferBytes = maxRuntimeCellBufferBytes
+        self.quiescenceFramesBeforeBatchBuild = quiescenceFramesBeforeBatchBuild
+        self.recentVisibilityWindowFrames = recentVisibilityWindowFrames
+        self.visibilityGatedBatchBuildEnabled = visibilityGatedBatchBuildEnabled
+        self.maxRetirementsPerTick = maxRetirementsPerTick
+        self.batchRetireDelayFrames = batchRetireDelayFrames
+    }
+
+    /// Balanced defaults for desktop-class hardware.
+    public static var macOSBalanced: RuntimeBatchingTuning {
+        RuntimeBatchingTuning(
+            maxDirtyCellsPerTick: 8,
+            maxBuildDispatchesPerTick: 4,
+            maxArtifactAppliesPerTick: 4,
+            maxRebuildVerticesPerTick: 120_000,
+            maxRebuildIndicesPerTick: 220_000,
+            maxRebuildBufferBytesPerTick: 6 * 1024 * 1024,
+            maxRuntimeCellVertices: 160_000,
+            maxRuntimeCellIndices: 300_000,
+            maxRuntimeCellBufferBytes: 8 * 1024 * 1024,
+            quiescenceFramesBeforeBatchBuild: 1,
+            recentVisibilityWindowFrames: 120,
+            visibilityGatedBatchBuildEnabled: true,
+            maxRetirementsPerTick: 8,
+            batchRetireDelayFrames: 3
+        )
+    }
+
+    /// Conservative defaults for thermal-constrained mixed-reality devices.
+    public static var visionOSBalanced: RuntimeBatchingTuning {
+        RuntimeBatchingTuning(
+            maxDirtyCellsPerTick: 4,
+            maxBuildDispatchesPerTick: 1,
+            maxArtifactAppliesPerTick: 1,
+            maxRebuildVerticesPerTick: 60000,
+            maxRebuildIndicesPerTick: 110_000,
+            maxRebuildBufferBytesPerTick: 3 * 1024 * 1024,
+            maxRuntimeCellVertices: 90000,
+            maxRuntimeCellIndices: 170_000,
+            maxRuntimeCellBufferBytes: 5 * 1024 * 1024,
+            quiescenceFramesBeforeBatchBuild: 2,
+            recentVisibilityWindowFrames: 90,
+            visibilityGatedBatchBuildEnabled: true,
+            maxRetirementsPerTick: 4,
+            batchRetireDelayFrames: 3
+        )
+    }
+}
+
+private struct DirtyRebuildMetrics {
+    var dirtyCellsBeforePrune: Int = 0
+    var dirtyCellsAfterPrune: Int = 0
+    var consideredBatchPendingCells: Int = 0
+    var pendingBatchCells: Int = 0
+    var deferredByQuiescence: Int = 0
+    var deferredByVisibility: Int = 0
+    var deferredByWorkBudget: Int = 0
+    var skippedByComplexityGuard: Int = 0
+    var dispatchedBuilds: Int = 0
+    var appliedArtifacts: Int = 0
+    var inFlightBuildCells: Int = 0
+    var readyArtifactsQueued: Int = 0
+    var rebuiltCells: Int = 0
+    var rebuiltBatchGroups: Int = 0
+    var rebuiltVertices: Int = 0
+    var rebuiltIndices: Int = 0
+    var rebuiltBufferBytes: Int = 0
+    var rebuildWorkMs: Double = 0.0
+    var maxCellRebuildMs: Double = 0.0
+    var maxCell: BatchCellID?
+}
+
+private struct PromotionMetrics {
+    var promotedCells: Int = 0
+    var deferredByQuiescence: Int = 0
+    var deferredByVisibility: Int = 0
+}
+
+private struct CellWorkEstimate {
+    var vertices: Int = 0
+    var indices: Int = 0
+    var bytes: Int = 0
+    var opaqueSubmeshCount: Int = 0
+
+    static let zero = CellWorkEstimate()
+}
+
+private struct CellRebuildCandidate {
+    var cellId: BatchCellID
+    var estimate: CellWorkEstimate
+    var isVisibleNow: Bool
+    var isRecentlyVisible: Bool
+    var lastVisibleFrame: Int
+    var dirtySinceFrame: Int
+}
+
+private struct CellBuildInput {
+    var cellId: BatchCellID
+    var generation: Int
+    var epoch: Int
+    var materialGroups: [BatchBuildKey: [BatchMeshItem]]
+}
+
+private struct PreparedCellArtifact {
+    var cellId: BatchCellID
+    var generation: Int
+    var epoch: Int
+    var builtGroups: [BatchGroup]
+    var entityBatchMap: [EntityID: EntityBatchInfo]
+    var groupCount: Int
+    var vertexCount: Int
+    var indexCount: Int
+    var bufferBytes: Int
+    var buildMs: Double
+}
+
+extension CellBuildInput: @unchecked Sendable {}
+extension PreparedCellArtifact: @unchecked Sendable {}
+
+private struct BatchCellRuntimeStats {
+    var cellId: BatchCellID
+    var lastEstimatedVertices: Int = 0
+    var lastEstimatedIndices: Int = 0
+    var lastEstimatedBytes: Int = 0
+    var rebuildCount: Int = 0
+    var lastRebuildMs: Double = 0.0
+    var maxRebuildMs: Double = 0.0
+    var skipByWorkBudgetCount: Int = 0
+    var skipByQuiescenceCount: Int = 0
+    var skipByComplexityCount: Int = 0
+    var lastRebuiltGroupCount: Int = 0
+}
+
+public struct BatchCellRuntimeDiagnostic: Sendable {
+    public var cellId: BatchCellID
+    public var lastEstimatedVertices: Int
+    public var lastEstimatedIndices: Int
+    public var lastEstimatedBytes: Int
+    public var rebuildCount: Int
+    public var lastRebuildMs: Double
+    public var maxRebuildMs: Double
+    public var skipByWorkBudgetCount: Int
+    public var skipByQuiescenceCount: Int
+    public var skipByComplexityCount: Int
+    public var lastRebuiltGroupCount: Int
+
+    public init(
+        cellId: BatchCellID,
+        lastEstimatedVertices: Int,
+        lastEstimatedIndices: Int,
+        lastEstimatedBytes: Int,
+        rebuildCount: Int,
+        lastRebuildMs: Double,
+        maxRebuildMs: Double,
+        skipByWorkBudgetCount: Int,
+        skipByQuiescenceCount: Int,
+        skipByComplexityCount: Int,
+        lastRebuiltGroupCount: Int
+    ) {
+        self.cellId = cellId
+        self.lastEstimatedVertices = lastEstimatedVertices
+        self.lastEstimatedIndices = lastEstimatedIndices
+        self.lastEstimatedBytes = lastEstimatedBytes
+        self.rebuildCount = rebuildCount
+        self.lastRebuildMs = lastRebuildMs
+        self.maxRebuildMs = maxRebuildMs
+        self.skipByWorkBudgetCount = skipByWorkBudgetCount
+        self.skipByQuiescenceCount = skipByQuiescenceCount
+        self.skipByComplexityCount = skipByComplexityCount
+        self.lastRebuiltGroupCount = lastRebuiltGroupCount
+    }
+}
+
+public struct RuntimeBatchingSummaryDiagnostic: Sendable {
+    public var trackedCells: Int
+    public var runtimeIneligibleCells: Int
+    public var averageEstimatedVerticesPerCell: Double
+    public var maxEstimatedVerticesInCell: Int
+    public var averageEstimatedBytesPerCell: Double
+    public var maxEstimatedBytesInCell: Int
+    public var worstRebuildMs: Double
+    public var totalComplexitySkips: Int
+    public var totalBudgetSkips: Int
+    public var totalQuiescenceDeferrals: Int
+
+    public init(
+        trackedCells: Int = 0,
+        runtimeIneligibleCells: Int = 0,
+        averageEstimatedVerticesPerCell: Double = 0.0,
+        maxEstimatedVerticesInCell: Int = 0,
+        averageEstimatedBytesPerCell: Double = 0.0,
+        maxEstimatedBytesInCell: Int = 0,
+        worstRebuildMs: Double = 0.0,
+        totalComplexitySkips: Int = 0,
+        totalBudgetSkips: Int = 0,
+        totalQuiescenceDeferrals: Int = 0
+    ) {
+        self.trackedCells = trackedCells
+        self.runtimeIneligibleCells = runtimeIneligibleCells
+        self.averageEstimatedVerticesPerCell = averageEstimatedVerticesPerCell
+        self.maxEstimatedVerticesInCell = maxEstimatedVerticesInCell
+        self.averageEstimatedBytesPerCell = averageEstimatedBytesPerCell
+        self.maxEstimatedBytesInCell = maxEstimatedBytesInCell
+        self.worstRebuildMs = worstRebuildMs
+        self.totalComplexitySkips = totalComplexitySkips
+        self.totalBudgetSkips = totalBudgetSkips
+        self.totalQuiescenceDeferrals = totalQuiescenceDeferrals
+    }
+}
+
 /// Represents a group of meshes batched together
 public struct BatchGroup {
     var id: UUID
     var cellId: BatchCellID
     var lodIndex: Int
-    var materialHash: String // Identifier for material compatibility
+    var batchKey: String // Composite key: material hash + LOD
     var material: Material // Representative material for this batch
 
     // Separate buffers for each vertex attribute (simpler than interleaved)
@@ -57,6 +422,11 @@ public struct BatchGroup {
     var entityIds: [EntityID] // Original entities in this batch
     var meshIndices: [(entityId: EntityID, meshIndex: Int)] // Track source meshes
     var boundingBox: (min: simd_float3, max: simd_float3)
+
+    /// Backward-compatible alias; prefer batchKey for clarity.
+    var materialHash: String {
+        batchKey
+    }
 }
 
 /// Tracks an entity's batch membership
@@ -67,20 +437,60 @@ public struct EntityBatchInfo {
     public var cellId: BatchCellID = .zero
 }
 
-/// Manages all batching operations
+/// Manages all batching operations.
+/// Access is expected from the engine's serialized update/render pipeline.
 public class BatchingSystem: @unchecked Sendable {
     public static let shared = BatchingSystem()
 
     public private(set) var batchGroups: [BatchGroup] = []
     private var entityToBatch: [EntityID: EntityBatchInfo] = [:] // Track which batch an entity belongs to
+    private var batchIdToIndex: [UUID: Int] = [:] // Fast batch lookup by id
+    private var batchedCells: Set<BatchCellID> = [] // Fast check for cells that currently have active batches
+    private var entityToCellMembership: [EntityID: BatchCellID] = [:] // Track candidate cell membership
+    private var cellToEntities: [BatchCellID: Set<EntityID>] = [:] // Candidate entities by cell
     private var batchingEnabled: Bool = false
 
     // Dirty tracking for incremental updates
-    private var dirtyBatchIds: Set<UUID> = []
-    private var pendingEntityRemovals: [(EntityID, UUID)] = [] // (entity, oldBatchId)
-    private var pendingEntityAdditions: [EntityID] = []
+    private var dirtyCells: Set<BatchCellID> = []
+    private var pendingEntityRemovals: Set<EntityID> = []
+    private var pendingEntityAdditions: Set<EntityID> = []
+    private var newlyResidentEntities: Set<EntityID> = []
     private var isSubscribed: Bool = false
     private var batchCellSize: Float = 32.0
+    private var cellLifecycle: [BatchCellID: BatchCellLifecycleRecord] = [:]
+    private var retiringBatchArtifacts: [RetiringBatchArtifact] = []
+    private var retiringCellRefCounts: [BatchCellID: Int] = [:] // O(1) pending-retirement checks
+    private var batchRetireDelayFrames: Int = 3
+    private var maxRetirementsPerTick: Int = 8
+    private var maxDirtyCellsPerTick: Int = 8
+    private var maxRebuildVerticesPerTick: Int = 120_000
+    private var maxRebuildIndicesPerTick: Int = 220_000
+    private var maxRebuildBufferBytesPerTick: Int = 6 * 1024 * 1024
+    private var maxRuntimeCellVertices: Int = 160_000
+    private var maxRuntimeCellIndices: Int = 300_000
+    private var maxRuntimeCellBufferBytes: Int = 8 * 1024 * 1024
+    private var quiescenceFramesBeforeBatchBuild: Int = 1
+    private var recentVisibilityWindowFrames: Int = 120
+    private var visibilityGatedBatchBuildEnabled: Bool = true
+    private var backgroundArtifactBuildEnabled: Bool = true
+    private var maxBuildDispatchesPerTick: Int = 4
+    private var maxArtifactAppliesPerTick: Int = 4
+    private var lastTickDiagnostics: BatchingTickDiagnostics = .init()
+    private var batchIndexNeedsRebuild: Bool = false
+    private var tickCounter: Int = 0
+    private var cellLastVisibleFrame: [BatchCellID: Int] = [:]
+    private var runtimeBatchIneligibleCells: Set<BatchCellID> = []
+    private var runtimeCellStats: [BatchCellID: BatchCellRuntimeStats] = [:]
+    private var cellBuildGeneration: [BatchCellID: Int] = [:]
+
+    private let artifactBuildQueue = DispatchQueue(
+        label: "UntoldEngine.BatchingSystem.ArtifactBuild",
+        qos: .utility
+    )
+    private let artifactStateLock = NSLock()
+    private var inFlightBuildCells: Set<BatchCellID> = []
+    private var readyArtifacts: [PreparedCellArtifact] = []
+    private var buildArtifactEpoch: Int = 0
 
     private init() {
         subscribeToEvents()
@@ -106,12 +516,11 @@ public class BatchingSystem: @unchecked Sendable {
     private func handleLODChange(_ event: EntityLODChangedEvent) {
         guard batchingEnabled else { return }
 
-        // Check if entity is batched
-        if let batchInfo = entityToBatch[event.entityId] {
-            // LOD changed - need to move entity to different batch
-            pendingEntityRemovals.append((event.entityId, batchInfo.batchId))
-            pendingEntityAdditions.append(event.entityId)
-            dirtyBatchIds.insert(batchInfo.batchId)
+        pendingEntityRemovals.insert(event.entityId)
+        pendingEntityAdditions.insert(event.entityId)
+
+        if let cellId = entityToCellMembership[event.entityId] {
+            dirtyCells.insert(cellId)
         }
     }
 
@@ -119,110 +528,1010 @@ public class BatchingSystem: @unchecked Sendable {
         guard batchingEnabled else { return }
 
         if !event.isResident {
-            // Mesh evicted - remove entity from batch if batched
-            if let batchInfo = entityToBatch[event.entityId] {
-                pendingEntityRemovals.append((event.entityId, batchInfo.batchId))
-                dirtyBatchIds.insert(batchInfo.batchId)
+            // Mesh evicted - remove entity from batching membership
+            pendingEntityRemovals.insert(event.entityId)
+            newlyResidentEntities.remove(event.entityId)
+            if let cellId = entityToCellMembership[event.entityId] {
+                dirtyCells.insert(cellId)
             }
         } else {
             // Mesh became resident - entity might be eligible for batching
-            if entityToBatch[event.entityId] == nil {
-                // Check if entity should be batched
-                if let _ = scene.get(component: StaticBatchComponent.self, for: event.entityId) {
-                    pendingEntityAdditions.append(event.entityId)
+            if scene.get(component: StaticBatchComponent.self, for: event.entityId) != nil {
+                pendingEntityAdditions.insert(event.entityId)
+                newlyResidentEntities.insert(event.entityId)
+                if let cellId = resolveCellIdForEntity(entityId: event.entityId) {
+                    markCellStreaming(cellId)
                 }
             }
         }
+    }
+
+    private func currentBuildGeneration(for cellId: BatchCellID) -> Int {
+        cellBuildGeneration[cellId] ?? 0
+    }
+
+    private func bumpCellBuildGeneration(_ cellId: BatchCellID) {
+        let next = (cellBuildGeneration[cellId] ?? 0) &+ 1
+        cellBuildGeneration[cellId] = next
+    }
+
+    private func reserveInFlightBuild(cellId: BatchCellID) -> Bool {
+        artifactStateLock.lock()
+        defer { artifactStateLock.unlock() }
+        if inFlightBuildCells.contains(cellId) {
+            return false
+        }
+        inFlightBuildCells.insert(cellId)
+        return true
+    }
+
+    private func finishInFlightBuild(cellId: BatchCellID, artifact: PreparedCellArtifact?) {
+        artifactStateLock.lock()
+        inFlightBuildCells.remove(cellId)
+        if let artifact, artifact.epoch == buildArtifactEpoch {
+            readyArtifacts.append(artifact)
+        }
+        artifactStateLock.unlock()
+    }
+
+    private func isBuildInFlight(cellId: BatchCellID) -> Bool {
+        artifactStateLock.lock()
+        let inFlight = inFlightBuildCells.contains(cellId)
+        artifactStateLock.unlock()
+        return inFlight
+    }
+
+    private func dequeueReadyArtifacts(limit: Int) -> [PreparedCellArtifact] {
+        let cap = max(0, limit)
+        guard cap > 0 else { return [] }
+        artifactStateLock.lock()
+        defer { artifactStateLock.unlock() }
+        guard !readyArtifacts.isEmpty else { return [] }
+        let count = min(cap, readyArtifacts.count)
+        let dequeued = Array(readyArtifacts.prefix(count))
+        readyArtifacts.removeFirst(count)
+        return dequeued
+    }
+
+    private func inFlightBuildCountSnapshot() -> Int {
+        artifactStateLock.lock()
+        let count = inFlightBuildCells.count
+        artifactStateLock.unlock()
+        return count
+    }
+
+    private func readyArtifactCountSnapshot() -> Int {
+        artifactStateLock.lock()
+        let count = readyArtifacts.count
+        artifactStateLock.unlock()
+        return count
+    }
+
+    private func currentBuildArtifactEpoch() -> Int {
+        artifactStateLock.lock()
+        let epoch = buildArtifactEpoch
+        artifactStateLock.unlock()
+        return epoch
+    }
+
+    private func clearPendingBuildArtifacts() {
+        artifactStateLock.lock()
+        buildArtifactEpoch &+= 1
+        inFlightBuildCells.removeAll()
+        readyArtifacts.removeAll()
+        artifactStateLock.unlock()
     }
 
     // MARK: - Per-Frame Tick (Incremental Updates)
 
     /// Called each frame to process pending batch updates
     public func tick() {
-        guard batchingEnabled else { return }
-        guard !pendingEntityRemovals.isEmpty || !pendingEntityAdditions.isEmpty else { return }
+        tickCounter &+= 1
+        var diagnostics = BatchingTickDiagnostics()
+        diagnostics.tickFrame = tickCounter
+        diagnostics.pendingEntityRemovals = pendingEntityRemovals.count
+        diagnostics.pendingEntityAdditions = pendingEntityAdditions.count
+        diagnostics.dirtyCellsBeforePrune = dirtyCells.count
+        diagnostics.retiringArtifactsQueued = retiringBatchArtifacts.count
+        diagnostics.inFlightBuildCells = inFlightBuildCountSnapshot()
+        diagnostics.readyArtifactsQueued = readyArtifactCountSnapshot()
+
+        processRetiringBatchArtifacts()
+        diagnostics.retiringArtifactsQueued = retiringBatchArtifacts.count
+        guard batchingEnabled else {
+            diagnostics.dirtyCellsAfterPrune = dirtyCells.count
+            lastTickDiagnostics = diagnostics
+            return
+        }
+        guard !pendingEntityRemovals.isEmpty ||
+            !pendingEntityAdditions.isEmpty ||
+            !dirtyCells.isEmpty ||
+            !retiringBatchArtifacts.isEmpty
+        else {
+            diagnostics.dirtyCellsAfterPrune = dirtyCells.count
+            lastTickDiagnostics = diagnostics
+            return
+        }
 
         // Process removals
-        for (entityId, batchId) in pendingEntityRemovals {
-            removeEntityFromBatch(entityId: entityId, batchId: batchId)
+        for entityId in pendingEntityRemovals {
+            removeEntityFromBatchingTracking(entityId: entityId)
         }
         pendingEntityRemovals.removeAll(keepingCapacity: true)
 
-        // Process additions (re-add to correct batch based on current LOD)
+        // Process additions / cell updates based on latest entity state
         for entityId in pendingEntityAdditions {
-            addEntityToBatch(entityId: entityId)
+            let deferBatchBuild = newlyResidentEntities.remove(entityId) != nil
+            registerEntityForBatching(entityId: entityId, deferBatchBuild: deferBatchBuild)
         }
         pendingEntityAdditions.removeAll(keepingCapacity: true)
 
-        // Rebuild dirty batches
-        rebuildDirtyBatches()
+        let visibleCells = updateCellVisibilityHistory()
+        let promotionMetrics = promoteRenderableCellsToBatchPending(visibleCells: visibleCells)
+
+        // Rebuild dirty cells only
+        let rebuildMetrics = rebuildDirtyCells(visibleCells: visibleCells)
+        diagnostics.promotedCells = promotionMetrics.promotedCells
+        diagnostics.consideredBatchPendingCells = rebuildMetrics.consideredBatchPendingCells
+        diagnostics.deferredByQuiescence = promotionMetrics.deferredByQuiescence + rebuildMetrics.deferredByQuiescence
+        diagnostics.deferredByVisibility = promotionMetrics.deferredByVisibility + rebuildMetrics.deferredByVisibility
+        diagnostics.deferredByWorkBudget = rebuildMetrics.deferredByWorkBudget
+        diagnostics.skippedByComplexityGuard = rebuildMetrics.skippedByComplexityGuard
+        diagnostics.dispatchedBuilds = rebuildMetrics.dispatchedBuilds
+        diagnostics.appliedArtifacts = rebuildMetrics.appliedArtifacts
+        diagnostics.inFlightBuildCells = rebuildMetrics.inFlightBuildCells
+        diagnostics.readyArtifactsQueued = rebuildMetrics.readyArtifactsQueued
+        diagnostics.dirtyCellsBeforePrune = rebuildMetrics.dirtyCellsBeforePrune
+        diagnostics.dirtyCellsAfterPrune = rebuildMetrics.dirtyCellsAfterPrune
+        diagnostics.pendingBatchCells = rebuildMetrics.pendingBatchCells
+        diagnostics.rebuiltCells = rebuildMetrics.rebuiltCells
+        diagnostics.rebuiltBatchGroups = rebuildMetrics.rebuiltBatchGroups
+        diagnostics.rebuiltVertices = rebuildMetrics.rebuiltVertices
+        diagnostics.rebuiltIndices = rebuildMetrics.rebuiltIndices
+        diagnostics.rebuiltBufferBytes = rebuildMetrics.rebuiltBufferBytes
+        diagnostics.rebuildWorkMs = rebuildMetrics.rebuildWorkMs
+        diagnostics.maxCellRebuildMs = rebuildMetrics.maxCellRebuildMs
+        diagnostics.maxCell = rebuildMetrics.maxCell
+
+        if batchIndexNeedsRebuild {
+            rebuildBatchIndex()
+            batchIndexNeedsRebuild = false
+        }
+
+        diagnostics.retiringArtifactsQueued = retiringBatchArtifacts.count
+        diagnostics.inFlightBuildCells = inFlightBuildCountSnapshot()
+        diagnostics.readyArtifactsQueued = readyArtifactCountSnapshot()
+        lastTickDiagnostics = diagnostics
     }
 
-    private func removeEntityFromBatch(entityId: EntityID, batchId: UUID) {
-        // Remove from tracking
+    private func removeEntityFromBatchingTracking(entityId: EntityID) {
         entityToBatch.removeValue(forKey: entityId)
 
-        // Find and update the batch group
-        if let batchIndex = batchGroups.firstIndex(where: { $0.id == batchId }) {
-            batchGroups[batchIndex].entityIds.removeAll { $0 == entityId }
-            batchGroups[batchIndex].meshIndices.removeAll { $0.entityId == entityId }
-            dirtyBatchIds.insert(batchId)
+        guard let oldCell = entityToCellMembership.removeValue(forKey: entityId) else { return }
+        if var members = cellToEntities[oldCell] {
+            members.remove(entityId)
+            if members.isEmpty {
+                cellToEntities.removeValue(forKey: oldCell)
+            } else {
+                cellToEntities[oldCell] = members
+            }
+        }
+
+        dirtyCells.insert(oldCell)
+        markCellDirtyForFallback(cellId: oldCell, deferBatchBuild: false)
+        if cellToEntities[oldCell]?.isEmpty ?? true {
+            transitionCellToRetiringOrUnloaded(cellId: oldCell)
         }
     }
 
-    private func addEntityToBatch(entityId: EntityID) {
+    private func registerEntityForBatching(entityId: EntityID, deferBatchBuild: Bool) {
+        guard let candidate = resolveBatchCandidate(entityId: entityId) else {
+            removeEntityFromBatchingTracking(entityId: entityId)
+            return
+        }
+
+        let newCell = candidate.cellId
+        if let oldCell = entityToCellMembership[entityId], oldCell != newCell {
+            if var members = cellToEntities[oldCell] {
+                members.remove(entityId)
+                if members.isEmpty {
+                    cellToEntities.removeValue(forKey: oldCell)
+                } else {
+                    cellToEntities[oldCell] = members
+                }
+            }
+            dirtyCells.insert(oldCell)
+            markCellDirtyForFallback(cellId: oldCell, deferBatchBuild: false)
+            if cellToEntities[oldCell]?.isEmpty ?? true {
+                transitionCellToRetiringOrUnloaded(cellId: oldCell)
+            }
+        }
+
+        entityToCellMembership[entityId] = newCell
+        cellToEntities[newCell, default: []].insert(entityId)
+        dirtyCells.insert(newCell)
+        markCellDirtyForFallback(cellId: newCell, deferBatchBuild: deferBatchBuild)
+    }
+
+    private func updateCellVisibilityHistory() -> Set<BatchCellID> {
+        guard !entityToCellMembership.isEmpty else { return [] }
+        var visibleCells: Set<BatchCellID> = []
+        visibleCells.reserveCapacity(visibleEntityIds.count)
+        for entityId in visibleEntityIds {
+            guard let cellId = entityToCellMembership[entityId] else { continue }
+            visibleCells.insert(cellId)
+            cellLastVisibleFrame[cellId] = tickCounter
+        }
+        return visibleCells
+    }
+
+    private func promoteRenderableCellsToBatchPending(visibleCells: Set<BatchCellID>) -> PromotionMetrics {
+        var metrics = PromotionMetrics()
+        guard !dirtyCells.isEmpty else { return metrics }
+        let currentFrame = tickCounter
+        let recentWindow = max(0, recentVisibilityWindowFrames)
+        for cellId in dirtyCells {
+            guard var record = cellLifecycle[cellId] else { continue }
+            guard record.state == .renderableUnbatched || record.state == .streaming else { continue }
+            guard cellToEntities[cellId]?.isEmpty == false else { continue }
+            guard !runtimeBatchIneligibleCells.contains(cellId) else { continue }
+            if visibilityGatedBatchBuildEnabled {
+                let lastVisibleFrame = cellLastVisibleFrame[cellId] ?? Int.min
+                let isVisibleNow = visibleCells.contains(cellId)
+                let isRecentlyVisible = isVisibleNow || (lastVisibleFrame != Int.min && (tickCounter - lastVisibleFrame) <= recentWindow)
+                if !isRecentlyVisible {
+                    metrics.deferredByVisibility += 1
+                    continue
+                }
+            }
+            if currentFrame >= record.nextBatchBuildFrame {
+                record.state = .batchPending
+                cellLifecycle[cellId] = record
+                metrics.promotedCells += 1
+            } else {
+                metrics.deferredByQuiescence += 1
+                recordRuntimeCellQuiescenceSkip(cellId: cellId)
+            }
+        }
+        return metrics
+    }
+
+    private func rebuildDirtyCells(visibleCells: Set<BatchCellID>) -> DirtyRebuildMetrics {
+        var metrics = DirtyRebuildMetrics()
+        metrics.dirtyCellsBeforePrune = dirtyCells.count
+        pruneDirtyCells()
+        metrics.dirtyCellsAfterPrune = dirtyCells.count
+
+        // Apply completed artifacts first. This stage is intentionally short and gated.
+        let artifactsToApply = dequeueReadyArtifacts(limit: max(1, maxArtifactAppliesPerTick))
+        if !artifactsToApply.isEmpty {
+            let applyStart = CFAbsoluteTimeGetCurrent()
+            withWorldMutationGate {
+                for artifact in artifactsToApply {
+                    applyPreparedArtifact(artifact, into: &metrics)
+                }
+            }
+            metrics.rebuildWorkMs += (CFAbsoluteTimeGetCurrent() - applyStart) * 1000.0
+        }
+
+        let pendingCells = dirtyCells.filter { cellId in
+            guard let record = cellLifecycle[cellId] else { return false }
+            return record.state == .batchPending
+        }
+        metrics.consideredBatchPendingCells = pendingCells.count
+        metrics.pendingBatchCells = pendingCells.count
+        guard !pendingCells.isEmpty else {
+            metrics.inFlightBuildCells = inFlightBuildCountSnapshot()
+            metrics.readyArtifactsQueued = readyArtifactCountSnapshot()
+            return metrics
+        }
+
+        var candidates: [CellRebuildCandidate] = []
+        candidates.reserveCapacity(pendingCells.count)
+        let recentWindow = max(0, recentVisibilityWindowFrames)
+        for cellId in pendingCells {
+            if isBuildInFlight(cellId: cellId) {
+                metrics.deferredByWorkBudget += 1
+                continue
+            }
+
+            let estimate = estimateCellWork(for: cellId)
+            updateRuntimeCellEstimate(cellId: cellId, estimate: estimate)
+            if exceedsRuntimeComplexityGuard(estimate) {
+                metrics.skippedByComplexityGuard += 1
+                runtimeBatchIneligibleCells.insert(cellId)
+                recordRuntimeCellComplexitySkip(cellId: cellId)
+                dirtyCells.remove(cellId)
+                setCellState(
+                    cellId,
+                    .renderableUnbatched,
+                    nextBatchBuildFrame: tickCounter + max(1, quiescenceFramesBeforeBatchBuild)
+                )
+                continue
+            }
+
+            let lastVisibleFrame = cellLastVisibleFrame[cellId] ?? Int.min
+            let isVisibleNow = visibleCells.contains(cellId)
+            let isRecentlyVisible = isVisibleNow || (lastVisibleFrame != Int.min && (tickCounter - lastVisibleFrame) <= recentWindow)
+            if visibilityGatedBatchBuildEnabled, !isRecentlyVisible {
+                metrics.deferredByVisibility += 1
+                continue
+            }
+            let dirtySinceFrame = cellLifecycle[cellId]?.dirtySinceFrame ?? tickCounter
+            candidates.append(
+                CellRebuildCandidate(
+                    cellId: cellId,
+                    estimate: estimate,
+                    isVisibleNow: isVisibleNow,
+                    isRecentlyVisible: isRecentlyVisible,
+                    lastVisibleFrame: lastVisibleFrame,
+                    dirtySinceFrame: dirtySinceFrame
+                )
+            )
+        }
+
+        guard !candidates.isEmpty else {
+            metrics.inFlightBuildCells = inFlightBuildCountSnapshot()
+            metrics.readyArtifactsQueued = readyArtifactCountSnapshot()
+            return metrics
+        }
+
+        candidates.sort { lhs, rhs in
+            if lhs.isVisibleNow != rhs.isVisibleNow { return lhs.isVisibleNow && !rhs.isVisibleNow }
+            if lhs.isRecentlyVisible != rhs.isRecentlyVisible { return lhs.isRecentlyVisible && !rhs.isRecentlyVisible }
+            if lhs.lastVisibleFrame != rhs.lastVisibleFrame { return lhs.lastVisibleFrame > rhs.lastVisibleFrame }
+            if lhs.estimate.bytes != rhs.estimate.bytes { return lhs.estimate.bytes < rhs.estimate.bytes }
+            if lhs.dirtySinceFrame != rhs.dirtySinceFrame { return lhs.dirtySinceFrame < rhs.dirtySinceFrame }
+            if lhs.cellId.x != rhs.cellId.x { return lhs.cellId.x < rhs.cellId.x }
+            if lhs.cellId.y != rhs.cellId.y { return lhs.cellId.y < rhs.cellId.y }
+            return lhs.cellId.z < rhs.cellId.z
+        }
+
+        let cellBudget = max(1, maxDirtyCellsPerTick)
+        let dispatchBudget = max(1, maxBuildDispatchesPerTick)
+        var selectedCells: [BatchCellID] = []
+        selectedCells.reserveCapacity(min(cellBudget, candidates.count))
+        var consumedWork = CellWorkEstimate.zero
+        for candidate in candidates {
+            let cellBudgetReached = selectedCells.count >= cellBudget
+            let dispatchBudgetReached = selectedCells.count >= dispatchBudget
+            let workBudgetReached = exceedsTickWorkBudget(current: consumedWork, adding: candidate.estimate)
+            if cellBudgetReached || dispatchBudgetReached || (workBudgetReached && !selectedCells.isEmpty) {
+                metrics.deferredByWorkBudget += 1
+                recordRuntimeCellBudgetSkip(cellId: candidate.cellId)
+                continue
+            }
+
+            selectedCells.append(candidate.cellId)
+            consumedWork.vertices += candidate.estimate.vertices
+            consumedWork.indices += candidate.estimate.indices
+            consumedWork.bytes += candidate.estimate.bytes
+            consumedWork.opaqueSubmeshCount += candidate.estimate.opaqueSubmeshCount
+        }
+
+        guard !selectedCells.isEmpty else {
+            metrics.inFlightBuildCells = inFlightBuildCountSnapshot()
+            metrics.readyArtifactsQueued = readyArtifactCountSnapshot()
+            return metrics
+        }
+
+        // Snapshot minimal build inputs under gate. Heavy artifact construction happens off-gate.
+        var buildInputs: [CellBuildInput] = []
+        let snapshotStart = CFAbsoluteTimeGetCurrent()
+        withWorldMutationGate {
+            traverseSceneGraph()
+            for cellId in selectedCells {
+                dirtyCells.remove(cellId)
+                guard let input = snapshotBuildInput(for: cellId) else { continue }
+                buildInputs.append(input)
+            }
+        }
+        metrics.rebuildWorkMs += (CFAbsoluteTimeGetCurrent() - snapshotStart) * 1000.0
+
+        if buildInputs.isEmpty {
+            metrics.inFlightBuildCells = inFlightBuildCountSnapshot()
+            metrics.readyArtifactsQueued = readyArtifactCountSnapshot()
+            return metrics
+        }
+
+        var immediateArtifacts: [PreparedCellArtifact] = []
+        for input in buildInputs {
+            if !backgroundArtifactBuildEnabled {
+                immediateArtifacts.append(buildPreparedArtifact(from: input))
+                continue
+            }
+
+            guard reserveInFlightBuild(cellId: input.cellId) else {
+                metrics.deferredByWorkBudget += 1
+                continue
+            }
+            metrics.dispatchedBuilds += 1
+
+            artifactBuildQueue.async { [weak self] in
+                guard let self else { return }
+                let artifact = buildPreparedArtifact(from: input)
+                finishInFlightBuild(cellId: input.cellId, artifact: artifact)
+            }
+        }
+
+        if !immediateArtifacts.isEmpty {
+            let applyStart = CFAbsoluteTimeGetCurrent()
+            withWorldMutationGate {
+                for artifact in immediateArtifacts {
+                    applyPreparedArtifact(artifact, into: &metrics)
+                }
+            }
+            metrics.rebuildWorkMs += (CFAbsoluteTimeGetCurrent() - applyStart) * 1000.0
+        }
+
+        metrics.inFlightBuildCells = inFlightBuildCountSnapshot()
+        metrics.readyArtifactsQueued = readyArtifactCountSnapshot()
+        return metrics
+    }
+
+    private func snapshotBuildInput(for cellId: BatchCellID) -> CellBuildInput? {
+        guard let members = cellToEntities[cellId], !members.isEmpty else {
+            transitionCellToRetiringOrUnloaded(cellId: cellId)
+            return nil
+        }
+
+        var validMembers: Set<EntityID> = []
+        var materialGroups: [BatchBuildKey: [BatchMeshItem]] = [:]
+
+        for entityId in members {
+            guard let candidate = resolveBatchCandidate(entityId: entityId) else {
+                entityToCellMembership.removeValue(forKey: entityId)
+                continue
+            }
+
+            if candidate.cellId != cellId {
+                entityToCellMembership[entityId] = candidate.cellId
+                cellToEntities[candidate.cellId, default: []].insert(entityId)
+                dirtyCells.insert(candidate.cellId)
+                markCellDirtyForFallback(cellId: candidate.cellId, deferBatchBuild: false)
+                continue
+            }
+
+            validMembers.insert(entityId)
+            addCandidateMeshes(candidate, to: &materialGroups)
+        }
+
+        if validMembers.isEmpty {
+            cellToEntities.removeValue(forKey: cellId)
+            transitionCellToRetiringOrUnloaded(cellId: cellId)
+            return nil
+        }
+
+        cellToEntities[cellId] = validMembers
+        return CellBuildInput(
+            cellId: cellId,
+            generation: currentBuildGeneration(for: cellId),
+            epoch: currentBuildArtifactEpoch(),
+            materialGroups: materialGroups
+        )
+    }
+
+    private func buildPreparedArtifact(from input: CellBuildInput) -> PreparedCellArtifact {
+        let buildStart = CFAbsoluteTimeGetCurrent()
+        var builtGroups: [BatchGroup] = []
+        var entityBatchMap: [EntityID: EntityBatchInfo] = [:]
+        var totalVertices = 0
+        var totalIndices = 0
+        var totalBytes = 0
+
+        for (batchKey, meshGroup) in input.materialGroups {
+            if meshGroup.count < 2 { continue }
+            let convertedGroup = meshGroup.map { item in
+                (entityId: item.entityId, mesh: item.mesh, meshIndex: item.meshIndex, transform: item.transform)
+            }
+            guard let batchMaterial = meshGroup.first?.material else { continue }
+            guard let group = createBatchGroup(
+                from: convertedGroup,
+                batchKey: batchKey.materialLODHash,
+                material: batchMaterial,
+                cellId: batchKey.cellId,
+                lodIndex: batchKey.lodIndex
+            ) else { continue }
+
+            builtGroups.append(group)
+            totalVertices += group.vertexCount
+            totalIndices += group.indexCount
+            totalBytes += group.positionBuffer?.length ?? 0
+            totalBytes += group.normalBuffer?.length ?? 0
+            totalBytes += group.uvBuffer?.length ?? 0
+            totalBytes += group.tangentBuffer?.length ?? 0
+            totalBytes += group.indexBuffer?.length ?? 0
+
+            for item in meshGroup {
+                entityBatchMap[item.entityId] = EntityBatchInfo(
+                    batchId: group.id,
+                    lodIndex: batchKey.lodIndex,
+                    materialHash: batchKey.materialHash,
+                    cellId: batchKey.cellId
+                )
+            }
+        }
+
+        let buildMs = (CFAbsoluteTimeGetCurrent() - buildStart) * 1000.0
+        return PreparedCellArtifact(
+            cellId: input.cellId,
+            generation: input.generation,
+            epoch: input.epoch,
+            builtGroups: builtGroups,
+            entityBatchMap: entityBatchMap,
+            groupCount: builtGroups.count,
+            vertexCount: totalVertices,
+            indexCount: totalIndices,
+            bufferBytes: totalBytes,
+            buildMs: buildMs
+        )
+    }
+
+    private func applyPreparedArtifact(_ artifact: PreparedCellArtifact, into metrics: inout DirtyRebuildMetrics) {
+        let cellId = artifact.cellId
+        guard artifact.epoch == currentBuildArtifactEpoch() else { return }
+        guard artifact.generation == currentBuildGeneration(for: cellId) else { return }
+        guard cellLifecycle[cellId]?.state != .retiring else { return }
+        guard cellLifecycle[cellId]?.state != .unloaded else { return }
+        guard cellToEntities[cellId]?.isEmpty == false else {
+            transitionCellToRetiringOrUnloaded(cellId: cellId)
+            return
+        }
+
+        let removedExisting = removeBatchesForCell(cellId, queueForRetirement: true)
+        if artifact.builtGroups.isEmpty {
+            setCellState(
+                cellId,
+                .renderableUnbatched,
+                nextBatchBuildFrame: tickCounter + max(1, quiescenceFramesBeforeBatchBuild)
+            )
+            if removedExisting {
+                runtimeBatchIneligibleCells.remove(cellId)
+            }
+            return
+        }
+
+        batchGroups.append(contentsOf: artifact.builtGroups)
+        batchedCells.insert(cellId)
+        for (entityId, info) in artifact.entityBatchMap {
+            entityToBatch[entityId] = info
+        }
+        batchIndexNeedsRebuild = true
+        setCellState(cellId, .renderableBatched)
+
+        metrics.appliedArtifacts += 1
+        metrics.rebuiltCells += 1
+        metrics.rebuiltBatchGroups += artifact.groupCount
+        metrics.rebuiltVertices += artifact.vertexCount
+        metrics.rebuiltIndices += artifact.indexCount
+        metrics.rebuiltBufferBytes += artifact.bufferBytes
+        if artifact.buildMs > metrics.maxCellRebuildMs {
+            metrics.maxCellRebuildMs = artifact.buildMs
+            metrics.maxCell = cellId
+        }
+
+        recordRuntimeCellRebuild(cellId: cellId, rebuildMs: artifact.buildMs, rebuiltGroups: artifact.groupCount)
+        runtimeBatchIneligibleCells.remove(cellId)
+        SystemIntegrationMonitor.shared.recordBatchRebuild()
+    }
+
+    private func estimateCellWork(for cellId: BatchCellID) -> CellWorkEstimate {
+        guard let members = cellToEntities[cellId], !members.isEmpty else { return .zero }
+        var estimate = CellWorkEstimate.zero
+        var groupCounts: [BatchBuildKey: Int] = [:]
+        var groupVertices: [BatchBuildKey: Int] = [:]
+        var groupIndices: [BatchBuildKey: Int] = [:]
+
+        for entityId in members {
+            guard let candidate = resolveBatchCandidate(entityId: entityId) else { continue }
+            if candidate.cellId != cellId { continue }
+            let assetURL = candidate.renderComponent.assetURL
+            for mesh in candidate.renderComponent.mesh {
+                let vertexCount = mesh.metalKitMesh.vertexCount
+                for submesh in mesh.submeshes {
+                    guard let material = submesh.material else { continue }
+                    if material.hasTransparency { continue }
+                    let matHash = getMaterialHash(material: material, assetURL: assetURL)
+                    let key = BatchBuildKey(
+                        cellId: candidate.cellId,
+                        materialHash: matHash,
+                        lodIndex: candidate.lodIndex
+                    )
+                    groupCounts[key, default: 0] += 1
+                    groupVertices[key, default: 0] += vertexCount
+                    groupIndices[key, default: 0] += submesh.metalKitSubmesh.indexCount
+                }
+            }
+        }
+
+        for (key, count) in groupCounts where count >= 2 {
+            let vertices = groupVertices[key] ?? 0
+            let indices = groupIndices[key] ?? 0
+            estimate.vertices += vertices
+            estimate.indices += indices
+            estimate.bytes += estimatedBufferBytes(vertexCount: vertices, indexCount: indices)
+            estimate.opaqueSubmeshCount += count
+        }
+        return estimate
+    }
+
+    private func estimatedBufferBytes(vertexCount: Int, indexCount: Int) -> Int {
+        // Match createBatchGroup layout: position(float4) + normal(float4) + tangent(float4) + uv(float2) + indices(uint32)
+        let vertexBytes = vertexCount * (MemoryLayout<simd_float4>.stride * 3 + MemoryLayout<simd_float2>.stride)
+        let indexBytes = indexCount * MemoryLayout<UInt32>.stride
+        return vertexBytes + indexBytes
+    }
+
+    private func exceedsRuntimeComplexityGuard(_ estimate: CellWorkEstimate) -> Bool {
+        estimate.vertices > maxRuntimeCellVertices ||
+            estimate.indices > maxRuntimeCellIndices ||
+            estimate.bytes > maxRuntimeCellBufferBytes
+    }
+
+    private func exceedsTickWorkBudget(current: CellWorkEstimate, adding candidate: CellWorkEstimate) -> Bool {
+        let nextVertices = current.vertices + candidate.vertices
+        let nextIndices = current.indices + candidate.indices
+        let nextBytes = current.bytes + candidate.bytes
+        return nextVertices > maxRebuildVerticesPerTick ||
+            nextIndices > maxRebuildIndicesPerTick ||
+            nextBytes > maxRebuildBufferBytesPerTick
+    }
+
+    private func updateRuntimeCellEstimate(cellId: BatchCellID, estimate: CellWorkEstimate) {
+        var stats = runtimeCellStats[cellId] ?? BatchCellRuntimeStats(cellId: cellId)
+        stats.lastEstimatedVertices = estimate.vertices
+        stats.lastEstimatedIndices = estimate.indices
+        stats.lastEstimatedBytes = estimate.bytes
+        runtimeCellStats[cellId] = stats
+    }
+
+    private func recordRuntimeCellBudgetSkip(cellId: BatchCellID) {
+        var stats = runtimeCellStats[cellId] ?? BatchCellRuntimeStats(cellId: cellId)
+        stats.skipByWorkBudgetCount += 1
+        runtimeCellStats[cellId] = stats
+    }
+
+    private func recordRuntimeCellComplexitySkip(cellId: BatchCellID) {
+        var stats = runtimeCellStats[cellId] ?? BatchCellRuntimeStats(cellId: cellId)
+        stats.skipByComplexityCount += 1
+        runtimeCellStats[cellId] = stats
+    }
+
+    private func recordRuntimeCellQuiescenceSkip(cellId: BatchCellID) {
+        var stats = runtimeCellStats[cellId] ?? BatchCellRuntimeStats(cellId: cellId)
+        stats.skipByQuiescenceCount += 1
+        runtimeCellStats[cellId] = stats
+    }
+
+    private func recordRuntimeCellRebuild(cellId: BatchCellID, rebuildMs: Double, rebuiltGroups: Int) {
+        var stats = runtimeCellStats[cellId] ?? BatchCellRuntimeStats(cellId: cellId)
+        stats.rebuildCount += 1
+        stats.lastRebuildMs = rebuildMs
+        stats.maxRebuildMs = max(stats.maxRebuildMs, rebuildMs)
+        stats.lastRebuiltGroupCount = rebuiltGroups
+        runtimeCellStats[cellId] = stats
+    }
+
+    private func resolveBatchCandidate(entityId: EntityID) -> BatchCandidate? {
+        guard scene.exists(entityId) else { return nil }
         guard let staticBatch = scene.get(component: StaticBatchComponent.self, for: entityId),
               staticBatch.canBatch,
               let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
-              let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId),
-              !renderComponent.mesh.isEmpty
-        else { return }
+              let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
+        else {
+            return nil
+        }
 
-        // Get LOD index if entity has LOD
-        let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
+        // Skip entities with empty meshes (not yet loaded by streaming)
+        if renderComponent.mesh.isEmpty { return nil }
+
+        // Skip entities with animations
+        if scene.get(component: SkeletonComponent.self, for: entityId) != nil { return nil }
+        if scene.get(component: AnimationComponent.self, for: entityId) != nil { return nil }
+
+        // Skip gizmos and special entities
+        if scene.get(component: GizmoComponent.self, for: entityId) != nil { return nil }
+        if scene.get(component: LightComponent.self, for: entityId) != nil { return nil }
 
         let hasTransparentSubmesh = renderComponent.mesh.contains { mesh in
             mesh.submeshes.contains { submesh in
                 submesh.material?.hasTransparency ?? false
             }
         }
-        if hasTransparentSubmesh { return }
+        if hasTransparentSubmesh { return nil }
 
-        // Get material hash from first submesh
-        guard let material = renderComponent.mesh.first?.submeshes.first?.material else { return }
-        let matHash = getMaterialHash(material: material)
+        // Get current LOD index (0 if no LOD component)
+        let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
         let cellId = resolveCellId(localTransform: localTransform, worldTransform: worldTransform)
 
-        let batchBuildKey = BatchBuildKey(cellId: cellId, materialHash: matHash, lodIndex: lodIndex)
-        let batchKey = batchBuildKey.materialLODHash
+        return BatchCandidate(
+            entityId: entityId,
+            renderComponent: renderComponent,
+            worldTransform: worldTransform,
+            lodIndex: lodIndex,
+            cellId: cellId
+        )
+    }
 
-        // Find or create batch for this key
-        if let existingBatch = batchGroups.first(where: {
-            $0.materialHash == batchKey && $0.cellId == batchBuildKey.cellId && $0.lodIndex == batchBuildKey.lodIndex
-        }) {
-            // Add to existing batch
-            entityToBatch[entityId] = EntityBatchInfo(batchId: existingBatch.id, lodIndex: lodIndex, materialHash: matHash, cellId: cellId)
-            if let idx = batchGroups.firstIndex(where: { $0.id == existingBatch.id }) {
-                batchGroups[idx].entityIds.append(entityId)
-                dirtyBatchIds.insert(existingBatch.id)
+    private func addCandidateMeshes(
+        _ candidate: BatchCandidate,
+        to materialGroups: inout [BatchBuildKey: [BatchMeshItem]]
+    ) {
+        let assetURL = candidate.renderComponent.assetURL
+
+        for mesh in candidate.renderComponent.mesh {
+            for (submeshIndex, submesh) in mesh.submeshes.enumerated() {
+                guard let material = submesh.material else { continue }
+                if material.hasTransparency { continue }
+
+                let matHash = getMaterialHash(material: material, assetURL: assetURL)
+                let batchKey = BatchBuildKey(
+                    cellId: candidate.cellId,
+                    materialHash: matHash,
+                    lodIndex: candidate.lodIndex
+                )
+                let finalTransform = simd_mul(candidate.worldTransform.space, mesh.localSpace)
+
+                materialGroups[batchKey, default: []].append((
+                    entityId: candidate.entityId,
+                    mesh: mesh,
+                    meshIndex: submeshIndex,
+                    transform: finalTransform,
+                    material: material
+                ))
             }
-        } else {
-            // Will be handled in next full rebuild or we can create a new batch
-            // For v1, mark for rebuild
-            dirtyBatchIds.insert(UUID()) // Trigger rebuild
         }
     }
 
-    private func rebuildDirtyBatches() {
-        guard !dirtyBatchIds.isEmpty else { return }
+    @discardableResult
+    private func appendBatchGroups(
+        from materialGroups: [BatchBuildKey: [BatchMeshItem]]
+    ) -> (createdGroups: Int, batchedMeshes: Int) {
+        var createdGroups = 0
+        var batchedMeshes = 0
 
-        // For v1, do a full rebuild if there are dirty batches
-        // A more sophisticated implementation would rebuild only affected batches
-        generateBatches()
+        for (batchKey, meshGroup) in materialGroups {
+            // Only batch if we have multiple meshes with same material+LOD
+            if meshGroup.count < 2 {
+                continue
+            }
 
-        SystemIntegrationMonitor.shared.recordBatchRebuild()
-        dirtyBatchIds.removeAll()
+            let convertedGroup = meshGroup.map { item in
+                (entityId: item.entityId, mesh: item.mesh, meshIndex: item.meshIndex, transform: item.transform)
+            }
+
+            guard let batchMaterial = meshGroup.first?.material else { continue }
+
+            if let batchGroup = createBatchGroup(
+                from: convertedGroup,
+                batchKey: batchKey.materialLODHash,
+                material: batchMaterial,
+                cellId: batchKey.cellId,
+                lodIndex: batchKey.lodIndex
+            ) {
+                batchGroups.append(batchGroup)
+                batchIdToIndex[batchGroup.id] = batchGroups.count - 1
+                batchedCells.insert(batchGroup.cellId)
+                createdGroups += 1
+                batchedMeshes += batchGroup.entityIds.count
+
+                // Track entity to batch mapping with LOD info
+                for item in meshGroup {
+                    entityToBatch[item.entityId] = EntityBatchInfo(
+                        batchId: batchGroup.id,
+                        lodIndex: batchKey.lodIndex,
+                        materialHash: batchKey.materialHash,
+                        cellId: batchKey.cellId
+                    )
+                }
+            }
+        }
+
+        return (createdGroups, batchedMeshes)
+    }
+
+    @discardableResult
+    private func removeBatchesForCell(_ cellId: BatchCellID, queueForRetirement: Bool) -> Bool {
+        guard batchedCells.contains(cellId) else {
+            return false
+        }
+
+        var removedGroups: [BatchGroup] = []
+        removedGroups.reserveCapacity(4)
+        var removedEntityIds: Set<EntityID> = []
+        batchGroups.removeAll { group in
+            guard group.cellId == cellId else { return false }
+            removedGroups.append(group)
+            for entityId in group.entityIds {
+                removedEntityIds.insert(entityId)
+            }
+            return true
+        }
+
+        guard !removedGroups.isEmpty else {
+            batchedCells.remove(cellId)
+            return false
+        }
+
+        for entityId in removedEntityIds {
+            entityToBatch.removeValue(forKey: entityId)
+        }
+
+        batchedCells.remove(cellId)
+        batchIndexNeedsRebuild = true
+
+        if queueForRetirement {
+            enqueueRetiringBatchGroups(cellId: cellId, groups: removedGroups)
+        }
+        return true
+    }
+
+    private func rebuildBatchIndex() {
+        batchIdToIndex.removeAll(keepingCapacity: true)
+        batchIdToIndex.reserveCapacity(batchGroups.count)
+        for (index, group) in batchGroups.enumerated() {
+            batchIdToIndex[group.id] = index
+        }
+    }
+
+    private func resolveCellIdForEntity(entityId: EntityID) -> BatchCellID? {
+        if let known = entityToCellMembership[entityId] {
+            return known
+        }
+        guard let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
+              let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
+        else {
+            return nil
+        }
+        return resolveCellId(localTransform: localTransform, worldTransform: worldTransform)
+    }
+
+    private func setCellState(_ cellId: BatchCellID, _ state: StaticBatchCellRenderState, nextBatchBuildFrame: Int? = nil) {
+        var record = cellLifecycle[cellId] ?? BatchCellLifecycleRecord()
+        record.state = state
+        if let nextBatchBuildFrame {
+            record.nextBatchBuildFrame = max(nextBatchBuildFrame, tickCounter)
+        } else if state == .batchPending {
+            record.nextBatchBuildFrame = max(record.nextBatchBuildFrame, tickCounter)
+        }
+        cellLifecycle[cellId] = record
+    }
+
+    private func markCellStreaming(_ cellId: BatchCellID) {
+        let current = cellLifecycle[cellId]?.state ?? .unloaded
+        if current == .unloaded {
+            setCellState(cellId, .streaming)
+        }
+    }
+
+    private func markCellDirtyForFallback(cellId: BatchCellID, deferBatchBuild: Bool) {
+        guard cellToEntities[cellId]?.isEmpty == false else { return }
+        let delay = (deferBatchBuild ? 1 : 0) + max(0, quiescenceFramesBeforeBatchBuild)
+        let warmupFrame = tickCounter + delay
+
+        bumpCellBuildGeneration(cellId)
+        runtimeBatchIneligibleCells.remove(cellId)
+        _ = removeBatchesForCell(cellId, queueForRetirement: true)
+        setCellState(cellId, .renderableUnbatched, nextBatchBuildFrame: warmupFrame)
+        if var record = cellLifecycle[cellId] {
+            record.dirtySinceFrame = tickCounter
+            cellLifecycle[cellId] = record
+        }
+    }
+
+    private func transitionCellToRetiringOrUnloaded(cellId: BatchCellID) {
+        dirtyCells.remove(cellId)
+        bumpCellBuildGeneration(cellId)
+        runtimeBatchIneligibleCells.remove(cellId)
+        let removed = removeBatchesForCell(cellId, queueForRetirement: true)
+        if removed || hasPendingRetirement(for: cellId) {
+            setCellState(cellId, .retiring)
+        } else {
+            setCellState(cellId, .unloaded)
+        }
+
+        guard cellToEntities[cellId]?.isEmpty ?? true else { return }
+        if cellLifecycle[cellId]?.state == .unloaded {
+            cellLifecycle.removeValue(forKey: cellId)
+            cellLastVisibleFrame.removeValue(forKey: cellId)
+        }
+    }
+
+    private func enqueueRetiringBatchGroups(cellId: BatchCellID, groups: [BatchGroup]) {
+        guard !groups.isEmpty else { return }
+        let safeDelayFrames = max(1, batchRetireDelayFrames)
+        let artifact = RetiringBatchArtifact(
+            cellId: cellId,
+            groups: groups,
+            retireAfterFrame: tickCounter + safeDelayFrames
+        )
+        retiringBatchArtifacts.append(artifact)
+        retiringCellRefCounts[cellId, default: 0] += 1
+    }
+
+    private func hasPendingRetirement(for cellId: BatchCellID) -> Bool {
+        (retiringCellRefCounts[cellId] ?? 0) > 0
+    }
+
+    private func processRetiringBatchArtifacts() {
+        guard !retiringBatchArtifacts.isEmpty else { return }
+        let currentFrame = tickCounter
+        var processed = 0
+        let maxRetires = max(1, maxRetirementsPerTick)
+        var index = 0
+
+        while index < retiringBatchArtifacts.count, processed < maxRetires {
+            let artifact = retiringBatchArtifacts[index]
+            guard artifact.retireAfterFrame <= currentFrame else {
+                index += 1
+                continue
+            }
+
+            // Drop retained groups after a frame-safety delay.
+            let lastIndex = retiringBatchArtifacts.count - 1
+            retiringBatchArtifacts.swapAt(index, lastIndex)
+            let retiredArtifact = retiringBatchArtifacts.removeLast()
+            let cellId = retiredArtifact.cellId
+            if let count = retiringCellRefCounts[cellId] {
+                if count <= 1 {
+                    retiringCellRefCounts.removeValue(forKey: cellId)
+                } else {
+                    retiringCellRefCounts[cellId] = count - 1
+                }
+            }
+            processed += 1
+
+            if cellToEntities[cellId]?.isEmpty ?? true,
+               !hasPendingRetirement(for: cellId),
+               cellLifecycle[cellId]?.state == .retiring
+            {
+                setCellState(cellId, .unloaded)
+                cellLifecycle.removeValue(forKey: cellId)
+            }
+        }
+    }
+
+    private func pruneDirtyCells() {
+        var cellsToRemove: [BatchCellID] = []
+        cellsToRemove.reserveCapacity(dirtyCells.count)
+
+        for cellId in dirtyCells {
+            guard let record = cellLifecycle[cellId] else {
+                cellsToRemove.append(cellId)
+                continue
+            }
+            if record.state == .unloaded {
+                cellsToRemove.append(cellId)
+                continue
+            }
+            if cellToEntities[cellId]?.isEmpty == false { continue }
+            if !hasPendingRetirement(for: cellId) {
+                cellsToRemove.append(cellId)
+            }
+        }
+
+        for cellId in cellsToRemove {
+            dirtyCells.remove(cellId)
+        }
+    }
+
+    private func summarizeBatches(for cellId: BatchCellID) -> (groupCount: Int, vertexCount: Int, indexCount: Int, bufferBytes: Int) {
+        var groupCount = 0
+        var vertexCount = 0
+        var indexCount = 0
+        var bufferBytes = 0
+        for group in batchGroups where group.cellId == cellId {
+            groupCount += 1
+            vertexCount += group.vertexCount
+            indexCount += group.indexCount
+            bufferBytes += group.positionBuffer?.length ?? 0
+            bufferBytes += group.normalBuffer?.length ?? 0
+            bufferBytes += group.uvBuffer?.length ?? 0
+            bufferBytes += group.tangentBuffer?.length ?? 0
+            bufferBytes += group.indexBuffer?.length ?? 0
+        }
+        return (groupCount, vertexCount, indexCount, bufferBytes)
     }
 
     /// Generate batches for all static entities in the scene
@@ -252,64 +1561,18 @@ public class BatchingSystem: @unchecked Sendable {
             Logger.log(message: "📋 Found \(entities.count) entities with StaticBatchComponent")
 
             // Group meshes by cell + material + LOD
-            var materialGroups: [BatchBuildKey: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4, material: Material)]] = [:]
+            var materialGroups: [BatchBuildKey: [BatchMeshItem]] = [:]
 
-            // Iterate through all entities with StaticBatchComponent
+            // Build fresh cell membership and mesh groups from current scene state.
             for entityId in entities {
-                // Check if entity has required components
-                guard let staticBatch = scene.get(component: StaticBatchComponent.self, for: entityId),
-                      staticBatch.canBatch,
-                      let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
-                      let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
-                      let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
-                else { continue }
+                guard let candidate = resolveBatchCandidate(entityId: entityId) else { continue }
+                entityToCellMembership[entityId] = candidate.cellId
+                cellToEntities[candidate.cellId, default: []].insert(entityId)
+                addCandidateMeshes(candidate, to: &materialGroups)
+            }
 
-                // Skip entities with empty meshes (not yet loaded by streaming)
-                if renderComponent.mesh.isEmpty {
-                    continue
-                }
-
-                // Skip entities with animations
-                if scene.get(component: SkeletonComponent.self, for: entityId) != nil { continue }
-                if scene.get(component: AnimationComponent.self, for: entityId) != nil { continue }
-
-                // Skip gizmos and special entities
-                if scene.get(component: GizmoComponent.self, for: entityId) != nil { continue }
-                if scene.get(component: LightComponent.self, for: entityId) != nil { continue }
-
-                // Get current LOD index (0 if no LOD component)
-                let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
-                let cellId = resolveCellId(localTransform: localTransform, worldTransform: worldTransform)
-
-                let hasTransparentSubmesh = renderComponent.mesh.contains { mesh in
-                    mesh.submeshes.contains { submesh in
-                        submesh.material?.hasTransparency ?? false
-                    }
-                }
-                if hasTransparentSubmesh { continue }
-
-                // Get the source asset URL to ensure we only batch textures from the same file
-                let assetURL = renderComponent.assetURL
-
-                // Process each mesh in the render component
-                for (_, mesh) in renderComponent.mesh.enumerated() {
-                    for (submeshIndex, submesh) in mesh.submeshes.enumerated() {
-                        guard let material = submesh.material else { continue }
-                        if material.hasTransparency { continue }
-
-                        let matHash = getMaterialHash(material: material, assetURL: assetURL)
-                        let batchKey = BatchBuildKey(cellId: cellId, materialHash: matHash, lodIndex: lodIndex)
-                        let finalTransform = simd_mul(worldTransform.space, mesh.localSpace)
-
-                        materialGroups[batchKey, default: []].append((
-                            entityId: entityId,
-                            mesh: mesh,
-                            meshIndex: submeshIndex,
-                            transform: finalTransform,
-                            material: material
-                        ))
-                    }
-                }
+            for cellId in cellToEntities.keys {
+                setCellState(cellId, .renderableUnbatched)
             }
 
             Logger.log(message: "📦 Found \(materialGroups.count) material groups")
@@ -319,39 +1582,10 @@ public class BatchingSystem: @unchecked Sendable {
                 }
             #endif
 
-            // Create batch groups
-            for (batchKey, meshGroup) in materialGroups {
-                // Only batch if we have multiple meshes with same material+LOD
-                if meshGroup.count < 2 {
-                    continue
-                }
+            _ = appendBatchGroups(from: materialGroups)
 
-                // Convert to format expected by createBatchGroup
-                let convertedGroup = meshGroup.map { item in
-                    (entityId: item.entityId, mesh: item.mesh, meshIndex: item.meshIndex, transform: item.transform)
-                }
-
-                guard let batchMaterial = meshGroup.first?.material else { continue }
-
-                if let batchGroup = createBatchGroup(
-                    from: convertedGroup,
-                    materialHash: batchKey.materialLODHash,
-                    material: batchMaterial,
-                    cellId: batchKey.cellId,
-                    lodIndex: batchKey.lodIndex
-                ) {
-                    batchGroups.append(batchGroup)
-
-                    // Track entity to batch mapping with LOD info
-                    for item in meshGroup {
-                        entityToBatch[item.entityId] = EntityBatchInfo(
-                            batchId: batchGroup.id,
-                            lodIndex: batchKey.lodIndex,
-                            materialHash: batchKey.materialHash,
-                            cellId: batchKey.cellId
-                        )
-                    }
-                }
+            for batchGroup in batchGroups {
+                setCellState(batchGroup.cellId, .renderableBatched)
             }
 
             Logger.log(message: "✅ Created \(batchGroups.count) batch groups")
@@ -378,7 +1612,7 @@ public class BatchingSystem: @unchecked Sendable {
 
     private func createBatchGroup(
         from meshGroup: [(entityId: EntityID, mesh: Mesh, meshIndex: Int, transform: simd_float4x4)],
-        materialHash: String,
+        batchKey: String,
         material: Material,
         cellId: BatchCellID,
         lodIndex: Int
@@ -488,7 +1722,7 @@ public class BatchingSystem: @unchecked Sendable {
             id: UUID(),
             cellId: cellId,
             lodIndex: lodIndex,
-            materialHash: materialHash,
+            batchKey: batchKey,
             material: material,
             positionBuffer: positionBuffer,
             normalBuffer: normalBuffer,
@@ -507,6 +1741,25 @@ public class BatchingSystem: @unchecked Sendable {
     public func clearBatches() {
         batchGroups.removeAll()
         entityToBatch.removeAll()
+        batchIdToIndex.removeAll()
+        batchedCells.removeAll()
+        entityToCellMembership.removeAll()
+        cellToEntities.removeAll()
+        cellLifecycle.removeAll()
+        retiringBatchArtifacts.removeAll()
+        retiringCellRefCounts.removeAll()
+        dirtyCells.removeAll()
+        pendingEntityRemovals.removeAll()
+        pendingEntityAdditions.removeAll()
+        newlyResidentEntities.removeAll()
+        cellLastVisibleFrame.removeAll()
+        cellBuildGeneration.removeAll()
+        runtimeBatchIneligibleCells.removeAll()
+        runtimeCellStats.removeAll()
+        clearPendingBuildArtifacts()
+        lastTickDiagnostics = .init()
+        batchIndexNeedsRebuild = false
+        tickCounter = 0
     }
 
     /// Check if an entity is part of a batch
@@ -517,7 +1770,8 @@ public class BatchingSystem: @unchecked Sendable {
     /// Get batch group for an entity
     public func getBatchGroup(for entityId: EntityID) -> BatchGroup? {
         guard let batchInfo = entityToBatch[entityId] else { return nil }
-        return batchGroups.first { $0.id == batchInfo.batchId }
+        guard let index = batchIdToIndex[batchInfo.batchId], batchGroups.indices.contains(index) else { return nil }
+        return batchGroups[index]
     }
 
     /// Get batch info for an entity
@@ -527,6 +1781,22 @@ public class BatchingSystem: @unchecked Sendable {
 
     public func setEnabled(_ enabled: Bool) {
         batchingEnabled = enabled
+        if !enabled {
+            for cellId in Set(batchGroups.map(\.cellId)) {
+                _ = removeBatchesForCell(cellId, queueForRetirement: true)
+            }
+            rebuildBatchIndex()
+            batchIndexNeedsRebuild = false
+            dirtyCells.removeAll()
+            pendingEntityRemovals.removeAll()
+            pendingEntityAdditions.removeAll()
+            newlyResidentEntities.removeAll()
+            runtimeBatchIneligibleCells.removeAll()
+            clearPendingBuildArtifacts()
+            for cellId in cellToEntities.keys {
+                setCellState(cellId, .renderableUnbatched)
+            }
+        }
     }
 
     public func isEnabled() -> Bool {
@@ -534,11 +1804,300 @@ public class BatchingSystem: @unchecked Sendable {
     }
 
     public func setBatchCellSize(_ size: Float) {
-        batchCellSize = max(size, 0.01)
+        let clamped = max(size, 0.01)
+        guard abs(clamped - batchCellSize) > .ulpOfOne else { return }
+        batchCellSize = clamped
+
+        // Cell assignment depends on size. Existing batches/memberships are invalid if the size changes.
+        if !batchGroups.isEmpty || !entityToCellMembership.isEmpty {
+            if batchingEnabled {
+                generateBatches()
+            } else {
+                clearBatches()
+            }
+        }
     }
 
     public func getBatchCellSize() -> Float {
         batchCellSize
+    }
+
+    /// Number of frames to retain old batch buffers after swap/unload before releasing them.
+    public func setBatchRetireDelayFrames(_ value: Int) {
+        batchRetireDelayFrames = max(1, value)
+    }
+
+    public func getBatchRetireDelayFrames() -> Int {
+        batchRetireDelayFrames
+    }
+
+    /// Maximum retiring batch artifacts released per tick.
+    public func setMaxRetirementsPerTick(_ value: Int) {
+        maxRetirementsPerTick = max(1, value)
+    }
+
+    public func getMaxRetirementsPerTick() -> Int {
+        maxRetirementsPerTick
+    }
+
+    /// Max dirty cells rebuilt per tick; lower values smooth frame spikes at the cost of convergence latency.
+    public func setMaxDirtyCellsPerTick(_ value: Int) {
+        maxDirtyCellsPerTick = max(1, value)
+    }
+
+    public func getMaxDirtyCellsPerTick() -> Int {
+        maxDirtyCellsPerTick
+    }
+
+    /// Enables asynchronous artifact preparation. Keep enabled in production for smoother traversal.
+    public func setBackgroundArtifactBuildEnabled(_ enabled: Bool) {
+        backgroundArtifactBuildEnabled = enabled
+        if !enabled {
+            clearPendingBuildArtifacts()
+        }
+    }
+
+    public func isBackgroundArtifactBuildEnabled() -> Bool {
+        backgroundArtifactBuildEnabled
+    }
+
+    /// Max number of cells dispatched for artifact build per tick.
+    public func setMaxBuildDispatchesPerTick(_ value: Int) {
+        maxBuildDispatchesPerTick = max(1, value)
+    }
+
+    public func getMaxBuildDispatchesPerTick() -> Int {
+        maxBuildDispatchesPerTick
+    }
+
+    /// Max number of completed artifacts applied per tick.
+    public func setMaxArtifactAppliesPerTick(_ value: Int) {
+        maxArtifactAppliesPerTick = max(1, value)
+    }
+
+    public func getMaxArtifactAppliesPerTick() -> Int {
+        maxArtifactAppliesPerTick
+    }
+
+    /// Max estimated vertices rebuilt per tick.
+    public func setMaxRebuildVerticesPerTick(_ value: Int) {
+        maxRebuildVerticesPerTick = max(1, value)
+    }
+
+    public func getMaxRebuildVerticesPerTick() -> Int {
+        maxRebuildVerticesPerTick
+    }
+
+    /// Max estimated indices rebuilt per tick.
+    public func setMaxRebuildIndicesPerTick(_ value: Int) {
+        maxRebuildIndicesPerTick = max(1, value)
+    }
+
+    public func getMaxRebuildIndicesPerTick() -> Int {
+        maxRebuildIndicesPerTick
+    }
+
+    /// Max estimated combined vertex/index bytes rebuilt per tick.
+    public func setMaxRebuildBufferBytesPerTick(_ value: Int) {
+        maxRebuildBufferBytesPerTick = max(1, value)
+    }
+
+    public func getMaxRebuildBufferBytesPerTick() -> Int {
+        maxRebuildBufferBytesPerTick
+    }
+
+    /// Runtime complexity guard (per-cell) for vertices.
+    public func setMaxRuntimeCellVertices(_ value: Int) {
+        maxRuntimeCellVertices = max(1, value)
+    }
+
+    public func getMaxRuntimeCellVertices() -> Int {
+        maxRuntimeCellVertices
+    }
+
+    /// Runtime complexity guard (per-cell) for indices.
+    public func setMaxRuntimeCellIndices(_ value: Int) {
+        maxRuntimeCellIndices = max(1, value)
+    }
+
+    public func getMaxRuntimeCellIndices() -> Int {
+        maxRuntimeCellIndices
+    }
+
+    /// Runtime complexity guard (per-cell) for estimated bytes.
+    public func setMaxRuntimeCellBufferBytes(_ value: Int) {
+        maxRuntimeCellBufferBytes = max(1, value)
+    }
+
+    public func getMaxRuntimeCellBufferBytes() -> Int {
+        maxRuntimeCellBufferBytes
+    }
+
+    /// Minimum stable frames before a dirty cell can be promoted to batch rebuild.
+    public func setQuiescenceFramesBeforeBatchBuild(_ value: Int) {
+        quiescenceFramesBeforeBatchBuild = max(0, value)
+    }
+
+    public func getQuiescenceFramesBeforeBatchBuild() -> Int {
+        quiescenceFramesBeforeBatchBuild
+    }
+
+    /// How long a cell stays "recently visible" for rebuild prioritization.
+    public func setRecentVisibilityWindowFrames(_ value: Int) {
+        recentVisibilityWindowFrames = max(0, value)
+    }
+
+    public func getRecentVisibilityWindowFrames() -> Int {
+        recentVisibilityWindowFrames
+    }
+
+    /// Whether off-screen cells are deferred from runtime batch rebuild work.
+    public func setVisibilityGatedBatchBuildEnabled(_ enabled: Bool) {
+        visibilityGatedBatchBuildEnabled = enabled
+    }
+
+    public func isVisibilityGatedBatchBuildEnabled() -> Bool {
+        visibilityGatedBatchBuildEnabled
+    }
+
+    /// Runtime per-cell diagnostics sorted by worst rebuild time first.
+    public func getRuntimeBatchCellDiagnostics(limit: Int = 32) -> [BatchCellRuntimeDiagnostic] {
+        guard !runtimeCellStats.isEmpty else { return [] }
+        let sorted = runtimeCellStats.values.sorted { lhs, rhs in
+            if lhs.maxRebuildMs != rhs.maxRebuildMs { return lhs.maxRebuildMs > rhs.maxRebuildMs }
+            if lhs.lastEstimatedBytes != rhs.lastEstimatedBytes { return lhs.lastEstimatedBytes > rhs.lastEstimatedBytes }
+            if lhs.rebuildCount != rhs.rebuildCount { return lhs.rebuildCount > rhs.rebuildCount }
+            if lhs.cellId.x != rhs.cellId.x { return lhs.cellId.x < rhs.cellId.x }
+            if lhs.cellId.y != rhs.cellId.y { return lhs.cellId.y < rhs.cellId.y }
+            return lhs.cellId.z < rhs.cellId.z
+        }
+        let cap = max(0, limit)
+        return sorted.prefix(cap).map { stats in
+            BatchCellRuntimeDiagnostic(
+                cellId: stats.cellId,
+                lastEstimatedVertices: stats.lastEstimatedVertices,
+                lastEstimatedIndices: stats.lastEstimatedIndices,
+                lastEstimatedBytes: stats.lastEstimatedBytes,
+                rebuildCount: stats.rebuildCount,
+                lastRebuildMs: stats.lastRebuildMs,
+                maxRebuildMs: stats.maxRebuildMs,
+                skipByWorkBudgetCount: stats.skipByWorkBudgetCount,
+                skipByQuiescenceCount: stats.skipByQuiescenceCount,
+                skipByComplexityCount: stats.skipByComplexityCount,
+                lastRebuiltGroupCount: stats.lastRebuiltGroupCount
+            )
+        }
+    }
+
+    /// Runtime aggregate diagnostics for tuning streamed-cell batching.
+    public func getRuntimeBatchingSummaryDiagnostic() -> RuntimeBatchingSummaryDiagnostic {
+        guard !runtimeCellStats.isEmpty else {
+            return RuntimeBatchingSummaryDiagnostic(trackedCells: 0, runtimeIneligibleCells: runtimeBatchIneligibleCells.count)
+        }
+
+        let values = Array(runtimeCellStats.values)
+        let count = Double(values.count)
+        let totalEstimatedVertices = values.reduce(0) { $0 + $1.lastEstimatedVertices }
+        let totalEstimatedBytes = values.reduce(0) { $0 + $1.lastEstimatedBytes }
+        let maxEstimatedVertices = values.map(\.lastEstimatedVertices).max() ?? 0
+        let maxEstimatedBytes = values.map(\.lastEstimatedBytes).max() ?? 0
+        let worstRebuildMs = values.map(\.maxRebuildMs).max() ?? 0.0
+        let totalComplexitySkips = values.reduce(0) { $0 + $1.skipByComplexityCount }
+        let totalBudgetSkips = values.reduce(0) { $0 + $1.skipByWorkBudgetCount }
+        let totalQuiescenceDeferrals = values.reduce(0) { $0 + $1.skipByQuiescenceCount }
+
+        return RuntimeBatchingSummaryDiagnostic(
+            trackedCells: values.count,
+            runtimeIneligibleCells: runtimeBatchIneligibleCells.count,
+            averageEstimatedVerticesPerCell: Double(totalEstimatedVertices) / count,
+            maxEstimatedVerticesInCell: maxEstimatedVertices,
+            averageEstimatedBytesPerCell: Double(totalEstimatedBytes) / count,
+            maxEstimatedBytesInCell: maxEstimatedBytes,
+            worstRebuildMs: worstRebuildMs,
+            totalComplexitySkips: totalComplexitySkips,
+            totalBudgetSkips: totalBudgetSkips,
+            totalQuiescenceDeferrals: totalQuiescenceDeferrals
+        )
+    }
+
+    /// Snapshot of the most recent tick's internal rebuild work.
+    public func getTickDiagnosticsSnapshot() -> BatchingTickDiagnostics {
+        lastTickDiagnostics
+    }
+
+    public func getCellRenderState(cellId: BatchCellID) -> StaticBatchCellRenderState {
+        if let state = cellLifecycle[cellId]?.state {
+            return state
+        }
+        return .unloaded
+    }
+
+    public func getCellRenderStatesSnapshot() -> [BatchCellID: StaticBatchCellRenderState] {
+        var snapshot: [BatchCellID: StaticBatchCellRenderState] = [:]
+        snapshot.reserveCapacity(cellLifecycle.count)
+        for (cellId, record) in cellLifecycle {
+            snapshot[cellId] = record.state
+        }
+        return snapshot
+    }
+
+    /// Called by GeometryStreamingSystem when an entity starts streaming in.
+    public func notifyEntityStreamingStarted(entityId: EntityID) {
+        guard batchingEnabled else { return }
+        guard scene.get(component: StaticBatchComponent.self, for: entityId) != nil else { return }
+        guard let cellId = resolveCellIdForEntity(entityId: entityId) else { return }
+        markCellStreaming(cellId)
+    }
+
+    /// Called by GeometryStreamingSystem when an entity starts unloading.
+    public func notifyEntityRetiring(entityId: EntityID) {
+        guard batchingEnabled else { return }
+        guard scene.get(component: StaticBatchComponent.self, for: entityId) != nil else { return }
+        guard let cellId = resolveCellIdForEntity(entityId: entityId) else { return }
+        setCellState(cellId, .retiring)
+    }
+
+    /// Apply a complete runtime batching tuning profile.
+    ///
+    /// Recommended usage:
+    /// - `RuntimeBatchingTuning.visionOSBalanced` for Vision Pro defaults
+    /// - `RuntimeBatchingTuning.macOSBalanced` for desktop defaults
+    /// - then override specific fields for scene-specific behavior.
+    public func applyRuntimeBatchingTuning(_ tuning: RuntimeBatchingTuning) {
+        setMaxDirtyCellsPerTick(tuning.maxDirtyCellsPerTick)
+        setMaxBuildDispatchesPerTick(tuning.maxBuildDispatchesPerTick)
+        setMaxArtifactAppliesPerTick(tuning.maxArtifactAppliesPerTick)
+        setMaxRebuildVerticesPerTick(tuning.maxRebuildVerticesPerTick)
+        setMaxRebuildIndicesPerTick(tuning.maxRebuildIndicesPerTick)
+        setMaxRebuildBufferBytesPerTick(tuning.maxRebuildBufferBytesPerTick)
+        setMaxRuntimeCellVertices(tuning.maxRuntimeCellVertices)
+        setMaxRuntimeCellIndices(tuning.maxRuntimeCellIndices)
+        setMaxRuntimeCellBufferBytes(tuning.maxRuntimeCellBufferBytes)
+        setQuiescenceFramesBeforeBatchBuild(tuning.quiescenceFramesBeforeBatchBuild)
+        setRecentVisibilityWindowFrames(tuning.recentVisibilityWindowFrames)
+        setVisibilityGatedBatchBuildEnabled(tuning.visibilityGatedBatchBuildEnabled)
+        setMaxRetirementsPerTick(tuning.maxRetirementsPerTick)
+        setBatchRetireDelayFrames(tuning.batchRetireDelayFrames)
+    }
+
+    /// Returns the currently active runtime batching tuning values.
+    public func getRuntimeBatchingTuning() -> RuntimeBatchingTuning {
+        RuntimeBatchingTuning(
+            maxDirtyCellsPerTick: maxDirtyCellsPerTick,
+            maxBuildDispatchesPerTick: maxBuildDispatchesPerTick,
+            maxArtifactAppliesPerTick: maxArtifactAppliesPerTick,
+            maxRebuildVerticesPerTick: maxRebuildVerticesPerTick,
+            maxRebuildIndicesPerTick: maxRebuildIndicesPerTick,
+            maxRebuildBufferBytesPerTick: maxRebuildBufferBytesPerTick,
+            maxRuntimeCellVertices: maxRuntimeCellVertices,
+            maxRuntimeCellIndices: maxRuntimeCellIndices,
+            maxRuntimeCellBufferBytes: maxRuntimeCellBufferBytes,
+            quiescenceFramesBeforeBatchBuild: quiescenceFramesBeforeBatchBuild,
+            recentVisibilityWindowFrames: recentVisibilityWindowFrames,
+            visibilityGatedBatchBuildEnabled: visibilityGatedBatchBuildEnabled,
+            maxRetirementsPerTick: maxRetirementsPerTick,
+            batchRetireDelayFrames: batchRetireDelayFrames
+        )
     }
 
     /// Generate a hash representing material properties for batching compatibility
@@ -645,7 +2204,7 @@ public class BatchingSystem: @unchecked Sendable {
     }
 
     private func cellId(for worldCenter: simd_float3) -> BatchCellID {
-        let size = max(batchCellSize, 0.01)
+        let size = batchCellSize
         return BatchCellID(
             x: Int(floor(worldCenter.x / size)),
             y: Int(floor(worldCenter.y / size)),

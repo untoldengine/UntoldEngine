@@ -19,11 +19,17 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
         // Disable streaming system during setup to control test state
         GeometryStreamingSystem.shared.enabled = false
+        GeometryStreamingSystem.shared.maxConcurrentLoads = 3
+        GeometryStreamingSystem.shared.maxUnloadsPerUpdate = 12
+        GeometryStreamingSystem.shared.updateInterval = 0.1
     }
 
     override func tearDown() async throws {
         // Reset streaming system state
         GeometryStreamingSystem.shared.enabled = false
+        GeometryStreamingSystem.shared.maxConcurrentLoads = 3
+        GeometryStreamingSystem.shared.maxUnloadsPerUpdate = 12
+        GeometryStreamingSystem.shared.updateInterval = 0.1
         GeometryStreamingSystem.shared.reset()
 
         try await super.tearDown()
@@ -347,6 +353,60 @@ final class GeometryStreamingTest: BaseRenderSetup {
         // RenderComponent mesh should be empty
         let render = scene.get(component: RenderComponent.self, for: entity)
         XCTAssertTrue(render?.mesh.isEmpty ?? true, "❌ Mesh should be cleared after unload")
+    }
+
+    func testStreamingUpdateRespectsUnloadBudgetPerTick() {
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        GeometryStreamingSystem.shared.maxUnloadsPerUpdate = 1
+        GeometryStreamingSystem.shared.enabled = true
+
+        func makeLoadedEntity(positionX: Float) -> EntityID {
+            let entity = createEntity()
+            let meshes = Mesh.loadMeshes(
+                url: ballURL,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                flip: true
+            )
+
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+            }
+
+            if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                transform.position = simd_float3(positionX, 0, 0)
+            }
+
+            if let worldTransform = scene.assign(to: entity, component: WorldTransformComponent.self) {
+                worldTransform.space = simd_float4x4(1.0)
+            }
+
+            enableStreaming(entityId: entity, streamingRadius: 10.0, unloadRadius: 20.0)
+            return entity
+        }
+
+        let entityA = makeLoadedEntity(positionX: 0)
+        let entityB = makeLoadedEntity(positionX: 10)
+        let farCameraPosition = simd_float3(100, 0, 0)
+
+        GeometryStreamingSystem.shared.update(cameraPosition: farCameraPosition, deltaTime: 0.1)
+
+        let unloadedAfterFirstTick = [entityA, entityB].filter {
+            scene.get(component: StreamingComponent.self, for: $0)?.state == .unloaded
+        }.count
+        XCTAssertEqual(unloadedAfterFirstTick, 1, "❌ Exactly one entity should unload per tick when budget is 1")
+
+        GeometryStreamingSystem.shared.update(cameraPosition: farCameraPosition, deltaTime: 0.1)
+
+        let unloadedAfterSecondTick = [entityA, entityB].filter {
+            scene.get(component: StreamingComponent.self, for: $0)?.state == .unloaded
+        }.count
+        XCTAssertEqual(unloadedAfterSecondTick, 2, "❌ Remaining unload should complete on the next tick")
     }
 
     // MARK: - Force Load/Unload Tests

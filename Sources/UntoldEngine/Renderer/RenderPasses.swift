@@ -47,6 +47,8 @@ public enum RenderPasses {
         var spatialDebugLineBufferCapacityVertices: Int = 0
         var spatialDebugLastLogTime: TimeInterval = 0
         var spatialDebugLastLogSignature: String = ""
+        var visibleBatchIdsFrame: Int = -1
+        var visibleBatchIdsCache: Set<UUID> = []
     }
 
     @inline(__always)
@@ -167,18 +169,17 @@ public enum RenderPasses {
     }
 
     @inline(__always)
-    private static func extractLODIndex(from materialHash: String) -> Int? {
-        guard let markerRange = materialHash.range(of: "_LOD", options: .backwards) else {
+    private static func extractLODIndex(from batchKey: String) -> Int? {
+        guard let markerRange = batchKey.range(of: "_LOD", options: .backwards) else {
             return nil
         }
 
-        let suffix = materialHash[markerRange.upperBound...]
+        let suffix = batchKey[markerRange.upperBound...]
         let digits = suffix.prefix { $0.isNumber }
         guard !digits.isEmpty else { return nil }
         return Int(digits)
     }
 
-    @inline(__always)
     static func collectVisibleBatchIds(from entityIds: [EntityID]) -> Set<UUID> {
         var visibleBatchIds: Set<UUID> = []
         visibleBatchIds.reserveCapacity(entityIds.count)
@@ -191,15 +192,30 @@ public enum RenderPasses {
         return visibleBatchIds
     }
 
-    @inline(__always)
     private static func visibleBatchIdsSnapshot() -> Set<UUID> {
-        collectVisibleBatchIds(from: visibleEntityIds)
+        let frame = cullFrameIndex
+
+        runtimeState.lock.lock()
+        if runtimeState.visibleBatchIdsFrame == frame {
+            let cached = runtimeState.visibleBatchIdsCache
+            runtimeState.lock.unlock()
+            return cached
+        }
+        runtimeState.lock.unlock()
+
+        let computed = collectVisibleBatchIds(from: visibleEntityIds)
+
+        runtimeState.lock.lock()
+        runtimeState.visibleBatchIdsFrame = frame
+        runtimeState.visibleBatchIdsCache = computed
+        runtimeState.lock.unlock()
+        return computed
     }
 
     @inline(__always)
     private static func applyLODDebugColorOverride(
         entityId: EntityID? = nil,
-        batchMaterialHash: String? = nil,
+        batchKey: String? = nil,
         materialParameters: inout MaterialParametersUniform
     ) {
         guard SpatialDebugVisualization.shared.colorRenderablesByLOD else { return }
@@ -209,8 +225,8 @@ public enum RenderPasses {
            let lod = scene.get(component: LODComponent.self, for: entityId)
         {
             lodIndex = lod.currentLOD
-        } else if let batchMaterialHash {
-            lodIndex = extractLODIndex(from: batchMaterialHash)
+        } else if let batchKey {
+            lodIndex = extractLODIndex(from: batchKey)
         } else {
             lodIndex = nil
         }
@@ -1199,7 +1215,7 @@ public enum RenderPasses {
                 0
             )
             applyLODDebugColorOverride(
-                batchMaterialHash: batchGroup.materialHash,
+                batchKey: batchGroup.batchKey,
                 materialParameters: &materialParameters
             )
 
@@ -2475,7 +2491,7 @@ public enum RenderPasses {
         let settings = SpatialDebugVisualization.shared
         let shouldDrawOctreeBounds = settings.showOctreeLeafBounds
         let shouldDrawStaticBatchCells = settings.showStaticBatchCellBounds
-        guard settings.enabled, (shouldDrawOctreeBounds || shouldDrawStaticBatchCells) else {
+        guard settings.enabled, shouldDrawOctreeBounds || shouldDrawStaticBatchCells else {
             return
         }
 

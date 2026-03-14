@@ -307,10 +307,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                           statsLifecycle: StatsLifecycleMode = .internalManaged) -> Bool
     {
         #if ENGINE_STATS_ENABLED
+            let wallFrameStartTime = CACurrentMediaTime()
             let frameStartTime: Double
             switch statsLifecycle {
             case .internalManaged:
-                frameStartTime = CACurrentMediaTime()
+                frameStartTime = wallFrameStartTime
                 EngineStatsMonitor.shared.beginFrame(timestampSeconds: frameStartTime)
                 RenderStatsCollector.shared.reset()
             case .externalManaged:

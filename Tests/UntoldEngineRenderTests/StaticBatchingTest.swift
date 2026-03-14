@@ -21,6 +21,19 @@ final class StaticBatchingTest: BaseRenderSetup {
         clearSceneBatches()
         enableBatching(false)
         BatchingSystem.shared.setBatchCellSize(32.0)
+        BatchingSystem.shared.setMaxDirtyCellsPerTick(8)
+        BatchingSystem.shared.setMaxRebuildVerticesPerTick(1_000_000_000)
+        BatchingSystem.shared.setMaxRebuildIndicesPerTick(1_000_000_000)
+        BatchingSystem.shared.setMaxRebuildBufferBytesPerTick(1_000_000_000)
+        BatchingSystem.shared.setMaxRuntimeCellVertices(1_000_000_000)
+        BatchingSystem.shared.setMaxRuntimeCellIndices(1_000_000_000)
+        BatchingSystem.shared.setMaxRuntimeCellBufferBytes(1_000_000_000)
+        BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
+        BatchingSystem.shared.setRecentVisibilityWindowFrames(120)
+        BatchingSystem.shared.setVisibilityGatedBatchBuildEnabled(false)
+        BatchingSystem.shared.setBackgroundArtifactBuildEnabled(false)
+        BatchingSystem.shared.setMaxBuildDispatchesPerTick(8)
+        BatchingSystem.shared.setMaxArtifactAppliesPerTick(8)
         disableSpatialDebugVisualization()
     }
 
@@ -29,6 +42,19 @@ final class StaticBatchingTest: BaseRenderSetup {
         clearSceneBatches()
         enableBatching(false)
         BatchingSystem.shared.setBatchCellSize(32.0)
+        BatchingSystem.shared.setMaxDirtyCellsPerTick(8)
+        BatchingSystem.shared.setMaxRebuildVerticesPerTick(1_000_000_000)
+        BatchingSystem.shared.setMaxRebuildIndicesPerTick(1_000_000_000)
+        BatchingSystem.shared.setMaxRebuildBufferBytesPerTick(1_000_000_000)
+        BatchingSystem.shared.setMaxRuntimeCellVertices(1_000_000_000)
+        BatchingSystem.shared.setMaxRuntimeCellIndices(1_000_000_000)
+        BatchingSystem.shared.setMaxRuntimeCellBufferBytes(1_000_000_000)
+        BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
+        BatchingSystem.shared.setRecentVisibilityWindowFrames(120)
+        BatchingSystem.shared.setVisibilityGatedBatchBuildEnabled(false)
+        BatchingSystem.shared.setBackgroundArtifactBuildEnabled(false)
+        BatchingSystem.shared.setMaxBuildDispatchesPerTick(8)
+        BatchingSystem.shared.setMaxArtifactAppliesPerTick(8)
         disableSpatialDebugVisualization()
 
         try await super.tearDown()
@@ -493,7 +519,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         print("✅ Batching integrated successfully with rendering system")
     }
 
-    func testVisibleBatchIdCollectionFiltersToVisibleEntities() {
+    func testVisibleBatchIdCollectionFiltersToVisibleEntities() throws {
         BatchingSystem.shared.setBatchCellSize(10.0)
         enableBatching(true)
 
@@ -513,8 +539,8 @@ final class StaticBatchingTest: BaseRenderSetup {
         let visibleBatchIds = RenderPasses.collectVisibleBatchIds(from: [cell0EntityA, cell0EntityB])
 
         XCTAssertEqual(visibleBatchIds.count, 1, "❌ Visible entity set should resolve to exactly one batch")
-        XCTAssertTrue(visibleBatchIds.contains(cell0BatchId!), "❌ Visible set should include the visible batch")
-        XCTAssertFalse(visibleBatchIds.contains(cell2BatchId!), "❌ Visible set should exclude non-visible batches")
+        XCTAssertTrue(try visibleBatchIds.contains(XCTUnwrap(cell0BatchId)), "❌ Visible set should include the visible batch")
+        XCTAssertFalse(try visibleBatchIds.contains(XCTUnwrap(cell2BatchId)), "❌ Visible set should exclude non-visible batches")
         XCTAssertNotNil(BatchingSystem.shared.getBatchInfo(for: cell2EntityB), "❌ Non-visible entities should still remain batched")
     }
 
@@ -866,18 +892,102 @@ final class StaticBatchingTest: BaseRenderSetup {
         SystemEventBus.shared.queueResidencyChange(residencyEvent)
         SystemEventBus.shared.flushEvents()
 
-        // Process pending batch updates
+        // Process pending batch updates.
+        // Newly resident cells should render unbatched first and batch on a later tick.
+        BatchingSystem.shared.tick()
+        XCTAssertFalse(
+            BatchingSystem.shared.isBatched(entityId: targetEntity),
+            "❌ Newly resident entity should remain unbatched on the first staging tick"
+        )
+
         BatchingSystem.shared.tick()
 
         // Then: Entity should be added to batch
-        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: targetEntity), "❌ Entity should be batched after mesh becomes resident")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: targetEntity), "❌ Entity should be batched after staged promotion")
 
         print("✅ Entity successfully added to batch when mesh became resident")
     }
 
+    func testQuiescenceDelaysPromotionToBatchPending() {
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(2)
+
+        for _ in 0 ..< 3 {
+            let entity = createEntity()
+            let meshes = Mesh.loadMeshes(
+                url: ballURL,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                flip: true
+            )
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+            }
+            _ = scene.assign(to: entity, component: LocalTransformComponent.self)
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+        }
+
+        let targetEntity = createEntity()
+        if let renderComponent = scene.assign(to: targetEntity, component: RenderComponent.self) {
+            renderComponent.mesh = []
+            renderComponent.assetURL = ballURL
+            renderComponent.assetName = "ball"
+        }
+        _ = scene.assign(to: targetEntity, component: LocalTransformComponent.self)
+        _ = scene.assign(to: targetEntity, component: WorldTransformComponent.self)
+        setEntityStaticBatchComponent(entityId: targetEntity)
+
+        enableBatching(true)
+        generateBatches()
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: targetEntity), "❌ Entity starts unbatched")
+
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+        if let renderComponent = scene.get(component: RenderComponent.self, for: targetEntity) {
+            renderComponent.mesh = meshes
+        }
+        SystemEventBus.shared.queueResidencyChange(
+            AssetResidencyChangedEvent(
+                entityId: targetEntity,
+                assetURL: ballURL,
+                meshName: "ball",
+                isResident: true
+            )
+        )
+        SystemEventBus.shared.flushEvents()
+
+        for _ in 0 ..< 3 {
+            BatchingSystem.shared.tick()
+            XCTAssertFalse(
+                BatchingSystem.shared.isBatched(entityId: targetEntity),
+                "❌ Quiescence should keep newly resident cell unbatched during settle frames"
+            )
+        }
+
+        let deferredDiag = BatchingSystem.shared.getTickDiagnosticsSnapshot()
+        XCTAssertGreaterThan(
+            deferredDiag.deferredByQuiescence,
+            0,
+            "❌ Quiescence deferrals should be visible in tick diagnostics"
+        )
+
+        BatchingSystem.shared.tick()
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: targetEntity), "❌ Entity should batch after quiescence delay")
+    }
+
     func testTickProcessesPendingRemovalsAndAdditions() {
         // Given: Create batched entities
-        // Note: tick() triggers rebuildDirtyBatches() which calls generateBatches() and rebuilds from scratch
+        // Note: tick() processes pending entity changes and rebuilds affected cells incrementally
         guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
             XCTFail("❌ Failed to load ball.usdz")
             return
@@ -995,6 +1105,441 @@ final class StaticBatchingTest: BaseRenderSetup {
         print("✅ tick() correctly processed both eviction and LOD change")
     }
 
+    func testTickRebuildsOnlyDirtyCells() {
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        BatchingSystem.shared.setBatchCellSize(10.0)
+        enableBatching(true)
+
+        func makeEntity(position: simd_float3) -> EntityID {
+            let entity = createEntity()
+            let meshes = Mesh.loadMeshes(
+                url: ballURL,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                flip: true
+            )
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+                renderComponent.assetName = "ball"
+            }
+            if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                localTransform.position = position
+            }
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+            return entity
+        }
+
+        let cell0EntityA = makeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        let cell0EntityB = makeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        let cell2EntityA = makeEntity(position: simd_float3(25.0, 0.0, 0.0))
+        let cell2EntityB = makeEntity(position: simd_float3(27.0, 0.0, 0.0))
+
+        generateBatches()
+        XCTAssertEqual(BatchingSystem.shared.batchGroups.count, 2, "❌ Expected one batch per populated cell")
+
+        let initialCell0BatchId = BatchingSystem.shared.getBatchInfo(for: cell0EntityA)?.batchId
+        let initialCell2BatchId = BatchingSystem.shared.getBatchInfo(for: cell2EntityA)?.batchId
+        XCTAssertNotNil(initialCell0BatchId, "❌ Cell 0 batch should exist")
+        XCTAssertNotNil(initialCell2BatchId, "❌ Cell 2 batch should exist")
+
+        // Evict one entity from cell 0 only.
+        if let renderComponent = scene.get(component: RenderComponent.self, for: cell0EntityA) {
+            renderComponent.mesh = []
+        }
+        let evictionEvent = AssetResidencyChangedEvent(
+            entityId: cell0EntityA,
+            assetURL: ballURL,
+            meshName: "ball",
+            isResident: false
+        )
+        SystemEventBus.shared.queueResidencyChange(evictionEvent)
+        SystemEventBus.shared.flushEvents()
+        BatchingSystem.shared.tick()
+
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: cell0EntityA), "❌ Evicted entity should be removed from batching")
+        XCTAssertFalse(
+            BatchingSystem.shared.isBatched(entityId: cell0EntityB),
+            "❌ Dirty cell now has one entity and should no longer form a batch"
+        )
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell2EntityB), "❌ Unaffected cell entity should remain batched")
+
+        let updatedCell2BatchId = BatchingSystem.shared.getBatchInfo(for: cell2EntityA)?.batchId
+        XCTAssertEqual(
+            updatedCell2BatchId,
+            initialCell2BatchId,
+            "❌ Unaffected cell batch ID changed, indicating global rebuild instead of dirty-cell rebuild"
+        )
+    }
+
+    func testTickProcessesRemainingDirtyCellsAcrossFramesWhenBudgetLimited() {
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setMaxDirtyCellsPerTick(1)
+        enableBatching(true)
+
+        func makeEntity(position: simd_float3) -> EntityID {
+            let entity = createEntity()
+            let meshes = Mesh.loadMeshes(
+                url: ballURL,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                flip: true
+            )
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+                renderComponent.assetName = "ball"
+            }
+            if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                localTransform.position = position
+            }
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+            return entity
+        }
+
+        let cell0EntityA = makeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        let cell0EntityB = makeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        let cell0EntityC = makeEntity(position: simd_float3(5.0, 0.0, 0.0))
+        let cell2EntityA = makeEntity(position: simd_float3(25.0, 0.0, 0.0))
+        let cell2EntityB = makeEntity(position: simd_float3(27.0, 0.0, 0.0))
+        let cell2EntityC = makeEntity(position: simd_float3(29.0, 0.0, 0.0))
+
+        generateBatches()
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell0EntityB), "❌ Cell 0 should start batched")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell2EntityB), "❌ Cell 2 should start batched")
+
+        // Evict one entity from each cell so both cells become dirty.
+        for entityId in [cell0EntityA, cell2EntityA] {
+            if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+                renderComponent.mesh = []
+            }
+            let evictionEvent = AssetResidencyChangedEvent(
+                entityId: entityId,
+                assetURL: ballURL,
+                meshName: "ball",
+                isResident: false
+            )
+            SystemEventBus.shared.queueResidencyChange(evictionEvent)
+        }
+        SystemEventBus.shared.flushEvents()
+
+        // Tick 1: both cells fall back to unbatched, then only one cell is rebatched due budget = 1.
+        BatchingSystem.shared.tick()
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell0EntityB), "❌ First dirty cell should be rebatched on tick 1")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell0EntityC), "❌ First dirty cell companion should be rebatched on tick 1")
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: cell2EntityB), "❌ Second dirty cell should remain pending on tick 1")
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: cell2EntityC), "❌ Second dirty cell companion should remain pending on tick 1")
+
+        // Tick 2: remaining dirty cell should rebuild even without new events.
+        BatchingSystem.shared.tick()
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell2EntityB), "❌ Pending dirty cell should rebuild on a later tick")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell2EntityC), "❌ Pending dirty cell companion should rebuild on a later tick")
+    }
+
+    func testTickDefersSomeDirtyCellsWhenWorkBudgetIsExceeded() {
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setMaxDirtyCellsPerTick(4)
+        BatchingSystem.shared.setMaxRebuildVerticesPerTick(1_000_000_000)
+        BatchingSystem.shared.setMaxRebuildIndicesPerTick(1_000_000_000)
+        BatchingSystem.shared.setMaxRebuildBufferBytesPerTick(1)
+        enableBatching(true)
+
+        func makeEntity(position: simd_float3) -> EntityID {
+            let entity = createEntity()
+            let meshes = Mesh.loadMeshes(
+                url: ballURL,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                flip: true
+            )
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+                renderComponent.assetName = "ball"
+            }
+            if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                localTransform.position = position
+            }
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+            return entity
+        }
+
+        let cell0A = makeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        let cell0B = makeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        let cell0C = makeEntity(position: simd_float3(5.0, 0.0, 0.0))
+        let cell2A = makeEntity(position: simd_float3(25.0, 0.0, 0.0))
+        let cell2B = makeEntity(position: simd_float3(27.0, 0.0, 0.0))
+        let cell2C = makeEntity(position: simd_float3(29.0, 0.0, 0.0))
+
+        generateBatches()
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell0B), "❌ Cell 0 should start batched")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell2B), "❌ Cell 2 should start batched")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell0C), "❌ Cell 0 companion should start batched")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: cell2C), "❌ Cell 2 companion should start batched")
+
+        for entityId in [cell0A, cell2A] {
+            if let renderComponent = scene.get(component: RenderComponent.self, for: entityId) {
+                renderComponent.mesh = []
+            }
+            let evictionEvent = AssetResidencyChangedEvent(
+                entityId: entityId,
+                assetURL: ballURL,
+                meshName: "ball",
+                isResident: false
+            )
+            SystemEventBus.shared.queueResidencyChange(evictionEvent)
+        }
+        SystemEventBus.shared.flushEvents()
+        BatchingSystem.shared.tick()
+
+        let tickDiag = BatchingSystem.shared.getTickDiagnosticsSnapshot()
+        XCTAssertEqual(tickDiag.rebuiltCells, 1, "❌ Work budget should allow only one dirty cell rebuild")
+        XCTAssertGreaterThanOrEqual(
+            tickDiag.deferredByWorkBudget,
+            1,
+            "❌ At least one dirty cell should be deferred by work budget"
+        )
+    }
+
+    func testTickMarksOversizedCellsRuntimeIneligible() {
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setMaxRuntimeCellVertices(1)
+        BatchingSystem.shared.setMaxRuntimeCellIndices(1_000_000_000)
+        BatchingSystem.shared.setMaxRuntimeCellBufferBytes(1_000_000_000)
+        BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
+        enableBatching(true)
+
+        func makeEntity(position: simd_float3) -> EntityID {
+            let entity = createEntity()
+            let meshes = Mesh.loadMeshes(
+                url: ballURL,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                flip: true
+            )
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+                renderComponent.assetName = "ball"
+            }
+            if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                localTransform.position = position
+            }
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            if let lod = scene.assign(to: entity, component: LODComponent.self) {
+                lod.currentLOD = 0
+            }
+            setEntityStaticBatchComponent(entityId: entity)
+            return entity
+        }
+
+        let entityA = makeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        let entityB = makeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        generateBatches()
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entityA), "❌ Entity A should start batched")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entityB), "❌ Entity B should start batched")
+
+        if let lod = scene.get(component: LODComponent.self, for: entityA) {
+            lod.currentLOD = 1
+        }
+        if let lod = scene.get(component: LODComponent.self, for: entityB) {
+            lod.currentLOD = 1
+        }
+        SystemEventBus.shared.queueLODChange(
+            EntityLODChangedEvent(
+                entityId: entityA,
+                previousLODIndex: 0,
+                newLODIndex: 1,
+                meshAssetID: "ball_LOD1"
+            )
+        )
+        SystemEventBus.shared.queueLODChange(
+            EntityLODChangedEvent(
+                entityId: entityB,
+                previousLODIndex: 0,
+                newLODIndex: 1,
+                meshAssetID: "ball_LOD1"
+            )
+        )
+        SystemEventBus.shared.flushEvents()
+        BatchingSystem.shared.tick()
+
+        let tickDiag = BatchingSystem.shared.getTickDiagnosticsSnapshot()
+        XCTAssertGreaterThanOrEqual(
+            tickDiag.skippedByComplexityGuard,
+            1,
+            "❌ Oversized dirty cell should be rejected by complexity guard"
+        )
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: entityA), "❌ Oversized cell should remain unbatched")
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: entityB), "❌ Oversized cell should remain unbatched")
+
+        let summary = BatchingSystem.shared.getRuntimeBatchingSummaryDiagnostic()
+        XCTAssertGreaterThanOrEqual(summary.runtimeIneligibleCells, 1, "❌ Runtime ineligible cell should be tracked")
+    }
+
+    func testBackgroundArtifactBuildAppliesOnSubsequentTick() {
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setBackgroundArtifactBuildEnabled(true)
+        BatchingSystem.shared.setMaxDirtyCellsPerTick(1)
+        BatchingSystem.shared.setMaxBuildDispatchesPerTick(1)
+        BatchingSystem.shared.setMaxArtifactAppliesPerTick(1)
+        BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
+        enableBatching(true)
+
+        func makeEntity(position: simd_float3) -> EntityID {
+            let entity = createEntity()
+            let meshes = Mesh.loadMeshes(
+                url: ballURL,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                flip: true
+            )
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+                renderComponent.assetName = "ball"
+            }
+            if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                localTransform.position = position
+            }
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+            return entity
+        }
+
+        let entityA = makeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        let entityB = makeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        let entityC = makeEntity(position: simd_float3(5.0, 0.0, 0.0))
+        generateBatches()
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entityB), "❌ Cell should start batched")
+
+        if let renderComponent = scene.get(component: RenderComponent.self, for: entityA) {
+            renderComponent.mesh = []
+        }
+        SystemEventBus.shared.queueResidencyChange(
+            AssetResidencyChangedEvent(
+                entityId: entityA,
+                assetURL: ballURL,
+                meshName: "ball",
+                isResident: false
+            )
+        )
+        SystemEventBus.shared.flushEvents()
+
+        BatchingSystem.shared.tick()
+        let firstTick = BatchingSystem.shared.getTickDiagnosticsSnapshot()
+        XCTAssertGreaterThanOrEqual(firstTick.dispatchedBuilds, 1, "❌ First tick should dispatch async artifact build")
+        XCTAssertEqual(firstTick.appliedArtifacts, 0, "❌ First tick should not apply the newly dispatched artifact")
+
+        var becameBatchedAgain = false
+        for _ in 0 ..< 60 {
+            Thread.sleep(forTimeInterval: 0.01)
+            BatchingSystem.shared.tick()
+            if BatchingSystem.shared.isBatched(entityId: entityB), BatchingSystem.shared.isBatched(entityId: entityC) {
+                becameBatchedAgain = true
+                break
+            }
+        }
+
+        XCTAssertTrue(becameBatchedAgain, "❌ Async artifact should apply on a subsequent tick")
+    }
+
+    func testVisibilityGateDefersOffscreenCellBatchRebuild() {
+        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
+            XCTFail("❌ Failed to load ball.usdz")
+            return
+        }
+
+        BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setVisibilityGatedBatchBuildEnabled(true)
+        BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
+        enableBatching(true)
+
+        func makeEntity(position: simd_float3) -> EntityID {
+            let entity = createEntity()
+            let meshes = Mesh.loadMeshes(
+                url: ballURL,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                flip: true
+            )
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = ballURL
+                renderComponent.assetName = "ball"
+            }
+            if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                localTransform.position = position
+            }
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+            return entity
+        }
+
+        let entityA = makeEntity(position: simd_float3(1.0, 0.0, 0.0))
+        let entityB = makeEntity(position: simd_float3(3.0, 0.0, 0.0))
+        let entityC = makeEntity(position: simd_float3(5.0, 0.0, 0.0))
+        generateBatches()
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entityB), "❌ Cell should start batched")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entityC), "❌ Cell should start batched")
+
+        if let renderComponent = scene.get(component: RenderComponent.self, for: entityA) {
+            renderComponent.mesh = []
+        }
+        SystemEventBus.shared.queueResidencyChange(
+            AssetResidencyChangedEvent(
+                entityId: entityA,
+                assetURL: ballURL,
+                meshName: "ball",
+                isResident: false
+            )
+        )
+        SystemEventBus.shared.flushEvents()
+
+        visibleEntityIds.removeAll(keepingCapacity: true)
+        BatchingSystem.shared.tick()
+        let hiddenTick = BatchingSystem.shared.getTickDiagnosticsSnapshot()
+        XCTAssertGreaterThan(
+            hiddenTick.deferredByVisibility,
+            0,
+            "❌ Off-screen dirty cells should be deferred by visibility gate"
+        )
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: entityB), "❌ Off-screen cell should remain unbatched")
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: entityC), "❌ Off-screen cell should remain unbatched")
+
+        visibleEntityIds = [entityB, entityC]
+        BatchingSystem.shared.tick()
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entityB), "❌ Visible cell should become batched again")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entityC), "❌ Visible cell should become batched again")
+    }
+
     func testGenerateBatchesCreatesSeparateBatchesForDifferentLODs() {
         // Given: Create entities with same material but different LOD levels
         guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
@@ -1075,15 +1620,15 @@ final class StaticBatchingTest: BaseRenderSetup {
         XCTAssertNotNil(lod1BatchId, "❌ LOD 1 batch ID should exist")
         XCTAssertNotEqual(lod0BatchId, lod1BatchId, "❌ LOD 0 and LOD 1 entities should be in different batches")
 
-        // Verify batch materialHash includes LOD suffix
+        // Verify batch key includes LOD suffix
         for batchGroup in BatchingSystem.shared.batchGroups {
-            XCTAssertTrue(batchGroup.materialHash.contains("_LOD"), "❌ Batch key should include LOD suffix")
+            XCTAssertTrue(batchGroup.batchKey.contains("_LOD"), "❌ Batch key should include LOD suffix")
         }
 
         print("✅ generateBatches() correctly creates separate batches for different LOD levels")
         print("   Batch groups created: \(BatchingSystem.shared.batchGroups.count)")
         for (index, batch) in BatchingSystem.shared.batchGroups.enumerated() {
-            print("   Batch \(index): \(batch.entityIds.count) entities, key: \(batch.materialHash)")
+            print("   Batch \(index): \(batch.entityIds.count) entities, key: \(batch.batchKey)")
         }
     }
 
