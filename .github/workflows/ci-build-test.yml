@@ -6,21 +6,12 @@ on:
   pull_request:
     branches: [master, develop]
 
-env:
-  XCODE_VERSION: "26.0.1"
-
 jobs:
   build:
-    runs-on: macos-15  # macOS Sequoia - required for Metal 4.0 support
+    runs-on: macos-26  # macOS Tahoe - matches development environment
 
     steps:
       - uses: actions/checkout@v4
-
-      # Pin Xcode so local/CI concurrency diagnostics stay aligned.
-      - name: Select Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: ${{ env.XCODE_VERSION }}
 
       # ✅ Ensure a consistent, modern Python environment
       - name: Set up Python
@@ -84,16 +75,10 @@ jobs:
           swift test -v --disable-swift-testing --parallel --num-workers 1 --filter 'UntoldEngineRenderTests.(AsyncLoadingSystemTest|AsyncMeshLoadingTest|AssetLoadingGateRenderingTests)'
 
   swift6-guardrails:
-    runs-on: macos-15
+    runs-on: macos-26
 
     steps:
       - uses: actions/checkout@v4
-
-      # Use the exact same toolchain as the build/test job.
-      - name: Select Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: ${{ env.XCODE_VERSION }}
 
       - name: Show toolchain versions
         run: |
