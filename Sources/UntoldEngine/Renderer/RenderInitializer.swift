@@ -517,103 +517,18 @@ func initTextureResources() {
         storageMode: .shared
     )
 
-    // Tone Map debug texture
-    textureResources.tonemapTexture = createTexture(
-        device: renderInfo.device,
-        label: "Tonemap Texture",
-        pixelFormat: wf.sceneColor,
-        width: viewportWidth,
-        height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
-    )
-
-    // Blur Map debug texture
-    textureResources.blurTextureHor = createTexture(
-        device: renderInfo.device,
-        label: "Blur Texture Hor",
-        pixelFormat: wf.postProcess,
-        width: viewportWidth,
-        height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
-    )
-
-    textureResources.blurTextureVer = createTexture(
-        device: renderInfo.device,
-        label: "Blur Texture Ver",
-        pixelFormat: wf.postProcess,
-        width: viewportWidth,
-        height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
-    )
-
-    // Color correction Map debug texture
-    textureResources.colorCorrectionTexture = createTexture(
-        device: renderInfo.device,
-        label: "Color Correction Debug Texture",
-        pixelFormat: wf.postProcess,
-        width: viewportWidth,
-        height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
-    )
-
-    // Bloom Threshold texture
-    textureResources.bloomThresholdTextuture = createTexture(
-        device: renderInfo.device,
-        label: "Bloom Threshold Texture",
-        pixelFormat: wf.postProcess,
-        width: viewportWidth,
-        height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
-    )
-
-    // Bloom Composite texture
-    textureResources.bloomCompositeTexture = createTexture(
-        device: renderInfo.device,
-        label: "Bloom Composite Texture",
-        pixelFormat: wf.postProcess,
-        width: viewportWidth,
-        height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
-    )
-
-    // Vignette texture
-    textureResources.vignetteTexture = createTexture(
-        device: renderInfo.device,
-        label: "Vignette Texture",
-        pixelFormat: wf.postProcess,
-        width: viewportWidth,
-        height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
-    )
-
-    // Chromatic Aberration texture
-    textureResources.chromaticAberrationTexture = createTexture(
-        device: renderInfo.device,
-        label: "Chromatic Aberration Texture",
-        pixelFormat: wf.postProcess,
-        width: viewportWidth,
-        height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
-    )
-
-    // Depth of Field texture
-    textureResources.depthOfFieldTexture = createTexture(
-        device: renderInfo.device,
-        label: "Depth of Field Texture",
-        pixelFormat: wf.postProcess,
-        width: viewportWidth,
-        height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
-    )
+    // Post-process textures: nil them out on init/resize.
+    // They are lazy-allocated by ensurePostProcessTexturesExist() only when
+    // at least one post-process effect is enabled.
+    textureResources.tonemapTexture = nil
+    textureResources.blurTextureHor = nil
+    textureResources.blurTextureVer = nil
+    textureResources.colorCorrectionTexture = nil
+    textureResources.bloomThresholdTextuture = nil
+    textureResources.bloomCompositeTexture = nil
+    textureResources.vignetteTexture = nil
+    textureResources.chromaticAberrationTexture = nil
+    textureResources.depthOfFieldTexture = nil
 
     // SSAO texture
     textureResources.ssaoTexture = createTexture(
@@ -758,28 +673,29 @@ func initTextureResources() {
 
 func initIBLResources() {
     let wf = renderInfo.colorPipeline.working
-    let width = Int(renderInfo.viewPort.x)
-    let height = Int(renderInfo.viewPort.y)
+    // IBL maps are low-frequency lookup textures — fixed small size,
+    // NOT viewport-sized.  All three share a single render pass so
+    // they must have the same dimensions.
+    let iblSize = 256
 
     // Irradiance Map
     textureResources.irradianceMap = createTexture(
         device: renderInfo.device,
         label: "IBL Irradiance Texture",
         pixelFormat: wf.ibl,
-        width: width,
-        height: height,
+        width: iblSize,
+        height: iblSize,
         usage: [.shaderRead, .shaderWrite, .renderTarget],
         storageMode: .shared
     )
 
     // Specular Map (with mip-mapping)
-    // Specular Map
     textureResources.specularMap = createTexture(
         device: renderInfo.device,
         label: "IBL Specular Texture",
         pixelFormat: wf.ibl,
-        width: width,
-        height: height,
+        width: iblSize,
+        height: iblSize,
         usage: [.shaderRead, .shaderWrite, .renderTarget],
         storageMode: .shared,
         mipMapLevels: 6
@@ -790,8 +706,8 @@ func initIBLResources() {
         device: renderInfo.device,
         label: "IBL BRDF Texture",
         pixelFormat: wf.ibl,
-        width: width,
-        height: height,
+        width: iblSize,
+        height: iblSize,
         usage: [.shaderRead, .shaderWrite, .renderTarget],
         storageMode: .shared
     )
@@ -799,8 +715,8 @@ func initIBLResources() {
     // create a render pass descriptor
     renderInfo.iblOffscreenRenderPassDescriptor = MTLRenderPassDescriptor()
 
-    renderInfo.iblOffscreenRenderPassDescriptor.renderTargetWidth = Int(renderInfo.viewPort.x)
-    renderInfo.iblOffscreenRenderPassDescriptor.renderTargetHeight = Int(renderInfo.viewPort.y)
+    renderInfo.iblOffscreenRenderPassDescriptor.renderTargetWidth = iblSize
+    renderInfo.iblOffscreenRenderPassDescriptor.renderTargetHeight = iblSize
     renderInfo.iblOffscreenRenderPassDescriptor.colorAttachments[0].texture =
         textureResources.irradianceMap
     renderInfo.iblOffscreenRenderPassDescriptor.colorAttachments[1].texture =
@@ -1151,6 +1067,64 @@ func createOutlineVertexDescriptor() -> MTLVertexDescriptor? {
     vertexDescriptor.layouts[Int(modelPassNormalIndex.rawValue)].stride = MemoryLayout<simd_float4>.stride
 
     return vertexDescriptor
+}
+
+/// Lazily allocates the post-process render target chain.
+/// Called from the render graph when at least one post-process effect is enabled.
+func ensurePostProcessTexturesExist() {
+    // Already allocated — nothing to do.
+    guard textureResources.depthOfFieldTexture == nil else { return }
+
+    let wf = renderInfo.colorPipeline.working
+    let w = max(1, Int(renderInfo.viewPort.x))
+    let h = max(1, Int(renderInfo.viewPort.y))
+    let usage: MTLTextureUsage = [.shaderRead, .renderTarget, .shaderWrite]
+    let storage: MTLStorageMode = .shared
+
+    textureResources.tonemapTexture = createTexture(
+        device: renderInfo.device, label: "Tonemap Texture",
+        pixelFormat: wf.sceneColor, width: w, height: h,
+        usage: usage, storageMode: storage)
+
+    textureResources.blurTextureHor = createTexture(
+        device: renderInfo.device, label: "Blur Texture Hor",
+        pixelFormat: wf.postProcess, width: w, height: h,
+        usage: usage, storageMode: storage)
+
+    textureResources.blurTextureVer = createTexture(
+        device: renderInfo.device, label: "Blur Texture Ver",
+        pixelFormat: wf.postProcess, width: w, height: h,
+        usage: usage, storageMode: storage)
+
+    textureResources.colorCorrectionTexture = createTexture(
+        device: renderInfo.device, label: "Color Correction Debug Texture",
+        pixelFormat: wf.postProcess, width: w, height: h,
+        usage: usage, storageMode: storage)
+
+    textureResources.bloomThresholdTextuture = createTexture(
+        device: renderInfo.device, label: "Bloom Threshold Texture",
+        pixelFormat: wf.postProcess, width: w, height: h,
+        usage: usage, storageMode: storage)
+
+    textureResources.bloomCompositeTexture = createTexture(
+        device: renderInfo.device, label: "Bloom Composite Texture",
+        pixelFormat: wf.postProcess, width: w, height: h,
+        usage: usage, storageMode: storage)
+
+    textureResources.vignetteTexture = createTexture(
+        device: renderInfo.device, label: "Vignette Texture",
+        pixelFormat: wf.postProcess, width: w, height: h,
+        usage: usage, storageMode: storage)
+
+    textureResources.chromaticAberrationTexture = createTexture(
+        device: renderInfo.device, label: "Chromatic Aberration Texture",
+        pixelFormat: wf.postProcess, width: w, height: h,
+        usage: usage, storageMode: storage)
+
+    textureResources.depthOfFieldTexture = createTexture(
+        device: renderInfo.device, label: "Depth of Field Texture",
+        pixelFormat: wf.postProcess, width: w, height: h,
+        usage: usage, storageMode: storage)
 }
 
 func initSSAOResources() {

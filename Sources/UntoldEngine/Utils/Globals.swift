@@ -255,7 +255,7 @@ public let fov: Float = 65.0
 let shadowMaxWidth: Float = 300.0
 let shadowMaxHeight: Float = 300.0
 
-let shadowResolution: simd_int2 = .init(8192, 8192)
+let shadowResolution: simd_int2 = .init(2048, 2048)
 
 var rayTracingPipeline: ComputePipeline {
     get {
