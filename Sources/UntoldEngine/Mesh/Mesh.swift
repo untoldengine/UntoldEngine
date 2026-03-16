@@ -1185,7 +1185,13 @@ public struct Material {
 final class TextureLoader {
     /// Initial texture cap applied during material import.
     /// Runtime texture streaming can upgrade/downgrade from this bootstrap level.
-    static let defaultMaxTextureDimension: Int = 512
+    static let defaultMaxTextureDimension: Int = {
+        #if os(visionOS)
+            384
+        #else
+            512
+        #endif
+    }()
 
     let device: MTLDevice
     private let mtkLoader: MTKTextureLoader
