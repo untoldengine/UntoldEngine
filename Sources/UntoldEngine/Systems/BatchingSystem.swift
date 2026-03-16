@@ -2057,6 +2057,21 @@ public class BatchingSystem: @unchecked Sendable {
         setCellState(cellId, .retiring)
     }
 
+    /// Called when an entity's material/texture changes.
+    /// Queues an incremental rebatch via the normal per-frame tick path.
+    public func notifyEntityMaterialChanged(entityId: EntityID) {
+        guard batchingEnabled else { return }
+        guard scene.get(component: StaticBatchComponent.self, for: entityId) != nil else { return }
+
+        pendingEntityRemovals.insert(entityId)
+        pendingEntityAdditions.insert(entityId)
+
+        if let cellId = entityToCellMembership[entityId] {
+            dirtyCells.insert(cellId)
+            markCellDirtyForFallback(cellId: cellId, deferBatchBuild: false)
+        }
+    }
+
     /// Apply a complete runtime batching tuning profile.
     ///
     /// Recommended usage:

@@ -32,7 +32,7 @@ public struct MemoryStats {
     /// Current utilization as percentage (0.0 - 1.0+)
     public var utilizationPercent: Float {
         guard budgetLimit > 0 else { return 0 }
-        return Float(meshMemoryUsed) / Float(budgetLimit)
+        return Float(totalTrackedMemory) / Float(budgetLimit)
     }
 
     /// Number of entities currently tracked
@@ -40,7 +40,7 @@ public struct MemoryStats {
 
     /// Memory available before hitting budget
     public var availableMemory: Int {
-        max(0, budgetLimit - meshMemoryUsed)
+        max(0, budgetLimit - totalTrackedMemory)
     }
 
     /// Whether memory pressure is high
@@ -262,7 +262,7 @@ public class MemoryBudgetManager: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
-        let utilization = Float(totalMeshMemory) / Float(meshBudget)
+        let utilization = Float(totalMeshMemory + totalTextureMemory) / Float(meshBudget)
         return utilization >= highWaterMark
     }
 
@@ -402,7 +402,9 @@ public class MemoryBudgetManager: @unchecked Sendable {
         let stats = getStats()
         Logger.log(message: """
         MemoryBudgetManager Status:
-        - Mesh Memory: \(stats.meshMemoryUsed.formattedAsMemory) / \(stats.budgetLimit.formattedAsMemory)
+        - Mesh Memory: \(stats.meshMemoryUsed.formattedAsMemory)
+        - Texture Memory: \(stats.textureMemoryUsed.formattedAsMemory)
+        - Total GPU Memory: \(stats.totalTrackedMemory.formattedAsMemory) / \(stats.budgetLimit.formattedAsMemory)
         - Utilization: \(String(format: "%.1f%%", stats.utilizationPercent * 100))
         - Tracked Entities: \(stats.trackedEntityCount)
         - Under Pressure: \(stats.isUnderPressure)

@@ -11,6 +11,7 @@
 import CShaderTypes
 import Foundation
 import MetalKit
+import MetalPerformanceShaders
 @preconcurrency import ModelIO
 import simd
 
@@ -205,6 +206,8 @@ public struct Mesh {
             makeMeshes(object: $0, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip)
         }
 
+        textureLoader.logSummary()
+
         if !meshes.isEmpty {
             return meshes
         }
@@ -330,6 +333,7 @@ public struct Mesh {
         }
 
         Logger.log(message: "✅ Loaded \(processedMeshes)/\(totalMeshCount) meshes" + (willEnforceLimit ? " (MAX_ENTITIES limit enforced)" : ""))
+        textureLoader.logSummary()
 
         if !allMeshes.isEmpty {
             return allMeshes
@@ -358,6 +362,8 @@ public struct Mesh {
         let meshGroups: [[Mesh]] = asset.childObjects(of: MDLObject.self).map {
             makeMeshes(object: $0, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: true)
         }
+
+        textureLoader.logSummary()
 
         // If the scene had no objects (or everything failed), return a single fallback group
         if meshGroups.isEmpty || meshGroups.allSatisfy(\.isEmpty) {
@@ -527,6 +533,8 @@ public struct Mesh {
         if failedMeshes > 0 {
             Logger.logWarning(message: "\(failedMeshes) meshes failed to load and were skipped")
         }
+
+        textureLoader.logSummary()
 
         // If the scene had no objects (or everything failed), return a single fallback group
         if meshGroups.isEmpty || meshGroups.allSatisfy(\.isEmpty) {
@@ -956,6 +964,12 @@ private func textureLikelyHasAlphaChannel(_ texture: MTLTexture?) -> Bool {
     return textureFormatHasAlpha(texture.pixelFormat)
 }
 
+/// Tracks whether a texture slot is at full or capped resolution
+public enum TextureStreamingLevel {
+    case full    // Original resolution
+    case capped  // Downsampled to fit TextureLoader.maxTextureDimension
+}
+
 public struct Material {
     public var baseColor: TextureDescriptor
     public var roughness: TextureDescriptor
@@ -974,6 +988,19 @@ public struct Material {
     public var roughnessMDLTexture: MDLTexture?
     public var metallicMDLTexture: MDLTexture?
     public var normalMDLTexture: MDLTexture?
+
+    // Original texture dimensions before any loader-time capping.
+    // Used by runtime texture streaming to know the true source resolution.
+    public var baseColorSourceDimensions: simd_int2?
+    public var roughnessSourceDimensions: simd_int2?
+    public var metallicSourceDimensions: simd_int2?
+    public var normalSourceDimensions: simd_int2?
+
+    // Texture streaming level tracking (for progressive streaming)
+    public var baseColorStreamingLevel: TextureStreamingLevel = .full
+    public var roughnessStreamingLevel: TextureStreamingLevel = .full
+    public var metallicStreamingLevel: TextureStreamingLevel = .full
+    public var normalStreamingLevel: TextureStreamingLevel = .full
 
     // Default values
     public var baseColorValue: simd_float4 = .init(1.0, 1.0, 1.0, 1.0)
@@ -1028,15 +1055,75 @@ public struct Material {
 
     init(mdlMaterial: MDLMaterial, textureLoader: TextureLoader) {
         let baseColorProperty = mdlMaterial.property(with: .baseColor)
+        var baseColorDims: simd_int2?
+        var roughnessDims: simd_int2?
+        var metallicDims: simd_int2?
+        var normalDims: simd_int2?
 
         // Load textures and set URLs
-        baseColor = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: baseColorProperty, isSRGB: true, outputURL: &baseColorURL, outputMDLTexture: &baseColorMDLTexture, mapType: "Basecolor map"), wrapMode: .repeat)
+        let baseColorTex = textureLoader.loadTexture(
+            from: baseColorProperty,
+            isSRGB: true,
+            outputURL: &baseColorURL,
+            outputMDLTexture: &baseColorMDLTexture,
+            outputSourceDimensions: &baseColorDims,
+            mapType: "Basecolor map"
+        )
+        baseColor = createTextureDescriptor(device: renderInfo.device, texture: baseColorTex, wrapMode: .repeat)
 
-        normal = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .tangentSpaceNormal), isSRGB: false, outputURL: &normalURL, outputMDLTexture: &normalMDLTexture, mapType: "Normal map"), wrapMode: .clampToEdge)
+        let normalTex = textureLoader.loadTexture(
+            from: mdlMaterial.property(with: .tangentSpaceNormal),
+            isSRGB: false,
+            outputURL: &normalURL,
+            outputMDLTexture: &normalMDLTexture,
+            outputSourceDimensions: &normalDims,
+            mapType: "Normal map"
+        )
+        normal = createTextureDescriptor(device: renderInfo.device, texture: normalTex, wrapMode: .clampToEdge)
 
-        roughness = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .roughness), isSRGB: false, outputURL: &roughnessURL, outputMDLTexture: &roughnessMDLTexture, mapType: "Roughness map"), wrapMode: .repeat)
+        let roughnessTex = textureLoader.loadTexture(
+            from: mdlMaterial.property(with: .roughness),
+            isSRGB: false,
+            outputURL: &roughnessURL,
+            outputMDLTexture: &roughnessMDLTexture,
+            outputSourceDimensions: &roughnessDims,
+            mapType: "Roughness map"
+        )
+        roughness = createTextureDescriptor(device: renderInfo.device, texture: roughnessTex, wrapMode: .repeat)
 
-        metallic = createTextureDescriptor(device: renderInfo.device, texture: textureLoader.loadTexture(from: mdlMaterial.property(with: .metallic), isSRGB: false, outputURL: &metallicURL, outputMDLTexture: &metallicMDLTexture, mapType: "Metallic map"), wrapMode: .repeat)
+        let metallicTex = textureLoader.loadTexture(
+            from: mdlMaterial.property(with: .metallic),
+            isSRGB: false,
+            outputURL: &metallicURL,
+            outputMDLTexture: &metallicMDLTexture,
+            outputSourceDimensions: &metallicDims,
+            mapType: "Metallic map"
+        )
+        metallic = createTextureDescriptor(device: renderInfo.device, texture: metallicTex, wrapMode: .repeat)
+
+        baseColorSourceDimensions = baseColorDims
+        normalSourceDimensions = normalDims
+        roughnessSourceDimensions = roughnessDims
+        metallicSourceDimensions = metallicDims
+
+        // Set texture streaming levels based on whether textures were dimension-capped.
+        func isCapped(_ texture: MTLTexture?, _ sourceDims: simd_int2?) -> Bool {
+            guard let texture, let sourceDims else { return false }
+            return texture.width < Int(sourceDims.x) || texture.height < Int(sourceDims.y)
+        }
+
+        if isCapped(baseColorTex, baseColorSourceDimensions) {
+            baseColorStreamingLevel = .capped
+        }
+        if isCapped(normalTex, normalSourceDimensions) {
+            normalStreamingLevel = .capped
+        }
+        if isCapped(roughnessTex, roughnessSourceDimensions) {
+            roughnessStreamingLevel = .capped
+        }
+        if isCapped(metallicTex, metallicSourceDimensions) {
+            metallicStreamingLevel = .capped
+        }
 
         var baseColorHasExplicitAlpha = false
         if let decodedBase = decodeBaseColorFactor(baseColorProperty) {
@@ -1096,18 +1183,117 @@ public struct Material {
 }
 
 final class TextureLoader {
+    /// Initial texture cap applied during material import.
+    /// Runtime texture streaming can upgrade/downgrade from this bootstrap level.
+    static let defaultMaxTextureDimension: Int = 512
+
     let device: MTLDevice
     private let mtkLoader: MTKTextureLoader
     private var textureCache: [TextureCacheKey: MTLTexture] = [:]
+    private var sourceDimensionsCache: [TextureCacheKey: simd_int2] = [:]
+
+    /// Tracks unique textures loaded (not cache hits) for summary logging
+    private var loadedTextureCount: Int = 0
+    private var loadedTextureBytes: Int = 0
 
     private struct TextureCacheKey: Hashable {
         let id: String
         let isSRGB: Bool
     }
 
+    /// Command queue for GPU downsampling operations
+    private let downsampleCommandQueue: MTLCommandQueue?
+
+    /// Maximum texture dimension (width or height). Textures larger than this
+    /// are GPU-downsampled at load time. Set to 0 to disable.
+    var maxTextureDimension: Int = TextureLoader.defaultMaxTextureDimension
+
+    /// Tracks bytes saved by dimension capping for summary logging
+    private var savedBytesByCapping: Int = 0
+
     init(device: MTLDevice) {
         self.device = device
         mtkLoader = MTKTextureLoader(device: device)
+        downsampleCommandQueue = device.makeCommandQueue()
+    }
+
+    /// Downsample a texture if it exceeds maxTextureDimension, preserving aspect ratio.
+    /// Returns the original texture if within limits or if downsampling fails.
+    private func downsampleIfNeeded(_ texture: MTLTexture) -> MTLTexture {
+        guard maxTextureDimension > 0 else { return texture }
+        let maxDim = maxTextureDimension
+        guard texture.width > maxDim || texture.height > maxDim else { return texture }
+
+        let aspect = Float(texture.width) / Float(texture.height)
+        let targetWidth: Int
+        let targetHeight: Int
+        if texture.width >= texture.height {
+            targetWidth = maxDim
+            targetHeight = max(1, Int(Float(maxDim) / aspect))
+        } else {
+            targetHeight = maxDim
+            targetWidth = max(1, Int(Float(maxDim) * aspect))
+        }
+
+        let mipCount = Int(log2(Float(max(targetWidth, targetHeight)))) + 1
+        let desc = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: texture.pixelFormat,
+            width: targetWidth,
+            height: targetHeight,
+            mipmapped: true
+        )
+        desc.mipmapLevelCount = mipCount
+        desc.usage = [.shaderRead, .shaderWrite, .pixelFormatView]
+        desc.storageMode = .private
+
+        guard let target = device.makeTexture(descriptor: desc),
+              let commandBuffer = downsampleCommandQueue?.makeCommandBuffer()
+        else { return texture }
+
+        let scale = MPSImageBilinearScale(device: device)
+        scale.encode(commandBuffer: commandBuffer, sourceTexture: texture, destinationTexture: target)
+
+        if let blit = commandBuffer.makeBlitCommandEncoder() {
+            blit.generateMipmaps(for: target)
+            blit.endEncoding()
+        }
+
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+
+        return target
+    }
+
+    /// Log a summary of all textures loaded by this loader instance
+    func logSummary() {
+        _ = loadedTextureCount
+        _ = loadedTextureBytes
+        _ = savedBytesByCapping
+    }
+
+    @discardableResult
+    private func cacheAndRecordTexture(
+        loadedTexture texture: MTLTexture,
+        sourceTexture fullTexture: MTLTexture,
+        cacheKey: TextureCacheKey,
+        isSRGB: Bool,
+        nameForLog: String,
+        outputSourceDimensions: inout simd_int2?
+    ) -> MTLTexture {
+        let sourceDims = simd_int2(Int32(fullTexture.width), Int32(fullTexture.height))
+        outputSourceDimensions = sourceDims
+        sourceDimensionsCache[cacheKey] = sourceDims
+        _ = nameForLog
+
+        if texture.width < fullTexture.width || texture.height < fullTexture.height {
+            savedBytesByCapping += fullTexture.allocatedSize - texture.allocatedSize
+        }
+        loadedTextureCount += 1
+        loadedTextureBytes += texture.allocatedSize
+
+        let texView = textureViewMatchingSRGB(texture, wantSRGB: isSRGB)
+        textureCache[cacheKey] = texView
+        return texView
     }
 
     private func textureViewMatchingSRGB(_ tex: MTLTexture, wantSRGB: Bool) -> MTLTexture {
@@ -1152,6 +1338,7 @@ final class TextureLoader {
                      isSRGB: Bool,
                      outputURL: inout URL?,
                      outputMDLTexture: inout MDLTexture?,
+                     outputSourceDimensions: inout simd_int2?,
                      mapType: String) -> MTLTexture?
     {
         guard let property else { return nil }
@@ -1175,20 +1362,27 @@ final class TextureLoader {
             if let cached = textureCache[cacheKey] {
                 outputURL = stableEmbeddedURL ?? URL(string: cacheKey.id)
                 outputMDLTexture = mdlTex
+                outputSourceDimensions = sourceDimensionsCache[cacheKey]
                 return cached
             }
 
             do {
-                let tex = try mtkLoader.newTexture(texture: mdlTex, options: options)
+                let fullTex = try mtkLoader.newTexture(texture: mdlTex, options: options)
+                let tex = downsampleIfNeeded(fullTex)
 
                 outputURL = stableEmbeddedURL
 
                 // Store the MDLTexture reference for later use (e.g., texture extraction)
                 outputMDLTexture = mdlTex
 
-                let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
-                textureCache[cacheKey] = texView
-                return texView
+                return cacheAndRecordTexture(
+                    loadedTexture: tex,
+                    sourceTexture: fullTex,
+                    cacheKey: cacheKey,
+                    isSRGB: isSRGB,
+                    nameForLog: textureName,
+                    outputSourceDimensions: &outputSourceDimensions
+                )
             } catch {
                 handleError(.textureFailedLoading)
             }
@@ -1199,30 +1393,44 @@ final class TextureLoader {
             let cacheKey = TextureCacheKey(id: url.standardizedFileURL.path, isSRGB: isSRGB)
             if let cached = textureCache[cacheKey] {
                 outputURL = url
+                outputSourceDimensions = sourceDimensionsCache[cacheKey]
                 return cached
             }
-            if let tex = try? mtkLoader.newTexture(URL: url, options: options) {
+            if let fullTex = try? mtkLoader.newTexture(URL: url, options: options) {
+                let tex = downsampleIfNeeded(fullTex)
                 outputURL = url
-                let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
-                textureCache[cacheKey] = texView
-                return texView
+                return cacheAndRecordTexture(
+                    loadedTexture: tex,
+                    sourceTexture: fullTex,
+                    cacheKey: cacheKey,
+                    isSRGB: isSRGB,
+                    nameForLog: url.lastPathComponent,
+                    outputSourceDimensions: &outputSourceDimensions
+                )
             }
         }
 
-        // String (relative) -> try to resolve against the model’s base path if you keep it
+        // String (relative) -> try to resolve against the model's base path if you keep it
         if let str = property.stringValue, !str.isEmpty {
             // 1) Try as-is (absolute or already-resolved)
             if let url = URL(string: str), url.isFileURL {
                 let cacheKey = TextureCacheKey(id: url.standardizedFileURL.path, isSRGB: isSRGB)
                 if let cached = textureCache[cacheKey] {
                     outputURL = url
+                    outputSourceDimensions = sourceDimensionsCache[cacheKey]
                     return cached
                 }
-                if let tex = try? mtkLoader.newTexture(URL: url, options: options) {
+                if let fullTex = try? mtkLoader.newTexture(URL: url, options: options) {
+                    let tex = downsampleIfNeeded(fullTex)
                     outputURL = url
-                    let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
-                    textureCache[cacheKey] = texView
-                    return texView
+                    return cacheAndRecordTexture(
+                        loadedTexture: tex,
+                        sourceTexture: fullTex,
+                        cacheKey: cacheKey,
+                        isSRGB: isSRGB,
+                        nameForLog: url.lastPathComponent,
+                        outputSourceDimensions: &outputSourceDimensions
+                    )
                 }
             }
             // 2) Try against known asset base
@@ -1231,28 +1439,41 @@ final class TextureLoader {
                 let cacheKey = TextureCacheKey(id: candidate.standardizedFileURL.path, isSRGB: isSRGB)
                 if let cached = textureCache[cacheKey] {
                     outputURL = candidate
+                    outputSourceDimensions = sourceDimensionsCache[cacheKey]
                     return cached
                 }
                 if FileManager.default.fileExists(atPath: candidate.path),
-                   let tex = try? mtkLoader.newTexture(URL: candidate, options: options)
+                   let fullTex = try? mtkLoader.newTexture(URL: candidate, options: options)
                 {
+                    let tex = downsampleIfNeeded(fullTex)
                     outputURL = candidate
-                    let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
-                    textureCache[cacheKey] = texView
-                    return texView
+                    return cacheAndRecordTexture(
+                        loadedTexture: tex,
+                        sourceTexture: fullTex,
+                        cacheKey: cacheKey,
+                        isSRGB: isSRGB,
+                        nameForLog: candidate.lastPathComponent,
+                        outputSourceDimensions: &outputSourceDimensions
+                    )
                 }
             }
             // 3) Try resources bundle lookup by filename
             let name = URL(fileURLWithPath: str).deletingPathExtension().lastPathComponent
             let ext = URL(fileURLWithPath: str).pathExtension
             if let url = getResourceURL(resourceName: name, ext: ext.isEmpty ? "png" : ext, subName: nil),
-               let tex = try? mtkLoader.newTexture(URL: url, options: options)
+               let fullTex = try? mtkLoader.newTexture(URL: url, options: options)
             {
+                let tex = downsampleIfNeeded(fullTex)
                 let cacheKey = TextureCacheKey(id: url.standardizedFileURL.path, isSRGB: isSRGB)
                 outputURL = url
-                let texView = textureViewMatchingSRGB(tex, wantSRGB: isSRGB)
-                textureCache[cacheKey] = texView
-                return texView
+                return cacheAndRecordTexture(
+                    loadedTexture: tex,
+                    sourceTexture: fullTex,
+                    cacheKey: cacheKey,
+                    isSRGB: isSRGB,
+                    nameForLog: url.lastPathComponent,
+                    outputSourceDimensions: &outputSourceDimensions
+                )
             }
         }
 

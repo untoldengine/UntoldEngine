@@ -356,6 +356,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 transform.space.columns.3.y,
                 transform.space.columns.3.z
             )
+            let cameraLocalPos = scene.get(component: CameraComponent.self, for: camera)?.localPosition ?? cameraPos
 
             // === SYSTEM INTEGRATION PIPELINE ===
             // Order matters: Streaming -> LOD -> Batching -> Render
@@ -389,6 +390,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                     snapshot.timing.geometryStreamingMs += geometryStreamingMs
                 }
             #endif
+
+            // 2b. Update texture streaming (upgrades/downgrades texture resolution by distance)
+            TextureStreamingSystem.shared.update(
+                cameraPosition: cameraLocalPos,
+                deltaTime: fixedStep
+            )
         }
 
         frameCount += 1
