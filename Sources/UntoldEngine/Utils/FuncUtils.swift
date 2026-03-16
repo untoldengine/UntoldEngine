@@ -1335,7 +1335,7 @@ func refreshStaticBatchingForMaterialChange(entityId: EntityID) {
     else {
         return
     }
-    BatchingSystem.shared.generateBatches()
+    BatchingSystem.shared.notifyEntityMaterialChanged(entityId: entityId)
 }
 
 // Clear all batches
