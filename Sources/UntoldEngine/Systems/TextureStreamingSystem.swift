@@ -27,6 +27,22 @@ import simd
 public class TextureStreamingSystem: @unchecked Sendable {
     public static let shared = TextureStreamingSystem()
 
+    private static let platformDefaultMaxTextureDimension: Int = {
+        #if os(visionOS)
+            768
+        #else
+            1024
+        #endif
+    }()
+
+    private static let platformDefaultMinimumTextureDimension: Int = {
+        #if os(visionOS)
+            192
+        #else
+            256
+        #endif
+    }()
+
     // MARK: - Configuration
 
     /// Enable/disable texture streaming
@@ -40,10 +56,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
     public var downgradeRadius: Float = 60.0
 
     /// Mid-distance max dimension.
-    public var maxTextureDimension: Int = 1024
+    public var maxTextureDimension: Int = TextureStreamingSystem.platformDefaultMaxTextureDimension
 
     /// Far-distance max dimension.
-    public var minimumTextureDimension: Int = 256
+    public var minimumTextureDimension: Int = TextureStreamingSystem.platformDefaultMinimumTextureDimension
 
     /// How often to evaluate texture streaming (seconds)
     public var updateInterval: Float = 0.2
