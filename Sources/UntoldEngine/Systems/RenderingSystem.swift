@@ -359,6 +359,31 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
 
 /// Post process passes
 func postProcessingEffects(graph: inout [String: RenderPass], deferredPassId: String, geometryPassId: String) -> RenderPass {
+    // Fast path: skip entire chain when every post-process effect is disabled.
+    // This avoids allocating ~142 MB of render targets that would only pass data through.
+    let anyEffectEnabled = BloomThresholdParams.shared.enabled
+        || VignetteParams.shared.enabled
+        || ChromaticAberrationParams.shared.enabled
+        || DepthOfFieldParams.shared.enabled
+
+    if !anyEffectEnabled {
+        let bypassPass = RenderPass(
+            id: "postProcessDisabledBypass",
+            dependencies: [deferredPassId],
+            execute: { _ in
+                // Point the post-process descriptor at the deferred output so
+                // preCompositeExecution picks it up correctly.
+                renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0].texture =
+                    renderInfo.deferredRenderPassDescriptor?.colorAttachments[0].texture
+            }
+        )
+        graph[bypassPass.id] = bypassPass
+        return bypassPass
+    }
+
+    // At least one effect is active — make sure textures exist.
+    ensurePostProcessTexturesExist()
+
     let depthOfFieldPass = RenderPass(id: "depthOfField", dependencies: [deferredPassId], execute: depthOfFieldRenderPass)
 
     graph[depthOfFieldPass.id] = depthOfFieldPass
