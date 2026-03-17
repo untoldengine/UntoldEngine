@@ -408,7 +408,8 @@ typedef enum{
     hzbCullPassProjectionMatrixIndex,
     hzbCullPassViewportIndex,
     hzbCullPassMipCountIndex,
-    hzbCullPassReverseZIndex
+    hzbCullPassReverseZIndex,
+    hzbCullPassOcclusionBiasIndex
 }HZBOcclusionCullingBufferIndices;
 
 typedef enum{

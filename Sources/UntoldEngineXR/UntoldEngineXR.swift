@@ -586,8 +586,9 @@
                 #endif
             }
 
-            // Temporal HZB schedule for stereo:
-            // run once after both eyes are rendered so next frame culling can consume it.
+            // Build the HZB depth pyramid once after both eyes are rendered.
+            // In stereo mode the mono pyramid (from the last eye rendered) is used
+            // for both per-eye VP occlusion tests in executeFrustumCulling.
             buildHZBDepthPyramid(commandBuffer)
 
             drawable.encodePresent(commandBuffer: commandBuffer)

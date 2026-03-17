@@ -326,11 +326,57 @@ func initFrustumCulllingCompute() {
 
     bufferResources.reduceScanBlockOffsets = renderInfo.device.makeBuffer(length: MemoryLayout<UInt32>.stride * Int(numBlocks), options: .storageModePrivate)
 
+    // Per-eye HZB culling buffers for XR stereo (Vision Pro)
+    if renderInfo.isXRStereoMode {
+        tripleBufferResources.hzbEye0VisibleCount = TripleBuffer<UInt32>(device: renderInfo.device, initialCapacity: 1)
+        tripleBufferResources.hzbEye0Visibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
+        tripleBufferResources.hzbEye1VisibleCount = TripleBuffer<UInt32>(device: renderInfo.device, initialCapacity: 1)
+        tripleBufferResources.hzbEye1Visibility = TripleBuffer<VisibleEntity>(device: renderInfo.device, initialCapacity: MAX_ENTITIES)
+    }
+
     // clear up visible entity array
     visibleEntityIds.removeAll(keepingCapacity: true)
 }
 
-public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer) {
+public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: Int? = nil) {
+    // Per-eye stereo path for XR
+    if let ei = eyeIndex, renderInfo.isXRStereoMode {
+        guard hzbBuildPyramidPipeline.success,
+              let pipelineState = hzbBuildPyramidPipeline.pipelineState,
+              let depthTexture = textureResources.depthMapEye[ei],
+              !textureResources.hzbMipViewsEye[ei].isEmpty
+        else { return }
+
+        let mipViews = textureResources.hzbMipViewsEye[ei]
+        for level in 0 ..< mipViews.count {
+            let destMip = mipViews[level]
+            let sourceMip: MTLTexture? = (level > 0) ? mipViews[level - 1] : nil
+            let sourceWidth = level == 0 ? depthTexture.width : (sourceMip?.width ?? 1)
+            let sourceHeight = level == 0 ? depthTexture.height : (sourceMip?.height ?? 1)
+            var mipLevel = UInt32(level)
+            var sourceDimensions = simd_uint2(UInt32(sourceWidth), UInt32(sourceHeight))
+            var reverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
+            let computeEncoder = commandBuffer.makeComputeCommandEncoder()!
+            computeEncoder.label = "HZB Build Eye\(ei) Mip \(level)"
+            computeEncoder.setComputePipelineState(pipelineState)
+            computeEncoder.setBytes(&mipLevel, length: MemoryLayout<UInt32>.stride, index: Int(hzbBuildPassMipLevelIndex.rawValue))
+            computeEncoder.setBytes(&sourceDimensions, length: MemoryLayout<simd_uint2>.stride, index: Int(hzbBuildPassSourceDimensionsIndex.rawValue))
+            computeEncoder.setBytes(&reverseZFlag, length: MemoryLayout<UInt32>.stride, index: Int(hzbBuildPassReverseZIndex.rawValue))
+            computeEncoder.setTexture(depthTexture, index: Int(hzbBuildPassDepthTextureIndex.rawValue))
+            computeEncoder.setTexture(sourceMip, index: Int(hzbBuildPassSourceMipTextureIndex.rawValue))
+            computeEncoder.setTexture(destMip, index: Int(hzbBuildPassDestMipTextureIndex.rawValue))
+            let threadsPerThreadgroup = MTLSize(width: 8, height: 8, depth: 1)
+            let threadgroupsPerGrid = MTLSize(
+                width: (destMip.width + threadsPerThreadgroup.width - 1) / threadsPerThreadgroup.width,
+                height: (destMip.height + threadsPerThreadgroup.height - 1) / threadsPerThreadgroup.height,
+                depth: 1
+            )
+            computeEncoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
+            computeEncoder.endEncoding()
+        }
+        return
+    }
+
     if hzbBuildPyramidPipeline.success == false {
         handleError(.pipelineStateNulled, hzbBuildPyramidPipeline.name ?? "HZB Build Pyramid")
         renderInfo.hzbIsValid = false
@@ -419,14 +465,15 @@ func executeHZBOcclusionCulling(
     inputVisibilityBuffer: MTLBuffer,
     inputVisibleCountBuffer: MTLBuffer,
     outputVisibilityBuffer: MTLBuffer,
-    outputVisibleCountBuffer: MTLBuffer
+    outputVisibleCountBuffer: MTLBuffer,
+    hzbPyramidOverride: MTLTexture? = nil
 ) -> Bool {
-    if renderInfo.hzbIsValid == false {
+    if hzbPyramidOverride == nil && renderInfo.hzbIsValid == false {
         return false
     }
 
-    guard let hzbDepthPyramid = textureResources.hzbDepthPyramid else {
-        renderInfo.hzbIsValid = false
+    guard let hzbDepthPyramid = hzbPyramidOverride ?? textureResources.hzbDepthPyramid else {
+        if hzbPyramidOverride == nil { renderInfo.hzbIsValid = false }
         return false
     }
 
@@ -447,6 +494,8 @@ func executeHZBOcclusionCulling(
     var mipCount = UInt32(max(0, renderInfo.hzbMipCount))
     var reverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
     var viewProjectionMatrix = viewProjection
+    // XR uses a larger bias to tolerate one-frame VP drift from 90 Hz head-tracking.
+    var occlusionBias: Float = renderInfo.isXRStereoMode ? 0.02 : 1e-4
 
     let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
     computeEncoder.label = "HZB Occlusion Culling pass"
@@ -459,6 +508,7 @@ func executeHZBOcclusionCulling(
     computeEncoder.setBytes(&viewport, length: MemoryLayout<simd_float2>.stride, index: Int(hzbCullPassViewportIndex.rawValue))
     computeEncoder.setBytes(&mipCount, length: MemoryLayout<UInt32>.stride, index: Int(hzbCullPassMipCountIndex.rawValue))
     computeEncoder.setBytes(&reverseZFlag, length: MemoryLayout<UInt32>.stride, index: Int(hzbCullPassReverseZIndex.rawValue))
+    computeEncoder.setBytes(&occlusionBias, length: MemoryLayout<Float>.stride, index: Int(hzbCullPassOcclusionBiasIndex.rawValue))
     computeEncoder.setTexture(hzbDepthPyramid, index: Int(hzbCullPassDepthPyramidTextureIndex.rawValue))
 
     let tew = pipelineState.threadExecutionWidth
@@ -579,15 +629,30 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             continue
         }
 
-        // get object AABB — elongated meshes are split into segments so a solid
-        // occluder covering only part of the entity cannot falsely cull the whole entity.
-        let segments = makeSegmentedEntityAABBs(
-            localMin: localTransformComponent.boundingBox.min,
-            localMax: localTransformComponent.boundingBox.max,
-            worldMatrix: worldTransformComponent.space,
-            index: getEntityIndex(entityId),
-            version: getEntityVersion(entityId))
-        entityAABBContainer.append(contentsOf: segments)
+        // In XR stereo mode, use a single AABB per entity.  The tighter sub-AABBs
+        // produced by segmentation amplify temporal false-culling from 90 Hz head-
+        // tracking drift and cause segment-level occlusion popping.  The unsegmented
+        // AABB has a conservative nearDepth (closest corner of the full entity) that
+        // is far less likely to fall behind a stale occluder in the HZB.
+        if renderInfo.isXRStereoMode {
+            let singleAABB = makeObjectAABB(
+                localMin: localTransformComponent.boundingBox.min,
+                localMax: localTransformComponent.boundingBox.max,
+                worldMatrix: worldTransformComponent.space,
+                index: getEntityIndex(entityId),
+                version: getEntityVersion(entityId))
+            entityAABBContainer.append(singleAABB)
+        } else {
+            // get object AABB — elongated meshes are split into segments so a solid
+            // occluder covering only part of the entity cannot falsely cull the whole entity.
+            let segments = makeSegmentedEntityAABBs(
+                localMin: localTransformComponent.boundingBox.min,
+                localMax: localTransformComponent.boundingBox.max,
+                worldMatrix: worldTransformComponent.space,
+                index: getEntityIndex(entityId),
+                version: getEntityVersion(entityId))
+            entityAABBContainer.append(contentsOf: segments)
+        }
     }
 
     let count = entityAABBContainer.count
@@ -651,44 +716,115 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let finalVisibleCountBuffer = visibleCountTriple.bufferForWrite(frame: submitFrameIndex)
     let finalVisibilityBuffer = visibilityTriple.bufferForWrite(frame: submitFrameIndex)
 
-    let didRunOcclusion = executeHZBOcclusionCulling(
-        commandBuffer,
-        viewProjection: viewProjection,
-        dispatchCount: count,
-        inputVisibilityBuffer: candidateVisibilityBuffer,
-        inputVisibleCountBuffer: candidateVisibleCountBuffer,
-        outputVisibilityBuffer: finalVisibilityBuffer,
-        outputVisibleCountBuffer: finalVisibleCountBuffer
-    )
+    if renderInfo.isXRStereoMode,
+       let eye0CountTriple = tripleBufferResources.hzbEye0VisibleCount,
+       let eye0VisTriple = tripleBufferResources.hzbEye0Visibility,
+       let eye1CountTriple = tripleBufferResources.hzbEye1VisibleCount,
+       let eye1VisTriple = tripleBufferResources.hzbEye1Visibility
+    {
+        eye0VisTriple.ensureCapacity(count)
+        eye1VisTriple.ensureCapacity(count)
 
-    let resolvedVisibleCountBuffer = didRunOcclusion ? finalVisibleCountBuffer : candidateVisibleCountBuffer
-    let resolvedVisibilityBuffer = didRunOcclusion ? finalVisibilityBuffer : candidateVisibilityBuffer
+        let eye0CountBuf = eye0CountTriple.bufferForWrite(frame: submitFrameIndex)
+        let eye0VisBuf   = eye0VisTriple.bufferForWrite(frame: submitFrameIndex)
+        let eye1CountBuf = eye1CountTriple.bufferForWrite(frame: submitFrameIndex)
+        let eye1VisBuf   = eye1VisTriple.bufferForWrite(frame: submitFrameIndex)
 
-    commandBuffer.addCompletedHandler { _ in
-        let candidateCount = Int(candidateVisibleCountBuffer.contents().load(as: UInt32.self))
-        let visibleCount = resolvedVisibleCountBuffer.contents().load(as: UInt32.self)
-        let visibleEntities = resolvedVisibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
+        let ran0 = executeHZBOcclusionCulling(
+            commandBuffer,
+            viewProjection: renderInfo.xrEye0ViewProjection,
+            dispatchCount: count,
+            inputVisibilityBuffer: candidateVisibilityBuffer,
+            inputVisibleCountBuffer: candidateVisibleCountBuffer,
+            outputVisibilityBuffer: eye0VisBuf,
+            outputVisibleCountBuffer: eye0CountBuf,
+            hzbPyramidOverride: textureResources.hzbDepthPyramidEye[0]
+        )
+
+        let ran1 = executeHZBOcclusionCulling(
+            commandBuffer,
+            viewProjection: renderInfo.xrEye1ViewProjection,
+            dispatchCount: count,
+            inputVisibilityBuffer: candidateVisibilityBuffer,
+            inputVisibleCountBuffer: candidateVisibleCountBuffer,
+            outputVisibilityBuffer: eye1VisBuf,
+            outputVisibleCountBuffer: eye1CountBuf,
+            hzbPyramidOverride: textureResources.hzbDepthPyramidEye[1]
+        )
+
+        let didRunOcclusion = ran0 || ran1
 
         HZBDebugMonitor.shared.recordCull(
             testedCount: count,
-            candidateCount: candidateCount,
-            visibleCount: Int(visibleCount),
+            candidateCount: count,
+            visibleCount: count,
             usedHZB: didRunOcclusion,
             optimizedPath: false
         )
 
-        // Deduplicate: elongated entities emit multiple segments that share the same
-        // (index, version), so the same EntityID can appear more than once in the
-        // surviving output.  Keep only the first occurrence.
-        var seen = Set<EntityID>()
-        let nextVisibleIds: [EntityID] = (0 ..< Int(visibleCount)).compactMap { i in
-            let index = visibleEntities[i].index
-            let version = visibleEntities[i].version
-            let entityId = createEntityId(EntityIndex(index), EntityVersion(version))
-            return seen.insert(entityId).inserted ? entityId : nil
+        commandBuffer.addCompletedHandler { _ in
+            var seen = Set<EntityID>()
+            var nextVisibleIds: [EntityID] = []
+
+            // Union eye0 ∪ eye1: any entity visible in either eye is kept.
+            let addFrom = { (countBuf: MTLBuffer, visBuf: MTLBuffer) in
+                let cnt = Int(countBuf.contents().load(as: UInt32.self))
+                let ents = visBuf.contents().bindMemory(to: VisibleEntity.self, capacity: cnt)
+                for i in 0 ..< cnt {
+                    let eid = createEntityId(EntityIndex(ents[i].index), EntityVersion(ents[i].version))
+                    if seen.insert(eid).inserted { nextVisibleIds.append(eid) }
+                }
+            }
+
+            if ran0 { addFrom(eye0CountBuf, eye0VisBuf) }
+            if ran1 { addFrom(eye1CountBuf, eye1VisBuf) }
+            // If HZB wasn't valid yet (first frame), fall back to frustum candidates.
+            if !didRunOcclusion { addFrom(candidateVisibleCountBuffer, candidateVisibilityBuffer) }
+
+            publishVisibleEntities(frame: submitFrameIndex, entities: nextVisibleIds)
         }
 
-        publishVisibleEntities(frame: submitFrameIndex, entities: nextVisibleIds)
+    } else {
+        // Mono path (macOS / non-stereo)
+        let didRunOcclusion = executeHZBOcclusionCulling(
+            commandBuffer,
+            viewProjection: viewProjection,
+            dispatchCount: count,
+            inputVisibilityBuffer: candidateVisibilityBuffer,
+            inputVisibleCountBuffer: candidateVisibleCountBuffer,
+            outputVisibilityBuffer: finalVisibilityBuffer,
+            outputVisibleCountBuffer: finalVisibleCountBuffer
+        )
+
+        let resolvedVisibleCountBuffer = didRunOcclusion ? finalVisibleCountBuffer : candidateVisibleCountBuffer
+        let resolvedVisibilityBuffer = didRunOcclusion ? finalVisibilityBuffer : candidateVisibilityBuffer
+
+        commandBuffer.addCompletedHandler { _ in
+            let candidateCount = Int(candidateVisibleCountBuffer.contents().load(as: UInt32.self))
+            let visibleCount = resolvedVisibleCountBuffer.contents().load(as: UInt32.self)
+            let visibleEntities = resolvedVisibilityBuffer.contents().bindMemory(to: VisibleEntity.self, capacity: Int(visibleCount))
+
+            HZBDebugMonitor.shared.recordCull(
+                testedCount: count,
+                candidateCount: candidateCount,
+                visibleCount: Int(visibleCount),
+                usedHZB: didRunOcclusion,
+                optimizedPath: false
+            )
+
+            // Deduplicate: elongated entities emit multiple segments that share the same
+            // (index, version), so the same EntityID can appear more than once in the
+            // surviving output.  Keep only the first occurrence.
+            var seen = Set<EntityID>()
+            let nextVisibleIds: [EntityID] = (0 ..< Int(visibleCount)).compactMap { i in
+                let index = visibleEntities[i].index
+                let version = visibleEntities[i].version
+                let entityId = createEntityId(EntityIndex(index), EntityVersion(version))
+                return seen.insert(entityId).inserted ? entityId : nil
+            }
+
+            publishVisibleEntities(frame: submitFrameIndex, entities: nextVisibleIds)
+        }
     }
 }
 

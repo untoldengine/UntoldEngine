@@ -652,6 +652,52 @@ func initTextureResources() {
         renderInfo.hzbMipCount = textureResources.hzbMipViews.count
     }
 
+    // XR stereo: allocate per-eye depth maps and HZB pyramids so each eye's
+    // depth is kept separate, enabling geometrically correct per-eye occlusion culling.
+    if renderInfo.isXRStereoMode {
+        for eye in 0 ..< 2 {
+            textureResources.depthMapEye[eye] = createTexture(
+                device: renderInfo.device,
+                label: "Depth Texture Eye \(eye)",
+                pixelFormat: renderInfo.depthPixelFormat,
+                width: viewportWidth,
+                height: viewportHeight,
+                usage: [.shaderRead, .renderTarget],
+                storageMode: .private
+            )
+
+            let eyeHzb = createTexture(
+                device: renderInfo.device,
+                label: "HZB Depth Pyramid Eye \(eye)",
+                pixelFormat: .r32Float,
+                width: viewportWidth,
+                height: viewportHeight,
+                usage: [.shaderRead, .shaderWrite],
+                storageMode: .private,
+                mipMapLevels: hzbMipCount
+            )
+            textureResources.hzbDepthPyramidEye[eye] = eyeHzb
+
+            textureResources.hzbMipViewsEye[eye].removeAll(keepingCapacity: true)
+            if let hzbTex = eyeHzb {
+                textureResources.hzbMipViewsEye[eye].reserveCapacity(hzbTex.mipmapLevelCount)
+                for level in 0 ..< hzbTex.mipmapLevelCount {
+                    if let mipView = hzbTex.makeTextureView(
+                        pixelFormat: hzbTex.pixelFormat,
+                        textureType: .type2D,
+                        levels: level ..< (level + 1),
+                        slices: 0 ..< 1
+                    ) {
+                        mipView.label = "HZB Depth Pyramid Eye \(eye) Mip \(level)"
+                        textureResources.hzbMipViewsEye[eye].append(mipView)
+                    } else {
+                        Logger.logWarning(message: "Failed to create HZB mip view for eye \(eye) level \(level)")
+                    }
+                }
+            }
+        }
+    }
+
     // Area light textures
 //    textureResources.areaTextureLTCMag = try? loadTexture(device: renderInfo.device, textureName: "ltc_mag", withExtension: "png")
 //
