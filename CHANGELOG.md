@@ -1,4 +1,17 @@
 # Changelog
+## v0.11.1 - 2026-03-17
+### 🐞 Fixes
+- [Patch] initial cell-based static batch system (7574378…)
+- [Patch] Cell-based static batch visualizer (2159ff1…)
+- [Patch] Implemented cell based static batching (6fee69a…)
+- [Patch] Fixed end submission warning visionpro (575d382…)
+- [Patch] Reduced render target memory (4cc7e42…)
+- [Patch] Implemented mip-map texture streamming (9e77006…)
+- [Patch] set lower resolution mip-map for visionpro (dfeb928…)
+- [Patch] Fix aabb-world calcuation (12f51f4…)
+- [Patch] Improved occlusion testing (b342cba…)
+- [Patch] Improved HZB for elongated meshes. (7fb1915…)
+- [Patch] Fixed segment-level occlusion popping (d3b8980…)
 ## v0.11.0 - 2026-03-13
 ### 🐞 Fixes
 - [Patch] Fix easy Sendable/static-value issues (4b3e497…)
