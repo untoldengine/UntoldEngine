@@ -135,6 +135,7 @@ kernel void hzbCullVisibleEntities(
     constant float2 &viewport [[buffer(hzbCullPassViewportIndex)]],
     constant uint &mipCount [[buffer(hzbCullPassMipCountIndex)]],
     constant uint &reverseZ [[buffer(hzbCullPassReverseZIndex)]],
+    constant float &occlusionBias [[buffer(hzbCullPassOcclusionBiasIndex)]],
     texture2d<float, access::sample> hzbDepthPyramid [[texture(hzbCullPassDepthPyramidTextureIndex)]],
     uint tid [[thread_position_in_grid]]
 ) {
@@ -188,8 +189,8 @@ kernel void hzbCullVisibleEntities(
         : max(max(max(d0, d1), max(d2, d3)), max(max(d4, d5), max(d6, max(d7, d8))));
 
     bool isOccluded = (reverseZ != 0u)
-        ? (nearDepth < hzbDepth - 1e-4)
-        : (nearDepth > hzbDepth + 1e-4);
+        ? (nearDepth < hzbDepth - occlusionBias)
+        : (nearDepth > hzbDepth + occlusionBias);
     if (!isOccluded) {
         uint dst = atomic_fetch_add_explicit(outVisibleCount, 1u, memory_order_relaxed);
         outVisible[dst] = candidate;

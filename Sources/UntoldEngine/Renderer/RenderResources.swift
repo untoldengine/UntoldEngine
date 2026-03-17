@@ -52,6 +52,13 @@ public struct RenderInfo {
     public var hzbMipCount: Int = 0
     public var hzbIsValid: Bool = false
     public var hzbDebugMipLevel: Int = 0
+
+    // XR stereo-aware HZB culling
+    // When true, depth and HZB pyramids are maintained per eye and occlusion
+    // culling runs independently for each eye, with results unioned.
+    public var isXRStereoMode: Bool = false
+    public var xrEye0ViewProjection: simd_float4x4 = matrix_identity_float4x4
+    public var xrEye1ViewProjection: simd_float4x4 = matrix_identity_float4x4
 }
 
 @inline(__always)
@@ -127,6 +134,12 @@ public struct TripleBufferResources {
     var visibility: TripleBuffer<VisibleEntity>?
     var hzbCandidateVisibleCount: TripleBuffer<UInt32>?
     var hzbCandidateVisibility: TripleBuffer<VisibleEntity>?
+
+    // Per-eye HZB occlusion output buffers (XR stereo only).
+    var hzbEye0VisibleCount: TripleBuffer<UInt32>?
+    var hzbEye0Visibility: TripleBuffer<VisibleEntity>?
+    var hzbEye1VisibleCount: TripleBuffer<UInt32>?
+    var hzbEye1Visibility: TripleBuffer<VisibleEntity>?
 }
 
 public struct VertexDescriptors {
@@ -200,10 +213,16 @@ public struct TextureResources {
     public var sceneCompositeTexture: MTLTexture?
     public var lookTexture: MTLTexture?
 
-    // Hi-Z / HZB
+    // Hi-Z / HZB (single pyramid — macOS / non-stereo path)
     public var hzbDepthPyramid: MTLTexture?
     public var hzbMipViews: [MTLTexture] = []
     public var hzbDebugMipTexture: MTLTexture?
+
+    // Per-eye depth maps and HZB pyramids for XR stereo culling.
+    // Index 0 = left / eye 0, index 1 = right / eye 1.
+    public var depthMapEye: [MTLTexture?] = [nil, nil]
+    public var hzbDepthPyramidEye: [MTLTexture?] = [nil, nil]
+    public var hzbMipViewsEye: [[MTLTexture]] = [[], []]
 }
 
 public struct AccelStructResources {

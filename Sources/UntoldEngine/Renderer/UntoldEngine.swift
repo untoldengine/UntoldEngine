@@ -530,6 +530,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         renderInfo.device = device
         renderInfo.commandQueue = commandQueue
         renderInfo.reverseZEnabled = true
+        renderInfo.isXRStereoMode = true
         renderInfo.colorPixelFormat = colorPixelFormat
         renderInfo.depthPixelFormat = depthPixelFormat
         renderInfo.viewPort = viewPort
@@ -583,7 +584,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         passDescriptor: MTLRenderPassDescriptor,
         viewMatrix: simd_float4x4,
         projectionMatrix: simd_float4x4,
-        eyeIndex _: Int
+        eyeIndex: Int
     ) {
         renderInfo.perspectiveSpace = projectionMatrix
 
@@ -593,6 +594,14 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         cameraComponent.viewSpace = viewMatrix
+
+        // Save this eye's view-projection for next frame's per-eye HZB culling.
+        if renderInfo.isXRStereoMode {
+            let effectiveVM = SceneRootTransform.shared.effectiveViewMatrix(viewMatrix)
+            let eyeVP = simd_mul(projectionMatrix, effectiveVM)
+            if eyeIndex == 0 { renderInfo.xrEye0ViewProjection = eyeVP }
+            else             { renderInfo.xrEye1ViewProjection = eyeVP }
+        }
 
         configuration.updateXRRenderingSystemCallback!(.xr(commandBuffer: commandBuffer, passDescriptor: passDescriptor))
     }
