@@ -163,14 +163,29 @@ kernel void hzbCullVisibleEntities(
         mipLevel = min((uint)floor(log2(rectMaxDim)), mipCount - 1u);
     }
 
+    // 9-sample 3×3 grid across the projected rect.
+    // 4-corner sampling misses the interior of porous occluders (e.g. a wall
+    // frame whose solid members sit at the rect edges while the centre is open
+    // air). By adding the four mid-edge points and the centre we catch that
+    // empty space: the conservative min/max across all 9 samples then reflects
+    // the farthest depth anywhere inside the rect, preventing false occlusion.
+    const float2 uvMid = (uvMin + uvMax) * 0.5;
+    const float  lod   = float(mipLevel);
+
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
-    float d0 = hzbDepthPyramid.sample(pointSampler, float2(uvMin.x, uvMin.y), level(float(mipLevel))).x;
-    float d1 = hzbDepthPyramid.sample(pointSampler, float2(uvMax.x, uvMin.y), level(float(mipLevel))).x;
-    float d2 = hzbDepthPyramid.sample(pointSampler, float2(uvMin.x, uvMax.y), level(float(mipLevel))).x;
-    float d3 = hzbDepthPyramid.sample(pointSampler, float2(uvMax.x, uvMax.y), level(float(mipLevel))).x;
+    float d0 = hzbDepthPyramid.sample(pointSampler, float2(uvMin.x, uvMin.y), level(lod)).x; // top-left
+    float d1 = hzbDepthPyramid.sample(pointSampler, float2(uvMid.x, uvMin.y), level(lod)).x; // top-center
+    float d2 = hzbDepthPyramid.sample(pointSampler, float2(uvMax.x, uvMin.y), level(lod)).x; // top-right
+    float d3 = hzbDepthPyramid.sample(pointSampler, float2(uvMin.x, uvMid.y), level(lod)).x; // mid-left
+    float d4 = hzbDepthPyramid.sample(pointSampler, float2(uvMid.x, uvMid.y), level(lod)).x; // center
+    float d5 = hzbDepthPyramid.sample(pointSampler, float2(uvMax.x, uvMid.y), level(lod)).x; // mid-right
+    float d6 = hzbDepthPyramid.sample(pointSampler, float2(uvMin.x, uvMax.y), level(lod)).x; // bottom-left
+    float d7 = hzbDepthPyramid.sample(pointSampler, float2(uvMid.x, uvMax.y), level(lod)).x; // bottom-center
+    float d8 = hzbDepthPyramid.sample(pointSampler, float2(uvMax.x, uvMax.y), level(lod)).x; // bottom-right
+
     float hzbDepth = (reverseZ != 0u)
-        ? min(min(d0, d1), min(d2, d3))
-        : max(max(d0, d1), max(d2, d3));
+        ? min(min(min(d0, d1), min(d2, d3)), min(min(d4, d5), min(d6, min(d7, d8))))
+        : max(max(max(d0, d1), max(d2, d3)), max(max(d4, d5), max(d6, max(d7, d8))));
 
     bool isOccluded = (reverseZ != 0u)
         ? (nearDepth < hzbDepth - 1e-4)
