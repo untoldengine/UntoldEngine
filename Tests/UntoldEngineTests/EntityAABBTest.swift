@@ -53,6 +53,29 @@ final class EntityAABBTest: XCTestCase {
         approxEqual(aMax, bMax, tol: tol, file: file, line: line)
     }
 
+    private func bruteForceWorldAABB(localMin: simd_float3,
+                                     localMax: simd_float3,
+                                     worldMatrix M: simd_float4x4) -> (min: simd_float3, max: simd_float3)
+    {
+        var worldMin = simd_float3(repeating: Float.infinity)
+        var worldMax = simd_float3(repeating: -Float.infinity)
+
+        for i in 0 ..< 8 {
+            let localCorner = simd_float3(
+                (i & 1) == 0 ? localMin.x : localMax.x,
+                (i & 2) == 0 ? localMin.y : localMax.y,
+                (i & 4) == 0 ? localMin.z : localMax.z
+            )
+
+            let worldCorner4 = M * simd_float4(localCorner, 1.0)
+            let worldCorner = simd_float3(worldCorner4.x, worldCorner4.y, worldCorner4.z)
+            worldMin = simd_min(worldMin, worldCorner)
+            worldMax = simd_max(worldMax, worldCorner)
+        }
+
+        return (worldMin, worldMax)
+    }
+
     func test_MinMax_identity() {
         let localMin = simd_float3(-1, -2, -3)
         let localMax = simd_float3(1, 2, 3)
@@ -90,5 +113,30 @@ final class EntityAABBTest: XCTestCase {
         XCTAssertEqual(aabb.version, ver)
         XCTAssertEqual(aabb.pad0, 0)
         XCTAssertEqual(aabb.pad1, 0)
+    }
+
+    func test_worldAABB_matchesBruteForce_forArbitraryRotationScale() {
+        let localMin = simd_float3(-5.0, -2.0, -0.05)
+        let localMax = simd_float3(5.0, 2.0, 0.05)
+        let rotation = simd_quatf(angle: .pi / 3.0, axis: simd_normalize(simd_float3(0.3, 0.7, 0.2)))
+
+        var scaleMatrix = matrix_identity_float4x4
+        scaleMatrix.columns.0.x = 1.0
+        scaleMatrix.columns.1.y = 2.0
+        scaleMatrix.columns.2.z = 0.5
+
+        var translationMatrix = matrix_identity_float4x4
+        translationMatrix.columns.3 = simd_float4(2.0, -1.0, 3.0, 1.0)
+
+        let worldMatrix = translationMatrix * simd_float4x4(rotation) * scaleMatrix
+
+        let expected = bruteForceWorldAABB(localMin: localMin, localMax: localMax, worldMatrix: worldMatrix)
+        let (computedMin, computedMax) = worldAABB_MinMax(localMin: localMin, localMax: localMax, worldMatrix: worldMatrix)
+        approxEqualMinMax(computedMin, computedMax, expected.min, expected.max, tol: 1e-4)
+
+        let (center, extent) = worldAABB_CenterExtent(localMin: localMin, localMax: localMax, worldMatrix: worldMatrix)
+        let rebuiltMin = center - extent
+        let rebuiltMax = center + extent
+        approxEqualMinMax(rebuiltMin, rebuiltMax, expected.min, expected.max, tol: 1e-4)
     }
 }
