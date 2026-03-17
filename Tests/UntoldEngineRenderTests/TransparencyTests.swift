@@ -261,6 +261,8 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         bypassPostProcessing = false
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         let (graph, _) = buildGameModeGraph()
         let sorted = try topologicalSortGraph(graph: graph)

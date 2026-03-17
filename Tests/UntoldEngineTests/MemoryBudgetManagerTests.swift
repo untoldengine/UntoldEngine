@@ -245,4 +245,60 @@ final class MemoryBudgetManagerTests: XCTestCase {
         XCTAssertEqual(1_048_576.formattedAsMemory, "1.00 MB")
         XCTAssertEqual(1_073_741_824.formattedAsMemory, "1.00 GB")
     }
+
+    // MARK: - Combined Mesh + Texture Memory Tests
+    // These tests verify the fix that made utilizationPercent, availableMemory,
+    // and shouldEvict() use the combined mesh + texture total rather than mesh alone.
+
+    func testUtilizationIncludesTextureMemory() {
+        // 20 MB mesh + 40 MB textures = 60 MB / 100 MB budget → 60%.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 20 * 1024 * 1024, textureSizeBytes: 40 * 1024 * 1024)
+
+        let stats = manager.getStats()
+        XCTAssertEqual(stats.meshMemoryUsed, 20 * 1024 * 1024)
+        XCTAssertEqual(stats.textureMemoryUsed, 40 * 1024 * 1024)
+        XCTAssertEqual(stats.totalTrackedMemory, 60 * 1024 * 1024)
+        XCTAssertEqual(stats.utilizationPercent, 0.60, accuracy: 0.001)
+    }
+
+    func testAvailableMemoryAccountsForTextureMemory() {
+        // 30 MB mesh + 20 MB textures used → 50 MB available from 100 MB budget.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 30 * 1024 * 1024, textureSizeBytes: 20 * 1024 * 1024)
+
+        let stats = manager.getStats()
+        XCTAssertEqual(stats.availableMemory, 50 * 1024 * 1024)
+    }
+
+    func testShouldEvictTriggeredByTextureMemoryAlone() {
+        // Only 5 MB of mesh, but 82 MB of textures → combined 87% > 85% high water mark.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 5 * 1024 * 1024, textureSizeBytes: 82 * 1024 * 1024)
+
+        XCTAssertTrue(manager.shouldEvict())
+    }
+
+    func testShouldNotEvictWhenCombinedMemoryIsBelowThreshold() {
+        // 40 MB mesh + 40 MB textures = 80% → below 85% high water mark.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 40 * 1024 * 1024, textureSizeBytes: 40 * 1024 * 1024)
+
+        XCTAssertFalse(manager.shouldEvict())
+    }
+
+    func testTotalTrackedMemoryAcrossMultipleEntities() {
+        manager.registerMesh(entityId: 1, meshSizeBytes: 10 * 1024 * 1024, textureSizeBytes: 5 * 1024 * 1024)
+        manager.registerMesh(entityId: 2, meshSizeBytes: 15 * 1024 * 1024, textureSizeBytes: 10 * 1024 * 1024)
+
+        let stats = manager.getStats()
+        XCTAssertEqual(stats.meshMemoryUsed, 25 * 1024 * 1024)
+        XCTAssertEqual(stats.textureMemoryUsed, 15 * 1024 * 1024)
+        XCTAssertEqual(stats.totalTrackedMemory, 40 * 1024 * 1024)
+    }
+
+    func testClearResetsTextureMemory() {
+        manager.registerMesh(entityId: 1, meshSizeBytes: 10 * 1024 * 1024, textureSizeBytes: 20 * 1024 * 1024)
+        manager.clear()
+
+        let stats = manager.getStats()
+        XCTAssertEqual(stats.textureMemoryUsed, 0)
+        XCTAssertEqual(stats.totalTrackedMemory, 0)
+    }
 }

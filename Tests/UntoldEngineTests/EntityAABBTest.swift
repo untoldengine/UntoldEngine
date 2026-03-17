@@ -139,4 +139,151 @@ final class EntityAABBTest: XCTestCase {
         let rebuiltMax = center + extent
         approxEqualMinMax(rebuiltMin, rebuiltMax, expected.min, expected.max, tol: 1e-4)
     }
+
+    // MARK: - makeSegmentedEntityAABBs
+
+    // Compact mesh: aspect ratio ≤ 3 → single AABB, identical to makeObjectAABB output.
+    func test_segmented_compactMesh_returnsSingleAABB() {
+        // 2×2×2 cube — all axes equal, aspect = 1.
+        let localMin = simd_float3(-1, -1, -1)
+        let localMax = simd_float3(1, 1, 1)
+        let M = matrix_identity_float4x4
+        let idx: UInt32 = 5, ver: UInt32 = 2
+
+        let result = makeSegmentedEntityAABBs(localMin: localMin, localMax: localMax, worldMatrix: M, index: idx, version: ver)
+
+        XCTAssertEqual(result.count, 1)
+        XCTAssertEqual(result[0].index, idx)
+        XCTAssertEqual(result[0].version, ver)
+        approxEqual(simd_float3(result[0].center.x, result[0].center.y, result[0].center.z), .zero)
+        approxEqual(simd_float3(result[0].halfExtent.x, result[0].halfExtent.y, result[0].halfExtent.z), simd_float3(1, 1, 1))
+    }
+
+    // Compact mesh: aspect ratio exactly at threshold (= 3.0) → still single AABB.
+    func test_segmented_aspectAtThreshold_returnsSingleAABB() {
+        // halfExtent = (3, 1, 1) → dominant/minShort = 3.0, not > threshold.
+        let localMin = simd_float3(-3, -1, -1)
+        let localMax = simd_float3(3, 1, 1)
+        let M = matrix_identity_float4x4
+
+        let result = makeSegmentedEntityAABBs(localMin: localMin, localMax: localMax, worldMatrix: M, index: 0, version: 0)
+
+        XCTAssertEqual(result.count, 1)
+    }
+
+    // Elongated along X: aspect > 3 → 3 segments.
+    func test_segmented_elongatedX_returnsThreeSegments() {
+        // halfExtent = (6, 1, 1) → aspect 6 > 3.
+        let localMin = simd_float3(-6, -1, -1)
+        let localMax = simd_float3(6, 1, 1)
+        let M = matrix_identity_float4x4
+        let idx: UInt32 = 7, ver: UInt32 = 3
+
+        let result = makeSegmentedEntityAABBs(localMin: localMin, localMax: localMax, worldMatrix: M, index: idx, version: ver)
+
+        XCTAssertEqual(result.count, 3)
+
+        // All segments share the same index and version.
+        for seg in result {
+            XCTAssertEqual(seg.index, idx)
+            XCTAssertEqual(seg.version, ver)
+        }
+
+        // Each segment halfExtent on X = totalHalfExtent / 3 = 2.
+        let segHalfX: Float = 6.0 / 3.0
+        for seg in result {
+            XCTAssertEqual(seg.halfExtent.x, segHalfX, accuracy: 1e-5)
+            XCTAssertEqual(seg.halfExtent.y, 1.0, accuracy: 1e-5)
+            XCTAssertEqual(seg.halfExtent.z, 1.0, accuracy: 1e-5)
+        }
+
+        // Segment centers are evenly distributed along X, no gaps.
+        // Expected centres: -4, 0, +4.
+        let expectedCentersX: [Float] = [-4.0, 0.0, 4.0]
+        for (i, seg) in result.enumerated() {
+            XCTAssertEqual(seg.center.x, expectedCentersX[i], accuracy: 1e-5)
+            XCTAssertEqual(seg.center.y, 0.0, accuracy: 1e-5)
+            XCTAssertEqual(seg.center.z, 0.0, accuracy: 1e-5)
+        }
+    }
+
+    // Elongated along Y: dominant axis is Y.
+    func test_segmented_elongatedY_returnsThreeSegments() {
+        // halfExtent = (1, 9, 1) → aspect 9 > 3.
+        let localMin = simd_float3(-1, -9, -1)
+        let localMax = simd_float3(1, 9, 1)
+        let M = matrix_identity_float4x4
+
+        let result = makeSegmentedEntityAABBs(localMin: localMin, localMax: localMax, worldMatrix: M, index: 0, version: 0)
+
+        XCTAssertEqual(result.count, 3)
+
+        let segHalfY: Float = 9.0 / 3.0
+        for seg in result {
+            XCTAssertEqual(seg.halfExtent.x, 1.0, accuracy: 1e-5)
+            XCTAssertEqual(seg.halfExtent.y, segHalfY, accuracy: 1e-5)
+            XCTAssertEqual(seg.halfExtent.z, 1.0, accuracy: 1e-5)
+        }
+
+        let expectedCentersY: [Float] = [-6.0, 0.0, 6.0]
+        for (i, seg) in result.enumerated() {
+            XCTAssertEqual(seg.center.y, expectedCentersY[i], accuracy: 1e-5)
+        }
+    }
+
+    // Elongated along Z: dominant axis is Z.
+    func test_segmented_elongatedZ_returnsThreeSegments() {
+        // halfExtent = (1, 1, 12) → aspect 12 > 3.
+        let localMin = simd_float3(-1, -1, -12)
+        let localMax = simd_float3(1, 1, 12)
+        let M = matrix_identity_float4x4
+
+        let result = makeSegmentedEntityAABBs(localMin: localMin, localMax: localMax, worldMatrix: M, index: 0, version: 0)
+
+        XCTAssertEqual(result.count, 3)
+
+        let segHalfZ: Float = 12.0 / 3.0
+        for seg in result {
+            XCTAssertEqual(seg.halfExtent.z, segHalfZ, accuracy: 1e-5)
+        }
+
+        let expectedCentersZ: [Float] = [-8.0, 0.0, 8.0]
+        for (i, seg) in result.enumerated() {
+            XCTAssertEqual(seg.center.z, expectedCentersZ[i], accuracy: 1e-5)
+        }
+    }
+
+    // Combined coverage: segments union exactly covers the original AABB along the dominant axis.
+    func test_segmented_segmentsCoverFullLength() {
+        let localMin = simd_float3(-8, -1, -1)
+        let localMax = simd_float3(8, 1, 1)
+        let M = matrix_identity_float4x4
+
+        let result = makeSegmentedEntityAABBs(localMin: localMin, localMax: localMax, worldMatrix: M, index: 0, version: 0)
+        XCTAssertEqual(result.count, 3)
+
+        // Leading edge of first segment and trailing edge of last segment should equal ±8.
+        let first = result.first!
+        let last = result.last!
+        let leading = first.center.x - first.halfExtent.x
+        let trailing = last.center.x + last.halfExtent.x
+        XCTAssertEqual(leading, -8.0, accuracy: 1e-4)
+        XCTAssertEqual(trailing, 8.0, accuracy: 1e-4)
+    }
+
+    // With a non-identity world transform, segments still share the same index/version.
+    func test_segmented_withTranslation_preservesIndexVersion() {
+        let localMin = simd_float3(-6, -1, -1)
+        let localMax = simd_float3(6, 1, 1)
+        let M = makeTransform(translation: simd_float3(10, 5, 0))
+        let idx: UInt32 = 42, ver: UInt32 = 9
+
+        let result = makeSegmentedEntityAABBs(localMin: localMin, localMax: localMax, worldMatrix: M, index: idx, version: ver)
+
+        XCTAssertEqual(result.count, 3)
+        for seg in result {
+            XCTAssertEqual(seg.index, idx)
+            XCTAssertEqual(seg.version, ver)
+        }
+    }
 }

@@ -27,6 +27,8 @@ final class UpdateXRRenderingSystemTest: BaseRenderSetup {
     func testUpdateXRRenderingSystem_FullImmersionConfiguresRenderGraphCorrectly() throws {
         // Set up XR full immersion mode
         renderInfo.immersionStyle = .full
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         // Create a command buffer and render pass descriptor for XR
         guard (renderInfo.commandQueue.makeCommandBuffer()) != nil else {

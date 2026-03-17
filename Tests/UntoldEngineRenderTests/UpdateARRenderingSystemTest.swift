@@ -206,6 +206,8 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
     func testUpdateARRenderingSystem_ARModeGraphTopologicalConstraints() throws {
         // Set up AR mode
         renderInfo.immersionStyle = .ar
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         let (graph, _) = buildGameModeGraph()
 
@@ -224,6 +226,8 @@ final class UpdateARRenderingSystemTest: BaseRenderSetup {
     func testUpdateARRenderingSystem_ARModeWithPostProcessing() throws {
         // Set up AR mode
         renderInfo.immersionStyle = .ar
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         let (graph, _) = buildGameModeGraph()
 
