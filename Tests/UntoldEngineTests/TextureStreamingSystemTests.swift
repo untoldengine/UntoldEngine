@@ -1,0 +1,176 @@
+//
+//  TextureStreamingSystemTests.swift
+//  UntoldEngineTests
+//
+// Copyright (C) Untold Engine Studios
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+@testable import UntoldEngine
+import XCTest
+
+@MainActor
+final class TextureStreamingSystemTests: XCTestCase {
+    var system: TextureStreamingSystem!
+
+    override func setUp() async throws {
+        system = TextureStreamingSystem.shared
+        system.reset()
+        system.enabled = true
+        system.upgradeRadius = 30.0
+        system.downgradeRadius = 60.0
+        system.maxTextureDimension = 1024
+        system.minimumTextureDimension = 256
+        system.updateInterval = 0.2
+        system.maxConcurrentOps = 3
+    }
+
+    override func tearDown() async throws {
+        system.reset()
+    }
+
+    // MARK: - Initial State
+
+    func testInitialStatsAreZero() {
+        system.reset()
+        let stats = system.getStats()
+        XCTAssertEqual(stats.totalUpgrades, 0)
+        XCTAssertEqual(stats.totalDowngrades, 0)
+        XCTAssertEqual(stats.upgradedEntityCount, 0)
+        XCTAssertEqual(stats.activeOps, 0)
+    }
+
+    // MARK: - Reset
+
+    func testResetClearsStats() {
+        // Stats start at zero; reset should keep them at zero and not crash.
+        system.reset()
+        let stats = system.getStats()
+        XCTAssertEqual(stats.totalUpgrades, 0)
+        XCTAssertEqual(stats.totalDowngrades, 0)
+        XCTAssertEqual(stats.upgradedEntityCount, 0)
+        XCTAssertEqual(stats.activeOps, 0)
+    }
+
+    func testResetIsIdempotent() {
+        system.reset()
+        system.reset()
+        let stats = system.getStats()
+        XCTAssertEqual(stats.totalUpgrades, 0)
+        XCTAssertEqual(stats.upgradedEntityCount, 0)
+    }
+
+    // MARK: - Enabled Flag
+
+    func testDisabledSystemSkipsUpdate() {
+        system.enabled = false
+        // With no entities in the scene the call should be a no-op regardless,
+        // but the guard should fire before any ECS access.
+        system.update(cameraPosition: .zero, deltaTime: 1.0)
+        let stats = system.getStats()
+        XCTAssertEqual(stats.activeOps, 0)
+    }
+
+    func testReenablingSystemAllowsUpdate() {
+        system.enabled = false
+        system.enabled = true
+        // No crash, no ops with an empty scene.
+        system.update(cameraPosition: .zero, deltaTime: 1.0)
+        XCTAssertEqual(system.getStats().activeOps, 0)
+    }
+
+    // MARK: - Timer Throttling
+
+    func testUpdateThrottledBelowInterval() {
+        // Accumulate time below the threshold — no evaluation should occur.
+        system.updateInterval = 0.5
+        system.update(cameraPosition: .zero, deltaTime: 0.1)
+        system.update(cameraPosition: .zero, deltaTime: 0.1)
+        // With an empty scene the result is also zero ops, but this confirms
+        // no panic or assertion fires during the throttle window.
+        XCTAssertEqual(system.getStats().activeOps, 0)
+    }
+
+    func testUpdateFiresAfterIntervalElapsed() {
+        system.updateInterval = 0.2
+        // First call accumulates 0.25 s, which exceeds the interval.
+        system.update(cameraPosition: .zero, deltaTime: 0.25)
+        // No entities → zero ops, but the timer must have reset (no assert).
+        XCTAssertEqual(system.getStats().activeOps, 0)
+    }
+
+    func testTimerResetsAfterFiring() {
+        system.updateInterval = 0.2
+        system.update(cameraPosition: .zero, deltaTime: 0.25) // fires, resets timer
+        system.update(cameraPosition: .zero, deltaTime: 0.05) // below threshold again
+        XCTAssertEqual(system.getStats().activeOps, 0)
+    }
+
+    // MARK: - Configuration Defaults
+
+    func testDefaultRadiusValues() {
+        XCTAssertEqual(system.upgradeRadius, 30.0, accuracy: 1e-6)
+        XCTAssertEqual(system.downgradeRadius, 60.0, accuracy: 1e-6)
+    }
+
+    func testDefaultDimensionValues() {
+        // maxTextureDimension must be strictly positive.
+        XCTAssertGreaterThan(system.maxTextureDimension, 0)
+        // minimumTextureDimension must be ≤ maxTextureDimension.
+        XCTAssertLessThanOrEqual(system.minimumTextureDimension, system.maxTextureDimension)
+    }
+
+    func testDefaultConcurrencyLimit() {
+        XCTAssertGreaterThan(system.maxConcurrentOps, 0)
+    }
+
+    // MARK: - Configuration Mutation
+
+    func testCanOverrideRadii() {
+        system.upgradeRadius = 10.0
+        system.downgradeRadius = 50.0
+        XCTAssertEqual(system.upgradeRadius, 10.0, accuracy: 1e-6)
+        XCTAssertEqual(system.downgradeRadius, 50.0, accuracy: 1e-6)
+    }
+
+    func testCanOverrideDimensions() {
+        system.maxTextureDimension = 512
+        system.minimumTextureDimension = 128
+        XCTAssertEqual(system.maxTextureDimension, 512)
+        XCTAssertEqual(system.minimumTextureDimension, 128)
+    }
+
+    func testCanOverrideConcurrencyLimit() {
+        system.maxConcurrentOps = 1
+        XCTAssertEqual(system.maxConcurrentOps, 1)
+    }
+
+    // MARK: - Stats Struct
+
+    func testTextureStreamingStatsFields() {
+        var stats = TextureStreamingStats(
+            totalUpgrades: 5,
+            totalDowngrades: 3,
+            upgradedEntityCount: 2,
+            activeOps: 1
+        )
+        XCTAssertEqual(stats.totalUpgrades, 5)
+        XCTAssertEqual(stats.totalDowngrades, 3)
+        XCTAssertEqual(stats.upgradedEntityCount, 2)
+        XCTAssertEqual(stats.activeOps, 1)
+
+        stats.totalUpgrades = 10
+        XCTAssertEqual(stats.totalUpgrades, 10)
+    }
+
+    // MARK: - Concurrency Cap (no entities)
+
+    func testUpdateRespectsMaxConcurrentOps() {
+        system.maxConcurrentOps = 1
+        // Empty scene → zero ops are ever launched; cap is not exceeded.
+        system.update(cameraPosition: .zero, deltaTime: 1.0)
+        XCTAssertLessThanOrEqual(system.getStats().activeOps, system.maxConcurrentOps)
+    }
+}

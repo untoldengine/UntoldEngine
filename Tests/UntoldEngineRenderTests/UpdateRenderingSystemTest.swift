@@ -28,6 +28,8 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         // Set up for macOS/iOS rendering with environment
         renderInfo.immersionStyle = .none
         renderEnvironment = true
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         // Build the render graph using the same logic as UpdateRenderingSystem
         let (graph, finalPassID) = buildGameModeGraph()
@@ -91,6 +93,8 @@ final class UpdateRenderingSystemTest: BaseRenderSetup {
         // Set up for macOS/iOS rendering with grid
         renderInfo.immersionStyle = .none
         renderEnvironment = false
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         // Build the render graph using the same logic as UpdateRenderingSystem
         let (graph, finalPassID) = buildGameModeGraph()

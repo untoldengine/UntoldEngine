@@ -118,6 +118,8 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
     func testUpdateiOSRenderingSystem_iOSModeWithPostProcessing() throws {
         // Set up iOS mode
         renderInfo.immersionStyle = .none
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         let (graph, _) = buildGameModeGraph()
 
@@ -148,6 +150,8 @@ final class UpdateiOSRenderingSystemTest: BaseRenderSetup {
     func testUpdateiOSRenderingSystem_iOSModeGraphTopologicalConstraints() throws {
         // Set up iOS mode
         renderInfo.immersionStyle = .none
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         let (graph, _) = buildGameModeGraph()
 

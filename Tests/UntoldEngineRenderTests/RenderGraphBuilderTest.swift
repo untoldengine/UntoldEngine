@@ -113,6 +113,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
     func testPostProcessingEffects_CreatesBasePasses() {
         var graph = [String: RenderPass]()
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         let finalPass = postProcessingEffects(
             graph: &graph,
@@ -129,6 +131,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
     func testPostProcessingEffects_CorrectBaseDependencies() {
         var graph = [String: RenderPass]()
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         _ = postProcessingEffects(
             graph: &graph,
@@ -243,7 +247,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
     func testBuildGameModeGraph_ValidTopologicalOrder() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
-        BloomThresholdParams.shared.enabled = false
+        DepthOfFieldParams.shared.enabled = true
+        defer { DepthOfFieldParams.shared.enabled = false }
 
         let (graph, _) = buildGameModeGraph()
 
