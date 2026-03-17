@@ -42,6 +42,18 @@ struct Frustum {
     var planes: [Plane] // L, R, B, T, N, F
 }
 
+@inline(__always)
+private func worldAABBHalfExtent(localHalfExtent: simd_float3, linearPart R: simd_float3x3) -> simd_float3 {
+    // For world-space AABB extent, use rows of |R|: e_world_i = sum_j |R_ij| * e_local_j.
+    // With simd's column-major representation, `absR * e_local` evaluates that directly.
+    let absR = simd_float3x3(columns: (
+        simd_abs(R.columns.0),
+        simd_abs(R.columns.1),
+        simd_abs(R.columns.2)
+    ))
+    return absR * localHalfExtent
+}
+
 func padFrustum(_ F: Frustum,
                 sidePad: Float = 0.5, // world units; L/R/T/B
                 nearPad: Float = 0.05, // move near plane toward camera
@@ -79,13 +91,8 @@ public func worldAABB_MinMax(localMin: simd_float3,
     // world center
     let wc = T + R * lc
 
-    // world halfExtent = |R| * le  (abs per element handles rotation + non-uniform scale)
-    let AR = simd_float3x3(rows: [
-        simd_float3(abs(R[0, 0]), abs(R[0, 1]), abs(R[0, 2])),
-        simd_float3(abs(R[1, 0]), abs(R[1, 1]), abs(R[1, 2])),
-        simd_float3(abs(R[2, 0]), abs(R[2, 1]), abs(R[2, 2])),
-    ])
-    let we = AR * le
+    // world halfExtent = |R|_rows * le (conservative for rotation + non-uniform scale)
+    let we = worldAABBHalfExtent(localHalfExtent: le, linearPart: R)
 
     return (wc - we, wc + we)
 }
@@ -108,14 +115,7 @@ public func worldAABB_CenterExtent(localMin: simd_float3,
 
     // World center and axis-aligned half-extent (|R|·le)
     let worldCenter = T + R * localCenter
-    let absC0 = simd_float3(abs(R.columns.0.x), abs(R.columns.0.y), abs(R.columns.0.z))
-    let absC1 = simd_float3(abs(R.columns.1.x), abs(R.columns.1.y), abs(R.columns.1.z))
-    let absC2 = simd_float3(abs(R.columns.2.x), abs(R.columns.2.y), abs(R.columns.2.z))
-    let worldExtent = simd_float3(
-        simd_dot(absC0, localHalfExtent), // row0 of |R|
-        simd_dot(absC1, localHalfExtent), // row1 of |R|
-        simd_dot(absC2, localHalfExtent) // row2 of |R|
-    )
+    let worldExtent = worldAABBHalfExtent(localHalfExtent: localHalfExtent, linearPart: R)
     return (worldCenter, worldExtent)
 }
 
