@@ -128,6 +128,64 @@ public func makeObjectAABB(localMin: simd_float3,
     return EntityAABB(center: simd_float4(c.x, c.y, c.z, 0.0), halfExtent: simd_float4(e.x, e.y, e.z, 0.0), index: index, version: version, pad0: 0, pad1: 0)
 }
 
+// Aspect ratio above which a world AABB is considered elongated and split into segments.
+private let kSegmentAspectThreshold: Float = 3.0
+// Number of equal-length segments to split an elongated AABB into.
+private let kSegmentCount: Int = 3
+
+/// Returns one EntityAABB for compact meshes, or `kSegmentCount` AABBs along the dominant
+/// axis for elongated ones.  All segments share the same (index, version) so the entity is
+/// considered visible when any single segment survives culling.
+func makeSegmentedEntityAABBs(localMin: simd_float3,
+                               localMax: simd_float3,
+                               worldMatrix M: simd_float4x4,
+                               index: UInt32, version: UInt32) -> [EntityAABB]
+{
+    let (center, halfExtent) = worldAABB_CenterExtent(localMin: localMin, localMax: localMax, worldMatrix: M)
+
+    // Find the dominant (longest) half-extent axis.
+    let dominantAxis: Int
+    if halfExtent.x >= halfExtent.y && halfExtent.x >= halfExtent.z {
+        dominantAxis = 0
+    } else if halfExtent.y >= halfExtent.z {
+        dominantAxis = 1
+    } else {
+        dominantAxis = 2
+    }
+
+    let dominantHalf = halfExtent[dominantAxis]
+    let shortA: Float = dominantAxis == 0 ? halfExtent.y : halfExtent.x
+    let shortB: Float = dominantAxis == 2 ? halfExtent.y : halfExtent.z
+    let minShort = max(max(shortA, shortB), 1e-4)
+
+    guard (dominantHalf / minShort) > kSegmentAspectThreshold else {
+        // Not elongated – emit a single AABB.
+        return [EntityAABB(
+            center: simd_float4(center.x, center.y, center.z, 0),
+            halfExtent: simd_float4(halfExtent.x, halfExtent.y, halfExtent.z, 0),
+            index: index, version: version, pad0: 0, pad1: 0)]
+    }
+
+    // Split into kSegmentCount equal segments along the dominant axis.
+    var result: [EntityAABB] = []
+    result.reserveCapacity(kSegmentCount)
+    let segHalfLen = dominantHalf / Float(kSegmentCount)
+    let startOffset = -dominantHalf + segHalfLen   // offset of first segment centre from entity centre
+
+    for s in 0 ..< kSegmentCount {
+        var segCenter = center
+        segCenter[dominantAxis] += startOffset + Float(s) * 2.0 * segHalfLen
+        var segHalf = halfExtent
+        segHalf[dominantAxis] = segHalfLen
+
+        result.append(EntityAABB(
+            center: simd_float4(segCenter.x, segCenter.y, segCenter.z, 0),
+            halfExtent: simd_float4(segHalf.x, segHalf.y, segHalf.z, 0),
+            index: index, version: version, pad0: 0, pad1: 0))
+    }
+    return result
+}
+
 public func performFrustumCulling(commandBuffer: MTLCommandBuffer) {
     if useOptimizedCulling {
         executeReduceScanFrustumCulling(commandBuffer)
@@ -521,10 +579,15 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             continue
         }
 
-        // get object AABB
-        let entityAABB: EntityAABB = makeObjectAABB(localMin: localTransformComponent.boundingBox.min, localMax: localTransformComponent.boundingBox.max, worldMatrix: worldTransformComponent.space, index: getEntityIndex(entityId), version: getEntityVersion(entityId))
-
-        entityAABBContainer.append(entityAABB)
+        // get object AABB — elongated meshes are split into segments so a solid
+        // occluder covering only part of the entity cannot falsely cull the whole entity.
+        let segments = makeSegmentedEntityAABBs(
+            localMin: localTransformComponent.boundingBox.min,
+            localMax: localTransformComponent.boundingBox.max,
+            worldMatrix: worldTransformComponent.space,
+            index: getEntityIndex(entityId),
+            version: getEntityVersion(entityId))
+        entityAABBContainer.append(contentsOf: segments)
     }
 
     let count = entityAABBContainer.count
@@ -614,10 +677,15 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             optimizedPath: false
         )
 
-        let nextVisibleIds: [EntityID] = (0 ..< Int(visibleCount)).map { i in
+        // Deduplicate: elongated entities emit multiple segments that share the same
+        // (index, version), so the same EntityID can appear more than once in the
+        // surviving output.  Keep only the first occurrence.
+        var seen = Set<EntityID>()
+        let nextVisibleIds: [EntityID] = (0 ..< Int(visibleCount)).compactMap { i in
             let index = visibleEntities[i].index
             let version = visibleEntities[i].version
-            return createEntityId(EntityIndex(index), EntityVersion(version))
+            let entityId = createEntityId(EntityIndex(index), EntityVersion(version))
+            return seen.insert(entityId).inserted ? entityId : nil
         }
 
         publishVisibleEntities(frame: submitFrameIndex, entities: nextVisibleIds)
@@ -742,10 +810,14 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             continue
         }
 
-        // get object AABB
-        let entityAABB: EntityAABB = makeObjectAABB(localMin: localTransformComponent.boundingBox.min, localMax: localTransformComponent.boundingBox.max, worldMatrix: worldTransformComponent.space, index: getEntityIndex(entityId), version: getEntityVersion(entityId))
-
-        entityAABBContainer.append(entityAABB)
+        // get object AABB — elongated meshes are split into segments.
+        let segments = makeSegmentedEntityAABBs(
+            localMin: localTransformComponent.boundingBox.min,
+            localMax: localTransformComponent.boundingBox.max,
+            worldMatrix: worldTransformComponent.space,
+            index: getEntityIndex(entityId),
+            version: getEntityVersion(entityId))
+        entityAABBContainer.append(contentsOf: segments)
     }
 
     let count = entityAABBContainer.count
@@ -896,10 +968,13 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             optimizedPath: true
         )
 
-        let nextVisibleIds: [EntityID] = (0 ..< Int(visibleCount)).map { i in
+        // Deduplicate: elongated entities emit multiple segments sharing (index, version).
+        var seen = Set<EntityID>()
+        let nextVisibleIds: [EntityID] = (0 ..< Int(visibleCount)).compactMap { i in
             let index = visibleEntities[i].index
             let version = visibleEntities[i].version
-            return createEntityId(EntityIndex(index), EntityVersion(version))
+            let entityId = createEntityId(EntityIndex(index), EntityVersion(version))
+            return seen.insert(entityId).inserted ? entityId : nil
         }
 
         publishVisibleEntities(frame: submitFrameIndex, entities: nextVisibleIds)
