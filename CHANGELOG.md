@@ -1,4 +1,7 @@
 # Changelog
+## v0.11.2 - 2026-03-18
+### 🐞 Fixes
+- [Patch] fixed texture streaming (f676f75…)
 ## v0.11.1 - 2026-03-17
 ### 🐞 Fixes
 - [Patch] initial cell-based static batch system (7574378…)
