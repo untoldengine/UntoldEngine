@@ -77,7 +77,6 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// Entities that currently hold textures above `minimumTextureDimension`.
     private var upgradedEntities: Set<EntityID> = []
     private var activeOps: Set<EntityID> = []
-    private var pendingBatchRefreshEntities: Set<EntityID> = []
 
     private let lock = NSLock()
 
@@ -169,35 +168,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
         return active
     }
 
-    private func enqueueBatchRefresh(_ entityId: EntityID) {
-        lock.lock()
-        pendingBatchRefreshEntities.insert(entityId)
-        lock.unlock()
-    }
-
-    private func drainPendingBatchRefreshes() -> [EntityID] {
-        lock.lock()
-        let pending = Array(pendingBatchRefreshEntities)
-        pendingBatchRefreshEntities.removeAll(keepingCapacity: true)
-        lock.unlock()
-        return pending
-    }
-
-    private func flushPendingBatchRefreshes() {
-        let pending = drainPendingBatchRefreshes()
-        guard !pending.isEmpty else { return }
-        for entityId in pending where scene.exists(entityId) {
-            BatchingSystem.shared.notifyEntityMaterialChanged(entityId: entityId)
-        }
-    }
-
     // MARK: - Update
 
     public func update(cameraPosition: simd_float3, deltaTime: Float) {
         guard enabled else { return }
-
-        // Always flush queued rebatch notifications from async streaming tasks.
-        flushPendingBatchRefreshes()
 
         timeSinceLastUpdate += deltaTime
         guard timeSinceLastUpdate >= updateInterval else { return }
@@ -486,7 +460,27 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
                     guard didAnyChange else { return }
 
-                    self.enqueueBatchRefresh(entityId)
+                    // Update the batch group's representative material in-place so the
+                    // new texture is visible on the next frame with zero batch churn.
+                    BatchingSystem.shared.updateBatchMaterialInPlace(for: entityId) { batchMaterial in
+                        for item in loaded {
+                            let isFull = item.targetMaxDimension == nil
+                            switch item.textureType {
+                            case .baseColor:
+                                batchMaterial.baseColor.texture = item.texture
+                                batchMaterial.baseColorStreamingLevel = isFull ? .full : .capped
+                            case .roughness:
+                                batchMaterial.roughness.texture = item.texture
+                                batchMaterial.roughnessStreamingLevel = isFull ? .full : .capped
+                            case .metallic:
+                                batchMaterial.metallic.texture = item.texture
+                                batchMaterial.metallicStreamingLevel = isFull ? .full : .capped
+                            case .normal:
+                                batchMaterial.normal.texture = item.texture
+                                batchMaterial.normalStreamingLevel = isFull ? .full : .capped
+                            }
+                        }
+                    }
 
                     let hasAboveMinimum = self.entityHasTexturesAboveMinimumTier(entityId: entityId)
                     self.lock.lock()
@@ -614,7 +608,6 @@ public class TextureStreamingSystem: @unchecked Sendable {
         lock.lock()
         upgradedEntities.removeAll()
         activeOps.removeAll()
-        pendingBatchRefreshEntities.removeAll()
         lock.unlock()
         timeSinceLastUpdate = 0
         totalUpgrades = 0
