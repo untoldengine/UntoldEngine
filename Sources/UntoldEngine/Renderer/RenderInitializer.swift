@@ -1130,47 +1130,56 @@ func ensurePostProcessTexturesExist() {
     textureResources.tonemapTexture = createTexture(
         device: renderInfo.device, label: "Tonemap Texture",
         pixelFormat: wf.sceneColor, width: w, height: h,
-        usage: usage, storageMode: storage)
+        usage: usage, storageMode: storage
+    )
 
     textureResources.blurTextureHor = createTexture(
         device: renderInfo.device, label: "Blur Texture Hor",
         pixelFormat: wf.postProcess, width: w, height: h,
-        usage: usage, storageMode: storage)
+        usage: usage, storageMode: storage
+    )
 
     textureResources.blurTextureVer = createTexture(
         device: renderInfo.device, label: "Blur Texture Ver",
         pixelFormat: wf.postProcess, width: w, height: h,
-        usage: usage, storageMode: storage)
+        usage: usage, storageMode: storage
+    )
 
     textureResources.colorCorrectionTexture = createTexture(
         device: renderInfo.device, label: "Color Correction Debug Texture",
         pixelFormat: wf.postProcess, width: w, height: h,
-        usage: usage, storageMode: storage)
+        usage: usage, storageMode: storage
+    )
 
     textureResources.bloomThresholdTextuture = createTexture(
         device: renderInfo.device, label: "Bloom Threshold Texture",
         pixelFormat: wf.postProcess, width: w, height: h,
-        usage: usage, storageMode: storage)
+        usage: usage, storageMode: storage
+    )
 
     textureResources.bloomCompositeTexture = createTexture(
         device: renderInfo.device, label: "Bloom Composite Texture",
         pixelFormat: wf.postProcess, width: w, height: h,
-        usage: usage, storageMode: storage)
+        usage: usage, storageMode: storage
+    )
 
     textureResources.vignetteTexture = createTexture(
         device: renderInfo.device, label: "Vignette Texture",
         pixelFormat: wf.postProcess, width: w, height: h,
-        usage: usage, storageMode: storage)
+        usage: usage, storageMode: storage
+    )
 
     textureResources.chromaticAberrationTexture = createTexture(
         device: renderInfo.device, label: "Chromatic Aberration Texture",
         pixelFormat: wf.postProcess, width: w, height: h,
-        usage: usage, storageMode: storage)
+        usage: usage, storageMode: storage
+    )
 
     textureResources.depthOfFieldTexture = createTexture(
         device: renderInfo.device, label: "Depth of Field Texture",
         pixelFormat: wf.postProcess, width: w, height: h,
-        usage: usage, storageMode: storage)
+        usage: usage, storageMode: storage
+    )
 }
 
 func initSSAOResources() {

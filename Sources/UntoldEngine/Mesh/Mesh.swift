@@ -966,8 +966,8 @@ private func textureLikelyHasAlphaChannel(_ texture: MTLTexture?) -> Bool {
 
 /// Tracks whether a texture slot is at full or capped resolution
 public enum TextureStreamingLevel {
-    case full    // Original resolution
-    case capped  // Downsampled to fit TextureLoader.maxTextureDimension
+    case full // Original resolution
+    case capped // Downsampled to fit TextureLoader.maxTextureDimension
 }
 
 public struct Material {
@@ -1106,7 +1106,7 @@ public struct Material {
         roughnessSourceDimensions = roughnessDims
         metallicSourceDimensions = metallicDims
 
-        // Set texture streaming levels based on whether textures were dimension-capped.
+        /// Set texture streaming levels based on whether textures were dimension-capped.
         func isCapped(_ texture: MTLTexture?, _ sourceDims: simd_int2?) -> Bool {
             guard let texture, let sourceDims else { return false }
             return texture.width < Int(sourceDims.x) || texture.height < Int(sourceDims.y)

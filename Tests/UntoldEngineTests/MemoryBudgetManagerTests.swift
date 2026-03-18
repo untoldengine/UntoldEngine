@@ -247,6 +247,7 @@ final class MemoryBudgetManagerTests: XCTestCase {
     }
 
     // MARK: - Combined Mesh + Texture Memory Tests
+
     // These tests verify the fix that made utilizationPercent, availableMemory,
     // and shouldEvict() use the combined mesh + texture total rather than mesh alone.
 

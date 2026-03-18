@@ -600,7 +600,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             let effectiveVM = SceneRootTransform.shared.effectiveViewMatrix(viewMatrix)
             let eyeVP = simd_mul(projectionMatrix, effectiveVM)
             if eyeIndex == 0 { renderInfo.xrEye0ViewProjection = eyeVP }
-            else             { renderInfo.xrEye1ViewProjection = eyeVP }
+            else { renderInfo.xrEye1ViewProjection = eyeVP }
         }
 
         configuration.updateXRRenderingSystemCallback!(.xr(commandBuffer: commandBuffer, passDescriptor: passDescriptor))
