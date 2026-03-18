@@ -78,6 +78,16 @@
             Task {
                 do {
                     guard worldTracking.state != .running else { return }
+
+                    // Check world sensing authorization before attempting to run.
+                    let authStatus = await arSession.queryAuthorization(for: [.worldSensing])
+                    if authStatus[.worldSensing] == .denied {
+                        print("⚠️ World sensing authorization denied — plane detection disabled. Grant permission in Settings > Privacy > World Sensing.")
+                        // Still run with world tracking only so device tracking works.
+                        try await arSession.run([worldTracking])
+                        return
+                    }
+
                     var providers: [any DataProvider] = [worldTracking]
                     if PlaneDetectionProvider.isSupported {
                         providers.append(planeDetection)
