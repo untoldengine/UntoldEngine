@@ -2,223 +2,457 @@
 //  main.swift
 //
 //
-// Copyright (C) Untold Engine Studios
+//  Copyright (C) Untold Engine Studios
+//  Licensed under the GNU LGPL v3.0 or later.
+//  See the LICENSE file or <https://www.gnu.org/licenses/> for details.
 //
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 #if os(macOS)
     import MetalKit
     import SwiftUI
+    import UniformTypeIdentifiers
     import UntoldEngine
 
-    /// GameScene is where you initialize your game and write game-specific logic.
+    // MARK: - GameScene
+    // All engine API calls live here. DemoState holds UI state only and
+    // delegates to these methods via callbacks wired up in AppDelegate.
+
     class GameScene {
-        /// Toggle between Editor-loaded scene (true) and Code-built scene (false).
-        var useEditorScene: Bool = false
-
-        // Demo assets location + scene file name (adjust as needed).
-        private let demoAssetsRelativePath = "DemoGameAssets/Assets"
-        private let sceneFilename = "soccergamedemo.json"
-
-        /// Resolve ~/Desktop/DemoGameAssets/Assets
-        private func demoAssetsBaseURL() -> URL? {
-            FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first?
-                .appendingPathComponent(demoAssetsRelativePath)
-        }
-
-        /// Resolve the full scene URL if it exists.
-        private func demoSceneURL() -> URL? {
-            guard let base = demoAssetsBaseURL() else { return nil }
-            let url = base.appendingPathComponent(sceneFilename)
-            return FileManager.default.fileExists(atPath: url.path) ? url : nil
-        }
+        var loadedEntity: EntityID? = nil
+        private var wasRightMousePressed: Bool = false
 
         init() {
-            //
-            // -----------------------------------------------------
-            // Demo Game Tutorial – How it Works
-            // -----------------------------------------------------
-            //
-            // The Untold Engine is built on an ECS (Entity–Component–System) architecture:
-            //
-            // - Entities: These are just IDs (no logic or data by themselves).
-            // - Components: Small data containers that hold attributes. For example,
-            //   a `BallComponent` might store ball-related properties (speed, position, etc.).
-            // - Systems: Functions that run every frame and update entities based on the
-            //   components they have. For example, a `ballSystemUpdate` might handle ball physics.
-            //
-            // By combining these three, you extend what entities can *do*.
-            // Think of it as:
-            //   - Entity = the "thing"
-            //   - Component = the "data"
-            //   - System = the "behavior"
-            //
-            // -----------------------------------------------------
-            // IMPORTANT: Download Game Scene and assets
-            // -----------------------------------------------------
-            // To save you time, we have included preloaded assets you can use right away:
-            //
-            // Models: Soccer stadium, player, ball, and more.
-            // Animations: Prebuilt running, idle, and other character motions.
-            // Game Scene: soccergamedemo.json
-            //
-            // You can download them Demo Game Assets v1.0 (https://github.com/untoldengine/UntoldEngine-Assets/releases/tag/v1).
-            //
-            //
-            // -----------------------------------------------------
-            // Two Ways to Initialize a Scene
-            // -----------------------------------------------------
-            //
-            // **Option 1 – Load Scene from the Editor:**
-            //
-            // 1. Build your scene visually in the Untold Engine Editor and save it (e.g.,
-            //    `soccergamedemo.json`). This was done already done for you.
-            // 2. Point the engine to your asset folder (in this demo: "DemoGameAssets/Assets").
-            // 3. Call `playSceneAt(url:)` to load and deserialize the scene.
-            // 4. Look up specific entities by name and attach extra *custom components*
-            //    (like `BallComponent` or `DribblinComponent`).
-            // 5. Register your custom systems so they update every frame.
-            // 6. Hook up input events (WASD movement).
-            //
-            // This approach is great when working with designers or when you want to quickly
-            // assemble a level visually, then extend it with gameplay logic.
-            //
-            // **Option 2 – Create by Code:**
-            //
-            // If you prefer to build the scene entirely in code, you can do so by setting
-            // a simple flag (e.g., `useEditorScene = false`). When this flag is false,
-            // you skip loading the `.json` file and instead:
-            //
-            // - Call `createEntity()` for each object in your scene.
-            // - Assign models with `setEntityMesh`.
-            // - Apply transforms with `translateBy` / `rotateTo`.
-            // - Add animations with `setEntityAnimations`.
-            // - Give entities names with `setEntityName` so they can be looked up later.
-            // - Enable physics with `setEntityKinetics`.
-            // - Move the camera with `moveCameraTo`.
-            // - Adjust global settings like `ambientIntensity`.
-            //
-            // This approach is useful when you want *full control in code* or prefer to
-            // generate scenes procedurally.
-            //
-            // -----------------------------------------------------
-            // Summary
-            // -----------------------------------------------------
-            //
-            // Whether you load from the Editor or create everything in code, the workflow
-            // is the same once the scene exists:
-            //
-            // - Entities are just IDs.
-            // - Components attach data/attributes to those IDs.
-            // - Systems operate on those components every frame.
-            //
-            // Use the Editor for fast prototyping, or code for precise control.
-            // You can even mix both: load a base scene from the Editor and then add more
-            // entities or components through code.
-            //
-
-            // Point the engine to your asset folder (used by both options)
-            assetBasePath = demoAssetsBaseURL()
-
-            if useEditorScene {
-                // --- Option 1: Load the scene created with the Editor ---
-                if let url = demoSceneURL() {
-                    playSceneAt(url: url)
-                } else {
-                    print("⚠️ Could not find scene file \(sceneFilename). " +
-                        "Expected at Desktop/\(demoAssetsRelativePath). " +
-                        "Falling back to code-built scene.")
-                    // Fallback to code path if the JSON is missing.
-                    buildSceneInCode()
-                }
-            } else {
-                // --- Option 2: Build the exact same scene in code ---
-                buildSceneInCode()
-            }
-
-            // Input (WASD) for the demo
             InputSystem.shared.registerKeyboardEvents()
-
-            // bypass Post FX effects
+            InputSystem.shared.registerMouseEvents()
             bypassPostProcessing = true
-
-            // Disable SSAO
-            SSAO.setEnabled(false)
-            SSAO.setQuality(.high)
+//            SSAO.setEnabled(false)
+//            SSAO.setQuality(.high)
+            setupDefaultSceneObjects()
         }
 
-        /// Build the same demo scene procedurally.
-        private func buildSceneInCode() {
-            // Stadium (static mesh)
-            let stadium = createEntity()
-            setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdz")
-            translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
+        private func setupDefaultSceneObjects() {
+            let gameCamera = createEntity()
+            setEntityName(entityId: gameCamera, name: "Main Camera")
+            createGameCamera(entityId: gameCamera)
 
-            // Player (animated, named for lookup)
-            let player = createEntity()
-            setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdz", flip: false)
-            setEntityName(entityId: player, name: "player")
-            rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
-            setEntityAnimations(entityId: player, filename: "running", withExtension: "usdz", name: "running")
-            setEntityAnimations(entityId: player, filename: "idle", withExtension: "usdz", name: "idle")
-            setEntityKinetics(entityId: player)
+            let light = createEntity()
+            setEntityName(entityId: light, name: "Directional Light")
+            createDirLight(entityId: light)
 
-            // Ball (named for lookup)
-            let ball = createEntity()
-            setEntityMesh(entityId: ball, filename: "ball", withExtension: "usdz")
-            setEntityName(entityId: ball, name: "ball")
-            translateBy(entityId: ball, position: simd_float3(0.0, 0.5, 3.0))
-            setEntityKinetics(entityId: ball)
+            CameraSystem.shared.activeCamera = gameCamera
+        }
 
-            // Camera + lighting
-            moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
-            ambientIntensity = 0.4
+        /// Loads a USDZ file into the scene, replacing any previously loaded model.
+        ///
+        /// The work is staged across two callbacks:
+        ///   1. `destroyAllEntities` fires once the engine has fully cleaned up the
+        ///      previous frame's entities — safe to create new ones here.
+        ///   2. `setEntityMeshAsync` fires when the mesh has finished loading off the
+        ///      main thread — safe to signal the UI here.
+        func loadFile(path: String, completion: @escaping () -> Void) {
+            clearSceneBatches()
+            loadedEntity = nil
 
-            // -----------------------------------------------------
-            // Extend behavior by registering custom components
-            // (attach data to specific entities)
-            // -----------------------------------------------------
-            if let ball = findEntity(name: "ball") {
-                registerComponent(entityId: ball, componentType: BallComponent.self)
+            // Stage 1 — teardown complete, rebuild the scene.
+            destroyAllEntities {
+                self.setupDefaultSceneObjects()
+
+                // Plant the orbit pivot 5 units in front of the freshly-created camera.
+                let camera = findGameCamera()
+                setOrbitOffset(entityId: camera, uTargetOffset: 5.0)
+
+                let entity = createEntity()
+                self.loadedEntity = entity
+
+                // Stage 2 — mesh loaded, notify the UI.
+                setEntityMeshAsync(entityId: entity, filename: path, withExtension: "usdz") { _ in
+                    completion()
+                }
             }
+        }
 
-            if let player = findEntity(name: "player") {
-                registerComponent(entityId: player, componentType: DribblinComponent.self)
+        /// Marks the loaded entity as a static batch and generates batches,
+        /// or disables the batching system when turned off.
+        func setBatching(_ enabled: Bool) {
+            guard let entity = loadedEntity else { return }
+            if enabled {
+                setEntityStaticBatchComponent(entityId: entity)
+                enableBatching(true)
+                generateBatches()
+            } else {
+                enableBatching(false)
             }
+        }
 
-            registerComponent(entityId: findGameCamera(), componentType: CameraFollowComponent.self)
+        /// Attaches a streaming component to the loaded entity and enables the
+        /// geometry streaming system, or shuts it down when turned off.
+        func setStreaming(_ enabled: Bool, streamingRadius: Float, unloadRadius: Float) {
+            guard let entity = loadedEntity else { return }
+            if enabled {
+                enableStreaming(
+                    entityId: entity,
+                    streamingRadius: streamingRadius,
+                    unloadRadius: unloadRadius,
+                    priority: 10
+                )
+                GeometryStreamingSystem.shared.enabled = true
+            } else {
+                GeometryStreamingSystem.shared.enabled = false
+            }
+        }
 
-            // -----------------------------------------------------
-            // Register systems (run every frame)
-            // -----------------------------------------------------
-            registerCustomSystem(ballSystemUpdate)
-            registerCustomSystem(dribblingSystemUpdate)
-            registerCustomSystem(cameraFollowUpdate)
+        /// Toggles the per-entity LOD level colour overlay.
+        func setLodDebug(_ enabled: Bool) {
+            setLODLevelDebug(enabled: enabled)
+        }
+
+        /// Draws (or hides) the octree leaf-node bounds debug overlay.
+        func setSpatialDebug(
+            enabled: Bool,
+            occupiedOnly: Bool,
+            colorMode: SpatialDebugLeafColorMode
+        ) {
+            if enabled {
+                setOctreeLeafBoundsDebug(
+                    enabled: true,
+                    maxLeafNodeCount: 0,
+                    occupiedOnly: occupiedOnly,
+                    colorMode: colorMode
+                )
+            } else {
+                disableSpatialDebugVisualization()
+            }
         }
 
         func update(deltaTime _: Float) {
-            // Skip logic if not in game mode
             if gameMode == false { return }
         }
 
         func handleInput() {
-            // Skip logic if not in game mode
             if gameMode == false { return }
+            let input = InputSystem.shared
+            let camera = findGameCamera()
 
-            // Handle input here
+            // WASD/QE — fly movement
+            moveCameraWithInput(
+                entityId: camera,
+                input: (
+                    w: input.keyState.wPressed,
+                    a: input.keyState.aPressed,
+                    s: input.keyState.sPressed,
+                    d: input.keyState.dPressed,
+                    q: input.keyState.qPressed,
+                    e: input.keyState.ePressed
+                ),
+                speed: 1,
+                deltaTime: 0.1
+            )
+
+            // Right mouse drag — orbit around focal point.
+            // On the first frame of press, reset the orbit pivot to 5 units in front
+            // of the camera's current position so WASD movement never causes a jump.
+            // Lock to the dominant axis (yaw OR pitch per frame) to prevent roll drift.
+            if input.keyState.rightMousePressed {
+                if !wasRightMousePressed {
+                    setOrbitOffset(entityId: camera, uTargetOffset: 5.0)
+                }
+                var dx = input.mouseDeltaX
+                var dy = input.mouseDeltaY
+                if abs(dx) < abs(dy) { dx = 0 } else { dy = 0 }
+                orbitCameraAround(entityId: camera, uDelta: simd_float2(dx, dy))
+            }
+            wasRightMousePressed = input.keyState.rightMousePressed
+
+//            // Scroll wheel — dolly in/out (vertical scroll) or pan left/right (horizontal scroll).
+//            // Lock to the dominant axis to avoid diagonal drift.
+//            let scroll = input.scrollDelta
+//            if scroll.x != 0 || scroll.y != 0 {
+//                var dx = scroll.x
+//                var dy = scroll.y
+//                if abs(dx) < abs(dy) { dx = 0 } else { dy = 0 }
+//                moveCameraAlongAxis(entityId: camera, uDelta: simd_float3(dx * 0.05, 0, dy * 0.05))
+//                input.scrollDelta = .zero
+//            }
         }
     }
 
-    // AppDelegate: Boiler plate code -- Handles everything – Renderer, Metal setup, and GameScene initialization
+    // MARK: - DemoState
+    // Pure UI state. No engine calls here — each property fires a callback
+    // that AppDelegate wires to the matching GameScene method.
+
+    @Observable class DemoState {
+
+        // ── File loading ──────────────────────────────────────────────────
+        var hasLoadedEntity: Bool = false
+        var isLoading: Bool = false
+
+        // ── Features ──────────────────────────────────────────────────────
+        var batchingEnabled: Bool = false {
+            didSet { onBatchingChanged?(batchingEnabled) }
+        }
+
+        var streamingEnabled: Bool = false {
+            didSet { onStreamingChanged?(streamingEnabled, streamingRadius, unloadRadius) }
+        }
+        var streamingRadius: Double = 250.0 {
+            didSet { if streamingEnabled { onStreamingChanged?(true, streamingRadius, unloadRadius) } }
+        }
+        var unloadRadius: Double = 350.0 {
+            didSet { if streamingEnabled { onStreamingChanged?(true, streamingRadius, unloadRadius) } }
+        }
+
+        // ── Debug ─────────────────────────────────────────────────────────
+        var lodDebugEnabled: Bool = false {
+            didSet { onLodDebugChanged?(lodDebugEnabled) }
+        }
+
+        var spatialDebugEnabled: Bool = false {
+            didSet { onSpatialDebugChanged?(spatialDebugEnabled, spatialOccupiedOnly, spatialColorMode) }
+        }
+        var spatialColorMode: SpatialDebugLeafColorMode = .plain {
+            didSet { if spatialDebugEnabled { onSpatialDebugChanged?(true, spatialOccupiedOnly, spatialColorMode) } }
+        }
+        var spatialOccupiedOnly: Bool = true {
+            didSet { if spatialDebugEnabled { onSpatialDebugChanged?(true, spatialOccupiedOnly, spatialColorMode) } }
+        }
+
+        // ── Stats ─────────────────────────────────────────────────────────
+        var showStats: Bool = true
+        var stats: EngineStatsSnapshot = .init()
+
+        // ── Callbacks — wired by AppDelegate ──────────────────────────────
+        var onLoadFile: ((String, @escaping () -> Void) -> Void)?
+        var onBatchingChanged: ((Bool) -> Void)?
+        var onStreamingChanged: ((Bool, Double, Double) -> Void)?
+        var onLodDebugChanged: ((Bool) -> Void)?
+        var onSpatialDebugChanged: ((Bool, Bool, SpatialDebugLeafColorMode) -> Void)?
+    }
+
+    // MARK: - StatsPanel
+
+    struct StatsPanel: View {
+        let stats: EngineStatsSnapshot
+
+        private var fps: Double {
+            stats.timing.smoothedFrameMs > 0 ? 1000.0 / stats.timing.smoothedFrameMs : 0
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Engine Stats").font(.headline)
+                Divider()
+
+                // Timing
+                row("FPS",       String(format: "%.1f",    fps))
+                row("CPU Frame", String(format: "%.2f ms", stats.timing.frameTotalMs))
+                row("GPU",       String(format: "%.2f ms", stats.timing.gpuExecutionMs))
+                Divider()
+
+                // Render
+                row("Draw Calls",  "\(stats.render.drawCallsTotal)")
+                row("  Opaque",    "\(stats.render.drawCallsOpaque)")
+                row("  Batched",   "\(stats.render.drawCallsBatched)")
+                row("Triangles",   fmt(stats.render.trianglesTotal))
+                row("Visible",     "\(stats.render.visibleInstances)")
+                Divider()
+
+                // Culling
+                row("Frustum",   "\(stats.culling.frustumPassed) / \(stats.culling.frustumTested)")
+                row("Occlusion", "\(stats.culling.occlusionPassed) / \(stats.culling.occlusionTested)")
+                Divider()
+
+                // Batching
+                row("Batch Groups",   "\(stats.batching.batchGroupCount)")
+                row("Batched Meshes", "\(stats.batching.batchedMeshCount)")
+            }
+            .font(.system(.caption, design: .monospaced))
+            .padding(12)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        }
+
+        private func row(_ label: String, _ value: String) -> some View {
+            HStack {
+                Text(label).foregroundStyle(.secondary)
+                Spacer()
+                Text(value)
+            }
+        }
+
+        private func fmt(_ n: Int) -> String {
+            if n >= 1_000_000 { return String(format: "%.1fM", Double(n) / 1_000_000) }
+            if n >= 1_000     { return String(format: "%.1fK", Double(n) / 1_000) }
+            return "\(n)"
+        }
+    }
+
+    // MARK: - DemoHUD
+
+    struct DemoHUD: View {
+        var renderer: UntoldRenderer
+        @Bindable var state: DemoState
+        @State private var showFilePicker = false
+
+        var body: some View {
+            ZStack(alignment: .topLeading) {
+                SceneView(renderer: renderer)
+
+                // Controls panel — top left
+                VStack(alignment: .leading, spacing: 8) {
+
+                    // ── Load ──────────────────────────────────────────────
+                    HStack(spacing: 8) {
+                        Button("Load USDZ...") { showFilePicker = true }
+                            .buttonStyle(.bordered)
+                            .disabled(state.isLoading)
+                        if state.isLoading {
+                            ProgressView()
+                                .scaleEffect(0.6)
+                                .frame(width: 16, height: 16)
+                        }
+                    }
+
+                    Divider()
+
+                    // ── Controls ──────────────────────────────────────────
+                    sectionLabel("CONTROLS")
+                    controlHint("WASD / QE", "Translate")
+                    controlHint("Right-click drag", "Rotate")
+
+                    Divider()
+
+                    // ── Features ──────────────────────────────────────────
+                    sectionLabel("FEATURES")
+
+                    Toggle("Static Batching", isOn: $state.batchingEnabled)
+                        .toggleStyle(.checkbox)
+                        .disabled(!state.hasLoadedEntity || state.isLoading)
+
+                    Toggle("Geometry Streaming", isOn: $state.streamingEnabled)
+                        .toggleStyle(.checkbox)
+                        .disabled(!state.hasLoadedEntity || state.isLoading)
+
+                    HStack {
+                        Text("Stream Radius").foregroundStyle(.secondary)
+                        Spacer()
+                        TextField("", value: $state.streamingRadius, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 70)
+                    }
+                    .padding(.leading, 12)
+                    .opacity(state.streamingEnabled ? 1.0 : 0.35)
+                    .disabled(!state.streamingEnabled)
+
+                    HStack {
+                        Text("Unload Radius").foregroundStyle(.secondary)
+                        Spacer()
+                        TextField("", value: $state.unloadRadius, format: .number)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 70)
+                    }
+                    .padding(.leading, 12)
+                    .opacity(state.streamingEnabled ? 1.0 : 0.35)
+                    .disabled(!state.streamingEnabled)
+
+                    Divider()
+
+                    // ── Debug ─────────────────────────────────────────────
+                    sectionLabel("DEBUG")
+
+                    Toggle("LOD Debug", isOn: $state.lodDebugEnabled)
+                        .toggleStyle(.checkbox)
+
+                    Toggle("Spatial Debug", isOn: $state.spatialDebugEnabled)
+                        .toggleStyle(.checkbox)
+                    if state.spatialDebugEnabled {
+                        Toggle("Occupied Only", isOn: $state.spatialOccupiedOnly)
+                            .toggleStyle(.checkbox)
+                            .padding(.leading, 12)
+                        Picker("Mode", selection: $state.spatialColorMode) {
+                            Text("Plain").tag(SpatialDebugLeafColorMode.plain)
+                            Text("Residency").tag(SpatialDebugLeafColorMode.residency)
+                            Text("Culling").tag(SpatialDebugLeafColorMode.culling)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(minWidth: 180)
+                    }
+
+                    Divider()
+
+                    // ── Stats ─────────────────────────────────────────────
+                    Toggle("Engine Stats", isOn: $state.showStats)
+                        .toggleStyle(.checkbox)
+                }
+                .padding(12)
+                .fixedSize(horizontal: true, vertical: false)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding()
+
+                // Stats panel — top right
+                if state.showStats {
+                    HStack {
+                        Spacer()
+                        StatsPanel(stats: state.stats)
+                            .frame(width: 260)
+                            .padding()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .topTrailing)
+                }
+            }
+            .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
+                if state.showStats {
+                    state.stats = getEngineStatsSnapshot()
+                }
+            }
+            .fileImporter(
+                isPresented: $showFilePicker,
+                allowedContentTypes: [UTType(filenameExtension: "usdz") ?? .data]
+            ) { result in
+                guard case .success(let url) = result else { return }
+                let accessing = url.startAccessingSecurityScopedResource()
+                let path = url.deletingPathExtension().path
+                state.batchingEnabled = false
+                state.streamingEnabled = false
+                state.isLoading = true
+                state.onLoadFile?(path) {
+                    state.isLoading = false
+                    state.hasLoadedEntity = true
+                    if accessing { url.stopAccessingSecurityScopedResource() }
+                }
+            }
+        }
+
+        @ViewBuilder
+        private func sectionLabel(_ text: String) -> some View {
+            Text(text)
+                .font(.system(.caption, design: .default).weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+
+        @ViewBuilder
+        private func controlHint(_ key: String, _ action: String) -> some View {
+            HStack {
+                Text(key)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text(action)
+                    .font(.system(.caption, design: .default))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.leading, 4)
+        }
+    }
+
+    // MARK: - AppDelegate
+
     class AppDelegate: NSObject, NSApplicationDelegate {
         var window: NSWindow!
         var renderer: UntoldRenderer!
         var gameScene: GameScene!
+        var demoState = DemoState()
 
         func applicationDidFinishLaunching(_: Notification) {
-            print("Launching Untold Engine")
+            print("Launching Untold Engine v0.11.2")
 
             // Step 1. Create and configure the window
             window = NSWindow(
@@ -227,30 +461,51 @@
                 backing: .buffered,
                 defer: false
             )
-
-            window.title = "Untold Engine"
+            window.title = "Untold Engine v0.11.2"
             window.center()
 
-            // Step 2. Initialize the renderer and connect metal content
+            // Step 2. Initialize the renderer
             guard let renderer = UntoldRenderer.create() else {
                 print("Failed to initialize the renderer.")
                 return
             }
-
-            window.contentView = renderer.metalView
-
             self.renderer = renderer
 
-            // Step 3. Create the game scene and connect callbacks
+            // Step 3. Create the game scene and connect render callbacks
             gameScene = GameScene()
             renderer.setupCallbacks(
                 gameUpdate: { [weak self] deltaTime in self?.gameScene.update(deltaTime: deltaTime) },
                 handleInput: { [weak self] in self?.gameScene.handleInput() }
             )
 
-            let hostingView = NSHostingView(rootView: SceneView(renderer: renderer))
-            window.contentView = hostingView
+            // Step 4. Wire DemoState callbacks to GameScene engine calls
+            demoState.onLoadFile = { [weak self] path, completion in
+                self?.gameScene.loadFile(path: path, completion: completion)
+            }
+            demoState.onBatchingChanged = { [weak self] enabled in
+                self?.gameScene.setBatching(enabled)
+            }
+            demoState.onStreamingChanged = { [weak self] enabled, radius, unloadRadius in
+                self?.gameScene.setStreaming(
+                    enabled,
+                    streamingRadius: Float(radius),
+                    unloadRadius: Float(unloadRadius)
+                )
+            }
+            demoState.onLodDebugChanged = { [weak self] enabled in
+                self?.gameScene.setLodDebug(enabled)
+            }
+            demoState.onSpatialDebugChanged = { [weak self] enabled, occupiedOnly, colorMode in
+                self?.gameScene.setSpatialDebug(
+                    enabled: enabled,
+                    occupiedOnly: occupiedOnly,
+                    colorMode: colorMode
+                )
+            }
 
+            // Step 5. Present the HUD
+            let hostingView = NSHostingView(rootView: DemoHUD(renderer: renderer, state: demoState))
+            window.contentView = hostingView
             window.makeKeyAndOrderFront(nil)
             NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
@@ -261,11 +516,10 @@
         }
     }
 
-    // Entry point
+    // MARK: - Entry point
 
     let app = NSApplication.shared
     let delegate = AppDelegate()
     app.delegate = delegate
-
     app.run()
 #endif
