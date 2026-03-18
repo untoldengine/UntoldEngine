@@ -1779,6 +1779,23 @@ public class BatchingSystem: @unchecked Sendable {
         entityToBatch[entityId]
     }
 
+    /// Update the representative material of the batch group that contains `entityId` in-place.
+    ///
+    /// This lets texture streaming swap a new `MTLTexture` into the batch group's material
+    /// without tearing down or rebuilding the batch. The render pass reads `group.material`
+    /// fresh every frame, so the change takes effect on the very next draw call.
+    ///
+    /// - Returns: `true` if the entity was found in an active batch and the update was applied.
+    @discardableResult
+    public func updateBatchMaterialInPlace(for entityId: EntityID, update: (inout Material) -> Void) -> Bool {
+        guard let batchInfo = entityToBatch[entityId],
+              let index = batchIdToIndex[batchInfo.batchId],
+              batchGroups.indices.contains(index)
+        else { return false }
+        update(&batchGroups[index].material)
+        return true
+    }
+
     public func setEnabled(_ enabled: Bool) {
         batchingEnabled = enabled
         if !enabled {
