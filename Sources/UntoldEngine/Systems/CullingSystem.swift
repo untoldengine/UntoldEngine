@@ -128,18 +128,18 @@ public func makeObjectAABB(localMin: simd_float3,
     return EntityAABB(center: simd_float4(c.x, c.y, c.z, 0.0), halfExtent: simd_float4(e.x, e.y, e.z, 0.0), index: index, version: version, pad0: 0, pad1: 0)
 }
 
-// Aspect ratio above which a world AABB is considered elongated and split into segments.
+/// Aspect ratio above which a world AABB is considered elongated and split into segments.
 private let kSegmentAspectThreshold: Float = 3.0
-// Number of equal-length segments to split an elongated AABB into.
+/// Number of equal-length segments to split an elongated AABB into.
 private let kSegmentCount: Int = 3
 
 /// Returns one EntityAABB for compact meshes, or `kSegmentCount` AABBs along the dominant
 /// axis for elongated ones.  All segments share the same (index, version) so the entity is
 /// considered visible when any single segment survives culling.
 func makeSegmentedEntityAABBs(localMin: simd_float3,
-                               localMax: simd_float3,
-                               worldMatrix M: simd_float4x4,
-                               index: UInt32, version: UInt32) -> [EntityAABB]
+                              localMax: simd_float3,
+                              worldMatrix M: simd_float4x4,
+                              index: UInt32, version: UInt32) -> [EntityAABB]
 {
     let (center, halfExtent) = worldAABB_CenterExtent(localMin: localMin, localMax: localMax, worldMatrix: M)
 
@@ -163,14 +163,15 @@ func makeSegmentedEntityAABBs(localMin: simd_float3,
         return [EntityAABB(
             center: simd_float4(center.x, center.y, center.z, 0),
             halfExtent: simd_float4(halfExtent.x, halfExtent.y, halfExtent.z, 0),
-            index: index, version: version, pad0: 0, pad1: 0)]
+            index: index, version: version, pad0: 0, pad1: 0
+        )]
     }
 
     // Split into kSegmentCount equal segments along the dominant axis.
     var result: [EntityAABB] = []
     result.reserveCapacity(kSegmentCount)
     let segHalfLen = dominantHalf / Float(kSegmentCount)
-    let startOffset = -dominantHalf + segHalfLen   // offset of first segment centre from entity centre
+    let startOffset = -dominantHalf + segHalfLen // offset of first segment centre from entity centre
 
     for s in 0 ..< kSegmentCount {
         var segCenter = center
@@ -181,7 +182,8 @@ func makeSegmentedEntityAABBs(localMin: simd_float3,
         result.append(EntityAABB(
             center: simd_float4(segCenter.x, segCenter.y, segCenter.z, 0),
             halfExtent: simd_float4(segHalf.x, segHalf.y, segHalf.z, 0),
-            index: index, version: version, pad0: 0, pad1: 0))
+            index: index, version: version, pad0: 0, pad1: 0
+        ))
     }
     return result
 }
@@ -640,7 +642,8 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
                 localMax: localTransformComponent.boundingBox.max,
                 worldMatrix: worldTransformComponent.space,
                 index: getEntityIndex(entityId),
-                version: getEntityVersion(entityId))
+                version: getEntityVersion(entityId)
+            )
             entityAABBContainer.append(singleAABB)
         } else {
             // get object AABB — elongated meshes are split into segments so a solid
@@ -650,7 +653,8 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
                 localMax: localTransformComponent.boundingBox.max,
                 worldMatrix: worldTransformComponent.space,
                 index: getEntityIndex(entityId),
-                version: getEntityVersion(entityId))
+                version: getEntityVersion(entityId)
+            )
             entityAABBContainer.append(contentsOf: segments)
         }
     }
@@ -726,9 +730,9 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         eye1VisTriple.ensureCapacity(count)
 
         let eye0CountBuf = eye0CountTriple.bufferForWrite(frame: submitFrameIndex)
-        let eye0VisBuf   = eye0VisTriple.bufferForWrite(frame: submitFrameIndex)
+        let eye0VisBuf = eye0VisTriple.bufferForWrite(frame: submitFrameIndex)
         let eye1CountBuf = eye1CountTriple.bufferForWrite(frame: submitFrameIndex)
-        let eye1VisBuf   = eye1VisTriple.bufferForWrite(frame: submitFrameIndex)
+        let eye1VisBuf = eye1VisTriple.bufferForWrite(frame: submitFrameIndex)
 
         let ran0 = executeHZBOcclusionCulling(
             commandBuffer,
@@ -952,7 +956,8 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             localMax: localTransformComponent.boundingBox.max,
             worldMatrix: worldTransformComponent.space,
             index: getEntityIndex(entityId),
-            version: getEntityVersion(entityId))
+            version: getEntityVersion(entityId)
+        )
         entityAABBContainer.append(contentsOf: segments)
     }
 

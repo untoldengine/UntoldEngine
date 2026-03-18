@@ -142,7 +142,7 @@ final class EntityAABBTest: XCTestCase {
 
     // MARK: - makeSegmentedEntityAABBs
 
-    // Compact mesh: aspect ratio ≤ 3 → single AABB, identical to makeObjectAABB output.
+    /// Compact mesh: aspect ratio ≤ 3 → single AABB, identical to makeObjectAABB output.
     func test_segmented_compactMesh_returnsSingleAABB() {
         // 2×2×2 cube — all axes equal, aspect = 1.
         let localMin = simd_float3(-1, -1, -1)
@@ -159,7 +159,7 @@ final class EntityAABBTest: XCTestCase {
         approxEqual(simd_float3(result[0].halfExtent.x, result[0].halfExtent.y, result[0].halfExtent.z), simd_float3(1, 1, 1))
     }
 
-    // Compact mesh: aspect ratio exactly at threshold (= 3.0) → still single AABB.
+    /// Compact mesh: aspect ratio exactly at threshold (= 3.0) → still single AABB.
     func test_segmented_aspectAtThreshold_returnsSingleAABB() {
         // halfExtent = (3, 1, 1) → dominant/minShort = 3.0, not > threshold.
         let localMin = simd_float3(-3, -1, -1)
@@ -171,7 +171,7 @@ final class EntityAABBTest: XCTestCase {
         XCTAssertEqual(result.count, 1)
     }
 
-    // Elongated along X: aspect > 3 → 3 segments.
+    /// Elongated along X: aspect > 3 → 3 segments.
     func test_segmented_elongatedX_returnsThreeSegments() {
         // halfExtent = (6, 1, 1) → aspect 6 > 3.
         let localMin = simd_float3(-6, -1, -1)
@@ -207,7 +207,7 @@ final class EntityAABBTest: XCTestCase {
         }
     }
 
-    // Elongated along Y: dominant axis is Y.
+    /// Elongated along Y: dominant axis is Y.
     func test_segmented_elongatedY_returnsThreeSegments() {
         // halfExtent = (1, 9, 1) → aspect 9 > 3.
         let localMin = simd_float3(-1, -9, -1)
@@ -231,7 +231,7 @@ final class EntityAABBTest: XCTestCase {
         }
     }
 
-    // Elongated along Z: dominant axis is Z.
+    /// Elongated along Z: dominant axis is Z.
     func test_segmented_elongatedZ_returnsThreeSegments() {
         // halfExtent = (1, 1, 12) → aspect 12 > 3.
         let localMin = simd_float3(-1, -1, -12)
@@ -253,8 +253,8 @@ final class EntityAABBTest: XCTestCase {
         }
     }
 
-    // Combined coverage: segments union exactly covers the original AABB along the dominant axis.
-    func test_segmented_segmentsCoverFullLength() {
+    /// Combined coverage: segments union exactly covers the original AABB along the dominant axis.
+    func test_segmented_segmentsCoverFullLength() throws {
         let localMin = simd_float3(-8, -1, -1)
         let localMax = simd_float3(8, 1, 1)
         let M = matrix_identity_float4x4
@@ -263,15 +263,15 @@ final class EntityAABBTest: XCTestCase {
         XCTAssertEqual(result.count, 3)
 
         // Leading edge of first segment and trailing edge of last segment should equal ±8.
-        let first = result.first!
-        let last = result.last!
+        let first = try XCTUnwrap(result.first)
+        let last = try XCTUnwrap(result.last)
         let leading = first.center.x - first.halfExtent.x
         let trailing = last.center.x + last.halfExtent.x
         XCTAssertEqual(leading, -8.0, accuracy: 1e-4)
         XCTAssertEqual(trailing, 8.0, accuracy: 1e-4)
     }
 
-    // With a non-identity world transform, segments still share the same index/version.
+    /// With a non-identity world transform, segments still share the same index/version.
     func test_segmented_withTranslation_preservesIndexVersion() {
         let localMin = simd_float3(-6, -1, -1)
         let localMax = simd_float3(6, 1, 1)
