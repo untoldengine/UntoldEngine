@@ -550,7 +550,7 @@ public struct Mesh {
     /// Holds MDLAsset and its top-level objects after a CPU-only parse.
     /// No Metal buffers are allocated yet — MTKMesh creation happens per-batch in ProgressiveAssetLoader.
     struct ProgressiveAssetData: @unchecked Sendable {
-        let asset: MDLAsset           // Retained so MDLMesh objects stay valid during batch processing
+        let asset: MDLAsset // Retained so MDLMesh objects stay valid during batch processing
         let topLevelObjects: [MDLObject]
         let textureLoader: TextureLoader
         let totalObjectCount: Int
@@ -570,7 +570,7 @@ public struct Mesh {
         device: MTLDevice,
         coordinateConversion: CoordinateSystemConversion = .autoDetect
     ) async -> ProgressiveAssetData? {
-        return await Task.detached { () -> ProgressiveAssetData? in
+        await Task.detached { () -> ProgressiveAssetData? in
             guard FileManager.default.fileExists(atPath: url.path) else {
                 Logger.logError(message: "[ProgressiveLoader] Asset file not found: \(url.path)")
                 return nil

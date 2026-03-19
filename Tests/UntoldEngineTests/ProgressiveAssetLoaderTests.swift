@@ -20,7 +20,6 @@ import XCTest
 /// behave correctly in isolation.
 @MainActor
 final class ProgressiveLoadJobTests: XCTestCase {
-
     // MARK: Helpers
 
     private func makeJob(totalCount: Int, pendingItems: [PendingObjectItem] = []) -> ProgressiveLoadJob {
@@ -114,7 +113,7 @@ final class ProgressiveLoadJobTests: XCTestCase {
 
     func testState_initiallyProgressiveLoading() {
         let job = makeJob(totalCount: 10)
-        if case .progressiveLoading(let completed, let total) = job.state {
+        if case let .progressiveLoading(completed, total) = job.state {
             XCTAssertEqual(completed, 0)
             XCTAssertEqual(total, 10)
         } else {
@@ -133,7 +132,7 @@ final class ProgressiveLoadJobTests: XCTestCase {
     func testState_progressiveLoadingCarriesCorrectCounts() {
         let job = makeJob(totalCount: 8)
         job.state = .progressiveLoading(completed: 4, total: 8)
-        if case .progressiveLoading(let completed, let total) = job.state {
+        if case let .progressiveLoading(completed, total) = job.state {
             XCTAssertEqual(completed, 4)
             XCTAssertEqual(total, 8)
         } else {
@@ -164,7 +163,6 @@ final class ProgressiveLoadJobTests: XCTestCase {
 /// independent of the ECS and render pipeline.
 @MainActor
 final class ProgressiveAssetLoaderSchedulerTests: XCTestCase {
-
     var loader: ProgressiveAssetLoader!
     var device: MTLDevice!
     var textureLoader: TextureLoader!
@@ -189,7 +187,7 @@ final class ProgressiveAssetLoaderSchedulerTests: XCTestCase {
         // Restore defaults before each test
         loader.maxMeshesPerTick = 4
         loader.maxTickMilliseconds = 2.0
-        loader.fileSizeThresholdBytes = 50 * 1024 * 1024  // 50 MB default
+        loader.fileSizeThresholdBytes = 50 * 1024 * 1024 // 50 MB default
         loader.enabled = true
     }
 
@@ -262,7 +260,7 @@ final class ProgressiveAssetLoaderSchedulerTests: XCTestCase {
     // MARK: - Enqueue
 
     func testEnqueue_makesLoaderActive() {
-        let (_, _) = enqueue(itemCount: 3)
+        _ = enqueue(itemCount: 3)
         XCTAssertTrue(loader.hasActiveJobs)
     }
 
@@ -272,7 +270,7 @@ final class ProgressiveAssetLoaderSchedulerTests: XCTestCase {
             XCTFail("Expected a load state for entity \(id)")
             return
         }
-        if case .progressiveLoading(let completed, let total) = state {
+        if case let .progressiveLoading(completed, total) = state {
             XCTAssertEqual(completed, 0)
             XCTAssertEqual(total, 5)
         } else {
@@ -281,7 +279,7 @@ final class ProgressiveAssetLoaderSchedulerTests: XCTestCase {
     }
 
     func testEnqueue_diagnosticsReflectsQueuedItems() {
-        let (_, _) = enqueue(itemCount: 6)
+        _ = enqueue(itemCount: 6)
         let (queued, completed) = (loader.diagnostics().totalQueued, loader.diagnostics().totalCompleted)
         XCTAssertGreaterThanOrEqual(queued, 6)
         XCTAssertEqual(completed, 0)
@@ -306,7 +304,7 @@ final class ProgressiveAssetLoaderSchedulerTests: XCTestCase {
 
     func testCancel_unknownEntityId_doesNotCrash() {
         // Should silently no-op for an ID that was never enqueued
-        loader.cancel(entityId: 99_999)
+        loader.cancel(entityId: 99999)
     }
 
     func testCancel_loadStateNilAfterCancel() {
@@ -486,15 +484,15 @@ final class ProgressiveAssetLoaderSchedulerTests: XCTestCase {
     // MARK: - Diagnostics
 
     func testDiagnostics_activeJobCount() {
-        let (_, _) = enqueue(itemCount: 3)
-        let (_, _) = enqueue(itemCount: 3)
+        _ = enqueue(itemCount: 3)
+        _ = enqueue(itemCount: 3)
         let diag = loader.diagnostics()
         XCTAssertGreaterThanOrEqual(diag.activeJobs, 2)
     }
 
     func testDiagnostics_queuedDecrementsAfterTick() {
         loader.maxMeshesPerTick = 2
-        let (_, _) = enqueue(itemCount: 6)
+        _ = enqueue(itemCount: 6)
         let beforeQueued = loader.diagnostics().totalQueued
 
         loader.tick()
@@ -505,7 +503,7 @@ final class ProgressiveAssetLoaderSchedulerTests: XCTestCase {
 
     func testDiagnostics_completedIncrementsAfterTick() {
         loader.maxMeshesPerTick = 3
-        let (_, _) = enqueue(itemCount: 6)
+        _ = enqueue(itemCount: 6)
 
         loader.tick()
 

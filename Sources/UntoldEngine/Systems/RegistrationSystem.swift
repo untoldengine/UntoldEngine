@@ -824,6 +824,7 @@ public func setEntityMeshAsync(
         }
 
         // MARK: Progressive loading path
+
         //
         // For large files (no specific assetName requested), parse with a CPU-only
         // allocator to avoid the GPU memory spike caused by MTKMeshBufferAllocator
@@ -918,7 +919,7 @@ public func setEntityMeshAsync(
                 await AssetLoadingState.shared.finishLoading(entityId: entityId)
 
                 ProgressiveAssetLoader.shared.enqueue(job)
-                return  // ProgressiveAssetLoader.tick() takes it from here.
+                return // ProgressiveAssetLoader.tick() takes it from here.
             }
 
             // SMALL-FILE FAST PATH (CPU-parsed) ────────────────────────────────────────

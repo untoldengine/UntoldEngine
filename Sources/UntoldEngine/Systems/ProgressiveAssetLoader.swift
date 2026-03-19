@@ -79,8 +79,13 @@ final class ProgressiveLoadJob: @unchecked Sendable {
     /// Called on the main actor when all mesh groups have been registered.
     let completion: ((Bool) -> Void)?
 
-    var hasPendingWork: Bool { nextPendingIndex < pending.count }
-    var isFullyLoaded: Bool { completedCount >= totalCount }
+    var hasPendingWork: Bool {
+        nextPendingIndex < pending.count
+    }
+
+    var isFullyLoaded: Bool {
+        completedCount >= totalCount
+    }
 
     init(
         rootEntityId: EntityID,
@@ -99,8 +104,8 @@ final class ProgressiveLoadJob: @unchecked Sendable {
         self.pending = pending
         self.totalCount = totalCount
         self.assetRef = assetRef
-        self.startTime = CACurrentMediaTime()
-        self.state = .progressiveLoading(completed: 0, total: totalCount)
+        startTime = CACurrentMediaTime()
+        state = .progressiveLoading(completed: 0, total: totalCount)
         self.completion = completion
     }
 }
@@ -158,7 +163,7 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     /// Default: 50 MB. Adjust based on the target device's GPU memory budget.
     /// - A 1.5 MB file with 2 000 simple meshes is fast to upload all at once.
     /// - A 530 MB file must be streamed to avoid exhausting GPU memory.
-    public var fileSizeThresholdBytes: Int = 50 * 1024 * 1024  // 50 MB
+    public var fileSizeThresholdBytes: Int = 50 * 1024 * 1024 // 50 MB
 
     /// Set to `false` to globally disable progressive loading (falls back to legacy path).
     public var enabled: Bool = true
@@ -337,7 +342,9 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
 
         if !toRemove.isEmpty {
             lock.lock()
-            for id in toRemove { jobs.removeValue(forKey: id) }
+            for id in toRemove {
+                jobs.removeValue(forKey: id)
+            }
             lock.unlock()
         }
 
