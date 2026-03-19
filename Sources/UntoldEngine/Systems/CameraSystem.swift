@@ -171,12 +171,13 @@ public func orbitAround(entityId: EntityID, uPosition: simd_float2) {
     let length: Float = simd_length(target)
     var direction: simd_float3 = simd_normalize(target)
 
-    // rot about yaw first
+    // rot about yaw first — always anchor to world Y so the up axis
+    // never drifts across frames and causes roll accumulation.
     let rotationX: simd_quatf = getRotationQuaternion(
         axis: simd_float3(0.0, 1.0, 0.0), angle: uPosition.x
     )
     direction = rotateVectorUsingQuaternion(q: rotationX, v: direction)
-    var newUpAxis = rotateVectorUsingQuaternion(q: rotationX, v: cameraComponent.yAxis)
+    var newUpAxis = simd_float3(0.0, 1.0, 0.0)
 
     direction = simd_normalize(direction)
     newUpAxis = simd_normalize(newUpAxis)
