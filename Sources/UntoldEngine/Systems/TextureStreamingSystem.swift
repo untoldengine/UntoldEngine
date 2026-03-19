@@ -52,11 +52,11 @@ public class TextureStreamingSystem: @unchecked Sendable {
     public var enabled: Bool = true
 
     /// Textures closer than this distance stream to full resolution.
-    public var upgradeRadius: Float = 4.0
+    public var upgradeRadius: Float = 12.0
 
     /// Textures between `upgradeRadius` and `downgradeRadius` stream to `maxTextureDimension`.
     /// Textures beyond `downgradeRadius` stream to `minimumTextureDimension`.
-    public var downgradeRadius: Float = 12.0
+    public var downgradeRadius: Float = 20.0
 
     /// Mid-distance max dimension.
     public var maxTextureDimension: Int = TextureStreamingSystem.platformDefaultMaxTextureDimension
