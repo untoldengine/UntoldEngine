@@ -423,6 +423,10 @@ public struct BatchGroup {
     var meshIndices: [(entityId: EntityID, meshIndex: Int)] // Track source meshes
     var boundingBox: (min: simd_float3, max: simd_float3)
 
+    /// Incremented each time `updateBatchMaterialInPlace` patches this group's textures.
+    /// Used to detect whether a batch artifact is stale relative to the live streaming state.
+    var textureGeneration: Int = 0
+
     /// Backward-compatible alias; prefer batchKey for clarity.
     var materialHash: String {
         batchKey
@@ -1091,11 +1095,18 @@ public class BatchingSystem: @unchecked Sendable {
             return
         }
 
+        let insertedStart = batchGroups.count
         batchGroups.append(contentsOf: artifact.builtGroups)
         batchedCells.insert(cellId)
         for (entityId, info) in artifact.entityBatchMap {
             entityToBatch[entityId] = info
         }
+
+        // The artifact was built from a material snapshot that may predate one or more
+        // texture streaming patches. Re-apply the live streaming state from each group's
+        // representative entity so the freshly-installed batch reflects current resolution.
+        reconcileStreamingTexturesAfterArtifact(insertedStart: insertedStart)
+
         batchIndexNeedsRebuild = true
         setCellState(cellId, .renderableBatched)
 
@@ -1113,6 +1124,66 @@ public class BatchingSystem: @unchecked Sendable {
         recordRuntimeCellRebuild(cellId: cellId, rebuildMs: artifact.buildMs, rebuiltGroups: artifact.groupCount)
         runtimeBatchIneligibleCells.remove(cellId)
         SystemIntegrationMonitor.shared.recordBatchRebuild()
+    }
+
+    /// After a fresh artifact is appended to `batchGroups`, copy the live texture state
+    /// from each group's representative entity into the group's material.
+    ///
+    /// This prevents a background build (snapshotted before a streaming patch) from
+    /// silently reverting an entity to a lower-resolution tier.
+    private func reconcileStreamingTexturesAfterArtifact(insertedStart: Int) {
+        guard insertedStart < batchGroups.count else { return }
+
+        for i in insertedStart..<batchGroups.count {
+            // All entities in a group share the same material, so the first live entity
+            // is a valid representative for the current streaming state.
+            var liveTexture: (
+                baseTex: MTLTexture?, baseLevel: TextureStreamingLevel,
+                roughTex: MTLTexture?, roughLevel: TextureStreamingLevel,
+                metalTex: MTLTexture?, metalLevel: TextureStreamingLevel,
+                normalTex: MTLTexture?, normalLevel: TextureStreamingLevel
+            )?
+
+            for entityId in batchGroups[i].entityIds {
+                guard let render = scene.get(component: RenderComponent.self, for: entityId),
+                      let mesh = render.mesh.first,
+                      let submesh = mesh.submeshes.first,
+                      let material = submesh.material
+                else { continue }
+
+                liveTexture = (
+                    baseTex: material.baseColor.texture,
+                    baseLevel: material.baseColorStreamingLevel,
+                    roughTex: material.roughness.texture,
+                    roughLevel: material.roughnessStreamingLevel,
+                    metalTex: material.metallic.texture,
+                    metalLevel: material.metallicStreamingLevel,
+                    normalTex: material.normal.texture,
+                    normalLevel: material.normalStreamingLevel
+                )
+                break
+            }
+
+            guard let live = liveTexture else { continue }
+
+            // Only reconcile if the entity's streaming level differs from the artifact's
+            // snapshot — i.e., a streaming patch actually occurred after the snapshot.
+            let artifactLevel = batchGroups[i].material.baseColorStreamingLevel
+            guard live.baseLevel != artifactLevel
+                || live.roughLevel != batchGroups[i].material.roughnessStreamingLevel
+                || live.metalLevel != batchGroups[i].material.metallicStreamingLevel
+                || live.normalLevel != batchGroups[i].material.normalStreamingLevel
+            else { continue }
+
+            batchGroups[i].material.baseColor.texture = live.baseTex
+            batchGroups[i].material.baseColorStreamingLevel = live.baseLevel
+            batchGroups[i].material.roughness.texture = live.roughTex
+            batchGroups[i].material.roughnessStreamingLevel = live.roughLevel
+            batchGroups[i].material.metallic.texture = live.metalTex
+            batchGroups[i].material.metallicStreamingLevel = live.metalLevel
+            batchGroups[i].material.normal.texture = live.normalTex
+            batchGroups[i].material.normalStreamingLevel = live.normalLevel
+        }
     }
 
     private func estimateCellWork(for cellId: BatchCellID) -> CellWorkEstimate {
@@ -1793,6 +1864,7 @@ public class BatchingSystem: @unchecked Sendable {
               batchGroups.indices.contains(index)
         else { return false }
         update(&batchGroups[index].material)
+        batchGroups[index].textureGeneration += 1
         return true
     }
 
