@@ -125,6 +125,23 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         }
     }
 
+    /// Color shaded renderables by current texture streaming tier.
+    /// Blue = full resolution, Red = capped/reduced, Yellow = in-flight.
+    private var _colorRenderablesByStreamingTier: Bool = false
+    public var colorRenderablesByStreamingTier: Bool {
+        get {
+            lock.lock()
+            let value = _colorRenderablesByStreamingTier
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _colorRenderablesByStreamingTier = newValue
+            lock.unlock()
+        }
+    }
+
     /// Draw static batch cell bounds.
     private var _showStaticBatchCellBounds: Bool = false
     public var showStaticBatchCellBounds: Bool {
@@ -182,7 +199,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         colorMode: SpatialDebugLeafColorMode = .plain
     ) {
         lock.lock()
-        _enabled = enabled || _showStaticBatchCellBounds || _colorRenderablesByLOD
+        _enabled = enabled || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
         _showOctreeLeafBounds = enabled
         _maxLeafNodeCount = max(0, maxLeafNodeCount)
         _octreeLeafOccupiedOnly = occupiedOnly
@@ -196,7 +213,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         colorMode: SpatialDebugBatchCellColorMode = .plain
     ) {
         lock.lock()
-        _enabled = _showOctreeLeafBounds || enabled || _colorRenderablesByLOD
+        _enabled = _showOctreeLeafBounds || enabled || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
         _showStaticBatchCellBounds = enabled
         _maxStaticBatchCellCount = max(0, maxCellCount)
         _staticBatchCellColorMode = colorMode
@@ -206,7 +223,14 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
     public func configureLODLevelColoring(enabled: Bool) {
         lock.lock()
         _colorRenderablesByLOD = enabled
-        _enabled = _showOctreeLeafBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD
+        _enabled = _showOctreeLeafBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
+        lock.unlock()
+    }
+
+    public func configureTextureStreamingTierColoring(enabled: Bool) {
+        lock.lock()
+        _colorRenderablesByStreamingTier = enabled
+        _enabled = _showOctreeLeafBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD || enabled
         lock.unlock()
     }
 
@@ -216,6 +240,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         _showOctreeLeafBounds = false
         _showStaticBatchCellBounds = false
         _colorRenderablesByLOD = false
+        _colorRenderablesByStreamingTier = false
         lock.unlock()
     }
 }
@@ -266,6 +291,12 @@ public func setOctreeLeafBoundsDebug(
 /// Disable all spatial debug visualization.
 public func disableSpatialDebugVisualization() {
     SpatialDebugVisualization.shared.disableAll()
+}
+
+/// Enable/disable texture streaming tier debug coloring for renderables.
+/// Blue = full resolution, Red = capped/reduced, Yellow = in-flight.
+public func setTextureStreamingTierDebug(enabled: Bool) {
+    SpatialDebugVisualization.shared.configureTextureStreamingTierColoring(enabled: enabled)
 }
 
 /// Enable/disable LOD level debug coloring for renderables.
