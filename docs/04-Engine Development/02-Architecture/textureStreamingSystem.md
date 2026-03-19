@@ -1,0 +1,245 @@
+# Texture Streaming System
+
+`TextureStreamingSystem.swift` dynamically adjusts the resolution of textures on entities based on their distance from the camera. Instead of keeping every texture at full resolution all the time, it streams textures up or down as the player moves through the scene — saving GPU memory while keeping nearby geometry crisp.
+
+---
+
+## Scenario: A City Block with 500 Buildings
+
+Imagine a USDZ scene with a city block containing 500 buildings. Each building has a `RenderComponent` with meshes and submeshes, and each submesh has a `Material` containing up to four PBR textures:
+
+- **Base Color** (sRGB)
+- **Roughness** (linear)
+- **Metallic** (linear)
+- **Normal** (linear)
+
+At full resolution, each building's textures might be 2048×2048 or larger. Loading all 500 buildings at full resolution at once would immediately exhaust GPU memory, causing frame drops or crashes.
+
+The `TextureStreamingSystem` solves this by managing three quality tiers and promoting/demoting each building's textures as the camera moves.
+
+---
+
+## Quality Tiers
+
+The system operates with three tiers, controlled by two distance thresholds:
+
+| Tier | Condition | Max Dimension |
+|------|-----------|---------------|
+| **Full** | `distance <= upgradeRadius` (default 4m) | Native source resolution (nil cap) |
+| **Medium** | `upgradeRadius < distance <= downgradeRadius` (default 12m) | `maxTextureDimension` (1024px on macOS, 768px on visionOS) |
+| **Minimum** | `distance > downgradeRadius` | `minimumTextureDimension` (256px on macOS, 192px on visionOS) |
+
+On first import, the `ProgressiveAssetLoader` caps all textures at the medium dimension. The streaming system then upgrades/downgrades from there.
+
+---
+
+## The Update Loop
+
+Every frame, the game loop calls:
+
+```swift
+TextureStreamingSystem.shared.update(cameraPosition: ..., deltaTime: ...)
+```
+
+**Throttle:** The system only does real work every `updateInterval` seconds (default 0.2s). This prevents spending every frame scanning all entities.
+
+**Concurrency cap:** At most `maxConcurrentOps` (default 3) async streaming operations run simultaneously. If all slots are busy, the tick exits early.
+
+```
+Frame N arrives
+ └─ timeSinceLastUpdate += deltaTime
+ └─ if < 0.2s → return (skip this frame)
+ └─ availableSlots = 3 − activeOps.count
+ └─ if 0 slots → return
+```
+
+---
+
+## Priority Pass 1: Visible Entities
+
+The system gets the current list of visible entity IDs (from the scene's frustum culling or visibility tracking) and iterates them first:
+
+```
+For each visible entity:
+  1. Calculate distance from camera to entity's world-space bounding box center
+  2. Determine desired tier via desiredMaxDimension(distance:)
+  3. Build work items — which textures actually need to change
+  4. If work items exist → scheduleResolutionChange(...)
+  5. Decrement available slots
+```
+
+**City block example:** The camera is standing on the sidewalk in front of Building #42. Buildings #42 and #43 are within 4m (full tier). Buildings #44–#60 are within 12m (medium tier). The remaining 440 buildings are beyond 12m (minimum tier).
+
+On this tick, the three available slots might be assigned to:
+- Building #42: upgrade base color from 1024px → full resolution (2048px)
+- Building #43: upgrade roughness from 1024px → full resolution
+- Building #57: already at 1024px medium — no change needed, slot freed
+
+---
+
+## Priority Pass 2: Upgraded-but-Not-Visible Entities
+
+After handling visible entities, the system checks its `upgradedEntities` set — entities whose textures are currently above the minimum tier. Even if they're off-screen now (the camera rotated away), they may still be nearby and deserve high-res textures so there's no quality drop when the camera rotates back.
+
+```
+For each entity in upgradedEntities that is NOT in the visible set:
+  1. Calculate actual distance (do not assume minimum)
+  2. Determine desired tier
+  3. Build work items
+  4. Schedule if needed
+```
+
+**City block example:** The camera rotated 90°, so Building #42 left the frustum. It is still 3m away. The system sees it in `upgradedEntities`, computes distance = 3m, desired tier = full — no downgrade is needed. It stays tracked.
+
+If the camera then walks 20m away, Building #42's distance becomes 20m > 12m, so the system schedules a downgrade from full → 256px minimum.
+
+---
+
+## Building Work Items
+
+`buildWorkItems(entityId:targetMaxDimension:)` inspects every texture slot on the entity's meshes and filters to only the ones that actually need to change:
+
+```
+For each mesh → submesh → material:
+  For each texture type (baseColor, roughness, metallic, normal):
+    currentMax = max(currentTexture.width, currentTexture.height)
+    desiredMax = min(targetMaxDimension, sourceMaxDimension)
+
+    if currentMax == desiredMax → skip (already correct)
+    if upgrading but source is no bigger than current → skip
+
+    else → emit StreamWorkItem(slot, direction, targetMaxDimension)
+```
+
+Each `StreamWorkItem` carries:
+- The mesh/submesh index to know where to write back
+- The direction (`.upgrade` or `.downgrade`)
+- The target max dimension (`nil` means full source resolution)
+- The texture source: either an `MDLTexture` object or a `URL` on disk
+
+---
+
+## Scheduling: The Async Task
+
+`scheduleResolutionChange(...)` is where the real work happens — but critically it happens **off the main thread**:
+
+```
+1. reserveOp(entityId) — mark entity as busy, return false if already active
+2. Initialize MTLCommandQueue and MTKTextureLoader once (reused across ticks)
+3. Spawn a Swift Task (async, off main thread)
+```
+
+Inside the `Task`, for each work item:
+
+### Upgrade Path
+
+```
+loadSourceTexture(source, isSRGB:, loader:)
+  └─ MTKTextureLoader loads the original MDLTexture or URL from disk
+  └─ options: shaderRead | pixelFormatView, generateMipmaps: true, SRGB flag
+  └─ Returns a full-resolution MTLTexture
+
+resampleTextureIfNeeded(sourceTexture, targetMaxDimension:, commandQueue:)
+  └─ if targetMaxDimension == nil → return texture as-is (full res)
+  └─ else → GPU downsample to targetMaxDimension
+```
+
+### Downgrade Path
+
+```
+resampleTextureIfNeeded(currentTexture, targetMaxDimension:, commandQueue:)
+  └─ GPU downsample the already-loaded texture to targetMaxDimension
+  └─ No disk I/O needed — current texture is the source
+```
+
+### GPU Resampling (`downsampleTexture`)
+
+```
+1. Compute target dimensions preserving aspect ratio
+2. Allocate new MTLTexture (private storage, mipmapped)
+3. Encode MPSImageBilinearScale → bilinear downsample
+4. Encode BlitCommandEncoder.generateMipmaps(for:)
+5. commit() and await completion via CheckedContinuation
+```
+
+Using `MPSImageBilinearScale` means the downsampled texture is high quality (bilinear filtering by the GPU shader), and the full mip chain is generated immediately so the renderer can use the appropriate mip level right away.
+
+---
+
+## Applying Results Back to ECS
+
+After all textures in the task are loaded/resampled, execution returns to the main thread via `await MainActor.run { withWorldMutationGate { ... } }`:
+
+```
+For each LoadedTexture:
+  1. textureViewMatchingSRGB(texture, wantSRGB:)
+     └─ creates a MTLTextureView with sRGB or linear pixel format
+        without copying pixel data (zero cost)
+
+  2. updateMaterial(entityId:meshIndex:submeshIndex:) { material in
+       material.baseColor.texture = item.texture
+       material.baseColorStreamingLevel = isFull ? .full : .capped
+       // (same for roughness, metallic, normal)
+     }
+
+  3. BatchingSystem.shared.updateBatchMaterialInPlace(for: entityId) { batchMaterial in
+       // Mirror the same change into the batch group's representative material
+       // so the new texture is visible on the next frame with zero batch churn
+     }
+```
+
+The `withWorldMutationGate` wrapper ensures the ECS is not mutated mid-render. The `BatchingSystem` update ensures batched draw calls reflect the new texture without rebuilding the batch.
+
+After applying, the entity's membership in `upgradedEntities` is updated: if any texture is still above the minimum tier, the entity stays tracked.
+
+---
+
+## The sRGB View
+
+`textureViewMatchingSRGB` handles a subtle correctness issue: after GPU resampling, the output texture may have a linear pixel format even if the original was sRGB (e.g., `rgba8Unorm` instead of `rgba8Unorm_srgb`). Rather than re-encoding with the correct format, the system creates a `MTLTextureView` — a zero-copy reinterpretation of the same underlying memory with the correct format. This costs nothing in GPU memory.
+
+---
+
+## Full Walk-Through: Building #42 Goes from Far to Near
+
+| Event | Action |
+|-------|--------|
+| Scene loads | All 500 buildings loaded at 1024px (medium tier) by ProgressiveAssetLoader |
+| Camera 30m away from Building #42 | distance > 12m → desired = 256px; downgrade scheduled |
+| Downgrade task runs | GPU resamples current 1024px → 256px; applied to ECS + batch |
+| Building #42 removed from `upgradedEntities` | (256px = minimum, not tracked) |
+| Camera walks to 10m away | distance 10m → desired = 1024px medium; upgrade scheduled |
+| Upgrade task runs | Loads MDLTexture from source → 1024px; applied to ECS + batch |
+| Building #42 added to `upgradedEntities` | (1024px > minimum) |
+| Camera walks to 3m away | distance 3m ≤ 4m → desired = nil (full); upgrade scheduled |
+| Upgrade task runs | Loads MDLTexture → full 2048px, no GPU resample needed; applied |
+| Camera walks away to 15m | distance 15m > 12m → desired = 256px; downgrade scheduled |
+| Downgrade task runs | GPU resamples 2048px → 256px; applied; entity removed from tracking |
+
+At no point are more than 3 buildings being streamed simultaneously, keeping GPU command submission predictable.
+
+---
+
+## Threading Model
+
+| Thread | What happens there |
+|--------|-------------------|
+| Main / game loop | `update()` called; distance math; `buildWorkItems`; `reserveOp`; resource init |
+| Swift Task (async) | Disk I/O (`MTKTextureLoader`); GPU encode + await (`MPSImageBilinearScale`) |
+| MainActor | ECS mutation (`updateMaterial`); batch update; `upgradedEntities` bookkeeping |
+
+`activeOps` and `upgradedEntities` are protected by `NSLock`. The command queue and texture loader are initialized once on the main thread before any `Task` is spawned, then captured as local constants — no concurrent access to instance state from async tasks.
+
+---
+
+## Key Configuration
+
+```swift
+TextureStreamingSystem.shared.upgradeRadius = 4.0      // meters: go full-res inside this
+TextureStreamingSystem.shared.downgradeRadius = 12.0   // meters: go minimum beyond this
+TextureStreamingSystem.shared.maxTextureDimension = 1024
+TextureStreamingSystem.shared.minimumTextureDimension = 256
+TextureStreamingSystem.shared.updateInterval = 0.2     // seconds between evaluations
+TextureStreamingSystem.shared.maxConcurrentOps = 3     // parallel streaming tasks
+TextureStreamingSystem.shared.verboseLogging = true    // log each up/downgrade
+```
