@@ -56,9 +56,11 @@ if fileSizeBytes > ProgressiveAssetLoader.shared.fileSizeThresholdBytes {
     // PROGRESSIVE PATH
 ```
 
-If the file exceeds `fileSizeThresholdBytes` (default 50 MB), it goes progressive. Otherwise it falls through to the immediate fast path.
+If the file exceeds `fileSizeThresholdBytes` (default 50 MB), it goes progressive. Otherwise it falls through to the immediate **fast path**, which registers all mesh groups in a single pass right here, then continues with the normal registration code.
 
 **Why file size instead of mesh count?** A 1.5 MB file with 2 000 simple meshes allocates trivial GPU memory all at once — instantaneous. A 530 MB file with the same mesh count exhausts GPU memory and triggers an OS kill. File size reflects what actually stresses the GPU memory budget; mesh count does not.
+
+**Both paths use `makeMeshesFromCPUBuffers`.** Because `parseAssetAsync` uses `MDLMeshBufferDataAllocator`, all buffers live in CPU heap memory. `MTKMesh(mesh:device:)` refuses CPU-heap buffers (`MTKModelErrorNoMTLBuffer`). `makeMeshesFromCPUBuffers` handles the `memcpy` from CPU heap into fresh `MTKMeshBufferAllocator`-backed Metal buffers before calling `MTKMesh`. The only difference between the two paths is *when* this happens — all at once (fast path) vs one batch per tick (progressive).
 
 ---
 
@@ -90,14 +92,27 @@ At this point: the file is parsed into CPU memory, a job is queued, and the call
 
 ## Stage 4 — The engine loop calls `tick()` each frame
 
-In `UntoldEngine.swift`, every frame before `BatchingSystem.tick()`:
+`tick()` is enforced to run on the **main thread** via `dispatchPrecondition(condition: .onQueue(.main))`. How it gets there depends on which renderer is active:
+
+**Non-XR (`UntoldEngine.swift`)** — `draw()` is called by `MTKViewDelegate` on the main thread. `tick()` is called there, immediately before `runFrame()` (which contains `BatchingSystem.tick()`):
 
 ```swift
-ProgressiveAssetLoader.shared.tick()
-BatchingSystem.shared.tick()
+// draw() — main thread (MTKViewDelegate)
+ProgressiveAssetLoader.shared.tick()   // ← here, before runFrame
+runFrame(...)                          // BatchingSystem.tick() is inside
 ```
 
-`tick()` is called on the main thread (enforced by `dispatchPrecondition`). Here's what happens inside each tick:
+**XR (`UntoldEngineXR.swift`)** — `runLoop()` runs on the visionOS compositor render thread, not the main thread. Calling `tick()` from inside `runFrame()` on that thread would violate the precondition. Instead, `tick()` is dispatched to the main queue once per frame from `renderNewFrame()`:
+
+```swift
+// renderNewFrame() — compositor render thread
+DispatchQueue.main.async {
+    ProgressiveAssetLoader.shared.tick()   // ← dispatched to main thread
+}
+renderer.updateXR(...)   // runFrame() runs on render thread (no tick() inside)
+```
+
+Here's what happens inside each tick:
 
 **1. Snapshot the jobs:**
 ```swift
@@ -209,9 +224,11 @@ This runs inside `withWorldMutationGate`, which briefly pauses the XR renderer's
 
 ---
 
-## Stage 7 — BatchingSystem picks it up the same frame
+## Stage 7 — BatchingSystem picks it up
 
-Because `ProgressiveAssetLoader.tick()` runs **before** `BatchingSystem.tick()` each frame, any entity registered in step 6 is picked up by the batching system in the **same frame** it was registered. There's no one-frame delay.
+**Non-XR:** `ProgressiveAssetLoader.tick()` runs in `draw()` immediately before `runFrame()`, which contains `BatchingSystem.tick()`. Any entity registered in stage 6 is picked up by the batching system in the **same frame** it was registered. There is no one-frame delay.
+
+**XR:** `tick()` is dispatched to the main queue via `DispatchQueue.main.async`, while `BatchingSystem.tick()` runs on the compositor render thread inside `runFrame()`. These execute concurrently on different threads. In practice, a newly registered entity may appear **one frame later** than in the non-XR case, depending on thread scheduling. This is imperceptible at 90 fps.
 
 ---
 
@@ -228,14 +245,27 @@ When `job.completedCount >= job.totalCount`, the job is finished:
 
 ## The whole picture in one line per stage
 
+**Progressive path (file > 50 MB):**
 ```
 setEntityMeshAsync()             → triggers the pipeline
 parseAssetAsync()                → file → CPU heap (no GPU spike)
 enqueue(job)                     → registers work, releases gate, returns
 tick() frame N                   → dequeues 4 items (or 2ms worth)
+  non-XR: called in draw() on main thread, before runFrame()
+  XR:     dispatched via DispatchQueue.main.async each frame
 makeMeshesFromCPUBuffers()       → CPU heap → MTLBuffer (one mesh at a time)
 registerProgressiveChildEntity() → ECS entity, immediately renderable
-BatchingSystem.tick()            → picks up new entity same frame
+BatchingSystem.tick()            → picks up new entity same frame (non-XR)
+                                   or next frame (XR, async dispatch)
 ... repeat for N/4 frames ...
 job.assetRef = nil               → CPU heap freed, GPU memory remains
+```
+
+**Fast path (file ≤ 50 MB):**
+```
+setEntityMeshAsync()             → triggers the pipeline
+parseAssetAsync()                → file → CPU heap (no GPU spike)
+makeMeshesFromCPUBuffers()       → CPU heap → MTLBuffer (all meshes at once)
+registerRenderComponent()        → ECS entity, immediately renderable
+finishLoading()                  → gate released, returns
 ```
