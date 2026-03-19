@@ -106,6 +106,11 @@
             setLODLevelDebug(enabled: enabled)
         }
 
+        /// Toggles the texture streaming tier colour overlay.
+        func setStreamingTierDebug(_ enabled: Bool) {
+            setTextureStreamingTierDebug(enabled: enabled)
+        }
+
         /// Draws (or hides) the octree leaf-node bounds debug overlay.
         func setSpatialDebug(
             enabled: Bool,
@@ -206,6 +211,10 @@
             didSet { onLodDebugChanged?(lodDebugEnabled) }
         }
 
+        var textureStreamingTierDebugEnabled: Bool = false {
+            didSet { onTextureStreamingTierDebugChanged?(textureStreamingTierDebugEnabled) }
+        }
+
         var spatialDebugEnabled: Bool = false {
             didSet { onSpatialDebugChanged?(spatialDebugEnabled, spatialOccupiedOnly, spatialColorMode) }
         }
@@ -225,6 +234,7 @@
         var onBatchingChanged: ((Bool) -> Void)?
         var onStreamingChanged: ((Bool, Double, Double) -> Void)?
         var onLodDebugChanged: ((Bool) -> Void)?
+        var onTextureStreamingTierDebugChanged: ((Bool) -> Void)?
         var onSpatialDebugChanged: ((Bool, Bool, SpatialDebugLeafColorMode) -> Void)?
     }
 
@@ -361,6 +371,9 @@
                     Toggle("LOD Debug", isOn: $state.lodDebugEnabled)
                         .toggleStyle(.checkbox)
 
+                    Toggle("Texture Streaming Debug", isOn: $state.textureStreamingTierDebugEnabled)
+                        .toggleStyle(.checkbox)
+
                     Toggle("Spatial Debug", isOn: $state.spatialDebugEnabled)
                         .toggleStyle(.checkbox)
                     if state.spatialDebugEnabled {
@@ -494,6 +507,9 @@
             }
             demoState.onLodDebugChanged = { [weak self] enabled in
                 self?.gameScene.setLodDebug(enabled)
+            }
+            demoState.onTextureStreamingTierDebugChanged = { [weak self] enabled in
+                self?.gameScene.setStreamingTierDebug(enabled)
             }
             demoState.onSpatialDebugChanged = { [weak self] enabled, occupiedOnly, colorMode in
                 self?.gameScene.setSpatialDebug(

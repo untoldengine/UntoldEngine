@@ -27,6 +27,14 @@ public enum RenderPasses {
         simd_float3(0.0, 1.0, 1.0), // LOD5+ = cyan (palette wraps)
     ]
 
+    /// Streaming tier debug colors.
+    /// Blue = full resolution, Red = capped/reduced, Yellow = in-flight.
+    private static let streamingTierDebugColors: [simd_float3] = [
+        simd_float3(0.1, 0.4, 1.0), // full      = blue
+        simd_float3(1.0, 0.2, 0.1), // capped     = red
+        simd_float3(1.0, 0.85, 0.0), // in-flight = yellow
+    ]
+
     private struct SpatialDebugColorKey: Hashable {
         let r: UInt32
         let g: UInt32
@@ -234,6 +242,41 @@ public enum RenderPasses {
         guard let lodIndex else { return }
 
         let color = lodDebugColor(for: lodIndex)
+        materialParameters.baseColor = simd_float4(color.x, color.y, color.z, materialParameters.baseColor.w)
+        materialParameters.hasTexture.x = 0
+    }
+
+    @inline(__always)
+    private static func applyStreamingTierDebugColorOverride(
+        entityId: EntityID? = nil,
+        batchMaterial: Material? = nil,
+        materialParameters: inout MaterialParametersUniform
+    ) {
+        guard SpatialDebugVisualization.shared.colorRenderablesByStreamingTier else { return }
+
+        let streamingLevel: TextureStreamingLevel
+        let inFlight: Bool
+
+        if let entityId {
+            guard let render = scene.get(component: RenderComponent.self, for: entityId),
+                  let material = render.mesh.first?.submeshes.first?.material
+            else { return }
+            streamingLevel = material.baseColorStreamingLevel
+            inFlight = TextureStreamingSystem.shared.isStreaming(entityId: entityId)
+        } else if let batchMaterial {
+            streamingLevel = batchMaterial.baseColorStreamingLevel
+            inFlight = false
+        } else {
+            return
+        }
+
+        let color: simd_float3
+        if inFlight {
+            color = streamingTierDebugColors[2]
+        } else {
+            color = streamingLevel == .full ? streamingTierDebugColors[0] : streamingTierDebugColors[1]
+        }
+
         materialParameters.baseColor = simd_float4(color.x, color.y, color.z, materialParameters.baseColor.w)
         materialParameters.hasTexture.x = 0
     }
@@ -1001,6 +1044,7 @@ public enum RenderPasses {
                         0
                     )
                     applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
+                    applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
 
                     renderEncoder.setFragmentBytes(
                         &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
@@ -1218,6 +1262,7 @@ public enum RenderPasses {
                 batchKey: batchGroup.batchKey,
                 materialParameters: &materialParameters
             )
+            applyStreamingTierDebugColorOverride(batchMaterial: material, materialParameters: &materialParameters)
 
             renderEncoder.setFragmentBytes(
                 &materialParameters,
@@ -2456,6 +2501,7 @@ public enum RenderPasses {
                         0
                     )
                     applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
+                    applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
 
                     renderEncoder.setFragmentBytes(
                         &materialParameters,
