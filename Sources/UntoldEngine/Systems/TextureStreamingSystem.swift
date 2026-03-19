@@ -24,6 +24,9 @@ import simd
 ///
 /// Heavy work (I/O + GPU resampling) runs asynchronously.
 /// ECS mutations are applied inside `withWorldMutationGate`.
+///
+/// Threading: `update()` and all configuration mutations must be called
+/// from the same thread (typically the game loop / main thread).
 public class TextureStreamingSystem: @unchecked Sendable {
     public static let shared = TextureStreamingSystem()
 
@@ -49,11 +52,11 @@ public class TextureStreamingSystem: @unchecked Sendable {
     public var enabled: Bool = true
 
     /// Textures closer than this distance stream to full resolution.
-    public var upgradeRadius: Float = 30.0
+    public var upgradeRadius: Float = 4.0
 
     /// Textures between `upgradeRadius` and `downgradeRadius` stream to `maxTextureDimension`.
     /// Textures beyond `downgradeRadius` stream to `minimumTextureDimension`.
-    public var downgradeRadius: Float = 60.0
+    public var downgradeRadius: Float = 12.0
 
     /// Mid-distance max dimension.
     public var maxTextureDimension: Int = TextureStreamingSystem.platformDefaultMaxTextureDimension
@@ -64,8 +67,8 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// How often to evaluate texture streaming (seconds)
     public var updateInterval: Float = 0.2
 
-    /// Print to console when texture resolution changes.
-    public var verboseLogging: Bool = true
+    /// Print resolution-change events to the console.
+    public var verboseLogging: Bool = false
 
     /// Maximum concurrent texture streaming operations.
     public var maxConcurrentOps: Int = 3
@@ -81,7 +84,12 @@ public class TextureStreamingSystem: @unchecked Sendable {
     private let lock = NSLock()
 
     /// Reusable command queue for GPU resampling.
+    /// Initialized once in `scheduleResolutionChange` before any Task is spawned.
     private var commandQueue: MTLCommandQueue?
+
+    /// Reusable texture loader.
+    /// Initialized once in `scheduleResolutionChange` before any Task is spawned.
+    private var textureLoader: MTKTextureLoader?
 
     // MARK: - Stats
 
@@ -196,14 +204,18 @@ public class TextureStreamingSystem: @unchecked Sendable {
             // Keep non-visible downgrade tracking current for entities we visit.
             setTrackedAboveMinimum(entityId, isAboveMinimum: entityHasTexturesAboveMinimumTier(entityId: entityId))
 
-            let targetMaxDimension = desiredMaxDimension(distance: distance, isVisible: true)
-            guard entityNeedsResolutionChange(entityId: entityId, targetMaxDimension: targetMaxDimension) else { continue }
+            let targetMaxDimension = desiredMaxDimension(distance: distance)
+            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension)
+            guard !workItems.isEmpty else { continue }
 
-            scheduleResolutionChange(entityId: entityId, distance: distance, targetMaxDimension: targetMaxDimension, isVisible: true)
+            scheduleResolutionChange(entityId: entityId, distance: distance, workItems: workItems, targetMaxDimension: targetMaxDimension, isVisible: true)
             opsScheduled += 1
         }
 
-        // Priority 2: entities no longer visible should settle to minimum mip tier.
+        // Priority 2: entities no longer visible should settle to the appropriate tier
+        // based on their actual distance. Do NOT assume minimum — a nearby entity that
+        // left the frustum (e.g. camera rotation) should keep its high-res texture so
+        // there is no quality drop when the camera rotates back.
         lock.lock()
         let upgradedSnapshot = Array(upgradedEntities)
         lock.unlock()
@@ -220,15 +232,17 @@ public class TextureStreamingSystem: @unchecked Sendable {
                 continue
             }
 
-            let targetMaxDimension = desiredMaxDimension(distance: .infinity, isVisible: false)
-            guard entityNeedsResolutionChange(entityId: entityId, targetMaxDimension: targetMaxDimension) else {
+            let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+            let targetMaxDimension = desiredMaxDimension(distance: distance)
+            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension)
+            guard !workItems.isEmpty else {
                 lock.lock()
                 upgradedEntities.remove(entityId)
                 lock.unlock()
                 continue
             }
 
-            scheduleResolutionChange(entityId: entityId, distance: -1, targetMaxDimension: targetMaxDimension, isVisible: false)
+            scheduleResolutionChange(entityId: entityId, distance: distance, workItems: workItems, targetMaxDimension: targetMaxDimension, isVisible: false)
             opsScheduled += 1
         }
     }
@@ -245,11 +259,16 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
     /// Returns desired max dimension for the entity at this distance.
     /// `nil` means full source resolution.
-    private func desiredMaxDimension(distance: Float, isVisible: Bool) -> Int? {
-        if isVisible, distance <= upgradeRadius {
+    ///
+    /// Tier is determined by distance alone. Visibility is not a factor here —
+    /// an entity behind the camera may still be very close, and downgrading it
+    /// to minimum just because it left the frustum causes a visible quality drop
+    /// when the camera rotates back.
+    private func desiredMaxDimension(distance: Float) -> Int? {
+        if distance <= upgradeRadius {
             return nil
         }
-        if isVisible, distance <= downgradeRadius {
+        if distance <= downgradeRadius {
             return normalizedMediumDimension()
         }
         return normalizedMinimumDimension()
@@ -360,10 +379,6 @@ public class TextureStreamingSystem: @unchecked Sendable {
         return workItems
     }
 
-    private func entityNeedsResolutionChange(entityId: EntityID, targetMaxDimension: Int?) -> Bool {
-        !buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension).isEmpty
-    }
-
     private func entityHasTexturesAboveMinimumTier(entityId: EntityID) -> Bool {
         let minDim = normalizedMinimumDimension()
         let slots = streamableSlots(entityId: entityId)
@@ -378,16 +393,26 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
     // MARK: - Scheduling
 
-    private func scheduleResolutionChange(entityId: EntityID, distance: Float, targetMaxDimension: Int?, isVisible: Bool) {
+    private func scheduleResolutionChange(
+        entityId: EntityID,
+        distance: Float,
+        workItems: [StreamWorkItem],
+        targetMaxDimension: Int?,
+        isVisible: Bool
+    ) {
         guard reserveOp(entityId) else { return }
 
-        let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension)
-        guard !workItems.isEmpty else {
+        guard let device = renderInfo.device else {
             releaseOp(entityId)
             return
         }
 
-        guard let device = renderInfo.device else {
+        // Initialize reusable resources once on the calling thread before spawning the Task,
+        // then capture them as local constants so the Task never touches instance state.
+        if commandQueue == nil { commandQueue = device.makeCommandQueue() }
+        if textureLoader == nil { textureLoader = MTKTextureLoader(device: device) }
+
+        guard let queue = commandQueue, let loader = textureLoader else {
             releaseOp(entityId)
             return
         }
@@ -396,7 +421,6 @@ public class TextureStreamingSystem: @unchecked Sendable {
             var loaded: [LoadedTexture] = []
             loaded.reserveCapacity(workItems.count)
 
-            let loader = MTKTextureLoader(device: device)
             for item in workItems {
                 let texture: MTLTexture?
                 switch item.direction {
@@ -404,9 +428,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
                     guard let sourceTexture = self.loadSourceTexture(item.slot.source, isSRGB: item.slot.isSRGB, loader: loader) else {
                         continue
                     }
-                    texture = self.resampleTextureIfNeeded(sourceTexture, targetMaxDimension: item.targetMaxDimension)
+                    texture = await self.resampleTextureIfNeeded(sourceTexture, targetMaxDimension: item.targetMaxDimension, commandQueue: queue)
                 case .downgrade:
-                    texture = self.resampleTextureIfNeeded(item.slot.currentTexture, targetMaxDimension: item.targetMaxDimension)
+                    texture = await self.resampleTextureIfNeeded(item.slot.currentTexture, targetMaxDimension: item.targetMaxDimension, commandQueue: queue)
                 }
 
                 guard let texture else { continue }
@@ -493,9 +517,12 @@ public class TextureStreamingSystem: @unchecked Sendable {
                     if didDowngrade { self.totalDowngrades += 1 }
                     self.lock.unlock()
 
-                    _ = self.verboseLogging
-                    _ = distance
-                    _ = isVisible
+                    if self.verboseLogging {
+                        let dir = didUpgrade ? "↑" : "↓"
+                        let dim = targetMaxDimension.map { "\($0)px" } ?? "full"
+                        let distStr = distance >= 0 ? String(format: "%.1f", distance) : "offscreen"
+                        print("[TextureStreaming] entity=\(entityId) \(dir) → \(dim) dist=\(distStr) visible=\(isVisible)")
+                    }
                 }
             }
         }
@@ -520,13 +547,13 @@ public class TextureStreamingSystem: @unchecked Sendable {
         }
     }
 
-    private func resampleTextureIfNeeded(_ texture: MTLTexture, targetMaxDimension: Int?) -> MTLTexture? {
+    private func resampleTextureIfNeeded(_ texture: MTLTexture, targetMaxDimension: Int?, commandQueue: MTLCommandQueue) async -> MTLTexture? {
         guard let targetMaxDimension else { return texture }
-        return downsampleTexture(texture, maxDimension: targetMaxDimension)
+        return await downsampleTexture(texture, maxDimension: targetMaxDimension, commandQueue: commandQueue)
     }
 
     /// Downsample a texture to fit within maxDimension, preserving aspect ratio.
-    private func downsampleTexture(_ texture: MTLTexture, maxDimension: Int) -> MTLTexture? {
+    private func downsampleTexture(_ texture: MTLTexture, maxDimension: Int, commandQueue: MTLCommandQueue) async -> MTLTexture? {
         guard maxDimension > 0 else { return texture }
         guard texture.width > maxDimension || texture.height > maxDimension else { return texture }
 
@@ -552,13 +579,19 @@ public class TextureStreamingSystem: @unchecked Sendable {
         desc.usage = [.shaderRead, .shaderWrite, .pixelFormatView]
         desc.storageMode = .private
 
-        if commandQueue == nil {
-            commandQueue = renderInfo.device.makeCommandQueue()
+        guard let target = renderInfo.device.makeTexture(descriptor: desc) else {
+            if verboseLogging {
+                print("[TextureStreaming] GPU resample failed: makeTexture returned nil (size: \(targetWidth)x\(targetHeight))")
+            }
+            return nil
         }
 
-        guard let target = renderInfo.device.makeTexture(descriptor: desc),
-              let commandBuffer = commandQueue?.makeCommandBuffer()
-        else { return nil }
+        guard let commandBuffer = commandQueue.makeCommandBuffer() else {
+            if verboseLogging {
+                print("[TextureStreaming] GPU resample failed: makeCommandBuffer returned nil")
+            }
+            return nil
+        }
 
         let scale = MPSImageBilinearScale(device: renderInfo.device)
         scale.encode(commandBuffer: commandBuffer, sourceTexture: texture, destinationTexture: target)
@@ -568,8 +601,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
             blit.endEncoding()
         }
 
-        commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            commandBuffer.addCompletedHandler { _ in cont.resume() }
+            commandBuffer.commit()
+        }
 
         return target
     }
@@ -591,14 +626,21 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
     // MARK: - Stats / Debug
 
+    /// Returns `true` while a streaming operation is in-flight for this entity.
+    public func isStreaming(entityId: EntityID) -> Bool {
+        isActiveOp(entityId)
+    }
+
     public func getStats() -> TextureStreamingStats {
         lock.lock()
         let upgradedCount = upgradedEntities.count
         let activeCount = activeOps.count
+        let upgrades = totalUpgrades
+        let downgrades = totalDowngrades
         lock.unlock()
         return TextureStreamingStats(
-            totalUpgrades: totalUpgrades,
-            totalDowngrades: totalDowngrades,
+            totalUpgrades: upgrades,
+            totalDowngrades: downgrades,
             upgradedEntityCount: upgradedCount,
             activeOps: activeCount
         )
@@ -608,10 +650,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
         lock.lock()
         upgradedEntities.removeAll()
         activeOps.removeAll()
-        lock.unlock()
-        timeSinceLastUpdate = 0
         totalUpgrades = 0
         totalDowngrades = 0
+        lock.unlock()
+        timeSinceLastUpdate = 0
     }
 }
 
