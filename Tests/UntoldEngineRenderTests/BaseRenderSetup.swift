@@ -24,6 +24,10 @@ class BaseRenderSetup: XCTestCase {
     let windowHeight = 1080
 
     private func waitForOutstandingAssetLoadsToFinish(context: String, timeout: TimeInterval = 15.0) async {
+        // Cancel any in-flight progressive loads so they don't register entities
+        // into a stale scene after destroyAllEntities() or between tests.
+        ProgressiveAssetLoader.shared.cancelAll()
+
         let drained = expectation(description: "Drain asset loading state (\(context))")
         var finalLoadingCount = Int.max
         var finalGateActive = true
@@ -55,6 +59,7 @@ class BaseRenderSetup: XCTestCase {
     }
 
     private func resetGlobalEngineState() {
+        ProgressiveAssetLoader.shared.cancelAll()
         scene = Scene()
         CameraSystem.shared.activeCamera = nil
         visibleEntityIds.removeAll(keepingCapacity: true)

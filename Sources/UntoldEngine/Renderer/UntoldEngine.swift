@@ -418,7 +418,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         // 4. Flush events (residency and LOD change events are processed)
         SystemEventBus.shared.flushEvents()
 
-        // 5. Batching incremental update (consumes LOD change events)
+        // 5. Progressive asset loading tick (creates MTKMesh + registers child entities in batches).
+        //    Runs before batching so newly registered entities can be picked up in the same tick.
+        ProgressiveAssetLoader.shared.tick()
+
+        // 6. Batching incremental update (consumes LOD change events)
         #if ENGINE_STATS_ENABLED
             let batchingTickStart = CACurrentMediaTime()
         #endif

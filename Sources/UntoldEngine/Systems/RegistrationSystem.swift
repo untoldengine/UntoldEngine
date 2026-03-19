@@ -441,7 +441,7 @@ private func configureLODComponent(entityId: EntityID, lodLevels: [LODLevel], ac
     }
 }
 
-private func applyWorldTransform(_ transform: simd_float4x4, to entityId: EntityID) {
+func applyWorldTransform(_ transform: simd_float4x4, to entityId: EntityID) {
     let translation = simd_float3(
         transform.columns.3.x,
         transform.columns.3.y,
@@ -714,10 +714,57 @@ private func setEntityMeshCommon(
 }
 
 /// Generate a stable node path for a derived mesh node
-private func generateStableNodePath(assetName: String, index: Int) -> String {
+func generateStableNodePath(assetName: String, index: Int) -> String {
     // Use a deterministic format: "Root/<AssetName>#<Index>"
     // This ensures the same USDZ file produces the same nodePath each time
     "Root/\(assetName)#\(index)"
+}
+
+/// Internal helper called by `ProgressiveAssetLoader.tick()` to register one mesh group
+/// as a child entity of a progressively-loading asset root.
+///
+/// Each call is wrapped in `withWorldMutationGate` to safely mutate ECS state.
+/// The new entity is immediately visible and renderable once registration completes.
+func registerProgressiveChildEntity(
+    meshes: [Mesh],
+    index: Int,
+    rootEntityId: EntityID,
+    url: URL,
+    filename: String,
+    withExtension: String
+) {
+    withWorldMutationGate {
+        let childEntityId = createEntity()
+
+        if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
+            registerTransformComponent(entityId: childEntityId)
+        }
+
+        if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
+            registerSceneGraphComponent(entityId: childEntityId)
+        }
+
+        if let firstMesh = meshes.first {
+            applyWorldTransform(firstMesh.worldSpace, to: childEntityId)
+        }
+
+        associateMeshesToEntity(entityId: childEntityId, meshes: meshes)
+        registerRenderComponent(entityId: childEntityId, meshes: meshes, url: url, assetName: meshes.first!.assetName)
+
+        let meshAssetName = meshes.first!.assetName
+        setEntityName(entityId: childEntityId, name: meshAssetName)
+        setParent(childId: childEntityId, parentId: rootEntityId)
+
+        let nodePath = generateStableNodePath(assetName: meshAssetName, index: index)
+        let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: rootEntityId, nodePath: nodePath)
+        registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
+        if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
+            derived.assetRootEntityId = derivedComp.assetRootEntityId
+            derived.nodePath = derivedComp.nodePath
+        }
+
+        setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
+    }
 }
 
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
@@ -776,7 +823,221 @@ public func setEntityMeshAsync(
             return
         }
 
-        // Load meshes asynchronously
+        // MARK: Progressive loading path
+        //
+        // For large files (no specific assetName requested), parse with a CPU-only
+        // allocator to avoid the GPU memory spike caused by MTKMeshBufferAllocator
+        // pre-allocating Metal buffers for the entire scene at once.
+        //
+        // Routing is decided by on-disk file size, not mesh count — a 1.5 MB file with
+        // 2 000 simple meshes uploads instantly; a 530 MB file must be streamed.
+        //
+        // If the file exceeds fileSizeThresholdBytes, enqueue a ProgressiveLoadJob and
+        // return immediately. ProgressiveAssetLoader.tick() will create MTKMesh + register
+        // child entities in small batches each engine frame, allowing partial rendering
+        // before the full asset is loaded.
+        //
+        // For files below the threshold, mesh groups are created from the CPU-parsed
+        // data right here (same outcome as the original path, different allocator).
+        // This avoids a second disk read.
+        if assetName == nil, ProgressiveAssetLoader.shared.enabled {
+            guard let assetData = await Mesh.parseAssetAsync(
+                url: url,
+                vertexDescriptor: vertexDescriptor.model,
+                device: renderInfo.device,
+                coordinateConversion: coordinateConversion
+            ) else {
+                handleError(.assetDataMissing, filename)
+                loadFallbackMesh(entityId: entityId, filename: filename)
+                await AssetLoadingState.shared.finishLoading(entityId: entityId)
+                completionBox?.call(false)
+                return
+            }
+
+            // Route based on file size, not mesh count. A 1.5 MB file with 2 000 simple
+            // meshes is fast to upload all at once; a 530 MB file must be streamed to
+            // avoid a GPU memory spike that could terminate the app on Vision Pro.
+            let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
+            let thresholdBytes = ProgressiveAssetLoader.shared.fileSizeThresholdBytes
+
+            if fileSizeBytes > thresholdBytes {
+                // PROGRESSIVE PATH ─────────────────────────────────────────────────────
+                // Large file: hand off to per-tick processor.
+                // The loading gate is released so the renderer keeps updating visible
+                // entities — already-registered child entities render each frame as they
+                // arrive.
+                let fileSizeMB = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
+                let thresholdMB = String(format: "%.0f", Double(thresholdBytes) / 1_048_576)
+                Logger.log(message: "[ProgressiveLoader] '\(filename)' is \(fileSizeMB) MB (threshold \(thresholdMB) MB) → progressive loading")
+
+                // Register AssetInstanceComponent on the root entity immediately so
+                // serialisation / scene graph logic can identify this as an asset instance.
+                withWorldMutationGate {
+                    let assetInstanceComp = AssetInstanceComponent(
+                        assetURL: url,
+                        assetName: filename,
+                        importMode: "preserveHierarchy",
+                        rootPrimPath: nil
+                    )
+                    registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
+                    if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
+                        instanceComp.assetURL = assetInstanceComp.assetURL
+                        instanceComp.assetName = assetInstanceComp.assetName
+                        instanceComp.importMode = assetInstanceComp.importMode
+                        instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
+                    }
+                }
+
+                let pendingItems = assetData.topLevelObjects.enumerated().map { i, obj in
+                    PendingObjectItem(
+                        index: i,
+                        object: obj,
+                        rootEntityId: entityId,
+                        url: url,
+                        filename: filename,
+                        withExtension: withExtension,
+                        vertexDescriptor: vertexDescriptor.model,
+                        textureLoader: assetData.textureLoader,
+                        device: renderInfo.device
+                    )
+                }
+
+                let job = ProgressiveLoadJob(
+                    rootEntityId: entityId,
+                    filename: filename,
+                    withExtension: withExtension,
+                    url: url,
+                    pending: pendingItems,
+                    totalCount: assetData.totalObjectCount,
+                    assetRef: assetData.asset,
+                    completion: completionBox.map { box in { result in box.call(result) } }
+                )
+
+                // Release the loading gate: renderer is no longer paused. Each batch in
+                // tick() uses withWorldMutationGate briefly for the ECS mutation only.
+                await AssetLoadingState.shared.finishLoading(entityId: entityId)
+
+                ProgressiveAssetLoader.shared.enqueue(job)
+                return  // ProgressiveAssetLoader.tick() takes it from here.
+            }
+
+            // SMALL-FILE FAST PATH (CPU-parsed) ────────────────────────────────────────
+            // File is below the size threshold: create all mesh groups from the
+            // CPU-parsed data right now, then continue with the normal registration code below.
+            // Must use makeMeshesFromCPUBuffers (not makeMeshes) because parseAssetAsync
+            // uses MDLMeshBufferDataAllocator — CPU-heap buffers that MTKMesh(mesh:device:)
+            // cannot accept directly (MTKModelErrorNoMTLBuffer). makeMeshesFromCPUBuffers
+            // copies each buffer to a fresh MTKMeshBufferAllocator-backed buffer first.
+            let smallAssetMeshes: [[Mesh]] = assetData.topLevelObjects.map { obj in
+                Mesh.makeMeshesFromCPUBuffers(
+                    object: obj,
+                    vertexDescriptor: vertexDescriptor.model,
+                    textureLoader: assetData.textureLoader,
+                    device: renderInfo.device,
+                    flip: true
+                )
+            }
+            MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: smallAssetMeshes)
+
+            // Continue to the validation + registration block below using these meshes.
+            // ─── SMALL-ASSET CONTINUATION ──────────────────────────────────────────────
+            let meshes = smallAssetMeshes
+
+            if meshes.isEmpty {
+                handleError(.assetDataMissing, filename)
+                loadFallbackMesh(entityId: entityId, filename: filename)
+                await AssetLoadingState.shared.finishLoading(entityId: entityId)
+                completionBox?.call(false)
+                return
+            }
+
+            let nonEmptyMeshes = meshes.filter { !$0.isEmpty }
+
+            // assetName is nil here (progressive path requires nil assetName).
+
+            await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: 0, totalMeshes: nonEmptyMeshes.count, phase: .registering)
+
+            var loadingEntityIds: [EntityID] = [entityId]
+
+            let handledImportedLOD = tryRegisterImportedLODGroup(
+                entityId: entityId,
+                url: url,
+                filename: filename,
+                withExtension: withExtension,
+                nonEmptyMeshes: nonEmptyMeshes
+            )
+
+            if handledImportedLOD {
+                await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: nonEmptyMeshes.count, totalMeshes: nonEmptyMeshes.count)
+            } else if nonEmptyMeshes.count == 1 {
+                let mesh = nonEmptyMeshes[0]
+                associateMeshesToEntity(entityId: entityId, meshes: mesh)
+                registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
+                setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+                if let renderComp = scene.get(component: RenderComponent.self, for: entityId) {
+                    renderComp.isVisible = false
+                }
+                await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: 1, totalMeshes: 1)
+            } else if nonEmptyMeshes.count > 1 {
+                let assetInstanceComp = AssetInstanceComponent(
+                    assetURL: url,
+                    assetName: filename,
+                    importMode: "preserveHierarchy",
+                    rootPrimPath: nil
+                )
+                registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
+                if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
+                    instanceComp.assetURL = assetInstanceComp.assetURL
+                    instanceComp.assetName = assetInstanceComp.assetName
+                    instanceComp.importMode = assetInstanceComp.importMode
+                    instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
+                }
+                for (index, mesh) in nonEmptyMeshes.enumerated() {
+                    let childEntityId = createEntity()
+                    if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
+                        registerTransformComponent(entityId: childEntityId)
+                    }
+                    if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
+                        registerSceneGraphComponent(entityId: childEntityId)
+                    }
+                    if let firstMesh = mesh.first {
+                        applyWorldTransform(firstMesh.worldSpace, to: childEntityId)
+                    }
+                    associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
+                    registerRenderComponent(entityId: childEntityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
+                    let meshAssetName = mesh.first!.assetName
+                    setEntityName(entityId: childEntityId, name: meshAssetName)
+                    setParent(childId: childEntityId, parentId: entityId)
+                    let nodePath = generateStableNodePath(assetName: meshAssetName, index: index)
+                    let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: entityId, nodePath: nodePath)
+                    registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
+                    if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
+                        derived.assetRootEntityId = derivedComp.assetRootEntityId
+                        derived.nodePath = derivedComp.nodePath
+                    }
+                    setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
+                    if let renderComp = scene.get(component: RenderComponent.self, for: childEntityId) {
+                        renderComp.isVisible = false
+                    }
+                    loadingEntityIds.append(childEntityId)
+                    await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: index + 1, totalMeshes: nonEmptyMeshes.count)
+                }
+            }
+
+            for id in loadingEntityIds {
+                if let renderComp = scene.get(component: RenderComponent.self, for: id) {
+                    renderComp.isVisible = true
+                }
+            }
+
+            await AssetLoadingState.shared.finishLoading(entityId: entityId)
+            completionBox?.call(true)
+            return
+        }
+
+        // ORIGINAL PATH (assetName specified, or progressive loading disabled) ──────────
+        // Uses MTKMeshBufferAllocator: all Metal buffers allocated at parse time.
+        // Kept for named-mesh lookups and fallback when progressive loading is off.
         let meshes = await Mesh.loadSceneMeshesAsync(
             url: url,
             vertexDescriptor: vertexDescriptor.model,
