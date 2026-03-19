@@ -1134,7 +1134,7 @@ public class BatchingSystem: @unchecked Sendable {
     private func reconcileStreamingTexturesAfterArtifact(insertedStart: Int) {
         guard insertedStart < batchGroups.count else { return }
 
-        for i in insertedStart..<batchGroups.count {
+        for i in insertedStart ..< batchGroups.count {
             // All entities in a group share the same material, so the first live entity
             // is a valid representative for the current streaming state.
             var liveTexture: (

@@ -14,11 +14,12 @@
     import UntoldEngine
 
     // MARK: - GameScene
+
     // All engine API calls live here. DemoState holds UI state only and
     // delegates to these methods via callbacks wired up in AppDelegate.
 
     class GameScene {
-        var loadedEntity: EntityID? = nil
+        var loadedEntity: EntityID?
         private var wasRightMousePressed: Bool = false
 
         init() {
@@ -182,16 +183,16 @@
     }
 
     // MARK: - DemoState
+
     // Pure UI state. No engine calls here — each property fires a callback
     // that AppDelegate wires to the matching GameScene method.
 
     @Observable class DemoState {
-
         // ── File loading ──────────────────────────────────────────────────
         var hasLoadedEntity: Bool = false
         var isLoading: Bool = false
 
-        // ── Features ──────────────────────────────────────────────────────
+        /// ── Features ──────────────────────────────────────────────────────
         var batchingEnabled: Bool = false {
             didSet { onBatchingChanged?(batchingEnabled) }
         }
@@ -199,14 +200,16 @@
         var streamingEnabled: Bool = false {
             didSet { onStreamingChanged?(streamingEnabled, streamingRadius, unloadRadius) }
         }
+
         var streamingRadius: Double = 250.0 {
             didSet { if streamingEnabled { onStreamingChanged?(true, streamingRadius, unloadRadius) } }
         }
+
         var unloadRadius: Double = 350.0 {
             didSet { if streamingEnabled { onStreamingChanged?(true, streamingRadius, unloadRadius) } }
         }
 
-        // ── Debug ─────────────────────────────────────────────────────────
+        /// ── Debug ─────────────────────────────────────────────────────────
         var lodDebugEnabled: Bool = false {
             didSet { onLodDebugChanged?(lodDebugEnabled) }
         }
@@ -218,9 +221,11 @@
         var spatialDebugEnabled: Bool = false {
             didSet { onSpatialDebugChanged?(spatialDebugEnabled, spatialOccupiedOnly, spatialColorMode) }
         }
+
         var spatialColorMode: SpatialDebugLeafColorMode = .plain {
             didSet { if spatialDebugEnabled { onSpatialDebugChanged?(true, spatialOccupiedOnly, spatialColorMode) } }
         }
+
         var spatialOccupiedOnly: Bool = true {
             didSet { if spatialDebugEnabled { onSpatialDebugChanged?(true, spatialOccupiedOnly, spatialColorMode) } }
         }
@@ -253,26 +258,26 @@
                 Divider()
 
                 // Timing
-                row("FPS",       String(format: "%.1f",    fps))
+                row("FPS", String(format: "%.1f", fps))
                 row("CPU Frame", String(format: "%.2f ms", stats.timing.frameTotalMs))
-                row("GPU",       String(format: "%.2f ms", stats.timing.gpuExecutionMs))
+                row("GPU", String(format: "%.2f ms", stats.timing.gpuExecutionMs))
                 Divider()
 
                 // Render
-                row("Draw Calls",  "\(stats.render.drawCallsTotal)")
-                row("  Opaque",    "\(stats.render.drawCallsOpaque)")
-                row("  Batched",   "\(stats.render.drawCallsBatched)")
-                row("Triangles",   fmt(stats.render.trianglesTotal))
-                row("Visible",     "\(stats.render.visibleInstances)")
+                row("Draw Calls", "\(stats.render.drawCallsTotal)")
+                row("  Opaque", "\(stats.render.drawCallsOpaque)")
+                row("  Batched", "\(stats.render.drawCallsBatched)")
+                row("Triangles", fmt(stats.render.trianglesTotal))
+                row("Visible", "\(stats.render.visibleInstances)")
                 Divider()
 
                 // Culling
-                row("Frustum",   "\(stats.culling.frustumPassed) / \(stats.culling.frustumTested)")
+                row("Frustum", "\(stats.culling.frustumPassed) / \(stats.culling.frustumTested)")
                 row("Occlusion", "\(stats.culling.occlusionPassed) / \(stats.culling.occlusionTested)")
                 Divider()
 
                 // Batching
-                row("Batch Groups",   "\(stats.batching.batchGroupCount)")
+                row("Batch Groups", "\(stats.batching.batchGroupCount)")
                 row("Batched Meshes", "\(stats.batching.batchedMeshCount)")
             }
             .font(.system(.caption, design: .monospaced))
@@ -290,7 +295,7 @@
 
         private func fmt(_ n: Int) -> String {
             if n >= 1_000_000 { return String(format: "%.1fM", Double(n) / 1_000_000) }
-            if n >= 1_000     { return String(format: "%.1fK", Double(n) / 1_000) }
+            if n >= 1000 { return String(format: "%.1fK", Double(n) / 1000) }
             return "\(n)"
         }
     }
@@ -308,7 +313,6 @@
 
                 // Controls panel — top left
                 VStack(alignment: .leading, spacing: 8) {
-
                     // ── Load ──────────────────────────────────────────────
                     HStack(spacing: 8) {
                         Button("Load USDZ...") { showFilePicker = true }
@@ -420,7 +424,7 @@
                 isPresented: $showFilePicker,
                 allowedContentTypes: [UTType(filenameExtension: "usdz") ?? .data]
             ) { result in
-                guard case .success(let url) = result else { return }
+                guard case let .success(url) = result else { return }
                 let accessing = url.startAccessingSecurityScopedResource()
                 let path = url.deletingPathExtension().path
                 state.batchingEnabled = false
@@ -434,14 +438,12 @@
             }
         }
 
-        @ViewBuilder
         private func sectionLabel(_ text: String) -> some View {
             Text(text)
                 .font(.system(.caption, design: .default).weight(.semibold))
                 .foregroundStyle(.secondary)
         }
 
-        @ViewBuilder
         private func controlHint(_ key: String, _ action: String) -> some View {
             HStack {
                 Text(key)
