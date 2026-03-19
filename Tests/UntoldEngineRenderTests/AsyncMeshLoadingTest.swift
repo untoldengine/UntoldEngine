@@ -23,9 +23,15 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
     override func setUp() async throws {
         try await super.setUp()
         LoadingSystem.shared.resourceURLFn = getResourceURL
+        // Disable progressive loading for integration tests: these tests validate the
+        // mesh loading pipeline (registration, components, visibility), not the
+        // progressive scheduler. Progressive loading is tested in ProgressiveAssetLoaderTests.
+        ProgressiveAssetLoader.shared.enabled = false
     }
 
     override func tearDown() async throws {
+        ProgressiveAssetLoader.shared.cancelAll()
+        ProgressiveAssetLoader.shared.enabled = true
         LoadingSystem.shared.resourceURLFn = getResourceURL
         destroyAllEntities()
         try await super.tearDown()

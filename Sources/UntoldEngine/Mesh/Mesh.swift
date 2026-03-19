@@ -545,6 +545,203 @@ public struct Mesh {
         return meshGroups
     }
 
+    // MARK: - Progressive Loading Support
+
+    /// Holds MDLAsset and its top-level objects after a CPU-only parse.
+    /// No Metal buffers are allocated yet — MTKMesh creation happens per-batch in ProgressiveAssetLoader.
+    struct ProgressiveAssetData: @unchecked Sendable {
+        let asset: MDLAsset           // Retained so MDLMesh objects stay valid during batch processing
+        let topLevelObjects: [MDLObject]
+        let textureLoader: TextureLoader
+        let totalObjectCount: Int
+    }
+
+    /// Parse a USD/USDZ asset without allocating GPU buffers.
+    ///
+    /// Passes `nil` as the `bufferAllocator` so ModelIO stores vertex/index data in CPU
+    /// heap memory instead of Metal shared buffers. This eliminates the all-at-once GPU
+    /// memory spike that occurs when loading very large scenes.
+    ///
+    /// Call `Mesh.makeMeshes(object:...)` on the returned objects in small batches to
+    /// create Metal resources gradually over multiple frames.
+    static func parseAssetAsync(
+        url: URL,
+        vertexDescriptor: MDLVertexDescriptor,
+        device: MTLDevice,
+        coordinateConversion: CoordinateSystemConversion = .autoDetect
+    ) async -> ProgressiveAssetData? {
+        return await Task.detached { () -> ProgressiveAssetData? in
+            guard FileManager.default.fileExists(atPath: url.path) else {
+                Logger.logError(message: "[ProgressiveLoader] Asset file not found: \(url.path)")
+                return nil
+            }
+
+            if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+               let size = attrs[.size] as? UInt64
+            {
+                let mb = Double(size) / (1024 * 1024)
+                Logger.log(message: "[ProgressiveLoader] Parsing '\(url.lastPathComponent)' (\(String(format: "%.1f", mb)) MB) — CPU allocator, no GPU pre-allocation")
+            }
+
+            // MDLMeshBufferDataAllocator stores all vertex/index data in CPU heap memory
+            // (NSData-backed MDLMeshBufferData objects). No Metal buffers are allocated yet.
+            // When MTKMesh(mesh:device:) is called per-batch it copies each mesh's Data
+            // into a new MTLBuffer — this is what enables staged GPU upload.
+            //
+            // nil would not work here: passing nil causes ModelIO to skip buffer
+            // materialisation entirely, leaving empty buffers that MTKMesh cannot copy
+            // (MTKModelErrorNoMTLBuffer / error 0).
+            let cpuAllocator = MDLMeshBufferDataAllocator()
+            let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: cpuAllocator)
+
+            let transform = orientationTransformForAsset(asset, conversion: coordinateConversion)
+            if transform != matrix_identity_float4x4 {
+                for object in asset.childObjects(of: MDLObject.self) {
+                    object.transform = MDLTransform(
+                        matrix: simd_mul(transform, object.transform?.matrix ?? .identity)
+                    )
+                }
+            }
+
+            asset.loadTextures()
+
+            let textureLoader = TextureLoader(device: device)
+            let objects = Array(asset.childObjects(of: MDLObject.self))
+
+            Logger.log(message: "[ProgressiveLoader] '\(url.lastPathComponent)': \(objects.count) top-level objects queued for progressive registration")
+
+            return ProgressiveAssetData(
+                asset: asset,
+                topLevelObjects: objects,
+                textureLoader: textureLoader,
+                totalObjectCount: objects.count
+            )
+        }.value
+    }
+
+    /// Copy all vertex/index buffers from a CPU-backed MDLMesh (MDLMeshBufferDataAllocator)
+    /// to fresh Metal-backed buffers using a per-mesh MTKMeshBufferAllocator.
+    ///
+    /// `MTKMesh(mesh:device:)` requires MTKMeshBuffer-backed buffers and cannot copy from
+    /// MDLMeshBufferData (CPU-heap) buffers — this is what causes MTKModelErrorNoMTLBuffer.
+    /// This function performs the explicit CPU→GPU copy so each batch item only allocates
+    /// Metal memory for its own mesh data, keeping GPU allocation incremental.
+    private static func copyBuffersToMetal(
+        _ mdlMesh: MDLMesh,
+        device: MTLDevice
+    ) -> MDLMesh? {
+        let mtkAllocator = MTKMeshBufferAllocator(device: device)
+
+        // Copy vertex buffers
+        let newVertexBuffers: [MDLMeshBuffer] = mdlMesh.vertexBuffers.map { srcBuf in
+            let dst = mtkAllocator.newBuffer(srcBuf.length, type: .vertex)
+            let srcMap = srcBuf.map()
+            let dstMap = dst.map()
+            memcpy(dstMap.bytes, srcMap.bytes, srcBuf.length)
+            return dst
+        }
+
+        // Copy index buffers and rebuild submeshes
+        var newSubmeshes: [MDLSubmesh] = []
+        for case let sub as MDLSubmesh in mdlMesh.submeshes ?? NSMutableArray() {
+            let srcIdx = sub.indexBuffer
+            let dstIdx = mtkAllocator.newBuffer(srcIdx.length, type: .index)
+            let srcMap = srcIdx.map()
+            let dstMap = dstIdx.map()
+            memcpy(dstMap.bytes, srcMap.bytes, srcIdx.length)
+            let newSub = MDLSubmesh(
+                name: sub.name,
+                indexBuffer: dstIdx,
+                indexCount: sub.indexCount,
+                indexType: sub.indexType,
+                geometryType: sub.geometryType,
+                material: sub.material
+            )
+            newSubmeshes.append(newSub)
+        }
+
+        let mtkMesh = MDLMesh(
+            vertexBuffers: newVertexBuffers,
+            vertexCount: mdlMesh.vertexCount,
+            descriptor: mdlMesh.vertexDescriptor,
+            submeshes: newSubmeshes
+        )
+        // Copy name and local transform from original — no world-transform baking.
+        // localSpace and worldSpace are assigned directly after Mesh.init to avoid
+        // the MDLTransform(matrix:) decompose/recompose round-trip that can corrupt scale.
+        mtkMesh.name = mdlMesh.parent?.name ?? mdlMesh.name
+        mtkMesh.transform = mdlMesh.transform
+        return mtkMesh
+    }
+
+    /// Progressive-loading variant of makeMeshes for CPU-parsed assets.
+    ///
+    /// For each MDLMesh in the object hierarchy:
+    ///   1. Computes tangent basis on CPU (addOrthTanBasis) — safe with MDLMeshBufferDataAllocator.
+    ///   2. Copies vertex/index buffers from CPU heap to new Metal-backed (MTK) buffers.
+    ///   3. Creates Mesh via normal Mesh.init — MTKMesh creation succeeds on MTK-backed buffers.
+    ///
+    /// Called from ProgressiveAssetLoader.tick() instead of makeMeshes() because
+    /// MTKMesh(mesh:device:) requires MTKMeshBuffer-backed buffers and produces
+    /// MTKModelErrorNoMTLBuffer (error 0) when given MDLMeshBufferData CPU buffers.
+    static func makeMeshesFromCPUBuffers(
+        object: MDLObject,
+        vertexDescriptor: MDLVertexDescriptor,
+        textureLoader: TextureLoader,
+        device: MTLDevice,
+        flip: Bool
+    ) -> [Mesh] {
+        var meshes = [Mesh]()
+
+        if let mdlMesh = object as? MDLMesh {
+            // Step 1: compute tangent basis in CPU memory
+            if hasTextureCoordinates(mesh: mdlMesh) {
+                mdlMesh.addOrthTanBasis(
+                    forTextureCoordinateAttributeNamed: MDLVertexAttributeTextureCoordinate,
+                    normalAttributeNamed: MDLVertexAttributeNormal,
+                    tangentAttributeNamed: MDLVertexAttributeTangent
+                )
+            }
+
+            // Step 2: capture transforms directly from original (has full parent chain).
+            // We read these now and assign them directly after Mesh.init to avoid the
+            // MDLTransform(matrix:) decompose/recompose round-trip that can corrupt scale.
+            let localTransform = mdlMesh.transform?.matrix ?? .identity
+            let worldTransform = composedWorldTransform(for: mdlMesh)
+            let assetName = mdlMesh.parent?.name ?? mdlMesh.name
+
+            // Step 3: copy CPU buffers to Metal-backed buffers
+            if let mtkBacked = copyBuffersToMetal(mdlMesh, device: device) {
+                // Step 4: Mesh.init — addOrthTanBasis is a no-op (done above),
+                // vertexDescriptor= works on MTK-backed buffers, MTKMesh succeeds.
+                if var mesh = Mesh(modelIOMesh: mtkBacked, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip) {
+                    // Directly assign the correct transforms from the original MDLMesh.
+                    // This matches exactly what Mesh.init would produce with the original
+                    // (MTKMeshBufferAllocator-backed) mesh that has a full parent chain.
+                    mesh.localSpace = localTransform
+                    mesh.worldSpace = worldTransform
+                    meshes.append(mesh)
+                } else {
+                    Logger.logError(message: "[ProgressiveLoader] MTKMesh creation failed for '\(assetName)' even after CPU to Metal buffer copy.")
+                }
+            }
+        }
+
+        if object.conforms(to: MDLObjectContainerComponent.self) {
+            for child in object.children.objects {
+                meshes.append(contentsOf: makeMeshesFromCPUBuffers(
+                    object: child,
+                    vertexDescriptor: vertexDescriptor,
+                    textureLoader: textureLoader,
+                    device: device,
+                    flip: flip
+                ))
+            }
+        }
+
+        return meshes
+    }
+
     static func loadMeshWithName(name: String, url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, coordinateConversion: CoordinateSystemConversion = .autoDetect) -> [Mesh] {
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
