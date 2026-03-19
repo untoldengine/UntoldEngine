@@ -418,11 +418,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         // 4. Flush events (residency and LOD change events are processed)
         SystemEventBus.shared.flushEvents()
 
-        // 5. Progressive asset loading tick (creates MTKMesh + registers child entities in batches).
-        //    Runs before batching so newly registered entities can be picked up in the same tick.
-        ProgressiveAssetLoader.shared.tick()
-
-        // 6. Batching incremental update (consumes LOD change events)
+        // 5. Batching incremental update (consumes LOD change events)
+        // Note: ProgressiveAssetLoader.shared.tick() is called before runFrame() in draw()
+        // (non-XR) or via DispatchQueue.main.async in UntoldEngineXR.renderNewFrame() (XR).
+        // It is NOT called here because runFrame() is invoked from the visionOS compositor
+        // render thread in XR, which violates tick()'s main-thread precondition.
         #if ENGINE_STATS_ENABLED
             let batchingTickStart = CACurrentMediaTime()
         #endif
@@ -489,6 +489,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             initSizeableResources()
             pendingResize = false
         }
+        // Tick the progressive loader here (main thread, before runFrame) so newly
+        // registered entities are picked up by BatchingSystem in the same frame.
+        // In XR, UntoldEngineXR.renderNewFrame() dispatches this to the main thread
+        // separately, since its runLoop() runs on the compositor render thread.
+        ProgressiveAssetLoader.shared.tick()
         _ = runFrame(
             beforeRender: { [weak self] in self?.delegate?.willDraw(in: view) },
             render: { [weak self] in

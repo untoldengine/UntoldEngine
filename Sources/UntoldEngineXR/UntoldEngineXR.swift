@@ -320,6 +320,15 @@
             let sceneReady = isSceneReady()
             let allowSpatialInputProcessing = !loading && sceneReady
 
+            // Drive the progressive asset loader from the main thread.
+            // runLoop() runs on the visionOS compositor render thread, so tick() (which
+            // requires the main thread via dispatchPrecondition) must be dispatched here.
+            // This mirrors what UntoldEngine.swift does inside draw() on the MTKViewDelegate
+            // main-thread path. Without this, progressive jobs never advance in XR.
+            DispatchQueue.main.async {
+                ProgressiveAssetLoader.shared.tick()
+            }
+
             // 4. Update spatial input state from queued events
             if allowSpatialInputProcessing {
                 updateSpatialInputState()
