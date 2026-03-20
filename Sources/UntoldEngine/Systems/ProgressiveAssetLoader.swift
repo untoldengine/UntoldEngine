@@ -12,7 +12,6 @@ import Foundation
 import MetalKit
 import ModelIO
 
-
 // MARK: - Loader
 
 /// Manages the out-of-core streaming CPU registry for large USD/USDZ assets.
@@ -69,6 +68,9 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         let withExtension: String
         /// Pre-computed unique name for this entity: "\(parentName)#\(index)".
         let uniqueAssetName: String
+        /// Estimated GPU memory (bytes) for pre-emptive budget reservation.
+        /// Computed from MDLMesh vertex/index counts at stub registration time — no disk I/O.
+        let estimatedGPUBytes: Int
     }
 
     /// CPU-resident mesh data keyed by child entity ID.
