@@ -742,7 +742,7 @@ func registerProgressiveStubEntity(
     index: Int,
     uniqueAssetName: String,
     rootEntityId: EntityID,
-    url: URL,
+    url _: URL,
     filename: String,
     withExtension ext: String
 ) -> EntityID {
@@ -764,7 +764,8 @@ func registerProgressiveStubEntity(
     // Seed the bounding box from the MDLMesh so OctreeSystem and calculateDistance
     // compute meaningful spatial extents even before the RenderComponent exists.
     if let mdlMesh = mdlObject as? MDLMesh,
-       let local = scene.get(component: LocalTransformComponent.self, for: childEntityId) {
+       let local = scene.get(component: LocalTransformComponent.self, for: childEntityId)
+    {
         local.boundingBox = (min: mdlMesh.boundingBox.minBounds, max: mdlMesh.boundingBox.maxBounds)
     }
 
@@ -950,6 +951,19 @@ public func setEntityMeshAsync(
                             withExtension: withExtension
                         )
 
+                        // Estimate GPU bytes from MDLMesh vertex/index counts.
+                        // Used by GeometryStreamingSystem for pre-emptive budget reservation
+                        // before starting a CPU→Metal upload, so the budget gate fires before
+                        // a load rather than reacting after allocation.
+                        let estimatedGPUBytes: Int = {
+                            guard let mdlMesh = obj as? MDLMesh else { return 0 }
+                            let stride = Int((mdlMesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48)
+                            let vertexBytes = mdlMesh.vertexCount * stride
+                            // Approximate: ~3 indices per vertex (conservative, no sharing assumed)
+                            let indexBytes = mdlMesh.vertexCount * 3 * 4
+                            return vertexBytes + indexBytes
+                        }()
+
                         let entry = ProgressiveAssetLoader.CPUMeshEntry(
                             object: obj,
                             vertexDescriptor: vertexDescriptor.model,
@@ -958,7 +972,8 @@ public func setEntityMeshAsync(
                             url: url,
                             filename: filename,
                             withExtension: withExtension,
-                            uniqueAssetName: uniqueAssetName
+                            uniqueAssetName: uniqueAssetName,
+                            estimatedGPUBytes: estimatedGPUBytes
                         )
                         cpuEntries.append((childId, entry))
                         childEntityIds.append(childId)

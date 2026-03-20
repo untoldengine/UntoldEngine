@@ -30,9 +30,44 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Maximum radius to query from octree (should cover largest unload radius)
     public var maxQueryRadius: Float = 500.0
 
+    // MARK: - Near-Band Concurrency
+
+    /// Fraction of an entity's streamingRadius that defines the "near band".
+    /// Entities closer than (streamingRadius × nearBandFraction) are serialized so
+    /// the closest mesh always appears before farther ones. Default: first third of range.
+    public var nearBandFraction: Float = 0.33
+
+    /// Maximum concurrent loads allowed within the near band.
+    /// Setting this to 1 serializes near-band uploads, guaranteeing distance-ordered appearance.
+    public var nearBandMaxConcurrentLoads: Int = 1
+
+    // MARK: - Value-Based Eviction Weights
+
+    /// Weight given to camera distance when scoring eviction candidates (0–1).
+    /// Higher = farther entities are evicted first.
+    public var evictionDistanceWeight: Float = 0.6
+
+    /// Weight given to GPU memory size when scoring eviction candidates (0–1).
+    /// Higher = larger meshes are evicted first when at equal distance.
+    public var evictionSizeWeight: Float = 0.4
+
+    /// Distance (metres) within which a currently-visible entity is protected from eviction.
+    ///
+    /// Entities that are both visible AND closer than this radius are never evicted — removing
+    /// them would cause an obvious foreground pop. Entities beyond this radius CAN be evicted
+    /// under memory pressure even while visible, because the visual cost of a distant pop is
+    /// far lower than blocking a nearby mesh from loading entirely.
+    ///
+    /// Default: 30 m. Increase if you see unwanted pops on meshes that are far but prominent.
+    /// Decrease if zoom-out → zoom-in residency deadlocks persist (far meshes blocking near ones).
+    public var visibleEvictionProtectionRadius: Float = 30.0
+
     private let stateLock = NSLock()
     private var timeSinceLastUpdate: Float = 0
     private var activeLoads: Set<EntityID> = []
+    /// Subset of activeLoads that belong to the near band. Tracked separately so the
+    /// near-band concurrency limit can be enforced independently of the global limit.
+    private var activeNearBandLoads: Set<EntityID> = []
     private var loadedStreamingEntities: Set<EntityID> = [] // Track loaded entities for efficient unload checks
     private var currentFrame: Int = 0
     private var lastLoadCandidateCount: Int = 0
@@ -68,6 +103,18 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     private func activeLoadCountSnapshot() -> Int {
         withStateLock { activeLoads.count }
+    }
+
+    private func reserveNearBandLoad(entityId: EntityID) {
+        withStateLock { activeNearBandLoads.insert(entityId) }
+    }
+
+    private func releaseNearBandLoad(entityId: EntityID) {
+        withStateLock { _ = activeNearBandLoads.remove(entityId) }
+    }
+
+    private func activeNearBandLoadCount() -> Int {
+        withStateLock { activeNearBandLoads.count }
     }
 
     private func loadedStreamingEntitiesSnapshot() -> [EntityID] {
@@ -209,21 +256,61 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         var evictedByLRU = 0
         if MemoryBudgetManager.shared.shouldEvict() {
             evictionTriggered = true
-            evictedByLRU = evictLRU()
+            evictedByLRU = evictLRU(cameraPosition: effectiveCameraPosition)
         }
 
-        // Load within concurrent limit — only when within memory budget.
-        // Snapshot shouldEvict() once after eviction: the eviction above may have changed
-        // state, so we re-sample exactly once here rather than calling it twice.
-        let budgetAllowsLoads = !MemoryBudgetManager.shared.shouldEvict()
+        // Partition candidates into near band and rest band.
+        // Near band (distance ≤ streamingRadius × nearBandFraction) is serialized so the
+        // closest meshes always appear in distance order. Rest band uses remaining slots freely.
+        var nearBandCandidates: [(EntityID, Float, Int)] = []
+        var restBandCandidates: [(EntityID, Float, Int)] = []
+        for candidate in loadCandidates {
+            let (entityId, distance, priority) = candidate
+            let radius = scene.get(component: StreamingComponent.self, for: entityId)?.streamingRadius ?? Float.greatestFiniteMagnitude
+            if radius < Float.greatestFiniteMagnitude, distance <= radius * nearBandFraction {
+                nearBandCandidates.append((entityId, distance, priority))
+            } else {
+                restBandCandidates.append((entityId, distance, priority))
+            }
+        }
+
         let availableSlots = maxConcurrentLoads - activeLoadCountSnapshot()
         lastLoadCandidateCount = loadCandidates.count
         lastPendingLoadBacklog = max(0, loadCandidates.count - max(0, availableSlots))
-        let loadsToStart = max(0, availableSlots)
         var startedLoads = 0
-        if budgetAllowsLoads {
-            for (entityId, _, _) in loadCandidates.prefix(loadsToStart) {
-                loadMesh(entityId: entityId)
+
+        // Snapshot shouldEvict() once after eviction before starting any loads.
+        if !MemoryBudgetManager.shared.shouldEvict() {
+            // Near band: serialized (nearBandMaxConcurrentLoads = 1 by default)
+            let nearSlots = max(0, min(
+                nearBandMaxConcurrentLoads - activeNearBandLoadCount(),
+                availableSlots - startedLoads
+            ))
+            for (entityId, _, _) in nearBandCandidates.prefix(nearSlots) {
+                // Pre-emptive budget reservation: evict if this mesh won't fit.
+                if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
+                   !MemoryBudgetManager.shared.canAccept(sizeBytes: cpuEntry.estimatedGPUBytes)
+                {
+                    evictedByLRU += evictLRU(cameraPosition: effectiveCameraPosition)
+                    evictionTriggered = true
+                    guard MemoryBudgetManager.shared.canAccept(sizeBytes: cpuEntry.estimatedGPUBytes) else { continue }
+                }
+                loadMesh(entityId: entityId, isNearBand: true)
+                startedLoads += 1
+            }
+
+            // Rest band: remaining global slots
+            let restSlots = max(0, availableSlots - startedLoads)
+            for (entityId, _, _) in restBandCandidates.prefix(restSlots) {
+                // Pre-emptive budget reservation for out-of-core rest-band entities.
+                if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
+                   !MemoryBudgetManager.shared.canAccept(sizeBytes: cpuEntry.estimatedGPUBytes)
+                {
+                    evictedByLRU += evictLRU(cameraPosition: effectiveCameraPosition)
+                    evictionTriggered = true
+                    guard MemoryBudgetManager.shared.canAccept(sizeBytes: cpuEntry.estimatedGPUBytes) else { continue }
+                }
+                loadMesh(entityId: entityId, isNearBand: false)
                 startedLoads += 1
             }
         }
@@ -239,7 +326,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             diagnostics.processedUnloads = processedUnloads
             diagnostics.loadCandidates = loadCandidates.count
             diagnostics.startedLoads = startedLoads
-            diagnostics.availableLoadSlots = loadsToStart
+            diagnostics.availableLoadSlots = availableSlots
             diagnostics.activeLoadsAtUpdateStart = activeLoadsAtStart
             diagnostics.activeLoadsAtUpdateEnd = activeLoadsAtEnd
             diagnostics.evictionTriggered = evictionTriggered
@@ -247,11 +334,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
     }
 
-    private func loadMesh(entityId: EntityID) {
+    private func loadMesh(entityId: EntityID, isNearBand: Bool = false) {
         guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
               streaming.state == .unloaded
         else { return }
         guard reserveActiveLoad(entityId: entityId) else { return }
+        if isNearBand { reserveNearBandLoad(entityId: entityId) }
 
         streaming.state = .loading
         BatchingSystem.shared.notifyEntityStreamingStarted(entityId: entityId)
@@ -308,6 +396,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     Logger.logError(message: "Failed to stream mesh for entity \(entityId)")
                 }
                 releaseActiveLoad(entityId: entityId)
+                if isNearBand { releaseNearBandLoad(entityId: entityId) }
                 applyMs = (CFAbsoluteTimeGetCurrent() - applyStart) * 1000.0
             }
             recordLoadCompletion(success: success, asyncLoadMs: asyncLoadMs, applyMs: applyMs, wasLODReload: hasLOD)
@@ -608,46 +697,70 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         updateLastUnloadDuration(unloadMs)
     }
 
-    private func evictLRU() -> Int {
+    /// Evict loaded entities under memory pressure, prioritising by value score.
+    ///
+    /// Score = `evictionDistanceWeight × distanceFactor + evictionSizeWeight × sizeFactor`.
+    /// Entities with high distance and large GPU footprint are evicted first, protecting
+    /// nearby small meshes that are most valuable for scene coverage near the camera.
+    /// LRU frame is retained as a tiebreaker for equal-score candidates.
+    ///
+    /// Visibility guard is distance-aware: entities within `visibleEvictionProtectionRadius`
+    /// are never evicted while visible (prevents foreground popping). Entities beyond that
+    /// radius may be evicted even while visible — a distant pop is cheaper than a nearby
+    /// mesh failing to load under memory pressure.
+    private func evictLRU(cameraPosition: simd_float3) -> Int {
         // First, evict any unused cached files
         MeshResourceManager.shared.evictUnused()
 
-        // Use tracked loaded entities instead of querying all entities
-        var candidates: [(EntityID, Int)] = [] // (entity, lastVisibleFrame)
+        var candidates: [(entityId: EntityID, score: Float, lastFrame: Int, distance: Float)] = []
         var staleEntityIds: [EntityID] = []
 
         let trackedLoadedSnapshot = loadedStreamingEntitiesSnapshot()
+        let budget = Float(max(1, MemoryBudgetManager.shared.meshBudget))
+
         for entityId in trackedLoadedSnapshot {
-            // Check if entity still exists
             guard scene.exists(entityId) else {
                 staleEntityIds.append(entityId)
                 continue
             }
-
             guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
                   streaming.state == .loaded
             else { continue }
 
-            candidates.append((entityId, streaming.lastVisibleFrame))
+            let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
+            let distanceFactor = min(1.0, distance / maxQueryRadius)
+
+            let meshBytes = Float(MemoryBudgetManager.shared.getMemorySize(for: entityId) ?? 0)
+            let sizeFactor = min(1.0, meshBytes / budget)
+
+            let score = evictionDistanceWeight * distanceFactor + evictionSizeWeight * sizeFactor
+            candidates.append((entityId, score, streaming.lastVisibleFrame, distance))
         }
 
-        // Clean up stale entity IDs
         for staleId in staleEntityIds {
             unmarkLoadedStreamingEntity(staleId)
         }
 
-        // Sort by oldest first
-        candidates.sort { $0.1 < $1.1 }
+        // Sort: highest eviction score first; LRU frame as tiebreaker.
+        candidates.sort {
+            if abs($0.score - $1.score) > 0.001 { return $0.score > $1.score }
+            return $0.lastFrame < $1.lastFrame
+        }
 
-        // Evict until memory pressure relieved
+        let visibleSet = Set(visibleEntityIds)
         var evictedCount = 0
-        for (entityId, _) in candidates {
+        for candidate in candidates {
             guard MemoryBudgetManager.shared.shouldEvict() else { break }
 
-            // Don't evict currently visible entities
-            if visibleEntityIds.contains(entityId) { continue }
+            // Distance-aware visibility guard.
+            // Close visible meshes (< visibleEvictionProtectionRadius) are protected — evicting
+            // them would cause an obvious foreground pop. Far visible meshes are evictable under
+            // memory pressure; a distant pop is less harmful than a nearby mesh failing to load.
+            if visibleSet.contains(candidate.entityId), candidate.distance < visibleEvictionProtectionRadius {
+                continue
+            }
 
-            unloadMesh(entityId: entityId)
+            unloadMesh(entityId: candidate.entityId)
             evictedCount += 1
         }
         return evictedCount
