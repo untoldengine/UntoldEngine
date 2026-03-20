@@ -79,7 +79,7 @@ private func orientationTransformForAsset(_ asset: MDLAsset, conversion: Coordin
     }
 }
 
-private func composedWorldTransform(for object: MDLObject) -> simd_float4x4 {
+func composedWorldTransform(for object: MDLObject) -> simd_float4x4 {
     var result = simd_float4x4.identity
     var current: MDLObject? = object
 
@@ -603,12 +603,30 @@ public struct Mesh {
                 }
             }
 
-            asset.loadTextures()
+            // loadTextures() is required for ModelIO to resolve embedded USDZ texture
+            // paths into usable MDLTexture references. Without it, material texture
+            // properties return nil URLs and textures silently fail to load.
+            //
+            // For very large assets (above the progressive loading threshold) this call
+            // is skipped: decompressing all 4K textures upfront on a 500+ MB file can
+            // spike CPU RAM by several GB on Vision Pro, causing an OOM kill before any
+            // mesh batch runs. Large assets with textures must rely on on-demand loading
+            // via TextureLoader's URL-based path.
+            let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
+            if fileSizeBytes <= ProgressiveAssetLoader.shared.fileSizeThresholdBytes {
+                asset.loadTextures()
+            }
 
             let textureLoader = TextureLoader(device: device)
-            let objects = Array(asset.childObjects(of: MDLObject.self))
+            // childObjects(of: MDLMesh.self) returns only the actual geometry leaves at
+            // every level of the hierarchy — no intermediate transform groups.
+            // Using MDLObject.self instead would return ALL nodes (groups + meshes),
+            // causing tick() to process the root group first (which recursively uploads
+            // the entire asset in one shot) and then fail on the individual mesh items
+            // whose CPU buffers were already cleared.
+            let objects = Array(asset.childObjects(of: MDLMesh.self))
 
-            Logger.log(message: "[ProgressiveLoader] '\(url.lastPathComponent)': \(objects.count) top-level objects queued for progressive registration")
+            Logger.log(message: "[ProgressiveLoader] '\(url.lastPathComponent)': \(objects.count) mesh leaves queued for progressive registration")
 
             return ProgressiveAssetData(
                 asset: asset,
@@ -740,6 +758,32 @@ public struct Mesh {
         }
 
         return meshes
+    }
+
+    /// Free CPU-heap vertex buffers for every MDLMesh in the hierarchy.
+    ///
+    /// Called immediately after `makeMeshesFromCPUBuffers` so that `MDLMeshBufferData`
+    /// objects (CPU heap, potentially hundreds of MB for large USDZ files) are released
+    /// as soon as their data has been copied to Metal. Without this, the full file remains
+    /// in CPU RAM for the entire duration of progressive loading, doubling peak memory and
+    /// causing OOM kills on Vision Pro.
+    ///
+    /// Index buffers (`MDLSubmesh.indexBuffer`) are read-only in ModelIO and cannot be
+    /// cleared here, but vertex data is the dominant cost so this still reduces peak
+    /// CPU memory by ~80–90%.
+    ///
+    /// Note: after this call the object's vertex buffers are empty. Do not call
+    /// `makeMeshesFromCPUBuffers` on the same object again — use the Metal-backed
+    /// `Mesh` structs that were returned by the previous call instead.
+    static func clearCPUBuffers(object: MDLObject) {
+        if let mesh = object as? MDLMesh {
+            mesh.vertexBuffers = []
+        }
+        if object.conforms(to: MDLObjectContainerComponent.self) {
+            for child in object.children.objects {
+                clearCPUBuffers(object: child)
+            }
+        }
     }
 
     static func loadMeshWithName(name: String, url: URL, vertexDescriptor: MDLVertexDescriptor, device: MTLDevice, coordinateConversion: CoordinateSystemConversion = .autoDetect) -> [Mesh] {

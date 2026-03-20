@@ -202,23 +202,30 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             return lhs.1 < rhs.1 // distance
         }
 
-        // Load within concurrent limit
-        let availableSlots = maxConcurrentLoads - activeLoadCountSnapshot()
-        lastLoadCandidateCount = loadCandidates.count
-        lastPendingLoadBacklog = max(0, loadCandidates.count - max(0, availableSlots))
-        let loadsToStart = max(0, availableSlots)
-        var startedLoads = 0
-        for (entityId, _, _) in loadCandidates.prefix(loadsToStart) {
-            loadMesh(entityId: entityId)
-            startedLoads += 1
-        }
-
-        // Memory pressure check
+        // Check memory budget BEFORE starting new loads.
+        // Without this guard, all in-range stubs can upload simultaneously, pushing
+        // GPU memory past the OS kill threshold on Vision Pro.
         var evictionTriggered = false
         var evictedByLRU = 0
         if MemoryBudgetManager.shared.shouldEvict() {
             evictionTriggered = true
             evictedByLRU = evictLRU()
+        }
+
+        // Load within concurrent limit — only when within memory budget.
+        // Snapshot shouldEvict() once after eviction: the eviction above may have changed
+        // state, so we re-sample exactly once here rather than calling it twice.
+        let budgetAllowsLoads = !MemoryBudgetManager.shared.shouldEvict()
+        let availableSlots = maxConcurrentLoads - activeLoadCountSnapshot()
+        lastLoadCandidateCount = loadCandidates.count
+        lastPendingLoadBacklog = max(0, loadCandidates.count - max(0, availableSlots))
+        let loadsToStart = max(0, availableSlots)
+        var startedLoads = 0
+        if budgetAllowsLoads {
+            for (entityId, _, _) in loadCandidates.prefix(loadsToStart) {
+                loadMesh(entityId: entityId)
+                startedLoads += 1
+            }
         }
 
         let updateWorkMs = (CFAbsoluteTimeGetCurrent() - updateStart) * 1000.0
@@ -262,7 +269,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 // LOD entity: reload all LOD levels and set correct one for current distance
                 await reloadLODEntity(entityId: entityId)
             } else {
-                // Regular entity: load single mesh
+                // Regular entity: load single mesh from disk / cache
                 await loadMeshAsync(
                     entityId: entityId,
                     filename: filename,
@@ -414,6 +421,60 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         return true
     }
 
+    /// Upload one out-of-core stub entity from CPU-resident MDLMesh data to Metal.
+    ///
+    /// Called instead of the disk-based `MeshResourceManager` path when the entity was
+    /// registered by the out-of-core stub system. CPU→Metal copy happens here; no USDZ
+    /// re-read is required. The CPU data is NOT cleared after upload so that future
+    /// eviction+reload cycles can re-upload from the same in-memory source.
+    private func uploadFromCPUEntry(
+        entityId: EntityID,
+        cpuEntry: ProgressiveAssetLoader.CPUMeshEntry
+    ) async -> Bool {
+        let meshes = Mesh.makeMeshesFromCPUBuffers(
+            object: cpuEntry.object,
+            vertexDescriptor: cpuEntry.vertexDescriptor,
+            textureLoader: cpuEntry.textureLoader,
+            device: cpuEntry.device,
+            flip: true
+        )
+
+        guard !meshes.isEmpty else {
+            Logger.logError(message: "[OutOfCore] CPU→Metal upload failed for entity \(entityId) ('\(cpuEntry.uniqueAssetName)')")
+            return false
+        }
+
+        // Stamp the unique asset name so the RenderComponent matches the StreamingComponent.
+        let namedMeshes = meshes.map { m -> Mesh in
+            var copy = m
+            copy.assetName = cpuEntry.uniqueAssetName
+            return copy
+        }
+
+        withWorldMutationGate {
+            registerRenderComponent(
+                entityId: entityId,
+                meshes: namedMeshes,
+                url: cpuEntry.url,
+                assetName: cpuEntry.uniqueAssetName
+            )
+        }
+
+        // Register Metal allocation with the budget manager so shouldEvict() sees these
+        // GPU bytes. Without this the budget gate in update() is blind to out-of-core uploads
+        // and will never throttle them — defeating the memory-pressure guard entirely.
+        let meshSize = calculateMeshArrayMemory(namedMeshes)
+        MemoryBudgetManager.shared.registerMesh(
+            entityId: entityId,
+            meshSizeBytes: meshSize,
+            textureSizeBytes: 0
+        )
+
+        // CPU data is intentionally kept alive in ProgressiveAssetLoader.cpuMeshRegistry
+        // so eviction + re-approach triggers another uploadFromCPUEntry, not a disk read.
+        return true
+    }
+
     /// Load mesh asynchronously - returns true on success, false on failure
     private func loadMeshAsync(
         entityId: EntityID,
@@ -421,6 +482,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         withExtension ext: String,
         assetName: String?
     ) async -> Bool {
+        // Out-of-core fast path: entity has CPU-resident MDLMesh data from stub registration.
+        // Upload from RAM — no disk I/O, no MeshResourceManager parse.
+        if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) {
+            return await uploadFromCPUEntry(entityId: entityId, cpuEntry: cpuEntry)
+        }
+
         // Build URL
         guard let url = LoadingSystem.shared.resourceURL(
             forResource: filename,
@@ -657,6 +724,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Register an entity that already has its mesh loaded (called by enableStreaming)
     public func registerLoadedEntity(_ entityId: EntityID) {
         markLoadedStreamingEntity(entityId)
+    }
+
+    /// Returns the current frame counter so callers can seed `lastVisibleFrame` on
+    /// newly registered entities without holding the state lock themselves.
+    public func currentFrameSnapshot() -> Int {
+        withStateLock { currentFrame }
     }
 
     /// Remove an entity from streaming tracking sets.

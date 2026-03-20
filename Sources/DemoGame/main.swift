@@ -150,7 +150,7 @@
                     q: input.keyState.qPressed,
                     e: input.keyState.ePressed
                 ),
-                speed: 1,
+                speed: 10,
                 deltaTime: 0.1
             )
 
@@ -201,11 +201,11 @@
             didSet { onStreamingChanged?(streamingEnabled, streamingRadius, unloadRadius) }
         }
 
-        var streamingRadius: Double = 250.0 {
+        var streamingRadius: Double = 100.0 {
             didSet { if streamingEnabled { onStreamingChanged?(true, streamingRadius, unloadRadius) } }
         }
 
-        var unloadRadius: Double = 350.0 {
+        var unloadRadius: Double = 200.0 {
             didSet { if streamingEnabled { onStreamingChanged?(true, streamingRadius, unloadRadius) } }
         }
 

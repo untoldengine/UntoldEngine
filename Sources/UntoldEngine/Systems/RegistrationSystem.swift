@@ -720,51 +720,84 @@ func generateStableNodePath(assetName: String, index: Int) -> String {
     "Root/\(assetName)#\(index)"
 }
 
-/// Internal helper called by `ProgressiveAssetLoader.tick()` to register one mesh group
-/// as a child entity of a progressively-loading asset root.
+/// Register one MDLMesh leaf as an out-of-core stub entity.
 ///
-/// Each call is wrapped in `withWorldMutationGate` to safely mutate ECS state.
-/// The new entity is immediately visible and renderable once registration completes.
-func registerProgressiveChildEntity(
-    meshes: [Mesh],
+/// Creates the full ECS presence (transform, scenegraph, streaming component) with NO GPU
+/// allocation. The `StreamingComponent` starts in `.unloaded` state with placeholder
+/// radii (`Float.greatestFiniteMagnitude`) so the streaming system ignores the entity
+/// until `enableStreaming()` is called and real radii are set.
+///
+/// **Must be called from within an existing `withWorldMutationGate` block.**
+/// The caller (setEntityMeshAsync) wraps the entire stub-registration loop in a single gate
+/// acquisition rather than one gate per stub, avoiding N × acquire/release overhead for
+/// assets with hundreds of mesh leaves.
+///
+/// The caller is responsible for storing the MDLMesh in `ProgressiveAssetLoader.cpuMeshRegistry`
+/// so `GeometryStreamingSystem.loadMeshAsync` can upload it from CPU when the entity enters range.
+///
+/// - Returns: The newly created child `EntityID`.
+@discardableResult
+func registerProgressiveStubEntity(
+    mdlObject: MDLObject,
     index: Int,
+    uniqueAssetName: String,
     rootEntityId: EntityID,
     url: URL,
     filename: String,
-    withExtension: String
-) {
-    withWorldMutationGate {
-        let childEntityId = createEntity()
+    withExtension ext: String
+) -> EntityID {
+    let childEntityId = createEntity()
 
-        if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
-            registerTransformComponent(entityId: childEntityId)
-        }
-
-        if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
-            registerSceneGraphComponent(entityId: childEntityId)
-        }
-
-        if let firstMesh = meshes.first {
-            applyWorldTransform(firstMesh.worldSpace, to: childEntityId)
-        }
-
-        associateMeshesToEntity(entityId: childEntityId, meshes: meshes)
-        registerRenderComponent(entityId: childEntityId, meshes: meshes, url: url, assetName: meshes.first!.assetName)
-
-        let meshAssetName = meshes.first!.assetName
-        setEntityName(entityId: childEntityId, name: meshAssetName)
-        setParent(childId: childEntityId, parentId: rootEntityId)
-
-        let nodePath = generateStableNodePath(assetName: meshAssetName, index: index)
-        let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: rootEntityId, nodePath: nodePath)
-        registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
-        if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
-            derived.assetRootEntityId = derivedComp.assetRootEntityId
-            derived.nodePath = derivedComp.nodePath
-        }
-
-        setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
+    if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
+        registerTransformComponent(entityId: childEntityId)
     }
+
+    if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
+        registerSceneGraphComponent(entityId: childEntityId)
+    }
+
+    // Set world position from the MDLObject's composed transform.
+    // This is what the octree and distance calculations will use.
+    let worldTransform = composedWorldTransform(for: mdlObject)
+    applyWorldTransform(worldTransform, to: childEntityId)
+
+    // Seed the bounding box from the MDLMesh so OctreeSystem and calculateDistance
+    // compute meaningful spatial extents even before the RenderComponent exists.
+    if let mdlMesh = mdlObject as? MDLMesh,
+       let local = scene.get(component: LocalTransformComponent.self, for: childEntityId) {
+        local.boundingBox = (min: mdlMesh.boundingBox.minBounds, max: mdlMesh.boundingBox.maxBounds)
+    }
+
+    setEntityName(entityId: childEntityId, name: uniqueAssetName)
+    setParent(childId: childEntityId, parentId: rootEntityId)
+
+    // Stable identity for serialisation / scene graph lookup.
+    let nodePath = generateStableNodePath(assetName: uniqueAssetName, index: index)
+    registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
+    if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
+        derived.assetRootEntityId = rootEntityId
+        derived.nodePath = nodePath
+    }
+
+    // StreamingComponent in .unloaded state — GPU resources will be created by
+    // GeometryStreamingSystem when the entity enters streamingRadius.
+    registerComponent(entityId: childEntityId, componentType: StreamingComponent.self)
+    if let sc = scene.get(component: StreamingComponent.self, for: childEntityId) {
+        sc.assetFilename = filename
+        sc.assetExtension = ext
+        sc.assetName = uniqueAssetName
+        sc.state = .unloaded
+        // Large placeholder radii: enableStreaming() sets the real values.
+        // This prevents the streaming system from immediately queueing a disk-based
+        // reload before the out-of-core CPU registry entry is in place.
+        sc.streamingRadius = Float.greatestFiniteMagnitude
+        sc.unloadRadius = Float.greatestFiniteMagnitude
+    }
+
+    // Register with the octree so update() spatial queries can find this stub.
+    OctreeSystem.shared.registerEntity(childEntityId)
+
+    return childEntityId
 }
 
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
@@ -823,25 +856,19 @@ public func setEntityMeshAsync(
             return
         }
 
-        // MARK: Progressive loading path
+        // MARK: Out-of-core / small-file routing
 
         //
-        // For large files (no specific assetName requested), parse with a CPU-only
-        // allocator to avoid the GPU memory spike caused by MTKMeshBufferAllocator
-        // pre-allocating Metal buffers for the entire scene at once.
+        // All assets parse with a CPU-only allocator to avoid the GPU memory spike caused
+        // by MTKMeshBufferAllocator pre-allocating Metal buffers for the entire scene.
         //
-        // Routing is decided by on-disk file size, not mesh count — a 1.5 MB file with
-        // 2 000 simple meshes uploads instantly; a 530 MB file must be streamed.
+        // Large assets (exceeding fileSizeThresholdBytes OR outOfCoreObjectCountThreshold)
+        // register every leaf mesh immediately as a zero-GPU stub entity. CPU-side MDLMesh
+        // data is stored in ProgressiveAssetLoader.cpuMeshRegistry so GeometryStreamingSystem
+        // can upload each stub on demand as the camera approaches — no disk re-read needed.
         //
-        // If the file exceeds fileSizeThresholdBytes, enqueue a ProgressiveLoadJob and
-        // return immediately. ProgressiveAssetLoader.tick() will create MTKMesh + register
-        // child entities in small batches each engine frame, allowing partial rendering
-        // before the full asset is loaded.
-        //
-        // For files below the threshold, mesh groups are created from the CPU-parsed
-        // data right here (same outcome as the original path, different allocator).
-        // This avoids a second disk read.
-        if assetName == nil, ProgressiveAssetLoader.shared.enabled {
+        // Small assets create all Metal resources right here in a single pass.
+        if assetName == nil {
             guard let assetData = await Mesh.parseAssetAsync(
                 url: url,
                 vertexDescriptor: vertexDescriptor.model,
@@ -855,24 +882,35 @@ public func setEntityMeshAsync(
                 return
             }
 
-            // Route based on file size, not mesh count. A 1.5 MB file with 2 000 simple
-            // meshes is fast to upload all at once; a 530 MB file must be streamed to
-            // avoid a GPU memory spike that could terminate the app on Vision Pro.
+            // Route based on file size OR object count.
+            // File size catches large single-object assets (500 MB ship).
+            // Object count catches small-file / many-object assets (18 MB city with 200+ buildings)
+            // that would otherwise slip through to the synchronous fast path and cause a GPU spike.
             let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
             let thresholdBytes = ProgressiveAssetLoader.shared.fileSizeThresholdBytes
+            let objectCountThreshold = ProgressiveAssetLoader.shared.outOfCoreObjectCountThreshold
 
-            if fileSizeBytes > thresholdBytes {
-                // PROGRESSIVE PATH ─────────────────────────────────────────────────────
-                // Large file: hand off to per-tick processor.
-                // The loading gate is released so the renderer keeps updating visible
-                // entities — already-registered child entities render each frame as they
-                // arrive.
+            let isLargeFile = fileSizeBytes > thresholdBytes
+            let hasManyObjects = assetData.totalObjectCount >= objectCountThreshold
+
+            if isLargeFile || hasManyObjects {
+                // OUT-OF-CORE PATH ──────────────────────────────────────────────────────
+                // Register ALL leaf meshes immediately as .unloaded stub entities (ECS-only,
+                // no GPU allocation). Each stub's MDLMesh data is stored in the CPU registry
+                // so GeometryStreamingSystem can upload it from RAM when the entity enters
+                // streaming range — no disk re-read required.
+                //
+                // This replaces the old ProgressiveLoadJob / tick() approach:
+                //   Old: upload nearest N → skip rest → skipped entities permanently absent
+                //   New: all entities present from the start, streaming drives GPU residency
                 let fileSizeMB = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                let thresholdMB = String(format: "%.0f", Double(thresholdBytes) / 1_048_576)
-                Logger.log(message: "[ProgressiveLoader] '\(filename)' is \(fileSizeMB) MB (threshold \(thresholdMB) MB) → progressive loading")
+                let reason = isLargeFile
+                    ? "\(fileSizeMB) MB exceeds \(String(format: "%.0f", Double(thresholdBytes) / 1_048_576)) MB threshold"
+                    : "\(assetData.totalObjectCount) objects ≥ \(objectCountThreshold) object threshold"
+                Logger.log(message: "[OutOfCore] '\(filename)': \(reason) → out-of-core stub registration (\(assetData.totalObjectCount) stubs)")
 
-                // Register AssetInstanceComponent on the root entity immediately so
-                // serialisation / scene graph logic can identify this as an asset instance.
+                // Register AssetInstanceComponent on the root entity so scene-graph
+                // serialisation can identify this as a multi-mesh asset instance.
                 withWorldMutationGate {
                     let assetInstanceComp = AssetInstanceComponent(
                         assetURL: url,
@@ -889,37 +927,60 @@ public func setEntityMeshAsync(
                     }
                 }
 
-                let pendingItems = assetData.topLevelObjects.enumerated().map { i, obj in
-                    PendingObjectItem(
-                        index: i,
-                        object: obj,
-                        rootEntityId: entityId,
-                        url: url,
-                        filename: filename,
-                        withExtension: withExtension,
-                        vertexDescriptor: vertexDescriptor.model,
-                        textureLoader: assetData.textureLoader,
-                        device: renderInfo.device
-                    )
+                // Register ALL stub entities inside a single withWorldMutationGate.
+                // Batching N stubs into one gate acquisition avoids N × acquire/release
+                // overhead on assets with hundreds of mesh leaves (e.g. 500 buildings).
+                var childEntityIds: [EntityID] = []
+                childEntityIds.reserveCapacity(assetData.totalObjectCount)
+                var cpuEntries: [(EntityID, ProgressiveAssetLoader.CPUMeshEntry)] = []
+                cpuEntries.reserveCapacity(assetData.totalObjectCount)
+
+                withWorldMutationGate {
+                    for (i, obj) in assetData.topLevelObjects.enumerated() {
+                        let baseName = (obj as? MDLMesh)?.parent?.name ?? obj.name
+                        let uniqueAssetName = "\(baseName)#\(i)"
+
+                        let childId = registerProgressiveStubEntity(
+                            mdlObject: obj,
+                            index: i,
+                            uniqueAssetName: uniqueAssetName,
+                            rootEntityId: entityId,
+                            url: url,
+                            filename: filename,
+                            withExtension: withExtension
+                        )
+
+                        let entry = ProgressiveAssetLoader.CPUMeshEntry(
+                            object: obj,
+                            vertexDescriptor: vertexDescriptor.model,
+                            textureLoader: assetData.textureLoader,
+                            device: renderInfo.device,
+                            url: url,
+                            filename: filename,
+                            withExtension: withExtension,
+                            uniqueAssetName: uniqueAssetName
+                        )
+                        cpuEntries.append((childId, entry))
+                        childEntityIds.append(childId)
+                    }
                 }
 
-                let job = ProgressiveLoadJob(
-                    rootEntityId: entityId,
-                    filename: filename,
-                    withExtension: withExtension,
-                    url: url,
-                    pending: pendingItems,
-                    totalCount: assetData.totalObjectCount,
-                    assetRef: assetData.asset,
-                    completion: completionBox.map { box in { result in box.call(result) } }
-                )
+                // Store CPU entries outside the gate (lock-based, no ECS mutation).
+                for (childId, entry) in cpuEntries {
+                    ProgressiveAssetLoader.shared.storeCPUMesh(entry, for: childId)
+                }
 
-                // Release the loading gate: renderer is no longer paused. Each batch in
-                // tick() uses withWorldMutationGate briefly for the ECS mutation only.
+                // Keep MDLAsset alive so the MDLMeshBufferDataAllocator backing all
+                // child CPU buffers is not released prematurely.
+                ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: entityId)
+                ProgressiveAssetLoader.shared.registerChildren(childEntityIds, for: entityId)
+
+                Logger.log(message: "[OutOfCore] '\(filename)': \(assetData.totalObjectCount) stubs registered — GeometryStreamingSystem will upload on demand")
+
+                // Release the loading gate immediately — no GPU work happens here.
                 await AssetLoadingState.shared.finishLoading(entityId: entityId)
-
-                ProgressiveAssetLoader.shared.enqueue(job)
-                return // ProgressiveAssetLoader.tick() takes it from here.
+                completionBox?.call(true)
+                return
             }
 
             // SMALL-FILE FAST PATH (CPU-parsed) ────────────────────────────────────────
@@ -2510,13 +2571,17 @@ public func enableStreaming(
             return
         }
 
-        // No direct RenderComponent - check children (multi-mesh asset)
+        // No direct RenderComponent — check children.
+        // Handles both loaded multi-mesh assets (children have RenderComponent) and
+        // out-of-core stub assets (children have StreamingComponent but no RenderComponent yet).
         if let sceneGraph = scene.get(component: ScenegraphComponent.self, for: entityId),
            !sceneGraph.children.isEmpty
         {
             var enabledCount = 0
             for childId in sceneGraph.children {
-                if scene.get(component: RenderComponent.self, for: childId) != nil {
+                let hasRender = scene.get(component: RenderComponent.self, for: childId) != nil
+                let hasStreaming = scene.get(component: StreamingComponent.self, for: childId) != nil
+                if hasRender || hasStreaming {
                     enableStreamingForSingleEntity(
                         entityId: childId,
                         streamingRadius: streamingRadius,
@@ -2529,7 +2594,7 @@ public func enableStreaming(
             if enabledCount > 0 {
                 Logger.log(message: "✅ Enabled streaming for \(enabledCount) child entities")
             } else {
-                Logger.logWarning(message: "Cannot enable streaming: entity \(entityId) has no children with RenderComponents")
+                Logger.logWarning(message: "Cannot enable streaming: entity \(entityId) has no children with RenderComponent or StreamingComponent")
             }
             return
         }
@@ -2538,19 +2603,45 @@ public func enableStreaming(
     }
 }
 
-/// Internal helper to enable streaming on a single entity with a RenderComponent
+/// Internal helper to enable streaming on a single entity.
+/// Handles two cases:
+///   - Loaded entity (has RenderComponent): state stays `.loaded`, registered as loaded.
+///   - Out-of-core stub (StreamingComponent only, no RenderComponent): state stays `.unloaded`,
+///     only the radii are updated so GeometryStreamingSystem can start distance checks.
 private func enableStreamingForSingleEntity(
     entityId: EntityID,
     streamingRadius: Float,
     unloadRadius: Float,
     priority: Int
 ) {
+    // Out-of-core stub path: entity has a StreamingComponent from stub registration
+    // but no RenderComponent yet. Just update the radii — the streaming system will
+    // upload the mesh from the CPU registry when the entity enters streamingRadius.
+    if let streaming = scene.get(component: StreamingComponent.self, for: entityId),
+       scene.get(component: RenderComponent.self, for: entityId) == nil
+    {
+        streaming.streamingRadius = streamingRadius
+        streaming.unloadRadius = unloadRadius
+        streaming.priority = priority
+        // State remains .unloaded — GeometryStreamingSystem drives the first upload.
+        return
+    }
+
     guard let render = scene.get(component: RenderComponent.self, for: entityId) else {
         return
     }
 
-    // Register streaming component
-    registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+    // Register streaming component only if not already present.
+    // scene.assign() always calls typedPointer.initialize(to: T()), which resets an
+    // existing StreamingComponent to its default .unloaded state. If a progressive-load
+    // child entity already has a .loaded StreamingComponent (added by
+    // registerProgressiveChildEntity), calling registerComponent again would briefly
+    // set it to .unloaded — creating a race with GeometryStreamingSystem.update() on
+    // the compositor render thread, which would see the .unloaded state and immediately
+    // queue a full reload of the USDZ file.
+    if scene.get(component: StreamingComponent.self, for: entityId) == nil {
+        registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+    }
 
     guard let streaming = scene.get(component: StreamingComponent.self, for: entityId) else {
         return
@@ -2560,14 +2651,14 @@ private func enableStreamingForSingleEntity(
     let url = render.assetURL
     streaming.assetFilename = url.deletingPathExtension().lastPathComponent
     streaming.assetExtension = url.pathExtension
-    streaming.assetName = render.assetName // The specific mesh name within the USDZ
+    streaming.assetName = render.assetName
 
     streaming.streamingRadius = streamingRadius
     streaming.unloadRadius = unloadRadius
     streaming.priority = priority
     streaming.state = .loaded // Already has mesh
 
-    // Register with streaming system for tracking
+    // Register with streaming system for eviction tracking
     GeometryStreamingSystem.shared.registerLoadedEntity(entityId)
 }
 
