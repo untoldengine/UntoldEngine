@@ -201,11 +201,11 @@
             didSet { onStreamingChanged?(streamingEnabled, streamingRadius, unloadRadius) }
         }
 
-        var streamingRadius: Double = 100.0 {
+        var streamingRadius: Double = 200.0 {
             didSet { if streamingEnabled { onStreamingChanged?(true, streamingRadius, unloadRadius) } }
         }
 
-        var unloadRadius: Double = 200.0 {
+        var unloadRadius: Double = 350.0 {
             didSet { if streamingEnabled { onStreamingChanged?(true, streamingRadius, unloadRadius) } }
         }
 

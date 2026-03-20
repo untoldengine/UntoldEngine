@@ -2,117 +2,75 @@
 slug: /intro
 ---
 
-# Untold Engine Documentation
+# Untold Engine
 
-Welcome to the **Untold Engine documentation**.
+Untold Engine is an **open-source 3D engine written in Swift and powered by Metal**, designed for Apple platforms including **macOS, iOS, and visionOS**.
 
-These docs are the primary reference for working with the Untold Engine ecosystem — whether you are building a game, extending the engine, or contributing to the editor.
+The project focuses on building a **clean, system-driven architecture** with modern rendering, an ECS-based gameplay model, and an extensible asset pipeline.
 
----
-
-## What Is Untold Engine?
-
-![untoldengine](images/Editor/EditorMainShot.png)
-
-The Untold Engine strives to be a stable, performant, and developer-friendly 3D engine that empowers creativity, removes friction, and makes game development feel effortless for Apple developers
-
-The Untold Engine is an open-source 3D game engine under active development, designed for macOS, iOS, xrOS platforms. Written in Swift and powered by Metal, its goal is to simplify game creation with a clean, intuitive API. 
-
-While the engine already supports many core systems like rendering, physics, and animation, there’s still much to build and improve.
+The engine is under active development and continues to evolve as new systems and workflows are added.
 
 ---
 
-## The Untold Engine Ecosystem
+## 🎯 Who is this for?
 
-Untold Engine is delivered through three closely related products:
+Untold Engine is designed for developers who:
 
-### Untold Engine Studio
-A downloadable application that includes:
-- The Untold Engine runtime
-- The Untold Editor
-- Built-in tools for scripting, assets, and scene editing
+- Want **full control over rendering and systems**
+- Prefer working directly with **Swift + Metal**
+- Are building **XR, 3D, or visualization applications**
+- Need to handle **large scenes, streaming data, or custom pipelines**
 
-This is the recommended starting point for most users.
+This is not a drag-and-drop editor-first engine — it is a **code-driven engine for developers who want to understand and shape the system**.
 
----
 
-### Untold Engine
-The core engine runtime.
-
-This is intended for:
-- Engine developers
-- Contributors
-- Advanced users who want to modify or extend engine systems
-
-Installation is performed via the command line.
+Creator & Lead Developer:  
+http://www.haroldserrano.com
 
 ---
 
-### Untold Editor
-The editor application built on top of the engine runtime.
+# 🚀 Try the Engine Right Now
 
-This is intended for:
-- Contributors working on editor features
-- Developers extending tools and workflows
+The fastest way to experience Untold Engine is to run the demo project.
 
-The editor uses the same runtime as games, ensuring consistent behavior.
+Clone the repository, run the engine and load a USDZ file:
 
----
+```bash
+git clone https://github.com/untoldengine/UntoldEngine.git
+cd UntoldEngine
+swift run DemoGame
+```
 
-## Choose Your Path
+This will:
 
-These docs are organized around **how you intend to use the engine**.
+- Build the engine using **Swift Package Manager**
+- Compile the demo project
+- Launch the demo so you can see the engine running immediately
 
-### Game Development
-For developers building games using Untold Engine.
-
-You will learn:
-- How to create scenes visually
-- How to write game logic (Swift or USC scripts)
-- How to work with assets and entities
-- How to build and run your game
-
-Untold Engine supports two approaches for writing gameplay code:
-- **Swift in Xcode** (recommended) - Full engine API access
-- **USC Scripts** (experimental) - Component-based scripting
-
-Start here if your goal is to build a game.
+No additional setup is required.
 
 ---
 
-### Engine Development
-For developers who want to understand or extend the engine itself.
+## 🧱 Core Direction
 
-You will learn:
-- The engine architecture
-- ECS and system execution
-- Rendering and simulation internals
-- How to contribute new engine features
+Untold Engine is being developed with the following goals:
 
-Start here if you want to work on the engine runtime.
+- **Large Scene Rendering**  
+  Striving to support LOD, geometry streaming, batching, and memory-aware systems for large datasets
 
----
+- **XR / visionOS Support**  
+  Expanding support for spatial input, AR workflows, and Vision Pro experiences
 
-### Editor Development
-For contributors working on the Untold Editor.
-
-You will learn:
-- Editor architecture
-- Views, tools, and interaction models
-- How the editor coordinates with the engine
-- How to extend or add editor functionality
-
-Start here if you want to improve the editor.
+- **Metal-First Architecture**  
+  Keeping the rendering layer close to Metal to maintain performance and control
 
 ---
 
-## Getting Started
+## 🖼 Example Use Cases
 
-If you are unsure where to begin:
+Untold Engine aims to support applications such as:
 
-- New users: **Game Development → Overview**
-- Scripting users: **USC → Introduction**
-- Contributors: **Engine Development → Architecture**
-
-Each section is designed to stand on its own.
-
+- XR applications (Vision Pro, ARKit-based apps)
+- Large-scale scene visualization (cities, archviz, datasets)
+- Custom rendering pipelines and experiments
+- Simulation tools and interactive 3D systems

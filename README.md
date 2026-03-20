@@ -29,9 +29,23 @@
 
 Untold Engine is an **open-source 3D engine written in Swift and powered by Metal**, designed for Apple platforms including **macOS, iOS, and visionOS**.
 
-The project focuses on building a clean and approachable architecture with modern rendering, an ECS-based gameplay model, and an extensible asset pipeline.
+The project focuses on building a **clean, system-driven architecture** with modern rendering, an ECS-based gameplay model, and an extensible asset pipeline.
 
 The engine is under active development and continues to evolve as new systems and workflows are added.
+
+---
+
+## 🎯 Who is this for?
+
+Untold Engine is designed for developers who:
+
+- Want **full control over rendering and systems**
+- Prefer working directly with **Swift + Metal**
+- Are building **XR, 3D, or visualization applications**
+- Need to handle **large scenes, streaming data, or custom pipelines**
+
+This is not a drag-and-drop editor-first engine — it is a **code-driven engine for developers who want to understand and shape the system**.
+
 
 Creator & Lead Developer:  
 http://www.haroldserrano.com
@@ -42,7 +56,7 @@ http://www.haroldserrano.com
 
 The fastest way to experience Untold Engine is to run the demo project.
 
-Clone the repository and run the demo:
+Clone the repository, run the engine and load a USDZ file:
 
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
@@ -60,11 +74,29 @@ No additional setup is required.
 
 ---
 
-# Demo
+## 🧱 Core Direction
 
-Click the image below to watch the engine in action.
+Untold Engine is being developed with the following goals:
 
-[![Watch the video](docs/images/enginethumbnail.jpg)](https://vimeo.com/1116239409?share=copy#t=0)
+- **Large Scene Rendering**  
+  Striving to support LOD, geometry streaming, batching, and memory-aware systems for large datasets
+
+- **XR / visionOS Support**  
+  Expanding support for spatial input, AR workflows, and Vision Pro experiences
+
+- **Metal-First Architecture**  
+  Keeping the rendering layer close to Metal to maintain performance and control
+
+---
+
+## 🖼 Example Use Cases
+
+Untold Engine aims to support applications such as:
+
+- XR applications (Vision Pro, ARKit-based apps)
+- Large-scale scene visualization (cities, archviz, datasets)
+- Custom rendering pipelines and experiments
+- Simulation tools and interactive 3D systems
 
 ---
 
@@ -86,72 +118,44 @@ Click the image below to watch the engine in action.
 
 ---
 
-# Project Ecosystem
+# Engine Architecture:
 
-The Untold Engine project includes several related components.
+[Rendering System](docs/Architecture/renderingSystem.md)
+[XR Rendering System](docs/Architecture/xrRenderingSystem.md)
+[Static Batching System](docs/Architecture/batchingSystem.md)
+[Geometry Streaming System](docs/Architecture/geometryStreamingSystem.md)
+[LOD System](docs/Architecture/lodSystem.md)
+[Progressive Asset Loader](docs/Architecture/progressiveAssetLoader.md)
+[Streaming Cache Lifecycle](docs/Architecture/streamingCacheLifecycle.md)
+[Texture Streaming System](docs/Architecture/textureStreamingSystem.md)
+[Out of Core](docs/Architecture/outOfCore.md)
 
-## Untold Engine Studio
-
-Standalone application that includes:
-
-- Visual editor
-- Full engine integration
-- Asset management tools
-
-Download:
-
-https://github.com/untoldengine/UntoldEditor/releases
-
-Ideal for developers who want to **create games using the editor**.
-
----
-
-## Untold Engine (this repository)
-
-Contains the **core engine systems**:
-
-- Rendering
-- ECS architecture
-- Physics and animation
-- Scene graph
-- Input systems
-
-This repository is primarily for:
-
-- Engine contributors
-- Developers studying the engine architecture
-- Users running demo projects
+# Engine API
+[Registration System](docs/API/UsingRegistrationSystem.md)
+[Scenegraph](docs/API/UsingScenegraph.md)
+[Transform System](docs/API/UsingTransformSystem.md)
+[Camera System](docs/API/UsingCameraSystem.md)
+[Rendering System](docs/API/UsingRenderingSystem.md)
+[Lighting System](docs/API/UsingLightingSystem.md)
+[Materials](docs/API/UsingMaterials.md)
+[Input System](docs/API/UsingInputSystem.md)
+[Physics System](docs/API/UsingPhysicsSystem.md)
+[Steering System](docs/API/UsingSteeringSystem.md)
+[Animation System](docs/API/UsingAnimationSystem.md)
+[Async Loading](docs/API/UsingAsyncLoading.md)
+[LOD System](docs/API/UsingLODSystem.md)
+[Static Batching System](docs/API/UsingStaticBatchingSystem.md)
+[Geometry Streaming System](docs/API/UsingGeometryStreamingSystem.md)
+[LOD-Batching-Streaming](docs/API/UsingLOD-Batching-Streaming.md)
+[Spatial Input](docs/API/UsingSpatialInput.md)
+[Gaussian System](docs/API/UsingGaussianSystem.md)
+[Spatical Debugger](docs/API/SpatialDebugger.md)
 
 ---
 
-## Untold Editor
+# Create a Xcode Project using the Untold Engine SPM
 
-The visual editor used for managing assets, scenes, and workflows.
-
-Repository:
-
-https://github.com/untoldengine/UntoldEditor
-
----
-
-# Documentation
-
-For guides and API documentation visit:
-
-https://untoldengine.github.io/UntoldEngine
-
-You will find:
-
-- Tutorials for using the engine
-- Architecture documentation
-- Setup instructions
-- Guides for common tasks
-
----
-
-# Command Line Tool (Optional)
-
-If you prefer working from the terminal, you can use the project creation CLI.
+You can easily create an xcode project using the Untold Engine as dependency
 
 Install it from the repository:
 
@@ -167,6 +171,22 @@ Then create a new project:
 mkdir MyGame
 cd MyGame
 untoldengine-create create MyGame
+```
+
+The CLI supports multiple platforms:
+
+```bash
+# macOS (default)
+untoldengine-create create MyGame --platform macos
+
+# iOS
+untoldengine-create create MyGame --platform ios
+
+# iOS with ARKit
+untoldengine-create create MyGame --platform iosar
+
+# visionOS (Apple Vision Pro)
+untoldengine-create create MyGame --platform visionos
 ```
 
 Features:
@@ -212,6 +232,9 @@ Before submitting a pull request please read:
 
 - CONTRIBUTING.md
 - CONTRIBUTOR_LICENSE_AGREEMENT.md
+- [Contributing Guidelines](docs/Contributor/ContributionGuidelines.md)
+- [Formatting](docs/Contributor/Formatting.md)
+- [Versioning](docs/Contributor/versioning.md)
 
 All contributions are licensed under **MPL-2.0**.
 
