@@ -73,6 +73,18 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// Maximum concurrent texture streaming operations.
     public var maxConcurrentOps: Int = 3
 
+    /// Hysteresis fraction applied to each tier boundary to prevent oscillation.
+    ///
+    /// An entity must move `hysteresisFraction × radius` *past* a tier boundary before a
+    /// direction change is issued. This creates an asymmetric dead band:
+    /// - Upgrade: requires distance < boundary × (1 - hysteresisFraction)
+    /// - Downgrade: requires distance > boundary × (1 + hysteresisFraction)
+    ///
+    /// At the default of 0.15, an entity at the `downgradeRadius = 20 m` boundary must
+    /// reach 17 m before upgrading and 23 m before downgrading. This eliminates per-tick
+    /// oscillation for entities hovering near a tier boundary.
+    public var hysteresisFraction: Float = 0.15
+
     // MARK: - State
 
     private var timeSinceLastUpdate: Float = 0
@@ -205,7 +217,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
             setTrackedAboveMinimum(entityId, isAboveMinimum: entityHasTexturesAboveMinimumTier(entityId: entityId))
 
             let targetMaxDimension = desiredMaxDimension(distance: distance)
-            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension)
+            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension, distance: distance)
             guard !workItems.isEmpty else { continue }
 
             scheduleResolutionChange(entityId: entityId, distance: distance, workItems: workItems, targetMaxDimension: targetMaxDimension, isVisible: true)
@@ -234,7 +246,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
             let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
             let targetMaxDimension = desiredMaxDimension(distance: distance)
-            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension)
+            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension, distance: distance)
             guard !workItems.isEmpty else {
                 lock.lock()
                 upgradedEntities.remove(entityId)
@@ -352,12 +364,15 @@ public class TextureStreamingSystem: @unchecked Sendable {
         return slots
     }
 
-    private func buildWorkItems(entityId: EntityID, targetMaxDimension: Int?) -> [StreamWorkItem] {
+    private func buildWorkItems(entityId: EntityID, targetMaxDimension: Int?, distance: Float) -> [StreamWorkItem] {
         let slots = streamableSlots(entityId: entityId)
         guard !slots.isEmpty else { return [] }
 
         var workItems: [StreamWorkItem] = []
         workItems.reserveCapacity(slots.count)
+
+        let h = hysteresisFraction
+        let medium = normalizedMediumDimension()
 
         for slot in slots {
             let currentMax = max(slot.currentTexture.width, slot.currentTexture.height)
@@ -371,6 +386,39 @@ public class TextureStreamingSystem: @unchecked Sendable {
             if direction == .upgrade, slot.sourceMaxDimension <= currentMax {
                 continue
             }
+
+            // Hysteresis dead band: suppress tier crossings when the entity is within
+            // `h × radius` of a tier boundary. This prevents per-tick oscillation for
+            // entities hovering near upgradeRadius or downgradeRadius.
+            //
+            // Upgrade is suppressed if the entity hasn't moved sufficiently inside the
+            // higher-resolution zone yet (distance still too large relative to boundary).
+            // Downgrade is suppressed if the entity hasn't moved sufficiently outside the
+            // higher-resolution zone yet (distance still too small relative to boundary).
+            //
+            // Memory-pressure callers pass Float.greatestFiniteMagnitude so that the
+            // downgrade suppress conditions (`distance < threshold`) are never true,
+            // effectively bypassing hysteresis for forced evictions.
+            let suppress: Bool
+            switch direction {
+            case .upgrade:
+                if desiredMax >= slot.sourceMaxDimension {
+                    // Upgrading toward full resolution: boundary is at upgradeRadius.
+                    suppress = distance > upgradeRadius * (1.0 - h)
+                } else {
+                    // Upgrading toward medium resolution: boundary is at downgradeRadius.
+                    suppress = distance > downgradeRadius * (1.0 - h)
+                }
+            case .downgrade:
+                if currentMax > medium {
+                    // Downgrading from full resolution: boundary is at upgradeRadius.
+                    suppress = distance < upgradeRadius * (1.0 + h)
+                } else {
+                    // Downgrading from medium resolution: boundary is at downgradeRadius.
+                    suppress = distance < downgradeRadius * (1.0 + h)
+                }
+            }
+            if suppress { continue }
 
             let target: Int? = desiredMax >= slot.sourceMaxDimension ? nil : desiredMax
             workItems.append(StreamWorkItem(slot: slot, direction: direction, targetMaxDimension: target))
@@ -762,7 +810,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
         for (entityId, distance) in sorted.prefix(maxEntities) {
             guard !isActiveOp(entityId) else { continue }
-            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: minDimension)
+            // Pass Float.greatestFiniteMagnitude as distance so hysteresis dead-band checks
+            // (`distance < threshold`) are never true — memory-pressure downgrades are unconditional.
+            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: minDimension, distance: Float.greatestFiniteMagnitude)
             guard !workItems.isEmpty else { continue }
             scheduleResolutionChange(
                 entityId: entityId,
