@@ -286,3 +286,245 @@ final class ProgressiveAssetLoaderRegistryTests: XCTestCase {
         loader.textureLoadingEnabled = true // restore
     }
 }
+
+// MARK: - V2 Warm/Cold Residency Lifecycle Tests
+
+/// Tests for the warm/cold residency lifecycle introduced in V2.
+///
+/// CPU-warm: MDLAsset + CPUMeshEntry objects are alive in the registry.
+/// CPU-cold: MDLAsset released; rehydration context (URL + policy) retained for re-parse.
+///
+/// These tests are purely CPU-side — no GPU, no disk I/O.
+@MainActor
+final class ProgressiveAssetLoaderWarmColdTests: XCTestCase {
+    var loader: ProgressiveAssetLoader!
+    var device: MTLDevice!
+    var textureLoader: TextureLoader!
+
+    override func setUp() async throws {
+        loader = ProgressiveAssetLoader.shared
+        loader.cancelAll()
+
+        guard let mtlDevice = MTLCreateSystemDefaultDevice() else {
+            XCTFail("No Metal device available")
+            return
+        }
+        device = mtlDevice
+        renderInfo.device = mtlDevice
+        textureLoader = TextureLoader(device: mtlDevice)
+    }
+
+    override func tearDown() async throws {
+        loader.cancelAll()
+        device = nil
+        textureLoader = nil
+    }
+
+    // MARK: - Helpers
+
+    private func makeEntry(estimatedGPUBytes: Int = 0) -> ProgressiveAssetLoader.CPUMeshEntry {
+        ProgressiveAssetLoader.CPUMeshEntry(
+            object: MDLObject(),
+            vertexDescriptor: MDLVertexDescriptor(),
+            textureLoader: textureLoader,
+            device: device,
+            url: URL(fileURLWithPath: "/dev/null"),
+            filename: "test",
+            withExtension: "usdz",
+            uniqueAssetName: "TestMesh#0",
+            estimatedGPUBytes: estimatedGPUBytes,
+            residencyPolicy: .fullLoad
+        )
+    }
+
+    // MARK: - Test 1: isColdRoot returns false before releaseWarmAsset
+
+    func testIsColdRoot_falseBeforeRelease() {
+        let rootId: EntityID = 200
+        loader.registerChildren([201, 202], for: rootId)
+        XCTAssertFalse(loader.isColdRoot(rootId),
+                       "Asset should start warm (isColdRoot must be false before releaseWarmAsset)")
+    }
+
+    // MARK: - Test 2: releaseWarmAsset transitions to cold
+
+    func testReleaseWarmAsset_transitionsToCold() {
+        let rootId: EntityID = 210
+        let childIds: [EntityID] = [211, 212]
+
+        for id in childIds { loader.storeCPUMesh(makeEntry(), for: id) }
+        loader.registerChildren(childIds, for: rootId)
+
+        loader.releaseWarmAsset(rootEntityId: rootId)
+
+        XCTAssertTrue(loader.isColdRoot(rootId),
+                      "isColdRoot must be true after releaseWarmAsset")
+    }
+
+    // MARK: - Test 3: releaseWarmAsset clears child CPU entries
+
+    func testReleaseWarmAsset_clearsCPUEntriesForChildren() {
+        let rootId: EntityID = 220
+        let childIds: [EntityID] = [221, 222, 223]
+
+        for id in childIds { loader.storeCPUMesh(makeEntry(estimatedGPUBytes: 1024), for: id) }
+        loader.registerChildren(childIds, for: rootId)
+
+        loader.releaseWarmAsset(rootEntityId: rootId)
+
+        for id in childIds {
+            XCTAssertNil(loader.retrieveCPUMesh(for: id),
+                         "Child \(id) CPUMeshEntry must be cleared after releaseWarmAsset")
+        }
+    }
+
+    // MARK: - Test 4: rehydration context survives releaseWarmAsset
+
+    func testRehydrationContext_survivesReleaseWarmAsset() {
+        let rootId: EntityID = 230
+        let testURL = URL(fileURLWithPath: "/tmp/test.usdz")
+        let policy = AssetLoadingPolicy.fullLoad
+
+        loader.registerChildren([231], for: rootId)
+        loader.storeRootRehydrationContext(url: testURL, policy: policy, for: rootId)
+        loader.releaseWarmAsset(rootEntityId: rootId)
+
+        let context = loader.rehydrationContext(for: rootId)
+        XCTAssertNotNil(context, "Rehydration context must survive releaseWarmAsset")
+        XCTAssertEqual(context?.url, testURL, "Rehydration context URL must be preserved")
+    }
+
+    // MARK: - Test 5: markAsWarm restores warm state
+
+    func testMarkAsWarm_restoringWarmStateAfterCold() {
+        let rootId: EntityID = 240
+        loader.registerChildren([241], for: rootId)
+        loader.releaseWarmAsset(rootEntityId: rootId)
+
+        XCTAssertTrue(loader.isColdRoot(rootId), "Pre-condition: must be cold")
+
+        loader.markAsWarm(rootEntityId: rootId)
+
+        XCTAssertFalse(loader.isColdRoot(rootId),
+                       "isColdRoot must be false after markAsWarm")
+    }
+
+    // MARK: - Test 6: getOrCreateRehydrationTask returns same task for concurrent calls
+
+    func testGetOrCreateRehydrationTask_factoryCalledOnlyOnceForDuplicateCalls() {
+        let rootId: EntityID = 250
+        var factoryCallCount = 0
+
+        let task1 = loader.getOrCreateRehydrationTask(for: rootId) {
+            factoryCallCount += 1
+            return Task { true }
+        }
+        _ = loader.getOrCreateRehydrationTask(for: rootId) {
+            factoryCallCount += 1
+            return Task { true }
+        }
+
+        XCTAssertEqual(factoryCallCount, 1,
+                       "Factory must be called exactly once even when called twice for the same root")
+
+        loader.clearRehydrationTask(for: rootId)
+        task1.cancel()
+    }
+
+    // MARK: - Test 7: clearRehydrationTask causes next call to create a new task
+
+    func testClearRehydrationTask_allowsNewTaskOnNextCall() {
+        let rootId: EntityID = 260
+        var factoryCallCount = 0
+
+        let task1 = loader.getOrCreateRehydrationTask(for: rootId) {
+            factoryCallCount += 1
+            return Task { false }
+        }
+        task1.cancel()
+        loader.clearRehydrationTask(for: rootId)
+
+        let task2 = loader.getOrCreateRehydrationTask(for: rootId) {
+            factoryCallCount += 1
+            return Task { true }
+        }
+        XCTAssertEqual(factoryCallCount, 2,
+                       "After clearRehydrationTask, factory must be called again for the same root")
+
+        loader.clearRehydrationTask(for: rootId)
+        task2.cancel()
+    }
+
+    // MARK: - Test 8: removeOutOfCoreAsset clears cold state
+
+    func testRemoveOutOfCoreAsset_clearsColdState() {
+        let rootId: EntityID = 270
+        let testURL = URL(fileURLWithPath: "/tmp/remove_test.usdz")
+
+        loader.registerChildren([271], for: rootId)
+        loader.storeRootRehydrationContext(url: testURL, policy: .fullLoad, for: rootId)
+        loader.releaseWarmAsset(rootEntityId: rootId)
+
+        XCTAssertTrue(loader.isColdRoot(rootId), "Pre-condition: must be cold")
+
+        loader.removeOutOfCoreAsset(rootEntityId: rootId)
+
+        XCTAssertFalse(loader.isColdRoot(rootId),
+                       "removeOutOfCoreAsset must clear the cold state")
+        XCTAssertNil(loader.rehydrationContext(for: rootId),
+                     "removeOutOfCoreAsset must remove the rehydration context")
+    }
+
+    // MARK: - Test 9: cancelAll clears all cold state
+
+    func testCancelAll_clearsAllColdState() {
+        let rootIds: [EntityID] = [280, 281, 282]
+        for rootId in rootIds {
+            loader.registerChildren([rootId + 100], for: rootId)
+            loader.storeRootRehydrationContext(
+                url: URL(fileURLWithPath: "/tmp/asset_\(rootId).usdz"),
+                policy: .fullLoad,
+                for: rootId
+            )
+            loader.releaseWarmAsset(rootEntityId: rootId)
+        }
+
+        loader.cancelAll()
+
+        for rootId in rootIds {
+            XCTAssertFalse(loader.isColdRoot(rootId),
+                           "cancelAll must clear cold state for root \(rootId)")
+            XCTAssertNil(loader.rehydrationContext(for: rootId),
+                         "cancelAll must remove rehydration context for root \(rootId)")
+        }
+    }
+
+    // MARK: - Test 10: getChildren returns children in registration order
+
+    func testGetChildren_returnsChildrenInRegistrationOrder() {
+        let rootId: EntityID = 290
+        let childIds: [EntityID] = [291, 292, 293, 294, 295]
+        loader.registerChildren(childIds, for: rootId)
+
+        let retrieved = loader.getChildren(for: rootId)
+        XCTAssertEqual(retrieved, childIds,
+                       "getChildren must return children in the same order they were registered")
+    }
+
+    func testGetChildren_returnsEmptyForUnknownRoot() {
+        XCTAssertTrue(loader.getChildren(for: 99999).isEmpty,
+                      "getChildren must return empty array for an unregistered root")
+    }
+
+    // MARK: - Test 11: releaseWarmAsset on already-cold root is a no-op
+
+    func testReleaseWarmAsset_calledTwiceIsNoOp() {
+        let rootId: EntityID = 300
+        loader.registerChildren([301, 302], for: rootId)
+        loader.releaseWarmAsset(rootEntityId: rootId)
+        loader.releaseWarmAsset(rootEntityId: rootId) // Must not crash or corrupt state
+
+        XCTAssertTrue(loader.isColdRoot(rootId),
+                      "Root should remain cold after a redundant releaseWarmAsset call")
+    }
+}

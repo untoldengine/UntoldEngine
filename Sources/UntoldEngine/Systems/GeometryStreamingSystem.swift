@@ -9,6 +9,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+import ModelIO
 import simd
 
 public class GeometryStreamingSystem: @unchecked Sendable {
@@ -603,6 +604,69 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         return true
     }
 
+    /// Re-parse a cold root asset from disk and restore all child CPU entries.
+    ///
+    /// At most one re-parse Task runs per root at a time: `getOrCreateRehydrationTask` ensures
+    /// concurrent child entity requests all await the same `Task<Bool, Never>` rather than
+    /// each launching a duplicate re-parse. Once complete, the root transitions back to warm
+    /// via `markAsWarm` and all child `CPUMeshEntry` objects are restored in `cpuMeshRegistry`.
+    private func rehydrateColdAsset(
+        rootEntityId: EntityID,
+        context: ProgressiveAssetLoader.RootRehydrationContext
+    ) async -> Bool {
+        let task = ProgressiveAssetLoader.shared.getOrCreateRehydrationTask(for: rootEntityId) {
+            Task {
+                Logger.log(message: "[OutOfCore] Cold re-stream: re-parsing '\(context.url.lastPathComponent)' for root \(rootEntityId)")
+                guard let assetData = await Mesh.parseAssetAsync(
+                    url: context.url,
+                    vertexDescriptor: vertexDescriptor.model,
+                    device: renderInfo.device
+                ) else {
+                    Logger.logError(message: "[OutOfCore] Cold re-stream: parseAssetAsync failed for root \(rootEntityId)")
+                    ProgressiveAssetLoader.shared.clearRehydrationTask(for: rootEntityId)
+                    return false
+                }
+
+                let children = ProgressiveAssetLoader.shared.getChildren(for: rootEntityId)
+                let filename = context.url.deletingPathExtension().lastPathComponent
+                let ext = context.url.pathExtension
+
+                for (i, obj) in assetData.topLevelObjects.enumerated() {
+                    guard i < children.count else { break }
+                    let childId = children[i]
+                    let baseName = (obj as? MDLMesh)?.parent?.name ?? obj.name
+                    let uniqueName = "\(baseName)#\(i)"
+                    let estimatedGPUBytes: Int = {
+                        guard let mdlMesh = obj as? MDLMesh else { return 0 }
+                        let stride = Int((mdlMesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48)
+                        let vertexBytes = mdlMesh.vertexCount * stride
+                        let indexBytes = mdlMesh.vertexCount * 3 * 4
+                        return vertexBytes + indexBytes
+                    }()
+                    let entry = ProgressiveAssetLoader.CPUMeshEntry(
+                        object: obj,
+                        vertexDescriptor: vertexDescriptor.model,
+                        textureLoader: assetData.textureLoader,
+                        device: renderInfo.device,
+                        url: context.url,
+                        filename: filename,
+                        withExtension: ext,
+                        uniqueAssetName: uniqueName,
+                        estimatedGPUBytes: estimatedGPUBytes,
+                        residencyPolicy: context.loadingPolicy
+                    )
+                    ProgressiveAssetLoader.shared.storeCPUMesh(entry, for: childId)
+                }
+
+                ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: rootEntityId)
+                ProgressiveAssetLoader.shared.markAsWarm(rootEntityId: rootEntityId)
+                Logger.log(message: "[OutOfCore] Cold re-stream complete: root \(rootEntityId) is warm (\(min(assetData.topLevelObjects.count, children.count)) entries restored)")
+                return true
+            }
+        }
+        return await task.value
+    }
+
     /// Load mesh asynchronously - returns true on success, false on failure
     private func loadMeshAsync(
         entityId: EntityID,
@@ -614,6 +678,23 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // Upload from RAM — no disk I/O, no MeshResourceManager parse.
         if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) {
             return await uploadFromCPUEntry(entityId: entityId, cpuEntry: cpuEntry)
+        }
+
+        // Out-of-core cold re-stream path: CPU data was released via releaseWarmAsset() but
+        // the entity has a rehydration context (URL + policy). Re-parse from disk, restore
+        // all child CPU entries, then upload this entity from the freshly-parsed data.
+        if let rootId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId,
+           ProgressiveAssetLoader.shared.isColdRoot(rootId),
+           let context = ProgressiveAssetLoader.shared.rehydrationContext(for: rootId)
+        {
+            let rehydrated = await rehydrateColdAsset(rootEntityId: rootId, context: context)
+            if rehydrated,
+               let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId)
+            {
+                return await uploadFromCPUEntry(entityId: entityId, cpuEntry: cpuEntry)
+            }
+            Logger.logError(message: "[OutOfCore] Cold re-stream failed for entity \(entityId)")
+            return false
         }
 
         // Build URL
