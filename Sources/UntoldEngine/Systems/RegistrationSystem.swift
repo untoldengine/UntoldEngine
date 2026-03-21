@@ -914,31 +914,53 @@ public func setEntityMeshAsync(
             //   decompression. Real-world worst case is ~55× (a 159 MB city USDZ
             //   expanding to ~8858 MB of geometry). 20× catches obvious outliers without
             //   rejecting normal-sized files.
-            // Safety threshold: 50% of physical RAM — leaves headroom for the app,
-            //   textures, and the rest of the scene. Parse spikes above this threshold
-            //   risk an OOM kill before any streaming protection can act.
             //
-            // This gate is intentionally coarse; false positives are acceptable here.
-            // Stage 2 (post-parse, below) is the accurate authority for borderline cases.
+            // Three-zone model:
+            //   Safe zone     projectedCPU ≤ 50% RAM  — allow, no log
+            //   Soft zone     projectedCPU  > 50% AND < 75% RAM
+            //                 → log warning, allow parse, delegate to Stage 2
+            //                 → expected for texture-heavy USDZs: compressed texture bytes
+            //                   in a USDZ do not expand at parse time (MDLMeshBufferData-
+            //                   Allocator only decompresses geometry; textures are decoded
+            //                   lazily at first-upload time via ensureTexturesLoaded).
+            //                   Stage 2 is the accurate authority for these borderline cases.
+            //   Hard reject   projectedCPU ≥ 75% RAM  — reject before parse, load fallback
+            //                 → geometry expansion of this magnitude would risk an OOM kill
+            //                   before Stage 2 can even run.
             //
             // Known gap: the assetName != nil path (Mesh.loadSceneMeshesAsync) is not
             // guarded. That path is only used for named-mesh lookups and is not expected
             // to be called with large assets in normal production use.
+            //
+            // Future refinement: a lightweight USDZ ZIP central-directory scan could
+            // separate texture-entry bytes from scene-entry bytes before parsing and apply
+            // the 20× multiplier only to the scene portion, eliminating soft-zone false
+            // positives for texture-heavy assets entirely. Validate the soft-zone model
+            // on real assets before adding that complexity.
             let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
             if fileSizeBytes > 0 {
                 let physicalMemory = Int(ProcessInfo.processInfo.physicalMemory)
-                let preParseSafetyThreshold = Int(Double(physicalMemory) * 0.50)
-                let projectedCPUBytes = fileSizeBytes * 20
-                if projectedCPUBytes > preParseSafetyThreshold {
-                    let fileMB = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                    let projGB = String(format: "%.1f", Double(projectedCPUBytes) / 1_073_741_824)
-                    let thrGB = String(format: "%.1f", Double(preParseSafetyThreshold) / 1_073_741_824)
-                    let ramGB = String(format: "%.1f", Double(physicalMemory) / 1_073_741_824)
-                    Logger.logError(message: "[AdmissionGate] '\(filename)' rejected before parse (Stage 1 — pre-parse gate). File: \(fileMB) MB | Expansion: 20× | Projected CPU: ~\(projGB) GB | Threshold: \(thrGB) GB (50% of \(ramGB) GB physical RAM). Asset too large to parse safely on this device. Use a lower-polygon asset or split into smaller files.")
+                let softZoneThreshold  = Int(Double(physicalMemory) * 0.50) // soft zone starts here
+                let hardRejectThreshold = Int(Double(physicalMemory) * 0.75) // hard reject at or above
+                let projectedCPUBytes  = fileSizeBytes * 20
+
+                let fileMB  = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
+                let projGB  = String(format: "%.1f", Double(projectedCPUBytes) / 1_073_741_824)
+                let ramGB   = String(format: "%.1f", Double(physicalMemory) / 1_073_741_824)
+
+                if projectedCPUBytes >= hardRejectThreshold {
+                    let thrGB = String(format: "%.1f", Double(hardRejectThreshold) / 1_073_741_824)
+                    Logger.logError(message: "[AdmissionGate] Stage 1 HARD REJECT '\(filename)' — File: \(fileMB) MB | Expansion: 20× | Projected CPU: ~\(projGB) GB | Hard-reject threshold: \(thrGB) GB (75% of \(ramGB) GB RAM). Asset too large to parse safely on this device. Use a lower-polygon asset or split into smaller files.")
+                    loadFallbackMesh(entityId: entityId, filename: filename)
                     await AssetLoadingState.shared.finishLoading(entityId: entityId)
                     completionBox?.call(false)
                     return
+                } else if projectedCPUBytes > softZoneThreshold {
+                    let softGB = String(format: "%.1f", Double(softZoneThreshold) / 1_073_741_824)
+                    Logger.logWarning(message: "[AdmissionGate] Stage 1 SOFT ZONE '\(filename)' — File: \(fileMB) MB | Expansion: 20× | Projected CPU: ~\(projGB) GB | Soft threshold: \(softGB) GB (50% of \(ramGB) GB RAM). Parse will proceed; Stage 2 is the authoritative gate. Typical for texture-heavy assets whose compressed texture bytes do not expand at parse time.")
+                    // Fall through — parse proceeds. Stage 2 is the accurate authority.
                 }
+                // else: safe zone (projectedCPU ≤ softZoneThreshold) — allow, no log.
             }
 
             guard let assetData = await Mesh.parseAssetAsync(
@@ -978,7 +1000,10 @@ public func setEntityMeshAsync(
                 let thrGB = String(format: "%.1f", Double(postParseSafetyThreshold) / 1_073_741_824)
                 let ramGB = String(format: "%.1f", Double(postParsePhysicalMemory) / 1_073_741_824)
                 let fileMBStr = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                Logger.logError(message: "[AdmissionGate] '\(filename)' rejected after parse (Stage 2 — post-parse gate). File: \(fileMBStr) MB | Profiled geometry: ~\(geoGB) GB | Threshold: \(thrGB) GB (75% of \(ramGB) GB physical RAM). Stub registration and CPU registry storage are skipped. The parsed MDLAsset will be released by ARC on return.")
+                Logger.logError(message: "[AdmissionGate] Stage 2 HARD REJECT '\(filename)' — File: \(fileMBStr) MB | Profiled geometry: ~\(geoGB) GB | Threshold: \(thrGB) GB (75% of \(ramGB) GB RAM). Stub registration and CPU registry storage are skipped; the parsed MDLAsset will be released by ARC. Fallback mesh assigned.")
+                // Load fallback so the entity is visually stable — the scene shows a
+                // placeholder cube rather than an invisible, mesh-less entity.
+                loadFallbackMesh(entityId: entityId, filename: filename)
                 await AssetLoadingState.shared.finishLoading(entityId: entityId)
                 completionBox?.call(false)
                 return
