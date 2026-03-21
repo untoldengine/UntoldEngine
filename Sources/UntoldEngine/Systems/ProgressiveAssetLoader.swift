@@ -16,16 +16,34 @@ import ModelIO
 
 /// Manages the out-of-core streaming CPU registry for large USD/USDZ assets.
 ///
-/// Large assets (exceeding `fileSizeThresholdBytes` or `outOfCoreObjectCountThreshold`)
-/// are registered as zero-GPU stub entities immediately. CPU-side MDLMesh data is stored
-/// in `cpuMeshRegistry` keyed by child entity ID so `GeometryStreamingSystem` can upload
-/// each mesh on demand — no disk re-read required on eviction/reload cycles.
+/// Large assets are registered as zero-GPU stub entities immediately. CPU-side MDLMesh data is
+/// stored in `cpuMeshRegistry` keyed by child entity ID so `GeometryStreamingSystem` can upload
+/// each mesh on demand — no disk re-read required on normal eviction/reload cycles.
+///
+/// ## Warm / Cold Residency Lifecycle
+///
+/// Each root asset starts **CPU-warm**: its `MDLAsset` and all child `MDLObject` buffers are
+/// alive in `rootAssetRefs` / `cpuMeshRegistry`. Uploads read directly from RAM.
+///
+/// Call `releaseWarmAsset(rootEntityId:)` to transition an asset to **CPU-cold**: the
+/// `MDLAsset` and all child CPU buffers are released, freeing heap memory. The
+/// `RootRehydrationContext` (URL + loading policy) stored at registration time is retained so
+/// `GeometryStreamingSystem` can re-parse from disk transparently when a cold entity
+/// re-enters streaming range.
+///
+/// Cold re-hydration is serialized per root entity via `getOrCreateRehydrationTask`: exactly one
+/// re-parse `Task` runs per root regardless of how many child entities concurrently detect the
+/// cold state. Once re-parsing completes, `markAsWarm` restores the warm state.
 ///
 /// ## Integration
-/// - `setEntityMeshAsync()` registers stubs and stores CPU entries for large assets.
-/// - `GeometryStreamingSystem.loadMeshAsync()` retrieves CPU entries via `retrieveCPUMesh(for:)`.
+/// - `setEntityMeshAsync()` registers stubs, stores CPU entries, and calls
+///   `storeRootRehydrationContext` for large assets.
+/// - `GeometryStreamingSystem.loadMeshAsync()` retrieves CPU entries via `retrieveCPUMesh(for:)`;
+///   if the asset is cold it calls `rehydrateColdAsset` to re-parse from disk.
 /// - `UntoldEngine.swift` calls `tick()` each frame (no-op; retained for API compatibility).
 /// - Call `removeOutOfCoreAsset(rootEntityId:)` when destroying a root entity.
+/// - Call `releaseWarmAsset(rootEntityId:)` to free CPU-heap memory while keeping the
+///   entity registered so it can be re-hydrated on demand.
 public final class ProgressiveAssetLoader: @unchecked Sendable {
     public static let shared = ProgressiveAssetLoader()
 
@@ -95,6 +113,16 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         let residencyPolicy: AssetLoadingPolicy
     }
 
+    /// Immutable context needed to re-parse a cold root asset from disk.
+    ///
+    /// Stored at stub-registration time in `rootRehydrationContexts`. Survives `releaseWarmAsset`
+    /// so `GeometryStreamingSystem` can re-parse the USDZ and rebuild CPU entries without
+    /// any information from the caller.
+    struct RootRehydrationContext: @unchecked Sendable {
+        let url: URL
+        let loadingPolicy: AssetLoadingPolicy
+    }
+
     /// CPU-resident mesh data keyed by child entity ID.
     private var cpuMeshRegistry: [EntityID: CPUMeshEntry] = [:]
 
@@ -117,6 +145,20 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     /// After the first upload from an asset triggers deferred texture loading, subsequent
     /// uploads from the same asset skip the call.
     private var assetTexturesLoaded: Set<EntityID> = []
+
+    // MARK: Warm / Cold Residency State
+
+    /// Root entity IDs whose CPU data (MDLAsset + cpuMeshRegistry entries) has been released.
+    /// Warm roots are absent from this set. Cold roots are re-hydratable from `rootRehydrationContexts`.
+    private var coldRoots: Set<EntityID> = []
+
+    /// Rehydration context (URL + policy) keyed by root entity ID.
+    /// Populated at stub-registration time; survives `releaseWarmAsset`.
+    private var rootRehydrationContexts: [EntityID: RootRehydrationContext] = [:]
+
+    /// In-flight re-parse tasks keyed by root entity ID.
+    /// `getOrCreateRehydrationTask` ensures at most one task runs per root concurrently.
+    private var coldRehydrationTasks: [EntityID: Task<Bool, Never>] = [:]
 
     func storeCPUMesh(_ entry: CPUMeshEntry, for entityId: EntityID) {
         lock.lock()
@@ -192,6 +234,91 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         lock.unlock()
     }
 
+    /// Store the rehydration context for a root entity.
+    /// Call this once at stub-registration time (after `storeAsset` and `registerChildren`).
+    func storeRootRehydrationContext(url: URL, policy: AssetLoadingPolicy, for rootEntityId: EntityID) {
+        lock.lock()
+        rootRehydrationContexts[rootEntityId] = RootRehydrationContext(url: url, loadingPolicy: policy)
+        lock.unlock()
+    }
+
+    // MARK: Warm / Cold Lifecycle
+
+    /// Transition a root entity from CPU-warm to CPU-cold.
+    ///
+    /// Releases the `MDLAsset` and all child `CPUMeshEntry` objects, freeing CPU-heap memory.
+    /// The `RootRehydrationContext` is retained so `GeometryStreamingSystem` can re-parse
+    /// the asset from disk when the entity next enters streaming range.
+    ///
+    /// - Note: This does NOT destroy ECS entities or GPU resources. It only frees the CPU-side
+    ///   MDLAsset and CPU buffers. GPU-resident meshes (if any) remain until eviction.
+    public func releaseWarmAsset(rootEntityId: EntityID) {
+        lock.lock()
+        let children = rootEntityChildren[rootEntityId] ?? []
+        rootAssetRefs.removeValue(forKey: rootEntityId)
+        assetTextureLocks.removeValue(forKey: rootEntityId)
+        assetTexturesLoaded.remove(rootEntityId)
+        for childId in children {
+            cpuMeshRegistry.removeValue(forKey: childId)
+        }
+        coldRoots.insert(rootEntityId)
+        lock.unlock()
+        Logger.log(message: "[OutOfCore] Released warm CPU data for root \(rootEntityId) (\(children.count) children) — asset is now cold")
+    }
+
+    /// Returns `true` if the root entity is CPU-cold (warm assets were released via `releaseWarmAsset`).
+    func isColdRoot(_ rootEntityId: EntityID) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return coldRoots.contains(rootEntityId)
+    }
+
+    /// Returns the rehydration context for a root entity, or `nil` if none is registered.
+    func rehydrationContext(for rootEntityId: EntityID) -> RootRehydrationContext? {
+        lock.lock()
+        defer { lock.unlock() }
+        return rootRehydrationContexts[rootEntityId]
+    }
+
+    /// Returns the child entity IDs for a root entity (in registration order).
+    func getChildren(for rootEntityId: EntityID) -> [EntityID] {
+        lock.lock()
+        defer { lock.unlock() }
+        return rootEntityChildren[rootEntityId] ?? []
+    }
+
+    /// Return the existing in-flight rehydration task for `rootEntityId`, or create and
+    /// store a new one using `factory`. Exactly one task runs per root at a time.
+    func getOrCreateRehydrationTask(
+        for rootEntityId: EntityID,
+        factory: () -> Task<Bool, Never>
+    ) -> Task<Bool, Never> {
+        lock.lock()
+        defer { lock.unlock() }
+        if let existing = coldRehydrationTasks[rootEntityId] {
+            return existing
+        }
+        let task = factory()
+        coldRehydrationTasks[rootEntityId] = task
+        return task
+    }
+
+    /// Restore a root entity to warm state after successful re-hydration.
+    /// Removes it from `coldRoots` and clears the completed rehydration task.
+    func markAsWarm(rootEntityId: EntityID) {
+        lock.lock()
+        coldRoots.remove(rootEntityId)
+        coldRehydrationTasks.removeValue(forKey: rootEntityId)
+        lock.unlock()
+    }
+
+    /// Remove the in-flight rehydration task for `rootEntityId` (e.g. after failure).
+    func clearRehydrationTask(for rootEntityId: EntityID) {
+        lock.lock()
+        coldRehydrationTasks.removeValue(forKey: rootEntityId)
+        lock.unlock()
+    }
+
     /// Release all CPU mesh entries and the MDLAsset for a root entity.
     /// Call this when the root entity is destroyed to free CPU-heap geometry data.
     public func removeOutOfCoreAsset(rootEntityId: EntityID) {
@@ -203,7 +330,12 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         for childId in children {
             cpuMeshRegistry.removeValue(forKey: childId)
         }
+        // Clear warm/cold lifecycle state.
+        coldRoots.remove(rootEntityId)
+        rootRehydrationContexts.removeValue(forKey: rootEntityId)
+        let task = coldRehydrationTasks.removeValue(forKey: rootEntityId)
         lock.unlock()
+        task?.cancel()
         if !children.isEmpty {
             Logger.log(message: "[OutOfCore] Released CPU mesh data for \(children.count) entities (root \(rootEntityId))")
         }
@@ -229,7 +361,12 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         rootEntityChildren.removeAll()
         assetTextureLocks.removeAll()
         assetTexturesLoaded.removeAll()
+        coldRoots.removeAll()
+        rootRehydrationContexts.removeAll()
+        let tasks = Array(coldRehydrationTasks.values)
+        coldRehydrationTasks.removeAll()
         lock.unlock()
+        tasks.forEach { $0.cancel() }
         Logger.log(message: "[OutOfCore] Released all CPU mesh data (cancelAll)")
     }
 }

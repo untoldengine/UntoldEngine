@@ -1114,6 +1114,14 @@ public func setEntityMeshAsync(
                 ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: entityId)
                 ProgressiveAssetLoader.shared.registerChildren(childEntityIds, for: entityId)
 
+                // Store URL + policy so GeometryStreamingSystem can re-parse from disk if
+                // releaseWarmAsset() transitions this asset to CPU-cold in a future frame.
+                ProgressiveAssetLoader.shared.storeRootRehydrationContext(
+                    url: url,
+                    policy: loadingPolicy,
+                    for: entityId
+                )
+
                 Logger.log(message: "[OutOfCore] '\(filename)': \(assetData.totalObjectCount) stubs registered — GeometryStreamingSystem will upload on demand")
 
                 // Release the loading gate immediately — no GPU work happens here.

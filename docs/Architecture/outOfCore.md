@@ -369,6 +369,70 @@ The same identity URL is used as `material.baseColorURL`, so `BatchingSystem.get
 
 ---
 
+## Warm / Cold CPU Residency
+
+By default every registered root asset is **CPU-warm**: its `MDLAsset` and all child `CPUMeshEntry` objects live in RAM indefinitely. That is the right default for scenes that fit in RAM, but for extremely large world-scale scenes (hundreds of open-world chunks, each with its own USDZ) it is desirable to evict CPU-heap geometry data for assets that the camera is far from.
+
+### `releaseWarmAsset` — Free CPU Heap Without Destroying the Entity
+
+```swift
+ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId: rootId)
+```
+
+Releases the `MDLAsset` and all child `CPUMeshEntry` objects for `rootId`, freeing CPU heap memory. The root is now **CPU-cold**.
+
+The rehydration context (URL + loading policy) stored at stub-registration time is **retained** — the asset can be re-parsed from disk transparently when the camera re-approaches.
+
+`releaseWarmAsset` does **not** destroy ECS entities, streaming components, or GPU-resident meshes. GPU eviction remains the responsibility of `GeometryStreamingSystem.evictLRU`.
+
+### Transparent Cold Re-Stream
+
+When `loadMeshAsync` is called for a child entity whose root is cold (i.e. `retrieveCPUMesh` returns `nil` AND `isColdRoot` is true), `GeometryStreamingSystem` automatically calls `rehydrateColdAsset`:
+
+```
+loadMeshAsync(entityId: building_42)
+  → retrieveCPUMesh(building_42) = nil
+  → isColdRoot(rootId) = true
+  → rehydrateColdAsset(rootId, context)      ← re-parse from disk
+      getOrCreateRehydrationTask(rootId)     ← exactly one Task per root
+      Mesh.parseAssetAsync(context.url)      ← USDZ re-read
+      storeCPUMesh for all children          ← rebuild CPU registry
+      storeAsset + markAsWarm                ← root is warm again
+  → retrieveCPUMesh(building_42) = CPUMeshEntry
+  → uploadFromCPUEntry                       ← normal CPU→Metal upload
+```
+
+Concurrent child uploads for the same cold root all await the **same** `Task<Bool, Never>` — `getOrCreateRehydrationTask` ensures only one re-parse runs per root regardless of how many children simultaneously detect the cold state.
+
+### Warm/Cold State Machine
+
+```
+                         storeAsset + registerChildren
+                         storeRootRehydrationContext
+                                  │
+                                  ▼
+                             [CPU-warm]
+                           (default state)
+                                  │
+              releaseWarmAsset()  │
+                                  ▼
+                             [CPU-cold]
+                       MDLAsset released
+                    CPUMeshEntry[] cleared
+                    rehydrationContext alive
+                                  │
+     rehydrateColdAsset() + markAsWarm()
+                                  │
+                                  ▼
+                             [CPU-warm]
+                       MDLAsset restored
+                    CPUMeshEntry[] rebuilt
+```
+
+`removeOutOfCoreAsset` exits the state machine entirely — ECS entities remain but all registry entries (warm or cold) are cleared and the rehydration context is removed.
+
+---
+
 ## Lifetime and Cleanup
 
 When the root entity is destroyed, call:
@@ -377,7 +441,14 @@ When the root entity is destroyed, call:
 ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId: rootId)
 ```
 
-This releases all `CPUMeshEntry` references and the `MDLAsset`, freeing the CPU-heap geometry data for all 500 buildings.
+This releases all `CPUMeshEntry` references, the `MDLAsset`, warm/cold state, and the rehydration context — freeing all CPU-heap geometry data for all 500 buildings.
+
+To free CPU heap without destroying the entity (e.g., for a far chunk that may return):
+
+```swift
+ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId: rootId)
+// Entity remains registered; re-approach triggers transparent cold re-stream from disk.
+```
 
 ---
 
