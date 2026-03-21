@@ -890,17 +890,57 @@ public func setEntityMeshAsync(
 
         // MARK: Out-of-core / small-file routing
 
-        //
         // All assets parse with a CPU-only allocator to avoid the GPU memory spike caused
         // by MTKMeshBufferAllocator pre-allocating Metal buffers for the entire scene.
         //
-        // Large assets (exceeding fileSizeThresholdBytes OR outOfCoreObjectCountThreshold)
-        // register every leaf mesh immediately as a zero-GPU stub entity. CPU-side MDLMesh
-        // data is stored in ProgressiveAssetLoader.cpuMeshRegistry so GeometryStreamingSystem
-        // can upload each stub on demand as the camera approaches — no disk re-read needed.
+        // Two-stage admission gate (V1):
+        //   Stage 1 (pre-parse):  coarse file-size × expansion multiplier check — rejects
+        //                         obviously unsafe assets before Model I/O touches the file.
+        //   Stage 2 (post-parse): accurate profiler-based check after parse completes —
+        //                         the final authority. Note: Stage 2 cannot prevent the
+        //                         parse-time RAM spike; it prevents all downstream work
+        //                         (stub registration, MDLAsset retention, CPU registry storage).
         //
+        // If both gates pass, large assets register every leaf mesh immediately as a stub
+        // entity (zero-GPU). CPU-side MDLMesh data is stored in ProgressiveAssetLoader so
+        // GeometryStreamingSystem can upload each stub on demand without a disk re-read.
         // Small assets create all Metal resources right here in a single pass.
         if assetName == nil {
+            // ── Stage 1: Pre-parse admission gate ─────────────────────────────────────
+            // Compute file size before parseAssetAsync so the gate fires before Model I/O
+            // allocates CPU heap for all mesh buffers.
+            //
+            // Expansion factor: 20× — conservative upper bound for USDZ geometry
+            //   decompression. Real-world worst case is ~55× (a 159 MB city USDZ
+            //   expanding to ~8858 MB of geometry). 20× catches obvious outliers without
+            //   rejecting normal-sized files.
+            // Safety threshold: 50% of physical RAM — leaves headroom for the app,
+            //   textures, and the rest of the scene. Parse spikes above this threshold
+            //   risk an OOM kill before any streaming protection can act.
+            //
+            // This gate is intentionally coarse; false positives are acceptable here.
+            // Stage 2 (post-parse, below) is the accurate authority for borderline cases.
+            //
+            // Known gap: the assetName != nil path (Mesh.loadSceneMeshesAsync) is not
+            // guarded. That path is only used for named-mesh lookups and is not expected
+            // to be called with large assets in normal production use.
+            let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
+            if fileSizeBytes > 0 {
+                let physicalMemory = Int(ProcessInfo.processInfo.physicalMemory)
+                let preParseSafetyThreshold = Int(Double(physicalMemory) * 0.50)
+                let projectedCPUBytes = fileSizeBytes * 20
+                if projectedCPUBytes > preParseSafetyThreshold {
+                    let fileMB = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
+                    let projGB = String(format: "%.1f", Double(projectedCPUBytes) / 1_073_741_824)
+                    let thrGB = String(format: "%.1f", Double(preParseSafetyThreshold) / 1_073_741_824)
+                    let ramGB = String(format: "%.1f", Double(physicalMemory) / 1_073_741_824)
+                    Logger.logError(message: "[AdmissionGate] '\(filename)' rejected before parse (Stage 1 — pre-parse gate). File: \(fileMB) MB | Expansion: 20× | Projected CPU: ~\(projGB) GB | Threshold: \(thrGB) GB (50% of \(ramGB) GB physical RAM). Asset too large to parse safely on this device. Use a lower-polygon asset or split into smaller files.")
+                    await AssetLoadingState.shared.finishLoading(entityId: entityId)
+                    completionBox?.call(false)
+                    return
+                }
+            }
+
             guard let assetData = await Mesh.parseAssetAsync(
                 url: url,
                 vertexDescriptor: vertexDescriptor.model,
@@ -914,17 +954,44 @@ public func setEntityMeshAsync(
                 return
             }
 
+            // ── Stage 2: Post-parse accurate admission gate ───────────────────────────
+            // AssetProfiler measures actual geometry + texture byte estimates from the
+            // parsed MDLMesh objects. This is the accurate gate; Stage 1 (pre-parse) is
+            // only a coarse early filter.
+            //
+            // IMPORTANT: by the time this check runs, parseAssetAsync() has already
+            // allocated CPU heap for all MDLMesh buffers. This gate cannot prevent the
+            // parse-time RAM spike. What it prevents is all downstream work:
+            //   - stub registration (no ECS entities created),
+            //   - MDLAsset retention in rootAssetRefs (no CPU RAM kept permanently),
+            //   - CPU registry storage in ProgressiveAssetLoader.
+            // When the gate fires, assetData goes out of scope and ARC releases the
+            // parsed MDLMesh buffers, recovering the RAM that the parse consumed.
+            //
+            // The profile is computed regardless of streamingPolicy so all three policy
+            // modes (.auto, .outOfCore, .immediate) are subject to the same gate.
+            let assetProfile = AssetProfiler.profile(url: url, assetData: assetData, fileSizeBytes: fileSizeBytes)
+            let postParsePhysicalMemory = Int(ProcessInfo.processInfo.physicalMemory)
+            let postParseSafetyThreshold = Int(Double(postParsePhysicalMemory) * 0.75)
+            if assetProfile.estimatedGeometryBytes > postParseSafetyThreshold {
+                let geoGB = String(format: "%.1f", Double(assetProfile.estimatedGeometryBytes) / 1_073_741_824)
+                let thrGB = String(format: "%.1f", Double(postParseSafetyThreshold) / 1_073_741_824)
+                let ramGB = String(format: "%.1f", Double(postParsePhysicalMemory) / 1_073_741_824)
+                let fileMBStr = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
+                Logger.logError(message: "[AdmissionGate] '\(filename)' rejected after parse (Stage 2 — post-parse gate). File: \(fileMBStr) MB | Profiled geometry: ~\(geoGB) GB | Threshold: \(thrGB) GB (75% of \(ramGB) GB physical RAM). Stub registration and CPU registry storage are skipped. The parsed MDLAsset will be released by ARC on return.")
+                await AssetLoadingState.shared.finishLoading(entityId: entityId)
+                completionBox?.call(false)
+                return
+            }
+
             // Resolve the effective loading policy from the caller's streamingPolicy.
             //
-            // For .auto, AssetProfiler analyzes the parsed asset's geometry and texture
-            // byte estimates against the live platform memory budget, then selects independent
-            // geometry and texture residency policies. This replaces the old two-threshold
-            // heuristic (fileSizeThresholdBytes OR outOfCoreObjectCountThreshold) with a
-            // budget-relative, domain-aware classification.
+            // For .auto, AssetProfiler classifies the already-computed assetProfile
+            // against the live platform memory budget to select independent geometry
+            // and texture residency policies.
             //
             // For .outOfCore / .immediate, the caller's intent is mapped directly to the
-            // new policy types for a clean internal representation.
-            let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
+            // policy types for a clean internal representation.
             let loadingPolicy: AssetLoadingPolicy
             let outOfCoreReason: String?
             switch streamingPolicy {
@@ -936,18 +1003,17 @@ public func setEntityMeshAsync(
                 outOfCoreReason = nil
             case .auto:
                 let budget = MemoryBudgetManager.shared.meshBudget
-                let profile = AssetProfiler.profile(url: url, assetData: assetData, fileSizeBytes: fileSizeBytes)
-                loadingPolicy = AssetProfiler.classifyPolicy(profile: profile, budget: budget)
+                loadingPolicy = AssetProfiler.classifyPolicy(profile: assetProfile, budget: budget)
 
                 let fileMB = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                let geoMB = String(format: "%.1f", Double(profile.estimatedGeometryBytes) / 1_048_576)
-                let texMB = String(format: "%.1f", Double(profile.estimatedTextureBytes) / 1_048_576)
+                let geoMB = String(format: "%.1f", Double(assetProfile.estimatedGeometryBytes) / 1_048_576)
+                let texMB = String(format: "%.1f", Double(assetProfile.estimatedTextureBytes) / 1_048_576)
                 let budgetMB = String(format: "%.0f", Double(budget) / 1_048_576)
-                Logger.log(message: "[AssetProfiler] '\(filename)' (\(fileMB) MB) → \(profile.assetCharacter.rawValue) | geo ~\(geoMB) MB, tex ~\(texMB) MB | budget: \(budgetMB) MB | meshes: \(profile.meshCount)")
+                Logger.log(message: "[AssetProfiler] '\(filename)' (\(fileMB) MB) → \(assetProfile.assetCharacter.rawValue) | geo ~\(geoMB) MB, tex ~\(texMB) MB | budget: \(budgetMB) MB | meshes: \(assetProfile.meshCount)")
                 Logger.log(message: "[AssetProfiler] Policy → geometry: \(loadingPolicy.geometryPolicy.rawValue), texture: \(loadingPolicy.texturePolicy.rawValue) (source: \(loadingPolicy.source.rawValue))")
 
                 if loadingPolicy.geometryPolicy == .streaming {
-                    outOfCoreReason = "\(profile.assetCharacter.rawValue) asset, geo ~\(geoMB) MB on \(budgetMB) MB budget"
+                    outOfCoreReason = "\(assetProfile.assetCharacter.rawValue) asset, geo ~\(geoMB) MB on \(budgetMB) MB budget"
                 } else {
                     outOfCoreReason = nil
                 }
@@ -1030,7 +1096,8 @@ public func setEntityMeshAsync(
                             filename: filename,
                             withExtension: withExtension,
                             uniqueAssetName: uniqueAssetName,
-                            estimatedGPUBytes: estimatedGPUBytes
+                            estimatedGPUBytes: estimatedGPUBytes,
+                            residencyPolicy: loadingPolicy
                         )
                         cpuEntries.append((childId, entry))
                         childEntityIds.append(childId)

@@ -114,6 +114,16 @@ public class MemoryBudgetManager: @unchecked Sendable {
     /// Total texture memory currently tracked
     private var totalTextureMemory: Int = 0
 
+    /// In-flight texture upgrade reservations.
+    ///
+    /// When `TextureStreamingSystem` accepts a budget check for an upgrade batch, it
+    /// atomically reserves the estimated bytes here before spawning the async Task.
+    /// Subsequent concurrent `canAcceptTexture` / `reserveTexture` checks include this
+    /// value so they see the already-committed headroom and cannot collectively overshoot
+    /// the budget. The reservation is released (and replaced by actual bytes via
+    /// `updateTextureSizeBytes`) once the async work completes or fails.
+    private var inFlightTextureReservation: Int = 0
+
     /// Thread safety lock
     private let lock = NSLock()
 
@@ -306,13 +316,52 @@ public class MemoryBudgetManager: @unchecked Sendable {
 
     /// Check if we can accept a new texture allocation of the given size.
     ///
-    /// Identical budget logic to `canAccept` but named explicitly for texture
-    /// streaming call sites so intent is clear at the call site.
+    /// Includes in-flight reservations (`inFlightTextureReservation`) so callers see
+    /// headroom already committed to in-progress upgrade Tasks. Use `reserveTexture`
+    /// instead of this method when you intend to actually start an upgrade — `reserveTexture`
+    /// atomically checks and reserves in one lock acquisition, eliminating the TOCTOU race
+    /// between checking and acting.
     public func canAcceptTexture(sizeBytes: Int) -> Bool {
         lock.lock()
         defer { lock.unlock() }
 
-        return (totalMeshMemory + totalTextureMemory + sizeBytes) <= meshBudget
+        return (totalMeshMemory + totalTextureMemory + inFlightTextureReservation + sizeBytes) <= meshBudget
+    }
+
+    /// Atomically check whether a texture upgrade fits within the budget and, if so,
+    /// reserve the estimated bytes.
+    ///
+    /// Unlike `canAcceptTexture` + a separate action, this method eliminates the
+    /// check-then-act race: two concurrent callers cannot both see "budget available"
+    /// and both proceed, because the first reservation reduces the apparent headroom
+    /// for the second caller before it acquires the lock.
+    ///
+    /// - Parameter sizeBytes: Estimated GPU bytes for the upgrade batch (from
+    ///   `TextureStreamingSystem.estimatedUpgradeBytes`).
+    /// - Returns: `true` if the reservation was accepted; `false` if the budget would
+    ///   be exceeded. If `false`, the caller should proceed with downgrades only and
+    ///   must NOT call `releaseTextureReservation`.
+    public func reserveTexture(sizeBytes: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard (totalMeshMemory + totalTextureMemory + inFlightTextureReservation + sizeBytes) <= meshBudget else {
+            return false
+        }
+        inFlightTextureReservation += sizeBytes
+        return true
+    }
+
+    /// Release a previously accepted texture upgrade reservation.
+    ///
+    /// Call this after the async upgrade Task completes (success, failure, or cancellation),
+    /// before or concurrently with `updateTextureSizeBytes`. Releasing the reservation
+    /// restores the apparent headroom for subsequent `canAcceptTexture` / `reserveTexture`
+    /// calls. Only call this if `reserveTexture` returned `true`.
+    public func releaseTextureReservation(sizeBytes: Int) {
+        lock.lock()
+        inFlightTextureReservation = max(0, inFlightTextureReservation - sizeBytes)
+        lock.unlock()
     }
 
     /// Update texture size tracking for an entity after texture streaming completes.
@@ -441,6 +490,7 @@ public class MemoryBudgetManager: @unchecked Sendable {
         memoryEntries.removeAll()
         totalMeshMemory = 0
         totalTextureMemory = 0
+        inFlightTextureReservation = 0
     }
 
     /// Get number of tracked entities

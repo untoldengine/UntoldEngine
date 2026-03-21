@@ -543,6 +543,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let rootEntityId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId
         if let rootId = rootEntityId {
             ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootId)
+            // Always call ensureTexturesLoaded before makeMeshesFromCPUBuffers, regardless
+            // of texture policy. This calls asset.loadTextures() exactly once per asset,
+            // deferred from parse time to first-upload time. The deferral is the key safety
+            // improvement — it avoids an OOM spike before any GPU work starts.
+            //
+            // The `.streaming` vs `.eager` texture policy distinction controls whether
+            // TextureStreamingSystem manages resolution tiers by camera distance — it does
+            // NOT determine whether loadTextures() is called. USDZ-embedded textures require
+            // loadTextures() to have been called before MTKTextureLoader can decode them;
+            // skipping it causes textures to silently fail on assets whose MDLTexture
+            // objects have no pixel data until the whole-asset decode runs.
             ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootId)
         }
         let meshes = Mesh.makeMeshesFromCPUBuffers(

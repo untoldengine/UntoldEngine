@@ -159,7 +159,8 @@ final class GeometryStreamingEvictionTests: BaseRenderSetup {
             filename: "test",
             withExtension: "usdz",
             uniqueAssetName: "TestMesh#0",
-            estimatedGPUBytes: expectedBytes
+            estimatedGPUBytes: expectedBytes,
+            residencyPolicy: .fullLoad
         )
 
         ProgressiveAssetLoader.shared.storeCPUMesh(entry, for: entityId)

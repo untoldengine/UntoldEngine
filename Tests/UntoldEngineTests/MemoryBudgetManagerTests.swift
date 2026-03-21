@@ -349,4 +349,94 @@ final class MemoryBudgetManagerTests: XCTestCase {
         XCTAssertTrue(manager.canAcceptMesh(sizeBytes: candidate),
                       "canAcceptMesh should ignore texture memory and pass when mesh-only budget is fine")
     }
+
+    // MARK: - Texture Reservation Tests (V1.4 — TOCTOU fix)
+
+    // These tests verify the atomic reserveTexture / releaseTextureReservation pair
+    // that eliminates the check-then-act race in TextureStreamingSystem.
+
+    func testReserveTexture_succeedsWhenBudgetAvailable() {
+        // 10 MB used, 90 MB free — a 20 MB reservation should succeed.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 10 * 1024 * 1024)
+
+        XCTAssertTrue(manager.reserveTexture(sizeBytes: 20 * 1024 * 1024),
+                      "reserveTexture should succeed when budget has headroom")
+        manager.releaseTextureReservation(sizeBytes: 20 * 1024 * 1024) // cleanup
+    }
+
+    func testReserveTexture_failsWhenBudgetFull() {
+        // 95 MB used, only 5 MB free — a 10 MB reservation must be rejected.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 95 * 1024 * 1024)
+
+        XCTAssertFalse(manager.reserveTexture(sizeBytes: 10 * 1024 * 1024),
+                       "reserveTexture should fail when the upgrade would exceed the budget")
+    }
+
+    func testReserveTexture_secondCallSeesReducedHeadroom() {
+        // Budget: 100 MB. Used: 0 MB. Reserve 60 MB → success.
+        // Then try to reserve another 60 MB → must fail because only 40 MB remains.
+        XCTAssertTrue(manager.reserveTexture(sizeBytes: 60 * 1024 * 1024),
+                      "First 60 MB reservation should succeed on an empty budget")
+        XCTAssertFalse(manager.reserveTexture(sizeBytes: 60 * 1024 * 1024),
+                       "Second 60 MB reservation must fail — first reservation reduces apparent headroom")
+
+        manager.releaseTextureReservation(sizeBytes: 60 * 1024 * 1024) // cleanup
+    }
+
+    func testReleaseTextureReservation_restoresHeadroom() {
+        // Reserve 60 MB, verify second 60 MB fails, then release and verify it now succeeds.
+        XCTAssertTrue(manager.reserveTexture(sizeBytes: 60 * 1024 * 1024))
+        XCTAssertFalse(manager.reserveTexture(sizeBytes: 60 * 1024 * 1024),
+                       "Second reservation should fail before release")
+
+        manager.releaseTextureReservation(sizeBytes: 60 * 1024 * 1024)
+
+        XCTAssertTrue(manager.reserveTexture(sizeBytes: 60 * 1024 * 1024),
+                      "After releasing the first reservation the second attempt should succeed")
+        manager.releaseTextureReservation(sizeBytes: 60 * 1024 * 1024) // cleanup
+    }
+
+    func testReleaseTextureReservation_doesNotGoBelowZero() {
+        // Releasing more than was reserved must clamp at 0, not underflow.
+        manager.releaseTextureReservation(sizeBytes: 100 * 1024 * 1024)
+        // If inFlightTextureReservation were negative, canAcceptTexture would over-report headroom.
+        // Verify the budget check still behaves correctly (no crash, no phantom headroom).
+        manager.registerMesh(entityId: 1, meshSizeBytes: 99 * 1024 * 1024)
+        XCTAssertFalse(manager.reserveTexture(sizeBytes: 5 * 1024 * 1024),
+                       "Over-releasing must not create phantom headroom — budget should still be nearly full")
+    }
+
+    func testCanAcceptTexture_includesInFlightReservation() {
+        // 50 MB used. Reserve 40 MB in-flight (total committed = 90 MB).
+        // canAcceptTexture for 15 MB would push to 105 MB > 100 MB budget → must return false.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 50 * 1024 * 1024)
+        _ = manager.reserveTexture(sizeBytes: 40 * 1024 * 1024)
+
+        XCTAssertFalse(manager.canAcceptTexture(sizeBytes: 15 * 1024 * 1024),
+                       "canAcceptTexture must account for in-flight reservations")
+
+        manager.releaseTextureReservation(sizeBytes: 40 * 1024 * 1024) // cleanup
+    }
+
+    func testCanAcceptTexture_trueWhenReservationFitsWithinBudget() {
+        // 50 MB used, 20 MB reserved in-flight (70 MB committed). 20 MB query fits in 30 MB remaining.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 50 * 1024 * 1024)
+        _ = manager.reserveTexture(sizeBytes: 20 * 1024 * 1024)
+
+        XCTAssertTrue(manager.canAcceptTexture(sizeBytes: 20 * 1024 * 1024),
+                      "canAcceptTexture should return true when reserved + query still fits in budget")
+
+        manager.releaseTextureReservation(sizeBytes: 20 * 1024 * 1024) // cleanup
+    }
+
+    func testClearResetsInFlightReservation() {
+        // Reserve some bytes, then clear. After clear a previously-oversized reservation must succeed.
+        _ = manager.reserveTexture(sizeBytes: 90 * 1024 * 1024)
+        manager.clear() // resets everything including inFlightTextureReservation
+
+        // With a fresh state, a 50 MB reservation should succeed even though it was blocked before.
+        XCTAssertTrue(manager.reserveTexture(sizeBytes: 50 * 1024 * 1024),
+                      "clear() must reset inFlightTextureReservation to zero")
+        manager.releaseTextureReservation(sizeBytes: 50 * 1024 * 1024) // cleanup
+    }
 }

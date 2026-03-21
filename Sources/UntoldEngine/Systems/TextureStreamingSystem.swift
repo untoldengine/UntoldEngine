@@ -444,25 +444,48 @@ public class TextureStreamingSystem: @unchecked Sendable {
         guard reserveOp(entityId) else { return }
 
         // Budget gate: upgrades consume GPU memory; downgrades free it.
-        // Estimate the net increase for all upgrade items and check whether the
-        // combined geometry + texture budget can absorb it. If not, strip upgrades
-        // from the batch — downgrades always proceed since they reduce pressure.
+        //
+        // For upgrades, `reserveTexture` atomically checks the budget AND reserves the
+        // estimated bytes in one lock acquisition. This eliminates the TOCTOU race where
+        // multiple concurrent callers each see "budget available" and all proceed,
+        // collectively overshooting the budget before any accounting catches up.
+        //
+        // If the reservation succeeds:  budgetedWorkItems = full workItems (upgrades + downgrades)
+        // If the reservation fails:     budgetedWorkItems = downgrades only (upgrades stripped)
+        // If upgradeBytes == 0:         no reservation needed; all items are downgrades
+        //
+        // The reservation MUST be released after the async Task completes (success, failure,
+        // or cancellation). It is released via defer inside the Task's MainActor.run block
+        // so all exit paths (entity destroyed, no changes, normal completion) are covered.
         let upgradeBytes = estimatedUpgradeBytes(workItems)
+        let reservedUpgradeBytes: Int
         let budgetedWorkItems: [StreamWorkItem]
-        if upgradeBytes > 0, !MemoryBudgetManager.shared.canAcceptTexture(sizeBytes: upgradeBytes) {
-            budgetedWorkItems = workItems.filter { $0.direction == .downgrade }
-            Logger.log(message: "[TextureStreaming] entity=\(entityId) skipped \(workItems.filter { $0.direction == .upgrade }.count) upgrade(s) — budget full (need \(upgradeBytes.formattedAsMemory))")
+        if upgradeBytes > 0 {
+            if MemoryBudgetManager.shared.reserveTexture(sizeBytes: upgradeBytes) {
+                reservedUpgradeBytes = upgradeBytes
+                budgetedWorkItems = workItems
+            } else {
+                reservedUpgradeBytes = 0
+                budgetedWorkItems = workItems.filter { $0.direction == .downgrade }
+                Logger.log(message: "[TextureStreaming] entity=\(entityId) skipped \(workItems.filter { $0.direction == .upgrade }.count) upgrade(s) — budget full (need \(upgradeBytes.formattedAsMemory))")
+            }
         } else {
+            reservedUpgradeBytes = 0
             budgetedWorkItems = workItems
         }
 
         guard !budgetedWorkItems.isEmpty else {
             releaseOp(entityId)
+            // reservedUpgradeBytes == 0 here: if reservation was made, budgetedWorkItems
+            // contains the full workItems and cannot be empty at this point.
             return
         }
 
         guard let device = renderInfo.device else {
             releaseOp(entityId)
+            if reservedUpgradeBytes > 0 {
+                MemoryBudgetManager.shared.releaseTextureReservation(sizeBytes: reservedUpgradeBytes)
+            }
             return
         }
 
@@ -473,6 +496,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
         guard let queue = commandQueue, let loader = textureLoader else {
             releaseOp(entityId)
+            if reservedUpgradeBytes > 0 {
+                MemoryBudgetManager.shared.releaseTextureReservation(sizeBytes: reservedUpgradeBytes)
+            }
             return
         }
 
@@ -506,7 +532,12 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
             await MainActor.run {
                 withWorldMutationGate {
-                    defer { self.releaseOp(entityId) }
+                    defer {
+                        self.releaseOp(entityId)
+                        if reservedUpgradeBytes > 0 {
+                            MemoryBudgetManager.shared.releaseTextureReservation(sizeBytes: reservedUpgradeBytes)
+                        }
+                    }
                     guard scene.exists(entityId) else { return }
 
                     var didAnyChange = false
