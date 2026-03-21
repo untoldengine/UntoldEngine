@@ -22,6 +22,59 @@ Three independent systems, each with a separate job:
 setEntityMeshAsync(entityId: root, filename: "city_block", withExtension: "usdz")
 ```
 
+Before any parse begins, the asset passes through a **two-stage admission gate**. Both stages must pass before any ECS entity is created or any GPU memory is allocated.
+
+### Two-Stage Admission Gate
+
+#### Stage 1 — Pre-Parse Gate (three-zone model)
+
+Stage 1 fires before `parseAssetAsync` is called. It uses only the on-disk file size and a conservative expansion multiplier to estimate the worst-case CPU heap spike during parsing:
+
+```
+projectedCPUBytes = fileSizeBytes × 20
+```
+
+The 20× multiplier is a conservative upper bound for USDZ **geometry** decompression — real-world worst case is ~55× for a dense city geometry USDZ. It is intentionally blunt because no content information is available before parsing.
+
+Results are classified into three zones:
+
+| Zone | Condition | Outcome |
+|------|-----------|---------|
+| **Safe zone** | `projectedCPU ≤ 50% RAM` | Allow parse. No log entry. |
+| **Soft zone** | `projectedCPU > 50% AND < 75% RAM` | Log `[AdmissionGate] Stage 1 SOFT ZONE` warning. Allow parse. Stage 2 is the authoritative gate. |
+| **Hard reject** | `projectedCPU ≥ 75% RAM` | Log `[AdmissionGate] Stage 1 HARD REJECT` error. Assign fallback mesh. Return. |
+
+**Why a soft zone?** The 20× multiplier is calibrated for geometry-heavy USDZs. For texture-heavy assets, most of the on-disk bytes are compressed textures — which are **not** decoded during `parseAssetAsync`. The `MDLMeshBufferDataAllocator` only decompresses geometry; textures remain as compressed references until `ensureTexturesLoaded()` is called at first-upload time. A 555 MB texture-heavy USDZ may produce only ~2 GB of parse-time CPU allocation despite a projected 11 GB figure. The soft zone lets these assets pass to Stage 2, which measures the actual geometry footprint.
+
+**Hard reject still calls `loadFallbackMesh`** — the entity gets a visible placeholder cube so the scene remains stable and the rejection is immediately apparent.
+
+**Future refinement:** a lightweight ZIP central-directory scan before parsing could separate texture-entry bytes from geometry-entry bytes and apply the 20× multiplier only to the geometry portion, eliminating soft-zone false positives for texture-heavy assets entirely. This is deferred until the soft-zone model is validated on real assets.
+
+#### Stage 2 — Post-Parse Accurate Gate
+
+Stage 2 runs unconditionally after any successful parse — including assets that passed through the soft zone. It uses `AssetProfiler` to measure actual geometry byte estimates from the parsed `MDLMesh` objects:
+
+```
+if assetProfile.estimatedGeometryBytes > 75% of physicalMemory → HARD REJECT
+```
+
+Stage 2 is the **accurate authority**. It has full visibility into the parsed asset content and rejects based on actual geometry bytes, not file-size heuristics. When Stage 2 fires it also assigns the fallback mesh so the entity remains visible.
+
+The key limitation: by the time Stage 2 runs, `parseAssetAsync` has already allocated CPU heap for all MDLMesh buffers. Stage 2 cannot prevent the parse-time spike — it prevents all *downstream* work (stub registration, MDLAsset retention, CPU registry storage). When the gate fires, `assetData` goes out of scope and ARC releases the parsed buffers.
+
+#### Fallback Behavior on Rejection
+
+When either gate issues a hard reject, `loadFallbackMesh` is called before returning:
+
+```swift
+// Both Stage 1 hard reject and Stage 2 hard reject now call:
+loadFallbackMesh(entityId: entityId, filename: filename)
+```
+
+This assigns a default cube mesh to the entity so the scene is visually stable and the user receives immediate feedback that something was loaded (but replaced). Without the fallback the entity would be invisible and mesh-less.
+
+---
+
 `parseAssetAsync` opens the USDZ using `MDLMeshBufferDataAllocator`. This allocator stores all vertex/index data on the **CPU heap** — no Metal buffers are allocated, so the entire file loads without touching the GPU.
 
 `childObjects(of: MDLMesh.self)` walks the hierarchy and returns **only leaf geometry nodes** — 500 MDLMesh objects, one per building. Each carries its full parent-chain transform and lives entirely in CPU RAM.
