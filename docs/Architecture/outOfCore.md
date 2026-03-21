@@ -26,14 +26,58 @@ setEntityMeshAsync(entityId: root, filename: "city_block", withExtension: "usdz"
 
 `childObjects(of: MDLMesh.self)` walks the hierarchy and returns **only leaf geometry nodes** — 500 MDLMesh objects, one per building. Each carries its full parent-chain transform and lives entirely in CPU RAM.
 
-The routing condition checks two triggers. Either one activates the out-of-core path:
+The routing decision is controlled by the caller's `MeshStreamingPolicy` parameter:
 
 ```swift
-let isLargeFile    = fileSizeBytes > fileSizeThresholdBytes          // default 50 MB
-let hasManyObjects = objectCount  >= outOfCoreObjectCountThreshold   // default 50 objects
+setEntityMeshAsync(entityId: root, filename: "city_block", withExtension: "usdz",
+                   streamingPolicy: .auto)   // default
 ```
 
-A 500 MB ship hits `isLargeFile`. An 18 MB city with 200 buildings hits `hasManyObjects`. Both take the same path.
+| Policy | Routing |
+|--------|---------|
+| `.auto` (default) | `AssetProfiler`-based — budget-relative, domain-aware classification |
+| `.outOfCore` | Always stubs + streaming, regardless of size or object count |
+| `.immediate` | Always direct GPU upload; permanently GPU-resident, no streaming |
+
+For `.auto`, the engine runs `AssetProfiler` on the parsed `ProgressiveAssetData` to produce an `AssetProfile` and select an `AssetLoadingPolicy`:
+
+```swift
+let profile = AssetProfiler.profile(url: url, assetData: assetData, fileSizeBytes: fileSizeBytes)
+let policy  = AssetProfiler.classifyPolicy(profile: profile, budget: MemoryBudgetManager.shared.meshBudget)
+```
+
+The `AssetLoadingPolicy` has two independent axes — geometry residency and texture residency. The geometry policy drives the out-of-core routing decision:
+
+| `geometryPolicy` | Routing |
+|---|---|
+| `.streaming` | Out-of-core stubs path — all leaf meshes registered as `.unloaded` stubs |
+| `.eager` | Immediate path — all geometry uploaded to GPU in a single pass |
+
+Geometry streaming is selected when any of the following is true:
+
+- **Mesh count ≥ 50** — many meshes spike GPU allocation simultaneously even if total size is small
+- **Geometry bytes exceed 30% of the platform budget** — e.g. 300 MB asset on a 1 GB machine
+- **Monolithic asset (≤ 2 meshes) AND geometry exceeds 30% of budget** — streaming prevents OOM at registration, though the mesh still loads in one step
+
+All thresholds are expressed as **fractions of the live platform budget** (`MemoryBudgetManager.meshBudget`), so they scale correctly across devices:
+
+| Device class | `meshBudget` | 30% geometry threshold |
+|---|---|---|
+| macOS | 1 GB | ~300 MB |
+| iOS high-end | 512 MB | ~154 MB |
+| iOS low-end | 256 MB | ~77 MB |
+| visionOS | 512 MB | ~154 MB |
+
+This means the same 200 MB asset routes to `.eager` on macOS (fits comfortably) but to `.streaming` on low-end iOS (too large to load all at once). The old fixed thresholds (`fileSizeThresholdBytes = 50 MB`, `outOfCoreObjectCountThreshold = 50 objects`) applied the same cutoff regardless of the target device.
+
+The profiler also classifies the asset's dominant memory domain and logs a full breakdown:
+
+```
+[AssetProfiler] 'dungeon3' (2.1 MB) → mixed | geo ~2.9 MB, tex ~6.2 MB | budget: 1024 MB | meshes: 410
+[AssetProfiler] Policy → geometry: streaming, texture: eager (source: auto)
+```
+
+See [AssetProfiler architecture](assetProfiler.md) for the full classification logic and how geometry and texture policies are derived independently.
 
 ---
 
@@ -82,12 +126,23 @@ The `MDLAsset` container is retained in `rootAssetRefs[rootEntityId]` so the `MD
 
 ---
 
-## Phase 2 — Real Radii (after `enableStreaming` is called)
+## Phase 2 — Completion Callback and Enabling Streaming
 
-The completion callback calls:
+`setEntityMeshAsync`'s completion closure receives `isOutOfCore: Bool`:
+
+- `true` — the asset was registered as stubs; `GeometryStreamingSystem` must be enabled for anything to render.
+- `false` — the asset used the immediate path; all meshes are already GPU-resident.
 
 ```swift
-enableStreaming(entityId: root, streamingRadius: 80, unloadRadius: 120)
+setEntityMeshAsync(entityId: root, filename: "city_block", withExtension: "usdz") { isOutOfCore in
+    if isOutOfCore {
+        // Enable the system, then set real streaming radii on the root.
+        // enableStreaming propagates the radii down to all child stubs,
+        // replacing their Float.greatestFiniteMagnitude placeholders.
+        GeometryStreamingSystem.shared.enabled = true
+        enableStreaming(entityId: root, streamingRadius: 80, unloadRadius: 120)
+    }
+}
 ```
 
 `enableStreaming` iterates all children. For out-of-core stubs it finds them via `StreamingComponent` (not `RenderComponent`, which doesn't exist yet):
@@ -109,7 +164,7 @@ Building #2   StreamingComponent: streamingRadius=80, unloadRadius=120, state=.u
 Building #500 StreamingComponent: streamingRadius=80, unloadRadius=120, state=.unloaded
 ```
 
-The streaming system can now manage all 500 buildings.
+The streaming system can now load buildings within 80 m and unload them beyond 120 m as the camera moves.
 
 ---
 
@@ -123,15 +178,29 @@ Distance calculations use `CameraComponent.localPosition` (transformed via `Scen
 
 ### Memory budget gate (runs before any load)
 
-Before starting new uploads, the system checks memory pressure:
+The system maintains two independent memory pressure signals:
+
+| Signal | Method | Meaning |
+|---|---|---|
+| Combined | `shouldEvict()` | (mesh + texture) ≥ 85% of `meshBudget` |
+| Geometry only | `shouldEvictGeometry()` | mesh bytes alone ≥ 85% of `meshBudget` |
+
+The load gate uses **geometry-only pressure** so that texture upgrades on already-loaded entities cannot block new mesh loads. The two signals drive a three-step response before any load starts:
 
 ```
-1. Evict by value-score if MemoryBudgetManager.shouldEvict() → evictLRU()
-2. Snapshot shouldEvict() once after eviction
-3. Only start new loads if budget allows
+1. if combined high AND geometry NOT high:
+       TextureStreamingSystem.shedTextureMemory(maxEntities: 4)
+       → texture relief only; no eviction, no load blocking
+
+2. if geometry high:
+       TextureStreamingSystem.shedTextureMemory(maxEntities: 8)   ← texture first
+       evictLRU()                                                 ← geometry fallback
+
+3. Snapshot shouldEvictGeometry() once after eviction
+   → only start new loads if geometry budget allows
 ```
 
-This prevents in-range stubs from uploading simultaneously and pushing GPU memory past the OS kill threshold. The guard snapshots `shouldEvict()` exactly once after eviction — one lock acquisition, correct post-eviction state.
+This prevents in-range stubs from uploading simultaneously and pushing GPU memory past the OS kill threshold. The geometry-only gate also prevents the budget-exhaustion/eviction deadlock that occurs on scenes where every entity fits within the streaming radius: texture upgrades no longer consume geometry headroom, so all stubs can load regardless of how much texture memory is in use.
 
 ### Distance-banded concurrency
 
@@ -150,15 +219,17 @@ Near-band loads are tracked in a separate `activeNearBandLoads` set so the concu
 
 ### Pre-emptive budget reservation
 
-Before each load starts (both bands), the system checks whether the mesh will fit:
+Before each load starts (both bands), the system checks whether the mesh will fit using the **geometry-only** budget check:
 
 ```swift
 if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
-   !MemoryBudgetManager.shared.canAccept(sizeBytes: cpuEntry.estimatedGPUBytes) {
-    evictLRU(cameraPosition:)   // targeted eviction to make room
-    guard canAccept(...) else { continue }  // skip if still no room
+   !MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes) {
+    evictLRU(cameraPosition:)     // targeted geometry eviction to make room
+    guard canAcceptMesh(...) else { continue }  // skip if still no room
 }
 ```
+
+`canAcceptMesh` checks only `totalMeshMemory + sizeBytes ≤ meshBudget` — texture memory is excluded. This ensures that a large batch of texture upgrades on visible entities cannot prevent a nearby stub from loading its geometry.
 
 `estimatedGPUBytes` (stored in `CPUMeshEntry` at stub-registration time) lets this check run without any GPU work or disk I/O.
 
@@ -253,6 +324,51 @@ Every building is always present as an ECS entity. The GPU footprint at any mome
 
 ---
 
+## Texture Loading
+
+### Why `loadTextures()` Is Deferred
+
+`MDLAsset` decompresses texture data lazily. Calling `asset.loadTextures()` at parse time for a 500 MB USDZ can OOM-kill the process before the app is interactive. The out-of-core path skips `loadTextures()` at parse time and defers it to first-upload time.
+
+### `ensureTexturesLoaded` — Called Once Per Asset
+
+`GeometryStreamingSystem.uploadFromCPUEntry` calls `ensureTexturesLoaded(for: rootId)` before the first `makeMeshesFromCPUBuffers` call for each asset. The method:
+
+1. Checks `assetTexturesLoaded` — returns immediately if already done.
+2. Calls `asset.loadTextures()` — decompresses textures into CPU RAM once.
+3. Marks the asset in `assetTexturesLoaded` — subsequent uploads skip this call entirely.
+
+### Per-Asset NSLock — Serializing Concurrent Texture Reads
+
+`MDLAsset` is not thread-safe. Two concurrent uploads from the same asset can race in `texelDataWithTopLeftOrigin`. Each asset has a dedicated `NSLock` in `ProgressiveAssetLoader.assetTextureLocks`:
+
+```
+Task A (Building #1)                Task B (Building #2)
+acquireAssetTextureLock(rootId)     acquireAssetTextureLock(rootId)  ← BLOCKS
+ensureTexturesLoaded(rootId)            ...waiting...
+makeMeshesFromCPUBuffers(#1)            ...waiting...
+releaseAssetTextureLock(rootId)     ← unblocks
+                                    ensureTexturesLoaded(rootId)     ← no-op (already done)
+                                    makeMeshesFromCPUBuffers(#2)
+                                    releaseAssetTextureLock(rootId)
+```
+
+Uploads from *different* assets run concurrently without contention — each asset has its own lock.
+
+### Texture Cache Key Uniqueness (`objectIdentityURL`)
+
+`TextureLoader` caches textures by URL. USDZ files with bracket-notation paths (e.g., `file:///scene.usdz[0/texture.png]`) produce stable, unique URLs via `parseUSDZBracketPath`. But when an MDLTexture has no parseable bracket path, a fallback URL is generated from the pointer identity of the `MDLTexture` object:
+
+```swift
+URL(string: "mdl-obj-\(UInt(bitPattern: ObjectIdentifier(mdlTex)))")!
+```
+
+This ensures every unnamed or identically-named texture gets a unique cache key, preventing one texture from being substituted for another on meshes that happen to share a texture name.
+
+The same identity URL is used as `material.baseColorURL`, so `BatchingSystem.getMaterialHash` also distinguishes these textures correctly — which prevents wrong textures from appearing after static batching.
+
+---
+
 ## Lifetime and Cleanup
 
 When the root entity is destroyed, call:
@@ -269,8 +385,7 @@ This releases all `CPUMeshEntry` references and the `MDLAsset`, freeing the CPU-
 
 | Property | Default | Effect |
 |----------|---------|--------|
-| `ProgressiveAssetLoader.fileSizeThresholdBytes` | 50 MB | Files above this use out-of-core |
-| `ProgressiveAssetLoader.outOfCoreObjectCountThreshold` | 50 objects | Files with more objects than this use out-of-core regardless of size |
+| `MemoryBudgetManager.meshBudget` | device-set | GPU memory ceiling; all `AssetProfiler` thresholds are expressed as fractions of this value |
 | `GeometryStreamingSystem.maxConcurrentLoads` | 3 | Total concurrent CPU→Metal uploads across both bands |
 | `GeometryStreamingSystem.nearBandFraction` | 0.33 | Fraction of `streamingRadius` defining the near band; near-band loads are serialized |
 | `GeometryStreamingSystem.nearBandMaxConcurrentLoads` | 1 | Max in-flight loads in the near band; 1 guarantees distance-ordered appearance |
@@ -281,4 +396,3 @@ This releases all `CPUMeshEntry` references and the `MDLAsset`, freeing the CPU-
 | `GeometryStreamingSystem.visibleEvictionProtectionRadius` | 30 m | Visible entities within this distance are never evicted; set to ~15% of `streamingRadius` |
 | `streamingRadius` | caller-set | Distance at which `.unloaded` entities get uploaded |
 | `unloadRadius` | caller-set | Distance beyond which `.loaded` entities are evicted; must be > `streamingRadius` |
-| `MemoryBudgetManager.meshBudget` | device-set | GPU memory ceiling; raise if headroom allows, lower if crashes persist |

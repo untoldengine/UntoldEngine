@@ -34,20 +34,48 @@ This creates a "bubble" of loaded geometry around the camera that moves with it 
 
 ## Basic Usage
 
-Here's a simple example of enabling streaming for a single entity:
+### Immediate-path assets (small files, `streamingPolicy: .immediate`)
+
+When the engine uses the immediate path, all meshes are GPU-resident by the time the completion fires. Call `enableStreaming` inside the callback to attach streaming radii for distance-based load/unload management:
 
 ```swift
-private func setupStreaming(){
+private func setupStreaming() {
     let stadium = createEntity()
-    setEntityMeshAsync(entityId: stadium, filename: "stadium", withExtension: "usdz") { success in
-        if success {
-            
-            print("Scene loaded successfully")
+    setEntityMeshAsync(entityId: stadium, filename: "stadium", withExtension: "usdz") { isOutOfCore in
+        guard !isOutOfCore else { return }  // handled below
 
+        print("Scene loaded — enabling streaming")
+        enableStreaming(
+            entityId: stadium,
+            streamingRadius: 250.0,
+            unloadRadius: 350.0,
+            priority: 10
+        )
+        GeometryStreamingSystem.shared.enabled = true
+    }
+}
+```
+
+### Out-of-core assets (large files, many objects, or `streamingPolicy: .outOfCore`)
+
+Large assets are registered as stub entities with no GPU allocation. The completion callback fires with `isOutOfCore: true` as soon as all stubs are registered — before any GPU work occurs. You **must** enable `GeometryStreamingSystem` for anything to render:
+
+```swift
+private func setupLargeAssetStreaming() {
+    let city = createEntity()
+    setEntityMeshAsync(
+        entityId: city,
+        filename: "city_block",
+        withExtension: "usdz"
+    ) { isOutOfCore in
+        if isOutOfCore {
+            // Enable the streaming system — stubs start uploading as camera approaches.
+            GeometryStreamingSystem.shared.enabled = true
+            // Set real streaming radii (replaces the internal Float.greatestFiniteMagnitude placeholders).
             enableStreaming(
-                entityId: stadium,
-                streamingRadius: 250.0, // Load when within 250 units
-                unloadRadius: 350.0, // Unload when beyond 350 units
+                entityId: city,
+                streamingRadius: 200.0,
+                unloadRadius: 350.0,
                 priority: 10
             )
         }
@@ -55,11 +83,14 @@ private func setupStreaming(){
 }
 ```
 
+The engine automatically routes assets to the out-of-core path when they exceed the size threshold (default 50 MB) or object-count threshold (default 50 objects). Use `streamingPolicy: .outOfCore` to force the path regardless of file size.
+
 ### Important Notes
 
 1. **Load mesh first**: Always call `setEntityMeshAsync()` before enabling streaming
-2. **Use completion callback**: Enable streaming inside the completion callback to ensure the mesh is loaded
-3. **Async loading**: The `setEntityMeshAsync()` function loads the mesh asynchronously, preventing frame drops
+2. **Use the completion Bool**: `true` = out-of-core stubs registered; `false` = immediate path (already GPU-resident)
+3. **Enable the system and call `enableStreaming`**: Both are required for out-of-core assets. `GeometryStreamingSystem.shared.enabled = true` starts the upload loop; `enableStreaming(entityId: root, ...)` propagates real streaming radii to all child stubs so distance-based load/unload works correctly
+4. **Async loading**: The `setEntityMeshAsync()` function loads the mesh asynchronously, preventing frame drops
 
 ## Parameters Explained
 
@@ -136,9 +167,11 @@ See the [Combining LOD, Batching, and Streaming](./UsingLOD-Batching-Streaming.m
 ## Common Issues
 
 ### Objects Not Loading
+- **Out-of-core assets**: Confirm `GeometryStreamingSystem.shared.enabled = true` is set after load — stubs never upload if the system is disabled
 - Ensure `streamingRadius` is large enough for your camera's viewing distance
-- Check that the mesh was loaded successfully in the completion callback
+- Check that the completion callback received `isOutOfCore: true` (out-of-core) or `false` (immediate) and handled each case
 - Verify the entity has been positioned in the scene
+- After loading a second asset, re-enable the streaming system if you disabled it before loading (setting `enabled = false` does not re-enable automatically)
 
 ### Geometry "Popping" In and Out
 - Increase the buffer between `streamingRadius` and `unloadRadius`

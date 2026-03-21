@@ -801,6 +801,14 @@ func registerProgressiveStubEntity(
     return childEntityId
 }
 
+/// Synchronously load and set an entity mesh on the calling thread.
+///
+/// This API always uses the **immediate** path: all Metal resources are created in a single
+/// pass before the function returns. It does not support out-of-core stub registration or
+/// distance-based streaming — the mesh is permanently GPU-resident after this call.
+///
+/// For large assets or any asset that should benefit from distance-based streaming and
+/// eviction, use `setEntityMeshAsync(streamingPolicy:)` instead.
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
     setEntityMeshCommon(
         entityId: entityId,
@@ -815,6 +823,28 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
     )
 }
 
+/// Controls how `setEntityMeshAsync` manages GPU residency for a loaded asset.
+public enum MeshStreamingPolicy: Sendable {
+    /// Automatic: uses `ProgressiveAssetLoader.fileSizeThresholdBytes` and
+    /// `outOfCoreObjectCountThreshold` to decide. Large or many-object assets
+    /// go out-of-core; small assets upload directly. Default.
+    case auto
+
+    /// Always register leaf meshes as `.unloaded` stub entities. The streaming
+    /// system uploads each mesh to the GPU when the camera enters `streamingRadius`
+    /// and evicts it when the camera moves beyond `unloadRadius`.
+    ///
+    /// The completion callback fires immediately after stub registration — no GPU
+    /// work happens at load time. **You must call `enableStreaming(entityId:streamingRadius:unloadRadius:)`
+    /// inside the completion block** so the streaming system knows the real radii.
+    case outOfCore
+
+    /// Always upload directly to the GPU in a single pass. The mesh is permanently
+    /// resident and is never evicted by the streaming system. Use for small assets
+    /// that must be visible without any streaming delay (e.g. character, weapon, HUD).
+    case immediate
+}
+
 /// Asynchronously load and set entity mesh without blocking the main thread
 public func setEntityMeshAsync(
     entityId: EntityID,
@@ -823,6 +853,7 @@ public func setEntityMeshAsync(
     assetName: String? = nil,
     flip _: Bool = true,
     coordinateConversion: CoordinateSystemConversion = .autoDetect,
+    streamingPolicy: MeshStreamingPolicy = .auto,
     completion: ((Bool) -> Void)? = nil
 ) {
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
@@ -883,18 +914,48 @@ public func setEntityMeshAsync(
                 return
             }
 
-            // Route based on file size OR object count.
-            // File size catches large single-object assets (500 MB ship).
-            // Object count catches small-file / many-object assets (18 MB city with 200+ buildings)
-            // that would otherwise slip through to the synchronous fast path and cause a GPU spike.
+            // Resolve the effective loading policy from the caller's streamingPolicy.
+            //
+            // For .auto, AssetProfiler analyzes the parsed asset's geometry and texture
+            // byte estimates against the live platform memory budget, then selects independent
+            // geometry and texture residency policies. This replaces the old two-threshold
+            // heuristic (fileSizeThresholdBytes OR outOfCoreObjectCountThreshold) with a
+            // budget-relative, domain-aware classification.
+            //
+            // For .outOfCore / .immediate, the caller's intent is mapped directly to the
+            // new policy types for a clean internal representation.
             let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
-            let thresholdBytes = ProgressiveAssetLoader.shared.fileSizeThresholdBytes
-            let objectCountThreshold = ProgressiveAssetLoader.shared.outOfCoreObjectCountThreshold
+            let loadingPolicy: AssetLoadingPolicy
+            let outOfCoreReason: String?
+            switch streamingPolicy {
+            case .outOfCore:
+                loadingPolicy = .geometryStreaming
+                outOfCoreReason = "explicit .outOfCore policy"
+            case .immediate:
+                loadingPolicy = .fullLoad
+                outOfCoreReason = nil
+            case .auto:
+                let budget = MemoryBudgetManager.shared.meshBudget
+                let profile = AssetProfiler.profile(url: url, assetData: assetData, fileSizeBytes: fileSizeBytes)
+                loadingPolicy = AssetProfiler.classifyPolicy(profile: profile, budget: budget)
 
-            let isLargeFile = fileSizeBytes > thresholdBytes
-            let hasManyObjects = assetData.totalObjectCount >= objectCountThreshold
+                let fileMB = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
+                let geoMB = String(format: "%.1f", Double(profile.estimatedGeometryBytes) / 1_048_576)
+                let texMB = String(format: "%.1f", Double(profile.estimatedTextureBytes) / 1_048_576)
+                let budgetMB = String(format: "%.0f", Double(budget) / 1_048_576)
+                Logger.log(message: "[AssetProfiler] '\(filename)' (\(fileMB) MB) → \(profile.assetCharacter.rawValue) | geo ~\(geoMB) MB, tex ~\(texMB) MB | budget: \(budgetMB) MB | meshes: \(profile.meshCount)")
+                Logger.log(message: "[AssetProfiler] Policy → geometry: \(loadingPolicy.geometryPolicy.rawValue), texture: \(loadingPolicy.texturePolicy.rawValue) (source: \(loadingPolicy.source.rawValue))")
 
-            if isLargeFile || hasManyObjects {
+                if loadingPolicy.geometryPolicy == .streaming {
+                    outOfCoreReason = "\(profile.assetCharacter.rawValue) asset, geo ~\(geoMB) MB on \(budgetMB) MB budget"
+                } else {
+                    outOfCoreReason = nil
+                }
+            }
+
+            let useOutOfCore = loadingPolicy.geometryPolicy == .streaming
+
+            if useOutOfCore {
                 // OUT-OF-CORE PATH ──────────────────────────────────────────────────────
                 // Register ALL leaf meshes immediately as .unloaded stub entities (ECS-only,
                 // no GPU allocation). Each stub's MDLMesh data is stored in the CPU registry
@@ -904,11 +965,7 @@ public func setEntityMeshAsync(
                 // This replaces the old ProgressiveLoadJob / tick() approach:
                 //   Old: upload nearest N → skip rest → skipped entities permanently absent
                 //   New: all entities present from the start, streaming drives GPU residency
-                let fileSizeMB = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                let reason = isLargeFile
-                    ? "\(fileSizeMB) MB exceeds \(String(format: "%.0f", Double(thresholdBytes) / 1_048_576)) MB threshold"
-                    : "\(assetData.totalObjectCount) objects ≥ \(objectCountThreshold) object threshold"
-                Logger.log(message: "[OutOfCore] '\(filename)': \(reason) → out-of-core stub registration (\(assetData.totalObjectCount) stubs)")
+                Logger.log(message: "[OutOfCore] '\(filename)': \(outOfCoreReason ?? "policy") → out-of-core stub registration (\(assetData.totalObjectCount) stubs)")
 
                 // Register AssetInstanceComponent on the root entity so scene-graph
                 // serialisation can identify this as a multi-mesh asset instance.

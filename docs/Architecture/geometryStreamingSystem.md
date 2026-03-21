@@ -90,14 +90,45 @@ For LOD entities (e.g., a skyscraper with 3 detail levels), it:
 
 ---
 
-## Memory Pressure: LRU Eviction (lines 544–587)
+## Memory Pressure: Texture Relief First, Geometry Eviction Last
 
-After each update tick, if `MemoryBudgetManager.shared.shouldEvict()` returns true:
+The engine uses two independent memory pressure signals and responds to them in priority order:
+
+| Pressure signal | Method | Meaning |
+|---|---|---|
+| Combined (mesh + texture) | `shouldEvict()` | Total GPU allocation ≥ 85% of `meshBudget` |
+| Geometry only | `shouldEvictGeometry()` | Mesh allocations alone ≥ 85% of `meshBudget` |
+
+**Why two signals?** `TextureStreamingSystem` upgrades visible textures to higher resolutions after meshes load. Those upgrades increase `totalTextureMemory` in `MemoryBudgetManager`. If the load gate used the combined signal, texture upgrades on already-loaded meshes would silently prevent new mesh loads — even when the geometry-only footprint is well within budget. The split ensures texture pressure cannot block geometry loading.
+
+### Step 1 — Texture downgrade relief
+
+Before considering geometry eviction, the system sheds texture quality on the farthest loaded entities:
+
+```
+if combined pressure is high AND geometry pressure is NOT high:
+    TextureStreamingSystem.shedTextureMemory(maxEntities: 4)
+    → no geometry eviction; texture relief only
+```
+
+`shedTextureMemory` forces the farthest entities in the `upgradedEntities` set to `minimumTextureDimension` immediately, bypassing the normal distance-band schedule. A distant wall dropping from 1024 px to 256 px is far less noticeable than a missing mesh.
+
+### Step 2 — Geometry eviction (last resort)
+
+Only triggered when geometry memory itself hits the high-water mark:
+
+```
+if geometry pressure is high:
+    TextureStreamingSystem.shedTextureMemory(maxEntities: 8)   ← try texture relief first
+    evictLRU(cameraPosition:)                                  ← then fall back to geometry eviction
+```
+
+`evictLRU`:
 1. First evicts unused cached meshes (`MeshResourceManager.evictUnused()`)
 2. Collects all loaded streaming entities
-3. Sorts by `lastVisibleFrame` — **oldest seen = first to go**
-4. Unloads them one by one until memory pressure is relieved
-5. Skips any entity currently in `visibleEntityIds` (on screen right now)
+3. Sorts by value score (far + large = first to go; see value-score eviction in the out-of-core walkthrough)
+4. Unloads them one by one until **geometry-only** pressure clears (loop breaks on `shouldEvictGeometry()`, not the combined signal)
+5. Skips entities that are both visible and within `visibleEvictionProtectionRadius` (30 m default)
 
 ---
 
@@ -130,3 +161,5 @@ The key design decisions here are:
 - **Concurrency cap (3)** prevents GPU/IO saturation during fast movement
 - **Unload-before-load** ordering ensures you free memory before consuming more
 - **Cache ownership** means unloading just clears references, actual GPU memory is reused if the same mesh comes back into range
+- **Geometry-only load gate** prevents texture upgrades from blocking mesh loads — each domain is budgeted independently
+- **Texture relief before geometry eviction** means a drop in distant texture resolution is always preferred over a missing mesh

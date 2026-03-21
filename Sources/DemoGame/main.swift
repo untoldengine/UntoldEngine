@@ -50,7 +50,7 @@
         ///      previous frame's entities — safe to create new ones here.
         ///   2. `setEntityMeshAsync` fires when the mesh has finished loading off the
         ///      main thread — safe to signal the UI here.
-        func loadFile(path: String, completion: @escaping () -> Void) {
+        func loadFile(path: String, completion: @escaping (Bool) -> Void) {
             clearSceneBatches()
             loadedEntity = nil
 
@@ -66,8 +66,9 @@
                 self.loadedEntity = entity
 
                 // Stage 2 — mesh loaded, notify the UI.
-                setEntityMeshAsync(entityId: entity, filename: path, withExtension: "usdz") { _ in
-                    completion()
+                // isOutOfCore is true when the asset was routed through the stub/streaming path.
+                setEntityMeshAsync(entityId: entity, filename: path, withExtension: "usdz") { isOutOfCore in
+                    completion(isOutOfCore)
                 }
             }
         }
@@ -150,7 +151,7 @@
                     q: input.keyState.qPressed,
                     e: input.keyState.ePressed
                 ),
-                speed: 10,
+                speed: 1,
                 deltaTime: 0.1
             )
 
@@ -235,7 +236,7 @@
         var stats: EngineStatsSnapshot = .init()
 
         // ── Callbacks — wired by AppDelegate ──────────────────────────────
-        var onLoadFile: ((String, @escaping () -> Void) -> Void)?
+        var onLoadFile: ((String, @escaping (Bool) -> Void) -> Void)?
         var onBatchingChanged: ((Bool) -> Void)?
         var onStreamingChanged: ((Bool, Double, Double) -> Void)?
         var onLodDebugChanged: ((Bool) -> Void)?
@@ -430,9 +431,15 @@
                 state.batchingEnabled = false
                 state.streamingEnabled = false
                 state.isLoading = true
-                state.onLoadFile?(path) {
+                state.onLoadFile?(path) { isOutOfCore in
                     state.isLoading = false
                     state.hasLoadedEntity = true
+                    // Out-of-core assets require GeometryStreamingSystem to upload stubs.
+                    // Re-enable the toggle so the system starts processing the new stubs
+                    // (the file picker set it to false above to reset state before loading).
+                    if isOutOfCore {
+                        state.streamingEnabled = true
+                    }
                     if accessing { url.stopAccessingSecurityScopedResource() }
                 }
             }
