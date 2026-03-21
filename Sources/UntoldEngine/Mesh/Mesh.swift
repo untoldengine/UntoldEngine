@@ -603,15 +603,20 @@ public struct Mesh {
                 }
             }
 
-            // loadTextures() is required for ModelIO to resolve embedded USDZ texture
-            // paths into usable MDLTexture references. Without it, material texture
-            // properties return nil URLs and textures silently fail to load.
+            // loadTextures() eagerly decompresses all embedded USDZ textures into CPU RAM.
+            // For small assets this is fine. For large assets (500+ MB with many 4K textures)
+            // it can spike CPU RAM by several GB and cause an OOM kill on Vision Pro before
+            // any mesh reaches the GPU.
             //
-            // For very large assets (above the progressive loading threshold) this call
-            // is skipped: decompressing all 4K textures upfront on a 500+ MB file can
-            // spike CPU RAM by several GB on Vision Pro, causing an OOM kill before any
-            // mesh batch runs. Large assets with textures must rely on on-demand loading
-            // via TextureLoader's URL-based path.
+            // Large assets skip loadTextures() here. TextureLoader handles each texture
+            // on demand when the streaming system uploads the owning mesh, via two fallback
+            // paths in loadTexture():
+            //   a) MDLTexture lazy load: texelDataWithTopLeftOrigin(atMipLevel:0, create:true)
+            //      fetches just that texture's data through the MDLTexture's own URL handler.
+            //   b) USDZ package URL: parses the bracket-notation stringValue and builds a
+            //      slash-path URL (file:///asset.usdz/inner/texture.png) for MTKTextureLoader.
+            //
+            // Both paths load one texture at a time — no upfront RAM spike.
             let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
             if fileSizeBytes <= ProgressiveAssetLoader.shared.fileSizeThresholdBytes {
                 asset.loadTextures()
@@ -1557,28 +1562,64 @@ final class TextureLoader {
         return tex.makeTextureView(pixelFormat: target) ?? tex
     }
 
-    /// Build a stable identity URL for USDZ-embedded textures.
-    /// Uses the package-relative path when available (from ModelIO stringValue),
-    /// so identical embedded textures shared across meshes get the same identity.
-    private func embeddedTextureURL(from property: MDLMaterialProperty, fallbackTextureName: String) -> URL? {
-        if let propertyString = property.stringValue,
-           let openBracket = propertyString.lastIndex(of: "["),
-           let closeBracket = propertyString.lastIndex(of: "]"),
-           openBracket < closeBracket
-        {
-            let start = propertyString.index(after: openBracket)
-            let rawInnerPath = String(propertyString[start ..< closeBracket])
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .replacingOccurrences(of: "\\", with: "/")
+    /// Parse a ModelIO USDZ bracket-notation string into a USDZ file URL and the
+    /// inner texture path within the package.
+    ///
+    /// ModelIO returns embedded texture paths in the form:
+    ///   `"file:///path/to/scene.usdz[0/texture_base_color.png]"`
+    ///
+    /// This method extracts the host-file URL (`file:///path/to/scene.usdz`) and the
+    /// inner path (`0/texture_base_color.png`). Returns `nil` if the string is not in
+    /// bracket-notation format, has an empty inner path, or the host URL is not a file URL.
+    ///
+    /// Exposed as `internal` so it can be unit-tested from `UntoldEngineTests`.
+    static func parseUSDZBracketPath(from str: String) -> (usdzURL: URL, innerPath: String)? {
+        guard let openBracket = str.lastIndex(of: "["),
+              let closeBracket = str.lastIndex(of: "]"),
+              openBracket < closeBracket
+        else { return nil }
 
-            if !rawInnerPath.isEmpty {
-                let encodedPath = rawInnerPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? rawInnerPath
-                return URL(string: "usdz-embedded://\(encodedPath)")
-            }
-        }
+        let usdzPathStr = String(str[str.startIndex ..< openBracket])
+        let innerPath = String(str[str.index(after: openBracket) ..< closeBracket])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\\", with: "/")
 
-        let encodedFallback = fallbackTextureName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? fallbackTextureName
-        return URL(string: "usdz-embedded://\(encodedFallback)")
+        guard !innerPath.isEmpty,
+              let usdzURL = URL(string: usdzPathStr),
+              usdzURL.isFileURL
+        else { return nil }
+
+        return (usdzURL, innerPath)
+    }
+
+    /// Build a stable identity URL for USDZ-embedded textures from the bracket-notation path.
+    ///
+    /// Returns a `usdz-embedded://` URL only when `property.stringValue` contains a parseable
+    /// bracket-notation path (e.g. `"file:///scene.usdz[0/texture.png]"`). Returns **nil**
+    /// when no bracket path is present so callers can fall back to a per-`MDLTexture`-object
+    /// identity that is guaranteed unique and avoids name-collision cache poisoning.
+    ///
+    /// The old name-based fallback (`"usdz-embedded://embedded_Basecolor_map"`) was removed
+    /// because it produced identical cache keys for any two unnamed textures of the same map
+    /// type, causing every subsequent mesh to receive the first mesh's texture.
+    private func embeddedTextureURL(from property: MDLMaterialProperty) -> URL? {
+        guard let propertyString = property.stringValue,
+              let parsed = TextureLoader.parseUSDZBracketPath(from: propertyString)
+        else { return nil }
+
+        let encodedPath = parsed.innerPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? parsed.innerPath
+        return URL(string: "usdz-embedded://\(encodedPath)")
+    }
+
+    /// Build a unique URL for an MDLTexture that has no bracket-notation path.
+    ///
+    /// Uses the MDLTexture's object pointer as the identity. The MDLAsset is kept alive in
+    /// `ProgressiveAssetLoader.rootAssetRefs` for the entire lifetime of the out-of-core
+    /// asset, so the pointer is stable across GPU-resource eviction/reload cycles.
+    /// This URL is used as both the cache key and `material.baseColorURL` (etc.) so that
+    /// `BatchingSystem.getMaterialHash` can distinguish textures that have no path metadata.
+    private static func objectIdentityURL(for mdlTex: MDLTexture) -> URL {
+        URL(string: "mdl-obj-\(UInt(bitPattern: ObjectIdentifier(mdlTex)))")!
     }
 
     func loadTexture(from property: MDLMaterialProperty?,
@@ -1603,11 +1644,16 @@ final class TextureLoader {
            let mdlTex = sampler.texture
         {
             let textureName = mdlTex.name.isEmpty ? "embedded_\(mapType.replacingOccurrences(of: " ", with: "_"))" : mdlTex.name
-            let stableEmbeddedURL = embeddedTextureURL(from: property, fallbackTextureName: textureName)
-            let stableIdentity = stableEmbeddedURL?.absoluteString ?? "usdz-embedded://\(textureName)"
-            let cacheKey = TextureCacheKey(id: stableIdentity, isSRGB: isSRGB)
+            // Path-derived URL when bracket notation is available; nil otherwise.
+            // embeddedTextureURL no longer produces a name-based fallback URL — that caused
+            // every unnamed texture of the same map type to collide on the same cache key.
+            let pathURL = embeddedTextureURL(from: property)
+            // Unique fallback: MDLTexture object pointer. Stable for the asset's lifetime.
+            // Also used as outputURL so BatchingSystem.getMaterialHash sees distinct URLs.
+            let uniqueURL = pathURL ?? TextureLoader.objectIdentityURL(for: mdlTex)
+            let cacheKey = TextureCacheKey(id: uniqueURL.absoluteString, isSRGB: isSRGB)
             if let cached = textureCache[cacheKey] {
-                outputURL = stableEmbeddedURL ?? URL(string: cacheKey.id)
+                outputURL = uniqueURL
                 outputMDLTexture = mdlTex
                 outputSourceDimensions = sourceDimensionsCache[cacheKey]
                 return cached
@@ -1617,9 +1663,7 @@ final class TextureLoader {
                 let fullTex = try mtkLoader.newTexture(texture: mdlTex, options: options)
                 let tex = downsampleIfNeeded(fullTex)
 
-                outputURL = stableEmbeddedURL
-
-                // Store the MDLTexture reference for later use (e.g., texture extraction)
+                outputURL = uniqueURL
                 outputMDLTexture = mdlTex
 
                 return cacheAndRecordTexture(
@@ -1630,7 +1674,28 @@ final class TextureLoader {
                     nameForLog: textureName,
                     outputSourceDimensions: &outputSourceDimensions
                 )
-            } catch {
+            } catch let initialError {
+                // mtkLoader.newTexture(texture:) failed — this happens when loadTextures() was
+                // skipped for large assets and the MDLTexture has no pixel data yet.
+                // Ask the MDLTexture to lazily fetch its own data from the USDZ package and retry.
+                // This loads only this one texture, not the entire asset.
+                Logger.log(message: "[TextureLoad] MDL path failed for '\(textureName)' — retrying with lazy hydration (\(initialError.localizedDescription))")
+                if mdlTex.texelDataWithTopLeftOrigin(atMipLevel: 0, create: true) != nil,
+                   let retryTex = try? mtkLoader.newTexture(texture: mdlTex, options: options)
+                {
+                    let tex = downsampleIfNeeded(retryTex)
+                    outputURL = uniqueURL
+                    outputMDLTexture = mdlTex
+                    return cacheAndRecordTexture(
+                        loadedTexture: tex,
+                        sourceTexture: retryTex,
+                        cacheKey: cacheKey,
+                        isSRGB: isSRGB,
+                        nameForLog: textureName,
+                        outputSourceDimensions: &outputSourceDimensions
+                    )
+                }
+                Logger.log(message: "[TextureLoad] Lazy hydration also failed for '\(textureName)' — falling through to URL paths")
                 handleError(.textureFailedLoading)
             }
         }
@@ -1659,6 +1724,32 @@ final class TextureLoader {
 
         // String (relative) -> try to resolve against the model's base path if you keep it
         if let str = property.stringValue, !str.isEmpty {
+            // 0) USDZ embedded texture: "file:///path/to.usdz[0/texture.png]"
+            //    sampler.texture was nil (loadTextures() was skipped) so path 1 never fired.
+            //    Build a package URL (slash-separated) and try MTKTextureLoader directly.
+            if let parsed = TextureLoader.parseUSDZBracketPath(from: str) {
+                let packageURL = parsed.usdzURL.appendingPathComponent(parsed.innerPath)
+                let cacheKey = TextureCacheKey(id: packageURL.absoluteString, isSRGB: isSRGB)
+                if let cached = textureCache[cacheKey] {
+                    outputURL = packageURL
+                    outputSourceDimensions = sourceDimensionsCache[cacheKey]
+                    return cached
+                }
+                if let fullTex = try? mtkLoader.newTexture(URL: packageURL, options: options) {
+                    let tex = downsampleIfNeeded(fullTex)
+                    outputURL = packageURL
+                    return cacheAndRecordTexture(
+                        loadedTexture: tex,
+                        sourceTexture: fullTex,
+                        cacheKey: cacheKey,
+                        isSRGB: isSRGB,
+                        nameForLog: parsed.innerPath,
+                        outputSourceDimensions: &outputSourceDimensions
+                    )
+                }
+                Logger.log(message: "[TextureLoad] USDZ package URL failed for '\(parsed.innerPath)' — falling through to remaining paths")
+            }
+
             // 1) Try as-is (absolute or already-resolved)
             if let url = URL(string: str), url.isFileURL {
                 let cacheKey = TextureCacheKey(id: url.standardizedFileURL.path, isSRGB: isSRGB)

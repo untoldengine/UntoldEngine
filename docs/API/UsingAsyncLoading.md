@@ -48,13 +48,14 @@ You mainly need `setSceneReady(...)` for custom workflows outside those built-in
 setSceneReady(false)
 
 let root = createEntity()
-setEntityMeshAsync(entityId: root, filename: "large_model", withExtension: "usdz") { success in
-    if success {
-        // custom post-load work: hierarchy edits, batching, metadata pass, etc.
-        setSceneReady(true)
-    } else {
-        setSceneReady(false)
+setEntityMeshAsync(entityId: root, filename: "large_model", withExtension: "usdz") { isOutOfCore in
+    if isOutOfCore {
+        // Out-of-core: enable streaming so stubs start uploading
+        GeometryStreamingSystem.shared.enabled = true
+        enableStreaming(entityId: root, streamingRadius: 200, unloadRadius: 350, priority: 10)
     }
+    // custom post-load work: hierarchy edits, batching, metadata pass, etc.
+    setSceneReady(true)
 }
 ```
 
@@ -89,6 +90,11 @@ setEntityMeshAsync(
 
 ### With Completion Callback
 
+The completion Bool indicates how the asset was routed:
+
+- `true` — asset was registered as out-of-core stubs; `GeometryStreamingSystem` must be enabled for anything to render.
+- `false` — asset used the immediate path (all meshes GPU-resident) **or** loading failed (entity has a fallback cube).
+
 ```swift
 let entityId = createEntity()
 
@@ -96,13 +102,58 @@ setEntityMeshAsync(
     entityId: entityId,
     filename: "large_model",
     withExtension: "usdz"
-) { success in
-    if success {
-        print("✅ Model loaded successfully!")
+) { isOutOfCore in
+    if isOutOfCore {
+        // Asset was registered as streaming stubs — enable the system to start uploads.
+        GeometryStreamingSystem.shared.enabled = true
+        enableStreaming(entityId: entityId, streamingRadius: 200, unloadRadius: 350, priority: 10)
     } else {
-        print("❌ Failed to load - fallback cube used")
+        print("Model loaded immediately (small asset or error fallback)")
     }
 }
+```
+
+### Controlling the Loading Path (`streamingPolicy`)
+
+By default the engine automatically selects the loading path using `AssetProfiler`. You can override this with the `streamingPolicy` parameter:
+
+```swift
+// Always use the stub path — good for assets you know are large
+setEntityMeshAsync(
+    entityId: entityId,
+    filename: "huge_city",
+    withExtension: "usdz",
+    streamingPolicy: .outOfCore
+)
+
+// Always upload immediately — good for small, always-visible assets
+setEntityMeshAsync(
+    entityId: entityId,
+    filename: "small_prop",
+    withExtension: "usdz",
+    streamingPolicy: .immediate
+)
+
+// Let the engine decide (default — recommended for most cases)
+setEntityMeshAsync(
+    entityId: entityId,
+    filename: "model",
+    withExtension: "usdz",
+    streamingPolicy: .auto
+)
+```
+
+| Policy | Behavior |
+|--------|----------|
+| `.auto` (default) | `AssetProfiler` estimates geometry and texture bytes vs. the platform budget and independently selects `.streaming` or `.eager` for each domain |
+| `.outOfCore` | Always stubs + geometry streaming; completion returns `true` |
+| `.immediate` | Always direct GPU upload; completion returns `false` |
+
+For `.auto`, the engine logs the classification so you can see exactly why each decision was made:
+
+```
+[AssetProfiler] 'dungeon3' (2.1 MB) → mixed | geo ~2.9 MB, tex ~6.2 MB | budget: 1024 MB | meshes: 410
+[AssetProfiler] Policy → geometry: streaming, texture: eager (source: auto)
 ```
 
 ### Load Entire Scene Asynchronously

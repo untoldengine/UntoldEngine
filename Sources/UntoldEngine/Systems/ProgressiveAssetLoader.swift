@@ -84,6 +84,18 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     /// when the root entity is destroyed.
     private var rootEntityChildren: [EntityID: [EntityID]] = [:]
 
+    /// Per-asset NSLocks that serialize texture hydration across concurrent streaming uploads.
+    ///
+    /// MDLAsset is not thread-safe. Two Tasks uploading different meshes from the same asset
+    /// simultaneously can race during `loadTextures()` or `texelDataWithTopLeftOrigin`. One lock
+    /// per root entity ensures only one mesh from a given asset loads textures at a time.
+    private var assetTextureLocks: [EntityID: NSLock] = [:]
+
+    /// Tracks which root assets have already had `loadTextures()` called on their MDLAsset.
+    /// After the first upload from an asset triggers deferred texture loading, subsequent
+    /// uploads from the same asset skip the call.
+    private var assetTexturesLoaded: Set<EntityID> = []
+
     func storeCPUMesh(_ entry: CPUMeshEntry, for entityId: EntityID) {
         lock.lock()
         cpuMeshRegistry[entityId] = entry
@@ -105,6 +117,49 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     func storeAsset(_ asset: MDLAsset, for rootEntityId: EntityID) {
         lock.lock()
         rootAssetRefs[rootEntityId] = asset
+        assetTextureLocks[rootEntityId] = NSLock()
+        lock.unlock()
+    }
+
+    /// Acquire the per-asset texture-load lock before calling makeMeshesFromCPUBuffers.
+    /// Returns immediately if no asset is registered for this root (e.g. non-out-of-core entity).
+    func acquireAssetTextureLock(for rootEntityId: EntityID) {
+        lock.lock()
+        let assetLock = assetTextureLocks[rootEntityId]
+        lock.unlock()
+        assetLock?.lock()
+    }
+
+    /// Release the per-asset texture-load lock after makeMeshesFromCPUBuffers returns.
+    func releaseAssetTextureLock(for rootEntityId: EntityID) {
+        lock.lock()
+        let assetLock = assetTextureLocks[rootEntityId]
+        lock.unlock()
+        assetLock?.unlock()
+    }
+
+    /// Call `loadTextures()` on the MDLAsset for `rootEntityId` if it has not been called yet.
+    ///
+    /// **Must be called while the per-asset texture lock is held** (i.e. between
+    /// `acquireAssetTextureLock` and `releaseAssetTextureLock`) to prevent two concurrent
+    /// uploads from both seeing `texturesLoaded == false` and both calling `loadTextures()`.
+    ///
+    /// This defers the texture decompression from parse time (where it could OOM-kill the
+    /// process) to first-upload time, where the app is already interactive and the RAM budget
+    /// is more predictable. Subsequent uploads from the same asset skip the call entirely.
+    func ensureTexturesLoaded(for rootEntityId: EntityID) {
+        lock.lock()
+        let alreadyLoaded = assetTexturesLoaded.contains(rootEntityId)
+        let asset = rootAssetRefs[rootEntityId]
+        lock.unlock()
+
+        guard !alreadyLoaded, let asset else { return }
+
+        Logger.log(message: "[OutOfCore] Deferred loadTextures() for root entity \(rootEntityId) — loading textures at first upload")
+        asset.loadTextures()
+
+        lock.lock()
+        assetTexturesLoaded.insert(rootEntityId)
         lock.unlock()
     }
 
@@ -120,6 +175,8 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         lock.lock()
         let children = rootEntityChildren.removeValue(forKey: rootEntityId) ?? []
         rootAssetRefs.removeValue(forKey: rootEntityId)
+        assetTextureLocks.removeValue(forKey: rootEntityId)
+        assetTexturesLoaded.remove(rootEntityId)
         for childId in children {
             cpuMeshRegistry.removeValue(forKey: childId)
         }
@@ -147,6 +204,8 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         cpuMeshRegistry.removeAll()
         rootAssetRefs.removeAll()
         rootEntityChildren.removeAll()
+        assetTextureLocks.removeAll()
+        assetTexturesLoaded.removeAll()
         lock.unlock()
         Logger.log(message: "[OutOfCore] Released all CPU mesh data (cancelAll)")
     }

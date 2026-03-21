@@ -391,6 +391,47 @@ public class TextureStreamingSystem: @unchecked Sendable {
         return false
     }
 
+    // MARK: - Budget Helpers
+
+    /// Estimate the net GPU byte increase for a set of upgrade work items.
+    ///
+    /// Uses `dim × dim × 4 bytes/pixel × 4/3` (RGBA8 + mip overhead) as a
+    /// conservative upper bound. The estimate intentionally over-counts slightly
+    /// so the budget check errs on the side of caution.
+    ///
+    /// Only upgrade items contribute to the estimate — downgrades free memory
+    /// and are always allowed regardless of budget state.
+    private func estimatedUpgradeBytes(_ workItems: [StreamWorkItem]) -> Int {
+        workItems.reduce(0) { total, item in
+            guard item.direction == .upgrade else { return total }
+            let newDim = item.targetMaxDimension ?? item.slot.sourceMaxDimension
+            let oldDim = max(item.slot.currentTexture.width, item.slot.currentTexture.height)
+            // RGBA8 (4 bytes/pixel) × 4/3 mip factor, net increase only.
+            let newBytes = newDim * newDim * 4 * 4 / 3
+            let oldBytes = oldDim * oldDim * 4 * 4 / 3
+            return total + max(0, newBytes - oldBytes)
+        }
+    }
+
+    /// Sum the actual allocated GPU bytes for every texture on an entity's render component.
+    ///
+    /// Uses `MTLTexture.allocatedSize` — the exact bytes the driver reserved — so
+    /// the value passed to `updateTextureSizeBytes` is accurate rather than estimated.
+    private func currentTextureBytes(entityId: EntityID) -> Int {
+        guard let render = scene.get(component: RenderComponent.self, for: entityId) else { return 0 }
+        var total = 0
+        for mesh in render.mesh {
+            for submesh in mesh.submeshes {
+                guard let mat = submesh.material else { continue }
+                total += mat.baseColor.texture?.allocatedSize ?? 0
+                total += mat.roughness.texture?.allocatedSize ?? 0
+                total += mat.metallic.texture?.allocatedSize ?? 0
+                total += mat.normal.texture?.allocatedSize ?? 0
+            }
+        }
+        return total
+    }
+
     // MARK: - Scheduling
 
     private func scheduleResolutionChange(
@@ -401,6 +442,24 @@ public class TextureStreamingSystem: @unchecked Sendable {
         isVisible: Bool
     ) {
         guard reserveOp(entityId) else { return }
+
+        // Budget gate: upgrades consume GPU memory; downgrades free it.
+        // Estimate the net increase for all upgrade items and check whether the
+        // combined geometry + texture budget can absorb it. If not, strip upgrades
+        // from the batch — downgrades always proceed since they reduce pressure.
+        let upgradeBytes = estimatedUpgradeBytes(workItems)
+        let budgetedWorkItems: [StreamWorkItem]
+        if upgradeBytes > 0, !MemoryBudgetManager.shared.canAcceptTexture(sizeBytes: upgradeBytes) {
+            budgetedWorkItems = workItems.filter { $0.direction == .downgrade }
+            Logger.log(message: "[TextureStreaming] entity=\(entityId) skipped \(workItems.filter { $0.direction == .upgrade }.count) upgrade(s) — budget full (need \(upgradeBytes.formattedAsMemory))")
+        } else {
+            budgetedWorkItems = workItems
+        }
+
+        guard !budgetedWorkItems.isEmpty else {
+            releaseOp(entityId)
+            return
+        }
 
         guard let device = renderInfo.device else {
             releaseOp(entityId)
@@ -419,9 +478,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
         Task {
             var loaded: [LoadedTexture] = []
-            loaded.reserveCapacity(workItems.count)
+            loaded.reserveCapacity(budgetedWorkItems.count)
 
-            for item in workItems {
+            for item in budgetedWorkItems {
                 let texture: MTLTexture?
                 switch item.direction {
                 case .upgrade:
@@ -504,6 +563,18 @@ public class TextureStreamingSystem: @unchecked Sendable {
                                 batchMaterial.normalStreamingLevel = isFull ? .full : .capped
                             }
                         }
+                    }
+
+                    // Update texture memory tracking so MemoryBudgetManager reflects
+                    // the actual GPU allocation after this upgrade or downgrade.
+                    // Only update if the entity has a budget entry (i.e. it was
+                    // uploaded via GeometryStreamingSystem or the immediate path).
+                    if MemoryBudgetManager.shared.isTracked(entityId: entityId) {
+                        let newTextureBytes = self.currentTextureBytes(entityId: entityId)
+                        MemoryBudgetManager.shared.updateTextureSizeBytes(
+                            entityId: entityId,
+                            newSizeBytes: newTextureBytes
+                        )
                     }
 
                     let hasAboveMinimum = self.entityHasTexturesAboveMinimumTier(entityId: entityId)
@@ -622,6 +693,57 @@ public class TextureStreamingSystem: @unchecked Sendable {
         let target = wantSRGB ? pair.srgb : pair.linear
         if tex.pixelFormat == target { return tex }
         return tex.makeTextureView(pixelFormat: target) ?? tex
+    }
+
+    // MARK: - Memory Relief
+
+    /// Force-downgrade textures on the farthest loaded entities to relieve combined GPU memory pressure.
+    ///
+    /// Called by `GeometryStreamingSystem` when combined mesh+texture memory is high but
+    /// geometry-only memory is not. Texture downgrades are far less visually disruptive than
+    /// geometry eviction — a distant wall losing resolution is much less noticeable than a
+    /// missing mesh.
+    ///
+    /// - Parameters:
+    ///   - cameraPosition: Current camera world position for distance sorting.
+    ///   - maxEntities: Maximum number of entities to downgrade in this call. Defaults to 4.
+    /// - Returns: Number of entities scheduled for downgrade.
+    @discardableResult
+    public func shedTextureMemory(cameraPosition: simd_float3, maxEntities: Int = 4) -> Int {
+        let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraPosition)
+
+        lock.lock()
+        let snapshot = Array(upgradedEntities)
+        lock.unlock()
+
+        guard !snapshot.isEmpty else { return 0 }
+
+        // Sort farthest-first: distant entities are least valuable at their current resolution.
+        let sorted = snapshot
+            .compactMap { id -> (EntityID, Float)? in
+                let d = calculateDistance(entityId: id, cameraPosition: effectiveCameraPosition)
+                return d.isFinite ? (id, d) : nil
+            }
+            .sorted { $0.1 > $1.1 }
+
+        let minDimension = normalizedMinimumDimension()
+        var scheduled = 0
+
+        for (entityId, distance) in sorted.prefix(maxEntities) {
+            guard !isActiveOp(entityId) else { continue }
+            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: minDimension)
+            guard !workItems.isEmpty else { continue }
+            scheduleResolutionChange(
+                entityId: entityId,
+                distance: distance,
+                workItems: workItems,
+                targetMaxDimension: minDimension,
+                isVisible: false
+            )
+            scheduled += 1
+        }
+
+        return scheduled
     }
 
     // MARK: - Stats / Debug

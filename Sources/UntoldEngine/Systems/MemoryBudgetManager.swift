@@ -255,7 +255,7 @@ public class MemoryBudgetManager: @unchecked Sendable {
         )
     }
 
-    /// Check if we should start evicting entities
+    /// Check if we should start evicting entities (combined geometry + texture budget).
     public func shouldEvict() -> Bool {
         guard enabled else { return false }
 
@@ -266,12 +266,71 @@ public class MemoryBudgetManager: @unchecked Sendable {
         return utilization >= highWaterMark
     }
 
-    /// Check if we can accept a new mesh of the given size
+    /// Check if geometry memory alone has hit the high-water mark.
+    ///
+    /// Used by `GeometryStreamingSystem` so that texture upgrades on already-loaded
+    /// entities cannot block new mesh loads. Texture memory is intentionally excluded
+    /// from this check — texture pressure is managed independently by `TextureStreamingSystem`.
+    public func shouldEvictGeometry() -> Bool {
+        guard enabled else { return false }
+
+        lock.lock()
+        defer { lock.unlock() }
+
+        let utilization = Float(totalMeshMemory) / Float(meshBudget)
+        return utilization >= highWaterMark
+    }
+
+    /// Check if we can accept a new mesh of the given size.
+    ///
+    /// Accounts for both geometry and texture memory already tracked so the
+    /// combined GPU footprint stays within the budget after the new allocation.
     public func canAccept(sizeBytes: Int) -> Bool {
         lock.lock()
         defer { lock.unlock() }
 
+        return (totalMeshMemory + totalTextureMemory + sizeBytes) <= meshBudget
+    }
+
+    /// Check if a new mesh of the given size fits within the geometry portion of the budget.
+    ///
+    /// Only counts geometry (vertex/index) memory — texture memory is excluded so that
+    /// texture upgrades cannot prevent mesh loads. Used by `GeometryStreamingSystem`
+    /// for its per-candidate pre-emptive budget reservation.
+    public func canAcceptMesh(sizeBytes: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
         return (totalMeshMemory + sizeBytes) <= meshBudget
+    }
+
+    /// Check if we can accept a new texture allocation of the given size.
+    ///
+    /// Identical budget logic to `canAccept` but named explicitly for texture
+    /// streaming call sites so intent is clear at the call site.
+    public func canAcceptTexture(sizeBytes: Int) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        return (totalMeshMemory + totalTextureMemory + sizeBytes) <= meshBudget
+    }
+
+    /// Update texture size tracking for an entity after texture streaming completes.
+    ///
+    /// Called by `TextureStreamingSystem` whenever a texture upgrade or downgrade
+    /// finishes so `totalTextureMemory` reflects the actual current GPU allocation.
+    /// No-op if the entity is not currently tracked (e.g. entity was evicted while
+    /// the streaming Task was in-flight).
+    public func updateTextureSizeBytes(entityId: EntityID, newSizeBytes: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard var entry = memoryEntries[entityId] else { return }
+        totalTextureMemory -= entry.textureSizeBytes
+        entry.textureSizeBytes = newSizeBytes
+        entry.lastUsedFrame = currentFrame
+        totalTextureMemory += newSizeBytes
+        memoryEntries[entityId] = entry
     }
 
     /// Get memory size for an entity (if tracked)
@@ -331,14 +390,17 @@ public class MemoryBudgetManager: @unchecked Sendable {
         return Array(sorted)
     }
 
-    /// Get candidates to evict to reach the low water mark
-    /// - Returns: Array of entity IDs that should be evicted
+    /// Get candidates to evict to reach the low water mark.
+    ///
+    /// Uses combined geometry + texture memory to compute how much needs to be
+    /// freed, and counts each candidate's total size (mesh + texture) toward the
+    /// target. This ensures eviction correctly accounts for texture-heavy entities.
     public func getEvictionCandidatesToTarget() -> [EntityID] {
         lock.lock()
         defer { lock.unlock() }
 
         let targetMemory = Int(Float(meshBudget) * lowWaterMark)
-        var memoryToFree = totalMeshMemory - targetMemory
+        var memoryToFree = (totalMeshMemory + totalTextureMemory) - targetMemory
 
         guard memoryToFree > 0 else { return [] }
 
@@ -349,7 +411,7 @@ public class MemoryBudgetManager: @unchecked Sendable {
         for entry in sorted {
             if memoryToFree <= 0 { break }
             candidates.append(entry.entityId)
-            memoryToFree -= entry.meshSizeBytes
+            memoryToFree -= entry.totalSize
         }
 
         return candidates

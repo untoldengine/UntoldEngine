@@ -232,6 +232,39 @@ At no point are more than 3 buildings being streamed simultaneously, keeping GPU
 
 ---
 
+## Memory Relief: `shedTextureMemory`
+
+`TextureStreamingSystem` exposes a public method for on-demand texture downgrade under memory pressure:
+
+```swift
+@discardableResult
+public func shedTextureMemory(cameraPosition: simd_float3, maxEntities: Int = 4) -> Int
+```
+
+This is called by `GeometryStreamingSystem` — not on a timer, but reactively whenever combined GPU memory (mesh + texture) hits the 85% high-water mark. It bypasses the normal distance-band schedule and forces immediate action.
+
+**What it does:**
+1. Snapshots `upgradedEntities` — the set of entities currently holding textures above `minimumTextureDimension`
+2. Calculates the camera distance for each
+3. Sorts **farthest-first** — the least visually valuable textures at their current resolution get downgraded first
+4. Schedules up to `maxEntities` force-downgrades to `minimumTextureDimension`, skipping any entity already in an active op
+5. Returns the number of entities scheduled
+
+**Why farthest-first?** A distant entity's 1024 px texture dropping to 256 px is nearly invisible. A nearby entity's texture downgrading would be immediately obvious. This ordering gives the maximum memory relief for the minimum perceptible quality loss.
+
+**Relationship to the update loop:** Normal `update()` ticks also schedule downgrades for out-of-range entities, but only as slots become available and on the 0.2 s timer. `shedTextureMemory` is a burst — it fills up to `maxEntities` slots immediately, regardless of the timer, to respond to pressure before the next geometry load attempt.
+
+### When it is called
+
+| Caller | `maxEntities` | Condition |
+|---|---|---|
+| `GeometryStreamingSystem.update()` | 4 | Combined pressure high, geometry pressure low — texture relief only, no geometry eviction |
+| `GeometryStreamingSystem.update()` | 8 | Geometry pressure also high — shed texture first, then evict geometry |
+
+The larger batch size (8) when geometry is also under pressure reflects that more aggressive texture shedding is needed before the costlier geometry eviction path runs.
+
+---
+
 ## Key Configuration
 
 ```swift

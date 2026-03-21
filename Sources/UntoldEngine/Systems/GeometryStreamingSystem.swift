@@ -254,7 +254,20 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // GPU memory past the OS kill threshold on Vision Pro.
         var evictionTriggered = false
         var evictedByLRU = 0
-        if MemoryBudgetManager.shared.shouldEvict() {
+
+        // Texture-first relief: if combined GPU memory (mesh + texture) is high but
+        // geometry alone is not, downgrade textures on distant entities before
+        // considering geometry eviction. A texture resolution drop on a far wall is
+        // far less noticeable than a missing mesh.
+        if MemoryBudgetManager.shared.shouldEvict(), !MemoryBudgetManager.shared.shouldEvictGeometry() {
+            TextureStreamingSystem.shared.shedTextureMemory(cameraPosition: effectiveCameraPosition)
+        }
+
+        if MemoryBudgetManager.shared.shouldEvictGeometry() {
+            // Shed texture quality first; geometry eviction is the last resort.
+            TextureStreamingSystem.shared.shedTextureMemory(
+                cameraPosition: effectiveCameraPosition, maxEntities: 8
+            )
             evictionTriggered = true
             evictedByLRU = evictLRU(cameraPosition: effectiveCameraPosition)
         }
@@ -279,21 +292,22 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         lastPendingLoadBacklog = max(0, loadCandidates.count - max(0, availableSlots))
         var startedLoads = 0
 
-        // Snapshot shouldEvict() once after eviction before starting any loads.
-        if !MemoryBudgetManager.shared.shouldEvict() {
+        // Geometry-only gate: texture memory does not block mesh loads.
+        // Texture pressure is managed independently by TextureStreamingSystem.
+        if !MemoryBudgetManager.shared.shouldEvictGeometry() {
             // Near band: serialized (nearBandMaxConcurrentLoads = 1 by default)
             let nearSlots = max(0, min(
                 nearBandMaxConcurrentLoads - activeNearBandLoadCount(),
                 availableSlots - startedLoads
             ))
             for (entityId, _, _) in nearBandCandidates.prefix(nearSlots) {
-                // Pre-emptive budget reservation: evict if this mesh won't fit.
+                // Per-candidate geometry budget check: evict if this mesh won't fit.
                 if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
-                   !MemoryBudgetManager.shared.canAccept(sizeBytes: cpuEntry.estimatedGPUBytes)
+                   !MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes)
                 {
                     evictedByLRU += evictLRU(cameraPosition: effectiveCameraPosition)
                     evictionTriggered = true
-                    guard MemoryBudgetManager.shared.canAccept(sizeBytes: cpuEntry.estimatedGPUBytes) else { continue }
+                    guard MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes) else { continue }
                 }
                 loadMesh(entityId: entityId, isNearBand: true)
                 startedLoads += 1
@@ -302,13 +316,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             // Rest band: remaining global slots
             let restSlots = max(0, availableSlots - startedLoads)
             for (entityId, _, _) in restBandCandidates.prefix(restSlots) {
-                // Pre-emptive budget reservation for out-of-core rest-band entities.
+                // Per-candidate geometry budget check for out-of-core rest-band entities.
                 if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
-                   !MemoryBudgetManager.shared.canAccept(sizeBytes: cpuEntry.estimatedGPUBytes)
+                   !MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes)
                 {
                     evictedByLRU += evictLRU(cameraPosition: effectiveCameraPosition)
                     evictionTriggered = true
-                    guard MemoryBudgetManager.shared.canAccept(sizeBytes: cpuEntry.estimatedGPUBytes) else { continue }
+                    guard MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes) else { continue }
                 }
                 loadMesh(entityId: entityId, isNearBand: false)
                 startedLoads += 1
@@ -520,6 +534,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         entityId: EntityID,
         cpuEntry: ProgressiveAssetLoader.CPUMeshEntry
     ) async -> Bool {
+        // Serialize texture loading per asset and ensure loadTextures() has been called.
+        // MDLAsset is not thread-safe. The lock prevents two concurrent uploads from the
+        // same asset racing on MDLTexture internal state.
+        // ensureTexturesLoaded() is a no-op after the first call per asset — it calls
+        // asset.loadTextures() exactly once, deferred from parse time to first-upload time
+        // so the full texture decompression spike doesn't happen before any mesh is rendered.
+        let rootEntityId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId
+        if let rootId = rootEntityId {
+            ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootId)
+            ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootId)
+        }
         let meshes = Mesh.makeMeshesFromCPUBuffers(
             object: cpuEntry.object,
             vertexDescriptor: cpuEntry.vertexDescriptor,
@@ -527,6 +552,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             device: cpuEntry.device,
             flip: true
         )
+        if let rootId = rootEntityId {
+            ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootId)
+        }
 
         guard !meshes.isEmpty else {
             Logger.logError(message: "[OutOfCore] CPU→Metal upload failed for entity \(entityId) ('\(cpuEntry.uniqueAssetName)')")
@@ -750,7 +778,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let visibleSet = Set(visibleEntityIds)
         var evictedCount = 0
         for candidate in candidates {
-            guard MemoryBudgetManager.shared.shouldEvict() else { break }
+            // Stop when geometry-only pressure clears — texture memory is managed
+            // independently by TextureStreamingSystem and should not force extra
+            // geometry evictions.
+            guard MemoryBudgetManager.shared.shouldEvictGeometry() else { break }
 
             // Distance-aware visibility guard.
             // Close visible meshes (< visibleEvictionProtectionRadius) are protected — evicting
