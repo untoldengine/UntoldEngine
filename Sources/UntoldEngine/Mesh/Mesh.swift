@@ -1209,6 +1209,17 @@ private func textureLikelyHasAlphaChannel(_ texture: MTLTexture?) -> Bool {
     return textureFormatHasAlpha(texture.pixelFormat)
 }
 
+/// Enable per-operation cache logging in `TextureLoader`.
+///
+/// When `true` every GPU texture load — hit or miss — emits a `[TextureCache]` log line
+/// with the cache key, key source, MDLTexture object identity, texture name, and map type.
+/// Set this flag before loading assets to diagnose cache-key collisions.
+///
+/// **This flag is temporary and intended for diagnostic use only.**
+/// Turn it off in production builds — logging one line per submesh texture per upload
+/// can be very noisy for large scenes.
+public nonisolated(unsafe) var textureCacheLoggingEnabled: Bool = false
+
 /// Tracks whether a texture slot is at full or capped resolution
 public enum TextureStreamingLevel {
     case full // Original resolution
@@ -1429,12 +1440,18 @@ public struct Material {
 
 final class TextureLoader {
     /// Initial texture cap applied during material import.
-    /// Runtime texture streaming can upgrade/downgrade from this bootstrap level.
+    ///
+    /// This value is intentionally aligned with `TextureStreamingSystem.platformDefaultMinimumTextureDimension`
+    /// so that all entities start at the streaming system's minimum tier. The streaming system then
+    /// only ever upgrades textures (toward medium or full) as the camera approaches — it never
+    /// issues an immediate downgrade on freshly-loaded entities. Keeping bootstrap = minimum tier
+    /// avoids the visual artifact where a far entity loads at a higher resolution and is then
+    /// immediately degraded by the streaming system before the user moves the camera.
     static let defaultMaxTextureDimension: Int = {
         #if os(visionOS)
-            384
+            192  // matches TextureStreamingSystem.platformDefaultMinimumTextureDimension on visionOS
         #else
-            512
+            256  // matches TextureStreamingSystem.platformDefaultMinimumTextureDimension on macOS/iOS
         #endif
     }()
 
@@ -1625,13 +1642,17 @@ final class TextureLoader {
         return URL(string: "usdz-embedded://\(encodedScope)/\(encodedName)")
     }
 
-    /// Build a unique URL for an MDLTexture that has no bracket-notation path.
+    /// Build a unique URL for an MDLTexture keyed by its object pointer.
     ///
-    /// Uses the MDLTexture's object pointer as the identity. The MDLAsset is kept alive in
-    /// `ProgressiveAssetLoader.rootAssetRefs` for the entire lifetime of the out-of-core
-    /// asset, so the pointer is stable across GPU-resource eviction/reload cycles.
-    /// This URL is used as both the cache key and `material.baseColorURL` (etc.) so that
-    /// `BatchingSystem.getMaterialHash` can distinguish textures that have no path metadata.
+    /// Used as the GPU texture cache key when bracket-notation path is absent.
+    /// The MDLAsset is kept alive in `ProgressiveAssetLoader.rootAssetRefs` for the
+    /// entire lifetime of the out-of-core asset, so the pointer is stable across
+    /// GPU-resource eviction/reload cycles.
+    ///
+    /// Two MDLTexture objects with the SAME pointer are physically the same texture
+    /// object and should share a GPU texture — this key correctly deduplicates them.
+    /// Two MDLTexture objects with DIFFERENT pointers are different textures — this key
+    /// correctly gives them independent cache entries even if they carry the same name.
     private static func objectIdentityURL(for mdlTex: MDLTexture) -> URL {
         URL(string: "mdl-obj-\(UInt(bitPattern: ObjectIdentifier(mdlTex)))")!
     }
@@ -1658,14 +1679,61 @@ final class TextureLoader {
            let mdlTex = sampler.texture
         {
             let textureName = mdlTex.name.isEmpty ? "embedded_\(mapType.replacingOccurrences(of: " ", with: "_"))" : mdlTex.name
-            // Path-derived URL when bracket notation is available; nil otherwise.
-            // embeddedTextureURL no longer produces a name-based fallback URL — that caused
-            // every unnamed texture of the same map type to collide on the same cache key.
-            let pathURL = embeddedTextureURL(from: property, textureName: textureName)
-            // Fallback: MDLTexture object pointer — only used when the texture has no name
-            // and no bracket-notation path, which is exceedingly rare.
-            let uniqueURL = pathURL ?? TextureLoader.objectIdentityURL(for: mdlTex)
-            let cacheKey = TextureCacheKey(id: uniqueURL.absoluteString, isSRGB: isSRGB)
+
+            // Determine whether a bracket-notation path is available for this texture.
+            // Bracket paths (e.g. "usdz-embedded://0/floor_albedo.png") are unique per
+            // physical embedded file and are safe to use as both a cache key and a stable URL.
+            //
+            // When bracket notation is absent, `embeddedTextureURL` falls back to a
+            // name-scoped URL (Priority 2: "usdz-embedded://GameData/embedded_Basecolor_map").
+            // That URL is appropriate for `outputURL` / BatchingSystem.getMaterialHash (cross-
+            // entity consistency), but is UNSAFE as a GPU texture cache key: two genuinely
+            // different materials whose MDLTextures both lack names (or share the same name)
+            // produce the same string and collide in the cache, causing the second entity to
+            // receive the first entity's GPU texture.
+            //
+            // Fix: split cache key from stable URL.
+            // - cacheKeyURL uses object identity (mdl-obj-<ptr>) when no bracket path is found.
+            //   Two MDLTexture objects with different pointers never collide, regardless of name.
+            //   Two references to the SAME MDLTexture object (genuinely shared texture) share
+            //   the same pointer → correctly share the cached GPU texture.
+            // - uniqueURL (stored in outputURL) keeps the stable name-based or bracket URL so
+            //   BatchingSystem.getMaterialHash continues to group shared materials correctly.
+            let hasBracketPath: Bool = {
+                guard let str = property.stringValue else { return false }
+                return TextureLoader.parseUSDZBracketPath(from: str) != nil
+            }()
+
+            // stableURL: used for outputURL / material hashing (stable, cross-entity consistent).
+            let stableURL = embeddedTextureURL(from: property, textureName: textureName)
+
+            // cacheKeyURL: used exclusively as the GPU texture cache key.
+            // Bracket path when available (unique per file); object identity otherwise.
+            let cacheKeyURL: URL = hasBracketPath
+                ? (stableURL ?? TextureLoader.objectIdentityURL(for: mdlTex))
+                : TextureLoader.objectIdentityURL(for: mdlTex)
+
+            // uniqueURL stored in outputURL / baseColorURL etc.: prefer the stable name-based
+            // or bracket URL so higher-level systems see consistent identifiers.
+            let uniqueURL = stableURL ?? TextureLoader.objectIdentityURL(for: mdlTex)
+
+            let cacheKey = TextureCacheKey(id: cacheKeyURL.absoluteString, isSRGB: isSRGB)
+
+            // Diagnostic logging [temporary] — controlled by textureCacheLoggingEnabled.
+            // Set `textureCacheLoggingEnabled = true` before loading to trace cache hits/misses.
+            if textureCacheLoggingEnabled {
+                let keySource: String
+                if hasBracketPath {
+                    keySource = "bracket"
+                } else if mdlTex.name.isEmpty {
+                    keySource = "obj-identity(unnamed)"
+                } else {
+                    keySource = "obj-identity(named-no-bracket)"
+                }
+                let isHit = textureCache[cacheKey] != nil
+                Logger.log(message: "[TextureCache] \(isHit ? "HIT " : "MISS") key=\(cacheKeyURL.absoluteString) source=\(keySource) mdlTex=0x\(String(UInt(bitPattern: ObjectIdentifier(mdlTex)), radix: 16)) name='\(textureName)' map=\(mapType) isSRGB=\(isSRGB)")
+            }
+
             if let cached = textureCache[cacheKey] {
                 outputURL = uniqueURL
                 outputMDLTexture = mdlTex

@@ -274,5 +274,89 @@ TextureStreamingSystem.shared.maxTextureDimension = 1024
 TextureStreamingSystem.shared.minimumTextureDimension = 256
 TextureStreamingSystem.shared.updateInterval = 0.2     // seconds between evaluations
 TextureStreamingSystem.shared.maxConcurrentOps = 3     // parallel streaming tasks
+TextureStreamingSystem.shared.hysteresisFraction = 0.15 // dead-band fraction at tier boundaries
 TextureStreamingSystem.shared.verboseLogging = true    // log each up/downgrade
 ```
+
+---
+
+## Hysteresis Dead Band
+
+Without hysteresis, an entity hovering exactly at a tier boundary (e.g. `downgradeRadius = 20 m`) oscillates between tiers on alternate streaming ticks, causing mip-map flicker on distant meshes.
+
+`hysteresisFraction` (default `0.15`) applies an asymmetric dead band at each tier boundary:
+
+| Transition | Triggers at |
+|---|---|
+| Upgrade to full (boundary: `upgradeRadius`) | `distance < upgradeRadius × (1 − h)` |
+| Downgrade from full | `distance > upgradeRadius × (1 + h)` |
+| Upgrade to medium (boundary: `downgradeRadius`) | `distance < downgradeRadius × (1 − h)` |
+| Downgrade to minimum | `distance > downgradeRadius × (1 + h)` |
+
+At defaults (`upgradeRadius = 12 m`, `downgradeRadius = 20 m`, `h = 0.15`):
+- Full ↔ medium transition: upgrade at < 10.2 m, downgrade at > 13.8 m
+- Medium ↔ minimum transition: upgrade at < 17 m, downgrade at > 23 m
+
+`shedTextureMemory` always bypasses hysteresis (passes `Float.greatestFiniteMagnitude` as distance) so memory-pressure downgrades are never suppressed.
+
+---
+
+## Bootstrap Tier Alignment
+
+`TextureLoader.defaultMaxTextureDimension` (set in `Mesh.swift`) is aligned to `TextureStreamingSystem.platformDefaultMinimumTextureDimension`:
+
+- **visionOS:** 192 px
+- **macOS / iOS:** 256 px
+
+This ensures every freshly loaded entity starts at the streaming system's minimum tier. The streaming system then only **upgrades** as the camera approaches — it never issues an immediate downgrade on a newly-loaded entity (which would have been visible as a resolution pop on the first frame the entity appeared).
+
+---
+
+## TextureLoader Cache Key Design
+
+`TextureLoader` (the private helper class in `Mesh.swift`) maintains a per-instance GPU texture cache keyed by `TextureCacheKey(id: String, isSRGB: Bool)`. Two possible key strategies are used depending on what information ModelIO provides:
+
+### Priority 1 — Bracket-notation path (safe for deduplication)
+
+When `property.stringValue` contains a parseable USDZ bracket path
+(e.g. `"file:///scene.usdz[0/floor_albedo.png]"`), the key is:
+`usdz-embedded://0/floor_albedo.png`
+
+This is unique per physical embedded file. Two materials that reference the **same** embedded texture file correctly share one GPU texture via this key.
+
+### Priority 2 — Object identity (safe from collision)
+
+When bracket notation is absent, the key is the MDLTexture object's memory address:
+`mdl-obj-<hex-pointer>`
+
+This is used because the name-based fallback (`usdz-embedded://GameData/embedded_Basecolor_map`) is **not** safe as a cache key: multiple genuinely different materials can map to the same synthetic name when their MDLTexture objects have an empty `.name` property. Using a shared cache entry for different physical textures causes some meshes to display the wrong texture on first load.
+
+Sharing still works correctly: two code paths that hold a reference to the **same** MDLTexture object (same pointer) get the same cache key and share one GPU texture, which is the intended deduplication.
+
+### outputURL vs. cacheKeyURL
+
+The cache key and the URL stored in `material.baseColorURL` (etc.) are different values:
+
+| Field | Value | Used by |
+|---|---|---|
+| `cacheKeyURL` | Bracket URL or object-identity URL | GPU `textureCache` lookup only |
+| `outputURL` → `material.baseColorURL` | Bracket URL or name-based stable URL | `BatchingSystem.getMaterialHash`, `TextureStreamingSystem` source reference |
+
+This split ensures that:
+- The GPU cache never has collisions (object identity is unique)
+- Material hashing and batching see stable, cross-entity-consistent URLs (name-based URL is the same for all entities in the same USDZ that share a material)
+
+### Diagnostic Logging
+
+Set `textureCacheLoggingEnabled = true` before loading to trace every cache hit/miss:
+
+```swift
+// Enable before calling setEntityMeshAsync
+textureCacheLoggingEnabled = true
+```
+
+Each log line contains: `HIT/MISS`, cache key, key source (`bracket` / `obj-identity(unnamed)` / `obj-identity(named-no-bracket)`), MDLTexture pointer, texture name, map type, and isSRGB flag.
+
+**Before the fix:** you would see `HIT` entries where the same key is reused across different MDLTexture object identities for base-color textures — the collision.
+
+**After the fix:** each unnamed/no-bracket texture gets its own `obj-identity` key; `HIT` entries are only seen when the same MDLTexture object is referenced by multiple materials (correct sharing).
