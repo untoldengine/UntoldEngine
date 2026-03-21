@@ -38,6 +38,13 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     /// Assets at or below use the immediate fast path (all meshes registered in one pass).
     ///
     /// Default: 50 MB. Adjust based on the target device's GPU memory budget.
+    ///
+    /// - Note: Deprecated. Asset classification is now handled by the two-stage admission gate
+    ///   in `RegistrationSystem.setEntityMeshAsync` (Stage 1: 20× file-size expansion vs 50%
+    ///   physical RAM; Stage 2: `AssetProfiler.profile` geometry bytes vs 75% physical RAM)
+    ///   and by `AssetProfiler.classifyPolicy` for the `.auto` streaming policy. This property
+    ///   is retained only for call-site compatibility and has no effect on admission decisions.
+    @available(*, deprecated, message: "No longer used for admission decisions. The two-stage gate in setEntityMeshAsync and AssetProfiler.classifyPolicy replace this threshold. Safe to remove from call sites.")
     public var fileSizeThresholdBytes: Int = 50 * 1024 * 1024 // 50 MB
 
     /// Minimum leaf-mesh count that triggers the out-of-core stub path regardless of file size.
@@ -45,6 +52,12 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     /// A small USDZ (e.g. 18 MB) with 200+ objects would bypass the file-size threshold
     /// and never get out-of-core treatment. This count-based trigger catches those cases.
     /// Default: 50 meshes. Set to `Int.max` to disable count-based triggering.
+    ///
+    /// - Note: Deprecated. Asset classification is now handled by the two-stage admission gate
+    ///   in `RegistrationSystem.setEntityMeshAsync` and by `AssetProfiler.classifyPolicy`.
+    ///   This property is retained only for call-site compatibility and has no effect on
+    ///   classification decisions.
+    @available(*, deprecated, message: "No longer used for classification. AssetProfiler.classifyPolicy and the two-stage admission gate replace this threshold. Safe to remove from call sites.")
     public var outOfCoreObjectCountThreshold: Int = 50
 
     /// Set to `false` to skip all texture loading during mesh upload.
@@ -75,6 +88,11 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         /// Estimated GPU memory (bytes) for pre-emptive budget reservation.
         /// Computed from MDLMesh vertex/index counts at stub registration time — no disk I/O.
         let estimatedGPUBytes: Int
+        /// The loading policy selected at classification time (computed by AssetProfiler
+        /// for .auto, or derived from the caller's MeshStreamingPolicy for .outOfCore /
+        /// .immediate). This is immutable classification-time intent, not mutable runtime
+        /// state. uploadFromCPUEntry reads this to decide geometry and texture upload behaviour.
+        let residencyPolicy: AssetLoadingPolicy
     }
 
     /// CPU-resident mesh data keyed by child entity ID.

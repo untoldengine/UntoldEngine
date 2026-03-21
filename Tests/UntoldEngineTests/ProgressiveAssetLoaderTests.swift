@@ -62,7 +62,8 @@ final class ProgressiveAssetLoaderRegistryTests: XCTestCase {
             filename: "test",
             withExtension: "usdz",
             uniqueAssetName: "TestMesh#0",
-            estimatedGPUBytes: estimatedGPUBytes
+            estimatedGPUBytes: estimatedGPUBytes,
+            residencyPolicy: .fullLoad
         )
     }
 

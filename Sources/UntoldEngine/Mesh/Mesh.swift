@@ -603,24 +603,23 @@ public struct Mesh {
                 }
             }
 
-            // loadTextures() eagerly decompresses all embedded USDZ textures into CPU RAM.
-            // For small assets this is fine. For large assets (500+ MB with many 4K textures)
-            // it can spike CPU RAM by several GB and cause an OOM kill on Vision Pro before
-            // any mesh reaches the GPU.
+            // loadTextures() is intentionally NOT called here.
             //
-            // Large assets skip loadTextures() here. TextureLoader handles each texture
-            // on demand when the streaming system uploads the owning mesh, via two fallback
-            // paths in loadTexture():
-            //   a) MDLTexture lazy load: texelDataWithTopLeftOrigin(atMipLevel:0, create:true)
-            //      fetches just that texture's data through the MDLTexture's own URL handler.
-            //   b) USDZ package URL: parses the bracket-notation stringValue and builds a
-            //      slash-path URL (file:///asset.usdz/inner/texture.png) for MTKTextureLoader.
+            // Texture loading is deferred to first-upload time and driven by the
+            // asset's `TextureResidencyPolicy` (set by AssetProfiler.classifyPolicy):
             //
-            // Both paths load one texture at a time — no upfront RAM spike.
-            let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
-            if fileSizeBytes <= ProgressiveAssetLoader.shared.fileSizeThresholdBytes {
-                asset.loadTextures()
-            }
+            //   - `.eager` policy:  `GeometryStreamingSystem.uploadFromCPUEntry` calls
+            //     `ProgressiveAssetLoader.ensureTexturesLoaded` before makeMeshesFromCPUBuffers.
+            //     This calls asset.loadTextures() exactly once, decompressing all embedded
+            //     textures into CPU RAM just before the first mesh upload — avoiding a RAM spike
+            //     at parse time when no GPU work has started yet.
+            //
+            //   - `.streaming` policy:  ensureTexturesLoaded is skipped.  TextureLoader's lazy
+            //     hydration path (texelDataWithTopLeftOrigin(atMipLevel:0, create:true)) loads
+            //     each texture individually on demand during Material.init, so the full-asset
+            //     decompression spike never occurs.  Source references (baseColorMDLTexture /
+            //     baseColorURL) are populated in the Material so TextureStreamingSystem can
+            //     upgrade resolution tiers by camera distance later.
 
             let textureLoader = TextureLoader(device: device)
             // childObjects(of: MDLMesh.self) returns only the actual geometry leaves at
