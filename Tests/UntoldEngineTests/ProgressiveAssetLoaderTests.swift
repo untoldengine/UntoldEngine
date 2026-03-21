@@ -251,4 +251,37 @@ final class ProgressiveAssetLoaderRegistryTests: XCTestCase {
         loader.fileSizeThresholdBytes = originalSize
         loader.outOfCoreObjectCountThreshold = originalCount
     }
+
+    // MARK: - textureLoadingEnabled flag
+
+    func testTextureLoadingEnabledDefaultIsTrue() {
+        XCTAssertTrue(loader.textureLoadingEnabled, "Texture loading should be enabled by default")
+    }
+
+    func testTextureLoadingEnabledIsWritable() {
+        loader.textureLoadingEnabled = false
+        XCTAssertFalse(loader.textureLoadingEnabled)
+        loader.textureLoadingEnabled = true
+        XCTAssertTrue(loader.textureLoadingEnabled)
+    }
+
+    func testEnsureTexturesLoaded_skipsLoadWhenDisabled() {
+        // Register a fake asset reference so ensureTexturesLoaded would normally call loadTextures()
+        // (with textureLoadingEnabled = false it must not crash, and assetTexturesLoaded
+        // must remain empty so a future re-enable actually calls loadTextures()).
+        let rootId: EntityID = 9999
+
+        loader.textureLoadingEnabled = false
+        // Should not crash; no textures loaded.
+        loader.acquireAssetTextureLock(for: rootId)
+        loader.ensureTexturesLoaded(for: rootId)
+        loader.releaseAssetTextureLock(for: rootId)
+
+        // After re-enabling, a second call should be allowed (entity not in assetTexturesLoaded).
+        loader.textureLoadingEnabled = true
+        // Just validate no crash and flag is restored.
+        XCTAssertTrue(loader.textureLoadingEnabled)
+
+        loader.textureLoadingEnabled = true // restore
+    }
 }

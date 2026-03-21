@@ -1592,23 +1592,38 @@ final class TextureLoader {
         return (usdzURL, innerPath)
     }
 
-    /// Build a stable identity URL for USDZ-embedded textures from the bracket-notation path.
+    /// Build a stable identity URL for USDZ-embedded textures.
     ///
-    /// Returns a `usdz-embedded://` URL only when `property.stringValue` contains a parseable
-    /// bracket-notation path (e.g. `"file:///scene.usdz[0/texture.png]"`). Returns **nil**
-    /// when no bracket path is present so callers can fall back to a per-`MDLTexture`-object
-    /// identity that is guaranteed unique and avoids name-collision cache poisoning.
+    /// **Priority 1 — bracket-notation path:** When `property.stringValue` contains a parseable
+    /// bracket-notation path (e.g. `"file:///scene.usdz[0/texture.png]"`), returns
+    /// `usdz-embedded://<inner-path>`.  This is the most specific identifier available.
     ///
-    /// The old name-based fallback (`"usdz-embedded://embedded_Basecolor_map"`) was removed
-    /// because it produced identical cache keys for any two unnamed textures of the same map
-    /// type, causing every subsequent mesh to receive the first mesh's texture.
-    private func embeddedTextureURL(from property: MDLMaterialProperty) -> URL? {
-        guard let propertyString = property.stringValue,
-              let parsed = TextureLoader.parseUSDZBracketPath(from: propertyString)
-        else { return nil }
+    /// **Priority 2 — texture name + asset scope:** When no bracket path is found and
+    /// `textureName` is non-empty, returns `usdz-embedded://<assetScope>/<textureName>`.
+    /// `assetScope` is the USDZ filename (from `assetBasePath`) or "embedded" if unknown.
+    /// This is stable across reload cycles and consistent for all entities that load the same
+    /// USDZ file, which is required for BatchingSystem.getMaterialHash to group them together.
+    ///
+    /// Using just `textureName` (without `assetScope`) was the original bug: it produced the
+    /// same URL for any two USDZ files that happened to share a texture name, causing cache
+    /// poisoning across assets.  Scoping to the USDZ filename eliminates cross-asset collisions
+    /// while preserving cross-entity consistency within the same file.
+    private func embeddedTextureURL(from property: MDLMaterialProperty, textureName: String = "") -> URL? {
+        // Priority 1: bracket-notation path → most specific
+        if let propertyString = property.stringValue,
+           let parsed = TextureLoader.parseUSDZBracketPath(from: propertyString) {
+            let encodedPath = parsed.innerPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? parsed.innerPath
+            return URL(string: "usdz-embedded://\(encodedPath)")
+        }
 
-        let encodedPath = parsed.innerPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? parsed.innerPath
-        return URL(string: "usdz-embedded://\(encodedPath)")
+        // Priority 2: stable name-based URL scoped to the USDZ file.
+        // Consistent across all entities from the same USDZ, required for batching.
+        guard !textureName.isEmpty else { return nil }
+        let scope = (assetBasePath?.lastPathComponent)
+            .flatMap { $0.isEmpty ? nil : $0 } ?? "embedded"
+        let encodedScope = scope.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? scope
+        let encodedName = textureName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? textureName
+        return URL(string: "usdz-embedded://\(encodedScope)/\(encodedName)")
     }
 
     /// Build a unique URL for an MDLTexture that has no bracket-notation path.
@@ -1647,9 +1662,9 @@ final class TextureLoader {
             // Path-derived URL when bracket notation is available; nil otherwise.
             // embeddedTextureURL no longer produces a name-based fallback URL — that caused
             // every unnamed texture of the same map type to collide on the same cache key.
-            let pathURL = embeddedTextureURL(from: property)
-            // Unique fallback: MDLTexture object pointer. Stable for the asset's lifetime.
-            // Also used as outputURL so BatchingSystem.getMaterialHash sees distinct URLs.
+            let pathURL = embeddedTextureURL(from: property, textureName: textureName)
+            // Fallback: MDLTexture object pointer — only used when the texture has no name
+            // and no bracket-notation path, which is exceedingly rare.
             let uniqueURL = pathURL ?? TextureLoader.objectIdentityURL(for: mdlTex)
             let cacheKey = TextureCacheKey(id: uniqueURL.absoluteString, isSRGB: isSRGB)
             if let cached = textureCache[cacheKey] {

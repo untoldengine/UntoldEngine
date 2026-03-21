@@ -47,6 +47,10 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     /// Default: 50 meshes. Set to `Int.max` to disable count-based triggering.
     public var outOfCoreObjectCountThreshold: Int = 50
 
+    /// Set to `false` to skip all texture loading during mesh upload.
+    /// Useful for testing geometry-only throughput without the texture decompression overhead.
+    public var textureLoadingEnabled: Bool = true
+
     // MARK: State
 
     private let lock = NSLock()
@@ -154,6 +158,7 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         lock.unlock()
 
         guard !alreadyLoaded, let asset else { return }
+        guard textureLoadingEnabled else { return }
 
         Logger.log(message: "[OutOfCore] Deferred loadTextures() for root entity \(rootEntityId) — loading textures at first upload")
         asset.loadTextures()

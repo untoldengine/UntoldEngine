@@ -302,4 +302,51 @@ final class MemoryBudgetManagerTests: XCTestCase {
         XCTAssertEqual(stats.textureMemoryUsed, 0)
         XCTAssertEqual(stats.totalTrackedMemory, 0)
     }
+
+    // MARK: - Geometry-only gate (shouldEvictGeometry / canAcceptMesh)
+
+    func testShouldEvictGeometry_notTriggeredByTextureMemoryAlone() {
+        // 90 MB of texture memory on a 100 MB budget — combined gate fires, geo gate must not.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 1 * 1024 * 1024, textureSizeBytes: 89 * 1024 * 1024)
+
+        XCTAssertTrue(manager.shouldEvict(), "Combined gate should fire when total ≥ 85 %")
+        XCTAssertFalse(manager.shouldEvictGeometry(), "Geo-only gate must not fire when mesh memory is low")
+    }
+
+    func testShouldEvictGeometry_triggeredWhenMeshMemoryHigh() {
+        // 86 MB of mesh memory on a 100 MB budget — geo gate must fire.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 86 * 1024 * 1024)
+
+        XCTAssertTrue(manager.shouldEvictGeometry(), "Geo-only gate should fire when mesh memory ≥ 85 %")
+    }
+
+    func testShouldEvictGeometry_notTriggeredWhenBelowThreshold() {
+        manager.registerMesh(entityId: 1, meshSizeBytes: 50 * 1024 * 1024)
+
+        XCTAssertFalse(manager.shouldEvictGeometry(), "Geo-only gate should not fire below high-water mark")
+    }
+
+    func testCanAcceptMesh_trueWhenBelowBudget() {
+        manager.registerMesh(entityId: 1, meshSizeBytes: 10 * 1024 * 1024)
+        let candidate = 5 * 1024 * 1024 // 5 MB
+
+        XCTAssertTrue(manager.canAcceptMesh(sizeBytes: candidate), "Should accept mesh that fits within budget")
+    }
+
+    func testCanAcceptMesh_falseWhenExceedsBudget() {
+        manager.registerMesh(entityId: 1, meshSizeBytes: 98 * 1024 * 1024)
+        let candidate = 5 * 1024 * 1024 // would push to 103 MB > 100 MB budget
+
+        XCTAssertFalse(manager.canAcceptMesh(sizeBytes: candidate), "Should reject mesh that exceeds budget")
+    }
+
+    func testCanAcceptMesh_ignoresTextureMemory() {
+        // 80 MB texture + 5 MB mesh = 85 MB combined, but mesh alone is only 5 MB.
+        // canAcceptMesh must look only at mesh memory.
+        manager.registerMesh(entityId: 1, meshSizeBytes: 5 * 1024 * 1024, textureSizeBytes: 80 * 1024 * 1024)
+        let candidate = 10 * 1024 * 1024 // 5 + 10 = 15 MB mesh, well within 100 MB budget
+
+        XCTAssertTrue(manager.canAcceptMesh(sizeBytes: candidate),
+                      "canAcceptMesh should ignore texture memory and pass when mesh-only budget is fine")
+    }
 }
