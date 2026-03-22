@@ -126,7 +126,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
     }
 
     /// Color shaded renderables by current texture streaming tier.
-    /// Blue = full resolution, Red = capped/reduced, Yellow = in-flight.
+    /// Blue = full, Orange = medium (capped), Red = minimum, Yellow = in-flight.
     private var _colorRenderablesByStreamingTier: Bool = false
     public var colorRenderablesByStreamingTier: Bool {
         get {
@@ -294,7 +294,7 @@ public func disableSpatialDebugVisualization() {
 }
 
 /// Enable/disable texture streaming tier debug coloring for renderables.
-/// Blue = full resolution, Red = capped/reduced, Yellow = in-flight.
+/// Blue = full, Orange = medium (capped), Red = minimum, Yellow = in-flight.
 public func setTextureStreamingTierDebug(enabled: Bool) {
     SpatialDebugVisualization.shared.configureTextureStreamingTierColoring(enabled: enabled)
 }

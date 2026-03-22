@@ -1221,9 +1221,10 @@ private func textureLikelyHasAlphaChannel(_ texture: MTLTexture?) -> Bool {
 public nonisolated(unsafe) var textureCacheLoggingEnabled: Bool = false
 
 /// Tracks whether a texture slot is at full or capped resolution
-public enum TextureStreamingLevel {
-    case full // Original resolution
-    case capped // Downsampled to fit TextureLoader.maxTextureDimension
+public enum TextureStreamingLevel: Equatable {
+    case full    // Native source resolution (nil cap — no downsampling)
+    case capped  // Downsampled to medium tier (e.g. maxTextureDimension = 1024 px)
+    case minimum // Downsampled to minimum tier (e.g. minimumTextureDimension = 256 px)
 }
 
 public struct Material {

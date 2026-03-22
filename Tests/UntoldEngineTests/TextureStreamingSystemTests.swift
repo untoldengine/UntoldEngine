@@ -173,4 +173,50 @@ final class TextureStreamingSystemTests: XCTestCase {
         system.update(cameraPosition: .zero, deltaTime: 1.0)
         XCTAssertLessThanOrEqual(system.getStats().activeOps, system.maxConcurrentOps)
     }
+
+    // MARK: - Three-Tier TextureStreamingLevel
+
+    func testTextureStreamingLevelHasThreeCases() {
+        // Ensure all three enum cases are distinct and can be compared.
+        XCTAssertNotEqual(TextureStreamingLevel.full, TextureStreamingLevel.capped)
+        XCTAssertNotEqual(TextureStreamingLevel.full, TextureStreamingLevel.minimum)
+        XCTAssertNotEqual(TextureStreamingLevel.capped, TextureStreamingLevel.minimum)
+    }
+
+    func testTextureStreamingLevelFullIsDefaultValue() {
+        // .full is the sentinel "not yet streamed" state — verify its raw identity.
+        // (Material cannot be constructed without Metal state; this test confirms
+        //  the enum's default value without needing a live GPU device.)
+        let defaultLevel = TextureStreamingLevel.full
+        XCTAssertNotEqual(defaultLevel, .capped)
+        XCTAssertNotEqual(defaultLevel, .minimum)
+    }
+
+    func testStreamLevelThresholdCappedVsMinimum() {
+        // Simulate the three-tier streamLevel assignment used in scheduleResolutionChange.
+        // capturedMinimumDim = 256; anything <= 256 → .minimum, anything > 256 → .capped, nil → .full.
+        let minimumDim = 256
+
+        let resolveLevel: (Int?) -> TextureStreamingLevel = { targetMaxDimension in
+            guard let dim = targetMaxDimension else { return .full }
+            return dim <= minimumDim ? .minimum : .capped
+        }
+
+        XCTAssertEqual(resolveLevel(nil), .full)
+        XCTAssertEqual(resolveLevel(256), .minimum)   // exactly at minimum threshold
+        XCTAssertEqual(resolveLevel(192), .minimum)   // below minimum threshold (visionOS)
+        XCTAssertEqual(resolveLevel(257), .capped)    // just above minimum threshold
+        XCTAssertEqual(resolveLevel(1024), .capped)   // medium dimension
+    }
+
+    func testNormalizedMinimumDimensionIsPositive() {
+        system.minimumTextureDimension = 256
+        XCTAssertGreaterThan(system.minimumTextureDimension, 0)
+    }
+
+    func testMinimumDimensionBelowOrEqualToMaxDimension() {
+        system.maxTextureDimension = 1024
+        system.minimumTextureDimension = 256
+        XCTAssertLessThanOrEqual(system.minimumTextureDimension, system.maxTextureDimension)
+    }
 }

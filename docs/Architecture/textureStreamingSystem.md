@@ -177,14 +177,18 @@ For each LoadedTexture:
         without copying pixel data (zero cost)
 
   2. updateMaterial(entityId:meshIndex:submeshIndex:) { material in
+       // Three-tier level: .full (nil cap), .capped (medium), .minimum
+       let streamLevel: TextureStreamingLevel = item.targetMaxDimension == nil
+           ? .full
+           : (item.targetMaxDimension! <= capturedMinimumDim ? .minimum : .capped)
        material.baseColor.texture = item.texture
-       material.baseColorStreamingLevel = isFull ? .full : .capped
+       material.baseColorStreamingLevel = streamLevel
        // (same for roughness, metallic, normal)
      }
 
   3. BatchingSystem.shared.updateBatchMaterialInPlace(for: entityId) { batchMaterial in
-       // Mirror the same change into the batch group's representative material
-       // so the new texture is visible on the next frame with zero batch churn
+       // Mirror the same three-tier level into the batch group's representative
+       // material so the new texture is visible on the next frame with zero batch churn
      }
 ```
 
@@ -262,6 +266,35 @@ This is called by `GeometryStreamingSystem` — not on a timer, but reactively w
 | `GeometryStreamingSystem.update()` | 8 | Geometry pressure also high — shed texture first, then evict geometry |
 
 The larger batch size (8) when geometry is also under pressure reflects that more aggressive texture shedding is needed before the costlier geometry eviction path runs.
+
+---
+
+## Tuning Profiles
+
+Apply a built-in profile at scene init instead of setting every property individually:
+
+```swift
+TextureStreamingSystem.shared.apply(.archviz)    // indoor archviz
+TextureStreamingSystem.shared.apply(.openWorld)  // large outdoor scenes
+TextureStreamingSystem.shared.apply(.balanced)   // general-purpose default
+```
+
+Individual properties can be overridden after applying a profile:
+
+```swift
+TextureStreamingSystem.shared.apply(.archviz)
+TextureStreamingSystem.shared.upgradeRadius = 3.0  // widen full-res zone
+```
+
+| Profile | `upgradeRadius` | `downgradeRadius` | `minDim` | `maxConcurrentOps` | Best for |
+|---|---|---|---|---|---|
+| `.archviz` | 2.5 m | 6.0 m | 512 px | 6 | Living rooms, kitchens, offices |
+| `.openWorld` | 15.0 m | 60.0 m | 256 px | 3 | Cities, landscapes, terrain |
+| `.balanced` | 12.0 m | 20.0 m | platform default | 3 | Mixed / unknown scene type |
+
+**Archviz rationale:** rooms are 4–7 m deep, so "distant" objects are still large on screen. The minimum tier is raised to 512 px (from the engine default of 256 px) because 256 px looks visibly compressed on a wall or floor texture at 5 m. `maxConcurrentOps = 6` is safe here because archviz streaming ops are GPU-bound (no cold disk I/O on the warm path).
+
+**Open-world rationale:** tiers are spread across a city-block scale. The minimum tier stays at 256 px because objects beyond 60 m occupy very few pixels. Keeping `maxConcurrentOps = 3` avoids GPU memory spikes when hundreds of entities enter range simultaneously.
 
 ---
 

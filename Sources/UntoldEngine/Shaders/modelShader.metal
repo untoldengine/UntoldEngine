@@ -97,7 +97,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     // Base color
     
-    float4 sampledColor = baseColor.sample(baseColorSampler, st);
+    float4 sampledColor = baseColor.sample(baseColorSampler, st, bias(0.25f));
     
     // Detect if basecolor is all zeros
     bool isBaseColorZero = all(materialParameter.baseColor.rgb < 0.001);
@@ -126,7 +126,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     gBufferOut.color = inBaseColor;
     
     //normal map is in Tangent space
-    float3 normalMap=normalize(normalTexture.sample(normalSampler, st).rgb);
+    float3 normalMap=normalize(normalTexture.sample(normalSampler, st, bias(0.25f)).rgb);
     //[0,1] to [-1,1]
     normalMap=normalMap*2.0-1.0;
 
@@ -142,11 +142,11 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
     normalMap=(hasNormal==false)?normalize(normalVectorInWorldSpace):normalize(TBN*normalMap);
 
     float roughness=(materialParameter.hasTexture.y==1)
-        ? roughnessTexture.sample(materialSampler,st).r * materialParameter.roughness
+        ? roughnessTexture.sample(materialSampler, st, bias(0.25f)).r * materialParameter.roughness
         : materialParameter.roughness;
     
     float metallic=(materialParameter.hasTexture.z==1) 
-        ? metallicTexture.sample(materialSampler,st).r * materialParameter.metallic
+        ? metallicTexture.sample(materialSampler, st, bias(0.25f)).r * materialParameter.metallic
         : materialParameter.metallic;
 
     float4 color=inBaseColor;
