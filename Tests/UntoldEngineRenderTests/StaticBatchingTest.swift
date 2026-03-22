@@ -173,18 +173,18 @@ final class StaticBatchingTest: BaseRenderSetup {
             return
         }
 
+        // Load meshes once so all entities share the same texture object identity
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         // Create multiple entities with same mesh (same material)
         var entities: [EntityID] = []
         for i in 0 ..< 5 {
             let entity = createEntity()
-
-            // Load mesh
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
 
             // Add RenderComponent
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
@@ -228,15 +228,15 @@ final class StaticBatchingTest: BaseRenderSetup {
             return
         }
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         for _ in 0 ..< 3 {
             let entity = createEntity()
-
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
@@ -276,9 +276,10 @@ final class StaticBatchingTest: BaseRenderSetup {
             return
         }
 
+        let meshes = Mesh.loadMeshes(url: ballURL, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: true)
+
         for _ in 0 ..< 3 {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(url: ballURL, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: true)
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
@@ -471,15 +472,15 @@ final class StaticBatchingTest: BaseRenderSetup {
             return
         }
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         for i in 0 ..< 3 {
             let entity = createEntity()
-
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
@@ -624,16 +625,16 @@ final class StaticBatchingTest: BaseRenderSetup {
             return
         }
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         let entityCount = 10
         for _ in 0 ..< entityCount {
             let entity = createEntity()
-
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
@@ -765,16 +766,16 @@ final class StaticBatchingTest: BaseRenderSetup {
             return
         }
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         var entities: [EntityID] = []
         for _ in 0 ..< 4 {
             let entity = createEntity()
-
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
@@ -835,15 +836,17 @@ final class StaticBatchingTest: BaseRenderSetup {
             return
         }
 
+        // Load meshes once so all entities share the same texture object identity
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         // First, create some batched entities so there's a batch to join
         for _ in 0 ..< 3 {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
                 renderComponent.assetURL = ballURL
@@ -871,13 +874,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         // Verify target entity is NOT batched (no mesh)
         XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: targetEntity), "❌ Entity should not be batched without mesh")
 
-        // When: Load mesh for the entity
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+        // When: Assign the shared meshes to simulate mesh becoming resident
         if let renderComponent = scene.get(component: RenderComponent.self, for: targetEntity) {
             renderComponent.mesh = meshes
         }
@@ -916,14 +913,15 @@ final class StaticBatchingTest: BaseRenderSetup {
 
         BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(2)
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         for _ in 0 ..< 3 {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
                 renderComponent.assetURL = ballURL
@@ -947,12 +945,6 @@ final class StaticBatchingTest: BaseRenderSetup {
         generateBatches()
         XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: targetEntity), "❌ Entity starts unbatched")
 
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
         if let renderComponent = scene.get(component: RenderComponent.self, for: targetEntity) {
             renderComponent.mesh = meshes
         }
@@ -1114,14 +1106,15 @@ final class StaticBatchingTest: BaseRenderSetup {
         BatchingSystem.shared.setBatchCellSize(10.0)
         enableBatching(true)
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
                 renderComponent.assetURL = ballURL
@@ -1187,14 +1180,15 @@ final class StaticBatchingTest: BaseRenderSetup {
         BatchingSystem.shared.setMaxDirtyCellsPerTick(1)
         enableBatching(true)
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
                 renderComponent.assetURL = ballURL
@@ -1260,14 +1254,15 @@ final class StaticBatchingTest: BaseRenderSetup {
         BatchingSystem.shared.setMaxRebuildBufferBytesPerTick(1)
         enableBatching(true)
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
                 renderComponent.assetURL = ballURL
@@ -1331,14 +1326,15 @@ final class StaticBatchingTest: BaseRenderSetup {
         BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
         enableBatching(true)
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
                 renderComponent.assetURL = ballURL
@@ -1413,14 +1409,15 @@ final class StaticBatchingTest: BaseRenderSetup {
         BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
         enableBatching(true)
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
                 renderComponent.assetURL = ballURL
@@ -1482,14 +1479,15 @@ final class StaticBatchingTest: BaseRenderSetup {
         BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
         enableBatching(true)
 
+        let meshes = Mesh.loadMeshes(
+            url: ballURL,
+            vertexDescriptor: vertexDescriptor.model,
+            device: renderInfo.device,
+            flip: true
+        )
+
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
                 renderComponent.assetURL = ballURL
