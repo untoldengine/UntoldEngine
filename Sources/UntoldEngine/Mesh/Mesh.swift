@@ -1713,9 +1713,26 @@ final class TextureLoader {
                 ? (stableURL ?? TextureLoader.objectIdentityURL(for: mdlTex))
                 : TextureLoader.objectIdentityURL(for: mdlTex)
 
-            // uniqueURL stored in outputURL / baseColorURL etc.: prefer the stable name-based
-            // or bracket URL so higher-level systems see consistent identifiers.
-            let uniqueURL = stableURL ?? TextureLoader.objectIdentityURL(for: mdlTex)
+            // uniqueURL stored in outputURL / baseColorURL etc.
+            //
+            // When a bracket path is available it is unique per embedded file and safe for
+            // both caching and batch-material hashing — use it directly.
+            //
+            // When bracket notation is absent, the name-based stableURL collapses every
+            // unnamed texture from the same USDZ to the same string
+            // (e.g. "usdz-embedded://scene.usdz/embedded_Basecolor_map").
+            // BatchingSystem.normalizeTextureURL then strips the asset-scope host, leaving
+            // "usdz-embedded://embedded_Basecolor_map" for ALL entities, so they all hash
+            // to the same BatchBuildKey and are grouped into one batch whose representative
+            // material is only the first entity's GPU texture — showing the wrong texture
+            // on every other entity.
+            //
+            // Fix: mirror cacheKeyURL — use object identity when no bracket path is found.
+            // Same MDLTexture pointer ↔ same physical texture ↔ share GPU cache + batch.
+            // Different pointers ↔ different textures ↔ separate batch groups.
+            let uniqueURL: URL = hasBracketPath
+                ? (stableURL ?? TextureLoader.objectIdentityURL(for: mdlTex))
+                : TextureLoader.objectIdentityURL(for: mdlTex)
 
             let cacheKey = TextureCacheKey(id: cacheKeyURL.absoluteString, isSRGB: isSRGB)
 
