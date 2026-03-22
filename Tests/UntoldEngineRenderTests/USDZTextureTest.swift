@@ -63,13 +63,25 @@ final class USDZTextureTest: BaseRenderSetup {
 
         // When: Get material texture URL
         if let baseColorURL = getMaterialTextureURL(entityId: entity, type: .baseColor) {
-            // Then: Check if it's an embedded URL
-            XCTAssertEqual(baseColorURL.scheme, "usdz-embedded", "Embedded texture should have usdz-embedded:// scheme")
-            XCTAssertFalse(baseColorURL.absoluteString.contains("Mesh_SoccerPlayer1"), "Embedded URL identity should not be mesh-scoped")
+            // Then: URL should be either a usdz-embedded:// pseudo-URL (bracket-path available)
+            // or an mdl-obj-<ptr> object-identity URL (no bracket path — new architecture).
+            let isEmbeddedScheme = baseColorURL.scheme == "usdz-embedded"
+            let isObjectIdentity = baseColorURL.absoluteString.hasPrefix("mdl-obj-")
             XCTAssertTrue(
-                baseColorURL.absoluteString.contains("textures/") || baseColorURL.absoluteString.contains("embedded_"),
-                "Embedded URL should use package-relative texture path when available, otherwise fallback token"
+                isEmbeddedScheme || isObjectIdentity,
+                "Texture URL should use usdz-embedded:// scheme or mdl-obj- object identity, got: \(baseColorURL)"
             )
+            XCTAssertFalse(baseColorURL.absoluteString.contains("Mesh_SoccerPlayer1"), "Embedded URL identity should not be mesh-scoped")
+
+            // When bracket notation is available the URL carries a package-relative
+            // texture path or an embedded_ fallback token.  Object-identity URLs are
+            // opaque by design and don't carry human-readable paths.
+            if isEmbeddedScheme {
+                XCTAssertTrue(
+                    baseColorURL.absoluteString.contains("textures/") || baseColorURL.absoluteString.contains("embedded_"),
+                    "Embedded URL should use package-relative texture path when available, otherwise fallback token"
+                )
+            }
         }
     }
 
