@@ -1222,8 +1222,8 @@ public nonisolated(unsafe) var textureCacheLoggingEnabled: Bool = false
 
 /// Tracks whether a texture slot is at full or capped resolution
 public enum TextureStreamingLevel: Equatable {
-    case full    // Native source resolution (nil cap — no downsampling)
-    case capped  // Downsampled to medium tier (e.g. maxTextureDimension = 1024 px)
+    case full // Native source resolution (nil cap — no downsampling)
+    case capped // Downsampled to medium tier (e.g. maxTextureDimension = 1024 px)
     case minimum // Downsampled to minimum tier (e.g. minimumTextureDimension = 256 px)
 }
 
@@ -1450,9 +1450,9 @@ final class TextureLoader {
     /// immediately degraded by the streaming system before the user moves the camera.
     static let defaultMaxTextureDimension: Int = {
         #if os(visionOS)
-            192  // matches TextureStreamingSystem.platformDefaultMinimumTextureDimension on visionOS
+            192 // matches TextureStreamingSystem.platformDefaultMinimumTextureDimension on visionOS
         #else
-            256  // matches TextureStreamingSystem.platformDefaultMinimumTextureDimension on macOS/iOS
+            256 // matches TextureStreamingSystem.platformDefaultMinimumTextureDimension on macOS/iOS
         #endif
     }()
 
@@ -1628,7 +1628,8 @@ final class TextureLoader {
     private func embeddedTextureURL(from property: MDLMaterialProperty, textureName: String = "") -> URL? {
         // Priority 1: bracket-notation path → most specific
         if let propertyString = property.stringValue,
-           let parsed = TextureLoader.parseUSDZBracketPath(from: propertyString) {
+           let parsed = TextureLoader.parseUSDZBracketPath(from: propertyString)
+        {
             let encodedPath = parsed.innerPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? parsed.innerPath
             return URL(string: "usdz-embedded://\(encodedPath)")
         }

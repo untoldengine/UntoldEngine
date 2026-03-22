@@ -30,9 +30,9 @@ public enum RenderPasses {
     /// Streaming tier debug colors.
     /// Blue = full resolution, Orange = medium (capped), Red = minimum, Yellow = in-flight.
     private static let streamingTierDebugColors: [simd_float3] = [
-        simd_float3(0.1, 0.4, 1.0),  // [0] full     = blue
+        simd_float3(0.1, 0.4, 1.0), // [0] full     = blue
         simd_float3(1.0, 0.55, 0.0), // [1] capped    = orange
-        simd_float3(1.0, 0.2, 0.1),  // [2] minimum   = red
+        simd_float3(1.0, 0.2, 0.1), // [2] minimum   = red
         simd_float3(1.0, 0.85, 0.0), // [3] in-flight = yellow
     ]
 
@@ -279,8 +279,8 @@ public enum RenderPasses {
             color = streamingTierDebugColors[3]
         } else {
             switch streamingLevel {
-            case .full:    color = streamingTierDebugColors[0]
-            case .capped:  color = streamingTierDebugColors[1]
+            case .full: color = streamingTierDebugColors[0]
+            case .capped: color = streamingTierDebugColors[1]
             case .minimum: color = streamingTierDebugColors[2]
             }
         }

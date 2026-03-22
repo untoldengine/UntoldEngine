@@ -940,13 +940,13 @@ public func setEntityMeshAsync(
             let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
             if fileSizeBytes > 0 {
                 let physicalMemory = Int(ProcessInfo.processInfo.physicalMemory)
-                let softZoneThreshold  = Int(Double(physicalMemory) * 0.50) // soft zone starts here
+                let softZoneThreshold = Int(Double(physicalMemory) * 0.50) // soft zone starts here
                 let hardRejectThreshold = Int(Double(physicalMemory) * 0.75) // hard reject at or above
-                let projectedCPUBytes  = fileSizeBytes * 20
+                let projectedCPUBytes = fileSizeBytes * 20
 
-                let fileMB  = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                let projGB  = String(format: "%.1f", Double(projectedCPUBytes) / 1_073_741_824)
-                let ramGB   = String(format: "%.1f", Double(physicalMemory) / 1_073_741_824)
+                let fileMB = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
+                let projGB = String(format: "%.1f", Double(projectedCPUBytes) / 1_073_741_824)
+                let ramGB = String(format: "%.1f", Double(physicalMemory) / 1_073_741_824)
 
                 if projectedCPUBytes >= hardRejectThreshold {
                     let thrGB = String(format: "%.1f", Double(hardRejectThreshold) / 1_073_741_824)
@@ -1052,7 +1052,7 @@ public func setEntityMeshAsync(
             let hasLODGroups = !lodNameDetection.groups.isEmpty
             let useOutOfCore = loadingPolicy.geometryPolicy == .streaming
 
-            if useOutOfCore && hasLODGroups {
+            if useOutOfCore, hasLODGroups {
                 // LOD + OUT-OF-CORE PATH ────────────────────────────────────────────────
                 // Each LOD group becomes ONE entity with a LODComponent whose levels are
                 // stub LODLevels (empty mesh, .notResident). CPU-side MDLObject data for

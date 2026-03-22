@@ -89,24 +89,23 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// ```
     public func apply(_ profile: Profile) {
         switch profile {
-
         case .archviz:
             // Full res within inspection distance; almost nothing in a living
             // room is beyond 6 m, so the minimum tier fires rarely.
             upgradeRadius = 2.5
             downgradeRadius = 6.0
             maxTextureDimension = 1024
-            minimumTextureDimension = 512   // 256 px looks muddy on a wall at 5 m
-            hysteresisFraction = 0.20       // wider dead band — no transitions mid-walkthrough
-            maxConcurrentOps = 6            // GPU-bound; no disk I/O on warm path
-            updateInterval = 0.1            // more responsive at walking speed
+            minimumTextureDimension = 512 // 256 px looks muddy on a wall at 5 m
+            hysteresisFraction = 0.20 // wider dead band — no transitions mid-walkthrough
+            maxConcurrentOps = 6 // GPU-bound; no disk I/O on warm path
+            updateInterval = 0.1 // more responsive at walking speed
 
         case .openWorld:
             // Spread tiers across a city-block / landscape scale.
             upgradeRadius = 15.0
             downgradeRadius = 60.0
             maxTextureDimension = 1024
-            minimumTextureDimension = 256   // distant objects are tiny on screen
+            minimumTextureDimension = 256 // distant objects are tiny on screen
             hysteresisFraction = 0.15
             maxConcurrentOps = 3
             updateInterval = 0.2
