@@ -16,6 +16,44 @@ Three independent systems, each with a separate job:
 
 ---
 
+## Controlling OOC: `streamingPolicy` and `GeometryStreamingSystem.enabled`
+
+There is no global OOC on/off switch. Whether OOC applies is decided **per-asset** at `setEntityMeshAsync` call time via the `streamingPolicy` parameter.
+
+### What `streamingPolicy` controls
+
+The policy selects the **registration path** — what happens inside `setEntityMeshAsync` before the completion callback fires:
+
+| Policy | What happens at registration | `StreamingComponent` added? | `GeometryStreamingSystem` involved? |
+|---|---|---|---|
+| `.immediate` | All meshes uploaded to GPU immediately; `RenderComponent` registered | No | No |
+| `.outOfCore` | Zero-GPU stub entities registered; CPU entries stored in `ProgressiveAssetLoader` | Yes (`.unloaded`) | Yes — must be running for anything to render |
+| `.auto` | `AssetProfiler` decides based on memory budget | Depends | Depends |
+
+`.immediate` means OOC is not used at all for this asset. The full mesh is GPU-resident before the completion callback fires. `GeometryStreamingSystem` never sees this entity because it only operates on entities with a `StreamingComponent` in the `.unloaded` state.
+
+`.outOfCore` means OOC is the only path — nothing renders until `GeometryStreamingSystem` is enabled and uploads the stubs as the camera enters streaming range.
+
+### Relationship with `GeometryStreamingSystem.enabled`
+
+`GeometryStreamingSystem.enabled` is a separate runtime flag that gates whether the streaming loop runs at all:
+
+```
+streamingPolicy = .immediate  →  entity has no StreamingComponent
+                                  GeometryStreamingSystem.enabled = true/false → no effect on this entity
+
+streamingPolicy = .outOfCore  →  entity has StreamingComponent(.unloaded)
+                                  GeometryStreamingSystem.enabled = false → nothing ever renders
+                                  GeometryStreamingSystem.enabled = true  → uploads on demand, evicts when far
+```
+
+These are genuinely different registration paths, not just different timing for the same outcome:
+
+- `.immediate` — load now, streaming system plays no role for this entity
+- `.outOfCore` — register stubs now, `GeometryStreamingSystem` drives GPU residency for the entity's lifetime
+
+---
+
 ## Phase 0 — Parse (happens once, async)
 
 ```
