@@ -359,8 +359,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         streaming.state = .loading
         BatchingSystem.shared.notifyEntityStreamingStarted(entityId: entityId)
 
-        // Check if entity has LOD component
+        // Check if entity has LOD component and CPU LOD data (LOD+OOC path)
         let hasLOD = scene.get(component: LODComponent.self, for: entityId) != nil
+        let hasCPULODData = hasLOD && ProgressiveAssetLoader.shared.hasCPULODData(for: entityId)
 
         let filename = streaming.assetFilename
         let ext = streaming.assetExtension
@@ -368,8 +369,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         let task = Task {
             let asyncLoadStart = CFAbsoluteTimeGetCurrent()
-            let success = if hasLOD {
-                // LOD entity: reload all LOD levels and set correct one for current distance
+            let success = if hasCPULODData {
+                // LOD+OOC entity: upload all LOD levels from CPU registry (no disk I/O)
+                await uploadActiveLODFromCPU(entityId: entityId)
+            } else if hasLOD {
+                // LOD entity (disk-based): reload all LOD levels and set correct one for current distance
                 await reloadLODEntity(entityId: entityId)
             } else {
                 // Regular entity: load single mesh from disk / cache
@@ -604,6 +608,114 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         return true
     }
 
+    /// Upload all LOD levels for an LOD+OOC entity from the CPU registry (no disk I/O).
+    ///
+    /// Mirrors `reloadLODEntity` but reads MDLObject data from `ProgressiveAssetLoader.cpuLODRegistry`
+    /// instead of re-reading from disk. After all levels are uploaded, the render component is set to
+    /// the LOD level appropriate for the current camera distance — identical selection logic to `reloadLODEntity`.
+    private func uploadActiveLODFromCPU(entityId: EntityID) async -> Bool {
+        // Determine root entity for texture lock serialization.
+        let rootEntityId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?
+            .assetRootEntityId ?? entityId
+
+        // If the root asset has gone cold, re-parse from disk to restore CPU entries.
+        if ProgressiveAssetLoader.shared.isColdRoot(rootEntityId) {
+            guard let context = ProgressiveAssetLoader.shared.rehydrationContext(for: rootEntityId) else {
+                Logger.logError(message: "[OutOfCore] LOD+OOC entity \(entityId): root \(rootEntityId) is cold with no rehydration context")
+                return false
+            }
+            let ok = await rehydrateColdAsset(rootEntityId: rootEntityId, context: context)
+            guard ok else { return false }
+        }
+
+        guard let allLODEntries = ProgressiveAssetLoader.shared.retrieveAllCPULODMeshes(for: entityId),
+              !allLODEntries.isEmpty
+        else {
+            Logger.logError(message: "[OutOfCore] LOD+OOC entity \(entityId): no CPU LOD entries found")
+            return false
+        }
+
+        // Serialize texture loading — MDLAsset is not thread-safe.
+        ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootEntityId)
+        ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootEntityId)
+
+        // Upload every LOD level from CPU to Metal.
+        var uploadedMeshes: [Int: [Mesh]] = [:]
+        for (lodIndex, cpuEntry) in allLODEntries {
+            let meshes = Mesh.makeMeshesFromCPUBuffers(
+                object: cpuEntry.object,
+                vertexDescriptor: cpuEntry.vertexDescriptor,
+                textureLoader: cpuEntry.textureLoader,
+                device: cpuEntry.device,
+                flip: true
+            )
+            guard !meshes.isEmpty else {
+                Logger.logWarning(message: "[OutOfCore] LOD+OOC entity \(entityId): CPU→Metal failed for LOD\(lodIndex), skipping level")
+                continue
+            }
+            let levelSkin = Skin()
+            var namedMeshes = meshes.map { m -> Mesh in var copy = m; copy.assetName = cpuEntry.uniqueAssetName; return copy }
+            for i in namedMeshes.indices where namedMeshes[i].skin == nil {
+                namedMeshes[i].skin = levelSkin
+            }
+            uploadedMeshes[lodIndex] = namedMeshes
+        }
+
+        ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootEntityId)
+
+        guard !uploadedMeshes.isEmpty else {
+            Logger.logError(message: "[OutOfCore] LOD+OOC entity \(entityId): all LOD level uploads failed")
+            return false
+        }
+
+        withWorldMutationGate {
+            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else { return }
+
+            // Store uploaded meshes in LOD levels and mark resident.
+            for (lodIndex, meshes) in uploadedMeshes {
+                guard lodIndex < lodComponent.lodLevels.count else { continue }
+                lodComponent.lodLevels[lodIndex].mesh = meshes
+                lodComponent.lodLevels[lodIndex].residencyState = .resident
+            }
+
+            // Select correct LOD for current camera distance (same logic as reloadLODEntity).
+            var selectedLOD = lodComponent.lodLevels.count - 1
+            if let camera = CameraSystem.shared.activeCamera,
+               let cameraComponent = scene.get(component: CameraComponent.self, for: camera),
+               let transform = scene.get(component: WorldTransformComponent.self, for: entityId),
+               let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+            {
+                let cameraPos = cameraComponent.localPosition
+                let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
+                let worldCenter = transform.space * simd_float4(center, 1.0)
+                let distance = simd_distance(cameraPos, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
+                for (index, level) in lodComponent.lodLevels.enumerated() {
+                    if distance <= level.maxDistance, lodComponent.isLODResident(index) {
+                        selectedLOD = index
+                        break
+                    }
+                }
+            }
+
+            if selectedLOD < lodComponent.lodLevels.count, lodComponent.isLODResident(selectedLOD) {
+                let lodLevel = lodComponent.lodLevels[selectedLOD]
+                if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPULODMesh(for: entityId, lodIndex: selectedLOD) {
+                    registerRenderComponent(entityId: entityId, meshes: lodLevel.mesh, url: cpuEntry.url, assetName: cpuEntry.uniqueAssetName)
+                }
+                lodComponent.currentLOD = selectedLOD
+                lodComponent.desiredLOD = selectedLOD
+                lodComponent.isUsingFallback = false
+            }
+        }
+
+        // Register total GPU allocation (all levels) with the budget manager.
+        let totalMeshSize = uploadedMeshes.values.reduce(0) { $0 + calculateMeshArrayMemory($1) }
+        MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: totalMeshSize, textureSizeBytes: 0)
+
+        Logger.log(message: "[OutOfCore] LOD+OOC entity \(entityId): uploaded \(uploadedMeshes.count) LOD level(s) from CPU")
+        return true
+    }
+
     /// Re-parse a cold root asset from disk and restore all child CPU entries.
     ///
     /// At most one re-parse Task runs per root at a time: `getOrCreateRehydrationTask` ensures
@@ -631,36 +743,84 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 let filename = context.url.deletingPathExtension().lastPathComponent
                 let ext = context.url.pathExtension
 
-                for (i, obj) in assetData.topLevelObjects.enumerated() {
-                    guard i < children.count else { break }
-                    let childId = children[i]
-                    let baseName = (obj as? MDLMesh)?.parent?.name ?? obj.name
-                    let uniqueName = "\(baseName)#\(i)"
-                    let estimatedGPUBytes: Int = {
-                        guard let mdlMesh = obj as? MDLMesh else { return 0 }
-                        let stride = Int((mdlMesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48)
-                        let vertexBytes = mdlMesh.vertexCount * stride
-                        let indexBytes = mdlMesh.vertexCount * 3 * 4
-                        return vertexBytes + indexBytes
-                    }()
-                    let entry = ProgressiveAssetLoader.CPUMeshEntry(
-                        object: obj,
-                        vertexDescriptor: vertexDescriptor.model,
-                        textureLoader: assetData.textureLoader,
-                        device: renderInfo.device,
-                        url: context.url,
-                        filename: filename,
-                        withExtension: ext,
-                        uniqueAssetName: uniqueName,
-                        estimatedGPUBytes: estimatedGPUBytes,
-                        residencyPolicy: context.loadingPolicy
-                    )
-                    ProgressiveAssetLoader.shared.storeCPUMesh(entry, for: childId)
+                // Detect whether this is a LOD+OOC asset by checking if the re-parsed
+                // top-level objects form LOD groups (same detection as registration time).
+                let topLevelNames = assetData.topLevelObjects.map {
+                    ($0 as? MDLMesh)?.parent?.name ?? $0.name
                 }
+                let lodDetection = detectImportedLODGroups(fromSourceNames: topLevelNames)
 
-                ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: rootEntityId)
-                ProgressiveAssetLoader.shared.markAsWarm(rootEntityId: rootEntityId)
-                Logger.log(message: "[OutOfCore] Cold re-stream complete: root \(rootEntityId) is warm (\(min(assetData.topLevelObjects.count, children.count)) entries restored)")
+                if !lodDetection.groups.isEmpty && !children.isEmpty {
+                    // LOD+OOC: rebuild cpuLODRegistry from detected groups.
+                    // Groups are sorted by baseName (same order as at registration time),
+                    // so children[groupIdx] corresponds to lodDetection.groups[groupIdx].
+                    var nameToObject: [String: MDLObject] = [:]
+                    for obj in assetData.topLevelObjects {
+                        let name = (obj as? MDLMesh)?.parent?.name ?? obj.name
+                        nameToObject[name] = obj
+                    }
+                    var restoredEntries = 0
+                    for (groupIdx, group) in lodDetection.groups.enumerated() {
+                        guard groupIdx < children.count else { break }
+                        let groupEntityId = children[groupIdx]
+                        for level in group.levels {
+                            guard let obj = nameToObject[level.sourceName] else { continue }
+                            let estimatedGPUBytes: Int = {
+                                guard let mdlMesh = obj as? MDLMesh else { return 0 }
+                                let stride = Int((mdlMesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48)
+                                return mdlMesh.vertexCount * stride + mdlMesh.vertexCount * 3 * 4
+                            }()
+                            let entry = ProgressiveAssetLoader.CPUMeshEntry(
+                                object: obj,
+                                vertexDescriptor: vertexDescriptor.model,
+                                textureLoader: assetData.textureLoader,
+                                device: renderInfo.device,
+                                url: context.url,
+                                filename: filename,
+                                withExtension: ext,
+                                uniqueAssetName: level.sourceName,
+                                estimatedGPUBytes: estimatedGPUBytes,
+                                residencyPolicy: context.loadingPolicy
+                            )
+                            ProgressiveAssetLoader.shared.storeCPULODMesh(entry, for: groupEntityId, lodIndex: level.lodIndex)
+                            restoredEntries += 1
+                        }
+                    }
+                    ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: rootEntityId)
+                    ProgressiveAssetLoader.shared.markAsWarm(rootEntityId: rootEntityId)
+                    Logger.log(message: "[OutOfCore] Cold re-stream complete (LOD+OOC): root \(rootEntityId) is warm (\(restoredEntries) LOD entries restored across \(lodDetection.groups.count) group(s))")
+                } else {
+                    // Regular OOC: rebuild cpuMeshRegistry, one entry per child stub entity.
+                    for (i, obj) in assetData.topLevelObjects.enumerated() {
+                        guard i < children.count else { break }
+                        let childId = children[i]
+                        let baseName = (obj as? MDLMesh)?.parent?.name ?? obj.name
+                        let uniqueName = "\(baseName)#\(i)"
+                        let estimatedGPUBytes: Int = {
+                            guard let mdlMesh = obj as? MDLMesh else { return 0 }
+                            let stride = Int((mdlMesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48)
+                            let vertexBytes = mdlMesh.vertexCount * stride
+                            let indexBytes = mdlMesh.vertexCount * 3 * 4
+                            return vertexBytes + indexBytes
+                        }()
+                        let entry = ProgressiveAssetLoader.CPUMeshEntry(
+                            object: obj,
+                            vertexDescriptor: vertexDescriptor.model,
+                            textureLoader: assetData.textureLoader,
+                            device: renderInfo.device,
+                            url: context.url,
+                            filename: filename,
+                            withExtension: ext,
+                            uniqueAssetName: uniqueName,
+                            estimatedGPUBytes: estimatedGPUBytes,
+                            residencyPolicy: context.loadingPolicy
+                        )
+                        ProgressiveAssetLoader.shared.storeCPUMesh(entry, for: childId)
+                    }
+                    ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: rootEntityId)
+                    ProgressiveAssetLoader.shared.markAsWarm(rootEntityId: rootEntityId)
+                    Logger.log(message: "[OutOfCore] Cold re-stream complete: root \(rootEntityId) is warm (\(min(assetData.topLevelObjects.count, children.count)) entries restored)")
+                }
                 return true
             }
         }

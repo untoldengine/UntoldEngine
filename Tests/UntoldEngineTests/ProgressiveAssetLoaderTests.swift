@@ -528,3 +528,251 @@ final class ProgressiveAssetLoaderWarmColdTests: XCTestCase {
                       "Root should remain cold after a redundant releaseWarmAsset call")
     }
 }
+
+// MARK: - LOD CPU Registry Tests
+
+/// Tests for ProgressiveAssetLoader's LOD CPU registry (cpuLODRegistry).
+///
+/// The LOD+OOC path stores one CPUMeshEntry per LOD level per group entity in
+/// cpuLODRegistry, keyed by (EntityID, lodIndex). These tests verify all CRUD
+/// operations and lifecycle interactions (releaseWarmAsset, removeOutOfCoreAsset, cancelAll).
+@MainActor
+final class ProgressiveAssetLoaderLODRegistryTests: XCTestCase {
+    var loader: ProgressiveAssetLoader!
+    var device: MTLDevice!
+    var textureLoader: TextureLoader!
+
+    override func setUp() async throws {
+        loader = ProgressiveAssetLoader.shared
+        loader.cancelAll()
+        guard let mtlDevice = MTLCreateSystemDefaultDevice() else {
+            XCTFail("No Metal device available")
+            return
+        }
+        device = mtlDevice
+        renderInfo.device = mtlDevice
+        textureLoader = TextureLoader(device: mtlDevice)
+    }
+
+    override func tearDown() async throws {
+        loader.cancelAll()
+        device = nil
+        textureLoader = nil
+    }
+
+    private func makeEntry(uniqueAssetName: String = "TestMesh_LOD0", estimatedGPUBytes: Int = 0) -> ProgressiveAssetLoader.CPUMeshEntry {
+        ProgressiveAssetLoader.CPUMeshEntry(
+            object: MDLObject(),
+            vertexDescriptor: MDLVertexDescriptor(),
+            textureLoader: textureLoader,
+            device: device,
+            url: URL(fileURLWithPath: "/dev/null"),
+            filename: "test",
+            withExtension: "usdz",
+            uniqueAssetName: uniqueAssetName,
+            estimatedGPUBytes: estimatedGPUBytes,
+            residencyPolicy: .fullLoad
+        )
+    }
+
+    // MARK: - storeCPULODMesh / retrieveCPULODMesh
+
+    func testStoreThenRetrieve_returnsStoredLODEntry() {
+        let entityId: EntityID = 1000
+        let entry = makeEntry(uniqueAssetName: "Tree_LOD0", estimatedGPUBytes: 256_000)
+        loader.storeCPULODMesh(entry, for: entityId, lodIndex: 0)
+
+        let retrieved = loader.retrieveCPULODMesh(for: entityId, lodIndex: 0)
+        XCTAssertNotNil(retrieved, "LOD entry should be present after store")
+        XCTAssertEqual(retrieved?.uniqueAssetName, "Tree_LOD0")
+        XCTAssertEqual(retrieved?.estimatedGPUBytes, 256_000)
+    }
+
+    func testRetrieve_returnsNilForUnknownEntityOrLOD() {
+        XCTAssertNil(loader.retrieveCPULODMesh(for: 99999, lodIndex: 0),
+                     "Unknown entity should return nil")
+
+        let entityId: EntityID = 1001
+        loader.storeCPULODMesh(makeEntry(), for: entityId, lodIndex: 0)
+        XCTAssertNil(loader.retrieveCPULODMesh(for: entityId, lodIndex: 5),
+                     "Unknown LOD index should return nil")
+    }
+
+    func testStore_multipleLODLevelsForSameEntity() {
+        let entityId: EntityID = 1002
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Tree_LOD0"), for: entityId, lodIndex: 0)
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Tree_LOD1"), for: entityId, lodIndex: 1)
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Tree_LOD2"), for: entityId, lodIndex: 2)
+
+        XCTAssertEqual(loader.retrieveCPULODMesh(for: entityId, lodIndex: 0)?.uniqueAssetName, "Tree_LOD0")
+        XCTAssertEqual(loader.retrieveCPULODMesh(for: entityId, lodIndex: 1)?.uniqueAssetName, "Tree_LOD1")
+        XCTAssertEqual(loader.retrieveCPULODMesh(for: entityId, lodIndex: 2)?.uniqueAssetName, "Tree_LOD2")
+    }
+
+    func testStore_overwritesPreviousEntryForSameLODIndex() {
+        let entityId: EntityID = 1003
+        loader.storeCPULODMesh(makeEntry(estimatedGPUBytes: 100), for: entityId, lodIndex: 0)
+        loader.storeCPULODMesh(makeEntry(estimatedGPUBytes: 200), for: entityId, lodIndex: 0)
+
+        XCTAssertEqual(loader.retrieveCPULODMesh(for: entityId, lodIndex: 0)?.estimatedGPUBytes, 200,
+                       "Second store should overwrite the first for the same LOD index")
+    }
+
+    // MARK: - retrieveAllCPULODMeshes
+
+    func testRetrieveAll_returnsAllStoredLevels() {
+        let entityId: EntityID = 1010
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Rock_LOD0"), for: entityId, lodIndex: 0)
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Rock_LOD1"), for: entityId, lodIndex: 1)
+
+        let all = loader.retrieveAllCPULODMeshes(for: entityId)
+        XCTAssertNotNil(all, "Should return a dictionary when entries exist")
+        XCTAssertEqual(all?.count, 2, "Should have 2 LOD entries")
+        XCTAssertEqual(all?[0]?.uniqueAssetName, "Rock_LOD0")
+        XCTAssertEqual(all?[1]?.uniqueAssetName, "Rock_LOD1")
+    }
+
+    func testRetrieveAll_returnsNilForUnknownEntity() {
+        XCTAssertNil(loader.retrieveAllCPULODMeshes(for: 99998),
+                     "Unknown entity should return nil")
+    }
+
+    // MARK: - hasCPULODData
+
+    func testHasCPULODData_trueAfterStoring() {
+        let entityId: EntityID = 1020
+        XCTAssertFalse(loader.hasCPULODData(for: entityId), "Should be false before any store")
+        loader.storeCPULODMesh(makeEntry(), for: entityId, lodIndex: 0)
+        XCTAssertTrue(loader.hasCPULODData(for: entityId), "Should be true after storing a LOD entry")
+    }
+
+    func testHasCPULODData_falseForRegularCPUMeshEntry() {
+        let entityId: EntityID = 1021
+        // Storing in cpuMeshRegistry (not cpuLODRegistry) must not affect hasCPULODData
+        loader.storeCPUMesh(makeEntry(), for: entityId)
+        XCTAssertFalse(loader.hasCPULODData(for: entityId),
+                       "hasCPULODData should remain false for regular OOC entries")
+    }
+
+    func testHasCPULODData_falseAfterRemoveCPULODEntry() {
+        let entityId: EntityID = 1022
+        loader.storeCPULODMesh(makeEntry(), for: entityId, lodIndex: 0)
+        XCTAssertTrue(loader.hasCPULODData(for: entityId))
+
+        loader.removeCPULODEntry(for: entityId)
+        XCTAssertFalse(loader.hasCPULODData(for: entityId),
+                       "hasCPULODData should be false after removeCPULODEntry")
+    }
+
+    // MARK: - removeCPULODEntry
+
+    func testRemoveCPULODEntry_removesAllLevels() {
+        let entityId: EntityID = 1030
+        loader.storeCPULODMesh(makeEntry(), for: entityId, lodIndex: 0)
+        loader.storeCPULODMesh(makeEntry(), for: entityId, lodIndex: 1)
+        loader.storeCPULODMesh(makeEntry(), for: entityId, lodIndex: 2)
+
+        loader.removeCPULODEntry(for: entityId)
+
+        XCTAssertNil(loader.retrieveCPULODMesh(for: entityId, lodIndex: 0))
+        XCTAssertNil(loader.retrieveCPULODMesh(for: entityId, lodIndex: 1))
+        XCTAssertNil(loader.retrieveCPULODMesh(for: entityId, lodIndex: 2))
+    }
+
+    func testRemoveCPULODEntry_unknownEntityIsNoOp() {
+        loader.removeCPULODEntry(for: 99997) // Must not crash
+    }
+
+    func testRemoveCPULODEntry_doesNotAffectOtherEntities() {
+        let keepId: EntityID = 1040
+        let removeId: EntityID = 1041
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Tree_LOD0"), for: keepId, lodIndex: 0)
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Rock_LOD0"), for: removeId, lodIndex: 0)
+
+        loader.removeCPULODEntry(for: removeId)
+
+        XCTAssertNotNil(loader.retrieveCPULODMesh(for: keepId, lodIndex: 0),
+                        "Removing one entity's LOD data must not affect other entities")
+    }
+
+    // MARK: - releaseWarmAsset clears LOD entries for children
+
+    func testReleaseWarmAsset_clearsCPULODEntriesForChildren() {
+        let rootId: EntityID = 1050
+        let groupId: EntityID = 1051
+
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Tree_LOD0"), for: groupId, lodIndex: 0)
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Tree_LOD1"), for: groupId, lodIndex: 1)
+        loader.registerChildren([groupId], for: rootId)
+
+        loader.releaseWarmAsset(rootEntityId: rootId)
+
+        XCTAssertNil(loader.retrieveCPULODMesh(for: groupId, lodIndex: 0),
+                     "LOD entry for LOD0 should be cleared after releaseWarmAsset")
+        XCTAssertNil(loader.retrieveCPULODMesh(for: groupId, lodIndex: 1),
+                     "LOD entry for LOD1 should be cleared after releaseWarmAsset")
+        XCTAssertFalse(loader.hasCPULODData(for: groupId),
+                       "hasCPULODData should be false after releaseWarmAsset")
+    }
+
+    // MARK: - removeOutOfCoreAsset clears LOD entries
+
+    func testRemoveOutOfCoreAsset_clearsCPULODEntriesForChildren() {
+        let rootId: EntityID = 1060
+        let groupId1: EntityID = 1061
+        let groupId2: EntityID = 1062
+
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Tree_LOD0"), for: groupId1, lodIndex: 0)
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "Rock_LOD0"), for: groupId2, lodIndex: 0)
+        loader.registerChildren([groupId1, groupId2], for: rootId)
+
+        loader.removeOutOfCoreAsset(rootEntityId: rootId)
+
+        XCTAssertFalse(loader.hasCPULODData(for: groupId1),
+                       "Group 1 LOD data should be cleared after removeOutOfCoreAsset")
+        XCTAssertFalse(loader.hasCPULODData(for: groupId2),
+                       "Group 2 LOD data should be cleared after removeOutOfCoreAsset")
+    }
+
+    // MARK: - cancelAll clears LOD registry
+
+    func testCancelAll_clearsCPULODRegistry() {
+        let entityId1: EntityID = 1070
+        let entityId2: EntityID = 1071
+        loader.storeCPULODMesh(makeEntry(), for: entityId1, lodIndex: 0)
+        loader.storeCPULODMesh(makeEntry(), for: entityId2, lodIndex: 0)
+        loader.storeCPULODMesh(makeEntry(), for: entityId2, lodIndex: 1)
+
+        loader.cancelAll()
+
+        XCTAssertFalse(loader.hasCPULODData(for: entityId1),
+                       "cancelAll must clear all LOD registry entries")
+        XCTAssertFalse(loader.hasCPULODData(for: entityId2),
+                       "cancelAll must clear all LOD registry entries")
+    }
+
+    // MARK: - LOD and regular OOC registries are independent
+
+    func testLODAndRegularRegistriesAreIndependent() {
+        let entityId: EntityID = 1080
+        loader.storeCPUMesh(makeEntry(uniqueAssetName: "Regular#0"), for: entityId)
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "LOD_LOD0"), for: entityId, lodIndex: 0)
+
+        // Both should be independently accessible
+        XCTAssertNotNil(loader.retrieveCPUMesh(for: entityId),
+                        "Regular OOC entry should be accessible independently")
+        XCTAssertNotNil(loader.retrieveCPULODMesh(for: entityId, lodIndex: 0),
+                        "LOD OOC entry should be accessible independently")
+
+        // Removing from LOD registry must not affect regular registry
+        loader.removeCPULODEntry(for: entityId)
+        XCTAssertNotNil(loader.retrieveCPUMesh(for: entityId),
+                        "Regular OOC entry must survive removeCPULODEntry")
+
+        // Removing from regular registry must not affect LOD registry data
+        loader.storeCPULODMesh(makeEntry(uniqueAssetName: "LOD_LOD0"), for: entityId, lodIndex: 0)
+        loader.removeCPUMesh(for: entityId)
+        XCTAssertTrue(loader.hasCPULODData(for: entityId),
+                      "LOD OOC data must survive removeCPUMesh")
+    }
+}

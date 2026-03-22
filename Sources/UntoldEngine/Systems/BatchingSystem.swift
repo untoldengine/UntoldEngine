@@ -427,6 +427,11 @@ public struct BatchGroup {
     /// Used to detect whether a batch artifact is stale relative to the live streaming state.
     var textureGeneration: Int = 0
 
+    /// True when at least one entity in this batch has a LODComponent.
+    /// Used by the LOD debug visualizer to distinguish LOD batches from non-LOD batches
+    /// so that non-LOD entities are not incorrectly colored with an LOD0 tint.
+    var isLODBatch: Bool = false
+
     /// Backward-compatible alias; prefer batchKey for clarity.
     var materialHash: String {
         batchKey
@@ -1789,6 +1794,8 @@ public class BatchingSystem: @unchecked Sendable {
         tangentBuffer.label = "Batch Tangent Buffer"
         indexBuffer.label = "Batch Index Buffer"
 
+        let isLODBatch = meshGroup.contains { scene.get(component: LODComponent.self, for: $0.entityId) != nil }
+
         return BatchGroup(
             id: UUID(),
             cellId: cellId,
@@ -1804,7 +1811,8 @@ public class BatchingSystem: @unchecked Sendable {
             vertexCount: allPositions.count,
             entityIds: entityIds,
             meshIndices: meshIndices,
-            boundingBox: (min: minBounds, max: maxBounds)
+            boundingBox: (min: minBounds, max: maxBounds),
+            isLODBatch: isLODBatch
         )
     }
 
