@@ -90,7 +90,6 @@ public struct AssetProfile: Sendable {
 /// before any ECS entity or GPU resource is created, so it has access to all `MDLMesh`
 /// objects but no Metal allocations have occurred yet.
 public enum AssetProfiler {
-
     // MARK: - Profile
 
     /// Build an `AssetProfile` from a parsed asset.
@@ -101,7 +100,7 @@ public enum AssetProfiler {
     ///   - fileSizeBytes: Pre-computed on-disk file size in bytes. Pass 0 to skip (estimates only).
     /// - Returns: A populated `AssetProfile`.
     static func profile(
-        url: URL,
+        url _: URL,
         assetData: Mesh.ProgressiveAssetData,
         fileSizeBytes: Int
     ) -> AssetProfile {
@@ -122,7 +121,7 @@ public enum AssetProfiler {
                 (mesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48
             )
             let vertexBytes = mesh.vertexCount * stride
-            let indexBytes = mesh.vertexCount * 3 * 4  // ~3 indices/vertex, 4 bytes each
+            let indexBytes = mesh.vertexCount * 3 * 4 // ~3 indices/vertex, 4 bytes each
             let meshBytes = vertexBytes + indexBytes
             totalGeometryBytes += meshBytes
             largestMeshBytes = max(largestMeshBytes, meshBytes)
@@ -319,7 +318,7 @@ public enum AssetProfiler {
         // For embedded USDZ textures where we cannot stat individual entries:
         // estimate total packed texture bytes as (fileSize − estimated_packed_geometry).
         // Packed geometry is roughly 1/10 of its uncompressed GPU size.
-        if hasEmbeddedTextures && totalBytes == 0 {
+        if hasEmbeddedTextures, totalBytes == 0 {
             let estimatedPackedGeometry = geometryBytes / 10
             let estimatedPackedTextureBytes = max(0, fileSizeBytes - estimatedPackedGeometry)
             totalBytes = estimatedPackedTextureBytes * 3

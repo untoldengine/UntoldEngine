@@ -750,7 +750,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 }
                 let lodDetection = detectImportedLODGroups(fromSourceNames: topLevelNames)
 
-                if !lodDetection.groups.isEmpty && !children.isEmpty {
+                if !lodDetection.groups.isEmpty, !children.isEmpty {
                     // LOD+OOC: rebuild cpuLODRegistry from detected groups.
                     // Groups are sorted by baseName (same order as at registration time),
                     // so children[groupIdx] corresponds to lodDetection.groups[groupIdx].

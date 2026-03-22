@@ -17,7 +17,6 @@ import XCTest
 /// contains non-trivial logic (string parsing + URL construction). All other code paths
 /// delegate to MTKTextureLoader, which can only be exercised on-device.
 final class TextureLoaderBracketParserTests: XCTestCase {
-
     // MARK: - Valid inputs
 
     func testTypicalUSDZEmbeddedPath_returnsURLAndInnerPath() {

@@ -203,10 +203,10 @@ final class TextureStreamingSystemTests: XCTestCase {
         }
 
         XCTAssertEqual(resolveLevel(nil), .full)
-        XCTAssertEqual(resolveLevel(256), .minimum)   // exactly at minimum threshold
-        XCTAssertEqual(resolveLevel(192), .minimum)   // below minimum threshold (visionOS)
-        XCTAssertEqual(resolveLevel(257), .capped)    // just above minimum threshold
-        XCTAssertEqual(resolveLevel(1024), .capped)   // medium dimension
+        XCTAssertEqual(resolveLevel(256), .minimum) // exactly at minimum threshold
+        XCTAssertEqual(resolveLevel(192), .minimum) // below minimum threshold (visionOS)
+        XCTAssertEqual(resolveLevel(257), .capped) // just above minimum threshold
+        XCTAssertEqual(resolveLevel(1024), .capped) // medium dimension
     }
 
     func testNormalizedMinimumDimensionIsPositive() {

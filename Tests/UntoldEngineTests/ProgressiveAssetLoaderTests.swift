@@ -352,7 +352,9 @@ final class ProgressiveAssetLoaderWarmColdTests: XCTestCase {
         let rootId: EntityID = 210
         let childIds: [EntityID] = [211, 212]
 
-        for id in childIds { loader.storeCPUMesh(makeEntry(), for: id) }
+        for id in childIds {
+            loader.storeCPUMesh(makeEntry(), for: id)
+        }
         loader.registerChildren(childIds, for: rootId)
 
         loader.releaseWarmAsset(rootEntityId: rootId)
@@ -367,7 +369,9 @@ final class ProgressiveAssetLoaderWarmColdTests: XCTestCase {
         let rootId: EntityID = 220
         let childIds: [EntityID] = [221, 222, 223]
 
-        for id in childIds { loader.storeCPUMesh(makeEntry(estimatedGPUBytes: 1024), for: id) }
+        for id in childIds {
+            loader.storeCPUMesh(makeEntry(estimatedGPUBytes: 1024), for: id)
+        }
         loader.registerChildren(childIds, for: rootId)
 
         loader.releaseWarmAsset(rootEntityId: rootId)
