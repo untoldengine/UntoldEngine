@@ -126,6 +126,13 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     /// CPU-resident mesh data keyed by child entity ID.
     private var cpuMeshRegistry: [EntityID: CPUMeshEntry] = [:]
 
+    /// CPU-resident LOD mesh data keyed by LOD group entity ID → LOD index.
+    ///
+    /// Used exclusively by the LOD+OOC path where a single entity holds a `LODComponent`
+    /// whose levels are each backed by a separate `CPUMeshEntry`. Unlike `cpuMeshRegistry`
+    /// (one entry per stub entity), this stores N entries per entity — one per LOD level.
+    private var cpuLODRegistry: [EntityID: [Int: CPUMeshEntry]] = [:]
+
     /// MDLAsset references kept alive per root entity so the MDLMeshBufferDataAllocator
     /// that backs all child MDLMesh CPU buffers is not prematurely released.
     private var rootAssetRefs: [EntityID: MDLAsset] = [:]
@@ -175,6 +182,46 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     func removeCPUMesh(for entityId: EntityID) {
         lock.lock()
         cpuMeshRegistry.removeValue(forKey: entityId)
+        lock.unlock()
+    }
+
+    // MARK: LOD CPU Registry
+
+    /// Store the CPU mesh entry for one LOD level of a LOD group entity.
+    func storeCPULODMesh(_ entry: CPUMeshEntry, for entityId: EntityID, lodIndex: Int) {
+        lock.lock()
+        if cpuLODRegistry[entityId] == nil {
+            cpuLODRegistry[entityId] = [:]
+        }
+        cpuLODRegistry[entityId]![lodIndex] = entry
+        lock.unlock()
+    }
+
+    /// Retrieve the CPU mesh entry for one LOD level of a LOD group entity.
+    func retrieveCPULODMesh(for entityId: EntityID, lodIndex: Int) -> CPUMeshEntry? {
+        lock.lock()
+        defer { lock.unlock() }
+        return cpuLODRegistry[entityId]?[lodIndex]
+    }
+
+    /// Retrieve all LOD-level CPU entries for a LOD group entity (keyed by LOD index).
+    func retrieveAllCPULODMeshes(for entityId: EntityID) -> [Int: CPUMeshEntry]? {
+        lock.lock()
+        defer { lock.unlock() }
+        return cpuLODRegistry[entityId]
+    }
+
+    /// Returns `true` if the entity has at least one CPU LOD entry (i.e. was registered via the LOD+OOC path).
+    func hasCPULODData(for entityId: EntityID) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return !(cpuLODRegistry[entityId]?.isEmpty ?? true)
+    }
+
+    /// Remove all CPU LOD entries for a LOD group entity (called on entity destruction or cold-release).
+    func removeCPULODEntry(for entityId: EntityID) {
+        lock.lock()
+        cpuLODRegistry.removeValue(forKey: entityId)
         lock.unlock()
     }
 
@@ -260,6 +307,7 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         assetTexturesLoaded.remove(rootEntityId)
         for childId in children {
             cpuMeshRegistry.removeValue(forKey: childId)
+            cpuLODRegistry.removeValue(forKey: childId)
         }
         coldRoots.insert(rootEntityId)
         lock.unlock()
@@ -329,6 +377,7 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         assetTexturesLoaded.remove(rootEntityId)
         for childId in children {
             cpuMeshRegistry.removeValue(forKey: childId)
+            cpuLODRegistry.removeValue(forKey: childId)
         }
         // Clear warm/cold lifecycle state.
         coldRoots.remove(rootEntityId)
@@ -357,6 +406,7 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     public func cancelAll() {
         lock.lock()
         cpuMeshRegistry.removeAll()
+        cpuLODRegistry.removeAll()
         rootAssetRefs.removeAll()
         rootEntityChildren.removeAll()
         assetTextureLocks.removeAll()

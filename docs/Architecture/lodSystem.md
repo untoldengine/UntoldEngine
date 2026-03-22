@@ -120,3 +120,25 @@ The system processes all 500 in sequence, but buildings where LOD hasn't changed
 - **`activeMeshAssetID`** is the bridge to the batching system. When a LOD switches, the new asset ID tells the batcher to move that entity into a different batch group.
 - **`EntityLODChangedEvent`** on `SystemEventBus` is how downstream systems (geometry streaming, batching) learn that a switch happened — they react to the event rather than polling.
 - **Fade transitions** exist in the code (`transitionProgress`, `previousLOD`) but `enableFadeTransitions` defaults to `false`, so currently all switches are instant.
+
+---
+
+### LOD + Out-of-Core Integration
+
+Prior to this integration, LOD and OOC were mutually exclusive: assets that qualified for out-of-core streaming would bypass LOD group detection, causing each `LOD0`/`LOD1`/`LOD2` object to become an independent stub entity.
+
+**How it works now:**
+
+`setEntityMeshAsync` runs LOD group detection *before* the OOC branching decision. When the asset both qualifies for OOC streaming *and* contains LOD groups, the **LOD+OOC path** runs:
+
+1. **Registration** — one entity per LOD group (not one per MDLObject). Each entity gets a `LODComponent` with stub `LODLevel`s (empty mesh, `.notResident`) and a `StreamingComponent(.unloaded)`.
+
+2. **CPU registry** — `ProgressiveAssetLoader.cpuLODRegistry[groupEntityId][lodIndex]` stores a `CPUMeshEntry` for every LOD level. The MDLAsset is retained so CPU buffers remain valid.
+
+3. **GPU upload** — when `GeometryStreamingSystem` picks up the entity (`.unloaded` → in streaming range), it calls `uploadActiveLODFromCPU`. This uploads **all** LOD levels in one pass from the CPU registry, marks each `LODLevel.residencyState = .resident`, and sets `renderComponent.mesh` to the level appropriate for the current camera distance.
+
+4. **LOD switching after load** — `LODSystem.applyLOD` continues to work as normal: it reads from `lodComponent.lodLevels[n].mesh` (now populated) and swaps `renderComponent.mesh`. No additional streaming requests are needed — all levels are already GPU-resident.
+
+5. **Cold re-hydration** — if `releaseWarmAsset` was called on the root and a group entity re-enters streaming range, `rehydrateColdAsset` re-parses the USDZ, re-runs LOD detection, and rebuilds `cpuLODRegistry` entries before `uploadActiveLODFromCPU` runs.
+
+**Result:** the caller sets any `MeshStreamingPolicy` and LOD assets always get proper `LODComponent` wiring. The mutual exclusivity that required users to choose between OOC and LOD is eliminated.

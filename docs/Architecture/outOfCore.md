@@ -136,6 +136,54 @@ See [AssetProfiler architecture](assetProfiler.md) for the full classification l
 
 ## Phase 1 — Stub Registration (happens once, synchronous within async context)
 
+### LOD Asset Detection
+
+Before choosing the registration path, `setEntityMeshAsync` inspects the top-level object names for LOD suffixes (`_LOD0`, `_LOD1`, …):
+
+```swift
+let lodNameDetection = detectImportedLODGroups(fromSourceNames: topLevelNames)
+let hasLODGroups = !lodNameDetection.groups.isEmpty
+let useOutOfCore = loadingPolicy.geometryPolicy == .streaming
+```
+
+| Condition | Path |
+|---|---|
+| `useOutOfCore && hasLODGroups` | **LOD+OOC path** — one entity per LOD group, `cpuLODRegistry` |
+| `useOutOfCore && !hasLODGroups` | **Regular OOC path** — one stub entity per `MDLObject`, `cpuMeshRegistry` |
+| `!useOutOfCore` | Immediate path — all geometry uploaded to GPU in one pass |
+
+### LOD+OOC Stub Registration
+
+When LOD groups are detected in an OOC asset, each group becomes **one entity** (not one entity per MDLObject):
+
+```
+withWorldMutationGate {
+    Tree group    → createEntity() → LODComponent(stubs) + StreamingComponent(.unloaded)
+    Rock group    → createEntity() → LODComponent(stubs) + StreamingComponent(.unloaded)
+    ...
+}
+```
+
+**Per LOD group entity:**
+1. `createEntity()` — one entity for all LOD levels of this group
+2. `applyWorldTransform(composedWorldTransform(for: lod0MDLObject))` — position from LOD0 object
+3. `LocalTransformComponent.boundingBox` — seeded from LOD0 `MDLMesh.boundingBox`
+4. `LODComponent` — stub `LODLevel`s for every level: `mesh: []`, `residencyState: .notResident`, `url` and `assetName` set for future disk reload reference
+5. `StreamingComponent` — state `.unloaded`, placeholder radii (replaced by `enableStreaming`)
+6. `OctreeSystem.shared.registerEntity` — appears in spatial queries immediately
+
+After the gate, CPU entries are stored per (group entity, LOD index):
+
+```swift
+cpuLODRegistry[treeEntityId] = [
+    0: CPUMeshEntry(object: tree_LOD0_MDLObject, uniqueAssetName: "Tree_LOD0", ...),
+    1: CPUMeshEntry(object: tree_LOD1_MDLObject, uniqueAssetName: "Tree_LOD1", ...),
+    2: CPUMeshEntry(object: tree_LOD2_MDLObject, uniqueAssetName: "Tree_LOD2", ...),
+]
+```
+
+### Regular OOC Stub Registration
+
 Instead of uploading to the GPU, all 500 buildings are registered immediately as **stub entities** — full ECS presence, zero GPU allocation.
 
 All stubs are registered inside a **single `withWorldMutationGate` acquisition**. This avoids N × acquire/release overhead — for 500 buildings that would be 500 separate gate round-trips on the XR compositor thread. One gate wraps the entire loop:
@@ -333,9 +381,37 @@ With the distance-aware guard, far visible meshes (beyond 30 m) are evictable un
 
 **Tuning:** `visibleEvictionProtectionRadius` should be set to ~15% of your `streamingRadius`. For `streamingRadius = 200 m`, the default 30 m is appropriate.
 
-### The CPU upload path (`uploadFromCPUEntry`)
+### The CPU upload path
 
-When `loadMeshAsync` is called for an out-of-core stub, it checks the CPU registry **before** going to disk:
+`loadMesh` selects the upload function based on the entity's registration type:
+
+```swift
+if hasCPULODData {
+    // LOD+OOC entity: upload all LOD levels from cpuLODRegistry
+    await uploadActiveLODFromCPU(entityId: entityId)
+} else if hasLOD {
+    // Disk-based LOD entity (no CPU registry): reload from MeshResourceManager
+    await reloadLODEntity(entityId: entityId)
+} else {
+    // Regular entity (OOC or immediate): upload from cpuMeshRegistry or disk
+    await loadMeshAsync(...)
+}
+```
+
+#### `uploadActiveLODFromCPU` (LOD+OOC entities)
+
+1. Checks if the root asset is cold — if so, calls `rehydrateColdAsset` to re-parse and rebuild `cpuLODRegistry`
+2. `retrieveAllCPULODMeshes(for: entityId)` — fetches all LOD-level CPU entries
+3. Texture lock acquired; `ensureTexturesLoaded` called once for the root asset
+4. `makeMeshesFromCPUBuffers` — uploads every LOD level from CPU heap to Metal
+5. `lodComponent.lodLevels[i].residencyState = .resident` for each uploaded level
+6. `registerRenderComponent` — entity becomes visible at the distance-appropriate LOD
+7. `MemoryBudgetManager.registerMesh` — total GPU bytes for all LOD levels registered
+8. CPU data retained — re-approach after eviction re-uploads all levels from RAM
+
+#### `uploadFromCPUEntry` (regular OOC entities)
+
+When `loadMeshAsync` is called for a regular out-of-core stub, it checks the CPU registry **before** going to disk:
 
 ```swift
 if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) {
@@ -344,7 +420,6 @@ if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) {
 // fallback: MeshResourceManager (disk / cache) for non-stub entities
 ```
 
-`uploadFromCPUEntry`:
 1. `makeMeshesFromCPUBuffers` — copies MDLMesh vertex/index data from CPU heap to Metal-backed buffers
 2. `registerRenderComponent` — entity gets a `RenderComponent`, becomes visible
 3. `MemoryBudgetManager.registerMesh` — registers the Metal allocation so `shouldEvict()` sees it

@@ -1044,7 +1044,173 @@ public func setEntityMeshAsync(
                 }
             }
 
+            // Detect LOD groups before choosing the loading path.
+            let topLevelNames = assetData.topLevelObjects.map {
+                ($0 as? MDLMesh)?.parent?.name ?? $0.name
+            }
+            let lodNameDetection = detectImportedLODGroups(fromSourceNames: topLevelNames)
+            let hasLODGroups = !lodNameDetection.groups.isEmpty
             let useOutOfCore = loadingPolicy.geometryPolicy == .streaming
+
+            if useOutOfCore && hasLODGroups {
+                // LOD + OUT-OF-CORE PATH ────────────────────────────────────────────────
+                // Each LOD group becomes ONE entity with a LODComponent whose levels are
+                // stub LODLevels (empty mesh, .notResident). CPU-side MDLObject data for
+                // each level is stored in ProgressiveAssetLoader.cpuLODRegistry so
+                // GeometryStreamingSystem can upload only the active LOD level from RAM
+                // when the entity enters streaming range — no disk re-read required.
+                Logger.log(message: "[OutOfCore] '\(filename)': LOD asset with \(lodNameDetection.groups.count) group(s) — LOD+OOC stub registration (\(assetData.totalObjectCount) objects)")
+
+                // Build name→MDLObject map using the same naming formula as topLevelNames.
+                var nameToObject: [String: MDLObject] = [:]
+                for obj in assetData.topLevelObjects {
+                    let name = (obj as? MDLMesh)?.parent?.name ?? obj.name
+                    nameToObject[name] = obj
+                }
+
+                let isMultiGroup = lodNameDetection.groups.count > 1
+
+                // Register AssetInstanceComponent on root for multi-group assets.
+                if isMultiGroup {
+                    withWorldMutationGate {
+                        registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
+                        if let inst = scene.get(component: AssetInstanceComponent.self, for: entityId) {
+                            inst.assetURL = url
+                            inst.assetName = filename
+                            inst.importMode = "preserveHierarchy"
+                        }
+                    }
+                }
+
+                var lodGroupEntityIds: [EntityID] = []
+                lodGroupEntityIds.reserveCapacity(lodNameDetection.groups.count)
+                var cpuLODEntries: [(groupEntityId: EntityID, lodIndex: Int, entry: ProgressiveAssetLoader.CPUMeshEntry)] = []
+                cpuLODEntries.reserveCapacity(assetData.totalObjectCount)
+
+                let configuredDistances = LODConfig.shared.lodDistances
+
+                withWorldMutationGate {
+                    for (groupIdx, group) in lodNameDetection.groups.enumerated() {
+                        // Single group: the root entity IS the LOD entity.
+                        // Multi-group: create a child entity per group.
+                        let groupEntityId: EntityID
+                        if isMultiGroup {
+                            groupEntityId = createEntity()
+                            if hasComponent(entityId: groupEntityId, componentType: LocalTransformComponent.self) == false {
+                                registerTransformComponent(entityId: groupEntityId)
+                            }
+                            if hasComponent(entityId: groupEntityId, componentType: ScenegraphComponent.self) == false {
+                                registerSceneGraphComponent(entityId: groupEntityId)
+                            }
+                            setEntityName(entityId: groupEntityId, name: group.baseName)
+                            setParent(childId: groupEntityId, parentId: entityId)
+                            let nodePath = generateStableNodePath(assetName: group.baseName, index: groupIdx)
+                            registerComponent(entityId: groupEntityId, componentType: DerivedAssetNodeComponent.self)
+                            if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: groupEntityId) {
+                                derived.assetRootEntityId = entityId
+                                derived.nodePath = nodePath
+                            }
+                        } else {
+                            groupEntityId = entityId
+                            if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+                                registerTransformComponent(entityId: entityId)
+                            }
+                            if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+                                registerSceneGraphComponent(entityId: entityId)
+                            }
+                        }
+
+                        // Seed transform and bounding box from the LOD0 MDLObject.
+                        if let lod0Level = group.levels.first(where: { $0.lodIndex == 0 }),
+                           let lod0Object = nameToObject[lod0Level.sourceName]
+                        {
+                            let worldTransform = composedWorldTransform(for: lod0Object)
+                            applyWorldTransform(worldTransform, to: groupEntityId)
+                            if let mdlMesh = lod0Object as? MDLMesh,
+                               let local = scene.get(component: LocalTransformComponent.self, for: groupEntityId)
+                            {
+                                local.boundingBox = (min: mdlMesh.boundingBox.minBounds, max: mdlMesh.boundingBox.maxBounds)
+                            }
+                        }
+
+                        // Build stub LODLevels: empty mesh + .notResident for every level.
+                        let maxLODIndex = group.levels.map(\.lodIndex).max() ?? 0
+                        var stubLODLevels: [LODLevel] = (0 ... maxLODIndex).map { lodIdx in
+                            LODLevel(
+                                mesh: [],
+                                maxDistance: defaultLODMaxDistance(for: lodIdx, configuredDistances: configuredDistances),
+                                url: url,
+                                assetName: nil
+                            )
+                        }
+                        for level in group.levels {
+                            stubLODLevels[level.lodIndex] = LODLevel(
+                                mesh: [],
+                                maxDistance: defaultLODMaxDistance(for: level.lodIndex, configuredDistances: configuredDistances),
+                                url: url,
+                                assetName: level.sourceName
+                            )
+                        }
+
+                        // Configure LODComponent with stubs (nothing resident yet).
+                        configureLODComponent(entityId: groupEntityId, lodLevels: stubLODLevels, activeLODIndex: 0)
+
+                        // StreamingComponent (.unloaded) so GeometryStreamingSystem picks this up.
+                        registerComponent(entityId: groupEntityId, componentType: StreamingComponent.self)
+                        if let sc = scene.get(component: StreamingComponent.self, for: groupEntityId) {
+                            sc.assetFilename = filename
+                            sc.assetExtension = withExtension
+                            sc.assetName = group.baseName
+                            sc.state = .unloaded
+                            // Placeholder radii — enableStreaming() sets the real values.
+                            sc.streamingRadius = Float.greatestFiniteMagnitude
+                            sc.unloadRadius = Float.greatestFiniteMagnitude
+                        }
+
+                        OctreeSystem.shared.registerEntity(groupEntityId)
+                        lodGroupEntityIds.append(groupEntityId)
+
+                        // Collect CPU entries (stored outside the gate below).
+                        for level in group.levels {
+                            guard let obj = nameToObject[level.sourceName] else { continue }
+                            let estimatedGPUBytes: Int = {
+                                guard let mdlMesh = obj as? MDLMesh else { return 0 }
+                                let stride = Int((mdlMesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48)
+                                return mdlMesh.vertexCount * stride + mdlMesh.vertexCount * 3 * 4
+                            }()
+                            let entry = ProgressiveAssetLoader.CPUMeshEntry(
+                                object: obj,
+                                vertexDescriptor: vertexDescriptor.model,
+                                textureLoader: assetData.textureLoader,
+                                device: renderInfo.device,
+                                url: url,
+                                filename: filename,
+                                withExtension: withExtension,
+                                uniqueAssetName: level.sourceName,
+                                estimatedGPUBytes: estimatedGPUBytes,
+                                residencyPolicy: loadingPolicy
+                            )
+                            cpuLODEntries.append((groupEntityId, level.lodIndex, entry))
+                        }
+                    }
+                }
+
+                // Store CPU LOD entries outside the gate (lock-based, no ECS mutation).
+                for (groupEntityId, lodIdx, entry) in cpuLODEntries {
+                    ProgressiveAssetLoader.shared.storeCPULODMesh(entry, for: groupEntityId, lodIndex: lodIdx)
+                }
+
+                // Keep MDLAsset alive so MDLMeshBufferDataAllocator is not prematurely released.
+                ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: entityId)
+                ProgressiveAssetLoader.shared.registerChildren(lodGroupEntityIds, for: entityId)
+                ProgressiveAssetLoader.shared.storeRootRehydrationContext(url: url, policy: loadingPolicy, for: entityId)
+
+                Logger.log(message: "[OutOfCore] '\(filename)': \(lodGroupEntityIds.count) LOD group entities registered — GeometryStreamingSystem will upload active LOD on demand")
+
+                await AssetLoadingState.shared.finishLoading(entityId: entityId)
+                completionBox?.call(true)
+                return
+            }
 
             if useOutOfCore {
                 // OUT-OF-CORE PATH ──────────────────────────────────────────────────────

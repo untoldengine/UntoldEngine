@@ -224,7 +224,7 @@ public enum RenderPasses {
     @inline(__always)
     private static func applyLODDebugColorOverride(
         entityId: EntityID? = nil,
-        batchKey: String? = nil,
+        batchGroup: BatchGroup? = nil,
         materialParameters: inout MaterialParametersUniform
     ) {
         guard SpatialDebugVisualization.shared.colorRenderablesByLOD else { return }
@@ -233,9 +233,12 @@ public enum RenderPasses {
         if let entityId,
            let lod = scene.get(component: LODComponent.self, for: entityId)
         {
+            // Non-batched path: read the live currentLOD directly.
             lodIndex = lod.currentLOD
-        } else if let batchKey {
-            lodIndex = extractLODIndex(from: batchKey)
+        } else if let batchGroup, batchGroup.isLODBatch {
+            // Batched path: only color batches that actually contain LOD entities.
+            // Non-LOD batches also have _LOD0 in their key but should not be tinted.
+            lodIndex = extractLODIndex(from: batchGroup.batchKey)
         } else {
             lodIndex = nil
         }
@@ -1264,7 +1267,7 @@ public enum RenderPasses {
                 0
             )
             applyLODDebugColorOverride(
-                batchKey: batchGroup.batchKey,
+                batchGroup: batchGroup,
                 materialParameters: &materialParameters
             )
             applyStreamingTierDebugColorOverride(batchMaterial: material, materialParameters: &materialParameters)

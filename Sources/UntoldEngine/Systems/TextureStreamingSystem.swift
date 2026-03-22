@@ -184,7 +184,21 @@ public class TextureStreamingSystem: @unchecked Sendable {
     private var totalUpgrades: Int = 0
     private var totalDowngrades: Int = 0
 
-    private init() {}
+    private init() {
+        // When an entity's LOD switches, its render.mesh is swapped to a different
+        // LOD level's mesh array. Any previously streamed textures live in the old
+        // mesh and are now unreachable. Remove the entity from upgradedEntities so
+        // the next update() tick re-evaluates and re-streams the new LOD's meshes.
+        SystemEventBus.shared.subscribeToLODChanges { [weak self] event in
+            self?.handleLODChange(event)
+        }
+    }
+
+    private func handleLODChange(_ event: EntityLODChangedEvent) {
+        lock.lock()
+        upgradedEntities.remove(event.entityId)
+        lock.unlock()
+    }
 
     // MARK: - Resolution Model
 
@@ -292,11 +306,12 @@ public class TextureStreamingSystem: @unchecked Sendable {
             // Keep non-visible downgrade tracking current for entities we visit.
             setTrackedAboveMinimum(entityId, isAboveMinimum: entityHasTexturesAboveMinimumTier(entityId: entityId))
 
-            let targetMaxDimension = desiredMaxDimension(distance: distance)
+            let targetMaxDimension = lodAwareMaxDimension(entityId: entityId, distanceBased: desiredMaxDimension(distance: distance))
             let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension, distance: distance)
             guard !workItems.isEmpty else { continue }
 
-            scheduleResolutionChange(entityId: entityId, distance: distance, workItems: workItems, targetMaxDimension: targetMaxDimension, isVisible: true)
+            let capturedLOD = scene.get(component: LODComponent.self, for: entityId)?.currentLOD
+            scheduleResolutionChange(entityId: entityId, distance: distance, workItems: workItems, targetMaxDimension: targetMaxDimension, isVisible: true, capturedLOD: capturedLOD)
             opsScheduled += 1
         }
 
@@ -321,7 +336,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
             }
 
             let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
-            let targetMaxDimension = desiredMaxDimension(distance: distance)
+            let targetMaxDimension = lodAwareMaxDimension(entityId: entityId, distanceBased: desiredMaxDimension(distance: distance))
             let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension, distance: distance)
             guard !workItems.isEmpty else {
                 lock.lock()
@@ -330,7 +345,8 @@ public class TextureStreamingSystem: @unchecked Sendable {
                 continue
             }
 
-            scheduleResolutionChange(entityId: entityId, distance: distance, workItems: workItems, targetMaxDimension: targetMaxDimension, isVisible: false)
+            let capturedLOD = scene.get(component: LODComponent.self, for: entityId)?.currentLOD
+            scheduleResolutionChange(entityId: entityId, distance: distance, workItems: workItems, targetMaxDimension: targetMaxDimension, isVisible: false, capturedLOD: capturedLOD)
             opsScheduled += 1
         }
     }
@@ -360,6 +376,30 @@ public class TextureStreamingSystem: @unchecked Sendable {
             return normalizedMediumDimension()
         }
         return normalizedMinimumDimension()
+    }
+
+    /// Returns the LOD-aware desired max dimension for an entity.
+    ///
+    /// For LOD-enabled entities, caps texture quality based on the active LOD index
+    /// so the system never streams full-res textures onto low-poly geometry:
+    /// - LOD 0 (highest detail): quality driven by distance
+    /// - LOD 1 … n-2 (intermediate): cap at `maxTextureDimension`
+    /// - LOD n-1 (lowest detail): cap at `minimumTextureDimension`
+    private func lodAwareMaxDimension(entityId: EntityID, distanceBased: Int?) -> Int? {
+        guard let lodComponent = scene.get(component: LODComponent.self, for: entityId),
+              lodComponent.lodLevels.count > 1
+        else { return distanceBased }
+
+        let activeLOD = lodComponent.currentLOD
+        guard activeLOD > 0 else { return distanceBased }
+
+        let isLowestDetail = activeLOD == lodComponent.lodLevels.count - 1
+        let lodCap = isLowestDetail ? normalizedMinimumDimension() : normalizedMediumDimension()
+
+        if let distDim = distanceBased {
+            return min(distDim, lodCap)
+        }
+        return lodCap
     }
 
     private func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
@@ -563,7 +603,8 @@ public class TextureStreamingSystem: @unchecked Sendable {
         distance: Float,
         workItems: [StreamWorkItem],
         targetMaxDimension: Int?,
-        isVisible: Bool
+        isVisible: Bool,
+        capturedLOD: Int? = nil
     ) {
         guard reserveOp(entityId) else { return }
 
@@ -667,6 +708,17 @@ public class TextureStreamingSystem: @unchecked Sendable {
                         }
                     }
                     guard scene.exists(entityId) else { return }
+
+                    // If the entity switched LOD levels while this op was in-flight,
+                    // the mesh indices in `loaded` now refer to a different LOD's mesh
+                    // layout. Discard the apply — the next update() tick will reschedule
+                    // against the new LOD's meshes with the correct indices.
+                    if let scheduledLOD = capturedLOD,
+                       let lodComp = scene.get(component: LODComponent.self, for: entityId),
+                       lodComp.currentLOD != scheduledLOD
+                    {
+                        return
+                    }
 
                     var didAnyChange = false
                     var didUpgrade = false

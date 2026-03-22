@@ -110,15 +110,26 @@ public class LODSystem: @unchecked Sendable {
 
         // Apply LOD bias
         let adjustedDistance = distance * LODConfig.shared.lodBias
+        let globalDistances = LODConfig.shared.lodDistances
 
-        // Find appropriate LOD level
+        // Find appropriate LOD level.
+        // Per-level maxDistance takes priority; fall back to LODConfig.lodDistances[index]
+        // when maxDistance is 0 (unset). This lets users configure distances either
+        // per-level at registration time OR globally via LODConfig.
         for (index, lodLevel) in lodComponent.lodLevels.enumerated() {
-            var threshold = lodLevel.maxDistance
+            let baseThreshold: Float
+            if lodLevel.maxDistance > 0 {
+                baseThreshold = lodLevel.maxDistance
+            } else if index < globalDistances.count {
+                baseThreshold = globalDistances[index]
+            } else {
+                continue // No threshold available for this level — skip
+            }
 
             // Apply hysteresis when switching to higher detail (prevents flickering)
-            if index < currentLOD {
-                threshold -= LODConfig.shared.hysteresis
-            }
+            let threshold = index < currentLOD
+                ? baseThreshold - LODConfig.shared.hysteresis
+                : baseThreshold
 
             if adjustedDistance <= threshold {
                 return index

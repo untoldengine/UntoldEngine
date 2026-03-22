@@ -346,7 +346,8 @@ public class LODComponent: Component {
     /// Check if the desired LOD level has a resident mesh
     public func isLODResident(_ lodIndex: Int) -> Bool {
         guard lodIndex >= 0, lodIndex < lodLevels.count else { return false }
-        return !lodLevels[lodIndex].mesh.isEmpty
+        let level = lodLevels[lodIndex]
+        return level.residencyState == .resident && !level.mesh.isEmpty
     }
 
     /// Find the best available fallback LOD (coarser than desired)
