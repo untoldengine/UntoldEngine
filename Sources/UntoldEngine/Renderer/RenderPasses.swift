@@ -28,11 +28,12 @@ public enum RenderPasses {
     ]
 
     /// Streaming tier debug colors.
-    /// Blue = full resolution, Red = capped/reduced, Yellow = in-flight.
+    /// Blue = full resolution, Orange = medium (capped), Red = minimum, Yellow = in-flight.
     private static let streamingTierDebugColors: [simd_float3] = [
-        simd_float3(0.1, 0.4, 1.0), // full      = blue
-        simd_float3(1.0, 0.2, 0.1), // capped     = red
-        simd_float3(1.0, 0.85, 0.0), // in-flight = yellow
+        simd_float3(0.1, 0.4, 1.0),  // [0] full     = blue
+        simd_float3(1.0, 0.55, 0.0), // [1] capped    = orange
+        simd_float3(1.0, 0.2, 0.1),  // [2] minimum   = red
+        simd_float3(1.0, 0.85, 0.0), // [3] in-flight = yellow
     ]
 
     private struct SpatialDebugColorKey: Hashable {
@@ -272,9 +273,13 @@ public enum RenderPasses {
 
         let color: simd_float3
         if inFlight {
-            color = streamingTierDebugColors[2]
+            color = streamingTierDebugColors[3]
         } else {
-            color = streamingLevel == .full ? streamingTierDebugColors[0] : streamingTierDebugColors[1]
+            switch streamingLevel {
+            case .full:    color = streamingTierDebugColors[0]
+            case .capped:  color = streamingTierDebugColors[1]
+            case .minimum: color = streamingTierDebugColors[2]
+            }
         }
 
         materialParameters.baseColor = simd_float4(color.x, color.y, color.z, materialParameters.baseColor.w)

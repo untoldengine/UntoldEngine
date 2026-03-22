@@ -48,6 +48,82 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
     // MARK: - Configuration
 
+    // MARK: - Profiles
+
+    /// Built-in tuning presets for common scene types.
+    ///
+    /// Apply at setup time via `TextureStreamingSystem.shared.apply(.archviz)`.
+    /// Individual properties can be overridden after applying a profile.
+    public enum Profile {
+        /// Indoor archviz scenes (living rooms, kitchens, offices).
+        ///
+        /// Prioritises quality over memory: full res within arm's reach,
+        /// high minimum (512 px) because "distant" objects in a room are
+        /// still large on screen, wide hysteresis to avoid mid-walkthrough
+        /// transitions, and more concurrent ops since ops are GPU-bound.
+        ///
+        /// Typical room depth: 4–7 m.
+        case archviz
+
+        /// Large outdoor / open-world scenes (cities, landscapes, terrain).
+        ///
+        /// Spreads three tiers across a much wider distance range so that
+        /// GPU memory stays bounded while the camera traverses hundreds of
+        /// metres. Minimum stays at 256 px — distant objects are tiny.
+        case openWorld
+
+        /// Balanced default for mid-size interior or mixed scenes.
+        ///
+        /// Suitable as a starting point when the scene type is unknown.
+        case balanced
+    }
+
+    /// Apply a built-in tuning profile, overwriting all streaming parameters.
+    ///
+    /// ```swift
+    /// // At scene init:
+    /// TextureStreamingSystem.shared.apply(.archviz)
+    ///
+    /// // Fine-tune a single value afterwards if needed:
+    /// TextureStreamingSystem.shared.upgradeRadius = 3.0
+    /// ```
+    public func apply(_ profile: Profile) {
+        switch profile {
+
+        case .archviz:
+            // Full res within inspection distance; almost nothing in a living
+            // room is beyond 6 m, so the minimum tier fires rarely.
+            upgradeRadius = 2.5
+            downgradeRadius = 6.0
+            maxTextureDimension = 1024
+            minimumTextureDimension = 512   // 256 px looks muddy on a wall at 5 m
+            hysteresisFraction = 0.20       // wider dead band — no transitions mid-walkthrough
+            maxConcurrentOps = 6            // GPU-bound; no disk I/O on warm path
+            updateInterval = 0.1            // more responsive at walking speed
+
+        case .openWorld:
+            // Spread tiers across a city-block / landscape scale.
+            upgradeRadius = 15.0
+            downgradeRadius = 60.0
+            maxTextureDimension = 1024
+            minimumTextureDimension = 256   // distant objects are tiny on screen
+            hysteresisFraction = 0.15
+            maxConcurrentOps = 3
+            updateInterval = 0.2
+
+        case .balanced:
+            upgradeRadius = 12.0
+            downgradeRadius = 20.0
+            maxTextureDimension = TextureStreamingSystem.platformDefaultMaxTextureDimension
+            minimumTextureDimension = TextureStreamingSystem.platformDefaultMinimumTextureDimension
+            hysteresisFraction = 0.15
+            maxConcurrentOps = 3
+            updateInterval = 0.2
+        }
+    }
+
+    // MARK: - Configuration
+
     /// Enable/disable texture streaming
     public var enabled: Bool = true
 
@@ -550,6 +626,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
             return
         }
 
+        // Capture minimum dimension before spawning the Task so the apply-side
+        // level assignment uses the same threshold that was in effect at schedule time.
+        let capturedMinimumDim = normalizedMinimumDimension()
+
         Task {
             var loaded: [LoadedTexture] = []
             loaded.reserveCapacity(budgetedWorkItems.count)
@@ -593,21 +673,30 @@ public class TextureStreamingSystem: @unchecked Sendable {
                     var didDowngrade = false
 
                     for item in loaded {
+                        // Resolve the three-tier streaming level from the item's target
+                        // dimension. Both .capped (medium) and .minimum use the same
+                        // `.capped` value in the old two-case enum, which made
+                        // reconcileStreamingTexturesAfterArtifact blind to medium→minimum
+                        // downgrades that happened while a batch artifact was building.
+                        let streamLevel: TextureStreamingLevel = {
+                            guard let dim = item.targetMaxDimension else { return .full }
+                            return dim <= capturedMinimumDim ? .minimum : .capped
+                        }()
+
                         let applied = updateMaterial(entityId: entityId, meshIndex: item.meshIndex, submeshIndex: item.submeshIndex) { material in
-                            let isFull = item.targetMaxDimension == nil
                             switch item.textureType {
                             case .baseColor:
                                 material.baseColor.texture = item.texture
-                                material.baseColorStreamingLevel = isFull ? .full : .capped
+                                material.baseColorStreamingLevel = streamLevel
                             case .roughness:
                                 material.roughness.texture = item.texture
-                                material.roughnessStreamingLevel = isFull ? .full : .capped
+                                material.roughnessStreamingLevel = streamLevel
                             case .metallic:
                                 material.metallic.texture = item.texture
-                                material.metallicStreamingLevel = isFull ? .full : .capped
+                                material.metallicStreamingLevel = streamLevel
                             case .normal:
                                 material.normal.texture = item.texture
-                                material.normalStreamingLevel = isFull ? .full : .capped
+                                material.normalStreamingLevel = streamLevel
                             }
                         }
 
@@ -626,20 +715,23 @@ public class TextureStreamingSystem: @unchecked Sendable {
                     // new texture is visible on the next frame with zero batch churn.
                     BatchingSystem.shared.updateBatchMaterialInPlace(for: entityId) { batchMaterial in
                         for item in loaded {
-                            let isFull = item.targetMaxDimension == nil
+                            let streamLevel: TextureStreamingLevel = {
+                                guard let dim = item.targetMaxDimension else { return .full }
+                                return dim <= capturedMinimumDim ? .minimum : .capped
+                            }()
                             switch item.textureType {
                             case .baseColor:
                                 batchMaterial.baseColor.texture = item.texture
-                                batchMaterial.baseColorStreamingLevel = isFull ? .full : .capped
+                                batchMaterial.baseColorStreamingLevel = streamLevel
                             case .roughness:
                                 batchMaterial.roughness.texture = item.texture
-                                batchMaterial.roughnessStreamingLevel = isFull ? .full : .capped
+                                batchMaterial.roughnessStreamingLevel = streamLevel
                             case .metallic:
                                 batchMaterial.metallic.texture = item.texture
-                                batchMaterial.metallicStreamingLevel = isFull ? .full : .capped
+                                batchMaterial.metallicStreamingLevel = streamLevel
                             case .normal:
                                 batchMaterial.normal.texture = item.texture
-                                batchMaterial.normalStreamingLevel = isFull ? .full : .capped
+                                batchMaterial.normalStreamingLevel = streamLevel
                             }
                         }
                     }
