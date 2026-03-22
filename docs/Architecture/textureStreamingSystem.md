@@ -335,16 +335,22 @@ Sharing still works correctly: two code paths that hold a reference to the **sam
 
 ### outputURL vs. cacheKeyURL
 
-The cache key and the URL stored in `material.baseColorURL` (etc.) are different values:
+Both values use the same strategy: bracket URL when available, object-identity URL otherwise.
 
 | Field | Value | Used by |
 |---|---|---|
 | `cacheKeyURL` | Bracket URL or object-identity URL | GPU `textureCache` lookup only |
-| `outputURL` → `material.baseColorURL` | Bracket URL or name-based stable URL | `BatchingSystem.getMaterialHash`, `TextureStreamingSystem` source reference |
+| `outputURL` → `material.baseColorURL` | Bracket URL or object-identity URL | `BatchingSystem.getMaterialHash`, `TextureStreamingSystem` source reference |
 
-This split ensures that:
-- The GPU cache never has collisions (object identity is unique)
-- Material hashing and batching see stable, cross-entity-consistent URLs (name-based URL is the same for all entities in the same USDZ that share a material)
+**Why both use object identity when bracket notation is absent:**
+
+The name-based fallback (`usdz-embedded://scene.usdz/embedded_Basecolor_map`) is the same string for every unnamed texture from the same USDZ, regardless of its actual pixel content. `BatchingSystem.normalizeTextureURL` then strips the asset-scope host, collapsing all unnamed textures to the same token (`usdz-embedded://embedded_Basecolor_map`). This causes `getMaterialHash` to produce the same hash for entities with genuinely different textures, grouping them into one batch and rendering all of them with the first entity's GPU texture — the wrong texture on every other entity.
+
+Using object identity for `outputURL` as well means:
+- Same MDLTexture pointer → same physical texture → same `material.baseColorURL` → same batch hash → share a batch group ✓
+- Different MDLTexture pointers → different physical textures → different `material.baseColorURL` → different batch hash → separate batch groups ✓
+
+The MDLAsset is kept alive in `ProgressiveAssetLoader.rootAssetRefs` for the entity's lifetime, so MDLTexture pointers are stable across warm eviction/re-upload cycles.
 
 ### Diagnostic Logging
 
