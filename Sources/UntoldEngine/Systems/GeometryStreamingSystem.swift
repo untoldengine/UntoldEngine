@@ -25,8 +25,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Lower values reduce frame spikes when many entities leave range at once.
     public var maxUnloadsPerUpdate: Int = 12
 
-    /// How often to check for load/unload (seconds)
+    /// How often to check for load/unload (seconds) during steady-state streaming.
     public var updateInterval: Float = 0.1
+
+    /// Tick interval used during initial hydration bursts (near-band backlog > 0).
+    /// A fast tick drains the queue quickly rather than waiting the full updateInterval
+    /// between each batch dispatch. Default: ~60 fps equivalent.
+    public var burstTickInterval: Float = 0.016
 
     /// Maximum radius to query from octree (should cover largest unload radius)
     public var maxQueryRadius: Float = 500.0
@@ -76,6 +81,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     private var diagnostics: GeometryStreamingDiagnosticsSnapshot = .init()
     private var cumulativeAsyncLoadMs: Double = 0.0
     private var completedAsyncLoads: Int = 0
+
+    /// First-detection timestamps (CFAbsoluteTime) keyed by entity ID.
+    /// Records when each entity first appeared as a load candidate so we can measure
+    /// scheduler latency: time from entering range to actual dispatch.
+    /// Accessed only from update() and its synchronous callees — no lock needed.
+    private var firstRangeTimestamps: [EntityID: Double] = [:]
 
     private init() {}
 
@@ -150,9 +161,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         let activeLoadsAtStart = activeLoadCountSnapshot()
 
-        // Throttle updates
+        // Throttle updates. Switch to a fast tick when there is a pending near-band
+        // backlog so initial hydration bursts drain quickly. Reverts to the normal
+        // updateInterval once the backlog clears.
+        let effectiveInterval = lastPendingLoadBacklog > 0 ? burstTickInterval : updateInterval
         timeSinceLastUpdate += deltaTime
-        guard timeSinceLastUpdate >= updateInterval else {
+        guard timeSinceLastUpdate >= effectiveInterval else {
             withStateLock {
                 diagnostics.updateFrame = currentFrame
                 diagnostics.updateTriggered = false
@@ -190,6 +204,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             case .unloaded:
                 // Small epsilon to handle floating-point boundary cases (e.g., 200.0001 vs 200.0)
                 if distance <= streaming.streamingRadius + 1.0 {
+                    // Record first-detection time once; used to measure tick-to-dispatch latency.
+                    if firstRangeTimestamps[entityId] == nil {
+                        firstRangeTimestamps[entityId] = CFAbsoluteTimeGetCurrent()
+                    }
                     loadCandidates.append((entityId, distance, streaming.priority))
                 }
 
@@ -293,15 +311,66 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         lastPendingLoadBacklog = max(0, loadCandidates.count - max(0, availableSlots))
         var startedLoads = 0
 
+        // [Instrumentation] Log queue depth every tick that has candidates.
+        // Helps confirm whether near-band serialization is building a backlog.
+        if !loadCandidates.isEmpty {
+            Logger.log(message: "[OOC-Timing] Queue: near=\(nearBandCandidates.count) rest=\(restBandCandidates.count) activeNear=\(activeNearBandLoadCount()) activeTotal=\(activeLoadCountSnapshot()) slots=\(availableSlots) backlog=\(lastPendingLoadBacklog)")
+        }
+
+        
+        // Determine effective near-band concurrency for this tick.
+        //
+        // Default (nearBandMaxConcurrentLoads = 1): serializes near-band loads so the
+        // closest mesh always appears before farther ones — prevents random pop-in order
+        // across different objects.
+        //
+        // Burst exception: when every near-band candidate shares the same root asset
+        // (i.e., all are sub-meshes of one USDZ), the distance-ordering goal is already
+        // satisfied at the asset level and per-mesh serialization only wastes slots.
+        // In that case, allow the full global concurrency — the per-asset texture lock
+        // is the actual safety gate against MDLAsset races.
+        let nearBandEffectiveMax: Int = {
+            guard nearBandCandidates.count > 1 else { return nearBandMaxConcurrentLoads }
+            var commonRoot: EntityID? = nil
+            for (entityId, _, _) in nearBandCandidates {
+                guard let r = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId else {
+                    return nearBandMaxConcurrentLoads // non-OOC entity → keep default ordering
+                }
+                if commonRoot == nil { commonRoot = r }
+                else if commonRoot != r { return nearBandMaxConcurrentLoads } // multiple roots → keep ordering
+            }
+            return commonRoot != nil ? maxConcurrentLoads : nearBandMaxConcurrentLoads
+        }()
+
         // Geometry-only gate: texture memory does not block mesh loads.
         // Texture pressure is managed independently by TextureStreamingSystem.
         if !MemoryBudgetManager.shared.shouldEvictGeometry() {
-            // Near band: serialized (nearBandMaxConcurrentLoads = 1 by default)
+            // Near band: serialized by default; expanded to maxConcurrentLoads for single-root bursts.
             let nearSlots = max(0, min(
-                nearBandMaxConcurrentLoads - activeNearBandLoadCount(),
+                nearBandEffectiveMax - activeNearBandLoadCount(),
                 availableSlots - startedLoads
             ))
-            for (entityId, _, _) in nearBandCandidates.prefix(nearSlots) {
+            var nearDispatched = 0
+            for (entityId, _, _) in nearBandCandidates {
+                guard nearDispatched < nearSlots else { break }
+                // Skip OOC child entities whose CPU data isn't registered yet.
+                // Dispatching them wastes a slot on a disk-path fallback that will fail —
+                // CPU entries are populated by the registration system shortly after this tick.
+                // Cold roots are exempt: they rehydrate intentionally from disk.
+                if let rootId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId {
+                    // Skip entities whose CPU data isn't registered yet (pre-streaming slot jam).
+                    if !ProgressiveAssetLoader.shared.isColdRoot(rootId),
+                       ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) == nil,
+                       !ProgressiveAssetLoader.shared.hasCPULODData(for: entityId) {
+                        continue
+                    }
+                    // Defer dispatch until background prewarm releases the per-asset texture lock.
+                    // Dispatching while prewarm holds the lock blocks the first batch for the full
+                    // remaining prewarm duration (~1-2 s). Wait until lockWait ≈ 0.
+                    if ProgressiveAssetLoader.shared.isPrewarmActive(for: rootId) {
+                        continue
+                    }
+                }
                 // Per-candidate geometry budget check: evict if this mesh won't fit.
                 if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
                    !MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes)
@@ -312,11 +381,26 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 }
                 loadMesh(entityId: entityId, isNearBand: true)
                 startedLoads += 1
+                nearDispatched += 1
             }
 
             // Rest band: remaining global slots
             let restSlots = max(0, availableSlots - startedLoads)
-            for (entityId, _, _) in restBandCandidates.prefix(restSlots) {
+            var restDispatched = 0
+            for (entityId, _, _) in restBandCandidates {
+                guard restDispatched < restSlots else { break }
+                // Same guard: skip OOC child entities whose CPU data isn't ready yet.
+                if let rootId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId {
+                    if !ProgressiveAssetLoader.shared.isColdRoot(rootId),
+                       ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) == nil,
+                       !ProgressiveAssetLoader.shared.hasCPULODData(for: entityId) {
+                        continue
+                    }
+                    // Defer until background prewarm releases the texture lock.
+                    if ProgressiveAssetLoader.shared.isPrewarmActive(for: rootId) {
+                        continue
+                    }
+                }
                 // Per-candidate geometry budget check for out-of-core rest-band entities.
                 if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
                    !MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes)
@@ -327,6 +411,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 }
                 loadMesh(entityId: entityId, isNearBand: false)
                 startedLoads += 1
+                restDispatched += 1
             }
         }
 
@@ -358,6 +443,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         streaming.state = .loading
         BatchingSystem.shared.notifyEntityStreamingStarted(entityId: entityId)
+
+        // [Instrumentation] Measure scheduler latency: time from first range-detection to dispatch.
+        if let firstDetected = firstRangeTimestamps.removeValue(forKey: entityId) {
+            let tickToDispatchMs = (CFAbsoluteTimeGetCurrent() - firstDetected) * 1000.0
+            Logger.log(message: "[OOC-Timing] Entity \(entityId): tick-to-dispatch=\(String(format: "%.1f", tickToDispatchMs))ms band=\(isNearBand ? "near" : "rest")")
+        }
 
         // Check if entity has LOD component and CPU LOD data (LOD+OOC path)
         let hasLOD = scene.get(component: LODComponent.self, for: entityId) != nil
@@ -546,21 +637,28 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // asset.loadTextures() exactly once, deferred from parse time to first-upload time
         // so the full texture decompression spike doesn't happen before any mesh is rendered.
         let rootEntityId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId
+        var lockWaitMs: Double = 0
+        var textureMs: Double = 0
         if let rootId = rootEntityId {
+            // [Instrumentation] Measure time blocked waiting for the per-asset texture lock.
+            let lockStart = CFAbsoluteTimeGetCurrent()
             ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootId)
-            // Always call ensureTexturesLoaded before makeMeshesFromCPUBuffers, regardless
-            // of texture policy. This calls asset.loadTextures() exactly once per asset,
-            // deferred from parse time to first-upload time. The deferral is the key safety
-            // improvement — it avoids an OOM spike before any GPU work starts.
-            //
-            // The `.streaming` vs `.eager` texture policy distinction controls whether
-            // TextureStreamingSystem manages resolution tiers by camera distance — it does
-            // NOT determine whether loadTextures() is called. USDZ-embedded textures require
-            // loadTextures() to have been called before MTKTextureLoader can decode them;
-            // skipping it causes textures to silently fail on assets whose MDLTexture
-            // objects have no pixel data until the whole-asset decode runs.
+            lockWaitMs = (CFAbsoluteTimeGetCurrent() - lockStart) * 1000.0
+
+            // [Instrumentation] Measure ensureTexturesLoaded duration.
+            // Non-zero only on the FIRST upload from this asset; subsequent calls are no-ops.
+            let textureStart = CFAbsoluteTimeGetCurrent()
+            // Always call ensureTexturesLoaded before makeMeshesFromCPUBuffers. This calls
+            // asset.loadTextures() exactly once per asset — USDZ-embedded textures require it
+            // before MTKTextureLoader can decode them. The lock scope ends here: the MDLAsset
+            // is in a stable read-only state after loadTextures() and concurrent GPU uploads
+            // from the same asset are safe without the lock.
             ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootId)
+            textureMs = (CFAbsoluteTimeGetCurrent() - textureStart) * 1000.0
+            ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootId)
         }
+        // [Instrumentation] Measure CPU→Metal buffer copy time.
+        let copyStart = CFAbsoluteTimeGetCurrent()
         let meshes = Mesh.makeMeshesFromCPUBuffers(
             object: cpuEntry.object,
             vertexDescriptor: cpuEntry.vertexDescriptor,
@@ -568,9 +666,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             device: cpuEntry.device,
             flip: true
         )
-        if let rootId = rootEntityId {
-            ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootId)
-        }
+        let copyMs = (CFAbsoluteTimeGetCurrent() - copyStart) * 1000.0
+        Logger.log(message: "[OOC-Timing] Entity \(entityId) '\(cpuEntry.uniqueAssetName)': lockWait=\(String(format: "%.1f", lockWaitMs))ms textures=\(String(format: "%.1f", textureMs))ms cpuToMetal=\(String(format: "%.1f", copyMs))ms")
 
         guard !meshes.isEmpty else {
             Logger.logError(message: "[OutOfCore] CPU→Metal upload failed for entity \(entityId) ('\(cpuEntry.uniqueAssetName)')")
@@ -635,9 +732,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             return false
         }
 
-        // Serialize texture loading — MDLAsset is not thread-safe.
+        // Ensure loadTextures() has been called before any MTKTextureLoader decoding.
+        // The lock scope covers only ensureTexturesLoaded — the MDLAsset is read-only after
+        // that point and concurrent GPU uploads across LOD levels are safe without it.
         ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootEntityId)
         ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootEntityId)
+        ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootEntityId)
 
         // Upload every LOD level from CPU to Metal.
         var uploadedMeshes: [Int: [Mesh]] = [:]
@@ -660,8 +760,6 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
             uploadedMeshes[lodIndex] = namedMeshes
         }
-
-        ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootEntityId)
 
         guard !uploadedMeshes.isEmpty else {
             Logger.logError(message: "[OutOfCore] LOD+OOC entity \(entityId): all LOD level uploads failed")
@@ -921,6 +1019,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
               streaming.state == .loaded
         else { return }
+
+        // Clear first-detection timestamp so a future re-approach records a fresh baseline.
+        firstRangeTimestamps.removeValue(forKey: entityId)
 
         let unloadStart = CFAbsoluteTimeGetCurrent()
         withWorldMutationGate {

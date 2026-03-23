@@ -153,6 +153,13 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     /// uploads from the same asset skip the call.
     private var assetTexturesLoaded: Set<EntityID> = []
 
+    /// Root entity IDs whose background prewarm task is currently executing `loadTextures()`.
+    /// Entities belonging to a root in this set are deferred by the scheduler: dispatching
+    /// them while the prewarm holds the per-asset texture lock would block the entire first
+    /// batch for the full remaining prewarm duration (~1-2 s). Slots stay free until the
+    /// prewarm releases the lock, then the burst fires with lockWait ≈ 0.
+    private var activePrewarmRoots: Set<EntityID> = []
+
     // MARK: Warm / Cold Residency State
 
     /// Root entity IDs whose CPU data (MDLAsset + cpuMeshRegistry entries) has been released.
@@ -230,6 +237,47 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         rootAssetRefs[rootEntityId] = asset
         assetTextureLocks[rootEntityId] = NSLock()
         lock.unlock()
+        // Kick off a background pre-warm so loadTextures() completes before any mesh
+        // enters streaming range. This moves the first-texture penalty off the critical
+        // upload path — the per-asset lock ensures at-most-once execution.
+        prewarmTexturesAsync(for: rootEntityId)
+    }
+
+    /// Returns `true` while the background prewarm task for `rootEntityId` is running.
+    ///
+    /// The scheduler uses this to defer dispatching entities for this root until the prewarm
+    /// releases the per-asset texture lock. Once it returns `false`, the next burst tick
+    /// dispatches the full first batch with lockWait ≈ 0.
+    func isPrewarmActive(for rootEntityId: EntityID) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return activePrewarmRoots.contains(rootEntityId)
+    }
+
+    /// Fire a background task to call `loadTextures()` on this root asset's MDLAsset.
+    ///
+    /// Runs at user-initiated priority so it completes quickly before meshes enter range.
+    /// `ensureTexturesLoaded` is idempotent — if the upload path races and calls it first,
+    /// the pre-warm becomes a no-op, and vice versa. The per-asset texture lock prevents
+    /// both from running `loadTextures()` simultaneously.
+    /// Marks `activePrewarmRoots` while running so the scheduler can defer dispatch.
+    private func clearPrewarmActive(for rootEntityId: EntityID) {
+        lock.lock()
+        activePrewarmRoots.remove(rootEntityId)
+        lock.unlock()
+    }
+
+    private func prewarmTexturesAsync(for rootEntityId: EntityID) {
+        guard textureLoadingEnabled else { return }
+        lock.lock()
+        activePrewarmRoots.insert(rootEntityId)
+        lock.unlock()
+        Task.detached(priority: .userInitiated) {
+            ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootEntityId)
+            ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootEntityId)
+            ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootEntityId)
+            ProgressiveAssetLoader.shared.clearPrewarmActive(for: rootEntityId)
+        }
     }
 
     /// Acquire the per-asset texture-load lock before calling makeMeshesFromCPUBuffers.
@@ -268,7 +316,13 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         guard textureLoadingEnabled else { return }
 
         Logger.log(message: "[OutOfCore] Deferred loadTextures() for root entity \(rootEntityId) — loading textures at first upload")
+        // [Instrumentation] Time the first-texture penalty: loadTextures() is only called
+        // once per asset, but it decodes all embedded textures synchronously. If this is
+        // large it confirms the first-texture setup cost as a dominant bottleneck.
+        let loadTexturesStart = CFAbsoluteTimeGetCurrent()
         asset.loadTextures()
+        let loadTexturesMs = (CFAbsoluteTimeGetCurrent() - loadTexturesStart) * 1000.0
+        Logger.log(message: "[OOC-Timing] Root \(rootEntityId): loadTextures() first-texture penalty=\(String(format: "%.1f", loadTexturesMs))ms")
 
         lock.lock()
         assetTexturesLoaded.insert(rootEntityId)
@@ -379,9 +433,10 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
             cpuMeshRegistry.removeValue(forKey: childId)
             cpuLODRegistry.removeValue(forKey: childId)
         }
-        // Clear warm/cold lifecycle state.
+        // Clear warm/cold lifecycle state and prewarm tracking.
         coldRoots.remove(rootEntityId)
         rootRehydrationContexts.removeValue(forKey: rootEntityId)
+        activePrewarmRoots.remove(rootEntityId)
         let task = coldRehydrationTasks.removeValue(forKey: rootEntityId)
         lock.unlock()
         task?.cancel()
@@ -413,6 +468,7 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         assetTexturesLoaded.removeAll()
         coldRoots.removeAll()
         rootRehydrationContexts.removeAll()
+        activePrewarmRoots.removeAll()
         let tasks = Array(coldRehydrationTasks.values)
         coldRehydrationTasks.removeAll()
         lock.unlock()

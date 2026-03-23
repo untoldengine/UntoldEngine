@@ -16,8 +16,10 @@ Imagine your city block USDZ is broken into many individually registered entitie
 
 The engine calls this every frame. Here's what happens:
 
-### 1. Throttle Check (line 107)
-The system only does real work every **0.1 seconds** (`updateInterval`). Between ticks, it's a no-op. This prevents wasting CPU every single frame.
+### 1. Throttle Check
+The system normally does real work every **0.1 seconds** (`updateInterval`). Between ticks, it's a no-op. This prevents wasting CPU every single frame.
+
+When `lastPendingLoadBacklog > 0` (candidates are queued but all slots are busy), the effective interval drops to `burstTickInterval` (default 16 ms). This prevents a 100 ms stall between slot pickups during active loading. The tick rate returns to 100 ms once the backlog drains.
 
 ### 2. Spatial Query via Octree (line 123)
 Instead of checking all 500 city entities, it asks the `OctreeSystem`:
@@ -58,9 +60,17 @@ Unload candidates are **sorted farthest-first** (most wasteful memory first). Up
 
 ---
 
-## Loading: Async, Concurrency-Limited (lines 200–214)
+## Loading: Async, Concurrency-Limited
 
 Load candidates are **sorted by priority then distance** (high priority + closest first). Only `maxConcurrentLoads = 3` can be active simultaneously.
+
+Before dispatching, the scheduler applies three guards in order:
+
+1. **CPU-entry readiness** — OOC entities whose `CPUMeshEntry` is not yet stored in `ProgressiveAssetLoader` are skipped. This prevents pre-streaming stubs from holding slots while registration is still running.
+2. **Prewarm-active deferral** — entities for roots whose background texture prewarm is still running are skipped. Dispatching while the prewarm holds the per-asset texture lock would block all concurrent slots for the remaining prewarm duration. Slots stay free until `isPrewarmActive` returns `false`.
+3. **Per-candidate geometry budget check** — if the candidate's estimated GPU footprint would exceed the geometry budget, `evictLRU` is called first.
+
+When all near-band candidates share one `assetRootEntityId`, the near-band concurrency limit expands from `nearBandMaxConcurrentLoads` to `maxConcurrentLoads`. All sub-meshes of one USDZ are treated as a single burst rather than being serialized one-at-a-time.
 
 `loadMesh()` does:
 1. Reserves a slot in `activeLoads` (thread-safe via `NSLock`)
@@ -159,6 +169,12 @@ Player spawns at corner of city block
 The key design decisions here are:
 - **Octree spatial query** prevents O(n) entity iteration every tick
 - **Concurrency cap (3)** prevents GPU/IO saturation during fast movement
+- **Adaptive tick rate** — 16 ms during backlog, 100 ms steady-state — prevents stalls between slot pickups without wasting CPU when idle
+- **Single-root burst detection** — when all near-band candidates are sub-meshes of one asset, concurrency expands to the global cap so the asset loads in parallel rather than one mesh at a time
+- **Background texture prewarm** — `loadTextures()` runs at registration time so the first-upload path is a no-op and lock wait ≈ 0
+- **Prewarm-active deferral** — dispatch is held until the prewarm releases the texture lock, keeping all slots free for the burst
+- **Narrowed texture lock scope** — the per-asset lock covers only `ensureTexturesLoaded`; `makeMeshesFromCPUBuffers` runs outside the lock so all slots upload in parallel
+- **CPU-entry readiness guard** — stubs registered before their CPU data is ready are skipped rather than wasting a slot
 - **Unload-before-load** ordering ensures you free memory before consuming more
 - **Cache ownership** means unloading just clears references, actual GPU memory is reused if the same mesh comes back into range
 - **Geometry-only load gate** prevents texture upgrades from blocking mesh loads — each domain is budgeted independently

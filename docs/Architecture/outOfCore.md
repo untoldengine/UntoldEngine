@@ -341,20 +341,62 @@ The load gate uses **geometry-only pressure** so that texture upgrades on alread
 
 This prevents in-range stubs from uploading simultaneously and pushing GPU memory past the OS kill threshold. The geometry-only gate also prevents the budget-exhaustion/eviction deadlock that occurs on scenes where every entity fits within the streaming radius: texture upgrades no longer consume geometry headroom, so all stubs can load regardless of how much texture memory is in use.
 
+### Adaptive tick rate
+
+By default `update()` runs every `updateInterval` (0.1 s). When `lastPendingLoadBacklog > 0` — meaning candidates were queued but not dispatched due to the concurrency cap — the tick interval drops to `burstTickInterval` (default 16 ms). This prevents a 100 ms cadence stall while work is actively waiting for a slot.
+
+```
+backlog > 0 → tick at 16 ms   (burst mode)
+backlog = 0 → tick at 100 ms  (steady state)
+```
+
+The tick rate returns to 100 ms automatically once the backlog drains.
+
 ### Distance-banded concurrency
 
 Load candidates are split into two bands before any load starts:
 
 ```
 Near band:  distance ≤ streamingRadius × nearBandFraction (default 0.33)
-            → serialized: nearBandMaxConcurrentLoads (default 1) in-flight at a time
+            → normally serialized: nearBandMaxConcurrentLoads (default 1) in-flight at a time
             → guarantees distance-ordered appearance for the closest meshes
 
 Rest band:  distance > streamingRadius × nearBandFraction
             → uses remaining global slots (maxConcurrentLoads − near-band in-flight)
 ```
 
-Near-band loads are tracked in a separate `activeNearBandLoads` set so the concurrency limit is enforced independently of the global slot count. This means the closest mesh always completes before the next-closest starts, avoiding random-order pop-in.
+Near-band loads are tracked in a separate `activeNearBandLoads` set so the concurrency limit is enforced independently of the global slot count.
+
+#### Single-root burst detection
+
+When all near-band candidates share the same `assetRootEntityId` (e.g. all 75 meshes are sub-objects of one USDZ), distance-ordering within the asset is already guaranteed at the asset level. Per-mesh serialization in this case only wastes slots. The system detects this and expands `nearBandEffectiveMax` to `maxConcurrentLoads` for that tick:
+
+```
+all near-band candidates share one root → nearBandEffectiveMax = maxConcurrentLoads (3)
+mixed roots or non-OOC entities          → nearBandEffectiveMax = nearBandMaxConcurrentLoads (1)
+```
+
+The per-asset texture lock remains the actual safety gate against MDLAsset races.
+
+### Prewarm-active dispatch deferral
+
+When `storeAsset` is called, a background `Task` immediately starts running `loadTextures()` on the asset (the prewarm). If `GeometryStreamingSystem` dispatches an upload while the prewarm task holds the per-asset texture lock, the upload blocks for the full remaining prewarm duration — typically 1–2 s — wasting all concurrent slots.
+
+The scheduler avoids this by checking `ProgressiveAssetLoader.shared.isPrewarmActive(for: rootId)` before dispatching any entity. Entities for roots with an active prewarm are skipped; their candidates remain in the backlog (and burst-tick mode keeps checking at 16 ms). Once the prewarm completes and releases the lock, `isPrewarmActive` returns `false` and the next tick dispatches the full batch with lock wait ≈ 0 ms.
+
+### CPU-entry readiness guard
+
+Stub entities with a `StreamingComponent` may appear in the near-band candidate list before their `CPUMeshEntry` has been stored in `ProgressiveAssetLoader` (registration happens async in parallel with the streaming system running). Dispatching such an entity wastes a slot on a fallback that will fail.
+
+The dispatch loop skips any OOC entity whose CPU entry is not yet available, unless the root is CPU-cold (cold roots rehydrate intentionally from disk):
+
+```swift
+if !isColdRoot(rootId)
+   && retrieveCPUMesh(entityId) == nil
+   && !hasCPULODData(entityId) {
+    continue   // CPU data not ready yet — skip, will dispatch next tick
+}
+```
 
 ### Pre-emptive budget reservation
 
@@ -492,34 +534,42 @@ Every building is always present as an ECS entity. The GPU footprint at any mome
 
 ## Texture Loading
 
-### Why `loadTextures()` Is Deferred
+### Background Texture Prewarm
 
-`MDLAsset` decompresses texture data lazily. Calling `asset.loadTextures()` at parse time for a 500 MB USDZ can OOM-kill the process before the app is interactive. The out-of-core path skips `loadTextures()` at parse time and defers it to first-upload time.
+`storeAsset` immediately fires a background `Task` at `.userInitiated` priority to call `loadTextures()` as soon as the asset is registered — before streaming is enabled and before any mesh enters range. By the time the camera gets close enough to trigger uploads, `loadTextures()` has typically already completed.
+
+`ProgressiveAssetLoader.activePrewarmRoots` tracks roots with an in-flight prewarm. The dispatch loop calls `isPrewarmActive(for: rootId)` and defers all entities for that root until the prewarm task finishes and releases the texture lock. Once it does, the first batch of uploads proceeds with `lockWait ≈ 0 ms`.
+
+### Why `loadTextures()` Is Deferred from Parse Time
+
+`MDLAsset` decompresses texture data lazily. Calling `asset.loadTextures()` at parse time for a 500 MB USDZ can OOM-kill the process before the app is interactive. The out-of-core path skips `loadTextures()` at parse time — deferred initially to first-upload time, and now moved earlier via the background prewarm.
 
 ### `ensureTexturesLoaded` — Called Once Per Asset
 
-`GeometryStreamingSystem.uploadFromCPUEntry` calls `ensureTexturesLoaded(for: rootId)` before the first `makeMeshesFromCPUBuffers` call for each asset. The method:
+Both `prewarmTexturesAsync` and the upload path call `ensureTexturesLoaded(for: rootId)`. The method is idempotent:
 
 1. Checks `assetTexturesLoaded` — returns immediately if already done.
 2. Calls `asset.loadTextures()` — decompresses textures into CPU RAM once.
-3. Marks the asset in `assetTexturesLoaded` — subsequent uploads skip this call entirely.
+3. Marks the asset in `assetTexturesLoaded` — all subsequent calls are no-ops.
 
-### Per-Asset NSLock — Serializing Concurrent Texture Reads
+In normal operation the prewarm wins the race. The upload path call becomes a no-op.
 
-`MDLAsset` is not thread-safe. Two concurrent uploads from the same asset can race in `texelDataWithTopLeftOrigin`. Each asset has a dedicated `NSLock` in `ProgressiveAssetLoader.assetTextureLocks`:
+### Per-Asset NSLock — Scope Covers Only `loadTextures()`
+
+`MDLAsset` is not thread-safe during `loadTextures()`. Each asset has a dedicated `NSLock` in `ProgressiveAssetLoader.assetTextureLocks`. The lock scope covers **only** `ensureTexturesLoaded` — it is released before `makeMeshesFromCPUBuffers`:
 
 ```
 Task A (Building #1)                Task B (Building #2)
 acquireAssetTextureLock(rootId)     acquireAssetTextureLock(rootId)  ← BLOCKS
-ensureTexturesLoaded(rootId)            ...waiting...
-makeMeshesFromCPUBuffers(#1)            ...waiting...
+ensureTexturesLoaded(rootId)            ...waiting for lock...
 releaseAssetTextureLock(rootId)     ← unblocks
-                                    ensureTexturesLoaded(rootId)     ← no-op (already done)
+makeMeshesFromCPUBuffers(#1)        ensureTexturesLoaded(rootId)     ← no-op (already done)
+    (runs without lock)             releaseAssetTextureLock(rootId)
                                     makeMeshesFromCPUBuffers(#2)
-                                    releaseAssetTextureLock(rootId)
+                                        (runs without lock)
 ```
 
-Uploads from *different* assets run concurrently without contention — each asset has its own lock.
+After `loadTextures()` completes the `MDLAsset` is in a stable read-only state. Concurrent `makeMeshesFromCPUBuffers` calls from the same asset are safe, so all three upload slots can proceed in parallel. Uploads from *different* assets run concurrently without any contention.
 
 ### Texture Cache Key Uniqueness (`objectIdentityURL`)
 
@@ -626,7 +676,8 @@ ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId: rootId)
 | `GeometryStreamingSystem.maxConcurrentLoads` | 3 | Total concurrent CPU→Metal uploads across both bands |
 | `GeometryStreamingSystem.nearBandFraction` | 0.33 | Fraction of `streamingRadius` defining the near band; near-band loads are serialized |
 | `GeometryStreamingSystem.nearBandMaxConcurrentLoads` | 1 | Max in-flight loads in the near band; 1 guarantees distance-ordered appearance |
-| `GeometryStreamingSystem.updateInterval` | 0.1 s | How often load/unload decisions run |
+| `GeometryStreamingSystem.updateInterval` | 0.1 s | Steady-state tick interval |
+| `GeometryStreamingSystem.burstTickInterval` | 0.016 s | Tick interval when a load backlog exists; drops to 16 ms for faster slot pickup |
 | `GeometryStreamingSystem.maxQueryRadius` | 500 m | Octree query radius; must be ≥ `unloadRadius` |
 | `GeometryStreamingSystem.evictionDistanceWeight` | 0.6 | How much distance contributes to eviction score; higher = farther entities evicted first |
 | `GeometryStreamingSystem.evictionSizeWeight` | 0.4 | How much GPU size contributes to eviction score; higher = larger meshes evicted first |
