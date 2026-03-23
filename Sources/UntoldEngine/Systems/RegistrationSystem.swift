@@ -1059,7 +1059,10 @@ public func setEntityMeshAsync(
                 // each level is stored in ProgressiveAssetLoader.cpuLODRegistry so
                 // GeometryStreamingSystem can upload only the active LOD level from RAM
                 // when the entity enters streaming range — no disk re-read required.
-                Logger.log(message: "[OutOfCore] '\(filename)': LOD asset with \(lodNameDetection.groups.count) group(s) — LOD+OOC stub registration (\(assetData.totalObjectCount) objects)")
+                Logger.log(
+                    message: "[OutOfCore] '\(filename)': LOD asset with \(lodNameDetection.groups.count) group(s) — LOD+OOC stub registration (\(assetData.totalObjectCount) objects)",
+                    category: LogCategory.oocStatus.rawValue
+                )
 
                 // Build name→MDLObject map using the same naming formula as topLevelNames.
                 var nameToObject: [String: MDLObject] = [:]
@@ -1205,7 +1208,10 @@ public func setEntityMeshAsync(
                 ProgressiveAssetLoader.shared.registerChildren(lodGroupEntityIds, for: entityId)
                 ProgressiveAssetLoader.shared.storeRootRehydrationContext(url: url, policy: loadingPolicy, for: entityId)
 
-                Logger.log(message: "[OutOfCore] '\(filename)': \(lodGroupEntityIds.count) LOD group entities registered — GeometryStreamingSystem will upload active LOD on demand")
+                Logger.log(
+                    message: "[OutOfCore] '\(filename)': \(lodGroupEntityIds.count) LOD group entities registered — GeometryStreamingSystem will upload active LOD on demand",
+                    category: LogCategory.oocStatus.rawValue
+                )
 
                 await AssetLoadingState.shared.finishLoading(entityId: entityId)
                 completionBox?.call(true)
@@ -1222,7 +1228,10 @@ public func setEntityMeshAsync(
                 // This replaces the old ProgressiveLoadJob / tick() approach:
                 //   Old: upload nearest N → skip rest → skipped entities permanently absent
                 //   New: all entities present from the start, streaming drives GPU residency
-                Logger.log(message: "[OutOfCore] '\(filename)': \(outOfCoreReason ?? "policy") → out-of-core stub registration (\(assetData.totalObjectCount) stubs)")
+                Logger.log(
+                    message: "[OutOfCore] '\(filename)': \(outOfCoreReason ?? "policy") → out-of-core stub registration (\(assetData.totalObjectCount) stubs)",
+                    category: LogCategory.oocStatus.rawValue
+                )
 
                 // Register AssetInstanceComponent on the root entity so scene-graph
                 // serialisation can identify this as a multi-mesh asset instance.
@@ -1313,7 +1322,10 @@ public func setEntityMeshAsync(
                     for: entityId
                 )
 
-                Logger.log(message: "[OutOfCore] '\(filename)': \(assetData.totalObjectCount) stubs registered — GeometryStreamingSystem will upload on demand")
+                Logger.log(
+                    message: "[OutOfCore] '\(filename)': \(assetData.totalObjectCount) stubs registered — GeometryStreamingSystem will upload on demand",
+                    category: LogCategory.oocStatus.rawValue
+                )
 
                 // Release the loading gate immediately — no GPU work happens here.
                 await AssetLoadingState.shared.finishLoading(entityId: entityId)

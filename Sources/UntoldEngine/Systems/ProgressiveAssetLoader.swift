@@ -315,14 +315,20 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         guard !alreadyLoaded, let asset else { return }
         guard textureLoadingEnabled else { return }
 
-        Logger.log(message: "[OutOfCore] Deferred loadTextures() for root entity \(rootEntityId) — loading textures at first upload")
+        Logger.log(
+            message: "[OutOfCore] Deferred loadTextures() for root entity \(rootEntityId) — loading textures at first upload",
+            category: LogCategory.oocStatus.rawValue
+        )
         // [Instrumentation] Time the first-texture penalty: loadTextures() is only called
         // once per asset, but it decodes all embedded textures synchronously. If this is
         // large it confirms the first-texture setup cost as a dominant bottleneck.
         let loadTexturesStart = CFAbsoluteTimeGetCurrent()
         asset.loadTextures()
         let loadTexturesMs = (CFAbsoluteTimeGetCurrent() - loadTexturesStart) * 1000.0
-        Logger.log(message: "[OOC-Timing] Root \(rootEntityId): loadTextures() first-texture penalty=\(String(format: "%.1f", loadTexturesMs))ms")
+        Logger.log(
+            message: "[OOC-Timing] Root \(rootEntityId): loadTextures() first-texture penalty=\(String(format: "%.1f", loadTexturesMs))ms",
+            category: LogCategory.oocTiming.rawValue
+        )
 
         lock.lock()
         assetTexturesLoaded.insert(rootEntityId)
@@ -365,7 +371,10 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         }
         coldRoots.insert(rootEntityId)
         lock.unlock()
-        Logger.log(message: "[OutOfCore] Released warm CPU data for root \(rootEntityId) (\(children.count) children) — asset is now cold")
+        Logger.log(
+            message: "[OutOfCore] Released warm CPU data for root \(rootEntityId) (\(children.count) children) — asset is now cold",
+            category: LogCategory.oocStatus.rawValue
+        )
     }
 
     /// Returns `true` if the root entity is CPU-cold (warm assets were released via `releaseWarmAsset`).
@@ -441,7 +450,10 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         lock.unlock()
         task?.cancel()
         if !children.isEmpty {
-            Logger.log(message: "[OutOfCore] Released CPU mesh data for \(children.count) entities (root \(rootEntityId))")
+            Logger.log(
+                message: "[OutOfCore] Released CPU mesh data for \(children.count) entities (root \(rootEntityId))",
+                category: LogCategory.oocStatus.rawValue
+            )
         }
     }
 
@@ -473,6 +485,9 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
         coldRehydrationTasks.removeAll()
         lock.unlock()
         tasks.forEach { $0.cancel() }
-        Logger.log(message: "[OutOfCore] Released all CPU mesh data (cancelAll)")
+        Logger.log(
+            message: "[OutOfCore] Released all CPU mesh data (cancelAll)",
+            category: LogCategory.oocStatus.rawValue
+        )
     }
 }

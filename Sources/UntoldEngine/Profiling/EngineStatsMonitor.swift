@@ -233,9 +233,15 @@ public final class EngineStatsMonitor: @unchecked Sendable {
 
             switch profileToLog {
             case .compact:
-                Logger.log(message: "[EngineStats] " + formatEngineStats(snapshotToLog, style: .compact))
+                Logger.log(
+                    message: "[EngineStats] " + formatEngineStats(snapshotToLog, style: .compact),
+                    category: LogCategory.engineStats.rawValue
+                )
             case .verbose:
-                Logger.log(message: "[EngineStats]\n" + formatEngineStats(snapshotToLog, style: .expanded))
+                Logger.log(
+                    message: "[EngineStats]\n" + formatEngineStats(snapshotToLog, style: .expanded),
+                    category: LogCategory.engineStats.rawValue
+                )
             }
         #endif
     }

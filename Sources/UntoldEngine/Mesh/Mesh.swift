@@ -572,7 +572,10 @@ public struct Mesh {
     ) async -> ProgressiveAssetData? {
         await Task.detached { () -> ProgressiveAssetData? in
             guard FileManager.default.fileExists(atPath: url.path) else {
-                Logger.logError(message: "[ProgressiveLoader] Asset file not found: \(url.path)")
+                Logger.logError(
+                    message: "[ProgressiveLoader] Asset file not found: \(url.path)",
+                    category: LogCategory.assetLoader.rawValue
+                )
                 return nil
             }
 
@@ -580,7 +583,10 @@ public struct Mesh {
                let size = attrs[.size] as? UInt64
             {
                 let mb = Double(size) / (1024 * 1024)
-                Logger.log(message: "[ProgressiveLoader] Parsing '\(url.lastPathComponent)' (\(String(format: "%.1f", mb)) MB) — CPU allocator, no GPU pre-allocation")
+                Logger.log(
+                    message: "[ProgressiveLoader] Parsing '\(url.lastPathComponent)' (\(String(format: "%.1f", mb)) MB) — CPU allocator, no GPU pre-allocation",
+                    category: LogCategory.assetLoader.rawValue
+                )
             }
 
             // MDLMeshBufferDataAllocator stores all vertex/index data in CPU heap memory
@@ -630,7 +636,10 @@ public struct Mesh {
             // whose CPU buffers were already cleared.
             let objects = Array(asset.childObjects(of: MDLMesh.self))
 
-            Logger.log(message: "[ProgressiveLoader] '\(url.lastPathComponent)': \(objects.count) mesh leaves queued for progressive registration")
+            Logger.log(
+                message: "[ProgressiveLoader] '\(url.lastPathComponent)': \(objects.count) mesh leaves queued for progressive registration",
+                category: LogCategory.assetLoader.rawValue
+            )
 
             return ProgressiveAssetData(
                 asset: asset,
@@ -744,7 +753,10 @@ public struct Mesh {
                     mesh.worldSpace = worldTransform
                     meshes.append(mesh)
                 } else {
-                    Logger.logError(message: "[ProgressiveLoader] MTKMesh creation failed for '\(assetName)' even after CPU to Metal buffer copy.")
+                    Logger.logError(
+                        message: "[ProgressiveLoader] MTKMesh creation failed for '\(assetName)' even after CPU to Metal buffer copy.",
+                        category: LogCategory.assetLoader.rawValue
+                    )
                 }
             }
         }

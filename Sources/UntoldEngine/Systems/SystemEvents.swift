@@ -250,7 +250,10 @@ public final class SystemIntegrationMonitor: @unchecked Sendable {
         lock.unlock()
 
         if shouldLog {
-            Logger.log(message: "[Integration] Loads: \(snapshot.streamingLoadsThisSecond), Unloads: \(snapshot.streamingUnloadsThisSecond), LOD switches: \(snapshot.lodSwitchesThisSecond), Fallbacks: \(snapshot.lodFallbacksThisSecond), Batch rebuilds: \(snapshot.batchRebuildsThisSecond)")
+            Logger.log(
+                message: "[Integration] Loads: \(snapshot.streamingLoadsThisSecond), Unloads: \(snapshot.streamingUnloadsThisSecond), LOD switches: \(snapshot.lodSwitchesThisSecond), Fallbacks: \(snapshot.lodFallbacksThisSecond), Batch rebuilds: \(snapshot.batchRebuildsThisSecond)",
+                category: LogCategory.integration.rawValue
+            )
         }
     }
 

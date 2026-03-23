@@ -314,7 +314,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // [Instrumentation] Log queue depth every tick that has candidates.
         // Helps confirm whether near-band serialization is building a backlog.
         if !loadCandidates.isEmpty {
-            Logger.log(message: "[OOC-Timing] Queue: near=\(nearBandCandidates.count) rest=\(restBandCandidates.count) activeNear=\(activeNearBandLoadCount()) activeTotal=\(activeLoadCountSnapshot()) slots=\(availableSlots) backlog=\(lastPendingLoadBacklog)")
+            Logger.log(
+                message: "[OOC-Timing] Queue: near=\(nearBandCandidates.count) rest=\(restBandCandidates.count) activeNear=\(activeNearBandLoadCount()) activeTotal=\(activeLoadCountSnapshot()) slots=\(availableSlots) backlog=\(lastPendingLoadBacklog)",
+                category: LogCategory.oocTiming.rawValue
+            )
         }
 
         
@@ -447,7 +450,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // [Instrumentation] Measure scheduler latency: time from first range-detection to dispatch.
         if let firstDetected = firstRangeTimestamps.removeValue(forKey: entityId) {
             let tickToDispatchMs = (CFAbsoluteTimeGetCurrent() - firstDetected) * 1000.0
-            Logger.log(message: "[OOC-Timing] Entity \(entityId): tick-to-dispatch=\(String(format: "%.1f", tickToDispatchMs))ms band=\(isNearBand ? "near" : "rest")")
+            Logger.log(
+                message: "[OOC-Timing] Entity \(entityId): tick-to-dispatch=\(String(format: "%.1f", tickToDispatchMs))ms band=\(isNearBand ? "near" : "rest")",
+                category: LogCategory.oocTiming.rawValue
+            )
         }
 
         // Check if entity has LOD component and CPU LOD data (LOD+OOC path)
@@ -667,10 +673,16 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             flip: true
         )
         let copyMs = (CFAbsoluteTimeGetCurrent() - copyStart) * 1000.0
-        Logger.log(message: "[OOC-Timing] Entity \(entityId) '\(cpuEntry.uniqueAssetName)': lockWait=\(String(format: "%.1f", lockWaitMs))ms textures=\(String(format: "%.1f", textureMs))ms cpuToMetal=\(String(format: "%.1f", copyMs))ms")
+        Logger.log(
+            message: "[OOC-Timing] Entity \(entityId) '\(cpuEntry.uniqueAssetName)': lockWait=\(String(format: "%.1f", lockWaitMs))ms textures=\(String(format: "%.1f", textureMs))ms cpuToMetal=\(String(format: "%.1f", copyMs))ms",
+            category: LogCategory.oocTiming.rawValue
+        )
 
         guard !meshes.isEmpty else {
-            Logger.logError(message: "[OutOfCore] CPU→Metal upload failed for entity \(entityId) ('\(cpuEntry.uniqueAssetName)')")
+            Logger.logError(
+                message: "[OutOfCore] CPU→Metal upload failed for entity \(entityId) ('\(cpuEntry.uniqueAssetName)')",
+                category: LogCategory.oocStatus.rawValue
+            )
             return false
         }
 
@@ -718,7 +730,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // If the root asset has gone cold, re-parse from disk to restore CPU entries.
         if ProgressiveAssetLoader.shared.isColdRoot(rootEntityId) {
             guard let context = ProgressiveAssetLoader.shared.rehydrationContext(for: rootEntityId) else {
-                Logger.logError(message: "[OutOfCore] LOD+OOC entity \(entityId): root \(rootEntityId) is cold with no rehydration context")
+                Logger.logError(
+                    message: "[OutOfCore] LOD+OOC entity \(entityId): root \(rootEntityId) is cold with no rehydration context",
+                    category: LogCategory.oocStatus.rawValue
+                )
                 return false
             }
             let ok = await rehydrateColdAsset(rootEntityId: rootEntityId, context: context)
@@ -728,7 +743,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         guard let allLODEntries = ProgressiveAssetLoader.shared.retrieveAllCPULODMeshes(for: entityId),
               !allLODEntries.isEmpty
         else {
-            Logger.logError(message: "[OutOfCore] LOD+OOC entity \(entityId): no CPU LOD entries found")
+            Logger.logError(
+                message: "[OutOfCore] LOD+OOC entity \(entityId): no CPU LOD entries found",
+                category: LogCategory.oocStatus.rawValue
+            )
             return false
         }
 
@@ -750,7 +768,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 flip: true
             )
             guard !meshes.isEmpty else {
-                Logger.logWarning(message: "[OutOfCore] LOD+OOC entity \(entityId): CPU→Metal failed for LOD\(lodIndex), skipping level")
+                Logger.logWarning(
+                    message: "[OutOfCore] LOD+OOC entity \(entityId): CPU→Metal failed for LOD\(lodIndex), skipping level",
+                    category: LogCategory.oocStatus.rawValue
+                )
                 continue
             }
             let levelSkin = Skin()
@@ -762,7 +783,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
 
         guard !uploadedMeshes.isEmpty else {
-            Logger.logError(message: "[OutOfCore] LOD+OOC entity \(entityId): all LOD level uploads failed")
+            Logger.logError(
+                message: "[OutOfCore] LOD+OOC entity \(entityId): all LOD level uploads failed",
+                category: LogCategory.oocStatus.rawValue
+            )
             return false
         }
 
@@ -810,7 +834,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let totalMeshSize = uploadedMeshes.values.reduce(0) { $0 + calculateMeshArrayMemory($1) }
         MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: totalMeshSize, textureSizeBytes: 0)
 
-        Logger.log(message: "[OutOfCore] LOD+OOC entity \(entityId): uploaded \(uploadedMeshes.count) LOD level(s) from CPU")
+        Logger.log(
+            message: "[OutOfCore] LOD+OOC entity \(entityId): uploaded \(uploadedMeshes.count) LOD level(s) from CPU",
+            category: LogCategory.oocStatus.rawValue
+        )
         return true
     }
 
@@ -826,13 +853,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     ) async -> Bool {
         let task = ProgressiveAssetLoader.shared.getOrCreateRehydrationTask(for: rootEntityId) {
             Task {
-                Logger.log(message: "[OutOfCore] Cold re-stream: re-parsing '\(context.url.lastPathComponent)' for root \(rootEntityId)")
+                Logger.log(
+                    message: "[OutOfCore] Cold re-stream: re-parsing '\(context.url.lastPathComponent)' for root \(rootEntityId)",
+                    category: LogCategory.oocStatus.rawValue
+                )
                 guard let assetData = await Mesh.parseAssetAsync(
                     url: context.url,
                     vertexDescriptor: vertexDescriptor.model,
                     device: renderInfo.device
                 ) else {
-                    Logger.logError(message: "[OutOfCore] Cold re-stream: parseAssetAsync failed for root \(rootEntityId)")
+                    Logger.logError(
+                        message: "[OutOfCore] Cold re-stream: parseAssetAsync failed for root \(rootEntityId)",
+                        category: LogCategory.oocStatus.rawValue
+                    )
                     ProgressiveAssetLoader.shared.clearRehydrationTask(for: rootEntityId)
                     return false
                 }
@@ -886,7 +919,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     }
                     ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: rootEntityId)
                     ProgressiveAssetLoader.shared.markAsWarm(rootEntityId: rootEntityId)
-                    Logger.log(message: "[OutOfCore] Cold re-stream complete (LOD+OOC): root \(rootEntityId) is warm (\(restoredEntries) LOD entries restored across \(lodDetection.groups.count) group(s))")
+                    Logger.log(
+                        message: "[OutOfCore] Cold re-stream complete (LOD+OOC): root \(rootEntityId) is warm (\(restoredEntries) LOD entries restored across \(lodDetection.groups.count) group(s))",
+                        category: LogCategory.oocStatus.rawValue
+                    )
                 } else {
                     // Regular OOC: rebuild cpuMeshRegistry, one entry per child stub entity.
                     for (i, obj) in assetData.topLevelObjects.enumerated() {
@@ -917,7 +953,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     }
                     ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: rootEntityId)
                     ProgressiveAssetLoader.shared.markAsWarm(rootEntityId: rootEntityId)
-                    Logger.log(message: "[OutOfCore] Cold re-stream complete: root \(rootEntityId) is warm (\(min(assetData.topLevelObjects.count, children.count)) entries restored)")
+                    Logger.log(
+                        message: "[OutOfCore] Cold re-stream complete: root \(rootEntityId) is warm (\(min(assetData.topLevelObjects.count, children.count)) entries restored)",
+                        category: LogCategory.oocStatus.rawValue
+                    )
                 }
                 return true
             }
@@ -951,7 +990,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             {
                 return await uploadFromCPUEntry(entityId: entityId, cpuEntry: cpuEntry)
             }
-            Logger.logError(message: "[OutOfCore] Cold re-stream failed for entity \(entityId)")
+            Logger.logError(
+                message: "[OutOfCore] Cold re-stream failed for entity \(entityId)",
+                category: LogCategory.oocStatus.rawValue
+            )
             return false
         }
 
