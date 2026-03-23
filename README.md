@@ -120,40 +120,42 @@ Untold Engine aims to support applications such as:
 
 # Engine Architecture:
 
-[Rendering System](docs/Architecture/renderingSystem.md)
-[XR Rendering System](docs/Architecture/xrRenderingSystem.md)
-[Static Batching System](docs/Architecture/batchingSystem.md)
-[Geometry Streaming System](docs/Architecture/geometryStreamingSystem.md)
-[LOD System](docs/Architecture/lodSystem.md)
-[Progressive Asset Loader](docs/Architecture/progressiveAssetLoader.md)
-[Streaming Cache Lifecycle](docs/Architecture/streamingCacheLifecycle.md)
-[Texture Streaming System](docs/Architecture/textureStreamingSystem.md)
-[Out of Core](docs/Architecture/outOfCore.md)
+- [Rendering System](docs/Architecture/renderingSystem.md)
+- [XR Rendering System](docs/Architecture/xrRenderingSystem.md)
+- [Static Batching System](docs/Architecture/batchingSystem.md)
+- [Geometry Streaming System](docs/Architecture/geometryStreamingSystem.md)
+- [LOD System](docs/Architecture/lodSystem.md)
+- [Progressive Asset Loader](docs/Architecture/progressiveAssetLoader.md)
+- [Streaming Cache Lifecycle](docs/Architecture/streamingCacheLifecycle.md)
+- [Texture Streaming System](docs/Architecture/textureStreamingSystem.md)
+- [Out of Core](docs/Architecture/outOfCore.md)
 
 # Engine API
-[Registration System](docs/API/UsingRegistrationSystem.md)
-[Scenegraph](docs/API/UsingScenegraph.md)
-[Transform System](docs/API/UsingTransformSystem.md)
-[Camera System](docs/API/UsingCameraSystem.md)
-[Rendering System](docs/API/UsingRenderingSystem.md)
-[Lighting System](docs/API/UsingLightingSystem.md)
-[Materials](docs/API/UsingMaterials.md)
-[Input System](docs/API/UsingInputSystem.md)
-[Physics System](docs/API/UsingPhysicsSystem.md)
-[Steering System](docs/API/UsingSteeringSystem.md)
-[Animation System](docs/API/UsingAnimationSystem.md)
-[Async Loading](docs/API/UsingAsyncLoading.md)
-[LOD System](docs/API/UsingLODSystem.md)
-[Static Batching System](docs/API/UsingStaticBatchingSystem.md)
-[Geometry Streaming System](docs/API/UsingGeometryStreamingSystem.md)
-[LOD-Batching-Streaming](docs/API/UsingLOD-Batching-Streaming.md)
-[Spatial Input](docs/API/UsingSpatialInput.md)
-[Gaussian System](docs/API/UsingGaussianSystem.md)
-[Spatical Debugger](docs/API/SpatialDebugger.md)
+
+- [Registration System](docs/API/UsingRegistrationSystem.md)
+- [Scenegraph](docs/API/UsingScenegraph.md)
+- [Transform System](docs/API/UsingTransformSystem.md)
+- [Camera System](docs/API/UsingCameraSystem.md)
+- [Rendering System](docs/API/UsingRenderingSystem.md)
+- [Lighting System](docs/API/UsingLightingSystem.md)
+- [Materials](docs/API/UsingMaterials.md)
+- [Input System](docs/API/UsingInputSystem.md)
+- [Physics System](docs/API/UsingPhysicsSystem.md)
+- [Steering System](docs/API/UsingSteeringSystem.md)
+- [Animation System](docs/API/UsingAnimationSystem.md)
+- [Async Loading](docs/API/UsingAsyncLoading.md)
+- [LOD System](docs/API/UsingLODSystem.md)
+- [Static Batching System](docs/API/UsingStaticBatchingSystem.md)
+- [Geometry Streaming System](docs/API/UsingGeometryStreamingSystem.md)
+- [LOD-Batching-Streaming](docs/API/UsingLOD-Batching-Streaming.md)
+- [Spatial Input](docs/API/UsingSpatialInput.md)
+- [Gaussian System](docs/API/UsingGaussianSystem.md)
+- [Spatical Debugger](docs/API/SpatialDebugger.md)
+- [Profiler](/docs/API/UsingProfiler.md)
 
 ---
 
-# Create a Xcode Project using the Untold Engine SPM
+# Set Up an Xcode Project with Untold Engine
 
 You can easily create an xcode project using the Untold Engine as dependency
 
