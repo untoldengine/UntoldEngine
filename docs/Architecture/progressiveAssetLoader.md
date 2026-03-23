@@ -68,30 +68,54 @@ private var rootAssetRefs: [EntityID: MDLAsset] = [:]
 
 ---
 
+## Background Texture Prewarm
+
+`storeAsset(_:for:)` immediately fires a background `Task` at `.userInitiated` priority to call `loadTextures()` before any mesh enters streaming range:
+
+```swift
+func storeAsset(_ asset: MDLAsset, for rootEntityId: EntityID) {
+    // Pin the asset and create the per-asset texture lock.
+    lock.lock()
+    rootAssetRefs[rootEntityId] = asset
+    assetTextureLocks[rootEntityId] = NSLock()
+    lock.unlock()
+    // Kick off background prewarm immediately.
+    prewarmTexturesAsync(for: rootEntityId)
+}
+```
+
+The prewarm task acquires the per-asset texture lock, calls `ensureTexturesLoaded`, and releases the lock — all off the critical path. By the time the first mesh enters streaming range, `loadTextures()` has typically already completed, so the first-upload path sees a no-op `ensureTexturesLoaded` call and zero lock wait.
+
+`activePrewarmRoots` tracks which roots have an in-flight prewarm task. `GeometryStreamingSystem` queries `isPrewarmActive(for:)` in the dispatch loop and defers uploading entities for that root until the prewarm completes. This prevents the first batch of uploads from blocking on the texture lock for the full remaining prewarm duration.
+
+---
+
 ## Per-Asset Texture Serialization
 
-`MDLAsset` is not thread-safe. Two `GeometryStreamingSystem` tasks uploading different meshes from the same asset concurrently can race during `texelDataWithTopLeftOrigin` or `loadTextures()`. `ProgressiveAssetLoader` prevents this with a per-asset `NSLock`:
+`MDLAsset` is not thread-safe. Two `GeometryStreamingSystem` tasks uploading different meshes from the same asset concurrently can race during `loadTextures()`. `ProgressiveAssetLoader` prevents this with a per-asset `NSLock`:
 
 ```swift
 private var assetTextureLocks: [EntityID: NSLock] = [:]
 ```
 
-`storeAsset` creates the lock alongside the asset reference. Every upload task must bracket its texture work:
+`storeAsset` creates the lock alongside the asset reference. Every upload task brackets only `ensureTexturesLoaded` with the lock — the lock is released **before** `makeMeshesFromCPUBuffers`:
 
 ```swift
 ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootId)
 ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootId)
-// ... makeMeshesFromCPUBuffers (texture reads happen here) ...
 ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootId)
+// makeMeshesFromCPUBuffers runs without the lock — MDLAsset is read-only after loadTextures()
 ```
 
-Only one mesh from a given asset hydrates textures at a time. Meshes from *different* assets upload concurrently without contention.
+After `loadTextures()` completes the `MDLAsset` is in a stable read-only state. Concurrent `makeMeshesFromCPUBuffers` calls from the same asset are safe without the lock, so all three upload slots can proceed in parallel once the prewarm is done.
+
+Only the `ensureTexturesLoaded` call is serialized per asset. Meshes from *different* assets upload concurrently without any contention.
 
 ---
 
 ## Deferred `loadTextures()`
 
-Large assets skip `asset.loadTextures()` at parse time to avoid the OOM risk of decompressing all textures before the app is interactive. The call is deferred to first-upload time via `ensureTexturesLoaded`:
+Large assets skip `asset.loadTextures()` at parse time to avoid the OOM risk of decompressing all textures before the app is interactive. The call is deferred via `ensureTexturesLoaded`:
 
 ```swift
 func ensureTexturesLoaded(for rootEntityId: EntityID) {
@@ -100,7 +124,7 @@ func ensureTexturesLoaded(for rootEntityId: EntityID) {
 }
 ```
 
-`assetTexturesLoaded: Set<EntityID>` ensures the call happens exactly once even if multiple concurrent uploads race to be "first" — the per-asset lock serializes them, and the winner marks the asset as loaded before releasing the lock.
+`assetTexturesLoaded: Set<EntityID>` ensures the call happens exactly once. In normal operation the prewarm task wins the race and marks the asset loaded before any upload task reaches `ensureTexturesLoaded`, making the upload-path call a no-op.
 
 ---
 
@@ -116,10 +140,11 @@ func ensureTexturesLoaded(for rootEntityId: EntityID) {
 | `retrieveAllCPULODMeshes(for:)` | Fetch all LOD-level entries for a group entity |
 | `hasCPULODData(for:)` | Returns `true` if the entity was registered via the LOD+OOC path |
 | `removeCPULODEntry(for:)` | Remove all LOD entries for a group entity |
-| `storeAsset(_:for:)` | Pin an `MDLAsset` and create its per-asset texture lock |
+| `storeAsset(_:for:)` | Pin an `MDLAsset`, create its per-asset texture lock, and kick off background prewarm |
+| `isPrewarmActive(for:)` | Returns `true` while the background prewarm task holds the texture lock for this root |
 | `registerChildren(_:for:)` | Associate child entity IDs with a root for bulk cleanup |
-| `acquireAssetTextureLock(for:)` | Lock before texture-reading operations |
-| `releaseAssetTextureLock(for:)` | Unlock after texture-reading operations |
+| `acquireAssetTextureLock(for:)` | Lock before calling `ensureTexturesLoaded` |
+| `releaseAssetTextureLock(for:)` | Unlock immediately after `ensureTexturesLoaded` — before GPU upload work |
 | `ensureTexturesLoaded(for:)` | Call `loadTextures()` exactly once per asset (must hold texture lock) |
 | `removeOutOfCoreAsset(rootEntityId:)` | Release all CPU entries (both registries) + MDLAsset for a destroyed root entity |
 | `cancelAll()` | Release everything — use on scene reset or test teardown |
@@ -136,6 +161,7 @@ setEntityMeshAsync (out-of-core path — regular OOC)
   ├─ registerProgressiveStubEntity() → N ECS stubs, StreamingComponent(.unloaded)
   ├─ storeCPUMesh(entry, for: childId) × N  → cpuMeshRegistry
   ├─ storeAsset(asset, for: rootId)   → rootAssetRefs, assetTextureLocks
+  │     └─ prewarmTexturesAsync()    → background Task: acquireLock / loadTextures() / releaseLock
   ├─ registerChildren(childIds, for: rootId)
   └─ completion(true)                → caller enables GeometryStreamingSystem
 
@@ -146,22 +172,25 @@ setEntityMeshAsync (out-of-core path — LOD+OOC)
   ├─ (per group) createEntity + LODComponent(stubs) + StreamingComponent(.unloaded)
   ├─ storeCPULODMesh(entry, for: groupId, lodIndex:) × (N groups × L levels)  → cpuLODRegistry
   ├─ storeAsset(asset, for: rootId)
+  │     └─ prewarmTexturesAsync()    → background Task: acquireLock / loadTextures() / releaseLock
   ├─ registerChildren(groupEntityIds, for: rootId)
   └─ completion(true)
 
-GeometryStreamingSystem (every 0.1 s)
+GeometryStreamingSystem (adaptive tick: 16 ms during backlog, 100 ms steady-state)
+  │
+  ├─ isPrewarmActive(rootId)?  → YES → defer all entities for this root (slots stay free)
   │
   ├─ entity within streamingRadius && state == .unloaded
   │   ├─ hasCPULODData?  → YES → uploadActiveLODFromCPU()
   │   │     ├─ retrieveAllCPULODMeshes(for: entityId)
   │   │     ├─ acquireAssetTextureLock / ensureTexturesLoaded / releaseAssetTextureLock
-  │   │     ├─ makeMeshesFromCPUBuffers() × L levels  ← CPU heap → MTLBuffer for each LOD
+  │   │     ├─ makeMeshesFromCPUBuffers() × L levels  ← lock released; parallel uploads safe
   │   │     ├─ LODComponent.lodLevels[i].residencyState = .resident  for each uploaded level
   │   │     └─ registerRenderComponent() at distance-appropriate LOD
   │   │
   │   └─ hasCPULODData?  → NO  → retrieveCPUMesh / uploadFromCPUEntry (regular OOC)
   │         ├─ acquireAssetTextureLock / ensureTexturesLoaded / releaseAssetTextureLock
-  │         ├─ makeMeshesFromCPUBuffers()
+  │         ├─ makeMeshesFromCPUBuffers()  ← lock released; parallel uploads safe
   │         └─ registerRenderComponent()
   │
   └─ entity beyond unloadRadius && state == .loaded
