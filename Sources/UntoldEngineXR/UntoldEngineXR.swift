@@ -339,6 +339,10 @@
             // 5. Perform any rendering-related work that doesn't rely on the device anchor info
             guard let renderer else { return }
             if !loading {
+                // Sync the physical headset position into ECS camera components before
+                // streaming/LOD systems run inside updateXR(). Without this, all four OOC
+                // systems see a frozen default eye position regardless of where the user walks.
+                syncStreamingCameraPosition()
                 renderer.updateXR(useExternalStatsLifecycle: true)
             }
 
@@ -634,6 +638,25 @@
                     snapshot.timing.submitMs += submitMs
                     snapshot.timing.renderTotalMs += renderTotalMs
                 }
+            #endif
+        }
+
+        /// Extracts the headset world position from the device anchor and pushes it into the
+        /// ECS camera components read by all four OOC systems (StreamingRegionManager,
+        /// GeometryStreamingSystem, TextureStreamingSystem, LODSystem).
+        ///
+        /// Uses the headset center position (originFromAnchorTransform.columns.3) rather than
+        /// a per-eye position — the ~3 cm per-eye IPD offset is irrelevant for streaming radii.
+        ///
+        /// Queries at CACurrentMediaTime() for the freshest position; falls back to
+        /// lastValidDeviceAnchor on a tracking gap (one-frame lag is harmless for streaming).
+        private func syncStreamingCameraPosition() {
+            #if canImport(ARKit)
+                let anchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: CACurrentMediaTime())
+                             ?? lastValidDeviceAnchor
+                guard let anchor else { return }
+                let t = anchor.originFromAnchorTransform
+                renderer?.setXRCameraWorldPosition(simd_float3(t.columns.3.x, t.columns.3.y, t.columns.3.z))
             #endif
         }
 

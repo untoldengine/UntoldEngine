@@ -578,6 +578,30 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         runFrame(render: render, statsLifecycle: useExternalStatsLifecycle ? .externalManaged : .internalManaged)
     }
 
+    /// Syncs the physical headset world position into the ECS camera components used by
+    /// streaming and LOD distance calculations. Must be called before updateXR() each frame.
+    ///
+    /// Only the three position fields are written:
+    ///   - LocalTransformComponent.position       — so traverseSceneGraph() derives a consistent WorldTransformComponent
+    ///   - CameraComponent.localPosition          — read directly by TextureStreamingSystem and LODSystem
+    ///   - WorldTransformComponent.space.columns.3 — read directly by GeometryStreamingSystem and StreamingRegionManager
+    ///                                               before traverseSceneGraph() runs
+    ///
+    /// viewSpace and rotation are intentionally left untouched; renderXR() sets viewSpace
+    /// per-eye from the device anchor view matrix each frame.
+    public func setXRCameraWorldPosition(_ worldPosition: simd_float3) {
+        guard let camera = CameraSystem.shared.activeCamera,
+              let localTransform = scene.get(component: LocalTransformComponent.self, for: camera),
+              let cameraComp = scene.get(component: CameraComponent.self, for: camera),
+              let worldTransform = scene.get(component: WorldTransformComponent.self, for: camera)
+        else { return }
+
+        localTransform.position = worldPosition
+        cameraComp.localPosition = worldPosition
+        // Only the translation column is touched; rotation and scale columns are unchanged.
+        worldTransform.space.columns.3 = simd_float4(worldPosition, 1.0)
+    }
+
     /// XR path finalization hook. Call this once after XR submission for the frame.
     public func finalizeXRStatsAndMonitors(frameStartTime: Double) {
         #if ENGINE_STATS_ENABLED
