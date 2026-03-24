@@ -2,7 +2,6 @@
 //  DemoHUD.swift
 //
 
-
 #if os(macOS)
     import SwiftUI
     import UniformTypeIdentifiers
