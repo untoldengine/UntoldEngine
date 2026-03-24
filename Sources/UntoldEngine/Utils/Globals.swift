@@ -588,6 +588,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var activeEntityValue: EntityID = .invalid
     private var enableEngineMetricsValue: Bool = false
     private var bypassPostProcessingValue: Bool = false
+    private var renderDebugViewModeValue: RenderDebugViewMode = .lit
     private var entityMeshMapValue: [EntityID: [Mesh]] = [:]
     private var entityNameMapValue: [EntityID: String] = [:]
     private var reverseEntityNameMapValue: [String: [EntityID]] = [:]
@@ -1028,6 +1029,20 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         }
     }
 
+    var renderDebugViewMode: RenderDebugViewMode {
+        get {
+            lock.lock()
+            let value = renderDebugViewModeValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            renderDebugViewModeValue = newValue
+            lock.unlock()
+        }
+    }
+
     var entityMeshMap: [EntityID: [Mesh]] {
         get {
             lock.lock()
@@ -1135,6 +1150,14 @@ public enum TextureType: String, CaseIterable, Identifiable {
         case .normal: return "Normal"
         }
     }
+}
+
+public enum RenderDebugViewMode: Int, CaseIterable, Sendable {
+    case lit = 0
+    case albedo = 1
+    case normal = 2
+    case depth = 3
+    case ssaoBlurred = 4
 }
 
 // TODO: try to remove this var, because only make sense on the editor side
@@ -1348,6 +1371,11 @@ public var enableEngineMetrics: Bool {
 public var bypassPostProcessing: Bool {
     get { RuntimeGlobalsStore.shared.bypassPostProcessing }
     set { RuntimeGlobalsStore.shared.bypassPostProcessing = newValue }
+}
+
+public var renderDebugViewMode: RenderDebugViewMode {
+    get { RuntimeGlobalsStore.shared.renderDebugViewMode }
+    set { RuntimeGlobalsStore.shared.renderDebugViewMode = newValue }
 }
 
 public final class ToneMappingParams: ObservableObject, @unchecked Sendable {

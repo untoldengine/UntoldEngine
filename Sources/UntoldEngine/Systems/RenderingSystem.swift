@@ -777,29 +777,89 @@ func outputTransformCustomization(encoder: MTLRenderCommandEncoder) {
     )
 }
 
-public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
-    guard let sourceTexture = textureResources.sceneCompositeTexture else {
-        handleError(.renderPassCreationFailed, "Look Pass: source texture is nil")
-        return
+private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
+    switch mode {
+    case .lit:
+        return textureResources.sceneCompositeTexture
+    case .albedo:
+        return textureResources.colorMap
+    case .normal:
+        return textureResources.normalMap
+    case .depth:
+        return textureResources.colorMap ?? textureResources.sceneCompositeTexture
+    case .ssaoBlurred:
+        return textureResources.ssaoBlurTexture
     }
+}
+
+public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
+    let viewMode = renderDebugViewMode
     guard let destinationTexture = textureResources.lookTexture else {
         handleError(.renderPassCreationFailed, "Look Pass: destination texture is nil")
         return
     }
-    guard let pipeline = PipelineManager.shared.renderPipelinesByType[.look] else {
-        handleError(.pipelineStateNulled, "Look Pipeline is nil")
+
+    if viewMode == .lit {
+        guard let sourceTexture = textureResources.sceneCompositeTexture else {
+            handleError(.renderPassCreationFailed, "Look Pass: source texture is nil")
+            return
+        }
+        guard let pipeline = PipelineManager.shared.renderPipelinesByType[.look] else {
+            handleError(.pipelineStateNulled, "Look Pipeline is nil")
+            return
+        }
+        if !pipeline.success {
+            handleError(.pipelineStateNulled, pipeline.name ?? "Look Pipeline")
+            return
+        }
+
+        RenderPasses.executePostProcess(
+            pipeline,
+            source: sourceTexture,
+            destination: destinationTexture,
+            customization: colorGradingCustomization
+        )(commandBuffer)
         return
     }
-    if !pipeline.success {
-        handleError(.pipelineStateNulled, pipeline.name ?? "Look Pipeline")
+
+    guard let debugSource = debugSourceTexture(for: viewMode) else {
+        handleError(.renderPassCreationFailed, "Debug View Pass: source texture is nil")
+        return
+    }
+    guard let debugDepth = renderInfo.offscreenRenderPassDescriptor?.depthAttachment.texture ?? textureResources.depthMap else {
+        handleError(.renderPassCreationFailed, "Debug View Pass: depth texture is nil")
+        return
+    }
+    guard let debugPipeline = PipelineManager.shared.renderPipelinesByType[.debug] else {
+        handleError(.pipelineStateNulled, "Debug Pipeline is nil")
+        return
+    }
+    if !debugPipeline.success {
+        handleError(.pipelineStateNulled, debugPipeline.name ?? "Debug Pipeline")
         return
     }
 
     RenderPasses.executePostProcess(
-        pipeline,
-        source: sourceTexture,
+        debugPipeline,
+        source: debugSource,
         destination: destinationTexture,
-        customization: colorGradingCustomization
+        customization: { encoder in
+            var mode = Int32(viewMode.rawValue)
+            encoder.setFragmentBytes(
+                &mode,
+                length: MemoryLayout<Int32>.stride,
+                index: Int(debugPassModeIndex.rawValue)
+            )
+
+            var frustumPlanes = simd_float2(near, far)
+            encoder.setFragmentBytes(
+                &frustumPlanes,
+                length: MemoryLayout<simd_float2>.stride,
+                index: Int(debugPassFrustumPlanesIndex.rawValue)
+            )
+
+            encoder.setFragmentTexture(debugDepth, index: 1)
+        }
     )(commandBuffer)
 }
 
