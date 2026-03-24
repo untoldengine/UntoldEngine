@@ -141,6 +141,10 @@ public class MemoryBudgetManager: @unchecked Sendable {
         #if os(macOS)
             // macOS typically has more GPU memory
             meshBudget = 1024 * 1024 * 1024 // 1 GB
+        #elseif os(visionOS)
+            // Vision Pro (M2/M4) has 16 GB unified memory; geometry + textures
+            // share this budget, so give ample room for both.
+            meshBudget = 1536 * 1024 * 1024 // 1.5 GB
         #elseif os(iOS)
             // iOS devices vary widely, use conservative default
             if ProcessInfo.processInfo.physicalMemory > 4 * 1024 * 1024 * 1024 {
