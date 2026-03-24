@@ -1340,6 +1340,13 @@ public func setEntityMeshAsync(
             // uses MDLMeshBufferDataAllocator — CPU-heap buffers that MTKMesh(mesh:device:)
             // cannot accept directly (MTKModelErrorNoMTLBuffer). makeMeshesFromCPUBuffers
             // copies each buffer to a fresh MTKMeshBufferAllocator-backed buffer first.
+            //
+            // parseAssetAsync intentionally skips loadTextures() to defer the decompression
+            // cost. The OOC path calls ensureTexturesLoaded() in uploadFromCPUEntry before
+            // makeMeshesFromCPUBuffers. This fast path bypasses that route, so we must call
+            // loadTextures() here to ensure USDZ-embedded textures are decoded — otherwise
+            // MTKTextureLoader cannot read the pixel data and all textures silently fail.
+            assetData.asset.loadTextures()
             let smallAssetMeshes: [[Mesh]] = assetData.topLevelObjects.map { obj in
                 Mesh.makeMeshesFromCPUBuffers(
                     object: obj,

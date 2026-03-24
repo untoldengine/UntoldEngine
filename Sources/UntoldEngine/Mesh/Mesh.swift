@@ -1473,6 +1473,10 @@ final class TextureLoader {
     private var textureCache: [TextureCacheKey: MTLTexture] = [:]
     private var sourceDimensionsCache: [TextureCacheKey: simd_int2] = [:]
 
+    /// Serializes all cache reads and writes when the same TextureLoader instance
+    /// is shared across concurrent entity uploads (OOC path).
+    private let stateLock = NSLock()
+
     /// Tracks unique textures loaded (not cache hits) for summary logging
     private var loadedTextureCount: Int = 0
     private var loadedTextureBytes: Int = 0
@@ -1679,6 +1683,8 @@ final class TextureLoader {
                      mapType: String) -> MTLTexture?
     {
         guard let property else { return nil }
+        stateLock.lock()
+        defer { stateLock.unlock() }
 
         let options: [MTKTextureLoader.Option: Any] = [
             .textureUsage: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue,
