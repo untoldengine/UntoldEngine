@@ -2,13 +2,12 @@
 //  DemoState.swift
 //
 
-
 #if os(macOS)
     import Observation
     import UntoldEngine
 
-    // Pure UI state. No engine calls here.
-    // AppDelegate wires callbacks so this state can trigger GameScene methods.
+    /// Pure UI state. No engine calls here.
+    /// AppDelegate wires callbacks so this state can trigger GameScene methods.
     @Observable final class DemoState {
         private enum Defaults {
             static let streamingRadius: Double = 200.0

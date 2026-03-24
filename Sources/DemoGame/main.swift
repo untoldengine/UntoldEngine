@@ -2,7 +2,6 @@
 //  main.swift
 //
 
-
 #if os(macOS)
     import AppKit
 

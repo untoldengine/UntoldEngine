@@ -320,7 +320,6 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             )
         }
 
-        
         // Determine effective near-band concurrency for this tick.
         //
         // Default (nearBandMaxConcurrentLoads = 1): serializes near-band loads so the
@@ -364,7 +363,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     // Skip entities whose CPU data isn't registered yet (pre-streaming slot jam).
                     if !ProgressiveAssetLoader.shared.isColdRoot(rootId),
                        ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) == nil,
-                       !ProgressiveAssetLoader.shared.hasCPULODData(for: entityId) {
+                       !ProgressiveAssetLoader.shared.hasCPULODData(for: entityId)
+                    {
                         continue
                     }
                     // Defer dispatch until background prewarm releases the per-asset texture lock.
@@ -396,7 +396,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 if let rootId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId {
                     if !ProgressiveAssetLoader.shared.isColdRoot(rootId),
                        ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) == nil,
-                       !ProgressiveAssetLoader.shared.hasCPULODData(for: entityId) {
+                       !ProgressiveAssetLoader.shared.hasCPULODData(for: entityId)
+                    {
                         continue
                     }
                     // Defer until background prewarm releases the texture lock.

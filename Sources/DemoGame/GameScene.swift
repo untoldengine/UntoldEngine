@@ -2,7 +2,6 @@
 //  GameScene.swift
 //
 
-
 #if os(macOS)
     import simd
     import UntoldEngine
@@ -39,8 +38,8 @@
 
     // MARK: - Scene Setup
 
-    extension GameScene {
-        fileprivate func setupDefaultSceneObjects() {
+    fileprivate extension GameScene {
+        func setupDefaultSceneObjects() {
             let gameCamera = createEntity()
             setEntityName(entityId: gameCamera, name: "Main Camera")
             createGameCamera(entityId: gameCamera)
@@ -67,13 +66,13 @@
 
             destroyAllEntities { [weak self] in
                 guard let self else { return }
-                self.setupDefaultSceneObjects()
+                setupDefaultSceneObjects()
 
                 let camera = findGameCamera()
                 setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
 
                 let entity = createEntity()
-                self.loadedEntity = entity
+                loadedEntity = entity
 
                 setEntityMeshAsync(entityId: entity, filename: path, withExtension: Constants.usdzExtension) { isOutOfCore in
                     completion(isOutOfCore)
