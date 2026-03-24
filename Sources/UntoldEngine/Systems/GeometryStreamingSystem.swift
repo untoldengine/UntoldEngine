@@ -1226,8 +1226,32 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         else { return Float.infinity }
 
         let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
-        let worldCenter = transform.space * simd_float4(center, 1.0)
-        return simd_distance(cameraPosition, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
+
+        // Transform the camera into entity-local space so that streamingRadius and
+        // unloadRadius are scale-invariant. Without this, applying scaleTo(0.1) on a
+        // parent compresses all child world-space positions by 10×, collapsing every
+        // stub into streaming range simultaneously and exhausting the memory budget.
+        // With this approach, streamingRadius is effectively in model-local units:
+        //   scale 1.0  → same result as world-space comparison (backward compatible)
+        //   scale 0.1  → camera must be within streamingRadius *local* units, which
+        //               is streamingRadius×0.1 world-space metres — matching the
+        //               proportionally smaller scene footprint.
+        // If worldMatrix is degenerate (zero scale), inverse produces infinities and
+        // simd_distance returns infinity, so the entity is safely skipped.
+        let inv = transform.space.inverse
+        let localCamera4 = inv * simd_float4(cameraPosition, 1.0)
+        let localCamera = simd_float3(localCamera4.x, localCamera4.y, localCamera4.z)
+
+        // Use closest point on AABB rather than bounding box center.
+        // This ensures large flat meshes (exterior walls, floors) load as soon as
+        // the camera reaches their *surface*, not their center. Without this, a wall
+        // spanning 1600 units has its center hundreds of units away even when the
+        // camera is right against it, so small interior objects closer to their own
+        // centers would incorrectly load first.
+        // When the camera is inside the AABB the closest point equals the camera
+        // position, giving distance = 0, which correctly loads the enclosing mesh.
+        let closestPoint = simd_clamp(localCamera, local.boundingBox.min, local.boundingBox.max)
+        return simd_distance(localCamera, closestPoint)
     }
 
     /// Force load an entity's mesh immediately
