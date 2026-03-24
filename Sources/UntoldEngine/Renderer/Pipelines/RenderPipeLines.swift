@@ -591,6 +591,20 @@ public func InitOutputTransformPipeline() -> RenderPipeline? {
     )
 }
 
+public func InitDebugPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexDebugShader",
+        fragmentShader: "fragmentDebugShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [wf.lookOutput],
+        // Look/debug passes use postProcessRenderPassDescriptor, which carries depthMap.
+        // Match that attachment format even though we do not depth-test/write here.
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Debug Pipeline"
+    )
+}
+
 public func InitTransparencyPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexModelShader",
@@ -648,6 +662,7 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.spatialDebug, InitSpatialDebugPipeline),
         (.look, InitLookPipeline),
         (.outputTransform, InitOutputTransformPipeline),
+        (.debug, InitDebugPipeline),
         (.transparency, InitTransparencyPipeline),
     ]
 }

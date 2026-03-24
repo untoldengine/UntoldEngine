@@ -120,6 +120,11 @@ typedef enum{
 }PrePassBufferIndices;
 
 typedef enum{
+    debugPassModeIndex,
+    debugPassFrustumPlanesIndex
+}DebugPassBufferIndices;
+
+typedef enum{
     prePassFinalTextureIndex,
     prePassEnvTextureIndex,
     prePassDepthTextureIndex,
