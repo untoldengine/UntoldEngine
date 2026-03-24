@@ -653,7 +653,7 @@
         private func syncStreamingCameraPosition() {
             #if canImport(ARKit)
                 let anchor = queryDeviceAnchorIfTrackingRunning(atTimestamp: CACurrentMediaTime())
-                             ?? lastValidDeviceAnchor
+                    ?? lastValidDeviceAnchor
                 guard let anchor else { return }
                 let t = anchor.originFromAnchorTransform
                 renderer?.setXRCameraWorldPosition(simd_float3(t.columns.3.x, t.columns.3.y, t.columns.3.z))

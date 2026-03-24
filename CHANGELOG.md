@@ -1,4 +1,36 @@
 # Changelog
+## v0.11.3 - 2026-03-24
+### 🐞 Fixes
+- [Patch] Request world sensing authorization before starting ARKit session (31eac96…)
+- [Patch] fix camera orbit function (0099534…)
+- [Patch] Fixed issues with texture streaming and batch system (ff3856b…)
+- [Patch] Added stream texture debugger (1a0638e…)
+- [Patch] Implemented progressive asset loader (123f5ac…)
+- [Patch] Modified the min and max for texture streaming (a36344e…)
+- [Patch] Fixed issue with progressive loading in XR (45ba06c…)
+- [Patch] First implementation of out-of-core (2e5e01e…)
+- [Patch] Improve out-of-core loading and eviction logic (0f0ebd3…)
+- [Patch] Improved performance of OOC (3496d13…)
+- [Patch]Stabilize asset streaming (bcb4c73…)
+- [Patch]Release MDLAsset CPU residency, add disk-backed cold re-streaming (07455b7…)
+- [Patch] Refine admission gate: add soft zone and fallback mesh on reject (9517e64…)
+- [Patch] Fix wrong initial textures by correcting TextureLoader cache key (db87e46…)
+- [Patch] Fix wrong batch textures by using object-identity. (65abf1d…)
+- [Patch] Complete three-tier texture streaming and add scene profiles (b8d7b66…)
+- [Patch] fixed lod system to work with OOC (180b650…)
+- [Patch] Formatted files (43a7f59…)
+- [Patch] Improved OOC performance (41c96df…)
+- [Patch] Added profiling documentation (58961cf…)
+- [Patch] Fixed Out-of-Core texture crash (0c3e5cf…)
+- [Patch] Added g-buffer debugger (12b60d2…)
+- [Patch] Fixed camera position for OOC system for XR (828cac7…)
+- [Patch] Fixed memory budget manager for XR (fdf9d61…)
+- [Patch] Fixed closest point used for OOC (659c795…)
+### 📚 Docs
+- [Docs] Added system architecture docs (e52dc7a…)
+- [Docs] Update progressive asset loading docs (85428b7…)
+- [Docs] Updated documentation (5ef25bb…)
+- [Docs] Updated Out of core docs (e225123…)
 ## v0.11.2 - 2026-03-18
 ### 🐞 Fixes
 - [Patch] fixed texture streaming (f676f75…)
