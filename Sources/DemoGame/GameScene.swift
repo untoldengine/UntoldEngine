@@ -13,7 +13,7 @@
     /// Core Engine API map used by this demo:
     /// - Entity lifecycle: `createEntity`, `setEntityName`, `destroyAllEntities`
     /// - Camera/input: `createGameCamera`, `findGameCamera`, `moveCameraWithInput`, `orbitCameraAround`
-    /// - Asset loading: `setEntityMeshAsync`
+    /// - Asset loading: `loadScene`
     /// - Performance features: `setEntityStaticBatchComponent`, `enableBatching`, `generateBatches`, `enableStreaming`
     /// - Debug overlays: `setLODLevelDebug`, `setTextureStreamingTierDebug`, `setOctreeLeafBoundsDebug`
     final class GameScene {
@@ -55,28 +55,19 @@
     // MARK: - Asset Loading
 
     extension GameScene {
-        /// Loads a USDZ file into the scene, replacing any previously loaded model.
-        ///
-        /// Asset load lifecycle contract:
-        /// 1. `destroyAllEntities` completion means teardown is finished; only then rebuild scene entities.
-        /// 2. `setEntityMeshAsync` completion means mesh loading/streaming setup is complete; only then update UI.
+        /// Loads a USDZ file into the scene, replacing whatever was previously loaded.
+        /// destroyAllEntities, mesh loading, and default camera/light creation are all
+        /// handled internally by loadScene — no manual teardown needed here.
         func loadFile(path: String, completion: @escaping (Bool) -> Void) {
             clearSceneBatches()
             loadedEntity = nil
 
-            destroyAllEntities { [weak self] in
+            loadScene(filename: path, withExtension: Constants.usdzExtension) { [weak self] success in
                 guard let self else { return }
-                setupDefaultSceneObjects()
-
+                loadedEntity = findEntity(name: path)
                 let camera = findGameCamera()
                 setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
-
-                let entity = createEntity()
-                loadedEntity = entity
-
-                setEntityMeshAsync(entityId: entity, filename: path, withExtension: Constants.usdzExtension) { isOutOfCore in
-                    completion(isOutOfCore)
-                }
+                completion(success)
             }
         }
     }

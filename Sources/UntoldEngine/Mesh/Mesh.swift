@@ -38,7 +38,7 @@ public enum CoordinateSystemConversion: Sendable {
     case none // Use transforms as-is from USD
 }
 
-private func orientationTransformForAsset(_ asset: MDLAsset, conversion: CoordinateSystemConversion) -> simd_float4x4 {
+func orientationTransformForAsset(_ asset: MDLAsset, conversion: CoordinateSystemConversion) -> simd_float4x4 {
     let zUpToYUpMatrix: simd_float4x4 = {
         var m = matrix_identity_float4x4
         // Column 0: image of (1,0,0) -> X stays X
