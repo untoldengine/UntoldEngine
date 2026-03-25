@@ -12,6 +12,7 @@
 import CShaderTypes
 import Foundation
 import MetalKit
+import ModelIO
 
 @inline(__always)
 private func enforceRegistrationMainActor() {
@@ -1670,129 +1671,214 @@ public func setEntityMeshDirect(entityId: EntityID, meshes: [Mesh], assetName: S
     }
 }
 
-public func loadScene(filename: String, withExtension: String, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
-    guard let url: URL = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
-        handleError(.filenameNotFound, filename)
-        return
-    }
-
-    if url.pathExtension == "dae" {
-        handleError(.fileTypeNotSupported, url.pathExtension)
-        return
-    }
-
-    var meshes = [[Mesh]]()
-
-    meshes = Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, coordinateConversion: coordinateConversion)
-
-    // Cache meshes for streaming system (so reloads don't require disk I/O)
-    MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: meshes)
-
-    if meshes.isEmpty {
-        handleError(.assetDataMissing, filename)
-        return
-    }
-
-    for mesh in meshes {
-        if mesh.count > 0 {
-            let entityId = createEntity()
-
-            if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-                registerTransformComponent(entityId: entityId)
-            }
-
-            if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-                registerSceneGraphComponent(entityId: entityId)
-            }
-
-            associateMeshesToEntity(entityId: entityId, meshes: mesh)
-
-            registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-
-            setEntityName(entityId: entityId, name: mesh.first!.assetName)
-
-            // look for any skeletons in asset
-            setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
-        }
-    }
-}
-
-/// Asynchronously load a scene without blocking the main thread
-public func loadSceneAsync(
+/// Load a USDZ scene, replacing whatever is currently in the world.
+///
+/// Operation sequence:
+///   1. destroyAllEntities       — clears the previous scene.
+///   2. extractSceneCamerasAndLights — lightweight MDLAsset pass (no geometry buffers)
+///      run synchronously before mesh loading so camera/light entities exist during
+///      the entire async mesh load period.
+///      • importCameras: true  → use USDZ cameras; first found wins. Fall back to a default if none found.
+///      • importCameras: false → always create a default camera (skip USDZ scan).
+///      • importLights: true   → use USDZ lights;  fall back to a default dir-light if none found.
+///      • importLights: false  → always create a default dir-light (skip USDZ scan).
+///   3. setEntityMeshAsync       — loads geometry via the full OOC pipeline.
+///
+/// The root entity is named after `filename`.  Use findEntity(name: filename) in the
+/// completion block to obtain a reference to it if needed.
+///
+/// - Parameters:
+///   - filename:                  USDZ filename without extension.
+///   - withExtension:             File extension (typically "usdz").
+///   - importCameras:             Try to import cameras from the USDZ; fall back to default.
+///   - importLights:              Try to import lights  from the USDZ; fall back to default.
+///   - enableBatching:            Call enableBatching(true) + generateBatches() after loading.
+///   - enableGeometryStreaming:   Force .outOfCore streaming policy (overrides .auto).
+///   - coordinateConversion:      Coordinate-system conversion applied to all transforms.
+///   - completion:                Called on the main thread when all async mesh work finishes.
+public func loadScene(
     filename: String,
     withExtension: String,
+    importCameras: Bool = false,
+    importLights: Bool = false,
+    enableBatching batchingEnabled: Bool = false,
+    enableGeometryStreaming streamingEnabled: Bool = false,
     coordinateConversion: CoordinateSystemConversion = .autoDetect,
     completion: ((Bool) -> Void)? = nil
 ) {
-    let completionBox = completion.map { BoolCompletionBox(callback: $0) }
+    let policy: MeshStreamingPolicy = streamingEnabled ? .outOfCore : .auto
 
-    Task {
-        // Create a temporary entity ID for tracking the scene load
-        let sceneLoadEntityId = EntityID.max - 1 // Use a special ID for scene loading
+    // Capture flags before closures to avoid naming conflicts with same-named
+    // module-level functions (enableBatching, etc.) inside completion blocks.
+    let shouldBatch = batchingEnabled
+    let shouldImportCameras = importCameras
+    let shouldImportLights = importLights
 
-        // Mark as loading
-        await AssetLoadingState.shared.startLoading(entityId: sceneLoadEntityId, filename: filename)
-
-        // Get URL
-        guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
-            handleError(.filenameNotFound, filename)
-            await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
-            completionBox?.call(false)
-            return
-        }
-
-        if url.pathExtension == "dae" {
-            handleError(.fileTypeNotSupported, url.pathExtension)
-            await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
-            completionBox?.call(false)
-            return
-        }
-
-        // Load scene meshes asynchronously
-        let meshes = await Mesh.loadSceneMeshesAsync(
-            url: url,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            coordinateConversion: coordinateConversion
-        ) { current, total in
-            guard total > 0 else { return }
-
-            Task {
-                await AssetLoadingState.shared.updateProgress(entityId: sceneLoadEntityId, currentMesh: current, totalMeshes: total)
-            }
-        }
-
-        // Cache meshes for streaming system (so reloads don't require disk I/O)
-        MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: meshes)
-
-        // Process on main thread
-        if meshes.isEmpty {
-            handleError(.assetDataMissing, filename)
-            await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
-            completionBox?.call(false)
-            return
-        }
-
-        for mesh in meshes where mesh.count > 0 {
-            let entityId = createEntity()
-
-            if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-                registerTransformComponent(entityId: entityId)
-            }
-
-            if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-                registerSceneGraphComponent(entityId: entityId)
-            }
-
-            associateMeshesToEntity(entityId: entityId, meshes: mesh)
-            registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-            setEntityName(entityId: entityId, name: mesh.first!.assetName)
-            setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
-        }
-
-        await AssetLoadingState.shared.finishLoading(entityId: sceneLoadEntityId)
-        completionBox?.call(true)
+    // Destroy the previous scene synchronously.  loadScene is a full scene
+    // replacement, so we finalize immediately rather than deferring to the
+    // render loop.  Deferring would leave the completion stuck in environments
+    // that have no render loop (e.g. unit tests), because finalizePendingDestroys
+    // is only called from runFrame().  In production the render loop has already
+    // drained hasPendingDestroys before user code runs, so calling finalize here
+    // is a cheap no-op on the entity side.
+    for entity in scene.getAllEntities() {
+        destroyEntity(entityId: entity)
     }
+    finalizePendingDestroys()
+    hasPendingDestroys = false
+
+    // Run camera/light extraction synchronously BEFORE mesh loading.
+    // The bare MDLAsset parse (no geometry buffers) is cheap even for large
+    // files, and having the camera/light entities in place immediately ensures
+    // the render loop is never left without valid entities during the async load.
+    let found = (shouldImportCameras || shouldImportLights)
+        ? extractSceneCamerasAndLights(
+            filename: filename,
+            withExtension: withExtension,
+            coordinateConversion: coordinateConversion,
+            importCameras: shouldImportCameras,
+            importLights: shouldImportLights
+        )
+        : (foundCamera: false, foundLight: false)
+
+    // Create defaults for anything not found in the file.
+    if !found.foundCamera {
+        let camera = createEntity()
+        setEntityName(entityId: camera, name: "Main Camera")
+        createGameCamera(entityId: camera)
+        CameraSystem.shared.activeCamera = camera
+    }
+    if !found.foundLight {
+        let light = createEntity()
+        setEntityName(entityId: light, name: "Directional Light")
+        createDirLight(entityId: light)
+    }
+
+    let rootEntity = createEntity()
+    setEntityName(entityId: rootEntity, name: filename)
+
+    setEntityMeshAsync(
+        entityId: rootEntity,
+        filename: filename,
+        withExtension: withExtension,
+        coordinateConversion: coordinateConversion,
+        streamingPolicy: policy
+    ) { success in
+        guard success else {
+            completion?(false)
+            return
+        }
+
+        if shouldBatch {
+            enableBatching(true)
+            generateBatches()
+        }
+
+        completion?(true)
+    }
+}
+
+/// Lightweight second MDLAsset pass that extracts cameras and lights only.
+/// Uses a bare MDLAsset (no vertex descriptor, no allocator) so no geometry
+/// buffers are allocated — this is cheap even for large scenes.
+/// Returns whether at least one camera and at least one light were found and created.
+@discardableResult
+private func extractSceneCamerasAndLights(
+    filename: String,
+    withExtension: String,
+    coordinateConversion: CoordinateSystemConversion,
+    importCameras: Bool,
+    importLights: Bool
+) -> (foundCamera: Bool, foundLight: Bool) {
+    guard let url = LoadingSystem.shared.resourceURL(
+        forResource: filename,
+        withExtension: withExtension,
+        subResource: nil
+    ) else { return (false, false) }
+
+    let asset = MDLAsset(url: url)
+
+    // Reuse the shared orientation helper from Mesh.swift — single source of truth.
+    let orientationMatrix = orientationTransformForAsset(asset, conversion: coordinateConversion)
+
+    var foundCamera = false
+    var foundLight = false
+
+    // Light types the engine can represent.  Checked before createEntity() so we
+    // never allocate an entity we immediately have to destroy.
+    let supportedLightTypes: Set<MDLLightType> = [
+        .directional, .point, .spot, .rectangularArea, .discArea, .linear, .superElliptical,
+    ]
+
+    for object in asset.childObjects(of: MDLObject.self) {
+        // ── Cameras ──────────────────────────────────────────────────────────
+        // First camera found wins; subsequent cameras in the file are ignored.
+        if importCameras, !foundCamera, let mdlCamera = object as? MDLCamera {
+            let raw = composedWorldTransform(for: mdlCamera)
+            let world = orientationMatrix == matrix_identity_float4x4
+                ? raw : simd_mul(orientationMatrix, raw)
+
+            let eye = simd_float3(world.columns.3.x, world.columns.3.y, world.columns.3.z)
+            // Camera local forward is -Z; transform into world space.
+            let fwd = simd_mul(world, simd_float4(0, 0, -1, 0))
+            let upVec = simd_mul(world, simd_float4(0, 1, 0, 0))
+            let target = eye + simd_float3(fwd.x, fwd.y, fwd.z)
+            let up = simd_float3(upVec.x, upVec.y, upVec.z)
+
+            let cameraEntity = createEntity()
+            setEntityName(entityId: cameraEntity, name: mdlCamera.name.isEmpty ? "Camera" : mdlCamera.name)
+            createGameCamera(entityId: cameraEntity)
+            cameraLookAt(entityId: cameraEntity, eye: eye, target: target, up: up)
+            CameraSystem.shared.activeCamera = cameraEntity
+            foundCamera = true
+
+            if mdlCamera.name.count > 1 {
+                Logger.log(message: "[loadScene] Imported camera '\(mdlCamera.name)' from file.")
+            }
+        }
+
+        // ── Lights ───────────────────────────────────────────────────────────
+        if importLights, let mdlLight = object as? MDLLight {
+            // Skip unsupported types before allocating an entity.
+            guard supportedLightTypes.contains(mdlLight.lightType) else { continue }
+
+            let lightEntity = createEntity()
+            setEntityName(entityId: lightEntity, name: mdlLight.name.isEmpty ? "Light" : mdlLight.name)
+
+            switch mdlLight.lightType {
+            case .directional:
+                createDirLight(entityId: lightEntity)
+            case .point:
+                createPointLight(entityId: lightEntity)
+            case .spot:
+                createSpotLight(entityId: lightEntity)
+                if let spot = mdlLight as? MDLPhysicallyPlausibleLight {
+                    updateLightConeAngle(entityId: lightEntity, coneAngle: spot.outerConeAngle)
+                }
+            default:
+                // rectangularArea, discArea, linear, superElliptical
+                createAreaLight(entityId: lightEntity)
+            }
+
+            let raw = composedWorldTransform(for: mdlLight)
+            let world = orientationMatrix == matrix_identity_float4x4
+                ? raw : simd_mul(orientationMatrix, raw)
+            applyWorldTransform(world, to: lightEntity)
+
+            if let pbrLight = mdlLight as? MDLPhysicallyPlausibleLight,
+               let cgColor = pbrLight.color,
+               let comps = cgColor.components,
+               cgColor.numberOfComponents >= 3
+            {
+                let color = simd_float3(Float(comps[0]), Float(comps[1]), Float(comps[2]))
+                updateLightColor(entityId: lightEntity, color: color)
+                updateLightIntensity(entityId: lightEntity, intensity: pbrLight.lumens)
+            }
+            foundLight = true
+        }
+    }
+
+    return (foundCamera: foundCamera, foundLight: foundLight)
 }
 
 /// Cache to avoid reloading USDZ files multiple times for skeleton checks
