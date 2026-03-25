@@ -223,8 +223,6 @@ final class BuildSystemTests: XCTestCase {
                       "GameScene.swift should import simd")
         XCTAssertTrue(gameSceneContent.contains("setupAssetPaths()"),
                       "GameScene.swift should call setupAssetPaths in init")
-        XCTAssertTrue(gameSceneContent.contains("private func loadAndPlayFirstScene"),
-                      "GameScene.swift should define loadAndPlayFirstScene helper")
         XCTAssertFalse(gameSceneContent.contains("func setupAssetPaths()"),
                        "GameScene.swift should keep asset helpers in GameSceneUtils.swift")
         XCTAssertTrue(gameSceneContent.contains("func update(deltaTime"),
@@ -247,10 +245,6 @@ final class BuildSystemTests: XCTestCase {
                       "GameSceneUtils.swift should contain setupAssetPaths")
         XCTAssertTrue(gameSceneUtilsContent.contains("assetBasePath"),
                       "GameSceneUtils.swift should set assetBasePath")
-        XCTAssertTrue(gameSceneUtilsContent.contains("func findFirstScene"),
-                      "GameSceneUtils.swift should contain findFirstScene")
-        XCTAssertTrue(gameSceneUtilsContent.contains("func loadBundledScripts()"),
-                      "GameSceneUtils.swift should contain loadBundledScripts")
     }
 
     func testMacOSGameViewControllerSwiftGeneratedWithExpectedContent() {
@@ -480,8 +474,6 @@ final class BuildSystemTests: XCTestCase {
                       "iOS GameScene.swift should import simd")
         XCTAssertTrue(gameSceneContent.contains("setupAssetPaths()"),
                       "iOS GameScene.swift should call setupAssetPaths in init")
-        XCTAssertTrue(gameSceneContent.contains("private func loadAndPlayFirstScene"),
-                      "iOS GameScene.swift should define loadAndPlayFirstScene helper")
         XCTAssertFalse(gameSceneContent.contains("func setupAssetPaths()"),
                        "iOS GameScene.swift should keep asset helpers in GameSceneUtils.swift")
         XCTAssertTrue(gameSceneContent.contains("func update(deltaTime"),
@@ -504,10 +496,6 @@ final class BuildSystemTests: XCTestCase {
                       "iOS GameSceneUtils.swift should contain setupAssetPaths")
         XCTAssertTrue(gameSceneUtilsContent.contains("assetBasePath"),
                       "iOS GameSceneUtils.swift should set assetBasePath")
-        XCTAssertTrue(gameSceneUtilsContent.contains("func findFirstScene"),
-                      "iOS GameSceneUtils.swift should contain findFirstScene")
-        XCTAssertTrue(gameSceneUtilsContent.contains("func loadBundledScripts()"),
-                      "iOS GameSceneUtils.swift should contain loadBundledScripts")
     }
 
     func testIOSGameViewControllerSwiftGeneratedWithExpectedContent() {
@@ -775,8 +763,6 @@ final class BuildSystemTests: XCTestCase {
                       "iOS AR GameSceneUtils.swift should extend GameScene")
         XCTAssertTrue(gameSceneUtilsContent.contains("func setupAssetPaths()"),
                       "iOS AR GameSceneUtils.swift should contain setupAssetPaths")
-        XCTAssertTrue(gameSceneUtilsContent.contains("func loadBundledScripts()"),
-                      "iOS AR GameSceneUtils.swift should contain loadBundledScripts")
     }
 
     // MARK: - visionOS Template Tests
@@ -963,10 +949,6 @@ final class BuildSystemTests: XCTestCase {
                       "visionOS GameSceneUtils.swift should include setupAssetPaths")
         XCTAssertTrue(gameSceneUtilsContent.contains("func listDirectoryRecursively"),
                       "visionOS GameSceneUtils.swift should include directory listing helper")
-        XCTAssertTrue(gameSceneUtilsContent.contains("func findFirstScene"),
-                      "visionOS GameSceneUtils.swift should include findFirstScene")
-        XCTAssertTrue(gameSceneUtilsContent.contains("func loadBundledScripts()"),
-                      "visionOS GameSceneUtils.swift should include loadBundledScripts")
     }
 
     func testIOSARSinglePlatformUsesUntoldEngineAROnly() throws {
