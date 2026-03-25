@@ -111,13 +111,17 @@ import Foundation
 
             // Packages section
             let packagesSection: String
-            if settings.isIOSAR, case .iOS = settings.target {
+            if case .visionOS = settings.target {
                 packagesSection = """
                 packages:
                   UntoldEngine:
                     url: https://github.com/untoldengine/UntoldEngine.git
                     branch: develop
-                  UntoldEngineAR:
+                """
+            } else if settings.isIOSAR, case .iOS = settings.target {
+                packagesSection = """
+                packages:
+                  UntoldEngine:
                     url: https://github.com/untoldengine/UntoldEngine.git
                     branch: develop
                 """
@@ -132,16 +136,25 @@ import Foundation
 
             // Dependencies section
             let dependenciesSection: String
-            if settings.isIOSAR, case .iOS = settings.target {
+            if case .visionOS = settings.target {
                 dependenciesSection = """
                     dependencies:
                       - package: UntoldEngine
-                      - package: UntoldEngineAR
+                        product: UntoldEngineXR
+                      - package: UntoldEngine
+                        product: UntoldEngineAR
+                """
+            } else if settings.isIOSAR, case .iOS = settings.target {
+                dependenciesSection = """
+                    dependencies:
+                      - package: UntoldEngine
+                        product: UntoldEngineAR
                 """
             } else {
                 dependenciesSection = """
                     dependencies:
                       - package: UntoldEngine
+                        product: UntoldEngine
                 """
             }
 
@@ -168,12 +181,6 @@ import Foundation
 
                 packages:
                   UntoldEngine:
-                    url: https://github.com/untoldengine/UntoldEngine.git
-                    branch: develop
-                  UntoldEngineXR:
-                    url: https://github.com/untoldengine/UntoldEngine.git
-                    branch: develop
-                  UntoldEngineAR:
                     url: https://github.com/untoldengine/UntoldEngine.git
                     branch: develop
 
@@ -217,6 +224,7 @@ import Foundation
                         buildPhase: resources
                     dependencies:
                       - package: UntoldEngine
+                        product: UntoldEngine
                     settings:
                       base:
                         PRODUCT_BUNDLE_IDENTIFIER: \(settings.bundleIdentifier)
@@ -246,7 +254,7 @@ import Foundation
                         buildPhase: resources
                     dependencies:
                       - package: UntoldEngine
-                      - package: UntoldEngineAR
+                        product: UntoldEngineAR
                     settings:
                       base:
                         PRODUCT_BUNDLE_IDENTIFIER: \(settings.bundleIdentifier).ar
@@ -276,7 +284,9 @@ import Foundation
                         buildPhase: resources
                     dependencies:
                       - package: UntoldEngine
-                      - package: UntoldEngineXR
+                        product: UntoldEngineXR
+                      - package: UntoldEngine
+                        product: UntoldEngineAR
                     settings:
                       base:
                         PRODUCT_BUNDLE_IDENTIFIER: \(settings.bundleIdentifier)

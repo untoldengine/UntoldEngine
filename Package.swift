@@ -55,7 +55,13 @@ let package = Package(
 
         .library(name: "UntoldEngineAR", targets: ["UntoldEngineAR"]),
 
-        // Executable for the demo game
+        // Executable for the sandbox app (primary name)
+        .executable(
+            name: "untoldsandbox",
+            targets: ["DemoGame"]
+        ),
+
+        // Backward-compatible executable alias
         .executable(
             name: "DemoGame",
             targets: ["DemoGame"]

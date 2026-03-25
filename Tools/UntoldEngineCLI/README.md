@@ -24,7 +24,7 @@ git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
 
 # Run the install script
-./scripts/install-create.sh
+./scripts/install-untoldengine-create.sh
 ```
 
 This will build the CLI in release mode and install it to `/usr/local/bin`, making it available globally.

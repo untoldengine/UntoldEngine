@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# install-create.sh
+# install-untoldengine-create.sh
 # Installation script for untoldengine-create CLI tool
 
 set -e  # Exit on error
