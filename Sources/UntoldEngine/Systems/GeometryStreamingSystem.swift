@@ -118,7 +118,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     }
 
     private func reserveNearBandLoad(entityId: EntityID) {
-        withStateLock { activeNearBandLoads.insert(entityId) }
+        _ = withStateLock { activeNearBandLoads.insert(entityId) }
     }
 
     private func releaseNearBandLoad(entityId: EntityID) {
@@ -1224,8 +1224,6 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         guard let transform = scene.get(component: WorldTransformComponent.self, for: entityId),
               let local = scene.get(component: LocalTransformComponent.self, for: entityId)
         else { return Float.infinity }
-
-        let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
 
         // Transform the camera into entity-local space so that streamingRadius and
         // unloadRadius are scale-invariant. Without this, applying scaleTo(0.1) on a
