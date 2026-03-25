@@ -118,48 +118,25 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                setSceneReady(false)
-                
-                // load a mesh
-                let entity = createEntity()
-
-                // city.usdz must be inside the GameData/model folder (generated path: GameData/Models)
-                setEntityMeshAsync(entityId: entity, filename: "city", withExtension: "usdz"){_ in
-                    
-                    translateBy(entityId: entity, position: simd_float3(0.0,-10.0,0.0))
-                    
-                    // Enable Geometry Streaming
-                    enableStreaming(
-                        entityId: entity,
-                        streamingRadius: 40.0,
-                        unloadRadius: 60.0,
-                        priority: 10
-                    )
-                    
-                    // Enable Static Batching
-                    setEntityStaticBatch(entityId: entity)
-                    enableBatching(true)
-                    generateBatches()
-                    
-                    setSceneReady(true)
+                // Load a USDZ scene.
+                // city.usdz must be inside the GameData/Models folder.
+                // loadScene() replaces the current world, creates a default camera and
+                // directional light, and delegates to setEntityMeshAsync() internally.
+                // Streaming defaults: streamingRadius=100, unloadRadius=150, priority=10.
+                // To override, call enableStreaming(entityId:streamingRadius:unloadRadius:priority:)
+                // on the root entity inside the completion block.
+                // Remove enableBatching / enableGeometryStreaming if not needed.
+                loadScene(
+                    filename: "city",
+                    withExtension: "usdz",
+                    enableBatching: true,
+                    enableGeometryStreaming: true
+                ) { success in
+                    setSceneReady(success)
                 }
             }
 
             // MARK: - Setup Methods
-
-            /// Load and play the first available scene
-            private func loadAndPlayFirstScene(sceneName: String? = nil) {
-                setSceneReady(false)
-                if let sceneURL = findFirstScene(name: sceneName) {
-                    playSceneAt(url: sceneURL) {
-                        setSceneReady(true)
-                        Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
-                    }
-                } else {
-                    setSceneReady(true)
-                    Logger.log(message: "⚠️ No scene files found")
-                }
-            }
 
             /// Configure game Systems for play mode
             private func configureEngineSystems() {
@@ -251,44 +228,6 @@ import Foundation
                 }
             }
 
-            /// Find a scene in GameData/Scenes by name, or the first JSON scene if no name is provided.
-            func findFirstScene(name: String? = nil) -> URL? {
-                guard let gameDataURL = Bundle.main.url(forResource: "GameData", withExtension: nil) else {
-                    Logger.log(message: "⚠️ GameData directory not found")
-                    return nil
-                }
-
-                let scenesURL = gameDataURL.appendingPathComponent("Scenes")
-
-                guard let sceneFiles = try? FileManager.default.contentsOfDirectory(
-                    at: scenesURL,
-                    includingPropertiesForKeys: nil
-                ) else {
-                    return nil
-                }
-
-                let jsonSceneFiles = sceneFiles.filter { $0.pathExtension.lowercased() == "json" }
-
-                guard let name = name, name.isEmpty == false else {
-                    return jsonSceneFiles.first
-                }
-
-                let sceneFileName = name.hasSuffix(".json") ? name : "\\(name).json"
-                return jsonSceneFiles.first {
-                    $0.lastPathComponent.caseInsensitiveCompare(sceneFileName) == .orderedSame
-                }
-            }
-
-            /// Load all USC scripts from GameData/Scripts
-            func loadBundledScripts() {
-                guard let gameDataURL = Bundle.main.url(forResource: "GameData", withExtension: nil) else {
-                    return
-                }
-
-                let scriptsURL = gameDataURL.appendingPathComponent("Scripts")
-                let count = loadScripts(from: scriptsURL)
-                Logger.log(message: "✅ Loaded \\(count) script(s) from bundle")
-            }
         }
         """
 
@@ -665,48 +604,25 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                setSceneReady(false)
-
-                // load a mesh
-                let entity = createEntity()
-
-                // city.usdz must be inside the GameData/model folder (generated path: GameData/Models)
-                setEntityMeshAsync(entityId: entity, filename: "city", withExtension: "usdz"){_ in
-
-                    translateBy(entityId: entity, position: simd_float3(0.0,-10.0,0.0))
-
-                    // Enable Geometry Streaming
-                    enableStreaming(
-                        entityId: entity,
-                        streamingRadius: 40.0,
-                        unloadRadius: 60.0,
-                        priority: 10
-                    )
-
-                    // Enable Static Batching
-                    setEntityStaticBatch(entityId: entity)
-                    enableBatching(true)
-                    generateBatches()
-
-                    setSceneReady(true)
+                // Load a USDZ scene.
+                // city.usdz must be inside the GameData/Models folder.
+                // loadScene() replaces the current world, creates a default camera and
+                // directional light, and delegates to setEntityMeshAsync() internally.
+                // Streaming defaults: streamingRadius=100, unloadRadius=150, priority=10.
+                // To override, call enableStreaming(entityId:streamingRadius:unloadRadius:priority:)
+                // on the root entity inside the completion block.
+                // Remove enableBatching / enableGeometryStreaming if not needed.
+                loadScene(
+                    filename: "city",
+                    withExtension: "usdz",
+                    enableBatching: true,
+                    enableGeometryStreaming: true
+                ) { success in
+                    setSceneReady(success)
                 }
             }
 
             // MARK: - Setup Methods
-
-            /// Load and play the first available scene
-            private func loadAndPlayFirstScene(sceneName: String? = nil) {
-                setSceneReady(false)
-                if let sceneURL = findFirstScene(name: sceneName) {
-                    playSceneAt(url: sceneURL) {
-                        setSceneReady(true)
-                        Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
-                    }
-                } else {
-                    setSceneReady(true)
-                    Logger.log(message: "⚠️ No scene files found")
-                }
-            }
 
             /// Configure game Systems for play mode
             private func configureEngineSystems() {
@@ -838,48 +754,25 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                setSceneReady(false)
-
-                // load a mesh
-                let entity = createEntity()
-
-                // city.usdz must be inside the GameData/model folder (generated path: GameData/Models)
-                setEntityMeshAsync(entityId: entity, filename: "city", withExtension: "usdz"){_ in
-
-                    translateBy(entityId: entity, position: simd_float3(0.0,-10.0,0.0))
-
-                    // Enable Geometry Streaming
-                    enableStreaming(
-                        entityId: entity,
-                        streamingRadius: 40.0,
-                        unloadRadius: 60.0,
-                        priority: 10
-                    )
-
-                    // Enable Static Batching
-                    setEntityStaticBatch(entityId: entity)
-                    enableBatching(true)
-                    generateBatches()
-
-                    setSceneReady(true)
+                // Load a USDZ scene.
+                // city.usdz must be inside the GameData/Models folder.
+                // loadScene() replaces the current world, creates a default camera and
+                // directional light, and delegates to setEntityMeshAsync() internally.
+                // Streaming defaults: streamingRadius=100, unloadRadius=150, priority=10.
+                // To override, call enableStreaming(entityId:streamingRadius:unloadRadius:priority:)
+                // on the root entity inside the completion block.
+                // Remove enableBatching / enableGeometryStreaming if not needed.
+                loadScene(
+                    filename: "city",
+                    withExtension: "usdz",
+                    enableBatching: true,
+                    enableGeometryStreaming: true
+                ) { success in
+                    setSceneReady(success)
                 }
             }
 
             // MARK: - Setup Methods
-
-            /// Load and play the first available scene
-            private func loadAndPlayFirstScene(sceneName: String? = nil) {
-                setSceneReady(false)
-                if let sceneURL = findFirstScene(name: sceneName) {
-                    playSceneAt(url: sceneURL) {
-                        setSceneReady(true)
-                        Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
-                    }
-                } else {
-                    setSceneReady(true)
-                    Logger.log(message: "⚠️ No scene files found")
-                }
-            }
 
             /// Configure game Systems for play mode
             private func configureEngineSystems() {
@@ -1195,50 +1088,25 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                setSceneReady(false)
-                
-                // load a scene
-                let entity = createEntity()
-
-                // city.usdz must be inside the GameData/model folder (generated path: GameData/Models)
-                setEntityMeshAsync(entityId: entity, filename: "city", withExtension: "usdz"){_ in
-                    
-                    translateBy(entityId: entity, position: simd_float3(0.0,-10.0,0.0))
-                    
-                    // Enable Geometry Streaming
-                    enableStreaming(
-                        entityId: entity,
-                        streamingRadius: 40.0,
-                        unloadRadius: 60.0,
-                        priority: 10
-                    )
-                    
-                    // Enable Static Batching
-                    setEntityStaticBatch(entityId: entity)
-                    enableBatching(true)
-                    generateBatches()
-                    
-                    setSceneReady(true)
+                // Load a USDZ scene.
+                // city.usdz must be inside the GameData/Models folder.
+                // loadScene() replaces the current world, creates a default camera and
+                // directional light, and delegates to setEntityMeshAsync() internally.
+                // Streaming defaults: streamingRadius=100, unloadRadius=150, priority=10.
+                // To override, call enableStreaming(entityId:streamingRadius:unloadRadius:priority:)
+                // on the root entity inside the completion block.
+                // Remove enableBatching / enableGeometryStreaming if not needed.
+                loadScene(
+                    filename: "city",
+                    withExtension: "usdz",
+                    enableBatching: true,
+                    enableGeometryStreaming: true
+                ) { success in
+                    setSceneReady(success)
                 }
             }
 
             // MARK: - Setup Methods
-
-            /// Load and play the first available scene
-            private func loadAndPlayFirstScene(sceneName: String? = nil) {
-                setSceneReady(false)
-                if let sceneURL = findFirstScene(name: sceneName) {
-                    Logger.log(message: "✅ Found scene: \\(sceneURL.lastPathComponent)")
-                    playSceneAt(url: sceneURL) {
-                        setSceneReady(true)
-                        Logger.log(message: "✅ Scene loaded: \\(sceneURL.lastPathComponent)")
-                    }
-                } else {
-                    setSceneReady(true)
-                    Logger.log(message: "⚠️ No scene files found - nothing will render")
-                    Logger.log(message: "⚠️ Create a scene in the editor and rebuild the project")
-                }
-            }
 
             /// Configure game Systems for play mode
             private func configureEngineSystems() {
@@ -1391,44 +1259,6 @@ import Foundation
                 }
             }
 
-            /// Find a scene in GameData/Scenes by name, or the first JSON scene if no name is provided.
-            func findFirstScene(name: String? = nil) -> URL? {
-                guard let gameDataURL = Bundle.main.url(forResource: "GameData", withExtension: nil) else {
-                    Logger.log(message: "⚠️ GameData directory not found")
-                    return nil
-                }
-
-                let scenesURL = gameDataURL.appendingPathComponent("Scenes")
-
-                guard let sceneFiles = try? FileManager.default.contentsOfDirectory(
-                    at: scenesURL,
-                    includingPropertiesForKeys: nil
-                ) else {
-                    return nil
-                }
-
-                let jsonSceneFiles = sceneFiles.filter { $0.pathExtension.lowercased() == "json" }
-
-                guard let name = name, name.isEmpty == false else {
-                    return jsonSceneFiles.first
-                }
-
-                let sceneFileName = name.hasSuffix(".json") ? name : "\\(name).json"
-                return jsonSceneFiles.first {
-                    $0.lastPathComponent.caseInsensitiveCompare(sceneFileName) == .orderedSame
-                }
-            }
-
-            /// Load all USC scripts from GameData/Scripts
-            func loadBundledScripts() {
-                guard let gameDataURL = Bundle.main.url(forResource: "GameData", withExtension: nil) else {
-                    return
-                }
-
-                let scriptsURL = gameDataURL.appendingPathComponent("Scripts")
-                let count = loadScripts(from: scriptsURL)
-                Logger.log(message: "✅ Loaded \\(count) script(s) from bundle")
-            }
         }
         """
 

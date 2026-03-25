@@ -126,20 +126,9 @@ Untold Engine aims to support applications such as:
 
 ---
 
-# Engine Architecture:
-
-- [Rendering System](docs/Architecture/renderingSystem.md)
-- [XR Rendering System](docs/Architecture/xrRenderingSystem.md)
-- [Static Batching System](docs/Architecture/batchingSystem.md)
-- [Geometry Streaming System](docs/Architecture/geometryStreamingSystem.md)
-- [LOD System](docs/Architecture/lodSystem.md)
-- [Progressive Asset Loader](docs/Architecture/progressiveAssetLoader.md)
-- [Streaming Cache Lifecycle](docs/Architecture/streamingCacheLifecycle.md)
-- [Texture Streaming System](docs/Architecture/textureStreamingSystem.md)
-- [Out of Core](docs/Architecture/outOfCore.md)
-
 # Engine API
 
+- [Getting Started](docs/API/GettingStarted.md)
 - [Registration System](docs/API/UsingRegistrationSystem.md)
 - [Scenegraph](docs/API/UsingScenegraph.md)
 - [Transform System](docs/API/UsingTransformSystem.md)
@@ -160,6 +149,19 @@ Untold Engine aims to support applications such as:
 - [Gaussian System](docs/API/UsingGaussianSystem.md)
 - [Spatical Debugger](docs/API/SpatialDebugger.md)
 - [Profiler](/docs/API/UsingProfiler.md)
+
+
+# Engine Architecture:
+
+- [Rendering System](docs/Architecture/renderingSystem.md)
+- [XR Rendering System](docs/Architecture/xrRenderingSystem.md)
+- [Static Batching System](docs/Architecture/batchingSystem.md)
+- [Geometry Streaming System](docs/Architecture/geometryStreamingSystem.md)
+- [LOD System](docs/Architecture/lodSystem.md)
+- [Progressive Asset Loader](docs/Architecture/progressiveAssetLoader.md)
+- [Streaming Cache Lifecycle](docs/Architecture/streamingCacheLifecycle.md)
+- [Texture Streaming System](docs/Architecture/textureStreamingSystem.md)
+- [Out of Core](docs/Architecture/outOfCore.md)
 
 ---
 
