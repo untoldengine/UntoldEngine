@@ -1196,12 +1196,14 @@ func initSSAOResources() {
 
 /// Reinitialize SSAO textures when quality changes
 func reinitSSAOTextures() {
+    let fullWidth = Int(renderInfo.viewPort.x)
+    let fullHeight = Int(renderInfo.viewPort.y)
+    if fullWidth == 0 || fullHeight == 0 { return }
+
     let quality = SSAOParams.shared.quality
     let scale = quality.resolutionScale
     let format = quality.textureFormat
 
-    let fullWidth = Int(renderInfo.viewPort.x)
-    let fullHeight = Int(renderInfo.viewPort.y)
     let ssaoWidth = Int(Float(fullWidth) * scale)
     let ssaoHeight = Int(Float(fullHeight) * scale)
 
