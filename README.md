@@ -33,6 +33,8 @@ The project focuses on building a **clean, system-driven architecture** with mod
 
 The engine is under active development and continues to evolve as new systems and workflows are added.
 
+![untoldengine-image](/docs/images/engine-highlight-1.png)
+
 ---
 
 ## 🎯 Who is this for?
@@ -61,6 +63,12 @@ Clone the repository, run the engine and load a USDZ file:
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
+swift run untoldsandbox
+```
+
+Legacy alias (prints deprecation warning):
+
+```bash
 swift run DemoGame
 ```
 
@@ -157,45 +165,59 @@ Untold Engine aims to support applications such as:
 
 # Set Up an Xcode Project with Untold Engine
 
-You can easily create an xcode project using the Untold Engine as dependency
+Use `untoldengine-create` to generate a ready-to-run Xcode project with Untold Engine wired in.
 
 Install it from the repository:
 
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-./scripts/install-create.sh
+./scripts/install-untoldengine-create.sh
 ```
 
-Then create a new project:
+## Vision Pro Example
 
 ```bash
-mkdir MyGame
-cd MyGame
-untoldengine-create create MyGame
+mkdir VisionGame
+cd VisionGame
+untoldengine-create create VisionGame --platform visionos
+open VisionGame.xcodeproj
 ```
 
-The CLI supports multiple platforms:
+## What this creates for you
+
+- Xcode project + platform-specific app template files
+- `GameData` folder structure (`Scenes`, `Scripts`, `Models`, `Textures`, etc.)
+- Engine package dependencies configured for the selected platform
+- Starter `GameScene` code showing how to:
+  - Load a mesh (`city.usdz`)
+  - Enable geometry streaming
+  - Enable static batching
+
+Note: `city.usdz` should be placed in `GameData/model` (generated folder name is `GameData/Models`).
+
+## Platform options
 
 ```bash
+# visionOS (Apple Vision Pro)
+untoldengine-create create MyGame --platform visionos
+
 # macOS (default)
 untoldengine-create create MyGame --platform macos
-
-# iOS
-untoldengine-create create MyGame --platform ios
 
 # iOS with ARKit
 untoldengine-create create MyGame --platform iosar
 
-# visionOS (Apple Vision Pro)
-untoldengine-create create MyGame --platform visionos
+# iOS
+untoldengine-create create MyGame --platform ios
+
 ```
 
-Features:
+Dependency behavior by platform:
 
-- Create macOS, iOS, and visionOS projects
-- Multi-platform project templates
-- Automated project structure generation
+- `visionos`: `UntoldEngineXR` + `UntoldEngineAR`
+- `iosar`: `UntoldEngineAR`
+- `ios` and `macos`: `UntoldEngine`
 
 ---
 

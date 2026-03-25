@@ -36,7 +36,7 @@ jobs:
             echo ""
             echo "git clone https://github.com/untoldengine/UntoldEngine.git"
             echo "cd UntoldEngine"
-            echo "swift run DemoGame"
+            echo "swift run untoldsandbox"
             echo ""
             echo "This will build the engine and launch the demo using Swift Package Manager."
             echo ""

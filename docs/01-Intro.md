@@ -38,7 +38,7 @@ Clone the repository, run the engine and load a USDZ file:
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-swift run DemoGame
+swift run untoldsandbox
 ```
 
 This will:

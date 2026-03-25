@@ -219,16 +219,38 @@ final class BuildSystemTests: XCTestCase {
                       "GameScene.swift should import UntoldEngine")
         XCTAssertTrue(gameSceneContent.contains("import Foundation"),
                       "GameScene.swift should import Foundation")
-        XCTAssertTrue(gameSceneContent.contains("assetBasePath"),
-                      "GameScene.swift should set assetBasePath")
-        XCTAssertTrue(gameSceneContent.contains("loadBundledScripts()"),
-                      "GameScene.swift should call loadBundledScripts")
-        XCTAssertTrue(gameSceneContent.contains("playSceneAt(url: sceneURL)"),
-                      "GameScene.swift should call playSceneAt")
+        XCTAssertTrue(gameSceneContent.contains("import simd"),
+                      "GameScene.swift should import simd")
+        XCTAssertTrue(gameSceneContent.contains("setupAssetPaths()"),
+                      "GameScene.swift should call setupAssetPaths in init")
+        XCTAssertTrue(gameSceneContent.contains("private func loadAndPlayFirstScene"),
+                      "GameScene.swift should define loadAndPlayFirstScene helper")
+        XCTAssertFalse(gameSceneContent.contains("func setupAssetPaths()"),
+                       "GameScene.swift should keep asset helpers in GameSceneUtils.swift")
         XCTAssertTrue(gameSceneContent.contains("func update(deltaTime"),
                       "GameScene.swift should contain update method")
         XCTAssertTrue(gameSceneContent.contains("func handleInput()"),
                       "GameScene.swift should contain handleInput method")
+
+        // Verify GameSceneUtils content for extracted onboarding helpers
+        let gameSceneUtilsKey = "Sources/{{PROJECT_NAME}}/GameSceneUtils.swift"
+        XCTAssertNotNil(templateFiles[gameSceneUtilsKey], "GameSceneUtils.swift template should exist")
+
+        guard let gameSceneUtilsContent = templateFiles[gameSceneUtilsKey] else {
+            XCTFail("GameSceneUtils.swift content should not be nil")
+            return
+        }
+
+        XCTAssertTrue(gameSceneUtilsContent.contains("extension GameScene"),
+                      "GameSceneUtils.swift should extend GameScene")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func setupAssetPaths()"),
+                      "GameSceneUtils.swift should contain setupAssetPaths")
+        XCTAssertTrue(gameSceneUtilsContent.contains("assetBasePath"),
+                      "GameSceneUtils.swift should set assetBasePath")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func findFirstScene"),
+                      "GameSceneUtils.swift should contain findFirstScene")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func loadBundledScripts()"),
+                      "GameSceneUtils.swift should contain loadBundledScripts")
     }
 
     func testMacOSGameViewControllerSwiftGeneratedWithExpectedContent() {
@@ -454,14 +476,38 @@ final class BuildSystemTests: XCTestCase {
                       "iOS GameScene.swift should import UntoldEngine")
         XCTAssertTrue(gameSceneContent.contains("import Foundation"),
                       "iOS GameScene.swift should import Foundation")
-        XCTAssertTrue(gameSceneContent.contains("assetBasePath"),
-                      "iOS GameScene.swift should set assetBasePath")
-        XCTAssertTrue(gameSceneContent.contains("loadBundledScripts()"),
-                      "iOS GameScene.swift should call loadBundledScripts")
+        XCTAssertTrue(gameSceneContent.contains("import simd"),
+                      "iOS GameScene.swift should import simd")
+        XCTAssertTrue(gameSceneContent.contains("setupAssetPaths()"),
+                      "iOS GameScene.swift should call setupAssetPaths in init")
+        XCTAssertTrue(gameSceneContent.contains("private func loadAndPlayFirstScene"),
+                      "iOS GameScene.swift should define loadAndPlayFirstScene helper")
+        XCTAssertFalse(gameSceneContent.contains("func setupAssetPaths()"),
+                       "iOS GameScene.swift should keep asset helpers in GameSceneUtils.swift")
         XCTAssertTrue(gameSceneContent.contains("func update(deltaTime"),
                       "iOS GameScene.swift should contain update method")
         XCTAssertTrue(gameSceneContent.contains("func handleInput()"),
                       "iOS GameScene.swift should contain handleInput method")
+
+        // Verify GameSceneUtils content for extracted onboarding helpers
+        let gameSceneUtilsKey = "Sources/{{PROJECT_NAME}}/GameSceneUtils.swift"
+        XCTAssertNotNil(templateFiles[gameSceneUtilsKey], "iOS GameSceneUtils.swift should exist")
+
+        guard let gameSceneUtilsContent = templateFiles[gameSceneUtilsKey] else {
+            XCTFail("iOS GameSceneUtils.swift content should not be nil")
+            return
+        }
+
+        XCTAssertTrue(gameSceneUtilsContent.contains("extension GameScene"),
+                      "iOS GameSceneUtils.swift should extend GameScene")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func setupAssetPaths()"),
+                      "iOS GameSceneUtils.swift should contain setupAssetPaths")
+        XCTAssertTrue(gameSceneUtilsContent.contains("assetBasePath"),
+                      "iOS GameSceneUtils.swift should set assetBasePath")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func findFirstScene"),
+                      "iOS GameSceneUtils.swift should contain findFirstScene")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func loadBundledScripts()"),
+                      "iOS GameSceneUtils.swift should contain loadBundledScripts")
     }
 
     func testIOSGameViewControllerSwiftGeneratedWithExpectedContent() {
@@ -702,6 +748,8 @@ final class BuildSystemTests: XCTestCase {
                       "iOS AR GameScene should import Foundation")
         XCTAssertTrue(gameSceneContent.contains("import UntoldEngine"),
                       "iOS AR GameScene should import UntoldEngine")
+        XCTAssertTrue(gameSceneContent.contains("import simd"),
+                      "iOS AR GameScene should import simd")
         XCTAssertTrue(gameSceneContent.contains("class GameScene"),
                       "iOS AR GameScene should contain GameScene class")
         XCTAssertTrue(gameSceneContent.contains("func update(deltaTime"),
@@ -714,6 +762,21 @@ final class BuildSystemTests: XCTestCase {
                        "iOS AR GameScene should NOT import ARKit")
         XCTAssertFalse(gameSceneContent.contains("import UntoldEngineAR"),
                        "iOS AR GameScene should NOT import UntoldEngineAR")
+
+        let gameSceneUtilsKey = "Sources/{{PROJECT_NAME}}/GameSceneUtils.swift"
+        XCTAssertNotNil(templateFiles[gameSceneUtilsKey], "iOS AR GameSceneUtils.swift should exist")
+
+        guard let gameSceneUtilsContent = templateFiles[gameSceneUtilsKey] else {
+            XCTFail("iOS AR GameSceneUtils.swift content should not be nil")
+            return
+        }
+
+        XCTAssertTrue(gameSceneUtilsContent.contains("extension GameScene"),
+                      "iOS AR GameSceneUtils.swift should extend GameScene")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func setupAssetPaths()"),
+                      "iOS AR GameSceneUtils.swift should contain setupAssetPaths")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func loadBundledScripts()"),
+                      "iOS AR GameSceneUtils.swift should contain loadBundledScripts")
     }
 
     // MARK: - visionOS Template Tests
@@ -746,9 +809,8 @@ final class BuildSystemTests: XCTestCase {
                       "visionOS App should import CompositorServices")
         XCTAssertTrue(appSwiftContent.contains("import UntoldEngineXR"),
                       "visionOS App should import UntoldEngineXR")
-        // Check that it doesn't import UntoldEngine as a standalone import (not as part of UntoldEngineXR)
-        XCTAssertFalse(appSwiftContent.contains("import UntoldEngine\n"),
-                       "visionOS App should NOT import UntoldEngine standalone (it's in GameScene)")
+        XCTAssertTrue(appSwiftContent.contains("import UntoldEngine"),
+                      "visionOS App should import UntoldEngine for engine stats helpers")
         XCTAssertTrue(appSwiftContent.contains("UntoldEngineXR"),
                       "visionOS App should use UntoldEngineXR class")
         XCTAssertTrue(appSwiftContent.contains("CompositorLayer"),
@@ -872,6 +934,8 @@ final class BuildSystemTests: XCTestCase {
                       "GameScene should import Foundation")
         XCTAssertTrue(gameSceneContent.contains("import UntoldEngine"),
                       "GameScene should import UntoldEngine")
+        XCTAssertTrue(gameSceneContent.contains("import simd"),
+                      "GameScene should import simd")
         XCTAssertTrue(gameSceneContent.contains("class GameScene"),
                       "GameScene should contain GameScene class")
         XCTAssertTrue(gameSceneContent.contains("func update(deltaTime"),
@@ -882,6 +946,82 @@ final class BuildSystemTests: XCTestCase {
                        "GameScene should NOT import SwiftUI")
         XCTAssertFalse(gameSceneContent.contains("import UntoldEngineXR"),
                        "GameScene should NOT import UntoldEngineXR")
+
+        let gameSceneUtilsKey = "Sources/{{PROJECT_NAME}}/GameSceneUtils.swift"
+        XCTAssertNotNil(templateFiles[gameSceneUtilsKey], "visionOS GameSceneUtils.swift should exist")
+
+        guard let gameSceneUtilsContent = templateFiles[gameSceneUtilsKey] else {
+            XCTFail("visionOS GameSceneUtils.swift content should not be nil")
+            return
+        }
+
+        XCTAssertTrue(gameSceneUtilsContent.contains("extension GameScene"),
+                      "visionOS GameSceneUtils.swift should extend GameScene")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func logBundleInfo()"),
+                      "visionOS GameSceneUtils.swift should include logBundleInfo")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func setupAssetPaths()"),
+                      "visionOS GameSceneUtils.swift should include setupAssetPaths")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func listDirectoryRecursively"),
+                      "visionOS GameSceneUtils.swift should include directory listing helper")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func findFirstScene"),
+                      "visionOS GameSceneUtils.swift should include findFirstScene")
+        XCTAssertTrue(gameSceneUtilsContent.contains("func loadBundledScripts()"),
+                      "visionOS GameSceneUtils.swift should include loadBundledScripts")
+    }
+
+    func testIOSARSinglePlatformUsesUntoldEngineAROnly() throws {
+        // Given: Single-platform iOS AR build settings
+        let settings = BuildSettings(
+            projectName: "MyIOSARGame",
+            bundleIdentifier: "com.test.iosar",
+            outputPath: tempDirectory,
+            target: .iOS(deployment: .v17),
+            isIOSAR: true
+        )
+
+        // When: Generating XcodeGen YAML spec
+        let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
+
+        // Then: iOS AR should use one package and only the UntoldEngineAR product
+        XCTAssertTrue(yamlContent.contains("UntoldEngine:"),
+                      "iOS AR single-platform should include UntoldEngine package")
+        XCTAssertFalse(yamlContent.contains("UntoldEngineAR:"),
+                       "iOS AR single-platform should not declare UntoldEngineAR as a separate package")
+        XCTAssertFalse(yamlContent.contains("UntoldEngineXR:"),
+                       "iOS AR single-platform should not declare UntoldEngineXR as a separate package")
+        XCTAssertTrue(yamlContent.contains("- package: UntoldEngine"),
+                      "iOS AR single-platform should depend on UntoldEngine package")
+        XCTAssertTrue(yamlContent.contains("product: UntoldEngineAR"),
+                      "iOS AR single-platform should depend on UntoldEngineAR product")
+        XCTAssertFalse(yamlContent.contains("product: UntoldEngineXR"),
+                       "iOS AR single-platform should not depend on UntoldEngineXR product")
+    }
+
+    func testVisionOSSinglePlatformUsesXRandARDependencies() throws {
+        // Given: Single-platform visionOS build settings
+        let settings = BuildSettings(
+            projectName: "MyVisionGame",
+            bundleIdentifier: "com.test.vision",
+            outputPath: tempDirectory,
+            target: .visionOS(deployment: .v2)
+        )
+
+        // When: Generating XcodeGen YAML spec
+        let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
+
+        // Then: visionOS should use one package and depend on XR + AR products
+        XCTAssertTrue(yamlContent.contains("UntoldEngine:"),
+                      "visionOS single-platform should include UntoldEngine package")
+        XCTAssertFalse(yamlContent.contains("UntoldEngineXR:"),
+                       "visionOS single-platform should not declare UntoldEngineXR as a separate package")
+        XCTAssertFalse(yamlContent.contains("UntoldEngineAR:"),
+                       "visionOS single-platform should not declare UntoldEngineAR as a separate package")
+        XCTAssertTrue(yamlContent.contains("- package: UntoldEngine"),
+                      "visionOS single-platform should depend on UntoldEngine package")
+        XCTAssertTrue(yamlContent.contains("product: UntoldEngineXR"),
+                      "visionOS single-platform should depend on UntoldEngineXR product")
+        XCTAssertTrue(yamlContent.contains("product: UntoldEngineAR"),
+                      "visionOS single-platform should depend on UntoldEngineAR product")
     }
 
     // MARK: - Multi-Platform Tests
@@ -965,6 +1105,8 @@ final class BuildSystemTests: XCTestCase {
         // Should contain shared GameScene
         XCTAssertNotNil(templateFiles["Sources/{{PROJECT_NAME}}/GameScene.swift"],
                         "Should have shared GameScene in Sources folder")
+        XCTAssertNotNil(templateFiles["Sources/{{PROJECT_NAME}}/GameSceneUtils.swift"],
+                        "Should have shared GameSceneUtils in Sources folder")
 
         // Should NOT contain Package.swift (uses XcodeGen)
         XCTAssertNil(templateFiles["Package.swift"],
@@ -1012,10 +1154,14 @@ final class BuildSystemTests: XCTestCase {
         // Should include all necessary packages
         XCTAssertTrue(yamlContent.contains("UntoldEngine:"),
                       "Should include UntoldEngine package")
-        XCTAssertTrue(yamlContent.contains("UntoldEngineXR:"),
-                      "Should include UntoldEngineXR package for visionOS")
-        XCTAssertTrue(yamlContent.contains("UntoldEngineAR:"),
-                      "Should include UntoldEngineAR package for iOS AR")
+        XCTAssertFalse(yamlContent.contains("UntoldEngineXR:"),
+                       "Should not include duplicate package entries for UntoldEngineXR")
+        XCTAssertFalse(yamlContent.contains("UntoldEngineAR:"),
+                       "Should not include duplicate package entries for UntoldEngineAR")
+        XCTAssertTrue(yamlContent.contains("product: UntoldEngineXR"),
+                      "Should include UntoldEngineXR product dependency for visionOS")
+        XCTAssertTrue(yamlContent.contains("product: UntoldEngineAR"),
+                      "Should include UntoldEngineAR product dependency for iOS AR/visionOS")
 
         // Should specify correct source paths for each target
         XCTAssertTrue(yamlContent.contains("path: MyMultiPlatformGame macOS"),
@@ -1089,15 +1235,21 @@ final class BuildSystemTests: XCTestCase {
         // When: Generating XcodeGen YAML spec
         let yamlContent = try XcodeGenProjectSpec.generateYAML(settings: settings)
 
-        // Then: Each target should have appropriate dependencies
-        // macOS and iOS (non-AR) should have UntoldEngine
+        // Then: Each target should have appropriate product dependencies
         let lines = yamlContent.components(separatedBy: "\n")
         var inMacOSTarget = false
         var inIOSTarget = false
         var inIOSARTarget = false
         var inVisionOSTarget = false
+        var foundIOSARAR = false
+        var foundVisionAR = false
+        var foundVisionXR = false
+        var foundMacOSEngine = false
+        var foundIOSEngine = false
 
         for line in lines {
+            let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+
             if line.contains("MyGame macOS:") {
                 inMacOSTarget = true
                 inIOSTarget = false
@@ -1121,17 +1273,33 @@ final class BuildSystemTests: XCTestCase {
             }
 
             // Check that dependencies appear in the right sections
-            if line.contains("- package: UntoldEngine") {
+            if trimmedLine == "- package: UntoldEngine" {
                 XCTAssertTrue(inMacOSTarget || inIOSTarget || inIOSARTarget || inVisionOSTarget,
-                              "UntoldEngine should be in a target section")
+                              "UntoldEngine package references should be inside target dependency sections")
             }
-            if line.contains("- package: UntoldEngineAR") {
-                XCTAssertTrue(inIOSARTarget, "UntoldEngineAR should only be in iOS AR target")
+            if trimmedLine == "product: UntoldEngine" {
+                XCTAssertTrue(inMacOSTarget || inIOSTarget,
+                              "UntoldEngine product should only be in macOS or iOS targets")
+                if inMacOSTarget { foundMacOSEngine = true }
+                if inIOSTarget { foundIOSEngine = true }
             }
-            if line.contains("- package: UntoldEngineXR") {
+            if trimmedLine == "product: UntoldEngineAR" {
+                XCTAssertTrue(inIOSARTarget || inVisionOSTarget,
+                              "UntoldEngineAR product should only be in iOS AR or visionOS targets")
+                if inIOSARTarget { foundIOSARAR = true }
+                if inVisionOSTarget { foundVisionAR = true }
+            }
+            if trimmedLine == "product: UntoldEngineXR" {
                 XCTAssertTrue(inVisionOSTarget, "UntoldEngineXR should only be in visionOS target")
+                foundVisionXR = true
             }
         }
+
+        XCTAssertTrue(foundMacOSEngine, "macOS target should include UntoldEngine product")
+        XCTAssertTrue(foundIOSEngine, "iOS target should include UntoldEngine product")
+        XCTAssertTrue(foundIOSARAR, "iOS AR target should include UntoldEngineAR")
+        XCTAssertTrue(foundVisionXR, "visionOS target should include UntoldEngineXR")
+        XCTAssertTrue(foundVisionAR, "visionOS target should include UntoldEngineAR")
     }
 
     func testMultiPlatformOptimizationSettings() throws {
