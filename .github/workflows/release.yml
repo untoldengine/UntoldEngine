@@ -58,7 +58,7 @@ jobs:
             echo "https://github.com/untoldengine/UntoldEngine"
             echo ""
             echo "README:"
-            echo "https://github.com/untoldengine/UntoldEngine/blob/main/README.md"
+            echo "https://github.com/untoldengine/UntoldEngine/blob/develop/README.md"
             echo ""
             echo "GitHub Discussions:"
             echo "https://github.com/untoldengine/UntoldEngine/discussions"
