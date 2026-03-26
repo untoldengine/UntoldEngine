@@ -21,7 +21,7 @@ public class LODSystem: @unchecked Sendable {
               let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
         else { return }
 
-        let cameraPosition = cameraComponent.localPosition
+        let cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
 
         // Query entities with LOD components
         let lodId = getComponentId(for: LODComponent.self)

@@ -150,16 +150,16 @@ Geometry streaming is selected when any of the following is true:
 - **Geometry bytes exceed 30% of the platform budget** — e.g. 300 MB asset on a 1 GB machine
 - **Monolithic asset (≤ 2 meshes) AND geometry exceeds 30% of budget** — streaming prevents OOM at registration, though the mesh still loads in one step
 
-All thresholds are expressed as **fractions of the live platform budget** (`MemoryBudgetManager.meshBudget`), so they scale correctly across devices:
+All thresholds are expressed as **fractions of the live platform budget** (`MemoryBudgetManager.meshBudget`), so they scale correctly across devices. The budget is probed at init from device capabilities rather than using hardcoded platform defaults:
 
-| Device class | `meshBudget` | 30% geometry threshold |
+| Platform | Budget source | Formula |
 |---|---|---|
-| macOS | 1 GB | ~300 MB |
-| iOS high-end | 512 MB | ~154 MB |
-| iOS low-end | 256 MB | ~77 MB |
-| visionOS | 512 MB | ~154 MB |
+| macOS | `MTLDevice.recommendedMaxWorkingSetSize` | 40% of GPU working set, clamped [512 MB, 3 GB] |
+| visionOS / iOS | `os_proc_available_memory()` | 40% of available process memory, clamped [512 MB, 3 GB] |
 
-This means the same 200 MB asset routes to `.eager` on macOS (fits comfortably) but to `.streaming` on low-end iOS (too large to load all at once). The old fixed thresholds (`fileSizeThresholdBytes = 50 MB`, `outOfCoreObjectCountThreshold = 50 objects`) applied the same cutoff regardless of the target device.
+The probed total is then split: `geometryBudget = 60%` of total, `textureBudget = 40%` of total. `meshBudget` is a computed alias that returns `geometryBudget + textureBudget` for backward compatibility.
+
+Because budgets are device-derived, the same 200 MB asset routes to `.eager` on a macOS device with ample GPU headroom but to `.streaming` on a memory-constrained visionOS device. The old fixed thresholds (`fileSizeThresholdBytes = 50 MB`, `outOfCoreObjectCountThreshold = 50 objects`) applied the same cutoff regardless of the target device.
 
 The profiler also classifies the asset's dominant memory domain and logs a full breakdown:
 
@@ -321,8 +321,8 @@ The system maintains two independent memory pressure signals:
 
 | Signal | Method | Meaning |
 |---|---|---|
-| Combined | `shouldEvict()` | (mesh + texture) ≥ 85% of `meshBudget` |
-| Geometry only | `shouldEvictGeometry()` | mesh bytes alone ≥ 85% of `meshBudget` |
+| Combined | `shouldEvict()` | geometry pool ≥ 85% of `geometryBudget` **OR** texture pool ≥ 85% of `textureBudget` |
+| Geometry only | `shouldEvictGeometry()` | mesh bytes alone ≥ 85% of `geometryBudget` |
 
 The load gate uses **geometry-only pressure** so that texture upgrades on already-loaded entities cannot block new mesh loads. The two signals drive a three-step response before any load starts:
 
@@ -340,6 +340,19 @@ The load gate uses **geometry-only pressure** so that texture upgrades on alread
 ```
 
 This prevents in-range stubs from uploading simultaneously and pushing GPU memory past the OS kill threshold. The geometry-only gate also prevents the budget-exhaustion/eviction deadlock that occurs on scenes where every entity fits within the streaming radius: texture upgrades no longer consume geometry headroom, so all stubs can load regardless of how much texture memory is in use.
+
+### OS memory pressure (proactive, out-of-band)
+
+In addition to the per-tick budget checks above, `MemoryBudgetManager` subscribes to OS memory pressure events via `DispatchSource.makeMemoryPressureSource`. The OS callback fires on a background queue and sets a `pendingPressureRelief` flag on `GeometryStreamingSystem`. The flag is drained at the **start of the next `update()` tick** on the main thread so eviction work stays single-threaded:
+
+| OS signal | Response |
+|---|---|
+| `.warning` | `shedTextureMemory(maxEntities: 8)` + one `evictLRU` pass (capped at 16 evictions) |
+| `.critical` | `shedTextureMemory(maxEntities: 20)` + two `evictLRU` passes (16 each) + CPU heap release |
+
+On visionOS the window between `.warning` and process termination can be under a second. The proactive response prevents the OS from escalating to `.critical` and killing the process.
+
+**CPU heap release** — on `.critical`, after both geometry eviction passes, `ProgressiveAssetLoader.releaseWarmAsset()` is called for every warm root. This frees the `MDLAsset` tree and all `CPUMeshEntry` vertex/index buffers from the CPU heap — the memory the OS actually measures, not just GPU Metal allocations. The rehydration context (URL + policy) is retained, so a cold re-stream from disk is transparent when the camera re-approaches.
 
 ### Adaptive tick rate
 
@@ -410,7 +423,7 @@ if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
 }
 ```
 
-`canAcceptMesh` checks only `totalMeshMemory + sizeBytes ≤ meshBudget` — texture memory is excluded. This ensures that a large batch of texture upgrades on visible entities cannot prevent a nearby stub from loading its geometry.
+`canAcceptMesh` checks only `totalMeshMemory + sizeBytes ≤ geometryBudget` — texture memory is excluded. This ensures that a large batch of texture upgrades on visible entities cannot prevent a nearby stub from loading its geometry.
 
 `estimatedGPUBytes` (stored in `CPUMeshEntry` at stub-registration time) lets this check run without any GPU work or disk I/O.
 
@@ -440,11 +453,13 @@ For each nearby entity:
 
 ```
 distanceFactor = min(1.0, distance / maxQueryRadius)
-sizeFactor     = min(1.0, meshBytes / meshBudget)
+sizeFactor     = min(1.0, meshBytes / geometryBudget)
 score          = evictionDistanceWeight × distanceFactor + evictionSizeWeight × sizeFactor
 ```
 
 Highest score is evicted first — far, large meshes go before near, small ones. `lastVisibleFrame` is the tiebreaker for equal scores. This protects nearby small meshes (high camera-coverage value) while freeing the largest far meshes first.
+
+`evictLRU` accepts a `maxEvictions: Int` parameter (default `Int.max`). The OS pressure path passes `16` per call to bound single-frame work during a burst; remaining candidates spill to subsequent ticks. Normal per-load-gate calls use the default (unbounded, exits once geometry pressure clears).
 
 #### Distance-aware visibility guard
 
@@ -502,7 +517,7 @@ if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) {
 
 1. `makeMeshesFromCPUBuffers` — copies MDLMesh vertex/index data from CPU heap to Metal-backed buffers
 2. `registerRenderComponent` — entity gets a `RenderComponent`, becomes visible
-3. `MemoryBudgetManager.registerMesh` — registers the Metal allocation so `shouldEvict()` sees it
+3. `MemoryBudgetManager.registerMesh` — registers the Metal allocation so `shouldEvict()` sees it; `textureSizeBytes` is `0`. Texture memory is tracked separately by `TextureStreamingSystem` once streaming completes; pre-estimating at upload time would permanently over-fill the texture pool because the estimate is never replaced (streaming only updates its own tracking, not the mesh registration record).
 4. CPU data is **not** cleared — the `cpuMeshRegistry` entry stays so the next eviction+reload cycle re-uploads from RAM, not disk
 
 ### Memory model at steady state
@@ -672,7 +687,9 @@ ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId: rootId)
 
 | Property | Default | Effect |
 |----------|---------|--------|
-| `MemoryBudgetManager.meshBudget` | device-set | GPU memory ceiling; all `AssetProfiler` thresholds are expressed as fractions of this value |
+| `MemoryBudgetManager.meshBudget` | device-set (computed alias) | Read: `geometryBudget + textureBudget`. Write: splits the assigned value 60/40 between the two pools. Preserved for backward compatibility |
+| `MemoryBudgetManager.geometryBudget` | 60% of probed total | Independent ceiling for mesh GPU memory; `canAcceptMesh`, `shouldEvictGeometry`, and `evictLRU` scoring all use this value |
+| `MemoryBudgetManager.textureBudget` | 40% of probed total | Independent ceiling for texture GPU memory; `canAcceptTexture` and texture-pool pressure signals use this value |
 | `GeometryStreamingSystem.maxConcurrentLoads` | 3 | Total concurrent CPU→Metal uploads across both bands |
 | `GeometryStreamingSystem.nearBandFraction` | 0.33 | Fraction of `streamingRadius` defining the near band; near-band loads are serialized |
 | `GeometryStreamingSystem.nearBandMaxConcurrentLoads` | 1 | Max in-flight loads in the near band; 1 guarantees distance-ordered appearance |

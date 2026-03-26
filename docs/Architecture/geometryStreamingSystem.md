@@ -21,6 +21,8 @@ The system normally does real work every **0.1 seconds** (`updateInterval`). Bet
 
 When `lastPendingLoadBacklog > 0` (candidates are queued but all slots are busy), the effective interval drops to `burstTickInterval` (default 16 ms). This prevents a 100 ms stall between slot pickups during active loading. The tick rate returns to 100 ms once the backlog drains.
 
+**OS pressure bypass** — if a `pendingPressureRelief` flag is set (fired by the OS pressure callback on a background queue), the throttle check is bypassed entirely for that call. This guarantees eviction runs within one frame (≤ 11 ms at 90 fps) rather than waiting up to 100 ms for the next normal tick. Without this, a `.critical` signal arriving right after a tick would sit unprocessed for the full throttle interval — longer than visionOS's kill window.
+
 ### 2. Spatial Query via Octree (line 123)
 Instead of checking all 500 city entities, it asks the `OctreeSystem`:
 > "Give me every entity within 500m of the camera."
@@ -106,10 +108,10 @@ The engine uses two independent memory pressure signals and responds to them in 
 
 | Pressure signal | Method | Meaning |
 |---|---|---|
-| Combined (mesh + texture) | `shouldEvict()` | Total GPU allocation ≥ 85% of `meshBudget` |
-| Geometry only | `shouldEvictGeometry()` | Mesh allocations alone ≥ 85% of `meshBudget` |
+| Combined | `shouldEvict()` | Geometry pool ≥ 85% of `geometryBudget` **OR** texture pool ≥ 85% of `textureBudget` |
+| Geometry only | `shouldEvictGeometry()` | Mesh allocations alone ≥ 85% of `geometryBudget` |
 
-**Why two signals?** `TextureStreamingSystem` upgrades visible textures to higher resolutions after meshes load. Those upgrades increase `totalTextureMemory` in `MemoryBudgetManager`. If the load gate used the combined signal, texture upgrades on already-loaded meshes would silently prevent new mesh loads — even when the geometry-only footprint is well within budget. The split ensures texture pressure cannot block geometry loading.
+**Why two signals?** `TextureStreamingSystem` upgrades visible textures to higher resolutions after meshes load. Those upgrades increase `totalTextureMemory` in `MemoryBudgetManager`. If the load gate used the combined signal, texture upgrades on already-loaded meshes would silently prevent new mesh loads — even when the geometry-only footprint is well within budget. The split pools (`geometryBudget` + `textureBudget`) ensure each domain has an independent ceiling so neither can starve the other.
 
 ### Step 1 — Texture downgrade relief
 
@@ -139,6 +141,22 @@ if geometry pressure is high:
 3. Sorts by value score (far + large = first to go; see value-score eviction in the out-of-core walkthrough)
 4. Unloads them one by one until **geometry-only** pressure clears (loop breaks on `shouldEvictGeometry()`, not the combined signal)
 5. Skips entities that are both visible and within `visibleEvictionProtectionRadius` (30 m default)
+6. Accepts an optional `maxEvictions` cap (default `Int.max`). The OS pressure path passes `16` per call — this bounds single-frame work during a burst. Any remaining candidates spill to subsequent ticks.
+
+The `sizeFactor` in the eviction score is normalized against `geometryBudget` (not the combined budget), so a mesh consuming 80% of the geometry pool scores correctly rather than appearing to consume only ~48% of a combined total.
+
+### Step 3 — OS memory pressure (proactive, out-of-band)
+
+In addition to the per-tick budget checks above, `MemoryBudgetManager` subscribes to OS memory pressure events via `DispatchSource.makeMemoryPressureSource`:
+
+| OS signal | Response | `maxEntities` |
+|---|---|---|
+| `.warning` | Texture shed | 8 |
+| `.critical` | Texture shed + double geometry eviction pass (capped at 16 per pass) + CPU heap release | 20 |
+
+The OS callback fires on a background queue and sets a `pendingPressureRelief` flag on `GeometryStreamingSystem`. The flag is drained at the **start of the next `update()` tick** on the main thread, so all eviction work stays on the same thread as the rest of the streaming system. This prevents the OS from silently escalating to `.critical` and terminating the process — on visionOS in particular, the window between `.warning` and process kill can be under a second.
+
+**CPU heap release on critical pressure** — `evictLRU` only frees GPU Metal buffers tracked by `MemoryBudgetManager`. The OS measures total process memory, which includes `ProgressiveAssetLoader.rootAssetRefs` (the live `MDLAsset` tree and all child `CPUMeshEntry` vertex/index buffers). For a 500-building scene this CPU heap can reach hundreds of megabytes. On `.critical`, after the two geometry eviction passes, `GeometryStreamingSystem` calls `ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId:)` on every warm root. This frees the CPU heap immediately. The rehydration context (asset URL + loading policy) is retained, so a cold re-stream from disk is transparent when the camera re-approaches.
 
 ---
 
@@ -179,3 +197,10 @@ The key design decisions here are:
 - **Cache ownership** means unloading just clears references, actual GPU memory is reused if the same mesh comes back into range
 - **Geometry-only load gate** prevents texture upgrades from blocking mesh loads — each domain is budgeted independently
 - **Texture relief before geometry eviction** means a drop in distant texture resolution is always preferred over a missing mesh
+- **Split geometry/texture pools** (`geometryBudget` + `textureBudget`) give each domain an independent ceiling and high-water mark — a texture-heavy scene cannot crowd out geometry loads and vice versa
+- **Runtime device budget probing** — `geometryBudget` and `textureBudget` are derived at init from `MTLDevice.recommendedMaxWorkingSetSize` (macOS) or `os_proc_available_memory()` (visionOS/iOS) rather than hardcoded platform defaults; budgets adapt to actual device headroom
+- **SceneRootTransform consistency** — all distance calculations (GeometryStreamingSystem, LODSystem, inline LOD upload helpers) pass camera position through `SceneRootTransform.shared.effectiveCameraPosition()` so XR physical-head movement and scene-root translations are applied uniformly; raw `cameraComponent.localPosition` is never used directly for distance math
+- **Camera sync always runs** — `syncStreamingCameraPosition()` executes every frame regardless of the `loading` flag; decoupling it from the loading guard prevents the streaming camera from freezing while an asset load is in flight
+- **OS memory pressure subscription** — `DispatchSource.makeMemoryPressureSource` fires proactive texture shedding and geometry eviction before the OS escalates to process termination; the response runs on the next `update()` tick to stay single-threaded
+- **evictLRU per-call cap** — the `maxEvictions` parameter (default `Int.max`) bounds single-frame eviction work; the OS pressure path uses 16 per pass so a `.critical` burst doesn't spike one frame; remaining candidates spill to subsequent ticks
+- **CPU heap release on critical pressure** — on `.critical`, after geometry eviction, `ProgressiveAssetLoader.releaseWarmAsset()` is called for every warm root, freeing the MDLAsset CPU heap the OS measures; rehydration context survives so cold re-stream from disk is transparent

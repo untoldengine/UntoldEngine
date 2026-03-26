@@ -41,7 +41,11 @@ final class GeometryStreamingEvictionTests: BaseRenderSetup {
         // Clear budget so base-setup entity registrations don't interfere.
         MemoryBudgetManager.shared.clear()
         MemoryBudgetManager.shared.enabled = true
-        MemoryBudgetManager.shared.meshBudget = 100 * 1024 * 1024 // 100 MB
+        // GeometryStreamingSystem eviction uses the geometry pool only. Setting the
+        // combined meshBudget would split 100 MB into 60 MB geometry / 40 MB texture,
+        // which breaks the documented arithmetic in the value-score eviction tests.
+        MemoryBudgetManager.shared.geometryBudget = 100 * 1024 * 1024 // 100 MB
+        MemoryBudgetManager.shared.textureBudget = 0
         MemoryBudgetManager.shared.highWaterMark = 0.85
         MemoryBudgetManager.shared.lowWaterMark = 0.70
 
