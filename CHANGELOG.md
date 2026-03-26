@@ -1,4 +1,16 @@
 # Changelog
+## v0.11.4 - 2026-03-26
+### 🐞 Fixes
+- [Patch] Modify build system with new functions (2ef3bf6…)
+- [Patch] Fixed concurrency swift 6 issue (f431f47…)
+- [Patch] Added guard to avoid creation of zero dim texture (972c139…)
+- [Patch] Consolidate loadScene as the primary scene entry point (8befb7b…)
+- [Patch] fixed xr ooc crash issues with large models. (a3e42a3…)
+- [Patch]Added xrCamera logging message (832c72f…)
+### 📚 Docs
+- [Docs] Updated documents (446dcd9…)
+- [Docs] Updated readme (291c8f6…)
+- [Docs] added link to showcase (5791988…)
 ## v0.11.3 - 2026-03-24
 ### 🐞 Fixes
 - [Patch] Request world sensing authorization before starting ARKit session (31eac96…)
