@@ -264,8 +264,10 @@ This is called by `GeometryStreamingSystem` — not on a timer, but reactively w
 |---|---|---|
 | `GeometryStreamingSystem.update()` | 4 | Combined pressure high, geometry pressure low — texture relief only, no geometry eviction |
 | `GeometryStreamingSystem.update()` | 8 | Geometry pressure also high — shed texture first, then evict geometry |
+| OS `.warning` pressure callback | 8 | `MemoryBudgetManager.onMemoryPressureWarning` fires — proactive shed before OS escalates |
+| OS `.critical` pressure callback | 20 | `MemoryBudgetManager.onMemoryPressureCritical` fires — aggressive shed + double geometry eviction pass (16 evictions each) + CPU heap release via `ProgressiveAssetLoader.releaseWarmAsset()` |
 
-The larger batch size (8) when geometry is also under pressure reflects that more aggressive texture shedding is needed before the costlier geometry eviction path runs.
+The larger batch size (8) when geometry is also under pressure reflects that more aggressive texture shedding is needed before the costlier geometry eviction path runs. The OS pressure rows bypass the normal per-tick budget check entirely — they fire out-of-band whenever the OS signals memory pressure, and the actual shedding runs on the next `GeometryStreamingSystem.update()` tick (deferred via a flag to stay on the main thread).
 
 ---
 

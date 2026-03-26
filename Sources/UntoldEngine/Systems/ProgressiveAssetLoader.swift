@@ -353,6 +353,14 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
 
     /// Transition a root entity from CPU-warm to CPU-cold.
     ///
+    /// Returns the IDs of all root assets that are currently CPU-warm (MDLAsset still in RAM).
+    /// Used by GeometryStreamingSystem to release CPU heap under critical memory pressure.
+    public func allWarmRootEntityIds() -> [EntityID] {
+        lock.lock()
+        defer { lock.unlock() }
+        return Array(rootAssetRefs.keys)
+    }
+
     /// Releases the `MDLAsset` and all child `CPUMeshEntry` objects, freeing CPU-heap memory.
     /// The `RootRehydrationContext` is retained so `GeometryStreamingSystem` can re-parse
     /// the asset from disk when the entity next enters streaming range.

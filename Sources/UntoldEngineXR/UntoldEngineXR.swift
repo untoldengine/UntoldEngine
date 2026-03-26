@@ -338,11 +338,16 @@
 
             // 5. Perform any rendering-related work that doesn't rely on the device anchor info
             guard let renderer else { return }
+
+            // Always sync the physical headset position into ECS camera components, even while
+            // assets are loading. syncStreamingCameraPosition only writes three fields on the
+            // camera entity — it never touches mesh entities being mutated by the loading pipeline,
+            // so there is no race. Without this, the streaming systems resume from the pre-load
+            // camera position after a long load, causing a one-tick position jump for any distance
+            // that accumulated while the user was walking during the load.
+            syncStreamingCameraPosition()
+
             if !loading {
-                // Sync the physical headset position into ECS camera components before
-                // streaming/LOD systems run inside updateXR(). Without this, all four OOC
-                // systems see a frozen default eye position regardless of where the user walks.
-                syncStreamingCameraPosition()
                 renderer.updateXR(useExternalStatsLifecycle: true)
             }
 

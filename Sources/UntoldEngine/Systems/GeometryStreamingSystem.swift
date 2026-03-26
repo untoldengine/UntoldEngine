@@ -68,8 +68,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Decrease if zoom-out → zoom-in residency deadlocks persist (far meshes blocking near ones).
     public var visibleEvictionProtectionRadius: Float = 30.0
 
+    // MARK: - OS Memory Pressure
+
+    /// Set by the MemoryBudgetManager pressure callback (background queue).
+    /// Checked and cleared at the start of each update() tick (main thread) so that
+    /// all eviction work stays on the same thread as the rest of the streaming system.
+    private var pendingPressureRelief: Bool = false
+    private var pressureIsAggressive: Bool = false
+
     private let stateLock = NSLock()
     private var timeSinceLastUpdate: Float = 0
+    private var timeSinceCameraDiagLog: Float = 0
     private var activeLoads: Set<EntityID> = []
     /// Subset of activeLoads that belong to the near band. Tracked separately so the
     /// near-band concurrency limit can be enforced independently of the global limit.
@@ -88,7 +97,25 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Accessed only from update() and its synchronous callees — no lock needed.
     private var firstRangeTimestamps: [EntityID: Double] = [:]
 
-    private init() {}
+    private init() {
+        // Register OS memory pressure handlers.
+        // The callbacks fire on a background queue, so we only set a flag here.
+        // Actual eviction happens on the next update() tick (main thread).
+        MemoryBudgetManager.shared.onMemoryPressureWarning = { [weak self] in
+            guard let self else { return }
+            withStateLock {
+                self.pendingPressureRelief = true
+                self.pressureIsAggressive = false
+            }
+        }
+        MemoryBudgetManager.shared.onMemoryPressureCritical = { [weak self] in
+            guard let self else { return }
+            withStateLock {
+                self.pendingPressureRelief = true
+                self.pressureIsAggressive = true
+            }
+        }
+    }
 
     @inline(__always)
     private func withStateLock<T>(_ body: () throws -> T) rethrows -> T {
@@ -164,9 +191,14 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // Throttle updates. Switch to a fast tick when there is a pending near-band
         // backlog so initial hydration bursts drain quickly. Reverts to the normal
         // updateInterval once the backlog clears.
+        // OS pressure bypass: if a pressure flag is pending, skip the throttle entirely so
+        // eviction runs on the very next update() call (≤ 1 frame / ~11 ms at 90 fps).
+        // Without this, a .critical signal that arrives right after a tick waits up to
+        // updateInterval (100 ms) before eviction — longer than visionOS's kill window.
+        let hasPendingPressure: Bool = withStateLock { pendingPressureRelief }
         let effectiveInterval = lastPendingLoadBacklog > 0 ? burstTickInterval : updateInterval
         timeSinceLastUpdate += deltaTime
-        guard timeSinceLastUpdate >= effectiveInterval else {
+        guard timeSinceLastUpdate >= effectiveInterval || hasPendingPressure else {
             withStateLock {
                 diagnostics.updateFrame = currentFrame
                 diagnostics.updateTriggered = false
@@ -182,6 +214,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // Query with the max unload radius to catch all potentially relevant entities
         // Transform camera position into entity space (un-shifted by scene root).
         let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraPosition)
+
+        // Periodic camera position log — confirms the XR headset position is flowing through
+        // to the streaming system. Fires every 5 s so it is readable in a test session without
+        // being noisy in steady-state. Check these values are changing when physically walking
+        // on Vision Pro; a frozen value indicates the ARKit→ECS sync is broken.
+        timeSinceCameraDiagLog += deltaTime
+        if timeSinceCameraDiagLog >= 5.0 {
+            timeSinceCameraDiagLog = 0
+            print("[GeometryStreaming] camera pos: (\(String(format: "%.2f", effectiveCameraPosition.x)), \(String(format: "%.2f", effectiveCameraPosition.y)), \(String(format: "%.2f", effectiveCameraPosition.z))) loaded=\(loadedStreamingEntities.count)")
+        }
+
         let nearbyEntities = OctreeSystem.shared.queryNear(point: effectiveCameraPosition, radius: maxQueryRadius)
 
         var loadCandidates: [(EntityID, Float, Int)] = [] // (entity, distance, priority)
@@ -273,6 +316,46 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // GPU memory past the OS kill threshold on Vision Pro.
         var evictionTriggered = false
         var evictedByLRU = 0
+
+        // OS memory pressure relief — flag is set from a background queue callback;
+        // we drain it here on the main update thread so all eviction stays single-threaded.
+        var pendingPressure = false
+        var aggressivePressure = false
+        withStateLock {
+            pendingPressure = pendingPressureRelief
+            aggressivePressure = pressureIsAggressive
+            pendingPressureRelief = false
+            pressureIsAggressive = false
+        }
+        if pendingPressure {
+            let maxEntities = aggressivePressure ? 20 : 8
+            TextureStreamingSystem.shared.shedTextureMemory(
+                cameraPosition: effectiveCameraPosition, maxEntities: maxEntities
+            )
+            // Cap per-call evictions to prevent a single pressure event from monopolising
+            // the frame. 16 entities per pass bounds synchronous unloadMesh work; any
+            // remaining geometry is evicted on subsequent ticks until pressure clears.
+            evictedByLRU += evictLRU(cameraPosition: effectiveCameraPosition, maxEvictions: 16)
+            if aggressivePressure {
+                // Second pass for critical pressure: push harder to free geometry.
+                evictedByLRU += evictLRU(cameraPosition: effectiveCameraPosition, maxEvictions: 16)
+
+                // Release CPU-heap (MDLAsset + CPUMeshEntry buffers) for all warm OOC roots.
+                // evictLRU only frees GPU Metal buffers tracked by MemoryBudgetManager; the OS
+                // measures total process memory, which includes the CPU mesh heap that
+                // ProgressiveAssetLoader keeps alive. Releasing it here can free several hundred
+                // MB on a heavy geometry scene. The rehydration context (URL + policy) survives,
+                // so re-approach triggers a transparent cold re-stream from disk.
+                let warmRoots = ProgressiveAssetLoader.shared.allWarmRootEntityIds()
+                for rootId in warmRoots {
+                    ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId: rootId)
+                }
+                if !warmRoots.isEmpty {
+                    print("[GeometryStreaming] Critical pressure: released CPU heap for \(warmRoots.count) OOC root(s)")
+                }
+            }
+            evictionTriggered = true
+        }
 
         // Texture-first relief: if combined GPU memory (mesh + texture) is high but
         // geometry alone is not, downgrade textures on distant entities before
@@ -596,7 +679,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                let transform = scene.get(component: WorldTransformComponent.self, for: entityId),
                let local = scene.get(component: LocalTransformComponent.self, for: entityId)
             {
-                let cameraPos = cameraComponent.localPosition
+                let cameraPos = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
                 let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
                 let worldCenter = transform.space * simd_float4(center, 1.0)
                 let distance = simd_distance(cameraPos, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
@@ -706,7 +789,16 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // Register Metal allocation with the budget manager so shouldEvict() sees these
         // GPU bytes. Without this the budget gate in update() is blind to out-of-core uploads
         // and will never throttle them — defeating the memory-pressure guard entirely.
+        // Texture bytes are estimated rather than exact: TextureStreamingSystem will update
+        // the value with the real figure once streaming completes. Even an estimate is far
+        // better than 0 — it closes the tracking gap that lets the budget over-admit entities.
         let meshSize = calculateMeshArrayMemory(namedMeshes)
+        // Register 0 for texture bytes at upload time. With independent geometry/texture
+        // budget pools, the geometry gate (canAcceptMesh / shouldEvictGeometry) is unaffected
+        // by texture usage, so a zero estimate no longer causes over-admission. The estimate
+        // (4 MB × slots) massively over-filled the texture pool on geometry-heavy scenes,
+        // making shouldEvict() permanently true and triggering no-op shedTextureMemory calls
+        // every tick. TextureStreamingSystem registers the real value after streaming.
         MemoryBudgetManager.shared.registerMesh(
             entityId: entityId,
             meshSizeBytes: meshSize,
@@ -808,7 +900,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                let transform = scene.get(component: WorldTransformComponent.self, for: entityId),
                let local = scene.get(component: LocalTransformComponent.self, for: entityId)
             {
-                let cameraPos = cameraComponent.localPosition
+                let cameraPos = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
                 let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
                 let worldCenter = transform.space * simd_float4(center, 1.0)
                 let distance = simd_distance(cameraPos, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
@@ -832,6 +924,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
 
         // Register total GPU allocation (all levels) with the budget manager.
+        // Texture bytes registered as 0 — see uploadFromCPUEntry for the reasoning.
+        // TextureStreamingSystem replaces this with the real value after streaming.
         let totalMeshSize = uploadedMeshes.values.reduce(0) { $0 + calculateMeshArrayMemory($1) }
         MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: totalMeshSize, textureSizeBytes: 0)
 
@@ -1046,16 +1140,61 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 registerRenderComponent(entityId: entityId, meshes: entityMeshes, url: url, assetName: meshName)
             }
 
-            // Register with memory budget
+            // Register with memory budget.
+            // Mesh objects from MeshResourceManager carry actual MTLTexture allocation sizes,
+            // so use the real texture footprint here rather than a placeholder zero.
             let meshSize = calculateMeshArrayMemory(meshes)
+            let textureSize = meshes.reduce(0) { $0 + $1.textureMemorySize }
             MemoryBudgetManager.shared.registerMesh(
                 entityId: entityId,
                 meshSizeBytes: meshSize,
-                textureSizeBytes: 0
+                textureSizeBytes: textureSize
             )
         }
 
         return true
+    }
+
+    /// Estimate GPU texture memory for an MDLObject by counting texture slots in its materials.
+    ///
+    /// Uses a conservative 1024×1024 RGBA (4 bytes/pixel) placeholder per slot. The actual GPU
+    /// cost depends on compression (ASTC/BCn) and mip-map count, so this is an upper bound
+    /// rather than an exact value. Even a coarse estimate is far better than zero — it closes
+    /// the budget tracking gap between upload time and first texture stream.
+    ///
+    /// Call this after `ensureTexturesLoaded()` so that MDLMaterialProperty slots carry
+    /// `.texture` values for USDZ-embedded images.
+    private func estimateTextureSizeBytes(from object: MDLObject) -> Int {
+        let textureSemantics: [MDLMaterialSemantic] = [
+            .baseColor, .emission, .tangentSpaceNormal, .roughness, .metallic,
+            .ambientOcclusion, .opacity, .bump, .specular, .displacement,
+        ]
+        var textureSlots = 0
+
+        func scan(_ obj: MDLObject) {
+            if let mesh = obj as? MDLMesh,
+               let submeshes = mesh.submeshes?.compactMap({ $0 as? MDLSubmesh })
+            {
+                for submesh in submeshes {
+                    guard let material = submesh.material else { continue }
+                    for semantic in textureSemantics {
+                        if let prop = material.property(with: semantic),
+                           prop.type == .texture || prop.type == .URL
+                        {
+                            textureSlots += 1
+                        }
+                    }
+                }
+            }
+            let childObjects = obj.children.objects
+            for i in 0 ..< childObjects.count {
+                scan(childObjects[i])
+            }
+        }
+        scan(object)
+
+        // 1024 × 1024 × 4 bytes (RGBA uncompressed) per slot — conservative upper bound.
+        return textureSlots * (1024 * 1024 * 4)
     }
 
     private func unloadMesh(entityId: EntityID) {
@@ -1132,7 +1271,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// are never evicted while visible (prevents foreground popping). Entities beyond that
     /// radius may be evicted even while visible — a distant pop is cheaper than a nearby
     /// mesh failing to load under memory pressure.
-    private func evictLRU(cameraPosition: simd_float3) -> Int {
+    private func evictLRU(cameraPosition: simd_float3, maxEvictions: Int = Int.max) -> Int {
         // First, evict any unused cached files
         MeshResourceManager.shared.evictUnused()
 
@@ -1140,7 +1279,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         var staleEntityIds: [EntityID] = []
 
         let trackedLoadedSnapshot = loadedStreamingEntitiesSnapshot()
-        let budget = Float(max(1, MemoryBudgetManager.shared.meshBudget))
+        // Use geometryBudget as the denominator: evictLRU is purely a geometry eviction
+        // pass, so sizing the score against the geometry pool (not the combined budget)
+        // gives an accurate picture of how much of that pool each candidate consumes.
+        let budget = Float(max(1, MemoryBudgetManager.shared.geometryBudget))
 
         for entityId in trackedLoadedSnapshot {
             guard scene.exists(entityId) else {
@@ -1178,6 +1320,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             // independently by TextureStreamingSystem and should not force extra
             // geometry evictions.
             guard MemoryBudgetManager.shared.shouldEvictGeometry() else { break }
+
+            // Per-call cap: spreads large eviction bursts across multiple ticks so a single
+            // pressure event cannot monopolise the frame. Remaining entities are evicted on
+            // subsequent ticks (each still passes the shouldEvictGeometry() check above).
+            if evictedCount >= maxEvictions { break }
 
             // Distance-aware visibility guard.
             // Close visible meshes (< visibleEvictionProtectionRadius) are protected — evicting

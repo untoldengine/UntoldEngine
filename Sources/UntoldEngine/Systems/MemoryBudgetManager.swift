@@ -12,6 +12,9 @@
 import Foundation
 import Metal
 import simd
+#if canImport(Darwin)
+    import Darwin
+#endif
 
 /// Current memory usage statistics
 public struct MemoryStats {
@@ -26,10 +29,30 @@ public struct MemoryStats {
         meshMemoryUsed + textureMemoryUsed
     }
 
-    /// Configured budget limit in bytes
-    public var budgetLimit: Int
+    /// Geometry-only budget (vertex + index buffers)
+    public var geometryBudget: Int
 
-    /// Current utilization as percentage (0.0 - 1.0+)
+    /// Texture-only budget
+    public var textureBudget: Int
+
+    /// Combined budget limit in bytes
+    public var budgetLimit: Int {
+        geometryBudget + textureBudget
+    }
+
+    /// Geometry pool utilization (0.0 – 1.0+)
+    public var geometryUtilization: Float {
+        guard geometryBudget > 0 else { return 0 }
+        return Float(meshMemoryUsed) / Float(geometryBudget)
+    }
+
+    /// Texture pool utilization (0.0 – 1.0+)
+    public var textureUtilization: Float {
+        guard textureBudget > 0 else { return 0 }
+        return Float(textureMemoryUsed) / Float(textureBudget)
+    }
+
+    /// Combined utilization as percentage (0.0 - 1.0+)
     public var utilizationPercent: Float {
         guard budgetLimit > 0 else { return 0 }
         return Float(totalTrackedMemory) / Float(budgetLimit)
@@ -43,20 +66,22 @@ public struct MemoryStats {
         max(0, budgetLimit - totalTrackedMemory)
     }
 
-    /// Whether memory pressure is high
+    /// Whether either pool is under pressure (geometry or texture pool at ≥ 85 %)
     public var isUnderPressure: Bool {
-        utilizationPercent >= 0.85
+        geometryUtilization >= 0.85 || textureUtilization >= 0.85
     }
 
     public init(
         meshMemoryUsed: Int = 0,
         textureMemoryUsed: Int = 0,
-        budgetLimit: Int = 0,
+        geometryBudget: Int = 0,
+        textureBudget: Int = 0,
         trackedEntityCount: Int = 0
     ) {
         self.meshMemoryUsed = meshMemoryUsed
         self.textureMemoryUsed = textureMemoryUsed
-        self.budgetLimit = budgetLimit
+        self.geometryBudget = geometryBudget
+        self.textureBudget = textureBudget
         self.trackedEntityCount = trackedEntityCount
     }
 }
@@ -84,10 +109,35 @@ public class MemoryBudgetManager: @unchecked Sendable {
 
     // MARK: - Configuration
 
-    /// Maximum mesh memory budget in bytes (default: 512 MB)
-    public var meshBudget: Int = 512 * 1024 * 1024 {
+    /// Geometry (vertex + index) memory budget in bytes.
+    ///
+    /// Managed independently from texture memory so texture upgrades cannot block
+    /// mesh loads and vice versa. Set automatically at init from device capabilities.
+    public var geometryBudget: Int = 300 * 1024 * 1024 {
         didSet {
-            Logger.log(message: "MemoryBudgetManager: Budget set to \(meshBudget.formattedAsMemory)")
+            Logger.log(message: "MemoryBudgetManager: Geometry budget → \(geometryBudget.formattedAsMemory)")
+        }
+    }
+
+    /// Texture memory budget in bytes.
+    ///
+    /// Managed independently from geometry memory.
+    public var textureBudget: Int = 200 * 1024 * 1024 {
+        didSet {
+            Logger.log(message: "MemoryBudgetManager: Texture budget → \(textureBudget.formattedAsMemory)")
+        }
+    }
+
+    /// Combined geometry + texture budget — read/write alias for backward compatibility.
+    ///
+    /// Getting returns `geometryBudget + textureBudget`.
+    /// Setting splits the value 60 % geometry / 40 % texture, which preserves the
+    /// existing semantics for test code and external callers that set a single number.
+    public var meshBudget: Int {
+        get { geometryBudget + textureBudget }
+        set {
+            geometryBudget = Int(Double(newValue) * 0.60)
+            textureBudget = Int(Double(newValue) * 0.40)
         }
     }
 
@@ -99,6 +149,24 @@ public class MemoryBudgetManager: @unchecked Sendable {
 
     /// Whether the manager is enabled
     public var enabled: Bool = true
+
+    // MARK: - OS Memory Pressure
+
+    /// Called when the OS signals warning-level memory pressure.
+    ///
+    /// Register a handler from `GeometryStreamingSystem` to proactively shed textures
+    /// and evict geometry before the OS escalates to critical. The handler is invoked
+    /// on a background queue — use a flag to defer actual eviction to the next update tick.
+    public var onMemoryPressureWarning: (() -> Void)?
+
+    /// Called when the OS signals critical memory pressure.
+    ///
+    /// Should trigger aggressive eviction. Invoked on a background queue.
+    public var onMemoryPressureCritical: (() -> Void)?
+
+    /// Retained for the lifetime of the singleton. Never cancelled — `MemoryBudgetManager`
+    /// is app-lifetime, so there is no dealloc path that would require cleanup.
+    private var pressureSource: DispatchSourceMemoryPressure?
 
     // MARK: - State
 
@@ -124,36 +192,81 @@ public class MemoryBudgetManager: @unchecked Sendable {
     /// `updateTextureSizeBytes`) once the async work completes or fails.
     private var inFlightTextureReservation: Int = 0
 
+    /// Last combined-utilization bucket that was logged (0, 50, 75, 85, or 95).
+    /// Prevents log spam by only emitting a line when crossing a threshold.
+    private var lastLoggedThresholdBucket: Int = 0
+
     /// Thread safety lock
     private let lock = NSLock()
 
     // MARK: - Initialization
 
     private init() {
-        // Attempt to set budget based on device capabilities
         configureDefaultBudget()
+        startMemoryPressureMonitoring()
     }
 
-    /// Configure budget based on device GPU memory
+    /// Configure geometry and texture budgets based on device capabilities.
+    ///
+    /// On macOS, anchors to `MTLDevice.recommendedMaxWorkingSetSize` (the GPU's safe
+    /// working-set size for the unified memory architecture).
+    /// On visionOS / iOS, probes `os_proc_available_memory()` — the remaining process
+    /// footprint before the OS kills the app — and takes 40 % as a conservative GPU
+    /// sub-budget.  The total is split 60 % geometry / 40 % texture so each pool has
+    /// an independent ceiling.
     private func configureDefaultBudget() {
-        // Metal doesn't expose total GPU memory directly
-        // Use conservative defaults based on typical device classes
+        let totalBudget: Int
+
         #if os(macOS)
-            // macOS typically has more GPU memory
-            meshBudget = 1024 * 1024 * 1024 // 1 GB
-        #elseif os(visionOS)
-            // Vision Pro (M2/M4) has 16 GB unified memory; geometry + textures
-            // share this budget, so give ample room for both.
-            meshBudget = 1536 * 1024 * 1024 // 1.5 GB
-        #elseif os(iOS)
-            // iOS devices vary widely, use conservative default
-            if ProcessInfo.processInfo.physicalMemory > 4 * 1024 * 1024 * 1024 {
-                meshBudget = 512 * 1024 * 1024 // 512 MB for high-end
+            if let device = MTLCreateSystemDefaultDevice() {
+                let gpuWorking = Int(device.recommendedMaxWorkingSetSize)
+                // 40 % of the GPU working set is a safe OOC sub-budget on unified memory.
+                totalBudget = max(512 * 1024 * 1024, Int(Double(gpuWorking) * 0.40))
             } else {
-                meshBudget = 256 * 1024 * 1024 // 256 MB for lower-end
+                totalBudget = 1024 * 1024 * 1024 // 1 GB fallback
             }
+        #elseif canImport(Darwin)
+            // os_proc_available_memory() returns remaining app footprint before kill.
+            // 40 % of that is a safe GPU sub-budget; clamp to [512 MB, 3 GB].
+            let available = Int(os_proc_available_memory())
+            let probed = Int(Double(available) * 0.40)
+            totalBudget = max(512 * 1024 * 1024, min(probed, 3 * 1024 * 1024 * 1024))
         #else
-            meshBudget = 512 * 1024 * 1024 // 512 MB default
+            totalBudget = 512 * 1024 * 1024
+        #endif
+
+        // Independent pools: 60 % geometry, 40 % texture.
+        geometryBudget = Int(Double(totalBudget) * 0.60)
+        textureBudget = Int(Double(totalBudget) * 0.40)
+        Logger.log(message: "MemoryBudgetManager: probed budgets — geometry=\(geometryBudget.formattedAsMemory) texture=\(textureBudget.formattedAsMemory) total=\(meshBudget.formattedAsMemory)")
+    }
+
+    /// Subscribe to OS memory pressure events and fire the registered callbacks.
+    ///
+    /// On `.warning`: calls `onMemoryPressureWarning` — expected to shed textures and
+    /// evict geometry proactively before the OS escalates.
+    /// On `.critical`: calls `onMemoryPressureCritical` — expected to aggressively free
+    /// memory to avoid process termination.
+    /// Both callbacks are invoked on a background queue; handlers must be thread-safe.
+    private func startMemoryPressureMonitoring() {
+        #if os(macOS) || os(iOS) || os(visionOS)
+            let source = DispatchSource.makeMemoryPressureSource(
+                eventMask: [.warning, .critical],
+                queue: .global(qos: .userInitiated)
+            )
+            source.setEventHandler { [weak self] in
+                guard let self else { return }
+                let event = source.data
+                if event.contains(.critical) {
+                    Logger.log(message: "[MemoryBudgetManager] OS critical memory pressure — triggering aggressive eviction")
+                    onMemoryPressureCritical?()
+                } else if event.contains(.warning) {
+                    Logger.log(message: "[MemoryBudgetManager] OS warning memory pressure — triggering proactive eviction")
+                    onMemoryPressureWarning?()
+                }
+            }
+            source.resume()
+            pressureSource = source
         #endif
     }
 
@@ -175,8 +288,6 @@ public class MemoryBudgetManager: @unchecked Sendable {
         guard enabled else { return }
 
         lock.lock()
-        defer { lock.unlock() }
-
         // Remove existing entry if present (handles updates)
         if let existing = memoryEntries[entityId] {
             totalMeshMemory -= existing.meshSizeBytes
@@ -194,6 +305,9 @@ public class MemoryBudgetManager: @unchecked Sendable {
         memoryEntries[entityId] = entry
         totalMeshMemory += meshSizeBytes
         totalTextureMemory += textureSizeBytes
+        lock.unlock()
+
+        checkThresholdLogging()
     }
 
     /// Register mesh memory by calculating size from mesh array
@@ -264,20 +378,27 @@ public class MemoryBudgetManager: @unchecked Sendable {
         return MemoryStats(
             meshMemoryUsed: totalMeshMemory,
             textureMemoryUsed: totalTextureMemory,
-            budgetLimit: meshBudget,
+            geometryBudget: geometryBudget,
+            textureBudget: textureBudget,
             trackedEntityCount: memoryEntries.count
         )
     }
 
-    /// Check if we should start evicting entities (combined geometry + texture budget).
+    /// Check if we should start evicting entities.
+    ///
+    /// Returns `true` when either the geometry pool or the texture pool has reached
+    /// its individual high-water mark. This fires texture relief (downgrade distant
+    /// textures) before considering geometry eviction, so the two pools are managed
+    /// independently rather than competing for the same ceiling.
     public func shouldEvict() -> Bool {
         guard enabled else { return false }
 
         lock.lock()
         defer { lock.unlock() }
 
-        let utilization = Float(totalMeshMemory + totalTextureMemory) / Float(meshBudget)
-        return utilization >= highWaterMark
+        let geomUtil = Float(totalMeshMemory) / Float(max(1, geometryBudget))
+        let texUtil = Float(totalTextureMemory) / Float(max(1, textureBudget))
+        return geomUtil >= highWaterMark || texUtil >= highWaterMark
     }
 
     /// Check if geometry memory alone has hit the high-water mark.
@@ -291,65 +412,62 @@ public class MemoryBudgetManager: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
 
-        let utilization = Float(totalMeshMemory) / Float(meshBudget)
+        let utilization = Float(totalMeshMemory) / Float(max(1, geometryBudget))
         return utilization >= highWaterMark
     }
 
     /// Check if we can accept a new mesh of the given size.
     ///
-    /// Accounts for both geometry and texture memory already tracked so the
-    /// combined GPU footprint stays within the budget after the new allocation.
+    /// Legacy combined check: passes if the new bytes fit within the sum of both pools.
+    /// Prefer `canAcceptMesh` or `canAcceptTexture` for pool-specific gates.
     public func canAccept(sizeBytes: Int) -> Bool {
         lock.lock()
         defer { lock.unlock() }
 
-        return (totalMeshMemory + totalTextureMemory + sizeBytes) <= meshBudget
+        return (totalMeshMemory + totalTextureMemory + sizeBytes) <= (geometryBudget + textureBudget)
     }
 
-    /// Check if a new mesh of the given size fits within the geometry portion of the budget.
+    /// Check if a new mesh of the given size fits within the geometry pool.
     ///
-    /// Only counts geometry (vertex/index) memory — texture memory is excluded so that
-    /// texture upgrades cannot prevent mesh loads. Used by `GeometryStreamingSystem`
-    /// for its per-candidate pre-emptive budget reservation.
+    /// Only counts geometry (vertex/index) memory against `geometryBudget` — texture
+    /// memory is excluded so texture upgrades cannot prevent mesh loads.
+    /// Used by `GeometryStreamingSystem` for per-candidate pre-emptive budget reservation.
     public func canAcceptMesh(sizeBytes: Int) -> Bool {
         lock.lock()
         defer { lock.unlock() }
 
-        return (totalMeshMemory + sizeBytes) <= meshBudget
+        return (totalMeshMemory + sizeBytes) <= geometryBudget
     }
 
     /// Check if we can accept a new texture allocation of the given size.
     ///
-    /// Includes in-flight reservations (`inFlightTextureReservation`) so callers see
-    /// headroom already committed to in-progress upgrade Tasks. Use `reserveTexture`
-    /// instead of this method when you intend to actually start an upgrade — `reserveTexture`
-    /// atomically checks and reserves in one lock acquisition, eliminating the TOCTOU race
-    /// between checking and acting.
+    /// Checks against `textureBudget` (independent of geometry pool) and includes
+    /// in-flight reservations so callers see already-committed headroom.
+    /// Use `reserveTexture` when you intend to actually start an upgrade — it
+    /// atomically checks and reserves, eliminating the TOCTOU race.
     public func canAcceptTexture(sizeBytes: Int) -> Bool {
         lock.lock()
         defer { lock.unlock() }
 
-        return (totalMeshMemory + totalTextureMemory + inFlightTextureReservation + sizeBytes) <= meshBudget
+        return (totalTextureMemory + inFlightTextureReservation + sizeBytes) <= textureBudget
     }
 
-    /// Atomically check whether a texture upgrade fits within the budget and, if so,
-    /// reserve the estimated bytes.
+    /// Atomically check whether a texture upgrade fits within `textureBudget` and,
+    /// if so, reserve the estimated bytes.
     ///
     /// Unlike `canAcceptTexture` + a separate action, this method eliminates the
     /// check-then-act race: two concurrent callers cannot both see "budget available"
     /// and both proceed, because the first reservation reduces the apparent headroom
     /// for the second caller before it acquires the lock.
     ///
-    /// - Parameter sizeBytes: Estimated GPU bytes for the upgrade batch (from
-    ///   `TextureStreamingSystem.estimatedUpgradeBytes`).
-    /// - Returns: `true` if the reservation was accepted; `false` if the budget would
-    ///   be exceeded. If `false`, the caller should proceed with downgrades only and
-    ///   must NOT call `releaseTextureReservation`.
+    /// - Parameter sizeBytes: Estimated GPU bytes for the upgrade batch.
+    /// - Returns: `true` if the reservation was accepted; `false` if the texture budget
+    ///   would be exceeded. If `false`, do NOT call `releaseTextureReservation`.
     public func reserveTexture(sizeBytes: Int) -> Bool {
         lock.lock()
         defer { lock.unlock() }
 
-        guard (totalMeshMemory + totalTextureMemory + inFlightTextureReservation + sizeBytes) <= meshBudget else {
+        guard (totalTextureMemory + inFlightTextureReservation + sizeBytes) <= textureBudget else {
             return false
         }
         inFlightTextureReservation += sizeBytes
@@ -359,9 +477,8 @@ public class MemoryBudgetManager: @unchecked Sendable {
     /// Release a previously accepted texture upgrade reservation.
     ///
     /// Call this after the async upgrade Task completes (success, failure, or cancellation),
-    /// before or concurrently with `updateTextureSizeBytes`. Releasing the reservation
-    /// restores the apparent headroom for subsequent `canAcceptTexture` / `reserveTexture`
-    /// calls. Only call this if `reserveTexture` returned `true`.
+    /// before or concurrently with `updateTextureSizeBytes`. Only call if `reserveTexture`
+    /// returned `true`.
     public func releaseTextureReservation(sizeBytes: Int) {
         lock.lock()
         inFlightTextureReservation = max(0, inFlightTextureReservation - sizeBytes)
@@ -372,18 +489,21 @@ public class MemoryBudgetManager: @unchecked Sendable {
     ///
     /// Called by `TextureStreamingSystem` whenever a texture upgrade or downgrade
     /// finishes so `totalTextureMemory` reflects the actual current GPU allocation.
-    /// No-op if the entity is not currently tracked (e.g. entity was evicted while
-    /// the streaming Task was in-flight).
+    /// No-op if the entity is not currently tracked.
     public func updateTextureSizeBytes(entityId: EntityID, newSizeBytes: Int) {
         lock.lock()
-        defer { lock.unlock() }
-
-        guard var entry = memoryEntries[entityId] else { return }
+        guard var entry = memoryEntries[entityId] else {
+            lock.unlock()
+            return
+        }
         totalTextureMemory -= entry.textureSizeBytes
         entry.textureSizeBytes = newSizeBytes
         entry.lastUsedFrame = currentFrame
         totalTextureMemory += newSizeBytes
         memoryEntries[entityId] = entry
+        lock.unlock()
+
+        checkThresholdLogging()
     }
 
     /// Get memory size for an entity (if tracked)
@@ -445,14 +565,17 @@ public class MemoryBudgetManager: @unchecked Sendable {
 
     /// Get candidates to evict to reach the low water mark.
     ///
-    /// Uses combined geometry + texture memory to compute how much needs to be
-    /// freed, and counts each candidate's total size (mesh + texture) toward the
-    /// target. This ensures eviction correctly accounts for texture-heavy entities.
+    /// Intentionally uses the combined geometry + texture budget and combined entity
+    /// sizes. Evicting an entity releases both its geometry and texture bytes at once,
+    /// so accounting against a single combined target is correct and avoids the
+    /// complexity of running two separate per-pool passes. Per-pool targets would risk
+    /// double-evicting entities that contribute to both pools simultaneously.
     public func getEvictionCandidatesToTarget() -> [EntityID] {
         lock.lock()
         defer { lock.unlock() }
 
-        let targetMemory = Int(Float(meshBudget) * lowWaterMark)
+        let totalBudget = geometryBudget + textureBudget
+        let targetMemory = Int(Float(totalBudget) * lowWaterMark)
         var memoryToFree = (totalMeshMemory + totalTextureMemory) - targetMemory
 
         guard memoryToFree > 0 else { return [] }
@@ -484,6 +607,40 @@ public class MemoryBudgetManager: @unchecked Sendable {
             .map(\.entityId)
     }
 
+    // MARK: - Threshold Logging
+
+    /// Log a single line when combined utilization crosses 75 %, 85 %, or 95 %.
+    ///
+    /// Called without the lock after `registerMesh` and `updateTextureSizeBytes` so
+    /// the lock is never held during logging. There is a benign race window between
+    /// the two lock acquisitions, which is acceptable since this path is for diagnostics
+    /// only — it never drives a budget decision.
+    private func checkThresholdLogging() {
+        lock.lock()
+        let meshMem = totalMeshMemory
+        let texMem = totalTextureMemory
+        let geomBudget = geometryBudget
+        let texBudget = textureBudget
+        let lastBucket = lastLoggedThresholdBucket
+        lock.unlock()
+
+        let combined = geomBudget + texBudget
+        let combinedPct = combined > 0 ? Int(Float(meshMem + texMem) * 100 / Float(combined)) : 0
+        let newBucket: Int = combinedPct >= 95 ? 95
+            : combinedPct >= 85 ? 85
+            : combinedPct >= 75 ? 75 : 0
+
+        guard newBucket != lastBucket else { return }
+
+        lock.lock()
+        lastLoggedThresholdBucket = newBucket
+        lock.unlock()
+
+        let geomPct = geomBudget > 0 ? Int(Float(meshMem) * 100 / Float(geomBudget)) : 0
+        let texPct = texBudget > 0 ? Int(Float(texMem) * 100 / Float(texBudget)) : 0
+        Logger.log(message: "[MemoryBudgetManager] \(combinedPct)% combined — geom \(geomPct)%/\(geomBudget.formattedAsMemory), tex \(texPct)%/\(texBudget.formattedAsMemory)")
+    }
+
     // MARK: - Utilities
 
     /// Clear all tracked memory (call when scene is unloaded)
@@ -495,6 +652,7 @@ public class MemoryBudgetManager: @unchecked Sendable {
         totalMeshMemory = 0
         totalTextureMemory = 0
         inFlightTextureReservation = 0
+        lastLoggedThresholdBucket = 0
     }
 
     /// Get number of tracked entities
@@ -518,10 +676,9 @@ public class MemoryBudgetManager: @unchecked Sendable {
         let stats = getStats()
         Logger.log(message: """
         MemoryBudgetManager Status:
-        - Mesh Memory: \(stats.meshMemoryUsed.formattedAsMemory)
-        - Texture Memory: \(stats.textureMemoryUsed.formattedAsMemory)
-        - Total GPU Memory: \(stats.totalTrackedMemory.formattedAsMemory) / \(stats.budgetLimit.formattedAsMemory)
-        - Utilization: \(String(format: "%.1f%%", stats.utilizationPercent * 100))
+        - Mesh Memory:    \(stats.meshMemoryUsed.formattedAsMemory) / \(stats.geometryBudget.formattedAsMemory) (\(String(format: "%.1f%%", stats.geometryUtilization * 100)))
+        - Texture Memory: \(stats.textureMemoryUsed.formattedAsMemory) / \(stats.textureBudget.formattedAsMemory) (\(String(format: "%.1f%%", stats.textureUtilization * 100)))
+        - Total GPU Memory: \(stats.totalTrackedMemory.formattedAsMemory) / \(stats.budgetLimit.formattedAsMemory) (\(String(format: "%.1f%%", stats.utilizationPercent * 100)))
         - Tracked Entities: \(stats.trackedEntityCount)
         - Under Pressure: \(stats.isUnderPressure)
         """)
@@ -532,28 +689,32 @@ public class MemoryBudgetManager: @unchecked Sendable {
 public extension MemoryBudgetManager {
     /// Apply low-memory preset (mobile/older devices)
     func applyLowMemoryPreset() {
-        meshBudget = 256 * 1024 * 1024 // 256 MB
+        geometryBudget = Int(Double(256 * 1024 * 1024) * 0.60)
+        textureBudget = Int(Double(256 * 1024 * 1024) * 0.40)
         highWaterMark = 0.80
         lowWaterMark = 0.60
     }
 
     /// Apply standard preset (most devices)
     func applyStandardPreset() {
-        meshBudget = 512 * 1024 * 1024 // 512 MB
+        geometryBudget = Int(Double(512 * 1024 * 1024) * 0.60)
+        textureBudget = Int(Double(512 * 1024 * 1024) * 0.40)
         highWaterMark = 0.85
         lowWaterMark = 0.70
     }
 
     /// Apply high-memory preset (desktop/high-end)
     func applyHighMemoryPreset() {
-        meshBudget = 1024 * 1024 * 1024 // 1 GB
+        geometryBudget = Int(Double(1024 * 1024 * 1024) * 0.60)
+        textureBudget = Int(Double(1024 * 1024 * 1024) * 0.40)
         highWaterMark = 0.90
         lowWaterMark = 0.75
     }
 
     /// Apply unlimited preset (no eviction)
     func applyUnlimitedPreset() {
-        meshBudget = Int.max / 2 // Effectively unlimited
+        geometryBudget = Int.max / 4
+        textureBudget = Int.max / 4
         highWaterMark = 1.0
         lowWaterMark = 1.0
     }
