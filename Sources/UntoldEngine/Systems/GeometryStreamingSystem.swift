@@ -222,7 +222,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         timeSinceCameraDiagLog += deltaTime
         if timeSinceCameraDiagLog >= 5.0 {
             timeSinceCameraDiagLog = 0
-            print("[GeometryStreaming] camera pos: (\(String(format: "%.2f", effectiveCameraPosition.x)), \(String(format: "%.2f", effectiveCameraPosition.y)), \(String(format: "%.2f", effectiveCameraPosition.z))) loaded=\(loadedStreamingEntities.count)")
+            Logger.log(message: "[GeometryStreaming] camera pos: (\(String(format: "%.2f", effectiveCameraPosition.x)), \(String(format: "%.2f", effectiveCameraPosition.y)), \(String(format: "%.2f", effectiveCameraPosition.z))) loaded=\(loadedStreamingEntities.count)", category: LogCategory.xrCamera.rawValue)
         }
 
         let nearbyEntities = OctreeSystem.shared.queryNear(point: effectiveCameraPosition, radius: maxQueryRadius)

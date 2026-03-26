@@ -28,6 +28,7 @@ public enum LogCategory: String, CaseIterable, Sendable {
     case assetLoader = "AssetLoader"
     case engineStats = "EngineStats"
     case integration = "Integration"
+    case xrCamera = "XRCamera"
 }
 
 public struct LogEvent: Identifiable, Sendable {
