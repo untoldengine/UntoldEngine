@@ -119,4 +119,14 @@ public final class TripleCPUBuffer<T>: @unchecked Sendable {
         }
         lock.unlock()
     }
+
+    /// Clear all slots so that stale entity IDs from a previous scene are not
+    /// read back by the rendering system after a scene reload.
+    public func clearAll() {
+        lock.lock()
+        for i in 0 ..< inFlight {
+            slots[i].removeAll(keepingCapacity: true)
+        }
+        lock.unlock()
+    }
 }

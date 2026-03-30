@@ -71,6 +71,7 @@
         // MARK: - Callbacks (wired by AppDelegate)
 
         var onLoadFile: ((String, @escaping (Bool) -> Void) -> Void)?
+        var onLoadTiledScene: ((String, @escaping (Bool) -> Void) -> Void)?
         var onBatchingChanged: ((Bool) -> Void)?
         var onStreamingChanged: ((Bool, Double, Double) -> Void)?
         var onLodDebugChanged: ((Bool) -> Void)?

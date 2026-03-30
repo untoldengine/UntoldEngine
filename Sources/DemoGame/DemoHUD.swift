@@ -67,6 +67,7 @@
         var renderer: UntoldRenderer
         @Bindable var state: DemoState
         @State private var showFilePicker = false
+        @State private var showManifestPicker = false
 
         var body: some View {
             ZStack(alignment: .topLeading) {
@@ -75,6 +76,9 @@
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         Button("Load USDZ...") { showFilePicker = true }
+                            .buttonStyle(.bordered)
+                            .disabled(state.isLoading)
+                        Button("Load Tile Scene...") { showManifestPicker = true }
                             .buttonStyle(.bordered)
                             .disabled(state.isLoading)
                         if state.isLoading {
@@ -207,6 +211,32 @@
                     if isOutOfCore {
                         state.streamingEnabled = true
                     }
+                    if accessing { url.stopAccessingSecurityScopedResource() }
+                }
+            }
+            .fileImporter(
+                isPresented: $showManifestPicker,
+                allowedContentTypes: [UTType(filenameExtension: "json") ?? .json]
+            ) { result in
+                guard case let .success(url) = result else { return }
+                let accessing = url.startAccessingSecurityScopedResource()
+                // Pass the path without extension — LoadingSystem handles absolute paths.
+                let path = url.deletingPathExtension().path
+
+                state.batchingEnabled = false
+                state.streamingEnabled = false
+                state.isLoading = true
+
+                guard let onLoadTiledScene = state.onLoadTiledScene else {
+                    state.isLoading = false
+                    if accessing { url.stopAccessingSecurityScopedResource() }
+                    return
+                }
+
+                onLoadTiledScene(path) { _ in
+                    state.isLoading = false
+                    state.hasLoadedEntity = true
+                    state.streamingEnabled = true
                     if accessing { url.stopAccessingSecurityScopedResource() }
                 }
             }

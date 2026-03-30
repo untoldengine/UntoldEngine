@@ -204,3 +204,60 @@ The key design decisions here are:
 - **OS memory pressure subscription** — `DispatchSource.makeMemoryPressureSource` fires proactive texture shedding and geometry eviction before the OS escalates to process termination; the response runs on the next `update()` tick to stay single-threaded
 - **evictLRU per-call cap** — the `maxEvictions` parameter (default `Int.max`) bounds single-frame eviction work; the OS pressure path uses 16 per pass so a `.critical` burst doesn't spike one frame; remaining candidates spill to subsequent ticks
 - **CPU heap release on critical pressure** — on `.critical`, after geometry eviction, `ProgressiveAssetLoader.releaseWarmAsset()` is called for every warm root, freeing the MDLAsset CPU heap the OS measures; rehydration context survives so cold re-stream from disk is transparent
+
+---
+
+## Tile-Level Streaming
+
+The tile-level streaming layer sits **above** the mesh-level OOC streaming. For full documentation, architecture diagrams, and tuning guidance see [`docs/Architecture/tilebasedstreaming.md`](tilebasedstreaming.md). This section summarises the key design decisions that interlock with the mesh-level system documented above.
+
+### TileComponent
+
+Tile stubs carry a `TileComponent` (no `StreamingComponent`, no `RenderComponent`):
+
+| Field | Purpose |
+|---|---|
+| `tileURL` | Absolute URL of the USDC file on disk |
+| `fileSizeBytes` | Pre-computed file size for the memory budget gate |
+| `streamingRadius` | Visual display threshold — tile is rendered once parsed |
+| `prefetchRadius` | Background load threshold (`> streamingRadius`); auto = midpoint of stream/unload gap |
+| `unloadRadius` | Distance beyond which teardown is scheduled |
+| `priority` | Load-order priority when multiple tiles are candidates |
+| `tileId` | Debug identifier matching the manifest `tile_id` |
+| `state` | `.unloaded → .parsing → .parsed → .unloading` |
+| `pendingUnloadSince` | CFAbsoluteTime when tile first exceeded `unloadRadius`; 0 = in range |
+| `loadTask` | The in-flight Swift `Task` (cancelled on teardown) |
+
+### Tile Load Pass (inside `update()`)
+
+After the mesh-level scan, a second pass handles tile stubs:
+
+1. For each `.unloaded` stub within `effectivePrefetchRadius + 1.0` (not `streamingRadius` — tiles start loading before the camera enters the display zone):
+   - Scores distance against the predictive (look-ahead) camera position.
+   - Applies the **frustum gate** (`tileStreamingFrustum`, padded by `tileFrustumGatePadding = 20 m`).
+   - Collects as a load candidate.
+2. **Geometry budget gate** — if `shouldEvictGeometry()`, runs texture shedding and `evictLRU` (capped at 8) before dispatch.
+3. Up to `maxConcurrentTileLoads` (default **2**) dispatched via `loadTile()`, subject to the `tileParseMemoryBudgetMB` (200 MB) in-flight gate.
+
+### Tile Unload Pass (inside `update()`)
+
+Three sub-passes each tick, capped at `maxTileUnloadsPerUpdate` (default **2**) total teardowns:
+
+1. **Nearby tiles beyond `unloadRadius`** — differentiates by state:
+   - `.parsing` (not yet visible) — cancelled immediately, no grace delay.
+   - `.parsed` (visible geometry) — starts or checks the **unload grace period** (`unloadGracePeriod = 3 s`). Tile only tears down after being out of range for the full grace period; the timer resets if the camera returns inside `unloadRadius`.
+2. **`.parsed` tiles outside the octree query radius** — same grace period logic.
+3. **`.parsing` tiles outside the octree query radius** — cancelled immediately to prevent ghost geometry flashes on fast movement or teleports.
+
+### Design Decisions
+
+- **Prefetch radius decouples load from display** — tiles start loading at `effectivePrefetchRadius` (auto: midpoint of stream/unload gap) so the parse completes before the camera reaches the visual zone, eliminating blank-screen pops on tile entry.
+- **Grace period prevents oscillation** — a 3-second hold on `.parsed` tile teardown stops rapid load/unload cycles at tile boundaries, which was the primary cause of flickering in large scenes.
+- **`maxTileUnloadsPerUpdate = 2`** — spreading GPU buffer releases across frames prevents a single-frame blank when many tiles leave range simultaneously.
+- **`maxConcurrentTileLoads = 2`** — two concurrent parses balance throughput for large scenes against RAM spike risk. Each parse calls `MDLAsset(url:)` on a full USDC file; the `tileParseMemoryBudgetMB` gate serialises naturally when a large tile saturates the budget.
+- **Identity world transform on stubs** — tile geometry is exported in world space; no runtime coordinate conversion needed.
+- **`.auto` streaming policy** — tiles use the same admission gate as regular assets; unexpectedly large tiles are gracefully rejected and retried rather than crashing.
+- **Zombie-state guard in completion** — completion callback checks `tc.state == .parsing`. If `unloadTile` ran mid-parse (state is `.unloading`), result is discarded and the pre-created child entity is cleaned up — stub never enters a "geometry missing" zombie state.
+- **`defer` slot release** — `releaseActiveTileLoad` in `defer` frees the concurrency slot on all exit paths (success, failure, cancelled-state early return).
+- **`removeTileComponent` deregisters from streaming system** — cancels in-flight `loadTask` and calls `GeometryStreamingSystem.shared.unregisterTileEntity(entityId)` to atomically remove the entity from all four tile tracking sets (`loadedTileEntities`, `loadingTileEntities`, `activeTileLoads`, `meshEntityToTileEntity`).
+- **`reset()` clears tile tracking sets** — called by `loadTiledScene()` after scene destruction so no stale entity IDs from the previous scene persist into the new scene's streaming passes.

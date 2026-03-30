@@ -19,7 +19,7 @@
     final class GameScene {
         private enum Constants {
             static let orbitTargetOffset: Float = 5.0
-            static let cameraMoveSpeed: Float = 1.0
+            static let cameraMoveSpeed: Float = 10.0
             static let cameraInputDeltaTime: Float = 0.1
             static let streamingPriority: Int = 10
             static let usdzExtension = "usdz"
@@ -67,6 +67,19 @@
                 loadedEntity = findEntity(name: path)
                 let camera = findGameCamera()
                 setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
+                completion(success)
+            }
+        }
+
+        /// Loads a tiled scene from a manifest JSON.
+        /// `manifestPath` is an absolute path (without extension) — LoadingSystem
+        /// resolves it directly so no bundle search is needed when using the file picker.
+        func loadTileScene(manifestPath: String, completion: @escaping (Bool) -> Void) {
+            clearSceneBatches()
+            loadedEntity = nil
+            GeometryStreamingSystem.shared.enabled = true
+
+            loadTiledScene(manifest: manifestPath, withExtension: "json") { success in
                 completion(success)
             }
         }
