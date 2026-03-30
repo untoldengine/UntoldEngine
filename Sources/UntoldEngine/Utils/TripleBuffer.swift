@@ -129,4 +129,16 @@ public final class TripleCPUBuffer<T>: @unchecked Sendable {
         }
         lock.unlock()
     }
+
+    /// Remove specific IDs from all slots so stale IDs from destroyed streaming
+    /// entities do not reach the renderer after tile teardown.  More surgical than
+    /// clearAll() — only the pruned entities are removed, so on-screen geometry is
+    /// not blanked for 1–3 frames while the triple buffer rotates.
+    public func remove(ids: Set<T>) where T: Hashable {
+        lock.lock()
+        for i in 0 ..< inFlight {
+            slots[i].removeAll { ids.contains($0) }
+        }
+        lock.unlock()
+    }
 }

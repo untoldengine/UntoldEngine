@@ -295,6 +295,20 @@ func finalizePendingDestroys() {
 
     scene.finalizePendingDestroys()
     runPendingDestroyCompletions()
+
+    // Prune destroyed entity IDs from the render-visible lists so the renderer does
+    // not attempt to access non-existent entities for the 1–3 frames until the triple
+    // buffer naturally rotates past the stale slots.
+    //
+    // This also covers the loading-gate window: while AssetLoadingGate.isLoadingAny is
+    // true, RenderingSystem freezes visibleEntityIds and skips culling.  Concurrent tile
+    // unloads during that window would otherwise leave stale IDs resident for the full
+    // 1–2 s parse duration, not just a few frames.  Targeted removal (not clearAll) avoids
+    // blanking the screen — only the just-destroyed entities are pruned.
+    if !cleanedPendingEntities.isEmpty {
+        visibleEntityIds.removeAll { cleanedPendingEntities.contains($0) }
+        tripleVisibleEntities.remove(ids: cleanedPendingEntities)
+    }
 }
 
 private struct ImportedLODLevelCandidate {
