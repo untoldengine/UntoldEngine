@@ -68,6 +68,98 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Decrease if zoom-out → zoom-in residency deadlocks persist (far meshes blocking near ones).
     public var visibleEvictionProtectionRadius: Float = 30.0
 
+    // MARK: - Tile Streaming
+
+    /// Hard cap on simultaneous tile parses regardless of memory budget.
+    /// Acts as a safety ceiling; the memory budget gate (below) is the primary throttle.
+    /// 2 concurrent loads balances throughput for large scenes against the RAM spike
+    /// risk of simultaneous mass dispatch.  Lower to 1 for memory-constrained devices
+    /// or scenes with very large individual tiles (> 50 MB).
+    public var maxConcurrentTileLoads: Int = 2
+
+    /// Maximum tile unload operations processed per streaming update tick.
+    /// Capping unloads prevents a single-frame blank on fast camera movement or
+    /// teleports: when many tiles leave range at once, GPU buffer releases are
+    /// spread across several ticks rather than all landing on one frame.
+    public var maxTileUnloadsPerUpdate: Int = 2
+
+    /// Seconds a `.parsed` tile may remain loaded after exceeding its `unloadRadius`
+    /// before it is torn down.  The grace period prevents rapid load/unload oscillation
+    /// at tile boundaries: a tile that briefly drifts outside its radius stays resident
+    /// long enough for the camera to return.
+    /// In-flight (`.parsing`) tiles are never grace-delayed — they carry no visible
+    /// geometry and are cancelled immediately when out of range.
+    public var unloadGracePeriod: Float = 3.0
+
+    /// Total CPU memory (MB) allowed to be in-flight across all concurrent tile parses.
+    /// Small tiles consume little budget and can parse in parallel; a single large tile
+    /// may saturate the budget and serialize naturally.
+    /// At least one tile is always allowed to parse even if it exceeds the budget alone.
+    public var tileParseMemoryBudgetMB: Float = 200.0
+
+    /// Tile entities currently being parsed, mapped to their declared file size in bytes.
+    /// Used to track the total parse memory in flight for the budget gate.
+    private var activeTileLoads: [EntityID: Int] = [:]
+
+    /// Tile entities currently in the .parsed state.
+    /// Mirrors loadedStreamingEntities but for tile-level entities.
+    /// Enables out-of-range checks for tiles that fall outside the octree query radius.
+    private var loadedTileEntities: Set<EntityID> = []
+
+    /// Tile entities currently in the .parsing state.
+    /// Enables cancellation of in-progress tile parses when the camera moves away
+    /// before the load completes (e.g. fast movement or teleport).
+    private var loadingTileEntities: Set<EntityID> = []
+
+    /// Maps capturedMeshEntityId → tile stub EntityID so OCC upload completions
+    /// can quickly update the parent tile's visual readiness counters (O(1) lookup).
+    private var meshEntityToTileEntity: [EntityID: EntityID] = [:]
+
+    // MARK: - Camera Velocity (4.5 predictive loading)
+
+    /// Exponential smoothing factor for camera velocity (0 = no smoothing, 1 = frozen).
+    public var velocitySmoothing: Float = 0.85
+
+    /// How far ahead (seconds) to project the camera position when scoring tile candidates.
+    /// Tiles close to the predicted future position are prioritised as if the camera
+    /// were already there, reducing pop-in during forward movement.
+    /// Keep short (0.5 s) — longer values project too far and cause nearly every tile
+    /// in the scene to score as "in range" simultaneously at normal walk/fly speeds.
+    public var velocityLookAheadTime: Float = 0.5
+
+    /// Minimum camera speed (m/s) before predictive loading activates.
+    /// Below this threshold the look-ahead offset is zeroed out so that slow panning
+    /// or micro-jitter does not artificially inflate the candidate distance set.
+    public var velocityLookAheadMinSpeed: Float = 1.5
+
+    private var lastCameraPosition: simd_float3? = nil
+    private var cameraVelocity: simd_float3 = .zero
+
+    // MARK: - Frustum Gate
+
+    /// When true, mesh and tile load candidates are tested against the camera frustum
+    /// before being dispatched.  Entities fully outside the frustum are skipped this
+    /// tick and reconsidered on approach / rotation.  Does NOT affect unloads —
+    /// meshes are never evicted solely because the camera turns away from them.
+    ///
+    /// Default: true.  Set to false for scenes where content appears in all directions
+    /// simultaneously (e.g., 360 panoramas) to avoid a one-frame pop when rotating.
+    public var enableFrustumGate: Bool = true
+
+    /// World-unit padding added to each frustum side plane before the gate test.
+    /// A generous pad (default 5 m) prevents meshes from popping in when rotating
+    /// quickly: content slightly outside the current frustum but about to enter it
+    /// is still queued for loading.
+    public var frustumGatePadding: Float = 5.0
+
+    /// Frustum padding used exclusively for tile-level load candidates.
+    /// Tiles are coarser than individual mesh stubs — a single tile popping in
+    /// from the side is far more jarring than a missing mesh.  A wider pad (default
+    /// 20 m) keeps tiles queued for loading even when they sit at the edge of the
+    /// view frustum during fast rotation.  Increase for large outdoor tiles; decrease
+    /// for small indoor tiles where behind-camera loads genuinely waste parse time.
+    public var tileFrustumGatePadding: Float = 20.0
+
     // MARK: - OS Memory Pressure
 
     /// Set by the MemoryBudgetManager pressure callback (background queue).
@@ -156,6 +248,93 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         withStateLock { activeNearBandLoads.count }
     }
 
+    private func reserveActiveTileLoad(entityId: EntityID, fileSizeBytes: Int) -> Bool {
+        withStateLock {
+            guard activeTileLoads[entityId] == nil else { return false }
+            activeTileLoads[entityId] = fileSizeBytes
+            return true
+        }
+    }
+
+    private func releaseActiveTileLoad(entityId: EntityID) {
+        withStateLock { _ = activeTileLoads.removeValue(forKey: entityId) }
+    }
+
+    private func activeTileLoadCount() -> Int {
+        withStateLock { activeTileLoads.count }
+    }
+
+    /// Sum of declared file sizes (bytes) for all tiles currently being parsed.
+    private func activeParseBytesInFlight() -> Int {
+        withStateLock { activeTileLoads.values.reduce(0, +) }
+    }
+
+    private func markLoadedTileEntity(_ entityId: EntityID) {
+        withStateLock { _ = loadedTileEntities.insert(entityId) }
+    }
+
+    private func unmarkLoadedTileEntity(_ entityId: EntityID) {
+        withStateLock { _ = loadedTileEntities.remove(entityId) }
+    }
+
+    private func loadedTileEntitiesSnapshot() -> [EntityID] {
+        withStateLock { Array(loadedTileEntities) }
+    }
+
+    private func markLoadingTileEntity(_ entityId: EntityID) {
+        withStateLock { _ = loadingTileEntities.insert(entityId) }
+    }
+
+    private func unmarkLoadingTileEntity(_ entityId: EntityID) {
+        withStateLock { _ = loadingTileEntities.remove(entityId) }
+    }
+
+    private func loadingTileEntitiesSnapshot() -> [EntityID] {
+        withStateLock { Array(loadingTileEntities) }
+    }
+
+    // MARK: - Frustum Gate Helpers
+
+    /// Builds a padded CPU frustum from the active camera's current view-projection
+    /// matrix, adjusted for the scene-root transform.  Returns nil if no active camera
+    /// is available (e.g. before the first frame).
+    ///
+    /// - Parameter sidePad: World-unit padding applied to each frustum side plane.
+    ///   Pass nil to use `frustumGatePadding` (the default for mesh-level candidates).
+    ///   Pass `tileFrustumGatePadding` for tile-level candidates.
+    private func buildStreamingFrustum(sidePad: Float? = nil) -> Frustum? {
+        guard let cameraId = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: cameraId)
+        else { return nil }
+
+        let effectiveView = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        let viewProj = simd_mul(renderInfo.perspectiveSpace, effectiveView)
+
+        let ndcNear: Float = renderInfo.reverseZEnabled ? 1.0 : 0.0
+        let ndcFar: Float  = renderInfo.reverseZEnabled ? 0.0 : 1.0
+        var frustum = buildFrustum(from: viewProj, ndcNear: ndcNear, ndcFar: ndcFar)
+        frustum = padFrustum(frustum, sidePad: sidePad ?? frustumGatePadding)
+        return frustum
+    }
+
+    /// Returns true if the world-space AABB defined by (center, halfExtent) intersects
+    /// or overlaps the frustum.  Uses the standard separating-axis / signed-distance
+    /// test: the AABB is outside if its projected interval onto any plane normal is
+    /// entirely on the negative (outside) side.
+    @inline(__always)
+    private func isAABBInFrustum(center: simd_float3, halfExtent: simd_float3, frustum: Frustum) -> Bool {
+        for plane in frustum.planes {
+            // Effective radius of the AABB projected onto the plane normal.
+            let r = abs(plane.n.x) * halfExtent.x
+                  + abs(plane.n.y) * halfExtent.y
+                  + abs(plane.n.z) * halfExtent.z
+            // Signed distance from the AABB center to the plane.
+            let dist = simd_dot(plane.n, center) + plane.d
+            if dist < -r { return false } // fully outside this plane
+        }
+        return true
+    }
+
     private func loadedStreamingEntitiesSnapshot() -> [EntityID] {
         withStateLock { Array(loadedStreamingEntities) }
     }
@@ -215,6 +394,26 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // Transform camera position into entity space (un-shifted by scene root).
         let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraPosition)
 
+        // ── Camera velocity (4.5 predictive loading) ───────────────────────────
+        // Compute an exponentially-smoothed velocity from frame-to-frame displacement.
+        // Used to project a look-ahead position for tile candidate scoring so tiles
+        // in the direction of travel are prioritised before the camera reaches them.
+        let dt = max(deltaTime, 0.001)
+        if let last = lastCameraPosition {
+            let rawVelocity = (effectiveCameraPosition - last) / dt
+            cameraVelocity = velocitySmoothing * cameraVelocity + (1.0 - velocitySmoothing) * rawVelocity
+        } else {
+            cameraVelocity = .zero
+        }
+        lastCameraPosition = effectiveCameraPosition
+        // Only apply predictive offset when moving fast enough that look-ahead is meaningful.
+        // Below velocityLookAheadMinSpeed (e.g. slow pan, jitter) the candidate set would be
+        // inflated without any benefit, potentially triggering spurious tile dispatches.
+        let speed = simd_length(cameraVelocity)
+        let predictivePosition: simd_float3 = speed >= velocityLookAheadMinSpeed
+            ? effectiveCameraPosition + cameraVelocity * velocityLookAheadTime
+            : effectiveCameraPosition
+
         // Periodic camera position log — confirms the XR headset position is flowing through
         // to the streaming system. Fires every 5 s so it is readable in a test session without
         // being noisy in steady-state. Check these values are changing when physically walking
@@ -226,6 +425,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
 
         let nearbyEntities = OctreeSystem.shared.queryNear(point: effectiveCameraPosition, radius: maxQueryRadius)
+
+        // Build a padded frustum once per tick for the load-gate test.
+        // nil when no camera is available; the gate is simply skipped that tick.
+        let streamingFrustum: Frustum? = enableFrustumGate ? buildStreamingFrustum() : nil
+        // Tile candidates use a wider pad (tileFrustumGatePadding) because tiles are
+        // coarser than mesh stubs — a single tile pop-in is far more noticeable.
+        let tileStreamingFrustum: Frustum? = enableFrustumGate ? buildStreamingFrustum(sidePad: tileFrustumGatePadding) : nil
 
         var loadCandidates: [(EntityID, Float, Int)] = [] // (entity, distance, priority)
         var unloadCandidates: [(EntityID, Float)] = [] // (entity, distance)
@@ -247,6 +453,22 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             case .unloaded:
                 // Small epsilon to handle floating-point boundary cases (e.g., 200.0001 vs 200.0)
                 if distance <= streaming.streamingRadius + 1.0 {
+                    // Frustum gate: skip loading if the entity AABB is entirely outside the
+                    // current camera frustum.  Only applied when a frustum is available and
+                    // the entity has local bounds; otherwise the candidate is always queued.
+                    if let f = streamingFrustum,
+                       let local = scene.get(component: LocalTransformComponent.self, for: entityId),
+                       let world = scene.get(component: WorldTransformComponent.self, for: entityId)
+                    {
+                        let (center, halfExtent) = worldAABB_CenterExtent(
+                            localMin: local.boundingBox.min,
+                            localMax: local.boundingBox.max,
+                            worldMatrix: world.space
+                        )
+                        if !isAABBInFrustum(center: center, halfExtent: halfExtent, frustum: f) {
+                            continue
+                        }
+                    }
                     // Record first-detection time once; used to measure tick-to-dispatch latency.
                     if firstRangeTimestamps[entityId] == nil {
                         firstRangeTimestamps[entityId] = CFAbsoluteTimeGetCurrent()
@@ -265,9 +487,180 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
         }
 
+        // ── Tile-level streaming pass ──────────────────────────────────────────
+        // Tile stubs (TileComponent, no StreamingComponent) are included in the
+        // same octree query above.  When a stub enters its streaming radius the
+        // full tile USDC is parsed and registered via setEntityMeshAsync (.auto
+        // policy).  Concurrency is governed by a memory budget gate (4.4) instead
+        // of a hard count: small tiles parse in parallel; one large tile saturates
+        // the budget naturally.
+        var tileLoadCandidates: [(EntityID, Float, Int)] = []
+        for entityId in nearbyEntities {
+            guard scene.exists(entityId) else { continue }
+            guard let tileComp = scene.get(component: TileComponent.self, for: entityId)
+            else { continue }
+
+            // 4.2: Promote failed tiles to .unloaded once their retry backoff expires.
+            if tileComp.state == .failed {
+                let elapsed = CFAbsoluteTimeGetCurrent() - tileComp.lastFailureTime
+                if elapsed >= tileComp.retryDelaySeconds {
+                    tileComp.state = .unloaded
+                } else {
+                    continue
+                }
+            }
+
+            guard tileComp.state == .unloaded else { continue }
+
+            let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+
+            // 4.5: Use predictive distance (min of actual vs look-ahead) so tiles in
+            // the direction of travel are queued before the camera physically arrives.
+            let predictiveDist = calculateDistance(entityId: entityId, cameraPosition: predictivePosition)
+            let effectiveDist = min(distance, predictiveDist)
+
+            // Use effectivePrefetchRadius (midpoint of stream/unload gap by default) so
+            // the tile starts loading in the background before the camera reaches the
+            // visual display zone.  By the time the camera enters streamingRadius the
+            // parse is already complete and the geometry appears without a blank frame.
+            if effectiveDist <= tileComp.effectivePrefetchRadius + 1.0 {
+                // Frustum gate: tile stubs have identity world transform so their
+                // local AABB equals their world AABB.  Uses tileStreamingFrustum which
+                // applies tileFrustumGatePadding (wider than the mesh-level pad) to
+                // prevent tile pop-in during fast rotation on coarse tile boundaries.
+                if let f = tileStreamingFrustum,
+                   let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+                {
+                    let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
+                    let halfExtent = (local.boundingBox.max - local.boundingBox.min) * 0.5
+                    if !isAABBInFrustum(center: center, halfExtent: halfExtent, frustum: f) {
+                        continue
+                    }
+                }
+                tileLoadCandidates.append((entityId, effectiveDist, tileComp.priority))
+            }
+        }
+        if !tileLoadCandidates.isEmpty {
+            // Geometry budget gate: if geometry memory is already under pressure, run
+            // eviction before dispatching any new tile parses.  A tile load can consume
+            // tens of MB in one shot, so we check here rather than relying solely on the
+            // per-mesh admission gate inside setEntityMeshAsync.
+            if MemoryBudgetManager.shared.shouldEvictGeometry() {
+                TextureStreamingSystem.shared.shedTextureMemory(
+                    cameraPosition: effectiveCameraPosition, maxEntities: 4
+                )
+                evictLRU(cameraPosition: effectiveCameraPosition, maxEvictions: 8)
+            }
+
+            tileLoadCandidates.sort { lhs, rhs in
+                if lhs.2 != rhs.2 { return lhs.2 > rhs.2 } // priority descending
+                return lhs.1 < rhs.1                        // effective distance ascending
+            }
+            for (entityId, _, _) in tileLoadCandidates {
+                // Hard cap: never exceed maxConcurrentTileLoads regardless of budget.
+                guard activeTileLoadCount() < maxConcurrentTileLoads else { break }
+                // Re-check overall geometry budget after each dispatch.
+                guard !MemoryBudgetManager.shared.shouldEvictGeometry() else { break }
+                // 4.4: Memory budget gate — allow if adding this tile stays within budget
+                // OR if nothing is currently parsing (guarantees at least one tile always loads).
+                guard let tileComp = scene.get(component: TileComponent.self, for: entityId) else { continue }
+                let inFlightMB = Float(activeParseBytesInFlight()) / (1024.0 * 1024.0)
+                let tileMB = Float(tileComp.fileSizeBytes) / (1024.0 * 1024.0)
+                guard activeTileLoadCount() == 0 || inFlightMB + tileMB <= tileParseMemoryBudgetMB else {
+                    continue // too expensive right now; a smaller tile may still fit
+                }
+                loadTile(entityId: entityId)
+            }
+        }
+
         // Also check loaded entities that might now be out of range
         // (they may not be in the octree query if they're far away)
         let nearbySet = Set(nearbyEntities) // O(1) lookup
+
+        // ── Tile unload pass ───────────────────────────────────────────────────
+        // Grace period: .parsed tiles (with visible GPU geometry) stay resident for
+        // unloadGracePeriod seconds after exceeding unloadRadius before being torn
+        // down.  This eliminates rapid load/unload oscillation at tile boundaries.
+        // .parsing tiles (no visible geometry yet) are cancelled immediately — keeping
+        // an invisible in-flight parse alive wastes CPU and delays other tiles.
+        var tileUnloadCandidates: [EntityID] = []
+        let now = CFAbsoluteTimeGetCurrent()
+
+        // 1. Tiles still within the octree query but beyond their unload radius.
+        for entityId in nearbyEntities {
+            guard scene.exists(entityId) else { continue }
+            guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  tileComp.state == .parsed || tileComp.state == .parsing
+            else { continue }
+            let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+
+            if distance <= tileComp.unloadRadius {
+                // Back in range — reset any pending grace timer so a future exit
+                // starts fresh rather than expiring against a stale timestamp.
+                if tileComp.pendingUnloadSince != 0 { tileComp.pendingUnloadSince = 0 }
+            } else if tileComp.state == .parsing {
+                // In-flight parse, not yet visible — cancel immediately.
+                tileUnloadCandidates.append(entityId)
+            } else {
+                // .parsed tile with visible geometry — honour the grace period.
+                if tileComp.pendingUnloadSince == 0 {
+                    tileComp.pendingUnloadSince = now
+                } else if now - tileComp.pendingUnloadSince >= Double(unloadGracePeriod) {
+                    tileUnloadCandidates.append(entityId)
+                }
+            }
+        }
+
+        // 2. Parsed tiles that fell entirely outside the octree query radius.
+        var staleTileIds: [EntityID] = []
+        let tileSnapshot = loadedTileEntitiesSnapshot()
+        for entityId in tileSnapshot {
+            if nearbySet.contains(entityId) { continue } // already handled in pass 1
+            guard scene.exists(entityId) else {
+                staleTileIds.append(entityId)
+                continue
+            }
+            guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  tileComp.state == .parsed
+            else { continue }
+            let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+            if distance > tileComp.unloadRadius {
+                if tileComp.pendingUnloadSince == 0 {
+                    tileComp.pendingUnloadSince = now
+                } else if now - tileComp.pendingUnloadSince >= Double(unloadGracePeriod) {
+                    tileUnloadCandidates.append(entityId)
+                }
+            } else if tileComp.pendingUnloadSince != 0 {
+                tileComp.pendingUnloadSince = 0
+            }
+        }
+
+        // 3. Parsing tiles that fell entirely outside the octree query radius (e.g. fast
+        //    movement or teleport while a parse was in flight).  Without this check they
+        //    finish parsing, appear far away for one tick, then get unloaded — causing
+        //    ghost geometry flashes on camera jumps.  No grace period — not visible.
+        let loadingTileSnapshot = loadingTileEntitiesSnapshot()
+        for entityId in loadingTileSnapshot {
+            if nearbySet.contains(entityId) { continue } // already handled in pass 1
+            guard scene.exists(entityId) else {
+                unmarkLoadingTileEntity(entityId)
+                continue
+            }
+            guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  tileComp.state == .parsing
+            else { continue }
+            let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+            if distance > tileComp.unloadRadius {
+                tileUnloadCandidates.append(entityId)
+            }
+        }
+
+        for staleId in staleTileIds { unmarkLoadedTileEntity(staleId) }
+        // Cap tile unloads per tick to spread GPU buffer releases across frames,
+        // preventing a one-frame blank when many tiles leave range simultaneously.
+        let cappedUnloads = tileUnloadCandidates.prefix(maxTileUnloadsPerUpdate)
+        for entityId in cappedUnloads { unloadTile(entityId: entityId) }
+
         var staleEntityIds: [EntityID] = []
 
         let trackedLoadedSnapshot = loadedStreamingEntitiesSnapshot()
@@ -570,6 +963,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             var applyMs: Double = 0
             withWorldMutationGate {
                 let applyStart = CFAbsoluteTimeGetCurrent()
+
+                // Guard against the cooperative-cancellation race: unloadTile may have
+                // freed this entity while the GPU upload was in flight (Swift Task
+                // cancellation is cooperative — the task runs to completion even after
+                // cancel() is called).  If the entity no longer exists, skip all state
+                // updates but still release the active load slot so future uploads are
+                // not blocked.
+                guard scene.exists(entityId) else {
+                    releaseActiveLoad(entityId: entityId)
+                    if isNearBand { releaseNearBandLoad(entityId: entityId) }
+                    return
+                }
+
                 if success {
                     if let s = scene.get(component: StreamingComponent.self, for: entityId) {
                         s.state = .loaded
@@ -587,6 +993,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                         }
                     }
                     markLoadedStreamingEntity(entityId)
+                    // 4.1: Update the parent tile's visual readiness counter.
+                    incrementParentTileOCCCount(for: entityId)
                     SystemIntegrationMonitor.shared.recordStreamingLoad()
                 } else {
                     // Load failed - reset to unloaded so it can retry
@@ -603,6 +1011,271 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
 
         streaming.loadTask = task
+    }
+
+    /// Trigger a full tile parse + upload for a manifest tile stub.
+    ///
+    /// Called by the tile streaming pass in update() when a TileComponent entity
+    /// enters its streaming radius.  Sets state to .parsing, spawns a Task that
+    /// calls setEntityMeshAsync on a dedicated child entity, then transitions to
+    /// .parsed (or .failed with retry backoff on error).
+    ///
+    /// Why a child entity?  setEntityMeshAsync loads the RenderComponent directly
+    /// onto the entity it receives.  For single-mesh tiles that would be the tile
+    /// stub itself, leaving unloadTile's collectDescendants with nothing to destroy
+    /// (0 children → GPU mesh stays visible).  Creating a child entity before the
+    /// load guarantees collectDescendants always finds and destroys the geometry,
+    /// regardless of how many meshes the tile contains.
+    private func loadTile(entityId: EntityID) {
+        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+              tileComp.state == .unloaded
+        else { return }
+        guard reserveActiveTileLoad(entityId: entityId, fileSizeBytes: tileComp.fileSizeBytes) else { return }
+
+        tileComp.state = .parsing
+        markLoadingTileEntity(entityId)
+
+        // LoadingSystem.getResourceURL handles absolute paths (prefix "/").
+        // Splitting into stem + extension matches how the resource search handles
+        // all other asset loads, including cross-bundle and external-basePath scenarios.
+        let tileURL = tileComp.tileURL
+        let tileId = tileComp.tileId
+        let filename = tileURL.deletingPathExtension().path
+        let ext = tileURL.pathExtension
+
+        Logger.log(message: "[TileStreaming] Dispatching load for tile '\(tileId)'")
+
+        // Create a dedicated mesh entity as a child of the tile stub before
+        // spawning the load Task.  setEntityMeshAsync will attach all geometry
+        // (RenderComponent, child mesh entities) to meshEntityId, not to the
+        // stub.  unloadTile's collectDescendants then finds meshEntityId and
+        // destroys it — freeing all GPU buffers — without touching the stub.
+        var meshEntityId: EntityID = .invalid
+        withWorldMutationGate {
+            let id = createEntity()
+            registerTransformComponent(entityId: id)
+            registerSceneGraphComponent(entityId: id)
+            setParent(childId: id, parentId: entityId)
+            meshEntityId = id
+        }
+
+        let capturedMeshEntityId = meshEntityId
+        // Register lookup so OCC upload completions can update this tile's visual state.
+        withStateLock { meshEntityToTileEntity[capturedMeshEntityId] = entityId }
+
+        let task = Task { [weak self] in
+            // If self was deallocated before the task body executes (e.g. game
+            // shutdown), the completion will never fire and the slot will remain
+            // reserved — acceptable since the system is being torn down anyway.
+            guard let self else { return }
+            // .auto policy: the admission gate and memory budget system decide whether
+            // to use fullLoad or outOfCore based on the tile's file size and available
+            // RAM.  For the expected 15–20 MB tile range this resolves to fullLoad
+            // (parse + immediate GPU upload), treating the tile as an atomic unit.
+            setEntityMeshAsync(
+                entityId: capturedMeshEntityId,
+                filename: filename,
+                withExtension: ext,
+                streamingPolicy: .auto
+            ) { [weak self] success in
+                guard let self else { return }
+                // Slot release is unconditional — deferred so it runs on all paths
+                // (success, failure, early return from the cancelled-state guard).
+                defer { self.releaseActiveTileLoad(entityId: entityId) }
+                withWorldMutationGate {
+                    guard let tc = scene.get(component: TileComponent.self, for: entityId) else { return }
+
+                    // Guard against the zombie-loaded-state bug: unloadTile may have
+                    // run and set state to .unloading while setEntityMeshAsync was in
+                    // flight.  If we are no longer .parsing, the tile was cancelled.
+                    // setEntityMeshAsync has now fully exited, so all background-thread
+                    // ECS mutations for this tile are complete.  The completion fires on
+                    // the main thread, so cleanup can run directly here.
+                    guard tc.state == .parsing else {
+                        if scene.exists(capturedMeshEntityId) {
+                            let descendants = collectTileDescendants(capturedMeshEntityId)
+                            for d in descendants { destroyEntity(entityId: d) }
+                            destroyEntity(entityId: capturedMeshEntityId)
+                            finalizePendingDestroys()
+                        }
+                        withStateLock { _ = meshEntityToTileEntity.removeValue(forKey: capturedMeshEntityId) }
+                        ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId: entityId)
+                        if let tc2 = scene.get(component: TileComponent.self, for: entityId) {
+                            tc2.state = .unloaded
+                        }
+                        unmarkLoadedTileEntity(entityId)
+                        Logger.log(message: "[TileStreaming] Tile '\(tileId)' cancelled load cleaned up.")
+                        return
+                    }
+
+                    self.unmarkLoadingTileEntity(entityId)
+                    tc.loadTask = nil
+
+                    if success {
+                        // Count OCC stubs to seed visual state tracking (4.1).
+                        // Eager tiles have 0 stubs and are immediately .complete.
+                        let occCount = self.countOCCDescendants(capturedMeshEntityId)
+                        tc.totalOCCStubs = occCount
+                        tc.uploadedOCCStubs = 0
+                        tc.failureCount = 0   // clear retry counter on successful parse
+                        tc.state = .parsed
+                        self.markLoadedTileEntity(entityId)
+                        Logger.log(message: "[TileStreaming] Tile '\(tileId)' parsed (\(occCount) OCC stubs pending GPU upload).")
+                    } else {
+                        // Destroy the pre-created child entity on failure so it
+                        // doesn't leak as an empty, invisible stub.
+                        if scene.exists(capturedMeshEntityId) {
+                            destroyEntity(entityId: capturedMeshEntityId)
+                            finalizePendingDestroys()
+                        }
+                        withStateLock { _ = meshEntityToTileEntity.removeValue(forKey: capturedMeshEntityId) }
+                        // 4.2: Record failure for exponential-backoff retry.
+                        tc.failureCount += 1
+                        tc.lastFailureTime = CFAbsoluteTimeGetCurrent()
+                        tc.state = .failed
+                        Logger.logError(message: "[TileStreaming] Tile '\(tileId)' failed to parse (attempt \(tc.failureCount)) — retry in \(String(format: "%.0f", tc.retryDelaySeconds)) s.")
+                    }
+                }
+            }
+        }
+
+        // Store the task so teardown can cancel an in-flight load.
+        // This runs on the main thread in the same update() tick as the Task
+        // creation above, so there is no race with unloadTile (which can only
+        // be called in a future tick).
+        withWorldMutationGate {
+            scene.get(component: TileComponent.self, for: entityId)?.loadTask = task
+        }
+    }
+
+    /// Recursively count OCC stub descendants (entities with StreamingComponent).
+    /// Used to seed TileComponent.totalOCCStubs after a tile parse completes.
+    private func countOCCDescendants(_ parentId: EntityID) -> Int {
+        var count = 0
+        for childId in getEntityChildren(parentId: parentId) {
+            if scene.get(component: StreamingComponent.self, for: childId) != nil {
+                count += 1
+            }
+            count += countOCCDescendants(childId)
+        }
+        return count
+    }
+
+    /// Increment the uploaded OCC stub counter on the parent tile of `entityId`.
+    /// Called each time an OCC streaming upload completes successfully so the tile's
+    /// visual state (4.1) advances toward .complete.
+    ///
+    /// Hierarchy: OCC stub → capturedMeshEntityId → tile stub (TileComponent).
+    /// Uses the meshEntityToTileEntity lookup for O(1) tile resolution.
+    private func incrementParentTileOCCCount(for entityId: EntityID) {
+        // Climb one level to find capturedMeshEntityId (the direct mesh parent).
+        guard let sg = scene.get(component: ScenegraphComponent.self, for: entityId) else { return }
+        let meshParentId = sg.parent
+        guard meshParentId != .invalid else { return }
+
+        // Resolve tile entity via the lookup table registered at parse time.
+        let tileEntityId: EntityID? = withStateLock { meshEntityToTileEntity[meshParentId] }
+        guard let tileId = tileEntityId,
+              let tileComp = scene.get(component: TileComponent.self, for: tileId)
+        else { return }
+
+        tileComp.uploadedOCCStubs = min(tileComp.uploadedOCCStubs + 1, tileComp.totalOCCStubs)
+    }
+
+    /// Recursively collect all descendants of `parentId`, cancelling any in-flight
+    /// streaming tasks along the way.  Must be called from the main thread while
+    /// holding the world-mutation gate.
+    private func collectTileDescendants(_ parentId: EntityID) -> [EntityID] {
+        var result: [EntityID] = []
+        for childId in getEntityChildren(parentId: parentId) {
+            if let streaming = scene.get(component: StreamingComponent.self, for: childId) {
+                streaming.loadTask?.cancel()
+                streaming.loadTask = nil
+                unmarkLoadedStreamingEntity(childId)
+            }
+            result.append(childId)
+            result.append(contentsOf: collectTileDescendants(childId))
+        }
+        return result
+    }
+
+    /// Tear down a parsed tile: cancel any in-flight parse, destroy all child entities,
+    /// release CPU/GPU resources, and reset the TileComponent stub to .unloaded so the
+    /// tile can be re-streamed on the next approach.
+    ///
+    /// Called by the tile unload pass in update() when a parsed tile moves beyond its
+    /// unloadRadius.  All world-mutation work runs inside withWorldMutationGate so it
+    /// interleaves safely with other ECS writes.
+    private func unloadTile(entityId: EntityID) {
+        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+              tileComp.state == .parsed || tileComp.state == .parsing
+        else { return }
+
+        let tileId = tileComp.tileId
+        let wasParsing = tileComp.state == .parsing
+
+        withWorldMutationGate {
+            // Mark as unloading to prevent the load pass from re-dispatching this tick.
+            tileComp.state = .unloading
+
+            // Cancel any in-flight parse task and clear tracking state.
+            // The completion callback guards tc.state == .parsing and will find .unloading
+            // instead — so it discards the result.  We must NOT release the active-tile
+            // slot here to avoid a double-release (the completion's defer does it).
+            tileComp.loadTask?.cancel()
+            tileComp.loadTask = nil
+
+            if wasParsing {
+                // Remove from the .parsing tracking set; the .parsed set was never touched.
+                unmarkLoadingTileEntity(entityId)
+
+                // The load Task is still running on the background thread.
+                // setEntityMeshAsync may be actively creating or accessing child entities
+                // right now — destroying them here would be an unsynchronised concurrent
+                // write into the ECS.  Bail out and let loadTile's completion callback
+                // dispatch the cleanup to the main thread once the Task has fully exited.
+                return
+            }
+
+            // ── Tile was fully parsed: safe to destroy descendants immediately ──────
+
+            // Remove meshEntityToTileEntity entries for all direct children of the tile
+            // stub (i.e. capturedMeshEntityId values registered at parse time).  Must
+            // happen before destroyEntity so the entity IDs are still valid for lookup.
+            let directChildren = getEntityChildren(parentId: entityId)
+            withStateLock {
+                for childId in directChildren {
+                    _ = meshEntityToTileEntity.removeValue(forKey: childId)
+                }
+            }
+
+            let descendants = collectTileDescendants(entityId)
+
+            // destroyEntity + finalizePendingDestroys handles GPU buffer release,
+            // OctreeSystem removal, MeshResourceManager deref, and MemoryBudgetManager
+            // unregister via ComponentRegistry.cleanupAll.
+            for descendantId in descendants {
+                destroyEntity(entityId: descendantId)
+            }
+            if !descendants.isEmpty {
+                finalizePendingDestroys()
+            }
+
+            // Release CPU-heap MDLAsset / CPUMeshEntry for this tile root if it was
+            // loaded out-of-core (large tiles above the admission threshold).
+            ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId: entityId)
+
+            // Reset visual state counters for the next load cycle.
+            tileComp.totalOCCStubs = 0
+            tileComp.uploadedOCCStubs = 0
+            tileComp.pendingUnloadSince = 0
+
+            // Reset stub so the next approach triggers a fresh loadTile() call.
+            tileComp.state = .unloaded
+            unmarkLoadedTileEntity(entityId)
+
+            Logger.log(message: "[TileStreaming] Tile '\(tileId)' unloaded (\(descendants.count) child entities destroyed).")
+        }
     }
 
     /// Reload all LOD levels for an LOD entity and set display to correct LOD for current distance
@@ -778,6 +1451,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
 
         withWorldMutationGate {
+            // Guard against the cooperative-cancellation race: unloadTile may have freed
+            // this entity while the CPU→Metal copy was in flight.  If the entity no longer
+            // exists, skip registration — the outer Task's scene.exists guard will clean up.
+            guard scene.exists(entityId) else { return }
             registerRenderComponent(
                 entityId: entityId,
                 meshes: namedMeshes,
@@ -1115,6 +1792,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         MeshResourceManager.shared.retain(url: url, meshName: meshName, for: entityId)
 
         withWorldMutationGate {
+            // Guard against the cooperative-cancellation race: entity may have been
+            // destroyed by unloadTile while the disk/cache load was in flight.
+            guard scene.exists(entityId) else { return }
             if let render = scene.get(component: RenderComponent.self, for: entityId) {
                 // Create copies of meshes with fresh uniform buffers for this entity
                 // Without this, multiple entities sharing cached meshes would overwrite
@@ -1456,6 +2136,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
     }
 
+    /// Remove a tile stub entity from all tile-level tracking sets.
+    /// Called by `removeTileComponent` when a tile entity is destroyed so that
+    /// stale entity IDs do not linger in the streaming system's tracking state
+    /// (loadedTileEntities, loadingTileEntities, activeTileLoads, meshEntityToTileEntity).
+    public func unregisterTileEntity(_ entityId: EntityID) {
+        withStateLock {
+            _ = loadedTileEntities.remove(entityId)
+            _ = loadingTileEntities.remove(entityId)
+            _ = activeTileLoads.removeValue(forKey: entityId)
+            _ = meshEntityToTileEntity.removeValue(forKey: entityId)
+        }
+    }
+
     /// Reset internal state (useful for tests and scene changes)
     public func reset() {
         withWorldMutationGate {
@@ -1473,10 +2166,29 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 }
             }
 
+            // Cancel any in-flight tile parse tasks so completions that arrive
+            // after a scene reload do not attempt to write into the new scene's ECS.
+            let tileComponentId = getComponentId(for: TileComponent.self)
+            let tileEntities = queryEntitiesWithComponentIds([tileComponentId], in: scene)
+            for entityId in tileEntities {
+                if let tc = scene.get(component: TileComponent.self, for: entityId) {
+                    tc.loadTask?.cancel()
+                    tc.loadTask = nil
+                    if tc.state == .parsing { tc.state = .unloaded }
+                    tc.pendingUnloadSince = 0
+                }
+            }
+
             SystemEventBus.shared.clearPendingEvents()
             withStateLock {
                 activeLoads.removeAll()
                 loadedStreamingEntities.removeAll()
+                // Clear tile-level tracking sets so stale IDs from the previous scene
+                // do not pollute the next scene's streaming passes.
+                loadedTileEntities.removeAll()
+                loadingTileEntities.removeAll()
+                activeTileLoads.removeAll()
+                meshEntityToTileEntity.removeAll()
             }
             timeSinceLastUpdate = 0
             currentFrame = 0
@@ -1485,6 +2197,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             diagnostics = .init()
             cumulativeAsyncLoadMs = 0
             completedAsyncLoads = 0
+            lastCameraPosition = nil
+            cameraVelocity = .zero
         }
     }
 

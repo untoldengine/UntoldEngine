@@ -378,6 +378,122 @@ public class StaticBatchComponent: Component {
     public required init() {}
 }
 
+// MARK: Tile Streaming
+
+/// Asset-level lifecycle state of a manifest tile stub.
+/// Describes the parse/setup progress of the tile's geometry data.
+///   unloaded → parsing → parsed → unloading → unloaded
+///   Any state → failed (on error) → unloaded (after retry backoff)
+public enum TileAssetState {
+    case unloaded   // stub registered, tile file not parsed yet
+    case parsing    // setEntityMeshAsync in progress for this tile
+    case parsed     // tile parsed; child mesh stubs registered and streaming
+    case failed     // last parse/upload attempt failed — retry after backoff
+    case unloading  // tile being torn down; child entities being destroyed
+}
+
+/// Visual residency state of a tile's GPU geometry.
+/// Derived from the ratio of OCC sub-mesh stubs that have completed GPU upload.
+/// Eager tiles (no OCC stubs) jump directly to .complete when parsed.
+public enum TileVisualState {
+    case empty      // no GPU geometry resident
+    case partial    // some OCC stubs uploaded (< 50 %)
+    case usable     // majority of OCC geometry uploaded (≥ 50 %)
+    case complete   // all OCC stubs fully GPU-resident
+}
+
+/// Attached to every tile stub entity created by loadTiledScene().
+/// Carries the metadata the streaming bootstrap needs to trigger a full
+/// tile parse (setEntityMeshAsync) when the camera enters streaming range,
+/// and to tear down the tile when the camera leaves.
+public class TileComponent: Component {
+    /// Resolved URL to the tile's USDC/USDZ file.
+    public var tileURL: URL = URL(fileURLWithPath: "")
+
+    /// File size in bytes (from manifest). Used by the pre-parse memory budget gate.
+    public var fileSizeBytes: Int = 0
+
+    /// Distance at which the tile begins loading.
+    public var streamingRadius: Float = 80.0
+
+    /// Distance beyond which the tile is torn down.
+    public var unloadRadius: Float = 120.0
+
+    /// Load priority (higher = loads first when multiple tiles are in range).
+    public var priority: Int = 10
+
+    /// Human-readable tile identifier from the manifest (e.g. "tile_3_2").
+    public var tileId: String = ""
+
+    /// Asset-level lifecycle state driven by the streaming bootstrap.
+    public var state: TileAssetState = .unloaded
+
+    // MARK: - Streaming Radii
+
+    /// Distance at which this tile begins loading in the background (prefetch zone).
+    /// Set to 0 to auto-compute as the midpoint between `streamingRadius` and
+    /// `unloadRadius`, guaranteeing the tile is fully parsed before the camera
+    /// physically enters the visual display zone (`streamingRadius`).
+    /// Set explicitly (> 0) to override; must be ≤ `unloadRadius`.
+    public var prefetchRadius: Float = 0
+
+    /// Effective prefetch radius, resolving 0 (auto) to the midpoint formula.
+    public var effectivePrefetchRadius: Float {
+        if prefetchRadius > 0 { return prefetchRadius }
+        return streamingRadius + (unloadRadius - streamingRadius) * 0.5
+    }
+
+    // MARK: - Unload Grace Period
+
+    /// CFAbsoluteTime at which this tile first exceeded its `unloadRadius`.
+    /// Reset to 0 when the camera returns inside `unloadRadius` or the tile unloads.
+    /// The streaming system waits `GeometryStreamingSystem.unloadGracePeriod` seconds
+    /// from this timestamp before actually tearing the tile down, preventing rapid
+    /// load/unload oscillation at tile boundaries.
+    /// In-flight (`.parsing`) tiles are never grace-delayed — they carry no visible
+    /// geometry and are cancelled immediately when out of range.
+    public var pendingUnloadSince: CFAbsoluteTime = 0
+
+    // MARK: - Visual Readiness (OCC sub-mesh tracking)
+
+    /// Total number of OCC (out-of-core) streaming stubs created during tile parse.
+    /// 0 for eager tiles — those are visually complete as soon as the parse finishes.
+    public var totalOCCStubs: Int = 0
+
+    /// Number of OCC stubs that have completed GPU upload and are now renderable.
+    public var uploadedOCCStubs: Int = 0
+
+    /// Computed visual residency state based on OCC upload progress.
+    public var visualState: TileVisualState {
+        guard state == .parsed else { return .empty }
+        if totalOCCStubs == 0 { return .complete }
+        switch uploadedOCCStubs {
+        case 0: return .empty
+        case let n where n >= totalOCCStubs: return .complete
+        case let n where Float(n) / Float(totalOCCStubs) >= 0.5: return .usable
+        default: return .partial
+        }
+    }
+
+    // MARK: - Failure / Retry
+
+    /// Number of consecutive parse failures (reset to 0 on successful load).
+    public var failureCount: Int = 0
+
+    /// CFAbsoluteTime of the most recent failure. Used to compute retry eligibility.
+    public var lastFailureTime: Double = 0
+
+    /// Exponential backoff delay before the next retry attempt (5 s, 10 s, 20 s … max 60 s).
+    public var retryDelaySeconds: Double {
+        min(pow(2.0, Double(max(failureCount - 1, 0))) * 5.0, 60.0)
+    }
+
+    /// Task handle for the in-flight setEntityMeshAsync call.
+    var loadTask: Task<Void, Never>?
+
+    public required init() {}
+}
+
 // MARK: Geometry Streaming
 
 /// State of an entity's streamed mesh

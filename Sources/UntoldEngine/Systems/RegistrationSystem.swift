@@ -183,6 +183,10 @@ private func registerComponentCleanupHandlers() {
         removeEntityStreaming(entityId: entityId)
     }
 
+    ComponentRegistry.register(componentType: TileComponent.self, handlerId: "tile", priority: 30) { entityId in
+        removeTileComponent(entityId: entityId)
+    }
+
     ComponentRegistry.register(componentType: GizmoComponent.self, handlerId: "gizmo", priority: 30) { entityId in
         removeEntityGizmo(entityId: entityId)
     }
@@ -264,8 +268,6 @@ public func destroyAllEntities(completion: (() -> Void)? = nil) {
 func finalizePendingDestroys() {
     enforceRegistrationMainActor()
     ensureComponentCleanupHandlersRegistered()
-
-    visibleEntityIds.removeAll()
 
     // Process pending entities iteratively so children marked during cleanup
     // are also cleaned in the same finalize pass.
@@ -1711,6 +1713,7 @@ public func loadScene(
     // Capture flags before closures to avoid naming conflicts with same-named
     // module-level functions (enableBatching, etc.) inside completion blocks.
     let shouldBatch = batchingEnabled
+    let shouldStream = streamingEnabled
     let shouldImportCameras = importCameras
     let shouldImportLights = importLights
 
@@ -1726,6 +1729,15 @@ public func loadScene(
     }
     finalizePendingDestroys()
     hasPendingDestroys = false
+    // Scene reload only: reset CPU-visible list to avoid carrying stale IDs from
+    // the previous scene while new culling results are warming up.
+    visibleEntityIds.removeAll()
+    // Scene reload only: clear all triple-buffer slots so the renderer does not
+    // read stale entity IDs from the previous scene on the next 1–3 frames.
+    // This must NOT be in finalizePendingDestroys() itself — that function is also
+    // called during normal streaming teardown (unloadTile, tile failure cleanup)
+    // where wiping the visible buffer causes the whole scene to blank for 1–3 frames.
+    tripleVisibleEntities.clearAll()
 
     // Run camera/light extraction synchronously BEFORE mesh loading.
     // The bare MDLAsset parse (no geometry buffers) is cheap even for large
@@ -1769,13 +1781,303 @@ public func loadScene(
             return
         }
 
+        // Apply real streaming radii so GeometryStreamingSystem uses distance-based
+        // load/unload instead of the Float.greatestFiniteMagnitude placeholder set
+        // during stub registration.  Without this, every stub is always "in range"
+        // and the streaming system burst-uploads the entire scene on the first frame,
+        // causing GPU memory pressure spikes and visible model shaking.
+        if shouldStream {
+            enableStreaming(entityId: rootEntity, streamingRadius: 100, unloadRadius: 150, priority: 10)
+        }
+
         if shouldBatch {
+            // Tag the whole hierarchy as static-batchable.  For the small-file path
+            // all entities already have RenderComponent and are tagged immediately.
+            // For the OOC path the stubs have only StreamingComponent; they are tagged
+            // now so that BatchingSystem.handleResidencyChange can queue each stub for
+            // incremental rebuild the moment its GPU upload completes.
+            setEntityStaticBatchComponent(entityId: rootEntity)
             enableBatching(true)
             generateBatches()
         }
 
         completion?(true)
     }
+}
+
+// MARK: - Tiled Scene Manifest structs (private)
+
+private struct TileManifest: Decodable {
+    let version: Int
+    let streamingDefaults: StreamingDefaults
+    let tiles: [TileEntry]
+    /// Optional shared-bucket entry written by the Blender tile-export script.
+    /// Geometry that spans too many tiles is packed into a single USD file with
+    /// a large streaming radius so it is always resident.  The engine registers
+    /// it as a TileComponent stub with its own streaming/unload radii.
+    let sharedBucket: TileEntry?
+
+    enum CodingKeys: String, CodingKey {
+        case version
+        case streamingDefaults = "streaming_defaults"
+        case tiles
+        case sharedBucket = "shared_bucket"
+    }
+}
+
+private struct StreamingDefaults: Decodable {
+    let streamingRadius: Float
+    let unloadRadius: Float
+    let priority: Int
+    /// Optional default prefetch radius.  When absent, each tile auto-computes its
+    /// prefetch radius as the midpoint between streamingRadius and unloadRadius.
+    let prefetchRadius: Float?
+
+    enum CodingKeys: String, CodingKey {
+        case streamingRadius = "streaming_radius"
+        case unloadRadius = "unload_radius"
+        case priority
+        case prefetchRadius = "prefetch_radius"
+    }
+}
+
+private struct TileEntry: Decodable {
+    let tileId: String
+    let pathRelativeToManifest: String
+    let fileSizeBytes: Int
+    let bounds: TileBounds
+    let center: [Float]
+    // Per-tile overrides are optional; engine falls back to streaming_defaults.
+    let streamingRadius: Float?
+    let unloadRadius: Float?
+    let priority: Int?
+    /// Per-tile prefetch radius override.  When absent, uses the manifest default
+    /// (prefetch_radius in streaming_defaults), or auto-computes from stream/unload midpoint.
+    let prefetchRadius: Float?
+
+    enum CodingKeys: String, CodingKey {
+        case tileId = "tile_id"
+        case pathRelativeToManifest = "path_relative_to_manifest"
+        case fileSizeBytes = "file_size_bytes"
+        case bounds
+        case center
+        case streamingRadius = "streaming_radius"
+        case unloadRadius = "unload_radius"
+        case priority
+        case prefetchRadius = "prefetch_radius"
+    }
+}
+
+private struct TileBounds: Decodable {
+    let min: [Float]
+    let max: [Float]
+}
+
+// MARK: - loadTiledScene
+
+/// Load a large scene described by a tile manifest instead of a single USDZ.
+///
+/// The manifest (JSON) lists spatial tiles — each pointing to a small USDC/USDZ file
+/// with pre-computed world-space bounds.  This function reads the manifest, clears the
+/// current scene, creates a default camera and light, then registers one lightweight
+/// stub entity per tile.  No geometry is parsed or uploaded at this stage.
+///
+/// The streaming bootstrap (Issue 3 / GeometryStreamingSystem) will call
+/// setEntityMeshAsync on each tile stub when the camera enters its streaming radius,
+/// parsing and uploading that tile's geometry on demand.
+///
+/// - Parameters:
+///   - manifest: Filename of the manifest (without extension) searched via LoadingSystem.
+///   - withExtension: File extension of the manifest (default "json").
+///   - completion: Called on the main thread with `true` when stubs are registered,
+///                 `false` if the manifest cannot be found or decoded.
+public func loadTiledScene(
+    manifest: String,
+    withExtension ext: String = "json",
+    completion: ((Bool) -> Void)? = nil
+) {
+    // ── 1. Locate manifest ──────────────────────────────────────────────────
+    guard let manifestURL = LoadingSystem.shared.resourceURL(
+        forResource: manifest,
+        withExtension: ext,
+        subResource: nil
+    ) else {
+        Logger.logError(message: "[loadTiledScene] Manifest '\(manifest).\(ext)' not found in any search path.")
+        completion?(false)
+        return
+    }
+
+    // ── 2. Decode manifest (no geometry — this is fast) ────────────────────
+    guard let data = try? Data(contentsOf: manifestURL),
+          let tileManifest = try? JSONDecoder().decode(TileManifest.self, from: data)
+    else {
+        Logger.logError(message: "[loadTiledScene] Failed to decode manifest '\(manifest).\(ext)'. Check JSON format.")
+        completion?(false)
+        return
+    }
+
+    Logger.log(message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
+
+    // ── 3. Clear previous scene ────────────────────────────────────────────
+    for entity in scene.getAllEntities() {
+        destroyEntity(entityId: entity)
+    }
+    finalizePendingDestroys()
+    hasPendingDestroys = false
+    // Scene reload only: reset CPU-visible list to avoid carrying stale IDs from
+    // the previous scene while new culling results are warming up.
+    visibleEntityIds.removeAll()
+    // Scene reload only: wipe all triple-buffer slots so the renderer does not
+    // read stale entity IDs from the previous scene on the next 1–3 frames.
+    tripleVisibleEntities.clearAll()
+    // Reset streaming system state so tile/mesh tracking sets from the previous
+    // scene do not persist into this scene's streaming passes.  Camera velocity
+    // is also cleared so stale look-ahead does not immediately prefetch wrong tiles.
+    GeometryStreamingSystem.shared.reset()
+
+    // ── 4. Default camera + light ──────────────────────────────────────────
+    let camera = createEntity()
+    setEntityName(entityId: camera, name: "Main Camera")
+    createGameCamera(entityId: camera)
+    CameraSystem.shared.activeCamera = camera
+
+    let light = createEntity()
+    setEntityName(entityId: light, name: "Directional Light")
+    createDirLight(entityId: light)
+
+    // ── 5. Register tile stub entities ────────────────────────────────────
+    // All stubs are registered inside a single withWorldMutationGate to avoid
+    // repeated acquire/release overhead on large manifests.
+    let manifestDir = manifestURL.deletingLastPathComponent()
+    let defaults = tileManifest.streamingDefaults
+    var registeredCount = 0
+    var skippedCount = 0
+
+    withWorldMutationGate {
+        for tile in tileManifest.tiles {
+            // Build the tile URL from the path relative to the manifest.
+            // This keeps manifests portable — absolute paths in the JSON are ignored.
+            let tileURL = manifestDir.appendingPathComponent(tile.pathRelativeToManifest)
+
+            guard FileManager.default.fileExists(atPath: tileURL.path) else {
+                Logger.logWarning(message: "[loadTiledScene] Tile file missing: '\(tile.pathRelativeToManifest)' — skipping '\(tile.tileId)'.")
+                skippedCount += 1
+                continue
+            }
+
+            guard tile.bounds.min.count >= 3, tile.bounds.max.count >= 3,
+                  tile.center.count >= 3
+            else {
+                Logger.logWarning(message: "[loadTiledScene] Tile '\(tile.tileId)' has malformed bounds or center — skipping.")
+                skippedCount += 1
+                continue
+            }
+
+            let entityId = createEntity()
+            setEntityName(entityId: entityId, name: tile.tileId)
+
+            // Transform + bounds.
+            // The entity's world transform is identity (tile geometry is already in
+            // world space in the exported USDC).  The local bounding box is set to
+            // the tile's world-space AABB — valid because identity world transform
+            // means local space == world space.
+            //
+            // OctreeSystem.calculateWorldBounds multiplies localBounds by the world
+            // matrix (identity here) → correct world-space AABB in the octree.
+            //
+            // GeometryStreamingSystem.calculateDistance transforms the camera into
+            // entity-local space using inv(identity) = identity, then measures to
+            // the local AABB → correct world-space distance to the tile surface.
+            registerTransformComponent(entityId: entityId)
+            if let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
+                local.boundingBox = (
+                    min: simd_float3(tile.bounds.min[0], tile.bounds.min[1], tile.bounds.min[2]),
+                    max: simd_float3(tile.bounds.max[0], tile.bounds.max[1], tile.bounds.max[2])
+                )
+            }
+
+            registerSceneGraphComponent(entityId: entityId)
+
+            // TileComponent carries everything the streaming bootstrap needs:
+            // the tile file URL, the file size for the pre-parse admission gate,
+            // and the streaming radii that control when the tile loads/unloads.
+            registerComponent(entityId: entityId, componentType: TileComponent.self)
+            if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
+                tileComp.tileURL = tileURL
+                tileComp.fileSizeBytes = tile.fileSizeBytes
+                tileComp.streamingRadius = tile.streamingRadius ?? defaults.streamingRadius
+                tileComp.unloadRadius = tile.unloadRadius ?? defaults.unloadRadius
+                tileComp.priority = tile.priority ?? defaults.priority
+                // prefetchRadius = 0 means auto (midpoint of stream/unload gap).
+                // Resolved from: per-tile override → manifest default → auto (0).
+                tileComp.prefetchRadius = tile.prefetchRadius ?? defaults.prefetchRadius ?? 0
+                tileComp.tileId = tile.tileId
+                tileComp.state = .unloaded
+            }
+
+            // Register with the octree so the streaming system can find this tile
+            // via spatial queries.  The octree uses the world bounds computed above.
+            OctreeSystem.shared.registerEntity(entityId)
+            registeredCount += 1
+        }
+    }
+
+    // ── 6. Register shared-bucket stub (if present) ───────────────────────
+    // The shared bucket is a single USD file containing geometry that spans too
+    // many tiles to clip efficiently.  It is registered as a TileComponent stub
+    // with the large streaming/unload radii written by the export script so that
+    // GeometryStreamingSystem loads it as soon as the camera enters the scene.
+    var hasSharedBucket = false
+    if let shared = tileManifest.sharedBucket {
+        let sharedURL = manifestDir.appendingPathComponent(shared.pathRelativeToManifest)
+
+        if !FileManager.default.fileExists(atPath: sharedURL.path) {
+            Logger.logWarning(message: "[loadTiledScene] Shared bucket file missing: '\(shared.pathRelativeToManifest)' — skipping.")
+        } else if shared.bounds.min.count < 3 || shared.bounds.max.count < 3 || shared.center.count < 3 {
+            Logger.logWarning(message: "[loadTiledScene] Shared bucket has malformed bounds — skipping.")
+        } else {
+            withWorldMutationGate {
+                let entityId = createEntity()
+                setEntityName(entityId: entityId, name: shared.tileId)
+
+                registerTransformComponent(entityId: entityId)
+                if let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
+                    local.boundingBox = (
+                        min: simd_float3(shared.bounds.min[0], shared.bounds.min[1], shared.bounds.min[2]),
+                        max: simd_float3(shared.bounds.max[0], shared.bounds.max[1], shared.bounds.max[2])
+                    )
+                }
+
+                registerSceneGraphComponent(entityId: entityId)
+
+                registerComponent(entityId: entityId, componentType: TileComponent.self)
+                if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
+                    tileComp.tileURL = sharedURL
+                    tileComp.fileSizeBytes = shared.fileSizeBytes
+                    // Shared bucket always carries explicit radii from the export script.
+                    // Fall back to Float.greatestFiniteMagnitude so the asset is always
+                    // loaded if the script somehow omits them.
+                    tileComp.streamingRadius = shared.streamingRadius ?? Float.greatestFiniteMagnitude
+                    tileComp.unloadRadius = shared.unloadRadius ?? Float.greatestFiniteMagnitude
+                    tileComp.priority = shared.priority ?? defaults.priority
+                    // Shared bucket: prefetchRadius mirrors streamingRadius (no prefetch
+                    // gap needed — it loads immediately when the scene starts).
+                    tileComp.prefetchRadius = shared.prefetchRadius ?? defaults.prefetchRadius ?? 0
+                    tileComp.tileId = shared.tileId
+                    tileComp.state = .unloaded
+                }
+
+                OctreeSystem.shared.registerEntity(entityId)
+            }
+            hasSharedBucket = true
+            Logger.log(message: "[loadTiledScene] Shared bucket stub registered: '\(shared.tileId)'.")
+        }
+    }
+
+    let skipMsg = skippedCount > 0 ? " (\(skippedCount) skipped)" : ""
+    let bucketMsg = hasSharedBucket ? " + shared bucket" : ""
+    Logger.log(message: "[loadTiledScene] '\(manifest).\(ext)': \(registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).")
+    completion?(true)
 }
 
 /// Lightweight second MDLAsset pass that extracts cameras and lights only.
@@ -2534,8 +2836,13 @@ public func setEntityStaticBatchComponent(entityId: EntityID) {
 }
 
 private func setEntityStaticBatchComponentRecursive(entityId: EntityID) {
-    // Only process entities with RenderComponent (skip empty parent entities)
-    if let _ = scene.get(component: RenderComponent.self, for: entityId) {
+    // Apply to entities with RenderComponent (fully loaded) OR StreamingComponent
+    // (out-of-core stubs that have no RenderComponent yet).  The batching residency
+    // handler (handleResidencyChange) checks for StaticBatchComponent when a stub
+    // becomes GPU-resident, so it must be tagged before the RenderComponent arrives.
+    let hasRender = scene.get(component: RenderComponent.self, for: entityId) != nil
+    let hasStreaming = scene.get(component: StreamingComponent.self, for: entityId) != nil
+    if hasRender || hasStreaming {
         if !hasComponent(entityId: entityId, componentType: StaticBatchComponent.self) {
             registerComponent(entityId: entityId, componentType: StaticBatchComponent.self)
         } else {
@@ -2647,6 +2954,18 @@ func removeEntityStreaming(entityId: EntityID) {
 
     GeometryStreamingSystem.shared.unregisterEntity(entityId)
     MeshResourceManager.shared.release(entityId: entityId)
+}
+
+func removeTileComponent(entityId: EntityID) {
+    if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
+        // Cancel any in-flight parse task so it does not complete into a destroyed entity.
+        tileComp.loadTask?.cancel()
+        tileComp.loadTask = nil
+        scene.remove(component: TileComponent.self, from: entityId)
+    }
+    // Remove stale IDs from all tile tracking sets so the streaming system
+    // does not act on entity IDs that no longer exist in the scene.
+    GeometryStreamingSystem.shared.unregisterTileEntity(entityId)
 }
 
 func removeEntityGizmo(entityId: EntityID) {
