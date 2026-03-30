@@ -450,8 +450,9 @@ public class TileComponent: Component {
     /// The streaming system waits `GeometryStreamingSystem.unloadGracePeriod` seconds
     /// from this timestamp before actually tearing the tile down, preventing rapid
     /// load/unload oscillation at tile boundaries.
-    /// In-flight (`.parsing`) tiles are never grace-delayed — they carry no visible
-    /// geometry and are cancelled immediately when out of range.
+    /// Both `.parsed` and `.parsing` tiles honour the grace period: the window lets
+    /// an in-flight parse complete naturally rather than being cancelled and immediately
+    /// re-dispatched, preventing tight load-cancel cycles at the boundary.
     public var pendingUnloadSince: CFAbsoluteTime = 0
 
     // MARK: - Visual Readiness (OCC sub-mesh tracking)

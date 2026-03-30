@@ -578,11 +578,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let nearbySet = Set(nearbyEntities) // O(1) lookup
 
         // ── Tile unload pass ───────────────────────────────────────────────────
-        // Grace period: .parsed tiles (with visible GPU geometry) stay resident for
+        // Grace period: both .parsed and .parsing tiles stay resident for
         // unloadGracePeriod seconds after exceeding unloadRadius before being torn
-        // down.  This eliminates rapid load/unload oscillation at tile boundaries.
-        // .parsing tiles (no visible geometry yet) are cancelled immediately — keeping
-        // an invisible in-flight parse alive wastes CPU and delays other tiles.
+        // down.  .parsed tiles need the grace window to avoid visible pop-out at tile
+        // boundaries.  .parsing tiles also honour the grace period: letting an in-flight
+        // parse complete (1–2 s) before cancelling prevents tight load-cancel cycles when
+        // the camera oscillates near the unload boundary.  Immediate cancellation of
+        // .parsing tiles was a false economy — the cancelled Task still ran to completion
+        // and consumed its slot before the state reset, so the tile was immediately
+        // re-dispatched on the next tick, cycling indefinitely.
+        // All three passes use min(actual, predictive) distance, matching the load pass,
+        // so a tile the camera is approaching is not torn down mid-parse.
         var tileUnloadCandidates: [EntityID] = []
         let now = CFAbsoluteTimeGetCurrent()
 
@@ -593,16 +599,16 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                   tileComp.state == .parsed || tileComp.state == .parsing
             else { continue }
             let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+            let predictiveUnloadDist = calculateDistance(entityId: entityId, cameraPosition: predictivePosition)
+            let effectiveUnloadDist = min(distance, predictiveUnloadDist)
 
-            if distance <= tileComp.unloadRadius {
-                // Back in range — reset any pending grace timer so a future exit
-                // starts fresh rather than expiring against a stale timestamp.
+            if effectiveUnloadDist <= tileComp.unloadRadius {
+                // Back in range (actual or predictive) — reset grace timer so a future
+                // exit starts fresh rather than expiring against a stale timestamp.
                 if tileComp.pendingUnloadSince != 0 { tileComp.pendingUnloadSince = 0 }
-            } else if tileComp.state == .parsing {
-                // In-flight parse, not yet visible — cancel immediately.
-                tileUnloadCandidates.append(entityId)
             } else {
-                // .parsed tile with visible geometry — honour the grace period.
+                // Beyond unload radius for both actual and predictive positions.
+                // Both .parsing and .parsed honour the grace period (see comment above).
                 if tileComp.pendingUnloadSince == 0 {
                     tileComp.pendingUnloadSince = now
                 } else if now - tileComp.pendingUnloadSince >= Double(unloadGracePeriod) {
@@ -624,7 +630,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                   tileComp.state == .parsed
             else { continue }
             let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
-            if distance > tileComp.unloadRadius {
+            let predictiveUnloadDist2 = calculateDistance(entityId: entityId, cameraPosition: predictivePosition)
+            let effectiveUnloadDist2 = min(distance, predictiveUnloadDist2)
+            if effectiveUnloadDist2 > tileComp.unloadRadius {
                 if tileComp.pendingUnloadSince == 0 {
                     tileComp.pendingUnloadSince = now
                 } else if now - tileComp.pendingUnloadSince >= Double(unloadGracePeriod) {
@@ -638,7 +646,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // 3. Parsing tiles that fell entirely outside the octree query radius (e.g. fast
         //    movement or teleport while a parse was in flight).  Without this check they
         //    finish parsing, appear far away for one tick, then get unloaded — causing
-        //    ghost geometry flashes on camera jumps.  No grace period — not visible.
+        //    ghost geometry flashes on camera jumps.  These tiles are genuinely far away
+        //    (> maxQueryRadius = 500 m) so no grace period is applied — the camera cannot
+        //    oscillate at a 500 m boundary.  Predictive distance is still used so a fast-
+        //    approaching camera does not cancel a parse it is about to need.
         let loadingTileSnapshot = loadingTileEntitiesSnapshot()
         for entityId in loadingTileSnapshot {
             if nearbySet.contains(entityId) { continue } // already handled in pass 1
@@ -650,7 +661,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                   tileComp.state == .parsing
             else { continue }
             let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
-            if distance > tileComp.unloadRadius {
+            let predictiveUnloadDist3 = calculateDistance(entityId: entityId, cameraPosition: predictivePosition)
+            let effectiveUnloadDist3 = min(distance, predictiveUnloadDist3)
+            if effectiveUnloadDist3 > tileComp.unloadRadius {
                 tileUnloadCandidates.append(entityId)
             }
         }
@@ -1193,6 +1206,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 streaming.loadTask = nil
                 unmarkLoadedStreamingEntity(childId)
             }
+            // Remove first-detection timestamp so phantom entries do not accumulate after
+            // tile teardown.  Without this, stale keys from unloaded OCC stubs that never
+            // reached dispatch would linger in firstRangeTimestamps indefinitely.
+            firstRangeTimestamps.removeValue(forKey: childId)
             result.append(childId)
             result.append(contentsOf: collectTileDescendants(childId))
         }
@@ -1280,6 +1297,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     /// Reload all LOD levels for an LOD entity and set display to correct LOD for current distance
     private func reloadLODEntity(entityId: EntityID) async -> Bool {
+        // Guard against the cooperative-cancellation race: bail out early if the entity has
+        // been freed or its slot reused (version mismatch) so subsequent scene.get() calls
+        // do not generate spurious 1016 "entity missing" errors.
+        guard scene.exists(entityId) else { return false }
+
         let lodInfo: [(index: Int, url: URL, assetName: String, maxDistance: Float)] = {
             guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
                 return []
@@ -1393,6 +1415,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         entityId: EntityID,
         cpuEntry: ProgressiveAssetLoader.CPUMeshEntry
     ) async -> Bool {
+        // Guard against the cooperative-cancellation race: the parent tile may have been
+        // unloaded while this Task was in flight (Swift Task cancellation is cooperative —
+        // the task runs to completion even after cancel() is called).  If the entity slot
+        // has been freed or reused by a new entity (version mismatch), bail out early so
+        // subsequent scene.get() calls do not generate spurious 1016 "entity missing" errors.
+        guard scene.exists(entityId) else { return false }
+
         // Serialize texture loading per asset and ensure loadTextures() has been called.
         // MDLAsset is not thread-safe. The lock prevents two concurrent uploads from the
         // same asset racing on MDLTexture internal state.
@@ -1493,6 +1522,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// instead of re-reading from disk. After all levels are uploaded, the render component is set to
     /// the LOD level appropriate for the current camera distance — identical selection logic to `reloadLODEntity`.
     private func uploadActiveLODFromCPU(entityId: EntityID) async -> Bool {
+        // Guard against the cooperative-cancellation race: bail out early if the entity has
+        // been freed or its slot reused (version mismatch) so subsequent scene.get() calls
+        // do not generate spurious 1016 "entity missing" errors.
+        guard scene.exists(entityId) else { return false }
+
         // Determine root entity for texture lock serialization.
         let rootEntityId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?
             .assetRootEntityId ?? entityId
@@ -1743,6 +1777,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         withExtension ext: String,
         assetName: String?
     ) async -> Bool {
+        // Guard against the cooperative-cancellation race: bail out early if the entity has
+        // been freed or its slot reused (version mismatch) so subsequent scene.get() calls
+        // do not generate spurious 1016 "entity missing" errors.
+        guard scene.exists(entityId) else { return false }
+
         // Out-of-core fast path: entity has CPU-resident MDLMesh data from stub registration.
         // Upload from RAM — no disk I/O, no MeshResourceManager parse.
         if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) {
@@ -2199,6 +2238,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             completedAsyncLoads = 0
             lastCameraPosition = nil
             cameraVelocity = .zero
+            firstRangeTimestamps.removeAll()
         }
     }
 

@@ -82,13 +82,13 @@ No geometry is parsed or uploaded at this stage. The whole function completes in
 4. Eligible tiles are sorted by priority (descending) then distance (ascending).
 5. Up to `maxConcurrentTileLoads` (default 2) are dispatched via `loadTile()`, subject to the **memory budget gate**: the total parse memory in flight must stay under `tileParseMemoryBudgetMB` (200 MB), with a guarantee that at least one tile always loads even if it alone exceeds the budget.
 
-**Tile unload pass** — three sub-passes each tick:
+**Tile unload pass** — three sub-passes each tick. All passes use `min(actual, predictive)` distance, matching the load pass, so a tile the camera is approaching is not torn down mid-parse:
 
 1. **Nearby tiles** still in the octree result but beyond `unloadRadius`.
 2. **Loaded tiles** that drifted entirely outside `maxQueryRadius`.
 3. **Parsing tiles** that drifted outside `maxQueryRadius` (fast movement or teleport).
 
-`.parsing` tiles are cancelled immediately (no visible geometry to preserve). `.parsed` tiles go through the **grace period** (see [Unload Grace Period](#unload-grace-period)) before actual teardown. At most `maxTileUnloadsPerUpdate` (default 2) tiles are torn down per tick to spread GPU buffer releases across frames.
+Both `.parsing` and `.parsed` tiles go through the **grace period** (see [Unload Grace Period](#unload-grace-period)) before actual teardown (passes 1 and 2). Pass 3 tiles are genuinely beyond the 500 m query radius and are cancelled without a grace period — boundary oscillation cannot occur at that range. At most `maxTileUnloadsPerUpdate` (default 2) tiles are torn down per tick to spread GPU buffer releases across frames.
 
 ### 3. `loadTile(entityId:)`
 
@@ -154,7 +154,7 @@ When a `.parsed` tile (with visible GPU geometry) first exceeds `unloadRadius`, 
 
 If the camera re-enters `unloadRadius` before the grace period expires, `pendingUnloadSince` is reset to 0 and the tile stays loaded with no interruption. This eliminates rapid load/unload oscillation at tile boundaries (the most common cause of flickering at tile edges).
 
-`.parsing` tiles are **never** grace-delayed — they carry no visible geometry and are cancelled immediately when out of range.
+Both `.parsing` and `.parsed` tiles honour the grace period. `.parsing` tiles have no visible geometry, but the grace window lets an in-flight parse complete naturally rather than being cancelled and immediately re-dispatched. Immediate cancellation was a false economy: the cancelled Swift Task still ran to completion before the state could reset, so the tile was re-dispatched on the very next tick, creating a tight load-cancel loop.
 
 `pendingUnloadSince` is also reset in `unloadTile()` so the counter is clean for the next load/unload cycle.
 
