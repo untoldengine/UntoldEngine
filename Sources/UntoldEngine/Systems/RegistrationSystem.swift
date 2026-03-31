@@ -1879,6 +1879,11 @@ private struct TileEntry: Decodable {
     /// (prefetch_radius in streaming_defaults), or auto-computes from stream/unload midpoint.
     let prefetchRadius: Float?
 
+    /// Optional HLOD levels for this tile.  Only the first entry is used by the engine.
+    /// Each entry has a relative path to the HLOD USDC file and a switch distance (the
+    /// camera distance beyond which the coarse HLOD mesh is shown instead of full geometry).
+    let hlodLevels: [HLODLevel]?
+
     enum CodingKeys: String, CodingKey {
         case tileId = "tile_id"
         case pathRelativeToManifest = "path_relative_to_manifest"
@@ -1889,6 +1894,17 @@ private struct TileEntry: Decodable {
         case unloadRadius = "unload_radius"
         case priority
         case prefetchRadius = "prefetch_radius"
+        case hlodLevels = "hlod_levels"
+    }
+}
+
+private struct HLODLevel: Decodable {
+    let path: String
+    let switchDistance: Float
+
+    enum CodingKeys: String, CodingKey {
+        case path
+        case switchDistance = "switch_distance"
     }
 }
 
@@ -2061,6 +2077,15 @@ public func loadTiledScene(
                 tileComp.prefetchRadius = tile.prefetchRadius ?? defaults.prefetchRadius ?? 0
                 tileComp.tileId = tile.tileId
                 tileComp.state = .unloaded
+
+                // HLOD: use the first level if present and the file exists on disk.
+                if let hlodLevels = tile.hlodLevels, let first = hlodLevels.first {
+                    let hlodURL = manifestDir.appendingPathComponent(first.path)
+                    if FileManager.default.fileExists(atPath: hlodURL.path) {
+                        tileComp.hlodURL = hlodURL
+                        tileComp.hlodSwitchDistance = first.switchDistance
+                    }
+                }
             }
 
             // Register with the octree so the streaming system can find this tile

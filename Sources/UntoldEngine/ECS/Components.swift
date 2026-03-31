@@ -392,6 +392,14 @@ public enum TileAssetState {
     case unloading  // tile being torn down; child entities being destroyed
 }
 
+/// Lifecycle state of a tile's coarse HLOD mesh.
+public enum HLODAssetState {
+    case unloaded   // no HLOD geometry in flight
+    case loading    // setEntityMeshAsync in progress for the HLOD mesh
+    case loaded     // HLOD mesh is GPU-resident and rendering
+    case unloading  // HLOD being torn down
+}
+
 /// Visual residency state of a tile's GPU geometry.
 /// Derived from the ratio of OCC sub-mesh stubs that have completed GPU upload.
 /// Eager tiles (no OCC stubs) jump directly to .complete when parsed.
@@ -491,6 +499,25 @@ public class TileComponent: Component {
 
     /// Task handle for the in-flight setEntityMeshAsync call.
     var loadTask: Task<Void, Never>?
+
+    // MARK: - HLOD (coarse distant mesh)
+
+    /// Resolved URL to the tile's HLOD USDC file.  nil means no HLOD for this tile.
+    public var hlodURL: URL? = nil
+
+    /// Camera distance beyond which the HLOD mesh is shown instead of full geometry.
+    /// 0 means no HLOD configured.
+    public var hlodSwitchDistance: Float = 0
+
+    /// Entity ID of the child entity carrying the HLOD RenderComponent.
+    /// nil when HLOD is not loaded.
+    public var hlodEntityId: EntityID? = nil
+
+    /// Lifecycle state of the HLOD mesh.
+    public var hlodState: HLODAssetState = .unloaded
+
+    /// Task handle for the in-flight HLOD setEntityMeshAsync call.
+    var hlodLoadTask: Task<Void, Never>? = nil
 
     public required init() {}
 }
