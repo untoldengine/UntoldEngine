@@ -115,6 +115,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// can quickly update the parent tile's visual readiness counters (O(1) lookup).
     private var meshEntityToTileEntity: [EntityID: EntityID] = [:]
 
+    /// Tile stub entities that currently have an HLOD mesh loaded.
+    /// Used to find and unload HLOD meshes for tiles that drift outside the query radius.
+    private var loadedHLODEntities: Set<EntityID> = []
+
     // MARK: - Camera Velocity (4.5 predictive loading)
 
     /// Exponential smoothing factor for camera velocity (0 = no smoothing, 1 = frozen).
@@ -291,6 +295,18 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     private func loadingTileEntitiesSnapshot() -> [EntityID] {
         withStateLock { Array(loadingTileEntities) }
+    }
+
+    private func markLoadedHLODEntity(_ entityId: EntityID) {
+        withStateLock { _ = loadedHLODEntities.insert(entityId) }
+    }
+
+    private func unmarkLoadedHLODEntity(_ entityId: EntityID) {
+        withStateLock { _ = loadedHLODEntities.remove(entityId) }
+    }
+
+    private func loadedHLODEntitiesSnapshot() -> [EntityID] {
+        withStateLock { Array(loadedHLODEntities) }
     }
 
     // MARK: - Frustum Gate Helpers
@@ -573,6 +589,37 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
         }
 
+        // ── HLOD streaming pass ────────────────────────────────────────────────
+        // For tiles that have an HLOD mesh configured: load the coarse mesh when the
+        // camera is beyond hlodSwitchDistance and the tile is not yet loading/loaded.
+        // Unload the HLOD when the full tile becomes .parsed (smooth hand-off).
+        // During .parsing the HLOD stays visible so there is no blank frame while the
+        // full geometry is uploading.
+        for entityId in nearbyEntities {
+            guard scene.exists(entityId) else { continue }
+            guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  tileComp.hlodURL != nil,
+                  tileComp.hlodSwitchDistance > 0 else { continue }
+
+            let dist = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+
+            switch tileComp.state {
+            case .unloaded, .failed:
+                if dist > tileComp.hlodSwitchDistance {
+                    if tileComp.hlodState == .unloaded { loadHLOD(entityId: entityId) }
+                } else {
+                    // Camera crossed inside the switch distance — HLOD no longer needed.
+                    if tileComp.hlodState != .unloaded { unloadHLOD(entityId: entityId) }
+                }
+            case .parsed:
+                // Full geometry is resident — HLOD hand-off complete.
+                if tileComp.hlodState != .unloaded { unloadHLOD(entityId: entityId) }
+            case .parsing, .unloading:
+                // Keep HLOD visible during full-tile load for a seamless transition.
+                break
+            }
+        }
+
         // Also check loaded entities that might now be out of range
         // (they may not be in the octree query if they're far away)
         let nearbySet = Set(nearbyEntities) // O(1) lookup
@@ -673,6 +720,20 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // preventing a one-frame blank when many tiles leave range simultaneously.
         let cappedUnloads = tileUnloadCandidates.prefix(maxTileUnloadsPerUpdate)
         for entityId in cappedUnloads { unloadTile(entityId: entityId) }
+
+        // ── HLOD out-of-range cleanup ──────────────────────────────────────────
+        // Tiles with a loaded HLOD mesh that fell outside the octree query radius
+        // (e.g. fast movement or teleport) must be cleaned up here; they won't
+        // appear in nearbyEntities so the HLOD pass above cannot reach them.
+        let hlodSnapshot = loadedHLODEntitiesSnapshot()
+        for entityId in hlodSnapshot {
+            if nearbySet.contains(entityId) { continue } // already handled above
+            guard scene.exists(entityId) else {
+                unmarkLoadedHLODEntity(entityId)
+                continue
+            }
+            unloadHLOD(entityId: entityId)
+        }
 
         var staleEntityIds: [EntityID] = []
 
@@ -1036,6 +1097,106 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// calls setEntityMeshAsync on a dedicated child entity, then transitions to
     /// .parsed (or .failed with retry backoff on error).
     ///
+    // MARK: - HLOD Load / Unload
+
+    /// Loads the coarse HLOD mesh for a tile stub as a child entity.
+    /// Called when the camera is beyond `hlodSwitchDistance` and the tile is unloaded.
+    /// HLOD entities are rendered through the standard model pass (no batching) and
+    /// are unloaded automatically when the full tile parse completes.
+    private func loadHLOD(entityId: EntityID) {
+        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+              let hlodURL = tileComp.hlodURL,
+              tileComp.hlodState == .unloaded else { return }
+
+        tileComp.hlodState = .loading
+
+        var hlodEntityId: EntityID = .invalid
+        withWorldMutationGate {
+            let id = createEntity()
+            registerTransformComponent(entityId: id)
+            registerSceneGraphComponent(entityId: id)
+            setParent(childId: id, parentId: entityId)
+            hlodEntityId = id
+        }
+
+        guard hlodEntityId != .invalid else {
+            tileComp.hlodState = .unloaded
+            return
+        }
+
+        tileComp.hlodEntityId = hlodEntityId
+        markLoadedHLODEntity(entityId)
+
+        let capturedHlodId = hlodEntityId
+        let capturedTileId = entityId
+        let filename = hlodURL.deletingPathExtension().path
+        let ext = hlodURL.pathExtension
+        let tileId = tileComp.tileId
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            setEntityMeshAsync(
+                entityId: capturedHlodId,
+                filename: filename,
+                withExtension: ext,
+                streamingPolicy: .immediate
+            ) { [weak self] success in
+                guard let self else { return }
+                withWorldMutationGate {
+                    guard let tc = scene.get(component: TileComponent.self, for: capturedTileId),
+                          tc.hlodState == .loading else {
+                        // Cancelled while loading — destroy the entity if it still exists.
+                        if scene.exists(capturedHlodId) {
+                            destroyEntity(entityId: capturedHlodId)
+                            finalizePendingDestroys()
+                        }
+                        return
+                    }
+                    if success {
+                        tc.hlodState = .loaded
+                        Logger.log(message: "[HLOD] Tile '\(tileId)' HLOD loaded.")
+                    } else {
+                        if scene.exists(capturedHlodId) {
+                            destroyEntity(entityId: capturedHlodId)
+                            finalizePendingDestroys()
+                        }
+                        tc.hlodEntityId = nil
+                        tc.hlodState = .unloaded
+                        self.unmarkLoadedHLODEntity(capturedTileId)
+                        Logger.logError(message: "[HLOD] Tile '\(tileId)' HLOD failed to load.")
+                    }
+                }
+            }
+        }
+
+        withWorldMutationGate {
+            scene.get(component: TileComponent.self, for: entityId)?.hlodLoadTask = task
+        }
+    }
+
+    /// Tears down the HLOD child entity for a tile stub.
+    /// Safe to call regardless of current hlodState — no-ops if already unloaded.
+    private func unloadHLOD(entityId: EntityID) {
+        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+              tileComp.hlodState != .unloaded else { return }
+
+        tileComp.hlodLoadTask?.cancel()
+        tileComp.hlodLoadTask = nil
+        tileComp.hlodState = .unloading
+
+        withWorldMutationGate {
+            if let hlodEntityId = tileComp.hlodEntityId, scene.exists(hlodEntityId) {
+                destroyEntity(entityId: hlodEntityId)
+                finalizePendingDestroys()
+            }
+            tileComp.hlodEntityId = nil
+            tileComp.hlodState = .unloaded
+        }
+
+        unmarkLoadedHLODEntity(entityId)
+        Logger.log(message: "[HLOD] Tile '\(tileComp.tileId)' HLOD unloaded.")
+    }
+
     /// Why a child entity?  setEntityMeshAsync loads the RenderComponent directly
     /// onto the entity it receives.  For single-mesh tiles that would be the tile
     /// stub itself, leaving unloadTile's collectDescendants with nothing to destroy
@@ -1136,6 +1297,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                         tc.failureCount = 0   // clear retry counter on successful parse
                         tc.state = .parsed
                         self.markLoadedTileEntity(entityId)
+
+                        // Full geometry is now resident — unload the coarse HLOD mesh
+                        // if one was showing while this tile was loading.
+                        self.unloadHLOD(entityId: entityId)
 
                         // Tag the tile's mesh hierarchy for cell-based static batching.
                         // setEntityStaticBatchComponent walks the full child tree and
@@ -2279,8 +2444,14 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     tc.loadTask = nil
                     if tc.state == .parsing { tc.state = .unloaded }
                     tc.pendingUnloadSince = 0
+                    // Cancel any in-flight HLOD load and reset state.
+                    tc.hlodLoadTask?.cancel()
+                    tc.hlodLoadTask = nil
+                    tc.hlodEntityId = nil
+                    tc.hlodState = .unloaded
                 }
             }
+            withStateLock { loadedHLODEntities.removeAll() }
 
             SystemEventBus.shared.clearPendingEvents()
             withStateLock {
