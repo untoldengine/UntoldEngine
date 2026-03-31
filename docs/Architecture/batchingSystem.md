@@ -6,13 +6,15 @@ The goal is simple: instead of issuing 100 separate draw calls (one per entity),
 
 ## Step 0: The World is Divided into Cells
 
-The 3D world is partitioned into a 3D grid of **cells**, each 32 units wide (`batchCellSize = 32.0`). Every entity is assigned to a cell based on the world-space center of its bounding box:
+The 3D world is partitioned into a 3D grid of **cells**. The cell size is calibrated at scene load time: when a tile manifest is present, the cell size is set to `2 × tileSize` so that cell boundaries align with tile boundaries. When no manifest is present, the default of 32 world units is used.
+
+Every entity is assigned to a cell based on the world-space center of its bounding box:
 
 ```
-cellId(x, y, z) = floor(worldCenter / 32.0)
+cellId(x, y, z) = floor(worldCenter / cellSize)
 ```
 
-**Why cells?** Batching 100 entities scattered across a huge world into one mesh is wasteful — you'd rebuild everything when anything changes. Cells localize the damage.
+**Why align to tile boundaries?** Batching 100 entities scattered across a huge world into one mesh is wasteful — you'd rebuild everything when anything changes. Cells localize the damage. When cell boundaries align with tile boundaries, loading or unloading a tile only touches the cells that tile occupies — no cross-tile batch rebuilds.
 
 ---
 
@@ -33,6 +35,8 @@ Every frame, `tick()` runs through this pipeline:
 ### 2a. Process Removals & Additions
 Any entities that changed (LOD switch, mesh evicted/streamed in) are removed from their old cell and re-registered in their current cell. This marks the affected cells dirty.
 
+**Tile-loaded entities bypass the quiescence delay.** When a fullLoad tile finishes parsing, `GeometryStreamingSystem` calls `BatchingSystem.notifyTileParsedEntities(_:)` with the set of render-ready entity IDs. When those entities arrive in `pendingEntityAdditions`, they are processed with `deferBatchBuild = false` and their cells are immediately promoted to `batchPending` — skipping the quiescence wait. See [Tile-Local Batch Promotion](#tile-local-batch-promotion) below.
+
 ### 2b. Update Visibility History
 The system checks which cells currently contain visible entities and records `cellLastVisibleFrame[cellId]`. This drives **visibility gating** — the system won't waste CPU rebuilding cells you can't see.
 
@@ -42,6 +46,8 @@ For each dirty cell in state `renderableUnbatched` or `streaming`:
 - Has it been stable for at least `quiescenceFramesBeforeBatchBuild` frames (default: 1)?
 
 If yes → state becomes **`batchPending`**.
+
+Cells flagged by tile promotion skip the quiescence check and advance directly to `batchPending` in the same tick.
 
 ### 2d. Rebuild Dirty Cells (`rebuildDirtyCells`)
 
@@ -77,10 +83,11 @@ For each `CellBuildInput`, on the background thread:
   - For each mesh, extract positions, normals, UVs, tangents from the Metal buffers.
   - Transform each vertex by the entity's world transform (`worldTransform.space * mesh.localSpace`).
   - Re-index indices with an offset (since vertices are now concatenated into one flat array).
+  - Compute the world-space **AABB** of the merged geometry (min/max of all vertex positions).
   - Allocate new `MTLBuffer`s for the merged position/normal/UV/tangent/index data.
 - The result is a `PreparedCellArtifact` containing `[BatchGroup]`.
 
-So 100 entities all sharing the same wood-plank material → **1 BatchGroup** with 1 merged MTLBuffer.
+So 100 entities all sharing the same wood-plank material → **1 BatchGroup** with 1 merged MTLBuffer and one tight world-space AABB.
 
 > **What is an artifact?**
 > An artifact is the **output package produced by a build job**: 
@@ -104,7 +111,11 @@ Back on the main thread (next frame or same frame if sync mode):
 
 ## Step 5: Rendering
 
-The renderer checks `entityToBatch` — if an entity is in a batch, it **skips the per-entity draw call** and instead the batch groups are rendered directly. Each `BatchGroup` is one draw call with its merged buffer. 100 entities sharing one material = **1 draw call**.
+The renderer uses **cluster-level frustum culling** to determine which batch groups to submit. Each `BatchGroup` carries a precomputed world-space AABB (`boundingBox`) covering all geometry in the group. The render passes test each group's AABB directly against the current-frame frustum — **one AABB test per batch group, not one per entity**. Groups whose AABB is fully outside the frustum are skipped without any entity-level traversal.
+
+For batch groups that survive the AABB test, each `BatchGroup` is one draw call with its merged buffer. 100 entities sharing one material = **1 draw call**, submitted only when the group's spatial bounds are within the frustum.
+
+Per-entity batching membership (`entityToBatch`) is still maintained and used by non-batched rendering paths and by tests.
 
 ---
 
@@ -121,6 +132,7 @@ unloaded
    ↓ (entity becomes resident)
 streaming
    ↓ (quiescence + visibility check pass)
+   ↓ (or: tile-local promotion — bypasses quiescence)
 renderableUnbatched
    ↓ (promoted, budget available)
 batchPending
@@ -129,6 +141,43 @@ renderableBatched
    ↓ (entity removed or LOD change)
 retiring → unloaded
 ```
+
+---
+
+## Tile-Local Batch Promotion
+
+When a **fullLoad tile** (one that completes GPU upload in a single step, `occCount == 0`) finishes parsing, `GeometryStreamingSystem` hands off the set of render-ready entity IDs to the batching system:
+
+```swift
+BatchingSystem.shared.notifyTileParsedEntities(tileRenderIds)
+```
+
+In the next `tick()`, those entities are processed differently from ordinary streaming arrivals:
+
+1. **`deferBatchBuild = false`** — the extra one-frame deferral applied to newly-resident streaming entities is suppressed.
+2. **Immediate cell promotion** — after the entities are registered, the system collects the cells they were assigned to and forces them from `renderableUnbatched` → `batchPending` in the same tick, bypassing the `quiescenceFramesBeforeBatchBuild` wait.
+
+The result: a tile that finishes parsing on frame N will have its cells in `batchPending` on frame N+1 and a completed batch ready to submit one or two frames later (depending on background build time), rather than waiting for the quiescence window first.
+
+This is safe because a tile's geometry arrives atomically — all entities are registered at once with no further churn expected. The quiescence delay exists to absorb incremental arrivals (OCC stub uploads); it is unnecessary and harmful for the fullLoad tile path.
+
+**OCC tiles are unchanged.** For tiles using the out-of-core upload path, individual mesh stubs still arrive one at a time via the normal `handleResidencyChange` flow. The quiescence delay is preserved for these so the batch doesn't rebuild for each individual stub upload.
+
+---
+
+## BatchGroup AABB
+
+Every `BatchGroup` stores a **precomputed world-space AABB**:
+
+```swift
+var boundingBox: (min: simd_float3, max: simd_float3)
+```
+
+This is computed during `createBatchGroup` as the min/max of all transformed vertex positions. It represents the tightest world-space bounding box over all geometry in the group.
+
+The AABB serves two purposes:
+1. **Cluster-level frustum culling** — the render pass tests this AABB against `currentFrameFrustum` before encoding the draw call, skipping entire groups that are outside the view.
+2. **Future use** — HLOD transitions, occlusion culling, and GPU-driven rendering will all use this AABB as the cluster's spatial identity.
 
 ---
 
@@ -141,5 +190,7 @@ Suppose your 100 entities break down as:
 
 Result:
 - **2 BatchGroups** for cell (0,0,0): one wood, one stone
+- Each BatchGroup has its own world-space AABB covering all vertices in the group
 - **2 draw calls** instead of 90 (the 10 transparent ones draw individually)
+- Both groups are frustum-culled by AABB before encoding — if the whole cell is off-screen, 0 draw calls are issued
 - On a LOD change (say 20 wood entities switch to LOD 1), cell (0,0,0) is marked dirty → rebuild fires next eligible tick → now 3 BatchGroups (wood LOD0, wood LOD1, stone LOD0)

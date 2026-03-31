@@ -1153,6 +1153,14 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                         // batching system picks them up on the next flushEvents() call.
                         if occCount == 0 {
                             self.queueResidencyEventsForRenderDescendants(capturedMeshEntityId)
+                            // Notify the batching system so it can bypass the quiescence
+                            // delay for this tile's cells.  All render entities are resident
+                            // now; their residency events will arrive on the next flushEvents()
+                            // call, and the batching tick will promote their cells immediately.
+                            let tileRenderIds = self.collectRenderDescendantIds(capturedMeshEntityId)
+                            if !tileRenderIds.isEmpty {
+                                BatchingSystem.shared.notifyTileParsedEntities(tileRenderIds)
+                            }
                         }
 
                         Logger.log(message: "[TileStreaming] Tile '\(tileId)' parsed (\(occCount) OCC stubs pending GPU upload).")
@@ -1201,6 +1209,20 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         for childId in getEntityChildren(parentId: entityId) {
             queueResidencyEventsForRenderDescendants(childId)
         }
+    }
+
+    /// Recursively collect the IDs of all descendants (including `entityId` itself)
+    /// that have a RenderComponent.  Used to hand off the full set of render-ready
+    /// entities to the BatchingSystem after a fullLoad tile finishes parsing.
+    private func collectRenderDescendantIds(_ entityId: EntityID) -> Set<EntityID> {
+        var result: Set<EntityID> = []
+        if scene.get(component: RenderComponent.self, for: entityId) != nil {
+            result.insert(entityId)
+        }
+        for childId in getEntityChildren(parentId: entityId) {
+            result.formUnion(collectRenderDescendantIds(childId))
+        }
+        return result
     }
 
     /// Recursively count OCC stub descendants (entities with StreamingComponent).

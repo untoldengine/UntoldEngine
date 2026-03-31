@@ -464,6 +464,10 @@ public class BatchingSystem: @unchecked Sendable {
     private var pendingEntityRemovals: Set<EntityID> = []
     private var pendingEntityAdditions: Set<EntityID> = []
     private var newlyResidentEntities: Set<EntityID> = []
+    /// Entities that arrived from a fully-loaded tile parse (occCount == 0).
+    /// These are processed with deferBatchBuild = false and their cells are
+    /// promoted to batchPending immediately, bypassing the quiescence delay.
+    private var tileParsedEntityIds: Set<EntityID> = []
     private var isSubscribed: Bool = false
     private var batchCellSize: Float = 32.0
     private var cellLifecycle: [BatchCellID: BatchCellLifecycleRecord] = [:]
@@ -520,6 +524,14 @@ public class BatchingSystem: @unchecked Sendable {
         SystemEventBus.shared.subscribeToResidencyChanges { [weak self] event in
             self?.handleResidencyChange(event)
         }
+    }
+
+    /// Called by GeometryStreamingSystem when a fullLoad tile finishes parsing.
+    /// Marks the given entities so that when their residency events arrive in the
+    /// same or next tick, their cells are promoted to batchPending immediately
+    /// without waiting for the quiescence delay.
+    public func notifyTileParsedEntities(_ entityIds: Set<EntityID>) {
+        tileParsedEntityIds.formUnion(entityIds)
     }
 
     private func handleLODChange(_ event: EntityLODChangedEvent) {
@@ -671,12 +683,40 @@ public class BatchingSystem: @unchecked Sendable {
         }
         pendingEntityRemovals.removeAll(keepingCapacity: true)
 
-        // Process additions / cell updates based on latest entity state
+        // Process additions / cell updates based on latest entity state.
+        // Tile-parsed entities (from a just-loaded fullLoad tile) bypass the
+        // quiescence delay: we clear them from newlyResidentEntities so
+        // deferBatchBuild stays false, and track them for immediate promotion below.
+        var tileEntitiesAdded: Set<EntityID> = []
         for entityId in pendingEntityAdditions {
-            let deferBatchBuild = newlyResidentEntities.remove(entityId) != nil
+            let isTileParsed = tileParsedEntityIds.contains(entityId)
+            if isTileParsed { newlyResidentEntities.remove(entityId) }
+            let deferBatchBuild = !isTileParsed && (newlyResidentEntities.remove(entityId) != nil)
             registerEntityForBatching(entityId: entityId, deferBatchBuild: deferBatchBuild)
+            if isTileParsed { tileEntitiesAdded.insert(entityId) }
         }
         pendingEntityAdditions.removeAll(keepingCapacity: true)
+
+        // Immediately promote cells that belong to the just-loaded tile to
+        // batchPending, bypassing the quiescence window entirely.  These cells
+        // were registered above (renderableUnbatched) with no extra deferral.
+        if !tileEntitiesAdded.isEmpty {
+            var tileCells: Set<BatchCellID> = []
+            for entityId in tileEntitiesAdded {
+                if let cellId = entityToCellMembership[entityId] {
+                    tileCells.insert(cellId)
+                }
+            }
+            for cellId in tileCells {
+                guard let record = cellLifecycle[cellId],
+                      record.state == .renderableUnbatched || record.state == .streaming,
+                      cellToEntities[cellId]?.isEmpty == false else { continue }
+                dirtyCells.insert(cellId)
+                bumpCellBuildGeneration(cellId)
+                setCellState(cellId, .batchPending)
+            }
+            tileParsedEntityIds.subtract(tileEntitiesAdded)
+        }
 
         let visibleCells = updateCellVisibilityHistory()
         let promotionMetrics = promoteRenderableCellsToBatchPending(visibleCells: visibleCells)
@@ -1840,6 +1880,7 @@ public class BatchingSystem: @unchecked Sendable {
         pendingEntityRemovals.removeAll()
         pendingEntityAdditions.removeAll()
         newlyResidentEntities.removeAll()
+        tileParsedEntityIds.removeAll()
         cellLastVisibleFrame.removeAll()
         cellBuildGeneration.removeAll()
         runtimeBatchIneligibleCells.removeAll()

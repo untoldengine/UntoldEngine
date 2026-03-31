@@ -100,6 +100,11 @@ Both `.parsing` and `.parsed` tiles go through the **grace period** (see [Unload
 5. Completion callback (fires on the main thread):
    - **Zombie-state guard** — checks `tc.state == .parsing`. If `unloadTile` ran while the parse was in flight, the state will be `.unloading`. The callback discards the result, destroys the pre-created child entity, and returns without marking the tile loaded.
    - On confirmed `.parsing`: transitions to `.parsed`, seeds `totalOCCStubs` from `countOCCDescendants`.
+   - **fullLoad path** (`occCount == 0`): all geometry is immediately GPU-resident. The callback:
+     1. Calls `setEntityStaticBatchComponent` to tag the entity hierarchy for cell-based static batching.
+     2. Calls `queueResidencyEventsForRenderDescendants` to queue `AssetResidencyChangedEvent` for every render-ready entity, so the batching system picks them up on the next `flushEvents()` call.
+     3. Calls `BatchingSystem.shared.notifyTileParsedEntities(_:)` with the set of render descendant IDs. This tells the batching system to **bypass the quiescence delay** for these entities — their cells will be promoted to `batchPending` on the very next `tick()` instead of waiting for the normal quiescence window. See [Tile-Local Batch Promotion](batchingSystem.md#tile-local-batch-promotion).
+   - **OCC path** (`occCount > 0`): `setEntityStaticBatchComponent` is called but residency events are not explicitly queued — they fire automatically as each OCC stub completes its GPU upload. The normal quiescence delay applies to keep the batch from rebuilding after each individual stub upload.
    - On failure: destroys child entity, increments `failureCount`, sets state to `.failed` (retry backoff).
    - **`defer { releaseActiveTileLoad }`** — the concurrency slot is freed on all exit paths.
 
