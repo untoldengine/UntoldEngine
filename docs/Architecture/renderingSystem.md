@@ -55,6 +55,8 @@ A compute shader tests every entity's axis-aligned bounding box (`EntityAABB`) a
 
 The result is written into `tripleVisibleEntities` — **for the next frame**. So culling is always one frame behind rendering. This is an intentional latency trade-off: GPU-driven culling is far faster than CPU culling, and one frame of lag is imperceptible.
 
+In addition to writing the GPU visibility result, `executeFrustumCulling` stores the current-frame frustum in the module-level variable `currentFrameFrustum`. This frustum is the padded, CPU-side version built from the view-projection matrix. It is read later in the same frame by the batched render passes for **cluster-level AABB culling** of `BatchGroup`s (see [G-Buffer Passes](#g-buffer-passes-deferred-rendering) and [Shadow Passes](#shadow-passes)).
+
 For XR, a reduce-scan variant runs the test against both eyes simultaneously.
 
 ### 3b. Gaussian Depth → `executeGaussianDepth(commandBuffer)`
@@ -122,6 +124,8 @@ Both passes render scene geometry from the **directional light's point of view**
 - Regular entities → `shadowExecution`
 - Batched entities → `batchedShadowExecution`
 
+`batchedShadowExecution` uses **cluster-level frustum culling**: it calls `visibleBatchGroupsSnapshot()` which tests each `BatchGroup`'s precomputed world-space AABB against `currentFrameFrustum`. Only groups whose AABB intersects the frustum are submitted. This replaces the previous entity→batchId derivation and operates at batch-group granularity — one AABB test per group instead of one per entity.
+
 The shadow map produced here is consumed later by `lightPass`.
 
 ### G-Buffer Passes (deferred rendering)
@@ -142,7 +146,7 @@ This is the core of the deferred rendering pipeline. Entities do not produce a s
 - Uploads the model matrix, normal matrix, and camera uniforms into the current in-flight frame slot
 - Issues a draw call per mesh submesh
 
-`batchedModelExecution` follows the same logic for entities managed by the `BatchingSystem`, using merged buffers instead of per-entity ones.
+`batchedModelExecution` uses **cluster-level frustum culling**: it calls `visibleBatchGroupsSnapshot()` which tests each `BatchGroup`'s precomputed world-space AABB against `currentFrameFrustum` using `isAABBInFrustum`. The result — groups whose AABB intersects the frustum — is cached for the frame and shared with `batchedShadowExecution`. Each surviving group is then submitted as a single draw call with its merged vertex and index buffers.
 
 `ssaoOptimizedExecution` reads the G-Buffer normals and depth and produces a screen-space ambient occlusion texture. Blurring is handled internally — no separate blur nodes appear in the graph.
 

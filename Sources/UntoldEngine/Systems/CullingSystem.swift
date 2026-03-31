@@ -19,6 +19,11 @@ let kInFlight = 3
 let planeCount = 6
 let planeStride = MemoryLayout<simd_float4>.stride
 
+/// The frustum built from the most recent executeFrustumCulling() call.
+/// Written once per frame on the main thread (before the render graph runs)
+/// and read by render passes on the same thread — safe without extra locking.
+nonisolated(unsafe) var currentFrameFrustum: Frustum?
+
 private final class VisibleSetPublishState: @unchecked Sendable {
     let lock = NSLock()
 }
@@ -553,6 +558,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let frustumNdcFar: Float = renderInfo.reverseZEnabled ? 0.0 : 1.0
     var frustum = buildFrustum(from: viewProjection, ndcNear: frustumNdcNear, ndcFar: frustumNdcFar)
     frustum = padFrustum(frustum, sidePad: 3.0)
+    currentFrameFrustum = frustum
 
     guard let frustumTripleBuffer = tripleBufferResources.frustumPlane else {
         handleError(.bufferAllocationFailed, "Frustum cull buffer")
@@ -872,6 +878,7 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
     let frustumNdcFar: Float = renderInfo.reverseZEnabled ? 0.0 : 1.0
     var frustum = buildFrustum(from: viewProjection, ndcNear: frustumNdcNear, ndcFar: frustumNdcFar)
     frustum = padFrustum(frustum, sidePad: 3.0)
+    currentFrameFrustum = frustum
 
     guard let frustumTripleBuffer = tripleBufferResources.frustumPlane else {
         handleError(.bufferAllocationFailed, "Frustum cull buffer")
@@ -1120,4 +1127,23 @@ func executeReduceScanFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         publishVisibleEntities(frame: submitFrameIndex, entities: nextVisibleIds)
     }
+}
+
+/// Returns true when the axis-aligned bounding box defined by `aabbMin`/`aabbMax`
+/// is at least partially inside all planes of `frustum`.
+///
+/// Uses the positive-vertex test: for each plane we find the corner of the AABB
+/// that is furthest in the direction of the plane normal (the "most positive"
+/// projection).  If that corner is on the outside of any plane, the entire AABB
+/// is outside the frustum and can be culled.
+func isAABBInFrustum(_ frustum: Frustum, min aabbMin: simd_float3, max aabbMax: simd_float3) -> Bool {
+    for plane in frustum.planes {
+        let px = plane.n.x >= 0 ? aabbMax.x : aabbMin.x
+        let py = plane.n.y >= 0 ? aabbMax.y : aabbMin.y
+        let pz = plane.n.z >= 0 ? aabbMax.z : aabbMin.z
+        if simd_dot(plane.n, simd_float3(px, py, pz)) + plane.d < 0 {
+            return false
+        }
+    }
+    return true
 }

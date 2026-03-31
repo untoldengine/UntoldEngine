@@ -58,6 +58,9 @@ public enum RenderPasses {
         var spatialDebugLastLogSignature: String = ""
         var visibleBatchIdsFrame: Int = -1
         var visibleBatchIdsCache: Set<UUID> = []
+        /// Cache for cluster-level frustum-culled batch groups (replaces entity-derived path).
+        var visibleBatchGroupsFrame: Int = -1
+        var visibleBatchGroupsCache: [BatchGroup] = []
     }
 
     @inline(__always)
@@ -217,6 +220,49 @@ public enum RenderPasses {
         runtimeState.lock.lock()
         runtimeState.visibleBatchIdsFrame = frame
         runtimeState.visibleBatchIdsCache = computed
+        runtimeState.lock.unlock()
+        return computed
+    }
+
+    /// Tests each live BatchGroup's world-space AABB against the current-frame frustum.
+    /// This is the cluster-level culling path: one AABB test per batch group rather than
+    /// one test per entity, then a lookup to derive which groups are visible.
+    ///
+    /// Falls back to the entity-derived path when `currentFrameFrustum` is nil (no
+    /// camera yet, or called before the first culling pass).
+    private static func collectVisibleBatchGroupsDirect() -> [BatchGroup] {
+        let groups = BatchingSystem.shared.batchGroups
+        guard !groups.isEmpty else { return [] }
+
+        guard let frustum = currentFrameFrustum else {
+            // Frustum not yet available — derive from visible entities (safe fallback).
+            let ids = collectVisibleBatchIds(from: visibleEntityIds)
+            return groups.filter { ids.contains($0.id) }
+        }
+
+        return groups.filter {
+            isAABBInFrustum(frustum, min: $0.boundingBox.min, max: $0.boundingBox.max)
+        }
+    }
+
+    /// Per-frame cached cluster-level visibility.  Both batch render passes (shadow +
+    /// model) call this; the result is computed once and reused for the same frame index.
+    private static func visibleBatchGroupsSnapshot() -> [BatchGroup] {
+        let frame = cullFrameIndex
+
+        runtimeState.lock.lock()
+        if runtimeState.visibleBatchGroupsFrame == frame {
+            let cached = runtimeState.visibleBatchGroupsCache
+            runtimeState.lock.unlock()
+            return cached
+        }
+        runtimeState.lock.unlock()
+
+        let computed = collectVisibleBatchGroupsDirect()
+
+        runtimeState.lock.lock()
+        runtimeState.visibleBatchGroupsFrame = frame
+        runtimeState.visibleBatchGroupsCache = computed
         runtimeState.lock.unlock()
         return computed
     }
@@ -673,13 +719,10 @@ public enum RenderPasses {
         // Skip if batching is disabled
         guard BatchingSystem.shared.isEnabled() else { return }
 
-        // Take a snapshot of batch groups to avoid race condition during iteration.
-        // If generateBatches() modifies the array while we iterate, we'd crash.
-        let batchGroupsSnapshot = BatchingSystem.shared.batchGroups
-        guard !batchGroupsSnapshot.isEmpty else { return }
-        let visibleBatchIds = visibleBatchIdsSnapshot()
-        guard !visibleBatchIds.isEmpty else { return }
-        let visibleBatchGroups = batchGroupsSnapshot.filter { visibleBatchIds.contains($0.id) }
+        // Cluster-level frustum cull: test each batch group's precomputed world-space
+        // AABB against the current-frame frustum.  One AABB test per batch group instead
+        // of one per entity — avoids the entity→batchId lookup entirely.
+        let visibleBatchGroups = visibleBatchGroupsSnapshot()
         guard !visibleBatchGroups.isEmpty else { return }
 
         guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
@@ -1084,13 +1127,10 @@ public enum RenderPasses {
         // Skip if batching is disabled
         guard BatchingSystem.shared.isEnabled() else { return }
 
-        // Take a snapshot of batch groups to avoid race condition during iteration.
-        // If generateBatches() modifies the array while we iterate, we'd crash.
-        let batchGroupsSnapshot = BatchingSystem.shared.batchGroups
-        guard !batchGroupsSnapshot.isEmpty else { return }
-        let visibleBatchIds = visibleBatchIdsSnapshot()
-        guard !visibleBatchIds.isEmpty else { return }
-        let visibleBatchGroups = batchGroupsSnapshot.filter { visibleBatchIds.contains($0.id) }
+        // Cluster-level frustum cull: test each batch group's precomputed world-space
+        // AABB against the current-frame frustum.  One AABB test per batch group instead
+        // of one per entity — avoids the entity→batchId lookup entirely.
+        let visibleBatchGroups = visibleBatchGroupsSnapshot()
         guard !visibleBatchGroups.isEmpty else { return }
 
         guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[.model] else {
