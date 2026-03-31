@@ -1821,6 +1821,12 @@ public func loadScene(
 
 // MARK: - Tiled Scene Manifest structs (private)
 
+private struct TileSize: Decodable {
+    let x: Double
+    let y: Double
+    let z: Double
+}
+
 private struct TileManifest: Decodable {
     let version: Int
     let streamingDefaults: StreamingDefaults
@@ -1830,12 +1836,16 @@ private struct TileManifest: Decodable {
     /// a large streaming radius so it is always resident.  The engine registers
     /// it as a TileComponent stub with its own streaming/unload radii.
     let sharedBucket: TileEntry?
+    /// Tile footprint in world units, as written by the Blender export script.
+    /// Used to calibrate the batch cell size so it aligns with tile boundaries.
+    let tileSize: TileSize?
 
     enum CodingKeys: String, CodingKey {
         case version
         case streamingDefaults = "streaming_defaults"
         case tiles
         case sharedBucket = "shared_bucket"
+        case tileSize = "tile_size"
     }
 }
 
@@ -1958,6 +1968,30 @@ public func loadTiledScene(
     let light = createEntity()
     setEntityName(entityId: light, name: "Directional Light")
     createDirLight(entityId: light)
+
+    // Enable cell-based static batching for the tiled scene.  Tile entities are
+    // tagged with StaticBatchComponent inside loadTile()'s completion callback
+    // (after parse succeeds).  BatchingSystem.handleResidencyChange fires for
+    // each OCC stub as its GPU upload completes, so batches self-assemble
+    // incrementally — no generateBatches() call is needed here.
+    //
+    // Set the batch cell to 2× the tile footprint.  The tile size is stored in
+    // world units inside the manifest; using 2× means a camera-visible area of
+    // ~4 tiles fits in a single cell, maximising per-cell entity density (more
+    // merged geometry per draw call) without making individual batches so large
+    // that they exceed the per-cell vertex/index budget guards.
+    // Derive batch cell size from the manifest tile footprint when available,
+    // falling back to the streaming radius.  2× tile size puts ~4 tiles worth of
+    // geometry in each cell — enough merging depth without oversized GPU buffers.
+    let manifestTileSize: Float
+    if let ts = tileManifest.tileSize {
+        manifestTileSize = Float(max(ts.x, ts.z))
+    } else {
+        manifestTileSize = tileManifest.streamingDefaults.streamingRadius
+    }
+    BatchingSystem.shared.setBatchCellSize(manifestTileSize * 2.0)
+
+    enableBatching(true)
 
     // ── 5. Register tile stub entities ────────────────────────────────────
     // All stubs are registered inside a single withWorldMutationGate to avoid

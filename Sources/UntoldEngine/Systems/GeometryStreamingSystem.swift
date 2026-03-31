@@ -1002,7 +1002,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                                 meshName: render.assetName,
                                 isResident: true
                             )
+                            Logger.log(message: "[Batching] queuing residency event for entity=\(entityId)")
                             SystemEventBus.shared.queueResidencyChange(event)
+                        } else {
+                            Logger.log(message: "[Batching] NO RenderComponent on entity=\(entityId) — residency event NOT queued")
                         }
                     }
                     markLoadedStreamingEntity(entityId)
@@ -1133,6 +1136,25 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                         tc.failureCount = 0   // clear retry counter on successful parse
                         tc.state = .parsed
                         self.markLoadedTileEntity(entityId)
+
+                        // Tag the tile's mesh hierarchy for cell-based static batching.
+                        // setEntityStaticBatchComponent walks the full child tree and
+                        // attaches StaticBatchComponent to every entity that has a
+                        // RenderComponent (eager/small tiles) or StreamingComponent
+                        // (OCC stubs awaiting GPU upload).  For OCC stubs the batch
+                        // residency handler fires automatically when each stub's GPU
+                        // upload completes, so no manual generateBatches() call is needed.
+                        setEntityStaticBatchComponent(entityId: capturedMeshEntityId)
+
+                        // For fullLoad tiles (occCount == 0) the RenderComponent is
+                        // already present on capturedMeshEntityId and its children —
+                        // they bypass the OCC upload path that normally queues the
+                        // residency event.  Queue the event explicitly here so the
+                        // batching system picks them up on the next flushEvents() call.
+                        if occCount == 0 {
+                            self.queueResidencyEventsForRenderDescendants(capturedMeshEntityId)
+                        }
+
                         Logger.log(message: "[TileStreaming] Tile '\(tileId)' parsed (\(occCount) OCC stubs pending GPU upload).")
                     } else {
                         // Destroy the pre-created child entity on failure so it
@@ -1158,6 +1180,26 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // be called in a future tick).
         withWorldMutationGate {
             scene.get(component: TileComponent.self, for: entityId)?.loadTask = task
+        }
+    }
+
+    /// Walk the entity subtree rooted at `entityId` and queue an
+    /// AssetResidencyChangedEvent for every entity that already has a RenderComponent.
+    /// Called from the loadTile completion for fullLoad (non-OCC) tiles whose geometry
+    /// is immediately resident — they never go through the OCC upload path that normally
+    /// queues the event, so we queue it explicitly here.
+    private func queueResidencyEventsForRenderDescendants(_ entityId: EntityID) {
+        if let render = scene.get(component: RenderComponent.self, for: entityId) {
+            let event = AssetResidencyChangedEvent(
+                entityId: entityId,
+                assetURL: render.assetURL,
+                meshName: render.assetName,
+                isResident: true
+            )
+            SystemEventBus.shared.queueResidencyChange(event)
+        }
+        for childId in getEntityChildren(parentId: entityId) {
+            queueResidencyEventsForRenderDescendants(childId)
         }
     }
 
