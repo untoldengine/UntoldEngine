@@ -240,8 +240,25 @@ public enum RenderPasses {
             return groups.filter { ids.contains($0.id) }
         }
 
-        return groups.filter {
+        // Phase 1: frustum cull — drop groups whose AABB is outside the view frustum.
+        let frustumPassed = groups.filter {
             isAABBInFrustum(frustum, min: $0.boundingBox.min, max: $0.boundingBox.max)
+        }
+
+        guard !frustumPassed.isEmpty else { return [] }
+
+        // Phase 2: HZB occlusion cull — reuse the entity-level GPU HZB result.
+        // Batched entities go through the same GPU frustum+HZB pipeline and appear
+        // in visibleEntityIds when not occluded.  A batch group whose every member
+        // entity was occluded by the HZB is itself fully occluded and can be skipped.
+        // One-frame latency matches the entity-level rendering path.
+        guard renderInfo.hzbIsValid else {
+            return frustumPassed
+        }
+
+        let visibleSet = Set(visibleEntityIds)
+        return frustumPassed.filter { group in
+            group.entityIds.contains { visibleSet.contains($0) }
         }
     }
 
