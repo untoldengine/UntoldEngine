@@ -534,6 +534,7 @@ public class BatchingSystem: @unchecked Sendable {
     }
 
     private func handleResidencyChange(_ event: AssetResidencyChangedEvent) {
+        Logger.log(message: "[Batching] handleResidencyChange called isResident=\(event.isResident) batchingEnabled=\(batchingEnabled)")
         guard batchingEnabled else { return }
 
         if !event.isResident {
@@ -545,7 +546,9 @@ public class BatchingSystem: @unchecked Sendable {
             }
         } else {
             // Mesh became resident - entity might be eligible for batching
-            if scene.get(component: StaticBatchComponent.self, for: event.entityId) != nil {
+            let hasStaticBatch = scene.get(component: StaticBatchComponent.self, for: event.entityId) != nil
+            Logger.log(message: "[Batching] residencyChange entity=\(event.entityId) hasStaticBatch=\(hasStaticBatch)")
+            if hasStaticBatch {
                 pendingEntityAdditions.insert(event.entityId)
                 newlyResidentEntities.insert(event.entityId)
                 if let cellId = resolveCellIdForEntity(entityId: event.entityId) {
@@ -735,6 +738,12 @@ public class BatchingSystem: @unchecked Sendable {
 
     private func registerEntityForBatching(entityId: EntityID, deferBatchBuild: Bool) {
         guard let candidate = resolveBatchCandidate(entityId: entityId) else {
+            let hasStatic = scene.get(component: StaticBatchComponent.self, for: entityId) != nil
+            let hasRender = scene.get(component: RenderComponent.self, for: entityId) != nil
+            let meshEmpty = (scene.get(component: RenderComponent.self, for: entityId)?.mesh.isEmpty ?? true)
+            let hasWorld  = scene.get(component: WorldTransformComponent.self, for: entityId) != nil
+            let hasLocal  = scene.get(component: LocalTransformComponent.self, for: entityId) != nil
+            Logger.log(message: "[Batching] resolveBatchCandidate FAILED entity=\(entityId) staticBatch=\(hasStatic) render=\(hasRender) meshEmpty=\(meshEmpty) world=\(hasWorld) local=\(hasLocal)")
             removeEntityFromBatchingTracking(entityId: entityId)
             return
         }
@@ -2212,15 +2221,24 @@ public class BatchingSystem: @unchecked Sendable {
         )
     }
 
-    /// Generate a hash representing material properties for batching compatibility
-    /// assetURL is included to ensure textures from different USDZ files don't incorrectly batch together
+    /// Generate a hash representing material properties for batching compatibility.
+    ///
+    /// For USDZ assets (packed archives), assetURL is included in the hash to prevent
+    /// embedded textures with identical names but different pixel data from incorrectly
+    /// batching together (e.g. "embedded_Basecolor_map" from dungeon.usdz vs chair.usdz).
+    ///
+    /// For USDC/USD assets, textures are separate files on disk referenced by absolute
+    /// path.  The texture URL entries below already provide stable, unique identity —
+    /// appending the tile file path would prevent identical materials in adjacent tiles
+    /// from batching together, which is the primary case for tiled outdoor scenes.
     private func getMaterialHash(material: Material, assetURL: URL? = nil) -> String {
         var components: [String] = []
 
-        // Include asset URL to scope batching to the same source file
-        // This prevents "embedded_Basecolor_map" from dungeon.usdz batching with
-        // "embedded_Basecolor_map" from chair.usdz (different actual textures)
-        components.append(assetURL?.absoluteString ?? "unknown_asset")
+        // USDZ-only scope guard: embedded texture name collisions across packed archives.
+        let isUSDZ = assetURL?.pathExtension.lowercased() == "usdz"
+        if isUSDZ {
+            components.append(assetURL?.absoluteString ?? "unknown_asset")
+        }
 
         // Texture identity:
         // - Use canonical URL identity when available (stable across asset instances).
