@@ -2,11 +2,34 @@
 
 ## Overview
 
-UntoldEngine implements a two-tier proximity-based geometry streaming system for large outdoor scenes on Apple platforms (macOS, visionOS). The system streams geometry in and out of GPU memory based on camera distance, using a spatial octree for efficient range queries.
+UntoldEngine implements a multi-tier proximity-based geometry streaming system for large outdoor scenes on Apple platforms (macOS, visionOS). The system streams geometry in and out of GPU memory based on camera distance, using a spatial octree for efficient range queries.
 
 **Tier 1 — Tile streaming** (`TileComponent`): coarse-grained. Each tile is a whole USDC file covering a bounded region of the world. Tiles load and unload as the camera moves through the scene.
 
 **Tier 2 — OCC mesh streaming** (`StreamingComponent`): fine-grained. Inside a loaded tile, individual mesh stubs upload to the GPU incrementally, governed by distance bands and memory budgets.
+
+**HLOD (Hierarchical Level of Detail)**: a coarse proxy mesh shown in place of an unloaded tile. Loaded when the tile leaves range, unloaded when the full tile finishes parsing. Provides continuity for distant geometry without holding the full tile in GPU memory.
+
+**Per-tile LOD levels** (`TileLODLevel`): intermediate mesh representations that bridge the gap between the full tile (`streamingRadius`) and the HLOD switch distance. Finer than HLOD but coarser than the full tile; shown while the tile itself is unloaded and the camera is at mid-range.
+
+### Distance Band Summary
+
+```
+camera distance →  close        mid-range       far         very far
+                   ──────────────────────────────────────────────────
+full tile          ████████████
+per-tile LOD 0                  ██████
+per-tile LOD 1                          ██████
+HLOD                                            ████████████████████
+nothing visible    nothing                                  (if no HLOD)
+```
+
+| Band | Representation | Controlled by |
+|---|---|---|
+| `< streamingRadius` | Full tile (all submeshes) | `TileComponent.state == .parsed` |
+| `streamingRadius … LOD[n].switchDistance` | Per-tile LOD n (coarser each step) | `TileLODLevel.state` |
+| `> last LOD switchDistance … hlodSwitchDistance` | HLOD proxy mesh | `TileComponent.hlodState` |
+| `> hlodSwitchDistance` | Nothing (tile + HLOD both unloaded) | — |
 
 ---
 
@@ -27,12 +50,39 @@ A scene is described by a manifest file listing tiles. Each tile entry specifies
 | `unload_radius` | *(optional)* Per-tile unload threshold; falls back to `streaming_defaults` |
 | `prefetch_radius` | *(optional)* Per-tile prefetch start; falls back to `streaming_defaults`, then auto |
 | `priority` | *(optional)* Load order when multiple tiles are candidates |
+| `hlod_levels` | *(optional)* Array of HLOD proxy entries; see [HLOD](#hlod-hierarchical-level-of-detail) |
+| `lod_levels` | *(optional)* Array of per-tile intermediate LOD entries; see [Per-tile LOD Levels](#per-tile-lod-levels) |
 
 The `streaming_defaults` block sets scene-wide fallback values for all per-tile fields. An optional `shared_bucket` entry holds geometry that spans many tiles and should always be resident (loaded as soon as the camera enters the scene).
 
+#### HLOD manifest contract
+
+```json
+"hlod_levels": [
+  { "path": "tiles/tile_0_0_hlod.usdc", "switch_distance": 300.0 }
+]
+```
+
+`switch_distance` is the camera distance beyond which the HLOD is shown in place of the tile. Typically a single entry per tile. The HLOD file is a coarse merged mesh exported by the content pipeline.
+
+#### Per-tile LOD manifest contract
+
+```json
+"lod_levels": [
+  { "path": "tiles/tile_0_0_lod1.usdc", "switch_distance": 80.0 },
+  { "path": "tiles/tile_0_0_lod2.usdc", "switch_distance": 150.0 }
+]
+```
+
+Entries **must be sorted ascending by `switch_distance`** (smallest = finest = closest). `switch_distance` is the camera distance beyond which this LOD is preferred over the finer level (or the full tile). The engine sorts entries on load, so unsorted manifests are corrected at runtime, but sorted manifests are the canonical contract.
+
 ### ECS Components
 
-- **`TileComponent`** — attached to every tile stub entity created by `loadTiledScene()`. Carries all metadata needed for the streaming bootstrap and teardown lifecycle.
+- **`TileComponent`** — attached to every tile stub entity created by `loadTiledScene()`. Carries all metadata needed for the streaming bootstrap and teardown lifecycle. Key fields added for HLOD and LOD:
+  - `hlodURL`, `hlodEntityId`, `hlodState`, `hlodSwitchDistance`, `hlodLoadTask` — HLOD lifecycle
+  - `lodLevels: [TileLODLevel]` — per-tile intermediate LOD entries
+  - `meshEntityId` — the dedicated mesh-child entity ID, stored so the timeout guard can force-close `AssetLoadingGate` if `loadTextures()` hangs
+- **`TileLODLevel`** — one instance per LOD entry in the manifest. Carries `url`, `switchDistance`, `entityId`, `state` (`HLODAssetState`), and `loadTask`. Mirrors the HLOD lifecycle pattern.
 - **`StreamingComponent`** — attached to individual OCC mesh stubs created inside a loaded tile. Governs per-mesh load/unload within the second streaming tier.
 - **`RenderComponent`** — added to an entity only after its GPU geometry upload completes. Absence means the entity is invisible to culling and rendering.
 
@@ -198,6 +248,145 @@ Any tile Task that was already in flight and completes after step 1–2 finds `s
 
 ---
 
+---
+
+## HLOD (Hierarchical Level of Detail)
+
+HLOD fills the gap beyond a tile's `unloadRadius` by showing a coarse proxy mesh while the full tile is not in GPU memory. This eliminates the visual "pop to nothing" when a tile leaves range.
+
+### Lifecycle
+
+```
+hlodState:  unloaded → loading → loaded → unloading → unloaded
+```
+
+| State | Meaning |
+|---|---|
+| `.unloaded` | No HLOD geometry in GPU memory |
+| `.loading` | `loadHLOD()` task running |
+| `.loaded` | HLOD entity exists and is rendering |
+| `.unloading` | Teardown in progress |
+
+### Load trigger
+
+HLOD is loaded when all of the following hold:
+- The tile has an `hlodURL` in its `TileComponent`
+- `dist >= hlodSwitchDistance` (camera is beyond the switch threshold)
+- `tileComp.state != .parsed` (full tile is not resident — no redundant HLOD)
+- `hlodState == .unloaded`
+
+### Unload trigger
+
+HLOD is unloaded (and the load task cancelled) when:
+- The full tile reaches `.parsed` — full geometry has taken over; HLOD is redundant.
+- `dist < hlodSwitchDistance` — camera re-enters the tile's zone; full tile will load.
+
+**Race fix:** `hlodState = .unloading` is set **before** `hlodLoadTask.cancel()`. This prevents the load completion callback from seeing `.loading` and incorrectly marking the HLOD as `.loaded` after teardown is already in progress.
+
+### Out-of-range cleanup
+
+A second pass after the main HLOD pass tears down HLOD entities for tiles that have drifted entirely outside `maxQueryRadius`. These tiles are no longer in the octree result and would otherwise remain with stale `.loaded` HLOD entities indefinitely.
+
+---
+
+## Per-tile LOD Levels
+
+Per-tile LODs fill the mid-distance band between the full tile (`streamingRadius`) and the HLOD (`hlodSwitchDistance`). They are intermediate meshes — coarser than the full tile but finer than HLOD — shown while the tile itself is unloaded.
+
+**Distinction from HLOD:**
+
+| | HLOD | Per-tile LOD |
+|---|---|---|
+| Purpose | Replace unloaded tile at *very far* distances | Provide finer intermediate detail at *mid* distances |
+| Memory concern | Yes — always-resident coarse mesh | Yes — one entity per active LOD level |
+| GPU cost concern | Low (coarse mesh) | Medium (finer than HLOD, less than full tile) |
+| Distance band | `> hlodSwitchDistance` | `streamingRadius … hlodSwitchDistance` |
+
+### Lifecycle
+
+Each `TileLODLevel` follows the same `HLODAssetState` state machine as HLOD:
+
+```
+state:  unloaded → loading → loaded → unloading → unloaded
+```
+
+### LOD selection logic (per frame, per tile)
+
+```
+if dist >= hlodSwitchDistance → skip (HLOD pass handles this band)
+
+find target index:
+  last level where level.switchDistance ≤ dist   → that level
+  no match (dist < LOD[0].switchDistance)         → no LOD (tile will load or is already parsed)
+
+load target level if .unloaded
+unload all other levels that are .loaded or .loading
+```
+
+When `tileComp.state == .parsed` (full tile is resident), all LOD levels are unloaded — the full tile has taken over for that distance band.
+
+### `loadLODLevel(entityId:levelIndex:)`
+
+1. Creates a child entity under the tile stub.
+2. Loads the LOD USDC via `setEntityMeshAsync` with `.immediate` policy (small proxy mesh).
+3. On success: tags the entity for static batching (`setEntityStaticBatchComponent`) and calls `BatchingSystem.shared.notifyTileParsedEntities(_:)` to bypass the quiescence delay.
+4. Marks the entity in `loadedLODEntities` tracking set.
+
+### `unloadLODLevel(entityId:levelIndex:)`
+
+1. Sets `level.state = .unloading` **before** `level.loadTask?.cancel()` (same race fix as HLOD).
+2. Destroys the child entity.
+3. Removes from `loadedLODEntities` when all levels are clear.
+
+### Out-of-range cleanup
+
+A pass after the LOD streaming pass tears down LOD entities for tiles outside `maxQueryRadius`, mirroring the HLOD cleanup pass.
+
+### Interaction with `loadTile` completion
+
+When the full tile finishes parsing, `unloadAllLODLevels(entityId:)` is called alongside `unloadHLOD(entityId:)`. Both intermediate representations are removed as the full tile takes over.
+
+---
+
+## Asset Loading Freeze Prevention
+
+`ModelIO`'s `loadTextures()` is a blocking call that can hang indefinitely on unsupported image formats inside USDC archives (e.g. a format that stalls the ObjC image decoder with no timeout). When it hangs, `AssetLoadingState.finishLoading` is never called, `AssetLoadingGate.isLoadingAny` stays `true` permanently, and `RenderingSystem` skips all ECS traversal and culling every frame — the app remains alive but the view is frozen.
+
+### Fix: timeout guard + `ResumeOnce`
+
+`loadTextures()` in `RegistrationSystem` is wrapped with a `DispatchQueue` + 15-second deadline:
+
+```swift
+let textureLoadOK = await withCheckedContinuation { cont in
+    let once = ResumeOnce()        // NSLock-backed: resumes cont exactly once
+    DispatchQueue.global(qos: .userInitiated).async {
+        assetRef.loadTextures()
+        once.callOnce { cont.resume(returning: true) }
+    }
+    DispatchQueue.global().asyncAfter(deadline: .now() + 15.0) {
+        once.callOnce { cont.resume(returning: false) }   // deadline fires
+    }
+}
+```
+
+If `loadTextures()` hangs, the deadline fires after 15 s and the async continuation proceeds without textures (geometry is still rendered, just untextured).
+
+### Force-closing the gate
+
+`TileComponent.meshEntityId` stores the dedicated mesh-child entity ID. If the tile is unloaded while a parse is in flight and `loadTextures()` is hung, the timeout guard retrieves `meshEntityId` and force-closes the gate:
+
+```swift
+let hungMeshId = tc.meshEntityId
+tc.meshEntityId = .invalid
+if hungMeshId != .invalid {
+    Task { await AssetLoadingState.shared.finishLoading(entityId: hungMeshId) }
+}
+```
+
+This unblocks `AssetLoadingGate`, allowing the render loop to resume its normal ECS traversal.
+
+---
+
 ## Key Design Parameters
 
 | Property | Default | Notes |
@@ -216,3 +405,6 @@ Any tile Task that was already in flight and completes after step 1–2 finds `s
 | `velocityLookAheadTime` | 0.5 s | Predictive position look-ahead |
 | `velocityLookAheadMinSpeed` | 1.5 m/s | Minimum speed to activate look-ahead |
 | `visibleEvictionProtectionRadius` | 30 m | Distance inside which eviction is blocked |
+| `hlodSwitchDistance` | manifest `switch_distance` | Camera distance beyond which HLOD is shown |
+| LOD `switchDistance` | manifest `switch_distance` per entry | Camera distance beyond which this LOD is preferred |
+| `loadTextures()` timeout | 15 s | Deadline before `ResumeOnce` force-proceeds without textures |

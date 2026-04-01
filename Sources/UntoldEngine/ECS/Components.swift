@@ -392,12 +392,35 @@ public enum TileAssetState {
     case unloading  // tile being torn down; child entities being destroyed
 }
 
-/// Lifecycle state of a tile's coarse HLOD mesh.
+/// Lifecycle state of a tile's coarse HLOD mesh or per-tile LOD level.
 public enum HLODAssetState {
-    case unloaded   // no HLOD geometry in flight
-    case loading    // setEntityMeshAsync in progress for the HLOD mesh
-    case loaded     // HLOD mesh is GPU-resident and rendering
-    case unloading  // HLOD being torn down
+    case unloaded   // no geometry in flight
+    case loading    // setEntityMeshAsync in progress
+    case loaded     // mesh is GPU-resident and rendering
+    case unloading  // being torn down
+}
+
+/// One LOD level for a tile stub.  Levels are stored sorted ascending by
+/// switchDistance (smallest = finest = closest to camera).  The streaming
+/// system loads the single appropriate level for the current camera distance
+/// and unloads all others, so at most one TileLODLevel is active at a time.
+public final class TileLODLevel {
+    /// Absolute URL to the coarser USDC/USDZ for this LOD level.
+    public let url: URL
+    /// Camera distance beyond which this LOD is preferred over the next finer level
+    /// (or the full tile if this is the finest LOD).
+    public let switchDistance: Float
+    /// Child entity carrying the RenderComponent for this LOD.  .invalid when not loaded.
+    public var entityId: EntityID = .invalid
+    /// Lifecycle state — mirrors HLODAssetState.
+    public var state: HLODAssetState = .unloaded
+    /// Task handle for the in-flight setEntityMeshAsync call.
+    var loadTask: Task<Void, Never>? = nil
+
+    public init(url: URL, switchDistance: Float) {
+        self.url = url
+        self.switchDistance = switchDistance
+    }
 }
 
 /// Visual residency state of a tile's GPU geometry.
@@ -513,6 +536,15 @@ public class TileComponent: Component {
     /// to .failed so the concurrency slot is freed and retry backoff applies.
     /// Reset to 0 when the tile transitions out of .parsing.
     public var parseStartTime: CFAbsoluteTime = 0
+
+    // MARK: - Per-tile LOD levels
+
+    /// One entry per LOD level parsed from the manifest, sorted ascending by
+    /// switchDistance (smallest = finest detail = closest to camera).
+    /// LOD levels fill the distance band between the tile's streaming radius
+    /// (where full geometry loads) and the HLOD switch distance (where the coarse
+    /// proxy takes over).  Only one level is active at a time.
+    public var lodLevels: [TileLODLevel] = []
 
     // MARK: - HLOD (coarse distant mesh)
 

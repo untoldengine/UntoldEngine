@@ -211,6 +211,15 @@ The key design decisions here are:
 
 The tile-level streaming layer sits **above** the mesh-level OOC streaming. For full documentation, architecture diagrams, and tuning guidance see [`docs/Architecture/tilebasedstreaming.md`](tilebasedstreaming.md). This section summarises the key design decisions that interlock with the mesh-level system documented above.
 
+### Per-frame passes in `update()` (tile layer, in order)
+
+1. **Tile load pass** — dispatches `.unloaded` stubs within `effectivePrefetchRadius` (frustum-gated, budget-gated, up to `maxConcurrentTileLoads`).
+2. **Tile unload pass** — three sub-passes (nearby beyond `unloadRadius`, `.parsed` outside query radius, `.parsing` outside query radius).
+3. **HLOD streaming pass** — for each tile stub, loads or unloads the HLOD proxy based on camera distance vs `hlodSwitchDistance` and `tileComp.state`.
+4. **HLOD out-of-range cleanup** — unloads HLOD entities for tiles that drifted entirely outside `maxQueryRadius`.
+5. **Per-tile LOD streaming pass** — for each tile stub, finds the target LOD level for the current distance (skip if `dist >= hlodSwitchDistance`; load target; unload others; unload all when tile is `.parsed`).
+6. **Per-tile LOD out-of-range cleanup** — unloads LOD entities for tiles outside `maxQueryRadius`.
+
 ### TileComponent
 
 Tile stubs carry a `TileComponent` (no `StreamingComponent`, no `RenderComponent`):
@@ -227,6 +236,13 @@ Tile stubs carry a `TileComponent` (no `StreamingComponent`, no `RenderComponent
 | `state` | `.unloaded → .parsing → .parsed → .unloading` |
 | `pendingUnloadSince` | CFAbsoluteTime when tile first exceeded `unloadRadius`; 0 = in range |
 | `loadTask` | The in-flight Swift `Task` (cancelled on teardown) |
+| `meshEntityId` | The dedicated mesh-child entity ID; stored so the asset-loading timeout guard can force-close `AssetLoadingGate` if `loadTextures()` hangs |
+| `hlodURL` | URL of the HLOD proxy USDC, if present in the manifest |
+| `hlodEntityId` | ECS entity holding the HLOD mesh; `.invalid` when unloaded |
+| `hlodState` | HLOD lifecycle: `.unloaded → .loading → .loaded → .unloading` |
+| `hlodSwitchDistance` | Camera distance beyond which the HLOD is shown |
+| `hlodLoadTask` | In-flight HLOD load `Task` (cancelled before `hlodState = .unloading`) |
+| `lodLevels` | `[TileLODLevel]` — per-tile intermediate LOD entries parsed from manifest |
 
 ### Tile Load Pass (inside `update()`)
 
@@ -261,3 +277,8 @@ Three sub-passes each tick, capped at `maxTileUnloadsPerUpdate` (default **2**) 
 - **`defer` slot release** — `releaseActiveTileLoad` in `defer` frees the concurrency slot on all exit paths (success, failure, cancelled-state early return).
 - **`removeTileComponent` deregisters from streaming system** — cancels in-flight `loadTask` and calls `GeometryStreamingSystem.shared.unregisterTileEntity(entityId)` to atomically remove the entity from all four tile tracking sets (`loadedTileEntities`, `loadingTileEntities`, `activeTileLoads`, `meshEntityToTileEntity`).
 - **`reset()` clears tile tracking sets** — called by `loadTiledScene()` after scene destruction so no stale entity IDs from the previous scene persist into the new scene's streaming passes.
+- **HLOD unload race** — `hlodState = .unloading` is set **before** `hlodLoadTask.cancel()`. The load-completion callback checks `hlodState` before marking `.loaded`; setting it first ensures the callback always discards a racing in-flight result.
+- **Per-tile LOD follows the same race fix** — `level.state = .unloading` is set before `level.loadTask?.cancel()`.
+- **LOD unload-all on tile parse** — when `loadTile`'s completion callback fires (state transitioning to `.parsed`), both `unloadHLOD(entityId:)` and `unloadAllLODLevels(entityId:)` are called. The full tile has taken over all distance bands; intermediate representations are no longer needed.
+- **`loadedLODEntities` tracking set** — mirrors `loadedTileEntities` for the LOD layer. Allows `reset()` to cancel all in-flight LOD tasks and `loadTiledScene()` second-call safety to clear stale LOD entity IDs.
+- **`AssetLoadingGate` timeout** — `meshEntityId` is stored in `TileComponent` so the timeout guard can call `AssetLoadingState.shared.finishLoading(entityId: meshEntityId)` without an O(n) map scan if `loadTextures()` hangs and the gate would otherwise remain open permanently.

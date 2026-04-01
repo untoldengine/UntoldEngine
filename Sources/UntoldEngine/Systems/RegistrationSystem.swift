@@ -1925,6 +1925,11 @@ private struct TileEntry: Decodable {
     /// camera distance beyond which the coarse HLOD mesh is shown instead of full geometry).
     let hlodLevels: [HLODLevel]?
 
+    /// Optional per-tile LOD levels that fill the distance band between the tile's
+    /// streaming radius (full geometry) and hlodSwitchDistance (HLOD proxy).
+    /// Sorted ascending by switch_distance in the manifest (finest first).
+    let lodLevels: [LODLevelEntry]?
+
     enum CodingKeys: String, CodingKey {
         case tileId = "tile_id"
         case pathRelativeToManifest = "path_relative_to_manifest"
@@ -1936,10 +1941,25 @@ private struct TileEntry: Decodable {
         case priority
         case prefetchRadius = "prefetch_radius"
         case hlodLevels = "hlod_levels"
+        case lodLevels = "lod_levels"
     }
 }
 
 private struct HLODLevel: Decodable {
+    let path: String
+    let switchDistance: Float
+
+    enum CodingKeys: String, CodingKey {
+        case path
+        case switchDistance = "switch_distance"
+    }
+}
+
+/// One entry in a tile's lod_levels manifest array.
+/// switch_distance is the camera distance beyond which this LOD is preferred
+/// over the next finer level (or the full tile if this is the finest).
+/// Entries should be sorted ascending by switch_distance in the manifest.
+private struct LODLevelEntry: Decodable {
     let path: String
     let switchDistance: Float
 
@@ -2125,6 +2145,20 @@ public func loadTiledScene(
                     if FileManager.default.fileExists(atPath: hlodURL.path) {
                         tileComp.hlodURL = hlodURL
                         tileComp.hlodSwitchDistance = first.switchDistance
+                    }
+                }
+
+                // LOD levels: sort ascending by switchDistance (finest first) so the
+                // streaming pass can binary-search for the active level by distance.
+                if let lodEntries = tile.lodLevels {
+                    let sorted = lodEntries.sorted { $0.switchDistance < $1.switchDistance }
+                    for entry in sorted {
+                        let lodURL = manifestDir.appendingPathComponent(entry.path)
+                        guard FileManager.default.fileExists(atPath: lodURL.path) else {
+                            Logger.logWarning(message: "[loadTiledScene] LOD file missing for tile '\(tile.tileId)': '\(entry.path)' — skipping level.")
+                            continue
+                        }
+                        tileComp.lodLevels.append(TileLODLevel(url: lodURL, switchDistance: entry.switchDistance))
                     }
                 }
             }
