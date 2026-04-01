@@ -213,11 +213,11 @@ The tile-level streaming layer sits **above** the mesh-level OOC streaming. For 
 
 ### Per-frame passes in `update()` (tile layer, in order)
 
-1. **Tile load pass** — dispatches `.unloaded` stubs within `effectivePrefetchRadius` (frustum-gated, budget-gated, up to `maxConcurrentTileLoads`).
+1. **Tile load pass** — dispatches `.unloaded` stubs within `effectivePrefetchRadius` (frustum-gated, budget-gated, up to `maxConcurrentTileLoads`). Tiles with LOD levels are gated: the full tile only loads when the camera is within the finest LOD switch distance.
 2. **Tile unload pass** — three sub-passes (nearby beyond `unloadRadius`, `.parsed` outside query radius, `.parsing` outside query radius).
-3. **HLOD streaming pass** — for each tile stub, loads or unloads the HLOD proxy based on camera distance vs `hlodSwitchDistance` and `tileComp.state`.
+3. **HLOD streaming pass** — for each tile stub, loads or unloads the HLOD proxy based on camera distance vs `hlodSwitchDistance` and `tileComp.state`. Uses `hlodHysteresisFactor` (default 0.90) to prevent thrashing at boundaries. Capped by `maxConcurrentHLODLoads` (default 4).
 4. **HLOD out-of-range cleanup** — unloads HLOD entities for tiles that drifted entirely outside `maxQueryRadius`.
-5. **Per-tile LOD streaming pass** — for each tile stub, finds the target LOD level for the current distance (skip if `dist >= hlodSwitchDistance`; load target; unload others; unload all when tile is `.parsed`).
+5. **Per-tile LOD streaming pass** — for each tile stub, finds the target LOD level for the current distance with hysteresis (`lodHysteresisFactor`, default 0.90). Skips when HLOD is resident (avoids dual representation). Loads target; unloads others; unloads all when tile is `.parsed`. Capped by `maxConcurrentLODLoads` (default 4).
 6. **Per-tile LOD out-of-range cleanup** — unloads LOD entities for tiles outside `maxQueryRadius`.
 
 ### TileComponent
@@ -271,6 +271,10 @@ Three sub-passes each tick, capped at `maxTileUnloadsPerUpdate` (default **2**) 
 - **Grace period prevents oscillation** — a 3-second hold on `.parsed` tile teardown stops rapid load/unload cycles at tile boundaries, which was the primary cause of flickering in large scenes.
 - **`maxTileUnloadsPerUpdate = 2`** — spreading GPU buffer releases across frames prevents a single-frame blank when many tiles leave range simultaneously.
 - **`maxConcurrentTileLoads = 2`** — two concurrent parses balance throughput for large scenes against RAM spike risk. Each parse calls `MDLAsset(url:)` on a full USDC file; the `tileParseMemoryBudgetMB` gate serialises naturally when a large tile saturates the budget.
+- **`blockRenderLoop: false` on all tile/LOD/HLOD loads** — `setEntityMeshAsync` is called with `blockRenderLoop: false` so that `AssetLoadingGate.isLoadingAny` is not held `true` during the (potentially multi-second) parse. Without this, concurrent parses freeze `visibleEntityIds` updates and stall the render loop.
+- **Hysteresis on LOD/HLOD transitions** — `lodHysteresisFactor` (default 0.90) and `hlodHysteresisFactor` (default 0.90) add a 10% inner band so the camera must move meaningfully past a switch boundary before the current representation is unloaded. Without hysteresis, frame-to-frame distance jitter causes rapid load/unload cycles that freeze the engine.
+- **`cancelPendingEntities` before entity destruction** — when `unloadLODLevel` or `unloadHLOD` tears down child entities, it first calls `BatchingSystem.shared.cancelPendingEntities(_:)` with the render descendant IDs, purging them from all pending batching queues. This prevents "entity is missing" errors when the batching tick tries to process additions for entities that were destroyed between event queuing and tick processing.
+- **`notifyTileEntitiesResident` replaces the event storm** — tile/LOD/HLOD load completions call `BatchingSystem.shared.notifyTileEntitiesResident(_:)` instead of the former two-step `queueResidencyEventsForRenderDescendants` + `notifyTileParsedEntities` pairing. The single call directly registers entities in the batching system's pending additions and marks them for quiescence bypass, avoiding hundreds of individual `AssetResidencyChangedEvent` objects through `SystemEventBus`.
 - **Identity world transform on stubs** — tile geometry is exported in world space; no runtime coordinate conversion needed.
 - **`.auto` streaming policy** — tiles use the same admission gate as regular assets; unexpectedly large tiles are gracefully rejected and retried rather than crashing.
 - **Zombie-state guard in completion** — completion callback checks `tc.state == .parsing`. If `unloadTile` ran mid-parse (state is `.unloading`), result is discarded and the pre-created child entity is cleaned up — stub never enters a "geometry missing" zombie state.

@@ -131,39 +131,39 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     /// Tile entities currently being parsed, mapped to their declared file size in bytes.
     /// Used to track the total parse memory in flight for the budget gate.
-    private var activeTileLoads: [EntityID: Int] = [:]
+    var activeTileLoads: [EntityID: Int] = [:]
 
     /// Tile entities currently in the .parsed state.
     /// Mirrors loadedStreamingEntities but for tile-level entities.
     /// Enables out-of-range checks for tiles that fall outside the octree query radius.
-    private var loadedTileEntities: Set<EntityID> = []
+    var loadedTileEntities: Set<EntityID> = []
 
     /// Tile entities currently in the .parsing state.
     /// Enables cancellation of in-progress tile parses when the camera moves away
     /// before the load completes (e.g. fast movement or teleport).
-    private var loadingTileEntities: Set<EntityID> = []
+    var loadingTileEntities: Set<EntityID> = []
 
     /// Maps capturedMeshEntityId → tile stub EntityID so OCC upload completions
     /// can quickly update the parent tile's visual readiness counters (O(1) lookup).
-    private var meshEntityToTileEntity: [EntityID: EntityID] = [:]
+    var meshEntityToTileEntity: [EntityID: EntityID] = [:]
 
     /// Tile stub entities that currently have an HLOD mesh loaded.
     /// Used to find and unload HLOD meshes for tiles that drift outside the query radius.
-    private var loadedHLODEntities: Set<EntityID> = []
+    var loadedHLODEntities: Set<EntityID> = []
 
     /// Tile stub entities that currently have at least one per-tile LOD level loaded.
     /// Used to reach tiles that drift outside the octree query radius for cleanup.
-    private var loadedLODEntities: Set<EntityID> = []
+    var loadedLODEntities: Set<EntityID> = []
 
     /// Number of per-tile LOD level loads currently in flight (.loading state).
     /// Protected by stateLock.  Mirrors the role of loadingTileEntities.count for
     /// full tiles — caps concurrent ModelIO parses so we don't OOM on mass dispatch.
-    private var lodLoadingCount: Int = 0
+    var lodLoadingCount: Int = 0
 
     /// Number of HLOD mesh loads currently in flight (.loading hlodState).
     /// Protected by stateLock.  Same role as lodLoadingCount — prevents simultaneous
     /// mass dispatch of 100+ HLOD parses that would OOM-kill the process.
-    private var hlodLoadingCount: Int = 0
+    var hlodLoadingCount: Int = 0
 
     // MARK: - Camera Velocity (4.5 predictive loading)
 
@@ -182,8 +182,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// or micro-jitter does not artificially inflate the candidate distance set.
     public var velocityLookAheadMinSpeed: Float = 1.5
 
-    private var lastCameraPosition: simd_float3? = nil
-    private var cameraVelocity: simd_float3 = .zero
+    var lastCameraPosition: simd_float3?
+    var cameraVelocity: simd_float3 = .zero
 
     // MARK: - Frustum Gate
 
@@ -215,29 +215,29 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Set by the MemoryBudgetManager pressure callback (background queue).
     /// Checked and cleared at the start of each update() tick (main thread) so that
     /// all eviction work stays on the same thread as the rest of the streaming system.
-    private var pendingPressureRelief: Bool = false
-    private var pressureIsAggressive: Bool = false
+    var pendingPressureRelief: Bool = false
+    var pressureIsAggressive: Bool = false
 
-    private let stateLock = NSLock()
-    private var timeSinceLastUpdate: Float = 0
-    private var timeSinceCameraDiagLog: Float = 0
-    private var activeLoads: Set<EntityID> = []
+    let stateLock = NSLock()
+    var timeSinceLastUpdate: Float = 0
+    var timeSinceCameraDiagLog: Float = 0
+    var activeLoads: Set<EntityID> = []
     /// Subset of activeLoads that belong to the near band. Tracked separately so the
     /// near-band concurrency limit can be enforced independently of the global limit.
-    private var activeNearBandLoads: Set<EntityID> = []
-    private var loadedStreamingEntities: Set<EntityID> = [] // Track loaded entities for efficient unload checks
-    private var currentFrame: Int = 0
-    private var lastLoadCandidateCount: Int = 0
-    private var lastPendingLoadBacklog: Int = 0
-    private var diagnostics: GeometryStreamingDiagnosticsSnapshot = .init()
-    private var cumulativeAsyncLoadMs: Double = 0.0
-    private var completedAsyncLoads: Int = 0
+    var activeNearBandLoads: Set<EntityID> = []
+    var loadedStreamingEntities: Set<EntityID> = [] // Track loaded entities for efficient unload checks
+    var currentFrame: Int = 0
+    var lastLoadCandidateCount: Int = 0
+    var lastPendingLoadBacklog: Int = 0
+    var diagnostics: GeometryStreamingDiagnosticsSnapshot = .init()
+    var cumulativeAsyncLoadMs: Double = 0.0
+    var completedAsyncLoads: Int = 0
 
     /// First-detection timestamps (CFAbsoluteTime) keyed by entity ID.
     /// Records when each entity first appeared as a load candidate so we can measure
     /// scheduler latency: time from entering range to actual dispatch.
     /// Accessed only from update() and its synchronous callees — no lock needed.
-    private var firstRangeTimestamps: [EntityID: Double] = [:]
+    var firstRangeTimestamps: [EntityID: Double] = [:]
 
     private init() {
         // Register OS memory pressure handlers.
@@ -260,13 +260,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     }
 
     @inline(__always)
-    private func withStateLock<T>(_ body: () throws -> T) rethrows -> T {
+    func withStateLock<T>(_ body: () throws -> T) rethrows -> T {
         stateLock.lock()
         defer { stateLock.unlock() }
         return try body()
     }
 
-    private func reserveActiveLoad(entityId: EntityID) -> Bool {
+    func reserveActiveLoad(entityId: EntityID) -> Bool {
         withStateLock {
             if activeLoads.contains(entityId) {
                 return false
@@ -276,29 +276,29 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
     }
 
-    private func releaseActiveLoad(entityId: EntityID) {
+    func releaseActiveLoad(entityId: EntityID) {
         withStateLock {
             _ = activeLoads.remove(entityId)
         }
     }
 
-    private func activeLoadCountSnapshot() -> Int {
+    func activeLoadCountSnapshot() -> Int {
         withStateLock { activeLoads.count }
     }
 
-    private func reserveNearBandLoad(entityId: EntityID) {
+    func reserveNearBandLoad(entityId: EntityID) {
         _ = withStateLock { activeNearBandLoads.insert(entityId) }
     }
 
-    private func releaseNearBandLoad(entityId: EntityID) {
+    func releaseNearBandLoad(entityId: EntityID) {
         withStateLock { _ = activeNearBandLoads.remove(entityId) }
     }
 
-    private func activeNearBandLoadCount() -> Int {
+    func activeNearBandLoadCount() -> Int {
         withStateLock { activeNearBandLoads.count }
     }
 
-    private func reserveActiveTileLoad(entityId: EntityID, fileSizeBytes: Int) -> Bool {
+    func reserveActiveTileLoad(entityId: EntityID, fileSizeBytes: Int) -> Bool {
         withStateLock {
             guard activeTileLoads[entityId] == nil else { return false }
             activeTileLoads[entityId] = fileSizeBytes
@@ -306,88 +306,88 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
     }
 
-    private func releaseActiveTileLoad(entityId: EntityID) {
+    func releaseActiveTileLoad(entityId: EntityID) {
         withStateLock { _ = activeTileLoads.removeValue(forKey: entityId) }
     }
 
-    private func activeTileLoadCount() -> Int {
+    func activeTileLoadCount() -> Int {
         withStateLock { activeTileLoads.count }
     }
 
     /// Sum of declared file sizes (bytes) for all tiles currently being parsed.
-    private func activeParseBytesInFlight() -> Int {
+    func activeParseBytesInFlight() -> Int {
         withStateLock { activeTileLoads.values.reduce(0, +) }
     }
 
-    private func activeLODLoadCount() -> Int {
+    func activeLODLoadCount() -> Int {
         withStateLock { lodLoadingCount }
     }
 
-    private func incrementLODLoadCount() {
+    func incrementLODLoadCount() {
         withStateLock { lodLoadingCount += 1 }
     }
 
-    private func decrementLODLoadCount() {
+    func decrementLODLoadCount() {
         withStateLock { lodLoadingCount = max(0, lodLoadingCount - 1) }
     }
 
-    private func activeHLODLoadCount() -> Int {
+    func activeHLODLoadCount() -> Int {
         withStateLock { hlodLoadingCount }
     }
 
-    private func incrementHLODLoadCount() {
+    func incrementHLODLoadCount() {
         withStateLock { hlodLoadingCount += 1 }
     }
 
-    private func decrementHLODLoadCount() {
+    func decrementHLODLoadCount() {
         withStateLock { hlodLoadingCount = max(0, hlodLoadingCount - 1) }
     }
 
-    private func markLoadedTileEntity(_ entityId: EntityID) {
+    func markLoadedTileEntity(_ entityId: EntityID) {
         withStateLock { _ = loadedTileEntities.insert(entityId) }
     }
 
-    private func unmarkLoadedTileEntity(_ entityId: EntityID) {
+    func unmarkLoadedTileEntity(_ entityId: EntityID) {
         withStateLock { _ = loadedTileEntities.remove(entityId) }
     }
 
-    private func loadedTileEntitiesSnapshot() -> [EntityID] {
+    func loadedTileEntitiesSnapshot() -> [EntityID] {
         withStateLock { Array(loadedTileEntities) }
     }
 
-    private func markLoadingTileEntity(_ entityId: EntityID) {
+    func markLoadingTileEntity(_ entityId: EntityID) {
         withStateLock { _ = loadingTileEntities.insert(entityId) }
     }
 
-    private func unmarkLoadingTileEntity(_ entityId: EntityID) {
+    func unmarkLoadingTileEntity(_ entityId: EntityID) {
         withStateLock { _ = loadingTileEntities.remove(entityId) }
     }
 
-    private func loadingTileEntitiesSnapshot() -> [EntityID] {
+    func loadingTileEntitiesSnapshot() -> [EntityID] {
         withStateLock { Array(loadingTileEntities) }
     }
 
-    private func markLoadedHLODEntity(_ entityId: EntityID) {
+    func markLoadedHLODEntity(_ entityId: EntityID) {
         withStateLock { _ = loadedHLODEntities.insert(entityId) }
     }
 
-    private func unmarkLoadedHLODEntity(_ entityId: EntityID) {
+    func unmarkLoadedHLODEntity(_ entityId: EntityID) {
         withStateLock { _ = loadedHLODEntities.remove(entityId) }
     }
 
-    private func loadedHLODEntitiesSnapshot() -> [EntityID] {
+    func loadedHLODEntitiesSnapshot() -> [EntityID] {
         withStateLock { Array(loadedHLODEntities) }
     }
 
-    private func markLoadedLODEntity(_ entityId: EntityID) {
+    func markLoadedLODEntity(_ entityId: EntityID) {
         withStateLock { _ = loadedLODEntities.insert(entityId) }
     }
 
-    private func unmarkLoadedLODEntity(_ entityId: EntityID) {
+    func unmarkLoadedLODEntity(_ entityId: EntityID) {
         withStateLock { _ = loadedLODEntities.remove(entityId) }
     }
 
-    private func loadedLODEntitiesSnapshot() -> [EntityID] {
+    func loadedLODEntitiesSnapshot() -> [EntityID] {
         withStateLock { Array(loadedLODEntities) }
     }
 
@@ -400,7 +400,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// - Parameter sidePad: World-unit padding applied to each frustum side plane.
     ///   Pass nil to use `frustumGatePadding` (the default for mesh-level candidates).
     ///   Pass `tileFrustumGatePadding` for tile-level candidates.
-    private func buildStreamingFrustum(sidePad: Float? = nil) -> Frustum? {
+    func buildStreamingFrustum(sidePad: Float? = nil) -> Frustum? {
         guard let cameraId = CameraSystem.shared.activeCamera,
               let cameraComponent = scene.get(component: CameraComponent.self, for: cameraId)
         else { return nil }
@@ -409,41 +409,23 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let viewProj = simd_mul(renderInfo.perspectiveSpace, effectiveView)
 
         let ndcNear: Float = renderInfo.reverseZEnabled ? 1.0 : 0.0
-        let ndcFar: Float  = renderInfo.reverseZEnabled ? 0.0 : 1.0
+        let ndcFar: Float = renderInfo.reverseZEnabled ? 0.0 : 1.0
         var frustum = buildFrustum(from: viewProj, ndcNear: ndcNear, ndcFar: ndcFar)
         frustum = padFrustum(frustum, sidePad: sidePad ?? frustumGatePadding)
         return frustum
     }
 
-    /// Returns true if the world-space AABB defined by (center, halfExtent) intersects
-    /// or overlaps the frustum.  Uses the standard separating-axis / signed-distance
-    /// test: the AABB is outside if its projected interval onto any plane normal is
-    /// entirely on the negative (outside) side.
-    @inline(__always)
-    private func isAABBInFrustum(center: simd_float3, halfExtent: simd_float3, frustum: Frustum) -> Bool {
-        for plane in frustum.planes {
-            // Effective radius of the AABB projected onto the plane normal.
-            let r = abs(plane.n.x) * halfExtent.x
-                  + abs(plane.n.y) * halfExtent.y
-                  + abs(plane.n.z) * halfExtent.z
-            // Signed distance from the AABB center to the plane.
-            let dist = simd_dot(plane.n, center) + plane.d
-            if dist < -r { return false } // fully outside this plane
-        }
-        return true
-    }
-
-    private func loadedStreamingEntitiesSnapshot() -> [EntityID] {
+    func loadedStreamingEntitiesSnapshot() -> [EntityID] {
         withStateLock { Array(loadedStreamingEntities) }
     }
 
-    private func markLoadedStreamingEntity(_ entityId: EntityID) {
+    func markLoadedStreamingEntity(_ entityId: EntityID) {
         withStateLock {
             _ = loadedStreamingEntities.insert(entityId)
         }
     }
 
-    private func unmarkLoadedStreamingEntity(_ entityId: EntityID) {
+    func unmarkLoadedStreamingEntity(_ entityId: EntityID) {
         withStateLock {
             _ = loadedStreamingEntities.remove(entityId)
         }
@@ -708,7 +690,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
             tileLoadCandidates.sort { lhs, rhs in
                 if lhs.2 != rhs.2 { return lhs.2 > rhs.2 } // priority descending
-                return lhs.1 < rhs.1                        // effective distance ascending
+                return lhs.1 < rhs.1 // effective distance ascending
             }
             for (entityId, _, _) in tileLoadCandidates {
                 // Hard cap: never exceed maxConcurrentTileLoads regardless of budget.
@@ -755,7 +737,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     // resident while the camera lingers at the boundary.
                     if tileComp.hlodState != .unloaded { unloadHLOD(entityId: entityId) }
                 }
-                // else: inside hysteresis band — keep current HLOD state.
+            // else: inside hysteresis band — keep current HLOD state.
             case .parsed:
                 // Full geometry is resident — HLOD hand-off complete.
                 // No hysteresis here: always unload promptly on full-tile parse.
@@ -938,11 +920,15 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
         }
 
-        for staleId in staleTileIds { unmarkLoadedTileEntity(staleId) }
+        for staleId in staleTileIds {
+            unmarkLoadedTileEntity(staleId)
+        }
         // Cap tile unloads per tick to spread GPU buffer releases across frames,
         // preventing a one-frame blank when many tiles leave range simultaneously.
         let cappedUnloads = tileUnloadCandidates.prefix(maxTileUnloadsPerUpdate)
-        for entityId in cappedUnloads { unloadTile(entityId: entityId) }
+        for entityId in cappedUnloads {
+            unloadTile(entityId: entityId)
+        }
 
         // ── HLOD out-of-range cleanup ──────────────────────────────────────────
         // Tiles with a loaded HLOD mesh that fell outside the octree query radius
@@ -1224,1531 +1210,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
     }
 
-    private func loadMesh(entityId: EntityID, isNearBand: Bool = false) {
-        guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
-              streaming.state == .unloaded
-        else { return }
-        guard reserveActiveLoad(entityId: entityId) else { return }
-        if isNearBand { reserveNearBandLoad(entityId: entityId) }
-
-        streaming.state = .loading
-        BatchingSystem.shared.notifyEntityStreamingStarted(entityId: entityId)
-
-        // [Instrumentation] Measure scheduler latency: time from first range-detection to dispatch.
-        if let firstDetected = firstRangeTimestamps.removeValue(forKey: entityId) {
-            let tickToDispatchMs = (CFAbsoluteTimeGetCurrent() - firstDetected) * 1000.0
-            Logger.log(
-                message: "[OOC-Timing] Entity \(entityId): tick-to-dispatch=\(String(format: "%.1f", tickToDispatchMs))ms band=\(isNearBand ? "near" : "rest")",
-                category: LogCategory.oocTiming.rawValue
-            )
-        }
-
-        // Check if entity has LOD component and CPU LOD data (LOD+OOC path)
-        let hasLOD = scene.get(component: LODComponent.self, for: entityId) != nil
-        let hasCPULODData = hasLOD && ProgressiveAssetLoader.shared.hasCPULODData(for: entityId)
-
-        let filename = streaming.assetFilename
-        let ext = streaming.assetExtension
-        let assetName = streaming.assetName
-
-        let task = Task {
-            let asyncLoadStart = CFAbsoluteTimeGetCurrent()
-            let success = if hasCPULODData {
-                // LOD+OOC entity: upload all LOD levels from CPU registry (no disk I/O)
-                await uploadActiveLODFromCPU(entityId: entityId)
-            } else if hasLOD {
-                // LOD entity (disk-based): reload all LOD levels and set correct one for current distance
-                await reloadLODEntity(entityId: entityId)
-            } else {
-                // Regular entity: load single mesh from disk / cache
-                await loadMeshAsync(
-                    entityId: entityId,
-                    filename: filename,
-                    withExtension: ext,
-                    assetName: assetName
-                )
-            }
-            let asyncLoadMs = (CFAbsoluteTimeGetCurrent() - asyncLoadStart) * 1000.0
-
-            var applyMs: Double = 0
-            withWorldMutationGate {
-                let applyStart = CFAbsoluteTimeGetCurrent()
-
-                // Guard against the cooperative-cancellation race: unloadTile may have
-                // freed this entity while the GPU upload was in flight (Swift Task
-                // cancellation is cooperative — the task runs to completion even after
-                // cancel() is called).  If the entity no longer exists, skip all state
-                // updates but still release the active load slot so future uploads are
-                // not blocked.
-                guard scene.exists(entityId) else {
-                    releaseActiveLoad(entityId: entityId)
-                    if isNearBand { releaseNearBandLoad(entityId: entityId) }
-                    return
-                }
-
-                if success {
-                    if let s = scene.get(component: StreamingComponent.self, for: entityId) {
-                        s.state = .loaded
-                        s.lastVisibleFrame = currentFrame
-
-                        // Emit residency event
-                        if let render = scene.get(component: RenderComponent.self, for: entityId) {
-                            let event = AssetResidencyChangedEvent(
-                                entityId: entityId,
-                                assetURL: render.assetURL,
-                                meshName: render.assetName,
-                                isResident: true
-                            )
-                            Logger.log(message: "[Batching] queuing residency event for entity=\(entityId)")
-                            SystemEventBus.shared.queueResidencyChange(event)
-                        } else {
-                            Logger.log(message: "[Batching] NO RenderComponent on entity=\(entityId) — residency event NOT queued")
-                        }
-                    }
-                    markLoadedStreamingEntity(entityId)
-                    // 4.1: Update the parent tile's visual readiness counter.
-                    incrementParentTileOCCCount(for: entityId)
-                    SystemIntegrationMonitor.shared.recordStreamingLoad()
-                } else {
-                    // Load failed - reset to unloaded so it can retry
-                    if let s = scene.get(component: StreamingComponent.self, for: entityId) {
-                        s.state = .unloaded
-                    }
-                    Logger.logError(message: "Failed to stream mesh for entity \(entityId)")
-                }
-                releaseActiveLoad(entityId: entityId)
-                if isNearBand { releaseNearBandLoad(entityId: entityId) }
-                applyMs = (CFAbsoluteTimeGetCurrent() - applyStart) * 1000.0
-            }
-            recordLoadCompletion(success: success, asyncLoadMs: asyncLoadMs, applyMs: applyMs, wasLODReload: hasLOD)
-        }
-
-        streaming.loadTask = task
-    }
-
-    /// Trigger a full tile parse + upload for a manifest tile stub.
-    ///
-    /// Called by the tile streaming pass in update() when a TileComponent entity
-    /// enters its streaming radius.  Sets state to .parsing, spawns a Task that
-    /// calls setEntityMeshAsync on a dedicated child entity, then transitions to
-    /// .parsed (or .failed with retry backoff on error).
-    ///
-    // MARK: - HLOD Load / Unload
-
-    /// Loads the coarse HLOD mesh for a tile stub as a child entity.
-    /// Called when the camera is beyond `hlodSwitchDistance` and the tile is unloaded.
-    /// HLOD entities are rendered through the standard model pass (no batching) and
-    /// are unloaded automatically when the full tile parse completes.
-    private func loadHLOD(entityId: EntityID) {
-        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
-              let hlodURL = tileComp.hlodURL,
-              tileComp.hlodState == .unloaded else { return }
-
-        tileComp.hlodState = .loading
-        incrementHLODLoadCount()
-
-        var hlodEntityId: EntityID = .invalid
-        withWorldMutationGate {
-            let id = createEntity()
-            registerTransformComponent(entityId: id)
-            registerSceneGraphComponent(entityId: id)
-            setParent(childId: id, parentId: entityId)
-            hlodEntityId = id
-        }
-
-        guard hlodEntityId != .invalid else {
-            tileComp.hlodState = .unloaded
-            decrementHLODLoadCount()
-            return
-        }
-
-        tileComp.hlodEntityId = hlodEntityId
-        markLoadedHLODEntity(entityId)
-
-        let capturedHlodId = hlodEntityId
-        let capturedTileId = entityId
-        let filename = hlodURL.deletingPathExtension().path
-        let ext = hlodURL.pathExtension
-        let tileId = tileComp.tileId
-
-        let task = Task { [weak self] in
-            guard let self else { return }
-            setEntityMeshAsync(
-                entityId: capturedHlodId,
-                filename: filename,
-                withExtension: ext,
-                streamingPolicy: .immediate,
-                blockRenderLoop: false
-            ) { [weak self] success in
-                guard let self else { return }
-                withWorldMutationGate {
-                    guard let tc = scene.get(component: TileComponent.self, for: capturedTileId),
-                          tc.hlodState == .loading else {
-                        // Cancelled while loading — destroy the entity if it still exists.
-                        if scene.exists(capturedHlodId) {
-                            destroyEntity(entityId: capturedHlodId)
-                            finalizePendingDestroys()
-                        }
-                        return
-                    }
-                    if success {
-                        tc.hlodState = .loaded
-                        self.decrementHLODLoadCount()
-
-                        // Tag HLOD render descendants for the LOD debug renderer
-                        // (levelIndex 5 = cyan in lodDebugPalette — distinct from LOD0-4).
-                        for rid in self.collectRenderDescendantIds(capturedHlodId) {
-                            registerComponent(entityId: rid, componentType: TileLODTagComponent.self)
-                            scene.get(component: TileLODTagComponent.self, for: rid)?.levelIndex = 5
-                        }
-
-                        // Tag HLOD geometry for static batching — same path as a
-                        // fullLoad tile.  Without this every HLOD submesh becomes a
-                        // separate draw call, which is worse than the batched full tile.
-                        setEntityStaticBatchComponent(entityId: capturedHlodId)
-                        self.queueResidencyEventsForRenderDescendants(capturedHlodId)
-                        let hlodRenderIds = self.collectRenderDescendantIds(capturedHlodId)
-                        if !hlodRenderIds.isEmpty {
-                            BatchingSystem.shared.notifyTileParsedEntities(hlodRenderIds)
-                        }
-
-                        Logger.log(message: "[HLOD] Tile '\(tileId)' HLOD loaded.")
-                    } else {
-                        self.decrementHLODLoadCount()
-                        if scene.exists(capturedHlodId) {
-                            destroyEntity(entityId: capturedHlodId)
-                            finalizePendingDestroys()
-                        }
-                        tc.hlodEntityId = nil
-                        tc.hlodState = .unloaded
-                        self.unmarkLoadedHLODEntity(capturedTileId)
-                        Logger.logError(message: "[HLOD] Tile '\(tileId)' HLOD failed to load.")
-                    }
-                }
-            }
-        }
-
-        withWorldMutationGate {
-            scene.get(component: TileComponent.self, for: entityId)?.hlodLoadTask = task
-        }
-    }
-
-    /// Tears down the HLOD child entity for a tile stub.
-    /// Safe to call regardless of current hlodState — no-ops if already unloaded.
-    private func unloadHLOD(entityId: EntityID) {
-        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
-              tileComp.hlodState != .unloaded else { return }
-
-        // Set .unloading BEFORE cancel() so any in-flight completion callback
-        // that checks hlodState sees .unloading (not .loading) and discards its result.
-        let wasHLODLoading = tileComp.hlodState == .loading
-        tileComp.hlodState = .unloading
-        tileComp.hlodLoadTask?.cancel()
-        tileComp.hlodLoadTask = nil
-        if wasHLODLoading { decrementHLODLoadCount() }
-
-        // Capture before the withWorldMutationGate block clears it.
-        let capturedHlodEntityId = tileComp.hlodEntityId
-
-        // Remove HLOD render descendants from batching pending queues before
-        // destroying them — same rationale as unloadLODLevel above.
-        if let hlodId = capturedHlodEntityId {
-            let renderIds = collectRenderDescendantIds(hlodId)
-            if !renderIds.isEmpty {
-                BatchingSystem.shared.cancelPendingEntities(renderIds)
-            }
-        }
-
-        withWorldMutationGate {
-            if let hlodEntityId = tileComp.hlodEntityId, scene.exists(hlodEntityId) {
-                destroyEntity(entityId: hlodEntityId)
-                finalizePendingDestroys()
-            }
-            tileComp.hlodEntityId = nil
-            tileComp.hlodState = .unloaded
-        }
-
-        // Force-release the AssetLoadingGate that setEntityMeshAsync opened via
-        // startLoading(entityId: capturedHlodEntityId).  Task.cancel() is cooperative —
-        // the inner Task may still be running after we destroy the entity, and its
-        // completion callback will find the entity gone and return early without calling
-        // finishLoading, leaving the gate permanently elevated and the render loop frozen.
-        // finishLoading is idempotent: if the Task already called it, this is a no-op.
-        if let hlodId = capturedHlodEntityId {
-            Task { await AssetLoadingState.shared.finishLoading(entityId: hlodId) }
-        }
-
-        unmarkLoadedHLODEntity(entityId)
-        Logger.log(message: "[HLOD] Tile '\(tileComp.tileId)' HLOD unloaded.")
-    }
-
-    // MARK: - Per-tile LOD level load / unload
-
-    /// Load one LOD level for a tile stub.  Creates a child entity, calls
-    /// setEntityMeshAsync, and on success tags the geometry for static batching
-    /// — identical lifecycle to loadHLOD but indexed into tileComp.lodLevels.
-    private func loadLODLevel(entityId: EntityID, levelIndex: Int) {
-        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
-              levelIndex < tileComp.lodLevels.count,
-              tileComp.lodLevels[levelIndex].state == .unloaded else { return }
-
-        let level = tileComp.lodLevels[levelIndex]
-        tileComp.lodLevels[levelIndex].state = .loading
-
-        var lodEntityId: EntityID = .invalid
-        withWorldMutationGate {
-            let id = createEntity()
-            registerTransformComponent(entityId: id)
-            registerSceneGraphComponent(entityId: id)
-            setParent(childId: id, parentId: entityId)
-            lodEntityId = id
-        }
-
-        guard lodEntityId != .invalid else {
-            tileComp.lodLevels[levelIndex].state = .unloaded
-            return
-        }
-
-        tileComp.lodLevels[levelIndex].entityId = lodEntityId
-        markLoadedLODEntity(entityId)
-        incrementLODLoadCount()
-
-        let capturedLodId = lodEntityId
-        let capturedTileId = entityId
-        let capturedIndex = levelIndex
-        let filename = level.url.deletingPathExtension().path
-        let ext = level.url.pathExtension
-        let tileId = tileComp.tileId
-
-        let task = Task { [weak self] in
-            guard let self else { return }
-            setEntityMeshAsync(
-                entityId: capturedLodId,
-                filename: filename,
-                withExtension: ext,
-                streamingPolicy: .immediate,
-                blockRenderLoop: false
-            ) { [weak self] success in
-                guard let self else { return }
-                withWorldMutationGate {
-                    guard let tc = scene.get(component: TileComponent.self, for: capturedTileId),
-                          capturedIndex < tc.lodLevels.count,
-                          tc.lodLevels[capturedIndex].state == .loading else {
-                        // Cancelled while loading — destroy the entity if it still exists.
-                        if scene.exists(capturedLodId) {
-                            destroyEntity(entityId: capturedLodId)
-                            finalizePendingDestroys()
-                        }
-                        return
-                    }
-                    if success {
-                        tc.lodLevels[capturedIndex].state = .loaded
-                        self.decrementLODLoadCount()
-                        // Tag every render descendant so the LOD debug renderer can
-                        // colour them by tile LOD level (levelIndex 1 = LOD1, 2 = LOD2…).
-                        let tileLODIndex = capturedIndex + 1
-                        for rid in self.collectRenderDescendantIds(capturedLodId) {
-                            registerComponent(entityId: rid, componentType: TileLODTagComponent.self)
-                            scene.get(component: TileLODTagComponent.self, for: rid)?.levelIndex = tileLODIndex
-                        }
-                        setEntityStaticBatchComponent(entityId: capturedLodId)
-                        self.queueResidencyEventsForRenderDescendants(capturedLodId)
-                        let renderIds = self.collectRenderDescendantIds(capturedLodId)
-                        if !renderIds.isEmpty {
-                            BatchingSystem.shared.notifyTileParsedEntities(renderIds)
-                        }
-                        Logger.log(message: "[LOD] Tile '\(tileId)' LOD level \(capturedIndex + 1) loaded.")
-                    } else {
-                        if scene.exists(capturedLodId) {
-                            destroyEntity(entityId: capturedLodId)
-                            finalizePendingDestroys()
-                        }
-                        tc.lodLevels[capturedIndex].entityId = .invalid
-                        tc.lodLevels[capturedIndex].state = .unloaded
-                        self.decrementLODLoadCount()
-                        self.unmarkLoadedLODEntity(capturedTileId)
-                        Logger.logError(message: "[LOD] Tile '\(tileId)' LOD level \(capturedIndex + 1) failed to load.")
-                    }
-                }
-            }
-        }
-
-        withWorldMutationGate {
-            scene.get(component: TileComponent.self, for: entityId)?.lodLevels[capturedIndex].loadTask = task
-        }
-    }
-
-    /// Tear down one LOD level for a tile stub.  Safe to call regardless of
-    /// current state — no-ops if already unloaded.
-    private func unloadLODLevel(entityId: EntityID, levelIndex: Int) {
-        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
-              levelIndex < tileComp.lodLevels.count,
-              tileComp.lodLevels[levelIndex].state != .unloaded else { return }
-
-        // Set .unloading BEFORE cancel() so an in-flight completion sees it and discards.
-        // If the level was still .loading, the completion callback will not decrement the
-        // counter (it guards on state == .loading), so we must do it here.
-        let wasLoading = tileComp.lodLevels[levelIndex].state == .loading
-        tileComp.lodLevels[levelIndex].state = .unloading
-        tileComp.lodLevels[levelIndex].loadTask?.cancel()
-        tileComp.lodLevels[levelIndex].loadTask = nil
-        if wasLoading { decrementLODLoadCount() }
-
-        // Capture before the withWorldMutationGate block clears it.
-        let capturedLodEntityId = tileComp.lodLevels[levelIndex].entityId
-
-        // Remove render descendants from batching pending queues BEFORE destroying
-        // them.  destroyEntity fires residency-evicted events which land in
-        // pendingEntityRemovals, but any queued addition from the prior load would
-        // cause a "entity is missing" error on the next tick().
-        if capturedLodEntityId != .invalid {
-            let renderIds = collectRenderDescendantIds(capturedLodEntityId)
-            if !renderIds.isEmpty {
-                BatchingSystem.shared.cancelPendingEntities(renderIds)
-            }
-        }
-
-        withWorldMutationGate {
-            let lodEntityId = tileComp.lodLevels[levelIndex].entityId
-            if lodEntityId != .invalid, scene.exists(lodEntityId) {
-                destroyEntity(entityId: lodEntityId)
-                finalizePendingDestroys()
-            }
-            tileComp.lodLevels[levelIndex].entityId = .invalid
-            tileComp.lodLevels[levelIndex].state = .unloaded
-        }
-
-        // Same gate-release fix as unloadHLOD — see comment there for full rationale.
-        if capturedLodEntityId != .invalid {
-            Task { await AssetLoadingState.shared.finishLoading(entityId: capturedLodEntityId) }
-        }
-
-        // Unmark when no levels remain active.
-        if let tc = scene.get(component: TileComponent.self, for: entityId),
-           tc.lodLevels.allSatisfy({ $0.state == .unloaded })
-        {
-            unmarkLoadedLODEntity(entityId)
-        }
-
-        Logger.log(message: "[LOD] Tile '\(tileComp.tileId)' LOD level \(levelIndex + 1) unloaded.")
-    }
-
-    /// Unload every LOD level for a tile stub.  Called when the full tile reaches
-    /// .parsed (full geometry takes over) or when the tile is being torn down.
-    private func unloadAllLODLevels(entityId: EntityID) {
-        guard let tileComp = scene.get(component: TileComponent.self, for: entityId) else { return }
-        for i in tileComp.lodLevels.indices {
-            if tileComp.lodLevels[i].state != .unloaded {
-                unloadLODLevel(entityId: entityId, levelIndex: i)
-            }
-        }
-    }
-
-    /// Why a child entity?  setEntityMeshAsync loads the RenderComponent directly
-    /// onto the entity it receives.  For single-mesh tiles that would be the tile
-    /// stub itself, leaving unloadTile's collectDescendants with nothing to destroy
-    /// (0 children → GPU mesh stays visible).  Creating a child entity before the
-    /// load guarantees collectDescendants always finds and destroys the geometry,
-    /// regardless of how many meshes the tile contains.
-    private func loadTile(entityId: EntityID) {
-        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
-              tileComp.state == .unloaded
-        else { return }
-        guard reserveActiveTileLoad(entityId: entityId, fileSizeBytes: tileComp.fileSizeBytes) else { return }
-
-        tileComp.state = .parsing
-        tileComp.parseStartTime = CFAbsoluteTimeGetCurrent()
-        markLoadingTileEntity(entityId)
-
-        // LoadingSystem.getResourceURL handles absolute paths (prefix "/").
-        // Splitting into stem + extension matches how the resource search handles
-        // all other asset loads, including cross-bundle and external-basePath scenarios.
-        let tileURL = tileComp.tileURL
-        let tileId = tileComp.tileId
-        let filename = tileURL.deletingPathExtension().path
-        let ext = tileURL.pathExtension
-
-        Logger.log(message: "[TileStreaming] Dispatching load for tile '\(tileId)'")
-
-        // Create a dedicated mesh entity as a child of the tile stub before
-        // spawning the load Task.  setEntityMeshAsync will attach all geometry
-        // (RenderComponent, child mesh entities) to meshEntityId, not to the
-        // stub.  unloadTile's collectDescendants then finds meshEntityId and
-        // destroys it — freeing all GPU buffers — without touching the stub.
-        var meshEntityId: EntityID = .invalid
-        withWorldMutationGate {
-            let id = createEntity()
-            registerTransformComponent(entityId: id)
-            registerSceneGraphComponent(entityId: id)
-            setParent(childId: id, parentId: entityId)
-            meshEntityId = id
-        }
-
-        let capturedMeshEntityId = meshEntityId
-        // Register lookup so OCC upload completions can update this tile's visual state.
-        withStateLock { meshEntityToTileEntity[capturedMeshEntityId] = entityId }
-
-        // Store so the parse-timeout guard can force-release the AssetLoadingGate
-        // if setEntityMeshAsync's inner Task hangs (e.g. ModelIO blocking in loadTextures()).
-        tileComp.meshEntityId = capturedMeshEntityId
-
-        let task = Task { [weak self] in
-            // If self was deallocated before the task body executes (e.g. game
-            // shutdown), the completion will never fire and the slot will remain
-            // reserved — acceptable since the system is being torn down anyway.
-            guard let self else { return }
-            // .auto policy: the admission gate and memory budget system decide whether
-            // to use fullLoad or outOfCore based on the tile's file size and available
-            // RAM.  For the expected 15–20 MB tile range this resolves to fullLoad
-            // (parse + immediate GPU upload), treating the tile as an atomic unit.
-            setEntityMeshAsync(
-                entityId: capturedMeshEntityId,
-                filename: filename,
-                withExtension: ext,
-                streamingPolicy: .auto
-            ) { [weak self] success in
-                guard let self else { return }
-                // Slot release is unconditional — deferred so it runs on all paths
-                // (success, failure, early return from the cancelled-state guard).
-                defer { self.releaseActiveTileLoad(entityId: entityId) }
-                withWorldMutationGate {
-                    guard let tc = scene.get(component: TileComponent.self, for: entityId) else { return }
-
-                    // Guard against the zombie-loaded-state bug: unloadTile may have
-                    // run and set state to .unloading while setEntityMeshAsync was in
-                    // flight.  If we are no longer .parsing, the tile was cancelled.
-                    // setEntityMeshAsync has now fully exited, so all background-thread
-                    // ECS mutations for this tile are complete.  The completion fires on
-                    // the main thread, so cleanup can run directly here.
-                    guard tc.state == .parsing else {
-                        if scene.exists(capturedMeshEntityId) {
-                            let descendants = collectTileDescendants(capturedMeshEntityId)
-                            for d in descendants { destroyEntity(entityId: d) }
-                            destroyEntity(entityId: capturedMeshEntityId)
-                            finalizePendingDestroys()
-                        }
-                        withStateLock { _ = meshEntityToTileEntity.removeValue(forKey: capturedMeshEntityId) }
-                        ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId: entityId)
-                        if let tc2 = scene.get(component: TileComponent.self, for: entityId) {
-                            tc2.state = .unloaded
-                        }
-                        unmarkLoadedTileEntity(entityId)
-                        Logger.log(message: "[TileStreaming] Tile '\(tileId)' cancelled load cleaned up.")
-                        return
-                    }
-
-                    self.unmarkLoadingTileEntity(entityId)
-                    tc.loadTask = nil
-                    tc.parseStartTime = 0
-                    tc.meshEntityId = .invalid
-
-                    if success {
-                        // Count OCC stubs to seed visual state tracking (4.1).
-                        // Eager tiles have 0 stubs and are immediately .complete.
-                        let occCount = self.countOCCDescendants(capturedMeshEntityId)
-                        tc.totalOCCStubs = occCount
-                        tc.uploadedOCCStubs = 0
-                        tc.failureCount = 0   // clear retry counter on successful parse
-                        tc.state = .parsed
-                        self.markLoadedTileEntity(entityId)
-
-                        // Full geometry is now resident — unload the coarse HLOD mesh
-                        // and any per-tile LOD levels that were showing while loading.
-                        self.unloadHLOD(entityId: entityId)
-                        self.unloadAllLODLevels(entityId: entityId)
-
-                        // Tag the tile's mesh hierarchy for cell-based static batching.
-                        // setEntityStaticBatchComponent walks the full child tree and
-                        // attaches StaticBatchComponent to every entity that has a
-                        // RenderComponent (eager/small tiles) or StreamingComponent
-                        // (OCC stubs awaiting GPU upload).  For OCC stubs the batch
-                        // residency handler fires automatically when each stub's GPU
-                        // upload completes, so no manual generateBatches() call is needed.
-                        setEntityStaticBatchComponent(entityId: capturedMeshEntityId)
-
-                        // For fullLoad tiles (occCount == 0) the RenderComponent is
-                        // already present on capturedMeshEntityId and its children —
-                        // they bypass the OCC upload path that normally queues the
-                        // residency event.  Queue the event explicitly here so the
-                        // batching system picks them up on the next flushEvents() call.
-                        if occCount == 0 {
-                            self.queueResidencyEventsForRenderDescendants(capturedMeshEntityId)
-                            // Notify the batching system so it can bypass the quiescence
-                            // delay for this tile's cells.  All render entities are resident
-                            // now; their residency events will arrive on the next flushEvents()
-                            // call, and the batching tick will promote their cells immediately.
-                            let tileRenderIds = self.collectRenderDescendantIds(capturedMeshEntityId)
-                            if !tileRenderIds.isEmpty {
-                                BatchingSystem.shared.notifyTileParsedEntities(tileRenderIds)
-                            }
-                        }
-
-                        Logger.log(message: "[TileStreaming] Tile '\(tileId)' parsed (\(occCount) OCC stubs pending GPU upload).")
-                    } else {
-                        // Destroy the pre-created child entity on failure so it
-                        // doesn't leak as an empty, invisible stub.
-                        if scene.exists(capturedMeshEntityId) {
-                            destroyEntity(entityId: capturedMeshEntityId)
-                            finalizePendingDestroys()
-                        }
-                        withStateLock { _ = meshEntityToTileEntity.removeValue(forKey: capturedMeshEntityId) }
-                        // 4.2: Record failure for exponential-backoff retry.
-                        tc.failureCount += 1
-                        tc.lastFailureTime = CFAbsoluteTimeGetCurrent()
-                        tc.state = .failed
-                        Logger.logError(message: "[TileStreaming] Tile '\(tileId)' failed to parse (attempt \(tc.failureCount)) — retry in \(String(format: "%.0f", tc.retryDelaySeconds)) s.")
-                    }
-                }
-            }
-        }
-
-        // Store the task so teardown can cancel an in-flight load.
-        // This runs on the main thread in the same update() tick as the Task
-        // creation above, so there is no race with unloadTile (which can only
-        // be called in a future tick).
-        withWorldMutationGate {
-            scene.get(component: TileComponent.self, for: entityId)?.loadTask = task
-        }
-    }
-
-    /// Walk the entity subtree rooted at `entityId` and queue an
-    /// AssetResidencyChangedEvent for every entity that already has a RenderComponent.
-    /// Called from the loadTile completion for fullLoad (non-OCC) tiles whose geometry
-    /// is immediately resident — they never go through the OCC upload path that normally
-    /// queues the event, so we queue it explicitly here.
-    private func queueResidencyEventsForRenderDescendants(_ entityId: EntityID) {
-        if let render = scene.get(component: RenderComponent.self, for: entityId) {
-            let event = AssetResidencyChangedEvent(
-                entityId: entityId,
-                assetURL: render.assetURL,
-                meshName: render.assetName,
-                isResident: true
-            )
-            SystemEventBus.shared.queueResidencyChange(event)
-        }
-        for childId in getEntityChildren(parentId: entityId) {
-            queueResidencyEventsForRenderDescendants(childId)
-        }
-    }
-
-    /// Recursively collect the IDs of all descendants (including `entityId` itself)
-    /// that have a RenderComponent.  Used to hand off the full set of render-ready
-    /// entities to the BatchingSystem after a fullLoad tile finishes parsing.
-    private func collectRenderDescendantIds(_ entityId: EntityID) -> Set<EntityID> {
-        var result: Set<EntityID> = []
-        collectRenderDescendantIds(entityId, into: &result)
-        return result
-    }
-
-    private func collectRenderDescendantIds(_ entityId: EntityID, into result: inout Set<EntityID>) {
-        if scene.get(component: RenderComponent.self, for: entityId) != nil {
-            result.insert(entityId)
-        }
-        for childId in getEntityChildren(parentId: entityId) {
-            collectRenderDescendantIds(childId, into: &result)
-        }
-    }
-
-    /// Recursively count OCC stub descendants (entities with StreamingComponent).
-    /// Used to seed TileComponent.totalOCCStubs after a tile parse completes.
-    private func countOCCDescendants(_ parentId: EntityID) -> Int {
-        var count = 0
-        for childId in getEntityChildren(parentId: parentId) {
-            if scene.get(component: StreamingComponent.self, for: childId) != nil {
-                count += 1
-            }
-            count += countOCCDescendants(childId)
-        }
-        return count
-    }
-
-    /// Increment the uploaded OCC stub counter on the parent tile of `entityId`.
-    /// Called each time an OCC streaming upload completes successfully so the tile's
-    /// visual state (4.1) advances toward .complete.
-    ///
-    /// Hierarchy: OCC stub → capturedMeshEntityId → tile stub (TileComponent).
-    /// Uses the meshEntityToTileEntity lookup for O(1) tile resolution.
-    private func incrementParentTileOCCCount(for entityId: EntityID) {
-        // Climb one level to find capturedMeshEntityId (the direct mesh parent).
-        guard let sg = scene.get(component: ScenegraphComponent.self, for: entityId) else { return }
-        let meshParentId = sg.parent
-        guard meshParentId != .invalid else { return }
-
-        // Resolve tile entity via the lookup table registered at parse time.
-        let tileEntityId: EntityID? = withStateLock { meshEntityToTileEntity[meshParentId] }
-        guard let tileId = tileEntityId,
-              let tileComp = scene.get(component: TileComponent.self, for: tileId)
-        else { return }
-
-        tileComp.uploadedOCCStubs = min(tileComp.uploadedOCCStubs + 1, tileComp.totalOCCStubs)
-    }
-
-    /// Recursively collect all descendants of `parentId`, cancelling any in-flight
-    /// streaming tasks along the way.  Must be called from the main thread while
-    /// holding the world-mutation gate.
-    private func collectTileDescendants(_ parentId: EntityID) -> [EntityID] {
-        var result: [EntityID] = []
-        for childId in getEntityChildren(parentId: parentId) {
-            if let streaming = scene.get(component: StreamingComponent.self, for: childId) {
-                streaming.loadTask?.cancel()
-                streaming.loadTask = nil
-                unmarkLoadedStreamingEntity(childId)
-            }
-            // Remove first-detection timestamp so phantom entries do not accumulate after
-            // tile teardown.  Without this, stale keys from unloaded OCC stubs that never
-            // reached dispatch would linger in firstRangeTimestamps indefinitely.
-            firstRangeTimestamps.removeValue(forKey: childId)
-            result.append(childId)
-            result.append(contentsOf: collectTileDescendants(childId))
-        }
-        return result
-    }
-
-    /// Tear down a parsed tile: cancel any in-flight parse, destroy all child entities,
-    /// release CPU/GPU resources, and reset the TileComponent stub to .unloaded so the
-    /// tile can be re-streamed on the next approach.
-    ///
-    /// Called by the tile unload pass in update() when a parsed tile moves beyond its
-    /// unloadRadius.  All world-mutation work runs inside withWorldMutationGate so it
-    /// interleaves safely with other ECS writes.
-    private func unloadTile(entityId: EntityID) {
-        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
-              tileComp.state == .parsed || tileComp.state == .parsing
-        else { return }
-
-        let tileId = tileComp.tileId
-        let wasParsing = tileComp.state == .parsing
-
-        withWorldMutationGate {
-            // Mark as unloading to prevent the load pass from re-dispatching this tick.
-            tileComp.state = .unloading
-
-            // Cancel any in-flight parse task and clear tracking state.
-            // The completion callback guards tc.state == .parsing and will find .unloading
-            // instead — so it discards the result.  We must NOT release the active-tile
-            // slot here to avoid a double-release (the completion's defer does it).
-            tileComp.loadTask?.cancel()
-            tileComp.loadTask = nil
-
-            if wasParsing {
-                // Remove from the .parsing tracking set; the .parsed set was never touched.
-                unmarkLoadingTileEntity(entityId)
-
-                // The load Task is still running on the background thread.
-                // setEntityMeshAsync may be actively creating or accessing child entities
-                // right now — destroying them here would be an unsynchronised concurrent
-                // write into the ECS.  Bail out and let loadTile's completion callback
-                // dispatch the cleanup to the main thread once the Task has fully exited.
-                return
-            }
-
-            // ── Tile was fully parsed: safe to destroy descendants immediately ──────
-
-            // Remove meshEntityToTileEntity entries for all direct children of the tile
-            // stub (i.e. capturedMeshEntityId values registered at parse time).  Must
-            // happen before destroyEntity so the entity IDs are still valid for lookup.
-            let directChildren = getEntityChildren(parentId: entityId)
-            withStateLock {
-                for childId in directChildren {
-                    _ = meshEntityToTileEntity.removeValue(forKey: childId)
-                }
-            }
-
-            let descendants = collectTileDescendants(entityId)
-
-            // destroyEntity + finalizePendingDestroys handles GPU buffer release,
-            // OctreeSystem removal, MeshResourceManager deref, and MemoryBudgetManager
-            // unregister via ComponentRegistry.cleanupAll.
-            for descendantId in descendants {
-                destroyEntity(entityId: descendantId)
-            }
-            if !descendants.isEmpty {
-                finalizePendingDestroys()
-            }
-
-            // Release CPU-heap MDLAsset / CPUMeshEntry for this tile root if it was
-            // loaded out-of-core (large tiles above the admission threshold).
-            ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId: entityId)
-
-            // Reset visual state counters for the next load cycle.
-            tileComp.totalOCCStubs = 0
-            tileComp.uploadedOCCStubs = 0
-            tileComp.pendingUnloadSince = 0
-
-            // Reset stub so the next approach triggers a fresh loadTile() call.
-            tileComp.state = .unloaded
-            tileComp.parseStartTime = 0
-            unmarkLoadedTileEntity(entityId)
-
-            Logger.log(message: "[TileStreaming] Tile '\(tileId)' unloaded (\(descendants.count) child entities destroyed).")
-        }
-    }
-
-    /// Reload all LOD levels for an LOD entity and set display to correct LOD for current distance
-    private func reloadLODEntity(entityId: EntityID) async -> Bool {
-        // Guard against the cooperative-cancellation race: bail out early if the entity has
-        // been freed or its slot reused (version mismatch) so subsequent scene.get() calls
-        // do not generate spurious 1016 "entity missing" errors.
-        guard scene.exists(entityId) else { return false }
-
-        let lodInfo: [(index: Int, url: URL, assetName: String, maxDistance: Float)] = {
-            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else {
-                return []
-            }
-            var info: [(Int, URL, String, Float)] = []
-            for (index, level) in lodComponent.lodLevels.enumerated() {
-                if let url = level.url {
-                    let name = level.assetName ?? url.deletingPathExtension().lastPathComponent
-                    info.append((index, url, name, level.maxDistance))
-                }
-            }
-            return info
-        }()
-
-        guard !lodInfo.isEmpty else {
-            Logger.logError(message: "LOD entity has no LOD levels with URLs")
-            return false
-        }
-
-        // Load all LOD level meshes
-        var loadedMeshes: [Int: [Mesh]] = [:]
-        var anySuccess = false
-
-        for (lodIndex, url, assetName, _) in lodInfo {
-            if let meshes = await MeshResourceManager.shared.loadMesh(url: url, meshName: assetName) {
-                // Retain for this entity
-                MeshResourceManager.shared.retain(url: url, meshName: assetName, for: entityId)
-                loadedMeshes[lodIndex] = meshes
-                anySuccess = true
-            } else {
-                Logger.logWarning(message: "Failed to reload LOD\(lodIndex) for entity \(entityId)")
-            }
-        }
-
-        guard anySuccess else {
-            Logger.logError(message: "Failed to reload any LOD levels for entity \(entityId)")
-            return false
-        }
-
-        withWorldMutationGate {
-            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId),
-                  let renderComponent = scene.get(component: RenderComponent.self, for: entityId)
-            else { return }
-
-            // Update all LOD level meshes - create fresh copies for each LOD level
-            for (lodIndex, meshes) in loadedMeshes {
-                guard lodIndex < lodComponent.lodLevels.count else { continue }
-
-                // Create a unique Skin instance for each LOD level to avoid sharing issues
-                let levelSkin = Skin()
-                // IMPORTANT: Create copies of meshes with fresh uniform buffers for this entity
-                // Without this, multiple entities sharing the same cached mesh would overwrite
-                // each other's uniform data during rendering, causing entities to disappear
-                var updatedMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
-                for i in updatedMeshes.indices {
-                    if updatedMeshes[i].skin == nil {
-                        updatedMeshes[i].skin = levelSkin
-                    }
-                }
-
-                lodComponent.lodLevels[lodIndex].mesh = updatedMeshes
-                lodComponent.lodLevels[lodIndex].residencyState = .resident
-            }
-
-            // Calculate camera distance to select correct LOD
-            var selectedLOD = lodComponent.lodLevels.count - 1 // Default to lowest detail
-
-            if let camera = CameraSystem.shared.activeCamera,
-               let cameraComponent = scene.get(component: CameraComponent.self, for: camera),
-               let transform = scene.get(component: WorldTransformComponent.self, for: entityId),
-               let local = scene.get(component: LocalTransformComponent.self, for: entityId)
-            {
-                let cameraPos = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
-                let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
-                let worldCenter = transform.space * simd_float4(center, 1.0)
-                let distance = simd_distance(cameraPos, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
-
-                // Find appropriate LOD for this distance
-                for (index, level) in lodComponent.lodLevels.enumerated() {
-                    if distance <= level.maxDistance, lodComponent.isLODResident(index) {
-                        selectedLOD = index
-                        break
-                    }
-                }
-            }
-
-            // Set render component to show the correct LOD
-            if selectedLOD < lodComponent.lodLevels.count, lodComponent.isLODResident(selectedLOD) {
-                let lodLevel = lodComponent.lodLevels[selectedLOD]
-                renderComponent.mesh = lodLevel.mesh
-                if let url = lodLevel.url {
-                    renderComponent.assetURL = url
-                    renderComponent.assetName = lodLevel.assetName ?? url.deletingPathExtension().lastPathComponent
-                }
-                lodComponent.currentLOD = selectedLOD
-                lodComponent.desiredLOD = selectedLOD
-                lodComponent.isUsingFallback = false
-            }
-        }
-
-        return true
-    }
-
-    /// Upload one out-of-core stub entity from CPU-resident MDLMesh data to Metal.
-    ///
-    /// Called instead of the disk-based `MeshResourceManager` path when the entity was
-    /// registered by the out-of-core stub system. CPU→Metal copy happens here; no USDZ
-    /// re-read is required. The CPU data is NOT cleared after upload so that future
-    /// eviction+reload cycles can re-upload from the same in-memory source.
-    private func uploadFromCPUEntry(
-        entityId: EntityID,
-        cpuEntry: ProgressiveAssetLoader.CPUMeshEntry
-    ) async -> Bool {
-        // Guard against the cooperative-cancellation race: the parent tile may have been
-        // unloaded while this Task was in flight (Swift Task cancellation is cooperative —
-        // the task runs to completion even after cancel() is called).  If the entity slot
-        // has been freed or reused by a new entity (version mismatch), bail out early so
-        // subsequent scene.get() calls do not generate spurious 1016 "entity missing" errors.
-        guard scene.exists(entityId) else { return false }
-
-        // Serialize texture loading per asset and ensure loadTextures() has been called.
-        // MDLAsset is not thread-safe. The lock prevents two concurrent uploads from the
-        // same asset racing on MDLTexture internal state.
-        // ensureTexturesLoaded() is a no-op after the first call per asset — it calls
-        // asset.loadTextures() exactly once, deferred from parse time to first-upload time
-        // so the full texture decompression spike doesn't happen before any mesh is rendered.
-        let rootEntityId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId
-        var lockWaitMs: Double = 0
-        var textureMs: Double = 0
-        if let rootId = rootEntityId {
-            // [Instrumentation] Measure time blocked waiting for the per-asset texture lock.
-            let lockStart = CFAbsoluteTimeGetCurrent()
-            ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootId)
-            lockWaitMs = (CFAbsoluteTimeGetCurrent() - lockStart) * 1000.0
-
-            // [Instrumentation] Measure ensureTexturesLoaded duration.
-            // Non-zero only on the FIRST upload from this asset; subsequent calls are no-ops.
-            let textureStart = CFAbsoluteTimeGetCurrent()
-            // Always call ensureTexturesLoaded before makeMeshesFromCPUBuffers. This calls
-            // asset.loadTextures() exactly once per asset — USDZ-embedded textures require it
-            // before MTKTextureLoader can decode them. The lock scope ends here: the MDLAsset
-            // is in a stable read-only state after loadTextures() and concurrent GPU uploads
-            // from the same asset are safe without the lock.
-            ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootId)
-            textureMs = (CFAbsoluteTimeGetCurrent() - textureStart) * 1000.0
-            ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootId)
-        }
-        // [Instrumentation] Measure CPU→Metal buffer copy time.
-        let copyStart = CFAbsoluteTimeGetCurrent()
-        let meshes = Mesh.makeMeshesFromCPUBuffers(
-            object: cpuEntry.object,
-            vertexDescriptor: cpuEntry.vertexDescriptor,
-            textureLoader: cpuEntry.textureLoader,
-            device: cpuEntry.device,
-            flip: true
-        )
-        let copyMs = (CFAbsoluteTimeGetCurrent() - copyStart) * 1000.0
-        Logger.log(
-            message: "[OOC-Timing] Entity \(entityId) '\(cpuEntry.uniqueAssetName)': lockWait=\(String(format: "%.1f", lockWaitMs))ms textures=\(String(format: "%.1f", textureMs))ms cpuToMetal=\(String(format: "%.1f", copyMs))ms",
-            category: LogCategory.oocTiming.rawValue
-        )
-
-        guard !meshes.isEmpty else {
-            Logger.logError(
-                message: "[OutOfCore] CPU→Metal upload failed for entity \(entityId) ('\(cpuEntry.uniqueAssetName)')",
-                category: LogCategory.oocStatus.rawValue
-            )
-            return false
-        }
-
-        // Stamp the unique asset name so the RenderComponent matches the StreamingComponent.
-        let namedMeshes = meshes.map { m -> Mesh in
-            var copy = m
-            copy.assetName = cpuEntry.uniqueAssetName
-            return copy
-        }
-
-        withWorldMutationGate {
-            // Guard against the cooperative-cancellation race: unloadTile may have freed
-            // this entity while the CPU→Metal copy was in flight.  If the entity no longer
-            // exists, skip registration — the outer Task's scene.exists guard will clean up.
-            guard scene.exists(entityId) else { return }
-            registerRenderComponent(
-                entityId: entityId,
-                meshes: namedMeshes,
-                url: cpuEntry.url,
-                assetName: cpuEntry.uniqueAssetName
-            )
-        }
-
-        // Register Metal allocation with the budget manager so shouldEvict() sees these
-        // GPU bytes. Without this the budget gate in update() is blind to out-of-core uploads
-        // and will never throttle them — defeating the memory-pressure guard entirely.
-        // Texture bytes are estimated rather than exact: TextureStreamingSystem will update
-        // the value with the real figure once streaming completes. Even an estimate is far
-        // better than 0 — it closes the tracking gap that lets the budget over-admit entities.
-        let meshSize = calculateMeshArrayMemory(namedMeshes)
-        // Register 0 for texture bytes at upload time. With independent geometry/texture
-        // budget pools, the geometry gate (canAcceptMesh / shouldEvictGeometry) is unaffected
-        // by texture usage, so a zero estimate no longer causes over-admission. The estimate
-        // (4 MB × slots) massively over-filled the texture pool on geometry-heavy scenes,
-        // making shouldEvict() permanently true and triggering no-op shedTextureMemory calls
-        // every tick. TextureStreamingSystem registers the real value after streaming.
-        MemoryBudgetManager.shared.registerMesh(
-            entityId: entityId,
-            meshSizeBytes: meshSize,
-            textureSizeBytes: 0
-        )
-
-        // CPU data is intentionally kept alive in ProgressiveAssetLoader.cpuMeshRegistry
-        // so eviction + re-approach triggers another uploadFromCPUEntry, not a disk read.
-        return true
-    }
-
-    /// Upload all LOD levels for an LOD+OOC entity from the CPU registry (no disk I/O).
-    ///
-    /// Mirrors `reloadLODEntity` but reads MDLObject data from `ProgressiveAssetLoader.cpuLODRegistry`
-    /// instead of re-reading from disk. After all levels are uploaded, the render component is set to
-    /// the LOD level appropriate for the current camera distance — identical selection logic to `reloadLODEntity`.
-    private func uploadActiveLODFromCPU(entityId: EntityID) async -> Bool {
-        // Guard against the cooperative-cancellation race: bail out early if the entity has
-        // been freed or its slot reused (version mismatch) so subsequent scene.get() calls
-        // do not generate spurious 1016 "entity missing" errors.
-        guard scene.exists(entityId) else { return false }
-
-        // Determine root entity for texture lock serialization.
-        let rootEntityId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?
-            .assetRootEntityId ?? entityId
-
-        // If the root asset has gone cold, re-parse from disk to restore CPU entries.
-        if ProgressiveAssetLoader.shared.isColdRoot(rootEntityId) {
-            guard let context = ProgressiveAssetLoader.shared.rehydrationContext(for: rootEntityId) else {
-                Logger.logError(
-                    message: "[OutOfCore] LOD+OOC entity \(entityId): root \(rootEntityId) is cold with no rehydration context",
-                    category: LogCategory.oocStatus.rawValue
-                )
-                return false
-            }
-            let ok = await rehydrateColdAsset(rootEntityId: rootEntityId, context: context)
-            guard ok else { return false }
-        }
-
-        guard let allLODEntries = ProgressiveAssetLoader.shared.retrieveAllCPULODMeshes(for: entityId),
-              !allLODEntries.isEmpty
-        else {
-            Logger.logError(
-                message: "[OutOfCore] LOD+OOC entity \(entityId): no CPU LOD entries found",
-                category: LogCategory.oocStatus.rawValue
-            )
-            return false
-        }
-
-        // Ensure loadTextures() has been called before any MTKTextureLoader decoding.
-        // The lock scope covers only ensureTexturesLoaded — the MDLAsset is read-only after
-        // that point and concurrent GPU uploads across LOD levels are safe without it.
-        ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootEntityId)
-        ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootEntityId)
-        ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootEntityId)
-
-        // Upload every LOD level from CPU to Metal.
-        var uploadedMeshes: [Int: [Mesh]] = [:]
-        for (lodIndex, cpuEntry) in allLODEntries {
-            let meshes = Mesh.makeMeshesFromCPUBuffers(
-                object: cpuEntry.object,
-                vertexDescriptor: cpuEntry.vertexDescriptor,
-                textureLoader: cpuEntry.textureLoader,
-                device: cpuEntry.device,
-                flip: true
-            )
-            guard !meshes.isEmpty else {
-                Logger.logWarning(
-                    message: "[OutOfCore] LOD+OOC entity \(entityId): CPU→Metal failed for LOD\(lodIndex), skipping level",
-                    category: LogCategory.oocStatus.rawValue
-                )
-                continue
-            }
-            let levelSkin = Skin()
-            var namedMeshes = meshes.map { m -> Mesh in var copy = m; copy.assetName = cpuEntry.uniqueAssetName; return copy }
-            for i in namedMeshes.indices where namedMeshes[i].skin == nil {
-                namedMeshes[i].skin = levelSkin
-            }
-            uploadedMeshes[lodIndex] = namedMeshes
-        }
-
-        guard !uploadedMeshes.isEmpty else {
-            Logger.logError(
-                message: "[OutOfCore] LOD+OOC entity \(entityId): all LOD level uploads failed",
-                category: LogCategory.oocStatus.rawValue
-            )
-            return false
-        }
-
-        withWorldMutationGate {
-            guard let lodComponent = scene.get(component: LODComponent.self, for: entityId) else { return }
-
-            // Store uploaded meshes in LOD levels and mark resident.
-            for (lodIndex, meshes) in uploadedMeshes {
-                guard lodIndex < lodComponent.lodLevels.count else { continue }
-                lodComponent.lodLevels[lodIndex].mesh = meshes
-                lodComponent.lodLevels[lodIndex].residencyState = .resident
-            }
-
-            // Select correct LOD for current camera distance (same logic as reloadLODEntity).
-            var selectedLOD = lodComponent.lodLevels.count - 1
-            if let camera = CameraSystem.shared.activeCamera,
-               let cameraComponent = scene.get(component: CameraComponent.self, for: camera),
-               let transform = scene.get(component: WorldTransformComponent.self, for: entityId),
-               let local = scene.get(component: LocalTransformComponent.self, for: entityId)
-            {
-                let cameraPos = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
-                let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
-                let worldCenter = transform.space * simd_float4(center, 1.0)
-                let distance = simd_distance(cameraPos, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
-                for (index, level) in lodComponent.lodLevels.enumerated() {
-                    if distance <= level.maxDistance, lodComponent.isLODResident(index) {
-                        selectedLOD = index
-                        break
-                    }
-                }
-            }
-
-            if selectedLOD < lodComponent.lodLevels.count, lodComponent.isLODResident(selectedLOD) {
-                let lodLevel = lodComponent.lodLevels[selectedLOD]
-                if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPULODMesh(for: entityId, lodIndex: selectedLOD) {
-                    registerRenderComponent(entityId: entityId, meshes: lodLevel.mesh, url: cpuEntry.url, assetName: cpuEntry.uniqueAssetName)
-                }
-                lodComponent.currentLOD = selectedLOD
-                lodComponent.desiredLOD = selectedLOD
-                lodComponent.isUsingFallback = false
-            }
-        }
-
-        // Register total GPU allocation (all levels) with the budget manager.
-        // Texture bytes registered as 0 — see uploadFromCPUEntry for the reasoning.
-        // TextureStreamingSystem replaces this with the real value after streaming.
-        let totalMeshSize = uploadedMeshes.values.reduce(0) { $0 + calculateMeshArrayMemory($1) }
-        MemoryBudgetManager.shared.registerMesh(entityId: entityId, meshSizeBytes: totalMeshSize, textureSizeBytes: 0)
-
-        Logger.log(
-            message: "[OutOfCore] LOD+OOC entity \(entityId): uploaded \(uploadedMeshes.count) LOD level(s) from CPU",
-            category: LogCategory.oocStatus.rawValue
-        )
-        return true
-    }
-
-    /// Re-parse a cold root asset from disk and restore all child CPU entries.
-    ///
-    /// At most one re-parse Task runs per root at a time: `getOrCreateRehydrationTask` ensures
-    /// concurrent child entity requests all await the same `Task<Bool, Never>` rather than
-    /// each launching a duplicate re-parse. Once complete, the root transitions back to warm
-    /// via `markAsWarm` and all child `CPUMeshEntry` objects are restored in `cpuMeshRegistry`.
-    private func rehydrateColdAsset(
-        rootEntityId: EntityID,
-        context: ProgressiveAssetLoader.RootRehydrationContext
-    ) async -> Bool {
-        let task = ProgressiveAssetLoader.shared.getOrCreateRehydrationTask(for: rootEntityId) {
-            Task {
-                Logger.log(
-                    message: "[OutOfCore] Cold re-stream: re-parsing '\(context.url.lastPathComponent)' for root \(rootEntityId)",
-                    category: LogCategory.oocStatus.rawValue
-                )
-                guard let assetData = await Mesh.parseAssetAsync(
-                    url: context.url,
-                    vertexDescriptor: vertexDescriptor.model,
-                    device: renderInfo.device
-                ) else {
-                    Logger.logError(
-                        message: "[OutOfCore] Cold re-stream: parseAssetAsync failed for root \(rootEntityId)",
-                        category: LogCategory.oocStatus.rawValue
-                    )
-                    ProgressiveAssetLoader.shared.clearRehydrationTask(for: rootEntityId)
-                    return false
-                }
-
-                let children = ProgressiveAssetLoader.shared.getChildren(for: rootEntityId)
-                let filename = context.url.deletingPathExtension().lastPathComponent
-                let ext = context.url.pathExtension
-
-                // Detect whether this is a LOD+OOC asset by checking if the re-parsed
-                // top-level objects form LOD groups (same detection as registration time).
-                let topLevelNames = assetData.topLevelObjects.map {
-                    ($0 as? MDLMesh)?.parent?.name ?? $0.name
-                }
-                let lodDetection = detectImportedLODGroups(fromSourceNames: topLevelNames)
-
-                if !lodDetection.groups.isEmpty, !children.isEmpty {
-                    // LOD+OOC: rebuild cpuLODRegistry from detected groups.
-                    // Groups are sorted by baseName (same order as at registration time),
-                    // so children[groupIdx] corresponds to lodDetection.groups[groupIdx].
-                    var nameToObject: [String: MDLObject] = [:]
-                    for obj in assetData.topLevelObjects {
-                        let name = (obj as? MDLMesh)?.parent?.name ?? obj.name
-                        nameToObject[name] = obj
-                    }
-                    var restoredEntries = 0
-                    for (groupIdx, group) in lodDetection.groups.enumerated() {
-                        guard groupIdx < children.count else { break }
-                        let groupEntityId = children[groupIdx]
-                        for level in group.levels {
-                            guard let obj = nameToObject[level.sourceName] else { continue }
-                            let estimatedGPUBytes: Int = {
-                                guard let mdlMesh = obj as? MDLMesh else { return 0 }
-                                let stride = Int((mdlMesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48)
-                                return mdlMesh.vertexCount * stride + mdlMesh.vertexCount * 3 * 4
-                            }()
-                            let entry = ProgressiveAssetLoader.CPUMeshEntry(
-                                object: obj,
-                                vertexDescriptor: vertexDescriptor.model,
-                                textureLoader: assetData.textureLoader,
-                                device: renderInfo.device,
-                                url: context.url,
-                                filename: filename,
-                                withExtension: ext,
-                                uniqueAssetName: level.sourceName,
-                                estimatedGPUBytes: estimatedGPUBytes,
-                                residencyPolicy: context.loadingPolicy
-                            )
-                            ProgressiveAssetLoader.shared.storeCPULODMesh(entry, for: groupEntityId, lodIndex: level.lodIndex)
-                            restoredEntries += 1
-                        }
-                    }
-                    ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: rootEntityId)
-                    ProgressiveAssetLoader.shared.markAsWarm(rootEntityId: rootEntityId)
-                    Logger.log(
-                        message: "[OutOfCore] Cold re-stream complete (LOD+OOC): root \(rootEntityId) is warm (\(restoredEntries) LOD entries restored across \(lodDetection.groups.count) group(s))",
-                        category: LogCategory.oocStatus.rawValue
-                    )
-                } else {
-                    // Regular OOC: rebuild cpuMeshRegistry, one entry per child stub entity.
-                    for (i, obj) in assetData.topLevelObjects.enumerated() {
-                        guard i < children.count else { break }
-                        let childId = children[i]
-                        let baseName = (obj as? MDLMesh)?.parent?.name ?? obj.name
-                        let uniqueName = "\(baseName)#\(i)"
-                        let estimatedGPUBytes: Int = {
-                            guard let mdlMesh = obj as? MDLMesh else { return 0 }
-                            let stride = Int((mdlMesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48)
-                            let vertexBytes = mdlMesh.vertexCount * stride
-                            let indexBytes = mdlMesh.vertexCount * 3 * 4
-                            return vertexBytes + indexBytes
-                        }()
-                        let entry = ProgressiveAssetLoader.CPUMeshEntry(
-                            object: obj,
-                            vertexDescriptor: vertexDescriptor.model,
-                            textureLoader: assetData.textureLoader,
-                            device: renderInfo.device,
-                            url: context.url,
-                            filename: filename,
-                            withExtension: ext,
-                            uniqueAssetName: uniqueName,
-                            estimatedGPUBytes: estimatedGPUBytes,
-                            residencyPolicy: context.loadingPolicy
-                        )
-                        ProgressiveAssetLoader.shared.storeCPUMesh(entry, for: childId)
-                    }
-                    ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: rootEntityId)
-                    ProgressiveAssetLoader.shared.markAsWarm(rootEntityId: rootEntityId)
-                    Logger.log(
-                        message: "[OutOfCore] Cold re-stream complete: root \(rootEntityId) is warm (\(min(assetData.topLevelObjects.count, children.count)) entries restored)",
-                        category: LogCategory.oocStatus.rawValue
-                    )
-                }
-                return true
-            }
-        }
-        return await task.value
-    }
-
-    /// Load mesh asynchronously - returns true on success, false on failure
-    private func loadMeshAsync(
-        entityId: EntityID,
-        filename: String,
-        withExtension ext: String,
-        assetName: String?
-    ) async -> Bool {
-        // Guard against the cooperative-cancellation race: bail out early if the entity has
-        // been freed or its slot reused (version mismatch) so subsequent scene.get() calls
-        // do not generate spurious 1016 "entity missing" errors.
-        guard scene.exists(entityId) else { return false }
-
-        // Out-of-core fast path: entity has CPU-resident MDLMesh data from stub registration.
-        // Upload from RAM — no disk I/O, no MeshResourceManager parse.
-        if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) {
-            return await uploadFromCPUEntry(entityId: entityId, cpuEntry: cpuEntry)
-        }
-
-        // Out-of-core cold re-stream path: CPU data was released via releaseWarmAsset() but
-        // the entity has a rehydration context (URL + policy). Re-parse from disk, restore
-        // all child CPU entries, then upload this entity from the freshly-parsed data.
-        if let rootId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId,
-           ProgressiveAssetLoader.shared.isColdRoot(rootId),
-           let context = ProgressiveAssetLoader.shared.rehydrationContext(for: rootId)
-        {
-            let rehydrated = await rehydrateColdAsset(rootEntityId: rootId, context: context)
-            if rehydrated,
-               let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId)
-            {
-                return await uploadFromCPUEntry(entityId: entityId, cpuEntry: cpuEntry)
-            }
-            Logger.logError(
-                message: "[OutOfCore] Cold re-stream failed for entity \(entityId)",
-                category: LogCategory.oocStatus.rawValue
-            )
-            return false
-        }
-
-        // Build URL
-        guard let url = LoadingSystem.shared.resourceURL(
-            forResource: filename,
-            withExtension: ext,
-            subResource: nil
-        ) else {
-            Logger.logError(message: "Could not find resource: \(filename).\(ext)")
-            return false
-        }
-
-        // Determine mesh name (use assetName if provided, otherwise filename)
-        let meshName = assetName ?? filename
-
-        // Load from cache or file
-        guard let meshes = await MeshResourceManager.shared.loadMesh(url: url, meshName: meshName) else {
-            Logger.logError(message: "Failed to load mesh: \(meshName) from \(filename).\(ext)")
-            return false
-        }
-
-        // Retain the mesh for this entity
-        MeshResourceManager.shared.retain(url: url, meshName: meshName, for: entityId)
-
-        withWorldMutationGate {
-            // Guard against the cooperative-cancellation race: entity may have been
-            // destroyed by unloadTile while the disk/cache load was in flight.
-            guard scene.exists(entityId) else { return }
-            if let render = scene.get(component: RenderComponent.self, for: entityId) {
-                // Create copies of meshes with fresh uniform buffers for this entity
-                // Without this, multiple entities sharing cached meshes would overwrite
-                // each other's uniform data during rendering
-                var entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
-
-                // Ensure skin is set up (required for shader validation)
-                // Meshes without skeletons need a default Skin()
-                let skin = Skin()
-                for index in entityMeshes.indices {
-                    if entityMeshes[index].skin == nil {
-                        entityMeshes[index].skin = skin
-                    }
-                }
-
-                render.mesh = entityMeshes
-                render.assetURL = url
-                render.assetName = meshName
-            } else {
-                // Create render component if needed
-                // Note: registerRenderComponent should also handle buffer creation
-                let entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
-                registerRenderComponent(entityId: entityId, meshes: entityMeshes, url: url, assetName: meshName)
-            }
-
-            // Register with memory budget.
-            // Mesh objects from MeshResourceManager carry actual MTLTexture allocation sizes,
-            // so use the real texture footprint here rather than a placeholder zero.
-            let meshSize = calculateMeshArrayMemory(meshes)
-            let textureSize = meshes.reduce(0) { $0 + $1.textureMemorySize }
-            MemoryBudgetManager.shared.registerMesh(
-                entityId: entityId,
-                meshSizeBytes: meshSize,
-                textureSizeBytes: textureSize
-            )
-        }
-
-        return true
-    }
-
-    /// Estimate GPU texture memory for an MDLObject by counting texture slots in its materials.
-    ///
-    /// Uses a conservative 1024×1024 RGBA (4 bytes/pixel) placeholder per slot. The actual GPU
-    /// cost depends on compression (ASTC/BCn) and mip-map count, so this is an upper bound
-    /// rather than an exact value. Even a coarse estimate is far better than zero — it closes
-    /// the budget tracking gap between upload time and first texture stream.
-    ///
-    /// Call this after `ensureTexturesLoaded()` so that MDLMaterialProperty slots carry
-    /// `.texture` values for USDZ-embedded images.
-    private func estimateTextureSizeBytes(from object: MDLObject) -> Int {
-        let textureSemantics: [MDLMaterialSemantic] = [
-            .baseColor, .emission, .tangentSpaceNormal, .roughness, .metallic,
-            .ambientOcclusion, .opacity, .bump, .specular, .displacement,
-        ]
-        var textureSlots = 0
-
-        func scan(_ obj: MDLObject) {
-            if let mesh = obj as? MDLMesh,
-               let submeshes = mesh.submeshes?.compactMap({ $0 as? MDLSubmesh })
-            {
-                for submesh in submeshes {
-                    guard let material = submesh.material else { continue }
-                    for semantic in textureSemantics {
-                        if let prop = material.property(with: semantic),
-                           prop.type == .texture || prop.type == .URL
-                        {
-                            textureSlots += 1
-                        }
-                    }
-                }
-            }
-            let childObjects = obj.children.objects
-            for i in 0 ..< childObjects.count {
-                scan(childObjects[i])
-            }
-        }
-        scan(object)
-
-        // 1024 × 1024 × 4 bytes (RGBA uncompressed) per slot — conservative upper bound.
-        return textureSlots * (1024 * 1024 * 4)
-    }
-
-    private func unloadMesh(entityId: EntityID) {
-        guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
-              streaming.state == .loaded
-        else { return }
-
-        // Clear first-detection timestamp so a future re-approach records a fresh baseline.
-        firstRangeTimestamps.removeValue(forKey: entityId)
-
-        let unloadStart = CFAbsoluteTimeGetCurrent()
-        withWorldMutationGate {
-            streaming.state = .unloading
-            BatchingSystem.shared.notifyEntityRetiring(entityId: entityId)
-
-            // Cancel any pending load
-            streaming.loadTask?.cancel()
-            streaming.loadTask = nil
-
-            // Capture asset info before clearing for event
-            var assetURL = URL(fileURLWithPath: "")
-            var meshName = ""
-            if let render = scene.get(component: RenderComponent.self, for: entityId) {
-                assetURL = render.assetURL
-                meshName = render.assetName
-            }
-
-            // Release mesh reference (don't clean up - cache may still need it)
-            MeshResourceManager.shared.release(entityId: entityId)
-
-            // Clear render component mesh (but don't call cleanUp - cache owns it)
-            if let render = scene.get(component: RenderComponent.self, for: entityId) {
-                render.mesh = [] // Just clear reference, don't clean up GPU resources
-            }
-
-            // If entity has LOD, clear all LOD level meshes
-            if let lodComponent = scene.get(component: LODComponent.self, for: entityId) {
-                for i in lodComponent.lodLevels.indices {
-                    lodComponent.lodLevels[i].mesh = []
-                    lodComponent.lodLevels[i].residencyState = .notResident
-                }
-            }
-
-            // Unregister from memory budget
-            MemoryBudgetManager.shared.unregisterMesh(entityId: entityId)
-
-            // Remove from loaded tracking set
-            unmarkLoadedStreamingEntity(entityId)
-
-            streaming.state = .unloaded
-
-            // Emit residency event (mesh evicted)
-            let event = AssetResidencyChangedEvent(
-                entityId: entityId,
-                assetURL: assetURL,
-                meshName: meshName,
-                isResident: false
-            )
-            SystemEventBus.shared.queueResidencyChange(event)
-            SystemIntegrationMonitor.shared.recordStreamingUnload()
-        }
-        let unloadMs = (CFAbsoluteTimeGetCurrent() - unloadStart) * 1000.0
-        updateLastUnloadDuration(unloadMs)
-    }
-
-    /// Evict loaded entities under memory pressure, prioritising by value score.
-    ///
-    /// Score = `evictionDistanceWeight × distanceFactor + evictionSizeWeight × sizeFactor`.
-    /// Entities with high distance and large GPU footprint are evicted first, protecting
-    /// nearby small meshes that are most valuable for scene coverage near the camera.
-    /// LRU frame is retained as a tiebreaker for equal-score candidates.
-    ///
-    /// Visibility guard is distance-aware: entities within `visibleEvictionProtectionRadius`
-    /// are never evicted while visible (prevents foreground popping). Entities beyond that
-    /// radius may be evicted even while visible — a distant pop is cheaper than a nearby
-    /// mesh failing to load under memory pressure.
-    private func evictLRU(cameraPosition: simd_float3, maxEvictions: Int = Int.max) -> Int {
-        // First, evict any unused cached files
-        MeshResourceManager.shared.evictUnused()
-
-        var candidates: [(entityId: EntityID, score: Float, lastFrame: Int, distance: Float)] = []
-        var staleEntityIds: [EntityID] = []
-
-        let trackedLoadedSnapshot = loadedStreamingEntitiesSnapshot()
-        // Use geometryBudget as the denominator: evictLRU is purely a geometry eviction
-        // pass, so sizing the score against the geometry pool (not the combined budget)
-        // gives an accurate picture of how much of that pool each candidate consumes.
-        let budget = Float(max(1, MemoryBudgetManager.shared.geometryBudget))
-
-        for entityId in trackedLoadedSnapshot {
-            guard scene.exists(entityId) else {
-                staleEntityIds.append(entityId)
-                continue
-            }
-            guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
-                  streaming.state == .loaded
-            else { continue }
-
-            let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
-            let distanceFactor = min(1.0, distance / maxQueryRadius)
-
-            let meshBytes = Float(MemoryBudgetManager.shared.getMemorySize(for: entityId) ?? 0)
-            let sizeFactor = min(1.0, meshBytes / budget)
-
-            let score = evictionDistanceWeight * distanceFactor + evictionSizeWeight * sizeFactor
-            candidates.append((entityId, score, streaming.lastVisibleFrame, distance))
-        }
-
-        for staleId in staleEntityIds {
-            unmarkLoadedStreamingEntity(staleId)
-        }
-
-        // Sort: highest eviction score first; LRU frame as tiebreaker.
-        candidates.sort {
-            if abs($0.score - $1.score) > 0.001 { return $0.score > $1.score }
-            return $0.lastFrame < $1.lastFrame
-        }
-
-        let visibleSet = Set(visibleEntityIds)
-        var evictedCount = 0
-        for candidate in candidates {
-            // Stop when geometry-only pressure clears — texture memory is managed
-            // independently by TextureStreamingSystem and should not force extra
-            // geometry evictions.
-            guard MemoryBudgetManager.shared.shouldEvictGeometry() else { break }
-
-            // Per-call cap: spreads large eviction bursts across multiple ticks so a single
-            // pressure event cannot monopolise the frame. Remaining entities are evicted on
-            // subsequent ticks (each still passes the shouldEvictGeometry() check above).
-            if evictedCount >= maxEvictions { break }
-
-            // Distance-aware visibility guard.
-            // Close visible meshes (< visibleEvictionProtectionRadius) are protected — evicting
-            // them would cause an obvious foreground pop. Far visible meshes are evictable under
-            // memory pressure; a distant pop is less harmful than a nearby mesh failing to load.
-            if visibleSet.contains(candidate.entityId), candidate.distance < visibleEvictionProtectionRadius {
-                continue
-            }
-
-            unloadMesh(entityId: candidate.entityId)
-            evictedCount += 1
-        }
-        return evictedCount
-    }
-
-    private func recordLoadCompletion(success: Bool, asyncLoadMs: Double, applyMs: Double, wasLODReload: Bool) {
+    func recordLoadCompletion(success: Bool, asyncLoadMs: Double, applyMs: Double, wasLODReload: Bool) {
         withStateLock {
             diagnostics.lastAsyncLoadMs = asyncLoadMs
             diagnostics.lastApplyLoadedMeshMs = applyMs
@@ -2769,13 +1231,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
     }
 
-    private func updateLastUnloadDuration(_ unloadMs: Double) {
+    func updateLastUnloadDuration(_ unloadMs: Double) {
         withStateLock {
             diagnostics.lastUnloadMeshMs = unloadMs
         }
     }
 
-    private func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
+    func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
         guard let transform = scene.get(component: WorldTransformComponent.self, for: entityId),
               let local = scene.get(component: LocalTransformComponent.self, for: entityId)
         else { return Float.infinity }

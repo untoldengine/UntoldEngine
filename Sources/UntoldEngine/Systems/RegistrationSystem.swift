@@ -204,6 +204,10 @@ private func registerComponentCleanupHandlers() {
         removeTileComponent(entityId: entityId)
     }
 
+    ComponentRegistry.register(componentType: TileLODTagComponent.self, handlerId: "tileLODTag", priority: 30) { entityId in
+        scene.remove(component: TileLODTagComponent.self, from: entityId)
+    }
+
     ComponentRegistry.register(componentType: GizmoComponent.self, handlerId: "gizmo", priority: 30) { entityId in
         removeEntityGizmo(entityId: entityId)
     }

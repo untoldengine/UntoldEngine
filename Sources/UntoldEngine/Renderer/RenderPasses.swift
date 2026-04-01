@@ -223,7 +223,9 @@ public enum RenderPasses {
         let ids = visibleEntityIds
         var computed = Set<EntityID>()
         computed.reserveCapacity(ids.count)
-        for id in ids { computed.insert(id) }
+        for id in ids {
+            computed.insert(id)
+        }
 
         runtimeState.lock.lock()
         runtimeState.visibleEntitySetFrame = frame

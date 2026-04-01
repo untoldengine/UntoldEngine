@@ -534,6 +534,31 @@ public class BatchingSystem: @unchecked Sendable {
         tileParsedEntityIds.formUnion(entityIds)
     }
 
+    /// Batch-notifies the batching system that all entities in `entityIds` are now
+    /// resident, combining what was previously a per-entity `AssetResidencyChangedEvent`
+    /// storm + a separate `notifyTileParsedEntities` call into a single synchronous batch.
+    ///
+    /// This replaces the `queueResidencyEventsForRenderDescendants` +
+    /// `notifyTileParsedEntities` pairing at tile/LOD/HLOD load completion sites.
+    public func notifyTileEntitiesResident(_ entityIds: Set<EntityID>) {
+        guard batchingEnabled else { return }
+        guard !entityIds.isEmpty else { return }
+
+        // Mark all IDs as tile-parsed so the quiescence delay is bypassed.
+        tileParsedEntityIds.formUnion(entityIds)
+
+        for entityId in entityIds {
+            guard scene.exists(entityId) else { continue }
+            let hasStaticBatch = scene.get(component: StaticBatchComponent.self, for: entityId) != nil
+            guard hasStaticBatch else { continue }
+            pendingEntityAdditions.insert(entityId)
+            newlyResidentEntities.insert(entityId)
+            if let cellId = resolveCellIdForEntity(entityId: entityId) {
+                markCellStreaming(cellId)
+            }
+        }
+    }
+
     /// Removes the given entities from all pending batching queues immediately.
     /// Call this before destroying LOD/HLOD child entities so their queued additions
     /// are never processed after the entity is gone, eliminating "entity is missing"
@@ -548,6 +573,7 @@ public class BatchingSystem: @unchecked Sendable {
 
     private func handleLODChange(_ event: EntityLODChangedEvent) {
         guard batchingEnabled else { return }
+        guard scene.exists(event.entityId) else { return }
 
         pendingEntityRemovals.insert(event.entityId)
         pendingEntityAdditions.insert(event.entityId)
@@ -560,6 +586,7 @@ public class BatchingSystem: @unchecked Sendable {
     private func handleResidencyChange(_ event: AssetResidencyChangedEvent) {
         Logger.log(message: "[Batching] handleResidencyChange called isResident=\(event.isResident) batchingEnabled=\(batchingEnabled)")
         guard batchingEnabled else { return }
+        guard scene.exists(event.entityId) else { return }
 
         if !event.isResident {
             // Mesh evicted - remove entity from batching membership
@@ -793,8 +820,8 @@ public class BatchingSystem: @unchecked Sendable {
             let hasStatic = scene.get(component: StaticBatchComponent.self, for: entityId) != nil
             let hasRender = scene.get(component: RenderComponent.self, for: entityId) != nil
             let meshEmpty = (scene.get(component: RenderComponent.self, for: entityId)?.mesh.isEmpty ?? true)
-            let hasWorld  = scene.get(component: WorldTransformComponent.self, for: entityId) != nil
-            let hasLocal  = scene.get(component: LocalTransformComponent.self, for: entityId) != nil
+            let hasWorld = scene.get(component: WorldTransformComponent.self, for: entityId) != nil
+            let hasLocal = scene.get(component: LocalTransformComponent.self, for: entityId) != nil
             Logger.log(message: "[Batching] resolveBatchCandidate FAILED entity=\(entityId) staticBatch=\(hasStatic) render=\(hasRender) meshEmpty=\(meshEmpty) world=\(hasWorld) local=\(hasLocal)")
             removeEntityFromBatchingTracking(entityId: entityId)
             return
@@ -1860,7 +1887,7 @@ public class BatchingSystem: @unchecked Sendable {
 
         let isLODBatch = meshGroup.contains {
             scene.get(component: LODComponent.self, for: $0.entityId) != nil
-            || scene.get(component: TileLODTagComponent.self, for: $0.entityId) != nil
+                || scene.get(component: TileLODTagComponent.self, for: $0.entityId) != nil
         }
 
         return BatchGroup(

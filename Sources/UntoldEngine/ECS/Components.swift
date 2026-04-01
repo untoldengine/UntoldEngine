@@ -381,7 +381,9 @@ public class LODComponent: Component {
 public class TileLODTagComponent: Component {
     public var levelIndex: Int = 0
     public required init() {}
-    public init(levelIndex: Int) { self.levelIndex = levelIndex }
+    public init(levelIndex: Int) {
+        self.levelIndex = levelIndex
+    }
 }
 
 // MARK: Static Batching Component
@@ -401,19 +403,19 @@ public class StaticBatchComponent: Component {
 ///   unloaded → parsing → parsed → unloading → unloaded
 ///   Any state → failed (on error) → unloaded (after retry backoff)
 public enum TileAssetState {
-    case unloaded   // stub registered, tile file not parsed yet
-    case parsing    // setEntityMeshAsync in progress for this tile
-    case parsed     // tile parsed; child mesh stubs registered and streaming
-    case failed     // last parse/upload attempt failed — retry after backoff
-    case unloading  // tile being torn down; child entities being destroyed
+    case unloaded // stub registered, tile file not parsed yet
+    case parsing // setEntityMeshAsync in progress for this tile
+    case parsed // tile parsed; child mesh stubs registered and streaming
+    case failed // last parse/upload attempt failed — retry after backoff
+    case unloading // tile being torn down; child entities being destroyed
 }
 
 /// Lifecycle state of a tile's coarse HLOD mesh or per-tile LOD level.
 public enum HLODAssetState {
-    case unloaded   // no geometry in flight
-    case loading    // setEntityMeshAsync in progress
-    case loaded     // mesh is GPU-resident and rendering
-    case unloading  // being torn down
+    case unloaded // no geometry in flight
+    case loading // setEntityMeshAsync in progress
+    case loaded // mesh is GPU-resident and rendering
+    case unloading // being torn down
 }
 
 /// One LOD level for a tile stub.  Levels are stored sorted ascending by
@@ -431,7 +433,7 @@ public final class TileLODLevel {
     /// Lifecycle state — mirrors HLODAssetState.
     public var state: HLODAssetState = .unloaded
     /// Task handle for the in-flight setEntityMeshAsync call.
-    var loadTask: Task<Void, Never>? = nil
+    var loadTask: Task<Void, Never>?
 
     public init(url: URL, switchDistance: Float) {
         self.url = url
@@ -443,10 +445,10 @@ public final class TileLODLevel {
 /// Derived from the ratio of OCC sub-mesh stubs that have completed GPU upload.
 /// Eager tiles (no OCC stubs) jump directly to .complete when parsed.
 public enum TileVisualState {
-    case empty      // no GPU geometry resident
-    case partial    // some OCC stubs uploaded (< 50 %)
-    case usable     // majority of OCC geometry uploaded (≥ 50 %)
-    case complete   // all OCC stubs fully GPU-resident
+    case empty // no GPU geometry resident
+    case partial // some OCC stubs uploaded (< 50 %)
+    case usable // majority of OCC geometry uploaded (≥ 50 %)
+    case complete // all OCC stubs fully GPU-resident
 }
 
 /// Attached to every tile stub entity created by loadTiledScene().
@@ -455,7 +457,7 @@ public enum TileVisualState {
 /// and to tear down the tile when the camera leaves.
 public class TileComponent: Component {
     /// Resolved URL to the tile's USDC/USDZ file.
-    public var tileURL: URL = URL(fileURLWithPath: "")
+    public var tileURL: URL = .init(fileURLWithPath: "")
 
     /// File size in bytes (from manifest). Used by the pre-parse memory budget gate.
     public var fileSizeBytes: Int = 0
@@ -565,7 +567,7 @@ public class TileComponent: Component {
     // MARK: - HLOD (coarse distant mesh)
 
     /// Resolved URL to the tile's HLOD USDC file.  nil means no HLOD for this tile.
-    public var hlodURL: URL? = nil
+    public var hlodURL: URL?
 
     /// Camera distance beyond which the HLOD mesh is shown instead of full geometry.
     /// 0 means no HLOD configured.
@@ -573,13 +575,13 @@ public class TileComponent: Component {
 
     /// Entity ID of the child entity carrying the HLOD RenderComponent.
     /// nil when HLOD is not loaded.
-    public var hlodEntityId: EntityID? = nil
+    public var hlodEntityId: EntityID?
 
     /// Lifecycle state of the HLOD mesh.
     public var hlodState: HLODAssetState = .unloaded
 
     /// Task handle for the in-flight HLOD setEntityMeshAsync call.
-    var hlodLoadTask: Task<Void, Never>? = nil
+    var hlodLoadTask: Task<Void, Never>?
 
     public required init() {}
 }

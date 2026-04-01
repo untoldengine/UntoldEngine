@@ -592,7 +592,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var entityMeshMapValue: [EntityID: [Mesh]] = [:]
     private var entityNameMapValue: [EntityID: String] = [:]
     private var reverseEntityNameMapValue: [String: [EntityID]] = [:]
-    private var currentFrameFrustumValue: Frustum? = nil
+    private var currentFrameFrustumValue: Frustum?
 
     private init() {}
 
