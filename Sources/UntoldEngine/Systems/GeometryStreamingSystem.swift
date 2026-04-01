@@ -1329,6 +1329,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         tileComp.hlodLoadTask?.cancel()
         tileComp.hlodLoadTask = nil
 
+        // Capture before the withWorldMutationGate block clears it.
+        let capturedHlodEntityId = tileComp.hlodEntityId
+
         withWorldMutationGate {
             if let hlodEntityId = tileComp.hlodEntityId, scene.exists(hlodEntityId) {
                 destroyEntity(entityId: hlodEntityId)
@@ -1336,6 +1339,16 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
             tileComp.hlodEntityId = nil
             tileComp.hlodState = .unloaded
+        }
+
+        // Force-release the AssetLoadingGate that setEntityMeshAsync opened via
+        // startLoading(entityId: capturedHlodEntityId).  Task.cancel() is cooperative —
+        // the inner Task may still be running after we destroy the entity, and its
+        // completion callback will find the entity gone and return early without calling
+        // finishLoading, leaving the gate permanently elevated and the render loop frozen.
+        // finishLoading is idempotent: if the Task already called it, this is a no-op.
+        if let hlodId = capturedHlodEntityId {
+            Task { await AssetLoadingState.shared.finishLoading(entityId: hlodId) }
         }
 
         unmarkLoadedHLODEntity(entityId)
@@ -1439,6 +1452,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         tileComp.lodLevels[levelIndex].loadTask?.cancel()
         tileComp.lodLevels[levelIndex].loadTask = nil
 
+        // Capture before the withWorldMutationGate block clears it.
+        let capturedLodEntityId = tileComp.lodLevels[levelIndex].entityId
+
         withWorldMutationGate {
             let lodEntityId = tileComp.lodLevels[levelIndex].entityId
             if lodEntityId != .invalid, scene.exists(lodEntityId) {
@@ -1447,6 +1463,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
             tileComp.lodLevels[levelIndex].entityId = .invalid
             tileComp.lodLevels[levelIndex].state = .unloaded
+        }
+
+        // Same gate-release fix as unloadHLOD — see comment there for full rationale.
+        if capturedLodEntityId != .invalid {
+            Task { await AssetLoadingState.shared.finishLoading(entityId: capturedLodEntityId) }
         }
 
         // Unmark when no levels remain active.
