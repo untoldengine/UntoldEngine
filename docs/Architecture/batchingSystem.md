@@ -22,7 +22,7 @@ cellId(x, y, z) = floor(worldCenter / cellSize)
 
 When your 100 entities load, each one that has a `StaticBatchComponent` gets registered:
 
-- **Eligibility check** (`resolveBatchCandidate`): the entity must have a `RenderComponent`, `WorldTransformComponent`, no skeleton/animation, no transparency, no gizmo/light component, and its mesh must already be resident in memory.
+- **Eligibility check** (`resolveBatchCandidate`): the entity must have a `RenderComponent`, `WorldTransformComponent`, no skeleton/animation, no transparency, no gizmo/light component, and its mesh must already be resident in memory. The LOD index is derived from `LODComponent.currentLOD` (entity-level LOD), then `TileLODTagComponent.levelIndex` (per-tile LOD/HLOD children), defaulting to 0. `isLODBatch` on the resulting `BatchGroup` is true if any member entity has either component.
 - If eligible → it gets assigned to a cell and added to `cellToEntities[cellId]`.
 - The cell is marked **dirty** and its state becomes `renderableUnbatched`.
 
@@ -35,7 +35,9 @@ Every frame, `tick()` runs through this pipeline:
 ### 2a. Process Removals & Additions
 Any entities that changed (LOD switch, mesh evicted/streamed in) are removed from their old cell and re-registered in their current cell. This marks the affected cells dirty.
 
-**Tile-loaded entities bypass the quiescence delay.** When a fullLoad tile finishes parsing, `GeometryStreamingSystem` calls `BatchingSystem.notifyTileParsedEntities(_:)` with the set of render-ready entity IDs. When those entities arrive in `pendingEntityAdditions`, they are processed with `deferBatchBuild = false` and their cells are immediately promoted to `batchPending` — skipping the quiescence wait. See [Tile-Local Batch Promotion](#tile-local-batch-promotion) below.
+**Tile-loaded entities bypass the quiescence delay.** When a fullLoad tile (or LOD/HLOD load) finishes, `GeometryStreamingSystem` calls `BatchingSystem.notifyTileEntitiesResident(_:)` with the set of render-ready entity IDs. This single call directly registers the entities in `pendingEntityAdditions`, marks them as tile-parsed (for quiescence bypass), and resolves their cell membership — replacing the former two-step `queueResidencyEventsForRenderDescendants` + `notifyTileParsedEntities` pairing and avoiding the per-entity event storm through `SystemEventBus`. Their cells are immediately promoted to `batchPending` in the same tick. See [Tile-Local Batch Promotion](#tile-local-batch-promotion) below.
+
+**Stale entity purge on LOD/HLOD teardown.** When `unloadLODLevel` or `unloadHLOD` destroys child entities, it first calls `BatchingSystem.cancelPendingEntities(_:)` with the render descendant IDs. This removes them from `pendingEntityAdditions`, `pendingEntityRemovals`, `newlyResidentEntities`, and `tileParsedEntityIds` before the entities are destroyed — preventing "entity is missing" errors on the next `tick()` and avoiding wasted batch rebuilds for entities that no longer exist.
 
 ### 2b. Update Visibility History
 The system checks which cells currently contain visible entities and records `cellLastVisibleFrame[cellId]`. This drives **visibility gating** — the system won't waste CPU rebuilding cells you can't see.
@@ -146,11 +148,13 @@ retiring → unloaded
 
 ## Tile-Local Batch Promotion
 
-When a **fullLoad tile** (one that completes GPU upload in a single step, `occCount == 0`) finishes parsing, `GeometryStreamingSystem` hands off the set of render-ready entity IDs to the batching system:
+When a **fullLoad tile** (one that completes GPU upload in a single step, `occCount == 0`), per-tile LOD level, or HLOD mesh finishes loading, `GeometryStreamingSystem` hands off the set of render-ready entity IDs to the batching system:
 
 ```swift
-BatchingSystem.shared.notifyTileParsedEntities(tileRenderIds)
+BatchingSystem.shared.notifyTileEntitiesResident(renderIds)
 ```
+
+This single call combines what was previously a per-entity `AssetResidencyChangedEvent` storm + a separate `notifyTileParsedEntities` call. The entities are registered directly in the batching system's pending additions and marked for quiescence bypass, avoiding hundreds of individual events through `SystemEventBus`.
 
 In the next `tick()`, those entities are processed differently from ordinary streaming arrivals:
 

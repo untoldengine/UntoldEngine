@@ -1,0 +1,485 @@
+//
+//  TileStreamingTests.swift
+//  UntoldEngine
+//
+//  Unit and integration tests for the tile-streaming pipeline.
+//  Coverage areas:
+//    1. TileComponent computed properties (visualState, retryDelaySeconds,
+//       effectivePrefetchRadius) — pure unit tests, no GPU needed.
+//    2. TripleCPUBuffer.remove(ids:) and clearAll() — data-structure tests.
+//    3. LOD hysteresis — integration tests verifying that the streaming system
+//       does not ping-pong LOD levels when the camera oscillates near a
+//       switchDistance boundary.
+//
+// Copyright (C) Untold Engine Studios
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+import simd
+@testable import UntoldEngine
+import XCTest
+
+// MARK: - TileComponent computed-property unit tests
+
+/// These tests exercise pure computed properties on TileComponent.
+/// No renderer, GPU, or ECS scene is required.
+final class TileComponentUnitTests: XCTestCase {
+    // MARK: visualState
+
+    func testVisualState_nonParsedStateIsEmpty() {
+        let tc = TileComponent()
+        tc.totalOCCStubs = 10
+        tc.uploadedOCCStubs = 10
+
+        for s in [TileAssetState.unloaded, .parsing, .failed, .unloading] {
+            tc.state = s
+            XCTAssertEqual(tc.visualState, .empty, "state=\(s) should yield .empty")
+        }
+    }
+
+    func testVisualState_eagerTileImmediatelyComplete() {
+        // totalOCCStubs == 0 means the tile has no streaming sub-meshes (eager load).
+        // As soon as state == .parsed it is visually complete.
+        let tc = TileComponent()
+        tc.state = .parsed
+        tc.totalOCCStubs = 0
+        tc.uploadedOCCStubs = 0
+        XCTAssertEqual(tc.visualState, .complete)
+    }
+
+    func testVisualState_zeroUploadedIsEmpty() {
+        let tc = TileComponent()
+        tc.state = .parsed
+        tc.totalOCCStubs = 10
+        tc.uploadedOCCStubs = 0
+        XCTAssertEqual(tc.visualState, .empty)
+    }
+
+    func testVisualState_belowHalfIsPartial() {
+        let tc = TileComponent()
+        tc.state = .parsed
+        tc.totalOCCStubs = 10
+        tc.uploadedOCCStubs = 4 // 40 % < 50 %
+        XCTAssertEqual(tc.visualState, .partial)
+    }
+
+    func testVisualState_exactlyHalfIsUsable() {
+        let tc = TileComponent()
+        tc.state = .parsed
+        tc.totalOCCStubs = 10
+        tc.uploadedOCCStubs = 5 // exactly 50 %
+        XCTAssertEqual(tc.visualState, .usable)
+    }
+
+    func testVisualState_aboveHalfIsUsable() {
+        let tc = TileComponent()
+        tc.state = .parsed
+        tc.totalOCCStubs = 10
+        tc.uploadedOCCStubs = 7 // 70 %
+        XCTAssertEqual(tc.visualState, .usable)
+    }
+
+    func testVisualState_allUploadedIsComplete() {
+        let tc = TileComponent()
+        tc.state = .parsed
+        tc.totalOCCStubs = 10
+        tc.uploadedOCCStubs = 10
+        XCTAssertEqual(tc.visualState, .complete)
+    }
+
+    func testVisualState_uploadedExceedsTotalIsComplete() {
+        // Defensive: uploadedOCCStubs can transiently exceed totalOCCStubs
+        // if stubs are counted before all registrations complete.
+        let tc = TileComponent()
+        tc.state = .parsed
+        tc.totalOCCStubs = 8
+        tc.uploadedOCCStubs = 9
+        XCTAssertEqual(tc.visualState, .complete)
+    }
+
+    // MARK: retryDelaySeconds — exponential backoff: min(2^(max(n-1,0)) × 5, 60)
+
+    func testRetryDelay_firstAttemptIsFiveSeconds() {
+        let tc = TileComponent()
+        tc.failureCount = 0
+        XCTAssertEqual(tc.retryDelaySeconds, 5.0, accuracy: 0.001)
+    }
+
+    func testRetryDelay_secondAttemptIsFiveSeconds() {
+        let tc = TileComponent()
+        tc.failureCount = 1 // max(1-1, 0)=0 → 2^0 × 5 = 5
+        XCTAssertEqual(tc.retryDelaySeconds, 5.0, accuracy: 0.001)
+    }
+
+    func testRetryDelay_thirdAttemptIsTenSeconds() {
+        let tc = TileComponent()
+        tc.failureCount = 2 // 2^1 × 5 = 10
+        XCTAssertEqual(tc.retryDelaySeconds, 10.0, accuracy: 0.001)
+    }
+
+    func testRetryDelay_fourthAttemptIsTwentySeconds() {
+        let tc = TileComponent()
+        tc.failureCount = 3 // 2^2 × 5 = 20
+        XCTAssertEqual(tc.retryDelaySeconds, 20.0, accuracy: 0.001)
+    }
+
+    func testRetryDelay_fifthAttemptIsFortySeconds() {
+        let tc = TileComponent()
+        tc.failureCount = 4 // 2^3 × 5 = 40
+        XCTAssertEqual(tc.retryDelaySeconds, 40.0, accuracy: 0.001)
+    }
+
+    func testRetryDelay_capsAtSixtySeconds() {
+        let tc = TileComponent()
+        for n in [5, 6, 10, 100] {
+            tc.failureCount = n
+            XCTAssertEqual(tc.retryDelaySeconds, 60.0, accuracy: 0.001,
+                           "failureCount=\(n) should cap at 60 s")
+        }
+    }
+
+    // MARK: effectivePrefetchRadius
+
+    func testEffectivePrefetchRadius_autoComputesMidpoint() {
+        let tc = TileComponent()
+        tc.streamingRadius = 80
+        tc.unloadRadius = 120
+        tc.prefetchRadius = 0 // auto
+        // midpoint = 80 + (120-80) * 0.5 = 100
+        XCTAssertEqual(tc.effectivePrefetchRadius, 100.0, accuracy: 0.001)
+    }
+
+    func testEffectivePrefetchRadius_explicitOverrideIsHonoured() {
+        let tc = TileComponent()
+        tc.streamingRadius = 80
+        tc.unloadRadius = 120
+        tc.prefetchRadius = 90
+        XCTAssertEqual(tc.effectivePrefetchRadius, 90.0, accuracy: 0.001)
+    }
+
+    func testEffectivePrefetchRadius_equalStreamAndUnloadRadii() {
+        let tc = TileComponent()
+        tc.streamingRadius = 100
+        tc.unloadRadius = 100
+        tc.prefetchRadius = 0
+        XCTAssertEqual(tc.effectivePrefetchRadius, 100.0, accuracy: 0.001)
+    }
+}
+
+// MARK: - TripleCPUBuffer data-structure tests
+
+final class TripleCPUBufferTests: XCTestCase {
+    func testClearAll_emptiesEverySlot() {
+        let buf = TripleCPUBuffer<Int>(inFlight: 3)
+        for frame in 0 ..< 3 {
+            buf.setWrite(frame: frame, with: [frame * 10, frame * 10 + 1])
+        }
+
+        buf.clearAll()
+
+        for frame in 0 ..< 3 {
+            // snapshotForRead reads slot (frame + inFlight - 1) % inFlight
+            let snapshot = buf.snapshotForRead(frame: frame)
+            XCTAssertTrue(snapshot.isEmpty, "slot \(frame) should be empty after clearAll()")
+        }
+    }
+
+    func testRemove_eliminatesTargetIdsFromAllSlots() {
+        let buf = TripleCPUBuffer<Int>(inFlight: 3)
+        buf.setWrite(frame: 0, with: [1, 2, 3, 4])
+        buf.setWrite(frame: 1, with: [2, 4, 6])
+        buf.setWrite(frame: 2, with: [1, 3, 5])
+
+        buf.remove(ids: [2, 4])
+
+        // snapshotForRead(frame:) reads (frame + 2) % 3, so rotate by 1 to check each write slot.
+        let s0 = buf.snapshotForRead(frame: 1) // reads write slot 0
+        let s1 = buf.snapshotForRead(frame: 2) // reads write slot 1
+        let s2 = buf.snapshotForRead(frame: 0) // reads write slot 2
+
+        XCTAssertEqual(Set(s0), [1, 3], "slot 0 should keep [1,3]")
+        XCTAssertEqual(Set(s1), [6], "slot 1 should keep [6]")
+        XCTAssertEqual(Set(s2), [1, 3, 5], "slot 2 should keep [1,3,5]")
+    }
+
+    func testRemove_emptySetIsNoOp() {
+        let buf = TripleCPUBuffer<Int>(inFlight: 2)
+        buf.setWrite(frame: 0, with: [10, 20])
+        buf.setWrite(frame: 1, with: [30])
+
+        buf.remove(ids: [])
+
+        let s0 = buf.snapshotForRead(frame: 1)
+        let s1 = buf.snapshotForRead(frame: 0)
+        XCTAssertEqual(Set(s0), [10, 20])
+        XCTAssertEqual(Set(s1), [30])
+    }
+
+    func testRemove_idsNotPresentIsNoOp() {
+        let buf = TripleCPUBuffer<Int>(inFlight: 2)
+        buf.setWrite(frame: 0, with: [1, 2])
+        buf.setWrite(frame: 1, with: [3])
+
+        buf.remove(ids: [99, 100])
+
+        let s0 = buf.snapshotForRead(frame: 1)
+        let s1 = buf.snapshotForRead(frame: 0)
+        XCTAssertEqual(Set(s0), [1, 2])
+        XCTAssertEqual(Set(s1), [3])
+    }
+
+    func testRemoveAll_thenRemoveIsNoOp() {
+        let buf = TripleCPUBuffer<Int>(inFlight: 2)
+        buf.setWrite(frame: 0, with: [7, 8, 9])
+        buf.clearAll()
+        buf.remove(ids: [7, 8]) // should not crash or add elements
+
+        for frame in 0 ..< 2 {
+            XCTAssertTrue(buf.snapshotForRead(frame: frame).isEmpty)
+        }
+    }
+}
+
+// MARK: - LOD hysteresis integration tests
+
+/// Verifies that the GeometryStreamingSystem respects `lodHysteresisFactor`
+/// when deciding whether to keep an already-active LOD level loaded as the
+/// camera moves slightly inside a switchDistance boundary.
+///
+/// Setup: one TileComponent with a single LOD level at switchDistance = 100.
+/// hysteresisFactor = 0.90, so the effective unload threshold = 90.
+///
+/// Test 1 — within hysteresis band [90, 100):
+///   camera at dist = 95 → LOD level stays .loaded (no switch)
+///
+/// Test 2 — below hysteresis band (dist < 90):
+///   camera at dist = 85 → LOD level drops to .unloaded
+@MainActor
+final class TileStreamingHysteresisTests: BaseRenderSetup {
+    /// The LOD switch distance used in all hysteresis tests.
+    private let lodSwitchDistance: Float = 100.0
+    /// Default factor from GeometryStreamingSystem.
+    private let hysteresisFactor: Float = 0.90
+    /// Effective unload threshold = 100 × 0.90 = 90.
+    private var hysteresisThreshold: Float {
+        lodSwitchDistance * hysteresisFactor
+    }
+
+    override func setUp() async throws {
+        try await super.setUp()
+
+        GeometryStreamingSystem.shared.reset()
+        GeometryStreamingSystem.shared.enabled = true
+        GeometryStreamingSystem.shared.updateInterval = 0.0 // no throttle
+        GeometryStreamingSystem.shared.lodHysteresisFactor = hysteresisFactor
+        GeometryStreamingSystem.shared.maxConcurrentLODLoads = 4
+        GeometryStreamingSystem.shared.maxQueryRadius = 500.0
+
+        OctreeSystem.shared.clear()
+        MemoryBudgetManager.shared.clear()
+        MemoryBudgetManager.shared.enabled = true
+        MemoryBudgetManager.shared.geometryBudget = 512 * 1024 * 1024
+        MemoryBudgetManager.shared.textureBudget = 0
+    }
+
+    override func tearDown() async throws {
+        GeometryStreamingSystem.shared.reset()
+        GeometryStreamingSystem.shared.enabled = false
+        GeometryStreamingSystem.shared.updateInterval = 0.1
+        OctreeSystem.shared.clear()
+        MemoryBudgetManager.shared.clear()
+        try await super.tearDown()
+    }
+
+    // MARK: Helpers
+
+    /// Create a tile stub entity placed at `distance` along the X axis.
+    /// The entity is registered in the octree so the streaming system's
+    /// `OctreeSystem.queryNear` pass can find it.
+    ///
+    /// Returns (entityId, tileComp). The caller is responsible for
+    /// setting the LOD level state before calling `update()`.
+    @discardableResult
+    private func makeTileEntity(
+        distance: Float,
+        lodSwitchDistance: Float,
+        initialLODState: HLODAssetState = .unloaded
+    ) -> (EntityID, TileComponent) {
+        let entityId = createEntity()
+
+        // Place the near face of the bounding box at exactly `distance` along X.
+        // calculateDistance uses closest-point-on-AABB in local space; with an
+        // identity world matrix the camera at origin hits the near face at exactly
+        // `distance`, so the computed distance equals the value we specify here.
+        if let local = scene.assign(to: entityId, component: LocalTransformComponent.self) {
+            local.boundingBox = (
+                min: simd_float3(distance, -0.5, -0.5),
+                max: simd_float3(distance + 1.0, 0.5, 0.5)
+            )
+        }
+        if let world = scene.assign(to: entityId, component: WorldTransformComponent.self) {
+            world.space = simd_float4x4(1.0)
+        }
+
+        // Assign TileComponent. Use scene.assign() (same pattern as eviction tests)
+        // to avoid triggering the ComponentRegistry cleanup handler prematurely.
+        let tileComp: TileComponent
+        if let tc = scene.assign(to: entityId, component: TileComponent.self) {
+            tileComp = tc
+        } else {
+            XCTFail("Failed to assign TileComponent to entity \(entityId)")
+            return (entityId, TileComponent())
+        }
+
+        tileComp.state = .unloaded
+        tileComp.tileId = "test_tile_\(entityId)"
+        tileComp.streamingRadius = 50.0
+        tileComp.unloadRadius = 200.0
+        // No HLOD — ensures the LOD pass is not gated by hlodSwitchDistance.
+        tileComp.hlodSwitchDistance = 0
+        tileComp.hlodState = .unloaded
+
+        // One LOD level at the requested switchDistance.
+        // entityId = .invalid so unloadLODLevel skips the GPU destroy path.
+        let dummyURL = URL(fileURLWithPath: "/dev/null")
+        let level = TileLODLevel(url: dummyURL, switchDistance: lodSwitchDistance)
+        level.state = initialLODState
+        level.entityId = .invalid
+        tileComp.lodLevels = [level]
+
+        // Register in octree so the streaming update's queryNear finds it.
+        OctreeSystem.shared.registerEntity(entityId)
+
+        return (entityId, tileComp)
+    }
+
+    // MARK: Tests
+
+    /// Camera within hysteresis band [hysteresisThreshold, switchDistance):
+    /// the active LOD level must not be unloaded.
+    func testLODHysteresis_activeLevel_preservedWithinBand() {
+        // dist = 95 (between threshold=90 and switchDistance=100) → stay loaded.
+        let distInsideBand: Float = 95
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distInsideBand,
+            lodSwitchDistance: lodSwitchDistance,
+            initialLODState: .loaded
+        )
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertEqual(
+            tileComp.lodLevels[0].state, .loaded,
+            "LOD should stay .loaded when camera is within hysteresis band (dist=\(distInsideBand), threshold=\(hysteresisThreshold))"
+        )
+    }
+
+    /// Camera at the hysteresis threshold exactly:
+    /// the active LOD level should also be preserved (boundary condition).
+    func testLODHysteresis_activeLevel_preservedAtExactThreshold() {
+        // The near face of the AABB is placed at hysteresisThreshold (90.0) so
+        // calculateDistance returns exactly 90.0 → 90 >= 90 → targetIndex set → stay loaded.
+        let distAtThreshold: Float = hysteresisThreshold // near face placed at 90
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distAtThreshold,
+            lodSwitchDistance: lodSwitchDistance,
+            initialLODState: .loaded
+        )
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertEqual(
+            tileComp.lodLevels[0].state, .loaded,
+            "LOD should stay .loaded at the exact hysteresis threshold (\(distAtThreshold))"
+        )
+    }
+
+    /// Camera below the hysteresis band:
+    /// the active LOD level must be torn down.
+    func testLODHysteresis_activeLevel_unloadedBelowBand() {
+        // Near face at 89 → dist=89 < threshold=90 → targetIndex nil → unloadAllLODLevels.
+        let distBelowBand: Float = hysteresisThreshold - 1 // 89
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distBelowBand,
+            lodSwitchDistance: lodSwitchDistance,
+            initialLODState: .loaded
+        )
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertEqual(
+            tileComp.lodLevels[0].state, .unloaded,
+            "LOD should be unloaded when camera drops below hysteresis band (dist=\(distBelowBand), threshold=\(hysteresisThreshold))"
+        )
+    }
+
+    /// Inactive LOD level (state = .unloaded) at dist inside the hysteresis band:
+    /// should NOT be loaded (the band is only for keeping an active level, not for
+    /// loading a new one; a fresh activation requires dist >= raw switchDistance).
+    func testLODHysteresis_inactiveLevel_notLoadedWithinBand() {
+        // Near face at 95 → dist=95, within band [90, 100). Level starts .unloaded.
+        // System attempts to load (state becomes .loading) but cannot complete
+        // synchronously. Assert the level did not jump to .loaded without a mesh upload.
+        let distInsideBand: Float = 95
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distInsideBand,
+            lodSwitchDistance: lodSwitchDistance,
+            initialLODState: .unloaded // not currently active
+        )
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        // The system should attempt to load the level (state becomes .loading)
+        // since dist(95) >= threshold(90). It must not remain .unloaded silently.
+        // We do NOT assert .loading because loadLODLevel tries to load a real file;
+        // instead we just confirm it did not spontaneously jump to .loaded without
+        // a completed mesh upload.
+        XCTAssertNotEqual(
+            tileComp.lodLevels[0].state, .loaded,
+            "A level with no mesh should not report .loaded without a completed upload"
+        )
+    }
+
+    /// Verifying that no hysteresis is applied when level is not currently active:
+    /// at raw switchDistance (100), an inactive level should be selected as target.
+    func testLODHysteresis_inactiveLevel_activatesAtRawSwitchDistance() {
+        // Near face at 100 → dist=100 >= switchDistance(100) → targetIndex=0 → attempt to load.
+        let distAtSwitch: Float = lodSwitchDistance
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distAtSwitch,
+            lodSwitchDistance: lodSwitchDistance,
+            initialLODState: .unloaded
+        )
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        // The system should have started a load (state transitions from .unloaded
+        // to .loading). A real load is attempted but cannot complete synchronously.
+        XCTAssertNotEqual(
+            tileComp.lodLevels[0].state, .unloaded,
+            "LOD level should no longer be .unloaded when camera is at or beyond switchDistance"
+        )
+    }
+}

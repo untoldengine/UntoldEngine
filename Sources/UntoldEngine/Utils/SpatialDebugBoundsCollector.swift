@@ -51,9 +51,9 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
     private let residencyUnloadedColor = simd_float4(1.00, 0.25, 0.25, 1.0)
     private let residencyMixedColor = simd_float4(1.00, 0.55, 0.15, 1.0)
     // Tile-specific residency colors
-    private let tileHLODLoadedColor  = simd_float4(0.20, 0.90, 0.90, 1.0) // cyan       — coarse HLOD visible
+    private let tileHLODLoadedColor = simd_float4(0.20, 0.90, 0.90, 1.0) // cyan       — coarse HLOD visible
     private let tileHLODLoadingColor = simd_float4(0.40, 0.70, 1.00, 1.0) // light blue — HLOD/LOD uploading
-    private let tileFailedColor      = simd_float4(0.90, 0.20, 0.90, 1.0) // magenta    — parse failed
+    private let tileFailedColor = simd_float4(0.90, 0.20, 0.90, 1.0) // magenta    — parse failed
     private let cullingVisibleColor = simd_float4(0.25, 0.95, 0.35, 1.0)
     private let cullingCulledColor = simd_float4(0.30, 0.60, 1.00, 1.0)
     private let cullingHiddenColor = simd_float4(0.55, 0.55, 0.55, 1.0)
@@ -156,22 +156,22 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
 
             switch tc.state {
             case .parsing:
-                return residencyLoadingColor       // yellow — full tile uploading
+                return residencyLoadingColor // yellow — full tile uploading
             case .parsed:
-                return residencyLoadedColor        // green  — full geometry visible
+                return residencyLoadedColor // green  — full geometry visible
             case .failed:
-                return tileFailedColor             // magenta — parse failed
+                return tileFailedColor // magenta — parse failed
             case .unloading:
-                return residencyMixedColor         // orange — teardown in progress
+                return residencyMixedColor // orange — teardown in progress
             case .unloaded:
                 // Tile is unloaded — show HLOD state instead.
                 switch tc.hlodState {
                 case .loaded:
-                    return tileHLODLoadedColor     // cyan — coarse HLOD visible
+                    return tileHLODLoadedColor // cyan — coarse HLOD visible
                 case .loading:
-                    return tileHLODLoadingColor    // light blue — HLOD uploading
+                    return tileHLODLoadingColor // light blue — HLOD uploading
                 case .unloading, .unloaded:
-                    return residencyUnloadedColor  // red — nothing resident
+                    return residencyUnloadedColor // red — nothing resident
                 }
             }
         }
@@ -219,14 +219,14 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
 
     private func tileResidencyColor(for tc: TileComponent) -> simd_float4 {
         switch tc.state {
-        case .parsing:   return residencyLoadingColor
-        case .parsed:    return residencyLoadedColor
-        case .failed:    return tileFailedColor
+        case .parsing: return residencyLoadingColor
+        case .parsed: return residencyLoadedColor
+        case .failed: return tileFailedColor
         case .unloading: return residencyMixedColor
         case .unloaded:
             switch tc.hlodState {
-            case .loaded:            return tileHLODLoadedColor
-            case .loading:           return tileHLODLoadingColor
+            case .loaded: return tileHLODLoadedColor
+            case .loading: return tileHLODLoadingColor
             case .unloading, .unloaded: return residencyUnloadedColor
             }
         }

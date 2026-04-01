@@ -6,10 +6,12 @@ UntoldEngine has two separate LOD mechanisms that operate at different granulari
 |---|---|---|
 | Unit | Individual mesh entity (`LODComponent`) | Whole tile USDC file (`TileLODLevel`) |
 | Control | `LODSystem` — runs every frame | `GeometryStreamingSystem.update()` — runs per tick |
-| Switch trigger | Camera distance vs `LODLevel.maxDistance` | Camera distance vs `TileLODLevel.switchDistance` |
+| Switch trigger | Camera distance vs `LODLevel.maxDistance` | Camera distance vs `TileLODLevel.switchDistance` (with hysteresis) |
+| Hysteresis | 5-unit inner band on finer-LOD transitions only | `lodHysteresisFactor` (default 0.90 = 10% band) on active level |
 | Meshes in memory | All LOD levels GPU-resident simultaneously | Only the active LOD level is loaded |
 | Use case | Individual detailed objects (buildings, props) | Tile-granularity intermediate representations for large scenes |
 | Content pipeline | Separate OBJ/USDZ per LOD level, wired via `LODComponent` | Separate USDC per tile LOD, listed in manifest `lod_levels` array |
+| Debug tagging | `LODComponent.currentLOD` read by LOD debug renderer | `TileLODTagComponent.levelIndex` placed on render descendants |
 
 Per-tile LOD documentation: [`docs/Architecture/tilebasedstreaming.md`](tilebasedstreaming.md#per-tile-lod-levels).
 

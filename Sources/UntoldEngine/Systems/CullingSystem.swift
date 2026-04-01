@@ -19,7 +19,6 @@ let kInFlight = 3
 let planeCount = 6
 let planeStride = MemoryLayout<simd_float4>.stride
 
-
 private final class VisibleSetPublishState: @unchecked Sendable {
     let lock = NSLock()
 }
@@ -1142,4 +1141,10 @@ func isAABBInFrustum(_ frustum: Frustum, min aabbMin: simd_float3, max aabbMax: 
         }
     }
     return true
+}
+
+/// Overload accepting center+halfExtent form. Delegates to the min/max variant.
+@inline(__always)
+func isAABBInFrustum(center: simd_float3, halfExtent: simd_float3, frustum: Frustum) -> Bool {
+    isAABBInFrustum(frustum, min: center - halfExtent, max: center + halfExtent)
 }

@@ -12,6 +12,8 @@ UntoldEngine implements a multi-tier proximity-based geometry streaming system f
 
 **Per-tile LOD levels** (`TileLODLevel`): intermediate mesh representations that bridge the gap between the full tile (`streamingRadius`) and the HLOD switch distance. Finer than HLOD but coarser than the full tile; shown while the tile itself is unloaded and the camera is at mid-range.
 
+**Hysteresis**: both HLOD and per-tile LOD transitions use a hysteresis band to prevent thrashing when the camera hovers near a switch boundary. A loaded representation is not unloaded until the camera moves meaningfully past the switch threshold (controlled by `hlodHysteresisFactor` and `lodHysteresisFactor`, both default 0.90 = 10% inner band). Without hysteresis, frame-to-frame distance jitter near a boundary causes rapid load/unload cycles that freeze the engine.
+
 ### Distance Band Summary
 
 ```
@@ -83,6 +85,7 @@ Entries **must be sorted ascending by `switch_distance`** (smallest = finest = c
   - `lodLevels: [TileLODLevel]` — per-tile intermediate LOD entries
   - `meshEntityId` — the dedicated mesh-child entity ID, stored so the timeout guard can force-close `AssetLoadingGate` if `loadTextures()` hangs
 - **`TileLODLevel`** — one instance per LOD entry in the manifest. Carries `url`, `switchDistance`, `entityId`, `state` (`HLODAssetState`), and `loadTask`. Mirrors the HLOD lifecycle pattern.
+- **`TileLODTagComponent`** — lightweight tag placed on render-descendant mesh entities spawned by the streaming system for per-tile LOD levels and HLODs. Carries a `levelIndex` used by the LOD debug renderer (`colorRenderablesByLOD`) and by `BatchingSystem.resolveBatchCandidate` to derive the batch LOD index for these entities (which have no `LODComponent`). `levelIndex` follows `lodDebugPalette`: 1 = LOD1 (green), 2 = LOD2 (blue), 5 = HLOD (cyan).
 - **`StreamingComponent`** — attached to individual OCC mesh stubs created inside a loaded tile. Governs per-mesh load/unload within the second streaming tier.
 - **`RenderComponent`** — added to an entity only after its GPU geometry upload completes. Absence means the entity is invisible to culling and rendering.
 
@@ -145,16 +148,16 @@ Both `.parsing` and `.parsed` tiles go through the **grace period** (see [Unload
 1. Sets `tileComp.state = .parsing`; reserves a slot in `activeTileLoads`.
 2. Creates a dedicated child *mesh entity* under the tile stub (`capturedMeshEntityId`) inside `withWorldMutationGate`. This guarantees `unloadTile`'s `collectTileDescendants` always has at least one child to destroy, regardless of how many submeshes the tile contains.
 3. Registers `capturedMeshEntityId → tileEntityId` in `meshEntityToTileEntity` for O(1) OCC upload counter updates.
-4. Spawns a Swift `Task` calling `setEntityMeshAsync(entityId: capturedMeshEntityId, streamingPolicy: .auto)`.
+4. Spawns a Swift `Task` calling `setEntityMeshAsync(entityId: capturedMeshEntityId, streamingPolicy: .auto, blockRenderLoop: false)`.
    - `.auto` policy: the admission gate chooses `fullLoad` (parse + immediate GPU upload) or `outOfCore` (parse to CPU heap, upload stubs via `StreamingComponent`) based on tile file size and available RAM.
+   - `blockRenderLoop: false` — tile parses do **not** hold the `AssetLoadingGate` open. Without this, concurrent tile parses would keep `isLoadingAny == true` for their full duration, freezing `visibleEntityIds` updates and stalling the render loop. LOD and HLOD loads also use `blockRenderLoop: false` for the same reason.
 5. Completion callback (fires on the main thread):
    - **Zombie-state guard** — checks `tc.state == .parsing`. If `unloadTile` ran while the parse was in flight, the state will be `.unloading`. The callback discards the result, destroys the pre-created child entity, and returns without marking the tile loaded.
    - On confirmed `.parsing`: transitions to `.parsed`, seeds `totalOCCStubs` from `countOCCDescendants`.
    - **fullLoad path** (`occCount == 0`): all geometry is immediately GPU-resident. The callback:
      1. Calls `setEntityStaticBatchComponent` to tag the entity hierarchy for cell-based static batching.
-     2. Calls `queueResidencyEventsForRenderDescendants` to queue `AssetResidencyChangedEvent` for every render-ready entity, so the batching system picks them up on the next `flushEvents()` call.
-     3. Calls `BatchingSystem.shared.notifyTileParsedEntities(_:)` with the set of render descendant IDs. This tells the batching system to **bypass the quiescence delay** for these entities — their cells will be promoted to `batchPending` on the very next `tick()` instead of waiting for the normal quiescence window. See [Tile-Local Batch Promotion](batchingSystem.md#tile-local-batch-promotion).
-   - **OCC path** (`occCount > 0`): `setEntityStaticBatchComponent` is called but residency events are not explicitly queued — they fire automatically as each OCC stub completes its GPU upload. The normal quiescence delay applies to keep the batch from rebuilding after each individual stub upload.
+     2. Calls `BatchingSystem.shared.notifyTileEntitiesResident(_:)` with the set of render descendant IDs. This single call replaces the former two-step `queueResidencyEventsForRenderDescendants` + `notifyTileParsedEntities` pairing — it directly registers the entities in the batching system's pending additions and marks them for quiescence bypass, avoiding the per-entity event storm through `SystemEventBus`. See [Tile-Local Batch Promotion](batchingSystem.md#tile-local-batch-promotion).
+   - **OCC path** (`occCount > 0`): `setEntityStaticBatchComponent` is called but residency notifications are not sent — they fire automatically as each OCC stub completes its GPU upload via the normal `handleResidencyChange` flow. The normal quiescence delay applies to keep the batch from rebuilding after each individual stub upload.
    - On failure: destroys child entity, increments `failureCount`, sets state to `.failed` (retry backoff).
    - **`defer { releaseActiveTileLoad }`** — the concurrency slot is freed on all exit paths.
 
@@ -274,12 +277,13 @@ HLOD is loaded when all of the following hold:
 - `dist >= hlodSwitchDistance` (camera is beyond the switch threshold)
 - `tileComp.state != .parsed` (full tile is not resident — no redundant HLOD)
 - `hlodState == .unloaded`
+- `activeHLODLoadCount() < maxConcurrentHLODLoads` (default 4) — prevents simultaneous mass dispatch of 100+ HLOD parses that would OOM-kill the process
 
 ### Unload trigger
 
 HLOD is unloaded (and the load task cancelled) when:
-- The full tile reaches `.parsed` — full geometry has taken over; HLOD is redundant.
-- `dist < hlodSwitchDistance` — camera re-enters the tile's zone; full tile will load.
+- The full tile reaches `.parsed` — full geometry has taken over; HLOD is redundant. No hysteresis here — always unload promptly.
+- `dist < hlodSwitchDistance × hlodHysteresisFactor` (default 0.90) — camera has moved **meaningfully** inside the switch distance. The hysteresis band `[switchDistance × factor, switchDistance)` keeps the HLOD resident while the camera lingers at the boundary, preventing thrashing.
 
 **Race fix:** `hlodState = .unloading` is set **before** `hlodLoadTask.cancel()`. This prevents the load completion callback from seeing `.loading` and incorrectly marking the HLOD as `.loaded` after teardown is already in progress.
 
@@ -313,30 +317,37 @@ state:  unloaded → loading → loaded → unloading → unloaded
 ### LOD selection logic (per frame, per tile)
 
 ```
-if dist >= hlodSwitchDistance → skip (HLOD pass handles this band)
+if HLOD is loaded or loading → unload all LOD levels (avoid dual representation)
+if dist >= hlodSwitchDistance → unload all LOD levels (HLOD pass handles this band)
 
-find target index:
-  last level where level.switchDistance ≤ dist   → that level
-  no match (dist < LOD[0].switchDistance)         → no LOD (tile will load or is already parsed)
+find target index (with hysteresis):
+  for each level i:
+    threshold = (i is currently active) ? switchDistance × lodHysteresisFactor : switchDistance
+    last level where threshold ≤ dist → that level
+  no match (dist < LOD[0].threshold)  → no LOD (tile will load or is already parsed)
 
-load target level if .unloaded
+load target level if .unloaded (capped by maxConcurrentLODLoads)
 unload all other levels that are .loaded or .loading
 ```
+
+The hysteresis ensures the currently active LOD level uses a lowered unload threshold (`switchDistance × lodHysteresisFactor`, default 0.90), so the camera must move meaningfully inward before the level is swapped. Levels that are not currently active use the full `switchDistance`.
 
 When `tileComp.state == .parsed` (full tile is resident), all LOD levels are unloaded — the full tile has taken over for that distance band.
 
 ### `loadLODLevel(entityId:levelIndex:)`
 
 1. Creates a child entity under the tile stub.
-2. Loads the LOD USDC via `setEntityMeshAsync` with `.immediate` policy (small proxy mesh).
-3. On success: tags the entity for static batching (`setEntityStaticBatchComponent`) and calls `BatchingSystem.shared.notifyTileParsedEntities(_:)` to bypass the quiescence delay.
+2. Loads the LOD USDC via `setEntityMeshAsync` with `.immediate` policy and `blockRenderLoop: false` (small proxy mesh, must not stall the render loop).
+3. On success: tags render descendants with `TileLODTagComponent(levelIndex: capturedIndex + 1)` for LOD debug visualization, tags the entity for static batching (`setEntityStaticBatchComponent`), and calls `BatchingSystem.shared.notifyTileEntitiesResident(_:)` to bypass the quiescence delay.
 4. Marks the entity in `loadedLODEntities` tracking set.
 
 ### `unloadLODLevel(entityId:levelIndex:)`
 
 1. Sets `level.state = .unloading` **before** `level.loadTask?.cancel()` (same race fix as HLOD).
-2. Destroys the child entity.
-3. Removes from `loadedLODEntities` when all levels are clear.
+2. Calls `BatchingSystem.shared.cancelPendingEntities(_:)` with the render descendant IDs — removes them from all pending batching queues before the entities are destroyed, preventing "entity is missing" errors on the next batching tick.
+3. Destroys the child entity.
+4. Force-releases `AssetLoadingGate` for the destroyed entity (idempotent no-op if the Task already closed it).
+5. Removes from `loadedLODEntities` when all levels are clear.
 
 ### Out-of-range cleanup
 
@@ -392,6 +403,10 @@ This unblocks `AssetLoadingGate`, allowing the render loop to resume its normal 
 | Property | Default | Notes |
 |---|---|---|
 | `maxConcurrentTileLoads` | 2 | Hard cap on simultaneous tile parses |
+| `maxConcurrentLODLoads` | 4 | Hard cap on simultaneous per-tile LOD level loads |
+| `maxConcurrentHLODLoads` | 4 | Hard cap on simultaneous HLOD mesh loads |
+| `lodHysteresisFactor` | 0.90 | LOD unload threshold multiplier (10% inner band) |
+| `hlodHysteresisFactor` | 0.90 | HLOD unload threshold multiplier (10% inner band) |
 | `tileParseMemoryBudgetMB` | 200 MB | Total CPU parse memory allowed in flight |
 | `maxTileUnloadsPerUpdate` | 2 | Max tile teardowns per streaming tick |
 | `unloadGracePeriod` | 3.0 s | Hold time before tearing down a visible tile |
