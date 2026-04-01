@@ -125,6 +125,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Used to find and unload HLOD meshes for tiles that drift outside the query radius.
     private var loadedHLODEntities: Set<EntityID> = []
 
+    /// Tile stub entities that currently have at least one per-tile LOD level loaded.
+    /// Used to reach tiles that drift outside the octree query radius for cleanup.
+    private var loadedLODEntities: Set<EntityID> = []
+
     // MARK: - Camera Velocity (4.5 predictive loading)
 
     /// Exponential smoothing factor for camera velocity (0 = no smoothing, 1 = frozen).
@@ -313,6 +317,18 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     private func loadedHLODEntitiesSnapshot() -> [EntityID] {
         withStateLock { Array(loadedHLODEntities) }
+    }
+
+    private func markLoadedLODEntity(_ entityId: EntityID) {
+        withStateLock { _ = loadedLODEntities.insert(entityId) }
+    }
+
+    private func unmarkLoadedLODEntity(_ entityId: EntityID) {
+        withStateLock { _ = loadedLODEntities.remove(entityId) }
+    }
+
+    private func loadedLODEntitiesSnapshot() -> [EntityID] {
+        withStateLock { Array(loadedLODEntities) }
     }
 
     // MARK: - Frustum Gate Helpers
@@ -669,6 +685,60 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
         }
 
+        // ── Per-tile LOD streaming pass ────────────────────────────────────────
+        // For tiles that have LOD levels: show the appropriate coarser mesh when
+        // the tile is unloaded and the camera is between the LOD switch distances.
+        // Levels are sorted ascending by switchDistance (finest first), so the
+        // active index is the last one whose switchDistance ≤ current distance.
+        // Only one level is active at a time; all others are unloaded.
+        for entityId in nearbyEntities {
+            guard scene.exists(entityId) else { continue }
+            guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  !tileComp.lodLevels.isEmpty else { continue }
+
+            let dist = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+
+            // LOD levels are only active between streamingRadius and hlodSwitchDistance.
+            // Outside that band the HLOD pass (above) or the tile load pass handles things.
+            if tileComp.hlodSwitchDistance > 0, dist >= tileComp.hlodSwitchDistance {
+                unloadAllLODLevels(entityId: entityId)
+                continue
+            }
+
+            // Find the target LOD index: last level whose switchDistance ≤ dist.
+            var targetIndex: Int? = nil
+            for (i, level) in tileComp.lodLevels.enumerated() {
+                if dist >= level.switchDistance { targetIndex = i }
+            }
+
+            switch tileComp.state {
+            case .unloaded, .failed:
+                if let target = targetIndex {
+                    for i in tileComp.lodLevels.indices {
+                        if i == target {
+                            if tileComp.lodLevels[i].state == .unloaded {
+                                loadLODLevel(entityId: entityId, levelIndex: i)
+                            }
+                        } else {
+                            if tileComp.lodLevels[i].state != .unloaded {
+                                unloadLODLevel(entityId: entityId, levelIndex: i)
+                            }
+                        }
+                    }
+                } else {
+                    // Camera is inside the finest LOD's switch distance — full tile
+                    // will load via the tile load pass; drop any active LOD level.
+                    unloadAllLODLevels(entityId: entityId)
+                }
+            case .parsed:
+                // Full geometry resident — all LOD levels can be dropped.
+                unloadAllLODLevels(entityId: entityId)
+            case .parsing, .unloading:
+                // Keep active LOD visible during the full-tile load for continuity.
+                break
+            }
+        }
+
         // Also check loaded entities that might now be out of range
         // (they may not be in the octree query if they're far away)
         let nearbySet = Set(nearbyEntities) // O(1) lookup
@@ -782,6 +852,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 continue
             }
             unloadHLOD(entityId: entityId)
+        }
+
+        // ── LOD out-of-range cleanup ───────────────────────────────────────────
+        // Same as HLOD cleanup: tiles with an active LOD level that drifted outside
+        // the octree query radius are cleaned up here.
+        let lodSnapshot = loadedLODEntitiesSnapshot()
+        for entityId in lodSnapshot {
+            if nearbySet.contains(entityId) { continue }
+            guard scene.exists(entityId) else {
+                unmarkLoadedLODEntity(entityId)
+                continue
+            }
+            unloadAllLODLevels(entityId: entityId)
         }
 
         var staleEntityIds: [EntityID] = []
@@ -1259,6 +1342,134 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         Logger.log(message: "[HLOD] Tile '\(tileComp.tileId)' HLOD unloaded.")
     }
 
+    // MARK: - Per-tile LOD level load / unload
+
+    /// Load one LOD level for a tile stub.  Creates a child entity, calls
+    /// setEntityMeshAsync, and on success tags the geometry for static batching
+    /// — identical lifecycle to loadHLOD but indexed into tileComp.lodLevels.
+    private func loadLODLevel(entityId: EntityID, levelIndex: Int) {
+        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+              levelIndex < tileComp.lodLevels.count,
+              tileComp.lodLevels[levelIndex].state == .unloaded else { return }
+
+        let level = tileComp.lodLevels[levelIndex]
+        tileComp.lodLevels[levelIndex].state = .loading
+
+        var lodEntityId: EntityID = .invalid
+        withWorldMutationGate {
+            let id = createEntity()
+            registerTransformComponent(entityId: id)
+            registerSceneGraphComponent(entityId: id)
+            setParent(childId: id, parentId: entityId)
+            lodEntityId = id
+        }
+
+        guard lodEntityId != .invalid else {
+            tileComp.lodLevels[levelIndex].state = .unloaded
+            return
+        }
+
+        tileComp.lodLevels[levelIndex].entityId = lodEntityId
+        markLoadedLODEntity(entityId)
+
+        let capturedLodId = lodEntityId
+        let capturedTileId = entityId
+        let capturedIndex = levelIndex
+        let filename = level.url.deletingPathExtension().path
+        let ext = level.url.pathExtension
+        let tileId = tileComp.tileId
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            setEntityMeshAsync(
+                entityId: capturedLodId,
+                filename: filename,
+                withExtension: ext,
+                streamingPolicy: .immediate
+            ) { [weak self] success in
+                guard let self else { return }
+                withWorldMutationGate {
+                    guard let tc = scene.get(component: TileComponent.self, for: capturedTileId),
+                          capturedIndex < tc.lodLevels.count,
+                          tc.lodLevels[capturedIndex].state == .loading else {
+                        // Cancelled while loading — destroy the entity if it still exists.
+                        if scene.exists(capturedLodId) {
+                            destroyEntity(entityId: capturedLodId)
+                            finalizePendingDestroys()
+                        }
+                        return
+                    }
+                    if success {
+                        tc.lodLevels[capturedIndex].state = .loaded
+                        setEntityStaticBatchComponent(entityId: capturedLodId)
+                        self.queueResidencyEventsForRenderDescendants(capturedLodId)
+                        let renderIds = self.collectRenderDescendantIds(capturedLodId)
+                        if !renderIds.isEmpty {
+                            BatchingSystem.shared.notifyTileParsedEntities(renderIds)
+                        }
+                        Logger.log(message: "[LOD] Tile '\(tileId)' LOD level \(capturedIndex + 1) loaded.")
+                    } else {
+                        if scene.exists(capturedLodId) {
+                            destroyEntity(entityId: capturedLodId)
+                            finalizePendingDestroys()
+                        }
+                        tc.lodLevels[capturedIndex].entityId = .invalid
+                        tc.lodLevels[capturedIndex].state = .unloaded
+                        self.unmarkLoadedLODEntity(capturedTileId)
+                        Logger.logError(message: "[LOD] Tile '\(tileId)' LOD level \(capturedIndex + 1) failed to load.")
+                    }
+                }
+            }
+        }
+
+        withWorldMutationGate {
+            scene.get(component: TileComponent.self, for: entityId)?.lodLevels[capturedIndex].loadTask = task
+        }
+    }
+
+    /// Tear down one LOD level for a tile stub.  Safe to call regardless of
+    /// current state — no-ops if already unloaded.
+    private func unloadLODLevel(entityId: EntityID, levelIndex: Int) {
+        guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+              levelIndex < tileComp.lodLevels.count,
+              tileComp.lodLevels[levelIndex].state != .unloaded else { return }
+
+        // Set .unloading BEFORE cancel() so an in-flight completion sees it and discards.
+        tileComp.lodLevels[levelIndex].state = .unloading
+        tileComp.lodLevels[levelIndex].loadTask?.cancel()
+        tileComp.lodLevels[levelIndex].loadTask = nil
+
+        withWorldMutationGate {
+            let lodEntityId = tileComp.lodLevels[levelIndex].entityId
+            if lodEntityId != .invalid, scene.exists(lodEntityId) {
+                destroyEntity(entityId: lodEntityId)
+                finalizePendingDestroys()
+            }
+            tileComp.lodLevels[levelIndex].entityId = .invalid
+            tileComp.lodLevels[levelIndex].state = .unloaded
+        }
+
+        // Unmark when no levels remain active.
+        if let tc = scene.get(component: TileComponent.self, for: entityId),
+           tc.lodLevels.allSatisfy({ $0.state == .unloaded })
+        {
+            unmarkLoadedLODEntity(entityId)
+        }
+
+        Logger.log(message: "[LOD] Tile '\(tileComp.tileId)' LOD level \(levelIndex + 1) unloaded.")
+    }
+
+    /// Unload every LOD level for a tile stub.  Called when the full tile reaches
+    /// .parsed (full geometry takes over) or when the tile is being torn down.
+    private func unloadAllLODLevels(entityId: EntityID) {
+        guard let tileComp = scene.get(component: TileComponent.self, for: entityId) else { return }
+        for i in tileComp.lodLevels.indices {
+            if tileComp.lodLevels[i].state != .unloaded {
+                unloadLODLevel(entityId: entityId, levelIndex: i)
+            }
+        }
+    }
+
     /// Why a child entity?  setEntityMeshAsync loads the RenderComponent directly
     /// onto the entity it receives.  For single-mesh tiles that would be the tile
     /// stub itself, leaving unloadTile's collectDescendants with nothing to destroy
@@ -1368,8 +1579,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                         self.markLoadedTileEntity(entityId)
 
                         // Full geometry is now resident — unload the coarse HLOD mesh
-                        // if one was showing while this tile was loading.
+                        // and any per-tile LOD levels that were showing while loading.
                         self.unloadHLOD(entityId: entityId)
+                        self.unloadAllLODLevels(entityId: entityId)
 
                         // Tag the tile's mesh hierarchy for cell-based static batching.
                         // setEntityStaticBatchComponent walks the full child tree and
@@ -2523,9 +2735,20 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     tc.hlodLoadTask = nil
                     tc.hlodEntityId = nil
                     tc.hlodState = .unloaded
+
+                    // Cancel any in-flight per-tile LOD loads and reset state.
+                    for i in tc.lodLevels.indices {
+                        tc.lodLevels[i].loadTask?.cancel()
+                        tc.lodLevels[i].loadTask = nil
+                        tc.lodLevels[i].entityId = .invalid
+                        tc.lodLevels[i].state = .unloaded
+                    }
                 }
             }
-            withStateLock { loadedHLODEntities.removeAll() }
+            withStateLock {
+                loadedHLODEntities.removeAll()
+                loadedLODEntities.removeAll()
+            }
 
             SystemEventBus.shared.clearPendingEvents()
             withStateLock {

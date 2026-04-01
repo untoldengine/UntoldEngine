@@ -1,4 +1,21 @@
-## LODSystem: City Block with 500 Buildings, 3 LODs Each
+## LOD in UntoldEngine: Two Independent Systems
+
+UntoldEngine has two separate LOD mechanisms that operate at different granularities. Understanding the distinction is important before reading either system's details.
+
+| | **Entity-level LOD** (this document) | **Per-tile LOD** (tile streaming) |
+|---|---|---|
+| Unit | Individual mesh entity (`LODComponent`) | Whole tile USDC file (`TileLODLevel`) |
+| Control | `LODSystem` — runs every frame | `GeometryStreamingSystem.update()` — runs per tick |
+| Switch trigger | Camera distance vs `LODLevel.maxDistance` | Camera distance vs `TileLODLevel.switchDistance` |
+| Meshes in memory | All LOD levels GPU-resident simultaneously | Only the active LOD level is loaded |
+| Use case | Individual detailed objects (buildings, props) | Tile-granularity intermediate representations for large scenes |
+| Content pipeline | Separate OBJ/USDZ per LOD level, wired via `LODComponent` | Separate USDC per tile LOD, listed in manifest `lod_levels` array |
+
+Per-tile LOD documentation: [`docs/Architecture/tilebasedstreaming.md`](tilebasedstreaming.md#per-tile-lod-levels).
+
+---
+
+## Entity-level LOD: City Block with 500 Buildings, 3 LODs Each
 
 ### Setup (before the system runs)
 
