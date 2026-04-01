@@ -77,6 +77,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// or scenes with very large individual tiles (> 50 MB).
     public var maxConcurrentTileLoads: Int = 2
 
+    /// Maximum concurrent per-tile LOD level loads (LOD1, LOD2, etc.).
+    /// LOD assets are smaller than full tiles but still run a full ModelIO parse.
+    /// Without a cap, every tile in LOD range is dispatched in a single update tick,
+    /// which can trigger an OOM kill on scenes with many visible tiles.
+    public var maxConcurrentLODLoads: Int = 4
+
     /// Maximum tile unload operations processed per streaming update tick.
     /// Capping unloads prevents a single-frame blank on fast camera movement or
     /// teleports: when many tiles leave range at once, GPU buffer releases are
@@ -128,6 +134,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Tile stub entities that currently have at least one per-tile LOD level loaded.
     /// Used to reach tiles that drift outside the octree query radius for cleanup.
     private var loadedLODEntities: Set<EntityID> = []
+
+    /// Number of per-tile LOD level loads currently in flight (.loading state).
+    /// Protected by stateLock.  Mirrors the role of loadingTileEntities.count for
+    /// full tiles — caps concurrent ModelIO parses so we don't OOM on mass dispatch.
+    private var lodLoadingCount: Int = 0
 
     // MARK: - Camera Velocity (4.5 predictive loading)
 
@@ -281,6 +292,18 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Sum of declared file sizes (bytes) for all tiles currently being parsed.
     private func activeParseBytesInFlight() -> Int {
         withStateLock { activeTileLoads.values.reduce(0, +) }
+    }
+
+    private func activeLODLoadCount() -> Int {
+        withStateLock { lodLoadingCount }
+    }
+
+    private func incrementLODLoadCount() {
+        withStateLock { lodLoadingCount += 1 }
+    }
+
+    private func decrementLODLoadCount() {
+        withStateLock { lodLoadingCount = max(0, lodLoadingCount - 1) }
     }
 
     private func markLoadedTileEntity(_ entityId: EntityID) {
@@ -717,6 +740,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     for i in tileComp.lodLevels.indices {
                         if i == target {
                             if tileComp.lodLevels[i].state == .unloaded {
+                                // Hard cap: never exceed maxConcurrentLODLoads.
+                                // Without this, every tile in LOD range is dispatched
+                                // simultaneously on initial load, triggering an OOM kill.
+                                guard activeLODLoadCount() < maxConcurrentLODLoads else { break }
                                 loadLODLevel(entityId: entityId, levelIndex: i)
                             }
                         } else {
@@ -1271,7 +1298,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 entityId: capturedHlodId,
                 filename: filename,
                 withExtension: ext,
-                streamingPolicy: .immediate
+                streamingPolicy: .immediate,
+                blockRenderLoop: false
             ) { [weak self] success in
                 guard let self else { return }
                 withWorldMutationGate {
@@ -1384,6 +1412,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         tileComp.lodLevels[levelIndex].entityId = lodEntityId
         markLoadedLODEntity(entityId)
+        incrementLODLoadCount()
 
         let capturedLodId = lodEntityId
         let capturedTileId = entityId
@@ -1398,7 +1427,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 entityId: capturedLodId,
                 filename: filename,
                 withExtension: ext,
-                streamingPolicy: .immediate
+                streamingPolicy: .immediate,
+                blockRenderLoop: false
             ) { [weak self] success in
                 guard let self else { return }
                 withWorldMutationGate {
@@ -1414,6 +1444,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     }
                     if success {
                         tc.lodLevels[capturedIndex].state = .loaded
+                        self.decrementLODLoadCount()
                         setEntityStaticBatchComponent(entityId: capturedLodId)
                         self.queueResidencyEventsForRenderDescendants(capturedLodId)
                         let renderIds = self.collectRenderDescendantIds(capturedLodId)
@@ -1428,6 +1459,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                         }
                         tc.lodLevels[capturedIndex].entityId = .invalid
                         tc.lodLevels[capturedIndex].state = .unloaded
+                        self.decrementLODLoadCount()
                         self.unmarkLoadedLODEntity(capturedTileId)
                         Logger.logError(message: "[LOD] Tile '\(tileId)' LOD level \(capturedIndex + 1) failed to load.")
                     }
@@ -1448,9 +1480,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
               tileComp.lodLevels[levelIndex].state != .unloaded else { return }
 
         // Set .unloading BEFORE cancel() so an in-flight completion sees it and discards.
+        // If the level was still .loading, the completion callback will not decrement the
+        // counter (it guards on state == .loading), so we must do it here.
+        let wasLoading = tileComp.lodLevels[levelIndex].state == .loading
         tileComp.lodLevels[levelIndex].state = .unloading
         tileComp.lodLevels[levelIndex].loadTask?.cancel()
         tileComp.lodLevels[levelIndex].loadTask = nil
+        if wasLoading { decrementLODLoadCount() }
 
         // Capture before the withWorldMutationGate block clears it.
         let capturedLodEntityId = tileComp.lodLevels[levelIndex].entityId
@@ -2769,6 +2805,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             withStateLock {
                 loadedHLODEntities.removeAll()
                 loadedLODEntities.removeAll()
+                lodLoadingCount = 0
             }
 
             SystemEventBus.shared.clearPendingEvents()
