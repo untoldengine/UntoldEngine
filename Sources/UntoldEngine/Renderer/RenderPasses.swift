@@ -324,8 +324,13 @@ public enum RenderPasses {
         if let entityId,
            let lod = scene.get(component: LODComponent.self, for: entityId)
         {
-            // Non-batched path: read the live currentLOD directly.
+            // Non-batched path: entity-level LOD — read live currentLOD.
             lodIndex = lod.currentLOD
+        } else if let entityId,
+                  let tag = scene.get(component: TileLODTagComponent.self, for: entityId)
+        {
+            // Non-batched path: per-tile LOD / HLOD child mesh.
+            lodIndex = tag.levelIndex
         } else if let batchGroup, batchGroup.isLODBatch {
             // Batched path: only color batches that actually contain LOD entities.
             // Non-LOD batches also have _LOD0 in their key but should not be tinted.

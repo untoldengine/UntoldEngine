@@ -368,6 +368,22 @@ public class LODComponent: Component {
     }
 }
 
+// MARK: Tile LOD Tag Component
+
+/// Lightweight tag placed on the render-descendant mesh entities spawned by
+/// GeometryStreamingSystem for per-tile LOD levels and HLODs.  Used by the
+/// LOD debug renderer (colorRenderablesByLOD) to colour these meshes the same
+/// way entity-level LODComponent meshes are coloured.
+///
+/// levelIndex follows the lodDebugPalette in RenderPasses:
+///   0 = full tile (unused here)   1 = tile LOD1 (green)
+///   2 = tile LOD2 (blue)          5 = HLOD (cyan / palette wraps)
+public class TileLODTagComponent: Component {
+    public var levelIndex: Int = 0
+    public required init() {}
+    public init(levelIndex: Int) { self.levelIndex = levelIndex }
+}
+
 // MARK: Static Batching Component
 
 public class StaticBatchComponent: Component {

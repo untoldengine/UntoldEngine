@@ -534,6 +534,18 @@ public class BatchingSystem: @unchecked Sendable {
         tileParsedEntityIds.formUnion(entityIds)
     }
 
+    /// Removes the given entities from all pending batching queues immediately.
+    /// Call this before destroying LOD/HLOD child entities so their queued additions
+    /// are never processed after the entity is gone, eliminating "entity is missing"
+    /// errors and wasted batch rebuilds on the next tick.
+    public func cancelPendingEntities(_ entityIds: Set<EntityID>) {
+        guard !entityIds.isEmpty else { return }
+        pendingEntityAdditions.subtract(entityIds)
+        pendingEntityRemovals.subtract(entityIds)
+        newlyResidentEntities.subtract(entityIds)
+        tileParsedEntityIds.subtract(entityIds)
+    }
+
     private func handleLODChange(_ event: EntityLODChangedEvent) {
         guard batchingEnabled else { return }
 
@@ -1366,8 +1378,11 @@ public class BatchingSystem: @unchecked Sendable {
         }
         if hasTransparentSubmesh { return nil }
 
-        // Get current LOD index (0 if no LOD component)
-        let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD ?? 0
+        // Get current LOD index — prefer LODComponent (entity-level LOD), then
+        // TileLODTagComponent (per-tile LOD/HLOD children), default 0.
+        let lodIndex = scene.get(component: LODComponent.self, for: entityId)?.currentLOD
+            ?? scene.get(component: TileLODTagComponent.self, for: entityId)?.levelIndex
+            ?? 0
         let cellId = resolveCellId(localTransform: localTransform, worldTransform: worldTransform)
 
         return BatchCandidate(
@@ -1843,7 +1858,10 @@ public class BatchingSystem: @unchecked Sendable {
         tangentBuffer.label = "Batch Tangent Buffer"
         indexBuffer.label = "Batch Index Buffer"
 
-        let isLODBatch = meshGroup.contains { scene.get(component: LODComponent.self, for: $0.entityId) != nil }
+        let isLODBatch = meshGroup.contains {
+            scene.get(component: LODComponent.self, for: $0.entityId) != nil
+            || scene.get(component: TileLODTagComponent.self, for: $0.entityId) != nil
+        }
 
         return BatchGroup(
             id: UUID(),

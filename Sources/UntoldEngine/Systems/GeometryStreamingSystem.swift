@@ -83,6 +83,26 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// which can trigger an OOM kill on scenes with many visible tiles.
     public var maxConcurrentLODLoads: Int = 4
 
+    /// Maximum concurrent HLOD mesh loads.
+    /// HLOD meshes cover far-field tiles and can be numerous in large outdoor scenes.
+    /// Without a cap, every out-of-range tile triggers a simultaneous ModelIO parse,
+    /// causing an OOM kill identical to the uncapped LOD pass problem.
+    public var maxConcurrentHLODLoads: Int = 4
+
+    /// Hysteresis multiplier for per-tile LOD level transitions.
+    /// A loaded LOD level is not unloaded until distance drops below
+    /// (switchDistance × lodHysteresisFactor).  This prevents thrashing when the
+    /// camera hovers near a boundary: the camera must move meaningfully inward
+    /// before the current level is swapped out.
+    /// Range (0, 1]. Default 0.90 = 10% inner band.
+    public var lodHysteresisFactor: Float = 0.90
+
+    /// Hysteresis multiplier for HLOD mesh transitions.
+    /// The HLOD mesh is not unloaded (to make way for LOD levels) until distance
+    /// drops below (hlodSwitchDistance × hlodHysteresisFactor).
+    /// Range (0, 1]. Default 0.90.
+    public var hlodHysteresisFactor: Float = 0.90
+
     /// Maximum tile unload operations processed per streaming update tick.
     /// Capping unloads prevents a single-frame blank on fast camera movement or
     /// teleports: when many tiles leave range at once, GPU buffer releases are
@@ -139,6 +159,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Protected by stateLock.  Mirrors the role of loadingTileEntities.count for
     /// full tiles — caps concurrent ModelIO parses so we don't OOM on mass dispatch.
     private var lodLoadingCount: Int = 0
+
+    /// Number of HLOD mesh loads currently in flight (.loading hlodState).
+    /// Protected by stateLock.  Same role as lodLoadingCount — prevents simultaneous
+    /// mass dispatch of 100+ HLOD parses that would OOM-kill the process.
+    private var hlodLoadingCount: Int = 0
 
     // MARK: - Camera Velocity (4.5 predictive loading)
 
@@ -304,6 +329,18 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     private func decrementLODLoadCount() {
         withStateLock { lodLoadingCount = max(0, lodLoadingCount - 1) }
+    }
+
+    private func activeHLODLoadCount() -> Int {
+        withStateLock { hlodLoadingCount }
+    }
+
+    private func incrementHLODLoadCount() {
+        withStateLock { hlodLoadingCount += 1 }
+    }
+
+    private func decrementHLODLoadCount() {
+        withStateLock { hlodLoadingCount = max(0, hlodLoadingCount - 1) }
     }
 
     private func markLoadedTileEntity(_ entityId: EntityID) {
@@ -628,6 +665,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             // visual display zone.  By the time the camera enters streamingRadius the
             // parse is already complete and the geometry appears without a blank frame.
             if effectiveDist <= tileComp.effectivePrefetchRadius + 1.0 {
+                // LOD gate: if this tile has LOD levels and the camera is beyond the
+                // finest switch distance, the LOD system already covers the visual.
+                // Do not queue the full tile — loading it would immediately displace
+                // the LOD mesh and defeat the purpose of per-tile LOD streaming.
+                // The full tile is only loaded once the camera closes to within the
+                // finest LOD switch distance (i.e. full-detail zone).
+                if !tileComp.lodLevels.isEmpty,
+                   let finestSwitch = tileComp.lodLevels.first?.switchDistance,
+                   effectiveDist > finestSwitch
+                {
+                    continue
+                }
+
                 // Frustum gate: tile stubs have identity world transform so their
                 // local AABB equals their world AABB.  Uses tileStreamingFrustum which
                 // applies tileFrustumGatePadding (wider than the mesh-level pad) to
@@ -694,13 +744,21 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             switch tileComp.state {
             case .unloaded, .failed:
                 if dist > tileComp.hlodSwitchDistance {
-                    if tileComp.hlodState == .unloaded { loadHLOD(entityId: entityId) }
-                } else {
-                    // Camera crossed inside the switch distance — HLOD no longer needed.
+                    if tileComp.hlodState == .unloaded {
+                        guard activeHLODLoadCount() < maxConcurrentHLODLoads else { continue }
+                        loadHLOD(entityId: entityId)
+                    }
+                } else if dist < tileComp.hlodSwitchDistance * hlodHysteresisFactor {
+                    // Camera has moved meaningfully inside the switch distance —
+                    // HLOD is no longer needed.  The hysteresis band
+                    // [switchDistance * factor, switchDistance) keeps the HLOD
+                    // resident while the camera lingers at the boundary.
                     if tileComp.hlodState != .unloaded { unloadHLOD(entityId: entityId) }
                 }
+                // else: inside hysteresis band — keep current HLOD state.
             case .parsed:
                 // Full geometry is resident — HLOD hand-off complete.
+                // No hysteresis here: always unload promptly on full-tile parse.
                 if tileComp.hlodState != .unloaded { unloadHLOD(entityId: entityId) }
             case .parsing, .unloading:
                 // Keep HLOD visible during full-tile load for a seamless transition.
@@ -721,17 +779,36 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
             let dist = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
 
-            // LOD levels are only active between streamingRadius and hlodSwitchDistance.
-            // Outside that band the HLOD pass (above) or the tile load pass handles things.
-            if tileComp.hlodSwitchDistance > 0, dist >= tileComp.hlodSwitchDistance {
-                unloadAllLODLevels(entityId: entityId)
-                continue
+            // LOD levels are only active while HLOD is not resident.
+            // If HLOD is loaded or loading (including the hysteresis band where dist is
+            // slightly below hlodSwitchDistance), keep LOD levels clear to avoid showing
+            // both representations simultaneously.  Only when HLOD is unloaded (or
+            // unloading) do we let the LOD pass activate.
+            if tileComp.hlodSwitchDistance > 0 {
+                let hlodResident = tileComp.hlodState == .loaded || tileComp.hlodState == .loading
+                let beyondHLOD = dist >= tileComp.hlodSwitchDistance
+                if beyondHLOD || hlodResident {
+                    unloadAllLODLevels(entityId: entityId)
+                    continue
+                }
             }
 
-            // Find the target LOD index: last level whose switchDistance ≤ dist.
+            // Find the target LOD index with hysteresis.
+            // If level i is currently the active level (loaded or loading), its unload
+            // threshold is lowered to switchDistance × lodHysteresisFactor so the camera
+            // must move meaningfully inward before the level is swapped out.
+            // Levels that are not currently active use the full switchDistance threshold.
+            let currentlyActiveIndex = tileComp.lodLevels.indices.first(where: {
+                let s = tileComp.lodLevels[$0].state
+                return s == .loaded || s == .loading
+            })
+
             var targetIndex: Int? = nil
             for (i, level) in tileComp.lodLevels.enumerated() {
-                if dist >= level.switchDistance { targetIndex = i }
+                let threshold: Float = (currentlyActiveIndex == i)
+                    ? level.switchDistance * lodHysteresisFactor
+                    : level.switchDistance
+                if dist >= threshold { targetIndex = i }
             }
 
             switch tileComp.state {
@@ -1268,6 +1345,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
               tileComp.hlodState == .unloaded else { return }
 
         tileComp.hlodState = .loading
+        incrementHLODLoadCount()
 
         var hlodEntityId: EntityID = .invalid
         withWorldMutationGate {
@@ -1280,6 +1358,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         guard hlodEntityId != .invalid else {
             tileComp.hlodState = .unloaded
+            decrementHLODLoadCount()
             return
         }
 
@@ -1314,6 +1393,14 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     }
                     if success {
                         tc.hlodState = .loaded
+                        self.decrementHLODLoadCount()
+
+                        // Tag HLOD render descendants for the LOD debug renderer
+                        // (levelIndex 5 = cyan in lodDebugPalette — distinct from LOD0-4).
+                        for rid in self.collectRenderDescendantIds(capturedHlodId) {
+                            registerComponent(entityId: rid, componentType: TileLODTagComponent.self)
+                            scene.get(component: TileLODTagComponent.self, for: rid)?.levelIndex = 5
+                        }
 
                         // Tag HLOD geometry for static batching — same path as a
                         // fullLoad tile.  Without this every HLOD submesh becomes a
@@ -1327,6 +1414,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
                         Logger.log(message: "[HLOD] Tile '\(tileId)' HLOD loaded.")
                     } else {
+                        self.decrementHLODLoadCount()
                         if scene.exists(capturedHlodId) {
                             destroyEntity(entityId: capturedHlodId)
                             finalizePendingDestroys()
@@ -1353,12 +1441,23 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         // Set .unloading BEFORE cancel() so any in-flight completion callback
         // that checks hlodState sees .unloading (not .loading) and discards its result.
+        let wasHLODLoading = tileComp.hlodState == .loading
         tileComp.hlodState = .unloading
         tileComp.hlodLoadTask?.cancel()
         tileComp.hlodLoadTask = nil
+        if wasHLODLoading { decrementHLODLoadCount() }
 
         // Capture before the withWorldMutationGate block clears it.
         let capturedHlodEntityId = tileComp.hlodEntityId
+
+        // Remove HLOD render descendants from batching pending queues before
+        // destroying them — same rationale as unloadLODLevel above.
+        if let hlodId = capturedHlodEntityId {
+            let renderIds = collectRenderDescendantIds(hlodId)
+            if !renderIds.isEmpty {
+                BatchingSystem.shared.cancelPendingEntities(renderIds)
+            }
+        }
 
         withWorldMutationGate {
             if let hlodEntityId = tileComp.hlodEntityId, scene.exists(hlodEntityId) {
@@ -1445,6 +1544,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     if success {
                         tc.lodLevels[capturedIndex].state = .loaded
                         self.decrementLODLoadCount()
+                        // Tag every render descendant so the LOD debug renderer can
+                        // colour them by tile LOD level (levelIndex 1 = LOD1, 2 = LOD2…).
+                        let tileLODIndex = capturedIndex + 1
+                        for rid in self.collectRenderDescendantIds(capturedLodId) {
+                            registerComponent(entityId: rid, componentType: TileLODTagComponent.self)
+                            scene.get(component: TileLODTagComponent.self, for: rid)?.levelIndex = tileLODIndex
+                        }
                         setEntityStaticBatchComponent(entityId: capturedLodId)
                         self.queueResidencyEventsForRenderDescendants(capturedLodId)
                         let renderIds = self.collectRenderDescendantIds(capturedLodId)
@@ -1490,6 +1596,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         // Capture before the withWorldMutationGate block clears it.
         let capturedLodEntityId = tileComp.lodLevels[levelIndex].entityId
+
+        // Remove render descendants from batching pending queues BEFORE destroying
+        // them.  destroyEntity fires residency-evicted events which land in
+        // pendingEntityRemovals, but any queued addition from the prior load would
+        // cause a "entity is missing" error on the next tick().
+        if capturedLodEntityId != .invalid {
+            let renderIds = collectRenderDescendantIds(capturedLodEntityId)
+            if !renderIds.isEmpty {
+                BatchingSystem.shared.cancelPendingEntities(renderIds)
+            }
+        }
 
         withWorldMutationGate {
             let lodEntityId = tileComp.lodLevels[levelIndex].entityId
@@ -2806,6 +2923,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 loadedHLODEntities.removeAll()
                 loadedLODEntities.removeAll()
                 lodLoadingCount = 0
+                hlodLoadingCount = 0
             }
 
             SystemEventBus.shared.clearPendingEvents()
