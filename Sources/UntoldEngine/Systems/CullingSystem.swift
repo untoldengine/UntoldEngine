@@ -19,10 +19,6 @@ let kInFlight = 3
 let planeCount = 6
 let planeStride = MemoryLayout<simd_float4>.stride
 
-/// The frustum built from the most recent executeFrustumCulling() call.
-/// Written once per frame on the main thread (before the render graph runs)
-/// and read by render passes on the same thread — safe without extra locking.
-nonisolated(unsafe) var currentFrameFrustum: Frustum?
 
 private final class VisibleSetPublishState: @unchecked Sendable {
     let lock = NSLock()

@@ -63,6 +63,10 @@
             didSet { if spatialDebugEnabled { onSpatialDebugChanged?(true, spatialOccupiedOnly, spatialColorMode) } }
         }
 
+        var tileBoundsEnabled: Bool = false {
+            didSet { onTileBoundsChanged?(tileBoundsEnabled) }
+        }
+
         // MARK: - Stats
 
         var showStats: Bool = true
@@ -78,5 +82,6 @@
         var onTextureStreamingTierDebugChanged: ((Bool) -> Void)?
         var onRenderDebugViewChanged: ((RenderDebugViewMode) -> Void)?
         var onSpatialDebugChanged: ((Bool, Bool, SpatialDebugLeafColorMode) -> Void)?
+        var onTileBoundsChanged: ((Bool) -> Void)?
     }
 #endif

@@ -90,6 +90,9 @@
                     colorMode: colorMode
                 )
             }
+            demoState.onTileBoundsChanged = { enabled in
+                setTileBoundsDebug(enabled: enabled)
+            }
         }
 
         private func presentHUD() {

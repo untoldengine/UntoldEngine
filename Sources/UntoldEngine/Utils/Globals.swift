@@ -592,6 +592,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var entityMeshMapValue: [EntityID: [Mesh]] = [:]
     private var entityNameMapValue: [EntityID: String] = [:]
     private var reverseEntityNameMapValue: [String: [EntityID]] = [:]
+    private var currentFrameFrustumValue: Frustum? = nil
 
     private init() {}
 
@@ -815,6 +816,20 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         set {
             lock.lock()
             visibleEntityIdsValue = newValue
+            lock.unlock()
+        }
+    }
+
+    var currentFrameFrustum: Frustum? {
+        get {
+            lock.lock()
+            let value = currentFrameFrustumValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            currentFrameFrustumValue = newValue
             lock.unlock()
         }
     }
@@ -1278,6 +1293,11 @@ struct VisibleEntity {
 public var visibleEntityIds: [EntityID] {
     get { RuntimeGlobalsStore.shared.visibleEntityIds }
     set { RuntimeGlobalsStore.shared.visibleEntityIds = newValue }
+}
+
+var currentFrameFrustum: Frustum? {
+    get { RuntimeGlobalsStore.shared.currentFrameFrustum }
+    set { RuntimeGlobalsStore.shared.currentFrameFrustum = newValue }
 }
 
 public let tripleVisibleEntities = TripleCPUBuffer<EntityID>(inFlight: 3, initialCapacity: MAX_ENTITIES)

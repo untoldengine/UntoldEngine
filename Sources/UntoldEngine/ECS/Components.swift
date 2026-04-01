@@ -500,6 +500,20 @@ public class TileComponent: Component {
     /// Task handle for the in-flight setEntityMeshAsync call.
     var loadTask: Task<Void, Never>?
 
+    /// Entity ID of the child mesh entity created for the current load cycle.
+    /// Stored so the parse-timeout guard can force-release the AssetLoadingGate
+    /// (opened inside setEntityMeshAsync's own Task) without reverse-iterating the
+    /// meshEntityToTileEntity map.  Reset to .invalid when the load completes or is
+    /// cancelled.
+    var meshEntityId: EntityID = .invalid
+
+    /// CFAbsoluteTime at which the current parse was dispatched.
+    /// Used by the streaming system to detect hung tile loads (e.g. ModelIO
+    /// blocking indefinitely on an unsupported image format) and force them
+    /// to .failed so the concurrency slot is freed and retry backoff applies.
+    /// Reset to 0 when the tile transitions out of .parsing.
+    public var parseStartTime: CFAbsoluteTime = 0
+
     // MARK: - HLOD (coarse distant mesh)
 
     /// Resolved URL to the tile's HLOD USDC file.  nil means no HLOD for this tile.
