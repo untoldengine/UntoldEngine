@@ -142,6 +142,24 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         }
     }
 
+    /// Draw tile stub bounds colored by TileComponent state (unloaded/parsing/parsed/hlod/failed).
+    /// Tile stubs span multiple octree children and are not captured by octree leaf snapshots,
+    /// so this visualization collects them directly from the ECS.
+    private var _showTileBounds: Bool = false
+    public var showTileBounds: Bool {
+        get {
+            lock.lock()
+            let value = _showTileBounds
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _showTileBounds = newValue
+            lock.unlock()
+        }
+    }
+
     /// Draw static batch cell bounds.
     private var _showStaticBatchCellBounds: Bool = false
     public var showStaticBatchCellBounds: Bool {
@@ -154,6 +172,22 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         set {
             lock.lock()
             _showStaticBatchCellBounds = newValue
+            lock.unlock()
+        }
+    }
+
+    /// Max number of tile stub bounds rendered per frame (0 = unlimited).
+    private var _maxTileNodeCount: Int = 500
+    public var maxTileNodeCount: Int {
+        get {
+            lock.lock()
+            let value = _maxTileNodeCount
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            _maxTileNodeCount = newValue
             lock.unlock()
         }
     }
@@ -199,11 +233,19 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         colorMode: SpatialDebugLeafColorMode = .plain
     ) {
         lock.lock()
-        _enabled = enabled || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
+        _enabled = enabled || _showTileBounds || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
         _showOctreeLeafBounds = enabled
         _maxLeafNodeCount = max(0, maxLeafNodeCount)
         _octreeLeafOccupiedOnly = occupiedOnly
         _octreeLeafColorMode = colorMode
+        lock.unlock()
+    }
+
+    public func configureTileBounds(enabled: Bool, maxTileNodeCount: Int = 500) {
+        lock.lock()
+        _showTileBounds = enabled
+        _maxTileNodeCount = max(0, maxTileNodeCount)
+        _enabled = _showOctreeLeafBounds || enabled || _showStaticBatchCellBounds || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
         lock.unlock()
     }
 
@@ -213,7 +255,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         colorMode: SpatialDebugBatchCellColorMode = .plain
     ) {
         lock.lock()
-        _enabled = _showOctreeLeafBounds || enabled || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
+        _enabled = _showOctreeLeafBounds || _showTileBounds || enabled || _colorRenderablesByLOD || _colorRenderablesByStreamingTier
         _showStaticBatchCellBounds = enabled
         _maxStaticBatchCellCount = max(0, maxCellCount)
         _staticBatchCellColorMode = colorMode
@@ -238,6 +280,7 @@ public final class SpatialDebugVisualization: @unchecked Sendable {
         lock.lock()
         _enabled = false
         _showOctreeLeafBounds = false
+        _showTileBounds = false
         _showStaticBatchCellBounds = false
         _colorRenderablesByLOD = false
         _colorRenderablesByStreamingTier = false
@@ -258,6 +301,11 @@ public func setOctreeLeafBoundsDebug(
         occupiedOnly: occupiedOnly,
         colorMode: colorMode
     )
+}
+
+/// Enable/disable tile stub bounds visualization colored by streaming/HLOD state.
+public func setTileBoundsDebug(enabled: Bool, maxTileNodeCount: Int = 500) {
+    SpatialDebugVisualization.shared.configureTileBounds(enabled: enabled, maxTileNodeCount: maxTileNodeCount)
 }
 
 /// Enable/disable static batch cell bounds visualization.

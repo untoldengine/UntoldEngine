@@ -33,6 +33,23 @@ private struct BoolCompletionBox: @unchecked Sendable {
     }
 }
 
+/// Ensures a continuation is resumed exactly once across two racing closures
+/// (the work completer and the deadline timer).  NSLock makes it safe to call
+/// from any thread/DispatchQueue without data races.
+private final class ResumeOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var fired = false
+
+    /// Call `block` the first time; subsequent calls are no-ops.
+    func callOnce(_ block: () -> Void) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !fired else { return }
+        fired = true
+        block()
+    }
+}
+
 private final class RegistrationRuntimeState: @unchecked Sendable {
     let lock = NSLock()
     var pendingDestroyCompletions: [() -> Void] = []
@@ -1363,7 +1380,31 @@ public func setEntityMeshAsync(
             // makeMeshesFromCPUBuffers. This fast path bypasses that route, so we must call
             // loadTextures() here to ensure USDZ-embedded textures are decoded — otherwise
             // MTKTextureLoader cannot read the pixel data and all textures silently fail.
-            assetData.asset.loadTextures()
+            //
+            // loadTextures() is a blocking C/ObjC call that can hang indefinitely when
+            // ModelIO encounters an unsupported image format inside the USDZ archive.
+            // Running it on a DispatchQueue (not the Swift cooperative pool) isolates the
+            // hang from other async work.  A 15-second deadline resumes the continuation
+            // with false so the load proceeds without textures rather than freezing
+            // the render loop via AssetLoadingGate.  ResumeOnce guarantees the
+            // continuation fires exactly once regardless of which side wins the race.
+            Logger.log(message: "[Streaming] '\(filename)': loadTextures() start")
+            let textureLoadOK = await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
+                let once = ResumeOnce()
+                let assetRef = assetData.asset
+                let nameForLog = filename
+                DispatchQueue.global(qos: .userInitiated).async {
+                    assetRef.loadTextures()
+                    once.callOnce { cont.resume(returning: true) }
+                }
+                DispatchQueue.global().asyncAfter(deadline: .now() + 15.0) {
+                    once.callOnce {
+                        Logger.logWarning(message: "[Streaming] '\(nameForLog)': loadTextures() timed out after 15s — proceeding without textures")
+                        cont.resume(returning: false)
+                    }
+                }
+            }
+            Logger.log(message: "[Streaming] '\(filename)': loadTextures() \(textureLoadOK ? "complete" : "timed out")")
             let smallAssetMeshes: [[Mesh]] = assetData.topLevelObjects.map { obj in
                 Mesh.makeMeshesFromCPUBuffers(
                     object: obj,

@@ -25,13 +25,19 @@ public struct SpatialDebugBound {
 public struct SpatialDebugBoundsSnapshot {
     public var octreeLeafBounds: [SpatialDebugBound]
     public var staticBatchCellBounds: [SpatialDebugBound]
+    /// Tile stub bounds drawn directly from TileComponent state, independent of
+    /// octree leaf placement (tile stubs span multiple octree children and are
+    /// stored at internal nodes, not leaves).
+    public var tileBounds: [SpatialDebugBound]
 
     public init(
         octreeLeafBounds: [SpatialDebugBound] = [],
-        staticBatchCellBounds: [SpatialDebugBound] = []
+        staticBatchCellBounds: [SpatialDebugBound] = [],
+        tileBounds: [SpatialDebugBound] = []
     ) {
         self.octreeLeafBounds = octreeLeafBounds
         self.staticBatchCellBounds = staticBatchCellBounds
+        self.tileBounds = tileBounds
     }
 }
 
@@ -44,6 +50,10 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
     private let residencyLoadingColor = simd_float4(1.00, 0.85, 0.20, 1.0)
     private let residencyUnloadedColor = simd_float4(1.00, 0.25, 0.25, 1.0)
     private let residencyMixedColor = simd_float4(1.00, 0.55, 0.15, 1.0)
+    // Tile-specific residency colors
+    private let tileHLODLoadedColor  = simd_float4(0.20, 0.90, 0.90, 1.0) // cyan  — coarse HLOD visible
+    private let tileHLODLoadingColor = simd_float4(0.40, 0.70, 1.00, 1.0) // light blue — HLOD uploading
+    private let tileFailedColor      = simd_float4(0.90, 0.20, 0.90, 1.0) // magenta — parse failed
     private let cullingVisibleColor = simd_float4(0.25, 0.95, 0.35, 1.0)
     private let cullingCulledColor = simd_float4(0.30, 0.60, 1.00, 1.0)
     private let cullingHiddenColor = simd_float4(0.55, 0.55, 0.55, 1.0)
@@ -67,7 +77,7 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
                 occupiedOnly: settings.octreeLeafOccupiedOnly
             )
             let visibleSet: Set<EntityID> = settings.octreeLeafColorMode == .culling
-                ? Set(visibleEntityIds)
+                ? RenderPasses.visibleEntitySetSnapshot()
                 : Set<EntityID>()
 
             snapshot.octreeLeafBounds.reserveCapacity(leafSnapshots.count)
@@ -87,11 +97,27 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
             }
         }
 
+        if settings.showTileBounds {
+            let tileComponentId = getComponentId(for: TileComponent.self)
+            let tileEntities = queryEntitiesWithComponentIds([tileComponentId], in: scene)
+
+            snapshot.tileBounds.reserveCapacity(tileEntities.count)
+            for entityId in tileEntities {
+                guard let tc = scene.get(component: TileComponent.self, for: entityId),
+                      let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+                else { continue }
+
+                let color = tileResidencyColor(for: tc)
+                let bounds = AABB(min: local.boundingBox.min, max: local.boundingBox.max)
+                snapshot.tileBounds.append(SpatialDebugBound(bounds: bounds, color: color))
+            }
+        }
+
         if settings.showStaticBatchCellBounds {
             let batchGroups = BatchingSystem.shared.batchGroups
             let cellSize = max(BatchingSystem.shared.getBatchCellSize(), 0.01)
             let visibleSet: Set<EntityID> = settings.staticBatchCellColorMode == .culling
-                ? Set(visibleEntityIds)
+                ? RenderPasses.visibleEntitySetSnapshot()
                 : Set<EntityID>()
 
             var cellGroups: [BatchCellID: [BatchGroup]] = [:]
@@ -122,6 +148,35 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
     }
 
     private func residencyColor(for entityIds: [EntityID]) -> simd_float4 {
+        // Tile stubs take priority — if any entity in this leaf is a tile stub,
+        // color the leaf by the tile's streaming + HLOD state.
+        for entityId in entityIds {
+            guard scene.mask(for: entityId) != nil else { continue }
+            guard let tc = scene.get(component: TileComponent.self, for: entityId) else { continue }
+
+            switch tc.state {
+            case .parsing:
+                return residencyLoadingColor       // yellow — full tile uploading
+            case .parsed:
+                return residencyLoadedColor        // green  — full geometry visible
+            case .failed:
+                return tileFailedColor             // magenta — parse failed
+            case .unloading:
+                return residencyMixedColor         // orange — teardown in progress
+            case .unloaded:
+                // Tile is unloaded — show HLOD state instead.
+                switch tc.hlodState {
+                case .loaded:
+                    return tileHLODLoadedColor     // cyan — coarse HLOD visible
+                case .loading:
+                    return tileHLODLoadingColor    // light blue — HLOD uploading
+                case .unloading, .unloaded:
+                    return residencyUnloadedColor  // red — nothing resident
+                }
+            }
+        }
+
+        // No tile stub in this leaf — fall back to StreamingComponent / LODComponent.
         var hasLoaded = false
         var hasLoading = false
         var hasUnloaded = false
@@ -160,6 +215,21 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
         if hasUnloaded { return residencyUnloadedColor }
         if hasLoaded { return residencyLoadedColor }
         return defaultOctreeColor
+    }
+
+    private func tileResidencyColor(for tc: TileComponent) -> simd_float4 {
+        switch tc.state {
+        case .parsing:   return residencyLoadingColor
+        case .parsed:    return residencyLoadedColor
+        case .failed:    return tileFailedColor
+        case .unloading: return residencyMixedColor
+        case .unloaded:
+            switch tc.hlodState {
+            case .loaded:            return tileHLODLoadedColor
+            case .loading:           return tileHLODLoadingColor
+            case .unloading, .unloaded: return residencyUnloadedColor
+            }
+        }
     }
 
     private func cullingColor(for entityIds: [EntityID], visibleSet: Set<EntityID>) -> simd_float4 {

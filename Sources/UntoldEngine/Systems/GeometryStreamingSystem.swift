@@ -97,6 +97,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// At least one tile is always allowed to parse even if it exceeds the budget alone.
     public var tileParseMemoryBudgetMB: Float = 200.0
 
+    /// Maximum time in seconds a tile may stay in .parsing before it is force-failed.
+    /// Protects against ModelIO hanging indefinitely on unsupported asset content
+    /// (e.g. an unsupported image format inside a USDC file) which would otherwise
+    /// permanently exhaust the concurrency slots and freeze all future tile loads.
+    public var tileParseTimeoutSeconds: Double = 60.0
+
     /// Tile entities currently being parsed, mapped to their declared file size in bytes.
     /// Used to track the total parse memory in flight for the budget gate.
     private var activeTileLoads: [EntityID: Int] = [:]
@@ -501,6 +507,49 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             case .loading, .unloading:
                 break // In progress, skip
             }
+        }
+
+        // ── Tile parse timeout guard ───────────────────────────────────────────
+        // ModelIO can hang indefinitely on certain assets (e.g. unsupported image
+        // formats embedded in USDC files).  When that happens the Task's completion
+        // callback never fires, the concurrency slot stays reserved, and streaming
+        // freezes permanently.  Detect stuck parses and force them to .failed so
+        // the slot is freed and normal exponential-backoff retry applies.
+        // releaseActiveTileLoad uses removeValue(forKey:) and is idempotent — the
+        // Task's own defer{} release fires later but is safely a no-op.
+        let timeoutNow = CFAbsoluteTimeGetCurrent()
+        for entityId in loadingTileEntitiesSnapshot() {
+            guard scene.exists(entityId),
+                  let tc = scene.get(component: TileComponent.self, for: entityId),
+                  tc.state == .parsing,
+                  tc.parseStartTime > 0,
+                  timeoutNow - tc.parseStartTime > tileParseTimeoutSeconds
+            else { continue }
+
+            Logger.logWarning(
+                message: "[TileStreaming] Tile '\(tc.tileId)' parse timed out after \(Int(tileParseTimeoutSeconds))s — forcing .failed (attempt \(tc.failureCount + 1))."
+            )
+            tc.loadTask?.cancel()
+            tc.loadTask = nil
+            tc.parseStartTime = 0
+
+            // Force-release the AssetLoadingGate for the hung inner Task.
+            // setEntityMeshAsync opens the gate via AssetLoadingState.shared.startLoading(entityId:)
+            // using capturedMeshEntityId.  Since loadTextures() ignores Swift cooperative
+            // cancellation, the gate never closes on its own — isLoadingAny stays permanently
+            // true and the render loop freezes.  Calling finishLoading here closes the gate
+            // so the render loop resumes on the next frame.
+            let hungMeshId = tc.meshEntityId
+            tc.meshEntityId = .invalid
+            if hungMeshId != .invalid {
+                Task { await AssetLoadingState.shared.finishLoading(entityId: hungMeshId) }
+            }
+
+            tc.failureCount += 1
+            tc.lastFailureTime = timeoutNow
+            tc.state = .failed
+            unmarkLoadingTileEntity(entityId)
+            releaseActiveTileLoad(entityId: entityId)
         }
 
         // ── Tile-level streaming pass ──────────────────────────────────────────
@@ -1154,6 +1203,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     }
                     if success {
                         tc.hlodState = .loaded
+
+                        // Tag HLOD geometry for static batching — same path as a
+                        // fullLoad tile.  Without this every HLOD submesh becomes a
+                        // separate draw call, which is worse than the batched full tile.
+                        setEntityStaticBatchComponent(entityId: capturedHlodId)
+                        self.queueResidencyEventsForRenderDescendants(capturedHlodId)
+                        let hlodRenderIds = self.collectRenderDescendantIds(capturedHlodId)
+                        if !hlodRenderIds.isEmpty {
+                            BatchingSystem.shared.notifyTileParsedEntities(hlodRenderIds)
+                        }
+
                         Logger.log(message: "[HLOD] Tile '\(tileId)' HLOD loaded.")
                     } else {
                         if scene.exists(capturedHlodId) {
@@ -1180,9 +1240,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
               tileComp.hlodState != .unloaded else { return }
 
+        // Set .unloading BEFORE cancel() so any in-flight completion callback
+        // that checks hlodState sees .unloading (not .loading) and discards its result.
+        tileComp.hlodState = .unloading
         tileComp.hlodLoadTask?.cancel()
         tileComp.hlodLoadTask = nil
-        tileComp.hlodState = .unloading
 
         withWorldMutationGate {
             if let hlodEntityId = tileComp.hlodEntityId, scene.exists(hlodEntityId) {
@@ -1210,6 +1272,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         guard reserveActiveTileLoad(entityId: entityId, fileSizeBytes: tileComp.fileSizeBytes) else { return }
 
         tileComp.state = .parsing
+        tileComp.parseStartTime = CFAbsoluteTimeGetCurrent()
         markLoadingTileEntity(entityId)
 
         // LoadingSystem.getResourceURL handles absolute paths (prefix "/").
@@ -1239,6 +1302,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let capturedMeshEntityId = meshEntityId
         // Register lookup so OCC upload completions can update this tile's visual state.
         withStateLock { meshEntityToTileEntity[capturedMeshEntityId] = entityId }
+
+        // Store so the parse-timeout guard can force-release the AssetLoadingGate
+        // if setEntityMeshAsync's inner Task hangs (e.g. ModelIO blocking in loadTextures()).
+        tileComp.meshEntityId = capturedMeshEntityId
 
         let task = Task { [weak self] in
             // If self was deallocated before the task body executes (e.g. game
@@ -1287,6 +1354,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
                     self.unmarkLoadingTileEntity(entityId)
                     tc.loadTask = nil
+                    tc.parseStartTime = 0
+                    tc.meshEntityId = .invalid
 
                     if success {
                         // Count OCC stubs to seed visual state tracking (4.1).
@@ -1381,13 +1450,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// entities to the BatchingSystem after a fullLoad tile finishes parsing.
     private func collectRenderDescendantIds(_ entityId: EntityID) -> Set<EntityID> {
         var result: Set<EntityID> = []
+        collectRenderDescendantIds(entityId, into: &result)
+        return result
+    }
+
+    private func collectRenderDescendantIds(_ entityId: EntityID, into result: inout Set<EntityID>) {
         if scene.get(component: RenderComponent.self, for: entityId) != nil {
             result.insert(entityId)
         }
         for childId in getEntityChildren(parentId: entityId) {
-            result.formUnion(collectRenderDescendantIds(childId))
+            collectRenderDescendantIds(childId, into: &result)
         }
-        return result
     }
 
     /// Recursively count OCC stub descendants (entities with StreamingComponent).
@@ -1518,6 +1591,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
             // Reset stub so the next approach triggers a fresh loadTile() call.
             tileComp.state = .unloaded
+            tileComp.parseStartTime = 0
             unmarkLoadedTileEntity(entityId)
 
             Logger.log(message: "[TileStreaming] Tile '\(tileId)' unloaded (\(descendants.count) child entities destroyed).")

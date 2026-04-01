@@ -160,6 +160,9 @@
                         }
                         .pickerStyle(.segmented)
                         .frame(minWidth: 180)
+                        Toggle("Tile Bounds", isOn: $state.tileBoundsEnabled)
+                            .toggleStyle(.checkbox)
+                            .padding(.leading, 12)
                     }
 
                     Divider()

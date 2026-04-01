@@ -61,6 +61,9 @@ public enum RenderPasses {
         /// Cache for cluster-level frustum-culled batch groups (replaces entity-derived path).
         var visibleBatchGroupsFrame: Int = -1
         var visibleBatchGroupsCache: [BatchGroup] = []
+        /// Cached Set<EntityID> built from visibleEntityIds — avoids O(n) rebuild on each use.
+        var visibleEntitySetFrame: Int = -1
+        var visibleEntitySetCache: Set<EntityID> = []
     }
 
     @inline(__always)
@@ -204,6 +207,31 @@ public enum RenderPasses {
         return visibleBatchIds
     }
 
+    /// Per-frame cached Set<EntityID> built from visibleEntityIds.
+    /// Avoids O(n) allocation + hashing on every caller within the same frame.
+    static func visibleEntitySetSnapshot() -> Set<EntityID> {
+        let frame = cullFrameIndex
+
+        runtimeState.lock.lock()
+        if runtimeState.visibleEntitySetFrame == frame {
+            let cached = runtimeState.visibleEntitySetCache
+            runtimeState.lock.unlock()
+            return cached
+        }
+        runtimeState.lock.unlock()
+
+        let ids = visibleEntityIds
+        var computed = Set<EntityID>()
+        computed.reserveCapacity(ids.count)
+        for id in ids { computed.insert(id) }
+
+        runtimeState.lock.lock()
+        runtimeState.visibleEntitySetFrame = frame
+        runtimeState.visibleEntitySetCache = computed
+        runtimeState.lock.unlock()
+        return computed
+    }
+
     private static func visibleBatchIdsSnapshot() -> Set<UUID> {
         let frame = cullFrameIndex
 
@@ -256,7 +284,7 @@ public enum RenderPasses {
             return frustumPassed
         }
 
-        let visibleSet = Set(visibleEntityIds)
+        let visibleSet = visibleEntitySetSnapshot()
         return frustumPassed.filter { group in
             group.entityIds.contains { visibleSet.contains($0) }
         }
@@ -2602,7 +2630,8 @@ public enum RenderPasses {
         let settings = SpatialDebugVisualization.shared
         let shouldDrawOctreeBounds = settings.showOctreeLeafBounds
         let shouldDrawStaticBatchCells = settings.showStaticBatchCellBounds
-        guard settings.enabled, shouldDrawOctreeBounds || shouldDrawStaticBatchCells else {
+        let shouldDrawTileBounds = settings.showTileBounds
+        guard settings.enabled, shouldDrawOctreeBounds || shouldDrawStaticBatchCells || shouldDrawTileBounds else {
             return
         }
 
@@ -2629,6 +2658,7 @@ public enum RenderPasses {
         let snapshot = SpatialDebugBoundsCollector.shared.collectSnapshot()
         let leafBounds = shouldDrawOctreeBounds ? snapshot.octreeLeafBounds : []
         let staticBatchCellBounds = shouldDrawStaticBatchCells ? snapshot.staticBatchCellBounds : []
+        let tileBounds = shouldDrawTileBounds ? snapshot.tileBounds : []
 
         let maxLeafNodeCount = settings.maxLeafNodeCount
         let drawLeafCount = maxLeafNodeCount > 0 ? min(maxLeafNodeCount, leafBounds.count) : leafBounds.count
@@ -2640,8 +2670,10 @@ public enum RenderPasses {
         let drawStaticBatchCellCount = maxStaticBatchCellCount > 0
             ? min(maxStaticBatchCellCount, staticBatchCellBounds.count)
             : staticBatchCellBounds.count
+        let maxTileNodeCount = settings.maxTileNodeCount
+        let drawTileCount = maxTileNodeCount > 0 ? min(maxTileNodeCount, tileBounds.count) : tileBounds.count
 
-        guard drawLeafCount > 0 || drawStaticBatchCellCount > 0 else {
+        guard drawLeafCount > 0 || drawStaticBatchCellCount > 0 || drawTileCount > 0 else {
             return
         }
 
@@ -2669,8 +2701,18 @@ public enum RenderPasses {
             groupedBounds[key]?.bounds.append(item.bounds)
         }
 
+        for i in 0 ..< drawTileCount {
+            let item = tileBounds[i]
+            let key = spatialDebugColorKey(item.color)
+            if groupedBounds[key] == nil {
+                groupedBounds[key] = (color: item.color, bounds: [])
+                groupOrder.append(key)
+            }
+            groupedBounds[key]?.bounds.append(item.bounds)
+        }
+
         var lineVertices: [SIMD4<Float>] = []
-        let drawBoundsCount = drawLeafCount + drawStaticBatchCellCount
+        let drawBoundsCount = drawLeafCount + drawStaticBatchCellCount + drawTileCount
         lineVertices.reserveCapacity(drawBoundsCount * 24)
         var batches: [SpatialDebugLineBatch] = []
         batches.reserveCapacity(groupOrder.count)
