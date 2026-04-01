@@ -51,9 +51,9 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
     private let residencyUnloadedColor = simd_float4(1.00, 0.25, 0.25, 1.0)
     private let residencyMixedColor = simd_float4(1.00, 0.55, 0.15, 1.0)
     // Tile-specific residency colors
-    private let tileHLODLoadedColor  = simd_float4(0.20, 0.90, 0.90, 1.0) // cyan  — coarse HLOD visible
-    private let tileHLODLoadingColor = simd_float4(0.40, 0.70, 1.00, 1.0) // light blue — HLOD uploading
-    private let tileFailedColor      = simd_float4(0.90, 0.20, 0.90, 1.0) // magenta — parse failed
+    private let tileHLODLoadedColor  = simd_float4(0.20, 0.90, 0.90, 1.0) // cyan       — coarse HLOD visible
+    private let tileHLODLoadingColor = simd_float4(0.40, 0.70, 1.00, 1.0) // light blue — HLOD/LOD uploading
+    private let tileFailedColor      = simd_float4(0.90, 0.20, 0.90, 1.0) // magenta    — parse failed
     private let cullingVisibleColor = simd_float4(0.25, 0.95, 0.35, 1.0)
     private let cullingCulledColor = simd_float4(0.30, 0.60, 1.00, 1.0)
     private let cullingHiddenColor = simd_float4(0.55, 0.55, 0.55, 1.0)
