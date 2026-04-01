@@ -888,13 +888,20 @@ public func setEntityMeshAsync(
     flip _: Bool = true,
     coordinateConversion: CoordinateSystemConversion = .autoDetect,
     streamingPolicy: MeshStreamingPolicy = .auto,
+    blockRenderLoop: Bool = true,
     completion: ((Bool) -> Void)? = nil
 ) {
     let completionBox = completion.map { BoolCompletionBox(callback: $0) }
 
     Task {
-        // Mark as loading
+        // Mark as loading.  Secondary assets (LOD levels, HLODs) pass blockRenderLoop:false —
+        // the gate is opened and immediately closed so the render loop is never stalled
+        // waiting for supplementary geometry.  All downstream finishLoading calls are
+        // idempotent no-ops once the entity is already removed from the loading set.
         await AssetLoadingState.shared.startLoading(entityId: entityId, filename: filename)
+        if !blockRenderLoop {
+            await AssetLoadingState.shared.finishLoading(entityId: entityId)
+        }
 
         // Ensure entity has required components while loading gate is active.
         if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
