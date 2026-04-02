@@ -118,20 +118,11 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                // Load a USDZ scene.
-                // city.usdz must be inside the GameData/Models folder.
-                // loadScene() replaces the current world, creates a default camera and
-                // directional light, and delegates to setEntityMeshAsync() internally.
-                // Streaming defaults: streamingRadius=100, unloadRadius=150, priority=10.
-                // To override, call enableStreaming(entityId:streamingRadius:unloadRadius:priority:)
-                // on the root entity inside the completion block.
-                // Remove enableBatching / enableGeometryStreaming if not needed.
-                loadScene(
-                    filename: "city",
-                    withExtension: "usdz",
-                    enableBatching: true,
-                    enableGeometryStreaming: true
-                ) { success in
+                // Load a tiled scene from a manifest.
+                // myScene.json must be inside the GameData/Models folder.
+                // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
+                // For always-resident individual assets, use setEntityMeshAsync() instead.
+                loadTiledScene(manifest: "myScene", withExtension: "json") { success in
                     setSceneReady(success)
                 }
             }
@@ -604,20 +595,11 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                // Load a USDZ scene.
-                // city.usdz must be inside the GameData/Models folder.
-                // loadScene() replaces the current world, creates a default camera and
-                // directional light, and delegates to setEntityMeshAsync() internally.
-                // Streaming defaults: streamingRadius=100, unloadRadius=150, priority=10.
-                // To override, call enableStreaming(entityId:streamingRadius:unloadRadius:priority:)
-                // on the root entity inside the completion block.
-                // Remove enableBatching / enableGeometryStreaming if not needed.
-                loadScene(
-                    filename: "city",
-                    withExtension: "usdz",
-                    enableBatching: true,
-                    enableGeometryStreaming: true
-                ) { success in
+                // Load a tiled scene from a manifest.
+                // myScene.json must be inside the GameData/Models folder.
+                // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
+                // For always-resident individual assets, use setEntityMeshAsync() instead.
+                loadTiledScene(manifest: "myScene", withExtension: "json") { success in
                     setSceneReady(success)
                 }
             }
@@ -754,20 +736,11 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                // Load a USDZ scene.
-                // city.usdz must be inside the GameData/Models folder.
-                // loadScene() replaces the current world, creates a default camera and
-                // directional light, and delegates to setEntityMeshAsync() internally.
-                // Streaming defaults: streamingRadius=100, unloadRadius=150, priority=10.
-                // To override, call enableStreaming(entityId:streamingRadius:unloadRadius:priority:)
-                // on the root entity inside the completion block.
-                // Remove enableBatching / enableGeometryStreaming if not needed.
-                loadScene(
-                    filename: "city",
-                    withExtension: "usdz",
-                    enableBatching: true,
-                    enableGeometryStreaming: true
-                ) { success in
+                // Load a tiled scene from a manifest.
+                // myScene.json must be inside the GameData/Models folder.
+                // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
+                // For always-resident individual assets, use setEntityMeshAsync() instead.
+                loadTiledScene(manifest: "myScene", withExtension: "json") { success in
                     setSceneReady(success)
                 }
             }
@@ -1088,20 +1061,11 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                // Load a USDZ scene.
-                // city.usdz must be inside the GameData/Models folder.
-                // loadScene() replaces the current world, creates a default camera and
-                // directional light, and delegates to setEntityMeshAsync() internally.
-                // Streaming defaults: streamingRadius=100, unloadRadius=150, priority=10.
-                // To override, call enableStreaming(entityId:streamingRadius:unloadRadius:priority:)
-                // on the root entity inside the completion block.
-                // Remove enableBatching / enableGeometryStreaming if not needed.
-                loadScene(
-                    filename: "city",
-                    withExtension: "usdz",
-                    enableBatching: true,
-                    enableGeometryStreaming: true
-                ) { success in
+                // Load a tiled scene from a manifest.
+                // myScene.json must be inside the GameData/Models folder.
+                // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
+                // For always-resident individual assets, use setEntityMeshAsync() instead.
+                loadTiledScene(manifest: "myScene", withExtension: "json") { success in
                     setSceneReady(success)
                 }
             }

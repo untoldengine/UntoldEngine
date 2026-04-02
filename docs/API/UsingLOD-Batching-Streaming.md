@@ -77,101 +77,63 @@ private func setupLODWithBatching() {
 }
 ```
 
-For LOD + batching loaded from a scene file, the key is to defer batch generation until playSceneAt reports completion (after async mesh loading finishes):
-
-```swift
-playSceneAt(url:url){ 
-    enableBatching(true)
-    generateBatches()
-}
-```
+For procedurally-created always-resident objects, the completion callback from `addLODLevels()` is the right place to generate batches — it fires after all async mesh loads complete.
 
 ## LOD + Batching + Streaming
 
 This combination is ideal for large open-world scenes where you have many objects spread across a large area. Streaming ensures only nearby geometry is loaded into memory, LOD manages visual quality, and batching reduces draw calls for loaded objects.
 
-**Key Points:**
-- Enable streaming **after** the mesh is loaded and positioned
-- Set `streamingRadius` larger than your farthest LOD distance to ensure smooth transitions
-- Set `unloadRadius` larger than `streamingRadius` to provide a buffer zone
-- Batching works with streamed geometry - batches are automatically updated as objects load/unload
-- The order matters: LOD component → Load meshes → Transform → Enable streaming → Mark for batching
-
-This setup is best treated as a lifecycle:
-1. Author LOD levels and streaming radii based on gameplay visibility needs.
-2. Wait for asset load completion before enabling dependent systems.
-3. Activate batching once entities are fully initialized, then let streaming maintain runtime memory pressure.
-
-**Radius Guidelines:**
-- `streamingRadius`: Should be greater than your farthest LOD distance plus a buffer (e.g., if farthest LOD is 200, use 250)
-- `unloadRadius`: Should be significantly larger than `streamingRadius` to avoid thrashing (e.g., 350 when streaming radius is 250)
+The canonical path for streamable geometry is a **manifest-driven tiled scene**. Streaming radii, prefetch distance, and LOD configuration are declared in the manifest JSON; no runtime streaming flags are needed. The tile streaming system handles load/unload automatically as the camera moves.
 
 ```swift
-private func setupLODBatchingStreaming() {
+loadTiledScene(manifest: "city") { success in
+    setSceneReady(success)
+}
+```
+
+Batching and LOD are configured per-tile in the manifest and activated automatically by the streaming system when each tile finishes parsing.
+
+### Always-resident objects with LOD + Batching
+
+For objects that should always be in GPU memory (characters, gameplay props), use `setEntityMeshAsync` with LOD levels and static batching:
+
+```swift
+private func setupLODWithBatching() {
     var loadedCount = 0
     let totalTrees = 20
-
+    
     for i in 0 ..< totalTrees {
         let tree = createEntity()
         setEntityName(entityId: tree, name: "Tree_\(i)")
 
-        // Capture position values for the closure
         let x = Float(i % 5) * 10.0
         let z = Float(i / 5) * 10.0
 
-        // 1. Set LOD component FIRST
         setEntityLodComponent(entityId: tree)
 
-        // 2. Load LOD levels
         addLODLevels(entityId: tree, levels: [
             (0, "tree_LOD0", "usdz", 50.0, 0.0),
             (1, "tree_LOD1", "usdz", 100.0, 0.0),
             (2, "tree_LOD2", "usdz", 200.0, 0.0),
-            (3, "tree_LOD3", "usdz", 300.0, 0.0),
         ]) { success in
             if success {
-                // 3. Apply transform AFTER mesh is loaded
                 translateTo(entityId: tree, position: simd_float3(x, 0, z))
-
-                // 4. Enable streaming AFTER mesh exists
-                // streamingRadius > farthest LOD distance (200) with buffer
-                // unloadRadius > streamingRadius with buffer
-                enableStreaming(
-                    entityId: tree,
-                    streamingRadius: 250.0, // Load when within 250 units
-                    unloadRadius: 350.0, // Unload when beyond 350 units
-                    priority: 10
-                )
-
-                // 5. Mark for batching
                 setEntityStaticBatchComponent(entityId: tree)
             }
-
-            // Track completion
+            
             loadedCount += 1
             if loadedCount == totalTrees {
                 enableBatching(true)
                 generateBatches()
-                print("\(totalTrees) trees configured with LOD + Batching + Streaming")
             }
         }
     }
 }
 ```
 
-When loading LOD + batching + streaming from a scene file, deserialization restores component state first, then your completion handler enables systems that depend on fully loaded geometry:
-
-```swift
-playSceneAt(url: sceneURL) {
-  // Called after deserializeScene completion (async LOD/mesh loads done)
-
-  enableBatching(true)
-  generateBatches()
-
-  GeometryStreamingSystem.shared.enabled = true
-  print("Scene loaded with LOD + Batching + Streaming enabled")
-}
-```
+**Radius Guidelines (for per-tile LOD in manifests):**
+- LOD switch distances should be smaller than the tile's `streaming_radius`
+- `unload_radius` should be significantly larger than `streaming_radius` to avoid thrashing (e.g., 120 when streaming radius is 80)
 
 ## Best Practices
 

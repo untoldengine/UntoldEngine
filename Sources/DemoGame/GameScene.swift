@@ -13,7 +13,7 @@
     /// Core Engine API map used by this demo:
     /// - Entity lifecycle: `createEntity`, `setEntityName`, `destroyAllEntities`
     /// - Camera/input: `createGameCamera`, `findGameCamera`, `moveCameraWithInput`, `orbitCameraAround`
-    /// - Asset loading: `loadScene`
+    /// - Asset loading: `setEntityMeshAsync` (always-resident), `loadTiledScene` (streamable scene)
     /// - Performance features: `setEntityStaticBatchComponent`, `enableBatching`, `generateBatches`, `enableStreaming`
     /// - Debug overlays: `setLODLevelDebug`, `setTextureStreamingTierDebug`, `setOctreeLeafBoundsDebug`
     final class GameScene {
@@ -55,16 +55,22 @@
     // MARK: - Asset Loading
 
     extension GameScene {
-        /// Loads a USDZ file into the scene, replacing whatever was previously loaded.
-        /// destroyAllEntities, mesh loading, and default camera/light creation are all
-        /// handled internally by loadScene — no manual teardown needed here.
+        /// Loads a USDZ file as an always-resident asset, replacing whatever was previously loaded.
+        /// The previously loaded entity is destroyed; the scene camera and light are preserved.
         func loadFile(path: String, completion: @escaping (Bool) -> Void) {
             clearSceneBatches()
+
+            if let prev = loadedEntity {
+                destroyEntity(entityId: prev)
+            }
             loadedEntity = nil
 
-            loadScene(filename: path, withExtension: Constants.usdzExtension) { [weak self] success in
+            let entity = createEntity()
+            setEntityName(entityId: entity, name: path)
+
+            setEntityMeshAsync(entityId: entity, filename: path, withExtension: Constants.usdzExtension) { [weak self] success in
                 guard let self else { return }
-                loadedEntity = findEntity(name: path)
+                loadedEntity = success ? entity : nil
                 let camera = findGameCamera()
                 setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
                 completion(success)
@@ -101,21 +107,10 @@
             }
         }
 
-        /// Attaches a streaming component to the loaded entity and enables the
-        /// geometry streaming system, or shuts it down when turned off.
-        func setStreaming(_ enabled: Bool, streamingRadius: Float, unloadRadius: Float) {
-            guard let entity = loadedEntity else { return }
-            if enabled {
-                enableStreaming(
-                    entityId: entity,
-                    streamingRadius: streamingRadius,
-                    unloadRadius: unloadRadius,
-                    priority: Constants.streamingPriority
-                )
-                GeometryStreamingSystem.shared.enabled = true
-            } else {
-                GeometryStreamingSystem.shared.enabled = false
-            }
+        /// Enables or disables the geometry streaming system.
+        /// Streaming radii are declared in the scene manifest; this is a runtime on/off toggle only.
+        func setStreaming(_ enabled: Bool, streamingRadius _: Float, unloadRadius _: Float) {
+            GeometryStreamingSystem.shared.enabled = enabled
         }
     }
 

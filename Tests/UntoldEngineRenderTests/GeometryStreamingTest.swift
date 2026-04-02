@@ -91,7 +91,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
         XCTAssertTrue(GeometryStreamingSystem.shared.enabled, "❌ Streaming system should be enabled")
     }
 
-    // MARK: - enableStreaming() Tests - Single Mesh Entity
+    // MARK: - enableStreaming() Tests (internal API — accessible via @testable import)
 
     func testEnableStreamingForSingleMeshEntity() {
         // Given: A single-mesh entity with RenderComponent
@@ -149,7 +149,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
         XCTAssertNil(streaming, "❌ Entity without RenderComponent should not get StreamingComponent")
     }
 
-    // MARK: - enableStreaming() Tests - Multi-Mesh Entity (Children)
+    // MARK: - enableStreaming() Tests - Multi-Mesh Entity (internal API — @testable only)
 
     func testEnableStreamingForMultiMeshEntity() {
         // Given: A parent entity with children that have RenderComponents (simulating multi-mesh asset)
@@ -518,6 +518,40 @@ final class GeometryStreamingTest: BaseRenderSetup {
         XCTAssertNotNil(streaming, "❌ StreamingComponent should still be created")
 
         // Note: This documents current behavior - you may want to add validation
+    }
+
+    // MARK: - isTileOwned Guard Tests
+
+    /// Verifies that `loadMesh` rejects entities not parented under a `TileComponent`.
+    /// `StreamingComponent` is only valid on tile-owned entities; standalone entities
+    /// should remain `.unloaded` even when the camera is inside their streaming radius.
+    func testLoadMesh_rejectsNonTileOwnedEntity() {
+        // Given: A deferred streaming entity created outside any tile hierarchy.
+        let entity = createStreamingEntity(
+            filename: "ball",
+            withExtension: "usdz",
+            streamingRadius: 200.0,
+            unloadRadius: 300.0,
+            priority: 0
+        )
+
+        XCTAssertEqual(
+            scene.get(component: StreamingComponent.self, for: entity)?.state,
+            .unloaded,
+            "❌ Entity should start unloaded"
+        )
+
+        // When: loadMesh is called directly (internal API via @testable).
+        // The isTileOwned guard runs synchronously before any state mutation.
+        GeometryStreamingSystem.shared.loadMesh(entityId: entity)
+
+        // Then: State must still be .unloaded — the guard fired before reserving a load slot.
+        let streaming = scene.get(component: StreamingComponent.self, for: entity)
+        XCTAssertEqual(
+            streaming?.state,
+            .unloaded,
+            "❌ Non-tile-owned entity must not progress past .unloaded; isTileOwned guard should have blocked loadMesh"
+        )
     }
 
     // MARK: - Integration Test

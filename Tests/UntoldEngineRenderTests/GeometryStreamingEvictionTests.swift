@@ -119,6 +119,12 @@ final class GeometryStreamingEvictionTests: BaseRenderSetup {
         streamingRadius: Float = 100.0,
         unloadRadius: Float = 200.0
     ) -> EntityID {
+        // StreamingComponent loads are now restricted to tile-owned entities.
+        // Create a minimal tile parent so this fixture exercises the scheduler
+        // rather than the non-tile ownership guard.
+        let tileRoot = createEntity()
+        _ = scene.assign(to: tileRoot, component: TileComponent.self)
+
         let entityId = createEntity()
 
         if let local = scene.assign(to: entityId, component: LocalTransformComponent.self) {
@@ -129,6 +135,10 @@ final class GeometryStreamingEvictionTests: BaseRenderSetup {
         }
         if let world = scene.assign(to: entityId, component: WorldTransformComponent.self) {
             world.space = simd_float4x4(1.0)
+        }
+        if let scenegraph = scene.assign(to: entityId, component: ScenegraphComponent.self) {
+            scenegraph.parent = tileRoot
+            scenegraph.level = 1
         }
         if let streaming = scene.assign(to: entityId, component: StreamingComponent.self) {
             streaming.state = .unloaded
