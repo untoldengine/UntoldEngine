@@ -80,24 +80,30 @@ extension GeometryStreamingSystem {
                     return
                 }
 
-                if success {
-                    if let s = scene.get(component: StreamingComponent.self, for: entityId) {
-                        s.state = .loaded
-                        s.lastVisibleFrame = currentFrame
+                guard let s = scene.get(component: StreamingComponent.self, for: entityId),
+                      s.state == .loading
+                else {
+                    releaseActiveLoad(entityId: entityId)
+                    if isNearBand { releaseNearBandLoad(entityId: entityId) }
+                    return
+                }
 
-                        // Emit residency event
-                        if let render = scene.get(component: RenderComponent.self, for: entityId) {
-                            let event = AssetResidencyChangedEvent(
-                                entityId: entityId,
-                                assetURL: render.assetURL,
-                                meshName: render.assetName,
-                                isResident: true
-                            )
-                            Logger.log(message: "[Batching] queuing residency event for entity=\(entityId)")
-                            SystemEventBus.shared.queueResidencyChange(event)
-                        } else {
-                            Logger.log(message: "[Batching] NO RenderComponent on entity=\(entityId) — residency event NOT queued")
-                        }
+                if success {
+                    s.state = .loaded
+                    s.lastVisibleFrame = currentFrame
+
+                    // Emit residency event
+                    if let render = scene.get(component: RenderComponent.self, for: entityId) {
+                        let event = AssetResidencyChangedEvent(
+                            entityId: entityId,
+                            assetURL: render.assetURL,
+                            meshName: render.assetName,
+                            isResident: true
+                        )
+                        Logger.log(message: "[Batching] queuing residency event for entity=\(entityId)")
+                        SystemEventBus.shared.queueResidencyChange(event)
+                    } else {
+                        Logger.log(message: "[Batching] NO RenderComponent on entity=\(entityId) — residency event NOT queued")
                     }
                     markLoadedStreamingEntity(entityId)
                     // 4.1: Update the parent tile's visual readiness counter.
@@ -105,9 +111,7 @@ extension GeometryStreamingSystem {
                     SystemIntegrationMonitor.shared.recordStreamingLoad()
                 } else {
                     // Load failed - reset to unloaded so it can retry
-                    if let s = scene.get(component: StreamingComponent.self, for: entityId) {
-                        s.state = .unloaded
-                    }
+                    s.state = .unloaded
                     Logger.logError(message: "Failed to stream mesh for entity \(entityId)")
                 }
                 releaseActiveLoad(entityId: entityId)

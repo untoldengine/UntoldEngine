@@ -84,6 +84,8 @@ extension GeometryStreamingSystem {
                     }
                     if success {
                         tc.hlodState = .loaded
+                        tc.lastHLODTransitionTime = CFAbsoluteTimeGetCurrent()
+                        self.recordTileRepresentationSwap(entityId: capturedTileId, tileId: tileId, representation: "hlod:loaded")
                         self.decrementHLODLoadCount()
 
                         // Tag HLOD render descendants for the LOD debug renderer
@@ -93,13 +95,15 @@ extension GeometryStreamingSystem {
                             scene.get(component: TileLODTagComponent.self, for: rid)?.levelIndex = 5
                         }
 
-                        // Tag HLOD geometry for static batching — same path as a
-                        // fullLoad tile.  Without this every HLOD submesh becomes a
-                        // separate draw call, which is worse than the batched full tile.
-                        setEntityStaticBatchComponent(entityId: capturedHlodId)
-                        let hlodRenderIds = self.collectRenderDescendantIds(capturedHlodId)
-                        if !hlodRenderIds.isEmpty {
-                            BatchingSystem.shared.notifyTileEntitiesResident(hlodRenderIds)
+                        if self.batchSecondaryTileRepresentations {
+                            // The completion already holds the world-mutation gate. Use the
+                            // ungated helper so we do not briefly re-assert the render gate
+                            // for every HLOD during startup.
+                            setEntityStaticBatchComponentUngated(entityId: capturedHlodId)
+                            let hlodRenderIds = self.collectRenderDescendantIds(capturedHlodId)
+                            if !hlodRenderIds.isEmpty {
+                                BatchingSystem.shared.notifyTileEntitiesResident(hlodRenderIds)
+                            }
                         }
 
                         Logger.log(message: "[HLOD] Tile '\(tileId)' HLOD loaded.")
@@ -156,6 +160,7 @@ extension GeometryStreamingSystem {
             }
             tileComp.hlodEntityId = nil
             tileComp.hlodState = .unloaded
+            tileComp.lastHLODTransitionTime = CFAbsoluteTimeGetCurrent()
         }
 
         // Force-release the AssetLoadingGate that setEntityMeshAsync opened via
@@ -169,6 +174,7 @@ extension GeometryStreamingSystem {
         }
 
         unmarkLoadedHLODEntity(entityId)
+        recordTileRepresentationSwap(entityId: entityId, tileId: tileComp.tileId, representation: "hlod:unloaded")
         Logger.log(message: "[HLOD] Tile '\(tileComp.tileId)' HLOD unloaded.")
     }
 
@@ -234,6 +240,9 @@ extension GeometryStreamingSystem {
                     }
                     if success {
                         tc.lodLevels[capturedIndex].state = .loaded
+                        tc.lastLODTransitionTime = CFAbsoluteTimeGetCurrent()
+                        tc.lastLoadedLODIndex = capturedIndex
+                        self.recordTileRepresentationSwap(entityId: capturedTileId, tileId: tileId, representation: "lod\(capturedIndex + 1):loaded")
                         self.decrementLODLoadCount()
                         // Tag every render descendant so the LOD debug renderer can
                         // colour them by tile LOD level (levelIndex 1 = LOD1, 2 = LOD2…).
@@ -242,10 +251,12 @@ extension GeometryStreamingSystem {
                             registerComponent(entityId: rid, componentType: TileLODTagComponent.self)
                             scene.get(component: TileLODTagComponent.self, for: rid)?.levelIndex = tileLODIndex
                         }
-                        setEntityStaticBatchComponent(entityId: capturedLodId)
-                        let renderIds = self.collectRenderDescendantIds(capturedLodId)
-                        if !renderIds.isEmpty {
-                            BatchingSystem.shared.notifyTileEntitiesResident(renderIds)
+                        if self.batchSecondaryTileRepresentations {
+                            setEntityStaticBatchComponentUngated(entityId: capturedLodId)
+                            let renderIds = self.collectRenderDescendantIds(capturedLodId)
+                            if !renderIds.isEmpty {
+                                BatchingSystem.shared.notifyTileEntitiesResident(renderIds)
+                            }
                         }
                         Logger.log(message: "[LOD] Tile '\(tileId)' LOD level \(capturedIndex + 1) loaded.")
                     } else {
@@ -306,6 +317,10 @@ extension GeometryStreamingSystem {
             }
             tileComp.lodLevels[levelIndex].entityId = .invalid
             tileComp.lodLevels[levelIndex].state = .unloaded
+            tileComp.lastLODTransitionTime = CFAbsoluteTimeGetCurrent()
+            if tileComp.lastLoadedLODIndex == levelIndex {
+                tileComp.lastLoadedLODIndex = nil
+            }
         }
 
         // Same gate-release fix as unloadHLOD — see comment there for full rationale.
@@ -320,6 +335,7 @@ extension GeometryStreamingSystem {
             unmarkLoadedLODEntity(entityId)
         }
 
+        recordTileRepresentationSwap(entityId: entityId, tileId: tileComp.tileId, representation: "lod\(levelIndex + 1):unloaded")
         Logger.log(message: "[LOD] Tile '\(tileComp.tileId)' LOD level \(levelIndex + 1) unloaded.")
     }
 
@@ -424,7 +440,10 @@ extension GeometryStreamingSystem {
                         ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId: entityId)
                         if let tc2 = scene.get(component: TileComponent.self, for: entityId) {
                             tc2.state = .unloaded
+                            tc2.parseStartTime = 0
+                            tc2.meshEntityId = .invalid
                         }
+                        unmarkLoadingTileEntity(entityId)
                         unmarkLoadedTileEntity(entityId)
                         Logger.log(message: "[TileStreaming] Tile '\(tileId)' cancelled load cleaned up.")
                         return
@@ -444,6 +463,7 @@ extension GeometryStreamingSystem {
                         tc.failureCount = 0 // clear retry counter on successful parse
                         tc.state = .parsed
                         self.markLoadedTileEntity(entityId)
+                        self.recordTileRepresentationSwap(entityId: entityId, tileId: tileId, representation: "tile:parsed")
 
                         // Full geometry is now resident — unload the coarse HLOD mesh
                         // and any per-tile LOD levels that were showing while loading.
@@ -457,7 +477,8 @@ extension GeometryStreamingSystem {
                         // (OCC stubs awaiting GPU upload).  For OCC stubs the batch
                         // residency handler fires automatically when each stub's GPU
                         // upload completes, so no manual generateBatches() call is needed.
-                        setEntityStaticBatchComponent(entityId: capturedMeshEntityId)
+                        // The completion already holds the world-mutation gate.
+                        setEntityStaticBatchComponentUngated(entityId: capturedMeshEntityId)
 
                         // For fullLoad tiles (occCount == 0) the RenderComponent is
                         // already present on capturedMeshEntityId and its children —
@@ -603,14 +624,14 @@ extension GeometryStreamingSystem {
             tileComp.loadTask = nil
 
             if wasParsing {
-                // Remove from the .parsing tracking set; the .parsed set was never touched.
-                unmarkLoadingTileEntity(entityId)
-
                 // The load Task is still running on the background thread.
                 // setEntityMeshAsync may be actively creating or accessing child entities
                 // right now — destroying them here would be an unsynchronised concurrent
                 // write into the ECS.  Bail out and let loadTile's completion callback
                 // dispatch the cleanup to the main thread once the Task has fully exited.
+                // Keep the tile in the parsing-tracking sets until the task actually exits
+                // so the timeout watchdog can still reclaim the reserved parse slot if the
+                // cancelled work never completes.
                 return
             }
 
