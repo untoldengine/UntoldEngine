@@ -18,8 +18,8 @@
     /// - Debug overlays: `setLODLevelDebug`, `setTextureStreamingTierDebug`, `setOctreeLeafBoundsDebug`
     final class GameScene {
         private enum Constants {
-            static let orbitTargetOffset: Float = 5.0
-            static let cameraMoveSpeed: Float = 10.0
+            static let orbitTargetOffset: Float = 25.0
+            static let cameraMoveSpeed: Float = 1.0
             static let cameraInputDeltaTime: Float = 0.1
             static let streamingPriority: Int = 10
             static let usdzExtension = "usdz"

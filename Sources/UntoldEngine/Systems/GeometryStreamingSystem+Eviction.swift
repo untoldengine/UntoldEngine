@@ -94,4 +94,75 @@ extension GeometryStreamingSystem {
         }
         return evictedCount
     }
+
+    /// Second-stage geometry relief for tile-owned geometry.
+    ///
+    /// Tile full-loads, HLODs, and per-tile LODs can consume substantial geometry memory
+    /// while never entering loadedStreamingEntities. When the geometry budget is blocked by
+    /// those representations, mesh-only eviction makes no progress and the streaming system
+    /// can stall under permanent pressure.
+    func evictTileGeometry(cameraPosition: simd_float3, maxEvictions: Int = Int.max) -> Int {
+        enum TileEvictionKind {
+            case fullTile
+            case hlod
+            case lod
+        }
+
+        var candidates: [(entityId: EntityID, kind: TileEvictionKind, distance: Float)] = []
+        var seen: Set<EntityID> = []
+
+        for entityId in loadedTileEntitiesSnapshot() {
+            guard scene.exists(entityId),
+                  let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  tileComp.state == .parsed
+            else { continue }
+            let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
+            guard distance >= visibleEvictionProtectionRadius else { continue }
+            candidates.append((entityId, .fullTile, distance))
+            seen.insert(entityId)
+        }
+
+        for entityId in loadedHLODEntitiesSnapshot() {
+            guard !seen.contains(entityId),
+                  scene.exists(entityId),
+                  let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  tileComp.hlodState == .loaded
+            else { continue }
+            let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
+            guard distance >= visibleEvictionProtectionRadius else { continue }
+            candidates.append((entityId, .hlod, distance))
+            seen.insert(entityId)
+        }
+
+        for entityId in loadedLODEntitiesSnapshot() {
+            guard !seen.contains(entityId),
+                  scene.exists(entityId),
+                  let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  tileComp.lodLevels.contains(where: { $0.state == .loaded })
+            else { continue }
+            let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
+            guard distance >= visibleEvictionProtectionRadius else { continue }
+            candidates.append((entityId, .lod, distance))
+        }
+
+        candidates.sort { $0.distance > $1.distance }
+
+        var evictedCount = 0
+        for candidate in candidates {
+            guard MemoryBudgetManager.shared.shouldEvictGeometry() else { break }
+            guard evictedCount < maxEvictions else { break }
+
+            switch candidate.kind {
+            case .fullTile:
+                unloadTile(entityId: candidate.entityId)
+            case .hlod:
+                unloadHLOD(entityId: candidate.entityId)
+            case .lod:
+                unloadAllLODLevels(entityId: candidate.entityId)
+            }
+            evictedCount += 1
+        }
+
+        return evictedCount
+    }
 }

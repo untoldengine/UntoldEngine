@@ -2139,23 +2139,39 @@ public func loadTiledScene(
             // and the streaming radii that control when the tile loads/unloads.
             registerComponent(entityId: entityId, componentType: TileComponent.self)
             if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
+                let configuredStreamingRadius = tile.streamingRadius ?? defaults.streamingRadius
+                let configuredUnloadRadius = tile.unloadRadius ?? defaults.unloadRadius
+                let configuredPrefetch = tile.prefetchRadius ?? defaults.prefetchRadius ?? 0
+                let configuredHLOD = tile.hlodLevels?.first?.switchDistance
+                let configuredLODs = (tile.lodLevels ?? []).map(\.switchDistance)
+                let normalizedBands = normalizeTileStreamingBands(
+                    tileId: tile.tileId,
+                    streamingRadius: configuredStreamingRadius,
+                    unloadRadius: configuredUnloadRadius,
+                    prefetchRadius: configuredPrefetch,
+                    hlodSwitchDistance: configuredHLOD,
+                    lodSwitchDistances: configuredLODs
+                )
+
                 tileComp.tileURL = tileURL
                 tileComp.fileSizeBytes = tile.fileSizeBytes
-                tileComp.streamingRadius = tile.streamingRadius ?? defaults.streamingRadius
-                tileComp.unloadRadius = tile.unloadRadius ?? defaults.unloadRadius
+                tileComp.streamingRadius = configuredStreamingRadius
+                tileComp.unloadRadius = max(configuredUnloadRadius, configuredStreamingRadius + 4.0)
                 tileComp.priority = tile.priority ?? defaults.priority
                 // prefetchRadius = 0 means auto (midpoint of stream/unload gap).
                 // Resolved from: per-tile override → manifest default → auto (0).
-                tileComp.prefetchRadius = tile.prefetchRadius ?? defaults.prefetchRadius ?? 0
+                tileComp.prefetchRadius = normalizedBands.prefetchRadius
                 tileComp.tileId = tile.tileId
                 tileComp.state = .unloaded
 
                 // HLOD: use the first level if present and the file exists on disk.
                 if let hlodLevels = tile.hlodLevels, let first = hlodLevels.first {
                     let hlodURL = manifestDir.appendingPathComponent(first.path)
-                    if FileManager.default.fileExists(atPath: hlodURL.path) {
+                    if FileManager.default.fileExists(atPath: hlodURL.path),
+                       let normalizedHLOD = normalizedBands.hlodSwitchDistance
+                    {
                         tileComp.hlodURL = hlodURL
-                        tileComp.hlodSwitchDistance = first.switchDistance
+                        tileComp.hlodSwitchDistance = normalizedHLOD
                     }
                 }
 
@@ -2163,13 +2179,14 @@ public func loadTiledScene(
                 // streaming pass can binary-search for the active level by distance.
                 if let lodEntries = tile.lodLevels {
                     let sorted = lodEntries.sorted { $0.switchDistance < $1.switchDistance }
-                    for entry in sorted {
+                    for (index, entry) in sorted.enumerated() {
+                        guard index < normalizedBands.lodSwitchDistances.count else { break }
                         let lodURL = manifestDir.appendingPathComponent(entry.path)
                         guard FileManager.default.fileExists(atPath: lodURL.path) else {
                             Logger.logWarning(message: "[loadTiledScene] LOD file missing for tile '\(tile.tileId)': '\(entry.path)' — skipping level.")
                             continue
                         }
-                        tileComp.lodLevels.append(TileLODLevel(url: lodURL, switchDistance: entry.switchDistance))
+                        tileComp.lodLevels.append(TileLODLevel(url: lodURL, switchDistance: normalizedBands.lodSwitchDistances[index]))
                     }
                 }
             }
@@ -2237,6 +2254,51 @@ public func loadTiledScene(
     let bucketMsg = hasSharedBucket ? " + shared bucket" : ""
     Logger.log(message: "[loadTiledScene] '\(manifest).\(ext)': \(registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).")
     completion?(true)
+}
+
+private func normalizeTileStreamingBands(
+    tileId: String,
+    streamingRadius: Float,
+    unloadRadius: Float,
+    prefetchRadius: Float,
+    hlodSwitchDistance: Float?,
+    lodSwitchDistances: [Float]
+) -> (prefetchRadius: Float, hlodSwitchDistance: Float?, lodSwitchDistances: [Float]) {
+    let minBandGap: Float = 4.0
+    let clampedUnload = max(unloadRadius, streamingRadius + minBandGap)
+    let maxHLOD = max(streamingRadius + minBandGap, clampedUnload - 1.0)
+    let minHLOD = streamingRadius + minBandGap
+
+    var normalizedHLOD: Float?
+    if let hlod = hlodSwitchDistance, hlod > 0 {
+        normalizedHLOD = min(max(hlod, minHLOD), maxHLOD)
+    }
+
+    var normalizedLODs = lodSwitchDistances.sorted()
+    if !normalizedLODs.isEmpty {
+        let upperBound = (normalizedHLOD ?? clampedUnload) - minBandGap
+        var previous = max(1.0, streamingRadius * 0.35)
+        for i in normalizedLODs.indices {
+            let remaining = Float(normalizedLODs.count - i - 1)
+            let dynamicUpper = max(previous, upperBound - remaining * minBandGap)
+            normalizedLODs[i] = min(max(normalizedLODs[i], previous), dynamicUpper)
+            previous = normalizedLODs[i] + minBandGap
+        }
+        normalizedLODs = normalizedLODs.filter { $0 < upperBound + 0.001 }
+    }
+
+    let normalizedPrefetch: Float = {
+        guard prefetchRadius > 0 else { return 0 }
+        return min(max(prefetchRadius, streamingRadius), clampedUnload)
+    }()
+
+    if normalizedHLOD != hlodSwitchDistance || normalizedLODs != lodSwitchDistances || normalizedPrefetch != prefetchRadius {
+        Logger.logWarning(
+            message: "[loadTiledScene] Normalized streaming bands for tile '\(tileId)' — prefetch=\(String(format: "%.2f", normalizedPrefetch)) hlod=\(normalizedHLOD.map { String(format: "%.2f", $0) } ?? "nil") lods=\(normalizedLODs.map { String(format: "%.2f", $0) })"
+        )
+    }
+
+    return (normalizedPrefetch, normalizedHLOD, normalizedLODs)
 }
 
 /// Lightweight second MDLAsset pass that extracts cameras and lights only.
@@ -2992,6 +3054,12 @@ public func setEntityStaticBatchComponent(entityId: EntityID) {
     withWorldMutationGate {
         setEntityStaticBatchComponentRecursive(entityId: entityId)
     }
+}
+
+/// Same behavior as `setEntityStaticBatchComponent(entityId:)`, but assumes the caller is
+/// already inside a world-mutation critical section and must not re-open the render gate.
+public func setEntityStaticBatchComponentUngated(entityId: EntityID) {
+    setEntityStaticBatchComponentRecursive(entityId: entityId)
 }
 
 private func setEntityStaticBatchComponentRecursive(entityId: EntityID) {

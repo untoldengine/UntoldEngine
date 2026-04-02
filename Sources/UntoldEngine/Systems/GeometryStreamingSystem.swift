@@ -89,6 +89,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// causing an OOM kill identical to the uncapped LOD pass problem.
     public var maxConcurrentHLODLoads: Int = 4
 
+    /// When false, HLOD and per-tile LOD representations bypass runtime static batching.
+    /// These representations are numerous and short-lived during bootstrap; batching them
+    /// aggressively can create a large world-mutation storm that starves the renderer
+    /// before the scene reaches a stable full-tile state.
+    public var batchSecondaryTileRepresentations: Bool = false
+
     /// Hysteresis multiplier for per-tile LOD level transitions.
     /// A loaded LOD level is not unloaded until distance drops below
     /// (switchDistance × lodHysteresisFactor).  This prevents thrashing when the
@@ -102,6 +108,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// drops below (hlodSwitchDistance × hlodHysteresisFactor).
     /// Range (0, 1]. Default 0.90.
     public var hlodHysteresisFactor: Float = 0.90
+
+    /// Minimum time a tile HLOD or per-tile LOD representation should remain resident
+    /// before the system allows another swap. This stabilizes bootstrap and boundary
+    /// traversal by preventing rapid HLOD/LOD/full-tile churn in a narrow distance band.
+    public var secondaryRepresentationMinDwellSeconds: Double = 1.0
 
     /// Maximum tile unload operations processed per streaming update tick.
     /// Capping unloads prevents a single-frame blank on fast camera movement or
@@ -128,6 +139,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// (e.g. an unsupported image format inside a USDC file) which would otherwise
     /// permanently exhaust the concurrency slots and freeze all future tile loads.
     public var tileParseTimeoutSeconds: Double = 60.0
+
+    /// Maximum time in seconds a mesh load may stay in .loading before it is force-reset.
+    /// Covers OOC uploads, cold rehydration, and MeshResourceManager-backed disk loads.
+    /// Without this a single hung load can permanently consume one of the global mesh
+    /// streaming slots and starve all subsequent mesh work.
+    public var meshLoadTimeoutSeconds: Double = 60.0
 
     /// Tile entities currently being parsed, mapped to their declared file size in bytes.
     /// Used to track the total parse memory in flight for the budget gate.
@@ -222,6 +239,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     var timeSinceLastUpdate: Float = 0
     var timeSinceCameraDiagLog: Float = 0
     var activeLoads: Set<EntityID> = []
+    var activeLoadStartTimes: [EntityID: Double] = [:]
     /// Subset of activeLoads that belong to the near band. Tracked separately so the
     /// near-band concurrency limit can be enforced independently of the global limit.
     var activeNearBandLoads: Set<EntityID> = []
@@ -232,6 +250,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     var diagnostics: GeometryStreamingDiagnosticsSnapshot = .init()
     var cumulativeAsyncLoadMs: Double = 0.0
     var completedAsyncLoads: Int = 0
+    var tileSwapWindow: [EntityID: (windowStart: Double, swaps: Int)] = [:]
 
     /// First-detection timestamps (CFAbsoluteTime) keyed by entity ID.
     /// Records when each entity first appeared as a load candidate so we can measure
@@ -272,6 +291,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 return false
             }
             activeLoads.insert(entityId)
+            activeLoadStartTimes[entityId] = CFAbsoluteTimeGetCurrent()
             return true
         }
     }
@@ -279,11 +299,16 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     func releaseActiveLoad(entityId: EntityID) {
         withStateLock {
             _ = activeLoads.remove(entityId)
+            _ = activeLoadStartTimes.removeValue(forKey: entityId)
         }
     }
 
     func activeLoadCountSnapshot() -> Int {
         withStateLock { activeLoads.count }
+    }
+
+    func activeLoadStartTimesSnapshot() -> [(entityId: EntityID, startTime: Double)] {
+        withStateLock { activeLoadStartTimes.map { ($0.key, $0.value) } }
     }
 
     func reserveNearBandLoad(entityId: EntityID) {
@@ -312,6 +337,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     func activeTileLoadCount() -> Int {
         withStateLock { activeTileLoads.count }
+    }
+
+    func activeTileLoadEntityIdsSnapshot() -> [EntityID] {
+        withStateLock { Array(activeTileLoads.keys) }
     }
 
     /// Sum of declared file sizes (bytes) for all tiles currently being parsed.
@@ -576,16 +605,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // releaseActiveTileLoad uses removeValue(forKey:) and is idempotent — the
         // Task's own defer{} release fires later but is safely a no-op.
         let timeoutNow = CFAbsoluteTimeGetCurrent()
-        for entityId in loadingTileEntitiesSnapshot() {
+        let tileTimeoutCandidates = Set(loadingTileEntitiesSnapshot()).union(activeTileLoadEntityIdsSnapshot())
+        for entityId in tileTimeoutCandidates {
             guard scene.exists(entityId),
                   let tc = scene.get(component: TileComponent.self, for: entityId),
-                  tc.state == .parsing,
+                  tc.state == .parsing || tc.state == .unloading,
                   tc.parseStartTime > 0,
                   timeoutNow - tc.parseStartTime > tileParseTimeoutSeconds
             else { continue }
 
             Logger.logWarning(
-                message: "[TileStreaming] Tile '\(tc.tileId)' parse timed out after \(Int(tileParseTimeoutSeconds))s — forcing .failed (attempt \(tc.failureCount + 1))."
+                message: "[TileStreaming] Tile '\(tc.tileId)' parse timed out after \(Int(tileParseTimeoutSeconds))s while state=\(String(describing: tc.state)) — forcing teardown."
             )
             tc.loadTask?.cancel()
             tc.loadTask = nil
@@ -603,11 +633,44 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 Task { await AssetLoadingState.shared.finishLoading(entityId: hungMeshId) }
             }
 
-            tc.failureCount += 1
-            tc.lastFailureTime = timeoutNow
-            tc.state = .failed
+            tc.totalOCCStubs = 0
+            tc.uploadedOCCStubs = 0
+            tc.pendingUnloadSince = 0
+            if tc.state == .parsing {
+                tc.failureCount += 1
+                tc.lastFailureTime = timeoutNow
+                tc.state = .failed
+            } else {
+                tc.state = .unloaded
+            }
             unmarkLoadingTileEntity(entityId)
             releaseActiveTileLoad(entityId: entityId)
+        }
+
+        // ── Mesh load timeout guard ───────────────────────────────────────────
+        // Unlike tile parses, regular mesh/OOC uploads do not pass through a dedicated
+        // tile timeout path. If one hangs in ModelIO, a texture decode, or a shared file
+        // load, the entity remains in activeLoads forever and the mesh scheduler starves.
+        for (entityId, startTime) in activeLoadStartTimesSnapshot() {
+            guard timeoutNow - startTime > meshLoadTimeoutSeconds else { continue }
+            guard scene.exists(entityId),
+                  let streaming = scene.get(component: StreamingComponent.self, for: entityId),
+                  streaming.state == .loading
+            else {
+                releaseActiveLoad(entityId: entityId)
+                releaseNearBandLoad(entityId: entityId)
+                continue
+            }
+
+            Logger.logWarning(
+                message: "[GeometryStreaming] Mesh load timed out for entity \(entityId) after \(Int(meshLoadTimeoutSeconds))s — resetting to .unloaded."
+            )
+            streaming.loadTask?.cancel()
+            streaming.loadTask = nil
+            streaming.state = .unloaded
+            releaseActiveLoad(entityId: entityId)
+            releaseNearBandLoad(entityId: entityId)
+            firstRangeTimestamps.removeValue(forKey: entityId)
         }
 
         // ── Tile-level streaming pass ──────────────────────────────────────────
@@ -722,6 +785,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                   tileComp.hlodSwitchDistance > 0 else { continue }
 
             let dist = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+            let canTransitionHLOD = tileComp.lastHLODTransitionTime == 0 ||
+                timeoutNow - tileComp.lastHLODTransitionTime >= secondaryRepresentationMinDwellSeconds
 
             switch tileComp.state {
             case .unloaded, .failed:
@@ -735,12 +800,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     // HLOD is no longer needed.  The hysteresis band
                     // [switchDistance * factor, switchDistance) keeps the HLOD
                     // resident while the camera lingers at the boundary.
-                    if tileComp.hlodState != .unloaded { unloadHLOD(entityId: entityId) }
+                    if canTransitionHLOD, tileComp.hlodState != .unloaded { unloadHLOD(entityId: entityId) }
                 }
             // else: inside hysteresis band — keep current HLOD state.
             case .parsed:
                 // Full geometry is resident — HLOD hand-off complete.
-                // No hysteresis here: always unload promptly on full-tile parse.
+                // No dwell here: unload promptly so HLOD and full tile are not
+                // both resident simultaneously consuming GPU memory.
                 if tileComp.hlodState != .unloaded { unloadHLOD(entityId: entityId) }
             case .parsing, .unloading:
                 // Keep HLOD visible during full-tile load for a seamless transition.
@@ -792,13 +858,15 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     : level.switchDistance
                 if dist >= threshold { targetIndex = i }
             }
+            let canTransitionLOD = tileComp.lastLODTransitionTime == 0 ||
+                timeoutNow - tileComp.lastLODTransitionTime >= secondaryRepresentationMinDwellSeconds
 
             switch tileComp.state {
             case .unloaded, .failed:
                 if let target = targetIndex {
                     for i in tileComp.lodLevels.indices {
                         if i == target {
-                            if tileComp.lodLevels[i].state == .unloaded {
+                            if tileComp.lodLevels[i].state == .unloaded, currentlyActiveIndex == nil || canTransitionLOD {
                                 // Hard cap: never exceed maxConcurrentLODLoads.
                                 // Without this, every tile in LOD range is dispatched
                                 // simultaneously on initial load, triggering an OOM kill.
@@ -806,18 +874,20 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                                 loadLODLevel(entityId: entityId, levelIndex: i)
                             }
                         } else {
-                            if tileComp.lodLevels[i].state != .unloaded {
+                            if canTransitionLOD, tileComp.lodLevels[i].state != .unloaded {
                                 unloadLODLevel(entityId: entityId, levelIndex: i)
                             }
                         }
                     }
-                } else {
+                } else if canTransitionLOD {
                     // Camera is inside the finest LOD's switch distance — full tile
                     // will load via the tile load pass; drop any active LOD level.
                     unloadAllLODLevels(entityId: entityId)
                 }
             case .parsed:
                 // Full geometry resident — all LOD levels can be dropped.
+                // No dwell: unload immediately so LOD proxies don't stay resident
+                // alongside the full tile geometry.
                 unloadAllLODLevels(entityId: entityId)
             case .parsing, .unloading:
                 // Keep active LOD visible during the full-tile load for continuity.
@@ -1061,6 +1131,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             )
             evictionTriggered = true
             evictedByLRU = evictLRU(cameraPosition: effectiveCameraPosition)
+            if MemoryBudgetManager.shared.shouldEvictGeometry() {
+                evictedByLRU += evictTileGeometry(cameraPosition: effectiveCameraPosition, maxEvictions: 4)
+            }
         }
 
         // Partition candidates into near band and rest band.
@@ -1391,6 +1464,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             SystemEventBus.shared.clearPendingEvents()
             withStateLock {
                 activeLoads.removeAll()
+                activeLoadStartTimes.removeAll()
                 loadedStreamingEntities.removeAll()
                 // Clear tile-level tracking sets so stale IDs from the previous scene
                 // do not pollute the next scene's streaming passes.
@@ -1406,6 +1480,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             diagnostics = .init()
             cumulativeAsyncLoadMs = 0
             completedAsyncLoads = 0
+            tileSwapWindow.removeAll()
             lastCameraPosition = nil
             cameraVelocity = .zero
             firstRangeTimestamps.removeAll()
@@ -1469,8 +1544,37 @@ public struct GeometryStreamingDiagnosticsSnapshot: Sendable {
     public var lastAsyncReloadLODMs: Double = 0.0
     public var lastUnloadMeshMs: Double = 0.0
     public var lastFailedAsyncLoadMs: Double = 0.0
+    public var tileSwapWarnings: Int = 0
 
     public init() {}
+}
+
+extension GeometryStreamingSystem {
+    func recordTileRepresentationSwap(entityId: EntityID, tileId: String, representation: String) {
+        let now = CFAbsoluteTimeGetCurrent()
+        let warningThreshold = 6
+        let windowSeconds = 5.0
+
+        let updated: (windowStart: Double, swaps: Int) = {
+            guard let existing = tileSwapWindow[entityId] else {
+                return (now, 1)
+            }
+            if now - existing.windowStart > windowSeconds {
+                return (now, 1)
+            }
+            return (existing.windowStart, existing.swaps + 1)
+        }()
+
+        tileSwapWindow[entityId] = updated
+        if updated.swaps == warningThreshold {
+            Logger.logWarning(
+                message: "[TileStreaming] Swap thrash detected for tile '\(tileId)' — \(updated.swaps) representation changes in \(Int(windowSeconds))s (latest=\(representation))."
+            )
+            withStateLock {
+                diagnostics.tileSwapWarnings += 1
+            }
+        }
+    }
 }
 
 /// Statistics for geometry streaming

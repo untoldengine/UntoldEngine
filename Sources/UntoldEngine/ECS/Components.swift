@@ -583,6 +583,19 @@ public class TileComponent: Component {
     /// Task handle for the in-flight HLOD setEntityMeshAsync call.
     var hlodLoadTask: Task<Void, Never>?
 
+    /// Timestamp of the most recent HLOD state transition that materially changed
+    /// residency (.loaded or .unloaded). Used to enforce a minimum dwell so HLOD does
+    /// not flap at the boundary between far-field and mid-field representation bands.
+    public var lastHLODTransitionTime: CFAbsoluteTime = 0
+
+    /// Timestamp of the most recent per-tile LOD residency change. Used alongside the
+    /// geometry streaming system's dwell rule to prevent rapid level churn.
+    public var lastLODTransitionTime: CFAbsoluteTime = 0
+
+    /// Last LOD level index that was loaded for this tile, or nil when none is active.
+    /// Tracks representation churn for diagnostics and dwell logic.
+    public var lastLoadedLODIndex: Int?
+
     public required init() {}
 }
 
