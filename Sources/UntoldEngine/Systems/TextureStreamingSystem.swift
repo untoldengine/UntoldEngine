@@ -76,6 +76,18 @@ public class TextureStreamingSystem: @unchecked Sendable {
         ///
         /// Suitable as a starting point when the scene type is unknown.
         case balanced
+
+        /// Tile-based streaming scene (loadTiledScene manifest).
+        ///
+        /// Aligns the three texture tiers with typical tile streaming distance bands:
+        ///   • < 30 m  → full resolution  (tile is likely fully parsed and visible)
+        ///   • 30–70 m → medium (1024 px) (tile may be loading or in prefetch radius)
+        ///   • > 70 m  → minimum (256 px) (tile is unloaded or in far prefetch band)
+        ///
+        /// Higher concurrency (6) and a tighter update interval (0.1 s) drain the
+        /// post-load texture backlog faster when many tile entities become visible
+        /// simultaneously during scene hydration.
+        case tiled
     }
 
     /// Apply a built-in tuning profile, overwriting all streaming parameters.
@@ -118,7 +130,38 @@ public class TextureStreamingSystem: @unchecked Sendable {
             hysteresisFraction = 0.15
             maxConcurrentOps = 3
             updateInterval = 0.2
+
+        case .tiled:
+            // Radii are placeholder defaults. loadTiledScene() overrides them via
+            // alignToManifest(streamingRadius:unloadRadius:) once the manifest is decoded.
+            upgradeRadius = 30.0
+            downgradeRadius = 70.0
+            maxTextureDimension = 1024
+            minimumTextureDimension = 256
+            hysteresisFraction = 0.15
+            maxConcurrentOps = 6 // drain post-load backlog faster
+            updateInterval = 0.1 // tighter tick at tile-streaming cadence
         }
+    }
+
+    /// Derives texture streaming distance tiers from the manifest's streaming radii so
+    /// that texture quality bands align with tile load/unload boundaries regardless of
+    /// scene scale.
+    ///
+    /// Called automatically by `loadTiledScene()` after the manifest is decoded.
+    /// Applies the `.tiled` concurrency and interval settings then overrides the radii:
+    ///
+    ///   upgradeRadius   = streamingRadius × 0.70  (inside loaded zone → full res)
+    ///   downgradeRadius = unloadRadius            (at tile unload boundary → minimum)
+    ///
+    /// Example (streaming=38.5 m, unload=57.8 m):
+    ///   < 27 m  → full resolution
+    ///   27–58 m → medium (tile loaded but at distance)
+    ///   > 58 m  → minimum (tile likely unloaded)
+    public func alignToManifest(streamingRadius: Float, unloadRadius: Float) {
+        apply(.tiled)
+        upgradeRadius = streamingRadius * 0.70
+        downgradeRadius = max(unloadRadius, upgradeRadius + 1.0)
     }
 
     // MARK: - Configuration
@@ -167,6 +210,12 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// Entities that currently hold textures above `minimumTextureDimension`.
     private var upgradedEntities: Set<EntityID> = []
     private var activeOps: Set<EntityID> = []
+
+    /// Priority-0 burst queue: entities inserted here by `notifyEntitiesReady`
+    /// are processed before the regular visible-entity pass so freshly loaded
+    /// tile geometry gets its first texture upgrade without waiting behind the
+    /// entire visible-entity list.
+    private var priorityEntities: Set<EntityID> = []
 
     private let lock = NSLock()
 
@@ -294,10 +343,43 @@ public class TextureStreamingSystem: @unchecked Sendable {
         let visibleSet = Set(visible)
         var opsScheduled = 0
 
+        // Priority 0: burst queue — entities notified via notifyEntitiesReady().
+        // Freshly loaded tile geometry is inserted here at load-completion time so
+        // it gets its first texture upgrade before the regular visible-entity pass,
+        // preventing newly loaded tiles from sitting at minimum texture while distant
+        // entities from older tiles consume all concurrent op slots.
+        lock.lock()
+        let burstSnapshot = priorityEntities
+        priorityEntities.removeAll(keepingCapacity: true)
+        lock.unlock()
+
+        for entityId in burstSnapshot {
+            guard opsScheduled < availableSlots else { break }
+            guard scene.exists(entityId) else { continue }
+            guard !isActiveOp(entityId) else { continue }
+            guard scene.get(component: TileLODTagComponent.self, for: entityId) == nil else { continue }
+            let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+            guard distance.isFinite else { continue }
+            setTrackedAboveMinimum(entityId, isAboveMinimum: entityHasTexturesAboveMinimumTier(entityId: entityId))
+            let targetMaxDimension = lodAwareMaxDimension(entityId: entityId, distanceBased: desiredMaxDimension(distance: distance))
+            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension, distance: distance)
+            guard !workItems.isEmpty else { continue }
+            let capturedLOD = scene.get(component: LODComponent.self, for: entityId)?.currentLOD
+            scheduleResolutionChange(entityId: entityId, distance: distance, workItems: workItems, targetMaxDimension: targetMaxDimension, isVisible: visibleSet.contains(entityId), capturedLOD: capturedLOD)
+            opsScheduled += 1
+        }
+        // Entities from burstSnapshot that didn't fit this tick are dropped back to
+        // normal P1 priority — they'll be processed on the next update() tick via
+        // the regular visibleEntityIds pass.
+
         // Priority 1: visible entities first. Apply tier target by distance.
         for entityId in visible {
             guard opsScheduled < availableSlots else { break }
             guard !isActiveOp(entityId) else { continue }
+            // HLOD and per-tile LOD entities are coarse proxy meshes (TileLODTagComponent).
+            // Streaming full-res textures onto transient proxy geometry wastes GPU budget
+            // and texture budget headroom — skip them entirely.
+            guard scene.get(component: TileLODTagComponent.self, for: entityId) == nil else { continue }
 
             let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
             guard distance.isFinite else { continue }
@@ -992,10 +1074,46 @@ public class TextureStreamingSystem: @unchecked Sendable {
         )
     }
 
+    /// Enqueues `entityIds` into the Priority-0 burst queue so they are processed
+    /// before the regular visible-entity pass on the next `update()` tick.
+    ///
+    /// Call this from tile/HLOD/LOD load completions alongside
+    /// `BatchingSystem.shared.notifyTileEntitiesResident` so that freshly loaded
+    /// tile geometry gets its first texture upgrade without waiting behind the
+    /// entire visible-entity list.
+    public func notifyEntitiesReady(_ entityIds: Set<EntityID>) {
+        guard !entityIds.isEmpty else { return }
+        lock.lock()
+        priorityEntities.formUnion(entityIds)
+        lock.unlock()
+    }
+
+    /// Bulk-cancels texture streaming for a set of entities that are about to be
+    /// destroyed (tile unload, HLOD swap, per-tile LOD transition).
+    ///
+    /// - Removes all ids from `upgradedEntities` so the Priority 2 downgrade pass
+    ///   stops iterating stale entries immediately (fixes lazy cleanup).
+    /// - Removes all ids from `activeOps` so no new upgrade ops are scheduled for
+    ///   entities that are mid-destroy.
+    ///
+    /// Any in-flight `Task` for a cancelled entity will complete its GPU work, then
+    /// hit `guard scene.exists(entityId)` in the MainActor apply block, bail out,
+    /// and release its MemoryBudgetManager reservation via `defer` — no permanent
+    /// budget leak, just the expected short GPU-work latency.
+    public func cancelEntities(_ entityIds: Set<EntityID>) {
+        guard !entityIds.isEmpty else { return }
+        lock.lock()
+        upgradedEntities.subtract(entityIds)
+        activeOps.subtract(entityIds)
+        priorityEntities.subtract(entityIds)
+        lock.unlock()
+    }
+
     public func reset() {
         lock.lock()
         upgradedEntities.removeAll()
         activeOps.removeAll()
+        priorityEntities.removeAll()
         totalUpgrades = 0
         totalDowngrades = 0
         lock.unlock()

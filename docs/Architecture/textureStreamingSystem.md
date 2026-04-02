@@ -25,11 +25,11 @@ The system operates with three tiers, controlled by two distance thresholds:
 
 | Tier | Condition | Max Dimension |
 |------|-----------|---------------|
-| **Full** | `distance <= upgradeRadius` (default 4m) | Native source resolution (nil cap) |
-| **Medium** | `upgradeRadius < distance <= downgradeRadius` (default 12m) | `maxTextureDimension` (1024px on macOS, 768px on visionOS) |
+| **Full** | `distance <= upgradeRadius` (default 12m) | Native source resolution (nil cap) |
+| **Medium** | `upgradeRadius < distance <= downgradeRadius` (default 20m) | `maxTextureDimension` (1024px on macOS, 768px on visionOS) |
 | **Minimum** | `distance > downgradeRadius` | `minimumTextureDimension` (256px on macOS, 192px on visionOS) |
 
-On first import, the `ProgressiveAssetLoader` caps all textures at the medium dimension. The streaming system then upgrades/downgrades from there.
+On first import, `TextureLoader` caps all textures at `minimumTextureDimension` (256px). The streaming system then only **upgrades** as the camera approaches — it never immediately downgrades a freshly-loaded entity.
 
 ---
 
@@ -49,9 +49,28 @@ TextureStreamingSystem.shared.update(cameraPosition: ..., deltaTime: ...)
 Frame N arrives
  └─ timeSinceLastUpdate += deltaTime
  └─ if < 0.2s → return (skip this frame)
- └─ availableSlots = 3 − activeOps.count
+ └─ availableSlots = maxConcurrentOps − activeOps.count
  └─ if 0 slots → return
+ └─ Priority-0 burst pass: drain priorityEntities (tile-freshly-loaded)
+ └─ Priority-1 pass: visible entities
+ └─ Priority-2 pass: upgraded-but-not-visible entities
 ```
+
+---
+
+## Priority-0 Burst Pass: Freshly-Loaded Tile Entities
+
+When a tile finishes loading, `GeometryStreamingSystem` calls `notifyEntitiesReady(_:)` to register the tile's render-descendant entity IDs as priority candidates:
+
+```swift
+TextureStreamingSystem.shared.notifyEntitiesReady(tileRenderIds)
+```
+
+On the next update tick, these entities are processed **before** the normal visible-entity pass. This ensures newly-streamed-in tile geometry gets its texture tier evaluated immediately — without waiting for the entity to appear in the frustum-culled visible set.
+
+Entities tagged with `TileLODTagComponent` (HLOD and per-tile LOD proxy meshes) are skipped in this pass — they are transient geometry whose textures do not need progressive streaming.
+
+The `priorityEntities` set is drained every tick and is also cleared by `reset()`.
 
 ---
 
@@ -68,7 +87,7 @@ For each visible entity:
   5. Decrement available slots
 ```
 
-**City block example:** The camera is standing on the sidewalk in front of Building #42. Buildings #42 and #43 are within 4m (full tier). Buildings #44–#60 are within 12m (medium tier). The remaining 440 buildings are beyond 12m (minimum tier).
+**City block example:** The camera is standing on the sidewalk in front of Building #42. Buildings #42 and #43 are within 12m (full tier). Buildings #44–#60 are within 20m (medium tier). The remaining 440 buildings are beyond 20m (minimum tier).
 
 On this tick, the three available slots might be assigned to:
 - Building #42: upgrade base color from 1024px → full resolution (2048px)
@@ -208,17 +227,17 @@ After applying, the entity's membership in `upgradedEntities` is updated: if any
 
 | Event | Action |
 |-------|--------|
-| Scene loads | All 500 buildings loaded at 1024px (medium tier) by ProgressiveAssetLoader |
-| Camera 30m away from Building #42 | distance > 12m → desired = 256px; downgrade scheduled |
-| Downgrade task runs | GPU resamples current 1024px → 256px; applied to ECS + batch |
-| Building #42 removed from `upgradedEntities` | (256px = minimum, not tracked) |
-| Camera walks to 10m away | distance 10m → desired = 1024px medium; upgrade scheduled |
+| Scene loads | All 500 buildings loaded at 256px (minimum tier) by TextureLoader |
+| Camera 30m away from Building #42 | distance > 20m → already at minimum, no work |
+| Camera walks to 18m away | distance 18m → desired = 1024px medium; upgrade scheduled |
 | Upgrade task runs | Loads MDLTexture from source → 1024px; applied to ECS + batch |
 | Building #42 added to `upgradedEntities` | (1024px > minimum) |
-| Camera walks to 3m away | distance 3m ≤ 4m → desired = nil (full); upgrade scheduled |
+| Camera walks to 10m away | distance 10m ≤ 12m → desired = nil (full); upgrade scheduled |
 | Upgrade task runs | Loads MDLTexture → full 2048px, no GPU resample needed; applied |
-| Camera walks away to 15m | distance 15m > 12m → desired = 256px; downgrade scheduled |
-| Downgrade task runs | GPU resamples 2048px → 256px; applied; entity removed from tracking |
+| Camera walks away to 15m | distance 15m > 12m × (1 + 0.15) → downgrade to 1024px; scheduled |
+| Downgrade task runs | GPU resamples 2048px → 1024px; applied |
+| Camera walks away to 25m | distance 25m > 20m × (1 + 0.15) → downgrade to 256px minimum; scheduled |
+| Downgrade task runs | GPU resamples 1024px → 256px; applied; entity removed from tracking |
 
 At no point are more than 3 buildings being streamed simultaneously, keeping GPU command submission predictable.
 
@@ -279,6 +298,7 @@ Apply a built-in profile at scene init instead of setting every property individ
 TextureStreamingSystem.shared.apply(.archviz)    // indoor archviz
 TextureStreamingSystem.shared.apply(.openWorld)  // large outdoor scenes
 TextureStreamingSystem.shared.apply(.balanced)   // general-purpose default
+TextureStreamingSystem.shared.apply(.tiled)      // tile-based streaming (see alignToManifest)
 ```
 
 Individual properties can be overridden after applying a profile:
@@ -293,10 +313,59 @@ TextureStreamingSystem.shared.upgradeRadius = 3.0  // widen full-res zone
 | `.archviz` | 2.5 m | 6.0 m | 512 px | 6 | Living rooms, kitchens, offices |
 | `.openWorld` | 15.0 m | 60.0 m | 256 px | 3 | Cities, landscapes, terrain |
 | `.balanced` | 12.0 m | 20.0 m | platform default | 3 | Mixed / unknown scene type |
+| `.tiled` | 30.0 m* | 70.0 m* | 256 px | 6 | Tile-based streaming scenes |
+
+\* Placeholder defaults only — immediately overridden by `alignToManifest` (see below).
 
 **Archviz rationale:** rooms are 4–7 m deep, so "distant" objects are still large on screen. The minimum tier is raised to 512 px (from the engine default of 256 px) because 256 px looks visibly compressed on a wall or floor texture at 5 m. `maxConcurrentOps = 6` is safe here because archviz streaming ops are GPU-bound (no cold disk I/O on the warm path).
 
 **Open-world rationale:** tiers are spread across a city-block scale. The minimum tier stays at 256 px because objects beyond 60 m occupy very few pixels. Keeping `maxConcurrentOps = 3` avoids GPU memory spikes when hundreds of entities enter range simultaneously.
+
+**Tiled rationale:** tile streaming scenes have manifest-defined streaming and unload radii that vary per-scene. The `.tiled` profile sets concurrency (`maxConcurrentOps = 6`) and quality (`minimumTextureDimension = 256`, `maxTextureDimension = 1024`) for tile-scale geometry, then `alignToManifest` overrides the radii with values derived from the manifest's `streaming_defaults`.
+
+---
+
+## Tile Streaming Integration
+
+### alignToManifest
+
+When `loadTiledScene()` decodes a tile manifest, it calls:
+
+```swift
+TextureStreamingSystem.shared.alignToManifest(
+    streamingRadius: manifest.streamingDefaults.streamingRadius,
+    unloadRadius: manifest.streamingDefaults.unloadRadius
+)
+```
+
+This applies the `.tiled` profile (concurrency, dimensions) then derives the texture tier radii from the manifest geometry streaming bands:
+
+```
+upgradeRadius   = streamingRadius × 0.70
+downgradeRadius = max(unloadRadius, upgradeRadius + 1.0)
+```
+
+**Why 0.70 × streamingRadius?** The streaming radius is the distance at which tile geometry *loads*. Upgrading to full-res at 70% of that radius means the camera has already moved well inside the loaded zone before the texture upgrade fires — reducing the chance of a visible resolution pop the moment a tile appears.
+
+**Why downgradeRadius = unloadRadius?** Tile geometry unloads at `unloadRadius`. Degrading textures to minimum at the same distance means the GPU texture memory is already at minimum cost exactly when the geometry is about to be evicted, preventing a spike of full/medium-res textures on geometry that is about to disappear.
+
+**Example** (city.json: `streaming_radius = 38.5m`, `unload_radius = 57.8m`):
+- `upgradeRadius   = 38.5 × 0.70 = 26.97m` — full res within ~one tile diagonal
+- `downgradeRadius = 57.8m` — minimum tier at the tile unload boundary
+
+### notifyEntitiesReady / cancelEntities
+
+`GeometryStreamingSystem` informs the texture system about tile lifecycle events:
+
+```swift
+// Tile finished loading — schedule priority texture evaluation
+TextureStreamingSystem.shared.notifyEntitiesReady(tileRenderIds)
+
+// Tile unloading — cancel any in-flight or queued ops for its entities
+TextureStreamingSystem.shared.cancelEntities(renderIds)
+```
+
+`cancelEntities` removes the entity IDs from `upgradedEntities`, `activeOps`, and `priorityEntities`, ensuring no stale texture upgrade lands on a destroyed entity.
 
 ---
 

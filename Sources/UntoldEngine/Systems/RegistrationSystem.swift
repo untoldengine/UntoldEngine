@@ -2046,6 +2046,15 @@ public func loadTiledScene(
     // scene do not persist into this scene's streaming passes.  Camera velocity
     // is also cleared so stale look-ahead does not immediately prefetch wrong tiles.
     GeometryStreamingSystem.shared.reset()
+    // Reset texture streaming so upgradedEntities / activeOps from the previous
+    // scene do not persist; without this, stale IDs from the old scene pollute
+    // the Priority 2 downgrade pass for the entire next scene session.
+    // Also align distance tiers to this manifest's actual streaming radii so
+    // texture quality bands scale with the scene rather than using fixed values.
+    TextureStreamingSystem.shared.alignToManifest(
+        streamingRadius: tileManifest.streamingDefaults.streamingRadius,
+        unloadRadius: tileManifest.streamingDefaults.unloadRadius
+    )
 
     // ── 4. Default camera + light ──────────────────────────────────────────
     let camera = createEntity()

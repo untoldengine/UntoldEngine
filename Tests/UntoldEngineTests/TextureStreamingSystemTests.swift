@@ -219,4 +219,72 @@ final class TextureStreamingSystemTests: XCTestCase {
         system.minimumTextureDimension = 256
         XCTAssertLessThanOrEqual(system.minimumTextureDimension, system.maxTextureDimension)
     }
+
+    // MARK: - Tiled Profile
+
+    func testApplyTiledProfileSetsExpectedValues() {
+        system.apply(.tiled)
+        XCTAssertEqual(system.upgradeRadius, 30.0, accuracy: 1e-6)
+        XCTAssertEqual(system.downgradeRadius, 70.0, accuracy: 1e-6)
+        XCTAssertEqual(system.maxTextureDimension, 1024)
+        XCTAssertEqual(system.minimumTextureDimension, 256)
+        XCTAssertGreaterThan(system.maxConcurrentOps, 0)
+    }
+
+    func testApplyTiledProfileUpgradeRadiusLessThanDowngrade() {
+        system.apply(.tiled)
+        XCTAssertLessThan(system.upgradeRadius, system.downgradeRadius)
+    }
+
+    // MARK: - alignToManifest
+
+    func testAlignToManifestOverridesRadii() {
+        system.alignToManifest(streamingRadius: 38.5, unloadRadius: 57.8)
+        XCTAssertEqual(system.upgradeRadius, 38.5 * 0.70, accuracy: 1e-4)
+        XCTAssertEqual(system.downgradeRadius, 57.8, accuracy: 1e-4)
+    }
+
+    func testAlignToManifestEnforcesDowngradeMinimum() {
+        // When unloadRadius is smaller than upgradeRadius + 1, downgrade must be clamped.
+        system.alignToManifest(streamingRadius: 10.0, unloadRadius: 5.0)
+        let expectedUpgrade = 10.0 * 0.70
+        let expectedDowngrade = max(5.0, Float(expectedUpgrade) + 1.0)
+        XCTAssertEqual(system.upgradeRadius, Float(expectedUpgrade), accuracy: 1e-4)
+        XCTAssertEqual(system.downgradeRadius, expectedDowngrade, accuracy: 1e-4)
+    }
+
+    func testAlignToManifestAppliesTiledProfileSettings() {
+        // alignToManifest calls apply(.tiled) internally so tiled profile values
+        // (dimensions, concurrency) are set alongside the manifest-derived radii.
+        system.alignToManifest(streamingRadius: 38.5, unloadRadius: 57.8)
+        XCTAssertEqual(system.maxTextureDimension, 1024)
+        XCTAssertEqual(system.minimumTextureDimension, 256)
+    }
+
+    func testAlignToManifestUpgradeAlwaysLessThanDowngrade() {
+        system.alignToManifest(streamingRadius: 38.5, unloadRadius: 57.8)
+        XCTAssertLessThan(system.upgradeRadius, system.downgradeRadius)
+    }
+
+    // MARK: - notifyEntitiesReady / cancelEntities
+
+    func testNotifyEntitiesReadyWithEmptySetDoesNotCrash() {
+        system.notifyEntitiesReady([])
+        XCTAssertEqual(system.getStats().activeOps, 0)
+    }
+
+    func testCancelEntitiesWithEmptySetDoesNotCrash() {
+        system.cancelEntities([])
+        XCTAssertEqual(system.getStats().activeOps, 0)
+    }
+
+    func testResetClearsPriorityEntities() {
+        // notifyEntitiesReady adds to priorityEntities; reset must drain it.
+        // We verify indirectly: after reset the system remains fully operational.
+        system.notifyEntitiesReady([EntityID(0)])
+        system.reset()
+        let stats = system.getStats()
+        XCTAssertEqual(stats.activeOps, 0)
+        XCTAssertEqual(stats.upgradedEntityCount, 0)
+    }
 }
