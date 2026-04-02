@@ -22,6 +22,10 @@ extension GeometryStreamingSystem {
         guard let streaming = scene.get(component: StreamingComponent.self, for: entityId),
               streaming.state == .unloaded
         else { return }
+        // StreamingComponent is internal and subordinate to tile ownership (Rule 4).
+        // Entities with StreamingComponent that are not under a TileComponent are not
+        // valid streaming targets in the unified architecture.
+        guard isTileOwned(entityId: entityId) else { return }
         guard reserveActiveLoad(entityId: entityId) else { return }
         if isNearBand { reserveNearBandLoad(entityId: entityId) }
 
@@ -806,5 +810,22 @@ extension GeometryStreamingSystem {
         }
         let unloadMs = (CFAbsoluteTimeGetCurrent() - unloadStart) * 1000.0
         updateLastUnloadDuration(unloadMs)
+    }
+
+    /// Returns true if `entityId` is owned by a tile — i.e., the entity itself or any ancestor
+    /// has a TileComponent.  StreamingComponent is only allowed to operate on tile-owned entities;
+    /// this guard enforces Rule 4: StreamingComponent is subordinate to tile ownership.
+    private func isTileOwned(entityId: EntityID) -> Bool {
+        var current = entityId
+        while current != .invalid {
+            if scene.get(component: TileComponent.self, for: current) != nil {
+                return true
+            }
+            guard let sg = scene.get(component: ScenegraphComponent.self, for: current) else {
+                break
+            }
+            current = sg.parent
+        }
+        return false
     }
 }

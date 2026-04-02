@@ -1739,136 +1739,22 @@ public func setEntityMeshDirect(entityId: EntityID, meshes: [Mesh], assetName: S
     }
 }
 
-/// Load a USDZ scene, replacing whatever is currently in the world.
-///
-/// Operation sequence:
-///   1. destroyAllEntities       — clears the previous scene.
-///   2. extractSceneCamerasAndLights — lightweight MDLAsset pass (no geometry buffers)
-///      run synchronously before mesh loading so camera/light entities exist during
-///      the entire async mesh load period.
-///      • importCameras: true  → use USDZ cameras; first found wins. Fall back to a default if none found.
-///      • importCameras: false → always create a default camera (skip USDZ scan).
-///      • importLights: true   → use USDZ lights;  fall back to a default dir-light if none found.
-///      • importLights: false  → always create a default dir-light (skip USDZ scan).
-///   3. setEntityMeshAsync       — loads geometry via the full OOC pipeline.
-///
-/// The root entity is named after `filename`.  Use findEntity(name: filename) in the
-/// completion block to obtain a reference to it if needed.
-///
-/// - Parameters:
-///   - filename:                  USDZ filename without extension.
-///   - withExtension:             File extension (typically "usdz").
-///   - importCameras:             Try to import cameras from the USDZ; fall back to default.
-///   - importLights:              Try to import lights  from the USDZ; fall back to default.
-///   - enableBatching:            Call enableBatching(true) + generateBatches() after loading.
-///   - enableGeometryStreaming:   Force .outOfCore streaming policy (overrides .auto).
-///   - coordinateConversion:      Coordinate-system conversion applied to all transforms.
-///   - completion:                Called on the main thread when all async mesh work finishes.
-public func loadScene(
-    filename: String,
-    withExtension: String,
-    importCameras: Bool = false,
-    importLights: Bool = false,
-    enableBatching batchingEnabled: Bool = false,
-    enableGeometryStreaming streamingEnabled: Bool = false,
-    coordinateConversion: CoordinateSystemConversion = .autoDetect,
-    completion: ((Bool) -> Void)? = nil
-) {
-    let policy: MeshStreamingPolicy = streamingEnabled ? .outOfCore : .auto
-
-    // Capture flags before closures to avoid naming conflicts with same-named
-    // module-level functions (enableBatching, etc.) inside completion blocks.
-    let shouldBatch = batchingEnabled
-    let shouldStream = streamingEnabled
-    let shouldImportCameras = importCameras
-    let shouldImportLights = importLights
-
-    // Destroy the previous scene synchronously.  loadScene is a full scene
-    // replacement, so we finalize immediately rather than deferring to the
-    // render loop.  Deferring would leave the completion stuck in environments
-    // that have no render loop (e.g. unit tests), because finalizePendingDestroys
-    // is only called from runFrame().  In production the render loop has already
-    // drained hasPendingDestroys before user code runs, so calling finalize here
-    // is a cheap no-op on the entity side.
+/// Tears down all scene entities and clears per-frame GPU residency state.
+/// Called by registerTiledScene before registering new tile stubs.
+private func clearScene() {
     for entity in scene.getAllEntities() {
         destroyEntity(entityId: entity)
     }
     finalizePendingDestroys()
     hasPendingDestroys = false
-    // Scene reload only: reset CPU-visible list to avoid carrying stale IDs from
-    // the previous scene while new culling results are warming up.
+    // Reset CPU-visible list so stale IDs from the previous scene do not persist
+    // while new culling results are warming up.
     visibleEntityIds.removeAll()
-    // Scene reload only: clear all triple-buffer slots so the renderer does not
-    // read stale entity IDs from the previous scene on the next 1–3 frames.
-    // This must NOT be in finalizePendingDestroys() itself — that function is also
-    // called during normal streaming teardown (unloadTile, tile failure cleanup)
-    // where wiping the visible buffer causes the whole scene to blank for 1–3 frames.
+    // Clear all triple-buffer slots so the renderer does not read stale entity IDs
+    // on the next 1–3 frames.  Not called from finalizePendingDestroys() because
+    // that runs during normal streaming teardown (unloadTile, tile failure cleanup)
+    // where wiping this buffer would blank the whole scene for 1–3 frames.
     tripleVisibleEntities.clearAll()
-
-    // Run camera/light extraction synchronously BEFORE mesh loading.
-    // The bare MDLAsset parse (no geometry buffers) is cheap even for large
-    // files, and having the camera/light entities in place immediately ensures
-    // the render loop is never left without valid entities during the async load.
-    let found = (shouldImportCameras || shouldImportLights)
-        ? extractSceneCamerasAndLights(
-            filename: filename,
-            withExtension: withExtension,
-            coordinateConversion: coordinateConversion,
-            importCameras: shouldImportCameras,
-            importLights: shouldImportLights
-        )
-        : (foundCamera: false, foundLight: false)
-
-    // Create defaults for anything not found in the file.
-    if !found.foundCamera {
-        let camera = createEntity()
-        setEntityName(entityId: camera, name: "Main Camera")
-        createGameCamera(entityId: camera)
-        CameraSystem.shared.activeCamera = camera
-    }
-    if !found.foundLight {
-        let light = createEntity()
-        setEntityName(entityId: light, name: "Directional Light")
-        createDirLight(entityId: light)
-    }
-
-    let rootEntity = createEntity()
-    setEntityName(entityId: rootEntity, name: filename)
-
-    setEntityMeshAsync(
-        entityId: rootEntity,
-        filename: filename,
-        withExtension: withExtension,
-        coordinateConversion: coordinateConversion,
-        streamingPolicy: policy
-    ) { success in
-        guard success else {
-            completion?(false)
-            return
-        }
-
-        // Apply real streaming radii so GeometryStreamingSystem uses distance-based
-        // load/unload instead of the Float.greatestFiniteMagnitude placeholder set
-        // during stub registration.  Without this, every stub is always "in range"
-        // and the streaming system burst-uploads the entire scene on the first frame,
-        // causing GPU memory pressure spikes and visible model shaking.
-        if shouldStream {
-            enableStreaming(entityId: rootEntity, streamingRadius: 100, unloadRadius: 150, priority: 10)
-        }
-
-        if shouldBatch {
-            // Tag the whole hierarchy as static-batchable.  For the small-file path
-            // all entities already have RenderComponent and are tagged immediately.
-            // For the OOC path the stubs have only StreamingComponent; they are tagged
-            // now so that BatchingSystem.handleResidencyChange can queue each stub for
-            // incremental rebuild the moment its GPU upload completes.
-            setEntityStaticBatchComponent(entityId: rootEntity)
-            enableBatching(true)
-            generateBatches()
-        }
-
-        completion?(true)
-    }
 }
 
 // MARK: - Tiled Scene Manifest structs (private)
@@ -2008,7 +1894,6 @@ public func loadTiledScene(
     withExtension ext: String = "json",
     completion: ((Bool) -> Void)? = nil
 ) {
-    // ── 1. Locate manifest ──────────────────────────────────────────────────
     guard let manifestURL = LoadingSystem.shared.resourceURL(
         forResource: manifest,
         withExtension: ext,
@@ -2019,7 +1904,6 @@ public func loadTiledScene(
         return
     }
 
-    // ── 2. Decode manifest (no geometry — this is fast) ────────────────────
     guard let data = try? Data(contentsOf: manifestURL),
           let tileManifest = try? JSONDecoder().decode(TileManifest.self, from: data)
     else {
@@ -2030,33 +1914,48 @@ public func loadTiledScene(
 
     Logger.log(message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
 
-    // ── 3. Clear previous scene ────────────────────────────────────────────
-    for entity in scene.getAllEntities() {
-        destroyEntity(entityId: entity)
-    }
-    finalizePendingDestroys()
-    hasPendingDestroys = false
-    // Scene reload only: reset CPU-visible list to avoid carrying stale IDs from
-    // the previous scene while new culling results are warming up.
-    visibleEntityIds.removeAll()
-    // Scene reload only: wipe all triple-buffer slots so the renderer does not
-    // read stale entity IDs from the previous scene on the next 1–3 frames.
-    tripleVisibleEntities.clearAll()
+    registerTiledScene(
+        manifest: tileManifest,
+        baseURL: manifestURL.deletingLastPathComponent(),
+        label: "\(manifest).\(ext)",
+        completion: completion
+    )
+}
+
+/// Canonical scene-loading runtime.
+///
+/// Clears the world, resets streaming systems, registers one TileComponent stub per
+/// manifest entry, and enables cell-based static batching.  No geometry is parsed or
+/// uploaded here — that happens incrementally as the camera moves.
+///
+/// Called by loadTiledScene() after JSON decoding.  The manifest is the only public
+/// scene contract; USD/USDZ files are internal tile payloads.
+///
+/// - Parameters:
+///   - manifest:    Decoded TileManifest to register.
+///   - baseURL:     Directory used to resolve pathRelativeToManifest entries.
+///   - label:       Human-readable identifier used in log messages.
+///   - completion:  Called synchronously after all stubs are registered.
+private func registerTiledScene(
+    manifest tileManifest: TileManifest,
+    baseURL manifestDir: URL,
+    label: String,
+    completion: ((Bool) -> Void)?
+) {
+    // ── 1. Clear previous scene ────────────────────────────────────────────
+    clearScene()
     // Reset streaming system state so tile/mesh tracking sets from the previous
     // scene do not persist into this scene's streaming passes.  Camera velocity
     // is also cleared so stale look-ahead does not immediately prefetch wrong tiles.
     GeometryStreamingSystem.shared.reset()
-    // Reset texture streaming so upgradedEntities / activeOps from the previous
-    // scene do not persist; without this, stale IDs from the old scene pollute
-    // the Priority 2 downgrade pass for the entire next scene session.
-    // Also align distance tiers to this manifest's actual streaming radii so
+    // Align texture streaming distance tiers to this manifest's actual radii so
     // texture quality bands scale with the scene rather than using fixed values.
     TextureStreamingSystem.shared.alignToManifest(
         streamingRadius: tileManifest.streamingDefaults.streamingRadius,
         unloadRadius: tileManifest.streamingDefaults.unloadRadius
     )
 
-    // ── 4. Default camera + light ──────────────────────────────────────────
+    // ── 2. Default camera + light ──────────────────────────────────────────
     let camera = createEntity()
     setEntityName(entityId: camera, name: "Main Camera")
     createGameCamera(entityId: camera)
@@ -2066,20 +1965,12 @@ public func loadTiledScene(
     setEntityName(entityId: light, name: "Directional Light")
     createDirLight(entityId: light)
 
-    // Enable cell-based static batching for the tiled scene.  Tile entities are
-    // tagged with StaticBatchComponent inside loadTile()'s completion callback
-    // (after parse succeeds).  BatchingSystem.handleResidencyChange fires for
-    // each OCC stub as its GPU upload completes, so batches self-assemble
-    // incrementally — no generateBatches() call is needed here.
-    //
-    // Set the batch cell to 2× the tile footprint.  The tile size is stored in
-    // world units inside the manifest; using 2× means a camera-visible area of
-    // ~4 tiles fits in a single cell, maximising per-cell entity density (more
-    // merged geometry per draw call) without making individual batches so large
-    // that they exceed the per-cell vertex/index budget guards.
-    // Derive batch cell size from the manifest tile footprint when available,
-    // falling back to the streaming radius.  2× tile size puts ~4 tiles worth of
-    // geometry in each cell — enough merging depth without oversized GPU buffers.
+    // ── 3. Cell-based static batching ─────────────────────────────────────
+    // Tile entities are tagged with StaticBatchComponent after each tile parse
+    // succeeds.  BatchingSystem.handleResidencyChange fires for each OCC stub as
+    // its GPU upload completes, so batches self-assemble incrementally.
+    // Cell size = 2× tile footprint puts ~4 tiles per cell — enough merge depth
+    // without oversized GPU buffers.
     let manifestTileSize: Float
     if let ts = tileManifest.tileSize {
         manifestTileSize = Float(max(ts.x, ts.z))
@@ -2087,13 +1978,11 @@ public func loadTiledScene(
         manifestTileSize = tileManifest.streamingDefaults.streamingRadius
     }
     BatchingSystem.shared.setBatchCellSize(manifestTileSize * 2.0)
-
     enableBatching(true)
 
-    // ── 5. Register tile stub entities ────────────────────────────────────
+    // ── 4. Register tile stub entities ────────────────────────────────────
     // All stubs are registered inside a single withWorldMutationGate to avoid
     // repeated acquire/release overhead on large manifests.
-    let manifestDir = manifestURL.deletingLastPathComponent()
     let defaults = tileManifest.streamingDefaults
     var registeredCount = 0
     var skippedCount = 0
@@ -2207,7 +2096,7 @@ public func loadTiledScene(
         }
     }
 
-    // ── 6. Register shared-bucket stub (if present) ───────────────────────
+    // ── 5. Register shared-bucket stub (if present) ───────────────────────
     // The shared bucket is a single USD file containing geometry that spans too
     // many tiles to clip efficiently.  It is registered as a TileComponent stub
     // with the large streaming/unload radii written by the export script so that
@@ -2261,7 +2150,7 @@ public func loadTiledScene(
 
     let skipMsg = skippedCount > 0 ? " (\(skippedCount) skipped)" : ""
     let bucketMsg = hasSharedBucket ? " + shared bucket" : ""
-    Logger.log(message: "[loadTiledScene] '\(manifest).\(ext)': \(registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).")
+    Logger.log(message: "[loadTiledScene] '\(label)': \(registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).")
     completion?(true)
 }
 
@@ -2310,108 +2199,9 @@ private func normalizeTileStreamingBands(
     return (normalizedPrefetch, normalizedHLOD, normalizedLODs)
 }
 
-/// Lightweight second MDLAsset pass that extracts cameras and lights only.
-/// Uses a bare MDLAsset (no vertex descriptor, no allocator) so no geometry
-/// buffers are allocated — this is cheap even for large scenes.
-/// Returns whether at least one camera and at least one light were found and created.
-@discardableResult
-private func extractSceneCamerasAndLights(
-    filename: String,
-    withExtension: String,
-    coordinateConversion: CoordinateSystemConversion,
-    importCameras: Bool,
-    importLights: Bool
-) -> (foundCamera: Bool, foundLight: Bool) {
-    guard let url = LoadingSystem.shared.resourceURL(
-        forResource: filename,
-        withExtension: withExtension,
-        subResource: nil
-    ) else { return (false, false) }
-
-    let asset = MDLAsset(url: url)
-
-    // Reuse the shared orientation helper from Mesh.swift — single source of truth.
-    let orientationMatrix = orientationTransformForAsset(asset, conversion: coordinateConversion)
-
-    var foundCamera = false
-    var foundLight = false
-
-    // Light types the engine can represent.  Checked before createEntity() so we
-    // never allocate an entity we immediately have to destroy.
-    let supportedLightTypes: Set<MDLLightType> = [
-        .directional, .point, .spot, .rectangularArea, .discArea, .linear, .superElliptical,
-    ]
-
-    for object in asset.childObjects(of: MDLObject.self) {
-        // ── Cameras ──────────────────────────────────────────────────────────
-        // First camera found wins; subsequent cameras in the file are ignored.
-        if importCameras, !foundCamera, let mdlCamera = object as? MDLCamera {
-            let raw = composedWorldTransform(for: mdlCamera)
-            let world = orientationMatrix == matrix_identity_float4x4
-                ? raw : simd_mul(orientationMatrix, raw)
-
-            let eye = simd_float3(world.columns.3.x, world.columns.3.y, world.columns.3.z)
-            // Camera local forward is -Z; transform into world space.
-            let fwd = simd_mul(world, simd_float4(0, 0, -1, 0))
-            let upVec = simd_mul(world, simd_float4(0, 1, 0, 0))
-            let target = eye + simd_float3(fwd.x, fwd.y, fwd.z)
-            let up = simd_float3(upVec.x, upVec.y, upVec.z)
-
-            let cameraEntity = createEntity()
-            setEntityName(entityId: cameraEntity, name: mdlCamera.name.isEmpty ? "Camera" : mdlCamera.name)
-            createGameCamera(entityId: cameraEntity)
-            cameraLookAt(entityId: cameraEntity, eye: eye, target: target, up: up)
-            CameraSystem.shared.activeCamera = cameraEntity
-            foundCamera = true
-
-            if mdlCamera.name.count > 1 {
-                Logger.log(message: "[loadScene] Imported camera '\(mdlCamera.name)' from file.")
-            }
-        }
-
-        // ── Lights ───────────────────────────────────────────────────────────
-        if importLights, let mdlLight = object as? MDLLight {
-            // Skip unsupported types before allocating an entity.
-            guard supportedLightTypes.contains(mdlLight.lightType) else { continue }
-
-            let lightEntity = createEntity()
-            setEntityName(entityId: lightEntity, name: mdlLight.name.isEmpty ? "Light" : mdlLight.name)
-
-            switch mdlLight.lightType {
-            case .directional:
-                createDirLight(entityId: lightEntity)
-            case .point:
-                createPointLight(entityId: lightEntity)
-            case .spot:
-                createSpotLight(entityId: lightEntity)
-                if let spot = mdlLight as? MDLPhysicallyPlausibleLight {
-                    updateLightConeAngle(entityId: lightEntity, coneAngle: spot.outerConeAngle)
-                }
-            default:
-                // rectangularArea, discArea, linear, superElliptical
-                createAreaLight(entityId: lightEntity)
-            }
-
-            let raw = composedWorldTransform(for: mdlLight)
-            let world = orientationMatrix == matrix_identity_float4x4
-                ? raw : simd_mul(orientationMatrix, raw)
-            applyWorldTransform(world, to: lightEntity)
-
-            if let pbrLight = mdlLight as? MDLPhysicallyPlausibleLight,
-               let cgColor = pbrLight.color,
-               let comps = cgColor.components,
-               cgColor.numberOfComponents >= 3
-            {
-                let color = simd_float3(Float(comps[0]), Float(comps[1]), Float(comps[2]))
-                updateLightColor(entityId: lightEntity, color: color)
-                updateLightIntensity(entityId: lightEntity, intensity: pbrLight.lumens)
-            }
-            foundLight = true
-        }
-    }
-
-    return (foundCamera: foundCamera, foundLight: foundLight)
-}
+// Lightweight second MDLAsset pass that extracts cameras and lights only.
+// Uses a bare MDLAsset (no vertex descriptor, no allocator) so no geometry
+// buffers are allocated — this is cheap even for large scenes.
 
 /// Cache to avoid reloading USDZ files multiple times for skeleton checks
 private var skeletonCache: [URL: MDLSkeleton?] {
@@ -3546,10 +3336,11 @@ public func registerLODComponent(
 }
 
 /// Geometry Streaming
-/// Enable streaming for an entity that already has a mesh
-/// Call this AFTER setEntityMesh() or setEntityMeshAsync()
-/// For multi-mesh assets, this enables streaming on all child entities with RenderComponents
-public func enableStreaming(
+/// Internal — sets StreamingComponent radii on tile-owned child entities after a tile loads.
+/// Not part of the public API: streaming radii are declared in the scene manifest.
+/// Kept internal so the tile streaming system and tests can call it; external callers should
+/// declare radii in the manifest instead.
+func enableStreaming(
     entityId: EntityID,
     streamingRadius: Float = 100.0,
     unloadRadius: Float = 150.0,

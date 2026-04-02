@@ -34,63 +34,39 @@ This creates a "bubble" of loaded geometry around the camera that moves with it 
 
 ## Basic Usage
 
-### Immediate-path assets (small files, `streamingPolicy: .immediate`)
+### Choosing the right API
 
-When the engine uses the immediate path, all meshes are GPU-resident by the time the completion fires. Call `enableStreaming` inside the callback to attach streaming radii for distance-based load/unload management:
+| Use case | API |
+|---|---|
+| Streamable geometry (terrain, city blocks, large outdoor scenes) | `loadTiledScene(manifest:withExtension:completion:)` |
+| Always-resident objects (characters, props, gameplay items) | `setEntityMeshAsync(entityId:filename:withExtension:completion:)` |
+
+`loadTiledScene` is the canonical path for any geometry that should stream in and out with camera proximity. Tile streaming radii, prefetch distance, and HLOD configuration are all declared in the manifest JSON — no runtime streaming flags are needed.
+
+`setEntityMeshAsync` is for objects that must always be in GPU memory. The mesh loads once and stays resident; the streaming system never touches it.
+
+### Tiled scene (streamable geometry)
 
 ```swift
-private func setupStreaming() {
-    let stadium = createEntity()
-    setEntityMeshAsync(entityId: stadium, filename: "stadium", withExtension: "usdz") { isOutOfCore in
-        guard !isOutOfCore else { return }  // handled below
-
-        print("Scene loaded — enabling streaming")
-        enableStreaming(
-            entityId: stadium,
-            streamingRadius: 250.0,
-            unloadRadius: 350.0,
-            priority: 10
-        )
-        GeometryStreamingSystem.shared.enabled = true
-    }
+loadTiledScene(manifest: "city") { success in
+    setSceneReady(success)
 }
 ```
 
-### Out-of-core assets (large files, many objects, or `streamingPolicy: .outOfCore`)
+No streaming flags are needed. The manifest declares per-tile `streaming_radius`, `unload_radius`, and `priority`. The default camera and directional light are created automatically.
 
-Large assets are registered as stub entities with no GPU allocation. The completion callback fires with `isOutOfCore: true` as soon as all stubs are registered — before any GPU work occurs. You **must** enable `GeometryStreamingSystem` for anything to render:
+### Always-resident object
 
 ```swift
-private func setupLargeAssetStreaming() {
-    let city = createEntity()
-    setEntityMeshAsync(
-        entityId: city,
-        filename: "city_block",
-        withExtension: "usdz"
-    ) { isOutOfCore in
-        if isOutOfCore {
-            // Enable the streaming system — stubs start uploading as camera approaches.
-            GeometryStreamingSystem.shared.enabled = true
-            // Set real streaming radii (replaces the internal Float.greatestFiniteMagnitude placeholders).
-            enableStreaming(
-                entityId: city,
-                streamingRadius: 200.0,
-                unloadRadius: 350.0,
-                priority: 10
-            )
-        }
-    }
+let hero = createEntity()
+setEntityName(entityId: hero, name: "Hero")
+setEntityMeshAsync(entityId: hero, filename: "hero", withExtension: "usdz") { success in
+    guard success else { return }
+    translateTo(entityId: hero, position: simd_float3(0, 0, 0))
 }
 ```
 
-The engine automatically routes assets to the out-of-core path when they exceed the size threshold (default 50 MB) or object-count threshold (default 50 objects). Use `streamingPolicy: .outOfCore` to force the path regardless of file size.
-
-### Important Notes
-
-1. **Load mesh first**: Always call `setEntityMeshAsync()` before enabling streaming
-2. **Use the completion Bool**: `true` = out-of-core stubs registered; `false` = immediate path (already GPU-resident)
-3. **Enable the system and call `enableStreaming`**: Both are required for out-of-core assets. `GeometryStreamingSystem.shared.enabled = true` starts the upload loop; `enableStreaming(entityId: root, ...)` propagates real streaming radii to all child stubs so distance-based load/unload works correctly
-4. **Async loading**: The `setEntityMeshAsync()` function loads the mesh asynchronously, preventing frame drops
+The mesh loads asynchronously and remains GPU-resident for the lifetime of the entity. No streaming, no manifest.
 
 ## Parameters Explained
 
@@ -168,15 +144,15 @@ See the [Combining LOD, Batching, and Streaming](./UsingLOD-Batching-Streaming.m
 
 For scenes too large to parse as a single USDZ, use `loadTiledScene()`. It reads a JSON manifest describing a grid of small USDC tile files, registers a lightweight stub entity per tile, and lets `GeometryStreamingSystem` load and unload individual tiles as the camera moves through the scene.
 
-### When to use it vs `loadScene`
+### When to use it vs `setEntityMeshAsync`
 
-| | `loadScene` | `loadTiledScene` |
+| | `setEntityMeshAsync` | `loadTiledScene` |
 |---|---|---|
 | Scene size | Up to ~300 MB | Any size |
 | File format | Single USDZ | Many USDC tiles + JSON manifest |
-| Streaming unit | Individual mesh entities | Entire tile files |
+| GPU residency | Always resident | Streamed in/out by distance |
 | Setup cost | Parses the full file upfront | Near-zero (manifest JSON only) |
-| Batching | Supported | Not currently supported |
+| Streaming radii | N/A | Declared in manifest |
 
 ### Manifest Format
 

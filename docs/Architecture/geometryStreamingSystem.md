@@ -66,11 +66,12 @@ Unload candidates are **sorted farthest-first** (most wasteful memory first). Up
 
 Load candidates are **sorted by priority then distance** (high priority + closest first). Only `maxConcurrentLoads = 3` can be active simultaneously.
 
-Before dispatching, the scheduler applies three guards in order:
+Before dispatching, the scheduler applies four guards in order:
 
-1. **CPU-entry readiness** — OOC entities whose `CPUMeshEntry` is not yet stored in `ProgressiveAssetLoader` are skipped. This prevents pre-streaming stubs from holding slots while registration is still running.
-2. **Prewarm-active deferral** — entities for roots whose background texture prewarm is still running are skipped. Dispatching while the prewarm holds the per-asset texture lock would block all concurrent slots for the remaining prewarm duration. Slots stay free until `isPrewarmActive` returns `false`.
-3. **Per-candidate geometry budget check** — if the candidate's estimated GPU footprint would exceed the geometry budget, `evictLRU` is called first.
+1. **Tile ownership** (`isTileOwned`) — the entity must be a descendant of a `TileComponent` entity. Non-tile-owned entities are rejected immediately and their state is never mutated. `StreamingComponent` is an internal, tile-subordinate mechanism; it is not valid on standalone entities. See [StreamingComponent Ownership Model](#streamingcomponent-ownership-model) below.
+2. **CPU-entry readiness** — OOC entities whose `CPUMeshEntry` is not yet stored in `ProgressiveAssetLoader` are skipped. This prevents pre-streaming stubs from holding slots while registration is still running.
+3. **Prewarm-active deferral** — entities for roots whose background texture prewarm is still running are skipped. Dispatching while the prewarm holds the per-asset texture lock would block all concurrent slots for the remaining prewarm duration. Slots stay free until `isPrewarmActive` returns `false`.
+4. **Per-candidate geometry budget check** — if the candidate's estimated GPU footprint would exceed the geometry budget, `evictLRU` is called first.
 
 When all near-band candidates share one `assetRootEntityId`, the near-band concurrency limit expands from `nearBandMaxConcurrentLoads` to `maxConcurrentLoads`. All sub-meshes of one USDZ are treated as a single burst rather than being serialized one-at-a-time.
 
@@ -88,6 +89,32 @@ Inside the async task:
   - Sets state → `.loaded`
   - Fires `AssetResidencyChangedEvent(isResident: true)`
   - Records load in `MemoryBudgetManager`
+
+---
+
+## StreamingComponent Ownership Model
+
+`StreamingComponent` is an **internal, tile-subordinate** component. It is not a public API for external callers.
+
+- Only entities that are **descendants of a `TileComponent` entity** may have an active `StreamingComponent`. `loadMesh()` enforces this with the `isTileOwned()` guard, which walks the `ScenegraphComponent.parent` chain and returns `false` for any entity that has no `TileComponent` ancestor.
+- `StreamingComponent` stubs are created internally by `setEntityMeshAsync` for the out-of-core (OCC) path when a tile file is large enough to be split into sub-mesh stubs. External callers never attach `StreamingComponent` directly.
+- `enableStreaming()` is `internal`; it is not part of the public API.
+
+### What to use instead
+
+| Use case | API |
+|---|---|
+| Streamable geometry (terrain, city blocks, large scenes) | `loadTiledScene(manifest:withExtension:completion:)` + manifest JSON |
+| Always-resident objects (characters, props, HUD elements) | `setEntityMeshAsync(entityId:filename:withExtension:completion:)` |
+
+`loadTiledScene` is the **only public entry point** for streamable scene geometry. It decodes the manifest, calls the internal `registerTiledScene()`, and hands off all streaming lifecycle management to `GeometryStreamingSystem`.
+
+```
+isTileOwned(entityId:) — private helper in GeometryStreamingSystem+MeshStreaming.swift
+  Walks ScenegraphComponent.parent chain upward.
+  Returns true only if a TileComponent is found somewhere in the ancestry.
+  Returns false for any standalone entity (no parent chain, or chain ends without a tile).
+```
 
 ---
 

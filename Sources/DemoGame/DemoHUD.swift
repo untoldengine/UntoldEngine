@@ -78,7 +78,7 @@
                         Button("Load USDZ...") { showFilePicker = true }
                             .buttonStyle(.bordered)
                             .disabled(state.isLoading)
-                        Button("Load Tile Scene...") { showManifestPicker = true }
+                        Button("Load Streamable Scene...") { showManifestPicker = true }
                             .buttonStyle(.bordered)
                             .disabled(state.isLoading)
                         if state.isLoading {
