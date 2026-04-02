@@ -150,6 +150,7 @@ extension GeometryStreamingSystem {
             let renderIds = collectRenderDescendantIds(hlodId)
             if !renderIds.isEmpty {
                 BatchingSystem.shared.cancelPendingEntities(renderIds)
+                TextureStreamingSystem.shared.cancelEntities(renderIds)
             }
         }
 
@@ -306,6 +307,7 @@ extension GeometryStreamingSystem {
             let renderIds = collectRenderDescendantIds(capturedLodEntityId)
             if !renderIds.isEmpty {
                 BatchingSystem.shared.cancelPendingEntities(renderIds)
+                TextureStreamingSystem.shared.cancelEntities(renderIds)
             }
         }
 
@@ -488,9 +490,13 @@ extension GeometryStreamingSystem {
                         if occCount == 0 {
                             // All render entities are resident now; notify the batching
                             // system directly (bypasses the per-entity event storm).
+                            // Also enqueue into the texture streaming burst queue so
+                            // freshly loaded tile geometry gets its first texture upgrade
+                            // before the regular visible-entity pass.
                             let tileRenderIds = self.collectRenderDescendantIds(capturedMeshEntityId)
                             if !tileRenderIds.isEmpty {
                                 BatchingSystem.shared.notifyTileEntitiesResident(tileRenderIds)
+                                TextureStreamingSystem.shared.notifyEntitiesReady(tileRenderIds)
                             }
                         }
 
@@ -648,6 +654,14 @@ extension GeometryStreamingSystem {
             }
 
             let descendants = collectTileDescendants(entityId)
+
+            // Cancel in-flight texture ops and bulk-remove stale upgradedEntities
+            // entries before destroying — prevents lazy cleanup accumulation and
+            // stops new texture upgrade ops from being scheduled on dying entities.
+            let renderDescendants = collectRenderDescendantIds(entityId)
+            if !renderDescendants.isEmpty {
+                TextureStreamingSystem.shared.cancelEntities(renderDescendants)
+            }
 
             // destroyEntity + finalizePendingDestroys handles GPU buffer release,
             // OctreeSystem removal, MeshResourceManager deref, and MemoryBudgetManager
