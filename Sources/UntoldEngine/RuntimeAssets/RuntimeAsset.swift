@@ -126,6 +126,37 @@ public enum RuntimeVertexLayout: UInt32, Sendable, Equatable {
     }
 }
 
+public struct RuntimeAssetNode: Sendable, Equatable {
+    public var id: UInt32
+    public var parentID: UInt32?
+    public var name: String
+    public var localTransform: simd_float4x4
+    public var worldTransform: simd_float4x4
+    public var localBounds: RuntimeAABB
+    public var worldBounds: RuntimeAABB
+    public var primitives: [RuntimeMeshPrimitive]
+
+    public init(
+        id: UInt32,
+        parentID: UInt32? = nil,
+        name: String,
+        localTransform: simd_float4x4 = matrix_identity_float4x4,
+        worldTransform: simd_float4x4 = matrix_identity_float4x4,
+        localBounds: RuntimeAABB,
+        worldBounds: RuntimeAABB,
+        primitives: [RuntimeMeshPrimitive]
+    ) {
+        self.id = id
+        self.parentID = parentID
+        self.name = name
+        self.localTransform = localTransform
+        self.worldTransform = worldTransform
+        self.localBounds = localBounds
+        self.worldBounds = worldBounds
+        self.primitives = primitives
+    }
+}
+
 public struct RuntimeMeshPrimitive: Sendable, Equatable {
     public var name: String
     public var localTransform: simd_float4x4
@@ -203,6 +234,7 @@ public struct RuntimeAsset: Sendable, Equatable {
     public var assetName: String
     public var rootTransform: simd_float4x4
     public var worldBounds: RuntimeAABB
+    public var nodes: [RuntimeAssetNode]
     public var meshGroups: [RuntimeMeshGroup]
 
     public init(
@@ -211,6 +243,7 @@ public struct RuntimeAsset: Sendable, Equatable {
         assetName: String,
         rootTransform: simd_float4x4 = matrix_identity_float4x4,
         worldBounds: RuntimeAABB,
+        nodes: [RuntimeAssetNode] = [],
         meshGroups: [RuntimeMeshGroup]
     ) {
         self.sourceURL = sourceURL
@@ -218,6 +251,34 @@ public struct RuntimeAsset: Sendable, Equatable {
         self.assetName = assetName
         self.rootTransform = rootTransform
         self.worldBounds = worldBounds
+        self.nodes = nodes
         self.meshGroups = meshGroups
+    }
+
+    public init(
+        sourceURL: URL,
+        sourceKind: RuntimeAssetSourceKind,
+        assetName: String,
+        rootTransform: simd_float4x4 = matrix_identity_float4x4,
+        worldBounds: RuntimeAABB,
+        nodes: [RuntimeAssetNode]
+    ) {
+        self.sourceURL = sourceURL
+        self.sourceKind = sourceKind
+        self.assetName = assetName
+        self.rootTransform = rootTransform
+        self.worldBounds = worldBounds
+        self.nodes = nodes
+        self.meshGroups = nodes.compactMap { node in
+            guard !node.primitives.isEmpty else { return nil }
+            return RuntimeMeshGroup(
+                name: node.name,
+                localTransform: node.localTransform,
+                worldTransform: node.worldTransform,
+                localBounds: node.localBounds,
+                worldBounds: node.worldBounds,
+                primitives: node.primitives
+            )
+        }
     }
 }

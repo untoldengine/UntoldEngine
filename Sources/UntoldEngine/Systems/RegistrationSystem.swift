@@ -480,6 +480,14 @@ private func configureLODComponent(entityId: EntityID, lodLevels: [LODLevel], ac
 }
 
 func applyWorldTransform(_ transform: simd_float4x4, to entityId: EntityID) {
+    applyDecomposedTransform(transform, to: entityId)
+}
+
+private func applyLocalTransform(_ transform: simd_float4x4, to entityId: EntityID) {
+    applyDecomposedTransform(transform, to: entityId)
+}
+
+private func applyDecomposedTransform(_ transform: simd_float4x4, to entityId: EntityID) {
     let translation = simd_float3(
         transform.columns.3.x,
         transform.columns.3.y,
@@ -768,6 +776,130 @@ private func loadUntoldMeshGroups(url: URL, device: MTLDevice) -> [[Mesh]] {
     }
 }
 
+private func loadUntoldRuntimeAsset(url: URL) -> RuntimeAsset? {
+    do {
+        return try UntoldRuntimeAssetLoader().loadAssetSync(from: url)
+    } catch {
+        Logger.logError(message: "[Untold] Failed to load runtime asset '\(url.lastPathComponent)': \(error)")
+        return nil
+    }
+}
+
+private func buildUntoldNodePath(nodeID: UInt32, nodesByID: [UInt32: RuntimeAssetNode]) -> String {
+    guard let node = nodesByID[nodeID] else {
+        return "Root/Unknown#\(nodeID)"
+    }
+
+    let nodeSegment = "\(node.name)#\(node.id)"
+    if let parentID = node.parentID {
+        let parentPath = buildUntoldNodePath(nodeID: parentID, nodesByID: nodesByID)
+        return "\(parentPath)/\(nodeSegment)"
+    }
+
+    return "Root/\(nodeSegment)"
+}
+
+private func registerUntoldRuntimeAsset(
+    entityId: EntityID,
+    runtimeAsset: RuntimeAsset,
+    url: URL,
+    filename: String,
+    withExtension: String
+) -> Bool {
+    guard !runtimeAsset.nodes.isEmpty else {
+        handleError(.assetDataMissing, filename)
+        return false
+    }
+
+    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+        registerTransformComponent(entityId: entityId)
+    }
+
+    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+        registerSceneGraphComponent(entityId: entityId)
+    }
+
+    applyLocalTransform(runtimeAsset.rootTransform, to: entityId)
+
+    let hasHierarchy = runtimeAsset.nodes.count > 1 || runtimeAsset.nodes.contains(where: { $0.parentID != nil || $0.primitives.isEmpty })
+    if hasHierarchy {
+        let assetInstanceComp = AssetInstanceComponent(
+            assetURL: url,
+            assetName: runtimeAsset.assetName,
+            importMode: "preserveHierarchy",
+            rootPrimPath: nil
+        )
+        registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
+        if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
+            instanceComp.assetURL = assetInstanceComp.assetURL
+            instanceComp.assetName = assetInstanceComp.assetName
+            instanceComp.importMode = assetInstanceComp.importMode
+            instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
+        }
+    }
+
+    let nodesByID = Dictionary(uniqueKeysWithValues: runtimeAsset.nodes.map { ($0.id, $0) })
+    var entityByNodeID: [UInt32: EntityID] = [:]
+
+    for node in runtimeAsset.nodes {
+        let targetEntityId: EntityID = if runtimeAsset.nodes.count == 1, node.parentID == nil {
+            entityId
+        } else {
+            createEntity()
+        }
+
+        entityByNodeID[node.id] = targetEntityId
+
+        if hasComponent(entityId: targetEntityId, componentType: LocalTransformComponent.self) == false {
+            registerTransformComponent(entityId: targetEntityId)
+        }
+
+        if hasComponent(entityId: targetEntityId, componentType: ScenegraphComponent.self) == false {
+            registerSceneGraphComponent(entityId: targetEntityId)
+        }
+
+        applyLocalTransform(node.localTransform, to: targetEntityId)
+        setEntityName(entityId: targetEntityId, name: node.name)
+
+        if targetEntityId != entityId {
+            let parentEntityId = node.parentID.flatMap { entityByNodeID[$0] } ?? entityId
+            setParent(childId: targetEntityId, parentId: parentEntityId)
+
+            let derivedComp = DerivedAssetNodeComponent(
+                assetRootEntityId: entityId,
+                nodePath: buildUntoldNodePath(nodeID: node.id, nodesByID: nodesByID)
+            )
+            registerComponent(entityId: targetEntityId, componentType: DerivedAssetNodeComponent.self)
+            if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: targetEntityId) {
+                derived.assetRootEntityId = derivedComp.assetRootEntityId
+                derived.nodePath = derivedComp.nodePath
+            }
+        }
+
+        guard !node.primitives.isEmpty else {
+            continue
+        }
+
+        let meshes = node.primitives.compactMap { primitive -> Mesh? in
+            guard var mesh = Mesh.makeMesh(from: primitive, device: renderInfo.device) else {
+                return nil
+            }
+            mesh.localSpace = matrix_identity_float4x4
+            mesh.worldSpace = matrix_identity_float4x4
+            return mesh
+        }
+
+        guard !meshes.isEmpty else {
+            continue
+        }
+
+        associateMeshesToEntity(entityId: targetEntityId, meshes: meshes)
+        registerRenderComponent(entityId: targetEntityId, meshes: meshes, url: url, assetName: node.name)
+    }
+
+    return true
+}
+
 /// Generate a stable node path for a derived mesh node
 func generateStableNodePath(assetName: String, index: Int) -> String {
     // Use a deterministic format: "Root/<AssetName>#<Index>"
@@ -865,6 +997,26 @@ func registerProgressiveStubEntity(
 /// For large assets or any asset that should benefit from distance-based streaming and
 /// eviction, use `setEntityMeshAsync(streamingPolicy:)` instead.
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
+    if let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil),
+       RuntimeAssetSource.infer(from: url).kind == .untold,
+       assetName == nil
+    {
+        if let runtimeAsset = loadUntoldRuntimeAsset(url: url),
+           registerUntoldRuntimeAsset(
+                entityId: entityId,
+                runtimeAsset: runtimeAsset,
+                url: url,
+                filename: filename,
+                withExtension: withExtension
+           )
+        {
+            return
+        }
+
+        loadFallbackMesh(entityId: entityId, filename: filename)
+        return
+    }
+
     _ = setEntityMeshCommon(
         entityId: entityId,
         filename: filename,
@@ -959,15 +1111,25 @@ public func setEntityMeshAsync(
                 Logger.logWarning(message: "[Untold] '.untold' assets currently use the immediate full-load path. Ignoring streaming policy '\(streamingPolicy)'.")
             }
 
-            let didLoad = setEntityMeshCommon(
-                entityId: entityId,
-                filename: filename,
-                withExtension: withExtension,
-                flip: true,
-                meshLoader: { loadUntoldMeshGroups(url: $0, device: renderInfo.device) },
-                entityName: nil,
-                assetName: assetName
-            )
+            let didLoad: Bool = if assetName == nil, let runtimeAsset = loadUntoldRuntimeAsset(url: url) {
+                registerUntoldRuntimeAsset(
+                    entityId: entityId,
+                    runtimeAsset: runtimeAsset,
+                    url: url,
+                    filename: filename,
+                    withExtension: withExtension
+                )
+            } else {
+                setEntityMeshCommon(
+                    entityId: entityId,
+                    filename: filename,
+                    withExtension: withExtension,
+                    flip: true,
+                    meshLoader: { loadUntoldMeshGroups(url: $0, device: renderInfo.device) },
+                    entityName: nil,
+                    assetName: assetName
+                )
+            }
 
             if !didLoad {
                 loadFallbackMesh(entityId: entityId, filename: filename)
