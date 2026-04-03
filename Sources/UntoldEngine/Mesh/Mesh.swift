@@ -993,6 +993,153 @@ public struct Mesh {
         }
         return fallback
     }
+
+    /// Build one engine `Mesh` from a source-agnostic runtime primitive.
+    ///
+    /// This path avoids ModelIO file parsing entirely. The cooked/intermediate
+    /// primitive payload is decoded into the engine's expanded attribute layout
+    /// (position / normal / uv / tangent as separate buffers), wrapped in an
+    /// in-memory MDLMesh, and then passed through the existing MTKMesh creation
+    /// path so the rest of the renderer remains unchanged.
+    static func makeMesh(from primitive: RuntimeMeshPrimitive, device: MTLDevice) -> Mesh? {
+        guard primitive.vertexLayout == .pbrStaticV1 else {
+            Logger.logError(message: "[RuntimeAsset] Unsupported runtime vertex layout for '\(primitive.name)'")
+            return nil
+        }
+
+        do {
+            let decodedVertices = try decodeRuntimeVertices(from: primitive.vertexData, expectedCount: primitive.vertexCount)
+            let allocator = MTKMeshBufferAllocator(device: device)
+
+            let positionBuffer = allocator.newBuffer(
+                MemoryLayout<simd_float4>.stride * decodedVertices.count,
+                type: .vertex
+            )
+            let normalBuffer = allocator.newBuffer(
+                MemoryLayout<simd_float4>.stride * decodedVertices.count,
+                type: .vertex
+            )
+            let uvBuffer = allocator.newBuffer(
+                MemoryLayout<simd_float2>.stride * decodedVertices.count,
+                type: .vertex
+            )
+            let tangentBuffer = allocator.newBuffer(
+                MemoryLayout<simd_float4>.stride * decodedVertices.count,
+                type: .vertex
+            )
+            let jointIndexBuffer = allocator.newBuffer(
+                MemoryLayout<simd_ushort4>.stride * decodedVertices.count,
+                type: .vertex
+            )
+            let jointWeightBuffer = allocator.newBuffer(
+                MemoryLayout<simd_float4>.stride * decodedVertices.count,
+                type: .vertex
+            )
+
+            let positions = positionBuffer.map().bytes.bindMemory(to: simd_float4.self, capacity: decodedVertices.count)
+            let normals = normalBuffer.map().bytes.bindMemory(to: simd_float4.self, capacity: decodedVertices.count)
+            let uvs = uvBuffer.map().bytes.bindMemory(to: simd_float2.self, capacity: decodedVertices.count)
+            let tangents = tangentBuffer.map().bytes.bindMemory(to: simd_float4.self, capacity: decodedVertices.count)
+            let jointIndices = jointIndexBuffer.map().bytes.bindMemory(to: simd_ushort4.self, capacity: decodedVertices.count)
+            let jointWeights = jointWeightBuffer.map().bytes.bindMemory(to: simd_float4.self, capacity: decodedVertices.count)
+
+            for (index, vertex) in decodedVertices.enumerated() {
+                positions[index] = simd_float4(vertex.position.x, vertex.position.y, vertex.position.z, 1.0)
+
+                let normal = UntoldVertexPacking.unpackNormal(vertex.normalPacked)
+                normals[index] = simd_float4(normal.x, normal.y, normal.z, 0.0)
+
+                let tangent = UntoldVertexPacking.unpackTangent(vertex.tangentPacked)
+                tangents[index] = simd_float4(tangent.vector.x, tangent.vector.y, tangent.vector.z, tangent.handedness)
+
+                uvs[index] = simd_float2(
+                    Float(Float16(bitPattern: vertex.uv0.x)),
+                    Float(Float16(bitPattern: vertex.uv0.y))
+                )
+
+                // Non-skinned runtime assets still need these streams because the engine's
+                // shared model vertex descriptor declares them. Keep them zeroed so the
+                // shader's `hasArmature == false` path remains valid.
+                jointIndices[index] = simd_ushort4(0, 0, 0, 0)
+                jointWeights[index] = simd_float4(0, 0, 0, 0)
+            }
+
+            let indexBuffer = allocator.newBuffer(primitive.indexData.count, type: .index)
+            primitive.indexData.withUnsafeBytes { rawBuffer in
+                memcpy(indexBuffer.map().bytes, rawBuffer.baseAddress!, primitive.indexData.count)
+            }
+
+            let mdlSubmesh = MDLSubmesh(
+                indexBuffer: indexBuffer,
+                indexCount: primitive.indexCount,
+                indexType: primitive.indexFormat == .uint16 ? .uInt16 : .uInt32,
+                geometryType: .triangles,
+                material: nil
+            )
+
+            let mdlMesh = MDLMesh(
+                vertexBuffers: [
+                    positionBuffer,
+                    normalBuffer,
+                    uvBuffer,
+                    tangentBuffer,
+                    jointIndexBuffer,
+                    jointWeightBuffer,
+                ],
+                vertexCount: primitive.vertexCount,
+                descriptor: vertexDescriptor.model,
+                submeshes: [mdlSubmesh]
+            )
+            mdlMesh.name = primitive.name
+            mdlMesh.transform = MDLTransform(matrix: primitive.localTransform)
+
+            let textureLoader = TextureLoader(device: device)
+            guard var mesh = Mesh(
+                modelIOMesh: mdlMesh,
+                vertexDescriptor: vertexDescriptor.model,
+                textureLoader: textureLoader,
+                device: device,
+                flip: true
+            ) else {
+                return nil
+            }
+
+            mesh.localSpace = primitive.localTransform
+            mesh.worldSpace = primitive.worldTransform
+            mesh.boundingBox = (min: primitive.localBounds.min, max: primitive.localBounds.max)
+            mesh.assetName = primitive.name
+
+            if let runtimeMaterial = primitive.material, !mesh.submeshes.isEmpty {
+                var submesh = mesh.submeshes[0]
+                submesh.material = Material(runtimeMaterial: runtimeMaterial, device: device)
+                mesh.submeshes[0] = submesh
+            }
+
+            return mesh
+        } catch {
+            Logger.logError(message: "[RuntimeAsset] Failed to build mesh '\(primitive.name)' from runtime primitive: \(error)")
+            return nil
+        }
+    }
+
+    /// Build one mesh group per runtime group.
+    static func makeMeshGroups(from runtimeAsset: RuntimeAsset, device: MTLDevice) -> [[Mesh]] {
+        runtimeAsset.meshGroups.map { group in
+            group.primitives.compactMap { primitive in
+                makeMesh(from: primitive, device: device)
+            }
+        }
+    }
+
+    private static func decodeRuntimeVertices(from data: Data, expectedCount: Int) throws -> [UntoldPBRStaticVertexV1] {
+        let reader = UntoldBinaryReader(data: data)
+        var vertices: [UntoldPBRStaticVertexV1] = []
+        vertices.reserveCapacity(expectedCount)
+        for _ in 0 ..< expectedCount {
+            vertices.append(try UntoldPBRStaticVertexV1.decode(from: reader))
+        }
+        return vertices
+    }
 }
 
 public struct SubMesh {
@@ -1320,6 +1467,74 @@ public struct Material {
     init(mdlMaterial: MDLMaterial, textureLoader: TextureLoader, name: String) {
         _ = name
         self.init(mdlMaterial: mdlMaterial, textureLoader: textureLoader)
+    }
+
+    init(runtimeMaterial: RuntimeMaterialSource, device: MTLDevice) {
+        let textureLoader = MTKTextureLoader(device: device)
+        let fileManager = FileManager.default
+
+        func loadRuntimeTexture(_ label: String, reference: RuntimeTextureReference?, isSRGB: Bool) -> MTLTexture? {
+            guard let reference, let url = reference.sourceURL else { return nil }
+            let fileExists = fileManager.fileExists(atPath: url.path)
+            Logger.log(message: "[UntoldTexture] \(label) '\(runtimeMaterial.name ?? "<unnamed material>")' -> \(url.path) | exists=\(fileExists)")
+
+            do {
+                let texture = try textureLoader.newTexture(
+                    URL: url,
+                    options: [
+                        .textureUsage: NSNumber(value: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue),
+                        .textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
+                        .SRGB: NSNumber(value: isSRGB),
+                    ]
+                )
+                Logger.log(message: "[UntoldTexture] Loaded \(label.lowercased()) texture '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)")
+                return texture
+            } catch {
+                Logger.logError(message: "[UntoldTexture] Failed to load \(label.lowercased()) texture for '\(runtimeMaterial.name ?? "<unnamed material>")' from \(url.path): \(error)")
+                return nil
+            }
+        }
+
+        let baseTexture = loadRuntimeTexture("Base color", reference: runtimeMaterial.baseColorTexture, isSRGB: runtimeMaterial.baseColorTexture?.isSRGB ?? true)
+        let normalTexture = loadRuntimeTexture("Normal", reference: runtimeMaterial.normalTexture, isSRGB: false)
+        let metallicTexture = loadRuntimeTexture("Metallic", reference: runtimeMaterial.metallicTexture, isSRGB: false)
+        let roughnessTexture = loadRuntimeTexture("Roughness", reference: runtimeMaterial.roughnessTexture, isSRGB: false)
+
+        baseColor = createTextureDescriptor(device: device, texture: baseTexture, wrapMode: .repeat)
+        roughness = createTextureDescriptor(device: device, texture: roughnessTexture, wrapMode: .repeat)
+        metallic = createTextureDescriptor(device: device, texture: metallicTexture, wrapMode: .repeat)
+        normal = createTextureDescriptor(device: device, texture: normalTexture, wrapMode: .clampToEdge)
+
+        baseColorURL = runtimeMaterial.baseColorTexture?.sourceURL
+        normalURL = runtimeMaterial.normalTexture?.sourceURL
+        roughnessURL = runtimeMaterial.roughnessTexture?.sourceURL
+        metallicURL = runtimeMaterial.metallicTexture?.sourceURL
+
+        baseColorSourceDimensions = runtimeMaterial.baseColorTexture.flatMap { tex in
+            guard let width = tex.width, let height = tex.height else { return nil }
+            return simd_int2(Int32(width), Int32(height))
+        }
+        normalSourceDimensions = runtimeMaterial.normalTexture.flatMap { tex in
+            guard let width = tex.width, let height = tex.height else { return nil }
+            return simd_int2(Int32(width), Int32(height))
+        }
+        roughnessSourceDimensions = runtimeMaterial.roughnessTexture.flatMap { tex in
+            guard let width = tex.width, let height = tex.height else { return nil }
+            return simd_int2(Int32(width), Int32(height))
+        }
+        metallicSourceDimensions = runtimeMaterial.metallicTexture.flatMap { tex in
+            guard let width = tex.width, let height = tex.height else { return nil }
+            return simd_int2(Int32(width), Int32(height))
+        }
+
+        baseColorValue = runtimeMaterial.baseColorFactor
+        emissiveValue = runtimeMaterial.emissiveFactor
+        roughnessValue = runtimeMaterial.roughnessFactor
+        metallicValue = runtimeMaterial.metallicFactor
+        alphaCutoff = runtimeMaterial.alphaCutoff
+
+        let alphaModeBits = runtimeMaterial.flags & 0b11
+        alphaMode = MaterialAlphaMode(rawValue: Int32(alphaModeBits)) ?? .opaque
     }
 
     init(mdlMaterial: MDLMaterial, textureLoader: TextureLoader) {

@@ -637,25 +637,26 @@ private func setEntityMeshCommon(
     meshLoader: (URL) -> [[Mesh]],
     entityName _: String?,
     assetName: String?
-) {
+) -> Bool {
     guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
         handleError(.filenameNotFound, filename)
-        return
+        return false
     }
 
     if url.pathExtension == "dae" {
         handleError(.fileTypeNotSupported, url.pathExtension)
-        return
+        return false
     }
 
     let meshes = meshLoader(url)
+    let supportsSkeletons = RuntimeAssetSource.infer(from: url).kind != .untold
 
     // Cache meshes for streaming system (so reloads don't require disk I/O)
     MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: meshes)
 
     if meshes.isEmpty {
         handleError(.assetDataMissing, filename)
-        return
+        return false
     }
 
     var nonEmptyMeshes = meshes.filter { !$0.isEmpty }
@@ -665,7 +666,7 @@ private func setEntityMeshCommon(
             nonEmptyMeshes = [matchedMesh]
         } else {
             handleError(.assetDataMissing, "No mesh with asset name \(assetNameExist)")
-            return
+            return false
         }
     }
 
@@ -676,7 +677,7 @@ private func setEntityMeshCommon(
         withExtension: withExtension,
         nonEmptyMeshes: nonEmptyMeshes
     ) {
-        return
+        return true
     }
 
     if nonEmptyMeshes.count == 1 {
@@ -692,7 +693,9 @@ private func setEntityMeshCommon(
 
         associateMeshesToEntity(entityId: entityId, meshes: mesh)
         registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-        setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+        if supportsSkeletons {
+            setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+        }
 
     } else if nonEmptyMeshes.count > 1 {
         // Multi-mesh asset: mark root as AssetInstance, children as DerivedAssetNode
@@ -746,8 +749,22 @@ private func setEntityMeshCommon(
             }
 
             // look for any skeletons in asset
-            setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
+            if supportsSkeletons {
+                setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
+            }
         }
+    }
+
+    return true
+}
+
+private func loadUntoldMeshGroups(url: URL, device: MTLDevice) -> [[Mesh]] {
+    do {
+        let runtimeAsset = try UntoldRuntimeAssetLoader().loadAssetSync(from: url)
+        return Mesh.makeMeshGroups(from: runtimeAsset, device: device)
+    } catch {
+        Logger.logError(message: "[Untold] Failed to load runtime asset '\(url.lastPathComponent)': \(error)")
+        return []
     }
 }
 
@@ -848,13 +865,17 @@ func registerProgressiveStubEntity(
 /// For large assets or any asset that should benefit from distance-based streaming and
 /// eviction, use `setEntityMeshAsync(streamingPolicy:)` instead.
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
-    setEntityMeshCommon(
+    _ = setEntityMeshCommon(
         entityId: entityId,
         filename: filename,
         withExtension: withExtension,
         flip: flip,
         meshLoader: { url in
-            Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, coordinateConversion: coordinateConversion)
+            if RuntimeAssetSource.infer(from: url).kind == .untold {
+                return loadUntoldMeshGroups(url: url, device: renderInfo.device)
+            }
+
+            return Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, coordinateConversion: coordinateConversion)
         },
         entityName: nil,
         assetName: assetName
@@ -930,6 +951,30 @@ public func setEntityMeshAsync(
             loadFallbackMesh(entityId: entityId, filename: filename)
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
             completionBox?.call(false)
+            return
+        }
+
+        if RuntimeAssetSource.infer(from: url).kind == .untold {
+            if streamingPolicy != .immediate {
+                Logger.logWarning(message: "[Untold] '.untold' assets currently use the immediate full-load path. Ignoring streaming policy '\(streamingPolicy)'.")
+            }
+
+            let didLoad = setEntityMeshCommon(
+                entityId: entityId,
+                filename: filename,
+                withExtension: withExtension,
+                flip: true,
+                meshLoader: { loadUntoldMeshGroups(url: $0, device: renderInfo.device) },
+                entityName: nil,
+                assetName: assetName
+            )
+
+            if !didLoad {
+                loadFallbackMesh(entityId: entityId, filename: filename)
+            }
+
+            await AssetLoadingState.shared.finishLoading(entityId: entityId)
+            completionBox?.call(didLoad)
             return
         }
 
