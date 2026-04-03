@@ -32,16 +32,13 @@ public struct UntoldRuntimeAssetLoader: NamedRuntimeAssetLoading {
         let indexChunkData = try chunkData(for: indexChunk, fileData: fileData)
 
         let runtimeMaterials = try decoded.materials.map { try makeRuntimeMaterial(from: $0, decoded: decoded, baseURL: url.deletingLastPathComponent()) }
-
-        let groups = try decoded.entities.map { entity in
-            try makeRuntimeGroup(
-                from: entity,
-                decoded: decoded,
-                runtimeMaterials: runtimeMaterials,
-                vertexChunkData: vertexChunkData,
-                indexChunkData: indexChunkData
-            )
-        }.filter { !$0.primitives.isEmpty }
+        let nodes = try makeRuntimeNodes(
+            decoded: decoded,
+            rootTransform: decoded.header.rootTransform,
+            runtimeMaterials: runtimeMaterials,
+            vertexChunkData: vertexChunkData,
+            indexChunkData: indexChunkData
+        )
 
         return RuntimeAsset(
             sourceURL: url,
@@ -49,7 +46,7 @@ public struct UntoldRuntimeAssetLoader: NamedRuntimeAssetLoading {
             assetName: url.deletingPathExtension().lastPathComponent,
             rootTransform: decoded.header.rootTransform,
             worldBounds: decoded.header.worldBounds,
-            meshGroups: groups
+            nodes: nodes
         )
     }
 
@@ -61,6 +58,53 @@ public struct UntoldRuntimeAssetLoader: NamedRuntimeAssetLoading {
     public func loadMeshGroupSync(named name: String, from url: URL) throws -> RuntimeMeshGroup? {
         let asset = try loadAssetSync(from: url)
         return asset.meshGroups.first(where: { $0.name == name })
+    }
+
+    private func makeRuntimeNodes(
+        decoded: UntoldDecodedAsset,
+        rootTransform: simd_float4x4,
+        runtimeMaterials: [RuntimeMaterialSource],
+        vertexChunkData: Data,
+        indexChunkData: Data
+    ) throws -> [RuntimeAssetNode] {
+        let entitiesByID = Dictionary(uniqueKeysWithValues: decoded.entities.map { ($0.entityId, $0) })
+        var worldTransformsByID: [UInt32: simd_float4x4] = [:]
+        var visiting: Set<UInt32> = []
+
+        func resolvedWorldTransform(for entity: UntoldEntityRecordV1) throws -> simd_float4x4 {
+            if let cached = worldTransformsByID[entity.entityId] {
+                return cached
+            }
+
+            guard !visiting.contains(entity.entityId) else {
+                throw RuntimeAssetLoaderError.malformedAsset("Cycle detected in .untold entity hierarchy for entity \(entity.entityId)")
+            }
+            visiting.insert(entity.entityId)
+            defer { visiting.remove(entity.entityId) }
+
+            let worldTransform: simd_float4x4
+            if entity.parentEntityId == UntoldFormat.invalidIndex {
+                worldTransform = simd_mul(rootTransform, entity.localTransform)
+            } else if let parent = entitiesByID[entity.parentEntityId] {
+                worldTransform = simd_mul(try resolvedWorldTransform(for: parent), entity.localTransform)
+            } else {
+                throw RuntimeAssetLoaderError.malformedAsset("Entity \(entity.entityId) references missing parent \(entity.parentEntityId)")
+            }
+
+            worldTransformsByID[entity.entityId] = worldTransform
+            return worldTransform
+        }
+
+        return try decoded.entities.map { entity in
+            try makeRuntimeNode(
+                from: entity,
+                decoded: decoded,
+                resolvedWorldTransform: try resolvedWorldTransform(for: entity),
+                runtimeMaterials: runtimeMaterials,
+                vertexChunkData: vertexChunkData,
+                indexChunkData: indexChunkData
+            )
+        }
     }
 
     private func requiredChunk(_ type: UntoldChunkType, in chunks: [UntoldChunkEntryV1]) throws -> UntoldChunkEntryV1 {
@@ -83,14 +127,15 @@ public struct UntoldRuntimeAssetLoader: NamedRuntimeAssetLoading {
         return fileData.subdata(in: start ..< end)
     }
 
-    private func makeRuntimeGroup(
+    private func makeRuntimeNode(
         from entity: UntoldEntityRecordV1,
         decoded: UntoldDecodedAsset,
+        resolvedWorldTransform: simd_float4x4,
         runtimeMaterials: [RuntimeMaterialSource],
         vertexChunkData: Data,
         indexChunkData: Data
-    ) throws -> RuntimeMeshGroup {
-        let groupName = try decoded.string(at: entity.nameOffset) ?? "entity_\(entity.entityId)"
+    ) throws -> RuntimeAssetNode {
+        let nodeName = try decoded.string(at: entity.nameOffset) ?? "entity_\(entity.entityId)"
         let meshStart = Int(entity.firstMeshRecordIndex)
         let meshEnd = meshStart + Int(entity.meshRecordCount)
         let primitives: [RuntimeMeshPrimitive]
@@ -109,10 +154,12 @@ public struct UntoldRuntimeAssetLoader: NamedRuntimeAssetLoading {
             primitives = []
         }
 
-        return RuntimeMeshGroup(
-            name: groupName,
+        return RuntimeAssetNode(
+            id: entity.entityId,
+            parentID: entity.parentEntityId == UntoldFormat.invalidIndex ? nil : entity.parentEntityId,
+            name: nodeName,
             localTransform: entity.localTransform,
-            worldTransform: entity.localTransform,
+            worldTransform: resolvedWorldTransform,
             localBounds: entity.localBounds,
             worldBounds: entity.worldBounds,
             primitives: primitives
@@ -160,8 +207,8 @@ public struct UntoldRuntimeAssetLoader: NamedRuntimeAssetLoading {
 
         return RuntimeMeshPrimitive(
             name: primitiveName,
-            localTransform: entity.localTransform,
-            worldTransform: entity.localTransform,
+            localTransform: matrix_identity_float4x4,
+            worldTransform: matrix_identity_float4x4,
             localBounds: mesh.localBounds,
             worldBounds: entity.worldBounds,
             vertexLayout: vertexLayout,
