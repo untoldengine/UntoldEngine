@@ -192,7 +192,7 @@
             }
             .fileImporter(
                 isPresented: $showFilePicker,
-                allowedContentTypes: [UTType(filenameExtension: Constants.usdzExtension) ?? .data]
+                allowedContentTypes: [UTType(filenameExtension: "untold") ?? .data]
             ) { result in
                 guard case let .success(url) = result else { return }
                 let accessing = url.startAccessingSecurityScopedResource()
@@ -217,32 +217,32 @@
                     if accessing { url.stopAccessingSecurityScopedResource() }
                 }
             }
-            .fileImporter(
-                isPresented: $showManifestPicker,
-                allowedContentTypes: [UTType(filenameExtension: "json") ?? .json]
-            ) { result in
-                guard case let .success(url) = result else { return }
-                let accessing = url.startAccessingSecurityScopedResource()
-                // Pass the path without extension — LoadingSystem handles absolute paths.
-                let path = url.deletingPathExtension().path
-
-                state.batchingEnabled = false
-                state.streamingEnabled = false
-                state.isLoading = true
-
-                guard let onLoadTiledScene = state.onLoadTiledScene else {
-                    state.isLoading = false
-                    if accessing { url.stopAccessingSecurityScopedResource() }
-                    return
-                }
-
-                onLoadTiledScene(path) { _ in
-                    state.isLoading = false
-                    state.hasLoadedEntity = true
-                    state.streamingEnabled = true
-                    if accessing { url.stopAccessingSecurityScopedResource() }
-                }
-            }
+//            .fileImporter(
+//                isPresented: $showManifestPicker,
+//                allowedContentTypes: [UTType(filenameExtension: "json") ?? .json]
+//            ) { result in
+//                guard case let .success(url) = result else { return }
+//                let accessing = url.startAccessingSecurityScopedResource()
+//                // Pass the path without extension — LoadingSystem handles absolute paths.
+//                let path = url.deletingPathExtension().path
+//
+//                state.batchingEnabled = false
+//                state.streamingEnabled = false
+//                state.isLoading = true
+//
+//                guard let onLoadTiledScene = state.onLoadTiledScene else {
+//                    state.isLoading = false
+//                    if accessing { url.stopAccessingSecurityScopedResource() }
+//                    return
+//                }
+//
+//                onLoadTiledScene(path) { _ in
+//                    state.isLoading = false
+//                    state.hasLoadedEntity = true
+//                    state.streamingEnabled = true
+//                    if accessing { url.stopAccessingSecurityScopedResource() }
+//                }
+//            }
         }
 
         private func sectionLabel(_ text: String) -> some View {

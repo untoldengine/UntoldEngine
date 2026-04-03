@@ -31,7 +31,7 @@
         init() {
             InputSystem.shared.registerKeyboardEvents()
             InputSystem.shared.registerMouseEvents()
-            bypassPostProcessing = true
+            bypassPostProcessing = false
             setupDefaultSceneObjects()
         }
     }
@@ -68,10 +68,11 @@
             let entity = createEntity()
             setEntityName(entityId: entity, name: path)
 
-            setEntityMeshAsync(entityId: entity, filename: path, withExtension: Constants.usdzExtension) { [weak self] success in
+            setEntityMeshAsync(entityId: entity, filename: path, withExtension: "untold") { [weak self] success in
                 guard let self else { return }
                 loadedEntity = success ? entity : nil
                 let camera = findGameCamera()
+                CameraSystem.shared.activeCamera = camera
                 setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
                 completion(success)
             }
