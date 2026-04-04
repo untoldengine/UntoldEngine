@@ -193,7 +193,7 @@ private func makeUntoldTileSceneFixture(includeHLOD: Bool, includeLOD: Bool) thr
         try fileManager.copyItem(at: bundledTextureURL, to: stagedTexturesURL.appendingPathComponent("soccer-player-0.png"))
     }
 
-    let fileSizeBytes = (try fileManager.attributesOfItem(atPath: tileURL.path)[.size] as? NSNumber)?.intValue ?? 0
+    let fileSizeBytes = try (fileManager.attributesOfItem(atPath: tileURL.path)[.size] as? NSNumber)?.intValue ?? 0
 
     var tileEntry: [String: Any] = [
         "tile_id": "tile_0_0",

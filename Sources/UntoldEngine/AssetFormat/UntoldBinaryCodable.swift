@@ -34,15 +34,15 @@ extension UntoldAABB: UntoldBinaryEncodable, UntoldBinaryDecodable {
     }
 
     public static func decode(from reader: UntoldBinaryReader) throws -> UntoldAABB {
-        let min = SIMD3<Float>(
-            try reader.readFloat32LE(),
-            try reader.readFloat32LE(),
-            try reader.readFloat32LE()
+        let min = try SIMD3<Float>(
+            reader.readFloat32LE(),
+            reader.readFloat32LE(),
+            reader.readFloat32LE()
         )
-        let max = SIMD3<Float>(
-            try reader.readFloat32LE(),
-            try reader.readFloat32LE(),
-            try reader.readFloat32LE()
+        let max = try SIMD3<Float>(
+            reader.readFloat32LE(),
+            reader.readFloat32LE(),
+            reader.readFloat32LE()
         )
         return UntoldAABB(min: min, max: max)
     }
@@ -68,13 +68,13 @@ extension UntoldChunkEntryV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
             throw UntoldValidationError.unsupportedEnumValue
         }
 
-        var entry = UntoldChunkEntryV1(
+        var entry = try UntoldChunkEntryV1(
             chunkType: chunkType,
             compressionType: compressionType,
-            fileOffset: try reader.readUInt64LE(),
-            compressedSize: try reader.readUInt64LE(),
-            uncompressedSize: try reader.readUInt64LE(),
-            elementCount: try reader.readUInt32LE()
+            fileOffset: reader.readUInt64LE(),
+            compressedSize: reader.readUInt64LE(),
+            uncompressedSize: reader.readUInt64LE(),
+            elementCount: reader.readUInt32LE()
         )
         entry.reserved0 = try reader.readUInt32LE()
         return entry
@@ -102,7 +102,7 @@ extension UntoldFileHeaderV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
     }
 
     public static func decode(from reader: UntoldBinaryReader) throws -> UntoldFileHeaderV1 {
-        let magic = Array(try reader.readBytes(count: 8))
+        let magic = try Array(reader.readBytes(count: 8))
         let version = try reader.readUInt32LE()
         let fileTypeRaw = try reader.readUInt32LE()
         let flags = try reader.readUInt32LE()
@@ -116,8 +116,8 @@ extension UntoldFileHeaderV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
         let reserved0 = try reader.readUInt32LE()
         let worldBounds = try UntoldAABB.decode(from: reader)
         let rootTransform = try reader.readMatrix4x4LE()
-        let contentHash = Array(try reader.readBytes(count: UntoldFormat.hashByteCount))
-        let reserved1 = Array(try reader.readBytes(count: UntoldFormat.hashByteCount))
+        let contentHash = try Array(reader.readBytes(count: UntoldFormat.hashByteCount))
+        let reserved1 = try Array(reader.readBytes(count: UntoldFormat.hashByteCount))
 
         guard let fileType = UntoldFileType(rawValue: fileTypeRaw),
               let vertexLayout = UntoldVertexLayout(rawValue: vertexLayoutRaw)
@@ -161,16 +161,16 @@ extension UntoldEntityRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
     }
 
     public static func decode(from reader: UntoldBinaryReader) throws -> UntoldEntityRecordV1 {
-        UntoldEntityRecordV1(
-            entityId: try reader.readUInt32LE(),
-            parentEntityId: try reader.readUInt32LE(),
-            nameOffset: try reader.readUInt32LE(),
-            firstMeshRecordIndex: try reader.readUInt32LE(),
-            meshRecordCount: try reader.readUInt32LE(),
-            flags: try reader.readUInt32LE(),
-            localBounds: try UntoldAABB.decode(from: reader),
-            worldBounds: try UntoldAABB.decode(from: reader),
-            localTransform: try reader.readMatrix4x4LE()
+        try UntoldEntityRecordV1(
+            entityId: reader.readUInt32LE(),
+            parentEntityId: reader.readUInt32LE(),
+            nameOffset: reader.readUInt32LE(),
+            firstMeshRecordIndex: reader.readUInt32LE(),
+            meshRecordCount: reader.readUInt32LE(),
+            flags: reader.readUInt32LE(),
+            localBounds: UntoldAABB.decode(from: reader),
+            worldBounds: UntoldAABB.decode(from: reader),
+            localTransform: reader.readMatrix4x4LE()
         )
     }
 }
@@ -263,35 +263,35 @@ extension UntoldMaterialRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
     }
 
     public static func decode(from reader: UntoldBinaryReader) throws -> UntoldMaterialRecordV1 {
-        var record = UntoldMaterialRecordV1(
-            nameOffset: try reader.readUInt32LE(),
-            flags: try reader.readUInt32LE(),
+        var record = try UntoldMaterialRecordV1(
+            nameOffset: reader.readUInt32LE(),
+            flags: reader.readUInt32LE(),
             baseColorFactor: SIMD4<Float>(
-                try reader.readFloat32LE(),
-                try reader.readFloat32LE(),
-                try reader.readFloat32LE(),
-                try reader.readFloat32LE()
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
             ),
             emissiveFactor: SIMD3<Float>(
-                try reader.readFloat32LE(),
-                try reader.readFloat32LE(),
-                try reader.readFloat32LE()
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
             ),
-            normalScale: try reader.readFloat32LE(),
-            metallicFactor: try reader.readFloat32LE(),
-            roughnessFactor: try reader.readFloat32LE(),
-            occlusionStrength: try reader.readFloat32LE(),
-            alphaCutoff: try reader.readFloat32LE(),
-            baseColorTextureIndex: try reader.readUInt32LE(),
-            normalTextureIndex: try reader.readUInt32LE(),
-            metallicTextureIndex: try reader.readUInt32LE(),
-            roughnessTextureIndex: try reader.readUInt32LE(),
-            emissiveTextureIndex: try reader.readUInt32LE(),
-            occlusionTextureIndex: try reader.readUInt32LE()
+            normalScale: reader.readFloat32LE(),
+            metallicFactor: reader.readFloat32LE(),
+            roughnessFactor: reader.readFloat32LE(),
+            occlusionStrength: reader.readFloat32LE(),
+            alphaCutoff: reader.readFloat32LE(),
+            baseColorTextureIndex: reader.readUInt32LE(),
+            normalTextureIndex: reader.readUInt32LE(),
+            metallicTextureIndex: reader.readUInt32LE(),
+            roughnessTextureIndex: reader.readUInt32LE(),
+            emissiveTextureIndex: reader.readUInt32LE(),
+            occlusionTextureIndex: reader.readUInt32LE()
         )
-        record.reserved0 = [
-            try reader.readUInt32LE(),
-            try reader.readUInt32LE(),
+        record.reserved0 = try [
+            reader.readUInt32LE(),
+            reader.readUInt32LE(),
         ]
         return record
     }
@@ -317,14 +317,14 @@ extension UntoldTextureRefRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable
             throw UntoldValidationError.unsupportedEnumValue
         }
 
-        var record = UntoldTextureRefRecordV1(
+        var record = try UntoldTextureRefRecordV1(
             nameOffset: nameOffset,
             uriOffset: uriOffset,
             textureFormat: textureFormat,
-            flags: try reader.readUInt32LE(),
-            width: try reader.readUInt32LE(),
-            height: try reader.readUInt32LE(),
-            mipCount: try reader.readUInt32LE()
+            flags: reader.readUInt32LE(),
+            width: reader.readUInt32LE(),
+            height: reader.readUInt32LE(),
+            mipCount: reader.readUInt32LE()
         )
         record.reserved0 = try reader.readUInt32LE()
         return record
@@ -349,27 +349,27 @@ extension UntoldPBRStaticVertexV1: UntoldBinaryEncodable, UntoldBinaryDecodable 
     }
 
     public static func decode(from reader: UntoldBinaryReader) throws -> UntoldPBRStaticVertexV1 {
-        UntoldPBRStaticVertexV1(
+        try UntoldPBRStaticVertexV1(
             position: SIMD3<Float>(
-                try reader.readFloat32LE(),
-                try reader.readFloat32LE(),
-                try reader.readFloat32LE()
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
             ),
-            normalPacked: try reader.readUInt32LE(),
-            tangentPacked: try reader.readUInt32LE(),
+            normalPacked: reader.readUInt32LE(),
+            tangentPacked: reader.readUInt32LE(),
             uv0: SIMD2<UInt16>(
-                try reader.readUInt16LE(),
-                try reader.readUInt16LE()
+                reader.readUInt16LE(),
+                reader.readUInt16LE()
             ),
             uv1: SIMD2<UInt16>(
-                try reader.readUInt16LE(),
-                try reader.readUInt16LE()
+                reader.readUInt16LE(),
+                reader.readUInt16LE()
             ),
             color0: SIMD4<UInt8>(
-                try reader.readUInt8(),
-                try reader.readUInt8(),
-                try reader.readUInt8(),
-                try reader.readUInt8()
+                reader.readUInt8(),
+                reader.readUInt8(),
+                reader.readUInt8(),
+                reader.readUInt8()
             )
         )
     }
@@ -387,29 +387,29 @@ public extension UntoldBinaryWriter {
 
 public extension UntoldBinaryReader {
     func readMatrix4x4LE() throws -> simd_float4x4 {
-        let c0 = SIMD4<Float>(
-            try readFloat32LE(),
-            try readFloat32LE(),
-            try readFloat32LE(),
-            try readFloat32LE()
+        let c0 = try SIMD4<Float>(
+            readFloat32LE(),
+            readFloat32LE(),
+            readFloat32LE(),
+            readFloat32LE()
         )
-        let c1 = SIMD4<Float>(
-            try readFloat32LE(),
-            try readFloat32LE(),
-            try readFloat32LE(),
-            try readFloat32LE()
+        let c1 = try SIMD4<Float>(
+            readFloat32LE(),
+            readFloat32LE(),
+            readFloat32LE(),
+            readFloat32LE()
         )
-        let c2 = SIMD4<Float>(
-            try readFloat32LE(),
-            try readFloat32LE(),
-            try readFloat32LE(),
-            try readFloat32LE()
+        let c2 = try SIMD4<Float>(
+            readFloat32LE(),
+            readFloat32LE(),
+            readFloat32LE(),
+            readFloat32LE()
         )
-        let c3 = SIMD4<Float>(
-            try readFloat32LE(),
-            try readFloat32LE(),
-            try readFloat32LE(),
-            try readFloat32LE()
+        let c3 = try SIMD4<Float>(
+            readFloat32LE(),
+            readFloat32LE(),
+            readFloat32LE(),
+            readFloat32LE()
         )
         return simd_float4x4(columns: (c0, c1, c2, c3))
     }

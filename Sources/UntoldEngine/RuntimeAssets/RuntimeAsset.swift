@@ -269,7 +269,7 @@ public struct RuntimeAsset: Sendable, Equatable {
         self.rootTransform = rootTransform
         self.worldBounds = worldBounds
         self.nodes = nodes
-        self.meshGroups = nodes.compactMap { node in
+        meshGroups = nodes.compactMap { node in
             guard !node.primitives.isEmpty else { return nil }
             return RuntimeMeshGroup(
                 name: node.name,

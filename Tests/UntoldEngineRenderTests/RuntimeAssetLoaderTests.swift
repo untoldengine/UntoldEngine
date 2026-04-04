@@ -14,8 +14,8 @@
 
 import Foundation
 import simd
-import XCTest
 @testable import UntoldEngine
+import XCTest
 
 final class RuntimeAssetLoaderTests: XCTestCase {
     func testLoadsRedplayerUntoldIntoRuntimeAsset() async throws {

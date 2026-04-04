@@ -12,9 +12,9 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import CryptoKit
-import XCTest
 import simd
 @testable import UntoldEngine
+import XCTest
 
 final class NativeFormatTests: XCTestCase {
     func testTinyUntoldGoldenFileRoundtrip() throws {
@@ -84,11 +84,11 @@ final class NativeFormatTests: XCTestCase {
     func testStringOffsetOutOfBoundsIsRejected() throws {
         let decoded = try UntoldReader().readAsset(from: makeTinyFixture().fileData)
 
-        XCTAssertThrowsError(try decoded.string(at: 10_000)) { error in
+        XCTAssertThrowsError(try decoded.string(at: 10000)) { error in
             guard case let UntoldBinaryDecodingError.outOfBounds(offset, _, _) = error else {
                 return XCTFail("Unexpected error: \(error)")
             }
-            XCTAssertEqual(offset, 10_000)
+            XCTAssertEqual(offset, 10000)
         }
     }
 
@@ -150,7 +150,7 @@ final class NativeFormatTests: XCTestCase {
         XCTAssertEqual(try decoded.string(at: decoded.entities[1].nameOffset), "entity_b")
     }
 
-    private func encodeChunk<T: UntoldBinaryEncodable>(_ records: [T]) -> Data {
+    private func encodeChunk(_ records: [some UntoldBinaryEncodable]) -> Data {
         let writer = UntoldBinaryWriter()
         for record in records {
             record.encode(to: writer)
@@ -504,6 +504,7 @@ final class NativeFormatTests: XCTestCase {
 }
 
 // MARK: - contentHash validation tests
+
 extension NativeFormatTests {
     func testFileWithValidHashLoadsSuccessfully() throws {
         let fixture = makeTinyFixture(computeHash: true)

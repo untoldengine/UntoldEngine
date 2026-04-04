@@ -766,7 +766,6 @@ private func setEntityMeshCommon(
     return true
 }
 
-
 private func loadUntoldRuntimeAsset(url: URL) -> RuntimeAsset? {
     do {
         return try NativeFormatLoader().loadAssetSync(from: url)
@@ -1030,12 +1029,12 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
     {
         if let runtimeAsset = loadUntoldRuntimeAsset(url: url),
            registerUntoldRuntimeAsset(
-                entityId: entityId,
-                runtimeAsset: runtimeAsset,
-                url: url,
-                filename: filename,
-                withExtension: withExtension,
-                assetName: assetName
+               entityId: entityId,
+               runtimeAsset: runtimeAsset,
+               url: url,
+               filename: filename,
+               withExtension: withExtension,
+               assetName: assetName
            )
         {
             return

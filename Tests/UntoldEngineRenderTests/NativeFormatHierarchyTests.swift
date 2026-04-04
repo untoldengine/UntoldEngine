@@ -14,8 +14,8 @@
 
 import Foundation
 import simd
-import XCTest
 @testable import UntoldEngine
+import XCTest
 
 final class NativeFormatHierarchyLoaderTests: XCTestCase {
     func testUntoldLoaderPreservesParentChildHierarchy() throws {
@@ -59,7 +59,7 @@ final class NativeFormatHierarchyLoaderTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(runtimeAsset.nodes.count, 3)
         XCTAssertEqual(runtimeAsset.nodes.flatMap(\.primitives).count, 3)
         XCTAssertGreaterThan(runtimeAsset.nodes.filter { $0.parentID != nil }.count, 0)
-        XCTAssertGreaterThan(runtimeAsset.nodes.filter { $0.primitives.isEmpty }.count, 0)
+        XCTAssertGreaterThan(runtimeAsset.nodes.filter(\.primitives.isEmpty).count, 0)
 
         let nodeIDs = Set(runtimeAsset.nodes.map(\.id))
         for node in runtimeAsset.nodes {
@@ -400,7 +400,7 @@ private func buildHierarchicalFileData(
     return writer.data
 }
 
-private func encodeChunk<T: UntoldBinaryEncodable>(_ records: [T]) -> Data {
+private func encodeChunk(_ records: [some UntoldBinaryEncodable]) -> Data {
     let writer = UntoldBinaryWriter()
     for record in records {
         record.encode(to: writer)

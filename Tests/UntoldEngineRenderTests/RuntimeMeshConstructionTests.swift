@@ -13,8 +13,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
-import XCTest
 @testable import UntoldEngine
+import XCTest
 
 @MainActor
 final class RuntimeMeshConstructionTests: BaseRenderSetup {
