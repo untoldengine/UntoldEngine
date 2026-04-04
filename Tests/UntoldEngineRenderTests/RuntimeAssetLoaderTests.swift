@@ -63,6 +63,31 @@ final class RuntimeAssetLoaderTests: XCTestCase {
         }
     }
 
+    func testLoadAssetSyncFromURLProducesValidAsset() throws {
+        guard let untoldURL = Bundle.module.url(forResource: "redplayer", withExtension: "untold") else {
+            XCTFail("Failed to locate redplayer.untold in test resources")
+            return
+        }
+
+        // loadAssetSync reads the file once and passes the same Data to both
+        // UntoldReader and the chunk extractor. Verify the result is coherent.
+        let asset = try UntoldRuntimeAssetLoader().loadAssetSync(from: untoldURL)
+
+        XCTAssertEqual(asset.sourceKind, .untold)
+        XCTAssertEqual(asset.sourceURL, untoldURL)
+        XCTAssertFalse(asset.nodes.isEmpty)
+        XCTAssertFalse(asset.meshGroups.isEmpty)
+
+        let group = try XCTUnwrap(asset.meshGroups.first)
+        XCTAssertFalse(group.primitives.isEmpty)
+
+        let primitive = try XCTUnwrap(group.primitives.first)
+        XCTAssertGreaterThan(primitive.vertexCount, 0)
+        XCTAssertGreaterThan(primitive.indexCount, 0)
+        XCTAssertEqual(primitive.vertexData.count, primitive.vertexCount * primitive.vertexLayout.stride)
+        XCTAssertEqual(primitive.indexData.count, primitive.indexCount * primitive.indexFormat.byteSize)
+    }
+
     func testLoadsNamedMeshGroupFromRedplayerUntold() async throws {
         guard let untoldURL = Bundle.module.url(forResource: "redplayer", withExtension: "untold") else {
             XCTFail("Failed to locate redplayer.untold in test resources")

@@ -1122,15 +1122,6 @@ public struct Mesh {
         }
     }
 
-    /// Build one mesh group per runtime group.
-    static func makeMeshGroups(from runtimeAsset: RuntimeAsset, device: MTLDevice) -> [[Mesh]] {
-        runtimeAsset.meshGroups.map { group in
-            group.primitives.compactMap { primitive in
-                makeMesh(from: primitive, device: device)
-            }
-        }
-    }
-
     private static func decodeRuntimeVertices(from data: Data, expectedCount: Int) throws -> [UntoldPBRStaticVertexV1] {
         let reader = UntoldBinaryReader(data: data)
         var vertices: [UntoldPBRStaticVertexV1] = []

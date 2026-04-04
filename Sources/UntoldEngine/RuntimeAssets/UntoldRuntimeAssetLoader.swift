@@ -23,8 +23,8 @@ public struct UntoldRuntimeAssetLoader: NamedRuntimeAssetLoading {
     }
 
     public func loadAssetSync(from url: URL) throws -> RuntimeAsset {
-        let decoded = try UntoldReader().readAsset(from: url)
         let fileData = try Data(contentsOf: url)
+        let decoded = try UntoldReader().readAsset(from: fileData)
 
         let vertexChunk = try requiredChunk(.vertexData, in: decoded.chunks)
         let indexChunk = try requiredChunk(.indexData, in: decoded.chunks)

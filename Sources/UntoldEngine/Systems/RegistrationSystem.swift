@@ -766,15 +766,6 @@ private func setEntityMeshCommon(
     return true
 }
 
-private func loadUntoldMeshGroups(url: URL, device: MTLDevice) -> [[Mesh]] {
-    do {
-        let runtimeAsset = try UntoldRuntimeAssetLoader().loadAssetSync(from: url)
-        return Mesh.makeMeshGroups(from: runtimeAsset, device: device)
-    } catch {
-        Logger.logError(message: "[Untold] Failed to load runtime asset '\(url.lastPathComponent)': \(error)")
-        return []
-    }
-}
 
 private func loadUntoldRuntimeAsset(url: URL) -> RuntimeAsset? {
     do {
@@ -804,11 +795,48 @@ private func registerUntoldRuntimeAsset(
     runtimeAsset: RuntimeAsset,
     url: URL,
     filename: String,
-    withExtension: String
+    withExtension: String,
+    assetName: String? = nil
 ) -> Bool {
     guard !runtimeAsset.nodes.isEmpty else {
         handleError(.assetDataMissing, filename)
         return false
+    }
+
+    // Named-node path: caller requested a specific node by name.
+    // Find the first matching node, register its primitives directly on entityId,
+    // and return — no hierarchy, no child entities.
+    if let assetName {
+        guard let matchedNode = runtimeAsset.nodes.first(where: { $0.name == assetName }) else {
+            handleError(.assetDataMissing, "No node named '\(assetName)' in '\(filename).\(withExtension)'")
+            return false
+        }
+
+        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+            registerTransformComponent(entityId: entityId)
+        }
+        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+            registerSceneGraphComponent(entityId: entityId)
+        }
+
+        applyLocalTransform(matchedNode.localTransform, to: entityId)
+        setEntityName(entityId: entityId, name: matchedNode.name)
+
+        let meshes = matchedNode.primitives.compactMap { primitive -> Mesh? in
+            guard var mesh = Mesh.makeMesh(from: primitive, device: renderInfo.device) else { return nil }
+            mesh.localSpace = matrix_identity_float4x4
+            mesh.worldSpace = matrix_identity_float4x4
+            return mesh
+        }
+
+        guard !meshes.isEmpty else {
+            handleError(.assetDataMissing, "Node '\(assetName)' in '\(filename).\(withExtension)' has no renderable primitives")
+            return false
+        }
+
+        associateMeshesToEntity(entityId: entityId, meshes: meshes)
+        registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: assetName)
+        return true
     }
 
     if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
@@ -998,8 +1026,7 @@ func registerProgressiveStubEntity(
 /// eviction, use `setEntityMeshAsync(streamingPolicy:)` instead.
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
     if let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil),
-       RuntimeAssetSource.infer(from: url).kind == .untold,
-       assetName == nil
+       RuntimeAssetSource.infer(from: url).kind == .untold
     {
         if let runtimeAsset = loadUntoldRuntimeAsset(url: url),
            registerUntoldRuntimeAsset(
@@ -1007,7 +1034,8 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
                 runtimeAsset: runtimeAsset,
                 url: url,
                 filename: filename,
-                withExtension: withExtension
+                withExtension: withExtension,
+                assetName: assetName
            )
         {
             return
@@ -1023,11 +1051,7 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
         withExtension: withExtension,
         flip: flip,
         meshLoader: { url in
-            if RuntimeAssetSource.infer(from: url).kind == .untold {
-                return loadUntoldMeshGroups(url: url, device: renderInfo.device)
-            }
-
-            return Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, coordinateConversion: coordinateConversion)
+            Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, coordinateConversion: coordinateConversion)
         },
         entityName: nil,
         assetName: assetName
@@ -1111,24 +1135,18 @@ public func setEntityMeshAsync(
                 Logger.logWarning(message: "[Untold] '.untold' assets currently use the immediate full-load path. Ignoring streaming policy '\(streamingPolicy)'.")
             }
 
-            let didLoad: Bool = if assetName == nil, let runtimeAsset = loadUntoldRuntimeAsset(url: url) {
-                registerUntoldRuntimeAsset(
+            let didLoad: Bool
+            if let runtimeAsset = loadUntoldRuntimeAsset(url: url) {
+                didLoad = registerUntoldRuntimeAsset(
                     entityId: entityId,
                     runtimeAsset: runtimeAsset,
                     url: url,
                     filename: filename,
-                    withExtension: withExtension
-                )
-            } else {
-                setEntityMeshCommon(
-                    entityId: entityId,
-                    filename: filename,
                     withExtension: withExtension,
-                    flip: true,
-                    meshLoader: { loadUntoldMeshGroups(url: $0, device: renderInfo.device) },
-                    entityName: nil,
                     assetName: assetName
                 )
+            } else {
+                didLoad = false
             }
 
             if !didLoad {
