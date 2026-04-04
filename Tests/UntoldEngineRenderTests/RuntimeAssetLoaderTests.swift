@@ -24,7 +24,7 @@ final class RuntimeAssetLoaderTests: XCTestCase {
             return
         }
 
-        let runtimeAsset = try await UntoldRuntimeAssetLoader().loadAsset(from: untoldURL)
+        let runtimeAsset = try await NativeFormatLoader().loadAsset(from: untoldURL)
 
         XCTAssertEqual(runtimeAsset.sourceKind, .untold)
         XCTAssertEqual(runtimeAsset.sourceURL, untoldURL)
@@ -71,7 +71,7 @@ final class RuntimeAssetLoaderTests: XCTestCase {
 
         // loadAssetSync reads the file once and passes the same Data to both
         // UntoldReader and the chunk extractor. Verify the result is coherent.
-        let asset = try UntoldRuntimeAssetLoader().loadAssetSync(from: untoldURL)
+        let asset = try NativeFormatLoader().loadAssetSync(from: untoldURL)
 
         XCTAssertEqual(asset.sourceKind, .untold)
         XCTAssertEqual(asset.sourceURL, untoldURL)
@@ -94,10 +94,10 @@ final class RuntimeAssetLoaderTests: XCTestCase {
             return
         }
 
-        let asset = try await UntoldRuntimeAssetLoader().loadAsset(from: untoldURL)
+        let asset = try await NativeFormatLoader().loadAsset(from: untoldURL)
         let expectedGroup = try XCTUnwrap(asset.meshGroups.first)
 
-        let namedGroup = try await UntoldRuntimeAssetLoader().loadMeshGroup(named: expectedGroup.name, from: untoldURL)
+        let namedGroup = try await NativeFormatLoader().loadMeshGroup(named: expectedGroup.name, from: untoldURL)
         XCTAssertEqual(namedGroup, expectedGroup)
     }
 }

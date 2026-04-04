@@ -24,7 +24,7 @@ final class RuntimeMeshConstructionTests: BaseRenderSetup {
             return
         }
 
-        let runtimeAsset = try await UntoldRuntimeAssetLoader().loadAsset(from: untoldURL)
+        let runtimeAsset = try await NativeFormatLoader().loadAsset(from: untoldURL)
 
         guard let firstNode = runtimeAsset.nodes.first(where: { !$0.primitives.isEmpty }),
               let firstPrimitive = firstNode.primitives.first

@@ -1,5 +1,5 @@
 //
-//  UntoldAssetFormatTests.swift
+//  NativeFormatTests.swift
 //  UntoldEngineTests
 //
 //  Golden-file roundtrip tests for the cooked `.untold` runtime asset container.
@@ -16,7 +16,7 @@ import XCTest
 import simd
 @testable import UntoldEngine
 
-final class UntoldAssetFormatTests: XCTestCase {
+final class NativeFormatTests: XCTestCase {
     func testTinyUntoldGoldenFileRoundtrip() throws {
         let fixture = makeTinyFixture()
         let decoded = try UntoldReader().readAsset(from: fixture.fileData)
@@ -504,7 +504,7 @@ final class UntoldAssetFormatTests: XCTestCase {
 }
 
 // MARK: - contentHash validation tests
-extension UntoldAssetFormatTests {
+extension NativeFormatTests {
     func testFileWithValidHashLoadsSuccessfully() throws {
         let fixture = makeTinyFixture(computeHash: true)
         // Should not throw — hash matches the chunk payloads.
