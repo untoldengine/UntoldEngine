@@ -1,5 +1,5 @@
 //
-//  UntoldRuntimeAssetLoader.swift
+//  NativeFormatLoader.swift
 //  UntoldEngine
 //
 //  Runtime asset loader that converts cooked `.untold` files into the
@@ -15,7 +15,7 @@
 import Foundation
 import simd
 
-public struct UntoldRuntimeAssetLoader: NamedRuntimeAssetLoading {
+public struct NativeFormatLoader: NamedRuntimeAssetLoading {
     public init() {}
 
     public func loadAsset(from url: URL) async throws -> RuntimeAsset {

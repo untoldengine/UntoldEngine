@@ -1,5 +1,5 @@
 //
-//  UntoldRuntimeMaterialTests.swift
+//  NativeFormatMaterialTests.swift
 //  UntoldEngine
 //
 //  Verifies that `.untold` runtime materials preserve emissive
@@ -19,7 +19,7 @@ import UniformTypeIdentifiers
 import XCTest
 @testable import UntoldEngine
 
-final class UntoldRuntimeMaterialTests: XCTestCase {
+final class NativeFormatMaterialTests: XCTestCase {
     func testRuntimeMaterialLoadsEmissiveTexture() throws {
         guard let device = MTLCreateSystemDefaultDevice() else {
             throw XCTSkip("Metal device unavailable")

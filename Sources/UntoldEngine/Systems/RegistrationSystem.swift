@@ -769,7 +769,7 @@ private func setEntityMeshCommon(
 
 private func loadUntoldRuntimeAsset(url: URL) -> RuntimeAsset? {
     do {
-        return try UntoldRuntimeAssetLoader().loadAssetSync(from: url)
+        return try NativeFormatLoader().loadAssetSync(from: url)
     } catch {
         Logger.logError(message: "[Untold] Failed to load runtime asset '\(url.lastPathComponent)': \(error)")
         return nil

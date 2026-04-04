@@ -1,5 +1,5 @@
 //
-//  UntoldTileStreamingTests.swift
+//  NativeFormatTileStreamingTests.swift
 //  UntoldEngine
 //
 //  Integration tests that prove manifest-driven tile, HLOD, and LOD payloads
@@ -17,7 +17,7 @@ import Foundation
 import XCTest
 
 @MainActor
-final class UntoldTileStreamingTests: BaseRenderSetup {
+final class NativeFormatTileStreamingTests: BaseRenderSetup {
     override func setUp() async throws {
         try await super.setUp()
         GeometryStreamingSystem.shared.reset()
@@ -172,7 +172,7 @@ private struct UntoldTileSceneFixture {
 
 private func makeUntoldTileSceneFixture(includeHLOD: Bool, includeLOD: Bool) throws -> UntoldTileSceneFixture {
     guard let sourceUntoldURL = Bundle.module.url(forResource: "redplayer", withExtension: "untold") else {
-        throw NSError(domain: "UntoldTileStreamingTests", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to locate redplayer.untold in test resources"])
+        throw NSError(domain: "NativeFormatTileStreamingTests", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to locate redplayer.untold in test resources"])
     }
 
     let fileManager = FileManager.default

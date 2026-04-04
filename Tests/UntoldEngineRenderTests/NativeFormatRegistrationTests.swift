@@ -1,5 +1,5 @@
 //
-//  UntoldRegistrationTests.swift
+//  NativeFormatRegistrationTests.swift
 //  UntoldEngine
 //
 //  Verifies that `.untold` assets can flow through the public registration APIs
@@ -16,7 +16,7 @@ import Foundation
 @preconcurrency @testable import UntoldEngine
 import XCTest
 
-final class UntoldRegistrationTests: BaseRenderSetup {
+final class NativeFormatRegistrationTests: BaseRenderSetup {
     override func setUp() async throws {
         try await super.setUp()
         LoadingSystem.shared.resourceURLFn = getResourceURL
@@ -91,7 +91,7 @@ final class UntoldRegistrationTests: BaseRenderSetup {
         }
 
         // Discover the first node that has renderable primitives.
-        let asset = try await UntoldRuntimeAssetLoader().loadAsset(from: untoldURL)
+        let asset = try await NativeFormatLoader().loadAsset(from: untoldURL)
         guard let nodeName = asset.nodes.first(where: { !$0.primitives.isEmpty })?.name else {
             XCTFail("redplayer.untold has no nodes with primitives")
             return

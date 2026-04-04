@@ -1,5 +1,5 @@
 //
-//  UntoldHierarchyTests.swift
+//  NativeFormatHierarchyTests.swift
 //  UntoldEngine
 //
 //  Verifies that `.untold` assets preserve entity parent-child hierarchy through
@@ -17,10 +17,10 @@ import simd
 import XCTest
 @testable import UntoldEngine
 
-final class UntoldHierarchyLoaderTests: XCTestCase {
+final class NativeFormatHierarchyLoaderTests: XCTestCase {
     func testUntoldLoaderPreservesParentChildHierarchy() throws {
         let fixture = try makeHierarchicalUntoldFixture()
-        let runtimeAsset = try UntoldRuntimeAssetLoader().loadAssetSync(from: fixture.url)
+        let runtimeAsset = try NativeFormatLoader().loadAssetSync(from: fixture.url)
 
         XCTAssertEqual(runtimeAsset.nodes.count, 2)
 
@@ -53,7 +53,7 @@ final class UntoldHierarchyLoaderTests: XCTestCase {
             return
         }
 
-        let runtimeAsset = try UntoldRuntimeAssetLoader().loadAssetSync(from: url)
+        let runtimeAsset = try NativeFormatLoader().loadAssetSync(from: url)
 
         XCTAssertEqual(runtimeAsset.meshGroups.count, 3)
         XCTAssertGreaterThanOrEqual(runtimeAsset.nodes.count, 3)
@@ -71,7 +71,7 @@ final class UntoldHierarchyLoaderTests: XCTestCase {
 }
 
 @MainActor
-final class UntoldHierarchyRegistrationTests: BaseRenderSetup {
+final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
     override func tearDown() async throws {
         LoadingSystem.shared.resourceURLFn = getResourceURL
         destroyAllEntities()
@@ -139,7 +139,7 @@ final class UntoldHierarchyRegistrationTests: BaseRenderSetup {
             return
         }
 
-        let runtimeAsset = try UntoldRuntimeAssetLoader().loadAssetSync(from: url)
+        let runtimeAsset = try NativeFormatLoader().loadAssetSync(from: url)
         let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
         LoadingSystem.shared.resourceURLFn = { name, ext, _ in
             guard name == "cubeparentchild", ext == "untold" else { return nil }
