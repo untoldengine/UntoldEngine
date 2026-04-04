@@ -83,4 +83,52 @@ final class UntoldRegistrationTests: BaseRenderSetup {
         XCTAssertFalse(renderComponent.assetName.isEmpty, "Async .untold load should register an asset name")
         XCTAssertTrue(renderComponent.isVisible, "Async .untold load should leave the entity visible")
     }
+
+    func testSetEntityMesh_loadsNamedNodeFromUntold() async throws {
+        guard let untoldURL = Bundle.module.url(forResource: "redplayer", withExtension: "untold") else {
+            XCTFail("Failed to locate redplayer.untold")
+            return
+        }
+
+        // Discover the first node that has renderable primitives.
+        let asset = try await UntoldRuntimeAssetLoader().loadAsset(from: untoldURL)
+        guard let nodeName = asset.nodes.first(where: { !$0.primitives.isEmpty })?.name else {
+            XCTFail("redplayer.untold has no nodes with primitives")
+            return
+        }
+
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "NamedNodeEntity")
+
+        setEntityMesh(entityId: entityId, filename: "redplayer", withExtension: "untold", assetName: nodeName)
+
+        // Named-node load registers the mesh directly on entityId — no child entities.
+        XCTAssertTrue(
+            hasComponent(entityId: entityId, componentType: RenderComponent.self),
+            "Named-node load must register RenderComponent on entityId for node '\(nodeName)'"
+        )
+        XCTAssertTrue(hasComponent(entityId: entityId, componentType: LocalTransformComponent.self))
+
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+            XCTFail("RenderComponent must exist after named-node load")
+            return
+        }
+
+        XCTAssertFalse(renderComponent.mesh.isEmpty, "Named-node load must produce at least one mesh")
+        XCTAssertEqual(renderComponent.assetName, nodeName, "RenderComponent assetName must match requested node name")
+    }
+
+    func testSetEntityMesh_returnsFalseForUnknownNodeName() {
+        let entityId = createEntity()
+        setEntityName(entityId: entityId, name: "BadNameEntity")
+
+        // An unknown assetName should fall back to the fallback mesh, not crash.
+        setEntityMesh(entityId: entityId, filename: "redplayer", withExtension: "untold", assetName: "nonexistent_node_xyz")
+
+        // The entity should still have components (fallback mesh registers them),
+        // but no RenderComponent with the bad name.
+        if let rc = scene.get(component: RenderComponent.self, for: entityId) {
+            XCTAssertNotEqual(rc.assetName, "nonexistent_node_xyz", "Fallback must not claim the bad node name")
+        }
+    }
 }

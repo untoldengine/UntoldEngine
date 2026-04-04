@@ -25,13 +25,18 @@ final class RuntimeMeshConstructionTests: BaseRenderSetup {
         }
 
         let runtimeAsset = try await UntoldRuntimeAssetLoader().loadAsset(from: untoldURL)
-        let meshGroups = Mesh.makeMeshGroups(from: runtimeAsset, device: renderInfo.device)
 
-        XCTAssertFalse(meshGroups.isEmpty)
-        XCTAssertFalse(meshGroups.allSatisfy(\.isEmpty))
+        guard let firstNode = runtimeAsset.nodes.first(where: { !$0.primitives.isEmpty }),
+              let firstPrimitive = firstNode.primitives.first
+        else {
+            XCTFail("redplayer.untold has no nodes with primitives")
+            return
+        }
 
-        let firstGroup = try XCTUnwrap(meshGroups.first(where: { !$0.isEmpty }))
-        let firstMesh = try XCTUnwrap(firstGroup.first)
+        let firstMesh = try XCTUnwrap(
+            Mesh.makeMesh(from: firstPrimitive, device: renderInfo.device),
+            "Mesh.makeMesh should succeed for a valid runtime primitive"
+        )
 
         XCTAssertFalse(firstMesh.submeshes.isEmpty)
         XCTAssertGreaterThan(firstMesh.metalKitMesh.vertexBuffers.count, 0)
