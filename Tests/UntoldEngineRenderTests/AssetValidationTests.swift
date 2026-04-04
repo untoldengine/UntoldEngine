@@ -19,13 +19,21 @@ import XCTest
 
 final class AssetValidationTests: XCTestCase {
     func testRedplayerUntoldMatchesValidationJSON() throws {
-        guard let untoldURL = Bundle.module.url(forResource: "redplayer", withExtension: "untold") else {
-            XCTFail("Failed to locate redplayer.untold in test resources")
+        try assertUntoldMatchesValidationJSON(assetName: "redplayer")
+    }
+
+    func testCubeParentChildUntoldMatchesValidationJSON() throws {
+        try assertUntoldMatchesValidationJSON(assetName: "cubeparentchild")
+    }
+
+    private func assertUntoldMatchesValidationJSON(assetName: String) throws {
+        guard let untoldURL = Bundle.module.url(forResource: assetName, withExtension: "untold") else {
+            XCTFail("Failed to locate \(assetName).untold in test resources")
             return
         }
 
-        guard let validationURL = Bundle.module.url(forResource: "redplayer.validation", withExtension: "json") else {
-            XCTFail("Failed to locate redplayer.validation.json in test resources")
+        guard let validationURL = Bundle.module.url(forResource: "\(assetName).validation", withExtension: "json") else {
+            XCTFail("Failed to locate \(assetName).validation.json in test resources")
             return
         }
 

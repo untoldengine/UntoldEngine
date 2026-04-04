@@ -1391,12 +1391,14 @@ public struct Material {
     public var roughness: TextureDescriptor
     public var metallic: TextureDescriptor
     public var normal: TextureDescriptor
+    public var emissive: TextureDescriptor
 
     // Texture URLs
     public var baseColorURL: URL?
     public var roughnessURL: URL?
     public var metallicURL: URL?
     public var normalURL: URL?
+    public var emissiveURL: URL?
 
     // Store MDLTexture references for embedded textures (USDZ)
     // These allow us to re-export or extract texture data later
@@ -1404,6 +1406,7 @@ public struct Material {
     public var roughnessMDLTexture: MDLTexture?
     public var metallicMDLTexture: MDLTexture?
     public var normalMDLTexture: MDLTexture?
+    public var emissiveMDLTexture: MDLTexture?
 
     // Original texture dimensions before any loader-time capping.
     // Used by runtime texture streaming to know the true source resolution.
@@ -1411,12 +1414,14 @@ public struct Material {
     public var roughnessSourceDimensions: simd_int2?
     public var metallicSourceDimensions: simd_int2?
     public var normalSourceDimensions: simd_int2?
+    public var emissiveSourceDimensions: simd_int2?
 
     // Texture streaming level tracking (for progressive streaming)
     public var baseColorStreamingLevel: TextureStreamingLevel = .full
     public var roughnessStreamingLevel: TextureStreamingLevel = .full
     public var metallicStreamingLevel: TextureStreamingLevel = .full
     public var normalStreamingLevel: TextureStreamingLevel = .full
+    public var emissiveStreamingLevel: TextureStreamingLevel = .full
 
     // Default values
     public var baseColorValue: simd_float4 = .init(1.0, 1.0, 1.0, 1.0)
@@ -1455,6 +1460,10 @@ public struct Material {
 
     public var hasMetalMap: Bool {
         metallic.texture != nil
+    }
+
+    public var hasEmissiveMap: Bool {
+        emissive.texture != nil
     }
 
     public var hasTransparency: Bool {
@@ -1499,16 +1508,19 @@ public struct Material {
         let normalTexture = loadRuntimeTexture("Normal", reference: runtimeMaterial.normalTexture, isSRGB: false)
         let metallicTexture = loadRuntimeTexture("Metallic", reference: runtimeMaterial.metallicTexture, isSRGB: false)
         let roughnessTexture = loadRuntimeTexture("Roughness", reference: runtimeMaterial.roughnessTexture, isSRGB: false)
+        let emissiveTexture = loadRuntimeTexture("Emissive", reference: runtimeMaterial.emissiveTexture, isSRGB: runtimeMaterial.emissiveTexture?.isSRGB ?? true)
 
         baseColor = createTextureDescriptor(device: device, texture: baseTexture, wrapMode: .repeat)
         roughness = createTextureDescriptor(device: device, texture: roughnessTexture, wrapMode: .repeat)
         metallic = createTextureDescriptor(device: device, texture: metallicTexture, wrapMode: .repeat)
         normal = createTextureDescriptor(device: device, texture: normalTexture, wrapMode: .clampToEdge)
+        emissive = createTextureDescriptor(device: device, texture: emissiveTexture, wrapMode: .repeat)
 
         baseColorURL = runtimeMaterial.baseColorTexture?.sourceURL
         normalURL = runtimeMaterial.normalTexture?.sourceURL
         roughnessURL = runtimeMaterial.roughnessTexture?.sourceURL
         metallicURL = runtimeMaterial.metallicTexture?.sourceURL
+        emissiveURL = runtimeMaterial.emissiveTexture?.sourceURL
 
         baseColorSourceDimensions = runtimeMaterial.baseColorTexture.flatMap { tex in
             guard let width = tex.width, let height = tex.height else { return nil }
@@ -1523,6 +1535,10 @@ public struct Material {
             return simd_int2(Int32(width), Int32(height))
         }
         metallicSourceDimensions = runtimeMaterial.metallicTexture.flatMap { tex in
+            guard let width = tex.width, let height = tex.height else { return nil }
+            return simd_int2(Int32(width), Int32(height))
+        }
+        emissiveSourceDimensions = runtimeMaterial.emissiveTexture.flatMap { tex in
             guard let width = tex.width, let height = tex.height else { return nil }
             return simd_int2(Int32(width), Int32(height))
         }
@@ -1543,6 +1559,7 @@ public struct Material {
         var roughnessDims: simd_int2?
         var metallicDims: simd_int2?
         var normalDims: simd_int2?
+        var emissiveDims: simd_int2?
 
         // Load textures and set URLs
         let baseColorTex = textureLoader.loadTexture(
@@ -1585,10 +1602,21 @@ public struct Material {
         )
         metallic = createTextureDescriptor(device: renderInfo.device, texture: metallicTex, wrapMode: .repeat)
 
+        let emissiveTex = textureLoader.loadTexture(
+            from: mdlMaterial.property(with: .emission),
+            isSRGB: true,
+            outputURL: &emissiveURL,
+            outputMDLTexture: &emissiveMDLTexture,
+            outputSourceDimensions: &emissiveDims,
+            mapType: "Emissive map"
+        )
+        emissive = createTextureDescriptor(device: renderInfo.device, texture: emissiveTex, wrapMode: .repeat)
+
         baseColorSourceDimensions = baseColorDims
         normalSourceDimensions = normalDims
         roughnessSourceDimensions = roughnessDims
         metallicSourceDimensions = metallicDims
+        emissiveSourceDimensions = emissiveDims
 
         /// Set texture streaming levels based on whether textures were dimension-capped.
         func isCapped(_ texture: MTLTexture?, _ sourceDims: simd_int2?) -> Bool {
@@ -1607,6 +1635,9 @@ public struct Material {
         }
         if isCapped(metallicTex, metallicSourceDimensions) {
             metallicStreamingLevel = .capped
+        }
+        if isCapped(emissiveTex, emissiveSourceDimensions) {
+            emissiveStreamingLevel = .capped
         }
 
         var baseColorHasExplicitAlpha = false

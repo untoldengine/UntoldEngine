@@ -1,7 +1,7 @@
 {
   "format": "untold-validation",
   "version": 1,
-  "asset_name": "cube",
+  "asset_name": "singlecube",
   "mesh_count": 1,
   "meshes": [
     {

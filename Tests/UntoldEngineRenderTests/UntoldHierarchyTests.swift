@@ -46,6 +46,28 @@ final class UntoldHierarchyLoaderTests: XCTestCase {
         XCTAssertEqual(childWorldTranslation.y, 3.0, accuracy: 0.0001)
         XCTAssertEqual(childWorldTranslation.z, 0.0, accuracy: 0.0001)
     }
+
+    func testUntoldLoaderPreservesParentChildHierarchyForRealFixture() throws {
+        guard let url = Bundle.module.url(forResource: "cubeparentchild", withExtension: "untold") else {
+            XCTFail("Failed to locate cubeparentchild.untold in test resources")
+            return
+        }
+
+        let runtimeAsset = try UntoldRuntimeAssetLoader().loadAssetSync(from: url)
+
+        XCTAssertEqual(runtimeAsset.meshGroups.count, 3)
+        XCTAssertGreaterThanOrEqual(runtimeAsset.nodes.count, 3)
+        XCTAssertEqual(runtimeAsset.nodes.flatMap(\.primitives).count, 3)
+        XCTAssertGreaterThan(runtimeAsset.nodes.filter { $0.parentID != nil }.count, 0)
+        XCTAssertGreaterThan(runtimeAsset.nodes.filter { $0.primitives.isEmpty }.count, 0)
+
+        let nodeIDs = Set(runtimeAsset.nodes.map(\.id))
+        for node in runtimeAsset.nodes {
+            if let parentID = node.parentID {
+                XCTAssertTrue(nodeIDs.contains(parentID), "Every parent ID should resolve to another runtime node")
+            }
+        }
+    }
 }
 
 @MainActor
@@ -110,6 +132,69 @@ final class UntoldHierarchyRegistrationTests: BaseRenderSetup {
         XCTAssertEqual(childRender.mesh.count, 1)
         XCTAssertTrue(transformsApproximatelyEqualForTest(childRender.mesh[0].localSpace, matrix_identity_float4x4))
     }
+
+    func testSetEntityMesh_buildsEntityHierarchyFromRealUntoldFixture() throws {
+        guard let url = Bundle.module.url(forResource: "cubeparentchild", withExtension: "untold") else {
+            XCTFail("Failed to locate cubeparentchild.untold in test resources")
+            return
+        }
+
+        let runtimeAsset = try UntoldRuntimeAssetLoader().loadAssetSync(from: url)
+        let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
+        LoadingSystem.shared.resourceURLFn = { name, ext, _ in
+            guard name == "cubeparentchild", ext == "untold" else { return nil }
+            return url
+        }
+        defer { LoadingSystem.shared.resourceURLFn = originalResourceURLFn }
+
+        let rootEntity = createEntity()
+        setEntityName(entityId: rootEntity, name: "CubeParentChildRoot")
+
+        setEntityMesh(entityId: rootEntity, filename: "cubeparentchild", withExtension: "untold")
+
+        let allDerivedNodes = collectDescendantEntities(from: rootEntity).filter {
+            hasComponent(entityId: $0, componentType: DerivedAssetNodeComponent.self)
+        }
+        XCTAssertEqual(allDerivedNodes.count, runtimeAsset.nodes.count)
+
+        let derivedNames = Set(allDerivedNodes.map { getEntityName(entityId: $0) })
+        XCTAssertEqual(derivedNames, Set(runtimeAsset.nodes.map(\.name)))
+
+        let renderNodes = allDerivedNodes.filter { hasComponent(entityId: $0, componentType: RenderComponent.self) }
+        XCTAssertEqual(renderNodes.count, runtimeAsset.nodes.filter { !$0.primitives.isEmpty }.count)
+
+        let entityByName = Dictionary(uniqueKeysWithValues: allDerivedNodes.map { (getEntityName(entityId: $0), $0) })
+        let nodeByID = Dictionary(uniqueKeysWithValues: runtimeAsset.nodes.map { ($0.id, $0) })
+
+        for node in runtimeAsset.nodes {
+            guard let entity = entityByName[node.name] else {
+                XCTFail("Missing derived entity for runtime node \(node.name)")
+                continue
+            }
+
+            let expectedParentEntity: EntityID = {
+                if let parentID = node.parentID, let parentNode = nodeByID[parentID], let entity = entityByName[parentNode.name] {
+                    return entity
+                }
+                return rootEntity
+            }()
+
+            XCTAssertEqual(getEntityParent(entityId: entity), expectedParentEntity)
+        }
+    }
+}
+
+private func collectDescendantEntities(from root: EntityID) -> [EntityID] {
+    var result: [EntityID] = []
+    var queue = getEntityChildren(parentId: root)
+
+    while let current = queue.first {
+        queue.removeFirst()
+        result.append(current)
+        queue.append(contentsOf: getEntityChildren(parentId: current))
+    }
+
+    return result
 }
 
 private struct HierarchicalUntoldFixture {
