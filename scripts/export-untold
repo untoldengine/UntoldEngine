@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+#
+#  export-untold
+#  UntoldEngine
+#
+#  User-facing wrapper for exporting a single USD/USDZ asset to UntoldEngine's
+#  .untold runtime format through Blender in background mode.
+#
+#
+# Copyright (C) Untold Engine Studios
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON_SCRIPT="${SCRIPT_DIR}/untoldexporter.py"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/export-untold [--blender /path/to/Blender] --input /path/model.usdz --output /path/model.untold [exporter flags]
+
+Wrapper-only options:
+  --blender <path>   Override the Blender binary used to run the exporter
+  --help             Show this help
+
+All remaining arguments are passed through to untoldexporter.py.
+EOF
+}
+
+blender_bin=""
+forwarded=()
+
+while (($#)); do
+  case "$1" in
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --blender)
+      if (($# < 2)); then
+        echo "error: --blender requires a path" >&2
+        exit 1
+      fi
+      blender_bin="$2"
+      shift 2
+      ;;
+    *)
+      forwarded+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "${blender_bin}" ]]; then
+  if [[ -n "${BLENDER_BIN:-}" ]]; then
+    blender_bin="${BLENDER_BIN}"
+  elif [[ -x "/Applications/Blender.app/Contents/MacOS/Blender" ]]; then
+    blender_bin="/Applications/Blender.app/Contents/MacOS/Blender"
+  elif command -v blender >/dev/null 2>&1; then
+    blender_bin="$(command -v blender)"
+  fi
+fi
+
+if [[ -z "${blender_bin}" || ! -x "${blender_bin}" ]]; then
+  cat >&2 <<'EOF'
+Blender was not found.
+Install Blender or provide one of:
+  --blender /path/to/Blender
+  BLENDER_BIN=/path/to/Blender
+EOF
+  exit 1
+fi
+
+echo "Using Blender: ${blender_bin}"
+
+exec "${blender_bin}" \
+  --background \
+  --factory-startup \
+  --python "${PYTHON_SCRIPT}" \
+  -- \
+  "${forwarded[@]}"

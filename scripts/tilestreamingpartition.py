@@ -1,0 +1,2659 @@
+# tilestreamingpartition.py
+#
+# Copyright (C) Untold Engine Studios
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+"""
+Blender tile-export script for UntoldEngine geometry streaming.
+
+Architecture overview
+---------------------
+The exporter uses a two-layer hybrid model:
+
+  Layer 1 — Tile-local assignment
+    Meshes whose world-space footprint fits within a small number of tiles are
+    exported per-tile with bmesh clipping at tile boundaries.  These are streamed
+    in/out by the engine as the camera moves.
+
+  Layer 2 — Shared bucket
+    Meshes that span too many tiles (large structural geometry, terrain slabs,
+    building shells) are routed to a single shared USD file.  The engine loads
+    this at startup via a very large streaming radius, providing a consistent
+    backdrop without the overhead of per-tile clipping for geometry that would
+    appear in dozens of tiles anyway.
+
+Why overlap-first assignment?
+  Assigning by object center produces large tiles when many object centers
+  coincide.  Assigning by AABB overlap distributes geometry across all tiles it
+  physically occupies, producing balanced tile sizes.
+
+Why not split everything?
+  Bisecting a high-poly mesh at every tile boundary is O(faces × tiles).
+  For a 400-unit building on a 10-unit grid that is 40 tiles wide, this means
+  running 40 bisect passes — which for a dense mesh takes minutes per object.
+  The classification threshold catches these cases early and routes them to the
+  shared bucket, keeping the local pipeline fast.
+
+Why shared bucket instead of skip?
+  Skipping spanning geometry creates obvious holes in the rendered scene.
+  A shared bucket gives the engine something to display while fine-detail tiles
+  load around the camera.
+"""
+
+import bpy
+import os
+import json
+import math
+import bmesh
+import colorsys
+import argparse
+import sys
+from pathlib import Path
+from contextlib import contextmanager
+from mathutils import Vector, Matrix
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from untoldexplorer import clear_scene, export_objects_to_untold, import_usd_asset
+
+# ============================================================
+# CONFIG
+# First knobs to tune for a new scene:
+#   TILE_SIZE_X / TILE_SIZE_Z   — set to ~1–2× the typical object size
+#   SPANNING_THRESHOLD_TILES    — raise if too much geometry goes to shared bucket
+#   OVERLAP_THRESHOLD           — raise if objects with unusual shapes mis-classify
+# ============================================================
+
+OUTPUT_DIR = "//tile_exports"
+EXPORT_FORMAT = "untold"        # Runtime payload format emitted for tiles.
+CONVERT_ORIENTATION = True      # Convert Blender scene data into engine space (+Z forward, +Y up).
+SOURCE_ORIENTATION = "blender-native"
+
+# Tile footprint in Blender world units.
+# Start at 10 and tune with DRY_RUN=True.  Rule of thumb: set to 2–3× the
+# typical object size in your scene.  If the scene is 200 units wide and you
+# want ~50 tiles in X, use TILE_SIZE_X = 4–5.  The dry-run header now prints
+# the scene bounds and implied grid size so you can calibrate quickly.
+TILE_SIZE_X = 25.0
+TILE_SIZE_Z = 25.0
+# Height bucket.  Keep very large (>> scene height) to avoid vertical splitting;
+# vertical tiling is only useful for multi-floor indoor scenes.
+TILE_SIZE_Y = 10.0
+
+# --- Spanning classification (OR logic) -----------------------
+#
+# A mesh is classified as SPANNING if either condition is true:
+#
+#   DIMENSION RULE
+#     max(world_width, world_depth) > SPANNING_THRESHOLD_TILES * max(tile_x, tile_z)
+#     Catches objects that are geometrically "room-scale" or larger.
+#
+#   OVERLAP RULE
+#     XZ tile overlap count > effective_overlap_threshold
+#     Safety net for unusual aspect ratios or dense tile grids.
+#
+# Spanning objects go to the shared bucket runtime payload and are never per-tile clipped.
+#
+# Tuning guide:
+#   The spanning limit in world units = SPANNING_THRESHOLD_TILES × TILE_SIZE.
+#   Set this to roughly the largest object you want to tile with clipping.
+#   Objects wider than this go to the shared bucket (loaded at large radius).
+#   Example: SPANNING=4, TILE_SIZE=25 → limit = 100 units.
+SPANNING_THRESHOLD_TILES = 4    # dimension ratio threshold
+
+# OVERLAP_THRESHOLD: maximum XZ tile-overlap count before an object is
+# considered spanning.  Set to None to auto-derive as SPANNING_THRESHOLD_TILES²
+# (recommended — keeps the threshold tile-size-independent).  Set to an explicit
+# integer only if you need a different safety-net value.
+OVERLAP_THRESHOLD = None        # None = auto (SPANNING_THRESHOLD_TILES²)
+
+# Among spanning objects, those whose dimension ratio exceeds this value are
+# additionally flagged as "future_split_candidate" in the manifest.  They
+# SHOULD eventually be split across tiles but the split pipeline is not yet
+# implemented.  For now they still export to the shared bucket.
+FUTURE_SPLIT_TILE_THRESHOLD = 15
+
+# --- Spanning-object splitting --------------------------------
+# When True, spanning objects (shared_bucket + future_split_candidate) whose
+# XZ tile overlap count is <= SPLIT_MAX_TILES are routed into the per-tile
+# local system and clipped at tile boundaries, eliminating the shared bucket
+# for building-scale geometry.  Objects that exceed SPLIT_MAX_TILES still go
+# to the shared bucket to avoid thousands of clip+export iterations for truly
+# scene-spanning meshes (ground planes, terrain slabs).
+#
+# Rule of thumb for SPLIT_MAX_TILES: (max_building_width / TILE_SIZE)²
+# At TILE_SIZE=25, default 400 allows objects up to 500 m × 500 m to be split.
+SPLIT_SPANNING_OBJECTS = True
+SPLIT_MAX_TILES        = 400
+
+# --- Shared bucket streaming ----------------------------------
+# Used for objects that still end up in the shared bucket (SPLIT_SPANNING_OBJECTS=False,
+# or objects exceeding SPLIT_MAX_TILES).  Streaming radius is a fraction of the
+# scene's half-diagonal.  1.0 means it is visible from anywhere in the scene.
+SHARED_STREAMING_RADIUS_FRACTION = 1.0
+SHARED_UNLOAD_RADIUS_FRACTION    = 1.5   # must be > streaming fraction
+
+# --- Local tile export ----------------------------------------
+# When True, tile-local meshes are bmesh-clipped to exact tile boundaries.
+# When False, the full mesh is duplicated into every overlapping tile (faster
+# but produces duplicate geometry at tile edges — acceptable for prototyping).
+CLIP_LOCAL_MESHES = True
+
+# When True, objects sharing identical materials within a tile (or the shared
+# bucket) are joined into a single mesh before USD export.  This dramatically
+# reduces draw calls at runtime — the engine sees fewer distinct mesh prims per
+# tile.  No visual effect.  Requires BAKE_WORLD_TRANSFORMS.
+MERGE_BY_MATERIAL = True
+
+# Clip tolerance at tile boundaries.
+# for objects at large world coordinates (e.g. buildings at x=1500).
+SPLIT_CLIP_EPSILON = 1e-4
+
+# --- Baking ---------------------------------------------------
+BAKE_WORLD_TRANSFORMS = True    # Bake world matrix into mesh vertices before export.
+
+# --- HLOD -----------------------------------------------------
+# Optional offline HLOD generation for tile-local exports.  Each configured
+# level exports a simplified sibling payload next to the full tile asset and emits
+# manifest metadata for the engine to switch to it at distance.
+GENERATE_HLOD = False
+HLOD_LEVELS = [
+    {
+        "suffix": "_hlod",
+        "reduction_ratio": 0.10,
+        "switch_distance": 1.00,   # normalized outer-band position from streaming_radius -> unload_radius
+    },
+]
+
+# --- Tile LOD levels ------------------------------------------
+# Per-tile discrete LOD generation.  Each entry is a (decimate_ratio,
+# switch_position) pair where switch_position is a normalized position in the
+# representation ladder, not a direct fraction of streaming_radius.
+# The exporter maps these positions through a non-linear curve so the bands are
+# wider at distance and less prone to HLOD/LOD/full-detail flip-flopping near
+# the streaming boundary.  Sorted ascending by position (finest first).  The
+# full-detail tile is always LOD0; entries here define LOD1, LOD2, etc.
+GENERATE_LOD = False
+TILE_LOD_LEVELS = [
+    (0.5, 0.30),   # LOD1 — 50% poly, widened near/mid-band anchor
+    (0.2, 0.78),   # LOD2 — 20% poly, shifted toward the far band
+]
+
+# Band shaping knobs.  These defaults produce a stable ladder:
+#   full tile     -> near half of streaming band
+#   tile LODs     -> spread across the mid band with eased spacing
+#   HLOD          -> close to unload radius, not streaming radius
+LOD_NEAR_BAND_START_FRACTION = 0.45
+LOD_SWITCH_CURVE_EXPONENT    = 1.25
+HLOD_SWITCH_CURVE_EXPONENT   = 2.0
+SWITCH_DISTANCE_MIN_GAP      = 2.0
+SWITCH_DISTANCE_OUTER_MARGIN = 0.75
+
+# --- Scene ----------------------------------------------------
+VISIBLE_ONLY = True
+SOURCE_SCENE_PATH_OVERRIDE = ""
+ERROR_IF_UNSAVED_SOURCE_NOT_FOUND = True
+
+# --- Auto tile sizing -----------------------------------------
+AUTO_TILE_SIZE = False
+AUTO_TILE_TARGET_MAX_TILES       = 2000
+AUTO_TILE_TARGET_OBJECTS_PER_TILE = 32
+AUTO_TILE_OBJECT_TARGET_TOLERANCE = 1.0
+AUTO_TILE_MIN_SIZE               = 5.0
+AUTO_TILE_MAX_SIZE               = 100000.0
+AUTO_TILE_MAX_ITERATIONS         = 8
+AUTO_TILE_SAFETY_SCALE           = 1.05
+
+# --- Streaming radius defaults (for tile-local entries) -------
+STREAMING_RADIUS_TILE_MULTIPLIER  = 2.0
+UNLOAD_RADIUS_TILE_MULTIPLIER     = 3.0
+STREAMING_RADIUS_SCENE_FRACTION   = 0.35
+UNLOAD_RADIUS_SCENE_FRACTION      = 0.50
+DEFAULT_STREAMING_PRIORITY        = 10
+
+# --- Debug ----------------------------------------------------
+DEBUG_AABB_ONLY      = False    # Export colored AABB cubes instead of real geometry.
+DRY_RUN              = False    # Plan only — no payload files written.
+DRY_RUN_WRITE_MANIFEST = False  # Write manifest JSON even in dry-run mode.
+
+
+# ============================================================
+# DERIVED CONFIG
+# ============================================================
+
+def _effective_overlap_threshold():
+    """Return the XZ tile-overlap threshold used for spanning classification.
+
+    When OVERLAP_THRESHOLD is None (the default), derive it as
+    SPANNING_THRESHOLD_TILES².  This keeps the threshold proportional to the
+    dimension rule: an object that exactly hits SPANNING_THRESHOLD_TILES in
+    both X and Z occupies SPANNING_THRESHOLD_TILES² tiles, so the overlap rule
+    fires at the same physical object size regardless of TILE_SIZE.
+
+    Example: SPANNING_THRESHOLD_TILES=3 → threshold=9.  An object spanning a
+    3×3 tile footprint (~30 m × 30 m at TILE_SIZE=10, or ~150 m × 150 m at
+    TILE_SIZE=50) triggers both rules simultaneously.
+    """
+    if OVERLAP_THRESHOLD is not None:
+        return int(OVERLAP_THRESHOLD)
+    return int(SPANNING_THRESHOLD_TILES) ** 2
+
+
+# ============================================================
+# SECTION 1: FILE / PATH UTILITIES
+# ============================================================
+
+def ensure_dir(path: str):
+    os.makedirs(path, exist_ok=True)
+
+
+def normalize_path(path: str) -> str:
+    if not path:
+        return ""
+    if path.startswith("//"):
+        return os.path.abspath(bpy.path.abspath(path))
+    return os.path.abspath(path)
+
+
+def is_usable_base_dir(path: str) -> bool:
+    if not path:
+        return False
+    normalized = os.path.abspath(path)
+    if normalized == os.path.sep:
+        return False
+    return os.path.isdir(normalized) and os.access(normalized, os.W_OK)
+
+
+def is_usd_filepath(path: str) -> bool:
+    if not path:
+        return False
+    ext = os.path.splitext(path)[1].lower()
+    return ext in (".usd", ".usda", ".usdc", ".usdz")
+
+
+def extract_usd_filepath(value: str) -> str:
+    if not value:
+        return ""
+    normalized = normalize_path(value)
+    return normalized if is_usd_filepath(normalized) else ""
+
+
+def extract_usd_path_from_operator(op) -> str:
+    if op is None:
+        return ""
+    filepath = ""
+    if hasattr(op, "filepath"):
+        filepath = getattr(op, "filepath", "")
+    if not filepath and hasattr(op, "properties") and hasattr(op.properties, "filepath"):
+        filepath = getattr(op.properties, "filepath", "")
+    return extract_usd_filepath(filepath)
+
+
+def get_recent_usd_import_path() -> str:
+    wm = bpy.context.window_manager
+    if wm is None:
+        return ""
+    for operator_id in ("WM_OT_usd_import", "IMPORT_SCENE_OT_usd"):
+        try:
+            props = wm.operator_properties_last(operator_id)
+        except Exception:
+            props = None
+        filepath = extract_usd_path_from_operator(props)
+        if filepath:
+            print(f"Using USD source path from {operator_id}: {filepath}")
+            return filepath
+    try:
+        operators = list(wm.operators)
+    except Exception:
+        return ""
+    for op in reversed(operators):
+        bl_idname = str(getattr(op, "bl_idname", "")).lower()
+        if "usd_import" not in bl_idname:
+            continue
+        filepath = extract_usd_path_from_operator(op)
+        if filepath:
+            print(f"Using USD source path from operator history: {filepath}")
+            return filepath
+    return ""
+
+
+def resolve_source_scene_path() -> str:
+    if bpy.data.filepath:
+        return os.path.abspath(bpy.data.filepath)
+    if SOURCE_SCENE_PATH_OVERRIDE:
+        override = normalize_path(SOURCE_SCENE_PATH_OVERRIDE)
+        if override:
+            return override
+    recent = get_recent_usd_import_path()
+    if recent:
+        return recent
+    return ""
+
+
+def resolve_output_dir(raw_path: str, source_scene_path: str = "") -> str:
+    if raw_path.startswith("//"):
+        if bpy.data.filepath:
+            base_dir = os.path.dirname(os.path.abspath(bpy.data.filepath))
+        elif source_scene_path:
+            base_dir = os.path.dirname(os.path.abspath(source_scene_path))
+        else:
+            script_dir = ""
+            try:
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+            except NameError:
+                script_dir = ""
+            cwd_dir = os.getcwd()
+            if is_usable_base_dir(script_dir):
+                base_dir = script_dir
+            elif is_usable_base_dir(cwd_dir):
+                base_dir = cwd_dir
+            else:
+                base_dir = os.path.join(os.path.expanduser("~"), "UntoldTileExport")
+                ensure_dir(base_dir)
+            print(f"Warning: unsaved .blend — resolving '{raw_path}' relative to: {base_dir}")
+        relative = raw_path[2:].lstrip("/\\")
+        return os.path.abspath(os.path.join(base_dir, relative))
+    if os.path.isabs(raw_path):
+        return os.path.abspath(raw_path)
+    return os.path.abspath(raw_path)
+
+
+def sanitize_name(name: str) -> str:
+    safe = "".join(c if c.isalnum() or c in ("_", "-") else "_" for c in name)
+    return safe.strip("_") or "object"
+
+
+def format_bytes(num_bytes):
+    units = ["B", "KB", "MB", "GB", "TB"]
+    value = float(max(num_bytes, 0))
+    idx = 0
+    while value >= 1024.0 and idx < len(units) - 1:
+        value /= 1024.0
+        idx += 1
+    return f"{value:.2f} {units[idx]}"
+
+
+def clamp(value, minimum, maximum):
+    return max(minimum, min(maximum, value))
+
+
+def lerp(a, b, t):
+    return a + (b - a) * t
+
+
+def validate_hlod_levels():
+    """Return normalized HLOD level configs or raise on invalid settings."""
+    normalized = []
+    for idx, level in enumerate(HLOD_LEVELS):
+        if not isinstance(level, dict):
+            raise RuntimeError(f"HLOD_LEVELS[{idx}] must be a dict.")
+
+        suffix = str(level.get("suffix", "")).strip()
+        if not suffix:
+            raise RuntimeError(f"HLOD_LEVELS[{idx}] is missing a non-empty 'suffix'.")
+
+        try:
+            reduction_ratio = float(level.get("reduction_ratio"))
+        except (TypeError, ValueError):
+            raise RuntimeError(
+                f"HLOD_LEVELS[{idx}] has invalid 'reduction_ratio': {level.get('reduction_ratio')}"
+            )
+        if not (0.0 < reduction_ratio <= 1.0):
+            raise RuntimeError(
+                f"HLOD_LEVELS[{idx}] reduction_ratio must be in (0, 1], got {reduction_ratio}."
+            )
+
+        try:
+            switch_distance = float(level.get("switch_distance"))
+        except (TypeError, ValueError):
+            raise RuntimeError(
+                f"HLOD_LEVELS[{idx}] has invalid 'switch_distance': {level.get('switch_distance')}"
+            )
+        if not (0.0 < switch_distance <= 1.0):
+            raise RuntimeError(
+                f"HLOD_LEVELS[{idx}] switch_distance position must be in (0, 1], got {switch_distance}. "
+                f"This is a normalized position across the outer streaming band "
+                f"(e.g. 1.0 = near unload_radius)."
+            )
+
+        normalized.append({
+            "suffix": suffix,
+            "reduction_ratio": reduction_ratio,
+            "switch_distance": switch_distance,
+        })
+
+    return normalized
+
+
+def validate_lod_levels():
+    """Return normalized LOD level configs or raise on invalid settings.
+
+    Input format: list of (decimate_ratio, switch_distance) tuples.
+    Output: list of dicts sorted ascending by switch_distance.
+    """
+    if not TILE_LOD_LEVELS:
+        return []
+
+    normalized = []
+    for idx, entry in enumerate(TILE_LOD_LEVELS):
+        if not isinstance(entry, (list, tuple)) or len(entry) != 2:
+            raise RuntimeError(
+                f"TILE_LOD_LEVELS[{idx}] must be a (ratio, distance) pair, got {entry!r}"
+            )
+
+        try:
+            ratio = float(entry[0])
+        except (TypeError, ValueError):
+            raise RuntimeError(
+                f"TILE_LOD_LEVELS[{idx}] has invalid decimate_ratio: {entry[0]!r}"
+            )
+        if not (0.0 < ratio <= 1.0):
+            raise RuntimeError(
+                f"TILE_LOD_LEVELS[{idx}] decimate_ratio must be in (0, 1], got {ratio}."
+            )
+
+        try:
+            distance = float(entry[1])
+        except (TypeError, ValueError):
+            raise RuntimeError(
+                f"TILE_LOD_LEVELS[{idx}] has invalid switch_distance: {entry[1]!r}"
+            )
+        if not (0.0 < distance <= 1.0):
+            raise RuntimeError(
+                f"TILE_LOD_LEVELS[{idx}] switch_distance position must be in (0, 1], got {distance}. "
+                f"This is a normalized ladder position, not a direct fraction of streaming_radius."
+            )
+
+        normalized.append({
+            "ratio": ratio,
+            "switch_distance": distance,
+        })
+
+    # Sort ascending by switch_distance (canonical contract).
+    normalized.sort(key=lambda l: l["switch_distance"])
+    return normalized
+
+
+def compute_hlod_switch_distances(streaming_r, unload_r, levels):
+    if not levels:
+        return []
+
+    gap = max(unload_r - streaming_r, SWITCH_DISTANCE_MIN_GAP * 2.0)
+    min_switch = streaming_r + SWITCH_DISTANCE_MIN_GAP
+    max_switch = max(
+        min_switch,
+        unload_r - min(SWITCH_DISTANCE_OUTER_MARGIN, gap * 0.25),
+    )
+
+    resolved = []
+    prev = min_switch - SWITCH_DISTANCE_MIN_GAP
+    for idx, level in enumerate(sorted(levels, key=lambda l: l["switch_distance"])):
+        t = clamp(level["switch_distance"], 0.0, 1.0)
+        eased_t = 1.0 - math.pow(1.0 - t, HLOD_SWITCH_CURVE_EXPONENT)
+        remaining = len(levels) - idx - 1
+        upper_bound = max_switch - (remaining * SWITCH_DISTANCE_MIN_GAP)
+        candidate = lerp(min_switch, max_switch, eased_t)
+        candidate = clamp(candidate, prev + SWITCH_DISTANCE_MIN_GAP, upper_bound)
+        resolved.append({
+            "suffix": level["suffix"],
+            "reduction_ratio": level["reduction_ratio"],
+            "switch_distance": round(candidate, 2),
+        })
+        prev = candidate
+
+    return resolved
+
+
+def compute_lod_switch_distances(streaming_r, unload_r, hlod_levels, lod_levels):
+    if not lod_levels:
+        return []
+
+    far_limit = unload_r - SWITCH_DISTANCE_OUTER_MARGIN
+    if hlod_levels:
+        far_limit = min(level["switch_distance"] for level in hlod_levels) - SWITCH_DISTANCE_MIN_GAP
+
+    near_limit = streaming_r * LOD_NEAR_BAND_START_FRACTION
+    required_span = SWITCH_DISTANCE_MIN_GAP * len(lod_levels)
+    max_near_limit = far_limit - required_span
+    near_limit = min(near_limit, max_near_limit)
+    near_limit = max(SWITCH_DISTANCE_MIN_GAP, near_limit)
+    far_limit = max(far_limit, near_limit + required_span)
+
+    resolved = []
+    prev = near_limit - SWITCH_DISTANCE_MIN_GAP
+    sorted_levels = sorted(lod_levels, key=lambda l: l["switch_distance"])
+    for idx, level in enumerate(sorted_levels):
+        t = clamp(level["switch_distance"], 0.0, 1.0)
+        eased_t = math.pow(t, LOD_SWITCH_CURVE_EXPONENT)
+        remaining = len(sorted_levels) - idx - 1
+        upper_bound = far_limit - (remaining * SWITCH_DISTANCE_MIN_GAP)
+        candidate = lerp(near_limit, far_limit, eased_t)
+        candidate = clamp(candidate, prev + SWITCH_DISTANCE_MIN_GAP, upper_bound)
+        resolved.append({
+            "ratio": level["ratio"],
+            "switch_distance": round(candidate, 2),
+        })
+        prev = candidate
+
+    return resolved
+
+
+def get_candidate_objects():
+    # Exclude objects in the "Tile Preview" collection — those are the wireframe
+    # tile-bound boxes created by create_tile_preview() for visual debugging.
+    # They are real MESH objects in the scene and would be misclassified as
+    # scene geometry if included.  The collection is cleaned up inside
+    # create_tile_preview() (called later), so we must filter them here
+    # before they are removed.
+    preview_col = bpy.data.collections.get("Tile Preview")
+    preview_objects = set(preview_col.objects) if preview_col else set()
+
+    objs = []
+    view_layer = bpy.context.view_layer
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH":
+            continue
+        if obj in preview_objects:
+            continue
+        if VISIBLE_ONLY:
+            if obj.hide_viewport or obj.hide_get(view_layer=view_layer):
+                continue
+        objs.append(obj)
+    return objs
+
+
+# ============================================================
+# SECTION 2: WORLD BOUNDS
+# All world-space bound queries use the evaluated depsgraph so
+# that parent-chain transforms (including the +90° X rotation
+# Blender's USD importer adds for Y-up → Z-up conversion) are
+# always reflected in the returned matrices and bounds.
+# Using obj.matrix_world directly returns stale values for
+# objects in complex hierarchies and causes entire categories of
+# objects to appear at wrong world positions, producing incorrect
+# tile assignments.
+# ============================================================
+
+def world_bbox_corners(obj, depsgraph=None):
+    if depsgraph is None:
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+    eval_obj = obj.evaluated_get(depsgraph)
+    mw = eval_obj.matrix_world
+    return [mw @ Vector(corner) for corner in eval_obj.bound_box]
+
+
+def world_aabb(obj, depsgraph=None):
+    corners = world_bbox_corners(obj, depsgraph=depsgraph)
+    return {
+        "min": (min(v.x for v in corners), min(v.y for v in corners), min(v.z for v in corners)),
+        "max": (max(v.x for v in corners), max(v.y for v in corners), max(v.z for v in corners)),
+    }
+
+
+def aabb_center(aabb):
+    mn, mx = aabb["min"], aabb["max"]
+    return (0.5 * (mn[0] + mx[0]), 0.5 * (mn[1] + mx[1]), 0.5 * (mn[2] + mx[2]))
+
+
+def scene_world_bounds(objects):
+    if not objects:
+        return None
+    mins = [math.inf, math.inf, math.inf]
+    maxs = [-math.inf, -math.inf, -math.inf]
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    for obj in objects:
+        aabb = world_aabb(obj, depsgraph=depsgraph)
+        for i in range(3):
+            mins[i] = min(mins[i], aabb["min"][i])
+            maxs[i] = max(maxs[i], aabb["max"][i])
+    return {"min": tuple(mins), "max": tuple(maxs)}
+
+
+def compute_object_bounds(objects):
+    """Return {name: aabb} for all objects, using a single evaluated depsgraph."""
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    return {obj.name: world_aabb(obj, depsgraph=depsgraph) for obj in objects}
+
+
+def aabb_to_usd_space(aabb):
+    """Convert a Blender-space AABB (X, Y_depth, Z_height) to USD space (X, Y_up, -Z).
+
+    USD mapping:
+      USD X =  Blender X
+      USD Y =  Blender Z (height)
+      USD Z = -Blender Y (depth)   ← sign flip; min/max swap accordingly
+    """
+    mn, mx = aabb["min"], aabb["max"]
+    return {
+        "min": (mn[0],  mn[2], -mx[1]),
+        "max": (mx[0],  mx[2], -mn[1]),
+    }
+
+
+# ============================================================
+# SECTION 3: TILE GEOMETRY
+# Tile coordinate system:
+#   Tile X  ← Blender X  (lateral)
+#   Tile Y  ← Blender Z  (height — large bucket, usually ty=0 for everything)
+#   Tile Z  ← Blender Y  (depth)
+# ============================================================
+
+def tile_coord_from_point(cx, cy, cz, origin_x, origin_y, origin_z,
+                          tile_size_x, tile_size_y, tile_size_z):
+    # cx, cy, cz are Blender X, Y(depth), Z(height).
+    tx = int(math.floor((cx - origin_x) / tile_size_x))
+    ty = int(math.floor((cz - origin_y) / tile_size_y))   # Blender Z = height → tile Y
+    tz = int(math.floor((cy - origin_z) / tile_size_z))   # Blender Y = depth  → tile Z
+    return tx, ty, tz
+
+
+def overlapping_tile_coords(aabb, origin_x, origin_y, origin_z,
+                            tile_size_x, tile_size_y, tile_size_z, tolerance):
+    """Return all tile (tx, ty, tz) coordinates whose bounds overlap the AABB."""
+    mn, mx = aabb["min"], aabb["max"]
+    # Map Blender axes to tile axes.
+    #
+    # Use an inward tolerance instead of outward expansion so meshes that lie
+    # exactly on the scene-min boundary do not spuriously overlap a negative
+    # tile index.  This keeps assignment stable while still suppressing
+    # boundary-only contact caused by floating-point noise.
+    min_x  = mn[0] + tolerance;  max_x  = mx[0] - tolerance  # Blender X  → tile X
+    min_ty = mn[2] + tolerance;  max_ty = mx[2] - tolerance  # Blender Z  → tile Y
+    min_tz = mn[1] + tolerance;  max_tz = mx[1] - tolerance  # Blender Y  → tile Z
+
+    if min_x > max_x:
+        center_x = (mn[0] + mx[0]) * 0.5
+        min_x = center_x
+        max_x = center_x
+    if min_ty > max_ty:
+        center_ty = (mn[2] + mx[2]) * 0.5
+        min_ty = center_ty
+        max_ty = center_ty
+    if min_tz > max_tz:
+        center_tz = (mn[1] + mx[1]) * 0.5
+        min_tz = center_tz
+        max_tz = center_tz
+
+    tx0 = int(math.floor((min_x  - origin_x) / tile_size_x))
+    tx1 = int(math.floor((max_x  - origin_x) / tile_size_x))
+    ty0 = int(math.floor((min_ty - origin_y) / tile_size_y))
+    ty1 = int(math.floor((max_ty - origin_y) / tile_size_y))
+    tz0 = int(math.floor((min_tz - origin_z) / tile_size_z))
+    tz1 = int(math.floor((max_tz - origin_z) / tile_size_z))
+
+    return [(tx, ty, tz)
+            for tx in range(tx0, tx1 + 1)
+            for ty in range(ty0, ty1 + 1)
+            for tz in range(tz0, tz1 + 1)]
+
+
+def xz_tile_overlap_count(aabb, origin_x, origin_z, tile_size_x, tile_size_z, tolerance):
+    """Return the number of tiles overlapped in the XZ plane only.
+
+    Classification uses XZ overlap count because the Y (height) dimension is
+    inflated by TILE_SIZE_Y = 10000 — using 3D overlap count would undercount
+    for small TILE_SIZE_Y values or overcount for very tall objects.
+    """
+    mn, mx = aabb["min"], aabb["max"]
+    min_x  = mn[0] + tolerance;  max_x  = mx[0] - tolerance
+    min_tz = mn[1] + tolerance;  max_tz = mx[1] - tolerance  # Blender Y → tile Z
+
+    if min_x > max_x:
+        center_x = (mn[0] + mx[0]) * 0.5
+        min_x = center_x
+        max_x = center_x
+    if min_tz > max_tz:
+        center_tz = (mn[1] + mx[1]) * 0.5
+        min_tz = center_tz
+        max_tz = center_tz
+
+    tx0 = int(math.floor((min_x  - origin_x) / tile_size_x))
+    tx1 = int(math.floor((max_x  - origin_x) / tile_size_x))
+    tz0 = int(math.floor((min_tz - origin_z) / tile_size_z))
+    tz1 = int(math.floor((max_tz - origin_z) / tile_size_z))
+
+    return (tx1 - tx0 + 1) * (tz1 - tz0 + 1)
+
+
+def tile_bounds_from_coord(tx, ty, tz, origin_x, origin_y, origin_z,
+                           tile_size_x, tile_size_y, tile_size_z):
+    """Return tile bounds in internal Blender-space axis naming.
+
+    Keys use tile-space names (x/y/z) where:
+      tile X  = Blender X    (min_x/max_x)
+      tile Y  = Blender Z    (min_y/max_y) — height
+      tile Z  = Blender Y    (min_z/max_z) — depth
+    """
+    min_x = origin_x + tx * tile_size_x
+    min_y = origin_y + ty * tile_size_y
+    min_z = origin_z + tz * tile_size_z
+    return {
+        "min_x": min_x, "max_x": min_x + tile_size_x,
+        "min_y": min_y, "max_y": min_y + tile_size_y,
+        "min_z": min_z, "max_z": min_z + tile_size_z,
+    }
+
+
+def tile_bounds_aabb_usd(tile_bounds):
+    """Convert tile_bounds dict to a USD-space AABB dict suitable for the manifest."""
+    return aabb_to_usd_space({
+        "min": (tile_bounds["min_x"], tile_bounds["min_z"], tile_bounds["min_y"]),
+        "max": (tile_bounds["max_x"], tile_bounds["max_z"], tile_bounds["max_y"]),
+    })
+
+
+# ============================================================
+# SECTION 4: CLASSIFICATION
+# Each mesh object receives exactly one export_policy:
+#
+#   local_overlap         — AABB fits within SPANNING_THRESHOLD_TILES × tile_size
+#                           AND XZ overlap <= OVERLAP_THRESHOLD.
+#                           Exported per-tile with bmesh clipping.
+#
+#   shared_bucket         — Exceeds one or both spanning thresholds.
+#                           Exported once to a shared USD, loaded at large radius.
+#
+#   future_split_candidate — Also spanning, but dimension ratio is extreme
+#                           (> FUTURE_SPLIT_TILE_THRESHOLD).  Exported to shared
+#                           bucket for now; marked for future splitting pass.
+#
+# The classification is explicit and logged in the manifest so you can audit
+# decisions without re-running the script.
+# ============================================================
+
+def classify_mesh(aabb, tile_size_x, tile_size_z, xz_overlap_count, overlap_threshold):
+    """Classify a mesh given its world AABB and XZ tile overlap count.
+
+    Args:
+      overlap_threshold: effective XZ-tile overlap limit (use _effective_overlap_threshold()).
+
+    Returns a dict with:
+      policy          : "local_overlap" | "shared_bucket" | "future_split_candidate"
+      xz_overlap_count: int
+      dimensions      : [width_x, depth_y, height_z]  (Blender units, rounded)
+      dim_ratio       : max(width, depth) / max(tile_x, tile_z)
+      reasons         : list of classification reason strings
+    """
+    mn, mx = aabb["min"], aabb["max"]
+    width  = mx[0] - mn[0]   # Blender X
+    depth  = mx[1] - mn[1]   # Blender Y (ground-plane depth)
+    height = mx[2] - mn[2]   # Blender Z (height)
+
+    base_tile  = max(tile_size_x, tile_size_z, 1e-9)
+    ratio_w    = width  / base_tile
+    ratio_d    = depth  / base_tile
+    dim_ratio  = max(ratio_w, ratio_d)
+
+    reasons = []
+    if ratio_w > SPANNING_THRESHOLD_TILES:
+        reasons.append("width_threshold")
+    if ratio_d > SPANNING_THRESHOLD_TILES:
+        reasons.append("depth_threshold")
+    if xz_overlap_count > overlap_threshold:
+        reasons.append("overlap_threshold")
+
+    is_spanning = bool(reasons)
+
+    if not is_spanning:
+        policy = "local_overlap"
+    elif dim_ratio > FUTURE_SPLIT_TILE_THRESHOLD:
+        policy = "future_split_candidate"
+    else:
+        policy = "shared_bucket"
+
+    return {
+        "policy":           policy,
+        "xz_overlap_count": xz_overlap_count,
+        "dimensions":       [round(width, 3), round(depth, 3), round(height, 3)],
+        "dim_ratio":        round(dim_ratio, 2),
+        "reasons":          reasons,
+    }
+
+
+# ============================================================
+# SECTION 5: ASSIGNMENT
+# ============================================================
+
+def _intersect_aabb(a, b):
+    """Return the AABB intersection of a and b, or None if they don't overlap.
+
+    Used to clamp a spanning object's routing AABB to the local-geometry bounds
+    so that tile assignments are only created where building geometry actually is.
+    """
+    mn = (max(a["min"][0], b["min"][0]),
+          max(a["min"][1], b["min"][1]),
+          max(a["min"][2], b["min"][2]))
+    mx = (min(a["max"][0], b["max"][0]),
+          min(a["max"][1], b["max"][1]),
+          min(a["max"][2], b["max"][2]))
+    if mn[0] >= mx[0] or mn[1] >= mx[1] or mn[2] >= mx[2]:
+        return None
+    return {"min": mn, "max": mx}
+
+
+def build_assignments(objects, object_bounds, origin_x, origin_y, origin_z,
+                      tile_size_x, tile_size_y, tile_size_z):
+    """Classify all objects and partition them into tile assignments and shared bucket.
+
+    Two-pass design:
+      Pass 1 — classify every object; collect the bounding box of local-only geometry.
+      Pass 2 — route objects to tiles, clamping spanning objects' routing AABB to
+               the local-geometry bounds.  This prevents spanning objects from
+               creating tiles in the empty space between the scene origin (which is
+               set by the overall AABB including spanning meshes) and where the
+               actual building geometry is.
+
+    Returns:
+      tile_assignments  : {(tx,ty,tz): [obj, ...]}
+      shared_objects    : [obj, ...]           — spanning / future-split
+      classification_map: {name: classify_result}
+    """
+    classification_map = {}
+    eff_overlap_thr    = _effective_overlap_threshold()
+
+    # --- Pass 1: classify ---
+    for obj in objects:
+        aabb     = object_bounds[obj.name]
+        xz_count = xz_tile_overlap_count(
+            aabb, origin_x, origin_z, tile_size_x, tile_size_z, SPLIT_CLIP_EPSILON
+        )
+        classification_map[obj.name] = classify_mesh(
+            aabb, tile_size_x, tile_size_z, xz_count, eff_overlap_thr
+        )
+
+    # Build the bounding box of local-only objects.  Spanning objects are
+    # clamped to this box so their tile assignments stay within the populated
+    # region of the scene rather than spreading across the empty margins
+    # introduced by large-AABB spanning geometry.
+    local_aabbs = [object_bounds[n] for n, r in classification_map.items()
+                   if r["policy"] == "local_overlap"]
+    if local_aabbs:
+        local_bounds = {
+            "min": (min(a["min"][0] for a in local_aabbs),
+                    min(a["min"][1] for a in local_aabbs),
+                    min(a["min"][2] for a in local_aabbs)),
+            "max": (max(a["max"][0] for a in local_aabbs),
+                    max(a["max"][1] for a in local_aabbs),
+                    max(a["max"][2] for a in local_aabbs)),
+        }
+    else:
+        local_bounds = None
+
+    # --- Pass 2: route ---
+    tile_assignments = {}
+    shared_objects   = []
+
+    for obj in objects:
+        aabb   = object_bounds[obj.name]
+        result = classification_map[obj.name]
+
+        route_to_tiles = (
+            result["policy"] == "local_overlap"
+            or (
+                SPLIT_SPANNING_OBJECTS
+                and result["policy"] in ("shared_bucket", "future_split_candidate")
+                and result["xz_overlap_count"] <= SPLIT_MAX_TILES
+            )
+        )
+
+        if route_to_tiles:
+            # Clamp spanning objects to local-geometry bounds.
+            if result["policy"] != "local_overlap" and local_bounds is not None:
+                routing_aabb = _intersect_aabb(aabb, local_bounds)
+                if routing_aabb is None:
+                    # Spanning object has no overlap with local geometry — treat
+                    # as shared bucket even if it passed the tile-count gate.
+                    shared_objects.append(obj)
+                    continue
+            else:
+                routing_aabb = aabb
+
+            coords = overlapping_tile_coords(
+                routing_aabb, origin_x, origin_y, origin_z,
+                tile_size_x, tile_size_y, tile_size_z,
+                SPLIT_CLIP_EPSILON,
+            )
+            for coord in coords:
+                tile_assignments.setdefault(coord, []).append(obj)
+        else:
+            shared_objects.append(obj)
+
+    return tile_assignments, shared_objects, classification_map
+
+
+# ============================================================
+# SECTION 6: BLENDER SCENE HELPERS
+# ============================================================
+
+@contextmanager
+def scene_context(scene):
+    view_layer = scene.view_layers[0]
+    if hasattr(bpy.context, "temp_override"):
+        with bpy.context.temp_override(scene=scene, view_layer=view_layer):
+            yield
+        return
+
+    window = bpy.context.window
+    if window is None:
+        raise RuntimeError("No active Blender window for operator context.")
+
+    original_scene = window.scene
+    original_vl    = window.view_layer
+    try:
+        window.scene      = scene
+        window.view_layer = view_layer
+        yield
+    finally:
+        window.scene      = original_scene
+        window.view_layer = original_vl
+
+
+def remove_scene(scene):
+    bpy.data.scenes.remove(scene)
+
+
+def set_scene_selection(scene, objects):
+    view_layer = scene.view_layers[0]
+    for obj in scene.objects:
+        try:
+            obj.select_set(False, view_layer=view_layer)
+        except TypeError:
+            obj.select_set(False)
+    for obj in objects:
+        try:
+            obj.select_set(True, view_layer=view_layer)
+        except TypeError:
+            obj.select_set(True)
+    view_layer.objects.active = objects[0] if objects else None
+
+
+def bake_object_world_transform_to_mesh_data(obj, world_matrix=None):
+    """Apply world_matrix to mesh vertices and reset the object to the origin.
+
+    Pass world_matrix explicitly (captured via the evaluated depsgraph) so the
+    function never needs to re-read obj.matrix_world — which can be stale in a
+    freshly-created temp scene before the depsgraph is updated.
+    """
+    if obj.type != "MESH" or obj.data is None:
+        return
+    mesh = obj.data
+    if world_matrix is None:
+        world_matrix = obj.matrix_world.copy()
+
+    mesh.transform(world_matrix)
+
+    # A matrix with negative determinant encodes a reflection (mirror modifier,
+    # scale=-1 on one axis).  mesh.transform() moves vertices but does NOT flip
+    # triangle winding — without this correction the mesh is inside-out.
+    if world_matrix.determinant() < 0:
+        mesh.flip_normals()
+
+    obj.matrix_world          = Matrix.Identity(4)
+    obj.matrix_parent_inverse = Matrix.Identity(4)
+    obj.parent                = None
+    mesh.update()
+
+
+def duplicate_objects_to_scene(source_objects, temp_scene, bake_world=True):
+    """Copy objects into a temporary scene, baking world transforms if requested.
+
+    Uses the evaluated depsgraph to capture matrix_world so that parent-chain
+    transforms (including USD import axis-correction empties) are fully resolved.
+    Passing the captured matrix directly to bake_object_world_transform avoids a
+    set/read race where setting obj.matrix_world schedules a deferred depsgraph
+    update that has not yet fired when we read it back.
+    """
+    new_objects = []
+    src_collection = temp_scene.collection
+    depsgraph = bpy.context.evaluated_depsgraph_get() if bake_world else None
+
+    for src_obj in source_objects:
+        if bake_world:
+            world_mat = src_obj.evaluated_get(depsgraph).matrix_world.copy()
+        else:
+            world_mat = None
+
+        new_obj = src_obj.copy()
+        if src_obj.data:
+            new_obj.data = src_obj.data.copy()
+        src_collection.objects.link(new_obj)
+
+        if bake_world:
+            new_obj.parent                = None
+            new_obj.matrix_parent_inverse = Matrix.Identity(4)
+            bake_object_world_transform_to_mesh_data(new_obj, world_matrix=world_mat)
+
+        new_objects.append(new_obj)
+
+    return new_objects
+
+
+def bisect_mesh_with_plane(bm, plane_co, plane_no):
+    geom = bm.verts[:] + bm.edges[:] + bm.faces[:]
+    if not geom:
+        return
+    bmesh.ops.bisect_plane(
+        bm, geom=geom,
+        plane_co=plane_co, plane_no=plane_no,
+        clear_inner=False, clear_outer=False,
+    )
+
+
+def is_point_outside_tile(point, min_x, max_x, min_y, max_y, min_z, max_z):
+    return (point.x < min_x or point.x > max_x or
+            point.z < min_y or point.z > max_y or   # Blender Z vs tile Y
+            point.y < min_z or point.y > max_z)     # Blender Y vs tile Z
+
+
+def clip_bmesh_to_tile(bm, tile_bounds, epsilon):
+    """Bisect bm at all six tile planes and delete faces outside the bounds."""
+    e = epsilon
+    min_x = tile_bounds["min_x"] - e;  max_x = tile_bounds["max_x"] + e
+    min_y = tile_bounds["min_y"] - e;  max_y = tile_bounds["max_y"] + e   # height
+    min_z = tile_bounds["min_z"] - e;  max_z = tile_bounds["max_z"] + e   # depth
+
+    bisect_mesh_with_plane(bm, (tile_bounds["min_x"], 0, 0), ( 1, 0, 0))
+    bisect_mesh_with_plane(bm, (tile_bounds["max_x"], 0, 0), (-1, 0, 0))
+    bisect_mesh_with_plane(bm, (0, tile_bounds["min_z"], 0), (0,  1, 0))
+    bisect_mesh_with_plane(bm, (0, tile_bounds["max_z"], 0), (0, -1, 0))
+    bisect_mesh_with_plane(bm, (0, 0, tile_bounds["min_y"]), (0, 0,  1))
+    bisect_mesh_with_plane(bm, (0, 0, tile_bounds["max_y"]), (0, 0, -1))
+
+    outside = [f for f in bm.faces
+               if is_point_outside_tile(f.calc_center_median(),
+                                        min_x, max_x, min_y, max_y, min_z, max_z)]
+    if outside:
+        bmesh.ops.delete(bm, geom=outside, context="FACES")
+
+    # Remove geometry left over from the bisect that has no faces.
+    loose_edges = [e for e in bm.edges if not e.link_faces]
+    if loose_edges:
+        bmesh.ops.delete(bm, geom=loose_edges, context="EDGES")
+    loose_verts = [v for v in bm.verts if not v.link_faces and not v.link_edges]
+    if loose_verts:
+        bmesh.ops.delete(bm, geom=loose_verts, context="VERTS")
+
+    bm.normal_update()
+
+
+def clip_objects_to_tile(objects, tile_bounds, epsilon):
+    """Clip a list of (already-baked) mesh objects to tile_bounds in place.
+
+    Returns (kept_objects, removed_count).
+    Objects that are completely outside the bounds after clipping are deleted.
+    """
+    kept    = []
+    removed = 0
+
+    for obj in objects:
+        if obj.type != "MESH" or obj.data is None:
+            continue
+        mesh = obj.data
+        bm   = bmesh.new()
+        try:
+            bm.from_mesh(mesh)
+            if not bm.verts:
+                bpy.data.objects.remove(obj, do_unlink=True)
+                if mesh.users == 0:
+                    bpy.data.meshes.remove(mesh)
+                removed += 1
+                continue
+
+            clip_bmesh_to_tile(bm, tile_bounds, epsilon)
+            bm.to_mesh(mesh)
+            try:
+                mesh.validate(clean_customdata=False)
+            except TypeError:
+                mesh.validate()
+            if hasattr(mesh, "calc_normals"):
+                mesh.calc_normals()
+            mesh.update()
+        finally:
+            bm.free()
+
+        if len(mesh.vertices) == 0 or len(mesh.polygons) == 0:
+            bpy.data.objects.remove(obj, do_unlink=True)
+            if mesh.users == 0:
+                bpy.data.meshes.remove(mesh)
+            removed += 1
+            continue
+
+        kept.append(obj)
+
+    return kept, removed
+
+
+# ============================================================
+# SECTION 7: USD EXPORT HELPERS
+# ============================================================
+
+def get_operator_properties(operator):
+    try:
+        rna = operator.get_rna_type()
+    except Exception:
+        return {}
+    return {prop.identifier: prop for prop in rna.properties}
+
+
+def set_supported_kwarg(kwargs, props, names, value):
+    for name in names:
+        if name in props:
+            kwargs[name] = value
+            return name
+    return None
+
+
+def choose_enum_identifier(prop, preferred_identifiers, fallback_substrings=None):
+    if getattr(prop, "type", None) != "ENUM":
+        return preferred_identifiers[0] if preferred_identifiers else None
+    enum_items = [item.identifier for item in prop.enum_items]
+    enum_set   = set(enum_items)
+    for candidate in preferred_identifiers:
+        if candidate in enum_set:
+            return candidate
+    if fallback_substrings:
+        lowered = [(item, item.upper()) for item in enum_items]
+        for substring in fallback_substrings:
+            needle = substring.upper()
+            for original, upper in lowered:
+                if needle in upper:
+                    return original
+    return None
+
+
+def choose_file_format_identifier(prop, desired_format):
+    normalized = desired_format.lower().lstrip(".")
+    preferred = {
+        "usdc": ["USDC", "usdc", "Binary"],
+        "usda": ["USDA", "usda", "ASCII"],
+        "usdz": ["USDZ", "usdz"],
+    }.get(normalized, [normalized.upper(), normalized])
+    return choose_enum_identifier(prop, preferred, fallback_substrings=[normalized.upper()])
+
+
+def build_usd_export_kwargs(filepath):
+    props  = get_operator_properties(bpy.ops.wm.usd_export)
+    kwargs = {"filepath": filepath}
+    used   = []
+
+    if set_supported_kwarg(kwargs, props, ("selected_objects_only", "selected_objects"), True):
+        used.append("selected_objects_only")
+    if set_supported_kwarg(kwargs, props, ("visible_objects_only", "visible_objects"), False):
+        used.append("visible_objects_only")
+
+    for names, value, label in (
+        (("export_animation",),          False, "export_animation"),
+        (("export_uvmaps",),             True,  "export_uvmaps"),
+        (("export_normals",),            True,  "export_normals"),
+        (("export_materials",),          True,  "export_materials"),
+        (("export_textures",),           True,  "export_textures"),
+        (("generate_preview_surface",),  True,  "generate_preview_surface"),
+        (("overwrite_textures",),        True,  "overwrite_textures"),
+        (("root_prim_path",),            "/Root", "root_prim_path"),
+    ):
+        if set_supported_kwarg(kwargs, props, names, value):
+            used.append(label)
+
+    format_prop_name = next(
+        (c for c in ("file_format", "export_format") if c in props), None
+    )
+    if format_prop_name:
+        fmt = choose_file_format_identifier(props[format_prop_name], EXPORT_FORMAT.lower())
+        if fmt is not None:
+            kwargs[format_prop_name] = fmt
+            used.append(format_prop_name)
+
+    if set_supported_kwarg(kwargs, props, ("convert_orientation",), True):
+        used.append("convert_orientation")
+
+    for candidates, preferred, fallback, label in (
+        (
+            ("export_global_forward_selection", "forward_axis"),
+            ("-Z", "NEGATIVE_Z", "Z_NEGATIVE"), ("NEG", "Z"),
+            "forward_axis",
+        ),
+        (
+            ("export_global_up_selection", "up_axis"),
+            ("Y", "+Y", "POSITIVE_Y", "Y_POSITIVE"), ("POS", "Y"),
+            "up_axis",
+        ),
+    ):
+        prop_name = next((c for c in candidates if c in props), None)
+        if prop_name:
+            val = choose_enum_identifier(props[prop_name], preferred, fallback)
+            if val is not None:
+                kwargs[prop_name] = val
+                used.append(label)
+
+    print(f"USD export args: {sorted(used)}")
+    return kwargs
+
+
+# ============================================================
+# MESH MERGING (material-based)
+# Objects sharing identical materials are joined into a single
+# mesh before USD export, reducing per-tile draw calls.
+# ============================================================
+
+def _principled_bsdf_node(mat):
+    """Find the first Principled BSDF node in a material's node tree."""
+    node_tree = getattr(mat, "node_tree", None) if mat is not None else None
+    if not mat or node_tree is None:
+        return None
+    for node in node_tree.nodes:
+        if node.type == 'BSDF_PRINCIPLED':
+            return node
+    return None
+
+
+def _input_image_path(bsdf, input_name):
+    """Extract the resolved image filepath connected to a BSDF input.
+
+    Follows one level of indirection for Normal Map and Bump nodes.
+    Returns the filepath string, or None if no image is connected.
+    """
+    inp = bsdf.inputs.get(input_name)
+    if inp is None or not inp.is_linked:
+        return None
+    node = inp.links[0].from_node
+    # Direct image texture connection.
+    if node.type == 'TEX_IMAGE' and node.image:
+        return node.image.filepath_from_user()
+    # Normal Map → Color → Image Texture
+    if node.type == 'NORMAL_MAP':
+        color_inp = node.inputs.get('Color')
+        if color_inp and color_inp.is_linked:
+            inner = color_inp.links[0].from_node
+            if inner.type == 'TEX_IMAGE' and inner.image:
+                return inner.image.filepath_from_user()
+    # Bump → Height → Image Texture
+    if node.type == 'BUMP':
+        height_inp = node.inputs.get('Height')
+        if height_inp and height_inp.is_linked:
+            inner = height_inp.links[0].from_node
+            if inner.type == 'TEX_IMAGE' and inner.image:
+                return inner.image.filepath_from_user()
+    return None
+
+
+def _input_scalar_key(bsdf, input_name):
+    """Return a rounded scalar or colour tuple for a non-linked BSDF input."""
+    inp = bsdf.inputs.get(input_name)
+    if inp is None or inp.is_linked:
+        return None
+    val = getattr(inp, 'default_value', None)
+    if val is None:
+        return None
+    if hasattr(val, '__iter__'):
+        return tuple(round(float(v), 4) for v in val)
+    return round(float(val), 4)
+
+
+def _single_material_key(mat):
+    """Hashable identity for one Blender material.
+
+    Two materials with identical keys produce identical visual output after
+    USD export and can safely share a merged mesh.
+    """
+    if mat is None:
+        return "__none__"
+    bsdf = _principled_bsdf_node(mat)
+    if bsdf is None:
+        # Non-node material or no Principled BSDF: fall back to datablock name.
+        return f"name:{mat.name_full}"
+    parts = []
+    for channel in ('Base Color', 'Metallic', 'Roughness', 'Normal',
+                    'Emission Color', 'Alpha'):
+        img = _input_image_path(bsdf, channel)
+        if img is not None:
+            parts.append(f"{channel}:img:{img}")
+        else:
+            scalar = _input_scalar_key(bsdf, channel)
+            if scalar is not None:
+                parts.append(f"{channel}:val:{scalar}")
+            else:
+                parts.append(f"{channel}:empty")
+    return "|".join(parts)
+
+
+def material_merge_key(obj):
+    """Hashable key for the full material configuration of a mesh object.
+
+    Objects with identical keys can be joined without visual change.
+    Multi-material objects are keyed by the ordered tuple of per-slot keys.
+    """
+    if not obj.material_slots:
+        return ("__no_material__",)
+    return tuple(_single_material_key(slot.material) for slot in obj.material_slots)
+
+
+def _merge_objects_in_scene(group, temp_scene):
+    """Merge already-baked meshes without bpy.ops.object.join().
+
+    The temp export pipeline bakes evaluated world transforms into mesh vertices
+    and resets each duplicate object to identity.  Calling join() afterwards can
+    still re-read stale C-side object transforms and apply the USD import
+    axis-correction a second time.  A pure data-level merge avoids that class of
+    bug entirely.
+    """
+    base_obj = group[0]
+    merged_bm = bmesh.new()
+    material_slots = [slot.material for slot in base_obj.material_slots]
+    old_mesh = None
+
+    try:
+        for obj in group:
+            if obj.type != "MESH" or obj.data is None:
+                continue
+            mesh = obj.data
+            if len(mesh.materials) != len(material_slots):
+                raise RuntimeError(
+                    f"Material slot count mismatch while merging {obj.name}: "
+                    f"{len(mesh.materials)} != {len(material_slots)}"
+                )
+
+            # Objects are expected to be baked to identity before merge, but apply
+            # the matrix defensively in case a future call path violates that.
+            if obj.matrix_world != Matrix.Identity(4):
+                raise RuntimeError(f"Object {obj.name} was not baked to identity before merge")
+            merged_bm.from_mesh(mesh)
+
+        merged_mesh = bpy.data.meshes.new(f"{base_obj.data.name}_merged")
+        merged_bm.to_mesh(merged_mesh)
+        merged_mesh.update()
+
+        for mat in material_slots:
+            merged_mesh.materials.append(mat)
+
+        old_mesh = base_obj.data
+        base_obj.data = merged_mesh
+    finally:
+        merged_bm.free()
+
+    # Remove merged-away objects and their temporary mesh datablocks from the temp scene.
+    for obj in group[1:]:
+        mesh = obj.data
+        if temp_scene.objects.get(obj.name) is obj:
+            bpy.data.objects.remove(obj, do_unlink=True)
+        elif obj.users == 0:
+            bpy.data.objects.remove(obj)
+        if mesh and mesh.users == 0:
+            bpy.data.meshes.remove(mesh)
+
+    if old_mesh and old_mesh.users == 0:
+        bpy.data.meshes.remove(old_mesh)
+
+    base_obj.matrix_world = Matrix.Identity(4)
+    base_obj.matrix_parent_inverse = Matrix.Identity(4)
+    base_obj.parent = None
+    return base_obj
+
+
+def merge_objects_by_material(objects, temp_scene):
+    """Join objects that share identical material(s) into single meshes.
+
+    Objects must already have baked world transforms (identity matrix).  Merge
+    is performed at the mesh-data level instead of via bpy.ops.object.join() so
+    stale object transform caches cannot double-apply importer axis corrections.
+
+    Returns the reduced object list.
+    """
+    if len(objects) <= 1:
+        return objects
+
+    groups = {}
+    non_mesh = []
+    for obj in objects:
+        if obj.type != 'MESH' or obj.data is None:
+            non_mesh.append(obj)
+            continue
+        key = material_merge_key(obj)
+        groups.setdefault(key, []).append(obj)
+
+    result = list(non_mesh)
+    total_mesh_input = sum(len(g) for g in groups.values())
+    total_merged_away = 0
+    for key, group in groups.items():
+        if len(group) == 1:
+            result.append(group[0])
+            continue
+
+        try:
+            merged = _merge_objects_in_scene(group, temp_scene)
+            total_merged_away += len(group) - 1
+            result.append(merged)
+        except Exception as ex:
+            print(f"  Warning: mesh merge failed ({len(group)} objects): {ex}")
+            result.extend(group)
+
+    if total_merged_away > 0:
+        print(f"  Mesh merge: {total_mesh_input} → {total_mesh_input - total_merged_away} "
+              f"objects ({total_merged_away} eliminated)")
+
+    return result
+
+
+# ============================================================
+# HLOD SIMPLIFICATION
+# ============================================================
+
+def simplify_objects_for_hlod(objects, temp_scene, reduction_ratio):
+    """Apply a Decimate modifier to each mesh object and commit the result.
+
+    The depsgraph must be evaluated inside the temp scene context — otherwise
+    bpy.context.evaluated_depsgraph_get() returns the *main* scene's graph,
+    which knows nothing about the temp scene's objects or their modifiers,
+    causing the Decimate to silently produce an unmodified mesh.
+    """
+    simplified = []
+    removed = 0
+
+    for obj in objects:
+        if obj.type != "MESH" or obj.data is None:
+            continue
+
+        mesh = obj.data
+        if len(mesh.polygons) == 0:
+            if obj in temp_scene.objects:
+                bpy.data.objects.remove(obj, do_unlink=True)
+            elif obj.users == 0:
+                bpy.data.objects.remove(obj)
+            if mesh.users == 0:
+                bpy.data.meshes.remove(mesh)
+            removed += 1
+            continue
+
+        modifier = obj.modifiers.new(name="__hlod_decimate__", type='DECIMATE')
+        modifier.ratio = reduction_ratio
+        modifier.use_collapse_triangulate = True
+
+        with scene_context(temp_scene):
+            depsgraph = bpy.context.evaluated_depsgraph_get()
+            eval_obj = obj.evaluated_get(depsgraph)
+            try:
+                simplified_mesh = bpy.data.meshes.new_from_object(
+                    eval_obj,
+                    preserve_all_data_layers=True,
+                    depsgraph=depsgraph,
+                )
+            except TypeError:
+                try:
+                    simplified_mesh = bpy.data.meshes.new_from_object(
+                        eval_obj,
+                        preserve_all_data_layers=True,
+                    )
+                except TypeError:
+                    simplified_mesh = bpy.data.meshes.new_from_object(eval_obj)
+        if simplified_mesh is None:
+            raise RuntimeError(f"Failed to evaluate HLOD decimation for {obj.name}")
+
+        old_mesh = obj.data
+        obj.modifiers.remove(modifier)
+        obj.data = simplified_mesh
+
+        if old_mesh and old_mesh.users == 0:
+            bpy.data.meshes.remove(old_mesh)
+
+        if len(simplified_mesh.vertices) == 0 or len(simplified_mesh.polygons) == 0:
+            bpy.data.objects.remove(obj, do_unlink=True)
+            if simplified_mesh.users == 0:
+                bpy.data.meshes.remove(simplified_mesh)
+            removed += 1
+            continue
+
+        simplified.append(obj)
+
+    return simplified, removed
+
+
+# ============================================================
+# SECTION 8: TILE AND SHARED EXPORT
+# ============================================================
+
+def export_local_tile(filepath, objects, tile_bounds, source_scene_path):
+    """Export clipped geometry for one tile-local entry.
+
+    No quick_has_geometry pre-check is performed.  The bmesh clip step
+    determines emptiness directly — this correctly handles edges that cross
+    tile boundaries without landing any vertex inside the tile, a case that
+    a vertex-only pre-check would wrongly skip.
+    """
+    if not objects:
+        return False, "No objects assigned to tile"
+    if not BAKE_WORLD_TRANSFORMS:
+        return False, "BAKE_WORLD_TRANSFORMS must be True for clipped export"
+    source_asset_path = resolve_runtime_source_asset_path(source_scene_path, filepath)
+
+    temp_scene = bpy.data.scenes.new("TEMP_TILE_EXPORT")
+    try:
+        temp_objs = duplicate_objects_to_scene(objects, temp_scene, bake_world=True)
+
+        if CLIP_LOCAL_MESHES:
+            temp_objs, removed = clip_objects_to_tile(temp_objs, tile_bounds, SPLIT_CLIP_EPSILON)
+            if not temp_objs:
+                return False, "No geometry after clipping"
+            if removed:
+                print(f"  Clipped away {removed} empty object(s)")
+
+        if MERGE_BY_MATERIAL and len(temp_objs) > 1:
+            temp_objs = merge_objects_by_material(temp_objs, temp_scene)
+            if not temp_objs:
+                return False, "No geometry after merge"
+
+        with scene_context(temp_scene):
+            export_objects_to_untold(
+                temp_objs,
+                source_asset_path=source_asset_path,
+                output_path=Path(filepath).resolve(),
+                file_type_name="tile",
+                convert_orientation=CONVERT_ORIENTATION,
+                source_orientation=SOURCE_ORIENTATION,
+            )
+    finally:
+        remove_scene(temp_scene)
+
+    return True, None
+
+
+def export_shared_bucket(filepath, objects, source_scene_path):
+    """Export all spanning objects to a single shared USD file.
+
+    Spanning objects are NOT clipped.  The shared bucket is a monolithic asset
+    loaded at a large streaming radius (effectively always visible), providing
+    a continuous backdrop while the tile-local detail system streams around it.
+
+    Keeping this as a separate export function creates a natural extension point:
+    future passes can pre-process these objects (simplify, split, LOD-generate)
+    before handing them to this function.
+    """
+    if not objects:
+        return False, "No spanning objects"
+    source_asset_path = resolve_runtime_source_asset_path(source_scene_path, filepath)
+
+    if BAKE_WORLD_TRANSFORMS:
+        temp_scene = bpy.data.scenes.new("TEMP_SHARED_EXPORT")
+        try:
+            temp_objs = duplicate_objects_to_scene(objects, temp_scene, bake_world=True)
+            if MERGE_BY_MATERIAL and len(temp_objs) > 1:
+                temp_objs = merge_objects_by_material(temp_objs, temp_scene)
+            with scene_context(temp_scene):
+                export_objects_to_untold(
+                    temp_objs,
+                    source_asset_path=source_asset_path,
+                    output_path=Path(filepath).resolve(),
+                    file_type_name="shared",
+                    convert_orientation=CONVERT_ORIENTATION,
+                    source_orientation=SOURCE_ORIENTATION,
+                )
+        finally:
+            remove_scene(temp_scene)
+    else:
+        source_scene = bpy.context.scene
+        with scene_context(source_scene):
+            export_objects_to_untold(
+                objects,
+                source_asset_path=source_asset_path,
+                output_path=Path(filepath).resolve(),
+                file_type_name="shared",
+                convert_orientation=CONVERT_ORIENTATION,
+                source_orientation=SOURCE_ORIENTATION,
+            )
+
+    return True, None
+
+
+def export_hlod_tile(filepath, objects, tile_bounds, reduction_ratio, source_scene_path, file_type_name):
+    """Export one simplified HLOD asset for a tile-local geometry set."""
+    if not objects:
+        return False, "No objects assigned to tile"
+    if not BAKE_WORLD_TRANSFORMS:
+        return False, "BAKE_WORLD_TRANSFORMS must be True for HLOD export"
+    source_asset_path = resolve_runtime_source_asset_path(source_scene_path, filepath)
+
+    temp_scene = bpy.data.scenes.new("TEMP_HLOD_EXPORT")
+    try:
+        temp_objs = duplicate_objects_to_scene(objects, temp_scene, bake_world=True)
+
+        if CLIP_LOCAL_MESHES:
+            temp_objs, removed = clip_objects_to_tile(temp_objs, tile_bounds, SPLIT_CLIP_EPSILON)
+            if not temp_objs:
+                return False, "No geometry after clipping"
+            if removed:
+                print(f"  HLOD clip removed {removed} empty object(s)")
+
+        if MERGE_BY_MATERIAL and len(temp_objs) > 1:
+            temp_objs = merge_objects_by_material(temp_objs, temp_scene)
+            if not temp_objs:
+                return False, "No geometry after merge"
+
+        temp_objs, removed = simplify_objects_for_hlod(temp_objs, temp_scene, reduction_ratio)
+        if not temp_objs:
+            return False, "No geometry after HLOD simplification"
+        if removed:
+            print(f"  HLOD simplification removed {removed} empty object(s)")
+
+        with scene_context(temp_scene):
+            export_objects_to_untold(
+                temp_objs,
+                source_asset_path=source_asset_path,
+                output_path=Path(filepath).resolve(),
+                file_type_name=file_type_name,
+                convert_orientation=CONVERT_ORIENTATION,
+                source_orientation=SOURCE_ORIENTATION,
+            )
+    finally:
+        remove_scene(temp_scene)
+
+    return True, None
+
+
+# ============================================================
+# SECTION 9: DEBUG AABB EXPORT
+# ============================================================
+
+def tile_debug_color(tx, ty, tz):
+    hue = ((tx * 73 + ty * 31 + tz * 113) % 360) / 360.0
+    r, g, b = colorsys.hsv_to_rgb(hue, 0.85, 0.95)
+    return (r, g, b, 1.0)
+
+
+def export_debug_aabb(filepath, tile_bounds, color):
+    """Export a solid-color cube matching tile_bounds — no real geometry needed.
+
+    Built via bpy.data (not bpy.ops.mesh.primitive_cube_add) so it works in
+    non-interactive / background script contexts where operators require an
+    active 3-D viewport.
+    """
+    x0, x1 = tile_bounds["min_x"], tile_bounds["max_x"]
+    y0, y1 = tile_bounds["min_z"], tile_bounds["max_z"]   # Blender Y (depth)
+    z0, z1 = tile_bounds["min_y"], tile_bounds["max_y"]   # Blender Z (height)
+
+    verts = [
+        (x0,y0,z0),(x1,y0,z0),(x1,y1,z0),(x0,y1,z0),
+        (x0,y0,z1),(x1,y0,z1),(x1,y1,z1),(x0,y1,z1),
+    ]
+    faces = [(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)]
+
+    mesh_data = bpy.data.meshes.new("__debug_aabb_mesh__")
+    mesh_data.from_pydata(verts, [], faces)
+    mesh_data.update()
+
+    mat = bpy.data.materials.new("__debug_tile_mat__")
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    if bsdf:
+        bsdf.inputs["Base Color"].default_value = color
+    mesh_data.materials.append(mat)
+
+    cube = bpy.data.objects.new("__debug_aabb_cube__", mesh_data)
+    temp_scene = bpy.data.scenes.new("__debug_aabb_export__")
+    try:
+        temp_scene.collection.objects.link(cube)
+        with scene_context(temp_scene):
+            export_objects_to_untold(
+                [cube],
+                source_asset_path=resolve_runtime_source_asset_path(bpy.data.filepath, filepath),
+                output_path=Path(filepath).resolve(),
+                file_type_name="tile",
+                convert_orientation=CONVERT_ORIENTATION,
+                source_orientation=SOURCE_ORIENTATION,
+            )
+    finally:
+        remove_scene(temp_scene)
+        if cube.users == 0:
+            bpy.data.objects.remove(cube)
+        if mesh_data.users == 0:
+            bpy.data.meshes.remove(mesh_data)
+        if mat.users == 0:
+            bpy.data.materials.remove(mat)
+
+    return True, None
+
+
+def resolve_runtime_source_asset_path(source_scene_path, fallback_output_path):
+    if source_scene_path:
+        return Path(source_scene_path).expanduser().resolve()
+    return Path(fallback_output_path).expanduser().resolve()
+
+
+def relative_metadata_path(path, base_dir):
+    if not path:
+        return None
+    try:
+        return os.path.relpath(path, base_dir)
+    except Exception:
+        return os.path.basename(path)
+
+
+# ============================================================
+# SECTION 10: STREAMING DEFAULTS
+# ============================================================
+
+def compute_streaming_defaults(base_tile_size, scene_half_diag):
+    streaming = min(
+        base_tile_size * STREAMING_RADIUS_TILE_MULTIPLIER,
+        scene_half_diag * STREAMING_RADIUS_SCENE_FRACTION,
+    )
+    unload = min(
+        base_tile_size * UNLOAD_RADIUS_TILE_MULTIPLIER,
+        scene_half_diag * UNLOAD_RADIUS_SCENE_FRACTION,
+    )
+    unload = max(unload, streaming * 1.5)   # guarantee hysteresis
+    return streaming, unload
+
+
+def compute_shared_streaming_radii(scene_half_diag):
+    r  = scene_half_diag * SHARED_STREAMING_RADIUS_FRACTION
+    ur = scene_half_diag * SHARED_UNLOAD_RADIUS_FRACTION
+    ur = max(ur, r * 1.5)
+    return r, ur
+
+
+# ============================================================
+# SECTION 11: MEMORY ESTIMATION
+# ============================================================
+
+def estimate_mesh_memory_bytes(mesh):
+    v = len(mesh.vertices);  e = len(mesh.edges)
+    l = len(mesh.loops);     p = len(mesh.polygons)
+    est = v*56 + e*32 + l*24 + p*32
+    if hasattr(mesh, "uv_layers"):
+        for layer in mesh.uv_layers:
+            est += len(layer.data) * 8
+    if hasattr(mesh, "color_attributes"):
+        for attr in mesh.color_attributes:
+            bpe = 16 if getattr(attr, "data_type", "") in (
+                "FLOAT_COLOR","FLOAT_VECTOR","FLOAT4X4","FLOAT2","FLOAT") else 4
+            est += len(attr.data) * bpe
+    return max(est, 0)
+
+
+def estimate_object_memory_bytes(obj, mesh_size_cache):
+    if obj.type != "MESH" or obj.data is None:
+        return 1024
+    key = obj.data.name_full
+    if key not in mesh_size_cache:
+        mesh_size_cache[key] = estimate_mesh_memory_bytes(obj.data)
+    return mesh_size_cache[key] + 1024
+
+
+def estimate_tile_memory(tile_objects, tile_coverage_counts, mesh_size_cache):
+    """Estimate tile memory, prorating shared objects by how many tiles they cover."""
+    total = 0.0
+    for obj in tile_objects:
+        base     = estimate_object_memory_bytes(obj, mesh_size_cache)
+        coverage = max(1, tile_coverage_counts.get(obj.name, 1))
+        total   += base / coverage
+    return int(round(total))
+
+
+def build_tile_coverage_counts(tile_assignments):
+    counts = {}
+    for tile_objs in tile_assignments.values():
+        seen = set()
+        for obj in tile_objs:
+            if obj.name not in seen:
+                counts[obj.name] = counts.get(obj.name, 0) + 1
+                seen.add(obj.name)
+    return counts
+
+
+# ============================================================
+# SECTION 12: TILE PREVIEW (Blender viewport visualization)
+# ============================================================
+
+def create_tile_preview(tile_assignments, shared_objects, origin_x, origin_y, origin_z,
+                        tile_size_x, tile_size_y, tile_size_z):
+    """Create wireframe boxes in a 'Tile Preview' collection.
+
+    Green = sparse local tile, red = busy local tile, blue = shared-bucket objects.
+    Set Viewport Shading > Color > Object to see the coloring.
+    """
+    COLLECTION_NAME = "Tile Preview"
+    if COLLECTION_NAME in bpy.data.collections:
+        old_col = bpy.data.collections[COLLECTION_NAME]
+        for obj in list(old_col.objects):
+            md = obj.data if obj.type == "MESH" else None
+            bpy.data.objects.remove(obj, do_unlink=True)
+            if md and md.users == 0:
+                bpy.data.meshes.remove(md)
+        bpy.data.collections.remove(old_col)
+
+    col = bpy.data.collections.new(COLLECTION_NAME)
+    bpy.context.scene.collection.children.link(col)
+
+    non_empty = [(coord, objs) for coord, objs in tile_assignments.items() if objs]
+    max_count = max((len(o) for _, o in non_empty), default=1)
+
+    for (tx, ty, tz), tile_objs in non_empty:
+        tb = tile_bounds_from_coord(tx, ty, tz, origin_x, origin_y, origin_z,
+                                    tile_size_x, tile_size_y, tile_size_z)
+        cx = (tb["min_x"] + tb["max_x"]) * 0.5
+        cy = (tb["min_z"] + tb["max_z"]) * 0.5   # Blender Y
+        cz = (tb["min_y"] + tb["max_y"]) * 0.5   # Blender Z
+        sx = tb["max_x"] - tb["min_x"]
+        sy = tb["max_z"] - tb["min_z"]
+        sz = tb["max_y"] - tb["min_y"]
+
+        md = bpy.data.meshes.new(f"tile_{tx}_{ty}_{tz}_preview")
+        bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.0); bm.to_mesh(md); bm.free()
+        obj = bpy.data.objects.new(f"tile_{tx}_{ty}_{tz}", md)
+        obj.location = (cx, cy, cz)
+        obj.scale    = (sx, sy, sz)
+        obj.display_type = "WIRE"
+        obj.hide_select  = True
+        t = len(tile_objs) / max(max_count, 1)
+        obj.color = (min(1.0, t*2.0), min(1.0, (1-t)*2.0), 0.0, 1.0)
+        col.objects.link(obj)
+
+    print(f"Tile Preview: {len(col.objects)} local-tile boxes + "
+          f"{len(shared_objects)} shared-bucket objects (not visualised as boxes).")
+    print("  Viewport Shading > Color > Object  →  green=sparse / red=busy")
+
+
+# ============================================================
+# SECTION 13: AUTO TILE SIZING
+# Uses centroid-only assignment (fast) to find a tile size that
+# keeps tile count and objects-per-tile within targets, then the
+# real overlap-based assignment is run at that size.
+# ============================================================
+
+def centroid_assignments_for_sizing(objects, object_bounds,
+                                    origin_x, origin_y, origin_z,
+                                    tile_size_x, tile_size_y, tile_size_z):
+    assignments = {}
+    for obj in objects:
+        aabb = object_bounds[obj.name]
+        cx, cy, cz = aabb_center(aabb)
+        coord = tile_coord_from_point(cx, cy, cz,
+                                      origin_x, origin_y, origin_z,
+                                      tile_size_x, tile_size_y, tile_size_z)
+        assignments.setdefault(coord, []).append(obj)
+    return assignments
+
+
+def choose_auto_tile_size(objects, object_bounds, scene_bounds, origin_y, tile_size_y):
+    origin_x   = scene_bounds["min"][0]
+    origin_z   = scene_bounds["min"][1]
+    extent_x   = max(scene_bounds["max"][0] - scene_bounds["min"][0], 1e-9)
+    extent_z   = max(scene_bounds["max"][1] - scene_bounds["min"][1], 1e-9)
+    scene_area = extent_x * extent_z
+
+    target_obj    = max(1, int(AUTO_TILE_TARGET_OBJECTS_PER_TILE))
+    target_w_tol  = max(1.0, target_obj * max(AUTO_TILE_OBJECT_TARGET_TOLERANCE, 0.01))
+    max_tiles     = max(1, int(AUTO_TILE_TARGET_MAX_TILES))
+    desired_count = min(max_tiles, max(1, int(math.ceil(len(objects) / target_obj))))
+    tile_size     = clamp(math.sqrt(scene_area / max(desired_count, 1)),
+                          AUTO_TILE_MIN_SIZE, AUTO_TILE_MAX_SIZE)
+
+    best = {}; best_count = 0; best_max_obj = 0; best_avg = 0.0; iters = 0
+    met_tiles = False; met_obj = False
+
+    for it in range(1, max(1, int(AUTO_TILE_MAX_ITERATIONS)) + 1):
+        asgn        = centroid_assignments_for_sizing(objects, object_bounds,
+                                                      origin_x, origin_y, origin_z,
+                                                      tile_size, tile_size_y, tile_size)
+        tc          = len(asgn)
+        max_obj_t   = max((len(o) for o in asgn.values()), default=0)
+        avg_obj_t   = (sum(len(o) for o in asgn.values()) / tc) if tc else 0.0
+        best        = asgn; best_count = tc; best_max_obj = max_obj_t
+        best_avg    = avg_obj_t; iters = it
+
+        tiles_ok    = tc <= max_tiles
+        objs_ok     = max_obj_t <= target_w_tol
+        if tiles_ok and objs_ok:
+            met_tiles = True; met_obj = True; break
+
+        tile_v  = (tc / max_tiles)            if max_tiles else 1.0
+        obj_v   = (max_obj_t / target_w_tol)
+        if (not objs_ok) and (tiles_ok or obj_v >= tile_v):
+            scale = math.sqrt(max(obj_v, 1.0001)) * max(AUTO_TILE_SAFETY_SCALE, 1.0)
+            next_size = clamp(tile_size / scale, AUTO_TILE_MIN_SIZE, AUTO_TILE_MAX_SIZE)
+        else:
+            scale = math.sqrt(max(tile_v, 1.0001)) * max(AUTO_TILE_SAFETY_SCALE, 1.0)
+            next_size = clamp(tile_size * scale, AUTO_TILE_MIN_SIZE, AUTO_TILE_MAX_SIZE)
+
+        if abs(next_size - tile_size) <= 1e-6:
+            break
+        tile_size = next_size
+
+    if best_count <= max_tiles:
+        met_tiles = True
+    if best_max_obj <= target_w_tol:
+        met_obj = True
+
+    return tile_size, tile_size, {
+        "enabled": True,
+        "selected_tile_size": tile_size, "estimated_tile_count": best_count,
+        "max_objects_in_tile": best_max_obj, "avg_objects_in_tile": best_avg,
+        "iterations_used": iters,
+        "met_target_max_tiles": met_tiles, "met_target_objects_per_tile": met_obj,
+    }
+
+
+# ============================================================
+# SECTION 14: DRY-RUN DIAGNOSTICS
+# ============================================================
+
+def print_dry_run_report(tile_assignments, shared_objects, classification_map,
+                         object_bounds, tile_size_x, tile_size_z,
+                         mesh_size_cache, tile_coverage_counts,
+                         scene_bounds=None):
+    local_names   = [n for n, r in classification_map.items()
+                     if r["policy"] == "local_overlap"]
+    shared_names  = [n for n, r in classification_map.items()
+                     if r["policy"] == "shared_bucket"]
+    split_names   = [n for n, r in classification_map.items()
+                     if r["policy"] == "future_split_candidate"]
+
+    eff_thr = _effective_overlap_threshold()
+
+    # Scene-bounds / tile-grid diagnostics
+    print("\n=== SCENE DIAGNOSTICS ===")
+    if scene_bounds:
+        bx0, bx1 = scene_bounds["min"][0], scene_bounds["max"][0]
+        bz0, bz1 = scene_bounds["min"][1], scene_bounds["max"][1]
+        span_x = bx1 - bx0
+        span_z = bz1 - bz0
+        tiles_x = math.ceil(span_x / tile_size_x) if tile_size_x > 0 else 0
+        tiles_z = math.ceil(span_z / tile_size_z) if tile_size_z > 0 else 0
+        print(f"  Scene XZ footprint  : X [{bx0:.1f}, {bx1:.1f}] = {span_x:.1f} units")
+        print(f"                        Z [{bz0:.1f}, {bz1:.1f}] = {span_z:.1f} units")
+        print(f"  Tile size           : {tile_size_x} × {tile_size_z}")
+        print(f"  Implied grid        : ~{tiles_x} × {tiles_z} = {tiles_x*tiles_z} tiles")
+        print(f"  Spanning dim limit  : {SPANNING_THRESHOLD_TILES} × {tile_size_x} = "
+              f"{SPANNING_THRESHOLD_TILES * tile_size_x:.0f} units  (objects wider than this → shared)")
+        print(f"  Overlap threshold   : {eff_thr} tiles  "
+              f"({'auto: ' + str(SPANNING_THRESHOLD_TILES) + '²' if OVERLAP_THRESHOLD is None else 'manual'})")
+    else:
+        print(f"  (scene_bounds not available)")
+        print(f"  Tile size           : {tile_size_x} × {tile_size_z}")
+        print(f"  Overlap threshold   : {eff_thr}")
+
+    # Per-object detail
+    print("\n=== OBJECT CLASSIFICATION ===")
+    for name, result in sorted(classification_map.items(),
+                               key=lambda kv: kv[1]["xz_overlap_count"], reverse=True):
+        aabb = object_bounds[name]
+        print(
+            f"  {name}\n"
+            f"    AABB min={tuple(round(v,2) for v in aabb['min'])} "
+            f"max={tuple(round(v,2) for v in aabb['max'])}\n"
+            f"    dims={result['dimensions']}  dim_ratio={result['dim_ratio']}  "
+            f"xz_overlaps={result['xz_overlap_count']}\n"
+            f"    policy={result['policy']}  reasons={result['reasons']}"
+        )
+
+    # Tile summary
+    if tile_assignments:
+        counts = [(coord, len(objs)) for coord, objs in tile_assignments.items() if objs]
+        counts.sort(key=lambda x: x[1], reverse=True)
+        busiest = counts[:5]
+        max_count = counts[0][1] if counts else 0
+        tile_mems = []
+        for coord, tile_objs in tile_assignments.items():
+            if tile_objs:
+                m = estimate_tile_memory(tile_objs, tile_coverage_counts, mesh_size_cache)
+                tile_mems.append(m)
+
+        print(f"\n=== TILE SUMMARY ===")
+        print(f"  Local tiles planned : {len(counts)}")
+        print(f"  Max objects/tile    : {max_count}")
+        print(f"  Busiest tiles       : {[f'tile_{c[0][0]}_{c[0][1]}_{c[0][2]}({c[1]})' for c in busiest]}")
+        if tile_mems:
+            print(f"  Total est. memory   : {format_bytes(sum(tile_mems))}")
+            print(f"  Peak tile est. mem  : {format_bytes(max(tile_mems))}")
+
+        # Object-count distribution
+        bucket_labels = [1, 5, 10, 25, 50, 100, 250, 500]
+        print("  Object-count distribution across tiles:")
+        prev = 0
+        all_counts = [c for _, c in counts]
+        max_c = max(all_counts)
+        for b in bucket_labels + [max_c + 1]:
+            bucket = [c for c in all_counts if prev < c <= b]
+            if bucket or b <= max_c:
+                label = f"  {prev+1:>4}-{b:>4}" if b <= max_c else f"  {prev+1:>4}+    "
+                bar = "#" * min(len(bucket), 40)
+                print(f"{label} objs: {len(bucket):>4} tiles  {bar}")
+            prev = b
+
+    # Merge potential (material-based)
+    if MERGE_BY_MATERIAL and tile_assignments:
+        merge_before, merge_after = 0, 0
+        best_reduction_tile = None
+        best_reduction_count = 0
+        for coord, tile_objs in tile_assignments.items():
+            if not tile_objs:
+                continue
+            groups = {}
+            for obj in tile_objs:
+                if obj.type != 'MESH' or obj.data is None:
+                    continue
+                key = material_merge_key(obj)
+                groups.setdefault(key, []).append(obj)
+            n_before = sum(len(g) for g in groups.values())
+            n_after = len(groups)
+            merge_before += n_before
+            merge_after += n_after
+            tile_reduction = n_before - n_after
+            if tile_reduction > best_reduction_count:
+                best_reduction_count = tile_reduction
+                best_reduction_tile = coord
+        reduction = merge_before - merge_after
+        pct = (100 * reduction // max(merge_before, 1)) if merge_before > 0 else 0
+        print(f"\n=== MERGE POTENTIAL (MERGE_BY_MATERIAL=True) ===")
+        print(f"  Tile-local meshes    : {merge_before}")
+        print(f"  After material merge : {merge_after}")
+        print(f"  Draw call reduction  : {reduction} ({pct}%)")
+        unique_keys = set()
+        for coord, tile_objs in tile_assignments.items():
+            for obj in tile_objs:
+                if obj.type == 'MESH' and obj.data is not None:
+                    unique_keys.add(material_merge_key(obj))
+        print(f"  Unique material keys : {len(unique_keys)}")
+        if best_reduction_tile:
+            tx, ty, tz = best_reduction_tile
+            print(f"  Best tile            : tile_{tx}_{ty}_{tz} "
+                  f"({best_reduction_count} objects merged away)")
+
+    # Shared bucket summary
+    print(f"\n=== SHARED BUCKET SUMMARY ===")
+    print(f"  Shared objects      : {len(shared_names)}")
+    print(f"  Future-split flagged: {len(split_names)}")
+    if shared_objects:
+        shared_total = sum(
+            estimate_object_memory_bytes(obj, mesh_size_cache)
+            for obj in shared_objects
+        )
+        print(f"  Shared est. memory  : {format_bytes(shared_total)}")
+        by_ratio = sorted(shared_names + split_names,
+                          key=lambda n: classification_map[n]["dim_ratio"], reverse=True)
+        print(f"  Largest by dim_ratio: {by_ratio[:10]}")
+
+    print(f"\n=== OVERALL SUMMARY ===")
+    total = len(classification_map)
+    print(f"  Total objects       : {total}")
+    print(f"  Local               : {len(local_names)} ({100*len(local_names)//max(total,1)}%)")
+    print(f"  Shared bucket       : {len(shared_names)}")
+    print(f"  Future-split        : {len(split_names)}")
+    if classification_map:
+        overlaps = [r["xz_overlap_count"] for r in classification_map.values()]
+        print(f"  Avg XZ overlap      : {sum(overlaps)/len(overlaps):.1f}")
+        print(f"  Max XZ overlap      : {max(overlaps)}")
+
+
+# ============================================================
+# SECTION 15: MAIN
+# ============================================================
+
+def run():
+    source_scene_path = resolve_source_scene_path()
+    if ERROR_IF_UNSAVED_SOURCE_NOT_FOUND and not bpy.data.filepath and not source_scene_path:
+        raise RuntimeError(
+            "Unsaved .blend and no USD source path found. "
+            "Set SOURCE_SCENE_PATH_OVERRIDE to your .usd/.usdz path."
+        )
+
+    # When an explicit USD/USDZ input is provided, use that asset as the source
+    # scene content for partitioning. This makes the CLI behave like the single-
+    # asset exporter instead of operating on Blender's current scene contents
+    # (for example the default startup cube under --factory-startup).
+    if source_scene_path and is_usd_filepath(source_scene_path):
+        clear_scene()
+        import_usd_asset(Path(source_scene_path))
+
+    output_dir = resolve_output_dir(OUTPUT_DIR, source_scene_path)
+    model_dir  = os.path.dirname(os.path.normpath(output_dir)) or output_dir
+    hlod_levels_config = validate_hlod_levels() if GENERATE_HLOD else []
+    active_hlod_levels = [] if DEBUG_AABB_ONLY else hlod_levels_config
+    lod_levels_config  = validate_lod_levels() if GENERATE_LOD else []
+    active_lod_levels  = [] if DEBUG_AABB_ONLY else lod_levels_config
+
+    if DEBUG_AABB_ONLY and (GENERATE_HLOD or GENERATE_LOD):
+        print("DEBUG_AABB_ONLY=True: HLOD/LOD export disabled for this run.")
+
+    if not DRY_RUN or DRY_RUN_WRITE_MANIFEST:
+        ensure_dir(output_dir)
+        ensure_dir(model_dir)
+    else:
+        print("DRY_RUN enabled: no files will be written.")
+
+    # ------------------------------------------------------------------
+    # Gather objects and compute world bounds
+    # ------------------------------------------------------------------
+    objects = get_candidate_objects()
+    if not objects:
+        print("No mesh objects found.")
+        return
+
+    object_bounds = compute_object_bounds(objects)
+    scene_bounds  = scene_world_bounds(objects)   # Blender (X, Y_depth, Z_height)
+
+    # Origins for tile coordinate mapping
+    origin_x = scene_bounds["min"][0]   # Blender X
+    origin_y = scene_bounds["min"][2]   # Blender Z height → tile Y
+    origin_z = scene_bounds["min"][1]   # Blender Y depth  → tile Z
+
+    # ------------------------------------------------------------------
+    # Tile sizing (manual or auto)
+    # ------------------------------------------------------------------
+    if AUTO_TILE_SIZE:
+        tile_size_x, tile_size_z, auto_info = choose_auto_tile_size(
+            objects, object_bounds, scene_bounds, origin_y, TILE_SIZE_Y
+        )[:3]
+        tile_size_y = TILE_SIZE_Y
+        print(
+            f"Auto tile size: {tile_size_x:.2f} × {tile_size_z:.2f}  "
+            f"(tiles≈{auto_info['estimated_tile_count']}, "
+            f"max_obj/tile={auto_info['max_objects_in_tile']}, "
+            f"iters={auto_info['iterations_used']})"
+        )
+        if not auto_info["met_target_max_tiles"]:
+            print("Warning: auto sizing could not reach target tile count.")
+        if not auto_info["met_target_objects_per_tile"]:
+            print("Warning: auto sizing could not reach objects-per-tile target.")
+    else:
+        tile_size_x, tile_size_y, tile_size_z = TILE_SIZE_X, TILE_SIZE_Y, TILE_SIZE_Z
+        auto_info = None
+
+    base_tile = max(tile_size_x, tile_size_z)
+
+    # ------------------------------------------------------------------
+    # Streaming defaults (tile-local)
+    # ------------------------------------------------------------------
+    scene_half_diag = 0.5 * math.sqrt(
+        (scene_bounds["max"][0] - scene_bounds["min"][0]) ** 2 +
+        (scene_bounds["max"][1] - scene_bounds["min"][1]) ** 2
+    )
+    streaming_r, unload_r = compute_streaming_defaults(base_tile, scene_half_diag)
+    shared_r, shared_ur   = compute_shared_streaming_radii(scene_half_diag)
+
+    # Resolve the representation ladder into world-space switch distances.
+    # HLOD sits near the unload edge; tile LODs are eased across the mid band.
+    active_hlod_levels = compute_hlod_switch_distances(
+        streaming_r,
+        unload_r,
+        active_hlod_levels,
+    )
+    active_lod_levels = compute_lod_switch_distances(
+        streaming_r,
+        unload_r,
+        active_hlod_levels,
+        active_lod_levels,
+    )
+    if active_hlod_levels or active_lod_levels:
+        print(
+            "Resolved streaming ladder: "
+            f"stream={streaming_r:.2f}, unload={unload_r:.2f}, "
+            f"HLOD={[l['switch_distance'] for l in active_hlod_levels]}, "
+            f"LOD={[l['switch_distance'] for l in active_lod_levels]}"
+        )
+
+    # ------------------------------------------------------------------
+    # Classify and assign
+    # ------------------------------------------------------------------
+    tile_assignments, shared_objects, classification_map = build_assignments(
+        objects, object_bounds,
+        origin_x, origin_y, origin_z,
+        tile_size_x, tile_size_y, tile_size_z,
+    )
+
+    local_count   = sum(1 for r in classification_map.values() if r["policy"] == "local_overlap")
+    spanning_routed = sum(
+        1 for r in classification_map.values()
+        if SPLIT_SPANNING_OBJECTS
+        and r["policy"] in ("shared_bucket", "future_split_candidate")
+        and r["xz_overlap_count"] <= SPLIT_MAX_TILES
+    )
+    capped_count = sum(
+        1 for r in classification_map.values()
+        if r["policy"] in ("shared_bucket", "future_split_candidate")
+        and (not SPLIT_SPANNING_OBJECTS or r["xz_overlap_count"] > SPLIT_MAX_TILES)
+    )
+    print(
+        f"Classification: {len(objects)} objects → "
+        f"{local_count} local"
+        + (f", {spanning_routed} spanning→tiles, {capped_count} spanning→shared bucket"
+           f" (SPLIT_MAX_TILES={SPLIT_MAX_TILES})"
+           if SPLIT_SPANNING_OBJECTS else f", {capped_count} spanning→shared bucket")
+    )
+
+    # ------------------------------------------------------------------
+    # Scene name and manifest path
+    # ------------------------------------------------------------------
+    scene_name = sanitize_name(
+        os.path.splitext(os.path.basename(source_scene_path))[0]
+        if source_scene_path else os.path.basename(model_dir)
+    )
+    manifest_path      = os.path.join(model_dir, f"{scene_name}.json")
+    shared_bucket_name = f"{scene_name}_shared"
+    ext                = EXPORT_FORMAT.lower().lstrip(".")
+    shared_filepath    = os.path.join(output_dir, f"{shared_bucket_name}.{ext}")
+
+    # ------------------------------------------------------------------
+    # Build manifest skeleton
+    # ------------------------------------------------------------------
+    # scene_bounds stored in USD space (X, Y_up, -Z)
+    sb_usd = aabb_to_usd_space({
+        "min": (scene_bounds["min"][0], scene_bounds["min"][1], scene_bounds["min"][2]),
+        "max": (scene_bounds["max"][0], scene_bounds["max"][1], scene_bounds["max"][2]),
+    })
+
+    manifest = {
+        "version": 3,
+        "dry_run": DRY_RUN,
+        "debug_aabb_only": DEBUG_AABB_ONLY,
+        "source_scene_name": os.path.basename(source_scene_path) if source_scene_path else None,
+        "payload_dir_relative_to_manifest": os.path.relpath(output_dir, model_dir),
+        "axis_convention": {"up": "+Y", "forward": "+Z", "tile_plane": "XZ"},
+        "tile_size_mode": "auto" if AUTO_TILE_SIZE else "manual",
+        "tile_size": {"x": tile_size_x, "y": tile_size_y, "z": tile_size_z},
+        "scene_bounds": {"min": list(sb_usd["min"]), "max": list(sb_usd["max"])},
+        "streaming_defaults": {
+            "streaming_radius": streaming_r,
+            "unload_radius": unload_r,
+            "priority": DEFAULT_STREAMING_PRIORITY,
+        },
+        "classification_config": {
+            "spanning_threshold_tiles": SPANNING_THRESHOLD_TILES,
+            "overlap_threshold": OVERLAP_THRESHOLD,
+            "future_split_tile_threshold": FUTURE_SPLIT_TILE_THRESHOLD,
+        },
+        "hlod_generation": {
+            "enabled": bool(active_hlod_levels),
+            "levels": active_hlod_levels,
+        },
+        "lod_generation": {
+            "enabled": bool(active_lod_levels),
+            "levels": [
+                {"decimate_ratio": l["ratio"], "switch_distance": l["switch_distance"]}
+                for l in active_lod_levels
+            ],
+        },
+        "object_classification": {
+            name: {
+                "export_policy":    r["policy"],
+                "xz_overlap_count": r["xz_overlap_count"],
+                "dimensions":       r["dimensions"],
+                "dim_ratio":        r["dim_ratio"],
+                "reasons":          r["reasons"],
+            }
+            for name, r in classification_map.items()
+        },
+        "shared_bucket": None,
+        "failed_tiles": [],
+        "tiles": [],
+    }
+
+    # ------------------------------------------------------------------
+    # Memory estimation helpers
+    # ------------------------------------------------------------------
+    mesh_size_cache    = {}
+    tile_coverage_counts = build_tile_coverage_counts(tile_assignments)
+
+    # ------------------------------------------------------------------
+    # DRY RUN: report and optionally write manifest
+    # ------------------------------------------------------------------
+    if DRY_RUN:
+        print_dry_run_report(
+            tile_assignments, shared_objects, classification_map,
+            object_bounds, tile_size_x, tile_size_z,
+            mesh_size_cache, tile_coverage_counts,
+            scene_bounds=scene_bounds,
+        )
+
+        # Populate manifest tiles for dry-run output
+        for (tx, ty, tz), tile_objs in sorted(tile_assignments.items()):
+            if not tile_objs:
+                continue
+            tile_bounds = tile_bounds_from_coord(
+                tx, ty, tz, origin_x, origin_y, origin_z,
+                tile_size_x, tile_size_y, tile_size_z,
+            )
+            tile_id  = f"tile_{tx}_{ty}_{tz}"
+            filepath = os.path.join(output_dir, f"{tile_id}.{ext}")
+            aabb_usd = tile_bounds_aabb_usd(tile_bounds)
+            center   = aabb_center(aabb_usd)
+            est_mem  = estimate_tile_memory(tile_objs, tile_coverage_counts, mesh_size_cache)
+            tile_entry = {
+                "tile_id": tile_id,
+                "grid_coord": [tx, ty, tz],
+                "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
+                "hlod_levels": [
+                    {
+                        "path": os.path.relpath(
+                            os.path.join(output_dir, f"{tile_id}{level['suffix']}.{ext}"),
+                            model_dir,
+                        ),
+                        "switch_distance": level["switch_distance"],
+                    }
+                    for level in active_hlod_levels
+                ],
+                "file_size_bytes": 0,
+                "estimated_memory_bytes": est_mem,
+                "bounds": {"min": list(aabb_usd["min"]), "max": list(aabb_usd["max"])},
+                "center": list(center),
+                "object_count": len(tile_objs),
+                "objects": [o.name for o in tile_objs],
+            }
+            if active_lod_levels:
+                tile_entry["lod_levels"] = [
+                    {
+                        "path": os.path.relpath(
+                            os.path.join(output_dir, f"{tile_id}_lod{lod_idx + 1}.{ext}"),
+                            model_dir,
+                        ),
+                        "switch_distance": lod["switch_distance"],
+                    }
+                    for lod_idx, lod in enumerate(active_lod_levels)
+                ]
+            manifest["tiles"].append(tile_entry)
+
+        if shared_objects:
+            shared_aabb     = scene_world_bounds(shared_objects)
+            shared_aabb_usd = aabb_to_usd_space(shared_aabb) if shared_aabb else None
+            shared_center   = aabb_center(shared_aabb_usd) if shared_aabb_usd else [0,0,0]
+            shared_est_mem  = sum(estimate_object_memory_bytes(o, mesh_size_cache)
+                                  for o in shared_objects)
+            manifest["shared_bucket"] = {
+                "tile_id": "shared",
+                "path_relative_to_manifest": os.path.relpath(shared_filepath, model_dir),
+                "export_policy": "shared_bucket",
+                "streaming_radius": shared_r,
+                "unload_radius": shared_ur,
+                "priority": DEFAULT_STREAMING_PRIORITY,
+                "file_size_bytes": 0,
+                "estimated_memory_bytes": shared_est_mem,
+                "bounds": ({"min": list(shared_aabb_usd["min"]),
+                            "max": list(shared_aabb_usd["max"])}
+                           if shared_aabb_usd else None),
+                "center": list(shared_center),
+                "object_count": len(shared_objects),
+                "objects": [
+                    {
+                        "name": obj.name,
+                        "export_policy": classification_map[obj.name]["policy"],
+                        "xz_overlap_count": classification_map[obj.name]["xz_overlap_count"],
+                        "dimensions": classification_map[obj.name]["dimensions"],
+                        "reasons": classification_map[obj.name]["reasons"],
+                    }
+                    for obj in shared_objects
+                ],
+            }
+
+        create_tile_preview(tile_assignments, shared_objects,
+                            origin_x, origin_y, origin_z,
+                            tile_size_x, tile_size_y, tile_size_z)
+
+        if DRY_RUN_WRITE_MANIFEST:
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest, f, indent=2)
+            print(f"Dry-run manifest written to: {manifest_path}")
+        else:
+            print("DRY_RUN_WRITE_MANIFEST=False: manifest not written.")
+        return
+
+    # ------------------------------------------------------------------
+    # FULL EXPORT
+    # ------------------------------------------------------------------
+
+    # --- Export shared bucket ---
+    if shared_objects:
+        print(f"\nExporting shared bucket ({len(shared_objects)} objects) → {shared_filepath}")
+        try:
+            ok, error = export_shared_bucket(shared_filepath, shared_objects, source_scene_path)
+        except Exception as ex:
+            ok, error = False, str(ex)
+
+        if not ok:
+            print(f"  FAILED: {error}")
+        else:
+            shared_aabb     = scene_world_bounds(shared_objects)
+            shared_aabb_usd = aabb_to_usd_space(shared_aabb) if shared_aabb else None
+            shared_center   = aabb_center(shared_aabb_usd) if shared_aabb_usd else [0,0,0]
+            shared_file_sz  = os.path.getsize(shared_filepath) if os.path.isfile(shared_filepath) else 0
+            shared_est_mem  = sum(estimate_object_memory_bytes(o, mesh_size_cache)
+                                  for o in shared_objects)
+            manifest["shared_bucket"] = {
+                "tile_id": "shared",
+                "path_relative_to_manifest": os.path.relpath(shared_filepath, model_dir),
+                "export_policy": "shared_bucket",
+                "streaming_radius": shared_r,
+                "unload_radius": shared_ur,
+                "priority": DEFAULT_STREAMING_PRIORITY,
+                "file_size_bytes": shared_file_sz,
+                "estimated_memory_bytes": shared_est_mem,
+                "bounds": ({"min": list(shared_aabb_usd["min"]),
+                            "max": list(shared_aabb_usd["max"])}
+                           if shared_aabb_usd else None),
+                "center": list(shared_center),
+                "object_count": len(shared_objects),
+                "objects": [
+                    {
+                        "name": obj.name,
+                        "export_policy": classification_map[obj.name]["policy"],
+                        "xz_overlap_count": classification_map[obj.name]["xz_overlap_count"],
+                        "dimensions": classification_map[obj.name]["dimensions"],
+                        "reasons": classification_map[obj.name]["reasons"],
+                    }
+                    for obj in shared_objects
+                ],
+            }
+
+    # --- Export local tiles ---
+    exported_count = 0
+    sorted_tiles   = sorted(tile_assignments.items(),
+                            key=lambda item: (item[0][2], item[0][1], item[0][0]))
+
+    for (tx, ty, tz), tile_objs in sorted_tiles:
+        if not tile_objs:
+            continue
+
+        tile_id     = f"tile_{tx}_{ty}_{tz}"
+        filepath    = os.path.join(output_dir, f"{tile_id}.{ext}")
+        tile_bounds = tile_bounds_from_coord(
+            tx, ty, tz, origin_x, origin_y, origin_z,
+            tile_size_x, tile_size_y, tile_size_z,
+        )
+        aabb_usd  = tile_bounds_aabb_usd(tile_bounds)
+        center    = aabb_center(aabb_usd)
+        est_mem   = estimate_tile_memory(tile_objs, tile_coverage_counts, mesh_size_cache)
+
+        if DEBUG_AABB_ONLY:
+            color = tile_debug_color(tx, ty, tz)
+            print(f"[DEBUG_AABB] {tile_id} → {filepath}")
+            try:
+                ok, error = export_debug_aabb(filepath, tile_bounds, color)
+            except Exception as ex:
+                ok, error = False, str(ex)
+        else:
+            print(f"Exporting {tile_id} ({len(tile_objs)} objects) → {filepath}")
+            try:
+                ok, error = export_local_tile(filepath, tile_objs, tile_bounds, source_scene_path)
+            except Exception as ex:
+                ok, error = False, str(ex)
+
+        if not ok:
+            print(f"  FAILED: {error}")
+            manifest["failed_tiles"].append({
+                "tile_id": tile_id,
+                "grid_coord": [tx, ty, tz],
+                "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
+                "error": error,
+                "candidate_object_count": len(tile_objs),
+            })
+            continue
+
+        hlod_entries = []
+        for level in active_hlod_levels:
+            hlod_filename = f"{tile_id}{level['suffix']}.{ext}"
+            hlod_filepath = os.path.join(output_dir, hlod_filename)
+            print(
+                f"  Exporting HLOD {hlod_filename} "
+                f"(ratio={level['reduction_ratio']:.3f}, switch={level['switch_distance']:.1f})"
+            )
+            try:
+                hlod_ok, hlod_error = export_hlod_tile(
+                    hlod_filepath,
+                    tile_objs,
+                    tile_bounds,
+                    level["reduction_ratio"],
+                    source_scene_path,
+                    "hlod",
+                )
+            except Exception as ex:
+                hlod_ok, hlod_error = False, str(ex)
+
+            if not hlod_ok:
+                print(f"    HLOD FAILED: {hlod_error}")
+                continue
+
+            hlod_entries.append({
+                "path": os.path.relpath(hlod_filepath, model_dir),
+                "switch_distance": level["switch_distance"],
+            })
+
+        # --- Per-tile LOD levels ---
+        lod_entries = []
+        for lod_idx, lod in enumerate(active_lod_levels):
+            lod_n        = lod_idx + 1
+            lod_filename = f"{tile_id}_lod{lod_n}.{ext}"
+            lod_filepath = os.path.join(output_dir, lod_filename)
+            print(
+                f"  Exporting LOD{lod_n} {lod_filename} "
+                f"(ratio={lod['ratio']:.3f}, switch={lod['switch_distance']:.1f})"
+            )
+            try:
+                lod_ok, lod_error = export_hlod_tile(
+                    lod_filepath,
+                    tile_objs,
+                    tile_bounds,
+                    lod["ratio"],
+                    source_scene_path,
+                    "lod",
+                )
+            except Exception as ex:
+                lod_ok, lod_error = False, str(ex)
+
+            if not lod_ok:
+                print(f"    LOD{lod_n} FAILED: {lod_error}")
+                continue
+
+            lod_entries.append({
+                "path": os.path.relpath(lod_filepath, model_dir),
+                "switch_distance": lod["switch_distance"],
+            })
+
+        file_sz = os.path.getsize(filepath) if os.path.isfile(filepath) else 0
+        tile_entry = {
+            "tile_id": tile_id,
+            "grid_coord": [tx, ty, tz],
+            "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
+            "hlod_levels": hlod_entries,
+            "file_size_bytes": file_sz,
+            "estimated_memory_bytes": est_mem,
+            "bounds": {"min": list(aabb_usd["min"]), "max": list(aabb_usd["max"])},
+            "center": list(center),
+            "object_count": len(tile_objs),
+            "objects": [o.name for o in tile_objs],
+        }
+        if lod_entries:
+            tile_entry["lod_levels"] = lod_entries
+        manifest["tiles"].append(tile_entry)
+        exported_count += 1
+
+    # --- Write manifest ---
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
+    print(f"\nDone. {exported_count} local tiles exported.")
+    if manifest["failed_tiles"]:
+        print(f"Failed tiles: {len(manifest['failed_tiles'])}")
+    if manifest["shared_bucket"]:
+        print(f"Shared bucket: {manifest['shared_bucket']['object_count']} objects.")
+    print(f"Manifest written to: {manifest_path}")
+
+
+def parse_args(argv):
+    if "--" in argv:
+        argv = argv[argv.index("--") + 1 :]
+    else:
+        argv = argv[1:]
+
+    parser = argparse.ArgumentParser(
+        description="Partition a Blender scene into UntoldEngine streaming tiles and export .untold payloads plus a manifest."
+    )
+    parser.add_argument("--input", default=None, help="Optional source .usd/.usdz path used for naming and texture/source resolution when the .blend is unsaved.")
+    parser.add_argument("--output-dir", default=None, help="Directory for exported tile payloads. Defaults to the script's OUTPUT_DIR config.")
+    parser.add_argument("--tile-size-x", type=float, default=None, help="Override TILE_SIZE_X.")
+    parser.add_argument("--tile-size-y", type=float, default=10000.0, help="Override TILE_SIZE_Y. Defaults to 10000.")
+    parser.add_argument("--tile-size-z", type=float, default=None, help="Override TILE_SIZE_Z.")
+    parser.add_argument("--dry-run", action="store_true", help="Plan the partition without writing payload files.")
+    parser.add_argument("--write-manifest-in-dry-run", action="store_true", help="Write the manifest JSON even when --dry-run is enabled.")
+    parser.add_argument("--generate-hlod", action="store_true", help="Enable HLOD export regardless of the script default.")
+    parser.add_argument("--generate-lod", action="store_true", help="Enable per-tile LOD export regardless of the script default.")
+    parser.add_argument("--visible-only", action="store_true", help="Export only visible mesh objects.")
+    parser.add_argument("--all-meshes", action="store_true", help="Export all mesh objects, including hidden ones.")
+    parser.add_argument("--debug-aabb-only", action="store_true", help="Export debug AABB payloads instead of real geometry.")
+    parser.add_argument("--auto-tile-size", action="store_true", help="Enable automatic tile-size selection.")
+    return parser.parse_args(argv)
+
+
+def apply_cli_overrides(args):
+    global SOURCE_SCENE_PATH_OVERRIDE
+    global OUTPUT_DIR
+    global TILE_SIZE_X
+    global TILE_SIZE_Y
+    global TILE_SIZE_Z
+    global DRY_RUN
+    global DRY_RUN_WRITE_MANIFEST
+    global GENERATE_HLOD
+    global GENERATE_LOD
+    global VISIBLE_ONLY
+    global DEBUG_AABB_ONLY
+    global AUTO_TILE_SIZE
+
+    if args.input:
+        SOURCE_SCENE_PATH_OVERRIDE = args.input
+    if args.output_dir:
+        OUTPUT_DIR = args.output_dir
+    if args.tile_size_x is not None:
+        TILE_SIZE_X = args.tile_size_x
+    if args.tile_size_y is not None:
+        TILE_SIZE_Y = args.tile_size_y
+    if args.tile_size_z is not None:
+        TILE_SIZE_Z = args.tile_size_z
+    if args.dry_run:
+        DRY_RUN = True
+    if args.write_manifest_in_dry_run:
+        DRY_RUN_WRITE_MANIFEST = True
+    if args.generate_hlod:
+        GENERATE_HLOD = True
+    if args.generate_lod:
+        GENERATE_LOD = True
+    if args.visible_only:
+        VISIBLE_ONLY = True
+    if args.all_meshes:
+        VISIBLE_ONLY = False
+    if args.debug_aabb_only:
+        DEBUG_AABB_ONLY = True
+    if args.auto_tile_size:
+        AUTO_TILE_SIZE = True
+
+
+def main(argv=None):
+    argv = sys.argv if argv is None else argv
+    args = parse_args(argv)
+    apply_cli_overrides(args)
+    run()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))
