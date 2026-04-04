@@ -2080,9 +2080,9 @@ private struct TileBounds: Decodable {
 
 // MARK: - loadTiledScene
 
-/// Load a large scene described by a tile manifest instead of a single USDZ.
+/// Load a large scene described by a tile manifest instead of a single asset file.
 ///
-/// The manifest (JSON) lists spatial tiles — each pointing to a small USDC/USDZ file
+/// The manifest (JSON) lists spatial tiles — each pointing to a small runtime payload
 /// with pre-computed world-space bounds.  This function reads the manifest, clears the
 /// current scene, creates a default camera and light, then registers one lightweight
 /// stub entity per tile.  No geometry is parsed or uploaded at this stage.
@@ -2136,7 +2136,8 @@ public func loadTiledScene(
 /// uploaded here — that happens incrementally as the camera moves.
 ///
 /// Called by loadTiledScene() after JSON decoding.  The manifest is the only public
-/// scene contract; USD/USDZ files are internal tile payloads.
+/// scene contract; tile payloads are runtime implementation details (for example
+/// `.untold`, with legacy USD/USDZ support still present during migration).
 ///
 /// - Parameters:
 ///   - manifest:    Decoded TileManifest to register.
