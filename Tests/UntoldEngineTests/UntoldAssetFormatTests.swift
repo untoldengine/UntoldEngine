@@ -11,6 +11,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import CryptoKit
 import XCTest
 import simd
 @testable import UntoldEngine
@@ -186,6 +187,7 @@ final class UntoldAssetFormatTests: XCTestCase {
 
     private func makeTinyFixture(
         removedChunkTypes: Set<UntoldChunkType> = [],
+        computeHash: Bool = false,
         mutator: ((inout UntoldFileHeaderV1, inout UntoldEntityRecordV1, inout UntoldMeshRecordV1, inout UntoldMaterialRecordV1, inout UntoldTextureRefRecordV1, inout UntoldPBRStaticVertexV1, inout Data) -> Void)? = nil,
         meshMutator: ((inout UntoldMeshRecordV1) -> Void)? = nil,
         chunkEntryMutator: ((inout [UntoldChunkEntryV1]) -> Void)? = nil
@@ -297,7 +299,7 @@ final class UntoldAssetFormatTests: XCTestCase {
         )
 
         header.chunkCount = UInt32(chunkPayloads.count)
-        let (fileData, chunkEntries) = buildFileData(header: header, chunkPayloads: chunkPayloads, chunkEntryMutator: chunkEntryMutator)
+        let (fileData, chunkEntries) = buildFileData(header: header, chunkPayloads: chunkPayloads, computeHash: computeHash, chunkEntryMutator: chunkEntryMutator)
 
         return TinyFixture(
             fileData: fileData,
@@ -437,11 +439,27 @@ final class UntoldAssetFormatTests: XCTestCase {
         return all.filter { !removedChunkTypes.contains($0.type) }
     }
 
+    /// Compute the content hash the same way the Python exporter does:
+    /// SHA-256 of all chunk payloads concatenated in ascending chunk-type order,
+    /// with no alignment padding between them.
+    private func computeContentHash(
+        for chunkPayloads: [(type: UntoldChunkType, data: Data, elementCount: UInt32)]
+    ) -> [UInt8] {
+        let sorted = chunkPayloads.sorted { $0.type.rawValue < $1.type.rawValue }
+        let hashInput = sorted.reduce(Data()) { $0 + $1.data }
+        return Array(SHA256.hash(data: hashInput))
+    }
+
     private func buildFileData(
         header: UntoldFileHeaderV1,
         chunkPayloads: [(type: UntoldChunkType, data: Data, elementCount: UInt32)],
+        computeHash: Bool = false,
         chunkEntryMutator: ((inout [UntoldChunkEntryV1]) -> Void)? = nil
     ) -> (Data, [UntoldChunkEntryV1]) {
+        var header = header
+        if computeHash {
+            header.contentHash = computeContentHash(for: chunkPayloads)
+        }
         let headerWriter = UntoldBinaryWriter()
         header.encode(to: headerWriter)
         let headerData = headerWriter.data
@@ -482,5 +500,31 @@ final class UntoldAssetFormatTests: XCTestCase {
             fileWriter.writeData(chunk.data)
         }
         return (fileWriter.data, chunkEntries)
+    }
+}
+
+// MARK: - contentHash validation tests
+extension UntoldAssetFormatTests {
+    func testFileWithValidHashLoadsSuccessfully() throws {
+        let fixture = makeTinyFixture(computeHash: true)
+        // Should not throw — hash matches the chunk payloads.
+        XCTAssertNoThrow(try UntoldReader().readAsset(from: fixture.fileData))
+    }
+
+    func testTamperedVertexDataRejectedByHashValidation() throws {
+        let fixture = makeTinyFixture(computeHash: true)
+
+        // Find the vertex data chunk and flip one byte inside its payload.
+        guard let vertexEntry = fixture.chunkEntries.first(where: { $0.chunkType == .vertexData }) else {
+            XCTFail("No vertex chunk in fixture")
+            return
+        }
+        var tampered = fixture.fileData
+        let flipOffset = Int(vertexEntry.fileOffset)
+        tampered[flipOffset] ^= 0xFF
+
+        XCTAssertThrowsError(try UntoldReader().readAsset(from: tampered)) { error in
+            XCTAssertEqual(error as? UntoldValidationError, .contentHashMismatch)
+        }
     }
 }
