@@ -106,7 +106,7 @@ public struct UntoldFileHeaderV1: Sendable, Equatable {
         worldBounds: UntoldAABB,
         rootTransform: simd_float4x4 = matrix_identity_float4x4
     ) {
-        self.magic = [85, 78, 84, 79, 76, 68, 0, 0]
+        magic = [85, 78, 84, 79, 76, 68, 0, 0]
         formatVersion = UntoldFormat.version
         self.fileType = fileType
         flags = 0

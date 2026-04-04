@@ -13,8 +13,8 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import simd
-import XCTest
 @testable import UntoldEngine
+import XCTest
 
 final class AssetIntegrationTests: XCTestCase {
     func testReadsExportedRedplayerUntoldFile() throws {

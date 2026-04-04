@@ -16,8 +16,8 @@ import Foundation
 import ImageIO
 import MetalKit
 import UniformTypeIdentifiers
-import XCTest
 @testable import UntoldEngine
+import XCTest
 
 final class NativeFormatMaterialTests: XCTestCase {
     func testRuntimeMaterialLoadsEmissiveTexture() throws {

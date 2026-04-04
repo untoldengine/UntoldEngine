@@ -26,7 +26,7 @@ public final class UntoldReader: @unchecked Sendable {
         var chunks: [UntoldChunkEntryV1] = []
         chunks.reserveCapacity(Int(header.chunkCount))
         for _ in 0 ..< header.chunkCount {
-            chunks.append(try UntoldChunkEntryV1.decode(from: reader))
+            try chunks.append(UntoldChunkEntryV1.decode(from: reader))
         }
         try validateChunkTable(chunks)
         try validateRequiredChunks(in: chunks)
@@ -198,7 +198,7 @@ public final class UntoldReader: @unchecked Sendable {
     }
 
     private func decodeTable<T: UntoldBinaryDecodable>(
-        _ type: T.Type,
+        _: T.Type,
         chunkType: UntoldChunkType,
         from fileData: Data,
         entries: [UntoldChunkEntryV1]
@@ -212,7 +212,7 @@ public final class UntoldReader: @unchecked Sendable {
         var records: [T] = []
         records.reserveCapacity(Int(entry.elementCount))
         for _ in 0 ..< entry.elementCount {
-            records.append(try T.decode(from: chunkReader))
+            try records.append(T.decode(from: chunkReader))
         }
         return records
     }
@@ -364,7 +364,7 @@ public final class UntoldBinaryReader: @unchecked Sendable {
         }
     }
 
-    private func readFixedWidthInteger<T: FixedWidthInteger>(of type: T.Type) throws -> T {
+    private func readFixedWidthInteger<T: FixedWidthInteger>(of _: T.Type) throws -> T {
         let byteCount = MemoryLayout<T>.size
         try require(byteCount)
         let value: T = data.withUnsafeBytes { rawBuffer in
@@ -425,7 +425,7 @@ public final class UntoldBinaryWriter: @unchecked Sendable {
         data.append(0)
     }
 
-    private func writeFixedWidthInteger<T: FixedWidthInteger>(_ value: T) {
+    private func writeFixedWidthInteger(_ value: some FixedWidthInteger) {
         var mutableValue = value
         withUnsafeBytes(of: &mutableValue) { rawBuffer in
             data.append(contentsOf: rawBuffer)

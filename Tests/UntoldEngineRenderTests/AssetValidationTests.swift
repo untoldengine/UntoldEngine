@@ -14,8 +14,8 @@
 
 import Foundation
 import simd
-import XCTest
 @testable import UntoldEngine
+import XCTest
 
 final class AssetValidationTests: XCTestCase {
     func testRedplayerUntoldMatchesValidationJSON() throws {
@@ -139,7 +139,7 @@ final class AssetValidationTests: XCTestCase {
         var vertices: [UntoldPBRStaticVertexV1] = []
         vertices.reserveCapacity(Int(mesh.vertexCount))
         for _ in 0 ..< mesh.vertexCount {
-            vertices.append(try UntoldPBRStaticVertexV1.decode(from: reader))
+            try vertices.append(UntoldPBRStaticVertexV1.decode(from: reader))
         }
         return vertices
     }
@@ -153,11 +153,11 @@ final class AssetValidationTests: XCTestCase {
         switch mesh.indexType {
         case .uint16:
             for _ in 0 ..< mesh.indexCount {
-                indices.append(Int(try reader.readUInt16LE()))
+                try indices.append(Int(reader.readUInt16LE()))
             }
         case .uint32:
             for _ in 0 ..< mesh.indexCount {
-                indices.append(Int(try reader.readUInt32LE()))
+                try indices.append(Int(reader.readUInt32LE()))
             }
         }
         return indices
@@ -239,7 +239,7 @@ private struct UntoldValidationTangent: Decodable {
     let handedness: Float
 }
 
-private extension Array where Element == Float {
+private extension [Float] {
     var simd3: SIMD3<Float> {
         precondition(count == 3, "Expected exactly 3 floats")
         return SIMD3<Float>(self[0], self[1], self[2])

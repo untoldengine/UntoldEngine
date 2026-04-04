@@ -1127,7 +1127,7 @@ public struct Mesh {
         var vertices: [UntoldPBRStaticVertexV1] = []
         vertices.reserveCapacity(expectedCount)
         for _ in 0 ..< expectedCount {
-            vertices.append(try UntoldPBRStaticVertexV1.decode(from: reader))
+            try vertices.append(UntoldPBRStaticVertexV1.decode(from: reader))
         }
         return vertices
     }

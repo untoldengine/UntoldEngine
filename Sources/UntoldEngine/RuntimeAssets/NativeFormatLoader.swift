@@ -86,7 +86,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             if entity.parentEntityId == UntoldFormat.invalidIndex {
                 worldTransform = simd_mul(rootTransform, entity.localTransform)
             } else if let parent = entitiesByID[entity.parentEntityId] {
-                worldTransform = simd_mul(try resolvedWorldTransform(for: parent), entity.localTransform)
+                worldTransform = try simd_mul(resolvedWorldTransform(for: parent), entity.localTransform)
             } else {
                 throw RuntimeAssetLoaderError.malformedAsset("Entity \(entity.entityId) references missing parent \(entity.parentEntityId)")
             }
@@ -99,7 +99,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             try makeRuntimeNode(
                 from: entity,
                 decoded: decoded,
-                resolvedWorldTransform: try resolvedWorldTransform(for: entity),
+                resolvedWorldTransform: resolvedWorldTransform(for: entity),
                 runtimeMaterials: runtimeMaterials,
                 vertexChunkData: vertexChunkData,
                 indexChunkData: indexChunkData
@@ -227,8 +227,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         decoded: UntoldDecodedAsset,
         baseURL: URL
     ) throws -> RuntimeMaterialSource {
-        RuntimeMaterialSource(
-            name: try decoded.string(at: material.nameOffset),
+        try RuntimeMaterialSource(
+            name: decoded.string(at: material.nameOffset),
             baseColorFactor: material.baseColorFactor,
             emissiveFactor: material.emissiveFactor,
             normalScale: material.normalScale,
@@ -237,12 +237,12 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             occlusionStrength: material.occlusionStrength,
             alphaCutoff: material.alphaCutoff,
             flags: material.flags,
-            baseColorTexture: try textureReference(at: material.baseColorTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: true),
-            normalTexture: try textureReference(at: material.normalTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
-            metallicTexture: try textureReference(at: material.metallicTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
-            roughnessTexture: try textureReference(at: material.roughnessTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
-            emissiveTexture: try textureReference(at: material.emissiveTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: true),
-            occlusionTexture: try textureReference(at: material.occlusionTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false)
+            baseColorTexture: textureReference(at: material.baseColorTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: true),
+            normalTexture: textureReference(at: material.normalTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
+            metallicTexture: textureReference(at: material.metallicTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
+            roughnessTexture: textureReference(at: material.roughnessTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false),
+            emissiveTexture: textureReference(at: material.emissiveTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: true),
+            occlusionTexture: textureReference(at: material.occlusionTextureIndex, decoded: decoded, baseURL: baseURL, isSRGB: false)
         )
     }
 

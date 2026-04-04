@@ -440,11 +440,11 @@ class BaseRenderSetup: XCTestCase {
 
         cameraLookAt(entityId: camera, eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
 
-//        // Stadium (static mesh)
-//        let stadium = createEntity()
-//        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdz")
-//        translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
-//        setEntityName(entityId: stadium, name: "stadium")
+        // Stadium (static mesh)
+        let stadium = createEntity()
+        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdz")
+        translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
+        setEntityName(entityId: stadium, name: "stadium")
 
         // Player (animated, named for lookup)
         let player = createEntity()
@@ -458,9 +458,9 @@ class BaseRenderSetup: XCTestCase {
         translateBy(entityId: ball, position: simd_float3(0.0, 0.4, 3.0))
 
         // transparent grass
-//        let grass = createEntity()
-//        setEntityMesh(entityId: grass, filename: "grass", withExtension: "usdz")
-//        translateBy(entityId: grass, position: simd_float3(2.0, 1.0, 3.0))
+        let grass = createEntity()
+        setEntityMesh(entityId: grass, filename: "grass", withExtension: "usdz")
+        translateBy(entityId: grass, position: simd_float3(2.0, 1.0, 3.0))
 
         ambientIntensity = 0.4
 
