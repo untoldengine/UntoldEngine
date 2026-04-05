@@ -2146,6 +2146,55 @@ public func loadTiledScene(
     )
 }
 
+/// Loads a tiled scene from a URL (local `file://` or remote `http(s)://`).
+///
+/// For remote URLs the manifest JSON is downloaded and cached by
+/// `RemoteAssetDownloader` before decoding.  Tile paths inside the manifest
+/// are resolved relative to the manifest's base URL, so a remote manifest
+/// produces remote tile URLs that are downloaded on demand by the streaming
+/// system as the camera approaches each tile.
+///
+/// - Parameters:
+///   - url:        Full URL to the manifest JSON (local or remote).
+///   - completion: Called on the calling thread with `true` on success.
+public func loadTiledScene(
+    url manifestURL: URL,
+    completion: (@Sendable (Bool) -> Void)? = nil
+) {
+    Task {
+        do {
+            let localURL: URL
+            if manifestURL.scheme == "https" || manifestURL.scheme == "http" {
+                localURL = try await RemoteAssetDownloader.shared.localURL(for: manifestURL)
+            } else {
+                localURL = manifestURL
+            }
+
+            guard let data = try? Data(contentsOf: localURL),
+                  let tileManifest = try? JSONDecoder().decode(TileManifest.self, from: data)
+            else {
+                Logger.logError(message: "[loadTiledScene] Failed to decode manifest at '\(manifestURL)'. Check JSON format.")
+                completion?(false)
+                return
+            }
+
+            Logger.log(message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
+
+            // Use the remote base URL so tile paths resolve to remote URLs
+            // and are downloaded on demand by the streaming system.
+            registerTiledScene(
+                manifest: tileManifest,
+                baseURL: manifestURL.deletingLastPathComponent(),
+                label: manifestURL.lastPathComponent,
+                completion: completion
+            )
+        } catch {
+            Logger.logError(message: "[loadTiledScene] Failed to load manifest from '\(manifestURL)': \(error)")
+            completion?(false)
+        }
+    }
+}
+
 /// Canonical scene-loading runtime.
 ///
 /// Clears the world, resets streaming systems, registers one TileComponent stub per
@@ -2215,14 +2264,9 @@ private func registerTiledScene(
     withWorldMutationGate {
         for tile in tileManifest.tiles {
             // Build the tile URL from the path relative to the manifest.
-            // This keeps manifests portable — absolute paths in the JSON are ignored.
+            // For local manifests this produces a file:// URL; for remote manifests
+            // it produces an http(s):// URL that is downloaded on demand during streaming.
             let tileURL = manifestDir.appendingPathComponent(tile.pathRelativeToManifest)
-
-            guard FileManager.default.fileExists(atPath: tileURL.path) else {
-                Logger.logWarning(message: "[loadTiledScene] Tile file missing: '\(tile.pathRelativeToManifest)' — skipping '\(tile.tileId)'.")
-                skippedCount += 1
-                continue
-            }
 
             guard tile.bounds.min.count >= 3, tile.bounds.max.count >= 3,
                   tile.center.count >= 3
@@ -2287,15 +2331,13 @@ private func registerTiledScene(
                 tileComp.tileId = tile.tileId
                 tileComp.state = .unloaded
 
-                // HLOD: use the first level if present and the file exists on disk.
-                if let hlodLevels = tile.hlodLevels, let first = hlodLevels.first {
-                    let hlodURL = manifestDir.appendingPathComponent(first.path)
-                    if FileManager.default.fileExists(atPath: hlodURL.path),
-                       let normalizedHLOD = normalizedBands.hlodSwitchDistance
-                    {
-                        tileComp.hlodURL = hlodURL
-                        tileComp.hlodSwitchDistance = normalizedHLOD
-                    }
+                // HLOD: use the first level if present. Existence is validated at
+                // load time so remote URLs are accepted without a local file check.
+                if let hlodLevels = tile.hlodLevels, let first = hlodLevels.first,
+                   let normalizedHLOD = normalizedBands.hlodSwitchDistance
+                {
+                    tileComp.hlodURL = manifestDir.appendingPathComponent(first.path)
+                    tileComp.hlodSwitchDistance = normalizedHLOD
                 }
 
                 // LOD levels: sort ascending by switchDistance (finest first) so the
@@ -2304,11 +2346,9 @@ private func registerTiledScene(
                     let sorted = lodEntries.sorted { $0.switchDistance < $1.switchDistance }
                     for (index, entry) in sorted.enumerated() {
                         guard index < normalizedBands.lodSwitchDistances.count else { break }
+                        // Existence is validated at load time; remote URLs are accepted
+                        // without a local file check.
                         let lodURL = manifestDir.appendingPathComponent(entry.path)
-                        guard FileManager.default.fileExists(atPath: lodURL.path) else {
-                            Logger.logWarning(message: "[loadTiledScene] LOD file missing for tile '\(tile.tileId)': '\(entry.path)' — skipping level.")
-                            continue
-                        }
                         tileComp.lodLevels.append(TileLODLevel(url: lodURL, switchDistance: normalizedBands.lodSwitchDistances[index]))
                     }
                 }
