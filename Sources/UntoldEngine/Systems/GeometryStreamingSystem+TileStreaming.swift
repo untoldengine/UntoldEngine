@@ -57,12 +57,32 @@ extension GeometryStreamingSystem {
 
         let capturedHlodId = hlodEntityId
         let capturedTileId = entityId
-        let filename = hlodURL.deletingPathExtension().path
-        let ext = hlodURL.pathExtension
         let tileId = tileComp.tileId
+        let capturedHlodURL = hlodURL
 
         let task = Task { [weak self] in
             guard let self else { return }
+
+            // Resolve remote HLOD URLs to a local cached path before decomposing.
+            let resolvedURL = await resolveAssetURL(capturedHlodURL, label: "HLOD '\(tileId)'")
+            guard let resolvedURL else {
+                withWorldMutationGate {
+                    if scene.exists(capturedHlodId) {
+                        destroyEntity(entityId: capturedHlodId)
+                        finalizePendingDestroys()
+                    }
+                    if let tc = scene.get(component: TileComponent.self, for: capturedTileId) {
+                        tc.hlodEntityId = nil
+                        tc.hlodState = .unloaded
+                    }
+                    self.unmarkLoadedHLODEntity(capturedTileId)
+                }
+                decrementHLODLoadCount()
+                return
+            }
+            let filename = resolvedURL.deletingPathExtension().path
+            let ext = resolvedURL.pathExtension
+
             setEntityMeshAsync(
                 entityId: capturedHlodId,
                 filename: filename,
@@ -213,12 +233,34 @@ extension GeometryStreamingSystem {
         let capturedLodId = lodEntityId
         let capturedTileId = entityId
         let capturedIndex = levelIndex
-        let filename = level.url.deletingPathExtension().path
-        let ext = level.url.pathExtension
+        let capturedLodURL = level.url
         let tileId = tileComp.tileId
 
         let task = Task { [weak self] in
             guard let self else { return }
+
+            // Resolve remote LOD URLs to a local cached path before decomposing.
+            let resolvedURL = await resolveAssetURL(capturedLodURL, label: "LOD\(capturedIndex + 1) '\(tileId)'")
+            guard let resolvedURL else {
+                withWorldMutationGate {
+                    if scene.exists(capturedLodId) {
+                        destroyEntity(entityId: capturedLodId)
+                        finalizePendingDestroys()
+                    }
+                    if let tc = scene.get(component: TileComponent.self, for: capturedTileId),
+                       capturedIndex < tc.lodLevels.count
+                    {
+                        tc.lodLevels[capturedIndex].state = .unloaded
+                        tc.lodLevels[capturedIndex].entityId = .invalid
+                    }
+                    self.unmarkLoadedLODEntity(capturedTileId)
+                }
+                decrementLODLoadCount()
+                return
+            }
+            let filename = resolvedURL.deletingPathExtension().path
+            let ext = resolvedURL.pathExtension
+
             setEntityMeshAsync(
                 entityId: capturedLodId,
                 filename: filename,
@@ -365,16 +407,14 @@ extension GeometryStreamingSystem {
         guard reserveActiveTileLoad(entityId: entityId, fileSizeBytes: tileComp.fileSizeBytes) else { return }
 
         tileComp.state = .parsing
-        tileComp.parseStartTime = CFAbsoluteTimeGetCurrent()
+        // parseStartTime stays 0 until the download completes — the timeout guard
+        // requires parseStartTime > 0, so the clock does not run during remote fetches.
+        // It is set to the real time inside the Task after resolveAssetURL returns.
+        tileComp.parseStartTime = 0
         markLoadingTileEntity(entityId)
 
-        // LoadingSystem.getResourceURL handles absolute paths (prefix "/").
-        // Splitting into stem + extension matches how the resource search handles
-        // all other asset loads, including cross-bundle and external-basePath scenarios.
         let tileURL = tileComp.tileURL
         let tileId = tileComp.tileId
-        let filename = tileURL.deletingPathExtension().path
-        let ext = tileURL.pathExtension
 
         Logger.log(message: "[TileStreaming] Dispatching load for tile '\(tileId)'")
 
@@ -405,6 +445,35 @@ extension GeometryStreamingSystem {
             // shutdown), the completion will never fire and the slot will remain
             // reserved — acceptable since the system is being torn down anyway.
             guard let self else { return }
+
+            // Resolve remote tile URLs to a local cached path before decomposing.
+            // Local file URLs pass through unchanged.
+            let resolvedURL = await resolveAssetURL(tileURL, label: "tile '\(tileId)'")
+            guard let resolvedURL else {
+                withWorldMutationGate {
+                    if let tc = scene.get(component: TileComponent.self, for: entityId) {
+                        tc.state = .unloaded
+                        tc.parseStartTime = 0
+                        tc.meshEntityId = .invalid
+                    }
+                }
+                releaseActiveTileLoad(entityId: entityId)
+                unmarkLoadingTileEntity(entityId)
+                return
+            }
+            // Download complete — start the parse timeout clock now.
+            // The guard above leaves parseStartTime = 0 during the remote fetch so
+            // the 60-second limit only measures actual parse + GPU-upload work.
+            withWorldMutationGate {
+                scene.get(component: TileComponent.self, for: entityId)?.parseStartTime = CFAbsoluteTimeGetCurrent()
+            }
+
+            // LoadingSystem.getResourceURL handles absolute paths (prefix "/").
+            // Splitting into stem + extension matches how the resource search handles
+            // all other asset loads, including cross-bundle and external-basePath scenarios.
+            let filename = resolvedURL.deletingPathExtension().path
+            let ext = resolvedURL.pathExtension
+
             // .auto policy: the admission gate and memory budget system decide whether
             // to use fullLoad or outOfCore based on the tile's file size and available
             // RAM.  For the expected 15–20 MB tile range this resolves to fullLoad
@@ -688,6 +757,25 @@ extension GeometryStreamingSystem {
             unmarkLoadedTileEntity(entityId)
 
             Logger.log(message: "[TileStreaming] Tile '\(tileId)' unloaded (\(descendants.count) child entities destroyed).")
+        }
+    }
+
+    // MARK: - Remote URL Resolution
+
+    /// Resolves a URL to a local file URL, downloading it if it is remote.
+    ///
+    /// Returns `nil` and logs an error if the download fails after all retries,
+    /// so callers can clean up their entities and abort the load.
+    /// Local file URLs are returned unchanged without any network I/O.
+    func resolveAssetURL(_ url: URL, label: String) async -> URL? {
+        guard url.scheme == "https" || url.scheme == "http" else {
+            return url
+        }
+        do {
+            return try await RemoteAssetDownloader.shared.localURL(for: url)
+        } catch {
+            Logger.logError(message: "[TileStreaming] Remote download failed for \(label): \(error)")
+            return nil
         }
     }
 }

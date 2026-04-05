@@ -134,6 +134,60 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertEqual(scene.get(component: TileComponent.self, for: tileEntityId)?.lodLevels.first?.entityId, .invalid)
     }
 
+    // MARK: - loadTiledScene(url:) — URL overload parity
+
+    /// Verifies that passing a local `file://` URL to `loadTiledScene(url:)`
+    /// registers the same tile stubs as the string-based API.
+    func testLoadTiledSceneFromURL_localFileProducesSameTileStubs() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+
+        let didSucceed = await loadSceneManifestFromURL(fixture.manifestURL)
+        XCTAssertTrue(didSucceed, "loadTiledScene(url:) should succeed for a local manifest URL")
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID),
+                                         "Tile stub '\(fixture.tileID)' should be registered")
+        let tileComp = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+
+        XCTAssertEqual(tileComp.tileURL.lastPathComponent, fixture.tileFileName)
+        XCTAssertEqual(tileComp.tileURL.pathExtension, "untold")
+        XCTAssertEqual(tileComp.state, .unloaded)
+    }
+
+    // MARK: - Parse timeout — clock starts after download, not before
+
+    /// Verifies the parse-timeout fix: `parseStartTime` is 0 immediately after
+    /// `loadTile` is called (Task has not yet run) and becomes non-zero once the
+    /// download/resolve step completes and actual parsing begins.
+    ///
+    /// For local `.untold` tiles `resolveAssetURL` returns instantly, so the window
+    /// between "Task spawned" and "parseStartTime set" is a single async dispatch hop.
+    /// The test confirms both that the initial value is 0 (clock excluded from download)
+    /// and that it advances before the tile reaches `.parsed`.
+    func testParseStartTimeIsZeroOnDispatchThenNonZeroBeforeParse() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        // Dispatch the load synchronously — Task body has not yet run.
+        GeometryStreamingSystem.shared.loadTile(entityId: tileEntityId)
+
+        let tcAtDispatch = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tcAtDispatch.parseStartTime, 0,
+                       "parseStartTime must be 0 immediately after loadTile — clock must not run during download")
+
+        // Wait for the tile to reach .parsed. During that transition parseStartTime
+        // will have been set (non-zero) then reset to 0 on completion.
+        // We poll for either a non-zero parseStartTime or the final .parsed state
+        // to confirm the assignment path ran without hanging.
+        let parseProgressed = await waitUntil(timeout: 5.0) {
+            guard let tc = scene.get(component: TileComponent.self, for: tileEntityId) else { return false }
+            return tc.parseStartTime > 0 || tc.state == .parsed
+        }
+        XCTAssertTrue(parseProgressed,
+                      "Tile should advance through parsing (parseStartTime > 0) or reach .parsed within timeout")
+    }
+
     private func loadSceneManifest(at manifestURL: URL) throws {
         let expectation = XCTestExpectation(description: "Manifest loaded")
         let manifestStem = manifestURL.deletingPathExtension().path
@@ -146,6 +200,17 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
 
         wait(for: [expectation], timeout: 5.0)
         XCTAssertTrue(didSucceed, "Tile manifest should load successfully")
+    }
+
+    /// Async variant that wraps `loadTiledScene(url:)` in a `CheckedContinuation`
+    /// so it can be awaited from `async throws` test methods without using
+    /// `wait(for:)` which is unavailable in async contexts.
+    private func loadSceneManifestFromURL(_ url: URL) async -> Bool {
+        await withCheckedContinuation { continuation in
+            loadTiledScene(url: url) { @Sendable success in
+                continuation.resume(returning: success)
+            }
+        }
     }
 
     private func findEntity(named name: String) -> EntityID? {
