@@ -67,27 +67,43 @@
         var renderer: UntoldRenderer
         @Bindable var state: DemoState
         @State private var showFilePicker = false
-        @State private var showManifestPicker = false
 
         var body: some View {
             ZStack(alignment: .topLeading) {
                 SceneView(renderer: renderer)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        Button("Load USDZ...") { showFilePicker = true }
+                    sectionLabel("SCENES")
+
+                    HStack(alignment: .center, spacing: 8) {
+                        Picker("Remote Scene", selection: $state.selectedRemoteSceneID) {
+                            ForEach(state.remoteScenes) { scene in
+                                Text(scene.title).tag(scene.id)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .disabled(state.isLoading || state.remoteScenes.isEmpty)
+                        Button("Load", action: loadSelectedRemoteScene)
                             .buttonStyle(.bordered)
-                            .disabled(state.isLoading)
-                        Button("Load Streamable Scene...") { showManifestPicker = true }
-                            .buttonStyle(.bordered)
-                            .disabled(state.isLoading)
+                            .disabled(state.isLoading || state.selectedRemoteScene?.manifestURL == nil)
                         if state.isLoading {
                             ProgressView()
                                 .scaleEffect(0.6)
                                 .frame(width: 16, height: 16)
                         }
                     }
-
+/*
+                    HStack(alignment: .center, spacing: 8) {
+                        Text("Local Scene")
+                            .foregroundStyle(.secondary)
+                            .frame(width: 92, alignment: .leading)
+                        Button("Load Local File...") { showFilePicker = true }
+                            .buttonStyle(.bordered)
+                            .disabled(state.isLoading)
+                        Spacer(minLength: 0)
+                    }
+*/
                     Divider()
 
                     sectionLabel("CONTROLS")
@@ -209,38 +225,14 @@
                 }
 
                 onLoadFile(path) { isOutOfCore in
-                    state.isLoading = false
-                    state.hasLoadedEntity = true
-                    if isOutOfCore {
-                        state.streamingEnabled = true
+                    Task { @MainActor in
+                        state.isLoading = false
+                        state.hasLoadedEntity = isOutOfCore
+                        if isOutOfCore {
+                            state.streamingEnabled = true
+                        }
+                        if accessing { url.stopAccessingSecurityScopedResource() }
                     }
-                    if accessing { url.stopAccessingSecurityScopedResource() }
-                }
-            }
-            .fileImporter(
-                isPresented: $showManifestPicker,
-                allowedContentTypes: [UTType(filenameExtension: "json") ?? .json]
-            ) { result in
-                guard case let .success(url) = result else { return }
-                let accessing = url.startAccessingSecurityScopedResource()
-                // Pass the path without extension — LoadingSystem handles absolute paths.
-                let path = url.deletingPathExtension().path
-
-                state.batchingEnabled = false
-                state.streamingEnabled = false
-                state.isLoading = true
-
-                guard let onLoadTiledScene = state.onLoadTiledScene else {
-                    state.isLoading = false
-                    if accessing { url.stopAccessingSecurityScopedResource() }
-                    return
-                }
-
-                onLoadTiledScene(path) { _ in
-                    state.isLoading = false
-                    state.hasLoadedEntity = true
-                    state.streamingEnabled = true
-                    if accessing { url.stopAccessingSecurityScopedResource() }
                 }
             }
         }
@@ -249,6 +241,25 @@
             Text(text)
                 .font(.system(.caption, design: .default).weight(.semibold))
                 .foregroundStyle(.secondary)
+        }
+
+        private func loadSelectedRemoteScene() {
+            guard let scene = state.selectedRemoteScene,
+                  let manifestURL = scene.manifestURL,
+                  let onLoadTiledScene = state.onLoadTiledScene
+            else { return }
+
+            state.batchingEnabled = false
+            state.streamingEnabled = false
+            state.isLoading = true
+
+            onLoadTiledScene(scene.id, manifestURL) { success in
+                Task { @MainActor in
+                    state.isLoading = false
+                    state.hasLoadedEntity = success
+                    state.streamingEnabled = success
+                }
+            }
         }
 
         private func controlHint(_ key: String, _ action: String) -> some View {
