@@ -3,6 +3,7 @@
 //
 
 #if os(macOS)
+    import Foundation
     import simd
     import UntoldEngine
 
@@ -23,6 +24,8 @@
             static let cameraInputDeltaTime: Float = 0.1
             static let streamingPriority: Int = 10
             static let usdzExtension = "usdz"
+            static let citySceneID = "city"
+            static let cityCameraEye = simd_float3(0.00, 18.35, 73.56)
         }
 
         private(set) var loadedEntity: EntityID?
@@ -57,7 +60,7 @@
     extension GameScene {
         /// Loads a USDZ file as an always-resident asset, replacing whatever was previously loaded.
         /// The previously loaded entity is destroyed; the scene camera and light are preserved.
-        func loadFile(path: String, completion: @escaping (Bool) -> Void) {
+        func loadFile(path: String, completion: @escaping @Sendable (Bool) -> Void) {
             clearSceneBatches()
 
             if let prev = loadedEntity {
@@ -78,17 +81,26 @@
             }
         }
 
-        /// Loads a tiled scene from a manifest JSON.
-        /// `manifestPath` is an absolute path (without extension) — LoadingSystem
-        /// resolves it directly so no bundle search is needed when using the file picker.
-        func loadTileScene(manifestPath: String, completion: @escaping (Bool) -> Void) {
+        /// Loads a tiled scene from a local or remote manifest URL.
+        func loadTileScene(sceneID: String, url: URL, completion: @escaping @Sendable (Bool) -> Void) {
             clearSceneBatches()
             loadedEntity = nil
             GeometryStreamingSystem.shared.enabled = true
 
-            loadTiledScene(manifest: manifestPath, withExtension: "json") { success in
+            loadTiledScene(url: url) { success in
+                if success {
+                    Self.applyCameraEye(for: sceneID)
+                }
                 completion(success)
             }
+        }
+
+        private static func applyCameraEye(for sceneID: String) {
+            let camera = findGameCamera()
+            let eye = sceneID == Constants.citySceneID ? Constants.cityCameraEye : cameraDefaultEye
+            cameraLookAt(entityId: camera, eye: eye, target: cameraTargetDefault, up: cameraUpDefault)
+            CameraSystem.shared.activeCamera = camera
+            setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
         }
     }
 

@@ -3,6 +3,7 @@
 //
 
 #if os(macOS)
+    import Foundation
     import Observation
     import UntoldEngine
 
@@ -12,12 +13,36 @@
         private enum Defaults {
             static let streamingRadius: Double = 200.0
             static let unloadRadius: Double = 350.0
+            static let selectedRemoteSceneID = "dungeon"
+        }
+
+        struct RemoteSceneOption: Identifiable, Hashable {
+            let id: String
+            let title: String
+            let manifestURL: URL?
         }
 
         // MARK: - File Loading
 
         var hasLoadedEntity: Bool = false
         var isLoading: Bool = false
+        let remoteScenes: [RemoteSceneOption] = [
+            .init(
+                id: "dungeon",
+                title: "Dungeon",
+                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!
+            ),
+            .init(
+                id: "city",
+                title: "City",
+                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/city/city.json")!
+            ),
+        ]
+        var selectedRemoteSceneID: String = Defaults.selectedRemoteSceneID
+
+        var selectedRemoteScene: RemoteSceneOption? {
+            remoteScenes.first { $0.id == selectedRemoteSceneID }
+        }
 
         // MARK: - Features
 
@@ -74,8 +99,8 @@
 
         // MARK: - Callbacks (wired by AppDelegate)
 
-        var onLoadFile: ((String, @escaping (Bool) -> Void) -> Void)?
-        var onLoadTiledScene: ((String, @escaping (Bool) -> Void) -> Void)?
+        var onLoadFile: ((String, @escaping @Sendable (Bool) -> Void) -> Void)?
+        var onLoadTiledScene: ((String, URL, @escaping @Sendable (Bool) -> Void) -> Void)?
         var onBatchingChanged: ((Bool) -> Void)?
         var onStreamingChanged: ((Bool, Double, Double) -> Void)?
         var onLodDebugChanged: ((Bool) -> Void)?

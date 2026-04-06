@@ -61,8 +61,8 @@
             demoState.onLoadFile = { [weak self] path, completion in
                 self?.gameScene.loadFile(path: path, completion: completion)
             }
-            demoState.onLoadTiledScene = { [weak self] path, completion in
-                self?.gameScene.loadTileScene(manifestPath: path, completion: completion)
+            demoState.onLoadTiledScene = { [weak self] sceneID, url, completion in
+                self?.gameScene.loadTileScene(sceneID: sceneID, url: url, completion: completion)
             }
             demoState.onBatchingChanged = { [weak self] enabled in
                 self?.gameScene.setBatching(enabled)
