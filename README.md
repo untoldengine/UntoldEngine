@@ -70,7 +70,7 @@ Clone the repository, run the engine and load a USDZ file:
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-swift run untoldsandbox
+swift run untolddemo
 ```
 
 Legacy alias (prints deprecation warning):
@@ -86,6 +86,22 @@ This will:
 - Launch the demo so you can see the engine running immediately
 
 No additional setup is required.
+
+---
+
+## 🧪 Sandbox
+
+The sandbox is the quickest place to get a feel for Untold Engine without the demo HUD and demo-specific wiring.
+
+Use it when you want to try engine APIs directly, such as `setEntityMeshAsync(...)`, `loadTiledScene(...)`, or other one-off rendering and scene-loading experiments.
+
+Run it with:
+
+```bash
+swift run sandbox
+```
+
+The sandbox target lives in `Sources/Sandbox` and includes a minimal `AppDelegate`, `main.swift`, and `GameScene.swift`. The intended workflow is to edit `GameScene.swift`, add the quick test you want to run, and relaunch the app.
 
 ---
 
