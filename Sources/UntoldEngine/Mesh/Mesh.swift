@@ -1065,7 +1065,7 @@ public struct Mesh {
             }
 
             let indexBuffer = allocator.newBuffer(primitive.indexData.count, type: .index)
-            primitive.indexData.withUnsafeBytes { rawBuffer in
+            _ = primitive.indexData.withUnsafeBytes { rawBuffer in
                 memcpy(indexBuffer.map().bytes, rawBuffer.baseAddress!, primitive.indexData.count)
             }
 

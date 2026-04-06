@@ -748,7 +748,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 TextureStreamingSystem.shared.shedTextureMemory(
                     cameraPosition: effectiveCameraPosition, maxEntities: 4
                 )
-                evictLRU(cameraPosition: effectiveCameraPosition, maxEvictions: 8)
+                _ = evictLRU(cameraPosition: effectiveCameraPosition, maxEvictions: 8)
             }
 
             tileLoadCandidates.sort { lhs, rhs in
