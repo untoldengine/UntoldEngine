@@ -12,7 +12,7 @@
 import CShaderTypes
 import Foundation
 import MetalKit
-import ModelIO
+@preconcurrency import ModelIO
 
 @inline(__always)
 private func enforceRegistrationMainActor() {
@@ -48,6 +48,10 @@ private final class ResumeOnce: @unchecked Sendable {
         fired = true
         block()
     }
+}
+
+private struct SendableMDLAssetBox: @unchecked Sendable {
+    let asset: MDLAsset
 }
 
 private final class RegistrationRuntimeState: @unchecked Sendable {
@@ -1626,10 +1630,10 @@ public func setEntityMeshAsync(
             Logger.log(message: "[Streaming] '\(filename)': loadTextures() start")
             let textureLoadOK = await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
                 let once = ResumeOnce()
-                let assetRef = assetData.asset
+                let assetRef = SendableMDLAssetBox(asset: assetData.asset)
                 let nameForLog = filename
                 DispatchQueue.global(qos: .userInitiated).async {
-                    assetRef.loadTextures()
+                    assetRef.asset.loadTextures()
                     once.callOnce { cont.resume(returning: true) }
                 }
                 DispatchQueue.global().asyncAfter(deadline: .now() + 15.0) {
