@@ -6,282 +6,129 @@ sidebar_position: 13
 
 # Geometry Streaming System
 
-The Geometry Streaming System dynamically loads and unloads geometry based on the camera's proximity to objects. This system is essential for large-scale scenes where loading all geometry at once would exceed available memory or cause performance issues.
+UntoldEngine streams large worlds through a **manifest-driven tiled scene** pipeline.
 
-## How It Works
-
-The streaming system monitors the distance between the camera and entities that have streaming enabled. Based on configurable radius values, the system automatically:
-
-1. **Loads geometry** when the camera moves within the streaming radius
-2. **Keeps geometry loaded** while the camera remains between the streaming and unload radii
-3. **Unloads geometry** when the camera moves beyond the unload radius
-
-This creates a "bubble" of loaded geometry around the camera that moves with it through the scene.
-
-## When to Use Geometry Streaming
-
-**Ideal for:**
-- Large open-world environments with distant objects
-- Scenes where not all objects are visible simultaneously
-- Memory-constrained scenarios
-- Games with large view distances (forests, cities, landscapes)
-
-**Not recommended for:**
-- Small scenes where all objects fit comfortably in memory
-- Objects that are always visible
-- Dynamic objects that move frequently
-- Critical gameplay objects that must always be loaded
-
-## Basic Usage
-
-### Choosing the right API
+The public rule is simple:
 
 | Use case | API |
 |---|---|
-| Streamable geometry (terrain, city blocks, large outdoor scenes) | `loadTiledScene(manifest:withExtension:completion:)` |
-| Always-resident objects (characters, props, gameplay items) | `setEntityMeshAsync(entityId:filename:withExtension:completion:)` |
+| Streamed world geometry | `loadTiledScene(...)` |
+| Always-resident assets | `setEntityMeshAsync(...)` |
 
-`loadTiledScene` is the canonical path for any geometry that should stream in and out with camera proximity. Tile streaming radii, prefetch distance, and HLOD configuration are all declared in the manifest JSON — no runtime streaming flags are needed.
+`GeometryStreamingSystem` manages the runtime once a tiled scene is loaded. It is not a public component-authoring workflow for standalone entities.
 
-`setEntityMeshAsync` is for objects that must always be in GPU memory. The mesh loads once and stays resident; the streaming system never touches it.
+## Public Workflow
 
-### Tiled scene (streamable geometry)
+### Local manifest
 
 ```swift
-loadTiledScene(manifest: "city") { success in
+loadTiledScene(manifest: "city", withExtension: "json") { success in
     setSceneReady(success)
 }
 ```
 
-No streaming flags are needed. The manifest declares per-tile `streaming_radius`, `unload_radius`, and `priority`. The default camera and directional light are created automatically.
-
-### Always-resident object
+### Remote manifest
 
 ```swift
-let hero = createEntity()
-setEntityName(entityId: hero, name: "Hero")
-setEntityMeshAsync(entityId: hero, filename: "hero", withExtension: "usdz") { success in
-    guard success else { return }
-    translateTo(entityId: hero, position: simd_float3(0, 0, 0))
-}
-```
-
-The mesh loads asynchronously and remains GPU-resident for the lifetime of the entity. No streaming, no manifest.
-
-## Parameters Explained
-
-### `streamingRadius`
-The distance from the camera at which geometry will be loaded.
-- Objects closer than this distance will have their geometry loaded
-- Should be set based on your camera's view distance and scene requirements
-- **Typical values**: 100-500 units depending on object size and importance
-
-### `unloadRadius`
-The distance from the camera at which geometry will be unloaded.
-- Must be **larger** than `streamingRadius` to create a buffer zone
-- Prevents "thrashing" (rapid loading/unloading as camera moves near the boundary)
-- **Recommended**: At least 50-100 units larger than `streamingRadius`
-
-### `priority`
-Determines the loading order when multiple objects need to be streamed.
-- Higher values = loaded first
-- Lower values = loaded last
-- **Range**: Typically 1-10, but can be any positive integer
-- **Usage**:
-  - High priority (8-10): Important landmarks, gameplay-critical objects
-  - Medium priority (4-7): Standard environment objects
-  - Low priority (1-3): Background details, distant decorations
-
-## Radius Configuration Guidelines
-
-Choosing the right radius values is crucial for optimal performance:
-
-```
-Camera Position
-    |
-    |<-- streamingRadius (250) -->|<-- buffer zone -->|<-- unloadRadius (350) -->|
-    |
-    |    Geometry LOADS here      |  Stays loaded    |  Geometry UNLOADS here
-```
-
-### Example Configurations
-
-**Small objects (trees, props):**
-- `streamingRadius`: 150-250 units
-- `unloadRadius`: 250-350 units
-- Buffer: 100 units
-
-**Medium objects (buildings, vehicles):**
-- `streamingRadius`: 250-400 units  
-- `unloadRadius`: 400-550 units
-- Buffer: 150 units
-
-**Large objects (stadiums, mountains):**
-- `streamingRadius`: 500-1000 units
-- `unloadRadius`: 700-1300 units
-- Buffer: 200-300 units
-
-## Combining with Other Systems
-
-Geometry streaming works seamlessly with LOD and Batching systems:
-
-- **LOD + Streaming**: Use LOD for quality management and streaming for memory management
-- **Batching + Streaming**: Batches are automatically updated as geometry loads/unloads
-- **All three together**: Optimal for large open-world scenes
-
-See the [Combining LOD, Batching, and Streaming](./UsingLOD-Batching-Streaming.md) guide for detailed examples.
-
-## Best Practices
-
-1. **Test radius values**: Start conservative and adjust based on performance metrics
-2. **Monitor memory**: Use profiling tools to ensure streaming is reducing memory usage
-3. **Priority assignment**: Reserve high priorities for gameplay-critical objects
-4. **Buffer zones**: Always maintain adequate buffer between streaming and unload radii
-5. **Camera speed**: Faster-moving cameras may need larger streaming radii to prevent pop-in
-6. **Position before streaming**: Set entity transforms before enabling streaming
-
-## Tiled Scene Loading (`loadTiledScene`)
-
-For scenes too large to parse as a single USDZ, use `loadTiledScene()`. It reads a JSON manifest describing a grid of small USDC tile files, registers a lightweight stub entity per tile, and lets `GeometryStreamingSystem` load and unload individual tiles as the camera moves through the scene.
-
-### When to use it vs `setEntityMeshAsync`
-
-| | `setEntityMeshAsync` | `loadTiledScene` |
-|---|---|---|
-| Scene size | Up to ~300 MB | Any size |
-| File format | Single USDZ | Many USDC tiles + JSON manifest |
-| GPU residency | Always resident | Streamed in/out by distance |
-| Setup cost | Parses the full file upfront | Near-zero (manifest JSON only) |
-| Streaming radii | N/A | Declared in manifest |
-
-### Manifest Format
-
-The manifest is a JSON file generated by your DCC tool (e.g., a Blender export script):
-
-```json
-{
-  "version": 1,
-  "streaming_defaults": {
-    "streaming_radius": 80.0,
-    "unload_radius": 120.0,
-    "priority": 10
-  },
-  "tiles": [
-    {
-      "tile_id": "tile_0_0",
-      "path_relative_to_manifest": "tile_export/tile_0_0.usdc",
-      "file_size_bytes": 15728640,
-      "bounds": {
-        "min": [-50.0, -10.0, -50.0],
-        "max": [50.0,  40.0,  50.0]
-      },
-      "center": [0.0, 15.0, 0.0],
-      "object_count": 12
+if let url = URL(string: "https://cdn.example.com/city/city.json") {
+    loadTiledScene(url: url) { success in
+        setSceneReady(success)
     }
-  ]
 }
 ```
 
-`path_relative_to_manifest` is always relative to the manifest file's location. Any absolute `path` field present in the JSON is ignored — this keeps manifests portable across machines and app bundles.
+Remote manifests are downloaded and cached locally. Tile, HLOD, and per-tile LOD URLs are resolved relative to the manifest URL and fetched on demand.
 
-Per-tile `streaming_radius`, `unload_radius`, and `priority` are optional; omitting them falls back to `streaming_defaults`.
+## What Streams
 
-### File Layout
+The engine uses multiple geometry layers:
 
-Place the manifest at `GameData/Models/{name}/{name}.json` so `LoadingSystem` can find it via the standard structured search path, and put tiles in a subfolder alongside it:
+- **Full tile**: the main tile payload loaded by `loadTile()`
+- **Per-tile LOD**: intermediate meshes shown while the full tile is still out of range
+- **HLOD**: coarse far-distance proxy
+- **OCC sub-mesh stubs**: fine-grained `StreamingComponent` entities created internally inside large tiles
 
-```
-GameData/
-  Models/
-    city/
-      city.json           ← manifest
-      tile_export/
-        tile_0_0.usdc
-        tile_1_0.usdc
-        …
-```
+`StreamingComponent` is internal to the tile-owned OCC path. External callers should not attach it manually or rely on `enableStreaming(...)`.
 
-### Basic Usage
+## Manifest Fields That Matter
 
-```swift
-loadTiledScene(manifest: "city") { success in
-    setSceneReady(success)
-}
-```
+These are the important fields for geometry streaming:
 
-No streaming flags are needed — tile streaming is always active. The scene's default camera and directional light are created automatically (same as `loadScene`).
+| Field | Meaning |
+|---|---|
+| `streaming_radius` | Full tile display zone |
+| `unload_radius` | Tile teardown threshold |
+| `prefetch_radius` | Background parse threshold before the tile becomes visible |
+| `priority` | Tile load ordering when many tiles compete |
+| `hlod_levels` | Optional far proxy meshes |
+| `lod_levels` | Optional per-tile intermediate LOD meshes |
+| `file_size_bytes` | Parse-budget hint used by the runtime gate |
 
-### Frustum Gate
+If `prefetch_radius` is omitted, the engine computes it automatically from the gap between `streaming_radius` and `unload_radius`.
 
-The system skips tiles whose world AABB is entirely outside the camera frustum before queuing them for loading. This prevents parsing tiles behind the camera.
+## Runtime Behavior
 
-Two frustums are built once per tick — one for mesh-level candidates and one for tile-level candidates, each with a different padding:
+Each update tick, `GeometryStreamingSystem`:
 
-```swift
-// Mesh-level OOC candidates: 5 m pad (default)
-GeometryStreamingSystem.shared.frustumGatePadding = 5.0
+1. Queries the octree within `maxQueryRadius`.
+2. Chooses tile parse candidates using predictive camera motion and a frustum gate.
+3. Parses up to `maxConcurrentTileLoads` tiles, subject to `tileParseMemoryBudgetMB`.
+4. Streams OCC child meshes inside loaded tiles using `maxConcurrentLoads`.
+5. Unloads tiles, LODs, HLODs, and OCC meshes when they leave range or memory pressure requires eviction.
 
-// Tile-level candidates: 20 m pad (default)
-// Wider because a single tile pop-in covers an entire building or scene section,
-// which is far more jarring than a missing mesh stub.
-// Increase if tiles pop in during fast rotation; decrease for small indoor tiles.
-GeometryStreamingSystem.shared.tileFrustumGatePadding = 20.0
+Important defaults:
 
-// Disable entirely for 360° scenes (e.g. panoramas)
-GeometryStreamingSystem.shared.enableFrustumGate = false
-```
+- `maxConcurrentTileLoads = 2`
+- `maxConcurrentLoads = 3`
+- `maxConcurrentLODLoads = 4`
+- `maxConcurrentHLODLoads = 4`
+- `updateInterval = 0.1`
+- `burstTickInterval = 0.016`
 
-Unloading is never gated — turning away from a loaded tile does not trigger eviction.
-
-### Concurrency
-
-Tile loads are serialised to `maxConcurrentTileLoads` (default 1). Each tile load parses an entire USDC file into CPU heap, so simultaneous parses on large tiles can spike RAM:
+## Useful Runtime Knobs
 
 ```swift
-// Increase only for small tiles (< 5 MB each) with confirmed RAM headroom
 GeometryStreamingSystem.shared.maxConcurrentTileLoads = 2
+GeometryStreamingSystem.shared.maxConcurrentLoads = 3
+GeometryStreamingSystem.shared.enableFrustumGate = true
+GeometryStreamingSystem.shared.tileFrustumGatePadding = 20.0
+GeometryStreamingSystem.shared.maxQueryRadius = 500.0
 ```
 
-### Tile Sizing Guidelines
+Use `maxQueryRadius` large enough to cover the farthest `unload_radius` in the scene, or out-of-range tiles may not be discovered for teardown.
 
-Tile size set in your DCC tool directly affects streaming behaviour. The tile grid must be scaled appropriately for the scene and typical object sizes:
+## Interaction with Other Systems
 
-| Tile footprint | Objects per tile | Effect |
-|---|---|---|
-| Too small (< 5 units) | 1–2 | Excessive tile count, high overhead |
-| Good (50–200 units) | 10–50 | Smooth streaming, bounded RAM |
-| Too large (> 500 units) | 100+ | Single-tile RAM spike, frame shaking |
+- **Texture streaming**: `loadTiledScene(...)` automatically aligns texture distance bands to the manifest radii.
+- **Batching**: full-load tiles, per-tile LODs, and HLODs notify `BatchingSystem` automatically. OCC sub-mesh uploads join batching incrementally through normal residency events.
+- **Memory pressure**: texture quality is shed first; geometry eviction follows only when geometry pressure remains high.
 
-**Common mistake**: setting a 10×10 tile grid on a 1 600-unit scene. With `assignment_mode: center`, large objects spanning hundreds of units are assigned to a single tile by their center coordinate — a few tiles accumulate most of the scene's geometry and produce multi-hundred-MB files that cause RAM spikes when loaded. Match tile size to the typical *object* size in your scene, not the overall scene extent.
+## Common Problems
 
----
+### Tiles pop in on camera rotation
 
-## Common Issues
+- Increase `GeometryStreamingSystem.shared.tileFrustumGatePadding`
+- Keep `enableFrustumGate = true`
 
-### Objects Not Loading
-- **Out-of-core assets**: Confirm `GeometryStreamingSystem.shared.enabled = true` is set after load — stubs never upload if the system is disabled
-- Ensure `streamingRadius` is large enough for your camera's viewing distance
-- Check that the completion callback received `isOutOfCore: true` (out-of-core) or `false` (immediate) and handled each case
-- Verify the entity has been positioned in the scene
-- After loading a second asset, re-enable the streaming system if you disabled it before loading (setting `enabled = false` does not re-enable automatically)
+### Tiles unload and reload too aggressively
 
-### Geometry "Popping" In and Out
-- Increase the buffer between `streamingRadius` and `unloadRadius`
-- For tile-level pop-in specifically, increase `tileFrustumGatePadding` (default 20 m) so tiles are queued for loading earlier during rotation
-- Consider using LOD to smooth transitions
-- Adjust camera movement speed or increase radii
+- Increase the gap between `streaming_radius` and `unload_radius`
+- Increase or explicitly author `prefetch_radius`
 
-### Tile-Based Scene: Model Disappears Entirely
-This is usually caused by one of two things:
+### Tile parse bursts spike memory
 
-1. **Frustum gate rejecting all tiles** — if `SceneRootTransform` applies an offset that shifts the camera into a different coordinate space than the tile AABBs, every tile can appear outside the frustum. Temporarily set `enableFrustumGate = false` to confirm; if tiles appear, adjust your scene root transform.
+- Lower `maxConcurrentTileLoads`
+- Reduce per-tile file sizes in the exported manifest
 
-2. **Memory pressure evicting before tiles load** — if geometry budget is exhausted, new tile parses are blocked and existing tiles are evicted. Check `MemoryBudgetManager` logs for `shouldEvictGeometry()` returning `true` on every tick.
+### Streaming does nothing
 
-### Ghost Geometry After Fast Movement or Teleport
-If a tile briefly appears far away after a camera jump, a parse was already in flight when the camera moved. The `loadingTileEntities` out-of-range check cancels these automatically, but there is a one-tick window. If this is still visible, increase `unloadRadius` to give tiles a larger buffer before cancellation is triggered.
+- Verify you loaded the scene through `loadTiledScene(...)`
+- Verify the manifest radii are reasonable for your scene scale
+- Do not expect standalone `StreamingComponent` entities to stream; tile ownership is enforced
 
-### Performance Issues
-- Too many objects loading simultaneously: Adjust priorities to stagger loading
-- Streaming radius too large: Reduce radius to load fewer objects
-- Use LOD to reduce complexity of loaded geometry
+## Related Docs
+
+- [Tile-Based Streaming](../Architecture/tilebasedstreaming)
+- [Geometry Streaming Architecture](../Architecture/geometryStreamingSystem)
+- [Texture Streaming](../Architecture/textureStreamingSystem)
+- [Remote Asset Streaming](../Architecture/asset_remote_streaming)

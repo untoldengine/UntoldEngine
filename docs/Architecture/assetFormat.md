@@ -2,7 +2,7 @@
 
 ## Overview
 
-`.untold` is the cooked runtime asset container for UntoldEngine tile streaming.
+`.untold` is the native runtime asset container for UntoldEngine tile streaming.
 
 It is **not** an interchange format and it is **not** intended to preserve full USD
 semantics. USD/USDZ remains the authoring/import format. The `.untold` container is the
@@ -29,7 +29,7 @@ The design goals are:
 
 - fast runtime parse with no ModelIO dependency
 - direct tile/HLOD/LOD streaming
-- byte-range-friendly remote streaming
+- byte-range-friendly remote streaming (tiles are downloaded on demand from HTTP/HTTPS CDNs and cached locally before parsing; see [`asset_remote_streaming.md`](asset_remote_streaming.md))
 - explicit binary versioning
 - stable on-disk layout independent of Swift ABI
 

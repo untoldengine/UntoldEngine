@@ -110,7 +110,7 @@ unloaded → parsing → parsed → unloading → unloaded
 
 ### 1. Scene Load (`loadTiledScene`)
 
-1. Locates and decodes the manifest JSON (no geometry parsed).
+1. Locates and decodes the manifest JSON (no geometry parsed). If the manifest URL is HTTP/HTTPS, it is downloaded and cached via `RemoteAssetDownloader` before decoding. Tile asset URLs in the manifest are resolved relative to the manifest's base URL, so remote manifests produce remote tile URLs (e.g. `https://cdn.example.com/scene/tiles/tile_0_0.untold`). See [`asset_remote_streaming.md`](asset_remote_streaming.md) for the full download lifecycle.
 2. Destroys all existing scene entities and calls `GeometryStreamingSystem.shared.reset()` to clear all tile and mesh tracking sets, cancel in-flight tasks, and reset camera velocity.
 3. Creates a default camera and directional light.
 4. Registers one lightweight stub entity per tile inside a single `withWorldMutationGate`. Each stub receives:

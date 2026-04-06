@@ -149,5 +149,5 @@ The manifest should live next to the tile payload directory. Tile, HLOD, LOD, an
 
 ## Notes
 
-- `.untold` tile payloads currently use the engine's immediate full-load runtime path. Tile-level load and unload work today; sub-mesh out-of-core chunk streaming is future work.
+- `.untold` tile payloads participate in the current tiled streaming architecture, including tile-level load/unload, remote download + cache, per-tile LOD/HLOD, and large-tile OCC sub-mesh streaming when the runtime classifies a tile into the OOC path.
 - The Python files in [`scripts`](/Users/haroldserrano/Desktop/UntoldEngineStudio/UntoldEngine/scripts) are implementation details. The recommended user entry points are the shell wrappers in the same folder.
