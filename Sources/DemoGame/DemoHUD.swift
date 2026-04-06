@@ -93,17 +93,17 @@
                                 .frame(width: 16, height: 16)
                         }
                     }
-/*
-                    HStack(alignment: .center, spacing: 8) {
-                        Text("Local Scene")
-                            .foregroundStyle(.secondary)
-                            .frame(width: 92, alignment: .leading)
-                        Button("Load Local File...") { showFilePicker = true }
-                            .buttonStyle(.bordered)
-                            .disabled(state.isLoading)
-                        Spacer(minLength: 0)
-                    }
-*/
+                    /*
+                     HStack(alignment: .center, spacing: 8) {
+                         Text("Local Scene")
+                             .foregroundStyle(.secondary)
+                             .frame(width: 92, alignment: .leading)
+                         Button("Load Local File...") { showFilePicker = true }
+                             .buttonStyle(.bordered)
+                             .disabled(state.isLoading)
+                         Spacer(minLength: 0)
+                     }
+                     */
                     Divider()
 
                     sectionLabel("CONTROLS")

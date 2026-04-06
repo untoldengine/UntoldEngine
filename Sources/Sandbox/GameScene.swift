@@ -24,13 +24,13 @@
 
             // Add ad-hoc sandbox loads here when testing engine APIs.
             // Example:
-            //loadMesh(named: "/YourAsset", withExtension: "untold") { success in
+            // loadMesh(named: "/YourAsset", withExtension: "untold") { success in
             //    setSceneReady(success)
-            //}
-            
-            //loadScene(from: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!) { success in
+            // }
+
+            // loadScene(from: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!) { success in
             //     setSceneReady(success)
-            //}
+            // }
         }
 
         private func configureEngineSystems() {
@@ -72,7 +72,7 @@
 
             setEntityMeshAsync(entityId: entity, filename: filename, withExtension: pathExtension) { [weak self] success in
                 guard let self else { return }
-                self.loadedEntity = success ? entity : nil
+                loadedEntity = success ? entity : nil
                 setSceneReady(success)
                 completion(success)
             }
@@ -103,11 +103,11 @@
             if gameMode == false { return }
             if isSceneReady() == false { return }
 
-            guard let camera = CameraSystem.shared.activeCamera else{
+            guard let camera = CameraSystem.shared.activeCamera else {
                 Logger.log(message: "No main camera found")
                 return
             }
-            
+
             let input = InputSystem.shared
 
             moveCameraWithInput(
