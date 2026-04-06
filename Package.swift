@@ -55,10 +55,15 @@ let package = Package(
 
         .library(name: "UntoldEngineAR", targets: ["UntoldEngineAR"]),
 
-        // Executable for the sandbox app (primary name)
+        // Executable for the demo app (primary name)
         .executable(
-            name: "untoldsandbox",
+            name: "untolddemo",
             targets: ["DemoGame"]
+        ),
+
+        .executable(
+            name: "sandbox",
+            targets: ["Sandbox"]
         ),
 
         // Backward-compatible executable alias
@@ -146,6 +151,17 @@ let package = Package(
             name: "DemoGame",
             dependencies: ["UntoldEngine"],
             path: "Sources/DemoGame",
+            swiftSettings: [.swiftLanguageMode(.v6)],
+            linkerSettings: [
+                .linkedFramework("Metal"),
+                .linkedFramework("QuartzCore", .when(platforms: [.macOS, .iOS])),
+                .linkedFramework("AppKit", .when(platforms: [.macOS])),
+            ]
+        ),
+        .executableTarget(
+            name: "Sandbox",
+            dependencies: ["UntoldEngine"],
+            path: "Sources/Sandbox",
             swiftSettings: [.swiftLanguageMode(.v6)],
             linkerSettings: [
                 .linkedFramework("Metal"),
