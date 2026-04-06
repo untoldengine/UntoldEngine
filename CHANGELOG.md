@@ -1,4 +1,33 @@
 # Changelog
+## v0.12.0 - 2026-04-06
+### 🐞 Fixes
+- [Patch] improved the tile-streaming system (c09bb2c…)
+- [Patch] Cluster-level frustum culling and tile-local batch promotion (5495691…)
+- [Patch] Add HZB occlusion culling for batch groups (9df345f…)
+- [Patch] Implemented HLOD support (937647b…)
+- [Patch] Resolve render-loop freeze from hung ModelIO loadTextures() call (232b3c2…)
+- [Patch] Implemented per tile LOD (c61e4de…)
+- [Patch] Force-release AssetLoadingGate when HLOD/LOD entity is torn down (4abd9a8…)
+- [Patch] Cap concurrent LOD loads and prevent render stall on LOD assets (3c9db7d…)
+- [Patch] Added hysteresis to LOD system (0b8079a…)
+- [Patch] Updated and documented tile based streaming (db7fa2c…)
+- [Patch] Stabilize tile streaming transitions and harden geometry streaming progress (644926b…)
+- [Patch] Integrated texture streaming into tile streaming (68b1cab…)
+- [Patch] Unified load scenes path (c68d8af…)
+- [Patch] Implementing initial untold format for asset loading (d8acae5…)
+- [Patch] Implemented initial parent-hierarchy import (6f82c19…)
+- [Patch] Added tests to engine-asset-format (315b8f5…)
+- [Patch] Added scripts to export from usdz to untold (95a1497…)
+- [Patch] Fixed exporter script (08516f9…)
+- [Patch] Updated tests for engine format hierarchy (103a221…)
+- [Patch] Fix double file read and consolidate .untold load paths (ce5dfd2…)
+- [Patch] Implement contentHash validation in UntoldReader (3923b9e…)
+- [Patch] Renamed files to reflect native format changes (781ad22…)
+- [Patch] Implemented native format in the engine (732869e…)
+### 📚 Docs
+- [Docs] Updated docs related to streaming (ced07ab…)
+### 🚀 Features
+- [Feature] Implement v1 remote asset streaming over HTTP (799b803…)
 ## v0.11.4 - 2026-03-26
 ### 🐞 Fixes
 - [Patch] Modify build system with new functions (2ef3bf6…)
