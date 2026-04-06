@@ -1,10 +1,10 @@
 # GeometryStreamingSystem
 
-## The Setup: City Block as Streaming Entities
+## The Setup: OCC Stubs Inside a Loaded Tile
 
-Imagine your city block USDZ is broken into many individually registered entities — `building_A`, `building_B`, `streetlamp_01`, `car_01`, etc. Each has a `StreamingComponent` that stores:
+Imagine a large tile has been parsed through `loadTiledScene(...)` and classified into the out-of-core path. The tile now contains many internally created OCC child stubs — `building_A`, `building_B`, `streetlamp_01`, `car_01`, etc. Each stub has a `StreamingComponent` that stores:
 
-- `assetFilename` / `assetExtension` — where the mesh lives on disk
+- `assetFilename` / `assetExtension` — where the mesh or source asset came from
 - `streamingRadius` — how close the camera must be to **load** it
 - `unloadRadius` — how far before it gets **unloaded**
 - `priority` — which buildings load first when slots are contested
@@ -23,8 +23,8 @@ When `lastPendingLoadBacklog > 0` (candidates are queued but all slots are busy)
 
 **OS pressure bypass** — if a `pendingPressureRelief` flag is set (fired by the OS pressure callback on a background queue), the throttle check is bypassed entirely for that call. This guarantees eviction runs within one frame (≤ 11 ms at 90 fps) rather than waiting up to 100 ms for the next normal tick. Without this, a `.critical` signal arriving right after a tick would sit unprocessed for the full throttle interval — longer than visionOS's kill window.
 
-### 2. Spatial Query via Octree (line 123)
-Instead of checking all 500 city entities, it asks the `OctreeSystem`:
+### 2. Spatial Query via Octree
+Instead of checking every OCC child stub in the scene, it asks the `OctreeSystem`:
 > "Give me every entity within 500m of the camera."
 
 This is the key performance trick — only nearby entities are evaluated.
@@ -104,10 +104,10 @@ Inside the async task:
 
 | Use case | API |
 |---|---|
-| Streamable geometry (terrain, city blocks, large scenes) | `loadTiledScene(manifest:withExtension:completion:)` + manifest JSON |
+| Streamable geometry (terrain, city blocks, large scenes) | `loadTiledScene(url:completion:)` with a local or remote (`https://`) manifest URL |
 | Always-resident objects (characters, props, HUD elements) | `setEntityMeshAsync(entityId:filename:withExtension:completion:)` |
 
-`loadTiledScene` is the **only public entry point** for streamable scene geometry. It decodes the manifest, calls the internal `registerTiledScene()`, and hands off all streaming lifecycle management to `GeometryStreamingSystem`.
+`loadTiledScene` is the **only public entry point** for streamable scene geometry. It accepts a local `file://` path or a remote `https://` URL. For remote URLs it downloads and caches the manifest via `RemoteAssetDownloader` before decoding. It then calls the internal `registerTiledScene()` and hands off all streaming lifecycle management to `GeometryStreamingSystem`. See [`asset_remote_streaming.md`](asset_remote_streaming.md) for the full remote download lifecycle.
 
 ```
 isTileOwned(entityId:) — private helper in GeometryStreamingSystem+MeshStreaming.swift
@@ -253,7 +253,7 @@ Tile stubs carry a `TileComponent` (no `StreamingComponent`, no `RenderComponent
 
 | Field | Purpose |
 |---|---|
-| `tileURL` | Absolute URL of the USDC file on disk |
+| `tileURL` | Absolute URL of the tile asset — `file://` for local scenes, `https://` for remote CDN scenes |
 | `fileSizeBytes` | Pre-computed file size for the memory budget gate |
 | `streamingRadius` | Visual display threshold — tile is rendered once parsed |
 | `prefetchRadius` | Background load threshold (`> streamingRadius`); auto = midpoint of stream/unload gap |

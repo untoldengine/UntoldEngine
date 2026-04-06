@@ -4,166 +4,98 @@ title: Lod + Static Batching + Streaming System
 sidebar_position: 12
 ---
 
-# Combining LOD, Batching, and Geometry Streaming
+# Combining LOD, Batching, and Streaming
 
-The Untold Engine provides three complementary systems for optimizing rendering performance:
+UntoldEngine now has two distinct optimization workflows:
 
-- **LOD (Level of Detail)**: Automatically switches between different mesh resolutions based on distance from the camera. Closer objects use high-detail meshes, while distant objects use simplified versions.
-- **Static Batching**: Combines multiple static meshes with the same material into a single draw call, reducing CPU overhead.
-- **Geometry Streaming**: Dynamically loads and unloads geometry based on proximity to the camera, keeping only nearby objects in memory.
+| Workflow | Use for |
+|---|---|
+| Entity-level LOD + manual batching | Always-resident props, structures, authored gameplay objects |
+| Manifest-driven tile streaming + automatic batching | Large worlds, terrain, cities, remote streamed scenes |
 
-When used together, these systems provide powerful performance optimization:
-- LOD reduces GPU load by rendering appropriate detail levels
-- Batching reduces CPU overhead by minimizing draw calls
-- Streaming reduces memory usage by only keeping nearby geometry loaded
+## 1. Always-Resident Objects
 
-Before using the examples below, assume your scene has:
-- A valid active camera (used for LOD switching and streaming distance checks)
-- Entity transforms in world space before runtime optimization kicks in
-- Mesh/material naming consistency across LOD levels (to avoid mismatched assets)
-- A clear decision on whether setup happens procedurally at runtime or from a serialized scene file
-
-In practice, there are two common workflows:
-- **Procedural setup**: You create entities and configure LOD/batching/streaming in code during scene initialization.
-- **Scene deserialization**: You load a saved scene where components were already authored, then finalize runtime systems in completion callbacks.
-
-## LOD + Batching
-
-This combination is ideal for scenes with many static objects that remain loaded throughout the scene lifetime. The LOD system manages visual quality based on distance, while batching reduces draw calls for objects using the same material.
-
-**Key Points:**
-- All entities must have their meshes loaded before calling `generateBatches()`
-- Use the completion callback from `addLODLevels()` to ensure meshes are ready
-- Enable batching and generate batches only after all entities are configured
-
-Why this order matters: batching relies on mesh/material data that is only guaranteed after async LOD loading completes. If `generateBatches()` runs too early, some entities may be missing from batches, causing inconsistent draw-call reduction.
+For normal entities that should stay resident, combine `LODComponent` with `StaticBatchComponent`:
 
 ```swift
 private func setupLODWithBatching() {
     var loadedCount = 0
     let totalTrees = 20
-    
+
     for i in 0 ..< totalTrees {
         let tree = createEntity()
         setEntityName(entityId: tree, name: "Tree_\(i)")
+        setEntityLodComponent(entityId: tree)
 
-        // Capture position values for the closure
         let x = Float(i % 5) * 10.0
         let z = Float(i / 5) * 10.0
 
-        setEntityLodComponent(entityId: tree)
-
         addLODLevels(entityId: tree, levels: [
-            (0, "tree_LOD0", "usdz", 50.0, 0.0),
-            (1, "tree_LOD1", "usdz", 100.0, 0.0),
-            (2, "tree_LOD2", "usdz", 200.0, 0.0),
+            (0, "tree_LOD0", "untold", 50.0, 0.0),
+            (1, "tree_LOD1", "untold", 100.0, 0.0),
+            (2, "tree_LOD2", "untold", 200.0, 0.0),
         ]) { success in
             if success {
-                // Apply transform AFTER mesh is loaded
                 translateTo(entityId: tree, position: simd_float3(x, 0, z))
                 setEntityStaticBatchComponent(entityId: tree)
             }
-            
-            // Track completion
+
             loadedCount += 1
             if loadedCount == totalTrees {
                 enableBatching(true)
                 generateBatches()
-                print("\(totalTrees) trees configured with LOD + Batching")
             }
         }
     }
-
 }
 ```
 
-For procedurally-created always-resident objects, the completion callback from `addLODLevels()` is the right place to generate batches — it fires after all async mesh loads complete.
+This is still the correct pattern when all meshes are present up front and stay resident.
 
-## LOD + Batching + Streaming
+## 2. Streamed Worlds
 
-This combination is ideal for large open-world scenes where you have many objects spread across a large area. Streaming ensures only nearby geometry is loaded into memory, LOD manages visual quality, and batching reduces draw calls for loaded objects.
-
-The canonical path for streamable geometry is a **manifest-driven tiled scene**. Streaming radii, prefetch distance, and LOD configuration are declared in the manifest JSON; no runtime streaming flags are needed. The tile streaming system handles load/unload automatically as the camera moves.
+For large worlds, do **not** build a manual LOD + `enableStreaming(...)` stack on standalone entities. Use the tiled-scene pipeline:
 
 ```swift
-loadTiledScene(manifest: "city") { success in
+loadTiledScene(manifest: "city", withExtension: "json") { success in
     setSceneReady(success)
 }
 ```
 
-Batching and LOD are configured per-tile in the manifest and activated automatically by the streaming system when each tile finishes parsing.
+In this workflow:
 
-### Always-resident objects with LOD + Batching
+- full-tile streaming is driven by manifest radii
+- per-tile `lod_levels` supply intermediate representations
+- `hlod_levels` cover the far field
+- OCC mesh stubs are created internally for large tiles
+- static batching is updated automatically as tiles, LODs, and OCC meshes become resident
 
-For objects that should always be in GPU memory (characters, gameplay props), use `setEntityMeshAsync` with LOD levels and static batching:
+You do **not** call `generateBatches()` per tile. The runtime hands new resident tile geometry directly to `BatchingSystem`.
 
-```swift
-private func setupLODWithBatching() {
-    var loadedCount = 0
-    let totalTrees = 20
-    
-    for i in 0 ..< totalTrees {
-        let tree = createEntity()
-        setEntityName(entityId: tree, name: "Tree_\(i)")
+## Choosing Between the Two
 
-        let x = Float(i % 5) * 10.0
-        let z = Float(i / 5) * 10.0
+### Use entity-level LOD + batching when:
 
-        setEntityLodComponent(entityId: tree)
+- the asset should remain in memory
+- you are placing a bounded number of authored objects
+- you want direct programmatic control over LOD levels per entity
 
-        addLODLevels(entityId: tree, levels: [
-            (0, "tree_LOD0", "usdz", 50.0, 0.0),
-            (1, "tree_LOD1", "usdz", 100.0, 0.0),
-            (2, "tree_LOD2", "usdz", 200.0, 0.0),
-        ]) { success in
-            if success {
-                translateTo(entityId: tree, position: simd_float3(x, 0, z))
-                setEntityStaticBatchComponent(entityId: tree)
-            }
-            
-            loadedCount += 1
-            if loadedCount == totalTrees {
-                enableBatching(true)
-                generateBatches()
-            }
-        }
-    }
-}
-```
+### Use tile streaming when:
 
-**Radius Guidelines (for per-tile LOD in manifests):**
-- LOD switch distances should be smaller than the tile's `streaming_radius`
-- `unload_radius` should be significantly larger than `streaming_radius` to avoid thrashing (e.g., 120 when streaming radius is 80)
+- the scene is large enough that full residency is wasteful
+- you need prefetch, HLOD, per-tile LOD, and eviction
+- you want local or remote manifest-driven world streaming
 
-## Best Practices
+## Practical Rules
 
-### When to Use Each Combination
+- Keep dynamic or animated entities out of static batching.
+- Use `.untold` for static runtime geometry whenever possible.
+- Keep entity-level LOD for authored objects; keep tile LOD/HLOD in the manifest.
+- Treat `StreamingComponent` as internal to the tiled streaming architecture.
 
-**LOD Only:**
-- Small scenes with few objects
-- When objects are always visible and memory isn't a concern
-- Dynamic objects that move frequently
+## Related Docs
 
-**LOD + Batching:**
-- Medium-sized scenes with many static objects
-- Objects share materials and remain loaded
-- Memory usage is acceptable
-- Example: Interior spaces, small outdoor areas
-
-**LOD + Batching + Streaming:**
-- Large open-world scenes
-- Many objects spread across large distances
-- Memory optimization is critical
-- Example: Forests, cities, large outdoor environments
-
-### Performance Tips
-
-1. **LOD Distances**: Set LOD transition distances based on your object size and visual importance. Smaller objects can transition earlier.
-
-2. **Batching Materials**: Entities must share the same material to be batched together. Group objects by material when possible.
-
-3. **Streaming Priorities**: Use higher priority values (e.g., 10) for important objects like landmarks, lower values (e.g., 1) for background details.
-
-4. **Testing**: Monitor frame rate and memory usage to fine-tune your radius values and LOD distances for your specific scene.
-
-5. **Completion Callbacks**: Always use the completion callback from `addLODLevels()` to ensure meshes are fully loaded before enabling other systems.
+- [Geometry Streaming System](./UsingGeometryStreamingSystem.md)
+- [Static Batching System](./UsingStaticBatchingSystem.md)
+- [LOD System](./UsingLODSystem.md)
+- [Tile-Based Streaming Architecture](../Architecture/tilebasedstreaming)
