@@ -989,7 +989,37 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
             scene = bpy.context.scene
             img_settings = scene.render.image_settings
             saved = (img_settings.file_format, img_settings.color_depth, img_settings.color_mode)
+
+            # Choose the view transform based on the image's color space.
+            #
+            # Blender always stores pixel data internally as linear.  save_render()
+            # applies the active view transform before writing to disk:
+            #
+            #   "Raw"      — passes linear values through unchanged.  Correct for
+            #                non-color data (normals, roughness, metallic) that the
+            #                engine loads without sRGB expansion.
+            #
+            #   "Standard" — re-encodes linear → sRGB gamma.  Correct for color
+            #                textures (base color, emissive) so that when the engine
+            #                loads them with SRGB=true, the hardware sRGB→linear
+            #                conversion restores the original values.
+            #
+            # Using "Raw" for an sRGB texture saves linear values to disk.  The
+            # engine then loads those linear values as sRGB and applies sRGB→linear
+            # expansion a second time, making the surface appear too dark / wrong.
+            _LINEAR_COLORSPACES = {"Non-Color", "Linear", "Linear Rec.709", "Linear BT.709", "Raw"}
+            colorspace_name = getattr(getattr(image, "colorspace_settings", None), "name", "sRGB")
+            is_linear_data = colorspace_name in _LINEAR_COLORSPACES
+            target_view_transform = "Raw" if is_linear_data else "Standard"
+
             saved_color_management = _set_scene_color_management_raw(scene)
+            # Override the view transform to the correct value for this image type.
+            view_settings = getattr(scene, "view_settings", None)
+            if view_settings is not None and hasattr(view_settings, "view_transform"):
+                try:
+                    view_settings.view_transform = target_view_transform
+                except Exception:
+                    pass  # fall back to whatever _set_scene_color_management_raw set
             try:
                 img_settings.file_format = image.file_format
                 img_settings.color_depth = "8"
