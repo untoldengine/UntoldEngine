@@ -1478,15 +1478,39 @@ public struct Material {
             let fileExists = fileManager.fileExists(atPath: url.path)
             Logger.log(message: "[UntoldTexture] \(label) '\(runtimeMaterial.name ?? "<unnamed material>")' -> \(url.path) | exists=\(fileExists)")
 
+            let options: [MTKTextureLoader.Option: Any] = [
+                .textureUsage: NSNumber(value: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue),
+                .textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
+                .SRGB: NSNumber(value: isSRGB),
+            ]
+
+            // Grayscale PNGs produce an r8Unorm Metal texture.  The shader samples it as
+            // RGBA where G=B=0, making the mesh appear solid red.  Detect and expand to
+            // RGBA via Core Graphics before handing off to MTKTextureLoader.
+            if let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
+               let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil),
+               cgImage.colorSpace?.model == .monochrome {
+                let w = cgImage.width, h = cgImage.height
+                let colorSpace = isSRGB
+                    ? (CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB())
+                    : CGColorSpaceCreateDeviceRGB()
+                if let ctx = CGContext(
+                    data: nil, width: w, height: h,
+                    bitsPerComponent: 8, bytesPerRow: w * 4,
+                    space: colorSpace,
+                    bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue).rawValue
+                ) {
+                    ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: w, height: h))
+                    if let rgbaImage = ctx.makeImage(),
+                       let texture = try? textureLoader.newTexture(cgImage: rgbaImage, options: options) {
+                        Logger.log(message: "[UntoldTexture] Expanded grayscale \(label.lowercased()) to RGBA '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)")
+                        return texture
+                    }
+                }
+            }
+
             do {
-                let texture = try textureLoader.newTexture(
-                    URL: url,
-                    options: [
-                        .textureUsage: NSNumber(value: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue),
-                        .textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
-                        .SRGB: NSNumber(value: isSRGB),
-                    ]
-                )
+                let texture = try textureLoader.newTexture(URL: url, options: options)
                 Logger.log(message: "[UntoldTexture] Loaded \(label.lowercased()) texture '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)")
                 return texture
             } catch {

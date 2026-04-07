@@ -798,17 +798,50 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
 
 def _png_bit_depth(path: Path) -> int:
     """Return the bit depth field from a PNG IHDR chunk (8 or 16), or 0 on failure."""
+    info = _png_ihdr(path)
+    return info[0] if info else 0
+
+
+def _png_ihdr(path: Path) -> tuple[int, int] | None:
+    """Return (bit_depth, color_type) from a PNG IHDR chunk, or None on failure.
+
+    PNG color types:
+      0 = Grayscale        (1 channel)
+      2 = RGB              (3 channels)
+      3 = Indexed/palette  (3 channels)
+      4 = Grayscale+Alpha  (2 channels)
+      6 = RGBA             (4 channels)
+    """
     try:
         with open(path, "rb") as f:
             if f.read(8) != b"\x89PNG\r\n\x1a\n":
-                return 0
+                return None
             f.read(4)  # chunk length
             if f.read(4) != b"IHDR":
-                return 0
+                return None
             f.read(8)  # width (4) + height (4)
-            return f.read(1)[0]
+            bit_depth = f.read(1)[0]
+            color_type = f.read(1)[0]
+            return bit_depth, color_type
     except Exception:
-        return 0
+        return None
+
+
+def _png_needs_conversion(path: Path) -> bool:
+    """Return True if the PNG must be converted before handing to Metal.
+
+    Two cases require conversion:
+    - 16-bit images: Metal has no sRGB 16-bit format; values load as linear.
+    - Grayscale images (color type 0 or 4): Metal maps a single-channel PNG
+      to the R channel only, making affected meshes appear solid red.
+    """
+    info = _png_ihdr(path)
+    if info is None:
+        return False
+    bit_depth, color_type = info
+    is_16bit = bit_depth == 16
+    is_grayscale = color_type in (0, 4)  # Grayscale or Grayscale+Alpha
+    return is_16bit or is_grayscale
 
 
 def _set_scene_color_management_raw(scene: object) -> tuple[object, ...]:
@@ -936,11 +969,23 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
         # ignores the sRGB flag and loads the texture as linear RGBA16Unorm.
         # The gamma-compressed sRGB values are then used without expansion,
         # making the surface appear too bright / washed out in the engine.
-        # Fix: downconvert to 8-bit via save_render so the file on disk is a
-        # standard 8-bit sRGB PNG that Metal handles correctly.
+        # Grayscale textures (e.g. GIMP 16-bit grayscale with sRGB TRC) are also
+        # problematic: Metal maps a single-channel PNG to the R channel only,
+        # which makes meshes appear red.  Blender reports depth=16 for 16-bit
+        # grayscale (channels==1), which is not caught by the depth>32 check for
+        # RGB/RGBA 16-bit images.
+        # Fix: downconvert any 16-bit or grayscale image to 8-bit RGB(A) via
+        # save_render so the file on disk is a standard format Metal handles correctly.
         image_depth = getattr(image, "depth", 0)
-        if image_depth > 32:
-            print(f"  Converting 16-bit image '{image_name}' to 8-bit for Metal compatibility", flush=True)
+        image_channels = getattr(image, "channels", 4)
+        # Convert when: 16-bit RGB/RGBA (depth > 32), OR any grayscale image
+        # (channels < 3, any bit depth).  In Blender, depth = bits-per-pixel:
+        #   8-bit grayscale  → depth=8,  channels=1  (missed by depth>32)
+        #   16-bit grayscale → depth=16, channels=1
+        #   16-bit RGB/RGBA  → depth=48/64
+        needs_conversion = image_depth > 32 or image_channels < 3
+        if needs_conversion:
+            print(f"  Converting image '{image_name}' (depth={image_depth}, channels={image_channels}) to 8-bit RGB for Metal compatibility", flush=True)
             scene = bpy.context.scene
             img_settings = scene.render.image_settings
             saved = (img_settings.file_format, img_settings.color_depth, img_settings.color_mode)
@@ -948,7 +993,7 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
             try:
                 img_settings.file_format = image.file_format
                 img_settings.color_depth = "8"
-                img_settings.color_mode = "RGBA" if getattr(image, "channels", 4) == 4 else "RGB"
+                img_settings.color_mode = "RGBA" if image_channels == 4 else "RGB"
                 image.save_render(str(destination_path), scene=scene)
             finally:
                 _restore_scene_color_management(scene, saved_color_management)
@@ -1015,10 +1060,24 @@ def stage_texture_for_output(texture: ExportedTexture, output_path: Path, contex
 
     if source_path is not None and source_path.is_file():
         if source_path != destination_path:
-            # 16-bit PNGs must be converted to 8-bit: Metal has no sRGB 16-bit
-            # format so they would load without gamma correction and appear too bright.
-            if _png_bit_depth(source_path) == 16 and texture.source_image_name:
-                write_blender_image_to_path(texture.source_image_name, destination_path)
+            # 16-bit and grayscale PNGs must be converted before handing to Metal:
+            # - 16-bit: Metal has no sRGB 16-bit format; values load as linear.
+            # - Grayscale (color type 0/4): Metal maps a 1-channel PNG to the R
+            #   channel only, making meshes appear solid red.
+            # If the Blender image is not available (e.g. external GIMP file never
+            # loaded into bpy), load it temporarily so write_blender_image_to_path
+            # can apply the grayscale→RGB and 16-bit→8-bit conversions.
+            if _png_needs_conversion(source_path):
+                if texture.source_image_name:
+                    write_blender_image_to_path(texture.source_image_name, destination_path)
+                elif bpy is not None:
+                    tmp_image = bpy.data.images.load(str(source_path))
+                    try:
+                        write_blender_image_to_path(tmp_image.name, destination_path)
+                    finally:
+                        bpy.data.images.remove(tmp_image)
+                else:
+                    shutil.copy2(source_path, destination_path)
             else:
                 shutil.copy2(source_path, destination_path)
     elif texture.source_image_name:
