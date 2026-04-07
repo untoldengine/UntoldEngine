@@ -992,14 +992,13 @@ def extract_mesh_object(
         conversion_matrix = make_export_orientation_matrix(source_orientation) if convert_orientation else None
         triangulate_mesh(mesh_data)
         mesh_data.calc_loop_triangles()
-        if len(mesh_data.uv_layers) == 0:
-            raise RuntimeError("The mesh is missing uv0; V1 requires a primary UV set")
         material_indices = {polygon.material_index for polygon in mesh_data.polygons}
         if len(material_indices) > 1:
             raise RuntimeError("V1 exporter only supports one material assignment per mesh")
-        uv0_layer = mesh_data.uv_layers[0].data
+        has_uvs = len(mesh_data.uv_layers) > 0
+        uv0_layer = mesh_data.uv_layers[0].data if has_uvs else None
         uv1_layer = mesh_data.uv_layers[1].data if len(mesh_data.uv_layers) > 1 else None
-        if len(mesh_data.uv_layers) > 0:
+        if has_uvs:
             mesh_data.calc_tangents(uvmap=mesh_data.uv_layers[0].name)
 
         color_layer = mesh_data.color_attributes.active_color
@@ -1016,7 +1015,7 @@ def extract_mesh_object(
             for loop_index in triangle.loops:
                 loop = mesh_data.loops[loop_index]
                 vertex = mesh_data.vertices[loop.vertex_index]
-                uv0 = uv0_layer[loop_index].uv
+                uv0 = uv0_layer[loop_index].uv if uv0_layer is not None else (0.0, 0.0)
                 uv1 = uv1_layer[loop_index].uv if uv1_layer is not None else (0.0, 0.0)
                 if color_layer is not None and color_layer.domain == "CORNER":
                     color_value = color_layer.data[loop_index].color
@@ -1144,6 +1143,60 @@ def extract_meshes(
     ]
 
 
+def split_blender_objects_by_material(objects: list[object]) -> list[object]:
+    """Split any Blender mesh object that assigns multiple materials across its
+    faces into separate single-material objects.
+
+    The V1 exporter requires each mesh to carry exactly one material.  This
+    mirrors the split step in the tile-streaming pipeline so that direct
+    export-untold calls on multi-material USD assets also work.
+    """
+    import bpy, bmesh as _bmesh  # noqa: F401 — bmesh may not be at module level
+    result = []
+    split_count = 0
+    for obj in objects:
+        if getattr(obj, "type", None) != "MESH" or obj.data is None:
+            result.append(obj)
+            continue
+        mesh = obj.data
+        used_indices = {p.material_index for p in mesh.polygons}
+        if len(used_indices) <= 1:
+            result.append(obj)
+            continue
+        print(f"  Splitting '{obj.name}' into {len(used_indices)} single-material mesh(es)", flush=True)
+        split_count += len(used_indices)
+        for mat_idx in sorted(used_indices):
+            bm = _bmesh.new()
+            try:
+                bm.from_mesh(mesh)
+                to_delete = [f for f in bm.faces if f.material_index != mat_idx]
+                if to_delete:
+                    _bmesh.ops.delete(bm, geom=to_delete, context="FACES")
+                loose_edges = [e for e in bm.edges if not e.link_faces]
+                if loose_edges:
+                    _bmesh.ops.delete(bm, geom=loose_edges, context="EDGES")
+                loose_verts = [v for v in bm.verts if not v.link_faces and not v.link_edges]
+                if loose_verts:
+                    _bmesh.ops.delete(bm, geom=loose_verts, context="VERTS")
+                if not bm.faces:
+                    continue
+                new_mesh = bpy.data.meshes.new(f"{mesh.name}_mat{mat_idx}")
+                bm.to_mesh(new_mesh)
+                new_mesh.update()
+                mat = mesh.materials[mat_idx] if mat_idx < len(mesh.materials) else None
+                if mat:
+                    new_mesh.materials.append(mat)
+                    for p in new_mesh.polygons:
+                        p.material_index = 0
+                new_obj = bpy.data.objects.new(f"{obj.name}_mat{mat_idx}", new_mesh)
+                new_obj.matrix_world = obj.matrix_world.copy()
+                bpy.context.scene.collection.objects.link(new_obj)
+                result.append(new_obj)
+            finally:
+                bm.free()
+    return result
+
+
 def extract_nodes(
     asset_path: Path,
     mesh_name: Optional[str],
@@ -1154,6 +1207,7 @@ def extract_nodes(
     clear_scene()
     imported_objects = import_usd_asset(asset_path)
     export_objects = choose_export_objects(imported_objects, mesh_name)
+    export_objects = split_blender_objects_by_material(export_objects)
     return extract_nodes_from_objects(
         export_objects,
         asset_path,
@@ -1173,15 +1227,25 @@ def extract_nodes_from_objects(
         raise RuntimeError("No Blender objects were provided for export")
     conversion_matrix = make_export_orientation_matrix(source_orientation) if convert_orientation else None
 
+    mesh_objects = [obj for obj in export_objects if getattr(obj, "type", None) == "MESH"]
+    total = len(mesh_objects)
+    print(f"  Processing {total} mesh(es) ...", flush=True)
     exported_meshes_by_name: dict[str, ExportedMesh] = {}
-    for obj in export_objects:
-        if getattr(obj, "type", None) == "MESH":
+    skipped = 0
+    for i, obj in enumerate(mesh_objects, 1):
+        print(f"  [{i}/{total}] {obj.name}", flush=True)
+        try:
             exported_meshes_by_name[obj.name] = extract_mesh_object(
                 obj,
                 asset_path,
                 convert_orientation=convert_orientation,
                 source_orientation=source_orientation,
             )
+        except RuntimeError as exc:
+            print(f"    Skipped: {exc}", flush=True)
+            skipped += 1
+    if skipped:
+        print(f"  Skipped {skipped} mesh(es) with errors", flush=True)
 
     descendant_world_corners_by_name: dict[str, list[tuple[float, float, float]]] = {}
 
@@ -1553,14 +1617,17 @@ def main(argv: list[str]) -> int:
     if not input_path.is_file():
         raise RuntimeError(f"Input asset does not exist: {input_path}")
 
+    print(f"Importing {input_path.name} ...", flush=True)
     exported_nodes = extract_nodes(
         input_path,
         args.mesh_name,
         convert_orientation=args.convert_orientation,
         source_orientation=args.source_orientation,
     )
+    print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
+    print("Building .untold file ...", flush=True)
     untold_bytes = build_untold_file(exported_nodes, output_path, args.file_type)
     output_path.write_bytes(untold_bytes)
     exported_meshes = [exported_node.mesh for exported_node in exported_nodes if exported_node.mesh is not None]

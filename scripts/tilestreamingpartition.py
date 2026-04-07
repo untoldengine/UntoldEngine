@@ -1078,6 +1078,14 @@ def clip_bmesh_to_tile(bm, tile_bounds, epsilon):
     if loose_verts:
         bmesh.ops.delete(bm, geom=loose_verts, context="VERTS")
 
+    # Mark open boundary edges (the cut created by bisect_plane) as sharp so
+    # smooth normals are not blended across the cut.  Without this, interpolated
+    # normals from the deleted half of the mesh remain on the new boundary
+    # vertices and cause visible surface warping at tile edges.
+    for edge in bm.edges:
+        if len(edge.link_faces) == 1:
+            edge.smooth = False
+
     bm.normal_update()
 
 
@@ -1106,6 +1114,11 @@ def clip_objects_to_tile(objects, tile_bounds, epsilon):
 
             clip_bmesh_to_tile(bm, tile_bounds, epsilon)
             bm.to_mesh(mesh)
+            # Discard custom split normals carried from the original USD import.
+            # Cut-boundary vertices inherit stale interpolated normals; clearing
+            # them forces Blender to recompute from the actual post-clip geometry.
+            if getattr(mesh, "has_custom_normals", False) and hasattr(mesh, "free_normals_split"):
+                mesh.free_normals_split()
             try:
                 mesh.validate(clean_customdata=False)
             except TypeError:
@@ -1394,6 +1407,70 @@ def _merge_objects_in_scene(group, temp_scene):
     return base_obj
 
 
+def split_objects_by_material(objects, temp_scene):
+    """Split any mesh using multiple material slots into one mesh per material.
+
+    The V1 exporter requires each mesh to have exactly one material assignment.
+    Running this before merge_objects_by_material lets the resulting
+    single-material pieces be re-joined with other objects sharing the same
+    material.  Objects that already use a single material pass through unchanged.
+    """
+    result = []
+    for obj in objects:
+        if obj.type != "MESH" or obj.data is None:
+            result.append(obj)
+            continue
+
+        mesh = obj.data
+        used_indices = {p.material_index for p in mesh.polygons}
+
+        if len(used_indices) <= 1:
+            result.append(obj)
+            continue
+
+        # Split into one object per used material index.
+        for mat_idx in sorted(used_indices):
+            bm = bmesh.new()
+            try:
+                bm.from_mesh(mesh)
+                to_delete = [f for f in bm.faces if f.material_index != mat_idx]
+                if to_delete:
+                    bmesh.ops.delete(bm, geom=to_delete, context="FACES")
+                loose_edges = [e for e in bm.edges if not e.link_faces]
+                if loose_edges:
+                    bmesh.ops.delete(bm, geom=loose_edges, context="EDGES")
+                loose_verts = [v for v in bm.verts if not v.link_faces and not v.link_edges]
+                if loose_verts:
+                    bmesh.ops.delete(bm, geom=loose_verts, context="VERTS")
+
+                if not bm.faces:
+                    continue
+
+                new_mesh = bpy.data.meshes.new(f"{mesh.name}_mat{mat_idx}")
+                bm.to_mesh(new_mesh)
+                new_mesh.update()
+
+                mat = mesh.materials[mat_idx] if mat_idx < len(mesh.materials) else None
+                if mat:
+                    new_mesh.materials.append(mat)
+                    for p in new_mesh.polygons:
+                        p.material_index = 0
+
+                new_obj = bpy.data.objects.new(f"{obj.name}_mat{mat_idx}", new_mesh)
+                new_obj.matrix_world = obj.matrix_world.copy()
+                temp_scene.collection.objects.link(new_obj)
+                result.append(new_obj)
+            finally:
+                bm.free()
+
+        # Remove the original multi-material object.
+        bpy.data.objects.remove(obj, do_unlink=True)
+        if mesh.users == 0:
+            bpy.data.meshes.remove(mesh)
+
+    return result
+
+
 def merge_objects_by_material(objects, temp_scene):
     """Join objects that share identical material(s) into single meshes.
 
@@ -1540,6 +1617,7 @@ def export_local_tile(filepath, objects, tile_bounds, source_scene_path):
             if removed:
                 print(f"  Clipped away {removed} empty object(s)")
 
+        temp_objs = split_objects_by_material(temp_objs, temp_scene)
         if MERGE_BY_MATERIAL and len(temp_objs) > 1:
             temp_objs = merge_objects_by_material(temp_objs, temp_scene)
             if not temp_objs:
@@ -1579,6 +1657,7 @@ def export_shared_bucket(filepath, objects, source_scene_path):
         temp_scene = bpy.data.scenes.new("TEMP_SHARED_EXPORT")
         try:
             temp_objs = duplicate_objects_to_scene(objects, temp_scene, bake_world=True)
+            temp_objs = split_objects_by_material(temp_objs, temp_scene)
             if MERGE_BY_MATERIAL and len(temp_objs) > 1:
                 temp_objs = merge_objects_by_material(temp_objs, temp_scene)
             with scene_context(temp_scene):
@@ -1626,6 +1705,7 @@ def export_hlod_tile(filepath, objects, tile_bounds, reduction_ratio, source_sce
             if removed:
                 print(f"  HLOD clip removed {removed} empty object(s)")
 
+        temp_objs = split_objects_by_material(temp_objs, temp_scene)
         if MERGE_BY_MATERIAL and len(temp_objs) > 1:
             temp_objs = merge_objects_by_material(temp_objs, temp_scene)
             if not temp_objs:
