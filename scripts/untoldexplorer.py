@@ -720,11 +720,21 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
         )
 
     passthrough_input_names = {
-        "ShaderNodeNormalMap": ["Color"],
-        "ShaderNodeSeparateColor": ["Color"],
-        "ShaderNodeSeparateRGB": ["Image"],
-        "ShaderNodeRGBToBW": ["Color"],
-        "NodeReroute": ["Input"],
+        "ShaderNodeNormalMap":      ["Color"],
+        "ShaderNodeSeparateColor":  ["Color"],
+        "ShaderNodeSeparateRGB":    ["Image"],
+        "ShaderNodeRGBToBW":        ["Color"],
+        "NodeReroute":              ["Input"],
+        # Color-correction nodes — the texture passes through their Color input.
+        "ShaderNodeGamma":          ["Color"],
+        "ShaderNodeBrightContrast": ["Color"],
+        "ShaderNodeHueSaturation":  ["Color"],
+        "ShaderNodeInvert":         ["Color"],
+        "ShaderNodeCurveRGB":       ["Color"],
+        "ShaderNodeCurveFloat":     ["Value"],
+        # Mix nodes — try both color inputs; returns whichever one traces to a texture.
+        "ShaderNodeMixRGB":         ["Color1", "Color2"],
+        "ShaderNodeMix":            ["A", "B"],        # Blender 4+ name
     }
     input_names = passthrough_input_names.get(source_node.bl_idname, [])
     for input_name in input_names:
@@ -736,6 +746,21 @@ def _resolve_texture_from_socket(input_socket: object, asset_path: Path, visited
             return resolved
 
     return None
+
+
+def _png_bit_depth(path: Path) -> int:
+    """Return the bit depth field from a PNG IHDR chunk (8 or 16), or 0 on failure."""
+    try:
+        with open(path, "rb") as f:
+            if f.read(8) != b"\x89PNG\r\n\x1a\n":
+                return 0
+            f.read(4)  # chunk length
+            if f.read(4) != b"IHDR":
+                return 0
+            f.read(8)  # width (4) + height (4)
+            return f.read(1)[0]
+    except Exception:
+        return 0
 
 
 def write_blender_image_to_path(image_name: str, destination_path: Path) -> None:
@@ -772,7 +797,29 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
             }
             normalized_suffix = destination_path.suffix.lower()
             image.file_format = file_format_by_suffix.get(normalized_suffix, normalized_suffix[1:].upper())
-        image.save()
+
+        # Metal has no sRGB 16-bit pixel format (no RGBA16Unorm_sRGB).  When
+        # MTKTextureLoader receives a 16-bit PNG with .SRGB = true, it silently
+        # ignores the sRGB flag and loads the texture as linear RGBA16Unorm.
+        # The gamma-compressed sRGB values are then used without expansion,
+        # making the surface appear too bright / washed out in the engine.
+        # Fix: downconvert to 8-bit via save_render so the file on disk is a
+        # standard 8-bit sRGB PNG that Metal handles correctly.
+        image_depth = getattr(image, "depth", 0)
+        if image_depth > 32:
+            print(f"  Converting 16-bit image '{image_name}' to 8-bit for Metal compatibility", flush=True)
+            scene = bpy.context.scene
+            img_settings = scene.render.image_settings
+            saved = (img_settings.file_format, img_settings.color_depth, img_settings.color_mode)
+            try:
+                img_settings.file_format = image.file_format
+                img_settings.color_depth = "8"
+                img_settings.color_mode = "RGBA" if getattr(image, "channels", 4) == 4 else "RGB"
+                image.save_render(str(destination_path), scene=scene)
+            finally:
+                img_settings.file_format, img_settings.color_depth, img_settings.color_mode = saved
+        else:
+            image.save()
     finally:
         image.filepath_raw = original_filepath_raw
         image.file_format = original_file_format
@@ -833,7 +880,12 @@ def stage_texture_for_output(texture: ExportedTexture, output_path: Path, contex
 
     if source_path is not None and source_path.is_file():
         if source_path != destination_path:
-            shutil.copy2(source_path, destination_path)
+            # 16-bit PNGs must be converted to 8-bit: Metal has no sRGB 16-bit
+            # format so they would load without gamma correction and appear too bright.
+            if _png_bit_depth(source_path) == 16 and texture.source_image_name:
+                write_blender_image_to_path(texture.source_image_name, destination_path)
+            else:
+                shutil.copy2(source_path, destination_path)
     elif texture.source_image_name:
         write_blender_image_to_path(texture.source_image_name, destination_path)
     else:
@@ -939,7 +991,14 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
     normal_input = inputs.get("Normal")
     alpha_input = inputs.get("Alpha")
 
-    base_color = vector4(base_color_input.default_value) if base_color_input is not None else (1.0, 1.0, 1.0, 1.0)
+    # When a texture is connected to Base Color, Blender ignores the socket's
+    # default_value entirely.  Reading it here would tint the texture with a
+    # stale editor color and produce wrong results in the engine.  Only use the
+    # default_value when NO texture is connected (i.e. solid color material).
+    if base_color_input is None or base_color_input.is_linked:
+        base_color = (1.0, 1.0, 1.0, 1.0)
+    else:
+        base_color = vector4(base_color_input.default_value)
     emissive_default = emissive_input.default_value if emissive_input is not None else (0.0, 0.0, 0.0, 1.0)
     emissive = (float(emissive_default[0]), float(emissive_default[1]), float(emissive_default[2]))
     metallic = float(metallic_input.default_value) if metallic_input is not None else 0.0
