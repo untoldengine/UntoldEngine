@@ -32,6 +32,13 @@ except ImportError:
     Matrix = None
     Vector = None
 
+try:
+    import numpy as np
+    _HAS_NUMPY = True
+except ImportError:
+    np = None
+    _HAS_NUMPY = False
+
 
 MAGIC = b"UNTOLD\x00\x00"
 FORMAT_VERSION = 1
@@ -116,6 +123,51 @@ def float_to_half_bits(value: float) -> int:
 
 def color_to_u8(value: float) -> int:
     return int(round(clamp(value, 0.0, 1.0) * 255.0))
+
+
+if _HAS_NUMPY:
+    _VERTEX_DTYPE = np.dtype([
+        ("px", np.float32), ("py", np.float32), ("pz", np.float32),
+        ("normal",  np.uint32),
+        ("tangent", np.uint32),
+        ("uv0u", np.uint16), ("uv0v", np.uint16),
+        ("uv1u", np.uint16), ("uv1v", np.uint16),
+        ("cr", np.uint8), ("cg", np.uint8), ("cb", np.uint8), ("ca", np.uint8),
+    ])
+    assert _VERTEX_DTYPE.itemsize == VERTEX_STRIDE, (
+        f"_VERTEX_DTYPE is {_VERTEX_DTYPE.itemsize} bytes, expected {VERTEX_STRIDE}"
+    )
+
+    def _np_pack_snorm10(values: "np.ndarray") -> "np.ndarray":
+        clamped = np.clip(values, -1.0, 1.0)
+        scaled = np.round(clamped * 511.0).astype(np.int32)
+        return (scaled & 0x3FF).astype(np.uint32)
+
+    def _np_pack_normals(normals: "np.ndarray") -> "np.ndarray":
+        lens = np.linalg.norm(normals, axis=1, keepdims=True)
+        lens = np.where(lens <= 1.0e-8, 1.0, lens)
+        n = normals / lens
+        return (
+            _np_pack_snorm10(n[:, 0])
+            | (_np_pack_snorm10(n[:, 1]) << 10)
+            | (_np_pack_snorm10(n[:, 2]) << 20)
+        )
+
+    def _np_pack_tangents(tangents: "np.ndarray", bitangent_signs: "np.ndarray") -> "np.ndarray":
+        lens = np.linalg.norm(tangents, axis=1, keepdims=True)
+        lens = np.where(lens <= 1.0e-8, 1.0, lens)
+        t = tangents / lens
+        hw = np.where(bitangent_signs >= 0.0, np.int32(1), np.int32(-1)).astype(np.int32) & np.int32(0x3)
+        return (
+            _np_pack_snorm10(t[:, 0])
+            | (_np_pack_snorm10(t[:, 1]) << 10)
+            | (_np_pack_snorm10(t[:, 2]) << 20)
+            | (hw.astype(np.uint32) << 30)
+        )
+else:
+    _VERTEX_DTYPE = None
+    _np_pack_normals = None
+    _np_pack_tangents = None
 
 
 class BinaryWriter:
@@ -678,10 +730,6 @@ def triangulate_mesh(mesh_data: object) -> None:
         bm.free()
 
 
-def resolve_base_color_texture(material: object, input_socket: object, asset_path: Path) -> Optional[ExportedTexture]:
-    return resolve_texture_from_socket(input_socket, asset_path)
-
-
 def resolve_texture_from_socket(input_socket: object, asset_path: Path) -> Optional[ExportedTexture]:
     return _resolve_texture_from_socket(input_socket, asset_path, visited_nodes=set())
 
@@ -763,6 +811,91 @@ def _png_bit_depth(path: Path) -> int:
         return 0
 
 
+def _set_scene_color_management_raw(scene: object) -> tuple[object, ...]:
+    """Temporarily force identity color management so image saves preserve texture values."""
+    view_settings = getattr(scene, "view_settings", None)
+    display_settings = getattr(scene, "display_settings", None)
+    sequencer_settings = getattr(scene, "sequencer_colorspace_settings", None)
+    saved = (
+        getattr(view_settings, "view_transform", None),
+        getattr(view_settings, "look", None),
+        getattr(view_settings, "exposure", None),
+        getattr(view_settings, "gamma", None),
+        getattr(display_settings, "display_device", None),
+        getattr(sequencer_settings, "name", None),
+    )
+
+    if view_settings is not None:
+        try:
+            view_transform_items = view_settings.bl_rna.properties["view_transform"].enum_items.keys()
+        except Exception:
+            view_transform_items = ()
+        if "Raw" in view_transform_items:
+            view_settings.view_transform = "Raw"
+        elif "Standard" in view_transform_items:
+            # Fallback for configurations without a Raw view.
+            view_settings.view_transform = "Standard"
+
+        try:
+            look_items = view_settings.bl_rna.properties["look"].enum_items.keys()
+        except Exception:
+            look_items = ()
+        if "None" in look_items:
+            view_settings.look = "None"
+        if hasattr(view_settings, "exposure"):
+            view_settings.exposure = 0.0
+        if hasattr(view_settings, "gamma"):
+            view_settings.gamma = 1.0
+
+    if display_settings is not None:
+        try:
+            display_items = display_settings.bl_rna.properties["display_device"].enum_items.keys()
+        except Exception:
+            display_items = ()
+        if "None" in display_items:
+            display_settings.display_device = "None"
+        elif "sRGB" in display_items:
+            display_settings.display_device = "sRGB"
+
+    if sequencer_settings is not None and hasattr(sequencer_settings, "name"):
+        try:
+            sequencer_settings.name = "Raw"
+        except Exception:
+            pass
+
+    return saved
+
+
+def _restore_scene_color_management(scene: object, saved: tuple[object, ...]) -> None:
+    view_settings = getattr(scene, "view_settings", None)
+    display_settings = getattr(scene, "display_settings", None)
+    sequencer_settings = getattr(scene, "sequencer_colorspace_settings", None)
+    (
+        saved_view_transform,
+        saved_look,
+        saved_exposure,
+        saved_gamma,
+        saved_display_device,
+        saved_sequencer_name,
+    ) = saved
+
+    if view_settings is not None:
+        if saved_view_transform is not None and hasattr(view_settings, "view_transform"):
+            view_settings.view_transform = saved_view_transform
+        if saved_look is not None and hasattr(view_settings, "look"):
+            view_settings.look = saved_look
+        if saved_exposure is not None and hasattr(view_settings, "exposure"):
+            view_settings.exposure = saved_exposure
+        if saved_gamma is not None and hasattr(view_settings, "gamma"):
+            view_settings.gamma = saved_gamma
+
+    if display_settings is not None and saved_display_device is not None and hasattr(display_settings, "display_device"):
+        display_settings.display_device = saved_display_device
+
+    if sequencer_settings is not None and saved_sequencer_name is not None and hasattr(sequencer_settings, "name"):
+        sequencer_settings.name = saved_sequencer_name
+
+
 def write_blender_image_to_path(image_name: str, destination_path: Path) -> None:
     blender_required()
     image = bpy.data.images.get(image_name)
@@ -811,12 +944,14 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
             scene = bpy.context.scene
             img_settings = scene.render.image_settings
             saved = (img_settings.file_format, img_settings.color_depth, img_settings.color_mode)
+            saved_color_management = _set_scene_color_management_raw(scene)
             try:
                 img_settings.file_format = image.file_format
                 img_settings.color_depth = "8"
                 img_settings.color_mode = "RGBA" if getattr(image, "channels", 4) == 4 else "RGB"
                 image.save_render(str(destination_path), scene=scene)
             finally:
+                _restore_scene_color_management(scene, saved_color_management)
                 img_settings.file_format, img_settings.color_depth, img_settings.color_mode = saved
         else:
             image.save()
@@ -936,6 +1071,45 @@ def stage_nodes_for_output(exported_nodes: list[ExportedNode], output_path: Path
     return staged_nodes
 
 
+def _detect_occlusion_texture(material: object, asset_path: Path) -> Optional[ExportedTexture]:
+    """Search the material node tree for a ShaderNodeTexImage whose filename
+    suggests it is an occlusion / AO map.  Blender's USD importer has no
+    Principled BSDF occlusion socket, so these nodes often appear unconnected."""
+    node_tree = getattr(material, "node_tree", None)
+    if node_tree is None:
+        return None
+    for node in node_tree.nodes:
+        if node.bl_idname != "ShaderNodeTexImage" or node.image is None:
+            continue
+        image = node.image
+        filepath = getattr(image, "filepath", "") or ""
+        stem = Path(filepath).stem if filepath else image.name
+        name_lower = stem.lower().replace("-", "_")
+        parts = name_lower.split("_")
+        if "occlusion" not in name_lower and not any(p == "ao" for p in parts):
+            continue
+        raw_path = bpy.path.abspath(filepath, library=image.library) if bpy is not None and filepath else filepath
+        texture_path = Path(raw_path) if raw_path else Path(image.name)
+        if not texture_path.is_absolute() and filepath:
+            texture_path = (asset_path.parent / texture_path).resolve()
+        try:
+            uri = os.path.relpath(texture_path, asset_path.parent)
+        except ValueError:
+            uri = str(texture_path)
+        width = int(image.size[0]) if len(image.size) > 0 else 0
+        height = int(image.size[1]) if len(image.size) > 1 else 0
+        return ExportedTexture(
+            name=texture_path.name or image.name,
+            uri=uri,
+            width=width,
+            height=height,
+            mip_count=1 if width > 0 and height > 0 else 0,
+            source_path=texture_path,
+            source_image_name=getattr(image, "name", None),
+        )
+    return None
+
+
 def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
     material_slots = getattr(mesh_object.data, "materials", [])
     material = material_slots[0] if material_slots and material_slots[0] is not None else None
@@ -1005,7 +1179,7 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
     roughness = float(roughness_input.default_value) if roughness_input is not None else 0.5
     alpha = float(alpha_input.default_value) if alpha_input is not None else 1.0
 
-    base_color_texture = resolve_base_color_texture(material, base_color_input, asset_path) if base_color_input is not None else None
+    base_color_texture = resolve_texture_from_socket(base_color_input, asset_path) if base_color_input is not None else None
     normal_texture = resolve_texture_from_socket(normal_input, asset_path) if normal_input is not None else None
     emissive_texture = resolve_texture_from_socket(emissive_input, asset_path) if emissive_input is not None else None
     metallic_texture = resolve_texture_from_socket(metallic_input, asset_path) if metallic_input is not None else None
@@ -1016,6 +1190,8 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         if source.bl_idname == "ShaderNodeNormalMap":
             strength_input = source.inputs.get("Strength")
             normal_scale = float(strength_input.default_value) if strength_input is not None else 1.0
+
+    occlusion_texture = _detect_occlusion_texture(material, asset_path)
 
     return ExportedMaterial(
         name=material.name,
@@ -1031,7 +1207,232 @@ def extract_material(mesh_object: object, asset_path: Path) -> ExportedMaterial:
         metallic_texture=metallic_texture,
         roughness_texture=roughness_texture,
         emissive_texture=emissive_texture,
-        occlusion_texture=None,
+        occlusion_texture=occlusion_texture,
+    )
+
+
+def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path,
+                        *, conversion_matrix, validate: bool) -> ExportedMesh:
+    """numpy-accelerated mesh extraction (inner worker, mesh_data already evaluated)."""
+    n_polys = len(mesh_data.polygons)
+
+    # Skip expensive bmesh roundtrip when the mesh is already fully triangulated.
+    if n_polys > 0:
+        loop_totals = np.empty(n_polys, dtype=np.int32)
+        mesh_data.polygons.foreach_get("loop_total", loop_totals)
+        if not np.all(loop_totals == 3):
+            triangulate_mesh(mesh_data)
+
+    mesh_data.calc_loop_triangles()
+
+    n_polys_after = len(mesh_data.polygons)
+    if n_polys_after > 0:
+        mat_idx_arr = np.empty(n_polys_after, dtype=np.int32)
+        mesh_data.polygons.foreach_get("material_index", mat_idx_arr)
+        if len(np.unique(mat_idx_arr)) > 1:
+            raise RuntimeError("V1 exporter only supports one material assignment per mesh")
+
+    n_verts = len(mesh_data.vertices)
+    n_loops = len(mesh_data.loops)
+    n_tris  = len(mesh_data.loop_triangles)
+
+    if n_verts == 0 or n_tris == 0:
+        raise RuntimeError("The imported mesh has no vertices")
+
+    has_uvs = len(mesh_data.uv_layers) > 0
+    if has_uvs:
+        mesh_data.calc_tangents(uvmap=mesh_data.uv_layers[0].name)
+
+    # ── bulk extraction via foreach_get (runs entirely in C) ──────────────
+
+    pos_flat = np.empty(n_verts * 3, dtype=np.float32)
+    mesh_data.vertices.foreach_get("co", pos_flat)
+    all_positions = pos_flat.reshape(-1, 3)  # (V, 3) — all local-space verts
+
+    nor_flat = np.empty(n_loops * 3, dtype=np.float32)
+    mesh_data.loops.foreach_get("normal", nor_flat)
+    loop_normals = nor_flat.reshape(-1, 3)
+
+    if has_uvs:
+        tan_flat = np.empty(n_loops * 3, dtype=np.float32)
+        mesh_data.loops.foreach_get("tangent", tan_flat)
+        loop_tangents = tan_flat.reshape(-1, 3)
+        bts_flat = np.empty(n_loops, dtype=np.float32)
+        mesh_data.loops.foreach_get("bitangent_sign", bts_flat)
+    else:
+        loop_tangents = np.zeros((n_loops, 3), dtype=np.float32)
+        loop_tangents[:, 0] = 1.0
+        bts_flat = np.ones(n_loops, dtype=np.float32)
+
+    lvi_flat = np.empty(n_loops, dtype=np.int32)
+    mesh_data.loops.foreach_get("vertex_index", lvi_flat)  # loop → vertex index
+
+    if has_uvs:
+        uv0_flat = np.empty(n_loops * 2, dtype=np.float32)
+        mesh_data.uv_layers[0].data.foreach_get("uv", uv0_flat)
+        loop_uv0 = uv0_flat.reshape(-1, 2)
+    else:
+        loop_uv0 = np.zeros((n_loops, 2), dtype=np.float32)
+
+    if len(mesh_data.uv_layers) > 1:
+        uv1_flat = np.empty(n_loops * 2, dtype=np.float32)
+        mesh_data.uv_layers[1].data.foreach_get("uv", uv1_flat)
+        loop_uv1 = uv1_flat.reshape(-1, 2)
+    else:
+        loop_uv1 = np.zeros((n_loops, 2), dtype=np.float32)
+
+    color_layer = mesh_data.color_attributes.active_color
+    if color_layer is not None and color_layer.domain == "CORNER":
+        col_flat = np.empty(n_loops * 4, dtype=np.float32)
+        color_layer.data.foreach_get("color", col_flat)
+        loop_colors = col_flat.reshape(-1, 4)
+    elif color_layer is not None and color_layer.domain == "POINT":
+        col_flat = np.empty(n_verts * 4, dtype=np.float32)
+        color_layer.data.foreach_get("color", col_flat)
+        loop_colors = col_flat.reshape(-1, 4)[lvi_flat]
+    else:
+        loop_colors = np.ones((n_loops, 4), dtype=np.float32)
+
+    # Triangle loop indices — flat (n_tris*3,) after ravel
+    tl_flat = np.empty(n_tris * 3, dtype=np.int32)
+    mesh_data.loop_triangles.foreach_get("loops", tl_flat)
+
+    # ── gather per-corner data ─────────────────────────────────────────────
+
+    c_vi  = lvi_flat[tl_flat]               # corner → vertex index
+    c_pos = all_positions[c_vi]             # (N, 3)
+    c_nor = loop_normals[tl_flat]           # (N, 3)
+    c_tan = loop_tangents[tl_flat]          # (N, 3)
+    c_bts = bts_flat[tl_flat]              # (N,)
+    c_uv0 = loop_uv0[tl_flat]              # (N, 2)
+    c_uv1 = loop_uv1[tl_flat]              # (N, 2)
+    c_col = loop_colors[tl_flat]            # (N, 4)
+
+    # ── orientation conversion ─────────────────────────────────────────────
+
+    conv_np = None
+    if conversion_matrix is not None:
+        conv_np = np.array(
+            [[float(conversion_matrix[r][c]) for c in range(4)] for r in range(4)],
+            dtype=np.float32,
+        )
+        R = conv_np[:3, :3]
+        T = conv_np[:3, 3]
+        c_pos = c_pos @ R.T + T
+        c_nor = c_nor @ R.T
+        c_tan = c_tan @ R.T
+
+    # ── deduplication via numpy unique (void-view trick, O(N log N) in C) ──
+
+    _P = np.float64(1.0e8)
+    keys = np.concatenate([
+        (c_pos.astype(np.float64) * _P).round().astype(np.int64),   # (N, 3)
+        (c_nor.astype(np.float64) * _P).round().astype(np.int64),   # (N, 3)
+        (c_tan.astype(np.float64) * _P).round().astype(np.int64),   # (N, 3)
+        np.where(c_bts >= 0, np.int64(1), np.int64(-1)).reshape(-1, 1),  # (N, 1)
+        (c_uv0.astype(np.float64) * _P).round().astype(np.int64),   # (N, 2)
+        (c_uv1.astype(np.float64) * _P).round().astype(np.int64),   # (N, 2)
+        (np.clip(c_col, 0.0, 1.0) * 255.0).round().astype(np.int64),  # (N, 4)
+    ], axis=1)  # (N, 18) int64
+
+    keys_c = np.ascontiguousarray(keys)
+    keys_v = keys_c.view(np.dtype((np.void, keys_c.dtype.itemsize * keys_c.shape[1])))
+    _, first_occ, inverse = np.unique(keys_v.ravel(), return_index=True, return_inverse=True)
+
+    n_unique = len(first_occ)
+
+    # ── gather unique vertex data ──────────────────────────────────────────
+
+    u_pos = c_pos[first_occ]   # (U, 3)
+    u_nor = c_nor[first_occ]   # (U, 3)
+    u_tan = c_tan[first_occ]   # (U, 3)
+    u_bts = c_bts[first_occ]   # (U,)
+    u_uv0 = c_uv0[first_occ]   # (U, 2)
+    u_uv1 = c_uv1[first_occ]   # (U, 2)
+    u_col = c_col[first_occ]   # (U, 4)
+
+    # ── vectorized packing ─────────────────────────────────────────────────
+
+    vtx = np.empty(n_unique, dtype=_VERTEX_DTYPE)
+    vtx["px"]      = u_pos[:, 0]
+    vtx["py"]      = u_pos[:, 1]
+    vtx["pz"]      = u_pos[:, 2]
+    vtx["normal"]  = _np_pack_normals(u_nor)
+    vtx["tangent"] = _np_pack_tangents(u_tan, u_bts)
+    uv0h = u_uv0.astype(np.float16).view(np.uint16)
+    uv1h = u_uv1.astype(np.float16).view(np.uint16)
+    vtx["uv0u"] = uv0h[:, 0];  vtx["uv0v"] = uv0h[:, 1]
+    vtx["uv1u"] = uv1h[:, 0];  vtx["uv1v"] = uv1h[:, 1]
+    col8 = (np.clip(u_col, 0.0, 1.0) * 255.0).round().astype(np.uint8)
+    vtx["cr"] = col8[:, 0];  vtx["cg"] = col8[:, 1]
+    vtx["cb"] = col8[:, 2];  vtx["ca"] = col8[:, 3]
+    vertex_bytes = vtx.tobytes()
+
+    # ── index buffer ───────────────────────────────────────────────────────
+
+    index_type = INDEX_TYPE_UINT16 if n_unique <= 65535 else INDEX_TYPE_UINT32
+    idx_arr = inverse.astype(np.uint16 if index_type == INDEX_TYPE_UINT16 else np.uint32)
+    index_bytes = idx_arr.tobytes()
+
+    # ── bounds ─────────────────────────────────────────────────────────────
+
+    local_bounds = AABB(
+        (float(u_pos[:, 0].min()), float(u_pos[:, 1].min()), float(u_pos[:, 2].min())),
+        (float(u_pos[:, 0].max()), float(u_pos[:, 1].max()), float(u_pos[:, 2].max())),
+    )
+
+    # World bounds: apply matrix_world to all local verts, then optional conversion.
+    mw = np.array(
+        [[float(mesh_object.matrix_world[r][c]) for c in range(4)] for r in range(4)],
+        dtype=np.float32,
+    )
+    wp = all_positions @ mw[:3, :3].T + mw[:3, 3]
+    if conv_np is not None:
+        wp = wp @ conv_np[:3, :3].T + conv_np[:3, 3]
+    world_bounds = AABB(
+        (float(wp[:, 0].min()), float(wp[:, 1].min()), float(wp[:, 2].min())),
+        (float(wp[:, 0].max()), float(wp[:, 1].max()), float(wp[:, 2].max())),
+    )
+
+    local_transform_rows = matrix_rows_from_blender(mesh_object.matrix_local)
+    if conversion_matrix is not None:
+        local_transform_rows = transform_matrix_rows(local_transform_rows, conversion_matrix)
+
+    # ── validation mesh (only when requested) ─────────────────────────────
+
+    vmesh = None
+    if validate:
+        vmesh = ValidationMesh(
+            name=mesh_object.data.name or mesh_object.name,
+            vertex_count=n_unique,
+            index_count=int(inverse.size),
+            positions=[tuple(float(v) for v in u_pos[i]) for i in range(n_unique)],
+            normals=[tuple(float(v) for v in u_nor[i]) for i in range(n_unique)],
+            tangents=[
+                ValidationTangent(
+                    xyz=tuple(float(v) for v in u_tan[i]),
+                    handedness=float(u_bts[i]),
+                )
+                for i in range(n_unique)
+            ],
+            uv0=[tuple(float(v) for v in u_uv0[i]) for i in range(n_unique)],
+            indices=inverse.tolist(),
+        )
+
+    return ExportedMesh(
+        entity_name=mesh_object.name,
+        parent_entity_name=getattr(getattr(mesh_object, "parent", None), "name", None),
+        mesh_name=mesh_object.data.name or mesh_object.name,
+        local_transform_rows=local_transform_rows,
+        local_bounds=local_bounds,
+        world_bounds=world_bounds,
+        vertices=vertex_bytes,
+        indices=index_bytes,
+        vertex_count=n_unique,
+        index_count=int(inverse.size),
+        index_type=index_type,
+        material=extract_material(mesh_object, asset_path),
+        validation_mesh=vmesh,
     )
 
 
@@ -1040,15 +1441,35 @@ def extract_mesh_object(
     asset_path: Path,
     convert_orientation: bool = False,
     source_orientation: str = "blender-native",
+    *,
+    _cached_conversion_matrix=None,
+    _depsgraph=None,
+    _validate: bool = False,
 ) -> ExportedMesh:
-    depsgraph = bpy.context.evaluated_depsgraph_get()
+    depsgraph = _depsgraph if _depsgraph is not None else bpy.context.evaluated_depsgraph_get()
     evaluated_object = mesh_object.evaluated_get(depsgraph)
     mesh_data = evaluated_object.to_mesh(preserve_all_data_layers=True, depsgraph=depsgraph)
     if mesh_data is None:
         raise RuntimeError(f"Failed to evaluate mesh data for {mesh_object.name}")
 
     try:
-        conversion_matrix = make_export_orientation_matrix(source_orientation) if convert_orientation else None
+        if convert_orientation:
+            conversion_matrix = (
+                _cached_conversion_matrix
+                if _cached_conversion_matrix is not None
+                else make_export_orientation_matrix(source_orientation)
+            )
+        else:
+            conversion_matrix = None
+
+        if _HAS_NUMPY:
+            return _extract_mesh_numpy(
+                mesh_object, mesh_data, asset_path,
+                conversion_matrix=conversion_matrix,
+                validate=_validate,
+            )
+
+        # ── Python fallback (no numpy) ─────────────────────────────────────
         triangulate_mesh(mesh_data)
         mesh_data.calc_loop_triangles()
         material_indices = {polygon.material_index for polygon in mesh_data.polygons}
@@ -1065,10 +1486,10 @@ def extract_mesh_object(
         index_type = INDEX_TYPE_UINT16
         unique_vertices: dict[tuple[object, ...], int] = {}
         indices: list[int] = []
-        exported_positions: list[tuple[float, float, float]] = []
-        exported_normals: list[tuple[float, float, float]] = []
-        exported_tangents: list[ValidationTangent] = []
-        exported_uv0: list[tuple[float, float]] = []
+        exported_positions: list[tuple[float, float, float]] = [] if _validate else None
+        exported_normals: list[tuple[float, float, float]] = [] if _validate else None
+        exported_tangents: list[ValidationTangent] = [] if _validate else None
+        exported_uv0: list[tuple[float, float]] = [] if _validate else None
 
         for triangle in mesh_data.loop_triangles:
             for loop_index in triangle.loops:
@@ -1094,41 +1515,28 @@ def extract_mesh_object(
                 uv0_pair = (float(uv0[0]), float(uv0[1]))
                 uv1_pair = (float(uv1[0]), float(uv1[1]))
                 key = (
-                    round(position[0], 8),
-                    round(position[1], 8),
-                    round(position[2], 8),
-                    round(normal[0], 8),
-                    round(normal[1], 8),
-                    round(normal[2], 8),
-                    round(tangent[0], 8),
-                    round(tangent[1], 8),
-                    round(tangent[2], 8),
+                    round(position[0], 8), round(position[1], 8), round(position[2], 8),
+                    round(normal[0], 8),   round(normal[1], 8),   round(normal[2], 8),
+                    round(tangent[0], 8),  round(tangent[1], 8),  round(tangent[2], 8),
                     handedness,
-                    round(uv0_pair[0], 8),
-                    round(uv0_pair[1], 8),
-                    round(uv1_pair[0], 8),
-                    round(uv1_pair[1], 8),
-                    color_to_u8(float(color_value[0])),
-                    color_to_u8(float(color_value[1])),
-                    color_to_u8(float(color_value[2])),
-                    color_to_u8(float(color_value[3])),
+                    round(uv0_pair[0], 8), round(uv0_pair[1], 8),
+                    round(uv1_pair[0], 8), round(uv1_pair[1], 8),
+                    color_to_u8(float(color_value[0])), color_to_u8(float(color_value[1])),
+                    color_to_u8(float(color_value[2])), color_to_u8(float(color_value[3])),
                 )
                 vertex_index = unique_vertices.get(key)
                 if vertex_index is None:
                     vertex_index = len(unique_vertices)
                     unique_vertices[key] = vertex_index
-                    exported_positions.append(position)
-                    exported_normals.append(normal)
-                    exported_tangents.append(ValidationTangent(xyz=tangent, handedness=handedness))
-                    exported_uv0.append(uv0_pair)
+                    if _validate:
+                        exported_positions.append(position)
+                        exported_normals.append(normal)
+                        exported_tangents.append(ValidationTangent(xyz=tangent, handedness=handedness))
+                        exported_uv0.append(uv0_pair)
                     write_vertex(
                         vertex_writer,
-                        position=position,
-                        normal=normal,
-                        tangent=tangent,
-                        handedness=handedness,
-                        uv0=uv0_pair,
-                        uv1=uv1_pair,
+                        position=position, normal=normal, tangent=tangent,
+                        handedness=handedness, uv0=uv0_pair, uv1=uv1_pair,
                         color0=vector4(color_value),
                     )
                 indices.append(vertex_index)
@@ -1153,6 +1561,17 @@ def extract_mesh_object(
             world_points = [transform_point(conversion_matrix, point) for point in world_points]
             local_transform_rows = transform_matrix_rows(local_transform_rows, conversion_matrix)
 
+        vmesh = ValidationMesh(
+            name=mesh_object.data.name or mesh_object.name,
+            vertex_count=len(unique_vertices),
+            index_count=len(indices),
+            positions=exported_positions,
+            normals=exported_normals,
+            tangents=exported_tangents,
+            uv0=exported_uv0,
+            indices=indices,
+        ) if _validate else None
+
         return ExportedMesh(
             entity_name=mesh_object.name,
             parent_entity_name=getattr(getattr(mesh_object, "parent", None), "name", None),
@@ -1166,16 +1585,7 @@ def extract_mesh_object(
             index_count=len(indices),
             index_type=index_type,
             material=extract_material(mesh_object, asset_path),
-            validation_mesh=ValidationMesh(
-                name=mesh_object.data.name or mesh_object.name,
-                vertex_count=len(unique_vertices),
-                index_count=len(indices),
-                positions=exported_positions,
-                normals=exported_normals,
-                tangents=exported_tangents,
-                uv0=exported_uv0,
-                indices=indices,
-            ),
+            validation_mesh=vmesh,
         )
     finally:
         evaluated_object.to_mesh_clear()
@@ -1261,6 +1671,7 @@ def extract_nodes(
     mesh_name: Optional[str],
     convert_orientation: bool = False,
     source_orientation: str = "blender-native",
+    validate: bool = False,
 ) -> list[ExportedNode]:
     blender_required()
     clear_scene()
@@ -1272,6 +1683,7 @@ def extract_nodes(
         asset_path,
         convert_orientation=convert_orientation,
         source_orientation=source_orientation,
+        validate=validate,
     )
 
 
@@ -1280,11 +1692,15 @@ def extract_nodes_from_objects(
     asset_path: Path,
     convert_orientation: bool = False,
     source_orientation: str = "blender-native",
+    validate: bool = False,
 ) -> list[ExportedNode]:
     blender_required()
     if not export_objects:
         raise RuntimeError("No Blender objects were provided for export")
     conversion_matrix = make_export_orientation_matrix(source_orientation) if convert_orientation else None
+
+    import bpy as _bpy
+    depsgraph = _bpy.context.evaluated_depsgraph_get()
 
     mesh_objects = [obj for obj in export_objects if getattr(obj, "type", None) == "MESH"]
     total = len(mesh_objects)
@@ -1299,6 +1715,9 @@ def extract_nodes_from_objects(
                 asset_path,
                 convert_orientation=convert_orientation,
                 source_orientation=source_orientation,
+                _cached_conversion_matrix=conversion_matrix,
+                _depsgraph=depsgraph,
+                _validate=validate,
             )
         except RuntimeError as exc:
             print(f"    Skipped: {exc}", flush=True)
@@ -1496,7 +1915,10 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
                     index_data_offset=index_data_offset,
                     vertex_data_size_bytes=len(exported_mesh.vertices),
                     index_data_size_bytes=len(exported_mesh.indices),
-                    estimated_gpu_bytes=len(exported_mesh.vertices) + len(exported_mesh.indices),
+                    estimated_gpu_bytes=(
+                        exported_mesh.vertex_count * VERTEX_STRIDE
+                        + exported_mesh.index_count * (2 if exported_mesh.index_type == INDEX_TYPE_UINT16 else 4)
+                    ),
                     local_bounds=exported_mesh.local_bounds,
                 )
             )
@@ -1609,6 +2031,7 @@ def export_objects_to_untold(
         source_asset_path,
         convert_orientation=convert_orientation,
         source_orientation=source_orientation,
+        validate=validate,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
@@ -1682,6 +2105,7 @@ def main(argv: list[str]) -> int:
         args.mesh_name,
         convert_orientation=args.convert_orientation,
         source_orientation=args.source_orientation,
+        validate=args.validate,
     )
     print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
