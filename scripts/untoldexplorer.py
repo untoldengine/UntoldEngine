@@ -378,6 +378,10 @@ class ExportedNode:
 
 
 @dataclass
+class UnsupportedTextureFormatError(Exception):
+    """Raised when a texture format is not supported by the engine pipeline (e.g. EXR, HDR)."""
+
+
 class TextureStagingContext:
     staged_by_key: dict[str, Path]
     used_names: set[str]
@@ -929,6 +933,15 @@ def _restore_scene_color_management(scene: object, saved: tuple[object, ...]) ->
         sequencer_settings.name = saved_sequencer_name
 
 
+# Formats that do not support 8-bit color depth (only 16 or 32-bit).
+# EXR/HDR are high-dynamic-range formats not intended for the engine's
+# texture pipeline.  We warn and skip them rather than crashing.
+_FORMATS_WITHOUT_8BIT = {"OPEN_EXR", "OPEN_EXR_MULTILAYER", "HDR", "CINEON", "DPX"}
+
+# File extensions that map to formats not supported by the engine pipeline.
+_UNSUPPORTED_TEXTURE_SUFFIXES = {".exr", ".hdr", ".cin", ".dpx"}
+
+
 def write_blender_image_to_path(image_name: str, destination_path: Path) -> None:
     blender_required()
     image = bpy.data.images.get(image_name)
@@ -985,6 +998,15 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
         #   16-bit RGB/RGBA  → depth=48/64
         needs_conversion = image_depth > 32 or image_channels < 3
         if needs_conversion:
+            out_format = image.file_format
+            if out_format in _FORMATS_WITHOUT_8BIT:
+                # EXR/HDR/etc. are not part of the engine's texture workflow.
+                # Raise so the caller can skip this texture with a warning.
+                raise UnsupportedTextureFormatError(
+                    f"'{image_name}' uses {out_format} format which is not supported "
+                    f"by the engine texture pipeline (only 8-bit PNG/JPEG/TGA/etc. "
+                    f"are supported). Skipping texture."
+                )
             print(f"  Converting image '{image_name}' (depth={image_depth}, channels={image_channels}) to 8-bit RGB for Metal compatibility", flush=True)
             scene = bpy.context.scene
             img_settings = scene.render.image_settings
@@ -1021,7 +1043,7 @@ def write_blender_image_to_path(image_name: str, destination_path: Path) -> None
                 except Exception:
                     pass  # fall back to whatever _set_scene_color_management_raw set
             try:
-                img_settings.file_format = image.file_format
+                img_settings.file_format = out_format
                 img_settings.color_depth = "8"
                 img_settings.color_mode = "RGBA" if image_channels == 4 else "RGB"
                 image.save_render(str(destination_path), scene=scene)
@@ -1068,11 +1090,29 @@ def unique_texture_destination_name(texture: ExportedTexture, context: TextureSt
         counter += 1
 
 
-def stage_texture_for_output(texture: ExportedTexture, output_path: Path, context: TextureStagingContext) -> ExportedTexture:
+def stage_texture_for_output(texture: ExportedTexture, output_path: Path, context: TextureStagingContext) -> Optional[ExportedTexture]:
+    """Stage a texture for output.  Returns None if the texture format is not
+    supported by the engine pipeline (e.g. EXR, HDR) — callers should treat
+    None as "no texture" for that material slot.
+    """
     source_path = texture.source_path
     texture_dir = output_path.parent / "Textures"
     texture_dir.mkdir(parents=True, exist_ok=True)
     staging_key = texture_staging_key(texture)
+
+    # Early rejection: file-backed textures with unsupported suffixes (EXR, HDR, …)
+    # are not part of the engine pipeline.  Skip with a warning so the export
+    # continues without crashing.
+    if source_path is not None:
+        resolved = source_path.expanduser().resolve()
+        if resolved.suffix.lower() in _UNSUPPORTED_TEXTURE_SUFFIXES:
+            print(
+                f"  Warning: texture '{texture.name}' uses unsupported format "
+                f"'{resolved.suffix}' (EXR/HDR are not supported by the engine). "
+                f"Skipping texture.",
+                flush=True,
+            )
+            return None
 
     existing_destination = context.staged_by_key.get(staging_key)
     if existing_destination is not None:
@@ -1088,33 +1128,37 @@ def stage_texture_for_output(texture: ExportedTexture, output_path: Path, contex
     destination_name = unique_texture_destination_name(texture, context)
     destination_path = texture_dir / destination_name
 
-    if source_path is not None and source_path.is_file():
-        if source_path != destination_path:
-            # 16-bit and grayscale PNGs must be converted before handing to Metal:
-            # - 16-bit: Metal has no sRGB 16-bit format; values load as linear.
-            # - Grayscale (color type 0/4): Metal maps a 1-channel PNG to the R
-            #   channel only, making meshes appear solid red.
-            # If the Blender image is not available (e.g. external GIMP file never
-            # loaded into bpy), load it temporarily so write_blender_image_to_path
-            # can apply the grayscale→RGB and 16-bit→8-bit conversions.
-            if _png_needs_conversion(source_path):
-                if texture.source_image_name:
-                    write_blender_image_to_path(texture.source_image_name, destination_path)
-                elif bpy is not None:
-                    tmp_image = bpy.data.images.load(str(source_path))
-                    try:
-                        write_blender_image_to_path(tmp_image.name, destination_path)
-                    finally:
-                        bpy.data.images.remove(tmp_image)
+    try:
+        if source_path is not None and source_path.is_file():
+            if source_path != destination_path:
+                # 16-bit and grayscale PNGs must be converted before handing to Metal:
+                # - 16-bit: Metal has no sRGB 16-bit format; values load as linear.
+                # - Grayscale (color type 0/4): Metal maps a 1-channel PNG to the R
+                #   channel only, making meshes appear solid red.
+                # If the Blender image is not available (e.g. external GIMP file never
+                # loaded into bpy), load it temporarily so write_blender_image_to_path
+                # can apply the grayscale→RGB and 16-bit→8-bit conversions.
+                if _png_needs_conversion(source_path):
+                    if texture.source_image_name:
+                        write_blender_image_to_path(texture.source_image_name, destination_path)
+                    elif bpy is not None:
+                        tmp_image = bpy.data.images.load(str(source_path))
+                        try:
+                            write_blender_image_to_path(tmp_image.name, destination_path)
+                        finally:
+                            bpy.data.images.remove(tmp_image)
+                    else:
+                        shutil.copy2(source_path, destination_path)
                 else:
                     shutil.copy2(source_path, destination_path)
-            else:
-                shutil.copy2(source_path, destination_path)
-    elif texture.source_image_name:
-        write_blender_image_to_path(texture.source_image_name, destination_path)
-    else:
-        missing_path = str(source_path) if source_path is not None else "<none>"
-        raise RuntimeError(f"Texture source does not exist and no Blender image fallback is available: {missing_path}")
+        elif texture.source_image_name:
+            write_blender_image_to_path(texture.source_image_name, destination_path)
+        else:
+            missing_path = str(source_path) if source_path is not None else "<none>"
+            raise RuntimeError(f"Texture source does not exist and no Blender image fallback is available: {missing_path}")
+    except UnsupportedTextureFormatError as exc:
+        print(f"  Warning: {exc}", flush=True)
+        return None
 
     context.staged_by_key[staging_key] = destination_path
 
