@@ -1,6 +1,23 @@
 repos:
   - repo: local
     hooks:
+      - id: run-exporter-tests
+        name: Run Exporter Tests Before Commit
+        entry: |
+          bash -c '
+            if ! make testexporter; then
+              echo ""
+              echo "Exporter tests failed during pre-commit."
+              echo "Run them manually with: make testexporter"
+              echo "Or bypass tests with: git commit --no-verify"
+              echo ""
+              exit 1
+            fi
+          '
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
       - id: run-engine-tests
         name: Run Engine Tests Before Commit
         entry: |
