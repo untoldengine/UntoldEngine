@@ -51,6 +51,9 @@ import bmesh
 import colorsys
 import argparse
 import sys
+import shutil
+import subprocess
+import tempfile
 from pathlib import Path
 from contextlib import contextmanager
 from mathutils import Vector, Matrix
@@ -220,6 +223,16 @@ DEFAULT_STREAMING_PRIORITY        = 10
 DEBUG_AABB_ONLY      = False    # Export colored AABB cubes instead of real geometry.
 DRY_RUN              = False    # Plan only — no payload files written.
 DRY_RUN_WRITE_MANIFEST = False  # Write manifest JSON even in dry-run mode.
+
+# --- Parallel export ------------------------------------------
+# Number of Blender worker processes to spawn for tile export.
+#   0  = auto (half of os.cpu_count(), capped at 8)
+#   1  = disabled (sequential, same as before)
+#   N  = exactly N workers
+# Each worker gets an independent Blender process that loads the source
+# scene and exports its assigned batch of tiles.  Has no effect during
+# DRY_RUN (no files are written anyway).
+PARALLEL_WORKERS = 0
 
 
 # ============================================================
@@ -2169,7 +2182,295 @@ def print_dry_run_report(tile_assignments, shared_objects, classification_map,
 
 
 # ============================================================
-# SECTION 15: MAIN
+# SECTION 15: PARALLEL TILE EXPORT
+# ============================================================
+
+def _effective_worker_count(n_tiles: int) -> int:
+    """Return the number of Blender worker processes to use.
+
+    PARALLEL_WORKERS=0 → auto (half of cpu_count, capped at 8 and at n_tiles).
+    PARALLEL_WORKERS=1 → sequential (no subprocesses).
+    PARALLEL_WORKERS=N → exactly N workers (capped to n_tiles).
+    Always returns at least 1.
+    """
+    if PARALLEL_WORKERS == 1 or n_tiles <= 1:
+        return 1
+    if PARALLEL_WORKERS > 1:
+        return min(PARALLEL_WORKERS, n_tiles)
+    # Auto: cap at 8 workers and at n_tiles so we never spawn more workers
+    # than there are tiles to export.
+    cpu = os.cpu_count() or 2
+    return min(max(cpu // 2, 1), 8, n_tiles)
+
+
+def _config_snapshot() -> dict:
+    """Capture all export-relevant config globals into a serialisable dict."""
+    return {
+        "EXPORT_FORMAT":       EXPORT_FORMAT,
+        "CONVERT_ORIENTATION": CONVERT_ORIENTATION,
+        "SOURCE_ORIENTATION":  SOURCE_ORIENTATION,
+        "CLIP_LOCAL_MESHES":   CLIP_LOCAL_MESHES,
+        "MERGE_BY_MATERIAL":   MERGE_BY_MATERIAL,
+        "BAKE_WORLD_TRANSFORMS": BAKE_WORLD_TRANSFORMS,
+        "SPLIT_CLIP_EPSILON":  SPLIT_CLIP_EPSILON,
+        "DEBUG_AABB_ONLY":     DEBUG_AABB_ONLY,
+    }
+
+
+def _apply_bundle_config(cfg: dict) -> None:
+    """Restore config globals in a worker process from a bundle dict."""
+    global EXPORT_FORMAT, CONVERT_ORIENTATION, SOURCE_ORIENTATION
+    global CLIP_LOCAL_MESHES, MERGE_BY_MATERIAL, BAKE_WORLD_TRANSFORMS
+    global SPLIT_CLIP_EPSILON, DEBUG_AABB_ONLY
+    EXPORT_FORMAT         = cfg.get("EXPORT_FORMAT",         EXPORT_FORMAT)
+    CONVERT_ORIENTATION   = cfg.get("CONVERT_ORIENTATION",   CONVERT_ORIENTATION)
+    SOURCE_ORIENTATION    = cfg.get("SOURCE_ORIENTATION",    SOURCE_ORIENTATION)
+    CLIP_LOCAL_MESHES     = cfg.get("CLIP_LOCAL_MESHES",     CLIP_LOCAL_MESHES)
+    MERGE_BY_MATERIAL     = cfg.get("MERGE_BY_MATERIAL",     MERGE_BY_MATERIAL)
+    BAKE_WORLD_TRANSFORMS = cfg.get("BAKE_WORLD_TRANSFORMS", BAKE_WORLD_TRANSFORMS)
+    SPLIT_CLIP_EPSILON    = cfg.get("SPLIT_CLIP_EPSILON",    SPLIT_CLIP_EPSILON)
+    DEBUG_AABB_ONLY       = cfg.get("DEBUG_AABB_ONLY",       DEBUG_AABB_ONLY)
+
+
+def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
+    """Worker entry point.  Called inside a Blender subprocess.
+
+    Loads the work bundle, imports the source scene, then exports each
+    assigned tile, writing a result JSON when done.
+    """
+    with open(work_bundle_path, "r", encoding="utf-8") as f:
+        bundle = json.load(f)
+
+    source_scene_path = bundle.get("source_scene_path", "")
+    if source_scene_path and is_usd_filepath(source_scene_path):
+        clear_scene()
+        import_usd_asset(Path(source_scene_path))
+
+    _apply_bundle_config(bundle.get("config", {}))
+
+    active_hlod_levels = bundle.get("active_hlod_levels", [])
+    active_lod_levels  = bundle.get("active_lod_levels",  [])
+    ext = EXPORT_FORMAT.lower().lstrip(".")
+
+    tile_results = []
+    for tile_spec in bundle.get("tiles", []):
+        tile_id     = tile_spec["tile_id"]
+        tx          = tile_spec["tx"]
+        ty          = tile_spec["ty"]
+        tz          = tile_spec["tz"]
+        filepath    = tile_spec["filepath"]
+        tile_bounds = tile_spec["tile_bounds"]
+        obj_names   = tile_spec["object_names"]
+
+        objects = [bpy.data.objects.get(n) for n in obj_names]
+        objects = [o for o in objects if o is not None]
+        missing = len(obj_names) - len(objects)
+        if missing:
+            print(f"  Warning: {missing} object(s) not found in scene for {tile_id}", flush=True)
+
+        if DEBUG_AABB_ONLY:
+            color = tile_debug_color(tx, ty, tz)
+            print(f"[DEBUG_AABB] {tile_id} → {filepath}", flush=True)
+            try:
+                ok, error = export_debug_aabb(filepath, tile_bounds, color)
+            except Exception as ex:
+                ok, error = False, str(ex)
+        else:
+            print(f"Exporting {tile_id} ({len(objects)} objects) → {filepath}", flush=True)
+            try:
+                ok, error = export_local_tile(filepath, objects, tile_bounds, source_scene_path)
+            except Exception as ex:
+                ok, error = False, str(ex)
+
+        if not ok:
+            print(f"  FAILED: {error}", flush=True)
+
+        file_sz = os.path.getsize(filepath) if ok and os.path.isfile(filepath) else 0
+
+        hlod_results = []
+        if ok and not DEBUG_AABB_ONLY:
+            for level in active_hlod_levels:
+                hlod_filepath = os.path.join(
+                    os.path.dirname(filepath),
+                    f"{tile_id}{level['suffix']}.{ext}",
+                )
+                print(
+                    f"  Exporting HLOD {os.path.basename(hlod_filepath)} "
+                    f"(ratio={level['reduction_ratio']:.3f}, switch={level['switch_distance']:.1f})",
+                    flush=True,
+                )
+                try:
+                    hlod_ok, hlod_error = export_hlod_tile(
+                        hlod_filepath, objects, tile_bounds,
+                        level["reduction_ratio"], source_scene_path, "hlod",
+                    )
+                except Exception as ex:
+                    hlod_ok, hlod_error = False, str(ex)
+                if not hlod_ok:
+                    print(f"    HLOD FAILED: {hlod_error}", flush=True)
+                hlod_results.append({
+                    "ok":              hlod_ok,
+                    "error":           hlod_error,
+                    "filepath":        hlod_filepath,
+                    "switch_distance": level["switch_distance"],
+                })
+
+        lod_results = []
+        if ok and not DEBUG_AABB_ONLY:
+            for lod_idx, lod in enumerate(active_lod_levels):
+                lod_n        = lod_idx + 1
+                lod_filepath = os.path.join(
+                    os.path.dirname(filepath),
+                    f"{tile_id}_lod{lod_n}.{ext}",
+                )
+                print(
+                    f"  Exporting LOD{lod_n} {os.path.basename(lod_filepath)} "
+                    f"(ratio={lod['ratio']:.3f}, switch={lod['switch_distance']:.1f})",
+                    flush=True,
+                )
+                try:
+                    lod_ok, lod_error = export_hlod_tile(
+                        lod_filepath, objects, tile_bounds,
+                        lod["ratio"], source_scene_path, "lod",
+                    )
+                except Exception as ex:
+                    lod_ok, lod_error = False, str(ex)
+                if not lod_ok:
+                    print(f"    LOD{lod_n} FAILED: {lod_error}", flush=True)
+                lod_results.append({
+                    "ok":              lod_ok,
+                    "error":           lod_error,
+                    "filepath":        lod_filepath,
+                    "switch_distance": lod["switch_distance"],
+                })
+
+        tile_results.append({
+            "tile_id":        tile_id,
+            "ok":             ok,
+            "error":          error,
+            "file_size_bytes": file_sz,
+            "hlod_results":   hlod_results,
+            "lod_results":    lod_results,
+        })
+
+    with open(result_file_path, "w", encoding="utf-8") as f:
+        json.dump({"tile_results": tile_results}, f, indent=2)
+
+
+def _export_tiles_parallel(
+    sorted_tiles,
+    source_scene_path,
+    output_dir,
+    active_hlod_levels,
+    active_lod_levels,
+    origin_x, origin_y, origin_z,
+    tile_size_x, tile_size_y, tile_size_z,
+):
+    """Spawn Blender worker subprocesses to export tiles in parallel.
+
+    Returns a dict {tile_id: result_dict} on success, or None if parallel
+    export is not applicable (too few tiles, PARALLEL_WORKERS=1, etc.).
+    """
+    non_empty = [(coord, objs) for coord, objs in sorted_tiles if objs]
+    n_workers = _effective_worker_count(len(non_empty))
+    if n_workers <= 1:
+        return None  # caller falls back to sequential
+
+    print(f"\nParallel tile export: {len(non_empty)} tiles across {n_workers} workers")
+
+    ext = EXPORT_FORMAT.lower().lstrip(".")
+
+    # Build per-tile specs, sort by object count descending for load balancing.
+    tile_specs = []
+    for (tx, ty, tz), tile_objs in non_empty:
+        tile_id     = f"tile_{tx}_{ty}_{tz}"
+        filepath    = os.path.join(output_dir, f"{tile_id}.{ext}")
+        tile_bounds = tile_bounds_from_coord(
+            tx, ty, tz, origin_x, origin_y, origin_z,
+            tile_size_x, tile_size_y, tile_size_z,
+        )
+        tile_specs.append({
+            "tile_id":      tile_id,
+            "tx": tx, "ty": ty, "tz": tz,
+            "filepath":     filepath,
+            "tile_bounds":  tile_bounds,
+            "object_names": [o.name for o in tile_objs],
+        })
+    tile_specs.sort(key=lambda s: len(s["object_names"]), reverse=True)
+
+    # Distribute round-robin so large tiles are spread across workers.
+    batches: list[list] = [[] for _ in range(n_workers)]
+    for i, spec in enumerate(tile_specs):
+        batches[i % n_workers].append(spec)
+
+    cfg          = _config_snapshot()
+    tmpdir       = tempfile.mkdtemp(prefix="untold_tile_parallel_")
+    blender_bin  = getattr(bpy.app, "binary_path", sys.executable)
+    script_path  = os.path.abspath(__file__)
+
+    procs        = []
+    result_paths = []
+
+    try:
+        for i, batch in enumerate(batches):
+            if not batch:
+                continue
+            bundle = {
+                "source_scene_path": source_scene_path,
+                "config":            cfg,
+                "active_hlod_levels": active_hlod_levels,
+                "active_lod_levels":  active_lod_levels,
+                "tiles":             batch,
+            }
+            bundle_path = os.path.join(tmpdir, f"worker_{i:02d}_bundle.json")
+            result_path = os.path.join(tmpdir, f"worker_{i:02d}_result.json")
+            with open(bundle_path, "w", encoding="utf-8") as f:
+                json.dump(bundle, f)
+
+            cmd = [
+                blender_bin, "--background", "--factory-startup",
+                "--python", script_path,
+                "--", "--worker-mode",
+                "--work-bundle", bundle_path,
+                "--result-file",  result_path,
+            ]
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+            procs.append(proc)
+            result_paths.append(result_path)
+            print(f"  Launched worker {i:02d} ({len(batch)} tiles, pid={proc.pid})")
+
+        # Collect results, prefixing each worker's output.
+        all_results: dict[str, dict] = {}
+        for i, (proc, result_path) in enumerate(zip(procs, result_paths)):
+            stdout, _ = proc.communicate()
+            prefix = f"[worker {i:02d}] "
+            for line in stdout.splitlines():
+                print(f"{prefix}{line}", flush=True)
+
+            if os.path.isfile(result_path):
+                with open(result_path, "r", encoding="utf-8") as f:
+                    result = json.load(f)
+                for tr in result.get("tile_results", []):
+                    all_results[tr["tile_id"]] = tr
+            else:
+                print(
+                    f"  Warning: worker {i:02d} produced no result file "
+                    f"(exit={proc.returncode}). Its tiles will be marked failed."
+                )
+
+        return all_results
+
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+# ============================================================
+# SECTION 16: MAIN
 # ============================================================
 
 def run():
@@ -2531,6 +2832,18 @@ def run():
     sorted_tiles   = sorted(tile_assignments.items(),
                             key=lambda item: (item[0][2], item[0][1], item[0][0]))
 
+    # Attempt parallel export; falls back to None when PARALLEL_WORKERS=1
+    # or there are too few tiles to justify subprocesses.
+    parallel_results = _export_tiles_parallel(
+        sorted_tiles,
+        source_scene_path,
+        output_dir,
+        active_hlod_levels,
+        active_lod_levels,
+        origin_x, origin_y, origin_z,
+        tile_size_x, tile_size_y, tile_size_z,
+    )
+
     for (tx, ty, tz), tile_objs in sorted_tiles:
         if not tile_objs:
             continue
@@ -2545,92 +2858,113 @@ def run():
         center    = aabb_center(aabb_usd)
         est_mem   = estimate_tile_memory(tile_objs, tile_coverage_counts, mesh_size_cache)
 
-        if DEBUG_AABB_ONLY:
-            color = tile_debug_color(tx, ty, tz)
-            print(f"[DEBUG_AABB] {tile_id} → {filepath}")
-            try:
-                ok, error = export_debug_aabb(filepath, tile_bounds, color)
-            except Exception as ex:
-                ok, error = False, str(ex)
+        if parallel_results is not None:
+            # --- Parallel path: tile was exported by a worker subprocess ---
+            result = parallel_results.get(tile_id)
+            if result is None or not result["ok"]:
+                error = result["error"] if result else "Worker did not report a result"
+                print(f"  FAILED ({tile_id}): {error}")
+                manifest["failed_tiles"].append({
+                    "tile_id": tile_id,
+                    "grid_coord": [tx, ty, tz],
+                    "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
+                    "error": error,
+                    "candidate_object_count": len(tile_objs),
+                })
+                continue
+
+            hlod_entries = [
+                {
+                    "path": os.path.relpath(r["filepath"], model_dir),
+                    "switch_distance": r["switch_distance"],
+                }
+                for r in result.get("hlod_results", []) if r["ok"]
+            ]
+            lod_entries = [
+                {
+                    "path": os.path.relpath(r["filepath"], model_dir),
+                    "switch_distance": r["switch_distance"],
+                }
+                for r in result.get("lod_results", []) if r["ok"]
+            ]
+            file_sz = result.get("file_size_bytes", 0)
+
         else:
-            print(f"Exporting {tile_id} ({len(tile_objs)} objects) → {filepath}")
-            try:
-                ok, error = export_local_tile(filepath, tile_objs, tile_bounds, source_scene_path)
-            except Exception as ex:
-                ok, error = False, str(ex)
+            # --- Sequential path ---
+            if DEBUG_AABB_ONLY:
+                color = tile_debug_color(tx, ty, tz)
+                print(f"[DEBUG_AABB] {tile_id} → {filepath}")
+                try:
+                    ok, error = export_debug_aabb(filepath, tile_bounds, color)
+                except Exception as ex:
+                    ok, error = False, str(ex)
+            else:
+                print(f"Exporting {tile_id} ({len(tile_objs)} objects) → {filepath}")
+                try:
+                    ok, error = export_local_tile(filepath, tile_objs, tile_bounds, source_scene_path)
+                except Exception as ex:
+                    ok, error = False, str(ex)
 
-        if not ok:
-            print(f"  FAILED: {error}")
-            manifest["failed_tiles"].append({
-                "tile_id": tile_id,
-                "grid_coord": [tx, ty, tz],
-                "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
-                "error": error,
-                "candidate_object_count": len(tile_objs),
-            })
-            continue
-
-        hlod_entries = []
-        for level in active_hlod_levels:
-            hlod_filename = f"{tile_id}{level['suffix']}.{ext}"
-            hlod_filepath = os.path.join(output_dir, hlod_filename)
-            print(
-                f"  Exporting HLOD {hlod_filename} "
-                f"(ratio={level['reduction_ratio']:.3f}, switch={level['switch_distance']:.1f})"
-            )
-            try:
-                hlod_ok, hlod_error = export_hlod_tile(
-                    hlod_filepath,
-                    tile_objs,
-                    tile_bounds,
-                    level["reduction_ratio"],
-                    source_scene_path,
-                    "hlod",
-                )
-            except Exception as ex:
-                hlod_ok, hlod_error = False, str(ex)
-
-            if not hlod_ok:
-                print(f"    HLOD FAILED: {hlod_error}")
+            if not ok:
+                print(f"  FAILED: {error}")
+                manifest["failed_tiles"].append({
+                    "tile_id": tile_id,
+                    "grid_coord": [tx, ty, tz],
+                    "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
+                    "error": error,
+                    "candidate_object_count": len(tile_objs),
+                })
                 continue
 
-            hlod_entries.append({
-                "path": os.path.relpath(hlod_filepath, model_dir),
-                "switch_distance": level["switch_distance"],
-            })
-
-        # --- Per-tile LOD levels ---
-        lod_entries = []
-        for lod_idx, lod in enumerate(active_lod_levels):
-            lod_n        = lod_idx + 1
-            lod_filename = f"{tile_id}_lod{lod_n}.{ext}"
-            lod_filepath = os.path.join(output_dir, lod_filename)
-            print(
-                f"  Exporting LOD{lod_n} {lod_filename} "
-                f"(ratio={lod['ratio']:.3f}, switch={lod['switch_distance']:.1f})"
-            )
-            try:
-                lod_ok, lod_error = export_hlod_tile(
-                    lod_filepath,
-                    tile_objs,
-                    tile_bounds,
-                    lod["ratio"],
-                    source_scene_path,
-                    "lod",
+            hlod_entries = []
+            for level in active_hlod_levels:
+                hlod_filename = f"{tile_id}{level['suffix']}.{ext}"
+                hlod_filepath = os.path.join(output_dir, hlod_filename)
+                print(
+                    f"  Exporting HLOD {hlod_filename} "
+                    f"(ratio={level['reduction_ratio']:.3f}, switch={level['switch_distance']:.1f})"
                 )
-            except Exception as ex:
-                lod_ok, lod_error = False, str(ex)
+                try:
+                    hlod_ok, hlod_error = export_hlod_tile(
+                        hlod_filepath, tile_objs, tile_bounds,
+                        level["reduction_ratio"], source_scene_path, "hlod",
+                    )
+                except Exception as ex:
+                    hlod_ok, hlod_error = False, str(ex)
+                if not hlod_ok:
+                    print(f"    HLOD FAILED: {hlod_error}")
+                    continue
+                hlod_entries.append({
+                    "path": os.path.relpath(hlod_filepath, model_dir),
+                    "switch_distance": level["switch_distance"],
+                })
 
-            if not lod_ok:
-                print(f"    LOD{lod_n} FAILED: {lod_error}")
-                continue
+            lod_entries = []
+            for lod_idx, lod in enumerate(active_lod_levels):
+                lod_n        = lod_idx + 1
+                lod_filename = f"{tile_id}_lod{lod_n}.{ext}"
+                lod_filepath = os.path.join(output_dir, lod_filename)
+                print(
+                    f"  Exporting LOD{lod_n} {lod_filename} "
+                    f"(ratio={lod['ratio']:.3f}, switch={lod['switch_distance']:.1f})"
+                )
+                try:
+                    lod_ok, lod_error = export_hlod_tile(
+                        lod_filepath, tile_objs, tile_bounds,
+                        lod["ratio"], source_scene_path, "lod",
+                    )
+                except Exception as ex:
+                    lod_ok, lod_error = False, str(ex)
+                if not lod_ok:
+                    print(f"    LOD{lod_n} FAILED: {lod_error}")
+                    continue
+                lod_entries.append({
+                    "path": os.path.relpath(lod_filepath, model_dir),
+                    "switch_distance": lod["switch_distance"],
+                })
 
-            lod_entries.append({
-                "path": os.path.relpath(lod_filepath, model_dir),
-                "switch_distance": lod["switch_distance"],
-            })
+            file_sz = os.path.getsize(filepath) if os.path.isfile(filepath) else 0
 
-        file_sz = os.path.getsize(filepath) if os.path.isfile(filepath) else 0
         tile_entry = {
             "tile_id": tile_id,
             "grid_coord": [tx, ty, tz],
@@ -2682,6 +3016,11 @@ def parse_args(argv):
     parser.add_argument("--all-meshes", action="store_true", help="Export all mesh objects, including hidden ones.")
     parser.add_argument("--debug-aabb-only", action="store_true", help="Export debug AABB payloads instead of real geometry.")
     parser.add_argument("--auto-tile-size", action="store_true", help="Enable automatic tile-size selection.")
+    parser.add_argument("--parallel-workers", type=int, default=None, help="Number of parallel Blender worker processes (0=auto, 1=sequential).")
+    # Internal: used by worker subprocesses spawned by the parallel export system.
+    parser.add_argument("--worker-mode", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--work-bundle", default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--result-file", default=None, help=argparse.SUPPRESS)
     return parser.parse_args(argv)
 
 
@@ -2698,6 +3037,7 @@ def apply_cli_overrides(args):
     global VISIBLE_ONLY
     global DEBUG_AABB_ONLY
     global AUTO_TILE_SIZE
+    global PARALLEL_WORKERS
 
     if args.input:
         SOURCE_SCENE_PATH_OVERRIDE = args.input
@@ -2725,12 +3065,20 @@ def apply_cli_overrides(args):
         DEBUG_AABB_ONLY = True
     if args.auto_tile_size:
         AUTO_TILE_SIZE = True
+    if args.parallel_workers is not None:
+        PARALLEL_WORKERS = args.parallel_workers
 
 
 def main(argv=None):
     argv = sys.argv if argv is None else argv
     args = parse_args(argv)
     apply_cli_overrides(args)
+    if getattr(args, "worker_mode", False):
+        if not args.work_bundle or not args.result_file:
+            print("Error: --worker-mode requires --work-bundle and --result-file", flush=True)
+            return 1
+        _run_worker_mode(args.work_bundle, args.result_file)
+        return 0
     run()
     return 0
 
