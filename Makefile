@@ -31,6 +31,9 @@ clean:
 test:
 	swift test
 
+testexporter:
+	python3 -m unittest discover -s scripts/tests -t . -v
+
 testcore:
 	swift test --filter UntoldEngineTests
 

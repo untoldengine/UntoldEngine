@@ -7,6 +7,23 @@ on:
     branches: [master, develop]
 
 jobs:
+  python-script-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Show Python version
+        run: python3 --version
+
+      - name: Run Python script tests
+        run: make testexporter
+
   build:
     runs-on: macos-26  # macOS Tahoe - matches development environment
 

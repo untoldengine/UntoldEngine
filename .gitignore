@@ -87,3 +87,5 @@ pnpm-debug.log*
 lerna-debug.log*
 
 scripts/__pycache__/
+
+scripts/tests/__pycache__/
