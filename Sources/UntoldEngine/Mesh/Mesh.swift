@@ -1489,7 +1489,8 @@ public struct Material {
             // RGBA via Core Graphics before handing off to MTKTextureLoader.
             if let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil),
                let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil),
-               cgImage.colorSpace?.model == .monochrome {
+               cgImage.colorSpace?.model == .monochrome
+            {
                 let w = cgImage.width, h = cgImage.height
                 let colorSpace = isSRGB
                     ? (CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB())
@@ -1502,7 +1503,8 @@ public struct Material {
                 ) {
                     ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: w, height: h))
                     if let rgbaImage = ctx.makeImage(),
-                       let texture = try? textureLoader.newTexture(cgImage: rgbaImage, options: options) {
+                       let texture = try? textureLoader.newTexture(cgImage: rgbaImage, options: options)
+                    {
                         Logger.log(message: "[UntoldTexture] Expanded grayscale \(label.lowercased()) to RGBA '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)")
                         return texture
                     }
