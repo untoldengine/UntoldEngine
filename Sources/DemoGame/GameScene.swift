@@ -17,7 +17,13 @@
     /// - Asset loading: `setEntityMeshAsync` (always-resident), `loadTiledScene` (streamable scene)
     /// - Performance features: `setEntityStaticBatchComponent`, `enableBatching`, `generateBatches`, `enableStreaming`
     /// - Debug overlays: `setLODLevelDebug`, `setTextureStreamingTierDebug`, `setOctreeLeafBoundsDebug`
-    final class GameScene {
+    final class GameScene: @unchecked Sendable {
+        private enum LoadedContent {
+            case none
+            case mesh(EntityID)
+            case tiledScene
+        }
+
         private enum Constants {
             static let orbitTargetOffset: Float = 25.0
             static let cameraMoveSpeed: Float = 1.0
@@ -29,6 +35,7 @@
         }
 
         private(set) var loadedEntity: EntityID?
+        private var loadedContent: LoadedContent = .none
         private var wasRightMousePressed: Bool = false
 
         init() {
@@ -61,37 +68,61 @@
         /// Loads a USDZ file as an always-resident asset, replacing whatever was previously loaded.
         /// The previously loaded entity is destroyed; the scene camera and light are preserved.
         func loadFile(path: String, completion: @escaping @Sendable (Bool) -> Void) {
-            clearSceneBatches()
-
-            if let prev = loadedEntity {
-                destroyEntity(entityId: prev)
-            }
-            loadedEntity = nil
-
-            let entity = createEntity()
-            setEntityName(entityId: entity, name: path)
-
-            setEntityMeshAsync(entityId: entity, filename: path, withExtension: "untold") { [weak self] success in
+            prepareForMeshLoad { [weak self] in
                 guard let self else { return }
-                loadedEntity = success ? entity : nil
-                let camera = findGameCamera()
-                CameraSystem.shared.activeCamera = camera
-                setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
-                completion(success)
+
+                let entity = createEntity()
+                setEntityName(entityId: entity, name: path)
+
+                setEntityMeshAsync(entityId: entity, filename: path, withExtension: "untold") { [weak self] success in
+                    guard let self else { return }
+                    loadedEntity = success ? entity : nil
+                    loadedContent = success ? .mesh(entity) : .none
+                    let camera = findGameCamera()
+                    CameraSystem.shared.activeCamera = camera
+                    setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
+                    completion(success)
+                }
             }
         }
 
         /// Loads a tiled scene from a local or remote manifest URL.
         func loadTileScene(sceneID: String, url: URL, completion: @escaping @Sendable (Bool) -> Void) {
             clearSceneBatches()
-            loadedEntity = nil
             GeometryStreamingSystem.shared.enabled = true
 
-            loadTiledScene(url: url) { success in
+            loadTiledScene(url: url) { [weak self] success in
+                guard let self else { return }
                 if success {
+                    loadedEntity = nil
+                    loadedContent = .tiledScene
                     Self.applyCameraEye(for: sceneID)
                 }
                 completion(success)
+            }
+        }
+
+        private func prepareForMeshLoad(completion: @escaping () -> Void) {
+            clearSceneBatches()
+            GeometryStreamingSystem.shared.enabled = false
+
+            switch loadedContent {
+            case let .mesh(entity):
+                destroyEntity(entityId: entity)
+                loadedEntity = nil
+                loadedContent = .none
+                completion()
+            case .tiledScene:
+                destroyAllEntities { [weak self] in
+                    guard let self else { return }
+                    loadedEntity = nil
+                    loadedContent = .none
+                    setupDefaultSceneObjects()
+                    completion()
+                }
+            case .none:
+                loadedEntity = nil
+                completion()
             }
         }
 
@@ -130,6 +161,21 @@
     // MARK: - Debug Views
 
     extension GameScene {
+        func setColorGrading(enabled: Bool, exposure: Float, brightness: Float, contrast: Float, saturation: Float) {
+            PostFX.enableColorGrading(enabled)
+            ColorGradingParams.shared.exposure = exposure
+            ColorGradingParams.shared.brightness = brightness
+            ColorGradingParams.shared.contrast = contrast
+            ColorGradingParams.shared.saturation = saturation
+        }
+
+        func setSSAO(enabled: Bool, radius: Float, bias: Float, intensity: Float) {
+            SSAO.setEnabled(enabled)
+            SSAO.setRadius(radius)
+            SSAO.setBias(bias)
+            SSAO.setIntensity(intensity)
+        }
+
         /// Toggles the per-entity LOD level colour overlay.
         func setLodDebug(_ enabled: Bool) {
             setLODLevelDebug(enabled: enabled)
