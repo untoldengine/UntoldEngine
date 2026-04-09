@@ -126,7 +126,7 @@
 
                     sectionLabel("CONTROLS")
                     controlHint("WASD / QE", "Translate")
-                    controlHint("Right-click drag", "Rotate")
+                    controlHint("Right-click (shift) drag", "Orbit/Rotate")
 
                     Divider()
 
