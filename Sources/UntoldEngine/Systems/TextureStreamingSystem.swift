@@ -227,6 +227,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// Initialized once in `scheduleResolutionChange` before any Task is spawned.
     private var textureLoader: MTKTextureLoader?
 
+    /// Reusable native loader for ASTC .utex textures.
+    /// Initialized once in `scheduleResolutionChange` before any Task is spawned.
+    private var nativeTextureLoader: NativeTextureLoader?
+
     // MARK: - Stats
 
     private var totalUpgrades: Int = 0
@@ -253,6 +257,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
     private enum TextureSource: @unchecked Sendable {
         case mdl(MDLTexture)
         case url(URL)
+        /// Engine-native ASTC container.  Streamed by selecting the appropriate starting
+        /// mip level rather than MPS resampling (which cannot operate on compressed blocks).
+        case utex(URL)
     }
 
     private enum StreamDirection {
@@ -501,32 +508,37 @@ public class TextureStreamingSystem: @unchecked Sendable {
             for submeshIndex in render.mesh[meshIndex].submeshes.indices {
                 guard let material = render.mesh[meshIndex].submeshes[submeshIndex].material else { continue }
 
+                func urlSource(_ url: URL?) -> TextureSource? {
+                    guard let url else { return nil }
+                    return url.pathExtension.lowercased() == "utex" ? .utex(url) : .url(url)
+                }
+
                 let descriptors: [(TextureType, MTLTexture?, TextureSource?, simd_int2?, Bool)] = [
                     (
                         .baseColor,
                         material.baseColor.texture,
-                        material.baseColorMDLTexture.map { TextureSource.mdl($0) } ?? material.baseColorURL.map { TextureSource.url($0) },
+                        material.baseColorMDLTexture.map { TextureSource.mdl($0) } ?? urlSource(material.baseColorURL),
                         material.baseColorSourceDimensions,
                         true
                     ),
                     (
                         .roughness,
                         material.roughness.texture,
-                        material.roughnessMDLTexture.map { TextureSource.mdl($0) } ?? material.roughnessURL.map { TextureSource.url($0) },
+                        material.roughnessMDLTexture.map { TextureSource.mdl($0) } ?? urlSource(material.roughnessURL),
                         material.roughnessSourceDimensions,
                         false
                     ),
                     (
                         .metallic,
                         material.metallic.texture,
-                        material.metallicMDLTexture.map { TextureSource.mdl($0) } ?? material.metallicURL.map { TextureSource.url($0) },
+                        material.metallicMDLTexture.map { TextureSource.mdl($0) } ?? urlSource(material.metallicURL),
                         material.metallicSourceDimensions,
                         false
                     ),
                     (
                         .normal,
                         material.normal.texture,
-                        material.normalMDLTexture.map { TextureSource.mdl($0) } ?? material.normalURL.map { TextureSource.url($0) },
+                        material.normalMDLTexture.map { TextureSource.mdl($0) } ?? urlSource(material.normalURL),
                         material.normalSourceDimensions,
                         false
                     ),
@@ -651,9 +663,21 @@ public class TextureStreamingSystem: @unchecked Sendable {
             guard item.direction == .upgrade else { return total }
             let newDim = item.targetMaxDimension ?? item.slot.sourceMaxDimension
             let oldDim = max(item.slot.currentTexture.width, item.slot.currentTexture.height)
-            // RGBA8 (4 bytes/pixel) × 4/3 mip factor, net increase only.
-            let newBytes = newDim * newDim * 4 * 4 / 3
-            let oldBytes = oldDim * oldDim * 4 * 4 / 3
+
+            // Use format-aware bytes-per-pixel to avoid over-counting ASTC textures.
+            // ASTC 4x4 encodes a 4×4 pixel block in 16 bytes ≈ 1 byte/pixel.
+            // Larger block sizes (6x6, 8x8) are even smaller, so 1 byte/pixel is a
+            // conservative upper bound for all ASTC variants.
+            // RGBA8 textures use 4 bytes/pixel.
+            // Both figures are multiplied by 4/3 to account for the full mip chain.
+            let bytesPerPixel: Int
+            if case .utex = item.slot.source {
+                bytesPerPixel = 1   // ASTC: ≤ 1 byte/pixel for all block sizes
+            } else {
+                bytesPerPixel = 4   // RGBA8
+            }
+            let newBytes = newDim * newDim * bytesPerPixel * 4 / 3
+            let oldBytes = oldDim * oldDim * bytesPerPixel * 4 / 3
             return total + max(0, newBytes - oldBytes)
         }
     }
@@ -739,6 +763,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
         // then capture them as local constants so the Task never touches instance state.
         if commandQueue == nil { commandQueue = device.makeCommandQueue() }
         if textureLoader == nil { textureLoader = MTKTextureLoader(device: device) }
+        if nativeTextureLoader == nil { nativeTextureLoader = NativeTextureLoader(device: device) }
 
         guard let queue = commandQueue, let loader = textureLoader else {
             releaseOp(entityId)
@@ -747,6 +772,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
             }
             return
         }
+        let capturedNativeLoader = nativeTextureLoader
 
         // Capture minimum dimension before spawning the Task so the apply-side
         // level assignment uses the same threshold that was in effect at schedule time.
@@ -758,18 +784,39 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
             for item in budgetedWorkItems {
                 let texture: MTLTexture?
-                switch item.direction {
-                case .upgrade:
-                    guard let sourceTexture = self.loadSourceTexture(item.slot.source, isSRGB: item.slot.isSRGB, loader: loader) else {
-                        continue
+
+                // ASTC .utex textures: select the starting mip by dimension instead of
+                // MPS resampling (compressed ASTC blocks cannot be resampled in-place).
+                // Both upgrade and downgrade reload from the file at the target tier.
+                if case .utex(let url) = item.slot.source {
+                    texture = capturedNativeLoader?.loadTexture(
+                        from: url,
+                        targetMaxDimension: item.targetMaxDimension,
+                        label: item.slot.currentTexture.label
+                    )
+                } else {
+                    switch item.direction {
+                    case .upgrade:
+                        guard let sourceTexture = self.loadSourceTexture(item.slot.source, isSRGB: item.slot.isSRGB, loader: loader) else {
+                            continue
+                        }
+                        texture = await self.resampleTextureIfNeeded(sourceTexture, targetMaxDimension: item.targetMaxDimension, commandQueue: queue)
+                    case .downgrade:
+                        texture = await self.resampleTextureIfNeeded(item.slot.currentTexture, targetMaxDimension: item.targetMaxDimension, commandQueue: queue)
                     }
-                    texture = await self.resampleTextureIfNeeded(sourceTexture, targetMaxDimension: item.targetMaxDimension, commandQueue: queue)
-                case .downgrade:
-                    texture = await self.resampleTextureIfNeeded(item.slot.currentTexture, targetMaxDimension: item.targetMaxDimension, commandQueue: queue)
                 }
 
                 guard let texture else { continue }
-                let texView = self.textureViewMatchingSRGB(texture, wantSRGB: item.slot.isSRGB)
+                // ASTC textures: skip the sRGB view step — the color space is baked
+                // into the pixel format at encode time (ASTC_4X4_SRGB vs ASTC_4X4_LDR),
+                // and ASTC formats cannot be reinterpreted via makeTextureView.
+                // Non-ASTC textures still need the view to ensure the correct sRGB variant.
+                let texView: MTLTexture
+                if case .utex = item.slot.source {
+                    texView = texture
+                } else {
+                    texView = self.textureViewMatchingSRGB(texture, wantSRGB: item.slot.isSRGB)
+                }
                 loaded.append(LoadedTexture(
                     meshIndex: item.slot.meshIndex,
                     submeshIndex: item.slot.submeshIndex,
@@ -925,6 +972,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
                 return expanded
             }
             return try? loader.newTexture(URL: url, options: options)
+        case .utex:
+            // .utex slots are handled before reaching loadSourceTexture; this path
+            // is unreachable in practice but required for exhaustiveness.
+            return nil
         }
     }
 

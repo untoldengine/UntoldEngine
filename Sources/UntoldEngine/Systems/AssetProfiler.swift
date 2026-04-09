@@ -310,8 +310,15 @@ public enum AssetProfiler {
                 hasEmbeddedTextures = true
             } else if let textureURL = URL(string: ref), textureURL.isFileURL {
                 let fileSize = (try? FileManager.default.attributesOfItem(atPath: textureURL.path))?[.size] as? Int ?? 0
-                // PNG/JPEG typically decode to 3–4× their compressed size on the GPU.
-                totalBytes += fileSize * 3
+                if textureURL.pathExtension.lowercased() == "utex" {
+                    // .utex is the engine-native ASTC container: the file payload IS the GPU
+                    // data (ASTC blocks transferred as-is).  No decode expansion — file size
+                    // ≈ GPU allocation.  Use 1× with no multiplier.
+                    totalBytes += fileSize
+                } else {
+                    // PNG/JPEG typically decode to 3–4× their compressed size on the GPU.
+                    totalBytes += fileSize * 3
+                }
             }
         }
 

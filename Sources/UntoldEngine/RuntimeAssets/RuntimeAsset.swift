@@ -32,6 +32,9 @@ public struct RuntimeTextureReference: Sendable, Equatable {
     public var width: Int?
     public var height: Int?
     public var mipCount: Int?
+    /// Compressed format of the source asset. When `isASTCNative` is true the
+    /// engine loads the texture via NativeTextureLoader instead of MTKTextureLoader.
+    public var textureFormat: UntoldTextureFormat
 
     public init(
         name: String? = nil,
@@ -40,7 +43,8 @@ public struct RuntimeTextureReference: Sendable, Equatable {
         flags: UInt32 = 0,
         width: Int? = nil,
         height: Int? = nil,
-        mipCount: Int? = nil
+        mipCount: Int? = nil,
+        textureFormat: UntoldTextureFormat = .unknown
     ) {
         self.name = name
         self.sourceURL = sourceURL
@@ -49,6 +53,7 @@ public struct RuntimeTextureReference: Sendable, Equatable {
         self.width = width
         self.height = height
         self.mipCount = mipCount
+        self.textureFormat = textureFormat
     }
 }
 

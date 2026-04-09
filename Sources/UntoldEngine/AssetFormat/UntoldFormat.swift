@@ -62,6 +62,18 @@ public enum UntoldTextureFormat: UInt32, Sendable {
     case bc7 = 2
     case bc5 = 3
     case astc4x4 = 4
+    case astc5x5 = 5
+    case astc6x6 = 6
+    case astc8x8 = 7
+
+    /// True for formats stored in the engine-native .utex container and uploaded
+    /// directly to Metal without passing through MTKTextureLoader or CGImage.
+    public var isASTCNative: Bool {
+        switch self {
+        case .astc4x4, .astc5x5, .astc6x6, .astc8x8: true
+        default: false
+        }
+    }
 }
 
 public struct UntoldAABB: Sendable, Equatable {
