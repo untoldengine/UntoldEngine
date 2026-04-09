@@ -1471,12 +1471,22 @@ public struct Material {
 
     init(runtimeMaterial: RuntimeMaterialSource, device: MTLDevice) {
         let textureLoader = MTKTextureLoader(device: device)
+        let nativeLoader = NativeTextureLoader(device: device)
         let fileManager = FileManager.default
 
         func loadRuntimeTexture(_ label: String, reference: RuntimeTextureReference?, isSRGB: Bool) -> MTLTexture? {
             guard let reference, let url = reference.sourceURL else { return nil }
             let fileExists = fileManager.fileExists(atPath: url.path)
             Logger.log(message: "[UntoldTexture] \(label) '\(runtimeMaterial.name ?? "<unnamed material>")' -> \(url.path) | exists=\(fileExists)")
+
+            // ASTC textures stored in the engine-native .utex container bypass
+            // MTKTextureLoader entirely and are uploaded directly to the GPU.
+            if reference.textureFormat.isASTCNative {
+                return nativeLoader?.loadTexture(
+                    from: url,
+                    label: "\(runtimeMaterial.name ?? "material")_\(label.lowercased())"
+                )
+            }
 
             let options: [MTKTextureLoader.Option: Any] = [
                 .textureUsage: NSNumber(value: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue),

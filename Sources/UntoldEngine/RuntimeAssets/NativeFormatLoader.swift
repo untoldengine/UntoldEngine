@@ -247,7 +247,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             flags: record.flags,
             width: Int(record.width),
             height: Int(record.height),
-            mipCount: Int(record.mipCount)
+            mipCount: Int(record.mipCount),
+            textureFormat: record.textureFormat
         )
     }
 
