@@ -194,6 +194,48 @@ python3 scripts/texbake.py \
 
 Available slots: `base_color`, `normal`, `roughness`, `metallic`, `occlusion`, `orm`, `emissive`, `opacity`, `data`.
 
+## Using LZ4 Compression
+
+Pass `--compress-geometry` to `export-untold` or `export-untold-tiles` to compress the vertex and index chunks of the output `.untold` file with LZ4.
+
+### Prerequisites
+
+Install the Python LZ4 package:
+
+```bash
+pip install lz4
+```
+
+### Single asset
+
+```bash
+./scripts/export-untold \
+  --input GameData/Models/robot/robot.usdz \
+  --output GameData/Models/robot/robot.untold \
+  --compress-geometry
+```
+
+### Tile export
+
+```bash
+./scripts/export-untold-tiles \
+  --input GameData/Models/dungeon/dungeon.usdz \
+  --output-dir GameData/Models/dungeon/tile_exports \
+  --tile-size-x 25 \
+  --tile-size-y 10000 \
+  --tile-size-z 25 \
+  --compress-geometry
+```
+
+### What compression does
+
+- Only the `vertex_data` and `index_data` chunks are compressed. Metadata chunks (string table, entity table, mesh table, material table, texture table) are always stored uncompressed.
+- The compressed format is LZ4 raw block (`lz4.block`, not `lz4.frame`), which matches Apple's `COMPRESSION_LZ4_RAW` algorithm used by the runtime decompressor.
+- Both the compressed size and the original uncompressed size are recorded in each chunk entry, so the runtime can allocate the exact decompression buffer without an extra read.
+- The content hash in the file header is computed over the compressed bytes, consistent with runtime validation.
+
+Compression is compatible with all other flags including `--validate`, `--generate-hlod`, `--generate-lod`, and the ASTC texture bake workflow.
+
 ## Loading The Result In The Engine
 
 Single asset:
