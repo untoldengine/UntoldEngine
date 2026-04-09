@@ -23,13 +23,12 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
     }
 
     public func loadAssetSync(from url: URL) throws -> RuntimeAsset {
-        let fileData = try Data(contentsOf: url)
-        let decoded = try UntoldReader().readAsset(from: fileData)
+        let fileData = try Data(contentsOf: url, options: .mappedIfSafe)
+        let reader = UntoldReader()
+        let decoded = try reader.readAsset(from: fileData)
 
-        let vertexChunk = try requiredChunk(.vertexData, in: decoded.chunks)
-        let indexChunk = try requiredChunk(.indexData, in: decoded.chunks)
-        let vertexChunkData = try chunkData(for: vertexChunk, fileData: fileData)
-        let indexChunkData = try chunkData(for: indexChunk, fileData: fileData)
+        let vertexChunkData = try reader.readChunkData(.vertexData, from: fileData, entries: decoded.chunks)
+        let indexChunkData = try reader.readChunkData(.indexData, from: fileData, entries: decoded.chunks)
 
         let runtimeMaterials = try decoded.materials.map { try makeRuntimeMaterial(from: $0, decoded: decoded, baseURL: url.deletingLastPathComponent()) }
         let nodes = try makeRuntimeNodes(
@@ -105,26 +104,6 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
                 indexChunkData: indexChunkData
             )
         }
-    }
-
-    private func requiredChunk(_ type: UntoldChunkType, in chunks: [UntoldChunkEntryV1]) throws -> UntoldChunkEntryV1 {
-        guard let chunk = chunks.first(where: { $0.chunkType == type }) else {
-            throw UntoldValidationError.missingRequiredChunk(type)
-        }
-        return chunk
-    }
-
-    private func chunkData(for chunk: UntoldChunkEntryV1, fileData: Data) throws -> Data {
-        let start = Int(chunk.fileOffset)
-        let end = start + Int(chunk.compressedSize)
-        guard start >= 0, end <= fileData.count else {
-            throw UntoldBinaryDecodingError.outOfBounds(
-                offset: start,
-                requested: Int(chunk.compressedSize),
-                available: fileData.count
-            )
-        }
-        return fileData.subdata(in: start ..< end)
     }
 
     private func makeRuntimeNode(

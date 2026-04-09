@@ -48,6 +48,9 @@ HEADER_SIZE = 204
 CHUNK_ENTRY_SIZE = 40
 VERTEX_STRIDE = 32
 
+COMPRESSION_NONE = 0
+COMPRESSION_LZ4 = 1
+
 FILE_TYPES = {
     "tile": 1,
     "lod": 2,
@@ -446,15 +449,17 @@ def write_chunk_entry(
     writer: BinaryWriter,
     *,
     chunk_type: int,
+    compression_type: int = COMPRESSION_NONE,
     file_offset: int,
-    size: int,
+    compressed_size: int,
+    uncompressed_size: int,
     element_count: int,
 ) -> None:
     writer.write_u32(chunk_type)
-    writer.write_u32(0)
+    writer.write_u32(compression_type)
     writer.write_u64(file_offset)
-    writer.write_u64(size)
-    writer.write_u64(size)
+    writer.write_u64(compressed_size)
+    writer.write_u64(uncompressed_size)
     writer.write_u32(element_count)
     writer.write_u32(0)
 
@@ -1918,7 +1923,26 @@ def extract_nodes_from_objects(
     return nodes
 
 
-def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, file_type_name: str) -> bytes:
+def _compress_geometry_chunks(vertex_raw: bytes, index_raw: bytes) -> tuple[bytes, bytes]:
+    """Compress vertex and index byte arrays with LZ4 raw block format.
+
+    Uses lz4.block (not lz4.frame) to produce raw LZ4 block data compatible
+    with Apple's COMPRESSION_LZ4_RAW algorithm on the runtime side.
+    Install the dependency with: pip install lz4
+    """
+    try:
+        import lz4.block as lz4_block  # type: ignore[import]
+    except ImportError:
+        raise RuntimeError(
+            "The 'lz4' package is required for geometry compression. "
+            "Install it with: pip install lz4"
+        )
+    vertex_compressed: bytes = lz4_block.compress(vertex_raw, store_size=False)
+    index_compressed: bytes = lz4_block.compress(index_raw, store_size=False)
+    return vertex_compressed, index_compressed
+
+
+def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, file_type_name: str, *, compress_geometry: bool = False) -> bytes:
     if not exported_nodes:
         raise RuntimeError("No nodes were extracted for export")
 
@@ -2093,24 +2117,38 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
         write_mesh_record(mesh_writer, mesh)
     mesh_chunk = mesh_writer.data
 
+    vertex_raw = vertex_writer.data
+    index_raw = index_writer.data
+
+    if compress_geometry:
+        vertex_payload, index_payload = _compress_geometry_chunks(vertex_raw, index_raw)
+        geo_compression = COMPRESSION_LZ4
+    else:
+        vertex_payload, index_payload = vertex_raw, index_raw
+        geo_compression = COMPRESSION_NONE
+
+    # Each entry: (chunk_type, compressed_payload, uncompressed_size, element_count, compression_type)
     chunk_payloads = [
-        (CHUNK_TYPES["string_table"], string_chunk, 0),
-        (CHUNK_TYPES["entity_table"], entity_chunk, len(entities)),
-        (CHUNK_TYPES["mesh_table"], mesh_chunk, len(meshes)),
-        (CHUNK_TYPES["material_table"], material_chunk, len(materials)),
-        (CHUNK_TYPES["texture_table"], texture_chunk, len(textures)),
-        (CHUNK_TYPES["vertex_data"], vertex_writer.data, 0),
-        (CHUNK_TYPES["index_data"], index_writer.data, 0),
+        (CHUNK_TYPES["string_table"], string_chunk, len(string_chunk), 0, COMPRESSION_NONE),
+        (CHUNK_TYPES["entity_table"], entity_chunk, len(entity_chunk), len(entities), COMPRESSION_NONE),
+        (CHUNK_TYPES["mesh_table"], mesh_chunk, len(mesh_chunk), len(meshes), COMPRESSION_NONE),
+        (CHUNK_TYPES["material_table"], material_chunk, len(material_chunk), len(materials), COMPRESSION_NONE),
+        (CHUNK_TYPES["texture_table"], texture_chunk, len(texture_chunk), len(textures), COMPRESSION_NONE),
+        (CHUNK_TYPES["vertex_data"], vertex_payload, len(vertex_raw), 0, geo_compression),
+        (CHUNK_TYPES["index_data"], index_payload, len(index_raw), 0, geo_compression),
     ]
 
-    content_hash = hashlib.sha256(b"".join(payload for _, payload, _ in chunk_payloads)).digest()
+    # Content hash is computed over the (compressed) bytes in chunk order — matches
+    # runtime validation in UntoldReader.validateContentHash.
+    content_hash = hashlib.sha256(b"".join(payload for _, payload, _, _, _ in chunk_payloads)).digest()
     file_type = FILE_TYPES[file_type_name]
     chunk_table_size = CHUNK_ENTRY_SIZE * len(chunk_payloads)
     running_offset = HEADER_SIZE + chunk_table_size
-    chunk_entries: list[tuple[int, int, int, int]] = []
-    for chunk_type, payload, element_count in chunk_payloads:
+    # chunk_entries: (chunk_type, file_offset, compressed_size, uncompressed_size, element_count, compression_type)
+    chunk_entries: list[tuple[int, int, int, int, int, int]] = []
+    for chunk_type, payload, uncompressed_size, element_count, compression_type in chunk_payloads:
         running_offset = align(running_offset, FILE_ALIGNMENT)
-        chunk_entries.append((chunk_type, running_offset, len(payload), element_count))
+        chunk_entries.append((chunk_type, running_offset, len(payload), uncompressed_size, element_count, compression_type))
         running_offset += len(payload)
 
     file_writer = BinaryWriter()
@@ -2131,15 +2169,17 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
         ],
         content_hash=content_hash,
     )
-    for chunk_type, file_offset, size, element_count in chunk_entries:
+    for chunk_type, file_offset, compressed_size, uncompressed_size, element_count, compression_type in chunk_entries:
         write_chunk_entry(
             file_writer,
             chunk_type=chunk_type,
+            compression_type=compression_type,
             file_offset=file_offset,
-            size=size,
+            compressed_size=compressed_size,
+            uncompressed_size=uncompressed_size,
             element_count=element_count,
         )
-    for (_, payload, _), (_, file_offset, _, _) in zip(chunk_payloads, chunk_entries):
+    for (_, payload, _, _, _), (_, file_offset, _, _, _, _) in zip(chunk_payloads, chunk_entries):
         file_writer.align(FILE_ALIGNMENT)
         if file_writer.count != file_offset:
             raise RuntimeError(
@@ -2158,6 +2198,7 @@ def export_objects_to_untold(
     convert_orientation: bool = False,
     source_orientation: str = "blender-native",
     validate: bool = False,
+    compress_geometry: bool = False,
 ) -> dict[str, object]:
     exported_nodes = extract_nodes_from_objects(
         export_objects,
@@ -2168,7 +2209,7 @@ def export_objects_to_untold(
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
-    untold_bytes = build_untold_file(exported_nodes, output_path, file_type_name)
+    untold_bytes = build_untold_file(exported_nodes, output_path, file_type_name, compress_geometry=compress_geometry)
     output_path.write_bytes(untold_bytes)
 
     exported_meshes = [
@@ -2219,6 +2260,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Orientation of the input USD/USDZ before any exporter-side conversion. Use 'blender-native' for assets still in Blender's default space (-Y forward, +Z up), or 'engine-oriented' for assets already oriented to the engine's convention (+Z forward, +Y up).",
     )
     parser.add_argument("--validate", action="store_true", help="Write a companion .validation.json file for engine-side validation tests.")
+    parser.add_argument(
+        "--compress-geometry",
+        action="store_true",
+        help="Compress vertex and index chunks with LZ4 (requires: pip install lz4). Reduces file size without changing metadata chunks.",
+    )
     return parser.parse_args(argv)
 
 
@@ -2244,7 +2290,7 @@ def main(argv: list[str]) -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
     print("Building .untold file ...", flush=True)
-    untold_bytes = build_untold_file(exported_nodes, output_path, args.file_type)
+    untold_bytes = build_untold_file(exported_nodes, output_path, args.file_type, compress_geometry=args.compress_geometry)
     output_path.write_bytes(untold_bytes)
     exported_meshes = [exported_node.mesh for exported_node in exported_nodes if exported_node.mesh is not None]
     print(f"Wrote {output_path} ({len(untold_bytes)} bytes)")

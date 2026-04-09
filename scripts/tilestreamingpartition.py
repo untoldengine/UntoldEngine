@@ -76,6 +76,7 @@ OUTPUT_DIR = "//tile_exports"
 EXPORT_FORMAT = "untold"        # Runtime payload format emitted for tiles.
 CONVERT_ORIENTATION = True      # Convert Blender scene data into engine space (+Z forward, +Y up).
 SOURCE_ORIENTATION = "blender-native"
+COMPRESS_GEOMETRY = False       # Compress vertex/index chunks with LZ4 (requires: pip install lz4).
 
 # Tile footprint in Blender world units.
 # Start at 10 and tune with DRY_RUN=True.  Rule of thumb: set to 2–3× the
@@ -1644,6 +1645,7 @@ def export_local_tile(filepath, objects, tile_bounds, source_scene_path):
                 file_type_name="tile",
                 convert_orientation=CONVERT_ORIENTATION,
                 source_orientation=SOURCE_ORIENTATION,
+                compress_geometry=COMPRESS_GEOMETRY,
             )
     finally:
         remove_scene(temp_scene)
@@ -1681,6 +1683,7 @@ def export_shared_bucket(filepath, objects, source_scene_path):
                     file_type_name="shared",
                     convert_orientation=CONVERT_ORIENTATION,
                     source_orientation=SOURCE_ORIENTATION,
+                    compress_geometry=COMPRESS_GEOMETRY,
                 )
         finally:
             remove_scene(temp_scene)
@@ -1694,6 +1697,7 @@ def export_shared_bucket(filepath, objects, source_scene_path):
                 file_type_name="shared",
                 convert_orientation=CONVERT_ORIENTATION,
                 source_orientation=SOURCE_ORIENTATION,
+                compress_geometry=COMPRESS_GEOMETRY,
             )
 
     return True, None
@@ -1738,6 +1742,7 @@ def export_hlod_tile(filepath, objects, tile_bounds, reduction_ratio, source_sce
                 file_type_name=file_type_name,
                 convert_orientation=CONVERT_ORIENTATION,
                 source_orientation=SOURCE_ORIENTATION,
+                compress_geometry=COMPRESS_GEOMETRY,
             )
     finally:
         remove_scene(temp_scene)
@@ -1795,6 +1800,7 @@ def export_debug_aabb(filepath, tile_bounds, color):
                 file_type_name="tile",
                 convert_orientation=CONVERT_ORIENTATION,
                 source_orientation=SOURCE_ORIENTATION,
+                compress_geometry=COMPRESS_GEOMETRY,
             )
     finally:
         remove_scene(temp_scene)
@@ -2214,6 +2220,7 @@ def _config_snapshot() -> dict:
         "BAKE_WORLD_TRANSFORMS": BAKE_WORLD_TRANSFORMS,
         "SPLIT_CLIP_EPSILON":  SPLIT_CLIP_EPSILON,
         "DEBUG_AABB_ONLY":     DEBUG_AABB_ONLY,
+        "COMPRESS_GEOMETRY":   COMPRESS_GEOMETRY,
     }
 
 
@@ -2221,7 +2228,7 @@ def _apply_bundle_config(cfg: dict) -> None:
     """Restore config globals in a worker process from a bundle dict."""
     global EXPORT_FORMAT, CONVERT_ORIENTATION, SOURCE_ORIENTATION
     global CLIP_LOCAL_MESHES, MERGE_BY_MATERIAL, BAKE_WORLD_TRANSFORMS
-    global SPLIT_CLIP_EPSILON, DEBUG_AABB_ONLY
+    global SPLIT_CLIP_EPSILON, DEBUG_AABB_ONLY, COMPRESS_GEOMETRY
     EXPORT_FORMAT         = cfg.get("EXPORT_FORMAT",         EXPORT_FORMAT)
     CONVERT_ORIENTATION   = cfg.get("CONVERT_ORIENTATION",   CONVERT_ORIENTATION)
     SOURCE_ORIENTATION    = cfg.get("SOURCE_ORIENTATION",    SOURCE_ORIENTATION)
@@ -2230,6 +2237,7 @@ def _apply_bundle_config(cfg: dict) -> None:
     BAKE_WORLD_TRANSFORMS = cfg.get("BAKE_WORLD_TRANSFORMS", BAKE_WORLD_TRANSFORMS)
     SPLIT_CLIP_EPSILON    = cfg.get("SPLIT_CLIP_EPSILON",    SPLIT_CLIP_EPSILON)
     DEBUG_AABB_ONLY       = cfg.get("DEBUG_AABB_ONLY",       DEBUG_AABB_ONLY)
+    COMPRESS_GEOMETRY     = cfg.get("COMPRESS_GEOMETRY",     COMPRESS_GEOMETRY)
 
 
 def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
@@ -3017,6 +3025,11 @@ def parse_args(argv):
     parser.add_argument("--debug-aabb-only", action="store_true", help="Export debug AABB payloads instead of real geometry.")
     parser.add_argument("--auto-tile-size", action="store_true", help="Enable automatic tile-size selection.")
     parser.add_argument("--parallel-workers", type=int, default=None, help="Number of parallel Blender worker processes (0=auto, 1=sequential).")
+    parser.add_argument(
+        "--compress-geometry",
+        action="store_true",
+        help="Compress vertex and index chunks with LZ4 in every exported tile payload (requires: pip install lz4).",
+    )
     # Internal: used by worker subprocesses spawned by the parallel export system.
     parser.add_argument("--worker-mode", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--work-bundle", default=None, help=argparse.SUPPRESS)
@@ -3038,6 +3051,7 @@ def apply_cli_overrides(args):
     global DEBUG_AABB_ONLY
     global AUTO_TILE_SIZE
     global PARALLEL_WORKERS
+    global COMPRESS_GEOMETRY
 
     if args.input:
         SOURCE_SCENE_PATH_OVERRIDE = args.input
@@ -3067,6 +3081,8 @@ def apply_cli_overrides(args):
         AUTO_TILE_SIZE = True
     if args.parallel_workers is not None:
         PARALLEL_WORKERS = args.parallel_workers
+    if getattr(args, "compress_geometry", False):
+        COMPRESS_GEOMETRY = True
 
 
 def main(argv=None):
