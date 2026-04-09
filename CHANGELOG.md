@@ -1,4 +1,17 @@
 # Changelog
+## v0.12.1 - 2026-04-09
+### 🐞 Fixes
+- [Patch] Fixed exporter UV issues (4e5da7f…)
+- [Patch] Fixed texture encoding in exporter (5313ee7…)
+- [Patch] Improved the exporting speed. (7f14373…)
+- [Patch] Fixed grayscale textures rendering red in engine (a0c0f00…)
+- [Patch] Fixed 16-bit sRGB textures saving with wrong view transform (fe33c36…)
+- [Patch] Ignore exr textures during export (e9981ac…)
+- [Patch] Implemented LZ4 compression (7095b8d…)
+- [Patch] Added ASTC texture pipeline to engine. (6cd4dda…)
+### 📚 Docs
+- [Docs] Updated logo image (d4a5faf…)
+- [Docs] Added LZ4 documentation (bf231ab…)
 ## v0.12.0 - 2026-04-06
 ### 🐞 Fixes
 - [Patch] improved the tile-streaming system (c09bb2c…)

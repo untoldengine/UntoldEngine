@@ -166,19 +166,19 @@ public enum NativeTexValidationError: Error, Sendable, Equatable {
 
 extension NativeTexHeader: UntoldBinaryEncodable, UntoldBinaryDecodable {
     public func encode(to writer: UntoldBinaryWriter) {
-        writer.writeBytes(magic)               // offset  0 – 7   (8 bytes)
-        writer.writeUInt32LE(version)          // offset  8 – 11  (4 bytes)
-        writer.writeUInt32LE(flags)            // offset 12 – 15  (4 bytes)
-        writer.writeUInt32LE(width)            // offset 16 – 19  (4 bytes)
-        writer.writeUInt32LE(height)           // offset 20 – 23  (4 bytes)
-        writer.writeUInt32LE(mipCount)         // offset 24 – 27  (4 bytes)
-        writer.writeUInt32LE(pixelFormat)      // offset 28 – 31  (4 bytes)
-        writer.writeUInt8(blockWidth)          // offset 32       (1 byte)
-        writer.writeUInt8(blockHeight)         // offset 33       (1 byte)
-        writer.writeBytes(reserved)            // offset 34 – 35  (2 bytes)
-        writer.writeUInt32LE(payloadOffset)    // offset 36 – 39  (4 bytes)
+        writer.writeBytes(magic) // offset  0 – 7   (8 bytes)
+        writer.writeUInt32LE(version) // offset  8 – 11  (4 bytes)
+        writer.writeUInt32LE(flags) // offset 12 – 15  (4 bytes)
+        writer.writeUInt32LE(width) // offset 16 – 19  (4 bytes)
+        writer.writeUInt32LE(height) // offset 20 – 23  (4 bytes)
+        writer.writeUInt32LE(mipCount) // offset 24 – 27  (4 bytes)
+        writer.writeUInt32LE(pixelFormat) // offset 28 – 31  (4 bytes)
+        writer.writeUInt8(blockWidth) // offset 32       (1 byte)
+        writer.writeUInt8(blockHeight) // offset 33       (1 byte)
+        writer.writeBytes(reserved) // offset 34 – 35  (2 bytes)
+        writer.writeUInt32LE(payloadOffset) // offset 36 – 39  (4 bytes)
         writer.writeUInt32LE(totalPayloadSize) // offset 40 – 43  (4 bytes)
-        for word in reserved1 {               // offset 44 – 63  (5 × 4 = 20 bytes)
+        for word in reserved1 { // offset 44 – 63  (5 × 4 = 20 bytes)
             writer.writeUInt32LE(word)
         }
         // Total: 64 bytes
