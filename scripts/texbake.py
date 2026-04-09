@@ -693,7 +693,7 @@ def patch_refs(untold_path: Path) -> None:
       - updates the textureFormat field to the correct ASTC variant
 
     All other records and chunk data are left unchanged.
-    The original file is backed up to <name>.untold.bak before writing.
+    The file is rewritten in-place.
     """
     data = untold_path.read_bytes()
     base_dir = untold_path.parent
@@ -933,16 +933,12 @@ def patch_refs(untold_path: Path) -> None:
     assert pre_body_pad >= 0, "body_start calculation error"
 
     # ── 12. Write output ─────────────────────────────────────────────
-    backup = untold_path.with_suffix(".untold.bak")
-    untold_path.rename(backup)
-
     out_bytes = bytes(new_header) + bytes(new_chunk_table) + bytes(pre_body_pad) + bytes(body3)
     untold_path.write_bytes(out_bytes)
 
     orig_kb = len(data) / 1024
     new_kb  = len(out_bytes) / 1024
     print(f"  Written   {untold_path.name}  ({orig_kb:.1f} KB → {new_kb:.1f} KB)")
-    print(f"  Backup    {backup.name}")
 
 
 def _align_body(buf: bytearray, alignment: int) -> None:
@@ -983,8 +979,7 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "Patch texture references in a .untold file (or all .untold files in a directory) "
             "to point to .utex files where they exist alongside the original images. "
-            "Updates URI strings and textureFormat fields; rewrites each file in-place "
-            "(original backed up as .untold.bak)."
+            "Updates URI strings and textureFormat fields; rewrites each file in-place."
         ),
     )
     args = parser.parse_args(argv)
