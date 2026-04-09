@@ -243,10 +243,19 @@
                 if !wasRightMousePressed {
                     setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
                 }
-                var dx = input.mouseDeltaX
-                var dy = input.mouseDeltaY
-                if abs(dx) < abs(dy) { dx = 0 } else { dy = 0 }
-                orbitCameraAround(entityId: camera, uDelta: simd_float2(dx, dy))
+                if input.keyState.shiftPressed {
+                    rotateCamera(
+                        entityId: camera,
+                        pitch: 0,
+                        yaw: input.mouseDeltaX,
+                        sensitivity: -0.01
+                    )
+                } else {
+                    var dx = input.mouseDeltaX
+                    var dy = input.mouseDeltaY
+                    if abs(dx) < abs(dy) { dx = 0 } else { dy = 0 }
+                    orbitCameraAround(entityId: camera, uDelta: simd_float2(dx, dy))
+                }
             }
             wasRightMousePressed = input.keyState.rightMousePressed
         }
