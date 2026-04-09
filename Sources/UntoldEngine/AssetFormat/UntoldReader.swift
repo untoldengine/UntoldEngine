@@ -12,6 +12,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import Compression
 import CryptoKit
 import Foundation
 
@@ -217,6 +218,20 @@ public final class UntoldReader: @unchecked Sendable {
         return records
     }
 
+    /// Returns decompressed chunk payload for the given chunk type.
+    /// Call this from external loaders (e.g. NativeFormatLoader) to retrieve
+    /// vertex or index data with transparent decompression.
+    public func readChunkData(
+        _ chunkType: UntoldChunkType,
+        from fileData: Data,
+        entries: [UntoldChunkEntryV1]
+    ) throws -> Data {
+        guard let entry = entries.first(where: { $0.chunkType == chunkType }) else {
+            throw UntoldValidationError.missingRequiredChunk(chunkType)
+        }
+        return try decompressChunk(entry, fileData: fileData)
+    }
+
     private func loadRequiredChunk(
         _ chunkType: UntoldChunkType,
         from fileData: Data,
@@ -225,26 +240,55 @@ public final class UntoldReader: @unchecked Sendable {
         guard let entry = entries.first(where: { $0.chunkType == chunkType }) else {
             throw UntoldValidationError.missingRequiredChunk(chunkType)
         }
+        return try decompressChunk(entry, fileData: fileData)
+    }
 
-        guard entry.compressionType == .none else {
-            throw UntoldValidationError.unsupportedCompression(entry.compressionType.rawValue)
-        }
-
+    private func decompressChunk(_ entry: UntoldChunkEntryV1, fileData: Data) throws -> Data {
         let fileOffset = Int(entry.fileOffset)
-        let byteCount = Int(entry.compressedSize)
+        let compressedSize = Int(entry.compressedSize)
+        let uncompressedSize = Int(entry.uncompressedSize)
+
         guard fileOffset >= 0,
-              byteCount >= 0,
+              compressedSize >= 0,
               fileOffset <= fileData.count,
-              fileOffset + byteCount <= fileData.count
+              fileOffset + compressedSize <= fileData.count
         else {
             throw UntoldBinaryDecodingError.outOfBounds(
                 offset: fileOffset,
-                requested: byteCount,
+                requested: compressedSize,
                 available: fileData.count
             )
         }
 
-        return fileData.subdata(in: fileOffset ..< fileOffset + byteCount)
+        switch entry.compressionType {
+        case .none:
+            return fileData.subdata(in: fileOffset ..< fileOffset + compressedSize)
+
+        case .lz4:
+            var output = Data(count: uncompressedSize)
+            let written: Int = output.withUnsafeMutableBytes { outBuf in
+                fileData.withUnsafeBytes { inBuf in
+                    compression_decode_buffer(
+                        outBuf.baseAddress!.assumingMemoryBound(to: UInt8.self),
+                        uncompressedSize,
+                        inBuf.baseAddress!.advanced(by: fileOffset).assumingMemoryBound(to: UInt8.self),
+                        compressedSize,
+                        nil,
+                        COMPRESSION_LZ4_RAW
+                    )
+                }
+            }
+            guard written == uncompressedSize else {
+                throw UntoldValidationError.compressionOutputSizeMismatch(
+                    expected: UInt64(uncompressedSize),
+                    actual: UInt64(written)
+                )
+            }
+            return output
+
+        case .zstd:
+            throw UntoldValidationError.unsupportedCompression(entry.compressionType.rawValue)
+        }
     }
 }
 

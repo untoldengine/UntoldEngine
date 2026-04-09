@@ -11,6 +11,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import Compression
 import CryptoKit
 import simd
 @testable import UntoldEngine
@@ -512,6 +513,16 @@ extension NativeFormatTests {
         XCTAssertNoThrow(try UntoldReader().readAsset(from: fixture.fileData))
     }
 
+    func testFileWithLZ4CompressedChunksLoadsMetadataCorrectly() throws {
+        let (fileData, _, _) = makeLZ4CompressedFile()
+        let decoded = try UntoldReader().readAsset(from: fileData)
+
+        XCTAssertEqual(decoded.entities.count, 1)
+        XCTAssertEqual(decoded.meshes.count, 1)
+        XCTAssertEqual(try decoded.string(at: decoded.entities[0].nameOffset), "root_entity")
+        XCTAssertEqual(try decoded.string(at: decoded.meshes[0].meshNameOffset), "mesh_0")
+    }
+
     func testTamperedVertexDataRejectedByHashValidation() throws {
         let fixture = makeTinyFixture(computeHash: true)
 
@@ -526,6 +537,239 @@ extension NativeFormatTests {
 
         XCTAssertThrowsError(try UntoldReader().readAsset(from: tampered)) { error in
             XCTAssertEqual(error as? UntoldValidationError, .contentHashMismatch)
+        }
+    }
+}
+
+// MARK: - LZ4 compression tests
+
+extension NativeFormatTests {
+
+    // MARK: Helpers
+
+    /// Compress `input` with COMPRESSION_LZ4_RAW — the same algorithm the runtime uses to decompress.
+    private func lz4Compress(_ input: Data) -> Data {
+        let maxSize = max(input.count + 64, 128)
+        var output = Data(count: maxSize)
+        let written: Int = output.withUnsafeMutableBytes { outBuf in
+            input.withUnsafeBytes { inBuf in
+                compression_encode_buffer(
+                    outBuf.baseAddress!.assumingMemoryBound(to: UInt8.self),
+                    maxSize,
+                    inBuf.baseAddress!.assumingMemoryBound(to: UInt8.self),
+                    input.count,
+                    nil,
+                    COMPRESSION_LZ4_RAW
+                )
+            }
+        }
+        return output.prefix(written)
+    }
+
+    /// Builds a minimal .untold file whose vertexData and indexData chunks are LZ4 compressed.
+    /// All metadata chunks remain uncompressed. When `inflateVertexUncompressedSize` is true,
+    /// the vertex chunk's `uncompressedSize` field is set larger than the actual data, so the
+    /// runtime decompressor will report a size mismatch.
+    private func makeLZ4CompressedFile(
+        inflateVertexUncompressedSize: Bool = false
+    ) -> (fileData: Data, originalVertexData: Data, originalIndexData: Data) {
+        let strings = ["root_entity", "mesh_0", "mat_0", "albedo.ktx2"]
+        let stringTable = makeStringTable(strings)
+        let bounds = UntoldAABB(min: SIMD3<Float>(-1, -1, -1), max: SIMD3<Float>(1, 1, 1))
+
+        // One 32-byte PBR vertex
+        let vertex = UntoldPBRStaticVertexV1(
+            position: SIMD3<Float>(1, 2, 3),
+            normalPacked: UntoldVertexPacking.packNormal(SIMD3<Float>(0, 1, 0)),
+            tangentPacked: UntoldVertexPacking.packTangent(SIMD3<Float>(1, 0, 0), handedness: 1),
+            uv0: SIMD2<UInt16>(100, 200),
+            uv1: SIMD2<UInt16>(0, 0),
+            color0: SIMD4<UInt8>(255, 128, 64, 255)
+        )
+        let vertexWriter = UntoldBinaryWriter()
+        vertex.encode(to: vertexWriter)
+        let originalVertexData = vertexWriter.data
+
+        // One triangle: 3 × uint16 indices
+        let indexWriter = UntoldBinaryWriter()
+        indexWriter.writeUInt16LE(0)
+        indexWriter.writeUInt16LE(1)
+        indexWriter.writeUInt16LE(2)
+        let originalIndexData = indexWriter.data
+
+        let compressedVertex = lz4Compress(originalVertexData)
+        let compressedIndex  = lz4Compress(originalIndexData)
+
+        let vertexUncompressedSize: UInt64 = inflateVertexUncompressedSize
+            ? UInt64(originalVertexData.count) + 1000  // deliberately wrong
+            : UInt64(originalVertexData.count)
+
+        let entity = UntoldEntityRecordV1(
+            entityId: 0,
+            nameOffset: stringTable.offsets["root_entity"]!,
+            firstMeshRecordIndex: 0,
+            meshRecordCount: 1,
+            localBounds: bounds,
+            worldBounds: bounds
+        )
+        let material = UntoldMaterialRecordV1(
+            nameOffset: stringTable.offsets["mat_0"]!,
+            baseColorTextureIndex: 0
+        )
+        let texture = UntoldTextureRefRecordV1(
+            nameOffset: stringTable.offsets["albedo.ktx2"]!,
+            uriOffset: stringTable.offsets["albedo.ktx2"]!,
+            textureFormat: .rgba8,
+            width: 64,
+            height: 64,
+            mipCount: 1
+        )
+        let mesh = UntoldMeshRecordV1(
+            entityId: 0,
+            meshNameOffset: stringTable.offsets["mesh_0"]!,
+            materialIndex: 0,
+            indexType: .uint16,
+            vertexCount: 1,
+            indexCount: 3,
+            vertexStrideBytes: 32,
+            vertexDataOffset: 0,
+            indexDataOffset: 0,
+            vertexDataSizeBytes: UInt64(originalVertexData.count),
+            indexDataSizeBytes: UInt64(originalIndexData.count),
+            estimatedGPUBytes: UInt64(originalVertexData.count + originalIndexData.count),
+            localBounds: bounds
+        )
+
+        var header = UntoldFileHeaderV1(
+            fileType: .tile,
+            chunkCount: 0,
+            meshCount: 1,
+            materialCount: 1,
+            textureRefCount: 1,
+            entityCount: 1,
+            vertexLayout: .pbrStaticV1,
+            worldBounds: bounds
+        )
+
+        // (storedBytes, compressionType, uncompressedSize, elementCount)
+        let specs: [(UntoldChunkType, Data, UntoldCompressionType, UInt64, UInt32)] = [
+            (.stringTable,   stringTable.data,      .none, UInt64(stringTable.data.count),                0),
+            (.entityTable,   encodeChunk([entity]),  .none, UInt64(encodeChunk([entity]).count),           1),
+            (.meshTable,     encodeChunk([mesh]),    .none, UInt64(encodeChunk([mesh]).count),             1),
+            (.materialTable, encodeChunk([material]),.none, UInt64(encodeChunk([material]).count),         1),
+            (.textureTable,  encodeChunk([texture]), .none, UInt64(encodeChunk([texture]).count),          1),
+            (.vertexData,    compressedVertex,       .lz4,  vertexUncompressedSize,                        0),
+            (.indexData,     compressedIndex,        .lz4,  UInt64(originalIndexData.count),               0),
+        ]
+
+        header.chunkCount = UInt32(specs.count)
+
+        // Compute chunk table size (matches UntoldChunkEntryV1 binary layout: 2×u32 + 3×u64 + 2×u32 = 40 bytes)
+        let chunkEntrySize = MemoryLayout<UInt32>.size * 2
+                           + MemoryLayout<UInt64>.size * 3
+                           + MemoryLayout<UInt32>.size * 2
+        let headerWriter2 = UntoldBinaryWriter()
+        header.encode(to: headerWriter2)
+        let headerSize = headerWriter2.data.count
+
+        var runningOffset = headerSize + chunkEntrySize * specs.count
+        var entries: [UntoldChunkEntryV1] = []
+        for (chunkType, storedBytes, compressionType, uncompressedSize, elementCount) in specs {
+            runningOffset = align(runningOffset, to: Int(UntoldFormat.fileAlignment))
+            entries.append(UntoldChunkEntryV1(
+                chunkType: chunkType,
+                compressionType: compressionType,
+                fileOffset: UInt64(runningOffset),
+                compressedSize: UInt64(storedBytes.count),
+                uncompressedSize: uncompressedSize,
+                elementCount: elementCount
+            ))
+            runningOffset += storedBytes.count
+        }
+
+        let fileWriter = UntoldBinaryWriter()
+        header.encode(to: fileWriter)
+        for entry in entries {
+            entry.encode(to: fileWriter)
+        }
+        for (_, storedBytes, _, _, _) in specs {
+            fileWriter.align(to: Int(UntoldFormat.fileAlignment))
+            fileWriter.writeData(storedBytes)
+        }
+
+        return (fileWriter.data, originalVertexData, originalIndexData)
+    }
+
+    // MARK: Tests
+
+    func testLZ4CompressedVertexAndIndexRoundtrip() throws {
+        let (fileData, originalVertexData, originalIndexData) = makeLZ4CompressedFile()
+        let reader = UntoldReader()
+        let decoded = try reader.readAsset(from: fileData)
+
+        let decompressedVertex = try reader.readChunkData(.vertexData, from: fileData, entries: decoded.chunks)
+        let decompressedIndex  = try reader.readChunkData(.indexData,  from: fileData, entries: decoded.chunks)
+
+        XCTAssertEqual(decompressedVertex, originalVertexData, "Decompressed vertex data must match original")
+        XCTAssertEqual(decompressedIndex,  originalIndexData,  "Decompressed index data must match original")
+    }
+
+    func testLZ4CompressedChunkReportsCorrectSizeMetadata() throws {
+        let (fileData, originalVertexData, originalIndexData) = makeLZ4CompressedFile()
+        let decoded = try UntoldReader().readAsset(from: fileData)
+
+        let vertexEntry = try XCTUnwrap(decoded.chunks.first { $0.chunkType == .vertexData })
+        let indexEntry  = try XCTUnwrap(decoded.chunks.first { $0.chunkType == .indexData  })
+
+        XCTAssertEqual(vertexEntry.compressionType,   .lz4)
+        XCTAssertEqual(vertexEntry.uncompressedSize,  UInt64(originalVertexData.count))
+        XCTAssertLessThanOrEqual(vertexEntry.compressedSize, vertexEntry.uncompressedSize + 64,
+            "LZ4 compressed size should not wildly exceed original for small inputs")
+
+        XCTAssertEqual(indexEntry.compressionType,    .lz4)
+        XCTAssertEqual(indexEntry.uncompressedSize,   UInt64(originalIndexData.count))
+    }
+
+    func testLZ4CompressionOutputSizeMismatchIsRejected() throws {
+        let (fileData, _, _) = makeLZ4CompressedFile(inflateVertexUncompressedSize: true)
+        let reader = UntoldReader()
+        let decoded = try reader.readAsset(from: fileData)
+
+        XCTAssertThrowsError(
+            try reader.readChunkData(.vertexData, from: fileData, entries: decoded.chunks)
+        ) { error in
+            guard case let UntoldValidationError.compressionOutputSizeMismatch(expected, actual) = error else {
+                return XCTFail("Expected compressionOutputSizeMismatch, got \(error)")
+            }
+            XCTAssertGreaterThan(expected, actual)
+        }
+    }
+
+    func testZstdCompressionIsRejected() throws {
+        let base = makeTinyFixture()
+        guard let idx = base.chunkEntries.firstIndex(where: { $0.chunkType == .vertexData }) else {
+            XCTFail("No vertex chunk in fixture"); return
+        }
+        // Swap compressionType to .zstd on the vertex chunk entry without touching file bytes.
+        var mutatedEntries = base.chunkEntries
+        let orig = mutatedEntries[idx]
+        mutatedEntries[idx] = UntoldChunkEntryV1(
+            chunkType: orig.chunkType,
+            compressionType: .zstd,
+            fileOffset: orig.fileOffset,
+            compressedSize: orig.compressedSize,
+            uncompressedSize: orig.uncompressedSize,
+            elementCount: orig.elementCount
+        )
+
+        let reader = UntoldReader()
+        XCTAssertThrowsError(
+            try reader.readChunkData(.vertexData, from: base.fileData, entries: mutatedEntries)
+        ) { error in
+            XCTAssertEqual(
+                error as? UntoldValidationError,
+                .unsupportedCompression(UntoldCompressionType.zstd.rawValue)
+            )
         }
     }
 }

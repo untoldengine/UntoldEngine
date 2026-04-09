@@ -27,4 +27,5 @@ public enum UntoldValidationError: Error, Sendable, Equatable {
     case invalidIndexDataRange(offset: UInt64, size: UInt64, chunkSize: UInt64)
     case unsupportedEnumValue
     case contentHashMismatch
+    case compressionOutputSizeMismatch(expected: UInt64, actual: UInt64)
 }
