@@ -65,7 +65,7 @@ http://www.haroldserrano.com
 
 The fastest way to experience Untold Engine is to run the demo project.
 
-Clone the repository, run the engine and load a USDZ file:
+Clone the repository and launch the demo:
 
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
@@ -73,35 +73,15 @@ cd UntoldEngine
 swift run untolddemo
 ```
 
-Legacy alias (prints deprecation warning):
+The demo UI lets you see the engine in action right away. Using the `Remote Scene` drop-down menu, you can choose a scene to stream directly into the demo through the engine's **Asset Remote Streaming** support.
 
-```bash
-swift run DemoGame
-```
+## I want to try my own USDZ
 
-This will:
+Untold Engine uses its own native asset format: `.untold`.
 
-- Build the engine using **Swift Package Manager**
-- Compile the demo project
-- Launch the demo so you can see the engine running immediately
+To try your own `USDZ` file, first convert it to `.untold` using the `Tools` section in the demo UI.
 
-No additional setup is required.
-
----
-
-## 🧪 Sandbox
-
-The sandbox is the quickest place to get a feel for Untold Engine without the demo HUD and demo-specific wiring.
-
-Use it when you want to try engine APIs directly, such as `setEntityMeshAsync(...)`, `loadTiledScene(...)`, or other one-off rendering and scene-loading experiments.
-
-Run it with:
-
-```bash
-swift run sandbox
-```
-
-The sandbox target lives in `Sources/Sandbox` and includes a minimal `AppDelegate`, `main.swift`, and `GameScene.swift`. The intended workflow is to edit `GameScene.swift`, add the quick test you want to run, and relaunch the app.
+After the export is complete, open the Local Scene `Browse` drop-down menu, choose `.untold`, then browse for and select your exported `.untold` file.
 
 ---
 
@@ -185,6 +165,7 @@ Untold Engine aims to support applications such as:
 - [Streaming Cache Lifecycle](docs/Architecture/streamingCacheLifecycle.md)
 - [Texture Streaming System](docs/Architecture/textureStreamingSystem.md)
 - [Out of Core](docs/Architecture/outOfCore.md)
+- [Asset Remote Streaming](docs/Architecture/asset_remote_streaming.md)
 
 ---
 

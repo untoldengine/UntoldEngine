@@ -544,7 +544,6 @@ extension NativeFormatTests {
 // MARK: - LZ4 compression tests
 
 extension NativeFormatTests {
-
     // MARK: Helpers
 
     /// Compress `input` with COMPRESSION_LZ4_RAW — the same algorithm the runtime uses to decompress.
@@ -598,10 +597,10 @@ extension NativeFormatTests {
         let originalIndexData = indexWriter.data
 
         let compressedVertex = lz4Compress(originalVertexData)
-        let compressedIndex  = lz4Compress(originalIndexData)
+        let compressedIndex = lz4Compress(originalIndexData)
 
         let vertexUncompressedSize: UInt64 = inflateVertexUncompressedSize
-            ? UInt64(originalVertexData.count) + 1000  // deliberately wrong
+            ? UInt64(originalVertexData.count) + 1000 // deliberately wrong
             : UInt64(originalVertexData.count)
 
         let entity = UntoldEntityRecordV1(
@@ -653,21 +652,21 @@ extension NativeFormatTests {
 
         // (storedBytes, compressionType, uncompressedSize, elementCount)
         let specs: [(UntoldChunkType, Data, UntoldCompressionType, UInt64, UInt32)] = [
-            (.stringTable,   stringTable.data,      .none, UInt64(stringTable.data.count),                0),
-            (.entityTable,   encodeChunk([entity]),  .none, UInt64(encodeChunk([entity]).count),           1),
-            (.meshTable,     encodeChunk([mesh]),    .none, UInt64(encodeChunk([mesh]).count),             1),
-            (.materialTable, encodeChunk([material]),.none, UInt64(encodeChunk([material]).count),         1),
-            (.textureTable,  encodeChunk([texture]), .none, UInt64(encodeChunk([texture]).count),          1),
-            (.vertexData,    compressedVertex,       .lz4,  vertexUncompressedSize,                        0),
-            (.indexData,     compressedIndex,        .lz4,  UInt64(originalIndexData.count),               0),
+            (.stringTable, stringTable.data, .none, UInt64(stringTable.data.count), 0),
+            (.entityTable, encodeChunk([entity]), .none, UInt64(encodeChunk([entity]).count), 1),
+            (.meshTable, encodeChunk([mesh]), .none, UInt64(encodeChunk([mesh]).count), 1),
+            (.materialTable, encodeChunk([material]), .none, UInt64(encodeChunk([material]).count), 1),
+            (.textureTable, encodeChunk([texture]), .none, UInt64(encodeChunk([texture]).count), 1),
+            (.vertexData, compressedVertex, .lz4, vertexUncompressedSize, 0),
+            (.indexData, compressedIndex, .lz4, UInt64(originalIndexData.count), 0),
         ]
 
         header.chunkCount = UInt32(specs.count)
 
         // Compute chunk table size (matches UntoldChunkEntryV1 binary layout: 2×u32 + 3×u64 + 2×u32 = 40 bytes)
         let chunkEntrySize = MemoryLayout<UInt32>.size * 2
-                           + MemoryLayout<UInt64>.size * 3
-                           + MemoryLayout<UInt32>.size * 2
+            + MemoryLayout<UInt64>.size * 3
+            + MemoryLayout<UInt32>.size * 2
         let headerWriter2 = UntoldBinaryWriter()
         header.encode(to: headerWriter2)
         let headerSize = headerWriter2.data.count
@@ -708,10 +707,10 @@ extension NativeFormatTests {
         let decoded = try reader.readAsset(from: fileData)
 
         let decompressedVertex = try reader.readChunkData(.vertexData, from: fileData, entries: decoded.chunks)
-        let decompressedIndex  = try reader.readChunkData(.indexData,  from: fileData, entries: decoded.chunks)
+        let decompressedIndex = try reader.readChunkData(.indexData, from: fileData, entries: decoded.chunks)
 
         XCTAssertEqual(decompressedVertex, originalVertexData, "Decompressed vertex data must match original")
-        XCTAssertEqual(decompressedIndex,  originalIndexData,  "Decompressed index data must match original")
+        XCTAssertEqual(decompressedIndex, originalIndexData, "Decompressed index data must match original")
     }
 
     func testLZ4CompressedChunkReportsCorrectSizeMetadata() throws {
@@ -719,15 +718,15 @@ extension NativeFormatTests {
         let decoded = try UntoldReader().readAsset(from: fileData)
 
         let vertexEntry = try XCTUnwrap(decoded.chunks.first { $0.chunkType == .vertexData })
-        let indexEntry  = try XCTUnwrap(decoded.chunks.first { $0.chunkType == .indexData  })
+        let indexEntry = try XCTUnwrap(decoded.chunks.first { $0.chunkType == .indexData })
 
-        XCTAssertEqual(vertexEntry.compressionType,   .lz4)
-        XCTAssertEqual(vertexEntry.uncompressedSize,  UInt64(originalVertexData.count))
+        XCTAssertEqual(vertexEntry.compressionType, .lz4)
+        XCTAssertEqual(vertexEntry.uncompressedSize, UInt64(originalVertexData.count))
         XCTAssertLessThanOrEqual(vertexEntry.compressedSize, vertexEntry.uncompressedSize + 64,
-            "LZ4 compressed size should not wildly exceed original for small inputs")
+                                 "LZ4 compressed size should not wildly exceed original for small inputs")
 
-        XCTAssertEqual(indexEntry.compressionType,    .lz4)
-        XCTAssertEqual(indexEntry.uncompressedSize,   UInt64(originalIndexData.count))
+        XCTAssertEqual(indexEntry.compressionType, .lz4)
+        XCTAssertEqual(indexEntry.uncompressedSize, UInt64(originalIndexData.count))
     }
 
     func testLZ4CompressionOutputSizeMismatchIsRejected() throws {

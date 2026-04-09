@@ -91,7 +91,7 @@ final class NativeTexFormatTests: XCTestCase {
     // MARK: - Mip entry roundtrip
 
     func testMipEntryRoundtrip() throws {
-        let original = NativeTexMipEntry(byteOffset: 256, byteSize: 16_384, widthPx: 1024, heightPx: 512)
+        let original = NativeTexMipEntry(byteOffset: 256, byteSize: 16384, widthPx: 1024, heightPx: 512)
         let decoded = try NativeTexMipEntry.decode(from: UntoldBinaryReader(data: encode(original)))
         XCTAssertEqual(decoded, original)
     }
@@ -114,7 +114,9 @@ final class NativeTexFormatTests: XCTestCase {
 
         let writer = UntoldBinaryWriter()
         header.encode(to: writer)
-        for mip in mips { mip.encode(to: writer) }
+        for mip in mips {
+            mip.encode(to: writer)
+        }
         let data = writer.data
 
         let (decodedHeader, decodedMips) = try NativeTexReader().read(from: data)
@@ -131,7 +133,7 @@ final class NativeTexFormatTests: XCTestCase {
 
     func testReaderRejectsInvalidMagic() throws {
         var data = makeMinimalContainer(mipCount: 1)
-        data[0] = 0xFF  // corrupt first byte of magic
+        data[0] = 0xFF // corrupt first byte of magic
 
         XCTAssertThrowsError(try NativeTexReader().read(from: data)) { error in
             XCTAssertEqual(error as? NativeTexValidationError, .invalidMagic)
@@ -178,7 +180,7 @@ final class NativeTexFormatTests: XCTestCase {
         var header = makeHeader()
         header.mipCount = 1
         header.payloadOffset = payloadOffset
-        header.totalPayloadSize = 100  // deliberately small
+        header.totalPayloadSize = 100 // deliberately small
 
         let overflowMip = NativeTexMipEntry(byteOffset: 0, byteSize: 9999, widthPx: 64, heightPx: 64)
 
@@ -218,7 +220,7 @@ final class NativeTexFormatTests: XCTestCase {
             width: 1024,
             height: 512,
             mipCount: 10,
-            pixelFormat: 186,  // MTLPixelFormat.astc_4x4_sRGB
+            pixelFormat: 186, // MTLPixelFormat.astc_4x4_sRGB
             blockWidth: 4,
             blockHeight: 4,
             payloadOffset: NativeTexFormat.payloadOffset(mipCount: 10),
@@ -242,7 +244,7 @@ final class NativeTexFormatTests: XCTestCase {
     /// so NativeTexReader can parse it without payload-bounds failures.
     private func makeMinimalContainer(mipCount: Int) -> Data {
         var header = makeHeader()
-        let mipByteSize: UInt32 = 16  // one ASTC block per mip (smallest valid payload)
+        let mipByteSize: UInt32 = 16 // one ASTC block per mip (smallest valid payload)
         let payloadOffset = NativeTexFormat.payloadOffset(mipCount: mipCount)
         header.mipCount = UInt32(mipCount)
         header.payloadOffset = payloadOffset

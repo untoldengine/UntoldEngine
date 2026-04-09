@@ -672,9 +672,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
             // Both figures are multiplied by 4/3 to account for the full mip chain.
             let bytesPerPixel: Int
             if case .utex = item.slot.source {
-                bytesPerPixel = 1   // ASTC: ≤ 1 byte/pixel for all block sizes
+                bytesPerPixel = 1 // ASTC: ≤ 1 byte/pixel for all block sizes
             } else {
-                bytesPerPixel = 4   // RGBA8
+                bytesPerPixel = 4 // RGBA8
             }
             let newBytes = newDim * newDim * bytesPerPixel * 4 / 3
             let oldBytes = oldDim * oldDim * bytesPerPixel * 4 / 3
@@ -788,7 +788,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
                 // ASTC .utex textures: select the starting mip by dimension instead of
                 // MPS resampling (compressed ASTC blocks cannot be resampled in-place).
                 // Both upgrade and downgrade reload from the file at the target tier.
-                if case .utex(let url) = item.slot.source {
+                if case let .utex(url) = item.slot.source {
                     texture = capturedNativeLoader?.loadTexture(
                         from: url,
                         targetMaxDimension: item.targetMaxDimension,

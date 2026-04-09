@@ -114,7 +114,7 @@
                         Text("Local Scene")
                             .foregroundStyle(.secondary)
                             .frame(width: 92, alignment: .leading)
-                        Menu("Select") {
+                        Menu("Browse") {
                             Button("Asset (.untold)", action: openLocalAssetPicker)
                             Button("Tiled Scene (.json)", action: openLocalTiledScenePicker)
                         }

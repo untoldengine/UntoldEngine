@@ -116,7 +116,7 @@ public final class NativeTextureLoader: @unchecked Sendable {
         )
         desc.mipmapLevelCount = mipCount
         desc.storageMode = .private
-        desc.usage = .shaderRead  // ASTC blocks cannot be reinterpreted; no .pixelFormatView needed
+        desc.usage = .shaderRead // ASTC blocks cannot be reinterpreted; no .pixelFormatView needed
 
         guard let texture = device.makeTexture(descriptor: desc) else {
             throw NativeTexLoadError.textureAllocationFailed
@@ -148,7 +148,7 @@ public final class NativeTextureLoader: @unchecked Sendable {
             let mipH = Int(mip.heightPx)
             let blocksWide = (mipW + blockW - 1) / blockW
             let blocksHigh = (mipH + blockH - 1) / blockH
-            let bytesPerRow = blocksWide * 16      // each ASTC block is always 16 bytes
+            let bytesPerRow = blocksWide * 16 // each ASTC block is always 16 bytes
             let bytesPerImage = bytesPerRow * blocksHigh
 
             // Slice the mip payload out of the memory-mapped file data.
@@ -191,7 +191,7 @@ public final class NativeTextureLoader: @unchecked Sendable {
 
         blitEncoder.endEncoding()
         commandBuffer.commit()
-        commandBuffer.waitUntilCompleted()  // synchronous for Phase 2; async upload in a later phase
+        commandBuffer.waitUntilCompleted() // synchronous for Phase 2; async upload in a later phase
 
         if let error = commandBuffer.error {
             throw NativeTexLoadError.gpuUploadFailed(error)
