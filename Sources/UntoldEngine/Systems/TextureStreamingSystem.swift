@@ -151,17 +151,34 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// Called automatically by `loadTiledScene()` after the manifest is decoded.
     /// Applies the `.tiled` concurrency and interval settings then overrides the radii:
     ///
-    ///   upgradeRadius   = streamingRadius × 0.70  (inside loaded zone → full res)
-    ///   downgradeRadius = unloadRadius            (at tile unload boundary → minimum)
+    ///   upgradeRadius   = max(streamingRadius × 0.70, 2.5 m)
+    ///   downgradeRadius = max(unloadRadius, upgradeRadius + 1.0, upgradeRadius × 2.0)
     ///
-    /// Example (streaming=38.5 m, unload=57.8 m):
+    /// The 2.5 m floor on upgradeRadius prevents impractically small upgrade zones for
+    /// small scenes (props, helmets) where tile streaming_radius can be < 1 m. Without
+    /// the floor the camera would have to be within centimetres of the object to see
+    /// full-resolution textures. For large scenes the computed value dominates.
+    ///
+    /// The `upgradeRadius × 2.0` floor on downgradeRadius ensures the medium-quality
+    /// band spans at least the upgrade radius, preventing a single-step full→minimum
+    /// drop for small scenes. For large scenes `unloadRadius` dominates as before.
+    ///
+    /// Example — large scene (streaming=38.5 m, unload=57.8 m):
     ///   < 27 m  → full resolution
     ///   27–58 m → medium (tile loaded but at distance)
     ///   > 58 m  → minimum (tile likely unloaded)
+    ///
+    /// Example — small prop (streaming=0.35 m, unload=0.52 m):
+    ///   <  2.1 m → full resolution
+    ///   2.1–4.3 m → medium
+    ///   >  5.8 m  → minimum
     public func alignToManifest(streamingRadius: Float, unloadRadius: Float) {
         apply(.tiled)
-        upgradeRadius = streamingRadius * 0.70
-        downgradeRadius = max(unloadRadius, upgradeRadius + 1.0)
+        // Floor upgrade radius so practical viewing distances always land in a useful tier.
+        upgradeRadius = max(streamingRadius * 0.70, 2.5)
+        // Floor downgrade radius so the medium-quality band is at least as wide as the
+        // upgrade radius. For large scenes unloadRadius dominates and behaviour is unchanged.
+        downgradeRadius = max(unloadRadius, upgradeRadius + 1.0, upgradeRadius * 2.0)
     }
 
     // MARK: - Configuration
