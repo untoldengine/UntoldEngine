@@ -87,7 +87,7 @@ TILE_SIZE_X = 25.0
 TILE_SIZE_Z = 25.0
 # Height bucket.  Keep very large (>> scene height) to avoid vertical splitting;
 # vertical tiling is only useful for multi-floor indoor scenes.
-TILE_SIZE_Y = 10.0
+TILE_SIZE_Y = 10000.0
 
 # --- Spanning classification (OR logic) -----------------------
 #
@@ -1071,12 +1071,32 @@ def clip_bmesh_to_tile(bm, tile_bounds, epsilon):
     min_y = tile_bounds["min_y"] - e;  max_y = tile_bounds["max_y"] + e   # height
     min_z = tile_bounds["min_z"] - e;  max_z = tile_bounds["max_z"] + e   # depth
 
-    bisect_mesh_with_plane(bm, (tile_bounds["min_x"], 0, 0), ( 1, 0, 0))
-    bisect_mesh_with_plane(bm, (tile_bounds["max_x"], 0, 0), (-1, 0, 0))
-    bisect_mesh_with_plane(bm, (0, tile_bounds["min_z"], 0), (0,  1, 0))
-    bisect_mesh_with_plane(bm, (0, tile_bounds["max_z"], 0), (0, -1, 0))
-    bisect_mesh_with_plane(bm, (0, 0, tile_bounds["min_y"]), (0, 0,  1))
-    bisect_mesh_with_plane(bm, (0, 0, tile_bounds["max_y"]), (0, 0, -1))
+    # Compute the mesh's own bounding box to skip bisects on planes the mesh
+    # does not actually cross.  When an object fits within a single tile its
+    # boundary coincides with a tile plane; bisecting there creates new seam
+    # edges that get marked sharp and clears custom split normals, corrupting
+    # smooth PBR shading even though no faces are removed.
+    vx = [v.co.x for v in bm.verts]
+    vy = [v.co.y for v in bm.verts]   # Blender Y = depth  → tile Z
+    vz = [v.co.z for v in bm.verts]   # Blender Z = height → tile Y
+    if not vx:
+        return
+    mesh_min_x, mesh_max_x = min(vx), max(vx)
+    mesh_min_z, mesh_max_z = min(vy), max(vy)   # tile Z uses Blender Y
+    mesh_min_y, mesh_max_y = min(vz), max(vz)   # tile Y uses Blender Z
+
+    if mesh_min_x < tile_bounds["min_x"]:
+        bisect_mesh_with_plane(bm, (tile_bounds["min_x"], 0, 0), ( 1, 0, 0))
+    if mesh_max_x > tile_bounds["max_x"]:
+        bisect_mesh_with_plane(bm, (tile_bounds["max_x"], 0, 0), (-1, 0, 0))
+    if mesh_min_z < tile_bounds["min_z"]:
+        bisect_mesh_with_plane(bm, (0, tile_bounds["min_z"], 0), (0,  1, 0))
+    if mesh_max_z > tile_bounds["max_z"]:
+        bisect_mesh_with_plane(bm, (0, tile_bounds["max_z"], 0), (0, -1, 0))
+    if mesh_min_y < tile_bounds["min_y"]:
+        bisect_mesh_with_plane(bm, (0, 0, tile_bounds["min_y"]), (0, 0,  1))
+    if mesh_max_y > tile_bounds["max_y"]:
+        bisect_mesh_with_plane(bm, (0, 0, tile_bounds["max_y"]), (0, 0, -1))
 
     outside = [f for f in bm.faces
                if is_point_outside_tile(f.calc_center_median(),
