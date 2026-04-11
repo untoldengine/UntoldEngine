@@ -759,14 +759,6 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
 
         let didRunOcclusion = ran0 || ran1
 
-        HZBDebugMonitor.shared.recordCull(
-            testedCount: count,
-            candidateCount: count,
-            visibleCount: count,
-            usedHZB: didRunOcclusion,
-            optimizedPath: false
-        )
-
         commandBuffer.addCompletedHandler { _ in
             var seen = Set<EntityID>()
             var nextVisibleIds: [EntityID] = []
@@ -785,6 +777,16 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             if ran1 { addFrom(eye1CountBuf, eye1VisBuf) }
             // If HZB wasn't valid yet (first frame), fall back to frustum candidates.
             if !didRunOcclusion { addFrom(candidateVisibleCountBuffer, candidateVisibilityBuffer) }
+
+            // Read actual GPU-produced counts now that the command buffer has completed.
+            let candidateCount = Int(candidateVisibleCountBuffer.contents().load(as: UInt32.self))
+            HZBDebugMonitor.shared.recordCull(
+                testedCount: count,
+                candidateCount: candidateCount,
+                visibleCount: nextVisibleIds.count,
+                usedHZB: didRunOcclusion,
+                optimizedPath: false
+            )
 
             publishVisibleEntities(frame: submitFrameIndex, entities: nextVisibleIds)
         }
