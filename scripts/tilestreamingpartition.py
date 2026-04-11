@@ -146,7 +146,7 @@ SHARED_UNLOAD_RADIUS_FRACTION    = 1.5   # must be > streaming fraction
 # When True, tile-local meshes are bmesh-clipped to exact tile boundaries.
 # When False, the full mesh is duplicated into every overlapping tile (faster
 # but produces duplicate geometry at tile edges — acceptable for prototyping).
-CLIP_LOCAL_MESHES = True
+CLIP_LOCAL_MESHES = False
 
 # When True, objects sharing identical materials within a tile (or the shared
 # bucket) are joined into a single mesh before USD export.  This dramatically
@@ -224,6 +224,21 @@ DEFAULT_STREAMING_PRIORITY        = 10
 DEBUG_AABB_ONLY      = False    # Export colored AABB cubes instead of real geometry.
 DRY_RUN              = False    # Plan only — no payload files written.
 DRY_RUN_WRITE_MANIFEST = False  # Write manifest JSON even in dry-run mode.
+
+# --- Sample mode (TEMPORARY — for fast iteration only) --------
+# When True, only a small rectangular patch of tiles closest to the world
+# origin is exported.  Useful for quickly verifying the engine without
+# waiting for a full 1000+ tile run.  Set back to False for production.
+SAMPLE_MODE     = False   # Enable to keep only ~SAMPLE_FRACTION of tiles
+SAMPLE_FRACTION = 0.10    # Fraction of total tiles to keep (approx)
+
+# --- Perimeter mode (TEMPORARY — for fast iteration only) -----
+# When True, only the outer shell of tiles is exported.  PERIMETER_DEPTH
+# controls how many tiles inward from the boundary are kept (1 = strict
+# single-ring perimeter, 2-3 captures thick walls whose mesh AABBs extend
+# deeper into the building interior).
+PERIMETER_MODE  = False
+PERIMETER_DEPTH = 1       # tiles inward from the boundary to keep
 
 # --- Parallel export ------------------------------------------
 # Number of Blender worker processes to spawn for tile export.
@@ -2498,7 +2513,114 @@ def _export_tiles_parallel(
 
 
 # ============================================================
-# SECTION 16: MAIN
+# SECTION 16: SAMPLE FILTER (TEMPORARY)
+# ============================================================
+
+def filter_tile_assignments_sample(tile_assignments, origin_x, origin_z,
+                                    tile_size_x, tile_size_z, sample_fraction):
+    """Keep a contiguous rectangular patch of tiles closest to the world origin.
+
+    Finds the tile coordinate that contains world point (0, 0) in XZ, then
+    expands a square window outward until the tile count reaches approximately
+    sample_fraction of the full set.  All ty (height) values are included so
+    multi-floor scenes are not accidentally truncated.
+
+    Returns a filtered copy of tile_assignments.
+    """
+    if not tile_assignments:
+        return tile_assignments
+
+    target_count = max(1, int(math.ceil(len(tile_assignments) * sample_fraction)))
+
+    # Tile coordinate that contains the world origin in XZ.
+    cx_tile = int(math.floor((0.0 - origin_x) / tile_size_x))
+    cz_tile = int(math.floor((0.0 - origin_z) / tile_size_z))
+
+    # Clamp to the coordinate range that actually exists.
+    all_coords = list(tile_assignments.keys())
+    min_tx = min(c[0] for c in all_coords)
+    max_tx = max(c[0] for c in all_coords)
+    min_tz = min(c[2] for c in all_coords)
+    max_tz = max(c[2] for c in all_coords)
+    cx_tile = max(min_tx, min(max_tx, cx_tile))
+    cz_tile = max(min_tz, min(max_tz, cz_tile))
+
+    # Expand the square window until we reach the target tile count.
+    half = 0
+    max_half = max(max_tx - min_tx, max_tz - min_tz) + 1
+    while True:
+        candidates = {
+            coord: objs for coord, objs in tile_assignments.items()
+            if (cx_tile - half) <= coord[0] <= (cx_tile + half)
+            and (cz_tile - half) <= coord[2] <= (cz_tile + half)
+        }
+        if len(candidates) >= target_count or half >= max_half:
+            break
+        half += 1
+
+    print(
+        f"\nSAMPLE_MODE: keeping {len(candidates)}/{len(tile_assignments)} tiles "
+        f"({100 * len(candidates) // max(len(tile_assignments), 1)}%) in a "
+        f"{2*half+1}×{2*half+1} XZ patch centred on tile ({cx_tile},*,{cz_tile}) "
+        f"[nearest to world origin (0,0,0)]"
+    )
+    return candidates
+
+
+def filter_tile_assignments_perimeter(tile_assignments, depth=1):
+    """Keep only the outer shell of tiles up to `depth` tiles inward from the boundary.
+
+    Pass 1 — identify the strict perimeter: tiles with at least one absent
+    cardinal XZ neighbour.  Pass 2..depth — grow the shell inward by one ring
+    per iteration, keeping any occupied tile that neighbours the current shell.
+    All ty (height) values for a kept (tx, tz) are preserved so multi-floor
+    buildings are not truncated.
+
+    depth=1  strict single-ring perimeter (original behaviour)
+    depth=2+ also keeps tiles up to N rings inward, capturing thick walls
+             whose mesh AABBs extend deeper into the building interior.
+    """
+    if not tile_assignments:
+        return tile_assignments
+
+    depth = max(1, depth)
+    occupied_xz = {(coord[0], coord[2]) for coord in tile_assignments}
+
+    # Pass 1: strict perimeter — tiles with at least one empty cardinal neighbour.
+    shell = set()
+    for (tx, tz) in occupied_xz:
+        neighbours = [(tx + 1, tz), (tx - 1, tz), (tx, tz + 1), (tx, tz - 1)]
+        if any(n not in occupied_xz for n in neighbours):
+            shell.add((tx, tz))
+
+    # Pass 2..depth: grow inward one ring at a time.
+    kept_xz = set(shell)
+    for _ in range(depth - 1):
+        next_ring = set()
+        for (tx, tz) in occupied_xz - kept_xz:
+            neighbours = [(tx + 1, tz), (tx - 1, tz), (tx, tz + 1), (tx, tz - 1)]
+            if any(n in kept_xz for n in neighbours):
+                next_ring.add((tx, tz))
+        if not next_ring:
+            break
+        kept_xz |= next_ring
+
+    filtered = {
+        coord: objs for coord, objs in tile_assignments.items()
+        if (coord[0], coord[2]) in kept_xz
+    }
+
+    interior_dropped = len(occupied_xz) - len(kept_xz)
+    print(
+        f"\nPERIMETER_MODE: keeping {len(filtered)}/{len(tile_assignments)} tiles "
+        f"({100 * len(filtered) // max(len(tile_assignments), 1)}%) — "
+        f"depth={depth}, {interior_dropped} interior XZ positions dropped"
+    )
+    return filtered
+
+
+# ============================================================
+# SECTION 17: MAIN
 # ============================================================
 
 def run():
@@ -2612,6 +2734,14 @@ def run():
         origin_x, origin_y, origin_z,
         tile_size_x, tile_size_y, tile_size_z,
     )
+
+    if SAMPLE_MODE:
+        tile_assignments = filter_tile_assignments_sample(
+            tile_assignments, origin_x, origin_z,
+            tile_size_x, tile_size_z, SAMPLE_FRACTION,
+        )
+    if PERIMETER_MODE:
+        tile_assignments = filter_tile_assignments_perimeter(tile_assignments, depth=PERIMETER_DEPTH)
 
     local_count   = sum(1 for r in classification_map.values() if r["policy"] == "local_overlap")
     spanning_routed = sum(
@@ -3045,6 +3175,10 @@ def parse_args(argv):
     parser.add_argument("--debug-aabb-only", action="store_true", help="Export debug AABB payloads instead of real geometry.")
     parser.add_argument("--auto-tile-size", action="store_true", help="Enable automatic tile-size selection.")
     parser.add_argument("--parallel-workers", type=int, default=None, help="Number of parallel Blender worker processes (0=auto, 1=sequential).")
+    parser.add_argument("--sample", action="store_true", help="Export only a small tile patch near the world origin (fast iteration mode).")
+    parser.add_argument("--sample-fraction", type=float, default=None, help="Fraction of total tiles to keep in sample mode (default: 0.10).")
+    parser.add_argument("--perimeter", action="store_true", help="Export only the outer shell of tiles. Skips interior tiles.")
+    parser.add_argument("--perimeter-depth", type=int, default=None, help="How many tiles inward from the boundary to keep (default: 1).")
     parser.add_argument(
         "--compress-geometry",
         action="store_true",
@@ -3072,6 +3206,10 @@ def apply_cli_overrides(args):
     global AUTO_TILE_SIZE
     global PARALLEL_WORKERS
     global COMPRESS_GEOMETRY
+    global SAMPLE_MODE
+    global SAMPLE_FRACTION
+    global PERIMETER_MODE
+    global PERIMETER_DEPTH
 
     if args.input:
         SOURCE_SCENE_PATH_OVERRIDE = args.input
@@ -3103,6 +3241,14 @@ def apply_cli_overrides(args):
         PARALLEL_WORKERS = args.parallel_workers
     if getattr(args, "compress_geometry", False):
         COMPRESS_GEOMETRY = True
+    if getattr(args, "sample", False):
+        SAMPLE_MODE = True
+    if getattr(args, "sample_fraction", None) is not None:
+        SAMPLE_FRACTION = args.sample_fraction
+    if getattr(args, "perimeter", False):
+        PERIMETER_MODE = True
+    if getattr(args, "perimeter_depth", None) is not None:
+        PERIMETER_DEPTH = args.perimeter_depth
 
 
 def main(argv=None):
