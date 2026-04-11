@@ -735,6 +735,15 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
         let eye1CountBuf = eye1CountTriple.bufferForWrite(frame: submitFrameIndex)
         let eye1VisBuf = eye1VisTriple.bufferForWrite(frame: submitFrameIndex)
 
+        // Use the shared mono HZB pyramid for both eyes.
+        // The per-eye pyramids (hzbDepthPyramidEye) are allocated but never built because
+        // buildHZBDepthPyramid is called without eyeIndex in executeXRSystemPass, which
+        // means only the mono pyramid (textureResources.hzbDepthPyramid) is populated each
+        // frame.  Passing hzbDepthPyramidEye as an override bypasses the hzbIsValid guard
+        // and runs the GPU shader against an uninitialized texture, producing no real
+        // occlusion.  Omitting the override lets executeHZBOcclusionCulling fall back to
+        // the mono pyramid gated by renderInfo.hzbIsValid, which is the intended behaviour
+        // described in the comment above buildHZBDepthPyramid in UntoldEngineXR.swift.
         let ran0 = executeHZBOcclusionCulling(
             commandBuffer,
             viewProjection: renderInfo.xrEye0ViewProjection,
@@ -742,8 +751,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             inputVisibilityBuffer: candidateVisibilityBuffer,
             inputVisibleCountBuffer: candidateVisibleCountBuffer,
             outputVisibilityBuffer: eye0VisBuf,
-            outputVisibleCountBuffer: eye0CountBuf,
-            hzbPyramidOverride: textureResources.hzbDepthPyramidEye[0]
+            outputVisibleCountBuffer: eye0CountBuf
         )
 
         let ran1 = executeHZBOcclusionCulling(
@@ -753,8 +761,7 @@ public func executeFrustumCulling(_ commandBuffer: MTLCommandBuffer) {
             inputVisibilityBuffer: candidateVisibilityBuffer,
             inputVisibleCountBuffer: candidateVisibleCountBuffer,
             outputVisibilityBuffer: eye1VisBuf,
-            outputVisibleCountBuffer: eye1CountBuf,
-            hzbPyramidOverride: textureResources.hzbDepthPyramidEye[1]
+            outputVisibleCountBuffer: eye1CountBuf
         )
 
         let didRunOcclusion = ran0 || ran1
