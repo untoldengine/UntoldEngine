@@ -236,6 +236,59 @@ DEFAULT_SEMANTIC_TIER = "StructuralInterior"
 # export path is activated.  Below this threshold the grid path runs instead.
 QUADTREE_METADATA_COVERAGE_THRESHOLD = 0.50
 
+# When True, the quadtree path is always used even if the input has no
+# pre-baked metadata.  The exporter runs the inline annotation pass instead.
+# Set via the --quadtree CLI flag.
+FORCE_QUADTREE = False
+
+# --- Inline quadtree annotation (replaces the external Blender script) -------
+# When --quadtree is passed and objects have no pre-baked metadata the exporter
+# runs the annotation logic itself on the imported scene, eliminating the
+# separate Blender annotation + re-export step.
+#
+# Mirror the same constants used by untold_phase12_suffix-Blender.py so that
+# inline-annotated and pre-annotated scenes produce identical partitioning.
+
+INLINE_QUADTREE_MAX_DEPTH            = 3
+INLINE_SPANNING_CHILD_OVERLAP_THRESHOLD = 2
+
+INLINE_AUTO_FLOOR_BAND_HEIGHT = None   # set to a float (metres) to override auto-detection
+INLINE_MIN_FLOOR_BAND_HEIGHT  = 2.5
+INLINE_MAX_FLOOR_BAND_HEIGHT  = 5.0
+
+INLINE_FINE_PROP_MAX_DIM    = 0.40
+INLINE_FINE_PROP_MAX_VOLUME = 0.03
+INLINE_ROOM_CONTENT_MAX_DIM    = 2.5
+INLINE_ROOM_CONTENT_MAX_VOLUME = 3.0
+INLINE_STRUCTURAL_MIN_DIM  = 2.5
+INLINE_STRUCTURAL_MIN_AREA = 4.0
+
+INLINE_EXTERIOR_NAME_HINTS = [
+    "facade", "façade", "curtain", "cladding", "balcony", "roof", "exterior",
+    "outer", "windowwall", "window_wall", "glazing", "glasswall", "glass_wall",
+]
+INLINE_STRUCTURAL_NAME_HINTS = [
+    "wall", "floor", "ceiling", "slab", "beam", "column", "pillar", "stair",
+    "stairs", "shaft", "elevator", "corridor", "hall", "partition", "railing",
+    "core", "doorframe", "door_frame", "frame",
+]
+INLINE_ROOM_CONTENT_NAME_HINTS = [
+    "chair", "table", "desk", "sofa", "couch", "bed", "cabinet", "shelf",
+    "lamp", "appliance", "sink", "toilet", "bathtub", "monitor", "tv",
+    "plant", "furniture", "airterminal", "airterminals",
+]
+INLINE_FINE_PROP_NAME_HINTS = [
+    "pipefitting", "pipefittings", "sprinkler", "sensor", "switch", "outlet",
+    "handle", "knob", "hinge", "fastener", "fixture", "smallprop", "small_prop",
+]
+INLINE_EXTERIOR_MATERIAL_HINTS = [
+    "glass", "window", "facade", "façade", "roof", "metal", "concrete", "brick",
+    "stone", "cladding", "aluminum", "steel",
+]
+INLINE_ROOM_CONTENT_MATERIAL_HINTS = [
+    "wood", "fabric", "leather", "upholstery", "cabinet", "counter", "furniture",
+]
+
 # --- Scene ----------------------------------------------------
 VISIBLE_ONLY = True
 SOURCE_SCENE_PATH_OVERRIDE = ""
@@ -1024,12 +1077,18 @@ def has_quadtree_metadata(objects):
     return (annotated / len(objects)) >= QUADTREE_METADATA_COVERAGE_THRESHOLD
 
 
-def build_quadtree_assignments(objects, object_bounds):
-    """Group objects by (quadtree_node_id, semantic_tier) using embedded metadata.
+def build_quadtree_assignments(objects, object_bounds, inline_metadata=None):
+    """Group objects by (quadtree_node_id, semantic_tier).
 
-    Objects that are root-spanning (depth == 0 and spatial_class == "spanning")
-    or carry no metadata go to shared_objects.  All others land in a
-    node_tier_groups bucket keyed by (node_id, tier).
+    Metadata priority (highest → lowest):
+      1. Pre-baked metadata from read_untold_metadata() — custom properties or
+         name suffix written by the external annotation script.
+      2. inline_metadata dict — produced by compute_inline_quadtree_metadata()
+         when --quadtree is used without pre-annotated input.
+
+    Objects that are root-spanning (depth == 0, spatial_class == "spanning")
+    or carry no metadata go to shared_objects.  All others land in
+    node_tier_groups keyed by (node_id, tier).
 
     Returns:
         node_tier_groups : {(node_id, tier): [obj, ...]}
@@ -1041,16 +1100,18 @@ def build_quadtree_assignments(objects, object_bounds):
     metadata_map     = {}
 
     for obj in objects:
+        # Try pre-baked metadata first, then inline fallback.
         meta = read_untold_metadata(obj)
+        if meta is None and inline_metadata:
+            meta = inline_metadata.get(obj.name)
         metadata_map[obj.name] = meta
 
         if meta is None:
-            # No metadata — treat as structural interior in the shared bucket.
             shared_objects.append(obj)
             continue
 
-        # Root-spanning objects (depth == 0, spanning) cover the entire building
-        # footprint.  They cannot be confined to one node and go to the shared bucket.
+        # Root-spanning objects (depth == 0, spanning) cover the entire scene
+        # footprint and cannot be confined to one node.
         if meta["spatial_class"] == "spanning" and meta["depth"] == 0:
             shared_objects.append(obj)
             continue
@@ -1069,6 +1130,216 @@ def quadtree_tile_id(node_id, tier):
     """
     code = TIER_SHORT_CODES.get(tier, "UK")
     return sanitize_name(f"{node_id}_{code}")
+
+
+# ============================================================
+# SECTION 4.6: INLINE QUADTREE ANNOTATION
+# Reproduces the logic from untold_phase12_suffix-Blender.py entirely inside
+# the exporter so that unannotated USD/USDZ files can be partitioned in one
+# step without a separate Blender preprocessing pass.
+# ============================================================
+
+class _QuadNode:
+    """Axis-aligned quadtree node over the XY (Blender XY) plane."""
+    __slots__ = ("min_x", "min_y", "max_x", "max_y", "depth", "node_id", "children")
+
+    def __init__(self, min_x, min_y, max_x, max_y, depth, node_id):
+        self.min_x   = min_x
+        self.min_y   = min_y
+        self.max_x   = max_x
+        self.max_y   = max_y
+        self.depth   = depth
+        self.node_id = node_id
+        self.children = []
+
+    def bounds(self):
+        return (self.min_x, self.min_y, self.max_x, self.max_y)
+
+    def subdivide(self):
+        mx = (self.min_x + self.max_x) * 0.5
+        my = (self.min_y + self.max_y) * 0.5
+        d  = self.depth + 1
+        self.children = [
+            _QuadNode(self.min_x, self.min_y, mx,           my,           d, f"{self.node_id}_0"),
+            _QuadNode(mx,         self.min_y, self.max_x,   my,           d, f"{self.node_id}_1"),
+            _QuadNode(self.min_x, my,         mx,           self.max_y,   d, f"{self.node_id}_2"),
+            _QuadNode(mx,         my,         self.max_x,   self.max_y,   d, f"{self.node_id}_3"),
+        ]
+
+
+def _qt_rect_intersects(a, b):
+    ax0, ay0, ax1, ay1 = a
+    bx0, by0, bx1, by1 = b
+    return not (ax1 < bx0 or ax0 > bx1 or ay1 < by0 or ay0 > by1)
+
+
+def _qt_child_overlap_count(node, rect):
+    if not node.children:
+        return 1
+    return sum(1 for c in node.children if _qt_rect_intersects(c.bounds(), rect))
+
+
+def _qt_descend(node, rect, max_depth):
+    """Return (best_node, overlap_count) for rect in the quadtree."""
+    if node.depth >= max_depth:
+        return node, _qt_child_overlap_count(node, rect)
+    if not node.children:
+        node.subdivide()
+    overlapping = [c for c in node.children if _qt_rect_intersects(c.bounds(), rect)]
+    if len(overlapping) != 1:
+        return node, len(overlapping)
+    return _qt_descend(overlapping[0], rect, max_depth)
+
+
+def _inline_estimate_floor_band_height(object_cache):
+    candidates = [e["dims"][2] for e in object_cache if 1.8 <= e["dims"][2] <= 5.0]
+    if not candidates:
+        return 3.5
+    candidates.sort()
+    mid = candidates[len(candidates) // 2]
+    return max(INLINE_MIN_FLOOR_BAND_HEIGHT, min(INLINE_MAX_FLOOR_BAND_HEIGHT, mid))
+
+
+def _inline_assign_floor_id(center_z, scene_min_z, band_height):
+    import math as _math
+    return int(_math.floor((center_z - scene_min_z) / max(band_height, 0.001)))
+
+
+def _inline_get_material_names(obj):
+    out = []
+    if obj.data and hasattr(obj.data, "materials"):
+        for mat in obj.data.materials:
+            if mat:
+                out.append(mat.name)
+    return out
+
+
+def _inline_has_hint(text, hints):
+    t = text.lower() if isinstance(text, str) else ""
+    return any(h in t for h in hints)
+
+
+def _inline_hint_count(text, hints):
+    t = text.lower() if isinstance(text, str) else ""
+    return sum(1 for h in hints if h in t)
+
+
+def _inline_semantic_guess(name, materials, dims, volume):
+    """Classify one object into a semantic tier. Mirrors semantic_guess() in the annotation script."""
+    lname = name.lower() if isinstance(name, str) else ""
+    joined_mats = " ".join((m.lower() if isinstance(m, str) else "") for m in materials)
+    max_dim = max(dims[0], dims[1], dims[2])
+    area_xy = max(dims[0], 0.0) * max(dims[1], 0.0)
+
+    if _inline_has_hint(lname, INLINE_FINE_PROP_NAME_HINTS):
+        return "FineProps", 0.90
+    if _inline_has_hint(lname, INLINE_ROOM_CONTENT_NAME_HINTS):
+        return "RoomContents", 0.80
+    if _inline_has_hint(lname, INLINE_EXTERIOR_NAME_HINTS):
+        return "ExteriorShell", 0.80
+    if _inline_has_hint(lname, INLINE_STRUCTURAL_NAME_HINTS):
+        return "StructuralInterior", 0.80
+
+    ext_score  = _inline_hint_count(joined_mats, INLINE_EXTERIOR_MATERIAL_HINTS)
+    room_score = _inline_hint_count(joined_mats, INLINE_ROOM_CONTENT_MATERIAL_HINTS)
+    if ext_score > room_score and ext_score > 0:
+        return "ExteriorShell", 0.65
+    if room_score > ext_score and room_score > 0:
+        return "RoomContents", 0.60
+
+    if max_dim <= INLINE_FINE_PROP_MAX_DIM and volume <= INLINE_FINE_PROP_MAX_VOLUME:
+        return "FineProps", 0.55
+    if max_dim <= INLINE_ROOM_CONTENT_MAX_DIM and volume <= INLINE_ROOM_CONTENT_MAX_VOLUME:
+        return "RoomContents", 0.45
+    if max_dim >= INLINE_STRUCTURAL_MIN_DIM or area_xy >= INLINE_STRUCTURAL_MIN_AREA:
+        return "StructuralInterior", 0.50
+
+    return "StructuralInterior", 0.30
+
+
+def compute_inline_quadtree_metadata(objects, object_bounds):
+    """Run the full floor+quadtree+semantic annotation inline on imported objects.
+
+    This is equivalent to running untold_phase12_suffix-Blender.py on the scene
+    but happens inside the exporter process with no Blender UI or re-export needed.
+
+    Returns:
+        metadata_dict : {obj.name: meta_dict}  — same schema as read_untold_metadata()
+    """
+    import math as _math
+
+    if not objects:
+        return {}
+
+    # --- Pass 1: build object cache with bounds ---
+    object_cache = []
+    global_min = [float("inf")] * 3
+    global_max = [float("-inf")] * 3
+
+    for obj in objects:
+        bounds = object_bounds.get(obj.name)
+        if bounds is None:
+            continue
+        mn = bounds["min"]   # (x, y, z) in Blender space
+        mx = bounds["max"]
+        dims = (mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2])
+        center = ((mn[0] + mx[0]) * 0.5, (mn[1] + mx[1]) * 0.5, (mn[2] + mx[2]) * 0.5)
+        for i in range(3):
+            global_min[i] = min(global_min[i], mn[i])
+            global_max[i] = max(global_max[i], mx[i])
+        object_cache.append({"obj": obj, "mn": mn, "mx": mx, "dims": dims, "center": center})
+
+    if not object_cache:
+        return {}
+
+    # --- Estimate floor band height ---
+    band_height = INLINE_AUTO_FLOOR_BAND_HEIGHT or _inline_estimate_floor_band_height(object_cache)
+    scene_min_z = global_min[2]
+    floor_count = max(1, int(_math.ceil((global_max[2] - global_min[2]) / band_height)))
+
+    print(f"  [inline annotation] floor band height: {band_height:.2f}m, estimated floors: {floor_count}")
+
+    # --- Build one quadtree root per floor (XY plane, Blender coords) ---
+    floor_roots = {
+        fid: _QuadNode(global_min[0], global_min[1], global_max[0], global_max[1], 0, f"F{fid+1:02d}_Q")
+        for fid in range(floor_count)
+    }
+
+    # --- Pass 2: assign each object to floor + quadtree node + semantic tier ---
+    metadata_dict = {}
+    for entry in object_cache:
+        obj    = entry["obj"]
+        mn     = entry["mn"]
+        mx     = entry["mx"]
+        dims   = entry["dims"]
+        center = entry["center"]
+
+        volume   = max(dims[0], 0.0) * max(dims[1], 0.0) * max(dims[2], 0.0)
+        floor_id = _inline_assign_floor_id(center[2], scene_min_z, band_height)
+        floor_id = max(0, min(floor_id, floor_count - 1))
+
+        rect = (mn[0], mn[1], mx[0], mx[1])
+        root = floor_roots[floor_id]
+        node, overlap_count = _qt_descend(root, rect, INLINE_QUADTREE_MAX_DEPTH)
+
+        spatial_class = "spanning" if overlap_count >= INLINE_SPANNING_CHILD_OVERLAP_THRESHOLD else "local"
+
+        materials = _inline_get_material_names(obj)
+        semantic, confidence = _inline_semantic_guess(obj.name, materials, dims, volume)
+
+        metadata_dict[obj.name] = {
+            "floor_id":      floor_id + 1,   # 1-based to match annotation script
+            "node_id":       node.node_id,
+            "depth":         node.depth,
+            "spatial_class": spatial_class,
+            "semantic":      semantic,
+            "confidence":    confidence,
+            "source":        "inline",
+        }
+
+    annotated = len(metadata_dict)
+    print(f"  [inline annotation] annotated {annotated}/{len(objects)} objects")
+    return metadata_dict
 
 
 # ============================================================
@@ -2956,14 +3227,21 @@ def run():
     # ------------------------------------------------------------------
     # Classify and assign
     # ------------------------------------------------------------------
-    use_quadtree     = has_quadtree_metadata(objects)
+    pre_annotated  = has_quadtree_metadata(objects)
+    use_quadtree   = pre_annotated or FORCE_QUADTREE
     node_tier_groups = None  # populated only in quadtree path
     metadata_map     = {}
+    inline_metadata  = {}
 
     if use_quadtree:
-        print("Quadtree metadata detected — using floor+quadtree partitioning.")
+        if pre_annotated:
+            print("Quadtree metadata detected — using floor+quadtree partitioning.")
+        else:
+            print("--quadtree flag set — running inline annotation pass...")
+            inline_metadata = compute_inline_quadtree_metadata(objects, object_bounds)
+
         node_tier_groups, shared_objects, metadata_map = build_quadtree_assignments(
-            objects, object_bounds
+            objects, object_bounds, inline_metadata=inline_metadata
         )
         # Build a dummy tile_assignments so SAMPLE/PERIMETER filters and
         # dry-run diagnostics do not crash.  The real export uses node_tier_groups.
@@ -3583,6 +3861,15 @@ def parse_args(argv):
         action="store_true",
         help="Compress vertex and index chunks with LZ4 in every exported tile payload (requires: pip install lz4).",
     )
+    parser.add_argument(
+        "--quadtree",
+        action="store_true",
+        help=(
+            "Use floor+quadtree partitioning. "
+            "If the input was pre-annotated with untold_phase12_suffix-Blender.py the baked metadata is used. "
+            "Otherwise the exporter runs the annotation pass inline — no separate Blender step needed."
+        ),
+    )
     # Internal: used by worker subprocesses spawned by the parallel export system.
     parser.add_argument("--worker-mode", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--work-bundle", default=None, help=argparse.SUPPRESS)
@@ -3609,6 +3896,7 @@ def apply_cli_overrides(args):
     global SAMPLE_FRACTION
     global PERIMETER_MODE
     global PERIMETER_DEPTH
+    global FORCE_QUADTREE
 
     if args.input:
         SOURCE_SCENE_PATH_OVERRIDE = args.input
@@ -3648,6 +3936,8 @@ def apply_cli_overrides(args):
         PERIMETER_MODE = True
     if getattr(args, "perimeter_depth", None) is not None:
         PERIMETER_DEPTH = args.perimeter_depth
+    if getattr(args, "quadtree", False):
+        FORCE_QUADTREE = True
 
 
 def main(argv=None):

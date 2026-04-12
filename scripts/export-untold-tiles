@@ -28,6 +28,15 @@ Wrapper-only options:
   --blender <path>   Override the Blender binary used to run the tile exporter
   --help             Show this help
 
+Common tile exporter flags:
+  --quadtree         Use floor+quadtree partitioning. Works with raw USD/USDZ (no
+                     pre-annotation step needed) — the exporter classifies objects
+                     inline. Also honours pre-baked __UT_ metadata when present.
+  --tile-size-x N    Grid tile width  (metres, default 25). Ignored in quadtree mode.
+  --tile-size-z N    Grid tile depth  (metres, default 25). Ignored in quadtree mode.
+  --compress-geometry  LZ4-compress vertex/index data in tile payloads.
+  --dry-run          Plan the partition without writing payload files.
+
 All remaining arguments are passed through to tilestreamingpartition.py.
 EOF
 }
