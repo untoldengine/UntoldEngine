@@ -2115,6 +2115,8 @@ private struct TileSize: Decodable {
 
 private struct TileManifest: Decodable {
     let version: Int
+    /// "uniform_grid" (v3) or "quadtree_floor" (v4).  Absent in older manifests.
+    let partitioningMode: String?
     let streamingDefaults: StreamingDefaults
     let tiles: [TileEntry]
     /// Optional shared-bucket entry written by the Blender tile-export script.
@@ -2128,6 +2130,7 @@ private struct TileManifest: Decodable {
 
     enum CodingKeys: String, CodingKey {
         case version
+        case partitioningMode = "partitioning_mode"
         case streamingDefaults = "streaming_defaults"
         case tiles
         case sharedBucket = "shared_bucket"
@@ -2175,6 +2178,19 @@ private struct TileEntry: Decodable {
     /// Sorted ascending by switch_distance in the manifest (finest first).
     let lodLevels: [LODLevelEntry]?
 
+    // ── Quadtree / semantic-tier fields (manifest v4, optional) ──────────────
+    /// Floor index within the building.  0 = ground floor.
+    /// Present in v4 (quadtree_floor partitioning) manifests only.
+    let floorId: Int?
+    /// Quadtree node identifier written by the phase-1+2 Blender script,
+    /// e.g. "F02Q100".  Used for debug logging; not required for streaming.
+    let quadtreeNodeId: String?
+    /// Semantic detail tier: "ExteriorShell" | "StructuralInterior" |
+    /// "RoomContents" | "FineProps".  The streaming_radius on this entry
+    /// already encodes the correct load distance for the tier, so no
+    /// additional runtime logic is required beyond reading this for diagnostics.
+    let semanticTier: String?
+
     enum CodingKeys: String, CodingKey {
         case tileId = "tile_id"
         case pathRelativeToManifest = "path_relative_to_manifest"
@@ -2187,6 +2203,9 @@ private struct TileEntry: Decodable {
         case prefetchRadius = "prefetch_radius"
         case hlodLevels = "hlod_levels"
         case lodLevels = "lod_levels"
+        case floorId = "floor_id"
+        case quadtreeNodeId = "quadtree_node_id"
+        case semanticTier = "semantic_tier"
     }
 }
 
@@ -2456,6 +2475,12 @@ private func registerTiledScene(
                 tileComp.prefetchRadius = normalizedBands.prefetchRadius
                 tileComp.tileId = tile.tileId
                 tileComp.state = .unloaded
+
+                // Log semantic-tier info when present (v4 quadtree manifests).
+                if let tier = tile.semanticTier {
+                    let floorTag = tile.floorId.map { "floor=\($0) " } ?? ""
+                    Logger.log(message: "[loadTiledScene] \(tile.tileId): \(floorTag)tier=\(tier) stream=\(String(format: "%.1f", configuredStreamingRadius))m")}
+
 
                 // HLOD: use the first level if present. Existence is validated at
                 // load time so remote URLs are accepted without a local file check.

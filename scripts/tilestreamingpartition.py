@@ -198,6 +198,44 @@ HLOD_SWITCH_CURVE_EXPONENT   = 2.0
 SWITCH_DISTANCE_MIN_GAP      = 2.0
 SWITCH_DISTANCE_OUTER_MARGIN = 0.75
 
+# --- Quadtree / semantic-tier streaming radii -----------------
+# Used when a scene has been pre-annotated with the Untold phase-1+2 Blender
+# script.  Each semantic tier gets its own streaming and unload radius so the
+# engine loads only the geometry appropriate for the current camera distance.
+#
+# Adjust these to taste for your scene scale:
+#   ExteriorShell    — visible from far away; wide band
+#   StructuralInterior — walls, ceilings, floors; load when approaching
+#   RoomContents     — furniture, fixtures; load when near a room entrance
+#   FineProps        — small details; load only when very close
+TIER_STREAMING_RADII = {
+    "ExteriorShell":      {"streaming": 80.0, "unload": 120.0, "priority": 15},
+    "StructuralInterior": {"streaming": 25.0, "unload":  40.0, "priority": 10},
+    "RoomContents":       {"streaming":  8.0, "unload":  15.0, "priority":  8},
+    "FineProps":          {"streaming":  3.0, "unload":   6.0, "priority":  5},
+}
+
+# Short codes written into tile IDs and manifest tier fields.
+TIER_SHORT_CODES = {
+    "ExteriorShell":      "ES",
+    "StructuralInterior": "SI",
+    "RoomContents":       "RC",
+    "FineProps":          "FP",
+}
+
+# When semantic confidence (from the phase-1+2 script) is below this value,
+# the object's tier is overridden to DEFAULT_TIER instead of being trusted.
+TIER_CONFIDENCE_THRESHOLD = 0.50
+
+# Tier assigned to objects with missing or low-confidence metadata.
+# StructuralInterior is the safest default: loads at medium distance,
+# never deferred as long as FineProps, never as wide-radius as ExteriorShell.
+DEFAULT_SEMANTIC_TIER = "StructuralInterior"
+
+# Fraction of objects that must carry Untold metadata before the quadtree
+# export path is activated.  Below this threshold the grid path runs instead.
+QUADTREE_METADATA_COVERAGE_THRESHOLD = 0.50
+
 # --- Scene ----------------------------------------------------
 VISIBLE_ONLY = True
 SOURCE_SCENE_PATH_OVERRIDE = ""
@@ -776,6 +814,26 @@ def tile_bounds_aabb_usd(tile_bounds):
     })
 
 
+def compute_objects_aabb_usd(objects, object_bounds):
+    """Compute the union AABB of a set of objects, returned in USD space.
+
+    Used by the quadtree export path where tile bounds are derived from the
+    objects themselves rather than from a uniform grid cell.
+    """
+    if not objects:
+        return None
+    min_x = min(object_bounds[o.name]["min"][0] for o in objects)
+    min_y = min(object_bounds[o.name]["min"][1] for o in objects)
+    min_z = min(object_bounds[o.name]["min"][2] for o in objects)
+    max_x = max(object_bounds[o.name]["max"][0] for o in objects)
+    max_y = max(object_bounds[o.name]["max"][1] for o in objects)
+    max_z = max(object_bounds[o.name]["max"][2] for o in objects)
+    return aabb_to_usd_space({
+        "min": (min_x, min_y, min_z),
+        "max": (max_x, max_y, max_z),
+    })
+
+
 # ============================================================
 # SECTION 4: CLASSIFICATION
 # Each mesh object receives exactly one export_policy:
@@ -842,6 +900,175 @@ def classify_mesh(aabb, tile_size_x, tile_size_z, xz_overlap_count, overlap_thre
         "dim_ratio":        round(dim_ratio, 2),
         "reasons":          reasons,
     }
+
+
+# ============================================================
+# SECTION 4.5: QUADTREE METADATA
+# Functions for reading per-object metadata written by the Untold phase-1+2
+# Blender preprocessing script (untold_phase12_suffix-Blender.py).
+#
+# Each annotated object carries:
+#   Custom properties  — untold_quadtree_node_id, untold_semantic_guess, etc.
+#   Name suffix        — __UT_<node>_<spatial>_<semantic>  (always present)
+#
+# The exporter prefers custom properties; the name suffix is the fallback
+# because it survives USD export/import even when custom properties are lost.
+# ============================================================
+
+def _tier_reverse_map():
+    return {v: k for k, v in TIER_SHORT_CODES.items()}
+
+
+def _obj_prop(obj, key, default=None):
+    """Get a custom property by bare key or with the 'userProperties:' USD namespace prefix."""
+    if key in obj:
+        return obj[key]
+    usd_key = "userProperties:" + key
+    if usd_key in obj:
+        return obj[usd_key]
+    return default
+
+
+def read_untold_metadata(obj):
+    """Read quadtree/semantic metadata from a Blender object.
+
+    Tries custom properties first (bare keys and USD-namespaced
+    'userProperties:' keys written by Blender's USD importer), then falls
+    back to parsing the name suffix and finally the Xform prim name stored
+    in 'userProperties:blender:object_name'.
+    Returns a dict or None if no source yields valid metadata.
+    """
+    # --- Primary: Blender custom properties (bare or USD-namespaced) ---
+    node_id = _obj_prop(obj, "untold_quadtree_node_id")
+    if node_id is not None:
+        return {
+            "floor_id":      int(_obj_prop(obj, "untold_floor_id", 0)),
+            "node_id":       str(node_id),
+            "depth":         int(_obj_prop(obj, "untold_quadtree_depth", 0)),
+            "spatial_class": str(_obj_prop(obj, "untold_spatial_class", "local")),
+            "semantic":      str(_obj_prop(obj, "untold_semantic_guess", DEFAULT_SEMANTIC_TIER)),
+            "confidence":    float(_obj_prop(obj, "untold_semantic_confidence", 0.0)),
+            "source":        "custom_property",
+        }
+    # --- Secondary: parse suffix from the Xform prim name stored by Blender's USD importer ---
+    xform_name = _obj_prop(obj, "blender:object_name")
+    if xform_name:
+        meta = _parse_name_suffix(str(xform_name))
+        if meta:
+            return meta
+    # --- Fallback: name suffix on the Blender object name itself ---
+    return _parse_name_suffix(obj.name)
+
+
+def _parse_name_suffix(name):
+    """Parse the __UT_<node>_<spatial>_<semantic> suffix embedded in an object name.
+
+    Example:
+      SM_Env_Ceiling_Stone_01__UT_F02Q100_L_SI
+      → floor_id=2, node_id="F02Q100", spatial_class="local", semantic="StructuralInterior"
+
+    Returns a dict or None if no valid suffix is found.
+    """
+    marker = "__UT_"
+    idx = name.find(marker)
+    if idx < 0:
+        return None
+    suffix = name[idx + len(marker):]
+    parts  = suffix.split("_")
+    # Minimum: [node_compressed, spatial_code, semantic_code]
+    if len(parts) < 3:
+        return None
+
+    node_compressed = parts[0]
+    spatial_code    = parts[1]
+    semantic_code   = parts[2]
+
+    spatial_class = "local" if spatial_code == "L" else "spanning"
+    semantic      = _tier_reverse_map().get(semantic_code, DEFAULT_SEMANTIC_TIER)
+
+    # Parse floor index from compressed node id: F02Q100 → floor_id=2
+    floor_id = 0
+    if node_compressed.startswith("F") and "Q" in node_compressed:
+        q_pos = node_compressed.index("Q")
+        try:
+            floor_id = int(node_compressed[1:q_pos])
+        except ValueError:
+            pass
+
+    return {
+        "floor_id":      floor_id,
+        "node_id":       node_compressed,
+        "depth":         -1,   # not recoverable from suffix alone
+        "spatial_class": spatial_class,
+        "semantic":      semantic,
+        # Suffix is explicit author intent; assign reliable confidence.
+        "confidence":    0.75,
+        "source":        "name_suffix",
+    }
+
+
+def _resolve_tier(meta):
+    """Return the effective semantic tier, applying the confidence fallback."""
+    if meta is None:
+        return DEFAULT_SEMANTIC_TIER
+    if meta["confidence"] < TIER_CONFIDENCE_THRESHOLD:
+        return DEFAULT_SEMANTIC_TIER
+    return meta["semantic"]
+
+
+def has_quadtree_metadata(objects):
+    """Return True when enough objects carry Untold metadata to use the quadtree path."""
+    if not objects:
+        return False
+    annotated = sum(1 for obj in objects if read_untold_metadata(obj) is not None)
+    return (annotated / len(objects)) >= QUADTREE_METADATA_COVERAGE_THRESHOLD
+
+
+def build_quadtree_assignments(objects, object_bounds):
+    """Group objects by (quadtree_node_id, semantic_tier) using embedded metadata.
+
+    Objects that are root-spanning (depth == 0 and spatial_class == "spanning")
+    or carry no metadata go to shared_objects.  All others land in a
+    node_tier_groups bucket keyed by (node_id, tier).
+
+    Returns:
+        node_tier_groups : {(node_id, tier): [obj, ...]}
+        shared_objects   : [obj, ...]
+        metadata_map     : {obj.name: meta_dict or None}
+    """
+    node_tier_groups = {}
+    shared_objects   = []
+    metadata_map     = {}
+
+    for obj in objects:
+        meta = read_untold_metadata(obj)
+        metadata_map[obj.name] = meta
+
+        if meta is None:
+            # No metadata — treat as structural interior in the shared bucket.
+            shared_objects.append(obj)
+            continue
+
+        # Root-spanning objects (depth == 0, spanning) cover the entire building
+        # footprint.  They cannot be confined to one node and go to the shared bucket.
+        if meta["spatial_class"] == "spanning" and meta["depth"] == 0:
+            shared_objects.append(obj)
+            continue
+
+        tier = _resolve_tier(meta)
+        key  = (meta["node_id"], tier)
+        node_tier_groups.setdefault(key, []).append(obj)
+
+    return node_tier_groups, shared_objects, metadata_map
+
+
+def quadtree_tile_id(node_id, tier):
+    """Return a stable, filesystem-safe tile ID for a (node_id, tier) pair.
+
+    Example: node_id="F02Q100", tier="StructuralInterior" → "F02Q100_SI"
+    """
+    code = TIER_SHORT_CODES.get(tier, "UK")
+    return sanitize_name(f"{node_id}_{code}")
 
 
 # ============================================================
@@ -2729,11 +2956,30 @@ def run():
     # ------------------------------------------------------------------
     # Classify and assign
     # ------------------------------------------------------------------
-    tile_assignments, shared_objects, classification_map = build_assignments(
-        objects, object_bounds,
-        origin_x, origin_y, origin_z,
-        tile_size_x, tile_size_y, tile_size_z,
-    )
+    use_quadtree     = has_quadtree_metadata(objects)
+    node_tier_groups = None  # populated only in quadtree path
+    metadata_map     = {}
+
+    if use_quadtree:
+        print("Quadtree metadata detected — using floor+quadtree partitioning.")
+        node_tier_groups, shared_objects, metadata_map = build_quadtree_assignments(
+            objects, object_bounds
+        )
+        # Build a dummy tile_assignments so SAMPLE/PERIMETER filters and
+        # dry-run diagnostics do not crash.  The real export uses node_tier_groups.
+        tile_assignments  = {}
+        classification_map = {}
+        print(
+            f"Quadtree groups: {len(node_tier_groups)} tile-tier pairs, "
+            f"{len(shared_objects)} shared-bucket objects"
+        )
+    else:
+        print("No quadtree metadata detected — using uniform grid partitioning.")
+        tile_assignments, shared_objects, classification_map = build_assignments(
+            objects, object_bounds,
+            origin_x, origin_y, origin_z,
+            tile_size_x, tile_size_y, tile_size_z,
+        )
 
     if SAMPLE_MODE:
         tile_assignments = filter_tile_assignments_sample(
@@ -2785,7 +3031,8 @@ def run():
     })
 
     manifest = {
-        "version": 3,
+        "version": 4 if use_quadtree else 3,
+        "partitioning_mode": "quadtree_floor" if use_quadtree else "uniform_grid",
         "dry_run": DRY_RUN,
         "debug_aabb_only": DEBUG_AABB_ONLY,
         "source_scene_name": os.path.basename(source_scene_path) if source_scene_path else None,
@@ -2840,6 +3087,62 @@ def run():
     # DRY RUN: report and optionally write manifest
     # ------------------------------------------------------------------
     if DRY_RUN:
+        if use_quadtree and node_tier_groups is not None:
+            # Quadtree dry-run: summarise groups and build manifest without exporting.
+            print(f"\n=== QUADTREE DRY-RUN SUMMARY ===")
+            print(f"  Partitioning mode : quadtree_floor")
+            print(f"  Tile-tier pairs   : {len(node_tier_groups)}")
+            print(f"  Shared-bucket objs: {len(shared_objects)}")
+            by_tier = {}
+            for (node_id, tier), objs in node_tier_groups.items():
+                by_tier.setdefault(tier, 0)
+                by_tier[tier] += len(objs)
+            for tier, count in sorted(by_tier.items()):
+                radii = TIER_STREAMING_RADII.get(tier, {})
+                print(f"    {tier:25s}: {count:5d} objects  "
+                      f"stream={radii.get('streaming','?')}m  "
+                      f"unload={radii.get('unload','?')}m")
+            for (node_id, tier), tile_objs in sorted(node_tier_groups.items()):
+                if not tile_objs:
+                    continue
+                tile_id   = quadtree_tile_id(node_id, tier)
+                filepath  = os.path.join(output_dir, f"{tile_id}.{ext}")
+                aabb_usd  = compute_objects_aabb_usd(tile_objs, object_bounds)
+                center    = aabb_center(aabb_usd) if aabb_usd else [0,0,0]
+                est_mem   = sum(estimate_object_memory_bytes(o, mesh_size_cache)
+                                for o in tile_objs)
+                tier_radii   = TIER_STREAMING_RADII.get(tier, {})
+                floor_id = 0
+                for obj in tile_objs:
+                    m = metadata_map.get(obj.name)
+                    if m:
+                        floor_id = m["floor_id"]
+                        break
+                manifest["tiles"].append({
+                    "tile_id":   tile_id,
+                    "floor_id":  floor_id,
+                    "quadtree_node_id": node_id,
+                    "semantic_tier":    tier,
+                    "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
+                    "streaming_radius": tier_radii.get("streaming", streaming_r),
+                    "unload_radius":    tier_radii.get("unload", unload_r),
+                    "priority":         tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY),
+                    "hlod_levels": [], "lod_levels": [],
+                    "file_size_bytes": 0,
+                    "estimated_memory_bytes": est_mem,
+                    "bounds": {"min": list(aabb_usd["min"]), "max": list(aabb_usd["max"])}
+                              if aabb_usd else {"min": [0,0,0], "max": [0,0,0]},
+                    "center": list(center),
+                    "object_count": len(tile_objs),
+                })
+            if DRY_RUN_WRITE_MANIFEST:
+                with open(manifest_path, "w", encoding="utf-8") as f:
+                    json.dump(manifest, f, indent=2)
+                print(f"Dry-run manifest written to: {manifest_path}")
+            else:
+                print("DRY_RUN_WRITE_MANIFEST=False: manifest not written.")
+            return
+
         print_dry_run_report(
             tile_assignments, shared_objects, classification_map,
             object_bounds, tile_size_x, tile_size_z,
@@ -2974,16 +3277,112 @@ def run():
                 "center": list(shared_center),
                 "object_count": len(shared_objects),
                 "objects": [
-                    {
-                        "name": obj.name,
-                        "export_policy": classification_map[obj.name]["policy"],
-                        "xz_overlap_count": classification_map[obj.name]["xz_overlap_count"],
-                        "dimensions": classification_map[obj.name]["dimensions"],
-                        "reasons": classification_map[obj.name]["reasons"],
-                    }
+                    (
+                        {
+                            "name": obj.name,
+                            "export_policy": classification_map[obj.name]["policy"],
+                            "xz_overlap_count": classification_map[obj.name]["xz_overlap_count"],
+                            "dimensions": classification_map[obj.name]["dimensions"],
+                            "reasons": classification_map[obj.name]["reasons"],
+                        }
+                        if obj.name in classification_map
+                        else {"name": obj.name}
+                    )
                     for obj in shared_objects
                 ],
             }
+
+    # ------------------------------------------------------------------
+    # QUADTREE EXPORT PATH
+    # ------------------------------------------------------------------
+    if use_quadtree and node_tier_groups is not None:
+        qt_exported = 0
+        # Sort groups for deterministic output: floor first, then node, then tier.
+        sorted_groups = sorted(node_tier_groups.items(), key=lambda kv: kv[0])
+
+        for (node_id, tier), tile_objs in sorted_groups:
+            if not tile_objs:
+                continue
+
+            tile_id   = quadtree_tile_id(node_id, tier)
+            filepath  = os.path.join(output_dir, f"{tile_id}.{ext}")
+            aabb_usd  = compute_objects_aabb_usd(tile_objs, object_bounds)
+            center    = aabb_center(aabb_usd) if aabb_usd else [0.0, 0.0, 0.0]
+            est_mem   = sum(estimate_object_memory_bytes(o, mesh_size_cache)
+                            for o in tile_objs)
+
+            # Fetch per-tier streaming radii; fall back to scene defaults.
+            tier_radii   = TIER_STREAMING_RADII.get(tier, {})
+            tile_stream  = tier_radii.get("streaming", streaming_r)
+            tile_unload  = tier_radii.get("unload",    unload_r)
+            tile_priority = tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY)
+
+            # Derive a representative floor_id from the objects in this group.
+            floor_id = 0
+            for obj in tile_objs:
+                m = metadata_map.get(obj.name)
+                if m is not None:
+                    floor_id = m["floor_id"]
+                    break
+
+            print(
+                f"[QT] Exporting {tile_id}  floor={floor_id}  tier={tier} "
+                f"({len(tile_objs)} objects)  stream={tile_stream:.1f}m → {filepath}"
+            )
+
+            # tile_bounds is not used (CLIP_LOCAL_MESHES is False for quadtree mode).
+            try:
+                ok, error = export_local_tile(filepath, tile_objs, None, source_scene_path)
+            except Exception as ex:
+                ok, error = False, str(ex)
+
+            if not ok:
+                print(f"  FAILED: {error}")
+                manifest["failed_tiles"].append({
+                    "tile_id":  tile_id,
+                    "quadtree_node_id": node_id,
+                    "semantic_tier":    tier,
+                    "floor_id":         floor_id,
+                    "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
+                    "error": error,
+                    "candidate_object_count": len(tile_objs),
+                })
+                continue
+
+            file_sz = os.path.getsize(filepath) if os.path.isfile(filepath) else 0
+
+            tile_entry = {
+                "tile_id":   tile_id,
+                "floor_id":  floor_id,
+                "quadtree_node_id": node_id,
+                "semantic_tier":    tier,
+                "path_relative_to_manifest": os.path.relpath(filepath, model_dir),
+                "streaming_radius": tile_stream,
+                "unload_radius":    tile_unload,
+                "priority":         tile_priority,
+                "hlod_levels": [],
+                "lod_levels":  [],
+                "file_size_bytes":       file_sz,
+                "estimated_memory_bytes": est_mem,
+                "bounds": {"min": list(aabb_usd["min"]), "max": list(aabb_usd["max"])}
+                          if aabb_usd else {"min": [0,0,0], "max": [0,0,0]},
+                "center": list(center),
+                "object_count": len(tile_objs),
+            }
+            manifest["tiles"].append(tile_entry)
+            qt_exported += 1
+
+        # --- Write manifest for quadtree path ---
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2)
+
+        print(f"\nQuadtree export done. {qt_exported} tile-tier pairs exported.")
+        if manifest["failed_tiles"]:
+            print(f"Failed: {len(manifest['failed_tiles'])}")
+        if manifest["shared_bucket"]:
+            print(f"Shared bucket: {manifest['shared_bucket']['object_count']} objects.")
+        print(f"Manifest written to: {manifest_path}")
+        return  # done — do not fall through to the grid export path
 
     # --- Export local tiles ---
     exported_count = 0
