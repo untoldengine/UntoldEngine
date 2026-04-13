@@ -210,9 +210,9 @@ SWITCH_DISTANCE_OUTER_MARGIN = 0.75
 #   FineProps        — small details; load only when very close
 TIER_STREAMING_RADII = {
     "ExteriorShell":      {"streaming": 80.0, "unload": 120.0, "priority": 15},
-    "StructuralInterior": {"streaming": 25.0, "unload":  40.0, "priority": 10},
-    "RoomContents":       {"streaming":  8.0, "unload":  15.0, "priority":  8},
-    "FineProps":          {"streaming":  3.0, "unload":   6.0, "priority":  5},
+    "StructuralInterior": {"streaming": 15.0, "unload":  25.0, "priority": 10},
+    "RoomContents":       {"streaming":  5.0, "unload":   8.0, "priority":  8},
+    "FineProps":          {"streaming":  2.0, "unload":   4.0, "priority":  5},
 }
 
 # Short codes written into tile IDs and manifest tier fields.
@@ -249,7 +249,7 @@ FORCE_QUADTREE = False
 # Mirror the same constants used by untold_phase12_suffix-Blender.py so that
 # inline-annotated and pre-annotated scenes produce identical partitioning.
 
-INLINE_QUADTREE_MAX_DEPTH            = 4
+INLINE_QUADTREE_MAX_DEPTH            = 6
 INLINE_SPANNING_CHILD_OVERLAP_THRESHOLD = 2
 
 INLINE_AUTO_FLOOR_BAND_HEIGHT = None   # set to a float (metres) to override auto-detection
@@ -3218,6 +3218,43 @@ def filter_tile_assignments_sample(tile_assignments, origin_x, origin_z,
     return candidates
 
 
+def filter_node_tier_groups_sample(node_tier_groups, metadata_map, sample_fraction):
+    """Keep only a fraction of quadtree node-tier groups for fast iteration.
+
+    Nodes are sorted shallowest-first (fewest '_' separators in the node_id),
+    then alphabetically within the same depth.  Keeping the shallowest nodes
+    first produces a low-resolution sample that covers the whole scene rather
+    than a deep sub-tree of one corner — better for visual validation.
+
+    All tiers belonging to a kept node are included so the tile set remains
+    internally consistent.
+
+    Returns a filtered copy of node_tier_groups.
+    """
+    if not node_tier_groups:
+        return node_tier_groups
+
+    unique_nodes = sorted(
+        {node_id for node_id, _tier in node_tier_groups},
+        key=lambda nid: (nid.count("_"), nid),
+    )
+    target = max(1, int(math.ceil(len(unique_nodes) * sample_fraction)))
+    kept_nodes = set(unique_nodes[:target])
+
+    filtered = {
+        key: objs
+        for key, objs in node_tier_groups.items()
+        if key[0] in kept_nodes
+    }
+    dropped = len(node_tier_groups) - len(filtered)
+    print(
+        f"\nSAMPLE_MODE (quadtree): keeping {len(kept_nodes)}/{len(unique_nodes)} nodes "
+        f"({100 * len(kept_nodes) // max(len(unique_nodes), 1)}%) → "
+        f"{len(filtered)} tile-tier pairs ({dropped} dropped)"
+    )
+    return filtered
+
+
 def filter_tile_assignments_perimeter(tile_assignments, depth=1):
     """Keep only the outer shell of tiles up to `depth` tiles inward from the boundary.
 
@@ -3396,7 +3433,11 @@ def run():
         node_tier_groups, shared_objects, metadata_map = build_quadtree_assignments(
             objects, object_bounds, inline_metadata=inline_metadata
         )
-        # Build a dummy tile_assignments so SAMPLE/PERIMETER filters and
+        if SAMPLE_MODE:
+            node_tier_groups = filter_node_tier_groups_sample(
+                node_tier_groups, metadata_map, SAMPLE_FRACTION
+            )
+        # Build a dummy tile_assignments so PERIMETER filters and
         # dry-run diagnostics do not crash.  The real export uses node_tier_groups.
         tile_assignments  = {}
         classification_map = {}
