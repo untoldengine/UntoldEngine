@@ -249,7 +249,7 @@ FORCE_QUADTREE = False
 # Mirror the same constants used by untold_phase12_suffix-Blender.py so that
 # inline-annotated and pre-annotated scenes produce identical partitioning.
 
-INLINE_QUADTREE_MAX_DEPTH            = 3
+INLINE_QUADTREE_MAX_DEPTH            = 4
 INLINE_SPANNING_CHILD_OVERLAP_THRESHOLD = 2
 
 INLINE_AUTO_FLOOR_BAND_HEIGHT = None   # set to a float (metres) to override auto-detection
@@ -2969,8 +2969,8 @@ def _export_tiles_parallel(
     blender_bin  = getattr(bpy.app, "binary_path", sys.executable)
     script_path  = os.path.abspath(__file__)
 
-    procs        = []
-    result_paths = []
+    # (proc, log_path, result_path)
+    worker_info: list[tuple] = []
 
     try:
         for i, batch in enumerate(batches):
@@ -2985,6 +2985,7 @@ def _export_tiles_parallel(
             }
             bundle_path = os.path.join(tmpdir, f"worker_{i:02d}_bundle.json")
             result_path = os.path.join(tmpdir, f"worker_{i:02d}_result.json")
+            log_path    = os.path.join(tmpdir, f"worker_{i:02d}.log")
             with open(bundle_path, "w", encoding="utf-8") as f:
                 json.dump(bundle, f)
 
@@ -2995,23 +2996,155 @@ def _export_tiles_parallel(
                 "--work-bundle", bundle_path,
                 "--result-file",  result_path,
             ]
+            # Write worker output to a log file instead of a pipe.  With a pipe,
+            # workers printing thousands of per-object lines fill the OS pipe
+            # buffer (~64 KB) and block until the parent drains it — which only
+            # happens after each preceding worker finishes.  That serializes all
+            # workers and eliminates the speedup.  Log files have no such limit.
+            log_fh = open(log_path, "w", encoding="utf-8")
             proc = subprocess.Popen(
                 cmd,
-                stdout=subprocess.PIPE,
+                stdout=log_fh,
                 stderr=subprocess.STDOUT,
-                text=True,
             )
-            procs.append(proc)
-            result_paths.append(result_path)
+            log_fh.close()   # Parent's fd is no longer needed; child has its own copy.
+            worker_info.append((proc, log_path, result_path))
             print(f"  Launched worker {i:02d} ({len(batch)} tiles, pid={proc.pid})")
 
-        # Collect results, prefixing each worker's output.
+        # Wait for all workers to finish (true parallel: all stdout goes to files,
+        # so no process ever blocks on a full pipe buffer).
         all_results: dict[str, dict] = {}
-        for i, (proc, result_path) in enumerate(zip(procs, result_paths)):
-            stdout, _ = proc.communicate()
+        for i, (proc, log_path, result_path) in enumerate(worker_info):
+            proc.wait()
             prefix = f"[worker {i:02d}] "
-            for line in stdout.splitlines():
-                print(f"{prefix}{line}", flush=True)
+            try:
+                with open(log_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        print(f"{prefix}{line.rstrip()}", flush=True)
+            except OSError:
+                pass
+
+            if os.path.isfile(result_path):
+                with open(result_path, "r", encoding="utf-8") as f:
+                    result = json.load(f)
+                for tr in result.get("tile_results", []):
+                    all_results[tr["tile_id"]] = tr
+            else:
+                print(
+                    f"  Warning: worker {i:02d} produced no result file "
+                    f"(exit={proc.returncode}). Its tiles will be marked failed."
+                )
+
+        return all_results
+
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def _export_quadtree_tiles_parallel(
+    sorted_groups,
+    source_scene_path,
+    output_dir,
+    ext,
+):
+    """Spawn Blender worker subprocesses to export quadtree tile-tier pairs in parallel.
+
+    Reuses the same bundle/worker protocol as _export_tiles_parallel.
+    tile_bounds is set to None for all quadtree tiles; the worker passes it
+    straight through to export_local_tile which skips clipping when
+    CLIP_LOCAL_MESHES=False (the quadtree default).
+
+    Returns a dict {tile_id: result_dict} on success, or None when parallel
+    export is not applicable (PARALLEL_WORKERS=1 or too few tiles).
+    """
+    non_empty = [(key, objs) for key, objs in sorted_groups if objs]
+    n_workers = _effective_worker_count(len(non_empty))
+    if n_workers <= 1:
+        return None  # caller falls back to sequential
+
+    print(f"\nParallel quadtree export: {len(non_empty)} tile-tier pairs across {n_workers} workers")
+
+    # Build one spec per quadtree tile. tx/ty/tz are dummies (only used by
+    # tile_debug_color in DEBUG_AABB_ONLY mode, which is never active in
+    # quadtree runs). tile_bounds=None tells the worker not to clip.
+    tile_specs = []
+    for (node_id, tier), tile_objs in non_empty:
+        tile_id  = quadtree_tile_id(node_id, tier)
+        filepath = os.path.join(output_dir, f"{tile_id}.{ext}")
+        tile_specs.append({
+            "tile_id":      tile_id,
+            "tx": 0, "ty": 0, "tz": 0,
+            "filepath":     filepath,
+            "tile_bounds":  None,
+            "object_names": [o.name for o in tile_objs],
+        })
+    # Sort largest tiles first for better load-balance across workers.
+    tile_specs.sort(key=lambda s: len(s["object_names"]), reverse=True)
+
+    # Distribute round-robin so large tiles are spread across workers.
+    batches: list[list] = [[] for _ in range(n_workers)]
+    for i, spec in enumerate(tile_specs):
+        batches[i % n_workers].append(spec)
+
+    cfg         = _config_snapshot()
+    tmpdir      = tempfile.mkdtemp(prefix="untold_qt_parallel_")
+    blender_bin = getattr(bpy.app, "binary_path", sys.executable)
+    script_path = os.path.abspath(__file__)
+
+    # (proc, log_path, result_path)
+    worker_info: list[tuple] = []
+
+    try:
+        for i, batch in enumerate(batches):
+            if not batch:
+                continue
+            bundle = {
+                "source_scene_path": source_scene_path,
+                "config":            cfg,
+                "active_hlod_levels": [],
+                "active_lod_levels":  [],
+                "tiles":             batch,
+            }
+            bundle_path = os.path.join(tmpdir, f"worker_{i:02d}_bundle.json")
+            result_path = os.path.join(tmpdir, f"worker_{i:02d}_result.json")
+            log_path    = os.path.join(tmpdir, f"worker_{i:02d}.log")
+            with open(bundle_path, "w", encoding="utf-8") as f:
+                json.dump(bundle, f)
+
+            cmd = [
+                blender_bin, "--background", "--factory-startup",
+                "--python", script_path,
+                "--", "--worker-mode",
+                "--work-bundle", bundle_path,
+                "--result-file",  result_path,
+            ]
+            # Write worker output to a log file instead of a pipe.  Quadtree
+            # tiles can contain thousands of objects; the exporter prints one
+            # line per mesh, which quickly overflows the OS pipe buffer (~64 KB)
+            # and blocks every worker that isn't actively being read by the
+            # parent.  Log files remove this bottleneck entirely.
+            log_fh = open(log_path, "w", encoding="utf-8")
+            proc = subprocess.Popen(
+                cmd,
+                stdout=log_fh,
+                stderr=subprocess.STDOUT,
+            )
+            log_fh.close()   # Parent's fd is no longer needed; child has its own copy.
+            worker_info.append((proc, log_path, result_path))
+            print(f"  Launched worker {i:02d} ({len(batch)} tiles, pid={proc.pid})")
+
+        # Wait for all workers to finish (true parallel: stdout goes to files,
+        # so no process ever blocks on a full pipe buffer).
+        all_results: dict[str, dict] = {}
+        for i, (proc, log_path, result_path) in enumerate(worker_info):
+            proc.wait()
+            prefix = f"[worker {i:02d}] "
+            try:
+                with open(log_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        print(f"{prefix}{line.rstrip()}", flush=True)
+            except OSError:
+                pass
 
             if os.path.isfile(result_path):
                 with open(result_path, "r", encoding="utf-8") as f:
@@ -3598,6 +3731,15 @@ def run():
         # Sort groups for deterministic output: floor first, then node, then tier.
         sorted_groups = sorted(node_tier_groups.items(), key=lambda kv: kv[0])
 
+        # Attempt parallel export; falls back to None when PARALLEL_WORKERS=1
+        # or there are too few tiles to justify subprocesses.
+        qt_parallel_results = _export_quadtree_tiles_parallel(
+            sorted_groups,
+            source_scene_path,
+            output_dir,
+            ext,
+        )
+
         for (node_id, tier), tile_objs in sorted_groups:
             if not tile_objs:
                 continue
@@ -3623,19 +3765,27 @@ def run():
                     floor_id = m["floor_id"]
                     break
 
-            print(
-                f"[QT] Exporting {tile_id}  floor={floor_id}  tier={tier} "
-                f"({len(tile_objs)} objects)  stream={tile_stream:.1f}m → {filepath}"
-            )
-
-            # tile_bounds is not used (CLIP_LOCAL_MESHES is False for quadtree mode).
-            try:
-                ok, error = export_local_tile(filepath, tile_objs, None, source_scene_path)
-            except Exception as ex:
-                ok, error = False, str(ex)
+            if qt_parallel_results is not None:
+                # --- Parallel path: tile was exported by a worker subprocess ---
+                result = qt_parallel_results.get(tile_id)
+                ok     = bool(result and result.get("ok"))
+                error  = result.get("error") if result else "Worker did not report a result"
+                file_sz = result.get("file_size_bytes", 0) if result else 0
+            else:
+                # --- Sequential path ---
+                print(
+                    f"[QT] Exporting {tile_id}  floor={floor_id}  tier={tier} "
+                    f"({len(tile_objs)} objects)  stream={tile_stream:.1f}m → {filepath}"
+                )
+                # tile_bounds is None (CLIP_LOCAL_MESHES is False for quadtree mode).
+                try:
+                    ok, error = export_local_tile(filepath, tile_objs, None, source_scene_path)
+                except Exception as ex:
+                    ok, error = False, str(ex)
+                file_sz = os.path.getsize(filepath) if ok and os.path.isfile(filepath) else 0
 
             if not ok:
-                print(f"  FAILED: {error}")
+                print(f"  FAILED ({tile_id}): {error}")
                 manifest["failed_tiles"].append({
                     "tile_id":  tile_id,
                     "quadtree_node_id": node_id,
@@ -3646,8 +3796,6 @@ def run():
                     "candidate_object_count": len(tile_objs),
                 })
                 continue
-
-            file_sz = os.path.getsize(filepath) if os.path.isfile(filepath) else 0
 
             tile_entry = {
                 "tile_id":   tile_id,
