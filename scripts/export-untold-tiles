@@ -32,6 +32,10 @@ Common tile exporter flags:
   --quadtree         Use floor+quadtree partitioning. Works with raw USD/USDZ (no
                      pre-annotation step needed) — the exporter classifies objects
                      inline. Also honours pre-baked __UT_ metadata when present.
+  --floor-count N    Pin the number of floors (inline quadtree mode). Use when
+                     auto-detection is wrong due to outlier objects inflating the Z range.
+  --floor-band-height N  Pin the per-floor height in metres. Floor count is derived
+                     from scene Z span / band height. Can be combined with --floor-count.
   --tile-size-x N    Grid tile width  (metres, default 25). Ignored in quadtree mode.
   --tile-size-z N    Grid tile depth  (metres, default 25). Ignored in quadtree mode.
   --compress-geometry  LZ4-compress vertex/index data in tile payloads.
