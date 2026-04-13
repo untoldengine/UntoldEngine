@@ -255,6 +255,8 @@ INLINE_SPANNING_CHILD_OVERLAP_THRESHOLD = 2
 INLINE_AUTO_FLOOR_BAND_HEIGHT = None   # set to a float (metres) to override auto-detection
 INLINE_MIN_FLOOR_BAND_HEIGHT  = 2.5
 INLINE_MAX_FLOOR_BAND_HEIGHT  = 5.0
+INLINE_FLOOR_COUNT_OVERRIDE   = None  # set to an int to pin floor count (skips Z-extent calc)
+INLINE_FLOOR_BAND_HEIGHT_OVERRIDE = None  # set to a float to pin band height and derive floor count
 
 INLINE_FINE_PROP_MAX_DIM    = 0.40
 INLINE_FINE_PROP_MAX_VOLUME = 0.03
@@ -1292,12 +1294,30 @@ def compute_inline_quadtree_metadata(objects, object_bounds):
     if not object_cache:
         return {}
 
-    # --- Estimate floor band height ---
-    band_height = INLINE_AUTO_FLOOR_BAND_HEIGHT or _inline_estimate_floor_band_height(object_cache)
-    scene_min_z = global_min[2]
-    floor_count = max(1, int(_math.ceil((global_max[2] - global_min[2]) / band_height)))
+    # --- Resolve floor count and band height ---
+    # Priority: explicit overrides > auto-detection from object Z dimensions.
+    scene_min_z  = global_min[2]
+    scene_max_z  = global_max[2]
+    scene_z_span = max(scene_max_z - scene_min_z, 0.001)
 
-    print(f"  [inline annotation] floor band height: {band_height:.2f}m, estimated floors: {floor_count}")
+    if INLINE_FLOOR_COUNT_OVERRIDE and INLINE_FLOOR_BAND_HEIGHT_OVERRIDE:
+        # Both pinned — user knows exactly what they want.
+        floor_count = max(1, int(INLINE_FLOOR_COUNT_OVERRIDE))
+        band_height = float(INLINE_FLOOR_BAND_HEIGHT_OVERRIDE)
+    elif INLINE_FLOOR_COUNT_OVERRIDE:
+        # Floor count pinned — derive band height from scene Z span.
+        floor_count = max(1, int(INLINE_FLOOR_COUNT_OVERRIDE))
+        band_height = scene_z_span / floor_count
+    elif INLINE_FLOOR_BAND_HEIGHT_OVERRIDE:
+        # Band height pinned — derive floor count from scene Z span.
+        band_height = float(INLINE_FLOOR_BAND_HEIGHT_OVERRIDE)
+        floor_count = max(1, int(_math.ceil(scene_z_span / band_height)))
+    else:
+        # Fully auto: estimate band height from object Z dimensions.
+        band_height = INLINE_AUTO_FLOOR_BAND_HEIGHT or _inline_estimate_floor_band_height(object_cache)
+        floor_count = max(1, int(_math.ceil(scene_z_span / band_height)))
+
+    print(f"  [inline annotation] floor band height: {band_height:.2f}m, floors: {floor_count}")
 
     # --- Build one quadtree root per floor (XY plane, Blender coords) ---
     floor_roots = {
@@ -3870,6 +3890,28 @@ def parse_args(argv):
             "Otherwise the exporter runs the annotation pass inline — no separate Blender step needed."
         ),
     )
+    parser.add_argument(
+        "--floor-count",
+        type=int,
+        default=None,
+        help=(
+            "Pin the number of floors for inline quadtree annotation. "
+            "Overrides auto-detection from the scene Z extent. "
+            "Use this when the auto-detected floor count is wrong (e.g. outlier objects inflating the Z range). "
+            "If --floor-band-height is also given, both are used as-is. "
+            "If only --floor-count is given, the band height is derived from the scene Z span."
+        ),
+    )
+    parser.add_argument(
+        "--floor-band-height",
+        type=float,
+        default=None,
+        help=(
+            "Pin the per-floor band height in metres for inline quadtree annotation. "
+            "The floor count is then ceil(scene_Z_span / band_height). "
+            "If --floor-count is also given, both values are used as-is and the scene Z span is ignored."
+        ),
+    )
     # Internal: used by worker subprocesses spawned by the parallel export system.
     parser.add_argument("--worker-mode", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--work-bundle", default=None, help=argparse.SUPPRESS)
@@ -3897,6 +3939,8 @@ def apply_cli_overrides(args):
     global PERIMETER_MODE
     global PERIMETER_DEPTH
     global FORCE_QUADTREE
+    global INLINE_FLOOR_COUNT_OVERRIDE
+    global INLINE_FLOOR_BAND_HEIGHT_OVERRIDE
 
     if args.input:
         SOURCE_SCENE_PATH_OVERRIDE = args.input
@@ -3938,6 +3982,10 @@ def apply_cli_overrides(args):
         PERIMETER_DEPTH = args.perimeter_depth
     if getattr(args, "quadtree", False):
         FORCE_QUADTREE = True
+    if getattr(args, "floor_count", None) is not None:
+        INLINE_FLOOR_COUNT_OVERRIDE = args.floor_count
+    if getattr(args, "floor_band_height", None) is not None:
+        INLINE_FLOOR_BAND_HEIGHT_OVERRIDE = args.floor_band_height
 
 
 def main(argv=None):
