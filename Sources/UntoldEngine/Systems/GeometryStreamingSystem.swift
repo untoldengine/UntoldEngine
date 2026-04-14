@@ -68,6 +68,14 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Decrease if zoom-out → zoom-in residency deadlocks persist (far meshes blocking near ones).
     public var visibleEvictionProtectionRadius: Float = 30.0
 
+    // MARK: - Interior Zone
+
+    /// World-space AABB that defines the building interior, sourced from the manifest's
+    /// `interior_zone` field (union of ExteriorShell tile bounds).
+    /// When non-nil, tiles tagged `isInterior = true` are only allowed to load while the
+    /// camera is inside this volume.  Nil for uniform_grid manifests (gate disabled).
+    public var interiorZone: AABB? = nil
+
     // MARK: - Tile Streaming
 
     /// Hard cap on simultaneous tile parses regardless of memory budget.
@@ -562,6 +570,16 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             case .unloaded:
                 // Small epsilon to handle floating-point boundary cases (e.g., 200.0001 vs 200.0)
                 if distance <= streaming.streamingRadius + 1.0 {
+                    // Interior gate: skip loading interior tiles when the camera is outside
+                    // the building's interior zone.  Only active when the manifest provides
+                    // an interior_zone and the tile is tagged isInterior = true.
+                    if let zone = interiorZone,
+                       let tc = scene.get(component: TileComponent.self, for: entityId),
+                       tc.isInterior,
+                       !zone.contains(effectiveCameraPosition)
+                    {
+                        continue
+                    }
                     // Frustum gate: skip loading if the entity AABB is entirely outside the
                     // current camera frustum.  Only applied when a frustum is available and
                     // the entity has local bounds; otherwise the candidate is always queued.
@@ -1484,6 +1502,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             lastCameraPosition = nil
             cameraVelocity = .zero
             firstRangeTimestamps.removeAll()
+            interiorZone = nil
         }
     }
 
