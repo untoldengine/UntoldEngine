@@ -3600,6 +3600,7 @@ def run():
                     "unload_radius":    tier_radii.get("unload", unload_r),
                     "priority":         tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY),
                     "hlod_levels": [], "lod_levels": [],
+                    "interior": tier != "ExteriorShell",
                     "file_size_bytes": 0,
                     "estimated_memory_bytes": est_mem,
                     "bounds": {"min": list(aabb_usd["min"]), "max": list(aabb_usd["max"])}
@@ -3849,6 +3850,7 @@ def run():
                 "priority":         tile_priority,
                 "hlod_levels": [],
                 "lod_levels":  [],
+                "interior": tier != "ExteriorShell",
                 "file_size_bytes":       file_sz,
                 "estimated_memory_bytes": est_mem,
                 "bounds": {"min": list(aabb_usd["min"]), "max": list(aabb_usd["max"])}
@@ -3858,6 +3860,17 @@ def run():
             }
             manifest["tiles"].append(tile_entry)
             qt_exported += 1
+
+        # --- Compute interior_zone: union AABB of all ExteriorShell tiles.
+        # The engine uses this to gate interior tile loading: tiles tagged
+        # interior=True only stream in when the camera is inside this volume.
+        exterior_tiles = [t for t in manifest["tiles"] if not t.get("interior", True)]
+        if exterior_tiles:
+            iz_min = [min(t["bounds"]["min"][i] for t in exterior_tiles) for i in range(3)]
+            iz_max = [max(t["bounds"]["max"][i] for t in exterior_tiles) for i in range(3)]
+            manifest["interior_zone"] = {"min": iz_min, "max": iz_max}
+        else:
+            manifest["interior_zone"] = None
 
         # --- Write manifest for quadtree path ---
         with open(manifest_path, "w", encoding="utf-8") as f:

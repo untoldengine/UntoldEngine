@@ -2127,6 +2127,10 @@ private struct TileManifest: Decodable {
     /// Tile footprint in world units, as written by the Blender export script.
     /// Used to calibrate the batch cell size so it aligns with tile boundaries.
     let tileSize: TileSize?
+    /// Union AABB of all ExteriorShell tiles.  Present in v4 quadtree manifests.
+    /// The streaming system only loads interior tiles when the camera is inside
+    /// this volume.  Nil for uniform_grid manifests — interior gate is disabled.
+    let interiorZone: TileBounds?
 
     enum CodingKeys: String, CodingKey {
         case version
@@ -2135,6 +2139,7 @@ private struct TileManifest: Decodable {
         case tiles
         case sharedBucket = "shared_bucket"
         case tileSize = "tile_size"
+        case interiorZone = "interior_zone"
     }
 }
 
@@ -2190,6 +2195,10 @@ private struct TileEntry: Decodable {
     /// already encodes the correct load distance for the tier, so no
     /// additional runtime logic is required beyond reading this for diagnostics.
     let semanticTier: String?
+    /// When true this tile contains interior-only geometry.  The streaming
+    /// system gates loading on the camera being inside the scene's interiorZone.
+    /// Absent in older (v3 uniform_grid) manifests — treated as false.
+    let isInterior: Bool?
 
     enum CodingKeys: String, CodingKey {
         case tileId = "tile_id"
@@ -2206,6 +2215,7 @@ private struct TileEntry: Decodable {
         case floorId = "floor_id"
         case quadtreeNodeId = "quadtree_node_id"
         case semanticTier = "semantic_tier"
+        case isInterior = "interior"
     }
 }
 
@@ -2474,6 +2484,7 @@ private func registerTiledScene(
                 // Resolved from: per-tile override → manifest default → auto (0).
                 tileComp.prefetchRadius = normalizedBands.prefetchRadius
                 tileComp.tileId = tile.tileId
+                tileComp.isInterior = tile.isInterior ?? false
                 tileComp.state = .unloaded
 
                 // Log semantic-tier info when present (v4 quadtree manifests).
@@ -2562,6 +2573,18 @@ private func registerTiledScene(
             hasSharedBucket = true
             Logger.log(message: "[loadTiledScene] Shared bucket stub registered: '\(shared.tileId)'.")
         }
+    }
+
+    // Push interior zone to the streaming system so it can gate interior tile loads.
+    if let iz = tileManifest.interiorZone,
+       iz.min.count >= 3, iz.max.count >= 3
+    {
+        let zone = AABB(
+            min: simd_float3(iz.min[0], iz.min[1], iz.min[2]),
+            max: simd_float3(iz.max[0], iz.max[1], iz.max[2])
+        )
+        GeometryStreamingSystem.shared.interiorZone = zone
+        Logger.log(message: "[loadTiledScene] Interior zone set: \(zone.min) → \(zone.max)")
     }
 
     let skipMsg = skippedCount > 0 ? " (\(skippedCount) skipped)" : ""

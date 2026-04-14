@@ -474,6 +474,11 @@ public class TileComponent: Component {
     /// Human-readable tile identifier from the manifest (e.g. "tile_3_2").
     public var tileId: String = ""
 
+    /// When true this tile contains interior-only geometry (StructuralInterior,
+    /// RoomContents, FineProps).  The streaming system gates loading of these
+    /// tiles on the camera being inside the scene's interior_zone.
+    public var isInterior: Bool = false
+
     /// Asset-level lifecycle state driven by the streaming bootstrap.
     public var state: TileAssetState = .unloaded
 
