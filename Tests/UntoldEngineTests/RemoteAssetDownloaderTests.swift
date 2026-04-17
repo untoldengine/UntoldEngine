@@ -17,7 +17,7 @@ final class RemoteAssetDownloaderTests: XCTestCase {
         let downloader = RemoteAssetDownloader()
 
         do {
-            _ = try await downloader.localURL(for: URL(string: "http://example.com/scene.json")!)
+            _ = try await downloader.localURL(for: XCTUnwrap(URL(string: "http://example.com/scene.json")))
             XCTFail("Expected insecure HTTP URL to be rejected")
         } catch let error as RemoteAssetDownloader.DownloadError {
             XCTAssertEqual(error.errorDescription, "Refusing to download over 'http': only https:// is permitted")
