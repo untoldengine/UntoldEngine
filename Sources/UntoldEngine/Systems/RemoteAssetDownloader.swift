@@ -24,11 +24,14 @@ actor RemoteAssetDownloader {
     // MARK: - Error
 
     enum DownloadError: Error, LocalizedError {
+        case insecureScheme(String)
         case httpError(Int)
         case cacheEvictedAfter304
 
         var errorDescription: String? {
             switch self {
+            case let .insecureScheme(scheme):
+                return "Refusing to download over '\(scheme)': only https:// is permitted"
             case let .httpError(code): return "HTTP \(code)"
             case .cacheEvictedAfter304: return "304 Not Modified but cached file was evicted"
             }
@@ -57,6 +60,10 @@ actor RemoteAssetDownloader {
     ///
     /// - Throws: `DownloadError` or a `URLError` on network failure.
     func localURL(for remoteURL: URL) async throws -> URL {
+        guard remoteURL.scheme?.lowercased() == "https" else {
+            throw DownloadError.insecureScheme(remoteURL.scheme?.lowercased() ?? "none")
+        }
+
         // Fast path: already in cache.
         if let cached = await AssetDiskCache.shared.localURL(for: remoteURL) {
             return cached

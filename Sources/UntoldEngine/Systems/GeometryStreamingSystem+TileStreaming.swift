@@ -768,7 +768,12 @@ extension GeometryStreamingSystem {
     /// so callers can clean up their entities and abort the load.
     /// Local file URLs are returned unchanged without any network I/O.
     func resolveAssetURL(_ url: URL, label: String) async -> URL? {
-        guard url.scheme == "https" || url.scheme == "http" else {
+        if url.scheme?.lowercased() == "http" {
+            let error = RemoteAssetDownloader.DownloadError.insecureScheme("http")
+            Logger.logError(message: "[TileStreaming] Remote download failed for \(label): \(error)")
+            return nil
+        }
+        guard url.scheme?.lowercased() == "https" else {
             return url
         }
         do {
