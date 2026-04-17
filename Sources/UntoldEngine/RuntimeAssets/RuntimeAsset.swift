@@ -131,6 +131,95 @@ public enum RuntimeVertexLayout: UInt32, Sendable, Equatable {
     }
 }
 
+public struct RuntimeSkeleton: Sendable, Equatable {
+    public var name: String?
+    public var jointPaths: [String]
+    public var parentIndices: [Int?]
+    public var bindTransforms: [simd_float4x4]
+    public var restTransforms: [simd_float4x4]
+
+    public init(
+        name: String? = nil,
+        jointPaths: [String],
+        parentIndices: [Int?],
+        bindTransforms: [simd_float4x4],
+        restTransforms: [simd_float4x4]
+    ) {
+        self.name = name
+        self.jointPaths = jointPaths
+        self.parentIndices = parentIndices
+        self.bindTransforms = bindTransforms
+        self.restTransforms = restTransforms
+    }
+}
+
+public struct RuntimeSkinBinding: Sendable, Equatable {
+    public var skeletonEntityID: UInt32?
+    public var skinToSkeletonMap: [Int]
+    public var jointIndexData: Data
+    public var jointWeightData: Data
+
+    public init(
+        skeletonEntityID: UInt32? = nil,
+        skinToSkeletonMap: [Int],
+        jointIndexData: Data,
+        jointWeightData: Data
+    ) {
+        self.skeletonEntityID = skeletonEntityID
+        self.skinToSkeletonMap = skinToSkeletonMap
+        self.jointIndexData = jointIndexData
+        self.jointWeightData = jointWeightData
+    }
+}
+
+public struct RuntimeTranslationKeyframe: Sendable, Equatable {
+    public var time: Float
+    public var value: SIMD3<Float>
+
+    public init(time: Float, value: SIMD3<Float>) {
+        self.time = time
+        self.value = value
+    }
+}
+
+public struct RuntimeRotationKeyframe: Sendable, Equatable {
+    public var time: Float
+    public var value: SIMD4<Float>
+
+    public init(time: Float, value: SIMD4<Float>) {
+        self.time = time
+        self.value = value
+    }
+}
+
+public struct RuntimeAnimationChannel: Sendable, Equatable {
+    public var jointPath: String
+    public var translations: [RuntimeTranslationKeyframe]
+    public var rotations: [RuntimeRotationKeyframe]
+
+    public init(
+        jointPath: String,
+        translations: [RuntimeTranslationKeyframe] = [],
+        rotations: [RuntimeRotationKeyframe] = []
+    ) {
+        self.jointPath = jointPath
+        self.translations = translations
+        self.rotations = rotations
+    }
+}
+
+public struct RuntimeAnimationClip: Sendable, Equatable {
+    public var name: String
+    public var duration: Float
+    public var channels: [RuntimeAnimationChannel]
+
+    public init(name: String, duration: Float, channels: [RuntimeAnimationChannel]) {
+        self.name = name
+        self.duration = duration
+        self.channels = channels
+    }
+}
+
 public struct RuntimeAssetNode: Sendable, Equatable {
     public var id: UInt32
     public var parentID: UInt32?
@@ -139,6 +228,7 @@ public struct RuntimeAssetNode: Sendable, Equatable {
     public var worldTransform: simd_float4x4
     public var localBounds: RuntimeAABB
     public var worldBounds: RuntimeAABB
+    public var skeleton: RuntimeSkeleton?
     public var primitives: [RuntimeMeshPrimitive]
 
     public init(
@@ -149,6 +239,7 @@ public struct RuntimeAssetNode: Sendable, Equatable {
         worldTransform: simd_float4x4 = matrix_identity_float4x4,
         localBounds: RuntimeAABB,
         worldBounds: RuntimeAABB,
+        skeleton: RuntimeSkeleton? = nil,
         primitives: [RuntimeMeshPrimitive]
     ) {
         self.id = id
@@ -158,6 +249,7 @@ public struct RuntimeAssetNode: Sendable, Equatable {
         self.worldTransform = worldTransform
         self.localBounds = localBounds
         self.worldBounds = worldBounds
+        self.skeleton = skeleton
         self.primitives = primitives
     }
 }
@@ -175,6 +267,7 @@ public struct RuntimeMeshPrimitive: Sendable, Equatable {
     public var vertexCount: Int
     public var indexCount: Int
     public var material: RuntimeMaterialSource?
+    public var skin: RuntimeSkinBinding?
     public var estimatedGPUBytes: Int
 
     public init(
@@ -190,6 +283,7 @@ public struct RuntimeMeshPrimitive: Sendable, Equatable {
         vertexCount: Int,
         indexCount: Int,
         material: RuntimeMaterialSource? = nil,
+        skin: RuntimeSkinBinding? = nil,
         estimatedGPUBytes: Int = 0
     ) {
         self.name = name
@@ -204,6 +298,7 @@ public struct RuntimeMeshPrimitive: Sendable, Equatable {
         self.vertexCount = vertexCount
         self.indexCount = indexCount
         self.material = material
+        self.skin = skin
         self.estimatedGPUBytes = estimatedGPUBytes
     }
 }
@@ -240,6 +335,7 @@ public struct RuntimeAsset: Sendable, Equatable {
     public var rootTransform: simd_float4x4
     public var worldBounds: RuntimeAABB
     public var nodes: [RuntimeAssetNode]
+    public var animationClips: [RuntimeAnimationClip]
     public var meshGroups: [RuntimeMeshGroup]
 
     public init(
@@ -249,6 +345,7 @@ public struct RuntimeAsset: Sendable, Equatable {
         rootTransform: simd_float4x4 = matrix_identity_float4x4,
         worldBounds: RuntimeAABB,
         nodes: [RuntimeAssetNode] = [],
+        animationClips: [RuntimeAnimationClip] = [],
         meshGroups: [RuntimeMeshGroup]
     ) {
         self.sourceURL = sourceURL
@@ -257,6 +354,7 @@ public struct RuntimeAsset: Sendable, Equatable {
         self.rootTransform = rootTransform
         self.worldBounds = worldBounds
         self.nodes = nodes
+        self.animationClips = animationClips
         self.meshGroups = meshGroups
     }
 
@@ -266,7 +364,8 @@ public struct RuntimeAsset: Sendable, Equatable {
         assetName: String,
         rootTransform: simd_float4x4 = matrix_identity_float4x4,
         worldBounds: RuntimeAABB,
-        nodes: [RuntimeAssetNode]
+        nodes: [RuntimeAssetNode],
+        animationClips: [RuntimeAnimationClip] = []
     ) {
         self.sourceURL = sourceURL
         self.sourceKind = sourceKind
@@ -274,6 +373,7 @@ public struct RuntimeAsset: Sendable, Equatable {
         self.rootTransform = rootTransform
         self.worldBounds = worldBounds
         self.nodes = nodes
+        self.animationClips = animationClips
         meshGroups = nodes.compactMap { node in
             guard !node.primitives.isEmpty else { return nil }
             return RuntimeMeshGroup(

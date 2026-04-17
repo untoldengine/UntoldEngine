@@ -34,6 +34,17 @@ Use the `export-untold` script to convert a single USDZ asset:
   --source-orientation blender-native
 ```
 
+For animation usdz assets, use the --animation flag
+
+```bash
+./scripts/export-untold \
+  --input GameData/Models/robot/robot.usdz \
+  --output GameData/Models/robot/robot.untold \
+  --ConvertOrientation \
+  --source-orientation blender-native \
+  --animation
+```
+
 For large scenes that need tile-based streaming, use `export-untold-tiles` to
 partition the scene and generate a manifest JSON:
 
@@ -179,8 +190,8 @@ final class GameScene {
             if let player = findEntity(name: "player") {
                 rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
                 // Animation clips remain .usdz — .untold does not support animation
-                setEntityAnimations(entityId: player, filename: "running", withExtension: "usdz", name: "running")
-                setEntityAnimations(entityId: player, filename: "idle",    withExtension: "usdz", name: "idle")
+                setEntityAnimations(entityId: player, filename: "running", withExtension: "untold", name: "running")
+                setEntityAnimations(entityId: player, filename: "idle",    withExtension: "untold", name: "idle")
                 setEntityKinetics(entityId: player)
             }
 

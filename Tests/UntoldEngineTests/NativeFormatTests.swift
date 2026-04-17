@@ -507,6 +507,35 @@ final class NativeFormatTests: XCTestCase {
 // MARK: - contentHash validation tests
 
 extension NativeFormatTests {
+    func testAnimationOnlyUntoldFileLoadsSuccessfully() throws {
+        let fixture = try makeAnimationOnlyFixture()
+
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+        XCTAssertEqual(decoded.header.fileType, .animation)
+        XCTAssertEqual(decoded.entities, [])
+        XCTAssertEqual(decoded.meshes, [])
+        XCTAssertEqual(decoded.materials, [])
+        XCTAssertEqual(decoded.textures, [])
+        XCTAssertEqual(decoded.animationClips, [fixture.clip])
+        XCTAssertEqual(decoded.animationChannels, [fixture.channel])
+        XCTAssertEqual(decoded.translationKeyframes, fixture.translationKeyframes)
+        XCTAssertEqual(decoded.rotationKeyframes, fixture.rotationKeyframes)
+
+        let runtimeAsset = try NativeFormatLoader().loadAssetSync(from: fixture.url)
+        XCTAssertTrue(runtimeAsset.nodes.isEmpty)
+        XCTAssertEqual(runtimeAsset.animationClips.count, 1)
+
+        let runtimeClip = try XCTUnwrap(runtimeAsset.animationClips.first)
+        XCTAssertEqual(runtimeClip.name, "running")
+        XCTAssertEqual(runtimeClip.duration, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(runtimeClip.channels.count, 1)
+
+        let runtimeChannel = try XCTUnwrap(runtimeClip.channels.first)
+        XCTAssertEqual(runtimeChannel.jointPath, "/Hips")
+        XCTAssertEqual(runtimeChannel.translations.count, 2)
+        XCTAssertEqual(runtimeChannel.rotations.count, 2)
+    }
+
     func testFileWithValidHashLoadsSuccessfully() throws {
         let fixture = makeTinyFixture(computeHash: true)
         // Should not throw — hash matches the chunk payloads.
@@ -770,5 +799,78 @@ extension NativeFormatTests {
                 .unsupportedCompression(UntoldCompressionType.zstd.rawValue)
             )
         }
+    }
+
+    private struct AnimationOnlyFixture {
+        let url: URL
+        let fileData: Data
+        let clip: UntoldAnimationClipRecordV1
+        let channel: UntoldAnimationChannelRecordV1
+        let translationKeyframes: [UntoldTranslationKeyframeRecordV1]
+        let rotationKeyframes: [UntoldRotationKeyframeRecordV1]
+    }
+
+    private func makeAnimationOnlyFixture() throws -> AnimationOnlyFixture {
+        let stringTable = makeStringTable(["running", "/Hips"])
+
+        let clip = UntoldAnimationClipRecordV1(
+            nameOffset: stringTable.offsets["running"] ?? UntoldFormat.invalidIndex,
+            duration: 1.0,
+            firstChannelRecordIndex: 0,
+            channelRecordCount: 1
+        )
+
+        let channel = UntoldAnimationChannelRecordV1(
+            jointPathOffset: stringTable.offsets["/Hips"] ?? UntoldFormat.invalidIndex,
+            firstTranslationKeyframeIndex: 0,
+            translationKeyframeCount: 2,
+            firstRotationKeyframeIndex: 0,
+            rotationKeyframeCount: 2
+        )
+
+        let translationKeyframes = [
+            UntoldTranslationKeyframeRecordV1(time: 0.0, value: SIMD3<Float>(0, 0, 0)),
+            UntoldTranslationKeyframeRecordV1(time: 1.0, value: SIMD3<Float>(0, 1, 0)),
+        ]
+
+        let rotationKeyframes = [
+            UntoldRotationKeyframeRecordV1(time: 0.0, value: SIMD4<Float>(0, 0, 0, 1)),
+            UntoldRotationKeyframeRecordV1(time: 1.0, value: SIMD4<Float>(0, 0.70710677, 0, 0.70710677)),
+        ]
+
+        let chunkPayloads: [(type: UntoldChunkType, data: Data, elementCount: UInt32)] = [
+            (.stringTable, stringTable.data, 0),
+            (.animationClipTable, encodeChunk([clip]), 1),
+            (.animationChannelTable, encodeChunk([channel]), 1),
+            (.translationKeyframeTable, encodeChunk(translationKeyframes), UInt32(translationKeyframes.count)),
+            (.rotationKeyframeTable, encodeChunk(rotationKeyframes), UInt32(rotationKeyframes.count)),
+        ]
+
+        let bounds = UntoldAABB(min: SIMD3<Float>(0, 0, 0), max: SIMD3<Float>(0, 0, 0))
+        let header = UntoldFileHeaderV1(
+            fileType: .animation,
+            chunkCount: UInt32(chunkPayloads.count),
+            meshCount: 0,
+            materialCount: 0,
+            textureRefCount: 0,
+            entityCount: 0,
+            vertexLayout: .pbrStaticV1,
+            worldBounds: bounds
+        )
+
+        let (fileData, _) = buildFileData(header: header, chunkPayloads: chunkPayloads, computeHash: true)
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("untold")
+        try fileData.write(to: url)
+
+        return AnimationOnlyFixture(
+            url: url,
+            fileData: fileData,
+            clip: clip,
+            channel: channel,
+            translationKeyframes: translationKeyframes,
+            rotationKeyframes: rotationKeyframes
+        )
     }
 }

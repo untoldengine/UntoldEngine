@@ -779,6 +779,147 @@ private func loadUntoldRuntimeAsset(url: URL) -> RuntimeAsset? {
     }
 }
 
+private func registerRuntimeSkeletonIfNeeded(entityId: EntityID, skeleton: RuntimeSkeleton?) {
+    guard let skeleton else { return }
+    guard let nativeSkeleton = Skeleton(runtimeSkeleton: skeleton) else { return }
+
+    registerComponent(entityId: entityId, componentType: SkeletonComponent.self)
+    guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
+        handleError(.noSkeletonComponent, entityId)
+        return
+    }
+    skeletonComponent.skeleton = nativeSkeleton
+}
+
+private func resolvedRuntimeSkeleton(
+    for node: RuntimeAssetNode,
+    nodesByID: [UInt32: RuntimeAssetNode]
+) -> RuntimeSkeleton? {
+    if let skeleton = node.skeleton {
+        return skeleton
+    }
+
+    for primitive in node.primitives {
+        if let skeletonEntityID = primitive.skin?.skeletonEntityID,
+           let referencedSkeleton = nodesByID[skeletonEntityID]?.skeleton
+        {
+            return referencedSkeleton
+        }
+    }
+
+    return nil
+}
+
+private func assignRuntimeSkins(entityId: EntityID, node: RuntimeAssetNode) {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        handleError(.noRenderComponent, entityId)
+        return
+    }
+    guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
+        return
+    }
+
+    // Match the USDZ skinning path: initialize skin buffers from the skeleton's
+    // bind-adjusted rest pose before any animation playback occurs.
+    skeletonComponent.skeleton.resetPoseToRest()
+
+    let count = min(renderComponent.mesh.count, node.primitives.count)
+    for index in 0 ..< count {
+        guard let runtimeSkin = node.primitives[index].skin else { continue }
+        var mesh = renderComponent.mesh[index]
+        mesh.skin = Skin(runtimeSkin: runtimeSkin)
+        mesh.skin?.updateJointMatrices(skeleton: skeletonComponent.skeleton)
+        renderComponent.mesh[index] = mesh
+    }
+    entityMeshMap[entityId] = renderComponent.mesh
+}
+
+private func ensureUntoldNodeComponents(entityId: EntityID) {
+    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+        registerTransformComponent(entityId: entityId)
+    }
+
+    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+        registerSceneGraphComponent(entityId: entityId)
+    }
+}
+
+private func makeMeshes(from node: RuntimeAssetNode) -> [Mesh] {
+    node.primitives.compactMap { primitive -> Mesh? in
+        guard var mesh = Mesh.makeMesh(from: primitive, device: renderInfo.device) else {
+            return nil
+        }
+        mesh.localSpace = matrix_identity_float4x4
+        mesh.worldSpace = matrix_identity_float4x4
+        return mesh
+    }
+}
+
+@discardableResult
+private func registerUntoldNodePayload(
+    entityId: EntityID,
+    node: RuntimeAssetNode,
+    nodesByID: [UInt32: RuntimeAssetNode],
+    url: URL
+) -> Bool {
+    let meshes = makeMeshes(from: node)
+    guard !meshes.isEmpty else { return false }
+
+    associateMeshesToEntity(entityId: entityId, meshes: meshes)
+    registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: node.name)
+    registerRuntimeSkeletonIfNeeded(
+        entityId: entityId,
+        skeleton: resolvedRuntimeSkeleton(for: node, nodesByID: nodesByID)
+    )
+    assignRuntimeSkins(entityId: entityId, node: node)
+    return true
+}
+
+private func ensureAnimationComponent(entityId: EntityID, errorEntityId: EntityID) -> AnimationComponent? {
+    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+        return animationComponent
+    }
+
+    registerComponent(entityId: entityId, componentType: AnimationComponent.self)
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+        handleError(.noAnimationComponent, errorEntityId)
+        return nil
+    }
+
+    return animationComponent
+}
+
+private func registerRuntimeAnimationClips(
+    _ runtimeClips: [RuntimeAnimationClip],
+    preferredName: String,
+    to animationComponent: AnimationComponent
+) -> [String] {
+    var registeredNames: [String] = []
+
+    for runtimeClip in runtimeClips {
+        let animationClip = AnimationClip(runtimeClip: runtimeClip)
+        animationComponent.animationClips[runtimeClip.name] = animationClip
+        registeredNames.append(runtimeClip.name)
+    }
+
+    if runtimeClips.count == 1,
+       let runtimeClip = runtimeClips.first,
+       preferredName.isEmpty == false,
+       preferredName != runtimeClip.name
+    {
+        animationComponent.animationClips[preferredName] = AnimationClip(runtimeClip: runtimeClip)
+        registeredNames.append(preferredName)
+    }
+
+    return registeredNames
+}
+
+private func appendAnimationSourceURLIfNeeded(_ url: URL, to animationComponent: AnimationComponent) {
+    if animationComponent.animationsFilenames.contains(url) == false {
+        animationComponent.animationsFilenames.append(url)
+    }
+}
+
 private func buildUntoldNodePath(nodeID: UInt32, nodesByID: [UInt32: RuntimeAssetNode]) -> String {
     guard let node = nodesByID[nodeID] else {
         return "Root/Unknown#\(nodeID)"
@@ -814,42 +955,25 @@ private func registerUntoldRuntimeAsset(
             handleError(.assetDataMissing, "No node named '\(assetName)' in '\(filename).\(withExtension)'")
             return false
         }
+        let nodesByID = Dictionary(uniqueKeysWithValues: runtimeAsset.nodes.map { ($0.id, $0) })
 
-        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-            registerTransformComponent(entityId: entityId)
-        }
-        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-            registerSceneGraphComponent(entityId: entityId)
-        }
-
+        ensureUntoldNodeComponents(entityId: entityId)
         applyLocalTransform(matchedNode.localTransform, to: entityId)
         setEntityName(entityId: entityId, name: matchedNode.name)
 
-        let meshes = matchedNode.primitives.compactMap { primitive -> Mesh? in
-            guard var mesh = Mesh.makeMesh(from: primitive, device: renderInfo.device) else { return nil }
-            mesh.localSpace = matrix_identity_float4x4
-            mesh.worldSpace = matrix_identity_float4x4
-            return mesh
-        }
-
-        guard !meshes.isEmpty else {
+        guard matchedNode.primitives.isEmpty == false else {
             handleError(.assetDataMissing, "Node '\(assetName)' in '\(filename).\(withExtension)' has no renderable primitives")
             return false
         }
 
-        associateMeshesToEntity(entityId: entityId, meshes: meshes)
-        registerRenderComponent(entityId: entityId, meshes: meshes, url: url, assetName: assetName)
+        guard registerUntoldNodePayload(entityId: entityId, node: matchedNode, nodesByID: nodesByID, url: url) else {
+            handleError(.assetDataMissing, "Node '\(assetName)' in '\(filename).\(withExtension)' has no renderable primitives")
+            return false
+        }
         return true
     }
 
-    if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-        registerTransformComponent(entityId: entityId)
-    }
-
-    if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-        registerSceneGraphComponent(entityId: entityId)
-    }
-
+    ensureUntoldNodeComponents(entityId: entityId)
     applyLocalTransform(runtimeAsset.rootTransform, to: entityId)
 
     let hasHierarchy = runtimeAsset.nodes.count > 1 || runtimeAsset.nodes.contains(where: { $0.parentID != nil || $0.primitives.isEmpty })
@@ -871,24 +995,22 @@ private func registerUntoldRuntimeAsset(
 
     let nodesByID = Dictionary(uniqueKeysWithValues: runtimeAsset.nodes.map { ($0.id, $0) })
     var entityByNodeID: [UInt32: EntityID] = [:]
+    var reusedRootEntity = false
 
     for node in runtimeAsset.nodes {
-        let targetEntityId: EntityID = if runtimeAsset.nodes.count == 1, node.parentID == nil {
-            entityId
+        let targetEntityId: EntityID
+        if node.parentID == nil, reusedRootEntity == false {
+            reusedRootEntity = true
+            targetEntityId = entityId
+        } else if runtimeAsset.nodes.count == 1, node.parentID == nil {
+            targetEntityId = entityId
         } else {
-            createEntity()
+            targetEntityId = createEntity()
         }
 
         entityByNodeID[node.id] = targetEntityId
 
-        if hasComponent(entityId: targetEntityId, componentType: LocalTransformComponent.self) == false {
-            registerTransformComponent(entityId: targetEntityId)
-        }
-
-        if hasComponent(entityId: targetEntityId, componentType: ScenegraphComponent.self) == false {
-            registerSceneGraphComponent(entityId: targetEntityId)
-        }
-
+        ensureUntoldNodeComponents(entityId: targetEntityId)
         applyLocalTransform(node.localTransform, to: targetEntityId)
         setEntityName(entityId: targetEntityId, name: node.name)
 
@@ -908,25 +1030,23 @@ private func registerUntoldRuntimeAsset(
         }
 
         guard !node.primitives.isEmpty else {
+            registerRuntimeSkeletonIfNeeded(
+                entityId: targetEntityId,
+                skeleton: resolvedRuntimeSkeleton(for: node, nodesByID: nodesByID)
+            )
             continue
         }
 
-        let meshes = node.primitives.compactMap { primitive -> Mesh? in
-            guard var mesh = Mesh.makeMesh(from: primitive, device: renderInfo.device) else {
-                return nil
-            }
-            mesh.localSpace = matrix_identity_float4x4
-            mesh.worldSpace = matrix_identity_float4x4
-            return mesh
-        }
-
-        guard !meshes.isEmpty else {
-            continue
-        }
-
-        associateMeshesToEntity(entityId: targetEntityId, meshes: meshes)
-        registerRenderComponent(entityId: targetEntityId, meshes: meshes, url: url, assetName: node.name)
+        _ = registerUntoldNodePayload(entityId: targetEntityId, node: node, nodesByID: nodesByID, url: url)
     }
+
+    // Propagate world transforms for the full hierarchy now that all nodes are
+    // registered. setParent() calls syncWorldTransformAndMarkOctreeDirty on each
+    // child, but at that point the root entity's worldTransformComponent.space has
+    // not yet been updated from its localTransform (e.g. the 90° X rotation baked
+    // into the Armature node by the exporter). Re-running the propagation from the
+    // root after the loop ensures every descendant inherits the correct world transform.
+    syncWorldTransformAndMarkOctreeDirty(entityId: entityId)
 
     return true
 }
@@ -2600,22 +2720,43 @@ public func setEntitySkin(entityId: EntityID, mdlMesh: MDLMesh) {
 }
 
 public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String, name: String) {
-    guard scene.get(component: SkeletonComponent.self, for: entityId) != nil else {
+    let targetEntityId = resolveEntityForAnimationBinding(entityId: entityId) ?? entityId
+    guard scene.get(component: SkeletonComponent.self, for: targetEntityId) != nil else {
         handleError(.noSkeletonComponent, entityId)
         return
-    }
-
-    /// Helper function to add animation clips
-    func addClips(to animationComponent: AnimationComponent) {
-        for assetAnimation in assetAnimations {
-            let animationClip = AnimationClip(animation: assetAnimation, animationName: name)
-            animationComponent.animationClips[name] = animationClip
-        }
     }
 
     let resourceURL = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension)
     guard let url = resourceURL else {
         handleError(.filenameNotFound, filename)
+        return
+    }
+
+    if RuntimeAssetSource.infer(from: url).kind == .untold {
+        guard let runtimeAsset = loadUntoldRuntimeAsset(url: url) else {
+            handleError(.assetHasNoAnimation, filename)
+            return
+        }
+        let runtimeClips = runtimeAsset.animationClips
+        if runtimeClips.isEmpty {
+            handleError(.assetHasNoAnimation, filename)
+            return
+        }
+
+        withWorldMutationGate {
+            guard let animationComponent = ensureAnimationComponent(entityId: targetEntityId, errorEntityId: entityId) else {
+                return
+            }
+
+            let registeredNames = registerRuntimeAnimationClips(runtimeClips, preferredName: name, to: animationComponent)
+            appendAnimationSourceURLIfNeeded(url, to: animationComponent)
+
+            if animationComponent.currentAnimation == nil,
+               let selectedName = registeredNames.first(where: { $0 == name }) ?? registeredNames.first
+            {
+                animationComponent.currentAnimation = animationComponent.animationClips[selectedName]
+            }
+        }
         return
     }
 
@@ -2632,24 +2773,20 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
         return
     }
 
-    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-        withWorldMutationGate {
-            addClips(to: animationComponent)
-        }
-
-        return
-    }
-
     withWorldMutationGate {
-        // register Animation Component
-        registerComponent(entityId: entityId, componentType: AnimationComponent.self)
-
-        guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
-            handleError(.noAnimationComponent, entityId)
+        guard let animationComponent = ensureAnimationComponent(entityId: targetEntityId, errorEntityId: entityId) else {
             return
         }
 
-        addClips(to: animationComponent)
+        for assetAnimation in assetAnimations {
+            let animationClip = AnimationClip(animation: assetAnimation, animationName: name)
+            animationComponent.animationClips[name] = animationClip
+        }
+
+        appendAnimationSourceURLIfNeeded(url, to: animationComponent)
+        if animationComponent.currentAnimation == nil {
+            animationComponent.currentAnimation = animationComponent.animationClips[name]
+        }
     }
 }
 

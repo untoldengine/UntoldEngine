@@ -26,7 +26,7 @@ let redPlayer = createEntity()
 Load your rigged model’s .usdc file and link it to the entity. This step ensures the entity is visually represented in the scene.
 
 ```swift
-setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc", flip: false)
+setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "untold", flip: false)
 ```
 >>> Note: If your model renders with the wrong orientation, set the flip parameter to false.
 
@@ -36,7 +36,7 @@ setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc",
 Load the animation data for your model by providing the animation .usdc file and a name to reference the animation later.
 
 ```swift
-setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
+setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "untold", name: "running")
 ```
 
 ---

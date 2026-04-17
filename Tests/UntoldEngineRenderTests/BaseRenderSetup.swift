@@ -458,9 +458,9 @@ class BaseRenderSetup: XCTestCase {
         translateBy(entityId: ball, position: simd_float3(0.0, 0.4, 3.0))
 
         // transparent grass
-        let grass = createEntity()
-        setEntityMesh(entityId: grass, filename: "grass", withExtension: "usdz")
-        translateBy(entityId: grass, position: simd_float3(2.0, 1.0, 3.0))
+//        let grass = createEntity()
+//        setEntityMesh(entityId: grass, filename: "grass", withExtension: "untold")
+//        translateBy(entityId: grass, position: simd_float3(2.0, 1.0, 3.0))
 
         ambientIntensity = 0.4
 

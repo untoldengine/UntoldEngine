@@ -45,6 +45,40 @@ public final class AnimationSystem: @unchecked Sendable {
 /// instead of add an ifelse conditional jump.
 private func updateAnimationSystemDummy(deltaTime _: Float) {}
 
+private func resolveDescendantEntity(
+    entityId: EntityID,
+    matches: (EntityID) -> Bool
+) -> EntityID? {
+    if matches(entityId) {
+        return entityId
+    }
+
+    guard let scenegraph = scene.get(component: ScenegraphComponent.self, for: entityId) else {
+        return nil
+    }
+
+    for childId in scenegraph.children {
+        if let resolved = resolveDescendantEntity(entityId: childId, matches: matches) {
+            return resolved
+        }
+    }
+
+    return nil
+}
+
+func resolveEntityWithAnimationComponent(entityId: EntityID) -> EntityID? {
+    resolveDescendantEntity(entityId: entityId) {
+        scene.get(component: AnimationComponent.self, for: $0) != nil
+    }
+}
+
+func resolveEntityForAnimationBinding(entityId: EntityID) -> EntityID? {
+    resolveDescendantEntity(entityId: entityId) {
+        scene.get(component: SkeletonComponent.self, for: $0) != nil &&
+            scene.get(component: RenderComponent.self, for: $0) != nil
+    }
+}
+
 private func updateAnimationSystem(deltaTime: Float) {
     currentGlobalTime += deltaTime
 
@@ -72,7 +106,7 @@ private func updateAnimationSystem(deltaTime: Float) {
 
         animationComponent.currentTime += deltaTime * animationComponent.playbackSpeed
 
-        guard let animationClip = animationComponent.currentAnimation else { return }
+        guard let animationClip = animationComponent.currentAnimation else { continue }
 
         skeletonComponent.skeleton.updateWorldPose(
             at: animationComponent.currentTime,
@@ -89,7 +123,8 @@ private func updateAnimationSystem(deltaTime: Float) {
 }
 
 public func pauseAnimationComponent(entityId: EntityID, isPaused: Bool) {
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
         handleError(.noAnimationComponent, entityId)
         return
     }
@@ -98,7 +133,8 @@ public func pauseAnimationComponent(entityId: EntityID, isPaused: Bool) {
 }
 
 public func isAnimationComponentPaused(entityId: EntityID) -> Bool {
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
         handleError(.noAnimationComponent, entityId)
         return true
     }
@@ -107,7 +143,8 @@ public func isAnimationComponentPaused(entityId: EntityID) -> Bool {
 }
 
 public func changeAnimation(entityId: EntityID, name: String, withPause: Bool = false) {
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
         handleError(.noAnimationComponent, entityId)
         return
     }
@@ -122,7 +159,8 @@ public func changeAnimation(entityId: EntityID, name: String, withPause: Bool = 
 }
 
 public func setAnimationPlaybackSpeed(entityId: EntityID, speed: Float) {
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
         handleError(.noAnimationComponent, entityId)
         return
     }
@@ -131,7 +169,8 @@ public func setAnimationPlaybackSpeed(entityId: EntityID, speed: Float) {
 }
 
 public func getAnimationPlaybackSpeed(entityId: EntityID) -> Float {
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
         handleError(.noAnimationComponent, entityId)
         return 1.0
     }
@@ -140,7 +179,8 @@ public func getAnimationPlaybackSpeed(entityId: EntityID) -> Float {
 }
 
 public func getAllAnimationClips(entityId: EntityID) -> [String] {
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
         return []
     }
 
@@ -148,7 +188,8 @@ public func getAllAnimationClips(entityId: EntityID) -> [String] {
 }
 
 public func removeAnimationClip(entityId: EntityID, animationClip: String) {
-    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+    let targetEntityId = resolveEntityWithAnimationComponent(entityId: entityId) ?? entityId
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: targetEntityId) else {
         handleError(.noAnimationComponent, entityId)
         return
     }

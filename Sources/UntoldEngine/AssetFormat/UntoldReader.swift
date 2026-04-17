@@ -30,31 +30,79 @@ public final class UntoldReader: @unchecked Sendable {
             try chunks.append(UntoldChunkEntryV1.decode(from: reader))
         }
         try validateChunkTable(chunks)
-        try validateRequiredChunks(in: chunks)
+        try validateRequiredChunks(in: chunks, fileType: header.fileType)
         try validateContentHash(header, chunks: chunks, fileData: data)
 
         let stringData = try loadRequiredChunk(.stringTable, from: data, entries: chunks)
-        let entities = try decodeTable(
+        let entities = try decodeTableIfPresent(
             UntoldEntityRecordV1.self,
             chunkType: .entityTable,
             from: data,
             entries: chunks
         )
-        let meshes = try decodeTable(
+        let meshes = try decodeTableIfPresent(
             UntoldMeshRecordV1.self,
             chunkType: .meshTable,
             from: data,
             entries: chunks
         )
-        let materials = try decodeTable(
+        let materials = try decodeTableIfPresent(
             UntoldMaterialRecordV1.self,
             chunkType: .materialTable,
             from: data,
             entries: chunks
         )
-        let textures = try decodeTable(
+        let textures = try decodeTableIfPresent(
             UntoldTextureRefRecordV1.self,
             chunkType: .textureTable,
+            from: data,
+            entries: chunks
+        )
+        let skeletons = try decodeTableIfPresent(
+            UntoldSkeletonRecordV1.self,
+            chunkType: .skeletonTable,
+            from: data,
+            entries: chunks
+        )
+        let skeletonJoints = try decodeTableIfPresent(
+            UntoldSkeletonJointRecordV1.self,
+            chunkType: .skeletonJointTable,
+            from: data,
+            entries: chunks
+        )
+        let skins = try decodeTableIfPresent(
+            UntoldSkinRecordV1.self,
+            chunkType: .skinTable,
+            from: data,
+            entries: chunks
+        )
+        let skinJointMappings = try decodeTableIfPresent(
+            UntoldSkinJointMappingRecordV1.self,
+            chunkType: .skinJointMappingTable,
+            from: data,
+            entries: chunks
+        )
+        let animationClips = try decodeTableIfPresent(
+            UntoldAnimationClipRecordV1.self,
+            chunkType: .animationClipTable,
+            from: data,
+            entries: chunks
+        )
+        let animationChannels = try decodeTableIfPresent(
+            UntoldAnimationChannelRecordV1.self,
+            chunkType: .animationChannelTable,
+            from: data,
+            entries: chunks
+        )
+        let translationKeyframes = try decodeTableIfPresent(
+            UntoldTranslationKeyframeRecordV1.self,
+            chunkType: .translationKeyframeTable,
+            from: data,
+            entries: chunks
+        )
+        let rotationKeyframes = try decodeTableIfPresent(
+            UntoldRotationKeyframeRecordV1.self,
+            chunkType: .rotationKeyframeTable,
             from: data,
             entries: chunks
         )
@@ -66,7 +114,15 @@ public final class UntoldReader: @unchecked Sendable {
             entities: entities,
             meshes: meshes,
             materials: materials,
-            textures: textures
+            textures: textures,
+            skeletons: skeletons,
+            skeletonJoints: skeletonJoints,
+            skins: skins,
+            skinJointMappings: skinJointMappings,
+            animationClips: animationClips,
+            animationChannels: animationChannels,
+            translationKeyframes: translationKeyframes,
+            rotationKeyframes: rotationKeyframes
         )
         try validateDecodedAsset(decoded)
         return decoded
@@ -90,16 +146,27 @@ public final class UntoldReader: @unchecked Sendable {
         }
     }
 
-    private func validateRequiredChunks(in chunks: [UntoldChunkEntryV1]) throws {
-        let required: [UntoldChunkType] = [
-            .stringTable,
-            .entityTable,
-            .meshTable,
-            .materialTable,
-            .textureTable,
-            .vertexData,
-            .indexData,
-        ]
+    private func validateRequiredChunks(in chunks: [UntoldChunkEntryV1], fileType: UntoldFileType) throws {
+        let required: [UntoldChunkType] = switch fileType {
+        case .animation:
+            [
+                .stringTable,
+                .animationClipTable,
+                .animationChannelTable,
+                .translationKeyframeTable,
+                .rotationKeyframeTable,
+            ]
+        case .tile, .lod, .hlod, .shared:
+            [
+                .stringTable,
+                .entityTable,
+                .meshTable,
+                .materialTable,
+                .textureTable,
+                .vertexData,
+                .indexData,
+            ]
+        }
         let available = Set(chunks.map(\.chunkType))
         for chunkType in required where !available.contains(chunkType) {
             throw UntoldValidationError.missingRequiredChunk(chunkType)
@@ -138,11 +205,16 @@ public final class UntoldReader: @unchecked Sendable {
     }
 
     private func validateDecodedAsset(_ asset: UntoldDecodedAsset) throws {
-        guard let vertexChunk = asset.chunks.first(where: { $0.chunkType == .vertexData }),
-              let indexChunk = asset.chunks.first(where: { $0.chunkType == .indexData })
-        else {
+        if asset.header.fileType == .animation {
             return
         }
+
+        guard let vertexChunk = asset.chunks.first(where: { $0.chunkType == .vertexData }),
+              let indexChunk = asset.chunks.first(where: { $0.chunkType == .indexData })
+        else { return }
+
+        let jointIndexChunk = asset.chunks.first(where: { $0.chunkType == .jointIndexData })
+        let jointWeightChunk = asset.chunks.first(where: { $0.chunkType == .jointWeightData })
 
         let expectedVertexStride: UInt32 = switch asset.header.vertexLayout {
         case .pbrStaticV1: 32
@@ -185,6 +257,43 @@ public final class UntoldReader: @unchecked Sendable {
                 )
             }
         }
+
+        for skeleton in asset.skeletons {
+            let start = Int(skeleton.firstJointRecordIndex)
+            let end = start + Int(skeleton.jointRecordCount)
+            guard start >= 0, end <= asset.skeletonJoints.count else {
+                throw UntoldValidationError.invalidSkeletonJointRange(
+                    skeletonEntityId: skeleton.entityId,
+                    jointStart: start,
+                    jointEnd: end,
+                    totalJoints: asset.skeletonJoints.count
+                )
+            }
+        }
+
+        for skin in asset.skins {
+            let mappingStart = Int(skin.firstJointMappingIndex)
+            let mappingEnd = mappingStart + Int(skin.jointCount)
+            guard mappingStart >= 0, mappingEnd <= asset.skinJointMappings.count else {
+                throw UntoldValidationError.invalidSkinJointMappingRange(
+                    skinEntityId: skin.entityId,
+                    mappingStart: mappingStart,
+                    mappingEnd: mappingEnd,
+                    totalMappings: asset.skinJointMappings.count
+                )
+            }
+            guard let jointIndexChunk, let jointWeightChunk else {
+                throw UntoldValidationError.missingRequiredChunk(.jointIndexData)
+            }
+            let jointIndexEnd = skin.jointIndexDataOffset + UInt64(skin.vertexCount) * 8
+            let jointWeightEnd = skin.jointWeightDataOffset + UInt64(skin.vertexCount) * 16
+            guard jointIndexEnd <= jointIndexChunk.uncompressedSize else {
+                throw UntoldValidationError.invalidVertexDataRange(offset: skin.jointIndexDataOffset, size: UInt64(skin.vertexCount) * 8, chunkSize: jointIndexChunk.uncompressedSize)
+            }
+            guard jointWeightEnd <= jointWeightChunk.uncompressedSize else {
+                throw UntoldValidationError.invalidVertexDataRange(offset: skin.jointWeightDataOffset, size: UInt64(skin.vertexCount) * 16, chunkSize: jointWeightChunk.uncompressedSize)
+            }
+        }
     }
 
     private func indexElementSize(for indexType: UntoldIndexType) -> UInt64 {
@@ -216,6 +325,18 @@ public final class UntoldReader: @unchecked Sendable {
             try records.append(T.decode(from: chunkReader))
         }
         return records
+    }
+
+    private func decodeTableIfPresent<T: UntoldBinaryDecodable>(
+        _: T.Type,
+        chunkType: UntoldChunkType,
+        from fileData: Data,
+        entries: [UntoldChunkEntryV1]
+    ) throws -> [T] {
+        guard entries.contains(where: { $0.chunkType == chunkType }) else {
+            return []
+        }
+        return try decodeTable(T.self, chunkType: chunkType, from: fileData, entries: entries)
     }
 
     /// Returns decompressed chunk payload for the given chunk type.
@@ -300,6 +421,14 @@ public struct UntoldDecodedAsset: Sendable {
     public let meshes: [UntoldMeshRecordV1]
     public let materials: [UntoldMaterialRecordV1]
     public let textures: [UntoldTextureRefRecordV1]
+    public let skeletons: [UntoldSkeletonRecordV1]
+    public let skeletonJoints: [UntoldSkeletonJointRecordV1]
+    public let skins: [UntoldSkinRecordV1]
+    public let skinJointMappings: [UntoldSkinJointMappingRecordV1]
+    public let animationClips: [UntoldAnimationClipRecordV1]
+    public let animationChannels: [UntoldAnimationChannelRecordV1]
+    public let translationKeyframes: [UntoldTranslationKeyframeRecordV1]
+    public let rotationKeyframes: [UntoldRotationKeyframeRecordV1]
 
     public init(
         header: UntoldFileHeaderV1,
@@ -308,7 +437,15 @@ public struct UntoldDecodedAsset: Sendable {
         entities: [UntoldEntityRecordV1],
         meshes: [UntoldMeshRecordV1],
         materials: [UntoldMaterialRecordV1],
-        textures: [UntoldTextureRefRecordV1]
+        textures: [UntoldTextureRefRecordV1],
+        skeletons: [UntoldSkeletonRecordV1],
+        skeletonJoints: [UntoldSkeletonJointRecordV1],
+        skins: [UntoldSkinRecordV1],
+        skinJointMappings: [UntoldSkinJointMappingRecordV1],
+        animationClips: [UntoldAnimationClipRecordV1],
+        animationChannels: [UntoldAnimationChannelRecordV1],
+        translationKeyframes: [UntoldTranslationKeyframeRecordV1],
+        rotationKeyframes: [UntoldRotationKeyframeRecordV1]
     ) {
         self.header = header
         self.chunks = chunks
@@ -317,6 +454,14 @@ public struct UntoldDecodedAsset: Sendable {
         self.meshes = meshes
         self.materials = materials
         self.textures = textures
+        self.skeletons = skeletons
+        self.skeletonJoints = skeletonJoints
+        self.skins = skins
+        self.skinJointMappings = skinJointMappings
+        self.animationClips = animationClips
+        self.animationChannels = animationChannels
+        self.translationKeyframes = translationKeyframes
+        self.rotationKeyframes = rotationKeyframes
     }
 
     public func string(at offset: UInt32) throws -> String? {

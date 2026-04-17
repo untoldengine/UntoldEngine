@@ -25,6 +25,8 @@ public enum UntoldValidationError: Error, Sendable, Equatable {
     case invalidIndexDataSize(expected: UInt64, actual: UInt64)
     case invalidVertexDataRange(offset: UInt64, size: UInt64, chunkSize: UInt64)
     case invalidIndexDataRange(offset: UInt64, size: UInt64, chunkSize: UInt64)
+    case invalidSkeletonJointRange(skeletonEntityId: UInt32, jointStart: Int, jointEnd: Int, totalJoints: Int)
+    case invalidSkinJointMappingRange(skinEntityId: UInt32, mappingStart: Int, mappingEnd: Int, totalMappings: Int)
     case unsupportedEnumValue
     case contentHashMismatch
     case compressionOutputSizeMismatch(expected: UInt64, actual: UInt64)

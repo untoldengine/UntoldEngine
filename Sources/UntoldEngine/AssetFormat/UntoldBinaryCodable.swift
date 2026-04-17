@@ -331,6 +331,198 @@ extension UntoldTextureRefRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable
     }
 }
 
+extension UntoldSkeletonRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(entityId)
+        writer.writeUInt32LE(nameOffset)
+        writer.writeUInt32LE(firstJointRecordIndex)
+        writer.writeUInt32LE(jointRecordCount)
+        writer.writeUInt32LE(reserved0[safe: 0] ?? 0)
+        writer.writeUInt32LE(reserved0[safe: 1] ?? 0)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldSkeletonRecordV1 {
+        var record = try UntoldSkeletonRecordV1(
+            entityId: reader.readUInt32LE(),
+            nameOffset: reader.readUInt32LE(),
+            firstJointRecordIndex: reader.readUInt32LE(),
+            jointRecordCount: reader.readUInt32LE()
+        )
+        record.reserved0 = try [
+            reader.readUInt32LE(),
+            reader.readUInt32LE(),
+        ]
+        return record
+    }
+}
+
+extension UntoldSkeletonJointRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(parentJointIndex)
+        writer.writeUInt32LE(jointPathOffset)
+        writer.writeUInt32LE(flags)
+        writer.writeUInt32LE(reserved0)
+        writer.writeMatrix4x4LE(bindTransform)
+        writer.writeMatrix4x4LE(restTransform)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldSkeletonJointRecordV1 {
+        let parentJointIndex = try reader.readUInt32LE()
+        let jointPathOffset = try reader.readUInt32LE()
+        let flags = try reader.readUInt32LE()
+        let reserved0 = try reader.readUInt32LE()
+        var record = try UntoldSkeletonJointRecordV1(
+            parentJointIndex: parentJointIndex,
+            jointPathOffset: jointPathOffset,
+            flags: flags,
+            bindTransform: reader.readMatrix4x4LE(),
+            restTransform: reader.readMatrix4x4LE()
+        )
+        record.reserved0 = reserved0
+        return record
+    }
+}
+
+extension UntoldSkinRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(entityId)
+        writer.writeUInt32LE(meshRecordIndex)
+        writer.writeUInt32LE(skeletonEntityId)
+        writer.writeUInt32LE(jointCount)
+        writer.writeUInt32LE(firstJointMappingIndex)
+        writer.writeUInt32LE(vertexCount)
+        writer.writeUInt64LE(jointIndexDataOffset)
+        writer.writeUInt64LE(jointWeightDataOffset)
+        writer.writeUInt32LE(reserved0)
+        writer.writeUInt32LE(0)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldSkinRecordV1 {
+        var record = try UntoldSkinRecordV1(
+            entityId: reader.readUInt32LE(),
+            meshRecordIndex: reader.readUInt32LE(),
+            skeletonEntityId: reader.readUInt32LE(),
+            jointCount: reader.readUInt32LE(),
+            firstJointMappingIndex: reader.readUInt32LE(),
+            jointIndexDataOffset: 0,
+            jointWeightDataOffset: 0,
+            vertexCount: reader.readUInt32LE()
+        )
+        record.jointIndexDataOffset = try reader.readUInt64LE()
+        record.jointWeightDataOffset = try reader.readUInt64LE()
+        record.reserved0 = try reader.readUInt32LE()
+        _ = try reader.readUInt32LE()
+        return record
+    }
+}
+
+extension UntoldSkinJointMappingRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(skeletonJointIndex)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldSkinJointMappingRecordV1 {
+        try UntoldSkinJointMappingRecordV1(skeletonJointIndex: reader.readUInt32LE())
+    }
+}
+
+extension UntoldAnimationClipRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(nameOffset)
+        writer.writeFloat32LE(duration)
+        writer.writeUInt32LE(firstChannelRecordIndex)
+        writer.writeUInt32LE(channelRecordCount)
+        writer.writeUInt32LE(flags)
+        writer.writeUInt32LE(reserved0[safe: 0] ?? 0)
+        writer.writeUInt32LE(reserved0[safe: 1] ?? 0)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldAnimationClipRecordV1 {
+        var record = try UntoldAnimationClipRecordV1(
+            nameOffset: reader.readUInt32LE(),
+            duration: reader.readFloat32LE(),
+            firstChannelRecordIndex: reader.readUInt32LE(),
+            channelRecordCount: reader.readUInt32LE(),
+            flags: reader.readUInt32LE()
+        )
+        record.reserved0 = try [
+            reader.readUInt32LE(),
+            reader.readUInt32LE(),
+        ]
+        return record
+    }
+}
+
+extension UntoldAnimationChannelRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeUInt32LE(jointPathOffset)
+        writer.writeUInt32LE(firstTranslationKeyframeIndex)
+        writer.writeUInt32LE(translationKeyframeCount)
+        writer.writeUInt32LE(firstRotationKeyframeIndex)
+        writer.writeUInt32LE(rotationKeyframeCount)
+        writer.writeUInt32LE(flags)
+        writer.writeUInt32LE(reserved0)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldAnimationChannelRecordV1 {
+        var record = try UntoldAnimationChannelRecordV1(
+            jointPathOffset: reader.readUInt32LE(),
+            firstTranslationKeyframeIndex: reader.readUInt32LE(),
+            translationKeyframeCount: reader.readUInt32LE(),
+            firstRotationKeyframeIndex: reader.readUInt32LE(),
+            rotationKeyframeCount: reader.readUInt32LE(),
+            flags: reader.readUInt32LE()
+        )
+        record.reserved0 = try reader.readUInt32LE()
+        return record
+    }
+}
+
+extension UntoldTranslationKeyframeRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeFloat32LE(time)
+        writer.writeFloat32LE(value.x)
+        writer.writeFloat32LE(value.y)
+        writer.writeFloat32LE(value.z)
+        writer.writeUInt32LE(reserved0)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldTranslationKeyframeRecordV1 {
+        var record = try UntoldTranslationKeyframeRecordV1(
+            time: reader.readFloat32LE(),
+            value: SIMD3<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            )
+        )
+        record.reserved0 = try reader.readUInt32LE()
+        return record
+    }
+}
+
+extension UntoldRotationKeyframeRecordV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
+    public func encode(to writer: UntoldBinaryWriter) {
+        writer.writeFloat32LE(time)
+        writer.writeFloat32LE(value.x)
+        writer.writeFloat32LE(value.y)
+        writer.writeFloat32LE(value.z)
+        writer.writeFloat32LE(value.w)
+    }
+
+    public static func decode(from reader: UntoldBinaryReader) throws -> UntoldRotationKeyframeRecordV1 {
+        try UntoldRotationKeyframeRecordV1(
+            time: reader.readFloat32LE(),
+            value: SIMD4<Float>(
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE(),
+                reader.readFloat32LE()
+            )
+        )
+    }
+}
+
 extension UntoldPBRStaticVertexV1: UntoldBinaryEncodable, UntoldBinaryDecodable {
     public func encode(to writer: UntoldBinaryWriter) {
         writer.writeFloat32LE(position.x)

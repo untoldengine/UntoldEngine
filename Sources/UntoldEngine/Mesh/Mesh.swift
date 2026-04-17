@@ -1042,6 +1042,12 @@ public struct Mesh {
             let tangents = tangentBuffer.map().bytes.bindMemory(to: simd_float4.self, capacity: decodedVertices.count)
             let jointIndices = jointIndexBuffer.map().bytes.bindMemory(to: simd_ushort4.self, capacity: decodedVertices.count)
             let jointWeights = jointWeightBuffer.map().bytes.bindMemory(to: simd_float4.self, capacity: decodedVertices.count)
+            let runtimeJointIndices = primitive.skin?.jointIndexData.withUnsafeBytes {
+                $0.bindMemory(to: simd_ushort4.self)
+            }
+            let runtimeJointWeights = primitive.skin?.jointWeightData.withUnsafeBytes {
+                $0.bindMemory(to: simd_float4.self)
+            }
 
             for (index, vertex) in decodedVertices.enumerated() {
                 positions[index] = simd_float4(vertex.position.x, vertex.position.y, vertex.position.z, 1.0)
@@ -1057,11 +1063,18 @@ public struct Mesh {
                     Float(Float16(bitPattern: vertex.uv0.y))
                 )
 
-                // Non-skinned runtime assets still need these streams because the engine's
-                // shared model vertex descriptor declares them. Keep them zeroed so the
-                // shader's `hasArmature == false` path remains valid.
-                jointIndices[index] = simd_ushort4(0, 0, 0, 0)
-                jointWeights[index] = simd_float4(0, 0, 0, 0)
+                if let runtimeJointIndices, index < runtimeJointIndices.count,
+                   let runtimeJointWeights, index < runtimeJointWeights.count
+                {
+                    jointIndices[index] = runtimeJointIndices[index]
+                    jointWeights[index] = runtimeJointWeights[index]
+                } else {
+                    // Non-skinned runtime assets still need these streams because the engine's
+                    // shared model vertex descriptor declares them. Keep them zeroed so the
+                    // shader's `hasArmature == false` path remains valid.
+                    jointIndices[index] = simd_ushort4(0, 0, 0, 0)
+                    jointWeights[index] = simd_float4(0, 0, 0, 0)
+                }
             }
 
             let indexBuffer = allocator.newBuffer(primitive.indexData.count, type: .index)
