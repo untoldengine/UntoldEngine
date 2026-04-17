@@ -2183,7 +2183,7 @@ private struct TileEntry: Decodable {
     /// Sorted ascending by switch_distance in the manifest (finest first).
     let lodLevels: [LODLevelEntry]?
 
-    // ── Quadtree / semantic-tier fields (manifest v4, optional) ──────────────
+    /// ── Quadtree / semantic-tier fields (manifest v4, optional) ──────────────
     /// Floor index within the building.  0 = ground floor.
     /// Present in v4 (quadtree_floor partitioning) manifests only.
     let floorId: Int?
@@ -2490,8 +2490,8 @@ private func registerTiledScene(
                 // Log semantic-tier info when present (v4 quadtree manifests).
                 if let tier = tile.semanticTier {
                     let floorTag = tile.floorId.map { "floor=\($0) " } ?? ""
-                    Logger.log(message: "[loadTiledScene] \(tile.tileId): \(floorTag)tier=\(tier) stream=\(String(format: "%.1f", configuredStreamingRadius))m")}
-
+                    Logger.log(message: "[loadTiledScene] \(tile.tileId): \(floorTag)tier=\(tier) stream=\(String(format: "%.1f", configuredStreamingRadius))m")
+                }
 
                 // HLOD: use the first level if present. Existence is validated at
                 // load time so remote URLs are accepted without a local file check.
