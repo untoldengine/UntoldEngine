@@ -215,6 +215,11 @@ TIER_STREAMING_RADII = {
     "FineProps":          {"streaming":  2.0, "unload":   4.0, "priority":  5},
 }
 
+# Tiers for which HLOD and LOD variants are generated during quadtree export.
+# RoomContents (stream=5m) and FineProps (stream=2m) have radii too small for
+# a meaningful HLOD band given SWITCH_DISTANCE_MIN_GAP=2.0, so they are skipped.
+HLOD_LOD_TIERS = {"ExteriorShell", "StructuralInterior"}
+
 # Short codes written into tile IDs and manifest tier fields.
 TIER_SHORT_CODES = {
     "ExteriorShell":      "ES",
@@ -3046,6 +3051,8 @@ def _export_quadtree_tiles_parallel(
     source_scene_path,
     output_dir,
     ext,
+    active_hlod_levels=None,
+    active_lod_levels=None,
 ):
     """Spawn Blender worker subprocesses to export quadtree tile-tier pairs in parallel.
 
@@ -3053,6 +3060,9 @@ def _export_quadtree_tiles_parallel(
     tile_bounds is set to None for all quadtree tiles; the worker passes it
     straight through to export_local_tile which skips clipping when
     CLIP_LOCAL_MESHES=False (the quadtree default).
+
+    active_hlod_levels / active_lod_levels are forwarded to each worker so that
+    HLOD and LOD variants are generated for tiles whose tier warrants it.
 
     Returns a dict {tile_id: result_dict} on success, or None when parallel
     export is not applicable (PARALLEL_WORKERS=1 or too few tiles).
@@ -3101,8 +3111,8 @@ def _export_quadtree_tiles_parallel(
             bundle = {
                 "source_scene_path": source_scene_path,
                 "config":            cfg,
-                "active_hlod_levels": [],
-                "active_lod_levels":  [],
+                "active_hlod_levels": active_hlod_levels or [],
+                "active_lod_levels":  active_lod_levels or [],
                 "tiles":             batch,
             }
             bundle_path = os.path.join(tmpdir, f"worker_{i:02d}_bundle.json")
@@ -3780,6 +3790,8 @@ def run():
             source_scene_path,
             output_dir,
             ext,
+            active_hlod_levels=active_hlod_levels,
+            active_lod_levels=active_lod_levels,
         )
 
         for (node_id, tier), tile_objs in sorted_groups:
@@ -3807,12 +3819,32 @@ def run():
                     floor_id = m["floor_id"]
                     break
 
+            # HLOD/LOD is only useful for tiers with radii large enough to form a
+            # meaningful switch band (ExteriorShell, StructuralInterior).
+            tier_wants_hlod_lod = tier in HLOD_LOD_TIERS
+
             if qt_parallel_results is not None:
                 # --- Parallel path: tile was exported by a worker subprocess ---
-                result = qt_parallel_results.get(tile_id)
-                ok     = bool(result and result.get("ok"))
-                error  = result.get("error") if result else "Worker did not report a result"
+                result  = qt_parallel_results.get(tile_id)
+                ok      = bool(result and result.get("ok"))
+                error   = result.get("error") if result else "Worker did not report a result"
                 file_sz = result.get("file_size_bytes", 0) if result else 0
+                hlod_entries = [
+                    {
+                        "path": os.path.relpath(r["filepath"], model_dir),
+                        "switch_distance": r["switch_distance"],
+                    }
+                    for r in (result.get("hlod_results", []) if result else [])
+                    if r.get("ok")
+                ]
+                lod_entries = [
+                    {
+                        "path": os.path.relpath(r["filepath"], model_dir),
+                        "switch_distance": r["switch_distance"],
+                    }
+                    for r in (result.get("lod_results", []) if result else [])
+                    if r.get("ok")
+                ]
             else:
                 # --- Sequential path ---
                 print(
@@ -3825,6 +3857,54 @@ def run():
                 except Exception as ex:
                     ok, error = False, str(ex)
                 file_sz = os.path.getsize(filepath) if ok and os.path.isfile(filepath) else 0
+
+                hlod_entries = []
+                lod_entries  = []
+                if ok and tier_wants_hlod_lod:
+                    for level in active_hlod_levels:
+                        hlod_filename = f"{tile_id}{level['suffix']}.{ext}"
+                        hlod_filepath = os.path.join(output_dir, hlod_filename)
+                        print(
+                            f"  [QT] HLOD {hlod_filename} "
+                            f"(ratio={level['reduction_ratio']:.3f}, switch={level['switch_distance']:.1f}m)"
+                        )
+                        try:
+                            hlod_ok, hlod_err = export_hlod_tile(
+                                hlod_filepath, tile_objs, None,
+                                level["reduction_ratio"], source_scene_path, "hlod",
+                            )
+                        except Exception as ex:
+                            hlod_ok, hlod_err = False, str(ex)
+                        if not hlod_ok:
+                            print(f"    HLOD FAILED: {hlod_err}")
+                            continue
+                        hlod_entries.append({
+                            "path": os.path.relpath(hlod_filepath, model_dir),
+                            "switch_distance": level["switch_distance"],
+                        })
+
+                    for lod_idx, lod in enumerate(active_lod_levels):
+                        lod_n        = lod_idx + 1
+                        lod_filename = f"{tile_id}_lod{lod_n}.{ext}"
+                        lod_filepath = os.path.join(output_dir, lod_filename)
+                        print(
+                            f"  [QT] LOD{lod_n} {lod_filename} "
+                            f"(ratio={lod['ratio']:.3f}, switch={lod['switch_distance']:.1f}m)"
+                        )
+                        try:
+                            lod_ok, lod_err = export_hlod_tile(
+                                lod_filepath, tile_objs, None,
+                                lod["ratio"], source_scene_path, "lod",
+                            )
+                        except Exception as ex:
+                            lod_ok, lod_err = False, str(ex)
+                        if not lod_ok:
+                            print(f"    LOD{lod_n} FAILED: {lod_err}")
+                            continue
+                        lod_entries.append({
+                            "path": os.path.relpath(lod_filepath, model_dir),
+                            "switch_distance": lod["switch_distance"],
+                        })
 
             if not ok:
                 print(f"  FAILED ({tile_id}): {error}")
@@ -3848,8 +3928,8 @@ def run():
                 "streaming_radius": tile_stream,
                 "unload_radius":    tile_unload,
                 "priority":         tile_priority,
-                "hlod_levels": [],
-                "lod_levels":  [],
+                "hlod_levels": hlod_entries,
+                "lod_levels":  lod_entries,
                 "interior": tier != "ExteriorShell",
                 "file_size_bytes":       file_sz,
                 "estimated_memory_bytes": est_mem,
