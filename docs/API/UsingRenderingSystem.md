@@ -24,7 +24,7 @@ let entity = createEntity()
 To display a model, load its .usdc file and link it to the entity using setEntityMesh.
 
 ```swift
-setEntityMesh(entityId: entity, filename: "entity", withExtension: "usdz")
+setEntityMesh(entityId: entity, filename: "entity", withExtension: "untold")
 ```
 
 Parameters:

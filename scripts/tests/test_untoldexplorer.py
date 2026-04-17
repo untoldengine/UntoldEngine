@@ -147,6 +147,7 @@ class UntoldExplorerTests(unittest.TestCase):
             "--source-orientation",
             "engine-oriented",
             "--validate",
+            "--animation",
         ])
 
         self.assertEqual(args.input, "scene.usdz")
@@ -156,6 +157,7 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertTrue(args.convert_orientation)
         self.assertEqual(args.source_orientation, "engine-oriented")
         self.assertTrue(args.validate)
+        self.assertTrue(args.animation)
 
     def test_normalize_blender_path_and_blender_required(self) -> None:
         resolved = u.normalize_blender_path("./scripts/../scripts/untoldexplorer.py")
@@ -163,6 +165,13 @@ class UntoldExplorerTests(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             u.blender_required()
+
+    def test_normalize_weights_padding_case_stays_four_wide(self) -> None:
+        weights = u.normalize_weights([0.75, 0.25])[:2]
+        padded = weights + [0.0] * (4 - len(weights))
+        self.assertEqual(len(padded), 4)
+        self.assertAlmostEqual(sum(padded), 1.0)
+        self.assertEqual(padded[2:], [0.0, 0.0])
 
 
 if __name__ == "__main__":

@@ -20,17 +20,34 @@
         init() {
             configureEngineSystems()
             setupDefaultSceneObjects()
-            setSceneReady(true)
+            setSceneReady(false)
 
-            // Add ad-hoc sandbox loads here when testing engine APIs.
-            // Example:
-            // loadMesh(named: "/YourAsset", withExtension: "untold") { success in
-            //    setSceneReady(success)
-            // }
+            // Make sure to convert your usdz files to .untold format as explained in docs/API/UsingTheExporter
 
-            // loadScene(from: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!) { success in
-            //     setSceneReady(success)
-            // }
+            // Uncomment to render a simple mesh.
+            /*
+             let entity = createEntity()
+
+             setEntityMeshAsync(entityId: entity, filename: "/path/to/mesh", withExtension: "untold") { success in
+
+                 setEntityName(entityId: entity, name: "redplayer")
+
+                 //load animation
+                 setEntityAnimations(entityId: entity, filename: "/path/to/animation", withExtension: "untold", name: "running")
+
+                 changeAnimation(entityId: entity, name: "running")
+
+                 setSceneReady(true)
+
+             }
+              */
+
+            // Uncomment to render a streamed scene
+            /*
+              loadStreamingScene(from: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!) { success in
+                  setSceneReady(success)
+              }
+             */
         }
 
         private func configureEngineSystems() {
@@ -52,49 +69,7 @@
             setEntityName(entityId: light, name: "Directional Light")
             createDirLight(entityId: light)
         }
-    }
 
-    extension GameScene {
-        func loadMesh(
-            named filename: String,
-            withExtension pathExtension: String = "untold",
-            completion: @escaping @Sendable (Bool) -> Void
-        ) {
-            setSceneReady(false)
-
-            if let loadedEntity {
-                destroyEntity(entityId: loadedEntity)
-                self.loadedEntity = nil
-            }
-
-            let entity = createEntity()
-            setEntityName(entityId: entity, name: filename)
-
-            setEntityMeshAsync(entityId: entity, filename: filename, withExtension: pathExtension) { [weak self] success in
-                guard let self else { return }
-                loadedEntity = success ? entity : nil
-                setSceneReady(success)
-                completion(success)
-            }
-        }
-
-        func loadScene(from url: URL, completion: @escaping @Sendable (Bool) -> Void) {
-            setSceneReady(false)
-
-            if let loadedEntity {
-                destroyEntity(entityId: loadedEntity)
-                self.loadedEntity = nil
-            }
-
-            GeometryStreamingSystem.shared.enabled = true
-            loadTiledScene(url: url) { success in
-                setSceneReady(success)
-                completion(success)
-            }
-        }
-    }
-
-    extension GameScene {
         func update(deltaTime _: Float) {
             if gameMode == false { return }
         }
@@ -138,4 +113,22 @@
             wasRightMousePressed = input.keyState.rightMousePressed
         }
     }
+
+    extension GameScene {
+        func loadStreamingScene(from url: URL, completion: @escaping @Sendable (Bool) -> Void) {
+            setSceneReady(false)
+
+            if let loadedEntity {
+                destroyEntity(entityId: loadedEntity)
+                self.loadedEntity = nil
+            }
+
+            GeometryStreamingSystem.shared.enabled = true
+            loadTiledScene(url: url) { success in
+                setSceneReady(success)
+                completion(success)
+            }
+        }
+    }
+
 #endif

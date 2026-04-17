@@ -96,19 +96,13 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
 
         XCTAssertTrue(hasComponent(entityId: rootEntity, componentType: AssetInstanceComponent.self))
         XCTAssertFalse(hasComponent(entityId: rootEntity, componentType: RenderComponent.self))
+        XCTAssertEqual(getEntityName(entityId: rootEntity), "ParentNode")
+        XCTAssertFalse(hasComponent(entityId: rootEntity, componentType: DerivedAssetNodeComponent.self))
 
         let rootChildren = getEntityChildren(parentId: rootEntity)
         XCTAssertEqual(rootChildren.count, 1)
 
-        let parentNodeEntity = try XCTUnwrap(rootChildren.first)
-        XCTAssertEqual(getEntityName(entityId: parentNodeEntity), "ParentNode")
-        XCTAssertTrue(hasComponent(entityId: parentNodeEntity, componentType: DerivedAssetNodeComponent.self))
-        XCTAssertFalse(hasComponent(entityId: parentNodeEntity, componentType: RenderComponent.self))
-
-        let childNodeChildren = getEntityChildren(parentId: parentNodeEntity)
-        XCTAssertEqual(childNodeChildren.count, 1)
-
-        let childMeshEntity = try XCTUnwrap(childNodeChildren.first)
+        let childMeshEntity = try XCTUnwrap(rootChildren.first)
         XCTAssertEqual(getEntityName(entityId: childMeshEntity), "ChildMeshNode")
         XCTAssertTrue(hasComponent(entityId: childMeshEntity, componentType: DerivedAssetNodeComponent.self))
         XCTAssertTrue(hasComponent(entityId: childMeshEntity, componentType: RenderComponent.self))
@@ -155,20 +149,29 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
         let allDerivedNodes = collectDescendantEntities(from: rootEntity).filter {
             hasComponent(entityId: $0, componentType: DerivedAssetNodeComponent.self)
         }
-        XCTAssertEqual(allDerivedNodes.count, runtimeAsset.nodes.count)
+        let rootNode = try XCTUnwrap(runtimeAsset.nodes.first(where: { $0.parentID == nil }))
+        XCTAssertEqual(getEntityName(entityId: rootEntity), rootNode.name)
+        XCTAssertEqual(allDerivedNodes.count, runtimeAsset.nodes.count - 1)
 
         let derivedNames = Set(allDerivedNodes.map { getEntityName(entityId: $0) })
-        XCTAssertEqual(derivedNames, Set(runtimeAsset.nodes.map(\.name)))
+        XCTAssertEqual(derivedNames, Set(runtimeAsset.nodes.map(\.name)).subtracting([rootNode.name]))
 
         let renderNodes = allDerivedNodes.filter { hasComponent(entityId: $0, componentType: RenderComponent.self) }
-        XCTAssertEqual(renderNodes.count, runtimeAsset.nodes.filter { !$0.primitives.isEmpty }.count)
+        let expectedDerivedRenderCount = runtimeAsset.nodes.filter { !$0.primitives.isEmpty && $0.id != rootNode.id }.count
+        XCTAssertEqual(renderNodes.count, expectedDerivedRenderCount)
 
-        let entityByName = Dictionary(uniqueKeysWithValues: allDerivedNodes.map { (getEntityName(entityId: $0), $0) })
+        var entityByName = Dictionary(uniqueKeysWithValues: allDerivedNodes.map { (getEntityName(entityId: $0), $0) })
+        entityByName[rootNode.name] = rootEntity
         let nodeByID = Dictionary(uniqueKeysWithValues: runtimeAsset.nodes.map { ($0.id, $0) })
 
         for node in runtimeAsset.nodes {
             guard let entity = entityByName[node.name] else {
                 XCTFail("Missing derived entity for runtime node \(node.name)")
+                continue
+            }
+
+            if entity == rootEntity, node.parentID == nil {
+                XCTAssertNil(getEntityParent(entityId: entity))
                 continue
             }
 

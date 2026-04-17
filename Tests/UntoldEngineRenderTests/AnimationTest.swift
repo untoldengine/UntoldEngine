@@ -63,7 +63,9 @@ final class AnimationTests: BaseRenderSetup {
             return
         }
 
-        guard let animationComponent = scene.get(component: AnimationComponent.self, for: player) else {
+        // redplayer is hierarchical: AnimationComponent lives on the resolved child entity.
+        let animEntityId = resolveEntityWithAnimationComponent(entityId: player) ?? player
+        guard let animationComponent = scene.get(component: AnimationComponent.self, for: animEntityId) else {
             XCTFail("Missing AnimationComponent for player entity")
             return
         }
@@ -105,7 +107,9 @@ final class AnimationTests: BaseRenderSetup {
             return
         }
 
-        guard let animationComponent = scene.get(component: AnimationComponent.self, for: player) else {
+        // redplayer is hierarchical: AnimationComponent lives on the resolved child entity.
+        let animEntityId = resolveEntityWithAnimationComponent(entityId: player) ?? player
+        guard let animationComponent = scene.get(component: AnimationComponent.self, for: animEntityId) else {
             XCTFail("Missing AnimationComponent for player entity")
             return
         }
@@ -119,20 +123,20 @@ final class AnimationTests: BaseRenderSetup {
 
     override func initializeAssets() {
         cameraLookAt(entityId: findGameCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
-
-        // Player (animated, named for lookup)
-        let player = createEntity()
-        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "usdz", flip: false)
-        setEntityName(entityId: player, name: "player")
-        rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
-        setEntityAnimations(entityId: player, filename: "running", withExtension: "usdz", name: "running")
-
-        changeAnimation(entityId: player, name: "running")
-
         ambientIntensity = 0.4
 
         let sunEntity: EntityID = createEntity()
-
         createDirLight(entityId: sunEntity)
+
+        // Player (animated, named for lookup). Use synchronous load so the entity
+        // is fully registered (RenderComponent + SkeletonComponent on its child)
+        // before setUp calls setVisibleEntities() and tests access findEntity("player").
+        let player = createEntity()
+        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "untold")
+        // Name must be set after setEntityMesh: the loader overwrites the root entity's
+        // name with the asset's root node name during registration.
+        setEntityName(entityId: player, name: "player")
+        setEntityAnimations(entityId: player, filename: "running", withExtension: "untold", name: "running")
+        changeAnimation(entityId: player, name: "running")
     }
 }

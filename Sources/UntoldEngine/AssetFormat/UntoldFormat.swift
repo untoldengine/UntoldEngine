@@ -29,6 +29,7 @@ public enum UntoldFileType: UInt32, Sendable {
     case lod = 2
     case hlod = 3
     case shared = 4
+    case animation = 5
 }
 
 public enum UntoldChunkType: UInt32, Sendable {
@@ -39,6 +40,16 @@ public enum UntoldChunkType: UInt32, Sendable {
     case textureTable = 5
     case vertexData = 6
     case indexData = 7
+    case skeletonTable = 8
+    case skeletonJointTable = 9
+    case skinTable = 10
+    case skinJointMappingTable = 11
+    case animationClipTable = 12
+    case animationChannelTable = 13
+    case translationKeyframeTable = 14
+    case rotationKeyframeTable = 15
+    case jointIndexData = 16
+    case jointWeightData = 17
 }
 
 public enum UntoldCompressionType: UInt32, Sendable {
@@ -331,6 +342,165 @@ public struct UntoldTextureRefRecordV1: Sendable, Equatable {
         self.height = height
         self.mipCount = mipCount
         reserved0 = 0
+    }
+}
+
+public struct UntoldSkeletonRecordV1: Sendable, Equatable {
+    public var entityId: UInt32
+    public var nameOffset: UInt32
+    public var firstJointRecordIndex: UInt32
+    public var jointRecordCount: UInt32
+    public var reserved0: [UInt32]
+
+    public init(
+        entityId: UInt32,
+        nameOffset: UInt32 = UntoldFormat.invalidIndex,
+        firstJointRecordIndex: UInt32 = 0,
+        jointRecordCount: UInt32 = 0
+    ) {
+        self.entityId = entityId
+        self.nameOffset = nameOffset
+        self.firstJointRecordIndex = firstJointRecordIndex
+        self.jointRecordCount = jointRecordCount
+        reserved0 = [0, 0]
+    }
+}
+
+public struct UntoldSkeletonJointRecordV1: Sendable, Equatable {
+    public var parentJointIndex: UInt32
+    public var jointPathOffset: UInt32
+    public var flags: UInt32
+    public var reserved0: UInt32
+    public var bindTransform: simd_float4x4
+    public var restTransform: simd_float4x4
+
+    public init(
+        parentJointIndex: UInt32 = UntoldFormat.invalidIndex,
+        jointPathOffset: UInt32,
+        flags: UInt32 = 0,
+        bindTransform: simd_float4x4,
+        restTransform: simd_float4x4
+    ) {
+        self.parentJointIndex = parentJointIndex
+        self.jointPathOffset = jointPathOffset
+        self.flags = flags
+        reserved0 = 0
+        self.bindTransform = bindTransform
+        self.restTransform = restTransform
+    }
+}
+
+public struct UntoldSkinRecordV1: Sendable, Equatable {
+    public var entityId: UInt32
+    public var meshRecordIndex: UInt32
+    public var skeletonEntityId: UInt32
+    public var jointCount: UInt32
+    public var firstJointMappingIndex: UInt32
+    public var jointIndexDataOffset: UInt64
+    public var jointWeightDataOffset: UInt64
+    public var vertexCount: UInt32
+    public var reserved0: UInt32
+
+    public init(
+        entityId: UInt32,
+        meshRecordIndex: UInt32,
+        skeletonEntityId: UInt32,
+        jointCount: UInt32,
+        firstJointMappingIndex: UInt32,
+        jointIndexDataOffset: UInt64,
+        jointWeightDataOffset: UInt64,
+        vertexCount: UInt32
+    ) {
+        self.entityId = entityId
+        self.meshRecordIndex = meshRecordIndex
+        self.skeletonEntityId = skeletonEntityId
+        self.jointCount = jointCount
+        self.firstJointMappingIndex = firstJointMappingIndex
+        self.jointIndexDataOffset = jointIndexDataOffset
+        self.jointWeightDataOffset = jointWeightDataOffset
+        self.vertexCount = vertexCount
+        reserved0 = 0
+    }
+}
+
+public struct UntoldSkinJointMappingRecordV1: Sendable, Equatable {
+    public var skeletonJointIndex: UInt32
+
+    public init(skeletonJointIndex: UInt32) {
+        self.skeletonJointIndex = skeletonJointIndex
+    }
+}
+
+public struct UntoldAnimationClipRecordV1: Sendable, Equatable {
+    public var nameOffset: UInt32
+    public var duration: Float
+    public var firstChannelRecordIndex: UInt32
+    public var channelRecordCount: UInt32
+    public var flags: UInt32
+    public var reserved0: [UInt32]
+
+    public init(
+        nameOffset: UInt32,
+        duration: Float,
+        firstChannelRecordIndex: UInt32,
+        channelRecordCount: UInt32,
+        flags: UInt32 = 0
+    ) {
+        self.nameOffset = nameOffset
+        self.duration = duration
+        self.firstChannelRecordIndex = firstChannelRecordIndex
+        self.channelRecordCount = channelRecordCount
+        self.flags = flags
+        reserved0 = [0, 0]
+    }
+}
+
+public struct UntoldAnimationChannelRecordV1: Sendable, Equatable {
+    public var jointPathOffset: UInt32
+    public var firstTranslationKeyframeIndex: UInt32
+    public var translationKeyframeCount: UInt32
+    public var firstRotationKeyframeIndex: UInt32
+    public var rotationKeyframeCount: UInt32
+    public var flags: UInt32
+    public var reserved0: UInt32
+
+    public init(
+        jointPathOffset: UInt32,
+        firstTranslationKeyframeIndex: UInt32,
+        translationKeyframeCount: UInt32,
+        firstRotationKeyframeIndex: UInt32,
+        rotationKeyframeCount: UInt32,
+        flags: UInt32 = 0
+    ) {
+        self.jointPathOffset = jointPathOffset
+        self.firstTranslationKeyframeIndex = firstTranslationKeyframeIndex
+        self.translationKeyframeCount = translationKeyframeCount
+        self.firstRotationKeyframeIndex = firstRotationKeyframeIndex
+        self.rotationKeyframeCount = rotationKeyframeCount
+        self.flags = flags
+        reserved0 = 0
+    }
+}
+
+public struct UntoldTranslationKeyframeRecordV1: Sendable, Equatable {
+    public var time: Float
+    public var value: SIMD3<Float>
+    public var reserved0: UInt32
+
+    public init(time: Float, value: SIMD3<Float>) {
+        self.time = time
+        self.value = value
+        reserved0 = 0
+    }
+}
+
+public struct UntoldRotationKeyframeRecordV1: Sendable, Equatable {
+    public var time: Float
+    public var value: SIMD4<Float>
+
+    public init(time: Float, value: SIMD4<Float>) {
+        self.time = time
+        self.value = value
     }
 }
 

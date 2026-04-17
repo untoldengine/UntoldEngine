@@ -26,9 +26,23 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         let fileData = try Data(contentsOf: url, options: .mappedIfSafe)
         let reader = UntoldReader()
         let decoded = try reader.readAsset(from: fileData)
+        let animationClips = try makeRuntimeAnimationClips(decoded: decoded)
 
-        let vertexChunkData = try reader.readChunkData(.vertexData, from: fileData, entries: decoded.chunks)
-        let indexChunkData = try reader.readChunkData(.indexData, from: fileData, entries: decoded.chunks)
+        let vertexChunkData: Data
+        let indexChunkData: Data
+        let jointIndexChunkData: Data?
+        let jointWeightChunkData: Data?
+        if decoded.header.fileType == .animation {
+            vertexChunkData = Data()
+            indexChunkData = Data()
+            jointIndexChunkData = nil
+            jointWeightChunkData = nil
+        } else {
+            vertexChunkData = try reader.readChunkData(.vertexData, from: fileData, entries: decoded.chunks)
+            indexChunkData = try reader.readChunkData(.indexData, from: fileData, entries: decoded.chunks)
+            jointIndexChunkData = try? reader.readChunkData(.jointIndexData, from: fileData, entries: decoded.chunks)
+            jointWeightChunkData = try? reader.readChunkData(.jointWeightData, from: fileData, entries: decoded.chunks)
+        }
 
         let runtimeMaterials = try decoded.materials.map { try makeRuntimeMaterial(from: $0, decoded: decoded, baseURL: url.deletingLastPathComponent()) }
         let nodes = try makeRuntimeNodes(
@@ -36,7 +50,9 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             rootTransform: decoded.header.rootTransform,
             runtimeMaterials: runtimeMaterials,
             vertexChunkData: vertexChunkData,
-            indexChunkData: indexChunkData
+            indexChunkData: indexChunkData,
+            jointIndexChunkData: jointIndexChunkData,
+            jointWeightChunkData: jointWeightChunkData
         )
 
         return RuntimeAsset(
@@ -45,7 +61,8 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             assetName: url.deletingPathExtension().lastPathComponent,
             rootTransform: decoded.header.rootTransform,
             worldBounds: decoded.header.worldBounds,
-            nodes: nodes
+            nodes: nodes,
+            animationClips: animationClips
         )
     }
 
@@ -64,9 +81,13 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         rootTransform: simd_float4x4,
         runtimeMaterials: [RuntimeMaterialSource],
         vertexChunkData: Data,
-        indexChunkData: Data
+        indexChunkData: Data,
+        jointIndexChunkData: Data?,
+        jointWeightChunkData: Data?
     ) throws -> [RuntimeAssetNode] {
+        guard decoded.header.fileType != .animation else { return [] }
         let entitiesByID = Dictionary(uniqueKeysWithValues: decoded.entities.map { ($0.entityId, $0) })
+        let runtimeSkeletonsByEntity = try makeRuntimeSkeletonsByEntity(decoded: decoded)
         var worldTransformsByID: [UInt32: simd_float4x4] = [:]
         var visiting: Set<UInt32> = []
 
@@ -101,7 +122,10 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
                 resolvedWorldTransform: resolvedWorldTransform(for: entity),
                 runtimeMaterials: runtimeMaterials,
                 vertexChunkData: vertexChunkData,
-                indexChunkData: indexChunkData
+                indexChunkData: indexChunkData,
+                jointIndexChunkData: jointIndexChunkData,
+                jointWeightChunkData: jointWeightChunkData,
+                runtimeSkeletonsByEntity: runtimeSkeletonsByEntity
             )
         }
     }
@@ -112,21 +136,27 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         resolvedWorldTransform: simd_float4x4,
         runtimeMaterials: [RuntimeMaterialSource],
         vertexChunkData: Data,
-        indexChunkData: Data
+        indexChunkData: Data,
+        jointIndexChunkData: Data?,
+        jointWeightChunkData: Data?,
+        runtimeSkeletonsByEntity: [UInt32: RuntimeSkeleton]
     ) throws -> RuntimeAssetNode {
         let nodeName = try decoded.string(at: entity.nameOffset) ?? "entity_\(entity.entityId)"
         let meshStart = Int(entity.firstMeshRecordIndex)
         let meshEnd = meshStart + Int(entity.meshRecordCount)
         let primitives: [RuntimeMeshPrimitive]
         if meshStart < meshEnd, meshStart >= 0, meshEnd <= decoded.meshes.count {
-            primitives = try decoded.meshes[meshStart ..< meshEnd].map { mesh in
+            primitives = try decoded.meshes[meshStart ..< meshEnd].enumerated().map { offset, mesh in
                 try makeRuntimePrimitive(
                     from: mesh,
+                    meshIndex: UInt32(meshStart + offset),
                     entity: entity,
                     decoded: decoded,
                     runtimeMaterials: runtimeMaterials,
                     vertexChunkData: vertexChunkData,
-                    indexChunkData: indexChunkData
+                    indexChunkData: indexChunkData,
+                    jointIndexChunkData: jointIndexChunkData,
+                    jointWeightChunkData: jointWeightChunkData
                 )
             }
         } else {
@@ -141,17 +171,21 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             worldTransform: resolvedWorldTransform,
             localBounds: entity.localBounds,
             worldBounds: entity.worldBounds,
+            skeleton: runtimeSkeletonsByEntity[entity.entityId],
             primitives: primitives
         )
     }
 
     private func makeRuntimePrimitive(
         from mesh: UntoldMeshRecordV1,
+        meshIndex: UInt32,
         entity: UntoldEntityRecordV1,
         decoded: UntoldDecodedAsset,
         runtimeMaterials: [RuntimeMaterialSource],
         vertexChunkData: Data,
-        indexChunkData: Data
+        indexChunkData: Data,
+        jointIndexChunkData: Data?,
+        jointWeightChunkData: Data?
     ) throws -> RuntimeMeshPrimitive {
         let vertexLayout: RuntimeVertexLayout = switch decoded.header.vertexLayout {
         case .pbrStaticV1:
@@ -184,6 +218,32 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             material = nil
         }
 
+        let skinRecord = decoded.skins.first(where: { $0.meshRecordIndex == meshIndex })
+        let skin: RuntimeSkinBinding?
+        if let skinRecord, let jointIndexChunkData, let jointWeightChunkData {
+            let mappingStart = Int(skinRecord.firstJointMappingIndex)
+            let mappingEnd = mappingStart + Int(skinRecord.jointCount)
+            let mapping = decoded.skinJointMappings[mappingStart ..< mappingEnd].map { Int($0.skeletonJointIndex) }
+            let jointIndexData = try slice(
+                from: jointIndexChunkData,
+                offset: Int(skinRecord.jointIndexDataOffset),
+                size: Int(skinRecord.vertexCount) * MemoryLayout<SIMD4<UInt16>>.stride
+            )
+            let jointWeightData = try slice(
+                from: jointWeightChunkData,
+                offset: Int(skinRecord.jointWeightDataOffset),
+                size: Int(skinRecord.vertexCount) * MemoryLayout<SIMD4<Float>>.stride
+            )
+            skin = RuntimeSkinBinding(
+                skeletonEntityID: skinRecord.skeletonEntityId == UntoldFormat.invalidIndex ? nil : skinRecord.skeletonEntityId,
+                skinToSkeletonMap: mapping,
+                jointIndexData: jointIndexData,
+                jointWeightData: jointWeightData
+            )
+        } else {
+            skin = nil
+        }
+
         return RuntimeMeshPrimitive(
             name: primitiveName,
             localTransform: matrix_identity_float4x4,
@@ -197,8 +257,62 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             vertexCount: Int(mesh.vertexCount),
             indexCount: Int(mesh.indexCount),
             material: material,
+            skin: skin,
             estimatedGPUBytes: Int(mesh.estimatedGPUBytes)
         )
+    }
+
+    private func makeRuntimeSkeletonsByEntity(decoded: UntoldDecodedAsset) throws -> [UInt32: RuntimeSkeleton] {
+        var result: [UInt32: RuntimeSkeleton] = [:]
+        for skeleton in decoded.skeletons {
+            let start = Int(skeleton.firstJointRecordIndex)
+            let end = start + Int(skeleton.jointRecordCount)
+            let joints = Array(decoded.skeletonJoints[start ..< end])
+            let jointPaths = try joints.map { try decoded.string(at: $0.jointPathOffset) ?? "" }
+            let parentIndices = joints.map { $0.parentJointIndex == UntoldFormat.invalidIndex ? nil : Int($0.parentJointIndex) }
+            let bindTransforms = joints.map(\.bindTransform)
+            let restTransforms = joints.map(\.restTransform)
+            result[skeleton.entityId] = try RuntimeSkeleton(
+                name: decoded.string(at: skeleton.nameOffset),
+                jointPaths: jointPaths,
+                parentIndices: parentIndices,
+                bindTransforms: bindTransforms,
+                restTransforms: restTransforms
+            )
+        }
+        return result
+    }
+
+    private func makeRuntimeAnimationClips(decoded: UntoldDecodedAsset) throws -> [RuntimeAnimationClip] {
+        try decoded.animationClips.enumerated().map { _, clip in
+            let channelStart = Int(clip.firstChannelRecordIndex)
+            let channelEnd = channelStart + Int(clip.channelRecordCount)
+            let channels = try decoded.animationChannels[channelStart ..< channelEnd].map { channel in
+                let translationStart = Int(channel.firstTranslationKeyframeIndex)
+                let translationEnd = translationStart + Int(channel.translationKeyframeCount)
+                let translations = decoded.translationKeyframes[translationStart ..< translationEnd].map {
+                    RuntimeTranslationKeyframe(time: $0.time, value: $0.value)
+                }
+
+                let rotationStart = Int(channel.firstRotationKeyframeIndex)
+                let rotationEnd = rotationStart + Int(channel.rotationKeyframeCount)
+                let rotations = decoded.rotationKeyframes[rotationStart ..< rotationEnd].map {
+                    RuntimeRotationKeyframe(time: $0.time, value: $0.value)
+                }
+
+                return try RuntimeAnimationChannel(
+                    jointPath: decoded.string(at: channel.jointPathOffset) ?? "",
+                    translations: translations,
+                    rotations: rotations
+                )
+            }
+
+            return try RuntimeAnimationClip(
+                name: decoded.string(at: clip.nameOffset) ?? "clip",
+                duration: clip.duration,
+                channels: Array(channels)
+            )
+        }
     }
 
     private func makeRuntimeMaterial(

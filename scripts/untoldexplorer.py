@@ -56,6 +56,7 @@ FILE_TYPES = {
     "lod": 2,
     "hlod": 3,
     "shared": 4,
+    "animation": 5,
 }
 
 CHUNK_TYPES = {
@@ -66,6 +67,16 @@ CHUNK_TYPES = {
     "texture_table": 5,
     "vertex_data": 6,
     "index_data": 7,
+    "skeleton_table": 8,
+    "skeleton_joint_table": 9,
+    "skin_table": 10,
+    "skin_joint_mapping_table": 11,
+    "animation_clip_table": 12,
+    "animation_channel_table": 13,
+    "translation_keyframe_table": 14,
+    "rotation_keyframe_table": 15,
+    "joint_index_data": 16,
+    "joint_weight_data": 17,
 }
 
 VERTEX_LAYOUT_PBR_STATIC_V1 = 1
@@ -307,6 +318,71 @@ class MeshRecord:
 
 
 @dataclass(frozen=True)
+class SkeletonRecord:
+    entity_id: int
+    name_offset: int
+    first_joint_record_index: int
+    joint_record_count: int
+
+
+@dataclass(frozen=True)
+class SkeletonJointRecord:
+    parent_joint_index: int
+    joint_path_offset: int
+    flags: int
+    bind_transform_rows: list[list[float]]
+    rest_transform_rows: list[list[float]]
+
+
+@dataclass(frozen=True)
+class SkinRecord:
+    entity_id: int
+    mesh_record_index: int
+    skeleton_entity_id: int
+    joint_count: int
+    first_joint_mapping_index: int
+    joint_index_data_offset: int
+    joint_weight_data_offset: int
+    vertex_count: int
+
+
+@dataclass(frozen=True)
+class SkinJointMappingRecord:
+    skeleton_joint_index: int
+
+
+@dataclass(frozen=True)
+class AnimationClipRecord:
+    name_offset: int
+    duration: float
+    first_channel_record_index: int
+    channel_record_count: int
+    flags: int = 0
+
+
+@dataclass(frozen=True)
+class AnimationChannelRecord:
+    joint_path_offset: int
+    first_translation_keyframe_index: int
+    translation_keyframe_count: int
+    first_rotation_keyframe_index: int
+    rotation_keyframe_count: int
+    flags: int = 0
+
+
+@dataclass(frozen=True)
+class TranslationKeyframeRecord:
+    time: float
+    value: tuple[float, float, float]
+
+
+@dataclass(frozen=True)
+class RotationKeyframeRecord:
+    time: float
+    value: tuple[float, float, float, float]
+
+
+@dataclass(frozen=True)
 class ExportedTexture:
     name: str
     uri: str
@@ -367,6 +443,7 @@ class ExportedMesh:
     index_count: int
     index_type: int
     material: ExportedMaterial
+    skin_binding: Optional["ExportedSkinBinding"]
     validation_mesh: ValidationMesh
 
 
@@ -377,7 +454,59 @@ class ExportedNode:
     local_transform_rows: list[list[float]]
     local_bounds: AABB
     world_bounds: AABB
+    skeleton: Optional[ExportedSkeleton] = None
     mesh: Optional[ExportedMesh] = None
+
+
+@dataclass(frozen=True)
+class ExportedSkeletonJoint:
+    name: str
+    path: str
+    parent_index: int
+    bind_transform_rows: list[list[float]]
+    rest_transform_rows: list[list[float]]
+
+
+@dataclass(frozen=True)
+class ExportedSkeleton:
+    entity_name: str
+    name: str
+    joints: list[ExportedSkeletonJoint]
+
+
+@dataclass(frozen=True)
+class ExportedSkinBinding:
+    skeleton_entity_name: str
+    joint_count: int
+    skin_to_skeleton_map: list[int]
+    joint_indices: bytes
+    joint_weights: bytes
+
+
+@dataclass(frozen=True)
+class ExportedAnimationChannel:
+    joint_path: str
+    translations: list["KeyframeVector3"]
+    rotations: list["KeyframeQuaternion"]
+
+
+@dataclass(frozen=True)
+class ExportedAnimationClip:
+    name: str
+    duration: float
+    channels: list[ExportedAnimationChannel]
+
+
+@dataclass(frozen=True)
+class KeyframeVector3:
+    time: float
+    value: tuple[float, float, float]
+
+
+@dataclass(frozen=True)
+class KeyframeQuaternion:
+    time: float
+    value: tuple[float, float, float, float]
 
 
 @dataclass
@@ -527,6 +656,77 @@ def write_texture_record(writer: BinaryWriter, texture: TextureRecord) -> None:
     writer.write_u32(0)
 
 
+def write_skeleton_record(writer: BinaryWriter, skeleton: SkeletonRecord) -> None:
+    writer.write_u32(skeleton.entity_id)
+    writer.write_u32(skeleton.name_offset)
+    writer.write_u32(skeleton.first_joint_record_index)
+    writer.write_u32(skeleton.joint_record_count)
+    writer.write_u32(0)
+    writer.write_u32(0)
+
+
+def write_skeleton_joint_record(writer: BinaryWriter, joint: SkeletonJointRecord) -> None:
+    writer.write_u32(joint.parent_joint_index)
+    writer.write_u32(joint.joint_path_offset)
+    writer.write_u32(joint.flags)
+    writer.write_u32(0)
+    writer.write_matrix4x4_column_major(joint.bind_transform_rows)
+    writer.write_matrix4x4_column_major(joint.rest_transform_rows)
+
+
+def write_skin_record(writer: BinaryWriter, skin: SkinRecord) -> None:
+    writer.write_u32(skin.entity_id)
+    writer.write_u32(skin.mesh_record_index)
+    writer.write_u32(skin.skeleton_entity_id)
+    writer.write_u32(skin.joint_count)
+    writer.write_u32(skin.first_joint_mapping_index)
+    writer.write_u32(skin.vertex_count)
+    writer.write_u64(skin.joint_index_data_offset)
+    writer.write_u64(skin.joint_weight_data_offset)
+    writer.write_u32(0)
+    writer.write_u32(0)
+
+
+def write_skin_joint_mapping_record(writer: BinaryWriter, mapping: SkinJointMappingRecord) -> None:
+    writer.write_u32(mapping.skeleton_joint_index)
+
+
+def write_animation_clip_record(writer: BinaryWriter, clip: AnimationClipRecord) -> None:
+    writer.write_u32(clip.name_offset)
+    writer.write_f32(clip.duration)
+    writer.write_u32(clip.first_channel_record_index)
+    writer.write_u32(clip.channel_record_count)
+    writer.write_u32(clip.flags)
+    writer.write_u32(0)
+    writer.write_u32(0)
+
+
+def write_animation_channel_record(writer: BinaryWriter, channel: AnimationChannelRecord) -> None:
+    writer.write_u32(channel.joint_path_offset)
+    writer.write_u32(channel.first_translation_keyframe_index)
+    writer.write_u32(channel.translation_keyframe_count)
+    writer.write_u32(channel.first_rotation_keyframe_index)
+    writer.write_u32(channel.rotation_keyframe_count)
+    writer.write_u32(channel.flags)
+    writer.write_u32(0)
+
+
+def write_translation_keyframe_record(writer: BinaryWriter, keyframe: TranslationKeyframeRecord) -> None:
+    writer.write_f32(keyframe.time)
+    writer.write_f32(keyframe.value[0])
+    writer.write_f32(keyframe.value[1])
+    writer.write_f32(keyframe.value[2])
+    writer.write_u32(0)
+
+
+def write_rotation_keyframe_record(writer: BinaryWriter, keyframe: RotationKeyframeRecord) -> None:
+    writer.write_f32(keyframe.time)
+    writer.write_f32(keyframe.value[0])
+    writer.write_f32(keyframe.value[1])
+    writer.write_f32(keyframe.value[2])
+    writer.write_f32(keyframe.value[3])
+
+
 def write_vertex(
     writer: BinaryWriter,
     *,
@@ -673,6 +873,136 @@ def transform_bounds(points: list[tuple[float, float, float]], conversion_matrix
     return aabb_from_points(transform_point(conversion_matrix, point) for point in points)
 
 
+def pack_joint_indices(indices: list[int]) -> bytes:
+    padded = list(indices[:4]) + [0] * max(0, 4 - len(indices))
+    return struct.pack("<4H", *padded[:4])
+
+
+def pack_joint_weights(weights: list[float]) -> bytes:
+    padded = list(weights[:4]) + [0.0] * max(0, 4 - len(weights))
+    return struct.pack("<4f", *padded[:4])
+
+
+def normalize_weights(weights: list[float]) -> list[float]:
+    total = sum(weights)
+    if total <= 1.0e-8:
+        return [0.0, 0.0, 0.0, 0.0]
+    return [weight / total for weight in weights]
+
+
+def armature_for_mesh(mesh_object: object) -> Optional[object]:
+    parent = getattr(mesh_object, "parent", None)
+    if parent is not None and getattr(parent, "type", None) == "ARMATURE":
+        return parent
+
+    for modifier in getattr(mesh_object, "modifiers", []):
+        if getattr(modifier, "type", None) == "ARMATURE" and getattr(modifier, "object", None) is not None:
+            return modifier.object
+    return None
+
+
+def bone_path(bone: object) -> str:
+    names: list[str] = [bone.name]
+    parent = bone.parent
+    while parent is not None:
+        names.append(parent.name)
+        parent = parent.parent
+    return "/" + "/".join(reversed(names))
+
+
+def extract_skeleton(armature_object: object, entity_name: str, conversion_matrix: Optional[object]) -> ExportedSkeleton:
+    bones = list(getattr(armature_object.data, "bones", []))
+    bone_index_by_name = {bone.name: index for index, bone in enumerate(bones)}
+    joints: list[ExportedSkeletonJoint] = []
+
+    for bone in bones:
+        bind_matrix = bone.matrix_local.copy()
+        if bone.parent is not None:
+            rest_local = bone.parent.matrix_local.inverted() @ bone.matrix_local
+        else:
+            rest_local = bone.matrix_local.copy()
+
+        bind_rows = matrix_rows_from_blender(bind_matrix)
+        rest_rows = matrix_rows_from_blender(rest_local)
+        if conversion_matrix is not None:
+            bind_rows = transform_matrix_rows(bind_rows, conversion_matrix)
+            rest_rows = transform_matrix_rows(rest_rows, conversion_matrix)
+
+        joints.append(
+            ExportedSkeletonJoint(
+                name=bone.name,
+                path=bone_path(bone),
+                parent_index=bone_index_by_name.get(bone.parent.name, INVALID_INDEX) if bone.parent is not None else INVALID_INDEX,
+                bind_transform_rows=bind_rows,
+                rest_transform_rows=rest_rows,
+            )
+        )
+
+    return ExportedSkeleton(entity_name=entity_name, name=armature_object.name, joints=joints)
+
+
+def extract_skin_binding(mesh_object: object) -> Optional[tuple[str, list[int], list[tuple[int, int, int, int]], list[tuple[float, float, float, float]]]]:
+    armature_object = armature_for_mesh(mesh_object)
+    if armature_object is None:
+        return None
+
+    bones = list(getattr(armature_object.data, "bones", []))
+    if not bones:
+        return None
+
+    bone_index_by_name = {bone.name: index for index, bone in enumerate(bones)}
+    group_name_by_index = {group.index: group.name for group in getattr(mesh_object, "vertex_groups", [])}
+
+    per_vertex_global_indices: list[list[int]] = []
+    per_vertex_weights: list[list[float]] = []
+    used_skeleton_indices: set[int] = set()
+
+    for vertex in getattr(mesh_object.data, "vertices", []):
+        influences: list[tuple[int, float]] = []
+        for assignment in getattr(vertex, "groups", []):
+            group_name = group_name_by_index.get(assignment.group)
+            if group_name is None:
+                continue
+            skeleton_index = bone_index_by_name.get(group_name)
+            if skeleton_index is None:
+                continue
+            weight = float(assignment.weight)
+            if weight <= 0.0:
+                continue
+            influences.append((skeleton_index, weight))
+
+        influences.sort(key=lambda item: item[1], reverse=True)
+        influences = influences[:4]
+        if not influences:
+            per_vertex_global_indices.append([0, 0, 0, 0])
+            per_vertex_weights.append([0.0, 0.0, 0.0, 0.0])
+            continue
+
+        used_skeleton_indices.update(index for index, _ in influences)
+        indices = [index for index, _ in influences]
+        weights = normalize_weights([weight for _, weight in influences])[:len(indices)]
+        per_vertex_global_indices.append(indices + [0] * (4 - len(indices)))
+        per_vertex_weights.append(weights + [0.0] * (4 - len(weights)))
+
+    if not used_skeleton_indices:
+        return None
+
+    skin_to_skeleton_map = sorted(used_skeleton_indices)
+    skeleton_to_skin = {skeleton_index: skin_index for skin_index, skeleton_index in enumerate(skin_to_skeleton_map)}
+
+    packed_indices: list[tuple[int, int, int, int]] = []
+    packed_weights: list[tuple[float, float, float, float]] = []
+    for global_indices, weights in zip(per_vertex_global_indices, per_vertex_weights):
+        local_indices = [
+            skeleton_to_skin.get(global_index, 0) if weight > 0.0 else 0
+            for global_index, weight in zip(global_indices, weights)
+        ]
+        packed_indices.append((local_indices[0], local_indices[1], local_indices[2], local_indices[3]))
+        packed_weights.append((weights[0], weights[1], weights[2], weights[3]))
+
+    return armature_object.name, skin_to_skeleton_map, packed_indices, packed_weights
+
+
 def aabb_corners(bounds: AABB) -> list[tuple[float, float, float]]:
     minimum = bounds.minimum
     maximum = bounds.maximum
@@ -724,6 +1054,36 @@ def choose_export_objects(imported_objects: list[object], mesh_name: Optional[st
 
     for mesh_object in mesh_objects:
         add_object_and_ancestors(mesh_object)
+
+    return selected_objects
+
+
+def include_linked_armatures(export_objects: list[object]) -> list[object]:
+    selected_ids = {obj.as_pointer() for obj in export_objects}
+    selected_objects = list(export_objects)
+
+    def add_object_and_ancestors(obj: object) -> None:
+        current = obj
+        chain: list[object] = []
+        while current is not None:
+            pointer = current.as_pointer()
+            if pointer in selected_ids:
+                break
+            chain.append(current)
+            current = getattr(current, "parent", None)
+
+        for candidate in reversed(chain):
+            pointer = candidate.as_pointer()
+            if pointer in selected_ids:
+                continue
+            selected_ids.add(pointer)
+            selected_objects.append(candidate)
+
+    mesh_objects = [obj for obj in export_objects if getattr(obj, "type", None) == "MESH"]
+    for mesh_object in mesh_objects:
+        armature_object = armature_for_mesh(mesh_object)
+        if armature_object is not None:
+            add_object_and_ancestors(armature_object)
 
     return selected_objects
 
@@ -1377,6 +1737,16 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
     if n_verts == 0 or n_tris == 0:
         raise RuntimeError("The imported mesh has no vertices")
 
+    skin_binding_source = extract_skin_binding(mesh_object)
+    vertex_skin_indices = None
+    vertex_skin_weights = None
+    skeleton_entity_name = None
+    skin_to_skeleton_map = None
+    if skin_binding_source is not None:
+        skeleton_entity_name, skin_to_skeleton_map, raw_joint_indices, raw_joint_weights = skin_binding_source
+        vertex_skin_indices = np.array(raw_joint_indices, dtype=np.uint16)
+        vertex_skin_weights = np.array(raw_joint_weights, dtype=np.float32)
+
     has_uvs = len(mesh_data.uv_layers) > 0
     if has_uvs:
         mesh_data.calc_tangents(uvmap=mesh_data.uv_layers[0].name)
@@ -1445,6 +1815,12 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
     c_uv0 = loop_uv0[tl_flat]              # (N, 2)
     c_uv1 = loop_uv1[tl_flat]              # (N, 2)
     c_col = loop_colors[tl_flat]            # (N, 4)
+    if vertex_skin_indices is not None and vertex_skin_weights is not None:
+        c_jidx = vertex_skin_indices[c_vi]
+        c_jwgt = vertex_skin_weights[c_vi]
+    else:
+        c_jidx = np.zeros((len(c_vi), 4), dtype=np.uint16)
+        c_jwgt = np.zeros((len(c_vi), 4), dtype=np.float32)
 
     # ── orientation conversion ─────────────────────────────────────────────
 
@@ -1471,6 +1847,8 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
         (c_uv0.astype(np.float64) * _P).round().astype(np.int64),   # (N, 2)
         (c_uv1.astype(np.float64) * _P).round().astype(np.int64),   # (N, 2)
         (np.clip(c_col, 0.0, 1.0) * 255.0).round().astype(np.int64),  # (N, 4)
+        c_jidx.astype(np.int64),  # (N, 4)
+        (np.clip(c_jwgt, 0.0, 1.0) * _P).round().astype(np.int64),  # (N, 4)
     ], axis=1)  # (N, 18) int64
 
     keys_c = np.ascontiguousarray(keys)
@@ -1488,6 +1866,8 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
     u_uv0 = c_uv0[first_occ]   # (U, 2)
     u_uv1 = c_uv1[first_occ]   # (U, 2)
     u_col = c_col[first_occ]   # (U, 4)
+    u_jidx = c_jidx[first_occ] # (U, 4)
+    u_jwgt = c_jwgt[first_occ] # (U, 4)
 
     # ── vectorized packing ─────────────────────────────────────────────────
 
@@ -1505,6 +1885,8 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
     vtx["cr"] = col8[:, 0];  vtx["cg"] = col8[:, 1]
     vtx["cb"] = col8[:, 2];  vtx["ca"] = col8[:, 3]
     vertex_bytes = vtx.tobytes()
+    joint_index_bytes = u_jidx.astype(np.uint16).tobytes()
+    joint_weight_bytes = u_jwgt.astype(np.float32).tobytes()
 
     # ── index buffer ───────────────────────────────────────────────────────
 
@@ -1570,6 +1952,17 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
         index_count=int(inverse.size),
         index_type=index_type,
         material=extract_material(mesh_object, asset_path),
+        skin_binding=(
+            ExportedSkinBinding(
+                skeleton_entity_name=skeleton_entity_name,
+                joint_count=len(skin_to_skeleton_map),
+                skin_to_skeleton_map=skin_to_skeleton_map,
+                joint_indices=joint_index_bytes,
+                joint_weights=joint_weight_bytes,
+            )
+            if skeleton_entity_name is not None and skin_to_skeleton_map is not None
+            else None
+        ),
         validation_mesh=vmesh,
     )
 
@@ -1624,6 +2017,15 @@ def extract_mesh_object(
         index_type = INDEX_TYPE_UINT16
         unique_vertices: dict[tuple[object, ...], int] = {}
         indices: list[int] = []
+        joint_index_writer = BinaryWriter()
+        joint_weight_writer = BinaryWriter()
+        skin_binding_source = extract_skin_binding(mesh_object)
+        skeleton_entity_name = None
+        skin_to_skeleton_map = None
+        vertex_skin_indices: list[tuple[int, int, int, int]] = []
+        vertex_skin_weights: list[tuple[float, float, float, float]] = []
+        if skin_binding_source is not None:
+            skeleton_entity_name, skin_to_skeleton_map, vertex_skin_indices, vertex_skin_weights = skin_binding_source
         exported_positions: list[tuple[float, float, float]] = [] if _validate else None
         exported_normals: list[tuple[float, float, float]] = [] if _validate else None
         exported_tangents: list[ValidationTangent] = [] if _validate else None
@@ -1652,6 +2054,12 @@ def extract_mesh_object(
                     tangent = transform_direction(conversion_matrix, tangent, (1.0, 0.0, 0.0))
                 uv0_pair = (float(uv0[0]), float(uv0[1]))
                 uv1_pair = (float(uv1[0]), float(uv1[1]))
+                if vertex_skin_indices:
+                    joint_index_tuple = vertex_skin_indices[loop.vertex_index]
+                    joint_weight_tuple = vertex_skin_weights[loop.vertex_index]
+                else:
+                    joint_index_tuple = (0, 0, 0, 0)
+                    joint_weight_tuple = (0.0, 0.0, 0.0, 0.0)
                 key = (
                     round(position[0], 8), round(position[1], 8), round(position[2], 8),
                     round(normal[0], 8),   round(normal[1], 8),   round(normal[2], 8),
@@ -1661,6 +2069,8 @@ def extract_mesh_object(
                     round(uv1_pair[0], 8), round(uv1_pair[1], 8),
                     color_to_u8(float(color_value[0])), color_to_u8(float(color_value[1])),
                     color_to_u8(float(color_value[2])), color_to_u8(float(color_value[3])),
+                    joint_index_tuple,
+                    tuple(round(weight, 8) for weight in joint_weight_tuple),
                 )
                 vertex_index = unique_vertices.get(key)
                 if vertex_index is None:
@@ -1677,6 +2087,8 @@ def extract_mesh_object(
                         handedness=handedness, uv0=uv0_pair, uv1=uv1_pair,
                         color0=vector4(color_value),
                     )
+                    joint_index_writer.write_bytes(pack_joint_indices(list(joint_index_tuple)))
+                    joint_weight_writer.write_bytes(pack_joint_weights(list(joint_weight_tuple)))
                 indices.append(vertex_index)
 
         if len(unique_vertices) > 65535:
@@ -1723,6 +2135,17 @@ def extract_mesh_object(
             index_count=len(indices),
             index_type=index_type,
             material=extract_material(mesh_object, asset_path),
+            skin_binding=(
+                ExportedSkinBinding(
+                    skeleton_entity_name=skeleton_entity_name,
+                    joint_count=len(skin_to_skeleton_map),
+                    skin_to_skeleton_map=skin_to_skeleton_map,
+                    joint_indices=joint_index_writer.data,
+                    joint_weights=joint_weight_writer.data,
+                )
+                if skeleton_entity_name is not None and skin_to_skeleton_map is not None
+                else None
+            ),
             validation_mesh=vmesh,
         )
     finally:
@@ -1815,6 +2238,7 @@ def extract_nodes(
     clear_scene()
     imported_objects = import_usd_asset(asset_path)
     export_objects = choose_export_objects(imported_objects, mesh_name)
+    export_objects = include_linked_armatures(export_objects)
     export_objects = split_blender_objects_by_material(export_objects)
     return extract_nodes_from_objects(
         export_objects,
@@ -1891,6 +2315,7 @@ def extract_nodes_from_objects(
             local_transform_rows = transform_matrix_rows(local_transform_rows, conversion_matrix)
 
         mesh = exported_meshes_by_name.get(obj.name)
+        skeleton = extract_skeleton(obj, obj.name, conversion_matrix) if getattr(obj, "type", None) == "ARMATURE" else None
         if mesh is not None:
             local_bounds = mesh.local_bounds
             world_bounds = mesh.world_bounds
@@ -1916,6 +2341,7 @@ def extract_nodes_from_objects(
                 local_transform_rows=local_transform_rows,
                 local_bounds=local_bounds,
                 world_bounds=world_bounds,
+                skeleton=skeleton,
                 mesh=mesh,
             )
         )
@@ -1953,8 +2379,14 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
     material_indices: dict[tuple[object, ...], int] = {}
     entities: list[EntityRecord] = []
     meshes: list[MeshRecord] = []
+    skeletons: list[SkeletonRecord] = []
+    skeleton_joints: list[SkeletonJointRecord] = []
+    skins: list[SkinRecord] = []
+    skin_joint_mappings: list[SkinJointMappingRecord] = []
     vertex_writer = BinaryWriter()
     index_writer = BinaryWriter()
+    joint_index_writer = BinaryWriter()
+    joint_weight_writer = BinaryWriter()
 
     def add_texture(texture: Optional[ExportedTexture], flags: int = 0) -> int:
         if texture is None:
@@ -2050,6 +2482,28 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
         first_mesh_record_index = len(meshes)
         mesh_record_count = 0
 
+        if exported_node.skeleton is not None:
+            exported_skeleton = exported_node.skeleton
+            first_joint_record_index = len(skeleton_joints)
+            for joint in exported_skeleton.joints:
+                skeleton_joints.append(
+                    SkeletonJointRecord(
+                        parent_joint_index=joint.parent_index,
+                        joint_path_offset=string_table.add(joint.path),
+                        flags=0,
+                        bind_transform_rows=joint.bind_transform_rows,
+                        rest_transform_rows=joint.rest_transform_rows,
+                    )
+                )
+            skeletons.append(
+                SkeletonRecord(
+                    entity_id=entity_id,
+                    name_offset=string_table.add(exported_skeleton.name),
+                    first_joint_record_index=first_joint_record_index,
+                    joint_record_count=len(exported_skeleton.joints),
+                )
+            )
+
         if exported_node.mesh is not None:
             exported_mesh = exported_node.mesh
             material_index = add_material(exported_mesh.material)
@@ -2080,6 +2534,28 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
                 )
             )
             mesh_record_count = 1
+
+            if exported_mesh.skin_binding is not None:
+                skin_binding = exported_mesh.skin_binding
+                first_joint_mapping_index = len(skin_joint_mappings)
+                for skeleton_joint_index in skin_binding.skin_to_skeleton_map:
+                    skin_joint_mappings.append(SkinJointMappingRecord(skeleton_joint_index=skeleton_joint_index))
+                joint_index_data_offset = joint_index_writer.count
+                joint_weight_data_offset = joint_weight_writer.count
+                joint_index_writer.write_bytes(skin_binding.joint_indices)
+                joint_weight_writer.write_bytes(skin_binding.joint_weights)
+                skins.append(
+                    SkinRecord(
+                        entity_id=entity_id,
+                        mesh_record_index=len(meshes) - 1,
+                        skeleton_entity_id=entity_ids_by_name.get(skin_binding.skeleton_entity_name, INVALID_INDEX),
+                        joint_count=skin_binding.joint_count,
+                        first_joint_mapping_index=first_joint_mapping_index,
+                        joint_index_data_offset=joint_index_data_offset,
+                        joint_weight_data_offset=joint_weight_data_offset,
+                        vertex_count=exported_mesh.vertex_count,
+                    )
+                )
 
         parent_entity_id = entity_ids_by_name.get(exported_node.parent_entity_name, INVALID_INDEX) if exported_node.parent_entity_name is not None else INVALID_INDEX
         entities.append(
@@ -2112,6 +2588,26 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
         write_texture_record(texture_writer, texture_record)
     texture_chunk = texture_writer.data
 
+    skeleton_writer = BinaryWriter()
+    for skeleton in skeletons:
+        write_skeleton_record(skeleton_writer, skeleton)
+    skeleton_chunk = skeleton_writer.data
+
+    skeleton_joint_writer = BinaryWriter()
+    for joint in skeleton_joints:
+        write_skeleton_joint_record(skeleton_joint_writer, joint)
+    skeleton_joint_chunk = skeleton_joint_writer.data
+
+    skin_writer = BinaryWriter()
+    for skin in skins:
+        write_skin_record(skin_writer, skin)
+    skin_chunk = skin_writer.data
+
+    skin_mapping_writer = BinaryWriter()
+    for mapping in skin_joint_mappings:
+        write_skin_joint_mapping_record(skin_mapping_writer, mapping)
+    skin_mapping_chunk = skin_mapping_writer.data
+
     mesh_writer = BinaryWriter()
     for mesh in meshes:
         write_mesh_record(mesh_writer, mesh)
@@ -2119,6 +2615,8 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
 
     vertex_raw = vertex_writer.data
     index_raw = index_writer.data
+    joint_index_raw = joint_index_writer.data
+    joint_weight_raw = joint_weight_writer.data
 
     if compress_geometry:
         vertex_payload, index_payload = _compress_geometry_chunks(vertex_raw, index_raw)
@@ -2134,13 +2632,21 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
         (CHUNK_TYPES["mesh_table"], mesh_chunk, len(mesh_chunk), len(meshes), COMPRESSION_NONE),
         (CHUNK_TYPES["material_table"], material_chunk, len(material_chunk), len(materials), COMPRESSION_NONE),
         (CHUNK_TYPES["texture_table"], texture_chunk, len(texture_chunk), len(textures), COMPRESSION_NONE),
+        (CHUNK_TYPES["skeleton_table"], skeleton_chunk, len(skeleton_chunk), len(skeletons), COMPRESSION_NONE),
+        (CHUNK_TYPES["skeleton_joint_table"], skeleton_joint_chunk, len(skeleton_joint_chunk), len(skeleton_joints), COMPRESSION_NONE),
+        (CHUNK_TYPES["skin_table"], skin_chunk, len(skin_chunk), len(skins), COMPRESSION_NONE),
+        (CHUNK_TYPES["skin_joint_mapping_table"], skin_mapping_chunk, len(skin_mapping_chunk), len(skin_joint_mappings), COMPRESSION_NONE),
         (CHUNK_TYPES["vertex_data"], vertex_payload, len(vertex_raw), 0, geo_compression),
         (CHUNK_TYPES["index_data"], index_payload, len(index_raw), 0, geo_compression),
+        (CHUNK_TYPES["joint_index_data"], joint_index_raw, len(joint_index_raw), 0, COMPRESSION_NONE),
+        (CHUNK_TYPES["joint_weight_data"], joint_weight_raw, len(joint_weight_raw), 0, COMPRESSION_NONE),
     ]
 
     # Content hash is computed over the (compressed) bytes in chunk order — matches
     # runtime validation in UntoldReader.validateContentHash.
-    content_hash = hashlib.sha256(b"".join(payload for _, payload, _, _, _ in chunk_payloads)).digest()
+    content_hash = hashlib.sha256(
+        b"".join(payload for chunk_type, payload, _, _, _ in sorted(chunk_payloads, key=lambda item: item[0]))
+    ).digest()
     file_type = FILE_TYPES[file_type_name]
     chunk_table_size = CHUNK_ENTRY_SIZE * len(chunk_payloads)
     running_offset = HEADER_SIZE + chunk_table_size
@@ -2184,6 +2690,217 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
         if file_writer.count != file_offset:
             raise RuntimeError(
                 f"Chunk offset mismatch while building {output_path}: expected {file_offset}, wrote {file_writer.count}"
+            )
+        file_writer.write_bytes(payload)
+    return file_writer.data
+
+
+def extract_animation_clips(asset_path: Path, convert_orientation: bool = False, source_orientation: str = "blender-native") -> list[ExportedAnimationClip]:
+    blender_required()
+    clear_scene()
+    imported_objects = import_usd_asset(asset_path)
+    conversion_matrix = make_export_orientation_matrix(source_orientation) if convert_orientation else None
+    armatures = [obj for obj in imported_objects if getattr(obj, "type", None) == "ARMATURE"]
+    if not armatures:
+        raise RuntimeError("No armature objects were found in the imported animation asset")
+
+    armature = armatures[0]
+    actions = list(getattr(bpy.data, "actions", []))
+    if not actions and getattr(armature, "animation_data", None) is not None and armature.animation_data.action is not None:
+        actions = [armature.animation_data.action]
+    if not actions:
+        raise RuntimeError("No animation actions were found in the imported asset")
+
+    bones = list(getattr(armature.data, "bones", []))
+    if not bones:
+        raise RuntimeError("The imported armature has no bones")
+    pose_bones = armature.pose.bones
+    fps = float(bpy.context.scene.render.fps) / float(getattr(bpy.context.scene.render, "fps_base", 1.0) or 1.0)
+
+    clips: list[ExportedAnimationClip] = []
+    previous_action = armature.animation_data.action if getattr(armature, "animation_data", None) is not None else None
+
+    def iter_action_fcurves(action: object) -> list[object]:
+        legacy = getattr(action, "fcurves", None)
+        if legacy is not None:
+            try:
+                return list(legacy)
+            except TypeError:
+                pass
+
+        collected: list[object] = []
+        for layer in getattr(action, "layers", []):
+            for strip in getattr(layer, "strips", []):
+                for channelbag in getattr(strip, "channelbags", []):
+                    collected.extend(list(getattr(channelbag, "fcurves", [])))
+        return collected
+
+    try:
+        if getattr(armature, "animation_data", None) is None:
+            armature.animation_data_create()
+        for action in actions:
+            armature.animation_data.action = action
+            action_fcurves = iter_action_fcurves(action)
+            keyframes = sorted({
+                int(round(point.co.x))
+                for fcurve in action_fcurves
+                for point in fcurve.keyframe_points
+            })
+            if not keyframes:
+                continue
+
+            channels: list[ExportedAnimationChannel] = []
+            for bone in bones:
+                joint_path = bone_path(bone)
+                translations: list[KeyframeVector3] = []
+                rotations: list[KeyframeQuaternion] = []
+                pose_bone = pose_bones.get(bone.name)
+                if pose_bone is None:
+                    continue
+
+                for frame in keyframes:
+                    bpy.context.scene.frame_set(frame)
+                    pose_matrix = pose_bone.matrix.copy()
+                    if pose_bone.parent is not None:
+                        local_matrix = pose_bone.parent.matrix.inverted() @ pose_matrix
+                    else:
+                        local_matrix = pose_matrix
+                    if conversion_matrix is not None:
+                        local_matrix = conversion_matrix @ local_matrix @ conversion_matrix.inverted()
+                    translation, rotation, _ = local_matrix.decompose()
+                    time = float(frame) / fps
+                    translations.append(KeyframeVector3(time=time, value=(float(translation.x), float(translation.y), float(translation.z))))
+                    quat = rotation.normalized()
+                    rotations.append(KeyframeQuaternion(time=time, value=(float(quat.x), float(quat.y), float(quat.z), float(quat.w))))
+
+                channels.append(ExportedAnimationChannel(joint_path=joint_path, translations=translations, rotations=rotations))
+
+            duration = max((channel.translations[-1].time if channel.translations else 0.0) for channel in channels) if channels else 0.0
+            clips.append(ExportedAnimationClip(name=action.name, duration=duration, channels=channels))
+    finally:
+        if getattr(armature, "animation_data", None) is not None:
+            armature.animation_data.action = previous_action
+
+    if not clips:
+        raise RuntimeError("No animation clips were extracted from the imported asset")
+    return clips
+
+
+def build_animation_untold_file(exported_clips: list[ExportedAnimationClip], output_path: Path) -> bytes:
+    if not exported_clips:
+        raise RuntimeError("No animation clips were extracted for export")
+
+    string_table = StringTableBuilder()
+    clip_records: list[AnimationClipRecord] = []
+    channel_records: list[AnimationChannelRecord] = []
+    translation_keyframes: list[TranslationKeyframeRecord] = []
+    rotation_keyframes: list[RotationKeyframeRecord] = []
+
+    for clip in exported_clips:
+        first_channel_record_index = len(channel_records)
+        for channel in clip.channels:
+            first_translation_keyframe_index = len(translation_keyframes)
+            first_rotation_keyframe_index = len(rotation_keyframes)
+            translation_keyframes.extend(
+                TranslationKeyframeRecord(time=keyframe.time, value=keyframe.value)
+                for keyframe in channel.translations
+            )
+            rotation_keyframes.extend(
+                RotationKeyframeRecord(time=keyframe.time, value=keyframe.value)
+                for keyframe in channel.rotations
+            )
+            channel_records.append(
+                AnimationChannelRecord(
+                    joint_path_offset=string_table.add(channel.joint_path),
+                    first_translation_keyframe_index=first_translation_keyframe_index,
+                    translation_keyframe_count=len(channel.translations),
+                    first_rotation_keyframe_index=first_rotation_keyframe_index,
+                    rotation_keyframe_count=len(channel.rotations),
+                )
+            )
+
+        clip_records.append(
+            AnimationClipRecord(
+                name_offset=string_table.add(clip.name),
+                duration=clip.duration,
+                first_channel_record_index=first_channel_record_index,
+                channel_record_count=len(clip.channels),
+            )
+        )
+
+    string_chunk = string_table.data
+    clip_writer = BinaryWriter()
+    for clip in clip_records:
+        write_animation_clip_record(clip_writer, clip)
+    clip_chunk = clip_writer.data
+
+    channel_writer = BinaryWriter()
+    for channel in channel_records:
+        write_animation_channel_record(channel_writer, channel)
+    channel_chunk = channel_writer.data
+
+    translation_writer = BinaryWriter()
+    for keyframe in translation_keyframes:
+        write_translation_keyframe_record(translation_writer, keyframe)
+    translation_chunk = translation_writer.data
+
+    rotation_writer = BinaryWriter()
+    for keyframe in rotation_keyframes:
+        write_rotation_keyframe_record(rotation_writer, keyframe)
+    rotation_chunk = rotation_writer.data
+
+    chunk_payloads = [
+        (CHUNK_TYPES["string_table"], string_chunk, len(string_chunk), 0, COMPRESSION_NONE),
+        (CHUNK_TYPES["animation_clip_table"], clip_chunk, len(clip_chunk), len(clip_records), COMPRESSION_NONE),
+        (CHUNK_TYPES["animation_channel_table"], channel_chunk, len(channel_chunk), len(channel_records), COMPRESSION_NONE),
+        (CHUNK_TYPES["translation_keyframe_table"], translation_chunk, len(translation_chunk), len(translation_keyframes), COMPRESSION_NONE),
+        (CHUNK_TYPES["rotation_keyframe_table"], rotation_chunk, len(rotation_chunk), len(rotation_keyframes), COMPRESSION_NONE),
+    ]
+
+    content_hash = hashlib.sha256(
+        b"".join(payload for chunk_type, payload, _, _, _ in sorted(chunk_payloads, key=lambda item: item[0]))
+    ).digest()
+    chunk_table_size = CHUNK_ENTRY_SIZE * len(chunk_payloads)
+    running_offset = HEADER_SIZE + chunk_table_size
+    chunk_entries: list[tuple[int, int, int, int, int, int]] = []
+    for chunk_type, payload, uncompressed_size, element_count, compression_type in chunk_payloads:
+        running_offset = align(running_offset, FILE_ALIGNMENT)
+        chunk_entries.append((chunk_type, running_offset, len(payload), uncompressed_size, element_count, compression_type))
+        running_offset += len(payload)
+
+    file_writer = BinaryWriter()
+    write_header(
+        file_writer,
+        file_type=FILE_TYPES["animation"],
+        chunk_count=len(chunk_payloads),
+        mesh_count=0,
+        material_count=0,
+        texture_count=0,
+        entity_count=0,
+        world_bounds=AABB((0.0, 0.0, 0.0), (0.0, 0.0, 0.0)),
+        root_transform_rows=[
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        content_hash=content_hash,
+    )
+    for chunk_type, file_offset, compressed_size, uncompressed_size, element_count, compression_type in chunk_entries:
+        write_chunk_entry(
+            file_writer,
+            chunk_type=chunk_type,
+            compression_type=compression_type,
+            file_offset=file_offset,
+            compressed_size=compressed_size,
+            uncompressed_size=uncompressed_size,
+            element_count=element_count,
+        )
+    for (_, payload, _, _, _), (_, file_offset, _, _, _, _) in zip(chunk_payloads, chunk_entries):
+        file_writer.align(FILE_ALIGNMENT)
+        if file_writer.count != file_offset:
+            raise RuntimeError(
+                f"Chunk offset mismatch while building animation asset {output_path}: expected {file_offset}, wrote {file_writer.count}"
             )
         file_writer.write_bytes(payload)
     return file_writer.data
@@ -2242,7 +2959,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         argv = argv[argv.index("--") + 1 :]
     else:
         argv = argv[1:]
-    parser = argparse.ArgumentParser(description="Cook static USD scene data into UntoldEngine's .untold V1 format.")
+    parser = argparse.ArgumentParser(description="Cook USD scene or animation data into UntoldEngine's .untold format.")
     parser.add_argument("--input", required=True, help="Path to a source USD/USDZ asset.")
     parser.add_argument("--output", required=True, help="Path to the output .untold file.")
     parser.add_argument("--file-type", default="tile", choices=sorted(FILE_TYPES.keys()), help="Untold file type to emit.")
@@ -2265,6 +2982,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         action="store_true",
         help="Compress vertex and index chunks with LZ4 (requires: pip install lz4). Reduces file size without changing metadata chunks.",
     )
+    parser.add_argument(
+        "--animation",
+        action="store_true",
+        help="Export animation-only clip data keyed by the source armature joint paths instead of exporting mesh/model data.",
+    )
     return parser.parse_args(argv)
 
 
@@ -2279,27 +3001,39 @@ def main(argv: list[str]) -> int:
         raise RuntimeError(f"Input asset does not exist: {input_path}")
 
     print(f"Importing {input_path.name} ...", flush=True)
-    exported_nodes = extract_nodes(
-        input_path,
-        args.mesh_name,
-        convert_orientation=args.convert_orientation,
-        source_orientation=args.source_orientation,
-        validate=args.validate,
-    )
-    print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
-    print("Building .untold file ...", flush=True)
-    untold_bytes = build_untold_file(exported_nodes, output_path, args.file_type, compress_geometry=args.compress_geometry)
-    output_path.write_bytes(untold_bytes)
-    exported_meshes = [exported_node.mesh for exported_node in exported_nodes if exported_node.mesh is not None]
-    print(f"Wrote {output_path} ({len(untold_bytes)} bytes)")
-    print(f"Nodes: {len(exported_nodes)}, Meshes: {len(exported_meshes)}")
-    print(f"Vertices: {sum(exported_mesh.vertex_count for exported_mesh in exported_meshes)}, indices: {sum(exported_mesh.index_count for exported_mesh in exported_meshes)}")
-    if args.validate:
-        # This sidecar is only for validation/debugging in engine-side tests.
-        validation_path = write_validation_file(output_path, output_path.stem, [exported_mesh.validation_mesh for exported_mesh in exported_meshes])
-        print(f"Wrote {validation_path}")
+    if args.animation:
+        exported_clips = extract_animation_clips(
+            input_path,
+            convert_orientation=args.convert_orientation,
+            source_orientation=args.source_orientation,
+        )
+        print(f"Building animation .untold file with {len(exported_clips)} clip(s) ...", flush=True)
+        untold_bytes = build_animation_untold_file(exported_clips, output_path)
+        output_path.write_bytes(untold_bytes)
+        print(f"Wrote {output_path} ({len(untold_bytes)} bytes)")
+        print(f"Animation clips: {len(exported_clips)}")
+    else:
+        exported_nodes = extract_nodes(
+            input_path,
+            args.mesh_name,
+            convert_orientation=args.convert_orientation,
+            source_orientation=args.source_orientation,
+            validate=args.validate,
+        )
+        print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
+        exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
+        print("Building .untold file ...", flush=True)
+        untold_bytes = build_untold_file(exported_nodes, output_path, args.file_type, compress_geometry=args.compress_geometry)
+        output_path.write_bytes(untold_bytes)
+        exported_meshes = [exported_node.mesh for exported_node in exported_nodes if exported_node.mesh is not None]
+        print(f"Wrote {output_path} ({len(untold_bytes)} bytes)")
+        print(f"Nodes: {len(exported_nodes)}, Meshes: {len(exported_meshes)}")
+        print(f"Vertices: {sum(exported_mesh.vertex_count for exported_mesh in exported_meshes)}, indices: {sum(exported_mesh.index_count for exported_mesh in exported_meshes)}")
+        if args.validate:
+            # This sidecar is only for validation/debugging in engine-side tests.
+            validation_path = write_validation_file(output_path, output_path.stem, [exported_mesh.validation_mesh for exported_mesh in exported_meshes])
+            print(f"Wrote {validation_path}")
     return 0
 
 

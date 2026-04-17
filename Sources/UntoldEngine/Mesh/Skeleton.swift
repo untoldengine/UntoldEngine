@@ -27,6 +27,20 @@ class Skeleton {
         currentPose = restTransform
     }
 
+    init?(runtimeSkeleton: RuntimeSkeleton) {
+        guard !runtimeSkeleton.jointPaths.isEmpty,
+              runtimeSkeleton.jointPaths.count == runtimeSkeleton.parentIndices.count,
+              runtimeSkeleton.jointPaths.count == runtimeSkeleton.bindTransforms.count,
+              runtimeSkeleton.jointPaths.count == runtimeSkeleton.restTransforms.count
+        else { return nil }
+
+        jointPaths = runtimeSkeleton.jointPaths
+        parentIndices = runtimeSkeleton.parentIndices
+        bindTransform = runtimeSkeleton.bindTransforms
+        restTransform = runtimeSkeleton.restTransforms
+        currentPose = runtimeSkeleton.restTransforms
+    }
+
     deinit {}
 
     static func computeParentIndices(for jointPaths: [String]) -> [Int?] {
@@ -114,6 +128,17 @@ struct Skin {
         jointTransformsBuffer = buffer
     }
 
+    init?(runtimeSkin: RuntimeSkinBinding) {
+        skinToSkeletonMap = runtimeSkin.skinToSkeletonMap
+        jointPaths = runtimeSkin.skinToSkeletonMap.map { "joint_\($0)" }
+
+        guard let buffer = Skin.createBuffer(for: jointPaths.count) else {
+            handleError(.jointBufferFailed)
+            return nil
+        }
+        jointTransformsBuffer = buffer
+    }
+
     /// Initialize a skin object with zero data-for entities with no armature
     init?() {
         guard let buffer = Skin.createBuffer(for: 1) else {
@@ -150,10 +175,16 @@ struct Skin {
 
     // MARK: - Private Helpers
 
-    /// Creates a Metal buffer for storing joint transform matrices
+    /// Creates a Metal buffer for storing joint transform matrices, pre-filled with
+    /// identity matrices so the bind pose renders correctly before any animation runs.
     private static func createBuffer(for jointCount: Int) -> MTLBuffer? {
         let bufferSize = jointCount * MemoryLayout<simd_float4x4>.stride
-        return renderInfo.device.makeBuffer(length: bufferSize)
+        guard let buffer = renderInfo.device.makeBuffer(length: bufferSize) else { return nil }
+        let ptr = buffer.contents().bindMemory(to: simd_float4x4.self, capacity: jointCount)
+        for i in 0 ..< jointCount {
+            ptr[i] = matrix_identity_float4x4
+        }
+        return buffer
     }
 
     /// Binds the Metal buffer and returns a typed pointer
@@ -239,6 +270,23 @@ class AnimationClip {
             let jointPath = jointPaths[jointIndex]
             let animation = processJointAnimation(jointIndex: jointIndex, jointPath: jointPath, animation: animation)
             jointAnimation[jointPath] = animation
+        }
+    }
+
+    init(runtimeClip: RuntimeAnimationClip) {
+        name = runtimeClip.name
+        duration = runtimeClip.duration
+        jointPaths = runtimeClip.channels.map(\.jointPath)
+
+        for channel in runtimeClip.channels {
+            var animation = Animation()
+            animation.translations = channel.translations.map {
+                Keyframe(time: $0.time, value: $0.value)
+            }
+            animation.rotations = channel.rotations.map {
+                Keyframe(time: $0.time, value: simd_quatf(ix: $0.value.x, iy: $0.value.y, iz: $0.value.z, r: $0.value.w))
+            }
+            jointAnimation[channel.jointPath] = animation
         }
     }
 
