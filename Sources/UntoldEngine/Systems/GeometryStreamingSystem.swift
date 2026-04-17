@@ -74,7 +74,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// `interior_zone` field (union of ExteriorShell tile bounds).
     /// When non-nil, tiles tagged `isInterior = true` are only allowed to load while the
     /// camera is inside this volume.  Nil for uniform_grid manifests (gate disabled).
-    public var interiorZone: AABB? = nil
+    public var interiorZone: AABB?
 
     // MARK: - Tile Streaming
 
