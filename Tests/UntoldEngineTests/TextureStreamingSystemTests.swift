@@ -245,11 +245,11 @@ final class TextureStreamingSystemTests: XCTestCase {
     }
 
     func testAlignToManifestEnforcesDowngradeMinimum() {
-        // When unloadRadius is smaller than upgradeRadius + 1, downgrade must be clamped.
+        // When unloadRadius is smaller than the downgrade floors, the widest floor wins.
         system.alignToManifest(streamingRadius: 10.0, unloadRadius: 5.0)
-        let expectedUpgrade = 10.0 * 0.70
-        let expectedDowngrade = max(5.0, Float(expectedUpgrade) + 1.0)
-        XCTAssertEqual(system.upgradeRadius, Float(expectedUpgrade), accuracy: 1e-4)
+        let expectedUpgrade = max(Float(10.0 * 0.70), 2.5)
+        let expectedDowngrade = max(Float(5.0), expectedUpgrade + 1.0, expectedUpgrade * 2.0)
+        XCTAssertEqual(system.upgradeRadius, expectedUpgrade, accuracy: 1e-4)
         XCTAssertEqual(system.downgradeRadius, expectedDowngrade, accuracy: 1e-4)
     }
 
