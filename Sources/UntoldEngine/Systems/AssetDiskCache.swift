@@ -12,6 +12,10 @@
 import CryptoKit
 import Foundation
 
+enum AssetDiskCacheError: Error, Equatable {
+    case pathTraversalAttempt(String)
+}
+
 /// Persistent disk cache for remote assets.
 ///
 /// `.untold` payloads are content-addressed and never expire — they are evicted
@@ -198,7 +202,7 @@ actor AssetDiskCache {
     /// predictable relative path (`Textures/foo.png`) so that `NativeFormatLoader`
     /// can find them using the cache directory as its `baseURL`.
     func storeAtRelativePath(_ relativePath: String, data: Data) throws {
-        let targetURL = cacheDir.appendingPathComponent(relativePath)
+        let targetURL = try resolvedCacheURL(forRelativePath: relativePath)
         let dir = targetURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         try data.write(to: targetURL)
@@ -206,10 +210,26 @@ actor AssetDiskCache {
 
     /// Returns `true` if a file already exists at `relativePath` inside the cache directory.
     func fileExists(atRelativePath relativePath: String) -> Bool {
-        FileManager.default.fileExists(atPath: cacheDir.appendingPathComponent(relativePath).path)
+        guard let targetURL = try? resolvedCacheURL(forRelativePath: relativePath) else {
+            return false
+        }
+        return FileManager.default.fileExists(atPath: targetURL.path)
     }
 
     // MARK: - Internals
+
+    private func resolvedCacheURL(forRelativePath relativePath: String) throws -> URL {
+        let cacheRoot = cacheDir.standardizedFileURL
+        let targetURL = cacheRoot.appendingPathComponent(relativePath).standardizedFileURL
+        let rootPath = cacheRoot.path
+        let targetPath = targetURL.path
+
+        guard targetPath == rootPath || targetPath.hasPrefix(rootPath + "/") else {
+            throw AssetDiskCacheError.pathTraversalAttempt(relativePath)
+        }
+
+        return targetURL
+    }
 
     /// Builds a stable, filesystem-safe cache key from the full URL string.
     private func cacheKey(for url: URL) -> String {

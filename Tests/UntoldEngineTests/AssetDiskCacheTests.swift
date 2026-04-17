@@ -169,6 +169,27 @@ final class AssetDiskCacheTests: XCTestCase {
         XCTAssertTrue(isDir.boolValue)
     }
 
+    func testStoreAtRelativePathRejectsTraversal() async throws {
+        let cache = makeCache()
+
+        do {
+            try await cache.storeAtRelativePath("../outside.txt", data: Data("owned".utf8))
+            XCTFail("Expected traversal attempt to be rejected")
+        } catch let error as AssetDiskCacheError {
+            XCTAssertEqual(error, .pathTraversalAttempt("../outside.txt"))
+        }
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: cacheDir.deletingLastPathComponent().appendingPathComponent("outside.txt").path))
+    }
+
+    func testFileExistsAtRelativePathRejectsTraversal() async {
+        let cache = makeCache()
+
+        let exists = await cache.fileExists(atRelativePath: "../outside.txt")
+
+        XCTAssertFalse(exists)
+    }
+
     // MARK: - LRU eviction
 
     func testLRUEvictsOldestEntries() async throws {
