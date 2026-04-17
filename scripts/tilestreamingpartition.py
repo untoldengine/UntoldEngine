@@ -277,7 +277,7 @@ INLINE_EXTERIOR_NAME_HINTS = [
 INLINE_STRUCTURAL_NAME_HINTS = [
     "wall", "floor", "ceiling", "slab", "beam", "column", "pillar", "stair",
     "stairs", "shaft", "elevator", "corridor", "hall", "partition", "railing",
-    "core", "doorframe", "door_frame", "frame",
+    "core", "doorframe", "door_frame", "doorpanel", "door_panel", "door", "frame",
 ]
 INLINE_ROOM_CONTENT_NAME_HINTS = [
     "chair", "table", "desk", "sofa", "couch", "bed", "cabinet", "shelf",
@@ -285,7 +285,8 @@ INLINE_ROOM_CONTENT_NAME_HINTS = [
     "plant", "furniture", "airterminal", "airterminals",
 ]
 INLINE_FINE_PROP_NAME_HINTS = [
-    "pipefitting", "pipefittings", "sprinkler", "sensor", "switch", "outlet",
+    "pipefitting", "pipefittings", "pipe", "duct", "tube", "conduit",
+    "sprinkler", "sensor", "switch", "outlet",
     "handle", "knob", "hinge", "fastener", "fixture", "smallprop", "small_prop",
 ]
 INLINE_EXTERIOR_MATERIAL_HINTS = [
@@ -3942,6 +3943,9 @@ def run():
             qt_exported += 1
 
         # --- Compute interior_zone: union AABB of all ExteriorShell tiles.
+        # Falls back to ExteriorShell objects in the shared bucket when no
+        # ExteriorShell tiles were created (e.g. the exterior shell spans the
+        # full scene footprint and was routed to shared_objects).
         # The engine uses this to gate interior tile loading: tiles tagged
         # interior=True only stream in when the camera is inside this volume.
         exterior_tiles = [t for t in manifest["tiles"] if not t.get("interior", True)]
@@ -3950,7 +3954,38 @@ def run():
             iz_max = [max(t["bounds"]["max"][i] for t in exterior_tiles) for i in range(3)]
             manifest["interior_zone"] = {"min": iz_min, "max": iz_max}
         else:
-            manifest["interior_zone"] = None
+            # No ExteriorShell tiles — look for ExteriorShell objects in the
+            # shared bucket (they span the scene so they weren't tiled).
+            es_bounds = []
+            for obj in shared_objects:
+                meta = metadata_map.get(obj.name)
+                if meta and _resolve_tier(meta) == "ExteriorShell":
+                    b = object_bounds.get(obj.name)
+                    if b:
+                        es_bounds.append(b)
+            if es_bounds:
+                bl_min = (
+                    min(b["min"][0] for b in es_bounds),
+                    min(b["min"][1] for b in es_bounds),
+                    min(b["min"][2] for b in es_bounds),
+                )
+                bl_max = (
+                    max(b["max"][0] for b in es_bounds),
+                    max(b["max"][1] for b in es_bounds),
+                    max(b["max"][2] for b in es_bounds),
+                )
+                iz_aabb = aabb_to_usd_space({"min": bl_min, "max": bl_max})
+                manifest["interior_zone"] = {
+                    "min": list(iz_aabb["min"]),
+                    "max": list(iz_aabb["max"]),
+                }
+                print(
+                    f"[interior_zone] Derived from {len(es_bounds)} shared-bucket "
+                    f"ExteriorShell object(s): "
+                    f"{iz_aabb['min']} → {iz_aabb['max']}"
+                )
+            else:
+                manifest["interior_zone"] = None
 
         # --- Write manifest for quadtree path ---
         with open(manifest_path, "w", encoding="utf-8") as f:
