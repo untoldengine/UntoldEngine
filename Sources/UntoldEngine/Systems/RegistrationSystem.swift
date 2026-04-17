@@ -2168,8 +2168,10 @@ public func loadTiledScene(
     Task {
         do {
             let localURL: URL
-            if manifestURL.scheme == "https" || manifestURL.scheme == "http" {
+            if manifestURL.scheme?.lowercased() == "https" {
                 localURL = try await RemoteAssetDownloader.shared.localURL(for: manifestURL)
+            } else if manifestURL.scheme?.lowercased() == "http" {
+                throw RemoteAssetDownloader.DownloadError.insecureScheme("http")
             } else {
                 localURL = manifestURL
             }
