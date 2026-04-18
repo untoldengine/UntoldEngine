@@ -1,4 +1,22 @@
 # Changelog
+## v0.12.2 - 2026-04-18
+### 🐞 Fixes
+- [Patch] Fix path traversal in remote texture disk cache (e4773fb…)
+- [Patch] Enforce HTTPS for remote manifest and tile downloads (091560e…)
+- [Patch] Fixed animation to use new asset format (47d14c8…)
+- [Patch] Fixed unconditional bisect partition (1e5ca18…)
+- [Patch] Fixed mip-map selection for small models (b094b45…)
+- [Patch] Added options to partition and export fractions of a scene (9d69282…)
+- [Patch] Fixed frustum culling count report for XR (9052ddd…)
+- [Patch] Fixed HZB occlusion in XR (736e7f7…)
+- [Patch] Implemented quad-tree parsing (eeacd87…)
+- [Patch] Modified code to annotate quadtree tag (eb932d9…)
+- [Patch] Added floor count to quad tree partitioning (76df3fc…)
+- [Patch] Improved quad tree performance (2cda410…)
+- [Patch] Tile-local mesh batching. Tighten interior tier streaming radii (13a39e7…)
+- [Patch] Add interior/exterior separation for quadtree tile streaming (13ff027…)
+- [Patch] Wire HLOD/LOD generation into the quadtree export path (e0ccd0b…)
+- [Patch] Extend name hints & fix interior_zone for spanning ExteriorShell (e6a5122…)
 ## v0.12.1 - 2026-04-09
 ### 🐞 Fixes
 - [Patch] Fixed exporter UV issues (4e5da7f…)
