@@ -465,7 +465,7 @@ public class TiledSceneComponent: Component {
     public required init() {}
 }
 
-/// Attached to every tile stub entity created by loadTiledScene().
+/// Attached to every tile stub entity created by setEntityStreamScene().
 /// Carries the metadata the streaming bootstrap needs to trigger a full
 /// tile parse (setEntityMeshAsync) when the camera enters streaming range,
 /// and to tear down the tile when the camera leaves.

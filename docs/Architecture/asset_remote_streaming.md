@@ -90,7 +90,7 @@ Local `file://` paths bypass the downloader entirely. Only HTTP/HTTPS URLs go th
 
 ## Tile URL Construction
 
-When `loadTiledScene(url:)` is called with a remote manifest URL, tile asset URLs are resolved relative to the **manifest directory**:
+When `setEntityStreamScene(entityId:url:)` is called with a remote manifest URL, tile asset URLs are resolved relative to the **manifest directory**:
 
 ```
 Manifest:    https://cdn.example.com/dungeon3/dungeon3.json
@@ -110,8 +110,11 @@ The same construction applies to HLOD and per-tile LOD URLs. All of these are st
 ### Phase 1 — Manifest download
 
 ```swift
+let sceneRoot = createEntity()
+setEntityName(entityId: sceneRoot, name: "scene")
+
 if let manifestURL = URL(string: "https://cdn.example.com/scene/scene.json") {
-    loadTiledScene(url: manifestURL)
+    setEntityStreamScene(entityId: sceneRoot, url: manifestURL)
 }
 ```
 
@@ -279,14 +282,17 @@ let remoteScenes: [RemoteSceneOption] = [
 ]
 ```
 
-`GameScene.loadTileScene(url:)` passes the selected manifest URL directly to `loadTiledScene(url:)`:
+`GameScene.loadTileScene(url:)` creates a root entity and passes it with the manifest URL to `setEntityStreamScene(entityId:url:)`:
 
 ```swift
-func loadTileScene(url: URL, completion: @escaping @Sendable (Bool) -> Void) {
+func loadTileScene(sceneID: String, url: URL, completion: @escaping @Sendable (Bool) -> Void) {
     clearSceneBatches()
-    loadedEntity = nil
     GeometryStreamingSystem.shared.enabled = true
-    loadTiledScene(url: url) { success in
+
+    let sceneRoot = createEntity()
+    setEntityName(entityId: sceneRoot, name: sceneID)
+
+    setEntityStreamScene(entityId: sceneRoot, url: url) { success in
         completion(success)
     }
 }

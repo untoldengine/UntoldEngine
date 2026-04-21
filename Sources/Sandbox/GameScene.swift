@@ -25,8 +25,8 @@
             // Make sure to convert your usdz files to .untold format as explained in docs/API/UsingTheExporter
 
             // Uncomment to render a simple mesh.
-            
-             let entity = createEntity()
+
+            let entity = createEntity()
             /*
              setEntityMeshAsync(entityId: entity, filename: "/path/to/mesh", withExtension: "untold") { success in
 
@@ -44,10 +44,10 @@
 
             // Uncomment to render a streamed scene
             /*
-           loadTiledScene(entityId: entity, url: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!){ success in
-                setSceneReady(success)
-            }
-             */
+             setEntityStreamScene(entityId: entity, url: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!){ success in
+                  setSceneReady(success)
+              }
+               */
         }
 
         private func configureEngineSystems() {

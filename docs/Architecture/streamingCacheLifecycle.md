@@ -32,7 +32,7 @@ For large streamed tiles, `ProgressiveAssetLoader` owns the CPU source data:
 
 ### 1. Tiled scene registration
 
-`loadTiledScene(...)` registers lightweight `TileComponent` stubs only. No geometry is resident yet.
+`setEntityStreamScene(...)` registers lightweight `TileComponent` stubs only, parented under the supplied root entity. No geometry is resident yet.
 
 ### 2. Tile parse
 

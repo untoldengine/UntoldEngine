@@ -95,30 +95,37 @@ once the mesh is parsed and uploaded to GPU memory.
 
 ---
 
-## Loading a Tiled Scene
+## Loading a Streamed Scene
 
-Use `loadTiledScene` to load a large scene that streams tiles in and out of GPU
-memory based on camera proximity. Pass either a local manifest path or a remote
+Use `setEntityStreamScene` to load a large scene that streams tiles in and out of
+GPU memory based on camera proximity. Pass either a local manifest path or a remote
 `https://` URL — the engine handles downloading and caching automatically.
 
 ```swift
+let sceneRoot = createEntity()
+setEntityName(entityId: sceneRoot, name: "dungeon")
+
 // Local manifest
-loadTiledScene(manifest: "dungeon", withExtension: "json") { success in
+setEntityStreamScene(entityId: sceneRoot, manifest: "dungeon", withExtension: "json") { success in
     setSceneReady(success)
 }
 
 // Remote manifest (downloaded and cached on demand)
 if let url = URL(string: "https://cdn.example.com/dungeon/dungeon.json") {
-    loadTiledScene(url: url) { success in
+    setEntityStreamScene(entityId: sceneRoot, url: url) { success in
         setSceneReady(success)
     }
 }
 ```
 
-`loadTiledScene` registers lightweight stub entities for every tile in the manifest
-(no geometry is parsed at this point). `GeometryStreamingSystem` then loads and
-unloads tile geometry as the camera moves. See [Tile-Based Streaming](../Architecture/tilebasedstreaming)
-for the full streaming architecture.
+`setEntityStreamScene` registers lightweight stub entities for every tile in the
+manifest, all parented under `sceneRoot` (no geometry is parsed at this point).
+`GeometryStreamingSystem` then loads and unloads tile geometry as the camera moves.
+See [Tile-Based Streaming](../Architecture/tilebasedstreaming) for the full streaming
+architecture.
+
+> **Legacy overloads** — `loadTiledScene(manifest:)` and `loadTiledScene(url:)` remain
+> available for backwards compatibility. They create an internal root entity automatically.
 
 ---
 
@@ -203,10 +210,13 @@ final class GameScene {
 }
 ```
 
-For a large streaming scene, replace the `setEntityMeshAsync` call with `loadTiledScene`:
+For a large streaming scene, replace the `setEntityMeshAsync` call with `setEntityStreamScene`:
 
 ```swift
-loadTiledScene(manifest: "dungeon", withExtension: "json") { success in
+let sceneRoot = createEntity()
+setEntityName(entityId: sceneRoot, name: "dungeon")
+
+setEntityStreamScene(entityId: sceneRoot, manifest: "dungeon", withExtension: "json") { success in
     moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
     ambientIntensity = 0.4
     setSceneReady(success)

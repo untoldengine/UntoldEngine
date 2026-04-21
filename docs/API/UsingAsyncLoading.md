@@ -49,14 +49,14 @@ setEntityMeshAsync(entityId: entity, filename: "robot", withExtension: "untold")
 }
 ```
 
-For ordinary `setEntityMeshAsync(...)` and `loadTiledScene(...)` flows, the engine already uses internal loading gates. `setSceneReady(...)` is mainly for your own multi-step scene setup.
+For ordinary `setEntityMeshAsync(...)` and `setEntityStreamScene(...)` flows, the engine already uses internal loading gates. `setSceneReady(...)` is mainly for your own multi-step scene setup.
 
 ## Choosing the Right Loading Path
 
 | Use case | API |
 |---|---|
 | Single always-resident asset | `setEntityMeshAsync(...)` |
-| Large streamed world | `loadTiledScene(...)` |
+| Large streamed world | `setEntityStreamScene(...)` |
 
 ### Always-resident asset
 
@@ -76,10 +76,13 @@ setEntityMeshAsync(
 
 ### Streamed world
 
-Use `loadTiledScene` for geometry that should stream by camera distance:
+Use `setEntityStreamScene` for geometry that should stream by camera distance:
 
 ```swift
-loadTiledScene(manifest: "dungeon", withExtension: "json") { success in
+let sceneRoot = createEntity()
+setEntityName(entityId: sceneRoot, name: "dungeon")
+
+setEntityStreamScene(entityId: sceneRoot, manifest: "dungeon", withExtension: "json") { success in
     setSceneReady(success)
 }
 ```
@@ -87,12 +90,17 @@ loadTiledScene(manifest: "dungeon", withExtension: "json") { success in
 Or load a remote manifest directly:
 
 ```swift
+let sceneRoot = createEntity()
+setEntityName(entityId: sceneRoot, name: "dungeon")
+
 if let url = URL(string: "https://cdn.example.com/dungeon/dungeon.json") {
-    loadTiledScene(url: url) { success in
+    setEntityStreamScene(entityId: sceneRoot, url: url) { success in
         setSceneReady(success)
     }
 }
 ```
+
+> **Legacy overloads** — `loadTiledScene(manifest:)` and `loadTiledScene(url:)` remain available for backwards compatibility.
 
 This is the public streaming workflow. Do not build app-level streaming logic around `StreamingComponent` or `enableStreaming(...)`; those are internal to the tile/OCC pipeline.
 
@@ -102,7 +110,7 @@ This is the public streaming workflow. Do not build app-level streaming logic ar
 
 - Use `.auto` for normal asset loading
 - Use `.immediate` when you explicitly want direct full upload
-- Use `loadTiledScene(...)` for streamable worlds instead of forcing `.outOfCore`
+- Use `setEntityStreamScene(...)` for streamable worlds instead of forcing `.outOfCore`
 
 ```swift
 setEntityMeshAsync(
@@ -168,4 +176,4 @@ Task {
 
 - `.untold` is the preferred runtime format for static geometry.
 - Animation clips still use `.usdz`.
-- `loadTiledScene(...)` automatically aligns texture streaming distances to the manifest radii and enables the full tile/HLOD/LOD/OCC streaming pipeline.
+- `setEntityStreamScene(...)` automatically aligns texture streaming distances to the manifest radii and enables the full tile/HLOD/LOD/OCC streaming pipeline.

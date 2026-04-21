@@ -7,7 +7,7 @@ UntoldEngine still uses an out-of-core (OOC) geometry path, but it is now part o
 The public entry point for streamed geometry is:
 
 ```swift
-loadTiledScene(...)
+setEntityStreamScene(entityId: sceneRoot, manifest: "city")
 ```
 
 Inside that pipeline, large tiles may be classified as **OOC** during `setEntityMeshAsync(streamingPolicy: .auto)`.
@@ -40,7 +40,7 @@ The runtime still exposes `MeshStreamingPolicy`, but the architecture has moved:
 
 - `setEntityMeshAsync(..., streamingPolicy: .auto)` is fine for normal always-resident assets
 - `setEntityMeshAsync(..., streamingPolicy: .immediate)` forces full upload
-- `loadTiledScene(...)` is the supported public streaming path
+- `setEntityStreamScene(...)` is the supported public streaming path
 - `StreamingComponent` and `enableStreaming(...)` are internal tile/OOC mechanisms
 
 That means the old pattern:
@@ -140,4 +140,4 @@ That is why the runtime documentation should describe OOC as an implementation d
 - OOC still exists, but it is now subordinate to tile ownership.
 - `ProgressiveAssetLoader` is the CPU residency layer.
 - `GeometryStreamingSystem` is the GPU residency scheduler.
-- `loadTiledScene(...)` is the supported public streaming API surface.
+- `setEntityStreamScene(...)` is the supported public streaming API surface.

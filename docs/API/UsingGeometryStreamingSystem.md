@@ -12,17 +12,20 @@ The public rule is simple:
 
 | Use case | API |
 |---|---|
-| Streamed world geometry | `loadTiledScene(...)` |
-| Always-resident assets | `setEntityMeshAsync(...)` |
+| Streamed world geometry | `setEntityStreamScene(entityId:manifest:)` |
+| Always-resident assets | `setEntityMeshAsync(entityId:filename:withExtension:)` |
 
-`GeometryStreamingSystem` manages the runtime once a tiled scene is loaded. It is not a public component-authoring workflow for standalone entities.
+`GeometryStreamingSystem` manages the runtime once a streamed scene is loaded. It is not a public component-authoring workflow for standalone entities.
 
 ## Public Workflow
 
 ### Local manifest
 
 ```swift
-loadTiledScene(manifest: "city", withExtension: "json") { success in
+let sceneRoot = createEntity()
+setEntityName(entityId: sceneRoot, name: "city")
+
+setEntityStreamScene(entityId: sceneRoot, manifest: "city", withExtension: "json") { success in
     setSceneReady(success)
 }
 ```
@@ -30,12 +33,17 @@ loadTiledScene(manifest: "city", withExtension: "json") { success in
 ### Remote manifest
 
 ```swift
+let sceneRoot = createEntity()
+setEntityName(entityId: sceneRoot, name: "city")
+
 if let url = URL(string: "https://cdn.example.com/city/city.json") {
-    loadTiledScene(url: url) { success in
+    setEntityStreamScene(entityId: sceneRoot, url: url) { success in
         setSceneReady(success)
     }
 }
 ```
+
+> **Legacy overloads** — `loadTiledScene(manifest:)` and `loadTiledScene(url:)` remain available for backwards compatibility. They create an internal root entity automatically. Prefer `setEntityStreamScene(entityId:...)` when you need a stable handle to the scene.
 
 Remote manifests are downloaded and cached locally. Tile, HLOD, and per-tile LOD URLs are resolved relative to the manifest URL and fetched on demand.
 
@@ -99,7 +107,7 @@ Use `maxQueryRadius` large enough to cover the farthest `unload_radius` in the s
 
 ## Interaction with Other Systems
 
-- **Texture streaming**: `loadTiledScene(...)` automatically aligns texture distance bands to the manifest radii.
+- **Texture streaming**: `setEntityStreamScene(...)` automatically aligns texture distance bands to the manifest radii.
 - **Batching**: full-load tiles, per-tile LODs, and HLODs notify `BatchingSystem` automatically. OCC sub-mesh uploads join batching incrementally through normal residency events.
 - **Memory pressure**: texture quality is shed first; geometry eviction follows only when geometry pressure remains high.
 
@@ -122,7 +130,7 @@ Use `maxQueryRadius` large enough to cover the farthest `unload_radius` in the s
 
 ### Streaming does nothing
 
-- Verify you loaded the scene through `loadTiledScene(...)`
+- Verify you loaded the scene through `setEntityStreamScene(...)`
 - Verify the manifest radii are reasonable for your scene scale
 - Do not expect standalone `StreamingComponent` entities to stream; tile ownership is enforced
 
