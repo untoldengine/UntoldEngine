@@ -77,7 +77,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
         /// Suitable as a starting point when the scene type is unknown.
         case balanced
 
-        /// Tile-based streaming scene (loadTiledScene manifest).
+        /// Tile-based streaming scene (setEntityStreamScene manifest).
         ///
         /// Aligns the three texture tiers with typical tile streaming distance bands:
         ///   • < 30 m  → full resolution  (tile is likely fully parsed and visible)
@@ -132,7 +132,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
             updateInterval = 0.2
 
         case .tiled:
-            // Radii are placeholder defaults. loadTiledScene() overrides them via
+            // Radii are placeholder defaults. setEntityStreamScene() overrides them via
             // alignToManifest(streamingRadius:unloadRadius:) once the manifest is decoded.
             upgradeRadius = 30.0
             downgradeRadius = 70.0
@@ -148,7 +148,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// that texture quality bands align with tile load/unload boundaries regardless of
     /// scene scale.
     ///
-    /// Called automatically by `loadTiledScene()` after the manifest is decoded.
+    /// Called automatically by `setEntityStreamScene()` after the manifest is decoded.
     /// Applies the `.tiled` concurrency and interval settings then overrides the radii:
     ///
     ///   upgradeRadius   = max(streamingRadius × 0.70, 2.5 m)

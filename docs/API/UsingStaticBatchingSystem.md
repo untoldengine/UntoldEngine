@@ -50,7 +50,10 @@ setEntityMeshAsync(entityId: building, filename: "office_building", withExtensio
 For tiled scenes, the flow is different:
 
 ```swift
-loadTiledScene(manifest: "city", withExtension: "json") { success in
+let sceneRoot = createEntity()
+setEntityName(entityId: sceneRoot, name: "city")
+
+setEntityStreamScene(entityId: sceneRoot, manifest: "city", withExtension: "json") { success in
     setSceneReady(success)
 }
 ```

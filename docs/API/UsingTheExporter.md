@@ -251,7 +251,9 @@ setEntityMeshAsync(
 Tiled scene:
 
 ```swift
-loadTiledScene(manifest: "dungeon", withExtension: "json")
+let sceneRoot = createEntity()
+setEntityName(entityId: sceneRoot, name: "dungeon")
+setEntityStreamScene(entityId: sceneRoot, manifest: "dungeon", withExtension: "json")
 ```
 
 The manifest should live next to the tile payload directory. Tile, HLOD, LOD, and shared-bucket payloads are resolved relative to the manifest file.

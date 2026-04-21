@@ -57,7 +57,10 @@ This is still the correct pattern when all meshes are present up front and stay 
 For large worlds, do **not** build a manual LOD + `enableStreaming(...)` stack on standalone entities. Use the tiled-scene pipeline:
 
 ```swift
-loadTiledScene(manifest: "city", withExtension: "json") { success in
+let sceneRoot = createEntity()
+setEntityName(entityId: sceneRoot, name: "city")
+
+setEntityStreamScene(entityId: sceneRoot, manifest: "city", withExtension: "json") { success in
     setSceneReady(success)
 }
 ```

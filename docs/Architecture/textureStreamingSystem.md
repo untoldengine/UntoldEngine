@@ -329,7 +329,7 @@ TextureStreamingSystem.shared.upgradeRadius = 3.0  // widen full-res zone
 
 ### alignToManifest
 
-When `loadTiledScene()` decodes a tile manifest, it calls:
+When `setEntityStreamScene()` decodes a tile manifest, it calls:
 
 ```swift
 TextureStreamingSystem.shared.alignToManifest(

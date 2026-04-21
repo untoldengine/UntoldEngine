@@ -14,7 +14,7 @@
     /// Core Engine API map used by this demo:
     /// - Entity lifecycle: `createEntity`, `setEntityName`, `destroyAllEntities`
     /// - Camera/input: `createGameCamera`, `findGameCamera`, `moveCameraWithInput`, `orbitCameraAround`
-    /// - Asset loading: `setEntityMeshAsync` (always-resident), `loadTiledScene` (streamable scene)
+    /// - Asset loading: `setEntityMeshAsync` (always-resident), `setEntityStreamScene` (streamable scene)
     /// - Performance features: `setEntityStaticBatchComponent`, `enableBatching`, `generateBatches`, `enableStreaming`
     /// - Debug overlays: `setLODLevelDebug`, `setTextureStreamingTierDebug`, `setOctreeLeafBoundsDebug`
     final class GameScene: @unchecked Sendable {
@@ -100,7 +100,7 @@
             let sceneRoot = createEntity()
             setEntityName(entityId: sceneRoot, name: sceneID)
 
-            loadTiledScene(entityId: sceneRoot, url: url) { [weak self] success in
+            setEntityStreamScene(entityId: sceneRoot, url: url) { [weak self] success in
                 guard let self else { return }
                 if success {
                     loadedEntity = nil

@@ -2,7 +2,7 @@
 
 ## The Setup: OCC Stubs Inside a Loaded Tile
 
-Imagine a large tile has been parsed through `loadTiledScene(...)` and classified into the out-of-core path. The tile now contains many internally created OCC child stubs — `building_A`, `building_B`, `streetlamp_01`, `car_01`, etc. Each stub has a `StreamingComponent` that stores:
+Imagine a large tile has been parsed through `setEntityStreamScene(...)` and classified into the out-of-core path. The tile now contains many internally created OCC child stubs — `building_A`, `building_B`, `streetlamp_01`, `car_01`, etc. Each stub has a `StreamingComponent` that stores:
 
 - `assetFilename` / `assetExtension` — where the mesh or source asset came from
 - `streamingRadius` — how close the camera must be to **load** it
@@ -104,10 +104,10 @@ Inside the async task:
 
 | Use case | API |
 |---|---|
-| Streamable geometry (terrain, city blocks, large scenes) | `loadTiledScene(url:completion:)` with a local or remote (`https://`) manifest URL |
+| Streamable geometry (terrain, city blocks, large scenes) | `setEntityStreamScene(entityId:url:completion:)` with a local or remote (`https://`) manifest URL |
 | Always-resident objects (characters, props, HUD elements) | `setEntityMeshAsync(entityId:filename:withExtension:completion:)` |
 
-`loadTiledScene` is the **only public entry point** for streamable scene geometry. It accepts a local `file://` path or a remote `https://` URL. For remote URLs it downloads and caches the manifest via `RemoteAssetDownloader` before decoding. It then calls the internal `registerTiledScene()` and hands off all streaming lifecycle management to `GeometryStreamingSystem`. See [`asset_remote_streaming.md`](asset_remote_streaming.md) for the full remote download lifecycle.
+`setEntityStreamScene` is the **preferred public entry point** for streamable scene geometry. It accepts a root `EntityID` and a local `file://` path or remote `https://` URL. For remote URLs it downloads and caches the manifest via `RemoteAssetDownloader` before decoding. It then calls the internal `registerTiledScene()` and hands off all streaming lifecycle management to `GeometryStreamingSystem`. The backwards-compatible `loadTiledScene(manifest:)` / `loadTiledScene(url:)` overloads remain available and create an internal root entity automatically. See [`asset_remote_streaming.md`](asset_remote_streaming.md) for the full remote download lifecycle.
 
 ```
 isTileOwned(entityId:) — private helper in GeometryStreamingSystem+MeshStreaming.swift
@@ -307,9 +307,9 @@ Three sub-passes each tick, capped at `maxTileUnloadsPerUpdate` (default **2**) 
 - **Zombie-state guard in completion** — completion callback checks `tc.state == .parsing`. If `unloadTile` ran mid-parse (state is `.unloading`), result is discarded and the pre-created child entity is cleaned up — stub never enters a "geometry missing" zombie state.
 - **`defer` slot release** — `releaseActiveTileLoad` in `defer` frees the concurrency slot on all exit paths (success, failure, cancelled-state early return).
 - **`removeTileComponent` deregisters from streaming system** — cancels in-flight `loadTask` and calls `GeometryStreamingSystem.shared.unregisterTileEntity(entityId)` to atomically remove the entity from all four tile tracking sets (`loadedTileEntities`, `loadingTileEntities`, `activeTileLoads`, `meshEntityToTileEntity`).
-- **`reset()` clears tile tracking sets** — called by `loadTiledScene()` after scene destruction so no stale entity IDs from the previous scene persist into the new scene's streaming passes.
+- **`reset()` clears tile tracking sets** — called by `setEntityStreamScene()` (via `registerTiledScene`) to reset `interiorZone` and `firstRangeTimestamps` so stale scene-level state from the previous scene does not persist into the new scene's streaming passes.
 - **HLOD unload race** — `hlodState = .unloading` is set **before** `hlodLoadTask.cancel()`. The load-completion callback checks `hlodState` before marking `.loaded`; setting it first ensures the callback always discards a racing in-flight result.
 - **Per-tile LOD follows the same race fix** — `level.state = .unloading` is set before `level.loadTask?.cancel()`.
 - **LOD unload-all on tile parse** — when `loadTile`'s completion callback fires (state transitioning to `.parsed`), both `unloadHLOD(entityId:)` and `unloadAllLODLevels(entityId:)` are called. The full tile has taken over all distance bands; intermediate representations are no longer needed.
-- **`loadedLODEntities` tracking set** — mirrors `loadedTileEntities` for the LOD layer. Allows `reset()` to cancel all in-flight LOD tasks and `loadTiledScene()` second-call safety to clear stale LOD entity IDs.
+- **`loadedLODEntities` tracking set** — mirrors `loadedTileEntities` for the LOD layer. Allows `reset()` to cancel all in-flight LOD tasks and `setEntityStreamScene()` second-call safety to clear stale LOD entity IDs.
 - **`AssetLoadingGate` timeout** — `meshEntityId` is stored in `TileComponent` so the timeout guard can call `AssetLoadingState.shared.finishLoading(entityId: meshEntityId)` without an O(n) map scan if `loadTextures()` hangs and the gate would otherwise remain open permanently.

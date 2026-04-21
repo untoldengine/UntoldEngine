@@ -80,7 +80,7 @@ Entries **must be sorted ascending by `switch_distance`** (smallest = finest = c
 
 ### ECS Components
 
-- **`TileComponent`** — attached to every tile stub entity created by `loadTiledScene()`. Carries all metadata needed for the streaming bootstrap and teardown lifecycle. Key fields added for HLOD and LOD:
+- **`TileComponent`** — attached to every tile stub entity created by `setEntityStreamScene()`. Carries all metadata needed for the streaming bootstrap and teardown lifecycle. Key fields added for HLOD and LOD:
   - `hlodURL`, `hlodEntityId`, `hlodState`, `hlodSwitchDistance`, `hlodLoadTask` — HLOD lifecycle
   - `lodLevels: [TileLODLevel]` — per-tile intermediate LOD entries
   - `meshEntityId` — the dedicated mesh-child entity ID, stored so the timeout guard can force-close `AssetLoadingGate` if `loadTextures()` hangs
@@ -108,12 +108,12 @@ unloaded → parsing → parsed → unloading → unloaded
 | `.failed` | Last parse attempt failed; exponential backoff before retry (5 s → 10 s → 20 s → max 60 s) |
 | `.unloading` | Teardown in progress; blocks re-dispatch for this tick |
 
-### 1. Scene Load (`loadTiledScene`)
+### 1. Scene Load (`setEntityStreamScene`)
 
 1. Locates and decodes the manifest JSON (no geometry parsed). If the manifest URL is HTTP/HTTPS, it is downloaded and cached via `RemoteAssetDownloader` before decoding. Tile asset URLs in the manifest are resolved relative to the manifest's base URL, so remote manifests produce remote tile URLs (e.g. `https://cdn.example.com/scene/tiles/tile_0_0.untold`). See [`asset_remote_streaming.md`](asset_remote_streaming.md) for the full download lifecycle.
-2. Destroys all existing scene entities and calls `GeometryStreamingSystem.shared.reset()` to clear all tile and mesh tracking sets, cancel in-flight tasks, and reset camera velocity.
-3. Creates a default camera and directional light.
-4. Registers one lightweight stub entity per tile inside a single `withWorldMutationGate`. Each stub receives:
+2. Resets `interiorZone` and `firstRangeTimestamps` on `GeometryStreamingSystem` so stale scene-level state from a previous scene does not bleed into the new one.
+3. Registers the supplied root entity with `TiledSceneComponent`, `LocalTransformComponent`, and `ScenegraphComponent`.
+4. Registers one lightweight stub entity per tile inside a single `withWorldMutationGate`, parented under the root entity. Each stub receives:
    - Identity world transform
    - `LocalTransformComponent.boundingBox` set to the tile's world-space AABB
    - `TileComponent` in `.unloaded` state, with all radii and metadata from the manifest
@@ -240,12 +240,11 @@ Both `.parsing` and `.parsed` tiles honour the grace period. `.parsing` tiles ha
 
 ## Scene Reload Safety
 
-When `loadTiledScene()` is called for a second time:
+When `setEntityStreamScene` is called for a second time (replacing a previous scene):
 
-1. All existing entities are destroyed via `destroyEntity` + `finalizePendingDestroys()`.
-   - `removeTileComponent` (the `ComponentRegistry` cleanup handler for `TileComponent`) cancels the tile's in-flight `loadTask` and calls `GeometryStreamingSystem.shared.unregisterTileEntity(entityId)`, removing stale IDs from all four tracking sets atomically.
-2. `GeometryStreamingSystem.shared.reset()` is called explicitly to clear any remaining tracking state, cancel all streaming tasks, and reset camera velocity.
-3. New stubs are registered for the incoming scene.
+1. The caller destroys the old root entity (`destroyEntity(entityId: oldRoot)`), which cascades to all tile stubs. For each destroyed stub, `removeTileComponent` (the `ComponentRegistry` cleanup handler for `TileComponent`) cancels the tile's in-flight `loadTask` and calls `GeometryStreamingSystem.shared.unregisterTileEntity(entityId)`, removing stale IDs from all tracking sets atomically.
+2. `setEntityStreamScene` resets `interiorZone` and `firstRangeTimestamps` so scene-level streaming state is clean for the new scene.
+3. New stubs are registered under the new root entity.
 
 Any tile Task that was already in flight and completes after step 1–2 finds `scene.exists(entityId) == false` and returns early via the `guard` in its completion closure. The `defer`-based slot release still fires, so no concurrency slot is leaked.
 
