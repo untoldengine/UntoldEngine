@@ -122,7 +122,8 @@ import Foundation
                 // myScene.json must be inside the GameData/Models folder.
                 // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
                 // For always-resident individual assets, use setEntityMeshAsync() instead.
-                loadTiledScene(manifest: "myScene", withExtension: "json") { success in
+                let sceneRootId = createEntity()
+                setEntityStreamScene(entityId: sceneRootId, manifest: "myScene", withExtension: "json") { success in
                     setSceneReady(success)
                 }
             }
@@ -599,7 +600,8 @@ import Foundation
                 // myScene.json must be inside the GameData/Models folder.
                 // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
                 // For always-resident individual assets, use setEntityMeshAsync() instead.
-                loadTiledScene(manifest: "myScene", withExtension: "json") { success in
+                let sceneRootId = createEntity()
+                setEntityStreamScene(entityId: sceneRootId, manifest: "myScene", withExtension: "json") { success in
                     setSceneReady(success)
                 }
             }
@@ -740,7 +742,8 @@ import Foundation
                 // myScene.json must be inside the GameData/Models folder.
                 // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
                 // For always-resident individual assets, use setEntityMeshAsync() instead.
-                loadTiledScene(manifest: "myScene", withExtension: "json") { success in
+                let sceneRootId = createEntity()
+                setEntityStreamScene(entityId: sceneRootId, manifest: "myScene", withExtension: "json") { success in
                     setSceneReady(success)
                 }
             }
@@ -1065,7 +1068,8 @@ import Foundation
                 // myScene.json must be inside the GameData/Models folder.
                 // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
                 // For always-resident individual assets, use setEntityMeshAsync() instead.
-                loadTiledScene(manifest: "myScene", withExtension: "json") { success in
+                let sceneRootId = createEntity()
+                setEntityStreamScene(entityId: sceneRootId, manifest: "myScene", withExtension: "json") { success in
                     setSceneReady(success)
                 }
             }
