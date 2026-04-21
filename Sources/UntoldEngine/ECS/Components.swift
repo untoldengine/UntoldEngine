@@ -451,6 +451,20 @@ public enum TileVisualState {
     case complete // all OCC stubs fully GPU-resident
 }
 
+/// Marker component attached to the root entity of a tiled scene.
+/// Every tile stub created from the manifest is parented under the entity
+/// that carries this component.  Use it to identify, move, or unload an
+/// entire tiled scene as a single logical object.
+///
+/// - Note: Root-entity transforms are not propagated to streaming/culling
+///   bounds in this release.  Keep the root at identity transform.
+public class TiledSceneComponent: Component {
+    /// Human-readable label derived from the manifest filename.
+    public var manifestLabel: String = ""
+
+    public required init() {}
+}
+
 /// Attached to every tile stub entity created by loadTiledScene().
 /// Carries the metadata the streaming bootstrap needs to trigger a full
 /// tile parse (setEntityMeshAsync) when the camera enters streaming range,

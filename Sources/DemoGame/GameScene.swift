@@ -21,7 +21,7 @@
         private enum LoadedContent {
             case none
             case mesh(EntityID)
-            case tiledScene
+            case tiledScene(EntityID)
         }
 
         private enum Constants {
@@ -88,14 +88,23 @@
 
         /// Loads a tiled scene from a local or remote manifest URL.
         func loadTileScene(sceneID: String, url: URL, completion: @escaping @Sendable (Bool) -> Void) {
+            // Destroy any previously loaded tiled scene before registering a new one.
+            if case let .tiledScene(oldRoot) = loadedContent {
+                destroyEntity(entityId: oldRoot)
+                loadedContent = .none
+            }
+
             clearSceneBatches()
             GeometryStreamingSystem.shared.enabled = true
 
-            loadTiledScene(url: url) { [weak self] success in
+            let sceneRoot = createEntity()
+            setEntityName(entityId: sceneRoot, name: sceneID)
+
+            loadTiledScene(entityId: sceneRoot, url: url) { [weak self] success in
                 guard let self else { return }
                 if success {
                     loadedEntity = nil
-                    loadedContent = .tiledScene
+                    loadedContent = .tiledScene(sceneRoot)
                     Self.applyCameraEye(for: sceneID)
                 }
                 completion(success)
@@ -112,14 +121,11 @@
                 loadedEntity = nil
                 loadedContent = .none
                 completion()
-            case .tiledScene:
-                destroyAllEntities { [weak self] in
-                    guard let self else { return }
-                    loadedEntity = nil
-                    loadedContent = .none
-                    setupDefaultSceneObjects()
-                    completion()
-                }
+            case let .tiledScene(rootEntity):
+                destroyEntity(entityId: rootEntity)
+                loadedEntity = nil
+                loadedContent = .none
+                completion()
             case .none:
                 loadedEntity = nil
                 completion()

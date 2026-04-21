@@ -25,9 +25,9 @@
             // Make sure to convert your usdz files to .untold format as explained in docs/API/UsingTheExporter
 
             // Uncomment to render a simple mesh.
-            /*
+            
              let entity = createEntity()
-
+            /*
              setEntityMeshAsync(entityId: entity, filename: "/path/to/mesh", withExtension: "untold") { success in
 
                  setEntityName(entityId: entity, name: "redplayer")
@@ -44,9 +44,9 @@
 
             // Uncomment to render a streamed scene
             /*
-              loadStreamingScene(from: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!) { success in
-                  setSceneReady(success)
-              }
+           loadTiledScene(entityId: entity, url: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!){ success in
+                setSceneReady(success)
+            }
              */
         }
 
@@ -111,23 +111,6 @@
             }
 
             wasRightMousePressed = input.keyState.rightMousePressed
-        }
-    }
-
-    extension GameScene {
-        func loadStreamingScene(from url: URL, completion: @escaping @Sendable (Bool) -> Void) {
-            setSceneReady(false)
-
-            if let loadedEntity {
-                destroyEntity(entityId: loadedEntity)
-                self.loadedEntity = nil
-            }
-
-            GeometryStreamingSystem.shared.enabled = true
-            loadTiledScene(url: url) { success in
-                setSceneReady(success)
-                completion(success)
-            }
         }
     }
 
