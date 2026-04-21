@@ -1,0 +1,7 @@
+Tests/UntoldEngineRenderTests/Resources/**/*.untold filter=lfs diff=lfs merge=lfs -text
+Tests/UntoldEngineRenderTests/Resources/**/*.usdz filter=lfs diff=lfs merge=lfs -text
+Tests/UntoldEngineRenderTests/Resources/**/*.png filter=lfs diff=lfs merge=lfs -text
+Tests/UntoldEngineRenderTests/Resources/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+Tests/UntoldEngineRenderTests/Resources/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+Tests/UntoldEngineRenderTests/Resources/**/*.tif filter=lfs diff=lfs merge=lfs -text
+Tests/UntoldEngineRenderTests/Resources/**/*.tiff filter=lfs diff=lfs merge=lfs -text
