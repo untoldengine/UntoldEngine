@@ -2253,8 +2253,7 @@ private struct TileBounds: Decodable {
 /// Load a large scene described by a tile manifest instead of a single asset file.
 ///
 /// The manifest (JSON) lists spatial tiles — each pointing to a small runtime payload
-/// with pre-computed world-space bounds.  This function reads the manifest, clears the
-/// current scene, creates a default camera and light, then registers one lightweight
+/// with pre-computed world-space bounds.  This function registers one lightweight
 /// stub entity per tile.  No geometry is parsed or uploaded at this stage.
 ///
 /// The streaming bootstrap (Issue 3 / GeometryStreamingSystem) will call
@@ -2266,7 +2265,23 @@ private struct TileBounds: Decodable {
 ///   - withExtension: File extension of the manifest (default "json").
 ///   - completion: Called on the main thread with `true` when stubs are registered,
 ///                 `false` if the manifest cannot be found or decoded.
+/// Loads a tiled scene and parents all tile stubs under `rootEntityId`.
+///
+/// The caller is responsible for creating `rootEntityId` via `createEntity()`
+/// before calling this function, and for managing its lifetime.  To replace a
+/// tiled scene, destroy the old root entity first (which cascades to all tile
+/// stubs), then call this function with a new root entity.
+///
+/// The caller is also responsible for creating any camera or light entities
+/// the scene requires.
+///
+/// - Parameters:
+///   - rootEntityId:  Entity that becomes the parent of all tile stubs.
+///   - manifest:      Name of the JSON manifest file (without extension).
+///   - ext:           File extension; defaults to `"json"`.
+///   - completion:    Called with `true` when all stubs are registered.
 public func loadTiledScene(
+    entityId rootEntityId: EntityID,
     manifest: String,
     withExtension ext: String = "json",
     completion: ((Bool) -> Void)? = nil
@@ -2292,6 +2307,7 @@ public func loadTiledScene(
     Logger.log(message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
 
     registerTiledScene(
+        rootEntityId: rootEntityId,
         manifest: tileManifest,
         baseURL: manifestURL.deletingLastPathComponent(),
         label: "\(manifest).\(ext)",
@@ -2299,13 +2315,116 @@ public func loadTiledScene(
     )
 }
 
-/// Loads a tiled scene from a URL (local `file://` or remote `http(s)://`).
+/// Loads a tiled scene from a named manifest, creating an internal root entity.
+///
+/// Backwards-compatible overload.  Prefer `loadTiledScene(entityId:manifest:)`
+/// when you need a stable handle to the loaded scene.
+///
+/// The caller is responsible for creating any camera or light entities the
+/// scene requires.
+public func loadTiledScene(
+    manifest: String,
+    withExtension ext: String = "json",
+    completion: ((Bool) -> Void)? = nil
+) {
+    guard let manifestURL = LoadingSystem.shared.resourceURL(
+        forResource: manifest,
+        withExtension: ext,
+        subResource: nil
+    ) else {
+        Logger.logError(message: "[loadTiledScene] Manifest '\(manifest).\(ext)' not found in any search path.")
+        completion?(false)
+        return
+    }
+
+    guard let data = try? Data(contentsOf: manifestURL),
+          let tileManifest = try? JSONDecoder().decode(TileManifest.self, from: data)
+    else {
+        Logger.logError(message: "[loadTiledScene] Failed to decode manifest '\(manifest).\(ext)'. Check JSON format.")
+        completion?(false)
+        return
+    }
+
+    Logger.log(message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
+
+    let rootEntityId = createEntity()
+    setEntityName(entityId: rootEntityId, name: "\(manifest).root")
+
+    registerTiledScene(
+        rootEntityId: rootEntityId,
+        manifest: tileManifest,
+        baseURL: manifestURL.deletingLastPathComponent(),
+        label: "\(manifest).\(ext)",
+        completion: completion
+    )
+}
+
+/// Loads a tiled scene from a URL and parents all tile stubs under `rootEntityId`.
 ///
 /// For remote URLs the manifest JSON is downloaded and cached by
 /// `RemoteAssetDownloader` before decoding.  Tile paths inside the manifest
 /// are resolved relative to the manifest's base URL, so a remote manifest
 /// produces remote tile URLs that are downloaded on demand by the streaming
 /// system as the camera approaches each tile.
+///
+/// The caller is responsible for creating `rootEntityId` via `createEntity()`
+/// before calling this function, and for managing its lifetime.
+///
+/// The caller is also responsible for creating any camera or light entities
+/// the scene requires.
+///
+/// - Parameters:
+///   - rootEntityId: Entity that becomes the parent of all tile stubs.
+///   - url:          Full URL to the manifest JSON (local or remote).
+///   - completion:   Called with `true` when all stubs are registered.
+public func loadTiledScene(
+    entityId rootEntityId: EntityID,
+    url manifestURL: URL,
+    completion: (@Sendable (Bool) -> Void)? = nil
+) {
+    Task {
+        do {
+            let localURL: URL
+            if manifestURL.scheme?.lowercased() == "https" {
+                localURL = try await RemoteAssetDownloader.shared.localURL(for: manifestURL)
+            } else if manifestURL.scheme?.lowercased() == "http" {
+                throw RemoteAssetDownloader.DownloadError.insecureScheme("http")
+            } else {
+                localURL = manifestURL
+            }
+
+            guard let data = try? Data(contentsOf: localURL),
+                  let tileManifest = try? JSONDecoder().decode(TileManifest.self, from: data)
+            else {
+                Logger.logError(message: "[loadTiledScene] Failed to decode manifest at '\(manifestURL)'. Check JSON format.")
+                completion?(false)
+                return
+            }
+
+            Logger.log(message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
+
+            registerTiledScene(
+                rootEntityId: rootEntityId,
+                manifest: tileManifest,
+                baseURL: manifestURL.deletingLastPathComponent(),
+                label: manifestURL.lastPathComponent,
+                completion: completion
+            )
+        } catch {
+            Logger.logError(message: "[loadTiledScene] Failed to load manifest from '\(manifestURL)': \(error)")
+            completion?(false)
+        }
+    }
+}
+
+/// Loads a tiled scene from a URL (local `file://` or remote `http(s)://`),
+/// creating an internal root entity.
+///
+/// Backwards-compatible overload.  Prefer `loadTiledScene(entityId:url:)`
+/// when you need a stable handle to the loaded scene.
+///
+/// The caller is responsible for creating any camera or light entities the
+/// scene requires.
 ///
 /// - Parameters:
 ///   - url:        Full URL to the manifest JSON (local or remote).
@@ -2335,9 +2454,11 @@ public func loadTiledScene(
 
             Logger.log(message: "[loadTiledScene] Manifest v\(tileManifest.version) decoded — \(tileManifest.tiles.count) tile(s).")
 
-            // Use the remote base URL so tile paths resolve to remote URLs
-            // and are downloaded on demand by the streaming system.
+            let rootEntityId = createEntity()
+            setEntityName(entityId: rootEntityId, name: "\(manifestURL.deletingPathExtension().lastPathComponent).root")
+
             registerTiledScene(
+                rootEntityId: rootEntityId,
                 manifest: tileManifest,
                 baseURL: manifestURL.deletingLastPathComponent(),
                 label: manifestURL.lastPathComponent,
@@ -2352,47 +2473,59 @@ public func loadTiledScene(
 
 /// Canonical scene-loading runtime.
 ///
-/// Clears the world, resets streaming systems, registers one TileComponent stub per
-/// manifest entry, and enables cell-based static batching.  No geometry is parsed or
-/// uploaded here — that happens incrementally as the camera moves.
+/// Registers one TileComponent stub per manifest entry, parents all stubs under
+/// `rootEntityId`, and enables cell-based static batching.  No geometry is parsed
+/// or uploaded here — that happens incrementally as the camera moves.
 ///
 /// Called by loadTiledScene() after JSON decoding.  The manifest is the only public
 /// scene contract; tile payloads are runtime implementation details (for example
 /// `.untold`, with legacy USD/USDZ support still present during migration).
 ///
+/// The caller is responsible for creating any camera or light entities the scene
+/// requires, and for managing the lifetime of `rootEntityId`.
+///
 /// - Parameters:
-///   - manifest:    Decoded TileManifest to register.
-///   - baseURL:     Directory used to resolve pathRelativeToManifest entries.
-///   - label:       Human-readable identifier used in log messages.
-///   - completion:  Called synchronously after all stubs are registered.
+///   - rootEntityId: Entity that becomes the parent of all tile stubs.
+///   - manifest:     Decoded TileManifest to register.
+///   - baseURL:      Directory used to resolve pathRelativeToManifest entries.
+///   - label:        Human-readable identifier used in log messages.
+///   - completion:   Called synchronously after all stubs are registered.
 private func registerTiledScene(
+    rootEntityId: EntityID,
     manifest tileManifest: TileManifest,
     baseURL manifestDir: URL,
     label: String,
     completion: ((Bool) -> Void)?
 ) {
-    // ── 1. Clear previous scene ────────────────────────────────────────────
-    clearScene()
-    // Reset streaming system state so tile/mesh tracking sets from the previous
-    // scene do not persist into this scene's streaming passes.  Camera velocity
-    // is also cleared so stale look-ahead does not immediately prefetch wrong tiles.
-    GeometryStreamingSystem.shared.reset()
+    // ── 1. Align streaming systems to this manifest ────────────────────────
     // Align texture streaming distance tiers to this manifest's actual radii so
     // texture quality bands scale with the scene rather than using fixed values.
     TextureStreamingSystem.shared.alignToManifest(
         streamingRadius: tileManifest.streamingDefaults.streamingRadius,
         unloadRadius: tileManifest.streamingDefaults.unloadRadius
     )
+    // Clear scene-level streaming state that is not valid across scene boundaries.
+    // interiorZone comes from the manifest; stale zone from a previous scene would
+    // incorrectly gate interior tile loads in the new scene.
+    // firstRangeTimestamps are keyed by EntityID; old entries become incorrect once
+    // those entities are destroyed and their IDs are recycled by new tile stubs.
+    GeometryStreamingSystem.shared.interiorZone = nil
+    GeometryStreamingSystem.shared.firstRangeTimestamps.removeAll()
 
-    // ── 2. Default camera + light ──────────────────────────────────────────
-    let camera = createEntity()
-    setEntityName(entityId: camera, name: "Main Camera")
-    createGameCamera(entityId: camera)
-    CameraSystem.shared.activeCamera = camera
-
-    let light = createEntity()
-    setEntityName(entityId: light, name: "Directional Light")
-    createDirLight(entityId: light)
+    // ── 2. Set up root entity ──────────────────────────────────────────────
+    // The root receives a transform (identity) and a scenegraph node so tile
+    // stubs can be parented under it.  TiledSceneComponent marks it as a tiled
+    // scene root for inspection and future editor workflows.
+    //
+    // Root transforms are NOT propagated to streaming/culling bounds in this
+    // release.  The manifest tile bounds are world-space values; keep the root
+    // at identity transform to avoid incorrect streaming/culling decisions.
+    registerTransformComponent(entityId: rootEntityId)
+    registerSceneGraphComponent(entityId: rootEntityId)
+    registerComponent(entityId: rootEntityId, componentType: TiledSceneComponent.self)
+    if let sceneComp = scene.get(component: TiledSceneComponent.self, for: rootEntityId) {
+        sceneComp.manifestLabel = label
+    }
 
     // ── 3. Cell-based static batching ─────────────────────────────────────
     // Tile entities are tagged with StaticBatchComponent after each tile parse
@@ -2516,6 +2649,10 @@ private func registerTiledScene(
                 }
             }
 
+            // Parent the stub under the tiled scene root so the entire scene
+            // can be referenced, inspected, or destroyed as a single object.
+            setParent(childId: entityId, parentId: rootEntityId)
+
             // Register with the octree so the streaming system can find this tile
             // via spatial queries.  The octree uses the world bounds computed above.
             OctreeSystem.shared.registerEntity(entityId)
@@ -2567,6 +2704,9 @@ private func registerTiledScene(
                     tileComp.tileId = shared.tileId
                     tileComp.state = .unloaded
                 }
+
+                // Parent the shared bucket under the same tiled scene root.
+                setParent(childId: entityId, parentId: rootEntityId)
 
                 OctreeSystem.shared.registerEntity(entityId)
             }
