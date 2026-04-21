@@ -457,6 +457,13 @@ class BaseRenderSetup: XCTestCase {
         setEntityName(entityId: ball, name: "ball")
         translateBy(entityId: ball, position: simd_float3(0.0, 0.4, 3.0))
 
+        // helmet pbr
+        let helmet = createEntity()
+        setEntityMesh(entityId: helmet, filename: "helmet", withExtension: "untold")
+        setEntityName(entityId: helmet, name: "helmet")
+        translateBy(entityId: helmet, position: simd_float3(-1.0, 1.75, 4.0))
+        rotateBy(entityId: helmet, angle: 45.0, axis: simd_float3(0.0, 1.0, 0.0))
+
         // transparent grass
 //        let grass = createEntity()
 //        setEntityMesh(entityId: grass, filename: "grass", withExtension: "untold")
