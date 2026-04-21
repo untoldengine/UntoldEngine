@@ -1,4 +1,8 @@
 # Changelog
+## v0.12.3 - 2026-04-21
+### 🐞 Fixes
+- [Patch] added entity to loadTileScene (ef8ecb3…)
+- [Patch] Renamed loadTileScene as setEntityStreamScene (c88cbe3…)
 ## v0.12.2 - 2026-04-18
 ### 🐞 Fixes
 - [Patch] Fix path traversal in remote texture disk cache (e4773fb…)
