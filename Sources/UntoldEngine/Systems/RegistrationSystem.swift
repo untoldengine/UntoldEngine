@@ -999,16 +999,15 @@ private func registerUntoldRuntimeAsset(
 
     let nodesByID = Dictionary(uniqueKeysWithValues: runtimeAsset.nodes.map { ($0.id, $0) })
     var entityByNodeID: [UInt32: EntityID] = [:]
-    var reusedRootEntity = false
 
     for node in runtimeAsset.nodes {
         let targetEntityId: EntityID
-        if node.parentID == nil, reusedRootEntity == false {
-            reusedRootEntity = true
-            targetEntityId = entityId
-        } else if runtimeAsset.nodes.count == 1, node.parentID == nil {
+        if runtimeAsset.nodes.count == 1, node.parentID == nil {
+            // Single-node asset: the caller's entity IS the mesh node.
             targetEntityId = entityId
         } else {
+            // Multi-node scene: entityId is the parent container (identity transform);
+            // every scene node gets its own entity so no node hijacks the root.
             targetEntityId = createEntity()
         }
 
