@@ -94,15 +94,26 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
 
         setEntityMesh(entityId: rootEntity, filename: "hierarchy", withExtension: "untold")
 
+        // rootEntity is the scene container — keeps its original name, no mesh, no derived tag.
         XCTAssertTrue(hasComponent(entityId: rootEntity, componentType: AssetInstanceComponent.self))
         XCTAssertFalse(hasComponent(entityId: rootEntity, componentType: RenderComponent.self))
-        XCTAssertEqual(getEntityName(entityId: rootEntity), "ParentNode")
+        XCTAssertEqual(getEntityName(entityId: rootEntity), "HierarchyRoot")
         XCTAssertFalse(hasComponent(entityId: rootEntity, componentType: DerivedAssetNodeComponent.self))
 
+        // rootEntity has 1 child: the scene's root node (ParentNode).
         let rootChildren = getEntityChildren(parentId: rootEntity)
         XCTAssertEqual(rootChildren.count, 1)
 
-        let childMeshEntity = try XCTUnwrap(rootChildren.first)
+        let parentNodeEntity = try XCTUnwrap(rootChildren.first)
+        XCTAssertEqual(getEntityName(entityId: parentNodeEntity), "ParentNode")
+        XCTAssertTrue(hasComponent(entityId: parentNodeEntity, componentType: DerivedAssetNodeComponent.self))
+        XCTAssertFalse(hasComponent(entityId: parentNodeEntity, componentType: RenderComponent.self))
+
+        // ParentNode has 1 child: ChildMeshNode.
+        let parentNodeChildren = getEntityChildren(parentId: parentNodeEntity)
+        XCTAssertEqual(parentNodeChildren.count, 1)
+
+        let childMeshEntity = try XCTUnwrap(parentNodeChildren.first)
         XCTAssertEqual(getEntityName(entityId: childMeshEntity), "ChildMeshNode")
         XCTAssertTrue(hasComponent(entityId: childMeshEntity, componentType: DerivedAssetNodeComponent.self))
         XCTAssertTrue(hasComponent(entityId: childMeshEntity, componentType: RenderComponent.self))
@@ -149,19 +160,18 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
         let allDerivedNodes = collectDescendantEntities(from: rootEntity).filter {
             hasComponent(entityId: $0, componentType: DerivedAssetNodeComponent.self)
         }
-        let rootNode = try XCTUnwrap(runtimeAsset.nodes.first(where: { $0.parentID == nil }))
-        XCTAssertEqual(getEntityName(entityId: rootEntity), rootNode.name)
-        XCTAssertEqual(allDerivedNodes.count, runtimeAsset.nodes.count - 1)
+
+        // All scene nodes become derived children; rootEntity is the identity container.
+        XCTAssertEqual(allDerivedNodes.count, runtimeAsset.nodes.count)
 
         let derivedNames = Set(allDerivedNodes.map { getEntityName(entityId: $0) })
-        XCTAssertEqual(derivedNames, Set(runtimeAsset.nodes.map(\.name)).subtracting([rootNode.name]))
+        XCTAssertEqual(derivedNames, Set(runtimeAsset.nodes.map(\.name)))
 
         let renderNodes = allDerivedNodes.filter { hasComponent(entityId: $0, componentType: RenderComponent.self) }
-        let expectedDerivedRenderCount = runtimeAsset.nodes.filter { !$0.primitives.isEmpty && $0.id != rootNode.id }.count
+        let expectedDerivedRenderCount = runtimeAsset.nodes.filter { !$0.primitives.isEmpty }.count
         XCTAssertEqual(renderNodes.count, expectedDerivedRenderCount)
 
-        var entityByName = Dictionary(uniqueKeysWithValues: allDerivedNodes.map { (getEntityName(entityId: $0), $0) })
-        entityByName[rootNode.name] = rootEntity
+        let entityByName = Dictionary(uniqueKeysWithValues: allDerivedNodes.map { (getEntityName(entityId: $0), $0) })
         let nodeByID = Dictionary(uniqueKeysWithValues: runtimeAsset.nodes.map { ($0.id, $0) })
 
         for node in runtimeAsset.nodes {
@@ -170,19 +180,23 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
                 continue
             }
 
-            if entity == rootEntity, node.parentID == nil {
-                XCTAssertNil(getEntityParent(entityId: entity))
-                continue
+            if node.parentID == nil {
+                // Root-level scene nodes must be direct children of the container entity.
+                XCTAssertEqual(getEntityParent(entityId: entity), rootEntity,
+                               "Root scene node '\(node.name)' must parent to container")
+            } else {
+                let expectedParentEntity: EntityID = {
+                    if let parentID = node.parentID,
+                       let parentNode = nodeByID[parentID],
+                       let parentEntity = entityByName[parentNode.name]
+                    {
+                        return parentEntity
+                    }
+                    return rootEntity
+                }()
+                XCTAssertEqual(getEntityParent(entityId: entity), expectedParentEntity,
+                               "Scene node '\(node.name)' has wrong parent")
             }
-
-            let expectedParentEntity: EntityID = {
-                if let parentID = node.parentID, let parentNode = nodeByID[parentID], let entity = entityByName[parentNode.name] {
-                    return entity
-                }
-                return rootEntity
-            }()
-
-            XCTAssertEqual(getEntityParent(entityId: entity), expectedParentEntity)
         }
     }
 }
