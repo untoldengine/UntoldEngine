@@ -260,21 +260,21 @@
             let input = InputSystem.shared
             let camera = findGameCamera()
 
-            //if cameraBehavior == .flyOrbit {
-                moveCameraWithInput(
-                    entityId: camera,
-                    input: (
-                        w: input.keyState.wPressed,
-                        a: input.keyState.aPressed,
-                        s: input.keyState.sPressed,
-                        d: input.keyState.dPressed,
-                        q: input.keyState.qPressed,
-                        e: input.keyState.ePressed
-                    ),
-                    speed: Constants.cameraMoveSpeed,
-                    deltaTime: Constants.cameraInputDeltaTime
-                )
-            //}
+            // if cameraBehavior == .flyOrbit {
+            moveCameraWithInput(
+                entityId: camera,
+                input: (
+                    w: input.keyState.wPressed,
+                    a: input.keyState.aPressed,
+                    s: input.keyState.sPressed,
+                    d: input.keyState.dPressed,
+                    q: input.keyState.qPressed,
+                    e: input.keyState.ePressed
+                ),
+                speed: Constants.cameraMoveSpeed,
+                deltaTime: Constants.cameraInputDeltaTime
+            )
+            // }
 
             if input.keyState.rightMousePressed {
                 if !wasRightMousePressed {
