@@ -78,11 +78,11 @@
                 title: "City",
                 manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/city/city.json")!
             ),
-//            .init(
-//                id: "japan",
-//                title: "Japan",
-//                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/japanesecity_compressed/japanesecity.json")!
-//            ),
+            .init(
+                id: "f1car",
+                title: "F1Car",
+                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/F1Car/F1Car.json")!
+            ),
         ]
         var selectedRemoteSceneID: String = Defaults.selectedRemoteSceneID
 
