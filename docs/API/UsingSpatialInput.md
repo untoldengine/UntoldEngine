@@ -1,9 +1,3 @@
----
-id: spatialinput
-title: Spatial Input VisionPro
-sidebar_position: 13
----
-
 # Spatial Input (vision Pro)
 
 Spatial input in Untold Engine follows a simple pipeline:
@@ -158,7 +152,7 @@ Behavior rules:
 
 ------------------------------------------------------------------------
 
-# Raw Gesture Examples
+## Raw Gesture Examples
 
 It is strongly recommended to use the Spatial Helper functions instead
 of raw gesture access.
@@ -547,7 +541,7 @@ if state.spatialTapActive{
 
 ------------------------------------------------------------------------
 
-# Spatial Helper Functions
+## Spatial Helper Functions
 
 Use these helpers from `SpatialManipulationSystem.shared`:
 

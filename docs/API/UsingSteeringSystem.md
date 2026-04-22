@@ -1,9 +1,3 @@
----
-id: steeringsystem
-title: Steering System
-sidebar_position: 7
----
-
 # Using the Steering System in Untold Engine
 
 The Steering System in the Untold Engine enables entities to move dynamically and intelligently within the scene. It provides both low-level steering behaviors (e.g., seek, flee, arrive) for granular control and high-level behaviors (e.g., steerTo, steerAway, followPath) that integrate seamlessly with the Physics System.

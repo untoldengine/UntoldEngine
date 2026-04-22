@@ -1,9 +1,3 @@
----
-id: inputsystem
-title: Input System
-sidebar_position: 6
----
-
 # Using the Input System in Untold Engine
 
 The Input System in the Untold Engine allows you to detect user inputs, such as keystrokes and mouse movements, to control entities and interact with the game. This guide will explain how to use the Input System effectively.

@@ -1,9 +1,3 @@
----
-id: staticbatchingsystem
-title: Static Batching System
-sidebar_position: 11
----
-
 # Static Batching System
 
 UntoldEngine supports two batching modes in practice:

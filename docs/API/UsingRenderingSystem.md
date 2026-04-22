@@ -1,9 +1,3 @@
----
-id: renderingsystem
-title: Rendering System
-sidebar_position: 2
----
-
 # Enabling Rendering System in Untold Engine
 
 The Rendering System in the Untold Engine is responsible for displaying your models on the screen. It supports advanced features such as Physically Based Rendering (PBR) for realistic visuals and multiple types of lights to illuminate your scenes.
@@ -21,7 +15,7 @@ let entity = createEntity()
 
 ### Step 2: Link a Mesh to the Entity
 
-To display a model, load its .usdc file and link it to the entity using setEntityMesh.
+To display a model, load its `.untold` runtime asset and link it to the entity using `setEntityMesh`.
 
 ```swift
 setEntityMesh(entityId: entity, filename: "entity", withExtension: "untold")
@@ -30,8 +24,8 @@ setEntityMesh(entityId: entity, filename: "entity", withExtension: "untold")
 Parameters:
 
 - entityId: The ID of the entity created earlier.
-- filename: The name of the .usdc file (without the extension).
-- withExtension: The file extension, typically "usdz".
+- filename: The name of the `.untold` file without the extension.
+- withExtension: The file extension, typically `"untold"` for runtime assets.
 
 > Note: If PBR textures (e.g., albedo, normal, roughness, metallic maps) are included, the rendering system will automatically use the appropriate PBR shader to render the model with realistic lighting and material properties.
 
@@ -57,7 +51,7 @@ Once everything is set up:
 #### Issue: Model Appears Flat or Dull
 
 - Cause: PBR textures are missing or not linked properly.
-- Solution: Ensure the .usdc file includes the correct PBR textures, and verify their paths during the loading process.
+- Solution: Ensure the `.untold` asset references the correct PBR textures, and verify their paths during the loading process.
 
 #### Debugging Tip:
 
@@ -73,5 +67,4 @@ Once everything is set up:
 - Position Lights Intelligently: Place point lights strategically to highlight key areas without excessive overlap.
 
 ---
-
 

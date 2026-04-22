@@ -22,7 +22,7 @@ issues.
 
 ------------------------------------------------------------------------
 
-# Octree Bounds Visualization
+## Octree Bounds Visualization
 
 The Spatial Debugger renders **octree leaf bounds** as wireframe boxes.
 
@@ -37,7 +37,7 @@ Leaf coloring can be configured to visualize:
 
 ------------------------------------------------------------------------
 
-# Quick Start
+## Quick Start
 
 ``` swift
 import UntoldEngine
@@ -65,9 +65,9 @@ disableSpatialDebugVisualization()
 
 ------------------------------------------------------------------------
 
-# Visualization Modes
+## Visualization Modes
 
-## Plain (structure only)
+### Plain (structure only)
 
 Draws octree leaf bounds in a single color.
 
@@ -88,7 +88,7 @@ setOctreeLeafBoundsDebug(
 
 ------------------------------------------------------------------------
 
-## Residency (Streaming / LOD)
+### Residency (Streaming / LOD)
 
 Colors leaves based on asset residency and streaming state.
 
@@ -126,7 +126,7 @@ If these components are missing, the leaf falls back to **white**.
 
 ------------------------------------------------------------------------
 
-## Culling
+### Culling
 
 Colors leaves based on runtime visibility.
 
@@ -165,7 +165,7 @@ moves.
 
 ------------------------------------------------------------------------
 
-# Showing Empty Leaves
+## Showing Empty Leaves
 
 To visualize the full octree structure including empty regions:
 
@@ -186,9 +186,9 @@ This can help diagnose:
 
 ------------------------------------------------------------------------
 
-# API
+## API
 
-## setOctreeLeafBoundsDebug
+### setOctreeLeafBoundsDebug
 
     setOctreeLeafBoundsDebug(
         enabled: Bool,
@@ -214,7 +214,7 @@ Available color modes:
 
 ------------------------------------------------------------------------
 
-## disableSpatialDebugVisualization
+### disableSpatialDebugVisualization
 
 Disables all spatial debugging overlays.
 
@@ -224,7 +224,7 @@ disableSpatialDebugVisualization()
 
 ------------------------------------------------------------------------
 
-# Runtime Behavior
+## Runtime Behavior
 
 The spatial debugger:
 
@@ -244,7 +244,7 @@ Default behavior:
 
 ------------------------------------------------------------------------
 
-# Console Status Output
+## Console Status Output
 
 When enabled, the renderer periodically prints a status line:
 
@@ -256,7 +256,7 @@ This provides quick feedback that the system is active and indicates:
 
 ------------------------------------------------------------------------
 
-# LOD Visualizer
+## LOD Visualizer
 
 The engine also provides an **LOD visualizer** to display which LOD
 level each renderable is currently using.
@@ -276,7 +276,7 @@ This mode colors renderables by their active LOD level to help diagnose:
 
 ------------------------------------------------------------------------
 
-# Recommended Debug Workflow
+## Recommended Debug Workflow
 
 When diagnosing spatial performance issues, a typical workflow is:
 
@@ -291,4 +291,3 @@ When diagnosing spatial performance issues, a typical workflow is:
 
 Together these tools provide a full picture of how the engine is
 managing spatial data.
-

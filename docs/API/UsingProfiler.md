@@ -1,9 +1,3 @@
----
-id: profiler
-title: Profiler
-sidebar_position: 20
----
-
 # Profiler
 
 UntoldEngine profiling has two layers that are meant to be used together:

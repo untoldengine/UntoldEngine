@@ -1,12 +1,6 @@
----
-id: asyncloadingsystem
-title: Async Loading System
-sidebar_position: 9
----
-
 # Async Loading System
 
-UntoldEngine loads meshes asynchronously so scene setup does not stall the render loop. This applies to native `.untold` assets and to legacy USD/USDZ runtime paths.
+UntoldEngine loads meshes asynchronously so scene setup does not stall the render loop. Use native `.untold` assets for runtime geometry; legacy USD/USDZ runtime paths are still supported.
 
 ## What the API Does
 
@@ -106,11 +100,12 @@ This is the public streaming workflow. Do not build app-level streaming logic ar
 
 ## `streamingPolicy`
 
-`setEntityMeshAsync` still exposes `streamingPolicy`, but the public guidance is:
+`setEntityMeshAsync` accepts a `streamingPolicy` parameter to control how geometry
+is uploaded to the GPU. For standalone assets, two values are relevant:
 
-- Use `.auto` for normal asset loading
-- Use `.immediate` when you explicitly want direct full upload
-- Use `setEntityStreamScene(...)` for streamable worlds instead of forcing `.outOfCore`
+- `.auto` — default; the engine chooses full upload or incremental based on asset size
+- `.immediate` — always uploads in a single pass; use for props that must appear fully
+  formed on first frame (player characters, weapons, HUD objects)
 
 ```swift
 setEntityMeshAsync(
@@ -121,7 +116,10 @@ setEntityMeshAsync(
 )
 ```
 
-`.outOfCore` is part of the engine's internal streaming architecture and test surface. The runtime streaming system now enforces tile ownership for `StreamingComponent`, so manifest-driven tiled scenes are the supported public path for streamed geometry.
+`.outOfCore` is reserved for the engine's internal tile streaming pipeline. Passing it
+directly on a standalone entity is unsupported — `StreamingComponent` stubs created
+outside of a `TileComponent` hierarchy are not managed by `GeometryStreamingSystem`.
+Use `setEntityStreamScene(...)` instead when you need distance-based streaming.
 
 ## Progress Tracking
 
@@ -175,5 +173,5 @@ Task {
 ## Notes
 
 - `.untold` is the preferred runtime format for static geometry.
-- Animation clips still use `.usdz`.
+- Animation clips exported with `--animation` can be loaded as `.untold` assets.
 - `setEntityStreamScene(...)` automatically aligns texture streaming distances to the manifest radii and enables the full tile/HLOD/LOD/OCC streaming pipeline.

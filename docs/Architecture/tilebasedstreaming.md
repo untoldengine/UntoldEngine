@@ -2,7 +2,7 @@
 
 ## Overview
 
-UntoldEngine implements a multi-tier proximity-based geometry streaming system for large outdoor scenes on Apple platforms (macOS, visionOS). The system streams geometry in and out of GPU memory based on camera distance, using a spatial octree for efficient range queries.
+UntoldEngine implements a multi-tier proximity-based geometry streaming system for large outdoor and indoor scenes on Apple platforms (macOS, visionOS). The system streams geometry in and out of GPU memory based on camera distance, using a spatial **octree** for efficient runtime range queries. Tile spatial partitioning in the manifest can follow either a uniform grid (v3) or a quadtree floor layout (v4) — see [Manifest Versions and Quadtree Partitioning](#manifest-versions-and-quadtree-partitioning).
 
 **Tier 1 — Tile streaming** (`TileComponent`): coarse-grained. Each tile is a whole USDC file covering a bounded region of the world. Tiles load and unload as the camera moves through the scene.
 
@@ -39,7 +39,23 @@ nothing visible    nothing                                  (if no HLOD)
 
 ### Manifest (JSON)
 
-A scene is described by a manifest file listing tiles. Each tile entry specifies:
+A scene is described by a manifest file listing tiles.
+
+#### Top-level manifest fields
+
+| Field | Description |
+|---|---|
+| `version` | Integer schema version (`3` = uniform grid, `4` = quadtree floor) |
+| `partitioning_mode` | *(v4 only)* `"uniform_grid"` or `"quadtree_floor"` — describes how tiles were partitioned by the export pipeline |
+| `streaming_defaults` | Scene-wide fallback radii and priority used when a tile omits its own values |
+| `tiles` | Array of tile entries (see below) |
+| `shared_bucket` | *(optional)* A single always-resident tile for geometry that spans many tiles |
+| `tile_size` | *(optional)* Tile footprint in world units, used to align batch cell size with tile boundaries |
+| `interior_zone` | *(v4 only)* Union AABB of all `ExteriorShell` tiles. Interior tiles are only loaded while the camera is inside this volume |
+
+The `streaming_defaults` block sets scene-wide fallback values for all per-tile fields. An optional `shared_bucket` entry holds geometry that spans many tiles and should always be resident (loaded as soon as the camera enters the scene).
+
+#### Per-tile entry fields
 
 | Field | Description |
 |---|---|
@@ -54,8 +70,10 @@ A scene is described by a manifest file listing tiles. Each tile entry specifies
 | `priority` | *(optional)* Load order when multiple tiles are candidates |
 | `hlod_levels` | *(optional)* Array of HLOD proxy entries; see [HLOD](#hlod-hierarchical-level-of-detail) |
 | `lod_levels` | *(optional)* Array of per-tile intermediate LOD entries; see [Per-tile LOD Levels](#per-tile-lod-levels) |
-
-The `streaming_defaults` block sets scene-wide fallback values for all per-tile fields. An optional `shared_bucket` entry holds geometry that spans many tiles and should always be resident (loaded as soon as the camera enters the scene).
+| `floor_id` | *(v4 only, optional)* Floor index within a building; `0` = ground floor |
+| `quadtree_node_id` | *(v4 only, optional)* Quadtree node identifier written by the export script (e.g. `"F02Q100"`); used for debug logging only, not required for streaming |
+| `semantic_tier` | *(v4 only, optional)* One of `"ExteriorShell"`, `"StructuralInterior"`, `"RoomContents"`, `"FineProps"`. The `streaming_radius` already encodes the correct load distance for the tier; no additional runtime logic is required |
+| `interior` | *(v4 only, optional)* When `true`, this tile contains interior-only geometry and is gated on the camera being inside `interior_zone` |
 
 #### HLOD manifest contract
 
@@ -88,6 +106,33 @@ Entries **must be sorted ascending by `switch_distance`** (smallest = finest = c
 - **`TileLODTagComponent`** — lightweight tag placed on render-descendant mesh entities spawned by the streaming system for per-tile LOD levels and HLODs. Carries a `levelIndex` used by the LOD debug renderer (`colorRenderablesByLOD`) and by `BatchingSystem.resolveBatchCandidate` to derive the batch LOD index for these entities (which have no `LODComponent`). `levelIndex` follows `lodDebugPalette`: 1 = LOD1 (green), 2 = LOD2 (blue), 5 = HLOD (cyan).
 - **`StreamingComponent`** — attached to individual OCC mesh stubs created inside a loaded tile. Governs per-mesh load/unload within the second streaming tier.
 - **`RenderComponent`** — added to an entity only after its GPU geometry upload completes. Absence means the entity is invisible to culling and rendering.
+
+---
+
+## Manifest Versions and Quadtree Partitioning
+
+The manifest schema has evolved across two versions:
+
+### v3 — Uniform Grid
+
+`"partitioning_mode": "uniform_grid"` (or `version: 3` without the field). Tiles are laid out in a regular spatial grid. There is no `interior_zone` and no semantic tier hierarchy. This is the original format produced by the v1 Blender export script.
+
+### v4 — Quadtree Floor
+
+`"partitioning_mode": "quadtree_floor"` (or `version: 4`). Tiles are partitioned by a floor-level quadtree, typically for multi-storey indoor scenes. The export script assigns each tile a `quadtree_node_id` (e.g. `"F02Q100"`) and a `semantic_tier` label.
+
+**Semantic tiers** encode the expected load distance by naming convention — the export pipeline sets `streaming_radius` to the correct value for each tier, so the runtime treats them identically during streaming. The tiers are:
+
+| Tier | Description |
+|---|---|
+| `ExteriorShell` | Outer building shell, always-visible facade geometry |
+| `StructuralInterior` | Floors, walls, and structural elements inside the shell |
+| `RoomContents` | Furniture and fixtures within individual rooms |
+| `FineProps` | Small detail props, only visible at close range |
+
+**Interior zone gating** — the manifest's `interior_zone` is the union AABB of all `ExteriorShell` tiles. On each streaming tick, the engine checks whether the camera is inside this volume. Tiles with `"interior": true` are only dispatched for loading while the camera is inside. This prevents the engine from loading room-level geometry when the player is outside the building, regardless of distance.
+
+> The quadtree partitioning is a content-pipeline and manifest-level concept. At runtime the engine uses an **octree** for spatial range queries (finding tile stubs near the camera). The manifest's `quadtree_node_id` is used for debug logging only and has no effect on streaming logic.
 
 ---
 

@@ -1,10 +1,4 @@
----
-id: animationsystem
-title: Animation System
-sidebar_position: 4
----
-
-#  Enabling Animation in Untold Engine
+# Enabling Animation in Untold Engine
 
 The Untold Engine simplifies adding animations to your rigged models, allowing for lifelike movement and dynamic interactions. This guide will show you how to set up and play animations for a rigged model.
 
@@ -23,7 +17,7 @@ let redPlayer = createEntity()
 
 ### Step 2: Link the Mesh to the Entity
 
-Load your rigged model’s .usdc file and link it to the entity. This step ensures the entity is visually represented in the scene.
+Load your rigged model's `.untold` runtime asset and link it to the entity. This step ensures the entity is visually represented in the scene.
 
 ```swift
 setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "untold", flip: false)
@@ -33,7 +27,7 @@ setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "untold
 ---
 
 ### Step 3: Load the Animation
-Load the animation data for your model by providing the animation .usdc file and a name to reference the animation later.
+Load the animation data for your model by providing the exported animation `.untold` file and a name to reference the animation later.
 
 ```swift
 setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "untold", name: "running")

@@ -1,9 +1,3 @@
----
-id: physicssystem
-title: Physics System
-sidebar_position: 5
----
-
 # Enabling Physics System in Untold Engine
 
 The physics system in the Untold Engine enables realistic simulations such as gravity, forces, and dynamic interactions. While collision support is still under development, this guide will walk you through adding physics to your entities.
@@ -23,7 +17,7 @@ let redPlayer = createEntity()
 Next, load your model’s mesh file and link it to the entity. This step visually represents your entity in the scene.
 
 ```swift
-setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc")
+setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "untold")
 ```
 ---
 
