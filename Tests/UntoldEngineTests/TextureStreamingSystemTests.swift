@@ -9,6 +9,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 @testable import UntoldEngine
+import simd
 import XCTest
 
 @MainActor
@@ -218,6 +219,65 @@ final class TextureStreamingSystemTests: XCTestCase {
         system.maxTextureDimension = 1024
         system.minimumTextureDimension = 256
         XCTAssertLessThanOrEqual(system.minimumTextureDimension, system.maxTextureDimension)
+    }
+
+    // MARK: - Distance Model
+
+    func testDistanceToWorldAABBUsesNearestSurfaceNotCenter() {
+        let distance = TextureStreamingSystem.distanceToWorldAABB(
+            cameraPosition: simd_float3(0, 0, 0.2),
+            worldTransform: matrix_identity_float4x4,
+            localMin: simd_float3(-10, -1, -1),
+            localMax: simd_float3(10, 1, 1)
+        )
+
+        XCTAssertEqual(distance, 0.0, accuracy: 1e-5)
+    }
+
+    func testDistanceToWorldAABBPreservesWorldScale() {
+        let worldTransform = matrix4x4Scale(0.1, 0.1, 0.1)
+        let distance = TextureStreamingSystem.distanceToWorldAABB(
+            cameraPosition: simd_float3(1.2, 0, 0),
+            worldTransform: worldTransform,
+            localMin: simd_float3(-10, -1, -1),
+            localMax: simd_float3(10, 1, 1)
+        )
+
+        XCTAssertEqual(distance, 0.2, accuracy: 1e-5)
+    }
+
+    // MARK: - Detailed Profile
+
+    func testApplyDetailedProfileSetsExpectedValues() {
+        system.apply(.detailed)
+        XCTAssertEqual(system.upgradeRadius, 2.5, accuracy: 1e-6)
+        XCTAssertEqual(system.downgradeRadius, 6.0, accuracy: 1e-6)
+        XCTAssertEqual(system.maxTextureDimension, 1024)
+        XCTAssertEqual(system.minimumTextureDimension, 512)
+        XCTAssertEqual(system.maxConcurrentOps, 6)
+        XCTAssertEqual(system.updateInterval, 0.1, accuracy: 1e-6)
+    }
+
+    func testApplyDetailedProfileUpgradeRadiusLessThanDowngrade() {
+        system.apply(.detailed)
+        XCTAssertLessThan(system.upgradeRadius, system.downgradeRadius)
+    }
+
+    // MARK: - Superdetailed Profile
+
+    func testApplySuperdetailedProfileSetsExpectedValues() {
+        system.apply(.superdetailed)
+        XCTAssertEqual(system.upgradeRadius, 4.0, accuracy: 1e-6)
+        XCTAssertEqual(system.downgradeRadius, 8.0, accuracy: 1e-6)
+        XCTAssertEqual(system.maxTextureDimension, 2048)
+        XCTAssertEqual(system.minimumTextureDimension, 1024)
+        XCTAssertEqual(system.maxConcurrentOps, 6)
+        XCTAssertEqual(system.updateInterval, 0.1, accuracy: 1e-6)
+    }
+
+    func testApplySuperdetailedProfileUpgradeRadiusLessThanDowngrade() {
+        system.apply(.superdetailed)
+        XCTAssertLessThan(system.upgradeRadius, system.downgradeRadius)
     }
 
     // MARK: - Tiled Profile

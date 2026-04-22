@@ -52,17 +52,33 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
     /// Built-in tuning presets for common scene types.
     ///
-    /// Apply at setup time via `TextureStreamingSystem.shared.apply(.archviz)`.
+    /// Apply at setup time via `TextureStreamingSystem.shared.apply(.detailed)`.
     /// Individual properties can be overridden after applying a profile.
     public enum Profile {
-        /// Indoor archviz scenes (living rooms, kitchens, offices).
+        /// Detail-focused close inspection scenes and hero assets.
         ///
-        /// Prioritises quality over memory: full res within arm's reach,
-        /// high minimum (512 px) because "distant" objects in a room are
-        /// still large on screen, wide hysteresis to avoid mid-walkthrough
-        /// transitions, and more concurrent ops since ops are GPU-bound.
+        /// Prioritises quality over memory: full res within arm's reach, high
+        /// minimum (512 px) because "distant" nearby objects are still large on
+        /// screen, wide hysteresis to avoid close-view transitions, and more
+        /// concurrent ops since ops are GPU-bound.
         ///
-        /// Typical room depth: 4–7 m.
+        /// Use for vehicles, products, characters, props, interiors, and other
+        /// assets where close-range texture fidelity matters.
+        case detailed
+
+        /// Maximum-fidelity close inspection scenes and hero assets.
+        ///
+        /// Keeps full-resolution textures resident through a wider inspection band
+        /// than `.detailed`, while still downgrading beyond typical presentation
+        /// distance so large source textures do not stay full-res indefinitely.
+        ///
+        /// Use for showroom-style vehicles, product configurators, portfolio assets,
+        /// and other scenes where the subject remains visually important at a few
+        /// metres away.
+        case superdetailed
+
+        /// Deprecated alias for `.detailed`.
+        @available(*, deprecated, renamed: "detailed", message: "Use .detailed for close-inspection/high-fidelity texture streaming.")
         case archviz
 
         /// Large outdoor / open-world scenes (cities, landscapes, terrain).
@@ -94,16 +110,16 @@ public class TextureStreamingSystem: @unchecked Sendable {
     ///
     /// ```swift
     /// // At scene init:
-    /// TextureStreamingSystem.shared.apply(.archviz)
+    /// TextureStreamingSystem.shared.apply(.detailed)
     ///
     /// // Fine-tune a single value afterwards if needed:
     /// TextureStreamingSystem.shared.upgradeRadius = 3.0
     /// ```
     public func apply(_ profile: Profile) {
         switch profile {
-        case .archviz:
-            // Full res within inspection distance; almost nothing in a living
-            // room is beyond 6 m, so the minimum tier fires rarely.
+        case .detailed, .archviz:
+            // Full res within inspection distance; for detailed assets and rooms,
+            // even the fallback tiers remain relatively high resolution.
             upgradeRadius = 2.5
             downgradeRadius = 6.0
             maxTextureDimension = 1024
@@ -111,6 +127,17 @@ public class TextureStreamingSystem: @unchecked Sendable {
             hysteresisFraction = 0.20 // wider dead band — no transitions mid-walkthrough
             maxConcurrentOps = 6 // GPU-bound; no disk I/O on warm path
             updateInterval = 0.1 // more responsive at walking speed
+
+        case .superdetailed:
+            // Hero assets stay full-res through normal presentation distance,
+            // then degrade to a high medium tier before reaching the minimum tier.
+            upgradeRadius = 4.0
+            downgradeRadius = 8.0
+            maxTextureDimension = 2048
+            minimumTextureDimension = 1024
+            hysteresisFraction = 0.20
+            maxConcurrentOps = 6
+            updateInterval = 0.1
 
         case .openWorld:
             // Spread tiers across a city-block / landscape scale.
@@ -223,6 +250,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
     // MARK: - State
 
     private var timeSinceLastUpdate: Float = 0
+    private var memoryPressureHoldSeconds: Float = 0
 
     /// Entities that currently hold textures above `minimumTextureDimension`.
     private var upgradedEntities: Set<EntityID> = []
@@ -355,6 +383,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
     public func update(cameraPosition: simd_float3, deltaTime: Float) {
         guard enabled else { return }
 
+        memoryPressureHoldSeconds = max(0, memoryPressureHoldSeconds - deltaTime)
         timeSinceLastUpdate += deltaTime
         guard timeSinceLastUpdate >= updateInterval else { return }
         timeSinceLastUpdate = 0
@@ -385,7 +414,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
             let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
             guard distance.isFinite else { continue }
             setTrackedAboveMinimum(entityId, isAboveMinimum: entityHasTexturesAboveMinimumTier(entityId: entityId))
-            let targetMaxDimension = lodAwareMaxDimension(entityId: entityId, distanceBased: desiredMaxDimension(distance: distance))
+            let targetMaxDimension = lodAwareMaxDimension(entityId: entityId, distanceBased: desiredMaxDimension(distance: distance, allowFullResolution: memoryPressureHoldSeconds <= 0))
             let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension, distance: distance)
             guard !workItems.isEmpty else { continue }
             let capturedLOD = scene.get(component: LODComponent.self, for: entityId)?.currentLOD
@@ -411,7 +440,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
             // Keep non-visible downgrade tracking current for entities we visit.
             setTrackedAboveMinimum(entityId, isAboveMinimum: entityHasTexturesAboveMinimumTier(entityId: entityId))
 
-            let targetMaxDimension = lodAwareMaxDimension(entityId: entityId, distanceBased: desiredMaxDimension(distance: distance))
+            let targetMaxDimension = lodAwareMaxDimension(entityId: entityId, distanceBased: desiredMaxDimension(distance: distance, allowFullResolution: memoryPressureHoldSeconds <= 0))
             let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension, distance: distance)
             guard !workItems.isEmpty else { continue }
 
@@ -441,7 +470,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
             }
 
             let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
-            let targetMaxDimension = lodAwareMaxDimension(entityId: entityId, distanceBased: desiredMaxDimension(distance: distance))
+            let targetMaxDimension = lodAwareMaxDimension(entityId: entityId, distanceBased: desiredMaxDimension(distance: distance, allowFullResolution: memoryPressureHoldSeconds <= 0))
             let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetMaxDimension, distance: distance)
             guard !workItems.isEmpty else {
                 lock.lock()
@@ -473,9 +502,9 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// an entity behind the camera may still be very close, and downgrading it
     /// to minimum just because it left the frustum causes a visible quality drop
     /// when the camera rotates back.
-    private func desiredMaxDimension(distance: Float) -> Int? {
+    private func desiredMaxDimension(distance: Float, allowFullResolution: Bool = true) -> Int? {
         if distance <= upgradeRadius {
-            return nil
+            return allowFullResolution ? nil : normalizedMediumDimension()
         }
         if distance <= downgradeRadius {
             return normalizedMediumDimension()
@@ -512,9 +541,40 @@ public class TextureStreamingSystem: @unchecked Sendable {
               let local = scene.get(component: LocalTransformComponent.self, for: entityId)
         else { return .infinity }
 
-        let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
-        let worldCenter = transform.space * simd_float4(center, 1.0)
-        return simd_distance(cameraPosition, simd_float3(worldCenter.x, worldCenter.y, worldCenter.z))
+        return TextureStreamingSystem.distanceToWorldAABB(
+            cameraPosition: cameraPosition,
+            worldTransform: transform.space,
+            localMin: local.boundingBox.min,
+            localMax: local.boundingBox.max
+        )
+    }
+
+    /// Distance from the camera to the nearest point on an entity's local-space AABB,
+    /// measured in scene/world units.
+    ///
+    /// Texture quality is screen-distance driven: a viewer standing next to the surface
+    /// of a large mesh should get the near tier even if the mesh center is many metres
+    /// away. This mirrors geometry streaming's closest-AABB behavior while preserving
+    /// world-space distance so scaled props still use intuitive metre-based radii.
+    static func distanceToWorldAABB(
+        cameraPosition: simd_float3,
+        worldTransform: simd_float4x4,
+        localMin: simd_float3,
+        localMax: simd_float3
+    ) -> Float {
+        let inv = worldTransform.inverse
+        let localCamera4 = inv * simd_float4(cameraPosition, 1.0)
+        let localCamera = simd_float3(localCamera4.x, localCamera4.y, localCamera4.z)
+        guard localCamera.x.isFinite, localCamera.y.isFinite, localCamera.z.isFinite else {
+            return .infinity
+        }
+
+        let minBounds = simd_min(localMin, localMax)
+        let maxBounds = simd_max(localMin, localMax)
+        let closestLocal = simd_clamp(localCamera, minBounds, maxBounds)
+        let closestWorld4 = worldTransform * simd_float4(closestLocal, 1.0)
+        let closestWorld = simd_float3(closestWorld4.x, closestWorld4.y, closestWorld4.z)
+        return simd_distance(cameraPosition, closestWorld)
     }
 
     private func streamableSlots(entityId: EntityID) -> [StreamSlot] {
@@ -1125,6 +1185,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
     /// - Returns: Number of entities scheduled for downgrade.
     @discardableResult
     public func shedTextureMemory(cameraPosition: simd_float3, maxEntities: Int = 4) -> Int {
+        memoryPressureHoldSeconds = 3.0
         let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraPosition)
 
         lock.lock()
@@ -1141,20 +1202,22 @@ public class TextureStreamingSystem: @unchecked Sendable {
             }
             .sorted { $0.1 > $1.1 }
 
-        let minDimension = normalizedMinimumDimension()
         var scheduled = 0
 
         for (entityId, distance) in sorted.prefix(maxEntities) {
             guard !isActiveOp(entityId) else { continue }
+            let targetDimension = distance <= upgradeRadius
+                ? normalizedMediumDimension()
+                : normalizedMinimumDimension()
             // Pass Float.greatestFiniteMagnitude as distance so hysteresis dead-band checks
             // (`distance < threshold`) are never true — memory-pressure downgrades are unconditional.
-            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: minDimension, distance: Float.greatestFiniteMagnitude)
+            let workItems = buildWorkItems(entityId: entityId, targetMaxDimension: targetDimension, distance: Float.greatestFiniteMagnitude)
             guard !workItems.isEmpty else { continue }
             scheduleResolutionChange(
                 entityId: entityId,
                 distance: distance,
                 workItems: workItems,
-                targetMaxDimension: minDimension,
+                targetMaxDimension: targetDimension,
                 isVisible: false
             )
             scheduled += 1
@@ -1229,6 +1292,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
         totalDowngrades = 0
         lock.unlock()
         timeSinceLastUpdate = 0
+        memoryPressureHoldSeconds = 0
     }
 }
 
