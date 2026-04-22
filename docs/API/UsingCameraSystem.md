@@ -1,9 +1,3 @@
----
-id: camerasystem
-title: Camera System
-sidebar_position: 10
----
-
 # Using the Camera System
 
 This document explains how to move, rotate, and control cameras using the APIs in `CameraSystem.swift`.

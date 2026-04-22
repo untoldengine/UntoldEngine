@@ -1,9 +1,3 @@
----
-id: lodsystem
-title: LOD System
-sidebar_position: 10
----
-
 # LOD (Level of Detail) System - Usage Guide
 
 The Untold Engine provides a flexible LOD system for optimizing rendering performance by displaying different mesh details based on camera distance.
@@ -64,10 +58,10 @@ let tree = createEntity()
 setEntityLodComponent(entityId: tree)
 
 // Add LOD levels (from highest to lowest detail)
-addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "usdz", maxDistance: 50.0)
-addLODLevel(entityId: tree, lodIndex: 1, fileName: "tree_LOD1", withExtension: "usdz", maxDistance: 100.0)
-addLODLevel(entityId: tree, lodIndex: 2, fileName: "tree_LOD2", withExtension: "usdz", maxDistance: 200.0)
-addLODLevel(entityId: tree, lodIndex: 3, fileName: "tree_LOD3", withExtension: "usdz", maxDistance: 400.0)
+addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "untold", maxDistance: 50.0)
+addLODLevel(entityId: tree, lodIndex: 1, fileName: "tree_LOD1", withExtension: "untold", maxDistance: 100.0)
+addLODLevel(entityId: tree, lodIndex: 2, fileName: "tree_LOD2", withExtension: "untold", maxDistance: 200.0)
+addLODLevel(entityId: tree, lodIndex: 3, fileName: "tree_LOD3", withExtension: "untold", maxDistance: 400.0)
 ```
 
 **How it works:**
@@ -86,10 +80,10 @@ setEntityLodComponent(entityId: tree)
 
 // Load all LOD levels and wait for completion
 addLODLevels(entityId: tree, levels: [
-    (0, "tree_LOD0", "usdz", 50.0, 0.0),
-    (1, "tree_LOD1", "usdz", 100.0, 0.0),
-    (2, "tree_LOD2", "usdz", 200.0, 0.0),
-    (3, "tree_LOD3", "usdz", 400.0, 0.0)
+    (0, "tree_LOD0", "untold", 50.0, 0.0),
+    (1, "tree_LOD1", "untold", 100.0, 0.0),
+    (2, "tree_LOD2", "untold", 200.0, 0.0),
+    (3, "tree_LOD3", "untold", 400.0, 0.0)
 ]) { success in
     if success {
         print("All LOD levels loaded")
@@ -112,16 +106,16 @@ You can also load an initial mesh synchronously before adding LOD levels:
 let tree = createEntity()
 
 // Load initial mesh synchronously (shows immediately)
-setEntityMesh(entityId: tree, filename: "tree_LOD0", withExtension: "usdz")
+setEntityMesh(entityId: tree, filename: "tree_LOD0", withExtension: "untold")
 
 // Add LOD component
 setEntityLodComponent(entityId: tree)
 
 // Add LOD levels (will replace initial mesh when ready)
-addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "usdz", maxDistance: 50.0)
-addLODLevel(entityId: tree, lodIndex: 1, fileName: "tree_LOD1", withExtension: "usdz", maxDistance: 100.0)
-addLODLevel(entityId: tree, lodIndex: 2, fileName: "tree_LOD2", withExtension: "usdz", maxDistance: 200.0)
-addLODLevel(entityId: tree, lodIndex: 3, fileName: "tree_LOD3", withExtension: "usdz", maxDistance: 400.0)
+addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "untold", maxDistance: 50.0)
+addLODLevel(entityId: tree, lodIndex: 1, fileName: "tree_LOD1", withExtension: "untold", maxDistance: 100.0)
+addLODLevel(entityId: tree, lodIndex: 2, fileName: "tree_LOD2", withExtension: "untold", maxDistance: 200.0)
+addLODLevel(entityId: tree, lodIndex: 3, fileName: "tree_LOD3", withExtension: "untold", maxDistance: 400.0)
 ```
 
 ### With Completion Handler
@@ -133,7 +127,7 @@ let tree = createEntity()
 setEntityLodComponent(entityId: tree)
 
 // Chain completion handlers for sequential loading
-addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "usdz", maxDistance: 50.0) { success in
+addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "untold", maxDistance: 50.0) { success in
     if success {
         print("LOD0 loaded")
         // Now it's safe to use the mesh data
@@ -149,13 +143,13 @@ LOD files should be organized in subdirectories:
 GameData/
 └── Models/
     ├── tree_LOD0/
-    │   └── tree_LOD0.usdz
+    │   └── tree_LOD0.untold
     ├── tree_LOD1/
-    │   └── tree_LOD1.usdz
+    │   └── tree_LOD1.untold
     ├── tree_LOD2/
-    │   └── tree_LOD2.usdz
+    │   └── tree_LOD2.untold
     └── tree_LOD3/
-        └── tree_LOD3.usdz
+        └── tree_LOD3.untold
 ```
 
 **Note:** Each LOD file should be in its own folder with the same name as the file (without extension).
@@ -178,7 +172,7 @@ Adds a single LOD level to an entity.
 - `entityId`: The entity to add LOD to
 - `lodIndex`: LOD level index (0 = highest detail)
 - `fileName`: Name of the mesh file (without extension)
-- `withExtension`: File extension (e.g., "usdz")
+- `withExtension`: File extension (e.g., "untold")
 - `maxDistance`: Maximum camera distance for this LOD
 - `completion`: Optional callback when loading completes
 
@@ -187,7 +181,7 @@ addLODLevel(
     entityId: tree,
     lodIndex: 0,
     fileName: "tree_LOD0",
-    withExtension: "usdz",
+    withExtension: "untold",
     maxDistance: 50.0
 ) { success in
     if success {
@@ -206,9 +200,9 @@ Adds multiple LOD levels with a single completion handler. Useful when you need 
 
 ```swift
 addLODLevels(entityId: tree, levels: [
-    (0, "tree_LOD0", "usdz", 50.0, 0.0),
-    (1, "tree_LOD1", "usdz", 100.0, 0.0),
-    (2, "tree_LOD2", "usdz", 200.0, 0.0)
+    (0, "tree_LOD0", "untold", 50.0, 0.0),
+    (1, "tree_LOD1", "untold", 100.0, 0.0),
+    (2, "tree_LOD2", "untold", 200.0, 0.0)
 ]) { success in
     if success {
         print("All LODs loaded")
@@ -231,7 +225,7 @@ replaceLODLevel(
     entityId: tree,
     lodIndex: 1,
     fileName: "tree_LOD1_new",
-    withExtension: "usdz",
+    withExtension: "untold",
     maxDistance: 100.0
 )
 ```
@@ -254,13 +248,13 @@ Adjust distances based on your scene scale:
 
 ```swift
 // Small scene (indoor environment)
-addLODLevel(entityId: prop, lodIndex: 0, fileName: "prop_LOD0", withExtension: "usdz", maxDistance: 10.0)
-addLODLevel(entityId: prop, lodIndex: 1, fileName: "prop_LOD1", withExtension: "usdz", maxDistance: 20.0)
+addLODLevel(entityId: prop, lodIndex: 0, fileName: "prop_LOD0", withExtension: "untold", maxDistance: 10.0)
+addLODLevel(entityId: prop, lodIndex: 1, fileName: "prop_LOD1", withExtension: "untold", maxDistance: 20.0)
 
 // Large scene (outdoor landscape)
-addLODLevel(entityId: mountain, lodIndex: 0, fileName: "mountain_LOD0", withExtension: "usdz", maxDistance: 500.0)
-addLODLevel(entityId: mountain, lodIndex: 1, fileName: "mountain_LOD1", withExtension: "usdz", maxDistance: 1000.0)
-addLODLevel(entityId: mountain, lodIndex: 2, fileName: "mountain_LOD2", withExtension: "usdz", maxDistance: 2000.0)
+addLODLevel(entityId: mountain, lodIndex: 0, fileName: "mountain_LOD0", withExtension: "untold", maxDistance: 500.0)
+addLODLevel(entityId: mountain, lodIndex: 1, fileName: "mountain_LOD1", withExtension: "untold", maxDistance: 1000.0)
+addLODLevel(entityId: mountain, lodIndex: 2, fileName: "mountain_LOD2", withExtension: "untold", maxDistance: 2000.0)
 ```
 
 ### LOD Configuration
@@ -307,7 +301,7 @@ for (index, fileName) in lodFiles.enumerated() {
         entityId: rock,
         lodIndex: index,
         fileName: fileName,
-        withExtension: "usdz",
+        withExtension: "untold",
         maxDistance: distances[index]
     )
 }
@@ -393,10 +387,10 @@ for i in 0..<10 {
     setEntityLodComponent(entityId: tree)
     
     // Add 4 LOD levels
-    addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "usdz", maxDistance: 50.0)
-    addLODLevel(entityId: tree, lodIndex: 1, fileName: "tree_LOD1", withExtension: "usdz", maxDistance: 100.0)
-    addLODLevel(entityId: tree, lodIndex: 2, fileName: "tree_LOD2", withExtension: "usdz", maxDistance: 200.0)
-    addLODLevel(entityId: tree, lodIndex: 3, fileName: "tree_LOD3", withExtension: "usdz", maxDistance: 400.0)
+    addLODLevel(entityId: tree, lodIndex: 0, fileName: "tree_LOD0", withExtension: "untold", maxDistance: 50.0)
+    addLODLevel(entityId: tree, lodIndex: 1, fileName: "tree_LOD1", withExtension: "untold", maxDistance: 100.0)
+    addLODLevel(entityId: tree, lodIndex: 2, fileName: "tree_LOD2", withExtension: "untold", maxDistance: 200.0)
+    addLODLevel(entityId: tree, lodIndex: 3, fileName: "tree_LOD3", withExtension: "untold", maxDistance: 400.0)
     
     trees.append(tree)
 }
@@ -433,9 +427,9 @@ private func setupLODWithBatching() {
         
         // Load all LOD levels with completion handler
         addLODLevels(entityId: tree, levels: [
-            (0, "tree_LOD0", "usdz", 50.0, 0.0),
-            (1, "tree_LOD1", "usdz", 100.0, 0.0),
-            (2, "tree_LOD2", "usdz", 200.0, 0.0)
+            (0, "tree_LOD0", "untold", 50.0, 0.0),
+            (1, "tree_LOD1", "untold", 100.0, 0.0),
+            (2, "tree_LOD2", "untold", 200.0, 0.0)
         ]) { success in
             if success {
                 // Apply transform AFTER mesh is loaded
@@ -463,4 +457,3 @@ private func setupLODWithBatching() {
 2. Apply transforms (`translateTo`) inside the completion handler
 3. Call `setEntityStaticBatchComponent()` after mesh is loaded
 4. Call `generateBatches()` only after all entities are ready
-

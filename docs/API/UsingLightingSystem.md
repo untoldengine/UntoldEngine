@@ -1,9 +1,3 @@
----
-id: lightinsystem
-title: Lighting System
-sidebar_position: 3
----
-
 # Enabling the Lighting System in Untold Engine
 
 The Lighting System lets you add illumination to your scenes using common real-time light types. Under the hood it wires up the required ECS components, provides an editor-friendly visual handle, and tags the light so the renderer can pick it up.

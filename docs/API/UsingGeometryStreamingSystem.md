@@ -1,9 +1,3 @@
----
-id: geometrystreaminggsystem
-title: Geometry Streaming System
-sidebar_position: 13
----
-
 # Geometry Streaming System
 
 UntoldEngine streams large worlds through a **manifest-driven tiled scene** pipeline.

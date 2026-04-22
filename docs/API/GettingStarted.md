@@ -1,9 +1,3 @@
----
-id: gettingstarted
-title: Getting Started
-sidebar_position: 1
----
-
 # Getting Started
 
 This guide walks through a typical `GameScene` setup: loading `.untold` assets,
@@ -18,9 +12,8 @@ the authoring format — you model assets in your DCC tool, export to USDZ, then
 convert to `.untold` before loading them in the engine.
 
 The `.untold` format is a binary container optimised for fast runtime parsing with
-no ModelIO dependency. It supports static meshes, PBR materials, texture references,
-transforms, and bounds. It does **not** support animation or skinning — animation
-clips continue to use `.usdz`.
+no ModelIO dependency. It supports runtime mesh data, PBR materials, texture references,
+transforms, bounds, and exported animation clips.
 
 ### Converting assets
 
@@ -34,7 +27,7 @@ Use the `export-untold` script to convert a single USDZ asset:
   --source-orientation blender-native
 ```
 
-For animation usdz assets, use the --animation flag
+For animation assets, use the `--animation` flag:
 
 ```bash
 ./scripts/export-untold \
@@ -59,7 +52,8 @@ partition the scene and generate a manifest JSON:
 ```
 
 For the full list of options, validation flags, and expected output layout see
-[Using The Exporter](UsingTheExporter).
+[Using The Exporter](UsingTheExporter). For optional asset optimization
+workflows, see [Optimizations](Optimizations.md).
 
 ---
 
@@ -84,14 +78,6 @@ setEntityMeshAsync(entityId: entity, filename: "robot", withExtension: "untold")
 
 `setEntityMeshAsync` is non-blocking. The completion block fires on the main thread
 once the mesh is parsed and uploaded to GPU memory.
-
-> **Animation clips** are the one case where `.usdz` is still used directly.
-> The `.untold` format does not support animation or skinning.
->
-> ```swift
-> setEntityAnimations(entityId: entity, filename: "running", withExtension: "usdz", name: "running")
-> setEntityAnimations(entityId: entity, filename: "idle",    withExtension: "usdz", name: "idle")
-> ```
 
 ---
 
@@ -196,7 +182,6 @@ final class GameScene {
         setEntityMeshAsync(entityId: entity, filename: "robot", withExtension: "untold") { success in
             if let player = findEntity(name: "player") {
                 rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
-                // Animation clips remain .usdz — .untold does not support animation
                 setEntityAnimations(entityId: player, filename: "running", withExtension: "untold", name: "running")
                 setEntityAnimations(entityId: player, filename: "idle",    withExtension: "untold", name: "idle")
                 setEntityKinetics(entityId: player)

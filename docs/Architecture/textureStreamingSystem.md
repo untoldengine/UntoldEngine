@@ -295,7 +295,8 @@ The larger batch size (8) when geometry is also under pressure reflects that mor
 Apply a built-in profile at scene init instead of setting every property individually:
 
 ```swift
-TextureStreamingSystem.shared.apply(.archviz)    // indoor archviz
+TextureStreamingSystem.shared.apply(.detailed)   // close-inspection / high-detail assets
+TextureStreamingSystem.shared.apply(.superdetailed) // hero assets / showroom inspection
 TextureStreamingSystem.shared.apply(.openWorld)  // large outdoor scenes
 TextureStreamingSystem.shared.apply(.balanced)   // general-purpose default
 TextureStreamingSystem.shared.apply(.tiled)      // tile-based streaming (see alignToManifest)
@@ -304,20 +305,23 @@ TextureStreamingSystem.shared.apply(.tiled)      // tile-based streaming (see al
 Individual properties can be overridden after applying a profile:
 
 ```swift
-TextureStreamingSystem.shared.apply(.archviz)
+TextureStreamingSystem.shared.apply(.detailed)
 TextureStreamingSystem.shared.upgradeRadius = 3.0  // widen full-res zone
 ```
 
 | Profile | `upgradeRadius` | `downgradeRadius` | `minDim` | `maxConcurrentOps` | Best for |
 |---|---|---|---|---|---|
-| `.archviz` | 2.5 m | 6.0 m | 512 px | 6 | Living rooms, kitchens, offices |
+| `.detailed` | 2.5 m | 6.0 m | 512 px | 6 | Vehicles, products, characters, props, interiors |
+| `.superdetailed` | 4.0 m | 8.0 m | 1024 px | 6 | Showroom vehicles, product configurators, hero assets |
 | `.openWorld` | 15.0 m | 60.0 m | 256 px | 3 | Cities, landscapes, terrain |
 | `.balanced` | 12.0 m | 20.0 m | platform default | 3 | Mixed / unknown scene type |
 | `.tiled` | 30.0 m* | 70.0 m* | 256 px | 6 | Tile-based streaming scenes |
 
 \* Placeholder defaults only — immediately overridden by `alignToManifest` (see below).
 
-**Archviz rationale:** rooms are 4–7 m deep, so "distant" objects are still large on screen. The minimum tier is raised to 512 px (from the engine default of 256 px) because 256 px looks visibly compressed on a wall or floor texture at 5 m. `maxConcurrentOps = 6` is safe here because archviz streaming ops are GPU-bound (no cold disk I/O on the warm path).
+**Detailed rationale:** close-inspection content keeps nearby surfaces large on screen, whether the subject is a car, product, character, prop, or room. The minimum tier is raised to 512 px (from the engine default of 256 px) because low-resolution mips look visibly compressed at a few metres. `maxConcurrentOps = 6` is safe here because these streaming ops are GPU-bound (no cold disk I/O on the warm path). `.archviz` remains available as a deprecated compatibility alias for `.detailed`.
+
+**Superdetailed rationale:** hero assets may be inspected from a few metres away while still filling a large portion of the view. This profile keeps full-resolution textures through 4 m, uses a 2048 px medium tier, and only drops to 1024 px beyond 8 m. Use compressed formats such as ASTC for large source textures before enabling this profile on memory-constrained devices.
 
 **Open-world rationale:** tiers are spread across a city-block scale. The minimum tier stays at 256 px because objects beyond 60 m occupy very few pixels. Keeping `maxConcurrentOps = 3` avoids GPU memory spikes when hundreds of entities enter range simultaneously.
 

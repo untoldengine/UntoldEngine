@@ -1,9 +1,3 @@
----
-id: materials
-title: Materials
-sidebar_position: 14
----
-
 # Using Materials in Untold Engine
 
 The engine uses a PBR (Physically Based Rendering) material model. Each entity's mesh can contain one or more submeshes, and each submesh holds its own `Material`. You can read and write individual material properties at runtime using the functions below.

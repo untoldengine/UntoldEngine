@@ -1,4 +1,4 @@
-## LOD in UntoldEngine: Two Independent Systems
+# LOD in UntoldEngine: Two Independent Systems
 
 UntoldEngine has two separate LOD mechanisms that operate at different granularities. Understanding the distinction is important before reading either system's details.
 

@@ -1,9 +1,3 @@
----
-id: transformsystem
-title: Transform System
-sidebar_position: 3
----
-
 # Using the Transform System in Untold Engine
 
 The Transform System is a core part of the Untold Engine, responsible for managing the position, rotation, and scale of entities. It provides both local transformations (relative to a parent entity) and world transformations (absolute in the scene).

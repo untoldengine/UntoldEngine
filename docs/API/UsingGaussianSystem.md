@@ -1,9 +1,3 @@
----
-id: gaussiansystem
-title: Gaussian System
-sidebar_position: 3
----
-
 # Enabling Gaussian System in Untold Engine
 
 The Gaussian System in the Untold Engine is responsible for rendering Gaussian Splatting models. It enables you to visualize high-quality 3D reconstructions created from photogrammetry or neural rendering techniques, providing a modern approach to displaying complex 3D scenes.

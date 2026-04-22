@@ -1,10 +1,4 @@
----
-id: registrationsystem
-title: Registration System
-sidebar_position: 2
----
-
-#  Using the Registration System in Untold Engine
+# Using the Registration System in Untold Engine
 
 The Registration System in the Untold Engine is an integral part of its Entity-Component-System (ECS) architecture. It provides core functionalities to manage entities and components, such as:
 
@@ -37,12 +31,12 @@ Example:
 When you load a mesh for rendering, the system automatically registers the required components:
 
 ```swift
-setEntityMesh(entityId: entity, filename: "model", withExtension: "usdz")
+setEntityMesh(entityId: entity, filename: "model", withExtension: "untold")
 ```
 
 This function:
 
-- Loads the mesh from the specified .usdc file.
+- Loads the mesh from the specified `.untold` file.
 - Associates the mesh with the entity.
 - Registers default components like RenderComponent and TransformComponent.
 
@@ -67,7 +61,7 @@ Use `destroyAllEntities(completion:)` when you need to clear the world before lo
 ```swift
 destroyAllEntities {
     // Safe point: pending destroys have been finalized.
-    // Load new content here (USDZ, deserializeScene, etc).
+    // Load new content here (.untold, deserializeScene, etc).
 }
 ```
 
@@ -79,12 +73,12 @@ Important behavior:
 
 This prevents race conditions where new entities are created while old entities are still pending destroy.
 
-Example: clear world, then load a new USDZ
+Example: clear world, then load a new `.untold` asset
 
 ```swift
 destroyAllEntities {
     let entity = createEntity()
-    setEntityMeshAsync(entityId: entity, filename: "office", withExtension: "usdz")
+    setEntityMeshAsync(entityId: entity, filename: "office", withExtension: "untold")
 }
 ```
 

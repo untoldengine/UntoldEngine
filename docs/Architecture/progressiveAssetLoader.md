@@ -163,7 +163,7 @@ setEntityMeshAsync (out-of-core path — regular OOC)
   ├─ storeAsset(asset, for: rootId)   → rootAssetRefs, assetTextureLocks
   │     └─ prewarmTexturesAsync()    → background Task: acquireLock / loadTextures() / releaseLock
   ├─ registerChildren(childIds, for: rootId)
-  └─ completion(true)                → caller enables GeometryStreamingSystem
+  └─ completion(true)                → GeometryStreamingSystem picks up stubs automatically (always running)
 
 setEntityMeshAsync (out-of-core path — LOD+OOC)
   │

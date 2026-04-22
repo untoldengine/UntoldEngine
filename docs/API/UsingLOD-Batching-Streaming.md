@@ -1,9 +1,3 @@
----
-id: lodstaticbatchinstreaminggsystem
-title: Lod + Static Batching + Streaming System
-sidebar_position: 12
----
-
 # Combining LOD, Batching, and Streaming
 
 UntoldEngine now has two distinct optimization workflows:

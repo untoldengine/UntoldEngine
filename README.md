@@ -87,7 +87,7 @@ After the export is complete, open the Local Scene `Browse` drop-down menu, choo
 
 ## Get a feel for the API
 
-If you want a small code sample to inspect and experiment with, look at `Sources/Sandbox/GameScene.swift`.
+If you want a small code sample to inspect and experiment with, look at `Sources/Sandbox/GameScene.swift`. Along with the [Usage Example](docs/API/UsageExamples.md), it should help you get an idea of how to use the Untold Engine API
 
 The Sandbox target is a simple place to test engine APIs such as creating an entity, attaching a mesh, and trying animations or other scene setup changes.
 
@@ -226,7 +226,8 @@ Untold Engine aims to support applications such as:
 - [Gaussian System](docs/API/UsingGaussianSystem.md)
 - [Spatical Debugger](docs/API/SpatialDebugger.md)
 - [Profiler](/docs/API/UsingProfiler.md)
-
+- [Asset Exporter](/docs/API/UsingTheExporter.md)
+- [Optimizations](/docs/API/Optimizations.md)
 
 # Engine Architecture:
 
