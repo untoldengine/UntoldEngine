@@ -85,6 +85,8 @@ After the export is complete, open the Local Scene `Browse` drop-down menu, choo
 
 ---
 
+![untoldengine-image-2](/docs/images/engine-highlight-2.png)
+
 ## Get a feel for the API
 
 If you want a small code sample to inspect and experiment with, look at `Sources/Sandbox/GameScene.swift`. Along with the [Usage Example](docs/API/UsageExamples.md), it should help you get an idea of how to use the Untold Engine API
