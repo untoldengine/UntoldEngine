@@ -24,18 +24,26 @@
             case tiledScene(EntityID)
         }
 
+        private enum CameraBehavior {
+            case flyOrbit
+            case originOrbit
+        }
+
         private enum Constants {
             static let orbitTargetOffset: Float = 25.0
             static let cameraMoveSpeed: Float = 1.0
             static let cameraInputDeltaTime: Float = 0.1
             static let streamingPriority: Int = 10
-            static let usdzExtension = "usdz"
             static let citySceneID = "city"
+            static let f1CarSceneID = "f1car"
             static let cityCameraEye = simd_float3(0.00, 18.35, 73.56)
+            static let f1CarCameraEye = simd_float3(0.0, 2.0, 5.0)
+            static let worldOrigin = simd_float3(0.0, 0.0, 0.0)
         }
 
         private(set) var loadedEntity: EntityID?
         private var loadedContent: LoadedContent = .none
+        private var cameraBehavior: CameraBehavior = .flyOrbit
         private var wasRightMousePressed: Bool = false
 
         init() {
@@ -80,6 +88,7 @@
                     loadedContent = success ? .mesh(entity) : .none
                     let camera = findGameCamera()
                     CameraSystem.shared.activeCamera = camera
+                    cameraBehavior = .flyOrbit
                     setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
                     completion(success)
                 }
@@ -105,6 +114,7 @@
                 if success {
                     loadedEntity = nil
                     loadedContent = .tiledScene(sceneRoot)
+                    cameraBehavior = Self.cameraBehavior(for: sceneID)
                     Self.applyCameraEye(for: sceneID)
                 }
                 completion(success)
@@ -134,10 +144,29 @@
 
         private static func applyCameraEye(for sceneID: String) {
             let camera = findGameCamera()
-            let eye = sceneID == Constants.citySceneID ? Constants.cityCameraEye : cameraDefaultEye
-            cameraLookAt(entityId: camera, eye: eye, target: cameraTargetDefault, up: cameraUpDefault)
+            let eye: simd_float3
+            let target: simd_float3
+
+            switch cameraBehavior(for: sceneID) {
+            case .originOrbit:
+                eye = Constants.f1CarCameraEye
+                target = Constants.worldOrigin
+            case .flyOrbit:
+                eye = sceneID == Constants.citySceneID ? Constants.cityCameraEye : cameraDefaultEye
+                target = cameraTargetDefault
+            }
+
+            cameraLookAt(entityId: camera, eye: eye, target: target, up: cameraUpDefault)
             CameraSystem.shared.activeCamera = camera
-            setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
+            if cameraBehavior(for: sceneID) == .originOrbit {
+                setOriginOrbitTarget(entityId: camera)
+            } else {
+                setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
+            }
+        }
+
+        private static func cameraBehavior(for sceneID: String) -> CameraBehavior {
+            sceneID == Constants.f1CarSceneID ? .originOrbit : .flyOrbit
         }
     }
 
@@ -231,23 +260,25 @@
             let input = InputSystem.shared
             let camera = findGameCamera()
 
-            moveCameraWithInput(
-                entityId: camera,
-                input: (
-                    w: input.keyState.wPressed,
-                    a: input.keyState.aPressed,
-                    s: input.keyState.sPressed,
-                    d: input.keyState.dPressed,
-                    q: input.keyState.qPressed,
-                    e: input.keyState.ePressed
-                ),
-                speed: Constants.cameraMoveSpeed,
-                deltaTime: Constants.cameraInputDeltaTime
-            )
+            //if cameraBehavior == .flyOrbit {
+                moveCameraWithInput(
+                    entityId: camera,
+                    input: (
+                        w: input.keyState.wPressed,
+                        a: input.keyState.aPressed,
+                        s: input.keyState.sPressed,
+                        d: input.keyState.dPressed,
+                        q: input.keyState.qPressed,
+                        e: input.keyState.ePressed
+                    ),
+                    speed: Constants.cameraMoveSpeed,
+                    deltaTime: Constants.cameraInputDeltaTime
+                )
+            //}
 
             if input.keyState.rightMousePressed {
                 if !wasRightMousePressed {
-                    setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
+                    resetOrbitTarget(entityId: camera)
                 }
                 if input.keyState.shiftPressed {
                     rotateCamera(
@@ -260,10 +291,31 @@
                     var dx = input.mouseDeltaX
                     var dy = input.mouseDeltaY
                     if abs(dx) < abs(dy) { dx = 0 } else { dy = 0 }
+                    if cameraBehavior == .originOrbit {
+                        Self.setOriginOrbitTarget(entityId: camera)
+                    }
                     orbitCameraAround(entityId: camera, uDelta: simd_float2(dx, dy))
                 }
             }
             wasRightMousePressed = input.keyState.rightMousePressed
+        }
+
+        private func resetOrbitTarget(entityId: EntityID) {
+            switch cameraBehavior {
+            case .flyOrbit:
+                setOrbitOffset(entityId: entityId, uTargetOffset: Constants.orbitTargetOffset)
+            case .originOrbit:
+                Self.setOriginOrbitTarget(entityId: entityId)
+            }
+        }
+
+        private static func setOriginOrbitTarget(entityId: EntityID) {
+            let eye = getCameraPosition(entityId: entityId)
+            let radius = simd_length(eye - Constants.worldOrigin)
+            guard radius > 0.001 else { return }
+
+            cameraLookAt(entityId: entityId, eye: eye, target: Constants.worldOrigin, up: cameraUpDefault)
+            setOrbitOffset(entityId: entityId, uTargetOffset: radius)
         }
     }
 #endif
