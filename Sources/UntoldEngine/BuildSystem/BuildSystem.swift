@@ -389,12 +389,13 @@ import Foundation
             let scriptAssets = try await bundleScripts(to: scriptsDir)
             bundledAssets.append(contentsOf: scriptAssets)
 
-            // 3. Bundle models, animations, gaussians, and textures
+            // 3. Bundle models, stream models, animations, gaussians, and textures
             let modelsDir = gameDataDir.appendingPathComponent("Models")
+            let streamModelsDir = gameDataDir.appendingPathComponent("StreamModels")
             let animationsDir = gameDataDir.appendingPathComponent("Animations")
             let gaussiansDir = gameDataDir.appendingPathComponent("Gaussians")
             let texturesDir = gameDataDir.appendingPathComponent("Textures")
-            let assetPaths = try await bundleAssets(modelsDir: modelsDir, animationsDir: animationsDir, gaussiansDir: gaussiansDir, texturesDir: texturesDir)
+            let assetPaths = try await bundleAssets(modelsDir: modelsDir, streamModelsDir: streamModelsDir, animationsDir: animationsDir, gaussiansDir: gaussiansDir, texturesDir: texturesDir)
             bundledAssets.append(contentsOf: assetPaths)
 
             // 4. Bundle Metal shaders
@@ -549,7 +550,7 @@ import Foundation
         // MARK: - Asset Bundling Helpers
 
         private func createGameDataDirectories(at gameDataDir: URL) throws {
-            let subdirs = ["Scenes", "Scripts", "Models", "Animations", "Gaussians", "Textures", "Shaders"]
+            let subdirs = ["Scenes", "Scripts", "Models", "StreamModels", "Animations", "Gaussians", "Textures", "Shaders"]
 
             for subdir in subdirs {
                 let dirURL = gameDataDir.appendingPathComponent(subdir)
@@ -572,7 +573,7 @@ import Foundation
             if fileManager.fileExists(atPath: scenesSourceDir.path) {
                 do {
                     let sceneFiles = try fileManager.contentsOfDirectory(at: scenesSourceDir, includingPropertiesForKeys: nil)
-                        .filter { $0.pathExtension.lowercased() == "json" }
+                        .filter { $0.pathExtension.lowercased() == "untoldscene" }
 
                     for sceneFile in sceneFiles {
                         let destURL = scenesDir.appendingPathComponent(sceneFile.lastPathComponent)
@@ -641,7 +642,7 @@ import Foundation
             return bundledScripts
         }
 
-        private func bundleAssets(modelsDir: URL, animationsDir: URL, gaussiansDir: URL, texturesDir: URL) async throws -> [String] {
+        private func bundleAssets(modelsDir: URL, streamModelsDir: URL, animationsDir: URL, gaussiansDir: URL, texturesDir: URL) async throws -> [String] {
             var bundledAssets: [String] = []
 
             guard let basePath = assetBasePath else {
@@ -661,6 +662,19 @@ import Foundation
                     Logger.log(message: "📦 Bundled \(copiedFiles.count) model(s)")
                 } catch {
                     Logger.log(message: "⚠️ Failed to bundle models: \(error.localizedDescription)")
+                }
+            }
+
+            // Bundle Stream Models
+            let streamModelsSourceDir = basePath.appendingPathComponent("StreamModels")
+            if fileManager.fileExists(atPath: streamModelsSourceDir.path) {
+                do {
+                    try copyDirectory(from: streamModelsSourceDir, to: streamModelsDir)
+                    let copiedFiles = try fileManager.contentsOfDirectory(at: streamModelsDir, includingPropertiesForKeys: nil)
+                    bundledAssets.append(contentsOf: copiedFiles.map(\.path))
+                    Logger.log(message: "📦 Bundled \(copiedFiles.count) stream model(s)")
+                } catch {
+                    Logger.log(message: "⚠️ Failed to bundle stream models: \(error.localizedDescription)")
                 }
             }
 
@@ -767,7 +781,7 @@ import Foundation
         /// Clear contents of GameData directory while preserving the directory structure
         private func clearGameDataDirectory(at gameDataDir: URL) throws {
             let fileManager = FileManager.default
-            let subdirs = ["Scenes", "Scripts", "Models", "Animations", "Gaussians", "Textures", "Shaders"]
+            let subdirs = ["Scenes", "Scripts", "Models", "StreamModels", "Animations", "Gaussians", "Textures", "Shaders"]
 
             for subdir in subdirs {
                 let dirURL = gameDataDir.appendingPathComponent(subdir)
