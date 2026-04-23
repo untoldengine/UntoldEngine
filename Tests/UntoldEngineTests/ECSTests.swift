@@ -195,4 +195,78 @@ final class ECSTests: XCTestCase {
 
         XCTAssertEqual(scene.getAllEntities().count, 0, "Scene should have no entities")
     }
+
+    // MARK: - componentIndex tests
+
+    func testComponentIndexPopulatedOnAssign() {
+        let entityId = createEntity()
+        let componentId = getComponentId(for: RenderComponent.self)
+
+        _ = scene.assign(to: entityId, component: RenderComponent.self)
+
+        XCTAssertTrue(scene.componentIndex[componentId]?.contains(entityId) == true,
+                      "componentIndex should contain entity after assign")
+    }
+
+    func testComponentIndexCleanedOnRemove() {
+        let entityId = createEntity()
+        let componentId = getComponentId(for: RenderComponent.self)
+
+        _ = scene.assign(to: entityId, component: RenderComponent.self)
+        scene.remove(component: RenderComponent.self, from: entityId)
+
+        XCTAssertFalse(scene.componentIndex[componentId]?.contains(entityId) == true,
+                       "componentIndex should not contain entity after remove")
+    }
+
+    func testComponentIndexCleanedOnDestroy() {
+        let entityId = createEntity()
+        let renderComponentId = getComponentId(for: RenderComponent.self)
+        let transformComponentId = getComponentId(for: LocalTransformComponent.self)
+
+        _ = scene.assign(to: entityId, component: RenderComponent.self)
+        _ = scene.assign(to: entityId, component: LocalTransformComponent.self)
+
+        destroyEntity(entityId: entityId)
+        scene.finalizePendingDestroys()
+
+        XCTAssertFalse(scene.componentIndex[renderComponentId]?.contains(entityId) == true,
+                       "componentIndex should not contain destroyed entity (RenderComponent)")
+        XCTAssertFalse(scene.componentIndex[transformComponentId]?.contains(entityId) == true,
+                       "componentIndex should not contain destroyed entity (LocalTransformComponent)")
+    }
+
+    func testQueryReturnsIntersectionOnly() {
+        let renderComponentId = getComponentId(for: RenderComponent.self)
+        let physicsComponentId = getComponentId(for: PhysicsComponents.self)
+
+        // entityA: RenderComponent + PhysicsComponents
+        let entityA = createEntity()
+        _ = scene.assign(to: entityA, component: RenderComponent.self)
+        _ = scene.assign(to: entityA, component: PhysicsComponents.self)
+
+        // entityB: RenderComponent only — createEntity() never auto-assigns PhysicsComponents
+        let entityB = createEntity()
+        _ = scene.assign(to: entityB, component: RenderComponent.self)
+
+        let results = queryEntitiesWithComponentIds([renderComponentId, physicsComponentId], in: scene)
+
+        XCTAssertTrue(results.contains(entityA), "Entity with both components should be returned")
+        XCTAssertFalse(results.contains(entityB), "Entity missing PhysicsComponents should not be returned")
+    }
+
+    func testQueryExcludesPendingDestroyEntities() {
+        let renderComponentId = getComponentId(for: RenderComponent.self)
+
+        let entityId = createEntity()
+        _ = scene.assign(to: entityId, component: RenderComponent.self)
+
+        // Mark for destroy but do not finalize yet
+        scene.markDestroy(entityId)
+
+        let results = queryEntitiesWithComponentIds([renderComponentId], in: scene)
+
+        XCTAssertFalse(results.contains(entityId),
+                       "Pending-destroy entity should not appear in query results")
+    }
 }

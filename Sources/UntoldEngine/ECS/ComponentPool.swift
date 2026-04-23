@@ -134,6 +134,16 @@ public struct ComponentMask: Equatable, Hashable {
     @inlinable func isDisjoint(with other: ComponentMask) -> Bool {
         (bits & other.bits) == 0
     }
+
+    @inlinable func activeComponentIds() -> [Int] {
+        var result: [Int] = []
+        var b = bits
+        while b != 0 {
+            result.append(b.trailingZeroBitCount)
+            b &= b &- 1
+        }
+        return result
+    }
 }
 
 @inlinable
