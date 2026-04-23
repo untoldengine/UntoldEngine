@@ -21,9 +21,18 @@
             case cinematic = "Cinematic"
             case highContrast = "High Contrast"
             case softAO = "Soft AO"
+            case archviz = "Archviz"
 
-            var id: String {
-                rawValue
+            var id: String { rawValue }
+
+            var enginePreset: UntoldEngine.PostFXPreset {
+                switch self {
+                case .neutral:      return .neutral
+                case .cinematic:    return .cinematic
+                case .highContrast: return .highContrast
+                case .softAO:       return .softAO
+                case .archviz:      return .archviz
+                }
             }
         }
 
@@ -219,54 +228,19 @@
         var onTileBoundsChanged: ((Bool) -> Void)?
 
         func applySelectedPostFXPreset() {
+            let preset = selectedPostFXPreset.enginePreset
             isApplyingPostFXPreset = true
-
-            switch selectedPostFXPreset {
-            case .neutral:
-                colorGradingEnabled = false
-                exposure = 0.0
-                brightness = 0.0
-                contrast = 1.0
-                saturation = 1.0
-                ssaoEnabled = false
-                ssaoRadius = 0.5
-                ssaoBias = 0.025
-                ssaoIntensity = 0.0
-            case .cinematic:
-                colorGradingEnabled = true
-                exposure = -0.2
-                brightness = -0.05
-                contrast = 1.15
-                saturation = 0.9
-                ssaoEnabled = true
-                ssaoRadius = 0.8
-                ssaoBias = 0.02
-                ssaoIntensity = 0.75
-            case .highContrast:
-                colorGradingEnabled = true
-                exposure = 0.15
-                brightness = 0.08
-                contrast = 1.35
-                saturation = 1.2
-                ssaoEnabled = true
-                ssaoRadius = 0.7
-                ssaoBias = 0.018
-                ssaoIntensity = 1.1
-            case .softAO:
-                colorGradingEnabled = true
-                exposure = 0.0
-                brightness = 0.02
-                contrast = 1.05
-                saturation = 1.0
-                ssaoEnabled = true
-                ssaoRadius = 1.1
-                ssaoBias = 0.03
-                ssaoIntensity = 0.45
-            }
-
+            colorGradingEnabled = preset.colorGrading
+            exposure = Double(preset.exposure)
+            brightness = Double(preset.brightness)
+            contrast = Double(preset.contrast)
+            saturation = Double(preset.saturation)
+            ssaoEnabled = preset.ssao
+            ssaoRadius = Double(preset.ssaoRadius)
+            ssaoBias = Double(preset.ssaoBias)
+            ssaoIntensity = Double(preset.ssaoIntensity)
             isApplyingPostFXPreset = false
-            notifyColorGradingChanged(force: true)
-            notifySSAOChanged(force: true)
+            PostFX.apply(preset)
         }
 
         private func notifyColorGradingChanged(force: Bool = false) {
