@@ -1,4 +1,16 @@
 # Changelog
+## v0.12.4 - 2026-04-23
+### 🐞 Fixes
+- [Patch] Updated build templates to use recent api for streaming (7221b11…)
+- [Patch] Added additional profiles to TextureStreamingSystem (58a4b07…)
+- [Patch] Multi-node scene no longer hijacks caller entityId (b9f5f5b…)
+- [Patch] Updated the build system template (c744685…)
+- [Patch] Fixed serializer to use new asset format (6041fbd…)
+- [Patch] fixed project cli script (97ee35d…)
+- [Patch] Fix project script create (b58690b…)
+### 📚 Docs
+- [Docs] Updated docs API and Architecture (b2295fe…)
+- [Docs] Updated exporter docs to include new flags (47b6aa8…)
 ## v0.12.3 - 2026-04-21
 ### 🐞 Fixes
 - [Patch] added entity to loadTileScene (ef8ecb3…)
