@@ -47,6 +47,7 @@ public struct Scene {
 
         let componentId = getComponentId(for: T.self)
         entities[Int(entityIndex)].mask.reset(componentId)
+        componentIndex[componentId]?.remove(entityId)
     }
 
     public mutating func removeAllComponents(from entityId: EntityID) {
@@ -63,6 +64,9 @@ public struct Scene {
             return
         }
 
+        for componentId in e.mask.activeComponentIds() {
+            componentIndex[componentId]?.remove(entityId)
+        }
         entities[Int(entityIndex)].mask.resetAll()
     }
 
@@ -102,6 +106,10 @@ public struct Scene {
 
         // Unregister from spatial systems before destroying
         OctreeSystem.shared.unregisterEntity(oldId)
+
+        for componentId in entities[entityIndexInt].mask.activeComponentIds() {
+            componentIndex[componentId]?.remove(oldId)
+        }
 
         let idx = getEntityIndex(oldId)
         let newVersion = getEntityVersion(oldId) &+ 1
@@ -167,6 +175,7 @@ public struct Scene {
 
         // Set the bit for this component to true
         entities[Int(entityIndex)].mask.set(componentId)
+        componentIndex[componentId, default: []].insert(entityId)
 
         return typedPointer.pointee
     }
@@ -227,6 +236,7 @@ public struct Scene {
     var componentPool: [Int: ComponentPool] = [:]
     var entities: [EntityDesc] = []
     var freeEntities: [EntityIndex] = []
+    var componentIndex: [Int: Set<EntityID>] = [:]
 }
 
 func createComponentMask(for components: [Int]) -> ComponentMask {
@@ -238,19 +248,24 @@ func createComponentMask(for components: [Int]) -> ComponentMask {
 }
 
 public func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Scene) -> [EntityID] {
-    let requiredMask = createComponentMask(for: componentTypes)
+    guard !componentTypes.isEmpty else { return [] }
 
-    var out: [EntityID] = []
-    out.reserveCapacity(64)
-
-    for id in scene.getAllEntities() { // already excludes freed
-        if let mask = scene.mask(for: id),
-           mask.contains(requiredMask)
-        {
-            out.append(id)
-        }
+    // Sort by smallest index set first to minimize intersection cost
+    let sorted = componentTypes.sorted {
+        (scene.componentIndex[$0]?.count ?? 0) < (scene.componentIndex[$1]?.count ?? 0)
     }
-    return out
+
+    guard let firstId = sorted.first,
+          var candidates = scene.componentIndex[firstId] else { return [] }
+
+    for componentId in sorted.dropFirst() {
+        guard let nextSet = scene.componentIndex[componentId] else { return [] }
+        candidates = candidates.intersection(nextSet)
+        if candidates.isEmpty { return [] }
+    }
+
+    // Exclude entities marked for destroy (pendingDestroy window)
+    return candidates.filter { scene.exists($0) }
 }
 
 public func hasComponent(entityId: EntityID, componentType: (some Any).Type) -> Bool {
