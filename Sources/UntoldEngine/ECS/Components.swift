@@ -462,6 +462,9 @@ public class TiledSceneComponent: Component {
     /// Human-readable label derived from the manifest filename.
     public var manifestLabel: String = ""
 
+    /// Original manifest URL used to create this streamed scene.
+    public var manifestURL: URL?
+
     public required init() {}
 }
 

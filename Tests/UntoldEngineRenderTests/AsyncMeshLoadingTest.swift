@@ -463,7 +463,14 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
         // Use BasicPrimitives to create a mesh
         let meshes = BasicPrimitives.createCube()
-        let mockURL = URL(fileURLWithPath: "/test/model.usdz")
+        guard let basePath = assetBasePath else {
+            XCTFail("Expected assetBasePath to be configured")
+            return
+        }
+        let mockURL = basePath
+            .appendingPathComponent("Models")
+            .appendingPathComponent("model")
+            .appendingPathComponent("model.untold")
         registerRenderComponent(entityId: originalEntity, meshes: meshes, url: mockURL, assetName: "TestModel")
 
         var sceneData = serializeScene()
@@ -477,7 +484,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         let completionExpectation = XCTestExpectation(description: "Async deserialize completed")
         let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
         LoadingSystem.shared.resourceURLFn = { name, ext, _ in
-            if name == "model", ext == "usdz" {
+            if name.hasSuffix("/Models/model/model"), ext == "untold" {
                 expectation.fulfill()
             }
             return nil // Return nil to trigger fallback
@@ -504,7 +511,14 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         registerTransformComponent(entityId: originalEntity)
 
         let meshes = BasicPrimitives.createSphere()
-        let mockURL = URL(fileURLWithPath: "/test/sphere.usdz")
+        guard let basePath = assetBasePath else {
+            XCTFail("Expected assetBasePath to be configured")
+            return
+        }
+        let mockURL = basePath
+            .appendingPathComponent("Models")
+            .appendingPathComponent("sphere")
+            .appendingPathComponent("sphere.untold")
         registerRenderComponent(entityId: originalEntity, meshes: meshes, url: mockURL, assetName: "TestSphere")
 
         var sceneData = serializeScene()
@@ -516,7 +530,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         // Override resource URL for this test and restore afterwards
         let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
         LoadingSystem.shared.resourceURLFn = { name, ext, _ in
-            if name == "sphere", ext == "usdz" {
+            if name.hasSuffix("/Models/sphere/sphere"), ext == "untold" {
                 // Return nil to skip actual loading (just testing the code path)
                 return nil
             }
