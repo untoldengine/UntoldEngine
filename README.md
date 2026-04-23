@@ -230,6 +230,7 @@ Untold Engine aims to support applications such as:
 - [Profiler](/docs/API/UsingProfiler.md)
 - [Asset Exporter](/docs/API/UsingTheExporter.md)
 - [Optimizations](/docs/API/Optimizations.md)
+- [Create Project with CLI](/docs/API/UsingUntoldEngineCLI)
 
 # Engine Architecture:
 
