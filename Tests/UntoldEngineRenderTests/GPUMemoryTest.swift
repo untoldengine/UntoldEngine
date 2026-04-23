@@ -67,8 +67,8 @@ final class GPUMemoryTest: BaseRenderSetup {
         destroyEntity(entityId: entityId)
     }
 
-    func testMeshGPUMemorySize_includesUniformBuffers() {
-        // Given: Load a mesh
+    func testMeshGPUMemorySize_noUniformBuffers() {
+        // Uniforms are now written per-draw via setVertexBytes — no per-mesh MTLBuffer is allocated.
         let entityId = createEntity()
         setEntityMesh(entityId: entityId, filename: "ball", withExtension: "usdz")
 
@@ -79,20 +79,9 @@ final class GPUMemoryTest: BaseRenderSetup {
             return
         }
 
-        // When: Check uniform buffer contribution
-        var uniformBufferSize = 0
-        for buffer in mesh.spaceUniform {
-            if let buffer {
-                uniformBufferSize += buffer.length
-            }
-        }
-
-        // Then: Uniform buffers should contribute to total
-        XCTAssertGreaterThan(uniformBufferSize, 0, "Should have uniform buffer data")
-
-        let gpuMemorySize = mesh.gpuMemorySize
-        XCTAssertGreaterThanOrEqual(gpuMemorySize, uniformBufferSize,
-                                    "GPU memory should include uniform buffers")
+        // gpuMemorySize should still account for vertex + index buffers
+        XCTAssertGreaterThan(mesh.gpuMemorySize, 0,
+                             "GPU memory size should be non-zero (vertex + index buffers)")
 
         destroyEntity(entityId: entityId)
     }
@@ -149,13 +138,6 @@ final class GPUMemoryTest: BaseRenderSetup {
         // Index buffers
         for submesh in mesh.metalKitMesh.submeshes {
             expectedTotal += submesh.indexBuffer.buffer.length
-        }
-
-        // Uniform buffers
-        for buffer in mesh.spaceUniform {
-            if let buffer {
-                expectedTotal += buffer.length
-            }
         }
 
         // Skin buffers

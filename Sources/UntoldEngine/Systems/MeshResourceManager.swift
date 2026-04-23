@@ -471,10 +471,5 @@ private func calculateMeshMemory(_ mesh: Mesh) -> Int {
         size += submesh.indexBuffer.buffer.length
     }
 
-    // Uniform buffers
-    for uniform in mesh.spaceUniform where uniform != nil {
-        size += uniform!.length
-    }
-
     return size
 }
