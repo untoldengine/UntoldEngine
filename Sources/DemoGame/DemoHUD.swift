@@ -20,7 +20,7 @@
                 Divider()
 
                 row("FPS", String(format: "%.1f", fps))
-                row("CPU Frame", String(format: "%.2f ms", stats.timing.frameTotalMs))
+                row("Frame Time", String(format: "%.2f ms", stats.timing.frameTotalMs))
                 row("GPU", String(format: "%.2f ms", stats.timing.gpuExecutionMs))
                 Divider()
 
