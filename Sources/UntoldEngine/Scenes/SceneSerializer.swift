@@ -12,6 +12,7 @@ import Foundation
 import simd
 
 public struct SceneData: Codable {
+    var schemaVersion: Int? = 2
     var entities: [EntityData] = []
     var environment: EnvironmentData? = nil
     var assetBasePath: URL? = nil
@@ -23,6 +24,21 @@ public struct SceneData: Codable {
     var chromaticAberration: ChromaticAberrationData? = nil
     var depthOfField: DepthOfFieldData? = nil
     var ssao: SSAOData? = nil
+}
+
+enum SceneAssetKind: String, Codable {
+    case model
+    case animation
+    case streamModel
+    case procedural
+}
+
+struct SceneAssetReference: Codable {
+    var kind: SceneAssetKind
+    /// Project-relative path from the asset base folder, such as
+    /// "Models/Robot/Robot.untold" or "StreamModels/City/City.json".
+    var path: String
+    var displayName: String? = nil
 }
 
 struct ToneMappingData: Codable {
@@ -148,6 +164,7 @@ struct AssetOverrideData: Codable {
 
 struct AssetInstanceData: Codable {
     var assetURL: URL
+    var asset: SceneAssetReference? = nil
     var assetName: String
     var importMode: String // "preserveHierarchy" | "combineMeshes"
     var rootPrimPath: String?
@@ -186,10 +203,12 @@ struct EntityData: Codable {
     var name: String = "" // entity name
     var assetName: String = "" // asset name in 3D software (legacy)
     var assetURL: URL = .init(fileURLWithPath: "") // legacy
+    var asset: SceneAssetReference? = nil
     var position: simd_float3 = .zero
     var axisOfRotations: simd_float3 = .zero
     var scale: simd_float3 = .one
     var animations: [URL] = []
+    var animationAssets: [SceneAssetReference]? = nil
     var mass: Float = .init(1.0)
     var lightData: LightData? = nil
     var cameraData: CameraData? = nil
@@ -226,6 +245,132 @@ private func isProceduralAssetURL(_ url: URL) -> Bool {
     return path.hasPrefix("/primitive/") || path.hasPrefix("/fallback/")
 }
 
+private func projectRelativeAssetPath(for url: URL) -> String? {
+    guard let basePath = assetBasePath else {
+        return nil
+    }
+
+    let base = basePath.standardizedFileURL.resolvingSymlinksInPath().path
+    let target = url.standardizedFileURL.resolvingSymlinksInPath().path
+    let prefix = base.hasSuffix("/") ? base : base + "/"
+
+    guard target.hasPrefix(prefix) else {
+        return nil
+    }
+
+    return String(target.dropFirst(prefix.count))
+}
+
+private func sceneAssetReference(kind: SceneAssetKind, url: URL, displayName: String? = nil) -> SceneAssetReference? {
+    if kind == .procedural || isProceduralAssetURL(url) {
+        return SceneAssetReference(kind: .procedural, path: url.path, displayName: displayName)
+    }
+
+    guard let relativePath = projectRelativeAssetPath(for: url) else {
+        Logger.logWarning(message: "[SceneSerializer] Skipping non-project asset reference: \(url.path)")
+        return nil
+    }
+
+    return SceneAssetReference(kind: kind, path: relativePath, displayName: displayName)
+}
+
+private func resolvedSceneAssetURL(_ reference: SceneAssetReference) -> URL? {
+    if reference.kind == .procedural {
+        return URL(fileURLWithPath: reference.path)
+    }
+
+    guard let basePath = assetBasePath else {
+        Logger.logWarning(message: "[SceneSerializer] Cannot resolve asset '\(reference.path)' because assetBasePath is not set")
+        return nil
+    }
+
+    return basePath.appendingPathComponent(reference.path)
+}
+
+private func resourceNameForLoading(from url: URL) -> String {
+    let noExtension = url.deletingPathExtension()
+    let path = noExtension.path
+    if path.hasPrefix("/") || path.hasPrefix("~") {
+        return path
+    }
+    return noExtension.lastPathComponent
+}
+
+private func animationURLs(for entityData: EntityData) -> [URL] {
+    if let animationAssets = entityData.animationAssets, animationAssets.isEmpty == false {
+        return animationAssets.compactMap { resolvedSceneAssetURL($0) }
+    }
+
+    return entityData.animations.filter { $0.pathExtension.lowercased() == "untold" }
+}
+
+private func applyDeserializedAnimations(entityId: EntityID, entityData: EntityData) {
+    let urls = animationURLs(for: entityData)
+    guard urls.isEmpty == false else { return }
+
+    for animationURL in urls {
+        let animationFilename = resourceNameForLoading(from: animationURL)
+        let animationFilenameExt = animationURL.pathExtension
+        let animationName = animationURL.deletingPathExtension().lastPathComponent
+        setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationName)
+        changeAnimation(entityId: entityId, name: animationName)
+    }
+
+    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+        animationComponent.animationsFilenames = urls
+    }
+}
+
+private func appendUniqueURL(_ url: URL, to urls: inout [URL], seen: inout Set<String>) {
+    let key = url.standardizedFileURL.path
+    guard seen.contains(key) == false else { return }
+    seen.insert(key)
+    urls.append(url)
+}
+
+private func collectDerivedAnimationSourceURLs(rootEntityId: EntityID, currentEntityId: EntityID, urls: inout [URL], seen: inout Set<String>) {
+    for childId in getEntityChildren(parentId: currentEntityId) {
+        if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childId),
+           derived.assetRootEntityId == rootEntityId,
+           let animationComponent = scene.get(component: AnimationComponent.self, for: childId)
+        {
+            for url in animationComponent.animationsFilenames {
+                appendUniqueURL(url, to: &urls, seen: &seen)
+            }
+        }
+
+        collectDerivedAnimationSourceURLs(rootEntityId: rootEntityId, currentEntityId: childId, urls: &urls, seen: &seen)
+    }
+}
+
+private func animationSourceURLsForSerialization(entityId: EntityID) -> [URL] {
+    var urls: [URL] = []
+    var seen = Set<String>()
+
+    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
+        for url in animationComponent.animationsFilenames {
+            appendUniqueURL(url, to: &urls, seen: &seen)
+        }
+    }
+
+    if hasComponent(entityId: entityId, componentType: AssetInstanceComponent.self) {
+        collectDerivedAnimationSourceURLs(rootEntityId: entityId, currentEntityId: entityId, urls: &urls, seen: &seen)
+    }
+
+    return urls
+}
+
+private func isRuntimeGeneratedTiledSceneEntity(_ entityId: EntityID) -> Bool {
+    var current: EntityID? = entityId
+    while let candidate = current {
+        if hasComponent(entityId: candidate, componentType: TileComponent.self) {
+            return true
+        }
+        current = getEntityParent(entityId: candidate)
+    }
+    return false
+}
+
 private func createProceduralMeshes(assetName: String) -> [Mesh] {
     let typeName = assetName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
@@ -259,10 +404,12 @@ public func serializeScene() -> SceneData {
     var authoredEntityCount = 0
     var derivedEntityCount = 0
 
-    // assign UUIDs only to authored entities (skip derived nodes)
+    // assign UUIDs only to authored entities (skip derived/runtime-generated nodes)
     for entityId in getAllGameEntities() {
-        // Skip derived asset nodes - they will be recreated on import
-        if hasComponent(entityId: entityId, componentType: DerivedAssetNodeComponent.self) {
+        // Skip derived asset nodes and generated stream tiles - they will be recreated on import
+        if hasComponent(entityId: entityId, componentType: DerivedAssetNodeComponent.self)
+            || isRuntimeGeneratedTiledSceneEntity(entityId)
+        {
             derivedEntityCount += 1
             continue
         }
@@ -275,8 +422,10 @@ public func serializeScene() -> SceneData {
     Logger.log(message: "[SceneSerializer] Serializing \(authoredEntityCount) authored entities, skipping \(derivedEntityCount) derived nodes")
 
     for entityId in getAllGameEntities() {
-        // Skip derived asset nodes
-        if hasComponent(entityId: entityId, componentType: DerivedAssetNodeComponent.self) {
+        // Skip derived asset nodes and generated stream tiles
+        if hasComponent(entityId: entityId, componentType: DerivedAssetNodeComponent.self)
+            || isRuntimeGeneratedTiledSceneEntity(entityId)
+        {
             continue
         }
 
@@ -296,6 +445,12 @@ public func serializeScene() -> SceneData {
             entityData.assetName = renderComponent.assetName
 
             entityData.assetURL = renderComponent.assetURL
+            let assetKind: SceneAssetKind = isProceduralAssetURL(renderComponent.assetURL) ? .procedural : .model
+            entityData.asset = sceneAssetReference(
+                kind: assetKind,
+                url: renderComponent.assetURL,
+                displayName: renderComponent.assetName.isEmpty ? nil : renderComponent.assetName
+            )
 
             // material data
             let baseColor: simd_float4 = getMaterialBaseColor(entityId: entityId)
@@ -310,20 +465,29 @@ public func serializeScene() -> SceneData {
             var roughnessURL: URL?
             var metallicURL: URL?
             var normalURL: URL?
+            let shouldSerializeMaterialTextureURLs = entityData.asset?.kind != .model
 
-            if let baseColorTexture: URL = getMaterialTextureURL(entityId: entityId, type: .baseColor) {
+            if shouldSerializeMaterialTextureURLs,
+               let baseColorTexture: URL = getMaterialTextureURL(entityId: entityId, type: .baseColor)
+            {
                 baseColorURL = baseColorTexture
             }
 
-            if let roughnessTexture: URL = getMaterialTextureURL(entityId: entityId, type: .roughness) {
+            if shouldSerializeMaterialTextureURLs,
+               let roughnessTexture: URL = getMaterialTextureURL(entityId: entityId, type: .roughness)
+            {
                 roughnessURL = roughnessTexture
             }
 
-            if let metallicTexture: URL = getMaterialTextureURL(entityId: entityId, type: .metallic) {
+            if shouldSerializeMaterialTextureURLs,
+               let metallicTexture: URL = getMaterialTextureURL(entityId: entityId, type: .metallic)
+            {
                 metallicURL = metallicTexture
             }
 
-            if let normalTexture: URL = getMaterialTextureURL(entityId: entityId, type: .normal) {
+            if shouldSerializeMaterialTextureURLs,
+               let normalTexture: URL = getMaterialTextureURL(entityId: entityId, type: .normal)
+            {
                 normalURL = normalTexture
             }
 
@@ -360,12 +524,29 @@ public func serializeScene() -> SceneData {
 
         entityData.hasLocalTransformComponent = hasComponent(entityId: entityId, componentType: LocalTransformComponent.self)
 
-        // Animation properties
-        if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-            entityData.animations = animationComponent.animationsFilenames
+        // Animation properties. For hierarchical runtime assets, AnimationComponent may
+        // live on a derived skeleton child that is skipped by scene serialization, so
+        // asset roots collect animation source URLs from their derived descendants.
+        let animationSourceURLs = animationSourceURLsForSerialization(entityId: entityId)
+        if animationSourceURLs.isEmpty == false {
+            entityData.animations = animationSourceURLs
+            let animationReferences = animationSourceURLs.compactMap {
+                sceneAssetReference(kind: .animation, url: $0, displayName: $0.deletingPathExtension().lastPathComponent)
+            }
+            entityData.animationAssets = animationReferences.isEmpty ? nil : animationReferences
         }
 
-        entityData.hasAnimationComponent = hasComponent(entityId: entityId, componentType: AnimationComponent.self)
+        entityData.hasAnimationComponent = animationSourceURLs.isEmpty == false || hasComponent(entityId: entityId, componentType: AnimationComponent.self)
+
+        if let tiledSceneComponent = scene.get(component: TiledSceneComponent.self, for: entityId),
+           let manifestURL = tiledSceneComponent.manifestURL
+        {
+            entityData.asset = sceneAssetReference(
+                kind: .streamModel,
+                url: manifestURL,
+                displayName: tiledSceneComponent.manifestLabel.isEmpty ? nil : tiledSceneComponent.manifestLabel
+            )
+        }
 
         // Kinetic properties
         entityData.mass = getMass(entityId: entityId)
@@ -605,6 +786,7 @@ public func serializeScene() -> SceneData {
 
             entityData.assetInstance = AssetInstanceData(
                 assetURL: assetInstanceComp.assetURL,
+                asset: sceneAssetReference(kind: .model, url: assetInstanceComp.assetURL, displayName: assetInstanceComp.assetName),
                 assetName: assetInstanceComp.assetName,
                 importMode: assetInstanceComp.importMode,
                 rootPrimPath: assetInstanceComp.rootPrimPath,
@@ -795,6 +977,10 @@ public func deserializeScene(
     meshLoadingMode: MeshLoadingMode = .asyncDefault,
     completion: (() -> Void)? = nil
 ) {
+    if assetBasePath == nil, let savedAssetBasePath = sceneData.assetBasePath {
+        assetBasePath = savedAssetBasePath
+    }
+
     var uuidToEntityMap: [UUID: EntityID] = [:]
 
     // Track async loading operations for completion callback
@@ -883,7 +1069,8 @@ public func deserializeScene(
     }
 
     withWorldMutationGate {
-        for sceneDataEntity in sceneData.entities {
+        for sourceEntityData in sceneData.entities {
+            var sceneDataEntity = sourceEntityData
             let entityId = createEntity()
 
             uuidToEntityMap[sceneDataEntity.uuid] = entityId
@@ -900,18 +1087,45 @@ public func deserializeScene(
                 setEntityPickHitRepresentationMode(entityId: entityId, mode: mode)
             }
 
+            if let assetReference = sceneDataEntity.asset {
+                switch assetReference.kind {
+                case .model, .procedural:
+                    if let resolvedURL = resolvedSceneAssetURL(assetReference) {
+                        sceneDataEntity.assetURL = resolvedURL
+                        sceneDataEntity.hasRenderingComponent = assetReference.kind == .model || assetReference.kind == .procedural
+                        if sceneDataEntity.assetName.isEmpty {
+                            sceneDataEntity.assetName = assetReference.displayName ?? resolvedURL.deletingPathExtension().lastPathComponent
+                        }
+                    }
+                case .streamModel:
+                    if let manifestURL = resolvedSceneAssetURL(assetReference) {
+                        let entityName = sceneDataEntity.name
+                        loadTracker.registerLoad()
+                        setEntityStreamScene(entityId: entityId, url: manifestURL) { success in
+                            if success {
+                                Logger.log(message: "✅ Stream model loaded for \(entityName)")
+                            } else {
+                                Logger.logWarning(message: "❌ Stream model failed for \(entityName)")
+                            }
+                            loadTracker.completeLoad()
+                        }
+                    }
+                case .animation:
+                    break
+                }
+            }
+
             // Check for new Asset Instance system
             if let assetInstance = sceneDataEntity.assetInstance {
                 // New asset instance workflow
-                let filename = assetInstance.assetURL.deletingPathExtension().lastPathComponent
-                let withExtension = assetInstance.assetURL.pathExtension
-
-                // Apply parent entity's transform
-                applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                let assetURL = assetInstance.asset.flatMap { resolvedSceneAssetURL($0) } ?? assetInstance.assetURL
+                let filename = resourceNameForLoading(from: assetURL)
+                let withExtension = assetURL.pathExtension
 
                 switch meshLoadingMode {
                 case .sync:
                     setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil)
+                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
 
                     // Restore Static Batch Component (sync mode - mesh already loaded)
                     if sceneDataEntity.hasStaticBatchComponent == true {
@@ -923,19 +1137,12 @@ public func deserializeScene(
 
                     // Setup animations (skeleton is now available)
                     if sceneDataEntity.hasAnimationComponent == true {
-                        for animations in sceneDataEntity.animations {
-                            let animationFilename = animations.deletingPathExtension().lastPathComponent
-                            let animationFilenameExt = animations.pathExtension
-                            setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                            changeAnimation(entityId: entityId, name: animationFilename)
-                        }
-                        if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                            animationComponent.animationsFilenames = sceneDataEntity.animations
-                        }
+                        applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
                     }
                 case .asyncDefault:
                     loadTracker.registerLoad()
                     setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
+                        applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
                         if success {
                             Logger.log(message: "✅ Asset instance '\(sceneDataEntity.name)' loaded")
                             // Restore Static Batch Component (meshes now loaded)
@@ -948,15 +1155,7 @@ public func deserializeScene(
 
                             // Setup animations (skeleton is now available)
                             if sceneDataEntity.hasAnimationComponent == true {
-                                for animations in sceneDataEntity.animations {
-                                    let animationFilename = animations.deletingPathExtension().lastPathComponent
-                                    let animationFilenameExt = animations.pathExtension
-                                    setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                                    changeAnimation(entityId: entityId, name: animationFilename)
-                                }
-                                if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                                    animationComponent.animationsFilenames = sceneDataEntity.animations
-                                }
+                                applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
                             }
                         } else {
                             Logger.logWarning(message: "❌ Asset instance '\(sceneDataEntity.name)' failed to load")
@@ -966,7 +1165,7 @@ public func deserializeScene(
                 }
             } else if sceneDataEntity.hasRenderingComponent == true {
                 // Legacy rendering component workflow (backward compatibility)
-                let filename = sceneDataEntity.assetURL.deletingPathExtension().lastPathComponent
+                let filename = resourceNameForLoading(from: sceneDataEntity.assetURL)
                 let withExtension = sceneDataEntity.assetURL.pathExtension
                 let isProcedural = isProceduralAssetURL(sceneDataEntity.assetURL)
                 switch meshLoadingMode {
@@ -992,15 +1191,7 @@ public func deserializeScene(
 
                     // Setup animations (skeleton is now available)
                     if sceneDataEntity.hasAnimationComponent == true {
-                        for animations in sceneDataEntity.animations {
-                            let animationFilename = animations.deletingPathExtension().lastPathComponent
-                            let animationFilenameExt = animations.pathExtension
-                            setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                            changeAnimation(entityId: entityId, name: animationFilename)
-                        }
-                        if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                            animationComponent.animationsFilenames = sceneDataEntity.animations
-                        }
+                        applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
                     }
                 case .asyncDefault:
                     if isProcedural {
@@ -1028,15 +1219,7 @@ public func deserializeScene(
 
                                 // Setup animations (skeleton is now available)
                                 if sceneDataEntity.hasAnimationComponent == true {
-                                    for animations in sceneDataEntity.animations {
-                                        let animationFilename = animations.deletingPathExtension().lastPathComponent
-                                        let animationFilenameExt = animations.pathExtension
-                                        setEntityAnimations(entityId: entityId, filename: animationFilename, withExtension: animationFilenameExt, name: animationFilename)
-                                        changeAnimation(entityId: entityId, name: animationFilename)
-                                    }
-                                    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
-                                        animationComponent.animationsFilenames = sceneDataEntity.animations
-                                    }
+                                    applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
                                 }
                             } else {
                                 Logger.logWarning(message: "❌ Mesh failed for \(meshLabel)")
@@ -1293,7 +1476,7 @@ public func deserializeScene(
                         // Load each LOD level using the granular API
                         for (index, lodLevelData) in lodData.lodLevels.enumerated() {
                             let url = lodLevelData.url
-                            let filename = url.deletingPathExtension().lastPathComponent
+                            let filename = resourceNameForLoading(from: url)
                             let ext = url.pathExtension
                             let maxDistance = lodLevelData.maxDistance
 

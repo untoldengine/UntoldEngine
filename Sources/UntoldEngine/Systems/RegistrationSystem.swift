@@ -2302,6 +2302,7 @@ public func setEntityStreamScene(
         manifest: tileManifest,
         baseURL: manifestURL.deletingLastPathComponent(),
         label: "\(manifest).\(ext)",
+        manifestURL: manifestURL,
         completion: completion
     )
 }
@@ -2346,6 +2347,7 @@ public func loadTiledScene(
         manifest: tileManifest,
         baseURL: manifestURL.deletingLastPathComponent(),
         label: "\(manifest).\(ext)",
+        manifestURL: manifestURL,
         completion: completion
     )
 }
@@ -2396,6 +2398,7 @@ public func setEntityStreamScene(
                 manifest: tileManifest,
                 baseURL: manifestURL.deletingLastPathComponent(),
                 label: manifestURL.lastPathComponent,
+                manifestURL: manifestURL,
                 completion: completion
             )
         } catch {
@@ -2450,6 +2453,7 @@ public func loadTiledScene(
                 manifest: tileManifest,
                 baseURL: manifestURL.deletingLastPathComponent(),
                 label: manifestURL.lastPathComponent,
+                manifestURL: manifestURL,
                 completion: completion
             )
         } catch {
@@ -2483,6 +2487,7 @@ private func registerTiledScene(
     manifest tileManifest: TileManifest,
     baseURL manifestDir: URL,
     label: String,
+    manifestURL: URL? = nil,
     completion: ((Bool) -> Void)?
 ) {
     // ── 1. Align streaming systems to this manifest ────────────────────────
@@ -2513,6 +2518,7 @@ private func registerTiledScene(
     registerComponent(entityId: rootEntityId, componentType: TiledSceneComponent.self)
     if let sceneComp = scene.get(component: TiledSceneComponent.self, for: rootEntityId) {
         sceneComp.manifestLabel = label
+        sceneComp.manifestURL = manifestURL
     }
 
     // ── 3. Cell-based static batching ─────────────────────────────────────

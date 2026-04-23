@@ -65,6 +65,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
     // Flat layout (no top-level "Assets")
     var searchPaths: [[String]] = [
         ["Models", resourceName, "\(resourceName).\(ext)"],
+        ["StreamModels", resourceName, "\(resourceName).\(ext)"],
         ["Animations", resourceName, "\(resourceName).\(ext)"],
         ["HDR", "\(resourceName).\(ext)"],
         ["Gaussians", "\(resourceName).\(ext)"],
@@ -95,6 +96,7 @@ public func getResourceURL(resourceName: String, ext: String, subName: String?) 
         // Then try structured subdirectories
         let searchPaths: [[String]] = [
             ["Models", resourceName, "\(resourceName).\(ext)"],
+            ["StreamModels", resourceName, "\(resourceName).\(ext)"],
             ["Animations", resourceName, "\(resourceName).\(ext)"],
             ["HDR", "\(resourceName).\(ext)"],
             ["Gaussians", "\(resourceName).\(ext)"],
