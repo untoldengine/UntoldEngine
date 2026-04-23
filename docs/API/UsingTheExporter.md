@@ -90,6 +90,8 @@ Common options:
 - `--visible-only`: optional export only visible meshes
 - `--all-meshes`: optional include hidden meshes
 - `--debug-aabb-only`: optional emit debug AABB payloads instead of geometry
+- `--quadTree`: optional partition tiles using a quad-tree instead of a uniform grid
+- `--floorCount <number>`: optional number of vertical floors to split each tile into
 - `--blender <path>`: optional wrapper-level Blender override
 
 Example:
