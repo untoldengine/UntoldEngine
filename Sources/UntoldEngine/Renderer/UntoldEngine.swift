@@ -231,7 +231,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     #if ENGINE_STATS_ENABLED
         private func publishEngineStats(frameStartTime: Double) {
-            let frameTotalMs = (CACurrentMediaTime() - frameStartTime) * 1000.0
+            let frameTotalMs: Double
+            if let dt = timeSinceLastUpdate as Float?, dt > 0 {
+                frameTotalMs = Double(dt) * 1000.0
+            } else {
+                frameTotalMs = (CACurrentMediaTime() - frameStartTime) * 1000.0
+            }
             let hzbStats = getHZBDebugStats()
             let geometryStreamingStats = GeometryStreamingSystem.shared.getStats()
             let meshResourceStats = MeshResourceManager.shared.getStats()
