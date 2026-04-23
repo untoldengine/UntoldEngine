@@ -1,4 +1,5 @@
 # Changelog
+## v0.12.6 - 2026-04-23
 ## v0.12.4 - 2026-04-23
 ### 🐞 Fixes
 - [Patch] Updated build templates to use recent api for streaming (7221b11…)
