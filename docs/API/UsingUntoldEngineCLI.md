@@ -48,10 +48,10 @@ source ~/.zshrc
 
 ## Creating a New Project
 
-Navigate to (or create) the directory where you want your project to live, then run the `create` command:
+Run from the parent directory — the CLI creates the project folder for you:
 
 ```bash
-mkdir MyGame && cd MyGame
+cd ~/Downloads
 untoldengine-create create MyGame
 ```
 
