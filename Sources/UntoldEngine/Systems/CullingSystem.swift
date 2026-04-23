@@ -13,7 +13,7 @@ import Foundation
 @preconcurrency import Metal
 import simd
 
-let useOptimizedCulling = false
+let useOptimizedCulling = true
 
 let kInFlight = 3
 let planeCount = 6
