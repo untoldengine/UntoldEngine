@@ -26,13 +26,6 @@ public extension Mesh {
             totalSize += submesh.indexBuffer.buffer.length
         }
 
-        // Uniform buffers (space uniforms for transforms)
-        for buffer in spaceUniform {
-            if let buffer {
-                totalSize += buffer.length
-            }
-        }
-
         // Skin buffers (if skeletal mesh)
         if let skin {
             totalSize += skin.gpuMemorySize

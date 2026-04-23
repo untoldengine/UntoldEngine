@@ -710,17 +710,8 @@ public enum RenderPasses {
 
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-                if let modelUniformBuffer = mesh.spaceUniform[currentUniformBufferIndex()] {
-                    modelUniformBuffer.contents().copyMemory(
-                        from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
-                    )
-                } else {
-                    handleError(.bufferAllocationFailed, "Model Uniform buffer")
-                    return
-                }
-
-                renderEncoder.setVertexBuffer(
-                    mesh.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(shadowPassModelUniform.rawValue)
+                renderEncoder.setVertexBytes(
+                    &modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue)
                 )
 
                 renderEncoder.setVertexBuffer(
@@ -1022,17 +1013,8 @@ public enum RenderPasses {
 
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-                if let modelUniformBuffer = mesh.spaceUniform[currentUniformBufferIndex()] {
-                    modelUniformBuffer.contents().copyMemory(
-                        from: &modelUniforms, byteCount: MemoryLayout<Uniforms>.stride
-                    )
-                } else {
-                    handleError(.bufferAllocationFailed, "Model Uniform buffer")
-                    return
-                }
-
-                renderEncoder.setVertexBuffer(
-                    mesh.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(modelPassUniformIndex.rawValue)
+                renderEncoder.setVertexBytes(
+                    &modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue)
                 )
 
                 // Only enable armature path when a valid joint transform buffer exists.
@@ -1078,8 +1060,8 @@ public enum RenderPasses {
                     renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
                 }
 
-                renderEncoder.setFragmentBuffer(
-                    mesh.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(modelPassFragmentUniformIndex.rawValue)
+                renderEncoder.setFragmentBytes(
+                    &modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassFragmentUniformIndex.rawValue)
                 )
 
                 for subMesh in mesh.submeshes {
@@ -2459,19 +2441,9 @@ public enum RenderPasses {
                 modelUniforms.cameraPosition = effectiveCameraPosition
                 modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-                if let modelUniformBuffer = mesh.spaceUniform[currentUniformBufferIndex()] {
-                    modelUniformBuffer.contents().copyMemory(
-                        from: &modelUniforms,
-                        byteCount: MemoryLayout<Uniforms>.stride
-                    )
-                } else {
-                    handleError(.bufferAllocationFailed, "Transparency Uniform buffer")
-                    return
-                }
-
-                renderEncoder.setVertexBuffer(
-                    mesh.spaceUniform[currentUniformBufferIndex()],
-                    offset: 0,
+                renderEncoder.setVertexBytes(
+                    &modelUniforms,
+                    length: MemoryLayout<Uniforms>.stride,
                     index: Int(modelPassUniformIndex.rawValue)
                 )
 
@@ -2529,9 +2501,9 @@ public enum RenderPasses {
                     )
                 }
 
-                renderEncoder.setFragmentBuffer(
-                    mesh.spaceUniform[currentUniformBufferIndex()],
-                    offset: 0,
+                renderEncoder.setFragmentBytes(
+                    &modelUniforms,
+                    length: MemoryLayout<Uniforms>.stride,
                     index: Int(transparencyPassFragmentUniformIndex.rawValue)
                 )
 

@@ -519,26 +519,17 @@ final class StreamLodBatchLODAwareStreamingTests: BaseRenderSetup {
         XCTAssertTrue(hasLOD, "Entity should have LODComponent")
     }
 
-    func testMultipleEntitiesWithSharedCachedMeshesHaveUniqueUniformBuffers() throws {
-        // This test verifies the fix for a bug where multiple entities sharing cached meshes
-        // would also share the same spaceUniform MTLBuffers, causing one entity to overwrite
-        // another's transform data during rendering (making entities disappear).
-        //
-        // The fix uses Mesh.copyWithNewUniformBuffers() when assigning cached meshes to entities.
+    func testMultipleEntitiesWithSharedCachedMeshesHaveIndependentGeometry() throws {
+        // Uniforms are now written per-draw via setVertexBytes — there are no per-mesh
+        // MTLBuffers that could be accidentally shared between entities.
+        // This test verifies that copyWithNewUniformBuffers() still produces valid
+        // independent mesh copies that can be assigned to separate entities.
 
-        // Given: Create a shared mesh (simulating cached mesh from MeshResourceManager)
         let sharedMesh = BasicPrimitives.createCube()
 
-        // Create two entities that will use the same "cached" mesh
         let entity1 = createEntity()
         let entity2 = createEntity()
 
-        _ = scene.assign(to: entity1, component: LocalTransformComponent.self)
-        _ = scene.assign(to: entity1, component: WorldTransformComponent.self)
-        _ = scene.assign(to: entity2, component: LocalTransformComponent.self)
-        _ = scene.assign(to: entity2, component: WorldTransformComponent.self)
-
-        // When: Assign meshes using copyWithNewUniformBuffers (what the streaming system does)
         let entity1Meshes = sharedMesh.map { $0.copyWithNewUniformBuffers() }
         let entity2Meshes = sharedMesh.map { $0.copyWithNewUniformBuffers() }
 
@@ -549,7 +540,6 @@ final class StreamLodBatchLODAwareStreamingTests: BaseRenderSetup {
             render2.mesh = entity2Meshes
         }
 
-        // Then: Each entity's mesh should have unique uniform buffers
         let render1 = scene.get(component: RenderComponent.self, for: entity1)
         let render2 = scene.get(component: RenderComponent.self, for: entity2)
 
@@ -557,25 +547,11 @@ final class StreamLodBatchLODAwareStreamingTests: BaseRenderSetup {
         XCTAssertNotNil(render2, "Entity 2 should have RenderComponent")
         XCTAssertFalse(try XCTUnwrap(render1?.mesh.isEmpty), "Entity 1 should have meshes")
         XCTAssertFalse(try XCTUnwrap(render2?.mesh.isEmpty), "Entity 2 should have meshes")
-
-        // Verify uniform buffers are different (not shared)
-        for i in try 0 ..< min(XCTUnwrap(render1?.mesh.count), XCTUnwrap(render2?.mesh.count)) {
-            let buffer1 = try XCTUnwrap(render1?.mesh[i].spaceUniform)
-            let buffer2 = try XCTUnwrap(render2?.mesh[i].spaceUniform)
-
-            // Each buffer slot should be unique between entities
-            for j in 0 ..< min(buffer1.count, buffer2.count) {
-                if let b1 = buffer1[j], let b2 = buffer2[j] {
-                    // Compare buffer pointers - they should be different objects
-                    XCTAssertFalse(
-                        b1 === b2,
-                        "Entity 1 and Entity 2 should have different uniform buffers at mesh[\(i)].spaceUniform[\(j)]"
-                    )
-                }
-            }
-        }
-
-        print("✅ Multiple entities with shared cached meshes have unique uniform buffers")
+        XCTAssertEqual(
+            try XCTUnwrap(render1?.mesh.count),
+            try XCTUnwrap(render2?.mesh.count),
+            "Both entities should have the same mesh count"
+        )
     }
 }
 

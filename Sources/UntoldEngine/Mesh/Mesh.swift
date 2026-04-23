@@ -101,7 +101,6 @@ public struct Mesh {
     var assetName: String
     var boundingBox: (min: simd_float3, max: simd_float3)
     var skin: Skin?
-    public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: totalPerMeshUniformBuffers())
 
     init?(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: TextureLoader, device: MTLDevice, flip _: Bool) {
         modelMDLMesh = modelIOMesh
@@ -133,13 +132,6 @@ public struct Mesh {
         // Apply vertex descriptor for Metal layout compatibility
         modelIOMesh.vertexDescriptor = vertexDescriptor
 
-        // allocate buffer
-
-        spaceUniform = (0 ..< totalPerMeshUniformBuffers()).compactMap { _ in
-            renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
-                                         options: [MTLResourceOptions.storageModeShared])
-        }
-
         // Create MetalKit mesh
         modelIOMesh.vertexDescriptor = vertexDescriptor
         var localMetalKitMesh: MTKMesh
@@ -167,22 +159,15 @@ public struct Mesh {
     }
 
     mutating func cleanUp() {
-        spaceUniform.removeAll()
         submeshes.removeAll()
         skin?.cleanUp()
         skin = nil
     }
 
-    /// Create a copy of this mesh with fresh uniform buffers.
-    /// Use this when assigning cached meshes to a new entity to avoid buffer sharing.
+    /// Returns a copy of this mesh. Uniform data is written per-draw via setVertexBytes,
+    /// so no per-mesh buffer allocation is needed.
     func copyWithNewUniformBuffers() -> Mesh {
-        var copy = self
-        // Create new uniform buffers for this entity
-        copy.spaceUniform = (0 ..< totalPerMeshUniformBuffers()).compactMap { _ in
-            renderInfo.device.makeBuffer(length: MemoryLayout<Uniforms>.stride,
-                                         options: [MTLResourceOptions.storageModeShared])
-        }
-        return copy
+        self
     }
 
     /// Load meshes from a file URL
