@@ -29,8 +29,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          lfs: true
 
       # ✅ Ensure a consistent, modern Python environment
       - name: Set up Python
