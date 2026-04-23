@@ -62,6 +62,16 @@ fi
 # Install the binary
 echo -e "${CYAN}📦 Installing to $INSTALL_DIR/$CLI_NAME...${NC}"
 
+# Ensure the install directory exists
+if [ ! -d "$INSTALL_DIR" ]; then
+    echo -e "${YELLOW}⚠️  Creating install directory at $INSTALL_DIR${NC}"
+    if [ -w "$(dirname "$INSTALL_DIR")" ]; then
+        mkdir -p "$INSTALL_DIR"
+    else
+        sudo mkdir -p "$INSTALL_DIR"
+    fi
+fi
+
 # Check if we need sudo
 if [ -w "$INSTALL_DIR" ]; then
     cp "$BINARY_PATH" "$INSTALL_DIR/$CLI_NAME"
