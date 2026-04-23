@@ -130,8 +130,15 @@ struct CreateCommand: AsyncParsableCommand {
             return resolvePath(outputStr)
         }
 
-        // Default: current directory
-        return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        // Default: current directory.
+        // If the user did `mkdir MyGame && cd MyGame && untoldengine-create create MyGame`,
+        // the current dir is already named after the project. BuildSystem will append
+        // projectName again, so pass the parent to avoid double-nesting.
+        let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        if currentDir.lastPathComponent == projectName {
+            return currentDir.deletingLastPathComponent()
+        }
+        return currentDir
     }
 
     private func createBuildSettings(outputURL: URL, bundleId: String) throws -> BuildSettings {
