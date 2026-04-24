@@ -187,6 +187,7 @@ public enum Logger {
             LogCategory.oocTiming.rawValue,
             LogCategory.oocStatus.rawValue,
             LogCategory.assetLoader.rawValue,
+            LogCategory.xrCamera.rawValue,
         ]
         private var categoryOverrides: [String: Bool] = [:]
 
