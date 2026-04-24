@@ -55,10 +55,10 @@ public struct PostFXPreset: Sendable {
     }
 }
 
-extension PostFXPreset {
-    public static let neutral = PostFXPreset(name: "Neutral")
+public extension PostFXPreset {
+    static let neutral = PostFXPreset(name: "Neutral")
 
-    public static let cinematic = PostFXPreset(
+    static let cinematic = PostFXPreset(
         name: "Cinematic",
         colorGrading: true,
         exposure: -0.2,
@@ -71,7 +71,7 @@ extension PostFXPreset {
         ssaoIntensity: 0.75
     )
 
-    public static let highContrast = PostFXPreset(
+    static let highContrast = PostFXPreset(
         name: "High Contrast",
         colorGrading: true,
         exposure: 0.15,
@@ -84,7 +84,7 @@ extension PostFXPreset {
         ssaoIntensity: 1.1
     )
 
-    public static let softAO = PostFXPreset(
+    static let softAO = PostFXPreset(
         name: "Soft AO",
         colorGrading: true,
         exposure: 0.0,
@@ -97,7 +97,7 @@ extension PostFXPreset {
         ssaoIntensity: 0.45
     )
 
-    public static let archviz = PostFXPreset(
+    static let archviz = PostFXPreset(
         name: "Archviz",
         colorGrading: true,
         exposure: 0.15,
@@ -192,16 +192,16 @@ public enum PostFX {
     }
 
     public static func apply(_ preset: PostFXPreset) {
-        ColorGradingParams.shared.enabled     = preset.colorGrading
-        ColorGradingParams.shared.exposure    = preset.exposure
-        ColorGradingParams.shared.brightness  = preset.brightness
-        ColorGradingParams.shared.contrast    = preset.contrast
-        ColorGradingParams.shared.saturation  = preset.saturation
+        ColorGradingParams.shared.enabled = preset.colorGrading
+        ColorGradingParams.shared.exposure = preset.exposure
+        ColorGradingParams.shared.brightness = preset.brightness
+        ColorGradingParams.shared.contrast = preset.contrast
+        ColorGradingParams.shared.saturation = preset.saturation
         ColorGradingParams.shared.temperature = preset.temperature
-        ColorGradingParams.shared.tint        = preset.tint
-        SSAOParams.shared.enabled             = preset.ssao
-        SSAOParams.shared.radius              = preset.ssaoRadius
-        SSAOParams.shared.bias                = preset.ssaoBias
-        SSAOParams.shared.intensity           = preset.ssaoIntensity
+        ColorGradingParams.shared.tint = preset.tint
+        SSAOParams.shared.enabled = preset.ssao
+        SSAOParams.shared.radius = preset.ssaoRadius
+        SSAOParams.shared.bias = preset.ssaoBias
+        SSAOParams.shared.intensity = preset.ssaoIntensity
     }
 }

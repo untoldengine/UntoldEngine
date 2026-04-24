@@ -23,15 +23,17 @@
             case softAO = "Soft AO"
             case archviz = "Archviz"
 
-            var id: String { rawValue }
+            var id: String {
+                rawValue
+            }
 
             var enginePreset: UntoldEngine.PostFXPreset {
                 switch self {
-                case .neutral:      return .neutral
-                case .cinematic:    return .cinematic
+                case .neutral: return .neutral
+                case .cinematic: return .cinematic
                 case .highContrast: return .highContrast
-                case .softAO:       return .softAO
-                case .archviz:      return .archviz
+                case .softAO: return .softAO
+                case .archviz: return .archviz
                 }
             }
         }
