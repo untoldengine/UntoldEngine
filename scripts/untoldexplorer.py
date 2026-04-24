@@ -543,6 +543,242 @@ def write_aabb(writer: BinaryWriter, bounds: AABB) -> None:
         writer.write_f32(value)
 
 
+def identity_matrix_rows() -> list[list[float]]:
+    return [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
+
+
+def matrix_rows_multiply(lhs: list[list[float]], rhs: list[list[float]]) -> list[list[float]]:
+    return [
+        [
+            sum(lhs[row][k] * rhs[k][column] for k in range(4))
+            for column in range(4)
+        ]
+        for row in range(4)
+    ]
+
+
+def transform_point_rows(matrix_rows: list[list[float]], point: tuple[float, float, float]) -> tuple[float, float, float]:
+    x, y, z = point
+    return (
+        matrix_rows[0][0] * x + matrix_rows[0][1] * y + matrix_rows[0][2] * z + matrix_rows[0][3],
+        matrix_rows[1][0] * x + matrix_rows[1][1] * y + matrix_rows[1][2] * z + matrix_rows[1][3],
+        matrix_rows[2][0] * x + matrix_rows[2][1] * y + matrix_rows[2][2] * z + matrix_rows[2][3],
+    )
+
+
+def transform_direction_rows(
+    matrix_rows: list[list[float]],
+    direction: tuple[float, float, float],
+    fallback: tuple[float, float, float],
+) -> tuple[float, float, float]:
+    x, y, z = direction
+    transformed = (
+        matrix_rows[0][0] * x + matrix_rows[0][1] * y + matrix_rows[0][2] * z,
+        matrix_rows[1][0] * x + matrix_rows[1][1] * y + matrix_rows[1][2] * z,
+        matrix_rows[2][0] * x + matrix_rows[2][1] * y + matrix_rows[2][2] * z,
+    )
+    return normalize3(transformed, fallback)
+
+
+def _unpack_snorm10(bits: int) -> float:
+    signed = bits if bits < 512 else bits - 1024
+    return max(-1.0, signed / 511.0)
+
+
+def unpack_normal(packed: int) -> tuple[float, float, float]:
+    return normalize3(
+        (
+            _unpack_snorm10(packed & 0x3FF),
+            _unpack_snorm10((packed >> 10) & 0x3FF),
+            _unpack_snorm10((packed >> 20) & 0x3FF),
+        ),
+        (0.0, 0.0, 1.0),
+    )
+
+
+def unpack_tangent(packed: int) -> tuple[tuple[float, float, float], float]:
+    tangent = normalize3(
+        (
+            _unpack_snorm10(packed & 0x3FF),
+            _unpack_snorm10((packed >> 10) & 0x3FF),
+            _unpack_snorm10((packed >> 20) & 0x3FF),
+        ),
+        (1.0, 0.0, 0.0),
+    )
+    handedness = -1.0 if ((packed >> 30) & 0x3) == 0x3 else 1.0
+    return tangent, handedness
+
+
+def bake_mesh_vertices_to_world(mesh: ExportedMesh, world_transform_rows: list[list[float]]) -> ExportedMesh:
+    vertex_bytes = bytearray(mesh.vertices)
+    transformed_positions: list[tuple[float, float, float]] = []
+
+    for offset in range(0, len(vertex_bytes), VERTEX_STRIDE):
+        px, py, pz, packed_normal, packed_tangent = struct.unpack_from("<3fII", vertex_bytes, offset)
+        position = transform_point_rows(world_transform_rows, (px, py, pz))
+        normal = transform_direction_rows(world_transform_rows, unpack_normal(packed_normal), (0.0, 0.0, 1.0))
+        tangent_xyz, handedness = unpack_tangent(packed_tangent)
+        tangent = transform_direction_rows(world_transform_rows, tangent_xyz, (1.0, 0.0, 0.0))
+
+        struct.pack_into(
+            "<3fII",
+            vertex_bytes,
+            offset,
+            position[0],
+            position[1],
+            position[2],
+            pack_normal(normal),
+            pack_tangent(tangent, handedness),
+        )
+        transformed_positions.append(position)
+
+    baked_bounds = aabb_from_points(transformed_positions)
+    validation_mesh = mesh.validation_mesh
+    if validation_mesh is not None:
+        validation_mesh = replace(
+            validation_mesh,
+            positions=transformed_positions,
+            normals=[
+                transform_direction_rows(world_transform_rows, normal, (0.0, 0.0, 1.0))
+                for normal in validation_mesh.normals
+            ],
+            tangents=[
+                ValidationTangent(
+                    xyz=transform_direction_rows(world_transform_rows, tangent.xyz, (1.0, 0.0, 0.0)),
+                    handedness=tangent.handedness,
+                )
+                for tangent in validation_mesh.tangents
+            ],
+        )
+
+    return replace(
+        mesh,
+        local_transform_rows=identity_matrix_rows(),
+        local_bounds=baked_bounds,
+        world_bounds=baked_bounds,
+        vertices=bytes(vertex_bytes),
+        validation_mesh=validation_mesh,
+    )
+
+
+def bake_skeleton_to_world(skeleton: ExportedSkeleton, world_transform_rows: list[list[float]]) -> ExportedSkeleton:
+    baked_joints: list[ExportedSkeletonJoint] = []
+    for joint in skeleton.joints:
+        bind_transform_rows = matrix_rows_multiply(world_transform_rows, joint.bind_transform_rows)
+        if joint.parent_index == INVALID_INDEX:
+            rest_transform_rows = matrix_rows_multiply(world_transform_rows, joint.rest_transform_rows)
+        else:
+            rest_transform_rows = joint.rest_transform_rows
+        baked_joints.append(
+            replace(
+                joint,
+                bind_transform_rows=bind_transform_rows,
+                rest_transform_rows=rest_transform_rows,
+            )
+        )
+
+    return replace(skeleton, joints=baked_joints)
+
+
+def normalize_export_nodes(nodes: list[ExportedNode]) -> list[ExportedNode]:
+    if not nodes:
+        return nodes
+
+    nodes_by_name = {node.entity_name: node for node in nodes}
+    children_by_name: dict[str, list[str]] = {}
+    for node in nodes:
+        children_by_name.setdefault(node.entity_name, [])
+        if node.parent_entity_name is not None:
+            children_by_name.setdefault(node.parent_entity_name, []).append(node.entity_name)
+
+    world_transform_by_name: dict[str, list[list[float]]] = {}
+
+    def resolved_world_transform(node_name: str) -> list[list[float]]:
+        cached = world_transform_by_name.get(node_name)
+        if cached is not None:
+            return cached
+
+        node = nodes_by_name[node_name]
+        if node.parent_entity_name is None:
+            world = node.local_transform_rows
+        else:
+            world = matrix_rows_multiply(
+                resolved_world_transform(node.parent_entity_name),
+                node.local_transform_rows,
+            )
+        world_transform_by_name[node_name] = world
+        return world
+
+    baked_meshes_by_name: dict[str, ExportedMesh] = {}
+    for node in nodes:
+        if node.mesh is None:
+            continue
+        baked_meshes_by_name[node.entity_name] = bake_mesh_vertices_to_world(
+            node.mesh,
+            resolved_world_transform(node.entity_name),
+        )
+
+    baked_skeletons_by_name: dict[str, ExportedSkeleton] = {}
+    for node in nodes:
+        if node.skeleton is None:
+            continue
+        baked_skeletons_by_name[node.entity_name] = bake_skeleton_to_world(
+            node.skeleton,
+            resolved_world_transform(node.entity_name),
+        )
+
+    aggregated_world_corners_by_name: dict[str, list[tuple[float, float, float]]] = {}
+
+    def aggregate_world_corners(node_name: str) -> list[tuple[float, float, float]]:
+        cached = aggregated_world_corners_by_name.get(node_name)
+        if cached is not None:
+            return cached
+
+        corners: list[tuple[float, float, float]] = []
+        baked_mesh = baked_meshes_by_name.get(node_name)
+        if baked_mesh is not None:
+            corners.extend(aabb_corners(baked_mesh.world_bounds))
+        for child_name in children_by_name.get(node_name, []):
+            corners.extend(aggregate_world_corners(child_name))
+
+        aggregated_world_corners_by_name[node_name] = corners
+        return corners
+
+    normalized_nodes: list[ExportedNode] = []
+    for node in nodes:
+        baked_mesh = baked_meshes_by_name.get(node.entity_name)
+        baked_skeleton = baked_skeletons_by_name.get(node.entity_name)
+        if baked_mesh is not None:
+            local_bounds = baked_mesh.local_bounds
+            world_bounds = baked_mesh.world_bounds
+        else:
+            world_corners = aggregate_world_corners(node.entity_name)
+            if world_corners:
+                world_bounds = aabb_from_points(world_corners)
+                local_bounds = world_bounds
+            else:
+                local_bounds = AABB((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
+                world_bounds = local_bounds
+
+        normalized_nodes.append(
+            replace(
+                node,
+                local_transform_rows=identity_matrix_rows(),
+                local_bounds=local_bounds,
+                world_bounds=world_bounds,
+                skeleton=baked_skeleton,
+                mesh=baked_mesh,
+            )
+        )
+
+    return normalized_nodes
+
+
 def write_header(
     writer: BinaryWriter,
     *,
@@ -2324,9 +2560,17 @@ def extract_nodes_from_objects(
             if world_corners:
                 world_bounds = aabb_from_points(world_corners)
                 inverse_world = obj.matrix_world.inverted_safe()
-                local_points = [vector3(inverse_world @ Vector(point)) for point in world_corners]
                 if conversion_matrix is not None:
-                    local_points = [transform_point(conversion_matrix, point) for point in local_points]
+                    inv_conversion = conversion_matrix.inverted()
+                    local_points = [
+                        transform_point(
+                            conversion_matrix,
+                            vector3(inverse_world @ Vector(transform_point(inv_conversion, point))),
+                        )
+                        for point in world_corners
+                    ]
+                else:
+                    local_points = [vector3(inverse_world @ Vector(point)) for point in world_corners]
                 local_bounds = aabb_from_points(local_points)
             else:
                 local_bounds = AABB((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
@@ -2346,7 +2590,7 @@ def extract_nodes_from_objects(
             )
         )
 
-    return nodes
+    return normalize_export_nodes(nodes)
 
 
 def _compress_geometry_chunks(vertex_raw: bytes, index_raw: bytes) -> tuple[bytes, bytes]:
@@ -2715,6 +2959,7 @@ def extract_animation_clips(asset_path: Path, convert_orientation: bool = False,
     if not bones:
         raise RuntimeError("The imported armature has no bones")
     pose_bones = armature.pose.bones
+    armature_world_matrix = armature.matrix_world.copy()
     fps = float(bpy.context.scene.render.fps) / float(getattr(bpy.context.scene.render, "fps_base", 1.0) or 1.0)
 
     clips: list[ExportedAnimationClip] = []
@@ -2764,7 +3009,10 @@ def extract_animation_clips(asset_path: Path, convert_orientation: bool = False,
                     if pose_bone.parent is not None:
                         local_matrix = pose_bone.parent.matrix.inverted() @ pose_matrix
                     else:
-                        local_matrix = pose_matrix
+                        # Match the baked model export: root-joint animation must include
+                        # the armature object's world transform so clips live in the same
+                        # normalized space as the exported skeleton bind/rest transforms.
+                        local_matrix = armature_world_matrix @ pose_matrix
                     if conversion_matrix is not None:
                         local_matrix = conversion_matrix @ local_matrix @ conversion_matrix.inverted()
                     translation, rotation, _ = local_matrix.decompose()
