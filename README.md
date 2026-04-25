@@ -103,6 +103,8 @@ To run it in Xcode, select the `sandbox` scheme and press Run.
 
 ---
 
+![untoldengine-image-3](/docs/images/engine-highlight-3.png)
+
 ## Set Up an Xcode Project with Untold Engine
 
 Use `untoldengine-create` to generate a ready-to-run Xcode project with Untold Engine wired in.
@@ -160,6 +162,12 @@ Dependency behavior by platform:
 - `ios` and `macos`: `UntoldEngine`
 
 ---
+
+## Visual Editor 
+
+To make using the Untold Engine easier, you can use the **Untold Engine Studio**. This is a stand alone editor that helps you create projects without the need to use CLI. It is designed to help you **prepare assets, compose scenes, and generate scene files** that are later used inside your game. [Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)**
+
+![untoldeditor-image-1](/docs/images/editor-highlight-1.png)
 
 ## 🧱 Core Direction
 
