@@ -579,6 +579,14 @@ public func getAssetURLString(entityId: EntityID) -> String? {
     return renderComponent.assetURL.deletingPathExtension().lastPathComponent
 }
 
+public func getAssetURL(entityId: EntityID) -> URL? {
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        return nil
+    }
+
+    return renderComponent.assetURL
+}
+
 func hasMaterialSlot(renderComponent: RenderComponent, meshIndex: Int, submeshIndex: Int) -> Bool {
     guard renderComponent.mesh.indices.contains(meshIndex) else { return false }
     return renderComponent.mesh[meshIndex].submeshes.indices.contains(submeshIndex)
