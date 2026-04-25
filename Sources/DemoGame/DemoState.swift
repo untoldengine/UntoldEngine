@@ -81,18 +81,28 @@
         let remoteScenes: [RemoteSceneOption] = [
             .init(
                 id: "dungeon",
-                title: "Dungeon",
+                title: "Game Dungeon",
                 manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/dungeon3/dungeon3.json")!
             ),
             .init(
                 id: "city",
-                title: "City",
+                title: "Cartoon City",
                 manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/city/city.json")!
             ),
             .init(
                 id: "f1car",
-                title: "F1Car",
+                title: "Formula 1",
                 manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/F1Car/F1Car.json")!
+            ),
+            .init(
+                id: "airplane",
+                title: "Skyhawk",
+                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/Shyhawk_stream/Skyhawks.json")!
+            ),
+            .init(
+                id: "porsche964",
+                title: "Porsche 964",
+                manifestURL: URL(string: "https://d8pyi1c08k1w.cloudfront.net/Porsche964-stream/Porsche964-stream.json")!
             ),
         ]
         var selectedRemoteSceneID: String = Defaults.selectedRemoteSceneID
