@@ -48,13 +48,18 @@ Untold Engine is designed for developers who:
 
 This is not a drag-and-drop editor-first engine — it is a **code-driven engine for developers who want to understand and shape the system**.
 
-Check out these videos to see the engine capabilities using the Vision Pro
+## Watch It in Action — Apple Vision Pro Demos
 
-[Cartoon City](https://vimeo.com/1176823067?share=copy&fl=sv&fe=ci)
-
-[Game Dungeon](https://vimeo.com/1176823994?share=copy&fl=sv&fe=ci)
-
-[Room](https://vimeo.com/1176995991?fl=ip&fe=ec) 
+<table>
+  <tr>
+    <td><a href="https://vimeo.com/1186592834?share=copy&fl=sv&fe=ci"><img src="https://vumbnail.com/1186592834.jpg" width="280"></a></td>
+    <td><a href="https://vimeo.com/1176823067?share=copy&fl=sv&fe=ci"><img src="https://vumbnail.com/1176823067.jpg" width="280"></a></td>
+  </tr>
+  <tr>
+    <td><a href="https://vimeo.com/1176823994?share=copy&fl=sv&fe=ci"><img src="https://vumbnail.com/1176823994.jpg" width="280"></a></td>
+    <td><a href="https://vimeo.com/1176995991?fl=ip&fe=ec"><img src="https://vumbnail.com/1176995991.jpg" width="280"></a></td>
+  </tr>
+</table>
 
 Creator & Lead Developer:  
 http://www.haroldserrano.com
@@ -165,7 +170,7 @@ Dependency behavior by platform:
 
 ## Visual Editor 
 
-To make using the Untold Engine easier, you can use the **Untold Engine Studio**. This is a stand alone editor that helps you create projects without the need to use CLI. It is designed to help you **prepare assets, compose scenes, and generate scene files** that are later used inside your game. [Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)**
+To make using the Untold Engine easier, you can use the **Untold Engine Studio**. This is a stand alone editor that helps you create projects without the need to use CLI. It is designed to help you **prepare assets, compose scenes, and generate scene files** that are later used inside your game. [Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)
 
 ![untoldeditor-image-1](/docs/images/editor-highlight-1.png)
 
