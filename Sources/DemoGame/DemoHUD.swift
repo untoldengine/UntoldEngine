@@ -354,11 +354,16 @@
             state.streamingEnabled = false
             state.isLoading = true
 
-            onLoadTiledScene(scene.id, manifestURL) { success in
+            let sceneID = scene.id
+            onLoadTiledScene(sceneID, manifestURL) { success in
                 Task { @MainActor in
                     state.isLoading = false
                     state.hasLoadedEntity = success
                     state.streamingEnabled = success
+                    if success {
+                        state.selectedPostFXPreset = Self.postFXPreset(for: sceneID)
+                        state.applySelectedPostFXPreset()
+                    }
                 }
             }
         }
@@ -400,6 +405,10 @@
 
             onLoadFile(path) { success in
                 Task { @MainActor in
+                    if success {
+                        state.selectedPostFXPreset = .neutral
+                        state.applySelectedPostFXPreset()
+                    }
                     finishLocalImport(url: url, accessing: accessing, success: success, streamingEnabled: false)
                 }
             }
@@ -415,8 +424,19 @@
 
             onLoadTiledScene(sceneID, url) { success in
                 Task { @MainActor in
+                    if success {
+                        state.selectedPostFXPreset = .neutral
+                        state.applySelectedPostFXPreset()
+                    }
                     finishLocalImport(url: url, accessing: accessing, success: success, streamingEnabled: success)
                 }
+            }
+        }
+
+        private static func postFXPreset(for sceneID: String) -> DemoState.PostFXPreset {
+            switch sceneID {
+            case "f1car", "airplane", "porsche964": .cinematic
+            default: .neutral
             }
         }
 

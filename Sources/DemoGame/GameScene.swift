@@ -36,8 +36,12 @@
             static let streamingPriority: Int = 10
             static let citySceneID = "city"
             static let f1CarSceneID = "f1car"
+            static let airplaneSceneID = "airplane"
+            static let porsche964SceneID = "porsche964"
             static let cityCameraEye = simd_float3(0.00, 18.35, 73.56)
-            static let f1CarCameraEye = simd_float3(0.0, 2.0, 5.0)
+            static let f1CarCameraEye = simd_float3(0.0, 2.0, 6.0)
+            static let airplaneCameraEye = simd_float3(0.0, 2.0, 3.0)
+            static let porsche964CameraEye = simd_float3(0.0, 7.0, 15.0)
             static let worldOrigin = simd_float3(0.0, 0.0, 0.0)
         }
 
@@ -67,6 +71,10 @@
             createDirLight(entityId: light)
 
             CameraSystem.shared.activeCamera = gameCamera
+            
+            applyIBL = true
+            renderEnvironment = false
+            
         }
     }
 
@@ -90,6 +98,7 @@
                     CameraSystem.shared.activeCamera = camera
                     cameraBehavior = .flyOrbit
                     setOrbitOffset(entityId: camera, uTargetOffset: Constants.orbitTargetOffset)
+                    renderEnvironment = false
                     completion(success)
                 }
             }
@@ -116,6 +125,7 @@
                     loadedContent = .tiledScene(sceneRoot)
                     cameraBehavior = Self.cameraBehavior(for: sceneID)
                     Self.applyCameraEye(for: sceneID)
+                    renderEnvironment = Self.shouldRenderEnvironment(for: sceneID)
                 }
                 completion(success)
             }
@@ -149,7 +159,7 @@
 
             switch cameraBehavior(for: sceneID) {
             case .originOrbit:
-                eye = Constants.f1CarCameraEye
+                eye = cameraEye(for: sceneID)
                 target = Constants.worldOrigin
             case .flyOrbit:
                 eye = sceneID == Constants.citySceneID ? Constants.cityCameraEye : cameraDefaultEye
@@ -165,8 +175,37 @@
             }
         }
 
+        private static func shouldRenderEnvironment(for sceneID: String) -> Bool {
+            switch sceneID {
+            case Constants.f1CarSceneID, Constants.airplaneSceneID, Constants.porsche964SceneID:
+                true
+            default:
+                false
+            }
+        }
+
         private static func cameraBehavior(for sceneID: String) -> CameraBehavior {
-            sceneID == Constants.f1CarSceneID ? .originOrbit : .flyOrbit
+            switch sceneID {
+            case Constants.f1CarSceneID, Constants.airplaneSceneID, Constants.porsche964SceneID:
+                .originOrbit
+            default:
+                .flyOrbit
+            }
+        }
+
+        private static func cameraEye(for sceneID: String) -> simd_float3 {
+            switch sceneID {
+            case Constants.f1CarSceneID:
+                Constants.f1CarCameraEye
+            case Constants.airplaneSceneID:
+                Constants.airplaneCameraEye
+            case Constants.porsche964SceneID:
+                Constants.porsche964CameraEye
+            case Constants.citySceneID:
+                Constants.cityCameraEye
+            default:
+                cameraDefaultEye
+            }
         }
     }
 
