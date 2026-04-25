@@ -1,4 +1,16 @@
 # Changelog
+## v0.12.7 - 2026-04-25
+### 🐞 Fixes
+- [Patch] Improved ECS query (7d79114…)
+- [Patch] Fixed per mesh uniform buffer (31bdcf3…)
+- [Patch] Enabled optimized frustum (ce44b86…)
+- [Patch] Fix fps profiler (7a46cce…)
+- [Patch] Added load scene func in Build System (fee5a6a…)
+- [Patch] Added Post FX helper functions (fc00d10…)
+- [Patch] Fix transform for armature in exporter (b5051aa…)
+- [Patch] Added function to get asset url (7ef9e4f…)
+### 📚 Docs
+- [Docs] Added documentation for the Logger system (45be832…)
 ## v0.12.6 - 2026-04-23
 ## v0.12.4 - 2026-04-23
 ### 🐞 Fixes
