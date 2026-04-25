@@ -71,10 +71,9 @@
             createDirLight(entityId: light)
 
             CameraSystem.shared.activeCamera = gameCamera
-            
+
             applyIBL = true
             renderEnvironment = false
-            
         }
     }
 
