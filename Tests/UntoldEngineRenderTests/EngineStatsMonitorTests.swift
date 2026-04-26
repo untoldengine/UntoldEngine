@@ -140,4 +140,79 @@ final class EngineStatsMonitorTests: XCTestCase {
         XCTAssertTrue(compact.contains("frame=7"))
         XCTAssertTrue(compact.contains("drawCalls=42"))
     }
+
+    // MARK: - Smoothing cold-start
+
+    func testCompleteFrame_smoothing_singleFrame_equalsRawValue() {
+        EngineStatsMonitor.shared.beginFrame(timestampSeconds: 1.0)
+        EngineStatsMonitor.shared.update { $0.timing.frameTotalMs = 12.0 }
+        EngineStatsMonitor.shared.completeFrame()
+
+        let snapshot = getEngineStatsSnapshot()
+        XCTAssertEqual(snapshot.timing.smoothedFrameMs, 12.0, accuracy: 0.001)
+    }
+
+    func testCompleteFrame_smoothing_uniformFrames_staysAtValue() {
+        // All frames at the same value — smoothed should converge to that value.
+        for i in 1 ... 10 {
+            EngineStatsMonitor.shared.beginFrame(timestampSeconds: Double(i))
+            EngineStatsMonitor.shared.update { $0.timing.frameTotalMs = 16.0 }
+            EngineStatsMonitor.shared.completeFrame()
+        }
+
+        let snapshot = getEngineStatsSnapshot()
+        XCTAssertEqual(snapshot.timing.smoothedFrameMs, 16.0, accuracy: 0.001)
+    }
+
+    // MARK: - GPU completion first-frame cadence
+
+    func testRecordGPUCompletion_firstFrame_cadenceEqualsExecutionMs() {
+        EngineStatsMonitor.shared.beginFrame(timestampSeconds: 1.0)
+        EngineStatsMonitor.shared.recordGPUCompletion(executionMs: 5.0)
+        EngineStatsMonitor.shared.completeFrame()
+
+        let snapshot = getEngineStatsSnapshot()
+        XCTAssertEqual(snapshot.timing.gpuExecutionMs, 5.0, accuracy: 0.001)
+        // First call: cadence falls back to executionMs.
+        XCTAssertEqual(snapshot.timing.gpuFrameCadenceMs, 5.0, accuracy: 0.001)
+    }
+
+    // MARK: - Formatter bottleneck label
+
+    func testFormatEngineStats_cpuBoundLabel() {
+        // smoothedFrameMs >= gpuFrameCadenceMs * 0.9 → CPU-bound
+        var snapshot = EngineStatsSnapshot()
+        snapshot.timing.smoothedFrameMs = 16.0
+        snapshot.timing.gpuFrameCadenceMs = 10.0 // 10 * 0.9 = 9.0; 16 >= 9 → CPU-bound
+
+        let overlay = formatEngineStatsOverlay(snapshot)
+        XCTAssertTrue(overlay.contains("CPU-bound"), "Expected CPU-bound label")
+        XCTAssertFalse(overlay.contains("GPU-bound"), "Should not show GPU-bound")
+    }
+
+    func testFormatEngineStats_gpuBoundLabel() {
+        // smoothedFrameMs < gpuFrameCadenceMs * 0.9 → GPU-bound
+        var snapshot = EngineStatsSnapshot()
+        snapshot.timing.smoothedFrameMs = 5.0
+        snapshot.timing.gpuFrameCadenceMs = 20.0 // 20 * 0.9 = 18.0; 5 < 18 → GPU-bound
+
+        let overlay = formatEngineStatsOverlay(snapshot)
+        XCTAssertTrue(overlay.contains("GPU-bound"), "Expected GPU-bound label")
+        XCTAssertFalse(overlay.contains("CPU-bound"), "Should not show CPU-bound")
+    }
+
+    func testFormatEngineStats_zeroFrameMs_doesNotCrash() {
+        // smoothedFrameMs == 0 should not produce NaN or divide-by-zero.
+        var snapshot = EngineStatsSnapshot()
+        snapshot.timing.smoothedFrameMs = 0.0
+        snapshot.timing.gpuFrameCadenceMs = 0.0
+
+        let overlay = formatEngineStatsOverlay(snapshot)
+        let compact = formatEngineStatsCompact(snapshot)
+
+        XCTAssertFalse(overlay.isEmpty)
+        XCTAssertFalse(compact.isEmpty)
+        XCTAssertFalse(overlay.contains("nan"), "Output should not contain NaN")
+        XCTAssertFalse(compact.contains("nan"), "Output should not contain NaN")
+    }
 }
