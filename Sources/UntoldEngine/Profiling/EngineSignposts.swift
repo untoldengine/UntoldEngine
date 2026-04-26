@@ -12,58 +12,74 @@ import Foundation
 import os.signpost
 
 public enum ProfileScope {
+    // Frame lifecycle
     case frame
     case update
+
+    // Render subsystem
     case renderPrep
     case encode
     case submit
+    case shadowPass
+
+    /// Culling subsystem
+    case culling
+
+    // Streaming subsystem
+    case streamingRegion
+    case geometryStreaming
+
+    // Batching subsystem
+    case batchingTick
+    case batchingRebuild
 }
 
 final class EngineSignposts {
     private static let subsystem = "com.untoldengine.profiling"
-    private static let log = OSLog(subsystem: subsystem, category: .pointsOfInterest)
 
-    private static let frameSignpostID = OSSignpostID(log: log)
-    private static let updateSignpostID = OSSignpostID(log: log)
-    private static let renderPrepSignpostID = OSSignpostID(log: log)
-    private static let encodeSignpostID = OSSignpostID(log: log)
-    private static let submitSignpostID = OSSignpostID(log: log)
+    // Separate log handles give distinct lanes in Instruments.
+    private static let frameLog = OSLog(subsystem: subsystem, category: "Frame")
+    private static let renderLog = OSLog(subsystem: subsystem, category: "Render")
+    private static let cullingLog = OSLog(subsystem: subsystem, category: "Culling")
+    private static let streamingLog = OSLog(subsystem: subsystem, category: "Streaming")
+    private static let batchingLog = OSLog(subsystem: subsystem, category: "Batching")
 
-    private var activeScopes: [ProfileScope: OSSignpostID] = [:]
+    // One stable signpost ID per scope.
+    private static let frameID = OSSignpostID(log: frameLog)
+    private static let updateID = OSSignpostID(log: frameLog)
+    private static let renderPrepID = OSSignpostID(log: renderLog)
+    private static let encodeID = OSSignpostID(log: renderLog)
+    private static let submitID = OSSignpostID(log: renderLog)
+    private static let shadowPassID = OSSignpostID(log: renderLog)
+    private static let cullingID = OSSignpostID(log: cullingLog)
+    private static let streamingRegionID = OSSignpostID(log: streamingLog)
+    private static let geometryStreamingID = OSSignpostID(log: streamingLog)
+    private static let batchingTickID = OSSignpostID(log: batchingLog)
+    private static let batchingRebuildID = OSSignpostID(log: batchingLog)
 
     func beginScope(_ scope: ProfileScope) {
-        let signpostID = getSignpostID(for: scope)
-        let name = getScopeName(scope)
-
-        os_signpost(.begin, log: Self.log, name: name, signpostID: signpostID)
-        activeScopes[scope] = signpostID
+        let (log, id, name) = descriptor(for: scope)
+        os_signpost(.begin, log: log, name: name, signpostID: id)
     }
 
     func endScope(_ scope: ProfileScope) {
-        guard let signpostID = activeScopes[scope] else { return }
-        let name = getScopeName(scope)
-
-        os_signpost(.end, log: Self.log, name: name, signpostID: signpostID)
-        activeScopes.removeValue(forKey: scope)
+        let (log, id, name) = descriptor(for: scope)
+        os_signpost(.end, log: log, name: name, signpostID: id)
     }
 
-    private func getSignpostID(for scope: ProfileScope) -> OSSignpostID {
+    private func descriptor(for scope: ProfileScope) -> (OSLog, OSSignpostID, StaticString) {
         switch scope {
-        case .frame: return Self.frameSignpostID
-        case .update: return Self.updateSignpostID
-        case .renderPrep: return Self.renderPrepSignpostID
-        case .encode: return Self.encodeSignpostID
-        case .submit: return Self.submitSignpostID
-        }
-    }
-
-    private func getScopeName(_ scope: ProfileScope) -> StaticString {
-        switch scope {
-        case .frame: return "Frame"
-        case .update: return "Update"
-        case .renderPrep: return "RenderPrep"
-        case .encode: return "Encode"
-        case .submit: return "Submit"
+        case .frame: return (Self.frameLog, Self.frameID, "Frame")
+        case .update: return (Self.frameLog, Self.updateID, "Update")
+        case .renderPrep: return (Self.renderLog, Self.renderPrepID, "RenderPrep")
+        case .encode: return (Self.renderLog, Self.encodeID, "Encode")
+        case .submit: return (Self.renderLog, Self.submitID, "Submit")
+        case .shadowPass: return (Self.renderLog, Self.shadowPassID, "ShadowPass")
+        case .culling: return (Self.cullingLog, Self.cullingID, "Culling")
+        case .streamingRegion: return (Self.streamingLog, Self.streamingRegionID, "StreamingRegion")
+        case .geometryStreaming: return (Self.streamingLog, Self.geometryStreamingID, "GeometryStreaming")
+        case .batchingTick: return (Self.batchingLog, Self.batchingTickID, "BatchingTick")
+        case .batchingRebuild: return (Self.batchingLog, Self.batchingRebuildID, "BatchingRebuild")
         }
     }
 }

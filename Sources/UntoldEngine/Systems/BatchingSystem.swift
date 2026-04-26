@@ -1710,6 +1710,7 @@ public class BatchingSystem: @unchecked Sendable {
             var outputBatchedMeshCount = 0
         #endif
 
+        EngineProfiler.shared.beginScope(.batchingRebuild)
         withWorldMutationGate {
             Logger.log(message: "🔨 Starting static batch generation...")
 
@@ -1764,6 +1765,7 @@ public class BatchingSystem: @unchecked Sendable {
             #endif
         }
 
+        EngineProfiler.shared.endScope(.batchingRebuild)
         #if ENGINE_STATS_ENABLED
             let rebuildMs = (CFAbsoluteTimeGetCurrent() - rebuildStart) * 1000.0
             EngineStatsMonitor.shared.update { snapshot in

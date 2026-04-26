@@ -370,10 +370,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             #if ENGINE_STATS_ENABLED
                 let streamingRegionStart = CACurrentMediaTime()
             #endif
+            EngineProfiler.shared.beginScope(.streamingRegion)
             StreamingRegionManager.shared.update(
                 cameraPosition: cameraPos,
                 deltaTime: fixedStep
             )
+            EngineProfiler.shared.endScope(.streamingRegion)
             #if ENGINE_STATS_ENABLED
                 let streamingRegionMs = (CACurrentMediaTime() - streamingRegionStart) * 1000.0
                 EngineStatsMonitor.shared.update { snapshot in
@@ -385,10 +387,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             #if ENGINE_STATS_ENABLED
                 let geometryStreamingStart = CACurrentMediaTime()
             #endif
+            EngineProfiler.shared.beginScope(.geometryStreaming)
             GeometryStreamingSystem.shared.update(
                 cameraPosition: cameraPos,
                 deltaTime: fixedStep
             )
+            EngineProfiler.shared.endScope(.geometryStreaming)
             #if ENGINE_STATS_ENABLED
                 let geometryStreamingMs = (CACurrentMediaTime() - geometryStreamingStart) * 1000.0
                 EngineStatsMonitor.shared.update { snapshot in
@@ -431,7 +435,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         #if ENGINE_STATS_ENABLED
             let batchingTickStart = CACurrentMediaTime()
         #endif
+        EngineProfiler.shared.beginScope(.batchingTick)
         BatchingSystem.shared.tick()
+        EngineProfiler.shared.endScope(.batchingTick)
         #if ENGINE_STATS_ENABLED
             let batchingTickMs = (CACurrentMediaTime() - batchingTickStart) * 1000.0
             EngineStatsMonitor.shared.update { snapshot in

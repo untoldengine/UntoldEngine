@@ -54,7 +54,9 @@ func UpdateRenderingSystem(in view: MTKView) {
             #if ENGINE_STATS_ENABLED
                 let cullingStart = CACurrentMediaTime()
             #endif
+            EngineProfiler.shared.beginScope(.culling)
             performFrustumCulling(commandBuffer: commandBuffer)
+            EngineProfiler.shared.endScope(.culling)
             #if ENGINE_STATS_ENABLED
                 let cullingMs = (CACurrentMediaTime() - cullingStart) * 1000.0
                 EngineStatsMonitor.shared.update { snapshot in

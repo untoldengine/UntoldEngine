@@ -15,6 +15,7 @@ final class FrameMetricsCollector {
     private var samples: [Double]
     private var writeIndex: Int
     private var validSampleCount: Int
+    private let lock = NSLock()
 
     init(capacity: Int = 2000) {
         self.capacity = capacity
@@ -24,6 +25,8 @@ final class FrameMetricsCollector {
     }
 
     func record(_ durationMs: Double) {
+        lock.lock()
+        defer { lock.unlock() }
         samples[writeIndex] = durationMs
         writeIndex = (writeIndex + 1) % capacity
         if validSampleCount < capacity {
@@ -32,6 +35,8 @@ final class FrameMetricsCollector {
     }
 
     func snapshot() -> FrameMetricsSnapshot {
+        lock.lock()
+        defer { lock.unlock() }
         guard validSampleCount > 0 else {
             return FrameMetricsSnapshot()
         }
@@ -70,6 +75,8 @@ final class FrameMetricsCollector {
     }
 
     func reset() {
+        lock.lock()
+        defer { lock.unlock() }
         writeIndex = 0
         validSampleCount = 0
     }
