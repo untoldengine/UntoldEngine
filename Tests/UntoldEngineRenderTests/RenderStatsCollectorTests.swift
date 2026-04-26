@@ -63,4 +63,88 @@ final class RenderStatsCollectorTests: XCTestCase {
         XCTAssertEqual(stats.drawCallsBatched, 1)
         XCTAssertEqual(stats.trianglesTotal, 22)
     }
+
+    // MARK: - Instance count triangle multiplication
+
+    func testRecordPrimitiveDraw_instanceCount_multipliesTriangles() {
+        // 6 vertices / 3 = 2 triangles per instance × 5 instances = 10
+        RenderStatsCollector.shared.recordPrimitiveDraw(
+            type: .triangle,
+            vertexCount: 6,
+            instanceCount: 5,
+            category: .opaque
+        )
+
+        let stats = RenderStatsCollector.shared.snapshot()
+        XCTAssertEqual(stats.drawCallsTotal, 1)
+        XCTAssertEqual(stats.trianglesTotal, 10)
+    }
+
+    // MARK: - Triangle strip count
+
+    func testRecordPrimitiveDraw_triangleStrip_correctTriangleCount() {
+        // triangleStrip with 5 vertices = max(0, 5-2) = 3 triangles
+        RenderStatsCollector.shared.recordPrimitiveDraw(
+            type: .triangleStrip,
+            vertexCount: 5,
+            category: .opaque
+        )
+
+        let stats = RenderStatsCollector.shared.snapshot()
+        XCTAssertEqual(stats.drawCallsTotal, 1)
+        XCTAssertEqual(stats.trianglesTotal, 3)
+    }
+
+    func testRecordPrimitiveDraw_triangleStripTooShort_zeroTriangles() {
+        // A strip with fewer than 3 vertices cannot form a triangle.
+        RenderStatsCollector.shared.recordPrimitiveDraw(
+            type: .triangleStrip,
+            vertexCount: 2,
+            category: .opaque
+        )
+
+        let stats = RenderStatsCollector.shared.snapshot()
+        XCTAssertEqual(stats.drawCallsTotal, 1)
+        XCTAssertEqual(stats.trianglesTotal, 0)
+    }
+
+    // MARK: - Non-triangle primitives
+
+    func testRecordPrimitiveDraw_linePrimitive_zeroTriangles() {
+        RenderStatsCollector.shared.recordPrimitiveDraw(
+            type: .line,
+            vertexCount: 10,
+            category: .opaque
+        )
+
+        let stats = RenderStatsCollector.shared.snapshot()
+        XCTAssertEqual(stats.drawCallsTotal, 1, "Draw call should still be counted")
+        XCTAssertEqual(stats.trianglesTotal, 0, "Line primitives produce no triangles")
+    }
+
+    func testRecordPrimitiveDraw_pointPrimitive_zeroTriangles() {
+        RenderStatsCollector.shared.recordPrimitiveDraw(
+            type: .point,
+            vertexCount: 8,
+            category: .opaque
+        )
+
+        let stats = RenderStatsCollector.shared.snapshot()
+        XCTAssertEqual(stats.drawCallsTotal, 1)
+        XCTAssertEqual(stats.trianglesTotal, 0)
+    }
+
+    // MARK: - Reset
+
+    func testReset_clearAllCounters() {
+        RenderStatsCollector.shared.recordIndexedDraw(type: .triangle, indexCount: 30, category: .opaque)
+        RenderStatsCollector.shared.recordPrimitiveDraw(type: .triangle, vertexCount: 9, category: .shadow)
+        RenderStatsCollector.shared.reset()
+
+        let stats = RenderStatsCollector.shared.snapshot()
+        XCTAssertEqual(stats.drawCallsTotal, 0)
+        XCTAssertEqual(stats.drawCallsOpaque, 0)
+        XCTAssertEqual(stats.drawCallsShadow, 0)
+        XCTAssertEqual(stats.trianglesTotal, 0)
+    }
 }
