@@ -117,6 +117,17 @@ if [[ "${DO_CLIFF}" == "true" ]]; then
   TAG="v${NEXT}"
   RANGE="${BASE_REF}..HEAD"
   git cliff "${RANGE}" --tag "${TAG}" --prepend CHANGELOG.md
+
+  # Update appVersion in DemoGame and Sandbox
+  sed -i '' 's/static let appVersion = "[^"]*"/static let appVersion = "'"${NEXT}"'"/' \
+    Sources/DemoGame/AppDelegate.swift \
+    Sources/Sandbox/AppDelegate.swift
+  echo "Updated appVersion to ${NEXT} in DemoGame and Sandbox."
+
+  # Update engine startup log in UntoldEngine
+  sed -i '' 's/Logger\.log(message: "Untold Engine Starting[^"]*")/Logger.log(message: "Untold Engine Starting. Version '"${NEXT}"'")/' \
+    Sources/UntoldEngine/Renderer/UntoldEngine.swift
+  echo "Updated startup log to ${NEXT} in UntoldEngine."
 fi
 
 # Optionally run Docusaurus docs:version
