@@ -104,7 +104,8 @@ Inside the async task:
 
 | Use case | API |
 |---|---|
-| Streamable geometry (terrain, city blocks, large scenes) | `setEntityStreamScene(entityId:url:completion:)` with a local or remote (`https://`) manifest URL |
+| Streamable geometry exported by the Blender pipeline (terrain, city blocks, large scenes) | `setEntityStreamScene(entityId:url:completion:)` with a local or remote (`https://`) manifest URL |
+| Handcrafted streaming zones (dungeon rooms, level sectors, indoor areas) | `StreamingRegionManager` — register explicit `StreamingRegion` AABB + asset lists; no manifest required |
 | Always-resident objects (characters, props, HUD elements) | `setEntityMeshAsync(entityId:filename:withExtension:completion:)` |
 
 `setEntityStreamScene` is the **preferred public entry point** for streamable scene geometry. It accepts a root `EntityID` and a local `file://` path or remote `https://` URL. For remote URLs it downloads and caches the manifest via `RemoteAssetDownloader` before decoding. It then calls the internal `registerTiledScene()` and hands off all streaming lifecycle management to `GeometryStreamingSystem`. The backwards-compatible `loadTiledScene(manifest:)` / `loadTiledScene(url:)` overloads remain available and create an internal root entity automatically. See [`asset_remote_streaming.md`](asset_remote_streaming.md) for the full remote download lifecycle.
@@ -270,6 +271,9 @@ Tile stubs carry a `TileComponent` (no `StreamingComponent`, no `RenderComponent
 | `hlodSwitchDistance` | Camera distance beyond which the HLOD is shown |
 | `hlodLoadTask` | In-flight HLOD load `Task` (cancelled before `hlodState = .unloading`) |
 | `lodLevels` | `[TileLODLevel]` — per-tile intermediate LOD entries parsed from manifest |
+| `parseStartTime` | `CFAbsoluteTime` set when tile CPU work begins (after remote fetch). The tile-parse watchdog uses this; stays 0 during remote download so the 60 s clock does not run on network latency |
+| `lastHLODTransitionTime` | `CFAbsoluteTime` of the most recent HLOD load/unload; used by `secondaryRepresentationMinDwellSeconds` guard to prevent faster-than-1 s HLOD flip-flop |
+| `lastLODTransitionTime` | `CFAbsoluteTime` of the most recent per-tile LOD load/unload; same dwell guard as HLOD |
 
 ### Tile Load Pass (inside `update()`)
 

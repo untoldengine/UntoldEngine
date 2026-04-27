@@ -331,6 +331,8 @@ HLOD is unloaded (and the load task cancelled) when:
 
 **Race fix:** `hlodState = .unloading` is set **before** `hlodLoadTask.cancel()`. This prevents the load completion callback from seeing `.loading` and incorrectly marking the HLOD as `.loaded` after teardown is already in progress.
 
+**Minimum dwell guard:** After any HLOD load or unload, `tileComp.lastHLODTransitionTime` is stamped. The next HLOD transition is suppressed until `secondaryRepresentationMinDwellSeconds` (default 1.0 s) has elapsed. This prevents the HLOD from flip-flopping faster than once per second when the camera lingers at the switch boundary while hysteresis alone is insufficient.
+
 ### Out-of-range cleanup
 
 A second pass after the main HLOD pass tears down HLOD entities for tiles that have drifted entirely outside `maxQueryRadius`. These tiles are no longer in the octree result and would otherwise remain with stale `.loaded` HLOD entities indefinitely.
@@ -375,6 +377,8 @@ unload all other levels that are .loaded or .loading
 ```
 
 The hysteresis ensures the currently active LOD level uses a lowered unload threshold (`switchDistance × lodHysteresisFactor`, default 0.90), so the camera must move meaningfully inward before the level is swapped. Levels that are not currently active use the full `switchDistance`.
+
+**Minimum dwell guard:** LOD transitions are also gated by `secondaryRepresentationMinDwellSeconds` (default 1.0 s). After any per-tile LOD load or unload, `tileComp.lastLODTransitionTime` is stamped and the next transition is suppressed until 1.0 s has elapsed. This prevents oscillation between adjacent LOD levels when the camera is stationary near a switch threshold.
 
 When `tileComp.state == .parsed` (full tile is resident), all LOD levels are unloaded — the full tile has taken over for that distance band.
 
@@ -442,6 +446,31 @@ This unblocks `AssetLoadingGate`, allowing the render loop to resume its normal 
 
 ---
 
+## Tile-Parse Watchdog
+
+The `loadTextures()` 15-second timeout (above) guards against a hung texture decode inside an already-running parse. A separate, coarser watchdog guards against the entire tile parse Task becoming stuck — for example when the OS suspends the Task, disk I/O stalls indefinitely, or a remote download never completes.
+
+On every streaming tick, `GeometryStreamingSystem.update()` checks every tile currently in `.parsing` state:
+
+```
+if CFAbsoluteTimeGetCurrent() - tc.parseStartTime > tileParseTimeoutSeconds (default 60 s):
+    cancel loadTask
+    force-close AssetLoadingGate for meshEntityId
+    increment failureCount → tile enters exponential backoff
+    release concurrency slot
+```
+
+**`parseStartTime` is set after the remote fetch completes**, not when `loadTile()` is first called. For remote tiles, the time waiting for the network does not count against the 60-second budget — only the actual CPU parse time does. This avoids spurious timeouts on slow connections.
+
+**Two distinct timeout layers:**
+
+| Mechanism | Scope | Deadline | On trigger |
+|---|---|---|---|
+| `ResumeOnce` + `DispatchQueue` | `loadTextures()` call only | 15 s | Proceeds without textures; geometry still renders |
+| Tile-parse watchdog | Entire tile parse Task | 60 s (`tileParseTimeoutSeconds`) | Cancels task, marks `.failed`, enters retry backoff |
+
+---
+
 ## Key Design Parameters
 
 | Property | Default | Notes |
@@ -467,3 +496,5 @@ This unblocks `AssetLoadingGate`, allowing the render loop to resume its normal 
 | `hlodSwitchDistance` | manifest `switch_distance` | Camera distance beyond which HLOD is shown |
 | LOD `switchDistance` | manifest `switch_distance` per entry | Camera distance beyond which this LOD is preferred |
 | `loadTextures()` timeout | 15 s | Deadline before `ResumeOnce` force-proceeds without textures |
+| `tileParseTimeoutSeconds` | 60 s | Watchdog deadline for an entire tile parse Task; forces tile to `.failed` and frees concurrency slot — distinct from the per-`loadTextures()` 15 s timeout |
+| `secondaryRepresentationMinDwellSeconds` | 1.0 s | Minimum time a HLOD or per-tile LOD level must dwell before the next transition is allowed; prevents flip-flopping between representations faster than once per second |
