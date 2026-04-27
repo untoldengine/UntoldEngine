@@ -409,6 +409,21 @@ At defaults (`upgradeRadius = 12 m`, `downgradeRadius = 20 m`, `h = 0.15`):
 
 ---
 
+## ASTC Texture Pipeline
+
+The engine ships a native ASTC texture loader (`NativeTexFormat.swift`, `NativeTextureLoader.swift`) that decodes ASTC-compressed textures stored inside `.untold` binary asset files without going through `ModelIO` or `MTKTextureLoader`.
+
+**How it interacts with texture streaming:**
+
+- ASTC textures embedded in `.untold` files are decoded by `NativeTextureLoader` at load time and handed to the same `TextureLoader` GPU cache used by the USDZ/USDC path. From the streaming system's perspective, they are ordinary `MTLTexture` objects.
+- All three streaming tiers (full, medium, minimum) apply normally — the system GPU-resamples the decoded ASTC texture to the target tier dimension using `MPSImageBilinearScale`, just as it does for PNG or JPEG source textures.
+- ASTC textures are typically much smaller on disk than uncompressed equivalents, so they reduce download time for remote tile assets and reduce `ProgressiveAssetLoader` CPU heap pressure.
+- The `.superdetailed` and `.detailed` streaming profiles note ASTC as the recommended source format for high-resolution hero assets on memory-constrained devices.
+
+**Format support:** The engine targets `MTLPixelFormatASTC_*_LDR` block sizes (4×4, 6×6, 8×8). HDR ASTC is not currently supported. Use the Blender export pipeline's ASTC conversion step to produce compatible `.untold` files.
+
+---
+
 ## Bootstrap Tier Alignment
 
 `TextureLoader.defaultMaxTextureDimension` (set in `Mesh.swift`) is aligned to `TextureStreamingSystem.platformDefaultMinimumTextureDimension`:

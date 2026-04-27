@@ -2,7 +2,7 @@
 
 ## Overview
 
-UntoldEngine supports streaming scene geometry directly from remote HTTP/HTTPS servers (e.g., a CDN). When a scene manifest URL points to a remote server, the engine downloads the manifest, resolves all tile/HLOD/LOD asset URLs relative to that server, and downloads each asset on demand as the camera approaches. Downloaded assets are stored in a persistent disk cache so subsequent sessions never re-download unchanged files.
+UntoldEngine supports streaming scene geometry directly from remote **HTTPS** servers (e.g., a CDN). Plain `http://` URLs are rejected at the engine boundary to prevent unencrypted asset transmission. When a scene manifest URL points to a remote HTTPS server, the engine downloads the manifest, resolves all tile/HLOD/LOD asset URLs relative to that server, and downloads each asset on demand as the camera approaches. Downloaded assets are stored in a persistent disk cache so subsequent sessions never re-download unchanged files.
 
 This layer sits below the tile streaming system but above the local asset loading pipeline. The rest of the engine — `GeometryStreamingSystem`, `TileComponent`, `UntoldReader` — is unaware of whether an asset came from disk or the network; `RemoteAssetDownloader` resolves a remote URL to a local cached path before the file is opened.
 
@@ -17,6 +17,7 @@ This layer sits below the tile streaming system but above the local asset loadin
 The single download actor for all remote assets. Responsibilities:
 
 - Downloads assets via `URLSession` and commits them to `AssetDiskCache`.
+- **HTTPS-only enforcement** — `localURL(for:)` throws `DownloadError.insecureScheme` immediately for any non-HTTPS URL. Plain `http://` is never sent to the network.
 - **Single-flight deduplication** — if two tiles request the same URL concurrently, only one network request is issued. The second caller suspends until the first completes, then returns the cached path.
 - **Exponential backoff retry** — up to 3 attempts, with delays of 1 s, 2 s, and 4 s between attempts.
 - **Conditional GET** — if a cached ETag sidecar exists for a URL, the next request includes `If-None-Match: <etag>`. A 304 Not Modified response returns the cached path instantly without re-downloading.
@@ -72,8 +73,14 @@ The engine resolves asset URLs lazily at load time. The helper `resolveAssetURL(
 
 ```swift
 func resolveAssetURL(_ url: URL, label: String) async -> URL? {
-    guard url.scheme == "https" || url.scheme == "http" else {
-        return url  // Local path — pass through unchanged
+    if url.scheme?.lowercased() == "http" {
+        // Plain HTTP is rejected — only HTTPS is permitted.
+        let error = RemoteAssetDownloader.DownloadError.insecureScheme("http")
+        Logger.logError(message: "[TileStreaming] Remote download failed for \(label): \(error)")
+        return nil
+    }
+    guard url.scheme?.lowercased() == "https" else {
+        return url  // Local file:// path — pass through unchanged
     }
     do {
         return try await RemoteAssetDownloader.shared.localURL(for: url)
@@ -84,7 +91,7 @@ func resolveAssetURL(_ url: URL, label: String) async -> URL? {
 }
 ```
 
-Local `file://` paths bypass the downloader entirely. Only HTTP/HTTPS URLs go through the cache.
+Local `file://` paths bypass the downloader entirely. Only `https://` URLs go through the remote download cache. Plain `http://` URLs are explicitly rejected with a logged error and a `nil` return, which causes the tile load to mark the tile `.failed` and enter exponential backoff.
 
 ---
 
@@ -252,7 +259,7 @@ If 10 tiles all reference the same shared texture and all request it simultaneou
 
 Remote streaming is transparent to `GeometryStreamingSystem` and `TileComponent`. From their perspective:
 
-- `TileComponent.tileURL` holds the canonical URL for the tile (may be `https://` or `file://`).
+- `TileComponent.tileURL` holds the canonical URL for the tile (`https://` for remote scenes, `file://` for local scenes).
 - `loadTile()` calls `setEntityMeshAsync`, which calls `resolveAssetURL` to get a local path before parsing.
 - The streaming state machine (`.unloaded → .parsing → .parsed → .unloading`) is identical regardless of whether the asset was local or remote.
 - Tile retry backoff, grace-period unloads, memory budget gates, and prefetch radius behavior all apply equally to remote tiles.
@@ -319,6 +326,7 @@ The HUD (`DemoHUD.swift`) presents scene options; on selection it calls `onLoadT
 
 | Parameter | Value | Location |
 |---|---|---|
+| Permitted URL schemes | `https://` only — `http://` is rejected | `RemoteAssetDownloader`, `resolveAssetURL` |
 | Max download retries | 3 | `RemoteAssetDownloader` |
 | Retry delay formula | `2^attempt` seconds | `RemoteAssetDownloader` |
 | Request timeout | 30 s | `URLSession` configuration |

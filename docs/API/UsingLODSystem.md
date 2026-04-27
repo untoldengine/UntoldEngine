@@ -398,7 +398,6 @@ for i in 0..<10 {
 // Configure LOD system for this scene
 LODConfig.shared.lodBias = 1.2  // Slightly favor performance
 LODConfig.shared.hysteresis = 8.0  // Prevent flickering
-LODConfig.shared.enableFadeTransitions = true
 
 print("Created \(trees.count) trees with LOD support")
 ```

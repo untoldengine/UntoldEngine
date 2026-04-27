@@ -6,10 +6,13 @@ The public rule is simple:
 
 | Use case | API |
 |---|---|
-| Streamed world geometry | `setEntityStreamScene(entityId:manifest:)` |
-| Always-resident assets | `setEntityMeshAsync(entityId:filename:withExtension:)` |
+| Streamed world geometry (manifest-driven) | `setEntityStreamScene(entityId:manifest:withExtension:completion:)` |
+| Handcrafted streaming zones (no manifest) | `StreamingRegionManager` — register `StreamingRegion` AABB + asset lists directly |
+| Always-resident assets | `setEntityMeshAsync(entityId:filename:withExtension:completion:)` |
 
 `GeometryStreamingSystem` manages the runtime once a streamed scene is loaded. It is not a public component-authoring workflow for standalone entities.
+
+> For handcrafted zone streaming without a manifest (e.g. dungeon rooms, level sectors), use `StreamingRegionManager.shared`. See the [StreamingRegionManager architecture doc](../Architecture/streamingRegionManager) for the full API.
 
 ## Public Workflow
 
