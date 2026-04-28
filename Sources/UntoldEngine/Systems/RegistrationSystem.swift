@@ -1396,7 +1396,7 @@ public func setEntityMeshAsync(
                 let thrGB = String(format: "%.1f", Double(postParseSafetyThreshold) / 1_073_741_824)
                 let ramGB = String(format: "%.1f", Double(postParsePhysicalMemory) / 1_073_741_824)
                 let fileMBStr = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                handleError(.assetAdmissionRejected, "Stage 2: \(fileMBStr) MB file, profiled geometry ~\(geoGB) GB (threshold \(thrGB) GB)", filename)
+                handleError(.assetAdmissionRejected, "Stage 2: \(fileMBStr) MB file, profiled geometry ~\(geoGB) GB (threshold \(thrGB) GB of \(ramGB) GB RAM)", filename)
                 // Load fallback so the entity is visually stable — the scene shows a
                 // placeholder cube rather than an invisible, mesh-less entity.
                 loadFallbackMesh(entityId: entityId, filename: filename)
