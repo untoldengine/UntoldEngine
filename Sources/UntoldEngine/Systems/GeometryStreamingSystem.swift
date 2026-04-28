@@ -235,6 +235,15 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// for small indoor tiles where behind-camera loads genuinely waste parse time.
     public var tileFrustumGatePadding: Float = 20.0
 
+    // MARK: - Load Priority
+
+    /// When true, load candidates within the same priority tier are sorted by
+    /// screen-space importance (bounding radius / distance) instead of raw distance.
+    /// Objects that subtend a larger solid angle in the camera view are loaded first,
+    /// so a large building at 50 m beats a small prop at 45 m.
+    /// Default: true.  Set to false to revert to pure distance ordering.
+    public var enableImportanceSort: Bool = true
+
     // MARK: - OS Memory Pressure
 
     /// Set by the MemoryBudgetManager pressure callback (background queue).
@@ -550,7 +559,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // coarser than mesh stubs — a single tile pop-in is far more noticeable.
         let tileStreamingFrustum: Frustum? = enableFrustumGate ? buildStreamingFrustum(sidePad: tileFrustumGatePadding) : nil
 
-        var loadCandidates: [(EntityID, Float, Int)] = [] // (entity, distance, priority)
+        var loadCandidates: [(EntityID, Float, Int, Float)] = [] // (entity, distance, priority, importance)
         var unloadCandidates: [(EntityID, Float)] = [] // (entity, distance)
 
         // Check nearby entities for loading
@@ -600,7 +609,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     if firstRangeTimestamps[entityId] == nil {
                         firstRangeTimestamps[entityId] = CFAbsoluteTimeGetCurrent()
                     }
-                    loadCandidates.append((entityId, distance, streaming.priority))
+                    loadCandidates.append((entityId, distance, streaming.priority, importanceScore(entityId: entityId, distance: distance)))
                 }
 
             case .loaded:
@@ -698,7 +707,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // policy).  Concurrency is governed by a memory budget gate (4.4) instead
         // of a hard count: small tiles parse in parallel; one large tile saturates
         // the budget naturally.
-        var tileLoadCandidates: [(EntityID, Float, Int)] = []
+        var tileLoadCandidates: [(EntityID, Float, Int, Float)] = [] // (entity, effectiveDist, priority, importance)
         for entityId in nearbyEntities {
             guard scene.exists(entityId) else { continue }
             guard let tileComp = scene.get(component: TileComponent.self, for: entityId)
@@ -754,7 +763,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                         continue
                     }
                 }
-                tileLoadCandidates.append((entityId, effectiveDist, tileComp.priority))
+                tileLoadCandidates.append((entityId, effectiveDist, tileComp.priority, importanceScore(entityId: entityId, distance: effectiveDist)))
             }
         }
         if !tileLoadCandidates.isEmpty {
@@ -771,9 +780,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
             tileLoadCandidates.sort { lhs, rhs in
                 if lhs.2 != rhs.2 { return lhs.2 > rhs.2 } // priority descending
-                return lhs.1 < rhs.1 // effective distance ascending
+                if enableImportanceSort { return lhs.3 > rhs.3 } // larger screen footprint first
+                return lhs.1 < rhs.1 // fallback: closer first
             }
-            for (entityId, _, _) in tileLoadCandidates {
+            for (entityId, _, _, _) in tileLoadCandidates {
                 // Hard cap: never exceed maxConcurrentTileLoads regardless of budget.
                 guard activeTileLoadCount() < maxConcurrentTileLoads else { break }
                 // Re-check overall geometry budget after each dispatch.
@@ -1082,10 +1092,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             processedUnloads += 1
         }
 
-        // Sort load candidates: high priority first, then closest
+        // Sort load candidates: high priority first, then by screen-space importance
+        // (bounding radius / distance). Falls back to distance when importance sorting
+        // is disabled or two candidates have the same importance score.
         loadCandidates.sort { lhs, rhs in
-            if lhs.2 != rhs.2 { return lhs.2 > rhs.2 } // priority
-            return lhs.1 < rhs.1 // distance
+            if lhs.2 != rhs.2 { return lhs.2 > rhs.2 } // priority descending
+            if enableImportanceSort { return lhs.3 > rhs.3 } // larger screen footprint first
+            return lhs.1 < rhs.1 // fallback: closer first
         }
 
         // Check memory budget BEFORE starting new loads.
@@ -1157,15 +1170,15 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // Partition candidates into near band and rest band.
         // Near band (distance ≤ streamingRadius × nearBandFraction) is serialized so the
         // closest meshes always appear in distance order. Rest band uses remaining slots freely.
-        var nearBandCandidates: [(EntityID, Float, Int)] = []
-        var restBandCandidates: [(EntityID, Float, Int)] = []
+        var nearBandCandidates: [(EntityID, Float, Int, Float)] = []
+        var restBandCandidates: [(EntityID, Float, Int, Float)] = []
         for candidate in loadCandidates {
-            let (entityId, distance, priority) = candidate
+            let (entityId, distance, priority, importance) = candidate
             let radius = scene.get(component: StreamingComponent.self, for: entityId)?.streamingRadius ?? Float.greatestFiniteMagnitude
             if radius < Float.greatestFiniteMagnitude, distance <= radius * nearBandFraction {
-                nearBandCandidates.append((entityId, distance, priority))
+                nearBandCandidates.append((entityId, distance, priority, importance))
             } else {
-                restBandCandidates.append((entityId, distance, priority))
+                restBandCandidates.append((entityId, distance, priority, importance))
             }
         }
 
@@ -1197,7 +1210,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let nearBandEffectiveMax: Int = {
             guard nearBandCandidates.count > 1 else { return nearBandMaxConcurrentLoads }
             var commonRoot: EntityID? = nil
-            for (entityId, _, _) in nearBandCandidates {
+            for (entityId, _, _, _) in nearBandCandidates {
                 guard let r = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId else {
                     return nearBandMaxConcurrentLoads // non-OOC entity → keep default ordering
                 }
@@ -1216,7 +1229,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 availableSlots - startedLoads
             ))
             var nearDispatched = 0
-            for (entityId, _, _) in nearBandCandidates {
+            for (entityId, _, _, _) in nearBandCandidates {
                 guard nearDispatched < nearSlots else { break }
                 // Skip OOC child entities whose CPU data isn't registered yet.
                 // Dispatching them wastes a slot on a disk-path fallback that will fail —
@@ -1253,7 +1266,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             // Rest band: remaining global slots
             let restSlots = max(0, availableSlots - startedLoads)
             var restDispatched = 0
-            for (entityId, _, _) in restBandCandidates {
+            for (entityId, _, _, _) in restBandCandidates {
                 guard restDispatched < restSlots else { break }
                 // Same guard: skip OOC child entities whose CPU data isn't ready yet.
                 if let rootId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId {
@@ -1326,6 +1339,20 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         withStateLock {
             diagnostics.lastUnloadMeshMs = unloadMs
         }
+    }
+
+    /// Returns bounding-radius / distance — a proxy for how large the entity appears
+    /// on screen.  Used to sort load candidates so objects with a bigger screen footprint
+    /// are streamed in before smaller ones at a similar distance.
+    func importanceScore(entityId: EntityID, distance: Float) -> Float {
+        let radius: Float
+        if let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
+            let half = (local.boundingBox.max - local.boundingBox.min) * 0.5
+            radius = max(max(half.x, half.y), half.z)
+        } else {
+            radius = 1.0
+        }
+        return radius / max(distance, 1.0)
     }
 
     func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {

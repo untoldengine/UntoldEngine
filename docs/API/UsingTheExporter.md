@@ -1,9 +1,9 @@
 # Using The Exporter
 
-UntoldEngine ships two user-facing exporter commands in [`scripts`](/Users/haroldserrano/Desktop/UntoldEngineStudio/UntoldEngine/scripts):
+UntoldEngine ships two user-facing exporter commands in the `scripts/` folder at the repo root:
 
-- [`export-untold`](/Users/haroldserrano/Desktop/UntoldEngineStudio/UntoldEngine/scripts/export-untold)
-- [`export-untold-tiles`](/Users/haroldserrano/Desktop/UntoldEngineStudio/UntoldEngine/scripts/export-untold-tiles)
+- `export-untold`
+- `export-untold-tiles`
 
 These wrappers launch Blender in background mode and run the Python exporters for you. Users should run the shell wrappers, not the raw Blender commands.
 
@@ -22,7 +22,7 @@ If Blender cannot be found, the wrapper prints an install message and exits.
 
 ## Export A Single Asset
 
-Use [`export-untold`](/Users/haroldserrano/Desktop/UntoldEngineStudio/UntoldEngine/scripts/export-untold) to convert one USD or USDZ asset into one `.untold` runtime file.
+Use `export-untold` (found in `scripts/`) to convert one USD or USDZ asset into one `.untold` runtime file.
 
 Basic usage:
 
@@ -62,7 +62,7 @@ Expected output:
 
 ## Export A Scene Into Tiles
 
-Use [`export-untold-tiles`](/Users/haroldserrano/Desktop/UntoldEngineStudio/UntoldEngine/scripts/export-untold-tiles) to partition a USD or USDZ scene into tile payloads and generate a manifest JSON file.
+Use `export-untold-tiles` (found in `scripts/`) to partition a USD or USDZ scene into tile payloads and generate a manifest JSON file.
 
 Basic usage:
 
@@ -90,8 +90,8 @@ Common options:
 - `--visible-only`: optional export only visible meshes
 - `--all-meshes`: optional include hidden meshes
 - `--debug-aabb-only`: optional emit debug AABB payloads instead of geometry
-- `--quadTree`: optional partition tiles using a quad-tree instead of a uniform grid
-- `--floorCount <number>`: optional number of vertical floors to split each tile into
+- `--quadtree`: optional partition tiles using a quad-tree instead of a uniform grid
+- `--floor-count <number>`: optional number of vertical floors to split each tile into
 - `--blender <path>`: optional wrapper-level Blender override
 
 Example:
@@ -159,4 +159,4 @@ The manifest should live next to the tile payload directory. Tile, HLOD, LOD, an
 ## Notes
 
 - `.untold` tile payloads participate in the current tiled streaming architecture, including tile-level load/unload, remote download + cache, per-tile LOD/HLOD, and large-tile OCC sub-mesh streaming when the runtime classifies a tile into the OOC path.
-- The Python files in [`scripts`](/Users/haroldserrano/Desktop/UntoldEngineStudio/UntoldEngine/scripts) are implementation details. The recommended user entry points are the shell wrappers in the same folder.
+- The Python files in `scripts/` are implementation details. The recommended user entry points are the shell wrappers in the same folder.
