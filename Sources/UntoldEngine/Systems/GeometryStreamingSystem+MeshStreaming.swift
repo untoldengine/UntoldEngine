@@ -629,16 +629,21 @@ extension GeometryStreamingSystem {
            let context = ProgressiveAssetLoader.shared.rehydrationContext(for: rootId)
         {
             let rehydrated = await rehydrateColdAsset(rootEntityId: rootId, context: context)
-            if rehydrated,
-               let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId)
-            {
-                return await uploadFromCPUEntry(entityId: entityId, cpuEntry: cpuEntry)
+            guard rehydrated else {
+                Logger.logError(
+                    message: "[OutOfCore] Cold rehydration failed for root \(rootId) — disk parse or URL resolution error.",
+                    category: LogCategory.oocStatus.rawValue
+                )
+                return false
             }
-            Logger.logError(
-                message: "[OutOfCore] Cold re-stream failed for entity \(entityId)",
-                category: LogCategory.oocStatus.rawValue
-            )
-            return false
+            guard let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) else {
+                Logger.logError(
+                    message: "[OutOfCore] Rehydration succeeded for root \(rootId) but CPU entry missing for entity \(entityId) — registry not restored.",
+                    category: LogCategory.oocStatus.rawValue
+                )
+                return false
+            }
+            return await uploadFromCPUEntry(entityId: entityId, cpuEntry: cpuEntry)
         }
 
         // Build URL
