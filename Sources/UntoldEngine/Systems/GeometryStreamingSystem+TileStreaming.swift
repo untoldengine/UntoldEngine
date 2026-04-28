@@ -112,7 +112,11 @@ extension GeometryStreamingSystem {
                         // (levelIndex 5 = cyan in lodDebugPalette — distinct from LOD0-4).
                         for rid in self.collectRenderDescendantIds(capturedHlodId) {
                             registerComponent(entityId: rid, componentType: TileLODTagComponent.self)
-                            scene.get(component: TileLODTagComponent.self, for: rid)?.levelIndex = 5
+                            guard let tag = scene.get(component: TileLODTagComponent.self, for: rid) else {
+                                Logger.logError(message: "[HLOD] Tile '\(tileId)': failed to register TileLODTagComponent for render descendant \(rid).")
+                                continue
+                            }
+                            tag.levelIndex = 5
                         }
 
                         if self.batchSecondaryTileRepresentations {
