@@ -292,7 +292,11 @@ extension GeometryStreamingSystem {
                         let tileLODIndex = capturedIndex + 1
                         for rid in self.collectRenderDescendantIds(capturedLodId) {
                             registerComponent(entityId: rid, componentType: TileLODTagComponent.self)
-                            scene.get(component: TileLODTagComponent.self, for: rid)?.levelIndex = tileLODIndex
+                            guard let tag = scene.get(component: TileLODTagComponent.self, for: rid) else {
+                                Logger.logError(message: "[LOD] Tile '\(tileId)' LOD \(capturedIndex + 1): failed to register TileLODTagComponent for render descendant \(rid).")
+                                continue
+                            }
+                            tag.levelIndex = tileLODIndex
                         }
                         if self.batchSecondaryTileRepresentations {
                             setEntityStaticBatchComponentUngated(entityId: capturedLodId)
@@ -318,7 +322,9 @@ extension GeometryStreamingSystem {
         }
 
         withWorldMutationGate {
-            scene.get(component: TileComponent.self, for: entityId)?.lodLevels[capturedIndex].loadTask = task
+            guard let tc = scene.get(component: TileComponent.self, for: entityId),
+                  capturedIndex < tc.lodLevels.count else { return }
+            tc.lodLevels[capturedIndex].loadTask = task
         }
     }
 
