@@ -157,6 +157,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         initFrustumCulllingCompute()
 
+        TextureStreamingSystem.shared.configure(device: renderInfo.device)
+
         initGuassianComputePipelines()
         initScenePickingSystem()
 
