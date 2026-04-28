@@ -140,7 +140,7 @@ extension GeometryStreamingSystem {
                         tc.hlodEntityId = nil
                         tc.hlodState = .unloaded
                         self.unmarkLoadedHLODEntity(capturedTileId)
-                        Logger.logError(message: "[HLOD] Tile '\(tileId)' HLOD failed to load.")
+                        handleError(.hlodLoadFailed, tileId)
                     }
                 }
             }
@@ -319,7 +319,7 @@ extension GeometryStreamingSystem {
                         tc.lodLevels[capturedIndex].state = .unloaded
                         self.decrementLODLoadCount()
                         self.unmarkLoadedLODEntity(capturedTileId)
-                        Logger.logError(message: "[LOD] Tile '\(tileId)' LOD level \(capturedIndex + 1) failed to load.")
+                        handleError(.tileLODLoadFailed, "LOD level \(capturedIndex + 1)", tileId)
                     }
                 }
             }
@@ -592,7 +592,7 @@ extension GeometryStreamingSystem {
                         tc.failureCount += 1
                         tc.lastFailureTime = CFAbsoluteTimeGetCurrent()
                         tc.state = .failed
-                        Logger.logError(message: "[TileStreaming] Tile '\(tileId)' failed to parse (attempt \(tc.failureCount)) — retry in \(String(format: "%.0f", tc.retryDelaySeconds)) s.")
+                        handleError(.tileStreamingParseFailed, "attempt \(tc.failureCount), retry in \(String(format: "%.0f", tc.retryDelaySeconds))s", tileId)
                     }
                 }
             }
@@ -780,7 +780,7 @@ extension GeometryStreamingSystem {
     func resolveAssetURL(_ url: URL, label: String) async -> URL? {
         if url.scheme?.lowercased() == "http" {
             let error = RemoteAssetDownloader.DownloadError.insecureScheme("http")
-            Logger.logError(message: "[TileStreaming] Remote download failed for \(label): \(error)")
+            handleError(.remoteAssetDownloadFailed, error.localizedDescription, label)
             return nil
         }
         guard url.scheme?.lowercased() == "https" else {
@@ -789,7 +789,7 @@ extension GeometryStreamingSystem {
         do {
             return try await RemoteAssetDownloader.shared.localURL(for: url)
         } catch {
-            Logger.logError(message: "[TileStreaming] Remote download failed for \(label): \(error)")
+            handleError(.remoteAssetDownloadFailed, error.localizedDescription, label)
             return nil
         }
     }

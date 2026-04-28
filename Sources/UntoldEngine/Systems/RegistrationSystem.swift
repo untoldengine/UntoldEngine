@@ -778,7 +778,7 @@ private func loadUntoldRuntimeAsset(url: URL) -> RuntimeAsset? {
     do {
         return try NativeFormatLoader().loadAssetSync(from: url)
     } catch {
-        Logger.logError(message: "[Untold] Failed to load runtime asset '\(url.lastPathComponent)': \(error)")
+        handleError(.assetLoadFailed, error.localizedDescription, url.lastPathComponent)
         return nil
     }
 }
@@ -1346,7 +1346,7 @@ public func setEntityMeshAsync(
 
                 if projectedCPUBytes >= hardRejectThreshold {
                     let thrGB = String(format: "%.1f", Double(hardRejectThreshold) / 1_073_741_824)
-                    Logger.logError(message: "[AdmissionGate] Stage 1 HARD REJECT '\(filename)' — File: \(fileMB) MB | Expansion: 20× | Projected CPU: ~\(projGB) GB | Hard-reject threshold: \(thrGB) GB (75% of \(ramGB) GB RAM). Asset too large to parse safely on this device. Use a lower-polygon asset or split into smaller files.")
+                    handleError(.assetAdmissionRejected, "Stage 1: \(fileMB) MB file, projected ~\(projGB) GB CPU (threshold \(thrGB) GB)", filename)
                     loadFallbackMesh(entityId: entityId, filename: filename)
                     await AssetLoadingState.shared.finishLoading(entityId: entityId)
                     completionBox?.call(false)
@@ -1396,7 +1396,7 @@ public func setEntityMeshAsync(
                 let thrGB = String(format: "%.1f", Double(postParseSafetyThreshold) / 1_073_741_824)
                 let ramGB = String(format: "%.1f", Double(postParsePhysicalMemory) / 1_073_741_824)
                 let fileMBStr = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                Logger.logError(message: "[AdmissionGate] Stage 2 HARD REJECT '\(filename)' — File: \(fileMBStr) MB | Profiled geometry: ~\(geoGB) GB | Threshold: \(thrGB) GB (75% of \(ramGB) GB RAM). Stub registration and CPU registry storage are skipped; the parsed MDLAsset will be released by ARC. Fallback mesh assigned.")
+                handleError(.assetAdmissionRejected, "Stage 2: \(fileMBStr) MB file, profiled geometry ~\(geoGB) GB (threshold \(thrGB) GB)", filename)
                 // Load fallback so the entity is visually stable — the scene shows a
                 // placeholder cube rather than an invisible, mesh-less entity.
                 loadFallbackMesh(entityId: entityId, filename: filename)
@@ -2282,7 +2282,7 @@ public func setEntityStreamScene(
         withExtension: ext,
         subResource: nil
     ) else {
-        Logger.logError(message: "[setEntityStreamScene] Manifest '\(manifest).\(ext)' not found in any search path.")
+        handleError(.manifestNotFound, "\(manifest).\(ext)")
         completion?(false)
         return
     }
@@ -2290,7 +2290,7 @@ public func setEntityStreamScene(
     guard let data = try? Data(contentsOf: manifestURL),
           let tileManifest = try? JSONDecoder().decode(TileManifest.self, from: data)
     else {
-        Logger.logError(message: "[setEntityStreamScene] Failed to decode manifest '\(manifest).\(ext)'. Check JSON format.")
+        handleError(.manifestDecodeFailed, "\(manifest).\(ext)")
         completion?(false)
         return
     }
@@ -2324,7 +2324,7 @@ public func loadTiledScene(
         withExtension: ext,
         subResource: nil
     ) else {
-        Logger.logError(message: "[loadTiledScene] Manifest '\(manifest).\(ext)' not found in any search path.")
+        handleError(.manifestNotFound, "\(manifest).\(ext)")
         completion?(false)
         return
     }
@@ -2332,7 +2332,7 @@ public func loadTiledScene(
     guard let data = try? Data(contentsOf: manifestURL),
           let tileManifest = try? JSONDecoder().decode(TileManifest.self, from: data)
     else {
-        Logger.logError(message: "[loadTiledScene] Failed to decode manifest '\(manifest).\(ext)'. Check JSON format.")
+        handleError(.manifestDecodeFailed, "\(manifest).\(ext)")
         completion?(false)
         return
     }
@@ -2386,7 +2386,7 @@ public func setEntityStreamScene(
             guard let data = try? Data(contentsOf: localURL),
                   let tileManifest = try? JSONDecoder().decode(TileManifest.self, from: data)
             else {
-                Logger.logError(message: "[setEntityStreamScene] Failed to decode manifest at '\(manifestURL)'. Check JSON format.")
+                handleError(.manifestDecodeFailed, manifestURL.lastPathComponent)
                 completion?(false)
                 return
             }
@@ -2402,7 +2402,7 @@ public func setEntityStreamScene(
                 completion: completion
             )
         } catch {
-            Logger.logError(message: "[setEntityStreamScene] Failed to load manifest from '\(manifestURL)': \(error)")
+            handleError(.manifestNotFound, error.localizedDescription, manifestURL.lastPathComponent)
             completion?(false)
         }
     }
@@ -2438,7 +2438,7 @@ public func loadTiledScene(
             guard let data = try? Data(contentsOf: localURL),
                   let tileManifest = try? JSONDecoder().decode(TileManifest.self, from: data)
             else {
-                Logger.logError(message: "[loadTiledScene] Failed to decode manifest at '\(manifestURL)'. Check JSON format.")
+                handleError(.manifestDecodeFailed, manifestURL.lastPathComponent)
                 completion?(false)
                 return
             }
@@ -2457,7 +2457,7 @@ public func loadTiledScene(
                 completion: completion
             )
         } catch {
-            Logger.logError(message: "[loadTiledScene] Failed to load manifest from '\(manifestURL)': \(error)")
+            handleError(.manifestNotFound, error.localizedDescription, manifestURL.lastPathComponent)
             completion?(false)
         }
     }
@@ -3628,14 +3628,14 @@ public func addLODLevel(
     Task {
         // Check if LODComponent exists
         guard hasComponent(entityId: entityId, componentType: LODComponent.self) else {
-            Logger.logError(message: "Entity does not have LODComponent. Call setEntityLodComponent() first.")
+            handleError(.componentNotFound, "LODComponent", entityId)
             completionBox?.call(false)
             return
         }
 
         // Get file URL using standard resource loading
         guard let url = LoadingSystem.shared.resourceURL(forResource: fileName, withExtension: withExtension) else {
-            Logger.logError(message: "Failed to find LOD file: \(fileName).\(withExtension)")
+            handleError(.filenameNotFound, "\(fileName).\(withExtension)")
             completionBox?.call(false)
             return
         }
@@ -3831,7 +3831,7 @@ public func replaceLODLevel(
 
         // Get file URL using standard resource loading
         guard let newURL = LoadingSystem.shared.resourceURL(forResource: fileName, withExtension: withExtension) else {
-            Logger.logError(message: "Failed to find LOD file: \(fileName).\(withExtension)")
+            handleError(.filenameNotFound, "\(fileName).\(withExtension)")
             completionBox?.call(false)
             return
         }

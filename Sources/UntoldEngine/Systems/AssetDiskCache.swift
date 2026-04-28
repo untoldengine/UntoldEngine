@@ -62,7 +62,7 @@ actor AssetDiskCache {
         do {
             try fm.createDirectory(at: directory, withIntermediateDirectories: true)
         } catch {
-            Logger.logError(message: "[AssetDiskCache] Could not create cache directory: \(error)")
+            handleError(.cacheDirectoryCreationFailed, error.localizedDescription)
         }
 
         var scannedEntries: [String: CacheEntry] = [:]
@@ -97,7 +97,7 @@ actor AssetDiskCache {
         do {
             try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         } catch {
-            Logger.logError(message: "[AssetDiskCache] Could not create cache directory: \(error)")
+            handleError(.cacheDirectoryCreationFailed, error.localizedDescription)
         }
 
         // Inline index scan — avoids actor-isolation call from init.

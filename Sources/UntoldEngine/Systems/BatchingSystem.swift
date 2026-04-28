@@ -1841,7 +1841,7 @@ public class BatchingSystem: @unchecked Sendable {
             length: positionBufferSize,
             options: .storageModeShared
         ) else {
-            Logger.logError(message: "Failed to create batch position buffer")
+            handleError(.bufferAllocationFailed, "batch position buffer")
             return nil
         }
 
@@ -1850,7 +1850,7 @@ public class BatchingSystem: @unchecked Sendable {
             length: normalBufferSize,
             options: .storageModeShared
         ) else {
-            Logger.logError(message: "Failed to create batch normal buffer")
+            handleError(.bufferAllocationFailed, "batch normal buffer")
             return nil
         }
 
@@ -1859,7 +1859,7 @@ public class BatchingSystem: @unchecked Sendable {
             length: uvBufferSize,
             options: .storageModeShared
         ) else {
-            Logger.logError(message: "Failed to create batch UV buffer")
+            handleError(.bufferAllocationFailed, "batch UV buffer")
             return nil
         }
 
@@ -1868,7 +1868,7 @@ public class BatchingSystem: @unchecked Sendable {
             length: tangentBufferSize,
             options: .storageModeShared
         ) else {
-            Logger.logError(message: "Failed to create batch tangent buffer")
+            handleError(.bufferAllocationFailed, "batch tangent buffer")
             return nil
         }
 
@@ -1877,7 +1877,7 @@ public class BatchingSystem: @unchecked Sendable {
             length: indexBufferSize,
             options: .storageModeShared
         ) else {
-            Logger.logError(message: "Failed to create batch index buffer")
+            handleError(.bufferAllocationFailed, "batch index buffer")
             return nil
         }
 

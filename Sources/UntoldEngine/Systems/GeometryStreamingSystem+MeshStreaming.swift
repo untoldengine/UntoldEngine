@@ -116,7 +116,7 @@ extension GeometryStreamingSystem {
                 } else {
                     // Load failed - reset to unloaded so it can retry
                     s.state = .unloaded
-                    Logger.logError(message: "Failed to stream mesh for entity \(entityId)")
+                    handleError(.meshStreamingFailed, entityId)
                 }
                 releaseActiveLoad(entityId: entityId)
                 if isNearBand { releaseNearBandLoad(entityId: entityId) }
@@ -150,7 +150,7 @@ extension GeometryStreamingSystem {
         }()
 
         guard !lodInfo.isEmpty else {
-            Logger.logError(message: "LOD entity has no LOD levels with URLs")
+            handleError(.noLODLevels, entityId)
             return false
         }
 
@@ -170,7 +170,7 @@ extension GeometryStreamingSystem {
         }
 
         guard anySuccess else {
-            Logger.logError(message: "Failed to reload any LOD levels for entity \(entityId)")
+            handleError(.lodReloadFailed, entityId)
             return false
         }
 
@@ -298,10 +298,7 @@ extension GeometryStreamingSystem {
         )
 
         guard !meshes.isEmpty else {
-            Logger.logError(
-                message: "[OutOfCore] CPU→Metal upload failed for entity \(entityId) ('\(cpuEntry.uniqueAssetName)')",
-                category: LogCategory.oocStatus.rawValue
-            )
+            handleError(.meshStreamingFailed, "CPU→Metal upload failed '\(cpuEntry.uniqueAssetName)'", entityId)
             return false
         }
 
@@ -367,10 +364,7 @@ extension GeometryStreamingSystem {
         // If the root asset has gone cold, re-parse from disk to restore CPU entries.
         if ProgressiveAssetLoader.shared.isColdRoot(rootEntityId) {
             guard let context = ProgressiveAssetLoader.shared.rehydrationContext(for: rootEntityId) else {
-                Logger.logError(
-                    message: "[OutOfCore] LOD+OOC entity \(entityId): root \(rootEntityId) is cold with no rehydration context",
-                    category: LogCategory.oocStatus.rawValue
-                )
+                handleError(.coldRehydrationFailed, "root \(rootEntityId) has no rehydration context", entityId)
                 return false
             }
             let ok = await rehydrateColdAsset(rootEntityId: rootEntityId, context: context)
@@ -380,10 +374,7 @@ extension GeometryStreamingSystem {
         guard let allLODEntries = ProgressiveAssetLoader.shared.retrieveAllCPULODMeshes(for: entityId),
               !allLODEntries.isEmpty
         else {
-            Logger.logError(
-                message: "[OutOfCore] LOD+OOC entity \(entityId): no CPU LOD entries found",
-                category: LogCategory.oocStatus.rawValue
-            )
+            handleError(.meshStreamingFailed, "no CPU LOD entries found", entityId)
             return false
         }
 
@@ -420,10 +411,7 @@ extension GeometryStreamingSystem {
         }
 
         guard !uploadedMeshes.isEmpty else {
-            Logger.logError(
-                message: "[OutOfCore] LOD+OOC entity \(entityId): all LOD level uploads failed",
-                category: LogCategory.oocStatus.rawValue
-            )
+            handleError(.meshStreamingFailed, "all LOD level uploads failed", entityId)
             return false
         }
 
@@ -501,10 +489,7 @@ extension GeometryStreamingSystem {
                     vertexDescriptor: vertexDescriptor.model,
                     device: renderInfo.device
                 ) else {
-                    Logger.logError(
-                        message: "[OutOfCore] Cold re-stream: parseAssetAsync failed for root \(rootEntityId)",
-                        category: LogCategory.oocStatus.rawValue
-                    )
+                    handleError(.coldRehydrationFailed, "parseAssetAsync failed", rootEntityId)
                     ProgressiveAssetLoader.shared.clearRehydrationTask(for: rootEntityId)
                     return false
                 }
@@ -646,7 +631,7 @@ extension GeometryStreamingSystem {
             withExtension: ext,
             subResource: nil
         ) else {
-            Logger.logError(message: "Could not find resource: \(filename).\(ext)")
+            handleError(.filenameNotFound, "\(filename).\(ext)")
             return false
         }
 
@@ -655,7 +640,7 @@ extension GeometryStreamingSystem {
 
         // Load from cache or file
         guard let meshes = await MeshResourceManager.shared.loadMesh(url: url, meshName: meshName) else {
-            Logger.logError(message: "Failed to load mesh: \(meshName) from \(filename).\(ext)")
+            handleError(.assetLoadFailed, "\(meshName) from \(filename).\(ext)")
             return false
         }
 

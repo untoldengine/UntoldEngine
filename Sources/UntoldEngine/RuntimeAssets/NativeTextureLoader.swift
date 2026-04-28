@@ -39,7 +39,7 @@ public final class NativeTextureLoader: @unchecked Sendable {
         do {
             return try loadTextureOrThrow(from: url, targetMaxDimension: nil, label: label)
         } catch {
-            Logger.logError(message: "[NativeTextureLoader] Failed to load '\(url.lastPathComponent)': \(error)")
+            handleError(.textureFailedLoading, error.localizedDescription, url.lastPathComponent)
             return nil
         }
     }
@@ -55,7 +55,7 @@ public final class NativeTextureLoader: @unchecked Sendable {
         do {
             return try loadTextureOrThrow(from: url, targetMaxDimension: targetMaxDimension, label: label)
         } catch {
-            Logger.logError(message: "[NativeTextureLoader] Failed to load '\(url.lastPathComponent)' (maxDim=\(targetMaxDimension.map(String.init) ?? "full")): \(error)")
+            handleError(.textureFailedLoading, "maxDim=\(targetMaxDimension.map(String.init) ?? "full") \(error.localizedDescription)", url.lastPathComponent)
             return nil
         }
     }

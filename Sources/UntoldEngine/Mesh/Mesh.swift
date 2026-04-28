@@ -138,8 +138,7 @@ public struct Mesh {
         do {
             localMetalKitMesh = try MTKMesh(mesh: modelIOMesh, device: device)
         } catch {
-            Logger.logError(message: "Failed to create MTKMesh for '\(assetName)': \(error.localizedDescription)")
-            Logger.logError(message: "This may be due to memory pressure, corrupted mesh data, or GPU buffer allocation failure.")
+            handleError(.meshCreationFailed, error.localizedDescription, assetName)
             return nil
         }
         metalKitMesh = localMetalKitMesh
@@ -217,7 +216,7 @@ public struct Mesh {
 
             // Validate file exists and get size
             guard FileManager.default.fileExists(atPath: url.path) else {
-                Logger.logError(message: "Asset file not found: \(url.path)")
+                handleError(.assetFileNotFound, url.path)
                 return nil
             }
 
@@ -255,7 +254,7 @@ public struct Mesh {
 
         // Handle asset loading failure
         guard let asset else {
-            Logger.logError(message: "Failed to load asset from: \(url.lastPathComponent)")
+            handleError(.assetLoadFailed, url.lastPathComponent)
             return makeDefaultMesh()
         }
 
@@ -373,7 +372,7 @@ public struct Mesh {
 
             // Validate file exists and get size
             guard FileManager.default.fileExists(atPath: url.path) else {
-                Logger.logError(message: "Asset file not found: \(url.path)")
+                handleError(.assetFileNotFound, url.path)
                 return nil
             }
 
@@ -411,7 +410,7 @@ public struct Mesh {
 
         // Handle asset loading failure
         guard let asset else {
-            Logger.logError(message: "Failed to load scene asset from: \(url.lastPathComponent)")
+            handleError(.assetLoadFailed, url.lastPathComponent)
             return [makeDefaultMesh()]
         }
 
@@ -557,10 +556,7 @@ public struct Mesh {
     ) async -> ProgressiveAssetData? {
         await Task.detached { () -> ProgressiveAssetData? in
             guard FileManager.default.fileExists(atPath: url.path) else {
-                Logger.logError(
-                    message: "[ProgressiveLoader] Asset file not found: \(url.path)",
-                    category: LogCategory.assetLoader.rawValue
-                )
+                handleError(.assetFileNotFound, url.path)
                 return nil
             }
 
@@ -738,10 +734,7 @@ public struct Mesh {
                     mesh.worldSpace = worldTransform
                     meshes.append(mesh)
                 } else {
-                    Logger.logError(
-                        message: "[ProgressiveLoader] MTKMesh creation failed for '\(assetName)' even after CPU to Metal buffer copy.",
-                        category: LogCategory.assetLoader.rawValue
-                    )
+                    handleError(.meshCreationFailed, "CPU to Metal buffer copy failed", assetName)
                 }
             }
         }
@@ -838,7 +831,7 @@ public struct Mesh {
 
             // Validate file exists
             guard FileManager.default.fileExists(atPath: url.path) else {
-                Logger.logError(message: "Asset file not found: \(url.path)")
+                handleError(.assetFileNotFound, url.path)
                 return nil
             }
 
@@ -988,7 +981,7 @@ public struct Mesh {
     /// path so the rest of the renderer remains unchanged.
     static func makeMesh(from primitive: RuntimeMeshPrimitive, device: MTLDevice) -> Mesh? {
         guard primitive.vertexLayout == .pbrStaticV1 else {
-            Logger.logError(message: "[RuntimeAsset] Unsupported runtime vertex layout for '\(primitive.name)'")
+            handleError(.fileTypeNotSupported, primitive.name)
             return nil
         }
 
@@ -1115,7 +1108,7 @@ public struct Mesh {
 
             return mesh
         } catch {
-            Logger.logError(message: "[RuntimeAsset] Failed to build mesh '\(primitive.name)' from runtime primitive: \(error)")
+            handleError(.meshCreationFailed, error.localizedDescription, primitive.name)
             return nil
         }
     }
@@ -1524,7 +1517,7 @@ public struct Material {
                 Logger.log(message: "[UntoldTexture] Loaded \(label.lowercased()) texture '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)")
                 return texture
             } catch {
-                Logger.logError(message: "[UntoldTexture] Failed to load \(label.lowercased()) texture for '\(runtimeMaterial.name ?? "<unnamed material>")' from \(url.path): \(error)")
+                handleError(.textureFailedLoading, "\(label) \(error.localizedDescription)", runtimeMaterial.name ?? "<unnamed material>")
                 return nil
             }
         }
@@ -2226,7 +2219,7 @@ final class TextureLoader {
         let desc = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm_srgb, width: size, height: size, mipmapped: true)
         desc.usage = [.shaderRead]
         guard let tex = renderInfo.device.makeTexture(descriptor: desc) else {
-            Logger.logError(message: "Failed to create default texture. GPU may be out of memory.")
+            handleError(.textureFailedLoading, "GPU may be out of memory", "default texture")
             fatalError("Critical: Unable to create default texture. Metal device may be unavailable.")
         }
 
