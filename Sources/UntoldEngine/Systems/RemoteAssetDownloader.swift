@@ -150,7 +150,7 @@ actor RemoteAssetDownloader {
                 try await Task.sleep(nanoseconds: UInt64(delaySecs) * 1_000_000_000)
                 return try await performDownload(url: url, session: session, attempt: attempt + 1)
             }
-            Logger.logError(message: "[RemoteAssetDownloader] Failed to download \(url.lastPathComponent) after \(attempt + 1) attempt(s): \(error)")
+            handleError(.remoteAssetDownloadFailed, "after \(attempt + 1) attempt(s): \(error.localizedDescription)", url.lastPathComponent)
             throw error
         }
     }
@@ -194,7 +194,7 @@ actor RemoteAssetDownloader {
                 try await cache.storeAtRelativePath(uri, data: data)
                 Logger.log(message: "[RemoteAssetDownloader] Cached texture '\(uri)' (\(data.count / 1024) KB).")
             } catch {
-                Logger.logError(message: "[RemoteAssetDownloader] Failed to fetch texture '\(uri)': \(error)")
+                handleError(.remoteAssetDownloadFailed, error.localizedDescription, uri)
             }
         }
     }

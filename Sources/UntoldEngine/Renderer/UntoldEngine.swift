@@ -48,7 +48,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         let renderer = UntoldRenderer(configuration: configuration)
 
         guard let device = MTLCreateSystemDefaultDevice() else {
-            Logger.logError(message: "Metal device is not available.")
+            handleError(.metalDeviceNotFound)
             return nil
         }
         renderer.metalView.device = device
@@ -86,7 +86,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             renderInfo.library = mainLibrary
             Logger.log(message: "Found Untold Engine metallib")
         } catch {
-            Logger.logError(message: "Failed to load metallib: \(error)")
+            handleError(.metalLibraryNotFound, error.localizedDescription)
         }
 
         renderer.initResources()
@@ -127,7 +127,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             renderInfo.library = mainLibrary
             Logger.log(message: "Found Untold Engine metallib")
         } catch {
-            Logger.logError(message: "Failed to load metallib: \(error)")
+            handleError(.metalLibraryNotFound, error.localizedDescription)
         }
 
         renderer.initResources()
@@ -571,7 +571,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             renderInfo.library = mainLibrary
             Logger.log(message: "Found Untold Engine metallib")
         } catch {
-            Logger.logError(message: "Failed to load metallib: \(error)")
+            handleError(.metalLibraryNotFound, error.localizedDescription)
         }
 
         renderer.initResources()
@@ -687,7 +687,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             renderInfo.library = mainLibrary
             Logger.log(message: "Found Untold Engine metallib")
         } catch {
-            Logger.logError(message: "Failed to load metallib: \(error)")
+            handleError(.metalLibraryNotFound, error.localizedDescription)
         }
 
         renderer.initResources()

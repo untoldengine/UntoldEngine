@@ -35,7 +35,7 @@ extension MTLDevice {
             return try makeLibrary(URL: libURL)
         }
 
-        Logger.logError(message: "No Metal Library found with name: \(resourceName)")
+        handleError(.metalLibraryNotFound, resourceName)
         throw ErrorHandlingSystem.metalLibraryNotFound
     }
 }

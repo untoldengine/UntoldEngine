@@ -82,6 +82,20 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case coldRehydrationRegistryNotRestored = 1070
     case textureStreamingCommandQueueFailed = 1071
     case textureStreamingNotConfigured = 1072
+    case meshCreationFailed = 1073
+    case assetFileNotFound = 1074
+    case assetLoadFailed = 1075
+    case meshStreamingFailed = 1076
+    case noLODLevels = 1077
+    case lodReloadFailed = 1078
+    case hlodLoadFailed = 1079
+    case tileLODLoadFailed = 1080
+    case tileStreamingParseFailed = 1081
+    case remoteAssetDownloadFailed = 1082
+    case cacheDirectoryCreationFailed = 1083
+    case assetAdmissionRejected = 1084
+    case manifestNotFound = 1085
+    case manifestDecodeFailed = 1086
 
     public var description: String {
         switch self {
@@ -227,6 +241,34 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Failed to create MTLCommandQueue — texture resampling will be unavailable"
         case .textureStreamingNotConfigured:
             return "Metal resources not ready — call configure(device:) during engine init"
+        case .meshCreationFailed:
+            return "Failed to create MTKMesh"
+        case .assetFileNotFound:
+            return "Asset file not found"
+        case .assetLoadFailed:
+            return "Failed to load asset"
+        case .meshStreamingFailed:
+            return "Failed to stream mesh"
+        case .noLODLevels:
+            return "LOD entity has no LOD levels with URLs configured"
+        case .lodReloadFailed:
+            return "Failed to reload any LOD levels"
+        case .hlodLoadFailed:
+            return "HLOD failed to load"
+        case .tileLODLoadFailed:
+            return "Tile LOD level failed to load"
+        case .tileStreamingParseFailed:
+            return "Tile failed to parse"
+        case .remoteAssetDownloadFailed:
+            return "Remote asset download failed"
+        case .cacheDirectoryCreationFailed:
+            return "Could not create asset cache directory"
+        case .assetAdmissionRejected:
+            return "Asset rejected — too large to parse safely on this device"
+        case .manifestNotFound:
+            return "Scene manifest not found"
+        case .manifestDecodeFailed:
+            return "Failed to decode scene manifest — check JSON format"
         }
     }
 }
