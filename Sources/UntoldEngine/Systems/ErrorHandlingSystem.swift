@@ -76,6 +76,12 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case metalDeviceNotFound = 1064
     case noGaussianComponent = 1065
     case missingCameraWaypoints = 1066
+    case tileLODTagRegistrationFailed = 1067
+    case hlodTagRegistrationFailed = 1068
+    case coldRehydrationFailed = 1069
+    case coldRehydrationRegistryNotRestored = 1070
+    case textureStreamingCommandQueueFailed = 1071
+    case textureStreamingNotConfigured = 1072
 
     public var description: String {
         switch self {
@@ -209,6 +215,18 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Gaussian Component missing"
         case .missingCameraWaypoints:
             return "Camera has no waypoints"
+        case .tileLODTagRegistrationFailed:
+            return "Failed to register TileLODTagComponent for render descendant"
+        case .hlodTagRegistrationFailed:
+            return "Failed to register TileLODTagComponent for HLOD render descendant"
+        case .coldRehydrationFailed:
+            return "Cold rehydration failed — disk parse or URL resolution error"
+        case .coldRehydrationRegistryNotRestored:
+            return "Rehydration succeeded but CPU mesh entry missing — registry not restored"
+        case .textureStreamingCommandQueueFailed:
+            return "Failed to create MTLCommandQueue — texture resampling will be unavailable"
+        case .textureStreamingNotConfigured:
+            return "Metal resources not ready — call configure(device:) during engine init"
         }
     }
 }

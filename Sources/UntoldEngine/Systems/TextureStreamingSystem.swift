@@ -298,7 +298,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
         textureLoader = MTKTextureLoader(device: device)
         nativeTextureLoader = NativeTextureLoader(device: device)
         if commandQueue == nil {
-            Logger.logError(message: "[TextureStreaming] Failed to create MTLCommandQueue — texture resampling will be unavailable.")
+            handleError(.textureStreamingCommandQueueFailed)
         }
     }
 
@@ -842,7 +842,7 @@ public class TextureStreamingSystem: @unchecked Sendable {
         // Capture Metal resources as local constants so the Task closure never touches
         // the instance variables. These are guaranteed non-nil after configure(device:).
         guard let queue = commandQueue, let loader = textureLoader else {
-            Logger.logError(message: "[TextureStreaming] Metal resources not ready — call configure(device:) during engine init.")
+            handleError(.textureStreamingNotConfigured)
             releaseOp(entityId)
             if reservedUpgradeBytes > 0 {
                 MemoryBudgetManager.shared.releaseTextureReservation(sizeBytes: reservedUpgradeBytes)

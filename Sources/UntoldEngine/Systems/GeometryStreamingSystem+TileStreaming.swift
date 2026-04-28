@@ -113,7 +113,7 @@ extension GeometryStreamingSystem {
                         for rid in self.collectRenderDescendantIds(capturedHlodId) {
                             registerComponent(entityId: rid, componentType: TileLODTagComponent.self)
                             guard let tag = scene.get(component: TileLODTagComponent.self, for: rid) else {
-                                Logger.logError(message: "[HLOD] Tile '\(tileId)': failed to register TileLODTagComponent for render descendant \(rid).")
+                                handleError(.hlodTagRegistrationFailed, "Tile '\(tileId)'", rid)
                                 continue
                             }
                             tag.levelIndex = 5
@@ -297,7 +297,7 @@ extension GeometryStreamingSystem {
                         for rid in self.collectRenderDescendantIds(capturedLodId) {
                             registerComponent(entityId: rid, componentType: TileLODTagComponent.self)
                             guard let tag = scene.get(component: TileLODTagComponent.self, for: rid) else {
-                                Logger.logError(message: "[LOD] Tile '\(tileId)' LOD \(capturedIndex + 1): failed to register TileLODTagComponent for render descendant \(rid).")
+                                handleError(.tileLODTagRegistrationFailed, "Tile '\(tileId)' LOD \(capturedIndex + 1)", rid)
                                 continue
                             }
                             tag.levelIndex = tileLODIndex
