@@ -1,4 +1,19 @@
 # Changelog
+## v0.12.8 - 2026-04-28
+### 🐞 Fixes
+- [Patch] Fix FrameMetricsCollector data race; expand signpost coverage (e59e1b1…)
+- [Patch] Add screen-space importance sort to GeometryStreamingSystem (b543024…)
+- [Patch] Guard LOD array bounds & component registration tile LOD loading (4622256…)
+- [Patch] Eliminate race window on pendingPressureRelief throttle bypass (3ff04dc…)
+- [Patch] Initialize TextureStreamingSystem Metal resources at startup (7db5b7f…)
+- [Patch] Distinguish cold rehydration failure modes with separate err msg (0b00ce2…)
+- [Patch] Guard TileLODTagComponent registration in H/LOD load completion (6ef2523…)
+- [Patch] Route streaming error logs through ErrorHandlingSystem. (91aa8ad…)
+- [Patch] Route all Logger.logError calls through ErrorHandlingSystem (a1e428f…)
+### 📚 Docs
+- [Docs] Updated read me with editor links (37d3b01…)
+- [Docs] Added new xr video to readme (ac49e2f…)
+- [Docs] Updated architecture and API docs (4e35fe6…)
 ## v0.12.7 - 2026-04-25
 ### 🐞 Fixes
 - [Patch] Improved ECS query (7d79114…)
