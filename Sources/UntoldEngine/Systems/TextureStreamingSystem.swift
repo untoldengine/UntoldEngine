@@ -264,16 +264,13 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
     private let lock = NSLock()
 
-    /// Reusable command queue for GPU resampling.
-    /// Initialized once in `scheduleResolutionChange` before any Task is spawned.
+    /// Reusable command queue for GPU resampling. Initialized once in `configure(device:)`.
     private var commandQueue: MTLCommandQueue?
 
-    /// Reusable texture loader.
-    /// Initialized once in `scheduleResolutionChange` before any Task is spawned.
+    /// Reusable texture loader. Initialized once in `configure(device:)`.
     private var textureLoader: MTKTextureLoader?
 
-    /// Reusable native loader for ASTC .utex textures.
-    /// Initialized once in `scheduleResolutionChange` before any Task is spawned.
+    /// Reusable native loader for ASTC .utex textures. Initialized once in `configure(device:)`.
     private var nativeTextureLoader: NativeTextureLoader?
 
     // MARK: - Stats
@@ -288,6 +285,20 @@ public class TextureStreamingSystem: @unchecked Sendable {
         // the next update() tick re-evaluates and re-streams the new LOD's meshes.
         SystemEventBus.shared.subscribeToLODChanges { [weak self] event in
             self?.handleLODChange(event)
+        }
+    }
+
+    /// Initialize Metal resources. Must be called once from the engine's `initResources()`
+    /// before the first `update()` tick. Eagerly allocating here eliminates the lazy-init
+    /// race that existed when multiple concurrent schedule calls could each observe nil and
+    /// race to assign the shared instance variables.
+    func configure(device: MTLDevice) {
+        guard commandQueue == nil else { return }
+        commandQueue = device.makeCommandQueue()
+        textureLoader = MTKTextureLoader(device: device)
+        nativeTextureLoader = NativeTextureLoader(device: device)
+        if commandQueue == nil {
+            Logger.logError(message: "[TextureStreaming] Failed to create MTLCommandQueue — texture resampling will be unavailable.")
         }
     }
 
@@ -828,21 +839,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
             return
         }
 
-        guard let device = renderInfo.device else {
-            releaseOp(entityId)
-            if reservedUpgradeBytes > 0 {
-                MemoryBudgetManager.shared.releaseTextureReservation(sizeBytes: reservedUpgradeBytes)
-            }
-            return
-        }
-
-        // Initialize reusable resources once on the calling thread before spawning the Task,
-        // then capture them as local constants so the Task never touches instance state.
-        if commandQueue == nil { commandQueue = device.makeCommandQueue() }
-        if textureLoader == nil { textureLoader = MTKTextureLoader(device: device) }
-        if nativeTextureLoader == nil { nativeTextureLoader = NativeTextureLoader(device: device) }
-
+        // Capture Metal resources as local constants so the Task closure never touches
+        // the instance variables. These are guaranteed non-nil after configure(device:).
         guard let queue = commandQueue, let loader = textureLoader else {
+            Logger.logError(message: "[TextureStreaming] Metal resources not ready — call configure(device:) during engine init.")
             releaseOp(entityId)
             if reservedUpgradeBytes > 0 {
                 MemoryBudgetManager.shared.releaseTextureReservation(sizeBytes: reservedUpgradeBytes)
