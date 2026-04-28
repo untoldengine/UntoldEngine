@@ -500,10 +500,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // eviction runs on the very next update() call (≤ 1 frame / ~11 ms at 90 fps).
         // Without this, a .critical signal that arrives right after a tick waits up to
         // updateInterval (100 ms) before eviction — longer than visionOS's kill window.
-        let hasPendingPressure: Bool = withStateLock { pendingPressureRelief }
         let effectiveInterval = lastPendingLoadBacklog > 0 ? burstTickInterval : updateInterval
         timeSinceLastUpdate += deltaTime
-        guard timeSinceLastUpdate >= effectiveInterval || hasPendingPressure else {
+        var shouldRunUpdate = false
+        withStateLock { shouldRunUpdate = timeSinceLastUpdate >= effectiveInterval || pendingPressureRelief }
+        guard shouldRunUpdate else {
             withStateLock {
                 diagnostics.updateFrame = currentFrame
                 diagnostics.updateTriggered = false
