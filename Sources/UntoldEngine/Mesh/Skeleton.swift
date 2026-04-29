@@ -179,7 +179,10 @@ struct Skin {
     /// identity matrices so the bind pose renders correctly before any animation runs.
     private static func createBuffer(for jointCount: Int) -> MTLBuffer? {
         let bufferSize = jointCount * MemoryLayout<simd_float4x4>.stride
-        guard let buffer = renderInfo.device.makeBuffer(length: bufferSize) else { return nil }
+        guard let buffer = renderInfo.device.makeBuffer(length: bufferSize) else {
+            handleError(.bufferAllocationFailed, "joint transforms: \(bufferSize) bytes for \(jointCount) joints — device likely under memory pressure")
+            return nil
+        }
         let ptr = buffer.contents().bindMemory(to: simd_float4x4.self, capacity: jointCount)
         for i in 0 ..< jointCount {
             ptr[i] = matrix_identity_float4x4
