@@ -782,7 +782,7 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(depthOfFieldPassFrustumIndex.rawValue))
 }
 
-let fxaaRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
+public let fxaaRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.lookTexture,
           let destinationTexture = textureResources.fxaaTexture,
           let pipeline = PipelineManager.shared.renderPipelinesByType[.fxaa]
