@@ -1,4 +1,10 @@
 # Changelog
+## v0.12.9 - 2026-04-29
+### 🐞 Fixes
+- [Patch] Add pre-upload tile size/budget diagnostic,  device mem profile (81b78dc…)
+- [Patch] Dump memory budget snapshot on OS memory pressure warning (55995c3…)
+- [Patch] implemented FXAA (39d81f8…)
+- [Patch] Improved FXAA (ef04700…)
 ## v0.12.8 - 2026-04-28
 ### 🐞 Fixes
 - [Patch] Fix FrameMetricsCollector data race; expand signpost coverage (e59e1b1…)
