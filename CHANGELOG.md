@@ -1,4 +1,7 @@
 # Changelog
+## v0.12.10 - 2026-04-29
+### 🐞 Fixes
+- [Patch] Made fxaa pass public (736ec7b…)
 ## v0.12.9 - 2026-04-29
 ### 🐞 Fixes
 - [Patch] Add pre-upload tile size/budget diagnostic,  device mem profile (81b78dc…)
