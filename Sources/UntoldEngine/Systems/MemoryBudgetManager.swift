@@ -215,6 +215,16 @@ public class MemoryBudgetManager: @unchecked Sendable {
     /// sub-budget.  The total is split 60 % geometry / 40 % texture so each pool has
     /// an independent ceiling.
     private func configureDefaultBudget() {
+        // Log device profile first so crash logs always carry hardware context.
+        if let device = MTLCreateSystemDefaultDevice() {
+            let maxWorkingSetMB = Int(device.recommendedMaxWorkingSetSize) / (1024 * 1024)
+            Logger.log(message: "[DeviceProfile] Metal device: '\(device.name)' | hasUnifiedMemory=\(device.hasUnifiedMemory) | recommendedMaxWorkingSetSize=\(maxWorkingSetMB) MB")
+        }
+        #if canImport(Darwin) && !os(macOS)
+            let procAvailableMB = Int(os_proc_available_memory()) / (1024 * 1024)
+            Logger.log(message: "[DeviceProfile] OS process available memory: \(procAvailableMB) MB (app kill threshold)")
+        #endif
+
         let totalBudget: Int
 
         #if os(macOS)

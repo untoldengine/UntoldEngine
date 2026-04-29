@@ -282,6 +282,17 @@ extension GeometryStreamingSystem {
             textureMs = (CFAbsoluteTimeGetCurrent() - textureStart) * 1000.0
             ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootId)
         }
+        // [Instrumentation] Log estimated GPU size vs. available budget before attempting upload.
+        // This log line is the first indicator of an OOM-related crash: if the app dies
+        // immediately after this line, the tile was too large for the remaining GPU budget.
+        let estimatedUploadMB = Float(cpuEntry.estimatedGPUBytes) / (1024.0 * 1024.0)
+        let preBudgetStats = MemoryBudgetManager.shared.getStats()
+        let availGeomMB = Float(max(0, preBudgetStats.geometryBudget - preBudgetStats.meshMemoryUsed)) / (1024.0 * 1024.0)
+        Logger.log(
+            message: "[TileUpload] Entity \(entityId) '\(cpuEntry.uniqueAssetName)': estimatedGPU=\(String(format: "%.1f", estimatedUploadMB)) MB, geomAvailable=\(String(format: "%.1f", availGeomMB)) MB, geomUsed=\(String(format: "%.0f", preBudgetStats.geometryUtilization * 100))%",
+            category: LogCategory.oocStatus.rawValue
+        )
+
         // [Instrumentation] Measure CPU→Metal buffer copy time.
         let copyStart = CFAbsoluteTimeGetCurrent()
         let meshes = Mesh.makeMeshesFromCPUBuffers(
@@ -298,7 +309,7 @@ extension GeometryStreamingSystem {
         )
 
         guard !meshes.isEmpty else {
-            handleError(.meshStreamingFailed, "CPU→Metal upload failed '\(cpuEntry.uniqueAssetName)'", entityId)
+            handleError(.meshStreamingFailed, "CPU→Metal upload failed for '\(cpuEntry.uniqueAssetName)' (estimated \(String(format: "%.1f", estimatedUploadMB)) MB, geomAvailable \(String(format: "%.1f", availGeomMB)) MB)", entityId)
             return false
         }
 
@@ -384,6 +395,16 @@ extension GeometryStreamingSystem {
         ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootEntityId)
         ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootEntityId)
         ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootEntityId)
+
+        // [Instrumentation] Log total estimated GPU bytes across all LOD levels vs. available budget.
+        let totalLODEstimatedBytes = allLODEntries.values.reduce(0) { $0 + $1.estimatedGPUBytes }
+        let totalLODEstimatedMB = Float(totalLODEstimatedBytes) / (1024.0 * 1024.0)
+        let lodPreBudgetStats = MemoryBudgetManager.shared.getStats()
+        let lodAvailGeomMB = Float(max(0, lodPreBudgetStats.geometryBudget - lodPreBudgetStats.meshMemoryUsed)) / (1024.0 * 1024.0)
+        Logger.log(
+            message: "[TileUpload] LOD+OOC entity \(entityId): \(allLODEntries.count) level(s), totalEstimatedGPU=\(String(format: "%.1f", totalLODEstimatedMB)) MB, geomAvailable=\(String(format: "%.1f", lodAvailGeomMB)) MB, geomUsed=\(String(format: "%.0f", lodPreBudgetStats.geometryUtilization * 100))%",
+            category: LogCategory.oocStatus.rawValue
+        )
 
         // Upload every LOD level from CPU to Metal.
         var uploadedMeshes: [Int: [Mesh]] = [:]
