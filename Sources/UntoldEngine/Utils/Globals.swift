@@ -1468,6 +1468,15 @@ public final class DepthOfFieldParams: ObservableObject, @unchecked Sendable {
     @Published public var enabled: Bool = false
 }
 
+public final class FXAAParams: ObservableObject, @unchecked Sendable {
+    public static let shared = FXAAParams()
+
+    @Published public var enabled: Bool = true
+    @Published public var subpixelQuality: Float = 0.75 // 0.0–1.0; higher = stronger sub-pixel smoothing
+    @Published public var edgeThreshold: Float = 0.125 // minimum local contrast to trigger AA
+    @Published public var edgeThresholdMin: Float = 0.0625 // absolute threshold floor (skip very dark edges)
+}
+
 /// SSAO Quality Settings
 public enum SSAOQuality: Int, CaseIterable {
     case fast = 0

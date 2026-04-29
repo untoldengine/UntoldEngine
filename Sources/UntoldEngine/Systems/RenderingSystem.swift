@@ -322,9 +322,16 @@ public func buildGameModeGraph() -> RenderGraphResult {
     )
     graph[lookPass.id] = lookPass
 
+    let fxaaPass = RenderPass(
+        id: "fxaa",
+        dependencies: [lookPass.id],
+        execute: fxaaRenderPass
+    )
+    graph[fxaaPass.id] = fxaaPass
+
     let outputPass = RenderPass(
         id: "outputTransform",
-        dependencies: [lookPass.id],
+        dependencies: [fxaaPass.id],
         execute: outputTransformRenderPass
     )
     graph[outputPass.id] = outputPass
@@ -769,6 +776,48 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(depthOfFieldPassFrustumIndex.rawValue))
 }
 
+let fxaaRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
+    guard let sourceTexture = textureResources.lookTexture,
+          let destinationTexture = textureResources.fxaaTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.fxaa]
+    else {
+        handleError(.renderPassCreationFailed, "FXAA Pass: missing texture or pipeline")
+        return
+    }
+
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: fxaaCustomization
+    )(commandBuffer)
+}
+
+func fxaaCustomization(encoder: MTLRenderCommandEncoder) {
+    var texelSize = simd_float2(
+        1.0 / max(renderInfo.viewPort.x, 1.0),
+        1.0 / max(renderInfo.viewPort.y, 1.0)
+    )
+    encoder.setFragmentBytes(&texelSize, length: MemoryLayout<simd_float2>.stride,
+                             index: Int(fxaaPassTexelSizeIndex.rawValue))
+
+    var enabled = Int32(FXAAParams.shared.enabled ? 1 : 0)
+    encoder.setFragmentBytes(&enabled, length: MemoryLayout<Int32>.stride,
+                             index: Int(fxaaPassEnabledIndex.rawValue))
+
+    var subpixel = FXAAParams.shared.subpixelQuality
+    encoder.setFragmentBytes(&subpixel, length: MemoryLayout<Float>.stride,
+                             index: Int(fxaaPassSubpixelIndex.rawValue))
+
+    var edgeThreshold = FXAAParams.shared.edgeThreshold
+    encoder.setFragmentBytes(&edgeThreshold, length: MemoryLayout<Float>.stride,
+                             index: Int(fxaaPassEdgeThresholdIndex.rawValue))
+
+    var edgeThresholdMin = FXAAParams.shared.edgeThresholdMin
+    encoder.setFragmentBytes(&edgeThresholdMin, length: MemoryLayout<Float>.stride,
+                             index: Int(fxaaPassEdgeThresholdMinIndex.rawValue))
+}
+
 func outputTransformCustomization(encoder: MTLRenderCommandEncoder) {
     var mode = renderInfo.colorPipeline.present.encodingMode.rawValue
 
@@ -866,7 +915,7 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
 }
 
 public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
-    guard let sourceTexture = textureResources.lookTexture else {
+    guard let sourceTexture = textureResources.fxaaTexture else {
         handleError(.renderPassCreationFailed, "Output Transform Pass: source texture is nil")
         return
     }

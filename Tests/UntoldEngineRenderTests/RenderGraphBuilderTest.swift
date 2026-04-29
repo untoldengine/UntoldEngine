@@ -289,6 +289,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["spatialDebug"],
                        "Bypass pass should depend on spatialDebug")
         XCTAssertNotNil(graph["look"], "Look pass should exist when bypassing post-processing")
+        XCTAssertNotNil(graph["fxaa"], "FXAA pass should exist when bypassing post-processing")
         XCTAssertNotNil(graph["outputTransform"], "Output transform should exist when bypassing post-processing")
 
         XCTAssertNil(graph["depthOfField"], "Depth of field pass should not exist when bypassing post-processing")
@@ -303,8 +304,10 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         XCTAssertEqual(graph["look"]?.dependencies, ["precomp"],
                        "Look should depend on precomp when bypassing post-processing")
-        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
-                       "Output transform should depend on look when bypassing post-processing")
+        XCTAssertEqual(graph["fxaa"]?.dependencies, ["look"],
+                       "FXAA should depend on look when bypassing post-processing")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["fxaa"],
+                       "Output transform should depend on fxaa when bypassing post-processing")
     }
 
     // MARK: - Gaussian Pass Integration Tests

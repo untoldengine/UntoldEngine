@@ -468,6 +468,14 @@ typedef enum{
       outputTransformPassEncodingModeIndex
   }OutputTransformBufferIndices;
 
+typedef enum{
+    fxaaPassTexelSizeIndex,
+    fxaaPassEnabledIndex,
+    fxaaPassSubpixelIndex,
+    fxaaPassEdgeThresholdIndex,
+    fxaaPassEdgeThresholdMinIndex
+}FXAABufferIndices;
+
 // Transparency
 typedef enum{
     transparencyPassFragmentUniformIndex,

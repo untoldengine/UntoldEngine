@@ -616,6 +616,16 @@ func initTextureResources() {
         storageMode: .shared
     )
 
+    textureResources.fxaaTexture = createTexture(
+        device: renderInfo.device,
+        label: "FXAA Output Texture",
+        pixelFormat: wf.lookOutput,
+        width: viewportWidth,
+        height: viewportHeight,
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+
     // HZB depth pyramid texture and per-mip views
     let hzbMipCount = calculateHZBMipCount(width: viewportWidth, height: viewportHeight)
     textureResources.hzbDepthPyramid = createTexture(
