@@ -269,9 +269,11 @@ public class MemoryBudgetManager: @unchecked Sendable {
                 let event = source.data
                 if event.contains(.critical) {
                     Logger.log(message: "[MemoryBudgetManager] OS critical memory pressure — triggering aggressive eviction")
+                    logStatus()
                     onMemoryPressureCritical?()
                 } else if event.contains(.warning) {
                     Logger.log(message: "[MemoryBudgetManager] OS warning memory pressure — triggering proactive eviction")
+                    logStatus()
                     onMemoryPressureWarning?()
                 }
             }
