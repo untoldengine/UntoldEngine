@@ -42,7 +42,7 @@ using namespace metal;
 #include "../Shaders/SSAOBilateralBlurShader.metal"
 #include "../Shaders/SSAOUpsampleShader.metal"
 #include "../Shaders/spatialDebugShader.metal"
-
+#include "../Shaders/FXAAShader.metal"
 // Gaussian kernels
 #include "../Shaders/BitonicSort.metal"
 #include "../Shaders/Gaussians.metal"

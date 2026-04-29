@@ -49,6 +49,7 @@ public extension RenderPipelineType {
     static let spatialDebug: RenderPipelineType = "spatialDebug"
     static let look: RenderPipelineType = "look"
     static let outputTransform: RenderPipelineType = "outputTransform"
+    static let fxaa: RenderPipelineType = "fxaa"
     static let transparency: RenderPipelineType = "transparency"
     static let debug: RenderPipelineType = "debug"
 }
