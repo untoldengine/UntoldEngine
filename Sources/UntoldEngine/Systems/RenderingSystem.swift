@@ -322,16 +322,22 @@ public func buildGameModeGraph() -> RenderGraphResult {
     )
     graph[lookPass.id] = lookPass
 
-    let fxaaPass = RenderPass(
-        id: "fxaa",
-        dependencies: [lookPass.id],
-        execute: fxaaRenderPass
-    )
-    graph[fxaaPass.id] = fxaaPass
+    let outputDependency: String
+    if FXAAParams.shared.enabled {
+        let fxaaPass = RenderPass(
+            id: "fxaa",
+            dependencies: [lookPass.id],
+            execute: fxaaRenderPass
+        )
+        graph[fxaaPass.id] = fxaaPass
+        outputDependency = fxaaPass.id
+    } else {
+        outputDependency = lookPass.id
+    }
 
     let outputPass = RenderPass(
         id: "outputTransform",
-        dependencies: [fxaaPass.id],
+        dependencies: [outputDependency],
         execute: outputTransformRenderPass
     )
     graph[outputPass.id] = outputPass
@@ -794,10 +800,9 @@ let fxaaRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
 }
 
 func fxaaCustomization(encoder: MTLRenderCommandEncoder) {
-    var texelSize = simd_float2(
-        1.0 / max(renderInfo.viewPort.x, 1.0),
-        1.0 / max(renderInfo.viewPort.y, 1.0)
-    )
+    let srcW = Float(max(textureResources.lookTexture?.width ?? 1, 1))
+    let srcH = Float(max(textureResources.lookTexture?.height ?? 1, 1))
+    var texelSize = simd_float2(1.0 / srcW, 1.0 / srcH)
     encoder.setFragmentBytes(&texelSize, length: MemoryLayout<simd_float2>.stride,
                              index: Int(fxaaPassTexelSizeIndex.rawValue))
 
@@ -915,7 +920,10 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
 }
 
 public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
-    guard let sourceTexture = textureResources.fxaaTexture else {
+    let sourceTexture = FXAAParams.shared.enabled
+        ? textureResources.fxaaTexture
+        : textureResources.lookTexture
+    guard let sourceTexture else {
         handleError(.renderPassCreationFailed, "Output Transform Pass: source texture is nil")
         return
     }
