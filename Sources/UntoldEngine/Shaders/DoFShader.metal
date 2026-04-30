@@ -63,12 +63,16 @@ fragment float4 fragmentDepthOfFieldShader(VertexCompositeOutput vertexOut [[sta
                               1.0 / float(finalTexture.get_height()));
     float radius = blurFactor * maxBlur;
 
-    float4 color = float4(0.0);
-    int samples = 8;
+    // Vogel/Fibonacci disc — samples are spread across the full disc area,
+    // not just a single ring, so there are no octagonal banding artifacts.
+    const int   samples     = 16;
+    const float goldenAngle = 2.399963; // radians: PI * (3 - sqrt(5))
 
+    float4 color = float4(0.0);
     for (int i = 0; i < samples; ++i) {
-        float angle = float(i) / float(samples) * 2.0 * M_PI_F;
-        float2 offset = float2(cos(angle), sin(angle)) * radius * texelSize;
+        float r     = sqrt(float(i) / float(samples - 1)); // area-uniform radial distance
+        float angle = float(i) * goldenAngle;
+        float2 offset = float2(cos(angle), sin(angle)) * r * radius * texelSize;
         color += finalTexture.sample(s, vertexOut.uvCoords + offset);
     }
 
