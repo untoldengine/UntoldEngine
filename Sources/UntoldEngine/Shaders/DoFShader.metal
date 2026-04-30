@@ -57,18 +57,22 @@ fragment float4 fragmentDepthOfFieldShader(VertexCompositeOutput vertexOut [[sta
     // Compute blur factor
     float blurFactor = computeBlurAmount(linearDepth, focusDistance, focusRange);
 
-    // Sample neighborhood in a circular pattern
-    float4 color = float4(0.0);
-    int samples = 8;
+    // Convert radius from pixels to UV space so the bokeh disc is circular
+    // regardless of framebuffer aspect ratio.
+    float2 texelSize = float2(1.0 / float(finalTexture.get_width()),
+                              1.0 / float(finalTexture.get_height()));
     float radius = blurFactor * maxBlur;
 
+    float4 color = float4(0.0);
+    int samples = 8;
+
     for (int i = 0; i < samples; ++i) {
-        float angle = float(i) / samples * 2.0 * M_PI_F;
-        float2 offset = float2(cos(angle), sin(angle)) * radius;
+        float angle = float(i) / float(samples) * 2.0 * M_PI_F;
+        float2 offset = float2(cos(angle), sin(angle)) * radius * texelSize;
         color += finalTexture.sample(s, vertexOut.uvCoords + offset);
     }
 
-    color /= samples;
+    color /= float(samples);
     return color;
 }
 
