@@ -41,18 +41,18 @@ fragment float4 fragmentDepthOfFieldShader(VertexCompositeOutput vertexOut [[sta
                                    constant float &focusRange[[buffer(depthOfFieldPassFocusRangeIndex)]],
                                    constant float &maxBlur[[buffer(depthOfFieldPassMaxBlurIndex)]],
                                    constant float2 &frustumPlanes[[buffer(depthOfFieldPassFrustumIndex)]],
-                                           constant bool &enabled[[buffer(depthOfFieldPassEnabledIndex)]])
+                                   constant bool &enabled[[buffer(depthOfFieldPassEnabledIndex)]],
+                                   constant bool &reverseZ[[buffer(depthOfFieldPassReverseZIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
-    
+
     if (!enabled){
         return finalTexture.sample(s, vertexOut.uvCoords);
     }
-    
-    // Get scene depth at this pixel
 
+    // Get scene depth at this pixel
     float rawDepth = depthTexture.sample(s, vertexOut.uvCoords);
-    float linearDepth = linearizeDepth(rawDepth, frustumPlanes.x, frustumPlanes.y);
+    float linearDepth = linearizeDepth(rawDepth, frustumPlanes.x, frustumPlanes.y, reverseZ);
     
     // Compute blur factor
     float blurFactor = computeBlurAmount(linearDepth, focusDistance, focusRange);
