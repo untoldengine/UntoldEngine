@@ -34,14 +34,18 @@ fragment float4 fragmentChromaticAberrationShader(VertexCompositeOutput vertexOu
         return finalTexture.sample(s, uv);
     }
     
-    float2 offset = normalize(uv - center) * intensity;
+    // Normalize the direction in aspect-corrected space so the aberration
+    // magnitude is uniform regardless of direction from center on any
+    // non-square framebuffer, then convert the offset back to UV space.
+    float aspectRatio = float(finalTexture.get_width()) / float(finalTexture.get_height());
+    float2 offset = normalize((uv - center) * float2(aspectRatio, 1.0)) * intensity;
+    offset.x /= aspectRatio;
 
+    float4 centerSample = finalTexture.sample(s, uv);
     float red   = finalTexture.sample(s, uv + offset).r;
-    float green = finalTexture.sample(s, uv).g;
     float blue  = finalTexture.sample(s, uv - offset).b;
-    float alpha = finalTexture.sample(s, uv).a;
 
-    return float4(red, green, blue, alpha);
+    return float4(red, centerSample.g, blue, centerSample.a);
 }
 
 
