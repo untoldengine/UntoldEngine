@@ -21,25 +21,20 @@ vertex VertexCompositeOutput vertexBloomCompositeShader(VertexCompositeIn in [[s
 }
 
 fragment float4 fragmentBloomCompositeShader(VertexCompositeOutput vertexOut [[stage_in]],
-                                   texture2d<float> finalTexture [[texture(1)]],
-                                    texture2d<float> bloomTexture [[texture(0)]],
-                                    constant float &intensity [[buffer(bloomCompositePassIntensityIndex)]],
-                                             constant bool &enabled[[buffer(bloomCompositePassEnabledIndex)]])
+                                   texture2d<float> bloomTexture  [[texture(0)]],
+                                   texture2d<float> sceneTexture  [[texture(1)]],
+                                   constant float &intensity      [[buffer(bloomCompositePassIntensityIndex)]],
+                                   constant bool  &enabled        [[buffer(bloomCompositePassEnabledIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
 
-    float4 originalSample = finalTexture.sample(s, vertexOut.uvCoords);
-    float3 originalColor = originalSample.rgb;
-    float originalAlpha = originalSample.a;
-    
-    if(!enabled){
-        return float4(originalColor, originalAlpha);
+    float4 sceneSample = sceneTexture.sample(s, vertexOut.uvCoords);
+
+    if (!enabled) {
+        return sceneSample;
     }
 
     float3 bloom = bloomTexture.sample(s, vertexOut.uvCoords).rgb;
 
-    float3 finalColor = originalColor + bloom * intensity;
-
-    return float4(finalColor, originalAlpha);
-
+    return float4(sceneSample.rgb + bloom * intensity, sceneSample.a);
 }
