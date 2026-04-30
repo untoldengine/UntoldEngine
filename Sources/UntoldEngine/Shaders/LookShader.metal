@@ -83,7 +83,8 @@ fragment float4 fragmentLookShader(
   constant bool &enabled [[buffer(colorGradingPassEnabledIndex)]]
 ) {
   constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
-  float3 color = sceneTexture.sample(s, in.uvCoords).rgb;
+  float4 sceneSample = sceneTexture.sample(s, in.uvCoords);
+  float3 color = sceneSample.rgb;
 
   if (enabled) {
       color *= exposure;
@@ -95,6 +96,6 @@ fragment float4 fragmentLookShader(
 
   // Tone map ONCE, here.
   color = ACESFilmicToneMapping(max(color, 0.0));
-  return float4(color, sceneTexture.sample(s, in.uvCoords).a);
+  return float4(color, sceneSample.a);
 }
 
