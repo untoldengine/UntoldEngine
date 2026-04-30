@@ -38,7 +38,10 @@ fragment float4 fragmentVignetteShader(VertexCompositeOutput vertexOut [[stage_i
         return float4(color, alpha);
     }
     
-    float2 toCenter = vertexOut.uvCoords - center;
+    // Scale x by aspect ratio before length() so the vignette is circular
+    // in screen space rather than elliptical on non-square framebuffers.
+    float aspectRatio = float(finalTexture.get_width()) / float(finalTexture.get_height());
+    float2 toCenter = (vertexOut.uvCoords - center) * float2(aspectRatio, 1.0);
     float dist = length(toCenter);
 
     // Define fade start and fade end
