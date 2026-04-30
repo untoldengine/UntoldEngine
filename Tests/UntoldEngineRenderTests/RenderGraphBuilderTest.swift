@@ -118,8 +118,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         let finalPass = postProcessingEffects(
             graph: &graph,
-            deferredPassId: "lightPass",
-            geometryPassId: "model"
+            deferredPassId: "lightPass"
         )
 
         // Verify base post-processing passes are created
@@ -136,8 +135,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         _ = postProcessingEffects(
             graph: &graph,
-            deferredPassId: "lightPass",
-            geometryPassId: "model"
+            deferredPassId: "lightPass"
         )
 
         XCTAssertEqual(graph["depthOfField"]?.dependencies, ["lightPass"],
@@ -145,10 +143,9 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(graph["chromatic"]?.dependencies, ["depthOfField"],
                        "Chromatic aberration should depend on depthOfField")
 
-        let bloomDeps = graph["bloomThreshold"]?.dependencies.sorted()
-        let expectedBloomDeps = ["chromatic", "model"].sorted()
-        XCTAssertEqual(bloomDeps, expectedBloomDeps,
-                       "Bloom threshold should depend on chromatic and model")
+        let bloomDeps = graph["bloomThreshold"]?.dependencies
+        XCTAssertEqual(bloomDeps, ["chromatic"],
+                       "Bloom threshold should depend only on chromatic")
     }
 
     func testPostProcessingEffects_TopologicalOrder() throws {
@@ -158,8 +155,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         _ = postProcessingEffects(
             graph: &graph,
-            deferredPassId: "lightPass",
-            geometryPassId: "model"
+            deferredPassId: "lightPass"
         )
 
         let sorted = try topologicalSortGraph(graph: graph)
