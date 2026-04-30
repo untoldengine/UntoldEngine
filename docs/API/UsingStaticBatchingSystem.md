@@ -61,6 +61,31 @@ In this mode:
 
 You do **not** call `generateBatches()` every time a tile loads. The batching system rebuilds dirty cells incrementally based on residency changes.
 
+## Streamed vs Non-Streamed Scenes
+
+For tiled/streamed scenes, the engine manages static batching automatically. When a tile finishes loading, the engine assigns a `StaticBatchComponent` to all of its entities and schedules an incremental batch rebuild for only the spatial cells affected by that tile. This happens internally on a background queue via the engine's `tick()` loop.
+
+Do **not** call `generateBatches()` for streamed scenes. That function performs a full global rebuild — it queries every entity in the scene simultaneously, merges entities from different tiles into shared batch groups, and allocates all GPU buffers synchronously on the render thread. This overrides the engine's incremental system and causes a noticeable stall.
+
+For streamed scenes, only call `enableBatching(true)` after the scene loads. The engine handles the rest:
+
+```swift
+setEntityStreamScene(entityId: sceneRoot, manifest: "city", withExtension: "json") { success in
+    enableBatching(true)
+    setSceneReady(success)
+}
+```
+
+For non-streamed scenes (single `.untold`), call `setEntityStaticBatchComponent`, `generateBatches()`, and `enableBatching(true)` as normal. The same applies to any operation that mutates material state (color, opacity) — wrap it with `enableBatching(false)` before and `generateBatches()` + `enableBatching(true)` after, but only for non-streamed scenes:
+
+```swift
+// Non-streamed only — do not use this pattern in tiled/streamed scenes
+enableBatching(false)
+setEntityColor(entityId: prop, color: simd_float4(1, 0, 0, 1))
+generateBatches()
+enableBatching(true)
+```
+
 ## Core APIs
 
 ### `setEntityStaticBatchComponent(entityId:)`
