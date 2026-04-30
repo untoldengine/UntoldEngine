@@ -134,6 +134,7 @@ float computeLuma(float3 color);
 float linearizeDepthForViewing(float depth, float near, float far);
 
 float linearizeDepth(float depth, float near, float far);
+float linearizeDepth(float depth, float near, float far, bool reverseZ);
 
 
 float integrateEdge(float3 v1, float3 v2);

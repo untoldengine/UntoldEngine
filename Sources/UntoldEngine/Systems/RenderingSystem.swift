@@ -780,6 +780,9 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
 
     var frustumPlanes = simd_float2(near, far)
     encoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(depthOfFieldPassFrustumIndex.rawValue))
+
+    var reverseZ = renderInfo.reverseZEnabled
+    encoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: Int(depthOfFieldPassReverseZIndex.rawValue))
 }
 
 public let fxaaRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in

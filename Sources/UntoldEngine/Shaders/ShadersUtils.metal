@@ -549,6 +549,14 @@ float linearizeDepth(float depth, float near, float far){
     return near * far / (far + depth * (near - far));
 }
 
+// Reverse-Z overload: depth=1 is near, depth=0 is far (Vision Pro / Metal reverse-Z convention)
+float linearizeDepth(float depth, float near, float far, bool reverseZ){
+    if (reverseZ) {
+        return near * far / (near + depth * (far - near));
+    }
+    return near * far / (far + depth * (near - far));
+}
+
 
 /*
 float3 integrateEdge(float3 v1, float3 v2, float3 n){
