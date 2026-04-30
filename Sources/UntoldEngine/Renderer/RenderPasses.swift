@@ -1782,6 +1782,12 @@ public enum RenderPasses {
         var enabled = SSAOParams.shared.enabled
         renderEncoder.setFragmentBytes(&enabled, length: MemoryLayout<Bool>.stride, index: 1)
 
+        var frustumPlanes = simd_float2(near, far)
+        renderEncoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: 2)
+
+        var reverseZ = renderInfo.reverseZEnabled
+        renderEncoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: 3)
+
         renderEncoder.drawIndexedPrimitivesTracked(
             type: .triangle,
             indexCount: 6,
