@@ -1452,7 +1452,8 @@ public enum RenderPasses {
 
         renderEncoder.setFragmentBytes(&renderInfo.perspectiveSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassPerspectiveSpaceIndex.rawValue))
 
-        renderEncoder.setFragmentBytes(&cameraComponent.viewSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassViewSpaceIndex.rawValue))
+        var ssaoViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        renderEncoder.setFragmentBytes(&ssaoViewMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassViewSpaceIndex.rawValue))
 
         // ssao properties
         renderEncoder.setFragmentBytes(
@@ -1690,7 +1691,8 @@ public enum RenderPasses {
         renderEncoder.setFragmentBytes(&lowResViewPort, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassViewPortIndex.rawValue))
 
         renderEncoder.setFragmentBytes(&renderInfo.perspectiveSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassPerspectiveSpaceIndex.rawValue))
-        renderEncoder.setFragmentBytes(&cameraComponent.viewSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassViewSpaceIndex.rawValue))
+        var ssaoViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        renderEncoder.setFragmentBytes(&ssaoViewMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassViewSpaceIndex.rawValue))
 
         // SSAO properties
         renderEncoder.setFragmentBytes(&SSAOParams.shared.radius, length: MemoryLayout<Float>.stride, index: Int(ssaoPassRadiusIndex.rawValue))
