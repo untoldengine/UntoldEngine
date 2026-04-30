@@ -13,12 +13,18 @@
 #include "ShaderStructs.h"
 using namespace metal;
 
-constant float2 blurSamples[5] = {
-    float2(-2.0, 0.12),
-    float2(-1.0, 0.24),
-    float2( 0.0, 0.28),
-    float2( 1.0, 0.24),
-    float2( 2.0, 0.12)
+// 9-tap Gaussian kernel (sigma=2, offsets -4..4).
+// Wider coverage than the old 5-tap kernel without changing blurRadius.
+constant float2 blurSamples[9] = {
+    float2(-4.0, 0.0276),
+    float2(-3.0, 0.0663),
+    float2(-2.0, 0.1238),
+    float2(-1.0, 0.1801),
+    float2( 0.0, 0.2041),
+    float2( 1.0, 0.1801),
+    float2( 2.0, 0.1238),
+    float2( 3.0, 0.0663),
+    float2( 4.0, 0.0276),
 };
 
 vertex VertexCompositeOutput vertexBlurShader(VertexCompositeIn in [[stage_in]]) {
@@ -45,11 +51,11 @@ fragment float4 fragmentBlurShader(VertexCompositeOutput vertexOut [[stage_in]],
     float2 texelSize = 1.0 / float2(width, height);
 
     float4 color = float4(0.0);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 9; i++) {
         float offset = blurSamples[i].x;
         float weight = blurSamples[i].y;
 
-        float2 sampleOffset = direction * offset * texelSize*blurRadius;
+        float2 sampleOffset = direction * offset * texelSize * blurRadius;
         color += weight * finalTexture.sample(s, vertexOut.uvCoords + sampleOffset);
     }
 

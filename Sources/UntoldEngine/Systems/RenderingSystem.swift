@@ -410,9 +410,9 @@ func postProcessingEffects(graph: inout [String: RenderPass], deferredPassId: St
     let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [chromaticAberrationPass.id], execute: bloomThresholdRenderPass)
     graph[bloomThresholdPass.id] = bloomThresholdPass
 
-    // define params for the blur pass
-    let blurPassCount = BloomThresholdParams.shared.enabled ? 2 : 0
-    let blurRadius: Float = 4.0
+    // 4 ping-pong passes × 9-tap kernel gives a wide, soft bloom spread.
+    let blurPassCount = BloomThresholdParams.shared.enabled ? 4 : 0
+    let blurRadius: Float = 6.0
 
     var previousPassID = bloomThresholdPass.id
     var useFirstTexture = true
