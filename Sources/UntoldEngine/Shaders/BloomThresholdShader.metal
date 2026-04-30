@@ -22,25 +22,21 @@ vertex VertexCompositeOutput vertexBloomThresholdShader(VertexCompositeIn in [[s
 
 fragment float4 fragmentBloomThresholdShader(VertexCompositeOutput vertexOut [[stage_in]],
                                    texture2d<float> finalTexture [[texture(0)]],
-                                    texture2d<float> emissiveTexture [[texture(1)]],
-                                    constant float &threshold[[buffer(bloomThresholdPassCutoffIndex)]],
-                                    constant float &intensity[[buffer(bloomThresholdPassIntensityIndex)]],
-                                    constant bool &enabled[[buffer(bloomThresholdPassEnabledIndex)]])
+                                   constant float &threshold[[buffer(bloomThresholdPassCutoffIndex)]],
+                                   constant float &intensity[[buffer(bloomThresholdPassIntensityIndex)]],
+                                   constant bool &enabled[[buffer(bloomThresholdPassEnabledIndex)]])
 {
     constexpr sampler s(address::clamp_to_edge, min_filter::linear, mag_filter::linear);
 
-    float3 color = emissiveTexture.sample(s, vertexOut.uvCoords).rgb;
-    
     if(!enabled){
-        return float4(0.0,0.0,0.0, 1.0);
+        return float4(0.0, 0.0, 0.0, 1.0);
     }
 
-    // Compute luminance (can use different weights, these are common)
-    float luminance = getLuminance(color);
-    // Apply threshold
-    float bloomFactor = max((luminance - threshold), 0.0);
+    // Sample the full HDR scene color (includes emissive, specular highlights, etc.)
+    float3 color = finalTexture.sample(s, vertexOut.uvCoords).rgb;
 
-    // Optional: boost the bloom brightness
+    float luminance = getLuminance(color);
+    float bloomFactor = max(luminance - threshold, 0.0);
     float3 bloomColor = color * bloomFactor * intensity;
 
     return float4(bloomColor, 1.0);

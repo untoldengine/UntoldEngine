@@ -303,7 +303,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
         graph[bypassPass.id] = bypassPass
         postProcessID = bypassPass.id
     } else {
-        let postProcess = postProcessingEffects(graph: &graph, deferredPassId: spatialDebugPass.id, geometryPassId: "model")
+        let postProcess = postProcessingEffects(graph: &graph, deferredPassId: spatialDebugPass.id)
         postProcessID = postProcess.id
     }
 
@@ -373,7 +373,7 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
 }
 
 /// Post process passes
-func postProcessingEffects(graph: inout [String: RenderPass], deferredPassId: String, geometryPassId: String) -> RenderPass {
+func postProcessingEffects(graph: inout [String: RenderPass], deferredPassId: String) -> RenderPass {
     // Fast path: skip entire chain when every post-process effect is disabled.
     // This avoids allocating ~142 MB of render targets that would only pass data through.
     let anyEffectEnabled = BloomThresholdParams.shared.enabled
@@ -407,7 +407,7 @@ func postProcessingEffects(graph: inout [String: RenderPass], deferredPassId: St
 
     graph[chromaticAberrationPass.id] = chromaticAberrationPass
 
-    let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [chromaticAberrationPass.id, geometryPassId], execute: bloomThresholdRenderPass)
+    let bloomThresholdPass = RenderPass(id: "bloomThreshold", dependencies: [chromaticAberrationPass.id], execute: bloomThresholdRenderPass)
     graph[bloomThresholdPass.id] = bloomThresholdPass
 
     // define params for the blur pass
@@ -619,8 +619,6 @@ func bloomThresholdCustomization(encoder: MTLRenderCommandEncoder) {
         length: MemoryLayout<Bool>.stride,
         index: Int(bloomThresholdPassEnabledIndex.rawValue)
     )
-
-    encoder.setFragmentTexture(textureResources.emissiveMap, index: 1)
 }
 
 let bloomCompositeRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
