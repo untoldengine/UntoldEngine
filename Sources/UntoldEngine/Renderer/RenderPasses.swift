@@ -1468,11 +1468,11 @@ public enum RenderPasses {
             index: Int(ssaoPassBiasIndex.rawValue)
         )
 
-//        renderEncoder.setFragmentBytes(
-//            &SSAOParams.shared.intensity,
-//            length: MemoryLayout<Float>.stride,
-//            index: Int(ssaoPassIntensityIndex.rawValue)
-//        )
+        renderEncoder.setFragmentBytes(
+            &SSAOParams.shared.intensity,
+            length: MemoryLayout<Float>.stride,
+            index: Int(ssaoPassIntensityIndex.rawValue)
+        )
 
         renderEncoder.setFragmentBytes(
             &SSAOParams.shared.enabled,
@@ -1695,9 +1695,10 @@ public enum RenderPasses {
         renderEncoder.setFragmentBytes(&ssaoViewMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassViewSpaceIndex.rawValue))
 
         // SSAO properties
-        renderEncoder.setFragmentBytes(&SSAOParams.shared.radius, length: MemoryLayout<Float>.stride, index: Int(ssaoPassRadiusIndex.rawValue))
-        renderEncoder.setFragmentBytes(&SSAOParams.shared.bias, length: MemoryLayout<Float>.stride, index: Int(ssaoPassBiasIndex.rawValue))
-        renderEncoder.setFragmentBytes(&SSAOParams.shared.enabled, length: MemoryLayout<Bool>.stride, index: Int(ssaoPassEnabledIndex.rawValue))
+        renderEncoder.setFragmentBytes(&SSAOParams.shared.radius,    length: MemoryLayout<Float>.stride, index: Int(ssaoPassRadiusIndex.rawValue))
+        renderEncoder.setFragmentBytes(&SSAOParams.shared.bias,      length: MemoryLayout<Float>.stride, index: Int(ssaoPassBiasIndex.rawValue))
+        renderEncoder.setFragmentBytes(&SSAOParams.shared.intensity, length: MemoryLayout<Float>.stride, index: Int(ssaoPassIntensityIndex.rawValue))
+        renderEncoder.setFragmentBytes(&SSAOParams.shared.enabled,   length: MemoryLayout<Bool>.stride,  index: Int(ssaoPassEnabledIndex.rawValue))
 
         renderEncoder.drawIndexedPrimitivesTracked(
             type: .triangle,
