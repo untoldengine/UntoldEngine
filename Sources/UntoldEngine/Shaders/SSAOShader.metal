@@ -32,10 +32,10 @@ fragment float4 fragmentSSAOShader(VertexCompositeOutput vertexOut [[stage_in]],
                                    texture2d<float> ssaoNoiseMap [[texture(ssaoNoiseMapTextureIndex)]],
                                    constant int &kernelSize [[buffer(ssaoPassKernelSizeIndex)]],
                                    constant float2 &viewPort [[buffer(ssaoPassViewPortIndex)]],
-                                   constant float &radius [[buffer(ssaoPassRadiusIndex)]],
-                                   constant float &bias [[buffer(ssaoPassBiasIndex)]],
-                                   //constant float &intensity[[buffer(ssaoPassIntensityIndex)]],
-                                   constant bool &enabled[[buffer(ssaoPassEnabledIndex)]]
+                                   constant float &radius    [[buffer(ssaoPassRadiusIndex)]],
+                                   constant float &bias      [[buffer(ssaoPassBiasIndex)]],
+                                   constant float &intensity [[buffer(ssaoPassIntensityIndex)]],
+                                   constant bool  &enabled   [[buffer(ssaoPassEnabledIndex)]]
                                    )
 {
     if (!enabled){
@@ -99,10 +99,11 @@ fragment float4 fragmentSSAOShader(VertexCompositeOutput vertexOut [[stage_in]],
         occlusion += (sampleDepth >= samplePos.z + bias ? 1.0 : 0.0) * rangeCheck;
     }
     
-    // Final occlusion value (inverted)
-    occlusion = 1.0 - (occlusion * invKernelSize);
-    
-    return float4(occlusion, occlusion, occlusion, 1.0);
+    // Blend between no-occlusion (1.0) and full AO using intensity.
+    // intensity=0 → effect invisible, intensity=1 → full computed AO.
+    float ao = mix(1.0, 1.0 - (occlusion * invKernelSize), intensity);
+
+    return float4(ao, ao, ao, 1.0);
     
 }
 
