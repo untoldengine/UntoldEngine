@@ -18,7 +18,7 @@ import struct
 import sys
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Callable, Iterable, Optional
 
 try:
     import bpy  # type: ignore
@@ -87,6 +87,31 @@ TEXTURE_FLAG_SRGB = 1 << 0
 TEXTURE_FLAG_NORMAL_MAP = 1 << 1
 TEXTURE_FLAG_EMISSIVE = 1 << 6
 TEXTURE_FLAG_OCCLUSION = 1 << 7
+
+ProgressCallback = Callable[[str, int, int, str], None]
+
+
+class ProgressReporter:
+    def __init__(self, label: str, total_steps: int) -> None:
+        self.label = label
+        self.total_steps = max(int(total_steps), 1)
+        self.completed_steps = 0
+
+    def stage(self, stage: str, detail: str = "") -> None:
+        self._emit(stage, detail, self.completed_steps)
+
+    def advance(self, stage: str, detail: str = "", steps: int = 1) -> None:
+        self.completed_steps = min(self.total_steps, self.completed_steps + max(int(steps), 0))
+        self._emit(stage, detail, self.completed_steps)
+
+    def _emit(self, stage: str, detail: str, completed_steps: int) -> None:
+        percent = (100.0 * completed_steps) / self.total_steps
+        suffix = f" - {detail}" if detail else ""
+        print(
+            f"[progress] {self.label}: {percent:6.2f}% "
+            f"({completed_steps}/{self.total_steps}) {stage}{suffix}",
+            flush=True,
+        )
 
 
 def align(value: int, alignment: int) -> int:
@@ -2469,10 +2494,15 @@ def extract_nodes(
     convert_orientation: bool = False,
     source_orientation: str = "blender-native",
     validate: bool = False,
+    progress_callback: Optional[ProgressCallback] = None,
 ) -> list[ExportedNode]:
     blender_required()
+    if progress_callback is not None:
+        progress_callback("Import USD", 0, 1, asset_path.name)
     clear_scene()
     imported_objects = import_usd_asset(asset_path)
+    if progress_callback is not None:
+        progress_callback("Select objects", 0, 1, f"{len(imported_objects)} imported object(s)")
     export_objects = choose_export_objects(imported_objects, mesh_name)
     export_objects = include_linked_armatures(export_objects)
     export_objects = split_blender_objects_by_material(export_objects)
@@ -2482,6 +2512,7 @@ def extract_nodes(
         convert_orientation=convert_orientation,
         source_orientation=source_orientation,
         validate=validate,
+        progress_callback=progress_callback,
     )
 
 
@@ -2491,6 +2522,7 @@ def extract_nodes_from_objects(
     convert_orientation: bool = False,
     source_orientation: str = "blender-native",
     validate: bool = False,
+    progress_callback: Optional[ProgressCallback] = None,
 ) -> list[ExportedNode]:
     blender_required()
     if not export_objects:
@@ -2506,7 +2538,8 @@ def extract_nodes_from_objects(
     exported_meshes_by_name: dict[str, ExportedMesh] = {}
     skipped = 0
     for i, obj in enumerate(mesh_objects, 1):
-        print(f"  [{i}/{total}] {obj.name}", flush=True)
+        percent = (100.0 * i) / max(total, 1)
+        print(f"  [{i}/{total} | {percent:6.2f}%] {obj.name}", flush=True)
         try:
             exported_meshes_by_name[obj.name] = extract_mesh_object(
                 obj,
@@ -2520,6 +2553,8 @@ def extract_nodes_from_objects(
         except RuntimeError as exc:
             print(f"    Skipped: {exc}", flush=True)
             skipped += 1
+        if progress_callback is not None:
+            progress_callback("Extract meshes", i, total, obj.name)
     if skipped:
         print(f"  Skipped {skipped} mesh(es) with errors", flush=True)
 
@@ -2612,7 +2647,14 @@ def _compress_geometry_chunks(vertex_raw: bytes, index_raw: bytes) -> tuple[byte
     return vertex_compressed, index_compressed
 
 
-def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, file_type_name: str, *, compress_geometry: bool = False) -> bytes:
+def build_untold_file(
+    exported_nodes: list[ExportedNode],
+    output_path: Path,
+    file_type_name: str,
+    *,
+    compress_geometry: bool = False,
+    progress_callback: Optional[ProgressCallback] = None,
+) -> bytes:
     if not exported_nodes:
         raise RuntimeError("No nodes were extracted for export")
 
@@ -2722,6 +2764,7 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
 
     entity_ids_by_name = {exported_node.entity_name: entity_id for entity_id, exported_node in enumerate(exported_nodes)}
 
+    total_nodes = len(exported_nodes)
     for entity_id, exported_node in enumerate(exported_nodes):
         first_mesh_record_index = len(meshes)
         mesh_record_count = 0
@@ -2815,7 +2858,11 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
                 local_transform_rows=exported_node.local_transform_rows,
             )
         )
+        if progress_callback is not None:
+            progress_callback("Build records", entity_id + 1, total_nodes, exported_node.entity_name)
 
+    if progress_callback is not None:
+        progress_callback("Build chunks", 0, 1, output_path.name)
     string_chunk = string_table.data
     entity_writer = BinaryWriter()
     for entity in entities:
@@ -2863,6 +2910,8 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
     joint_weight_raw = joint_weight_writer.data
 
     if compress_geometry:
+        if progress_callback is not None:
+            progress_callback("Compress geometry", 0, 1, output_path.name)
         vertex_payload, index_payload = _compress_geometry_chunks(vertex_raw, index_raw)
         geo_compression = COMPRESSION_LZ4
     else:
@@ -2929,13 +2978,16 @@ def build_untold_file(exported_nodes: list[ExportedNode], output_path: Path, fil
             uncompressed_size=uncompressed_size,
             element_count=element_count,
         )
-    for (_, payload, _, _, _), (_, file_offset, _, _, _, _) in zip(chunk_payloads, chunk_entries):
+    total_chunks = len(chunk_payloads)
+    for chunk_index, ((_, payload, _, _, _), (_, file_offset, _, _, _, _)) in enumerate(zip(chunk_payloads, chunk_entries), 1):
         file_writer.align(FILE_ALIGNMENT)
         if file_writer.count != file_offset:
             raise RuntimeError(
                 f"Chunk offset mismatch while building {output_path}: expected {file_offset}, wrote {file_writer.count}"
             )
         file_writer.write_bytes(payload)
+        if progress_callback is not None:
+            progress_callback("Write chunks", chunk_index, total_chunks, output_path.name)
     return file_writer.data
 
 
@@ -3164,6 +3216,7 @@ def export_objects_to_untold(
     source_orientation: str = "blender-native",
     validate: bool = False,
     compress_geometry: bool = False,
+    progress_callback: Optional[ProgressCallback] = None,
 ) -> dict[str, object]:
     exported_nodes = extract_nodes_from_objects(
         export_objects,
@@ -3171,10 +3224,21 @@ def export_objects_to_untold(
         convert_orientation=convert_orientation,
         source_orientation=source_orientation,
         validate=validate,
+        progress_callback=progress_callback,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    if progress_callback is not None:
+        progress_callback("Stage nodes", 0, 1, output_path.name)
     exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
-    untold_bytes = build_untold_file(exported_nodes, output_path, file_type_name, compress_geometry=compress_geometry)
+    untold_bytes = build_untold_file(
+        exported_nodes,
+        output_path,
+        file_type_name,
+        compress_geometry=compress_geometry,
+        progress_callback=progress_callback,
+    )
+    if progress_callback is not None:
+        progress_callback("Write file", 0, 1, output_path.name)
     output_path.write_bytes(untold_bytes)
 
     exported_meshes = [
@@ -3251,29 +3315,53 @@ def main(argv: list[str]) -> int:
     print(f"Importing {input_path.name} ...", flush=True)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if args.animation:
+        progress = ProgressReporter("animation export", 4)
+        progress.stage("Import USD", input_path.name)
         exported_clips = extract_animation_clips(
             input_path,
             convert_orientation=args.convert_orientation,
             source_orientation=args.source_orientation,
         )
+        progress.advance("Extract animation", f"{len(exported_clips)} clip(s)")
         print(f"Building animation .untold file with {len(exported_clips)} clip(s) ...", flush=True)
         untold_bytes = build_animation_untold_file(exported_clips, output_path)
+        progress.advance("Build file", output_path.name)
         output_path.write_bytes(untold_bytes)
+        progress.advance("Write file", output_path.name)
         print(f"Wrote {output_path} ({len(untold_bytes)} bytes)")
         print(f"Animation clips: {len(exported_clips)}")
+        progress.advance("Complete", output_path.name)
     else:
+        progress = ProgressReporter("asset export", 5)
         exported_nodes = extract_nodes(
             input_path,
             args.mesh_name,
             convert_orientation=args.convert_orientation,
             source_orientation=args.source_orientation,
             validate=args.validate,
+            progress_callback=lambda stage, done, total, detail: progress.stage(
+                stage,
+                f"{done}/{total} {detail}" if total > 1 else detail,
+            ),
         )
+        progress.advance("Extract nodes", f"{len(exported_nodes)} node(s)")
         print(f"Staging {len(exported_nodes)} node(s) ...", flush=True)
         exported_nodes = stage_nodes_for_output(exported_nodes, output_path)
+        progress.advance("Stage nodes", output_path.name)
         print("Building .untold file ...", flush=True)
-        untold_bytes = build_untold_file(exported_nodes, output_path, args.file_type, compress_geometry=args.compress_geometry)
+        untold_bytes = build_untold_file(
+            exported_nodes,
+            output_path,
+            args.file_type,
+            compress_geometry=args.compress_geometry,
+            progress_callback=lambda stage, done, total, detail: progress.stage(
+                stage,
+                f"{done}/{total} {detail}" if total > 1 else detail,
+            ),
+        )
+        progress.advance("Build file", output_path.name)
         output_path.write_bytes(untold_bytes)
+        progress.advance("Write file", output_path.name)
         exported_meshes = [exported_node.mesh for exported_node in exported_nodes if exported_node.mesh is not None]
         print(f"Wrote {output_path} ({len(untold_bytes)} bytes)")
         print(f"Nodes: {len(exported_nodes)}, Meshes: {len(exported_meshes)}")
@@ -3282,6 +3370,7 @@ def main(argv: list[str]) -> int:
             # This sidecar is only for validation/debugging in engine-side tests.
             validation_path = write_validation_file(output_path, output_path.stem, [exported_mesh.validation_mesh for exported_mesh in exported_meshes])
             print(f"Wrote {validation_path}")
+        progress.advance("Complete", output_path.name)
     return 0
 
 
