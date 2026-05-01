@@ -132,6 +132,13 @@ class BaseRenderSetup: XCTestCase {
         initializeAssets()
 
         setVisibleEntities()
+
+        // Disconnect the MTKView delegate so the Metal layer cannot fire
+        // drawableSizeWillChange callbacks between setUp and the test body.
+        // Without a window the Metal layer may report a NaN/zero drawable size,
+        // which would corrupt renderInfo.viewPort and set pendingResize = true.
+        // Tests call renderer.draw(in:) directly, so the delegate is not needed.
+        renderer.metalView.delegate = nil
     }
 
     override func tearDown() async throws {
@@ -203,7 +210,13 @@ class BaseRenderSetup: XCTestCase {
         if targetName.contains("ColorTarget") ||
             targetName.contains("LightPassColor") ||
             targetName.contains("NormalTarget") ||
-            targetName.contains("TransparencyTarget")
+            targetName.contains("TransparencyTarget") ||
+            targetName == "DepthOfField" ||
+            targetName == "ChromaticAberration" ||
+            targetName == "Bloom" ||
+            targetName == "Vignette" ||
+            targetName == "ColorGrading" ||
+            targetName == "FXAA"
         {
             mode = "rgb"
         } else {
@@ -399,7 +412,13 @@ class BaseRenderSetup: XCTestCase {
         else if referenceName.contains("ColorTarget") ||
             referenceName.contains("LightPassColor") ||
             referenceName.contains("NormalTarget") ||
-            referenceName.contains("TransparencyTarget")
+            referenceName.contains("TransparencyTarget") ||
+            referenceName == "DepthOfField" ||
+            referenceName == "ChromaticAberration" ||
+            referenceName == "Bloom" ||
+            referenceName == "Vignette" ||
+            referenceName == "ColorGrading" ||
+            referenceName == "FXAA"
         {
             chosenMode = "rgb"
         } else {
