@@ -1,0 +1,241 @@
+Untold Engine Commercial License
+=================================
+
+Version 1.0
+Copyright (c) Untold Engine Studios. All rights reserved.
+
+This Untold Engine Commercial License ("Commercial License") is a legal
+agreement between you (an individual or a single legal entity, "Licensee")
+and Untold Engine Studios ("Licensor") governing your use of the Untold
+Engine source code, binaries, and associated materials ("the Software").
+
+By purchasing, downloading, or using a Commercial License, you agree to be
+bound by the terms of this agreement.
+
+------------------------------------------------------------------------
+
+1. GRANT OF LICENSE
+------------------------------------------------------------------------
+
+Subject to the terms of this agreement and payment of the applicable
+license fee, Licensor grants Licensee a non-exclusive, non-transferable,
+worldwide license to:
+
+  (a) Use, reproduce, and modify the Software, including its source code,
+      for the purpose of developing and distributing Licensee's products
+      and services ("Licensee Products");
+
+  (b) Keep modifications to the Software source code private and
+      proprietary — Licensee is NOT required to disclose or distribute
+      modified engine source files to any third party;
+
+  (c) Distribute Licensee Products (including the Software in compiled,
+      binary, or embedded form) without any obligation to provide the
+      Software's source code or modified engine source code to end users
+      or the public;
+
+  (d) Use the Software in an unlimited number of Licensee Products during
+      the license term, subject to the seat/studio scope defined in the
+      applicable Order Form or purchase agreement.
+
+------------------------------------------------------------------------
+
+2. WHAT THIS LICENSE REPLACES
+------------------------------------------------------------------------
+
+Under the Mozilla Public License 2.0 (MPL-2.0), modifications to
+MPL-covered engine files must be made available when those files are
+distributed. This Commercial
+License supersedes that requirement for Licensees in good standing,
+granting the right to maintain private, proprietary modifications.
+
+All other rights not explicitly granted in Section 1 remain reserved by
+the Licensor.
+
+------------------------------------------------------------------------
+
+3. RESTRICTIONS
+------------------------------------------------------------------------
+
+Licensee may NOT:
+
+  (a) Sublicense, sell, resell, transfer, assign, or redistribute the
+      Software itself — in source or binary form — as a standalone engine,
+      toolkit, or middleware product to third parties;
+
+  (b) Distribute the Software, or a substantially similar derivative of
+      the Software, as a standalone game engine, renderer, SDK, or
+      middleware product to the public;
+
+  (c) Remove, alter, or obscure any copyright, trademark, or proprietary
+      notices contained in the Software;
+
+  (d) Use the Untold Engine name, logo, or trademarks in ways prohibited
+      by the Untold Engine Trademark Policy (TRADEMARKS.md);
+
+  (e) Share, transfer, or grant access to the Software source code to
+      any individual or entity not covered by this license without
+      Licensor's prior written consent.
+
+------------------------------------------------------------------------
+
+4. SCOPE OF LICENSE
+------------------------------------------------------------------------
+
+The license granted in Section 1 covers:
+
+  - The version of the Software in effect at the time of purchase, plus
+    any updates or new versions released during an active subscription
+    period, if applicable.
+
+  - All developers employed by or contracted to Licensee under the
+    studio/seat scope defined in the applicable Order Form.
+
+Licensee must obtain a separate Commercial License for each distinct
+legal entity that uses the Software.
+
+4.1. Subscription Lapse. If a subscription-based license is not renewed,
+     Licensee retains the right to continue using the last licensed
+     version of the Software commercially under the terms of this
+     agreement, but will no longer receive updates, new versions, or
+     support entitlements. Access to any update channels or support
+     systems will be suspended until renewal.
+
+4.2. Perpetual licenses, where specified in the applicable Order Form,
+     are not subject to renewal and include the rights in Section 1
+     for the licensed version in perpetuity, without ongoing support
+     unless a separate support subscription is maintained.
+
+------------------------------------------------------------------------
+
+5. OPEN-SOURCE VERSION
+------------------------------------------------------------------------
+
+The open-source version of Untold Engine remains available under the
+Mozilla Public License 2.0. Nothing in this Commercial License restricts
+a Licensee's ability to also use the open-source version under MPL-2.0
+terms for separate, compliant projects.
+
+------------------------------------------------------------------------
+
+6. FEES AND PAYMENT
+------------------------------------------------------------------------
+
+The license fee, payment schedule, and renewal terms are defined in the
+applicable Order Form or purchase agreement issued by Licensor. Failure
+to pay applicable fees on time may result in suspension or termination
+of this license.
+
+For pricing and to obtain a Commercial License, contact:
+
+  Untold Engine Studios
+  Email: harold.serrano@untoldengine.com
+  Web:   [INSERT WEBSITE URL]
+
+------------------------------------------------------------------------
+
+7. TERM AND TERMINATION
+------------------------------------------------------------------------
+
+7.1. This license is effective upon purchase and continues for the term
+     specified in the applicable Order Form (perpetual or subscription).
+
+7.2. Licensor may terminate this license immediately upon written notice
+     if Licensee:
+
+       (a) materially breaches any term of this agreement and fails to
+           cure the breach within 30 days of written notice; or
+
+       (b) becomes insolvent, makes an assignment for the benefit of
+           creditors, or is subject to bankruptcy proceedings.
+
+7.3. Upon termination, Licensee must cease all use of the Software and
+     destroy all copies in their possession. Licensee Products already
+     distributed to end users prior to termination may continue to
+     operate under the terms in effect at the time of distribution.
+
+------------------------------------------------------------------------
+
+8. NO CONTRIBUTION OBLIGATION
+------------------------------------------------------------------------
+
+Under this Commercial License, Licensee has no obligation to contribute
+modifications, improvements, or bug fixes back to the open-source
+project. Contribution is encouraged but entirely voluntary.
+
+------------------------------------------------------------------------
+
+9. TECHNICAL SUPPORT
+------------------------------------------------------------------------
+
+9.1. Commercial License holders are entitled to technical support
+     in accordance with their license tier as defined in the Untold
+     Engine Commercial Support Policy (LICENSE-COMMERCIAL-SUPPORT).
+
+9.2. Support is limited to confirmed Engine Bugs — defects reproducible
+     in an unmodified installation of the licensed Software version,
+     used as documented. Issues arising from Licensee Modifications to
+     engine source files are outside support scope.
+
+9.3. Engine Bugs reported by active Commercial License holders take
+     priority over all community (MPL-2.0) bug reports and feature
+     requests. Priority ordering among Commercial License holders is
+     determined by tier (Enterprise > Studio > Indie) and submission
+     date.
+
+9.4. Issues outside support scope may be addressed as paid consulting
+     at Licensor's then-current hourly rate, subject to availability.
+
+9.5. Full support terms, triage process, response times, and
+     exclusions are defined in LICENSE-COMMERCIAL-SUPPORT, which is
+     incorporated into this agreement by reference.
+
+------------------------------------------------------------------------
+
+10. DISCLAIMER OF WARRANTY
+------------------------------------------------------------------------
+
+THE SOFTWARE IS PROVIDED "AS IS," WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+LICENSOR DOES NOT WARRANT THAT THE SOFTWARE WILL BE ERROR-FREE OR THAT
+DEFECTS WILL BE CORRECTED.
+
+------------------------------------------------------------------------
+
+11. LIMITATION OF LIABILITY
+------------------------------------------------------------------------
+
+IN NO EVENT SHALL LICENSOR BE LIABLE TO LICENSEE FOR ANY INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING
+LOSS OF PROFITS, LOSS OF DATA, BUSINESS INTERRUPTION, OR LOSS OF
+GOODWILL) ARISING OUT OF OR RELATED TO THIS AGREEMENT OR THE USE OF
+THE SOFTWARE, EVEN IF LICENSOR HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGES. LICENSOR'S TOTAL CUMULATIVE LIABILITY ARISING OUT OF OR
+RELATED TO THIS AGREEMENT SHALL NOT EXCEED THE FEES PAID BY LICENSEE
+IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
+
+------------------------------------------------------------------------
+
+12. GOVERNING LAW
+------------------------------------------------------------------------
+
+This agreement shall be governed by the laws of the State of [INSERT
+STATE], without regard to its conflict-of-law provisions. Any disputes
+arising under this agreement shall be resolved in the state or federal
+courts located in [INSERT COUNTY/JURISDICTION].
+
+------------------------------------------------------------------------
+
+13. ENTIRE AGREEMENT
+------------------------------------------------------------------------
+
+This Commercial License, together with the applicable Order Form,
+constitutes the entire agreement between the parties regarding the
+subject matter hereof and supersedes all prior agreements,
+representations, and understandings. This license may be amended only
+in writing signed by both parties.
+
+------------------------------------------------------------------------
+
+Untold Engine Studios
