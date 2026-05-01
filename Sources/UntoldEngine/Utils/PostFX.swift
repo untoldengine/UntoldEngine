@@ -192,16 +192,16 @@ public enum PostFX {
     }
 
     public static func apply(_ preset: PostFXPreset) {
-        ColorGradingParams.shared.enabled     = preset.colorGrading
-        ColorGradingParams.shared.exposure    = preset.exposure
-        ColorGradingParams.shared.brightness  = preset.brightness
-        ColorGradingParams.shared.contrast    = preset.contrast
-        ColorGradingParams.shared.saturation  = preset.saturation
+        ColorGradingParams.shared.enabled = preset.colorGrading
+        ColorGradingParams.shared.exposure = preset.exposure
+        ColorGradingParams.shared.brightness = preset.brightness
+        ColorGradingParams.shared.contrast = preset.contrast
+        ColorGradingParams.shared.saturation = preset.saturation
         ColorGradingParams.shared.temperature = preset.temperature
-        ColorGradingParams.shared.tint        = preset.tint
-        SSAOParams.shared.enabled             = preset.ssao
-        SSAOParams.shared.radius              = preset.ssaoRadius
-        SSAOParams.shared.bias                = preset.ssaoBias
-        SSAOParams.shared.intensity           = preset.ssaoIntensity
+        ColorGradingParams.shared.tint = preset.tint
+        SSAOParams.shared.enabled = preset.ssao
+        SSAOParams.shared.radius = preset.ssaoRadius
+        SSAOParams.shared.bias = preset.ssaoBias
+        SSAOParams.shared.intensity = preset.ssaoIntensity
     }
 }

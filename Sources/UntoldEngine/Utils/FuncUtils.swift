@@ -367,6 +367,55 @@ public func textureToCGImage(texture: MTLTexture) -> CGImage? {
 
         return makeRGBA8Image(from: UnsafeMutableRawPointer(rgbaData), isSRGB: texture.pixelFormat == .bgra8Unorm_srgb)
 
+    case .r8Unorm:
+        let bytesPerRow = width
+        let dataSize = bytesPerRow * height
+        let rawData = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 1)
+        defer { rawData.deallocate() }
+        texture.getBytes(rawData, bytesPerRow: bytesPerRow, from: region, mipmapLevel: 0)
+
+        let colorSpace = CGColorSpaceCreateDeviceGray()
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue)
+        guard let context = CGContext(
+            data: rawData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo.rawValue
+        ) else { return nil }
+        return context.makeImage()
+
+    case .r16Float:
+        let srcBytesPerRow = width * 2
+        let dataSize = srcBytesPerRow * height
+        let rawData = UnsafeMutableRawPointer.allocate(byteCount: dataSize, alignment: 2)
+        defer { rawData.deallocate() }
+        texture.getBytes(rawData, bytesPerRow: srcBytesPerRow, from: region, mipmapLevel: 0)
+
+        let pixelCount = width * height
+        let f16Buffer = rawData.bindMemory(to: Float16.self, capacity: pixelCount)
+        let uint8Data = UnsafeMutablePointer<UInt8>.allocate(capacity: pixelCount)
+        defer { uint8Data.deallocate() }
+        for i in 0 ..< pixelCount {
+            let v = Float(f16Buffer[i])
+            uint8Data[i] = UInt8(max(0, min(255, Int(v * 255.0))))
+        }
+
+        let colorSpace = CGColorSpaceCreateDeviceGray()
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue)
+        guard let context = CGContext(
+            data: uint8Data,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo.rawValue
+        ) else { return nil }
+        return context.makeImage()
+
     default:
         return nil
     }
