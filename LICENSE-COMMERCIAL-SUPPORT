@@ -1,0 +1,285 @@
+Untold Engine Commercial Support Policy
+========================================
+
+Version 1.0
+Copyright (c) Untold Engine Studios. All rights reserved.
+
+This Support Policy applies to all active Commercial License holders and
+defines the scope, priorities, and limitations of technical support
+provided by Untold Engine Studios ("Licensor").
+
+------------------------------------------------------------------------
+
+1. DEFINITIONS
+------------------------------------------------------------------------
+
+1.1. "Supported Configuration"
+     means the unmodified Untold Engine source code at the Licensee's
+     licensed version, used in accordance with official documentation
+     and without alterations to engine internals, architecture, or
+     rendering pipeline.
+
+1.2. "Engine Bug" (Correctness Defect)
+     means a defect that produces incorrect, undefined, or crashed
+     behavior that is reproducible in a Supported Configuration and
+     is attributable to the Untold Engine source code itself, not to
+     Licensee modifications, third-party integrations, or unsupported
+     platform configurations. Examples: incorrect rendering output,
+     crash on valid input on device, incorrect entity transform.
+
+1.3. "Performance Issue"
+     means a condition where the engine produces correct output but
+     at lower throughput, higher memory usage, or higher latency than
+     expected or documented. Performance issues are distinct from
+     Engine Bugs and are handled separately (see Section 4.4).
+
+1.4. "Platform-Specific Issue"
+     means behavior that differs from documented behavior only on a
+     specific Apple platform (e.g., visionOS, tvOS) or hardware
+     configuration, where the root cause may lie in the platform SDK,
+     driver, or hardware rather than the engine. Platform-Specific
+     Issues are subject to triage before priority is assigned
+     (see Section 4.4).
+
+1.5. "Feature Gap"
+     means the absence of a capability that Licensee expects or
+     desires but that is not documented as a supported feature of
+     the licensed version. Feature gaps are not Engine Bugs and are
+     not eligible for support scope (see Section 4.4).
+
+1.6. "Large Scene / Stress Failure"
+     means a failure or degradation that occurs only above a certain
+     scene scale, entity count, or asset volume, and cannot be
+     reproduced with a minimal scene. These are triaged case by case
+     (see Section 4.4).
+
+1.7. "Licensee Modification"
+     means any addition to, deletion from, or alteration of engine
+     source files made by Licensee, including changes to rendering
+     passes, physics systems, entity component systems, shader code,
+     or any other engine subsystem.
+
+1.8. "Support Request"
+     means a written request submitted by Licensee via the designated
+     support channel describing a specific, reproducible issue.
+
+------------------------------------------------------------------------
+
+2. SUPPORT TIERS
+------------------------------------------------------------------------
+
+Support entitlements are determined by the Licensee's active tier at
+the time the Support Request is submitted.
+
+  +--------------+------------------+------------------+----------------------+
+  | Tier         | Acknowledgement  | Fix Targeting    | Channel              |
+  +--------------+------------------+------------------+----------------------+
+  | Community    | No guarantee     | No guarantee     | GitHub Issues        |
+  | (MPL-2.0)    |                  |                  | (best effort)        |
+  +--------------+------------------+------------------+----------------------+
+  | Indie        | 48 business hrs  | Next minor       | GitHub Issues        |
+  |              |                  | release          | (include tier)   |
+  +--------------+------------------+------------------+----------------------+
+  | Studio       | 24 business hrs  | Next patch       | GitHub Issues        |
+  |              |                  | release          | (include tier)   |
+  +--------------+------------------+------------------+----------------------+
+  | Enterprise   | Custom SLA       | Negotiated       | GitHub Issues        |
+  |              |                  |                  | (include tier)   |
+  +--------------+------------------+------------------+----------------------+
+
+"Business hours" means Monday through Friday, 9:00 AM to 6:00 PM
+Pacific Time, excluding public holidays.
+
+------------------------------------------------------------------------
+
+3. PRIORITY POLICY
+------------------------------------------------------------------------
+
+3.1. Engine Bugs affecting active Commercial License holders (Indie,
+     Studio, or Enterprise) take priority over all other open issues,
+     including community bug reports and feature requests.
+
+3.2. Priority is determined in the following order when multiple
+     Commercial License holders report issues simultaneously:
+
+       (a) Tier precedence: Enterprise > Studio > Indie;
+       (b) Within the same tier: earliest confirmed submission date.
+
+3.3. Priority status applies only to confirmed Engine Bugs as defined
+     in Section 1.2. A Support Request that cannot be reproduced in
+     a Supported Configuration does not receive priority treatment
+     until it is confirmed as an Engine Bug through triage (Section 4).
+
+------------------------------------------------------------------------
+
+4. TRIAGE PROCESS
+------------------------------------------------------------------------
+
+4.1. Upon receiving a Support Request, Licensor will first determine
+     whether the issue is reproducible in a Supported Configuration.
+
+4.2. Licensee must provide, upon request:
+
+       (a) A minimal reproduction case using an unmodified version
+           of the engine at the licensed version;
+       (b) Steps to reproduce, platform details, and OS/SDK version;
+       (c) Any relevant logs, shader compiler output, or crash reports.
+
+4.3. Triage outcomes:
+
+       (a) Confirmed Engine Bug — issue is reproducible in a Supported
+           Configuration. Priority queue applies per Section 3.
+           Licensor owns the resolution.
+
+       (b) Licensee Modification Issue — issue is not reproducible in
+           a Supported Configuration and appears to originate from
+           Licensee Modifications. This falls outside support scope
+           (Section 5). Licensor will notify Licensee and may offer
+           paid consulting (Section 6).
+
+       (c) Environment Issue — issue is attributable to Licensee's
+           hardware, OS, or platform configuration outside documented
+           support. Licensor will advise but is not obligated to resolve.
+
+       (d) Cannot Reproduce — Licensor is unable to reproduce the issue
+           with the information provided. Licensor will request
+           additional information. If no response within 14 calendar
+           days, the request may be closed.
+
+4.4. Issue Classification
+
+     Not every report is an Engine Bug. The following table defines
+     how each issue type is classified and handled:
+
+     +----------------------------+----------+---------------------------+
+     | Issue Type                 | Priority | Handling                  |
+     +----------------------------+----------+---------------------------+
+     | Correctness Bug            | Yes      | Licensor owns resolution. |
+     | (incorrect/crashed output, |          | Priority per Section 3.   |
+     | reproducible on unmodified |          |                           |
+     | engine)                    |          |                           |
+     +----------------------------+----------+---------------------------+
+     | Performance Issue          | No       | Investigated on best-     |
+     | (correct output, lower     |          | effort basis. Documented  |
+     | throughput or higher       |          | regressions between named |
+     | memory than documented)    |          | releases are escalated.   |
+     +----------------------------+----------+---------------------------+
+     | Platform-Specific Issue    | Partial  | Triaged first to confirm  |
+     | (visionOS, tvOS quirks,    |          | engine vs SDK/driver root |
+     | hardware-dependent)        |          | cause. Priority assigned  |
+     |                            |          | only if engine is at      |
+     |                            |          | fault.                    |
+     +----------------------------+----------+---------------------------+
+     | Large Scene / Stress       | Partial  | Requires minimal repro    |
+     | Failure (fails only above  |          | attempt. If unreproducible|
+     | certain scale or entity    |          | at smaller scale, treated |
+     | count)                     |          | as best-effort.           |
+     +----------------------------+----------+---------------------------+
+     | Feature Gap                | No       | Logged as a feature       |
+     | (desired feature not       |          | request. Not eligible for |
+     | present in licensed ver.)  |          | support scope or priority.|
+     +----------------------------+----------+---------------------------+
+     | Licensee Modification      | No       | Outside support scope.    |
+     | Issue (only reproducible   |          | May be addressed as paid  |
+     | after engine changes)      |          | consulting (Section 6).   |
+     +----------------------------+----------+---------------------------+
+
+     Licensor determines issue classification during triage. Licensee
+     may dispute a classification by providing additional reproduction
+     evidence.
+
+------------------------------------------------------------------------
+
+5. SUPPORT SCOPE AND EXCLUSIONS
+------------------------------------------------------------------------
+
+5.1. Support is limited to Engine Bugs as defined in Section 1.2.
+
+5.2. The following are explicitly outside support scope:
+
+       (a) Issues arising from Licensee Modifications to engine source
+           files, including custom rendering passes, modified physics
+           or collision systems, altered entity component architecture,
+           or custom shader pipelines;
+
+       (b) Integration of third-party libraries, SDKs, or middleware
+           not provided or documented by Licensor;
+
+       (c) Architectural decisions made by Licensee that deviate from
+           documented engine design patterns;
+
+       (d) Issues caused by hardware, operating system versions, or
+           Apple platform SDK versions outside those documented as
+           supported for the licensed engine version;
+
+       (e) General Swift, Metal, or platform programming assistance
+           not directly related to an Engine Bug;
+
+       (f) Code review or audit of Licensee Modifications.
+
+5.3. Licensor reserves the right to close a Support Request that falls
+     outside scope after notifying Licensee of the reason.
+
+------------------------------------------------------------------------
+
+6. PAID CONSULTING
+------------------------------------------------------------------------
+
+6.1. Issues outside support scope — including diagnosis or debugging of
+     Licensee Modifications — may be addressed as paid consulting at
+     Licensor's then-current hourly rate.
+
+6.2. Paid consulting is offered at Licensor's discretion and subject
+     to availability. It does not alter the support scope defined in
+     Section 5, nor does it create an ongoing support obligation.
+
+6.3. To inquire about paid consulting, send a private email to
+     harold.serrano@untoldengine.com. Licensor will respond to
+     discuss scope and terms.
+
+------------------------------------------------------------------------
+
+7. SUPPORT CHANNEL AND SUBMISSION
+------------------------------------------------------------------------
+
+7.1. All Support Requests, regardless of tier, must be submitted via
+     GitHub Issues in the official Untold Engine repository.
+
+7.2. Commercial License holders (Indie, Studio, Enterprise) must
+     include their license tier in the issue body to receive priority
+     treatment. If Licensor requires verification, Licensee will be
+     contacted privately by email to confirm license status. Issues
+     submitted without tier identification will be treated as community
+     tier until the license is confirmed.
+
+7.3. Licensor will apply a priority label to confirmed Commercial
+     License issues once the license is verified, marking them for
+     expedited triage per Section 3.
+
+------------------------------------------------------------------------
+
+8. NO GUARANTEE OF RESOLUTION
+------------------------------------------------------------------------
+
+Licensor will make commercially reasonable efforts to acknowledge,
+triage, and resolve confirmed Engine Bugs within the timeframes in
+Section 2. However, Licensor does not guarantee that every Engine Bug
+will be resolved in a specific timeframe or at all, particularly where
+resolution depends on third-party platforms, Apple SDK constraints,
+or hardware-specific behavior outside Licensor's control.
+
+------------------------------------------------------------------------
+
+9. SUPPORT POLICY CHANGES
+------------------------------------------------------------------------
+
+Licensor may update this Support Policy from time to time. Changes
+will be communicated to active Commercial License holders via email
+with at least 30 days notice before taking effect for existing
+subscribers. Continued use of the Software after the effective date
+constitutes acceptance of the updated policy.
+
+------------------------------------------------------------------------
+
+Untold Engine Studios
+Email: harold.serrano@untoldengine.com
