@@ -54,6 +54,7 @@ import sys
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from contextlib import contextmanager
 from mathutils import Vector, Matrix
@@ -62,7 +63,32 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from untoldexplorer import clear_scene, export_objects_to_untold, import_usd_asset
+from untoldexplorer import ProgressReporter, clear_scene, export_objects_to_untold, import_usd_asset
+
+
+def print_export_stage(stage, detail=""):
+    suffix = f" - {detail}" if detail else ""
+    print(f"[stage] {stage}{suffix}", flush=True)
+
+
+def make_untold_progress_callback(label):
+    def _callback(stage, done, total, detail):
+        if total > 1:
+            print(f"[progress] {label}: {stage} {done}/{total} - {detail}", flush=True)
+        else:
+            print(f"[progress] {label}: {stage} - {detail}", flush=True)
+    return _callback
+
+
+def append_worker_progress(progress_file, event):
+    if not progress_file:
+        return
+    try:
+        with open(progress_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(event, sort_keys=True) + "\n")
+            f.flush()
+    except OSError:
+        pass
 
 # ============================================================
 # CONFIG
@@ -2205,6 +2231,7 @@ def export_local_tile(filepath, objects, tile_bounds, source_scene_path):
                 convert_orientation=CONVERT_ORIENTATION,
                 source_orientation=SOURCE_ORIENTATION,
                 compress_geometry=COMPRESS_GEOMETRY,
+                progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
             )
     finally:
         remove_scene(temp_scene)
@@ -2243,6 +2270,7 @@ def export_shared_bucket(filepath, objects, source_scene_path):
                     convert_orientation=CONVERT_ORIENTATION,
                     source_orientation=SOURCE_ORIENTATION,
                     compress_geometry=COMPRESS_GEOMETRY,
+                    progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
                 )
         finally:
             remove_scene(temp_scene)
@@ -2257,6 +2285,7 @@ def export_shared_bucket(filepath, objects, source_scene_path):
                 convert_orientation=CONVERT_ORIENTATION,
                 source_orientation=SOURCE_ORIENTATION,
                 compress_geometry=COMPRESS_GEOMETRY,
+                progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
             )
 
     return True, None
@@ -2302,6 +2331,7 @@ def export_hlod_tile(filepath, objects, tile_bounds, reduction_ratio, source_sce
                 convert_orientation=CONVERT_ORIENTATION,
                 source_orientation=SOURCE_ORIENTATION,
                 compress_geometry=COMPRESS_GEOMETRY,
+                progress_callback=make_untold_progress_callback(os.path.basename(filepath)),
             )
     finally:
         remove_scene(temp_scene)
@@ -2817,10 +2847,19 @@ def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
 
     active_hlod_levels = bundle.get("active_hlod_levels", [])
     active_lod_levels  = bundle.get("active_lod_levels",  [])
+    progress_file = bundle.get("progress_file")
     ext = EXPORT_FORMAT.lower().lstrip(".")
 
     tile_results = []
-    for tile_spec in bundle.get("tiles", []):
+    tile_specs = bundle.get("tiles", [])
+    total_assets = sum(1 + len(active_hlod_levels) + len(active_lod_levels) for _ in tile_specs)
+    completed_assets = 0
+    append_worker_progress(progress_file, {
+        "event": "start",
+        "total_assets": total_assets,
+        "completed_assets": completed_assets,
+    })
+    for tile_spec in tile_specs:
         tile_id     = tile_spec["tile_id"]
         tx          = tile_spec["tx"]
         ty          = tile_spec["ty"]
@@ -2853,6 +2892,14 @@ def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
             print(f"  FAILED: {error}", flush=True)
 
         file_sz = os.path.getsize(filepath) if ok and os.path.isfile(filepath) else 0
+        completed_assets += 1
+        append_worker_progress(progress_file, {
+            "event": "asset_done",
+            "asset": tile_id,
+            "ok": ok,
+            "completed_assets": completed_assets,
+            "total_assets": total_assets,
+        })
 
         hlod_results = []
         if ok and not DEBUG_AABB_ONLY:
@@ -2875,6 +2922,14 @@ def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
                     hlod_ok, hlod_error = False, str(ex)
                 if not hlod_ok:
                     print(f"    HLOD FAILED: {hlod_error}", flush=True)
+                completed_assets += 1
+                append_worker_progress(progress_file, {
+                    "event": "asset_done",
+                    "asset": os.path.basename(hlod_filepath),
+                    "ok": hlod_ok,
+                    "completed_assets": completed_assets,
+                    "total_assets": total_assets,
+                })
                 hlod_results.append({
                     "ok":              hlod_ok,
                     "error":           hlod_error,
@@ -2904,6 +2959,14 @@ def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
                     lod_ok, lod_error = False, str(ex)
                 if not lod_ok:
                     print(f"    LOD{lod_n} FAILED: {lod_error}", flush=True)
+                completed_assets += 1
+                append_worker_progress(progress_file, {
+                    "event": "asset_done",
+                    "asset": os.path.basename(lod_filepath),
+                    "ok": lod_ok,
+                    "completed_assets": completed_assets,
+                    "total_assets": total_assets,
+                })
                 lod_results.append({
                     "ok":              lod_ok,
                     "error":           lod_error,
@@ -2922,6 +2985,39 @@ def _run_worker_mode(work_bundle_path: str, result_file_path: str) -> None:
 
     with open(result_file_path, "w", encoding="utf-8") as f:
         json.dump({"tile_results": tile_results}, f, indent=2)
+    append_worker_progress(progress_file, {
+        "event": "complete",
+        "completed_assets": total_assets,
+        "total_assets": total_assets,
+    })
+
+
+def _poll_worker_progress(worker_info, progress_offsets, progress_seen, reporter):
+    for worker_index, _proc, _log_path, _result_path, progress_path in worker_info:
+        if not progress_path or not os.path.isfile(progress_path):
+            continue
+        offset = progress_offsets.get(progress_path, 0)
+        try:
+            with open(progress_path, "r", encoding="utf-8") as f:
+                f.seek(offset)
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    completed = int(event.get("completed_assets", 0))
+                    previous = progress_seen.get(worker_index, 0)
+                    if completed > previous:
+                        delta = completed - previous
+                        progress_seen[worker_index] = completed
+                        detail = event.get("asset", f"worker {worker_index:02d}")
+                        reporter.advance("Export assets", f"worker {worker_index:02d}: {detail}", delta)
+                progress_offsets[progress_path] = f.tell()
+        except OSError:
+            continue
 
 
 def _export_tiles_parallel(
@@ -2975,7 +3071,10 @@ def _export_tiles_parallel(
     blender_bin  = getattr(bpy.app, "binary_path", sys.executable)
     script_path  = os.path.abspath(__file__)
 
-    # (proc, log_path, result_path)
+    total_assets = sum(1 + len(active_hlod_levels) + len(active_lod_levels) for _ in tile_specs)
+    progress = ProgressReporter("parallel tile export", total_assets)
+
+    # (worker_index, proc, log_path, result_path, progress_path)
     worker_info: list[tuple] = []
 
     try:
@@ -2992,7 +3091,9 @@ def _export_tiles_parallel(
             bundle_path = os.path.join(tmpdir, f"worker_{i:02d}_bundle.json")
             result_path = os.path.join(tmpdir, f"worker_{i:02d}_result.json")
             log_path    = os.path.join(tmpdir, f"worker_{i:02d}.log")
+            progress_path = os.path.join(tmpdir, f"worker_{i:02d}_progress.jsonl")
             with open(bundle_path, "w", encoding="utf-8") as f:
+                bundle["progress_file"] = progress_path
                 json.dump(bundle, f)
 
             cmd = [
@@ -3014,13 +3115,20 @@ def _export_tiles_parallel(
                 stderr=subprocess.STDOUT,
             )
             log_fh.close()   # Parent's fd is no longer needed; child has its own copy.
-            worker_info.append((proc, log_path, result_path))
+            worker_info.append((i, proc, log_path, result_path, progress_path))
             print(f"  Launched worker {i:02d} ({len(batch)} tiles, pid={proc.pid})")
 
         # Wait for all workers to finish (true parallel: all stdout goes to files,
         # so no process ever blocks on a full pipe buffer).
+        progress_offsets: dict[str, int] = {}
+        progress_seen: dict[int, int] = {}
+        while any(proc.poll() is None for _i, proc, _log_path, _result_path, _progress_path in worker_info):
+            _poll_worker_progress(worker_info, progress_offsets, progress_seen, progress)
+            time.sleep(0.5)
+        _poll_worker_progress(worker_info, progress_offsets, progress_seen, progress)
+
         all_results: dict[str, dict] = {}
-        for i, (proc, log_path, result_path) in enumerate(worker_info):
+        for i, proc, log_path, result_path, _progress_path in worker_info:
             proc.wait()
             prefix = f"[worker {i:02d}] "
             try:
@@ -3102,7 +3210,10 @@ def _export_quadtree_tiles_parallel(
     blender_bin = getattr(bpy.app, "binary_path", sys.executable)
     script_path = os.path.abspath(__file__)
 
-    # (proc, log_path, result_path)
+    total_assets = sum(1 + len(active_hlod_levels or []) + len(active_lod_levels or []) for _ in tile_specs)
+    progress = ProgressReporter("parallel quadtree export", total_assets)
+
+    # (worker_index, proc, log_path, result_path, progress_path)
     worker_info: list[tuple] = []
 
     try:
@@ -3119,7 +3230,9 @@ def _export_quadtree_tiles_parallel(
             bundle_path = os.path.join(tmpdir, f"worker_{i:02d}_bundle.json")
             result_path = os.path.join(tmpdir, f"worker_{i:02d}_result.json")
             log_path    = os.path.join(tmpdir, f"worker_{i:02d}.log")
+            progress_path = os.path.join(tmpdir, f"worker_{i:02d}_progress.jsonl")
             with open(bundle_path, "w", encoding="utf-8") as f:
+                bundle["progress_file"] = progress_path
                 json.dump(bundle, f)
 
             cmd = [
@@ -3141,13 +3254,20 @@ def _export_quadtree_tiles_parallel(
                 stderr=subprocess.STDOUT,
             )
             log_fh.close()   # Parent's fd is no longer needed; child has its own copy.
-            worker_info.append((proc, log_path, result_path))
+            worker_info.append((i, proc, log_path, result_path, progress_path))
             print(f"  Launched worker {i:02d} ({len(batch)} tiles, pid={proc.pid})")
 
         # Wait for all workers to finish (true parallel: stdout goes to files,
         # so no process ever blocks on a full pipe buffer).
+        progress_offsets: dict[str, int] = {}
+        progress_seen: dict[int, int] = {}
+        while any(proc.poll() is None for _i, proc, _log_path, _result_path, _progress_path in worker_info):
+            _poll_worker_progress(worker_info, progress_offsets, progress_seen, progress)
+            time.sleep(0.5)
+        _poll_worker_progress(worker_info, progress_offsets, progress_seen, progress)
+
         all_results: dict[str, dict] = {}
-        for i, (proc, log_path, result_path) in enumerate(worker_info):
+        for i, proc, log_path, result_path, _progress_path in worker_info:
             proc.wait()
             prefix = f"[worker {i:02d}] "
             try:
@@ -3323,6 +3443,7 @@ def filter_tile_assignments_perimeter(tile_assignments, depth=1):
 # ============================================================
 
 def run():
+    print_export_stage("Resolve input")
     source_scene_path = resolve_source_scene_path()
     if ERROR_IF_UNSAVED_SOURCE_NOT_FOUND and not bpy.data.filepath and not source_scene_path:
         raise RuntimeError(
@@ -3335,9 +3456,11 @@ def run():
     # asset exporter instead of operating on Blender's current scene contents
     # (for example the default startup cube under --factory-startup).
     if source_scene_path and is_usd_filepath(source_scene_path):
+        print_export_stage("Import source scene", os.path.basename(source_scene_path))
         clear_scene()
         import_usd_asset(Path(source_scene_path))
 
+    print_export_stage("Prepare output")
     output_dir = resolve_output_dir(OUTPUT_DIR, source_scene_path)
     model_dir  = os.path.dirname(os.path.normpath(output_dir)) or output_dir
     hlod_levels_config = validate_hlod_levels() if GENERATE_HLOD else []
@@ -3357,6 +3480,7 @@ def run():
     # ------------------------------------------------------------------
     # Gather objects and compute world bounds
     # ------------------------------------------------------------------
+    print_export_stage("Analyze scene")
     objects = get_candidate_objects()
     if not objects:
         print("No mesh objects found.")
@@ -3373,6 +3497,7 @@ def run():
     # ------------------------------------------------------------------
     # Tile sizing (manual or auto)
     # ------------------------------------------------------------------
+    print_export_stage("Plan tile sizes")
     if AUTO_TILE_SIZE:
         tile_size_x, tile_size_z, auto_info = choose_auto_tile_size(
             objects, object_bounds, scene_bounds, origin_y, TILE_SIZE_Y
@@ -3428,6 +3553,7 @@ def run():
     # ------------------------------------------------------------------
     # Classify and assign
     # ------------------------------------------------------------------
+    print_export_stage("Classify objects")
     pre_annotated  = has_quadtree_metadata(objects)
     use_quadtree   = pre_annotated or FORCE_QUADTREE
     node_tier_groups = None  # populated only in quadtree path
@@ -3728,6 +3854,24 @@ def run():
     # ------------------------------------------------------------------
     # FULL EXPORT
     # ------------------------------------------------------------------
+    planned_local_assets = 0
+    if use_quadtree and node_tier_groups is not None:
+        non_empty_groups = sum(1 for _key, tile_objs in node_tier_groups.items() if tile_objs)
+        quadtree_parallel = _effective_worker_count(non_empty_groups) > 1
+        for (_node_id, tier), tile_objs in node_tier_groups.items():
+            if not tile_objs:
+                continue
+            planned_local_assets += 1
+            if quadtree_parallel or tier in HLOD_LOD_TIERS:
+                planned_local_assets += len(active_hlod_levels) + len(active_lod_levels)
+    else:
+        non_empty_tiles = sum(1 for _coord, tile_objs in tile_assignments.items() if tile_objs)
+        planned_local_assets = non_empty_tiles * (1 + len(active_hlod_levels) + len(active_lod_levels))
+    export_progress = ProgressReporter(
+        "tile export",
+        (1 if shared_objects else 0) + planned_local_assets + 1,
+    )
+    export_progress.stage("Start", f"{planned_local_assets} tile asset(s), {len(shared_objects)} shared object(s)")
 
     # --- Export shared bucket ---
     if shared_objects:
@@ -3739,6 +3883,7 @@ def run():
 
         if not ok:
             print(f"  FAILED: {error}")
+            export_progress.advance("Shared bucket failed", str(error))
         else:
             shared_aabb     = scene_world_bounds(shared_objects)
             shared_aabb_usd = aabb_to_usd_space(shared_aabb) if shared_aabb else None
@@ -3775,6 +3920,7 @@ def run():
                     for obj in shared_objects
                 ],
             }
+            export_progress.advance("Shared bucket", os.path.basename(shared_filepath))
 
     # ------------------------------------------------------------------
     # QUADTREE EXPORT PATH
@@ -3918,6 +4064,7 @@ def run():
                     "error": error,
                     "candidate_object_count": len(tile_objs),
                 })
+                export_progress.advance("Tile failed", tile_id)
                 continue
 
             tile_entry = {
@@ -3941,6 +4088,7 @@ def run():
             }
             manifest["tiles"].append(tile_entry)
             qt_exported += 1
+            export_progress.advance("Tile assets", tile_id, 1 + len(hlod_entries) + len(lod_entries))
 
         # --- Compute interior_zone: union AABB of all ExteriorShell tiles.
         # Falls back to ExteriorShell objects in the shared bucket when no
@@ -3990,6 +4138,7 @@ def run():
         # --- Write manifest for quadtree path ---
         with open(manifest_path, "w", encoding="utf-8") as f:
             json.dump(manifest, f, indent=2)
+        export_progress.advance("Write manifest", os.path.basename(manifest_path))
 
         print(f"\nQuadtree export done. {qt_exported} tile-tier pairs exported.")
         if manifest["failed_tiles"]:
@@ -4043,6 +4192,7 @@ def run():
                     "error": error,
                     "candidate_object_count": len(tile_objs),
                 })
+                export_progress.advance("Tile failed", tile_id)
                 continue
 
             hlod_entries = [
@@ -4086,6 +4236,7 @@ def run():
                     "error": error,
                     "candidate_object_count": len(tile_objs),
                 })
+                export_progress.advance("Tile failed", tile_id)
                 continue
 
             hlod_entries = []
@@ -4153,10 +4304,12 @@ def run():
             tile_entry["lod_levels"] = lod_entries
         manifest["tiles"].append(tile_entry)
         exported_count += 1
+        export_progress.advance("Tile assets", tile_id, 1 + len(hlod_entries) + len(lod_entries))
 
     # --- Write manifest ---
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
+    export_progress.advance("Write manifest", os.path.basename(manifest_path))
 
     print(f"\nDone. {exported_count} local tiles exported.")
     if manifest["failed_tiles"]:
