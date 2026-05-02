@@ -329,9 +329,6 @@
                     var dx = input.mouseDeltaX
                     var dy = input.mouseDeltaY
                     if abs(dx) < abs(dy) { dx = 0 } else { dy = 0 }
-                    if cameraBehavior == .originOrbit {
-                        Self.setOriginOrbitTarget(entityId: camera)
-                    }
                     orbitCameraAround(entityId: camera, uDelta: simd_float2(dx, dy))
                 }
             }
@@ -343,7 +340,7 @@
             case .flyOrbit:
                 setOrbitOffset(entityId: entityId, uTargetOffset: Constants.orbitTargetOffset)
             case .originOrbit:
-                Self.setOriginOrbitTarget(entityId: entityId)
+                Self.setTranslatedOriginOrbitTarget(entityId: entityId)
             }
         }
 
@@ -353,6 +350,14 @@
             guard radius > 0.001 else { return }
 
             cameraLookAt(entityId: entityId, eye: eye, target: Constants.worldOrigin, up: cameraUpDefault)
+            setOrbitOffset(entityId: entityId, uTargetOffset: radius)
+        }
+
+        private static func setTranslatedOriginOrbitTarget(entityId: EntityID) {
+            let eye = getCameraPosition(entityId: entityId)
+            let radius = simd_length(eye - Constants.worldOrigin)
+            guard radius > 0.001 else { return }
+
             setOrbitOffset(entityId: entityId, uTargetOffset: radius)
         }
     }
