@@ -20,6 +20,9 @@
 ![Build Status](https://github.com/untoldengine/UntoldEngine/actions/workflows/ci-build-test.yml/badge.svg?style=flat-square)
 [![Project license](https://img.shields.io/github/license/untoldengine/UntoldEngine.svg?style=flat-square)](LICENSE)
 [![Pull Requests welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg?style=flat-square)](https://github.com/untoldengine/UntoldEngine/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+![Version](https://img.shields.io/github/v/release/untoldengine/UntoldEngine?style=flat-square&label=version)
+![Commits](https://img.shields.io/github/commit-activity/t/untoldengine/UntoldEngine?style=flat-square&label=commits)
+![Last Commit](https://img.shields.io/github/last-commit/untoldengine/UntoldEngine?style=flat-square&label=last+commit)
 
 </div>
 
@@ -27,11 +30,11 @@
 
 # Untold Engine
 
-Untold Engine is an **open-source 3D engine written in Swift and powered by Metal**, designed for Apple platforms including **macOS, iOS, and visionOS**.
+One of the few open-source engines with working Apple Vision Pro support.
 
-The project focuses on building a **clean, system-driven architecture** with modern rendering, an ECS-based gameplay model, and an extensible asset pipeline.
+Untold Engine is a **Swift + Metal engine for macOS, iOS, and visionOS** — built for developers who need full control over rendering and large scene management. It ships with remote asset streaming, geometry LOD, static batching, and a native asset format optimized for real-time loading.
 
-The engine is under active development and continues to evolve as new systems and workflows are added.
+This is not a drag-and-drop editor-first engine. It is a **code-driven engine for developers who want to understand and shape the system**.
 
 ![untoldengine-image](/docs/images/engine-highlight-1.png)
 
@@ -39,14 +42,16 @@ The engine is under active development and continues to evolve as new systems an
 
 ## 🎯 Who is this for?
 
-Untold Engine is designed for developers who:
+Untold Engine is built for developers who:
 
 - Want **full control over rendering and systems**
 - Prefer working directly with **Swift + Metal**
 - Are building **XR, 3D, or visualization applications**
 - Need to handle **large scenes, streaming data, or custom pipelines**
 
-This is not a drag-and-drop editor-first engine — it is a **code-driven engine for developers who want to understand and shape the system**.
+If you've hit the ceiling of what existing engines allow on Apple platforms, this is for you.
+
+---
 
 ## Watch It in Action — Apple Vision Pro Demos
 
@@ -94,11 +99,11 @@ After the export is complete, open the Local Scene `Browse` drop-down menu, choo
 
 ![untoldengine-image-2](/docs/images/engine-highlight-2.png)
 
-## Get a feel for the API
+## Get a Feel for the API
 
-If you want a small code sample to inspect and experiment with, look at `Sources/Sandbox/GameScene.swift`. Along with the [Usage Example](docs/API/UsageExamples.md), it should help you get an idea of how to use the Untold Engine API
+A small code sample to inspect and experiment with is available at `Sources/Sandbox/GameScene.swift`. Along with the [Usage Example](docs/API/UsageExamples.md), it shows how the Untold Engine API works in practice.
 
-The Sandbox target is a simple place to test engine APIs such as creating an entity, attaching a mesh, and trying animations or other scene setup changes.
+The Sandbox target lets you test engine APIs — creating an entity, attaching a mesh, trying animations, and other scene setup.
 
 To run it from the CLI:
 
@@ -124,7 +129,7 @@ cd UntoldEngine
 ./scripts/install-untoldengine-create.sh
 ```
 
-## Vision Pro Example
+### Vision Pro Example
 
 ```bash
 mkdir VisionGame
@@ -133,7 +138,7 @@ untoldengine-create create VisionGame --platform visionos
 open VisionGame.xcodeproj
 ```
 
-## What this creates for you
+### What this creates for you
 
 - Xcode project + platform-specific app template files
 - `GameData` folder structure (`Scenes`, `Scripts`, `Models`, `Textures`, etc.)
@@ -145,7 +150,7 @@ open VisionGame.xcodeproj
 
 Note: `city.usdz` should be placed in `GameData/model` (generated folder name is `GameData/Models`).
 
-## Platform options
+### Platform options
 
 ```bash
 # visionOS (Apple Vision Pro)
@@ -159,7 +164,6 @@ untoldengine-create create MyGame --platform iosar
 
 # iOS
 untoldengine-create create MyGame --platform ios
-
 ```
 
 Dependency behavior by platform:
@@ -170,30 +174,29 @@ Dependency behavior by platform:
 
 ---
 
-## Visual Editor 
+## Visual Editor
 
-To make using the Untold Engine easier, you can use the **Untold Engine Studio**. This is a stand alone editor that helps you create projects without the need to use CLI. It is designed to help you **prepare assets, compose scenes, and generate scene files** that are later used inside your game. [Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)
+To make using the Untold Engine easier, you can use the **Untold Engine Studio** — a standalone editor for preparing assets, composing scenes, and generating scene files used inside your game. [Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)
 
 ![untoldeditor-image-1](/docs/images/editor-highlight-1.png)
 
+---
+
 ## 🧱 Core Direction
 
-Untold Engine is being developed with the following goals:
+Untold Engine is built around three focused goals:
 
-- **Large Scene Rendering**  
-  Striving to support LOD, geometry streaming, batching, and memory-aware systems for large datasets
+- **Large Scene Rendering** — LOD, geometry streaming, static batching, and memory-aware systems for large datasets, with continued improvements each release.
 
-- **XR / visionOS Support**  
-  Expanding support for spatial input, AR workflows, and Vision Pro experiences
+- **XR / visionOS Support** — Spatial input, AR workflows, and Vision Pro support are functional today and expanding with each release.
 
-- **Metal-First Architecture**  
-  Keeping the rendering layer close to Metal to maintain performance and control
+- **Metal-First Architecture** — The rendering layer stays close to Metal to maintain performance and control, without abstraction layers getting in the way.
 
 ---
 
 ## 🖼 Example Use Cases
 
-Untold Engine aims to support applications such as:
+Untold Engine is well-suited for:
 
 - XR applications (Vision Pro, ARKit-based apps)
 - Large-scale scene visualization (cities, archviz, datasets)
@@ -204,19 +207,19 @@ Untold Engine aims to support applications such as:
 
 # Current Features
 
-- Apple Platform Coverage: Unified Swift + Metal codebase for macOS, iOS, and visionOS
-- Rendering Pipeline: Metal renderer with PBR/IBL workflows and post-processing across standard and XR paths
-- AR and XR Runtime Support: Built-in AR workflows plus visionOS integration and spatial interaction support
-- ECS + Scene Graph Core: Component-based architecture with hierarchical transforms and scene root transform controls
-- Async Content Loading: Asynchronous loading pipeline for scenes and assets to improve responsiveness on large worlds
-- LOD and Streaming: LOD support with geometry streaming, streaming regions, and memory budget management
-- Static Batching and Culling: Static batching, octree acceleration, and occlusion culling for large-scene performance
-- Advanced Picking: Scene, ground, and GPU ray picking with octree-backed intersection paths
-- Spatial Input Features: XR spatial input helpers including anchored pinch drag, distance tracking, and two-hand rotation
-- Scripting System (USC): Untold Script Core with multi-script support plus camera, math, and physics APIs (Experimental)
-- Gameplay Systems: Physics, animation, camera waypoint, and input systems (keyboard, mouse, touch, and gamepad)
-- Gaussian Splat Rendering: Native Metal support for rendering and compositing 3D Gaussian content
-- Tooling Integration: Optional Untold Editor workflow and Swift Package Manager integration
+- **Apple Platform Coverage** — Unified Swift + Metal codebase for macOS, iOS, and visionOS
+- **Rendering Pipeline** — Metal renderer with PBR/IBL workflows and post-processing across standard and XR paths
+- **AR and XR Runtime Support** — Built-in AR workflows plus visionOS integration and spatial interaction support
+- **ECS + Scene Graph Core** — Component-based architecture with hierarchical transforms and scene root transform controls
+- **Async Content Loading** — Asynchronous loading pipeline for scenes and assets to improve responsiveness on large worlds
+- **LOD and Streaming** — LOD support with geometry streaming, streaming regions, and memory budget management
+- **Static Batching and Culling** — Static batching, octree acceleration, and occlusion culling for large-scene performance
+- **Advanced Picking** — Scene, ground, and GPU ray picking with octree-backed intersection paths
+- **Spatial Input Features** — XR spatial input helpers including anchored pinch drag, distance tracking, and two-hand rotation
+- **Scripting System (USC)** — Untold Script Core with multi-script support plus camera, math, and physics APIs (Experimental)
+- **Gameplay Systems** — Physics, animation, camera waypoint, and input systems (keyboard, mouse, touch, and gamepad)
+- **Gaussian Splat Rendering** — Native Metal support for rendering and compositing 3D Gaussian content
+- **Tooling Integration** — Optional Untold Editor workflow and Swift Package Manager integration
 
 ---
 
@@ -241,14 +244,16 @@ Untold Engine aims to support applications such as:
 - [LOD-Batching-Streaming](docs/API/UsingLOD-Batching-Streaming.md)
 - [Spatial Input](docs/API/UsingSpatialInput.md)
 - [Gaussian System](docs/API/UsingGaussianSystem.md)
-- [Spatical Debugger](docs/API/SpatialDebugger.md)
-- [Profiler](/docs/API/UsingProfiler.md)
-- [Asset Exporter](/docs/API/UsingTheExporter.md)
-- [Optimizations](/docs/API/Optimizations.md)
-- [Create Project with CLI](/docs/API/UsingUntoldEngineCLI.md)
-- [Post FX](/docs/API/UsingPostFX.md)
+- [Spatial Debugger](docs/API/SpatialDebugger.md)
+- [Profiler](docs/API/UsingProfiler.md)
+- [Asset Exporter](docs/API/UsingTheExporter.md)
+- [Optimizations](docs/API/Optimizations.md)
+- [Create Project with CLI](docs/API/UsingUntoldEngineCLI.md)
+- [Post FX](docs/API/UsingPostFX.md)
 
-# Engine Architecture:
+---
+
+# Engine Architecture
 
 - [Rendering System](docs/Architecture/renderingSystem.md)
 - [XR Rendering System](docs/Architecture/xrRenderingSystem.md)
@@ -265,42 +270,24 @@ Untold Engine aims to support applications such as:
 
 # Roadmap
 
-See open issues for planned features and improvements.
+See open issues for planned features and known improvements.
 
-Feature Requests  
-https://github.com/untoldengine/UntoldEngine/issues?q=label%3Aenhancement
-
-Bug Reports  
-https://github.com/untoldengine/UntoldEngine/issues?q=label%3Abug
+- [Feature Requests](https://github.com/untoldengine/UntoldEngine/issues?q=label%3Aenhancement)
+- [Bug Reports](https://github.com/untoldengine/UntoldEngine/issues?q=label%3Abug)
 
 ---
 
 # Support
 
-For help or questions use GitHub Issues.
-
-https://github.com/untoldengine/UntoldEngine/issues
+For help or questions, open a [GitHub Issue](https://github.com/untoldengine/UntoldEngine/issues).
 
 ---
 
 # Contributing
 
-Contributions are welcome.
+Contributions are welcome — whether that's fixing bugs, improving systems, writing documentation, or proposing ideas.
 
-You can help by:
-
-- Fixing bugs
-- Improving systems such as rendering, physics, or ECS
-- Writing documentation
-- Proposing new ideas
-
-Before submitting a pull request please read:
-
-- CONTRIBUTING.md
-- CONTRIBUTOR_LICENSE_AGREEMENT.md
-- [Contributing Guidelines](docs/Contributor/ContributionGuidelines.md)
-- [Formatting](docs/Contributor/Formatting.md)
-- [Versioning](docs/Contributor/versioning.md)
+Before submitting a pull request, please review the [Contributing Guidelines](docs/Contributor/ContributionGuidelines.md).
 
 All contributions are licensed under **MPL-2.0**.
 
@@ -308,13 +295,7 @@ All contributions are licensed under **MPL-2.0**.
 
 # Contributor License Agreement
 
-To ensure the long-term sustainability of the project, contributors must agree to the CLA.
-
-By submitting a pull request you agree that your contributions may be distributed under the **Mozilla Public License 2.0**.
-
-See:
-
-CONTRIBUTOR_LICENSE_AGREEMENT.md
+By submitting a pull request you agree that your contributions may be distributed under the **Mozilla Public License 2.0**. See [CONTRIBUTOR_LICENSE_AGREEMENT.md](CONTRIBUTOR_LICENSE_AGREEMENT.md) for details.
 
 ---
 
@@ -337,36 +318,24 @@ Untold Engine is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**.
 This allows developers to build commercial applications while ensuring improvements to the engine itself remain open.
 
 | Use Case | Allowed | Obligation |
-|----------|--------|-----------|
+|----------|---------|-----------|
 | Build games | Yes | Game code can remain proprietary |
 | Commercial apps | Yes | No royalties |
 | Modify engine | Yes | Modified engine files remain MPL |
 | Create plugins | Yes | Any license allowed |
 
-Full license text:
-
-https://www.mozilla.org/MPL/2.0/
+Full license: https://www.mozilla.org/MPL/2.0/
 
 ---
 
 # Trademark
 
-“Untold Engine” and the Untold Engine logo are trademarks of **Untold Engine Studios**.
-
-Forks may not use the name in a way that implies official endorsement.
-
-See:
-
-TRADEMARKS.md
+"Untold Engine" and the Untold Engine logo are trademarks of **Untold Engine Studios**. Forks may not use the name in a way that implies official endorsement. See [TRADEMARKS.md](TRADEMARKS.md).
 
 ---
 
 # Questions & Discussions
 
-Use GitHub Discussions for ideas and questions:
+- [GitHub Discussions](https://github.com/untoldengine/UntoldEngine/discussions) — ideas and questions
+- [GitHub Issues](https://github.com/untoldengine/UntoldEngine/issues) — bugs and tasks
 
-https://github.com/untoldengine/UntoldEngine/discussions
-
-Use GitHub Issues for bugs and tasks:
-
-https://github.com/untoldengine/UntoldEngine/issues
