@@ -314,6 +314,36 @@ public enum RenderPasses {
         return computed
     }
 
+    public static let copyOpaqueDepthForHZBExecution: RenderPassExecution = { commandBuffer in
+        guard let sourceDepth = textureResources.depthMap,
+              let hzbSourceDepth = textureResources.hzbSourceDepthMap
+        else {
+            return
+        }
+
+        let width = min(sourceDepth.width, hzbSourceDepth.width)
+        let height = min(sourceDepth.height, hzbSourceDepth.height)
+        guard width > 0, height > 0 else { return }
+
+        guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
+            return
+        }
+
+        blitEncoder.label = "Copy Opaque Depth for HZB"
+        blitEncoder.copy(
+            from: sourceDepth,
+            sourceSlice: 0,
+            sourceLevel: 0,
+            sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+            sourceSize: MTLSize(width: width, height: height, depth: 1),
+            to: hzbSourceDepth,
+            destinationSlice: 0,
+            destinationLevel: 0,
+            destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
+        )
+        blitEncoder.endEncoding()
+    }
+
     @inline(__always)
     private static func applyLODDebugColorOverride(
         entityId: EntityID? = nil,

@@ -462,6 +462,18 @@ func initTextureResources() {
         storageMode: .private
     )
 
+    // Opaque-only depth copied after the model passes, before XR transparency can
+    // write compositor depth. HZB occlusion culling samples this texture.
+    textureResources.hzbSourceDepthMap = createTexture(
+        device: renderInfo.device,
+        label: "HZB Source Depth Texture",
+        pixelFormat: renderInfo.depthPixelFormat,
+        width: viewportWidth,
+        height: viewportHeight,
+        usage: [.shaderRead],
+        storageMode: .private
+    )
+
     // Deferred Depth Texture
     textureResources.deferredDepthMap = createTexture(
         device: renderInfo.device,
