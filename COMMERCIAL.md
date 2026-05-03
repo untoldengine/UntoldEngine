@@ -7,6 +7,9 @@ when those files are distributed.
 If you need to **modify the engine privately** — without disclosing your changes
 or contributing them back — a Commercial License is available.
 
+If your use case involves modifying engine source files and keeping those changes
+private, a Commercial License is required.
+
 ## What the Commercial License grants
 
 - Modify engine source code and keep those changes proprietary
@@ -46,7 +49,7 @@ reproducible on an unmodified version of the engine. Not every report qualifies:
 | Issue type | Covered |
 |---|---|
 | Correctness bug (crash, wrong output on device) | Yes — priority queue |
-| Performance issue (correct output, lower throughput) | Best effort — documented regressions escalated |
+| Performance issue (correct output, lower throughput) | Best effort — documented regressions from a previous engine version may be escalated; workload-specific optimization is consulting unless otherwise agreed. |
 | Platform-specific issue (visionOS, tvOS quirks) | Partial — triaged to confirm engine vs SDK root cause |
 | Large scene / stress failure | Partial — requires minimal repro attempt |
 | Feature gap (desired feature not in licensed version) | No — logged as feature request |
@@ -67,6 +70,10 @@ for full triage and scope details.
 Contact Untold Engine Studios to discuss pricing and terms:
 
 - **Email:** harold.serrano@untoldengine.com
+
+> **Note:** The Commercial License is separate from GitHub Sponsorship. Sponsorship
+> helps support and influence the project, but it does not grant commercial licensing
+> rights or change the terms of the MPL-2.0 license.
 
 Full license terms: [LICENSE-COMMERCIAL](LICENSE-COMMERCIAL)
 Support policy: [LICENSE-COMMERCIAL-SUPPORT](LICENSE-COMMERCIAL-SUPPORT)

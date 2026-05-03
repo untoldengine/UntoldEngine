@@ -45,9 +45,14 @@ worldwide license to:
 
 Under the Mozilla Public License 2.0 (MPL-2.0), modifications to
 MPL-covered engine files must be made available when those files are
-distributed. This Commercial
-License supersedes that requirement for Licensees in good standing,
-granting the right to maintain private, proprietary modifications.
+distributed. This Commercial License supersedes that requirement for
+Licensees in good standing, granting the right to maintain private,
+proprietary modifications.
+
+A Commercial License is required when Licensee intends to modify engine
+source files and keep those modifications proprietary. Licensees who use
+the Software without modifying engine source files may do so under the
+MPL-2.0 without a Commercial License.
 
 All other rights not explicitly granted in Section 1 remain reserved by
 the Licensor.
@@ -116,6 +121,14 @@ Mozilla Public License 2.0. Nothing in this Commercial License restricts
 a Licensee's ability to also use the open-source version under MPL-2.0
 terms for separate, compliant projects.
 
+5.1. GitHub Sponsorship, financial contributions, and project donations
+     do not grant Commercial License rights. Support for the project
+     through GitHub Sponsors or similar programs is appreciated, but does
+     not constitute a license agreement and does not modify the terms of
+     the MPL-2.0 license or this agreement. A separately executed
+     Commercial License agreement or Order Form is required to obtain the
+     rights described in Section 1.
+
 ------------------------------------------------------------------------
 
 6. FEES AND PAYMENT
@@ -130,7 +143,6 @@ For pricing and to obtain a Commercial License, contact:
 
   Untold Engine Studios
   Email: harold.serrano@untoldengine.com
-  Web:   [INSERT WEBSITE URL]
 
 ------------------------------------------------------------------------
 
@@ -220,10 +232,10 @@ IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
 12. GOVERNING LAW
 ------------------------------------------------------------------------
 
-This agreement shall be governed by the laws of the State of [INSERT
-STATE], without regard to its conflict-of-law provisions. Any disputes
+This agreement shall be governed by the laws of the State of Arizona, 
+without regard to its conflict-of-law provisions. Any disputes
 arising under this agreement shall be resolved in the state or federal
-courts located in [INSERT COUNTY/JURISDICTION].
+courts located in Maricopa County, Arizona.
 
 ------------------------------------------------------------------------
 
