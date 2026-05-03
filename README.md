@@ -318,6 +318,8 @@ This allows developers to build commercial applications while ensuring improveme
 
 Full license: https://www.mozilla.org/MPL/2.0/
 
+**Need to keep engine modifications private?** A commercial license is available for teams that require it. See [COMMERCIAL.md](COMMERCIAL.md) for details.
+
 ---
 
 # Trademark
