@@ -30,19 +30,7 @@
 
 # Untold Engine
 
-One of the few open-source engines with working Apple Vision Pro support.
-
-Untold Engine is a **Swift + Metal engine for macOS, iOS, and visionOS** — built for developers who need full control over rendering and large scene management. It ships with remote asset streaming, geometry LOD, static batching, and a native asset format optimized for real-time loading.
-
-This is not a drag-and-drop editor-first engine. It is a **code-driven engine for developers who want to understand and shape the system**.
-
-![untoldengine-image](/docs/images/engine-highlight-1.png)
-
----
-
-## 🎯 Who is this for?
-
-Untold Engine is built for developers who:
+Untold Engine is a **Swift + Metal 3D engine for macOS, iOS, and visionOS** — with native Apple Vision Pro support and a growing focus on spatial computing — built for developers who:
 
 - Want **full control over rendering and systems**
 - Prefer working directly with **Swift + Metal**
@@ -50,6 +38,8 @@ Untold Engine is built for developers who:
 - Need to handle **large scenes, streaming data, or custom pipelines**
 
 If you've hit the ceiling of what existing engines allow on Apple platforms, this is for you.
+
+![untoldengine-image](/docs/images/engine-highlight-1.png)
 
 ---
 
@@ -180,13 +170,15 @@ To make using the Untold Engine easier, you can use the **Untold Engine Studio**
 
 ![untoldeditor-image-1](/docs/images/editor-highlight-1.png)
 
+Note, you still need the engine as a dependency in your project. The editor is only used for composing scenes.
+
 ---
 
 ## 🧱 Core Direction
 
 Untold Engine is built around three focused goals:
 
-- **Large Scene Rendering** — LOD, geometry streaming, static batching, and memory-aware systems for large datasets, with continued improvements each release.
+- **Spatial Engine First** — Designed for spatial computing applications. LOD, geometry streaming, and static batching exist to support large, real-world-scale environments where presence and performance both matter.
 
 - **XR / visionOS Support** — Spatial input, AR workflows, and Vision Pro support are functional today and expanding with each release.
 
