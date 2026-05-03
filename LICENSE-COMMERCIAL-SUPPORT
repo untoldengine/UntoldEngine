@@ -31,7 +31,11 @@ provided by Untold Engine Studios ("Licensor").
      means a condition where the engine produces correct output but
      at lower throughput, higher memory usage, or higher latency than
      expected or documented. Performance issues are distinct from
-     Engine Bugs and are handled separately (see Section 4.4).
+     Engine Bugs and receive best-effort handling rather than priority
+     triage. Documented performance regressions between named releases
+     may be escalated. Workload-specific optimization, profiling, tuning,
+     or architectural guidance is outside standard support scope and may
+     be addressed as paid consulting (see Sections 4.4 and 6).
 
 1.4. "Platform-Specific Issue"
      means behavior that differs from documented behavior only on a
@@ -162,7 +166,13 @@ Pacific Time, excluding public holidays.
      | Performance Issue          | No       | Investigated on best-     |
      | (correct output, lower     |          | effort basis. Documented  |
      | throughput or higher       |          | regressions between named |
-     | memory than documented)    |          | releases are escalated.   |
+     | memory than documented)    |          | releases may be escalated.|
+     |                            |          | Workload-specific optimi- |
+     |                            |          | zation, profiling, tuning,|
+     |                            |          | or architecture guidance  |
+     |                            |          | is outside scope; may be  |
+     |                            |          | addressed as consulting   |
+     |                            |          | (Section 6).              |
      +----------------------------+----------+---------------------------+
      | Platform-Specific Issue    | Partial  | Triaged first to confirm  |
      | (visionOS, tvOS quirks,    |          | engine vs SDK/driver root |
@@ -215,7 +225,11 @@ Pacific Time, excluding public holidays.
        (e) General Swift, Metal, or platform programming assistance
            not directly related to an Engine Bug;
 
-       (f) Code review or audit of Licensee Modifications.
+       (f) Code review or audit of Licensee Modifications;
+
+       (g) Workload-specific optimization, performance tuning, profiling,
+           or architectural guidance not directly related to a documented
+           performance regression or confirmed Engine Bug.
 
 5.3. Licensor reserves the right to close a Support Request that falls
      outside scope after notifying Licensee of the reason.
