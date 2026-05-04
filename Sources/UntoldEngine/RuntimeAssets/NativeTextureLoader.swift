@@ -24,11 +24,30 @@ public final class NativeTextureLoader: @unchecked Sendable {
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
 
+    private struct CacheKey: Hashable {
+        let path: String
+        let targetMaxDimension: Int // 0 means "full resolution"
+        let deviceId: ObjectIdentifier
+    }
+
+    /// Guarded by cacheCondition (acts as both mutex and condition variable).
+    private nonisolated(unsafe) static var sharedCache: [CacheKey: MTLTexture] = [:]
+    // Keys currently being uploaded by exactly one thread; others wait on cacheCondition.
+    private nonisolated(unsafe) static var inFlight: Set<CacheKey> = []
+    private static let cacheCondition = NSCondition()
+
     public init?(device: MTLDevice) {
         guard let queue = device.makeCommandQueue() else { return nil }
         self.device = device
         commandQueue = queue
         commandQueue.label = "NativeTextureLoader"
+    }
+
+    /// Evict all cached textures (call when a scene is unloaded or under memory pressure).
+    public static func purgeSharedCache() {
+        cacheCondition.lock()
+        defer { cacheCondition.unlock() }
+        sharedCache.removeAll()
     }
 
     // MARK: - Public entry points
@@ -63,40 +82,74 @@ public final class NativeTextureLoader: @unchecked Sendable {
     // MARK: - Internal load
 
     private func loadTextureOrThrow(from url: URL, targetMaxDimension: Int?, label: String?) throws -> MTLTexture {
-        // Memory-map the file — zero-copy read for the header and mip table.
-        let fileData = try Data(contentsOf: url, options: .mappedIfSafe)
+        let key = CacheKey(path: url.standardizedFileURL.path, targetMaxDimension: targetMaxDimension ?? 0, deviceId: ObjectIdentifier(device))
+        let cond = NativeTextureLoader.cacheCondition
 
-        let reader = NativeTexReader()
-        let (header, allMips) = try reader.read(from: fileData)
-
-        guard let pixelFormat = MTLPixelFormat(rawValue: UInt(header.pixelFormat)) else {
-            throw NativeTexLoadError.unsupportedPixelFormat(header.pixelFormat)
+        // Single-flight gate: if another thread is already uploading this key, wait for it
+        // rather than starting a duplicate upload. This prevents the startup burst where N
+        // tiles request the same shared texture concurrently.
+        cond.lock()
+        while NativeTextureLoader.inFlight.contains(key) {
+            cond.wait()
         }
-        guard device.supportsPixelFormat(pixelFormat) else {
-            throw NativeTexLoadError.pixelFormatNotSupported(pixelFormat)
+        if let cached = NativeTextureLoader.sharedCache[key] {
+            cond.unlock()
+            return cached
         }
+        NativeTextureLoader.inFlight.insert(key)
+        cond.unlock()
 
-        // Select the subset of mips to upload.
-        // Walk from mip 0 (largest) toward the end; use the first mip whose
-        // width fits within targetMaxDimension as the starting level.
-        // If targetMaxDimension is nil, start from mip 0 (full resolution).
-        let startMip: Int
-        if let maxDim = targetMaxDimension, maxDim > 0 {
-            startMip = allMips.firstIndex(where: { Int($0.widthPx) <= maxDim }) ?? (allMips.count - 1)
-        } else {
-            startMip = 0
+        // Only one thread reaches here for a given key at any time.
+        do {
+            // Memory-map the file — zero-copy read for the header and mip table.
+            let fileData = try Data(contentsOf: url, options: .mappedIfSafe)
+
+            let reader = NativeTexReader()
+            let (header, allMips) = try reader.read(from: fileData)
+
+            guard let pixelFormat = MTLPixelFormat(rawValue: UInt(header.pixelFormat)) else {
+                throw NativeTexLoadError.unsupportedPixelFormat(header.pixelFormat)
+            }
+            guard device.supportsPixelFormat(pixelFormat) else {
+                throw NativeTexLoadError.pixelFormatNotSupported(pixelFormat)
+            }
+
+            // Select the subset of mips to upload.
+            // Walk from mip 0 (largest) toward the end; use the first mip whose
+            // width fits within targetMaxDimension as the starting level.
+            // If targetMaxDimension is nil, start from mip 0 (full resolution).
+            let startMip: Int
+            if let maxDim = targetMaxDimension, maxDim > 0 {
+                startMip = allMips.firstIndex(where: { Int($0.widthPx) <= maxDim }) ?? (allMips.count - 1)
+            } else {
+                startMip = 0
+            }
+            let mips = Array(allMips[startMip...])
+
+            let texture = try makeTexture(
+                pixelFormat: pixelFormat,
+                width: Int(mips[0].widthPx),
+                height: Int(mips[0].heightPx),
+                mipCount: mips.count,
+                label: label
+            )
+            try upload(mips: mips, from: fileData, header: header, to: texture)
+
+            cond.lock()
+            NativeTextureLoader.sharedCache[key] = texture
+            NativeTextureLoader.inFlight.remove(key)
+            cond.broadcast()
+            cond.unlock()
+
+            return texture
+        } catch {
+            // On failure, unblock any waiters so they don't hang indefinitely.
+            cond.lock()
+            NativeTextureLoader.inFlight.remove(key)
+            cond.broadcast()
+            cond.unlock()
+            throw error
         }
-        let mips = Array(allMips[startMip...])
-
-        let texture = try makeTexture(
-            pixelFormat: pixelFormat,
-            width: Int(mips[0].widthPx),
-            height: Int(mips[0].heightPx),
-            mipCount: mips.count,
-            label: label
-        )
-        try upload(mips: mips, from: fileData, header: header, to: texture)
-        return texture
     }
 
     // MARK: - Texture creation
