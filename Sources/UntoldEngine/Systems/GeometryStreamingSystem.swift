@@ -288,6 +288,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
         MemoryBudgetManager.shared.onMemoryPressureCritical = { [weak self] in
             guard let self else { return }
+            NativeTextureLoader.purgeSharedCache()
             withStateLock {
                 self.pendingPressureRelief = true
                 self.pressureIsAggressive = true
@@ -1532,6 +1533,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             firstRangeTimestamps.removeAll()
             interiorZone = nil
         }
+        NativeTextureLoader.purgeSharedCache()
     }
 
     /// Get streaming statistics
