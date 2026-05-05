@@ -118,14 +118,11 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                // Load a tiled scene from a manifest.
-                // myScene.json must be inside the GameData/Models folder.
-                // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
-                // For always-resident individual assets, use setEntityMeshAsync() instead.
-                let sceneRootId = createEntity()
-                setEntityStreamScene(entityId: sceneRootId, manifest: "myScene", withExtension: "json") { success in
-                    setSceneReady(success)
-                }
+                // Load your scene here
+
+
+
+
             }
 
             // MARK: - Setup Methods
@@ -644,14 +641,10 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                // Load a tiled scene from a manifest.
-                // myScene.json must be inside the GameData/Models folder.
-                // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
-                // For always-resident individual assets, use setEntityMeshAsync() instead.
-                let sceneRootId = createEntity()
-                setEntityStreamScene(entityId: sceneRootId, manifest: "myScene", withExtension: "json") { success in
-                    setSceneReady(success)
-                }
+                // Load your scene here
+
+
+
             }
 
             // MARK: - Setup Methods
@@ -834,14 +827,11 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                // Load a tiled scene from a manifest.
-                // myScene.json must be inside the GameData/Models folder.
-                // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
-                // For always-resident individual assets, use setEntityMeshAsync() instead.
-                let sceneRootId = createEntity()
-                setEntityStreamScene(entityId: sceneRootId, manifest: "myScene", withExtension: "json") { success in
-                    setSceneReady(success)
-                }
+                // Load your scene here
+
+
+
+
             }
 
             // MARK: - Setup Methods
@@ -1208,14 +1198,11 @@ import Foundation
                 // Configure game Systems
                 configureEngineSystems()
 
-                // Load a tiled scene from a manifest.
-                // myScene.json must be inside the GameData/Models folder.
-                // The manifest declares tile bounds, streaming radii, and LOD/HLOD levels.
-                // For always-resident individual assets, use setEntityMeshAsync() instead.
-                let sceneRootId = createEntity()
-                setEntityStreamScene(entityId: sceneRootId, manifest: "myScene", withExtension: "json") { success in
-                    setSceneReady(success)
-                }
+                // Load your scene here
+
+
+
+
             }
 
             // MARK: - Setup Methods
