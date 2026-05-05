@@ -217,7 +217,7 @@ final class RendererTests: BaseRenderSetup {
             scene.remove(component: DirectionalLightComponent.self, from: entityId)
         }
 
-        shadowSystem.updateViewFromSunPerspective()
+        shadowSystem.updateCascades()
         XCTAssertNil(shadowSystem.dirLightSpaceMatrix, "Shadow matrix should be nil when the scene has no directional lights")
 
         renderer.draw(in: renderer.metalView)
@@ -229,6 +229,61 @@ final class RendererTests: BaseRenderSetup {
         }
 
         wait(for: [expectation], timeout: TimeInterval(timeoutFactor))
+    }
+
+    func testCascadeShadowMappingComputesValidCascadesAndUniforms() {
+        func matrixIsFinite(_ matrix: simd_float4x4) -> Bool {
+            let values = [
+                matrix.columns.0.x, matrix.columns.0.y, matrix.columns.0.z, matrix.columns.0.w,
+                matrix.columns.1.x, matrix.columns.1.y, matrix.columns.1.z, matrix.columns.1.w,
+                matrix.columns.2.x, matrix.columns.2.y, matrix.columns.2.z, matrix.columns.2.w,
+                matrix.columns.3.x, matrix.columns.3.y, matrix.columns.3.z, matrix.columns.3.w,
+            ]
+            return values.allSatisfy(\.isFinite)
+        }
+
+        XCTAssertNotNil(CameraSystem.shared.activeCamera, "Test precondition failed: expected an active camera")
+
+        let dirLightComponentId = getComponentId(for: DirectionalLightComponent.self)
+        let localTransformComponentId = getComponentId(for: LocalTransformComponent.self)
+        let directionalLightEntities = queryEntitiesWithComponentIds([dirLightComponentId, localTransformComponentId], in: scene)
+        XCTAssertFalse(directionalLightEntities.isEmpty, "Test precondition failed: expected at least one directional light")
+
+        shadowSystem.updateCascades()
+
+        XCTAssertTrue(shadowSystem.isActive, "CSM should become active when a directional light and camera exist")
+        XCTAssertEqual(shadowSystem.cascadeLightSpaceMatrices.count, csmCascadeCount)
+        XCTAssertEqual(shadowSystem.cascadeSplitDistances.count, csmCascadeCount)
+
+        for splitIndex in 1 ..< shadowSystem.cascadeSplitDistances.count {
+            XCTAssertGreaterThan(
+                shadowSystem.cascadeSplitDistances[splitIndex],
+                shadowSystem.cascadeSplitDistances[splitIndex - 1],
+                "Cascade split distances should be strictly increasing"
+            )
+        }
+
+        let expectedLastSplit = renderInfo.isXRStereoMode ? Float(50.0) : far
+        XCTAssertEqual(
+            shadowSystem.cascadeSplitDistances.last ?? -1,
+            expectedLastSplit,
+            accuracy: 0.001,
+            "Last cascade split should reach the configured CSM far distance"
+        )
+
+        for matrix in shadowSystem.cascadeLightSpaceMatrices {
+            XCTAssertTrue(matrixIsFinite(matrix), "Cascade light-space matrices must not contain NaN or infinity")
+            XCTAssertFalse(compareMatrices(matrix, matrix_identity_float4x4), "Cascade light-space matrix should not stay identity")
+        }
+
+        let uniforms = shadowSystem.makeUniforms()
+        XCTAssertEqual(uniforms.cascadeCount, Int32(csmCascadeCount))
+        XCTAssertEqual(uniforms.cascadeSplits.0, shadowSystem.cascadeSplitDistances[0], accuracy: 0.0001)
+        XCTAssertEqual(uniforms.cascadeSplits.1, shadowSystem.cascadeSplitDistances[1], accuracy: 0.0001)
+        XCTAssertEqual(uniforms.cascadeSplits.2, shadowSystem.cascadeSplitDistances[2], accuracy: 0.0001)
+        XCTAssertTrue(compareMatrices(uniforms.lightSpaceMatrices.0, shadowSystem.cascadeLightSpaceMatrices[0]))
+        XCTAssertTrue(compareMatrices(uniforms.lightSpaceMatrices.1, shadowSystem.cascadeLightSpaceMatrices[1]))
+        XCTAssertTrue(compareMatrices(uniforms.lightSpaceMatrices.2, shadowSystem.cascadeLightSpaceMatrices[2]))
     }
 
     func testTransparencyTarget() {

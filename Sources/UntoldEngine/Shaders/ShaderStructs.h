@@ -188,4 +188,17 @@ typedef struct{
     
 }GaussianOutData;
 
+// Cascaded Shadow Maps: 3 cascades shared between both eyes in XR.
+#define CSM_CASCADE_COUNT 3
+
+struct CSMUniforms {
+    float4x4 lightSpaceMatrices[CSM_CASCADE_COUNT];
+    float4x4 cameraViewMatrix;
+    float    cascadeSplits[CSM_CASCADE_COUNT]; // world-space camera distances (far edge of each cascade)
+    int      cascadeCount;
+    float    _pad0;
+    float    _pad1;
+    float    _pad2;
+};
+
 #endif /* ShaderStructs_h */

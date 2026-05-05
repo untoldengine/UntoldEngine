@@ -28,7 +28,7 @@ fragment float4 fragmentTransparencyShader(
     sampler normalSampler [[sampler(transparencyPassNormalSamplerIndex)]],
     sampler materialSampler [[sampler(transparencyPassMaterialSamplerIndex)]],
     constant float &stScale [[buffer(transparencyPassFragmentSTScaleIndex)]],
-    constant simd_float4x4 &lightOrthoView [[buffer(transparencyPassLightOrthoViewMatrixIndex)]],
+    constant CSMUniforms &csmUniforms [[buffer(transparencyPassLightOrthoViewMatrixIndex)]],
     constant LightParameters &lights [[buffer(transparencyPassLightParamsIndex)]],
     constant simd_float3 &cameraPosition [[buffer(transparencyPassCameraPositionIndex)]],
     constant PointLightBlock &plBlock [[buffer(transparencyPassPointLightsIndex)]],
@@ -39,7 +39,7 @@ fragment float4 fragmentTransparencyShader(
     texture2d<float> irradianceTexture [[texture(transparencyPassIBLIrradianceTextureIndex)]],
     texture2d<float> specularTexture [[texture(transparencyPassIBLSpecularTextureIndex)]],
     texture2d<float> iblBRDFTexture [[texture(transparencyPassIBLBRDFMapTextureIndex)]],
-    depth2d<float> shadowTexture [[texture(transparencyPassShadowTextureIndex)]],
+    depth2d_array<float> csmShadowArray [[texture(transparencyPassShadowTextureIndex)]],
     texture2d<float> ltcMagTexture [[texture(transparencyPassAreaLTCMagTextureIndex)]],
     texture2d<float> ltcMatTexture [[texture(transparencyPassAreaLTCMatTextureIndex)]]
 ) {
@@ -97,8 +97,7 @@ fragment float4 fragmentTransparencyShader(
     totalLight.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
     totalLight.spec = brdf.spec * lights.color * lights.intensity;
 
-    float4 shadowCoords = lightOrthoView * float4(verticesInWorldSpace.xyz, 1.0);
-    float shadow = computeShadow(shadowCoords, shadowTexture, normal, lightDirection);
+    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, cameraPosition, normal, lightDirection);
     totalLight.diff *= (half)shadow;
     totalLight.spec *= shadow;
 

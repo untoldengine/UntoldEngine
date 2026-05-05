@@ -1,9 +1,100 @@
 # Getting Started
 
-This guide walks through a typical `GameScene` setup: loading `.untold` assets,
-adding entities, configuring physics, and placing the camera.
+This guide takes you from a fresh Untold Engine checkout to a working game
+project. You will run the demo, create an Xcode project, export assets into the
+engine's `.untold` runtime format, and load those assets from a `GameScene`.
+
+You can create projects and export assets in two ways:
+
+- Use the CLI if you prefer terminal commands or want a repeatable workflow.
+- Use Untold Engine Studio if you prefer a visual editor for project setup,
+  asset import, and scene preparation.
+
+After your project is created, both workflows lead to the same place: an Xcode
+project with a `GameData` folder that contains the assets your game loads at
+runtime.
 
 ---
+
+## Clone the Untold Engine
+
+Clone the repository and launch the demo:
+
+```bash
+git clone https://github.com/untoldengine/UntoldEngine.git
+cd UntoldEngine
+swift run untolddemo
+```
+
+## Create an Xcode Project
+
+You can create a project with either Untold Engine Studio or the CLI. If you are
+new to Untold Engine, start with the Editor. If you prefer terminal workflows or
+want repeatable project setup, use the CLI.
+
+### Option 1: Editor
+
+Use **Untold Engine Studio** for a visual workflow. It is a standalone editor for
+creating projects, preparing assets, composing scenes, and generating scene files
+used inside your game.
+
+[Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)
+
+![untoldeditor-image-1](/docs/images/editor-highlight-1.png)
+
+To set up a project:
+1. Click on "New".
+2. Provide a Project name
+3. Provide a Bundle name
+4. Select the Target Platform
+5. Provide an output path
+
+Untold Engine Studio will create an Xcode project ready to be used with Untold Engine.
+
+### Option 2: CLI
+
+Use `untoldengine-create` to generate a ready-to-run Xcode project with Untold Engine wired in.
+
+Install it from the repository:
+
+```bash
+./scripts/install-untoldengine-create.sh
+```
+
+Now create an Xcode project. The example below uses `--platform visionos` to
+create a Vision Pro project.
+
+### Vision Pro Example
+
+```bash
+cd ~/Projects
+untoldengine-create create VisionGame --platform visionos
+open VisionGame/VisionGame.xcodeproj
+```
+
+If you want to create a project for other platforms, you can use the flags below:
+
+### Platform options
+
+```bash
+# visionOS (Apple Vision Pro)
+untoldengine-create create MyGame --platform visionos
+
+# macOS (default)
+untoldengine-create create MyGame --platform macos
+
+# iOS with ARKit
+untoldengine-create create MyGame --platform ios-ar
+
+# iOS
+untoldengine-create create MyGame --platform ios
+```
+
+Dependency behavior by platform:
+
+- `visionos`: `UntoldEngineXR` + `UntoldEngineAR`
+- `ios-ar`: `UntoldEngineAR`
+- `ios` and `macos`: `UntoldEngine`
 
 ## Native Asset Format: `.untold`
 
@@ -15,14 +106,32 @@ The `.untold` format is a binary container optimised for fast runtime parsing wi
 no ModelIO dependency. It supports runtime mesh data, PBR materials, texture references,
 transforms, bounds, and exported animation clips.
 
-### Converting assets
+> **Note:** The exporter requires [Blender](https://www.blender.org).
+
+You can convert assets with either Untold Engine Studio or the CLI. If you are
+new to Untold Engine, start with the Editor. If you prefer terminal workflows or
+need repeatable asset export commands, use the CLI.
+
+### Option 1: Editor
+
+To convert a USDZ file into the `.untold` format using the editor:
+
+1. Click on "Import" in the Asset Browser View.
+2. Click on "Import Models"
+3. Find a USDZ file you want to convert
+4. Click on Export
+5. When the export has completed, you will see your new `.untold` model under the Model Category
+
+At this point, head over to your Xcode project. You will also notice that your `.untold` model is under `Sources/<ProjectName>/GameData/Models`.
+
+### Option 2: CLI
 
 Use the `export-untold` script to convert a single USDZ asset:
 
 ```bash
 ./scripts/export-untold \
-  --input GameData/Models/robot/robot.usdz \
-  --output GameData/Models/robot/robot.untold \
+  --input /path/to/your/model/robot/robot.usdz \
+  --output /path/to/your/project/GameData/Models/robot/robot.untold \
   --ConvertOrientation \
   --source-orientation blender-native
 ```
@@ -31,8 +140,8 @@ For animation assets, use the `--animation` flag:
 
 ```bash
 ./scripts/export-untold \
-  --input GameData/Models/robot/robot.usdz \
-  --output GameData/Models/robot/robot.untold \
+  --input /path/to/your/animation/robot/robot.usdz \
+  --output /path/to/your/project/GameData/Animations/robot/robot.untold \
   --ConvertOrientation \
   --source-orientation blender-native \
   --animation
@@ -43,8 +152,8 @@ partition the scene and generate a manifest JSON:
 
 ```bash
 ./scripts/export-untold-tiles \
-  --input GameData/Models/dungeon/dungeon.usdz \
-  --output-dir GameData/Models/dungeon/tile_exports \
+  --input /path/to/your/model/dungeon/dungeon.usdz \
+  --output-dir /path/to/your/project/GameData/StreamModels/dungeon/tile_exports \
   --tile-size-x 25 \
   --tile-size-z 25 \
   --generate-hlod \
@@ -59,11 +168,16 @@ workflows, see [Optimizations](Optimizations.md).
 
 ## Loading a Single Asset
 
+Once in your Xcode project, head over to the init function in Sources/<ProjectName>/GameScene.swift.
+
 Use `setEntityMeshAsync` to load an `.untold` file as an always-resident asset.
 This is the right choice for props, characters, and any object that should stay
 in memory for the lifetime of the scene.
 
 ```swift
+
+//...After configureEngineSystems()
+
 let entity = createEntity()
 setEntityName(entityId: entity, name: "robot")
 
@@ -88,6 +202,10 @@ GPU memory based on camera proximity. Pass either a local manifest path or a rem
 `https://` URL — the engine handles downloading and caching automatically.
 
 ```swift
+
+//..After configureEngineSystems()
+
+
 let sceneRoot = createEntity()
 setEntityName(entityId: sceneRoot, name: "dungeon")
 
@@ -95,7 +213,13 @@ setEntityName(entityId: sceneRoot, name: "dungeon")
 setEntityStreamScene(entityId: sceneRoot, manifest: "dungeon", withExtension: "json") { success in
     setSceneReady(success)
 }
+```
 
+## Loading a Remote Streamed Scene
+
+To streame a remote scene, you use the same function `setEntityStreamedScene()` but provide a url to your manifest json file.
+
+```swift
 // Remote manifest (downloaded and cached on demand)
 if let url = URL(string: "https://cdn.example.com/dungeon/dungeon.json") {
     setEntityStreamScene(entityId: sceneRoot, url: url) { success in
@@ -176,10 +300,9 @@ final class GameScene {
         createDirLight(entityId: light)
 
         // Load a single always-resident asset
-        let entity = createEntity()
-        setEntityName(entityId: entity, name: "robot")
+        let stadium = createEntity()
 
-        setEntityMeshAsync(entityId: entity, filename: "robot", withExtension: "untold") { success in
+        setEntityMeshAsync(entityId: stadium, filename: "stadium", withExtension: "untold") { success in
             if let player = findEntity(name: "player") {
                 rotateTo(entityId: player, angle: 0, axis: simd_float3(0.0, 1.0, 0.0))
                 setEntityAnimations(entityId: player, filename: "running", withExtension: "untold", name: "running")

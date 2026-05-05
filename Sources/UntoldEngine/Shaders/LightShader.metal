@@ -11,6 +11,7 @@
 #include <metal_stdlib>
 #include "../../CShaderTypes/ShaderTypes.h"
 #include "ShaderStructs.h"
+#include "ShadersUtils.h"
 using namespace metal;
 
 constant uint MAX_POINT_LIGHTS = 1024;
@@ -30,36 +31,50 @@ struct AreaLightBlock{
     AreaLightUniform lights[MAX_POINT_LIGHTS];
 };
 
-float computeShadow(float4 shadowCoords, depth2d<float> shadowTexture, float3 normal, float3 lightDir){
-    
-    float shadow=0.0;
-    
+// Cascaded shadow map sampling.
+// Selects the cascade whose far-split encloses the fragment's camera view-depth,
+// then performs a 16-tap Poisson-disk PCF on that cascade's depth slice.
+float computeCSMShadow(
+    depth2d_array<float> shadowArray,
+    constant CSMUniforms &csm,
+    float3 worldPos,
+    float3 cameraPos,
+    float3 normal,
+    float3 lightDir
+) {
+    // Pick cascade using the same right-handed camera depth space as the CPU split calculation.
+    float viewDepth = -(csm.cameraViewMatrix * float4(worldPos, 1.0)).z;
+    int cascade = csm.cascadeCount - 1;
+    for (int i = 0; i < csm.cascadeCount - 1; i++) {
+        if (viewDepth < csm.cascadeSplits[i]) { cascade = i; break; }
+    }
+
+    float4 shadowCoords = csm.lightSpaceMatrices[cascade] * float4(worldPos, 1.0);
+
+    // Clip → NDC → [0,1] UV
+    float3 proj = shadowCoords.xyz / shadowCoords.w;
+    proj.xy = proj.xy * 0.5 + 0.5;
+    proj.y  = 1.0 - proj.y; // Metal origin is top-left
+
+    if (proj.x < 0.0 || proj.x > 1.0 ||
+        proj.y < 0.0 || proj.y > 1.0 ||
+        proj.z < 0.0 || proj.z > 1.0) {
+        return 1.0;
+    }
+
     constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
-    float2 texelSize = 1.0 / float2(shadowTexture.get_width(), shadowTexture.get_height());
+    float2 texelSize = 1.0 / float2(shadowArray.get_width(), shadowArray.get_height());
 
     float bias = max(0.002 * (1.0 - dot(normalize(normal), normalize(lightDir))), 0.001);
+    float currentDepth = proj.z;
 
-    //project from Clip space to NDC
-    float3 proj=shadowCoords.xyz/shadowCoords.w;
-
-    //map NDC space [-1,-1] to [0,1]
-    proj.xy=proj.xy*0.5+0.5;
-
-    //flip the texture. Metal's texture coordinate system has its origin in the top left corner, unlike opengl where the origin is the bottom
-    //left corner
-    proj.y=1.0-proj.y;
-
-    //float closestDepth=shadowTexture.sample(shadowSampler,proj.xy);
-    float currentDepth=proj.z;
-    int poissonSamples = 16;
-    for (int i = 0; i < poissonSamples; ++i) {
-            float2 offset = poissonDisk[i] * texelSize * 1.5;
-            float sampledDepth = shadowTexture.sample(shadowSampler, proj.xy + offset);
-            shadow += (currentDepth - bias) > sampledDepth ? 0.3 : 1.0;
-        }
-    shadow/=poissonSamples;
-    //shadow = mix(0.3, 1.0, shadow);
-    return shadow;
+    float shadow = 0.0;
+    for (int i = 0; i < 16; ++i) {
+        float2 offset = poissonDisk[i] * texelSize * 1.5;
+        float sampledDepth = shadowArray.sample(shadowSampler, proj.xy + offset, cascade);
+        shadow += (currentDepth - bias) > sampledDepth ? 0.3 : 1.0;
+    }
+    return shadow / 16.0;
 }
 
 float3 computeIBLContribution(texture2d<float> irradianceTexture,
@@ -234,14 +249,14 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
                                     texture2d<half> normalMap[[texture(lightPassNormalTextureIndex)]],
                                     texture2d<float> positionMap[[texture(lightPassPositionTextureIndex)]],
                                     texture2d<half> materialMap[[texture(lightPassMaterialTextureIndex)]],
-                                    depth2d<float> shadowTexture[[texture(lightPassShadowTextureIndex)]],
+                                    depth2d_array<float> csmShadowArray[[texture(lightPassShadowTextureIndex)]],
                                     texture2d<float> irradianceTexture [[texture(lightPassIBLIrradianceTextureIndex)]],
                                     texture2d<float> specularTexture [[texture(lightPassIBLSpecularTextureIndex)]],
                                     texture2d<half> ssaoTexture [[texture(lightPassSSAOTextureIndex)]],
                                     texture2d<float> iblBRDFTexture [[texture(lightPassIBLBRDFMapTextureIndex)]],
                                     texture2d<float> ltcMagTexture [[texture(lightPassAreaLTCMagTextureIndex)]],
                                     texture2d<float> ltcMatTexture [[texture(lightPassAreaLTCMatTextureIndex)]],
-                                    constant simd_float4x4 &lightOrthoView [[buffer(lightPassLightOrthoViewMatrixIndex)]],
+                                    constant CSMUniforms &csmUniforms [[buffer(lightPassLightOrthoViewMatrixIndex)]],
                                     constant simd_float3 &cameraPosition [[buffer(lightPassCameraPositionIndex)]],
                                     constant LightParameters &lights [[buffer(lightPassLightParamsIndex)]],
                                     constant PointLightBlock &plBlock[[buffer(lightPassPointLightsIndex)]],
@@ -295,10 +310,8 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     color.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
     color.spec = brdf.spec*lights.color*lights.intensity;
     
-    float4 shadowCoords = lightOrthoView * float4(verticesInWorldSpace.xyz,1.0);
-    
-    // Compute shadow
-    float shadow = computeShadow(shadowCoords, shadowTexture, surfaceNormal, lightRayDirection);
+    // Compute shadow using cascaded shadow maps
+    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, cameraPosition, surfaceNormal, lightRayDirection);
    
     // shadows affect directional light for now
     color.diff = color.diff*(half)shadow;
@@ -368,5 +381,4 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     return finalcolor;
 
 }
-
 

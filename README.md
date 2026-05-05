@@ -77,6 +77,8 @@ swift run untolddemo
 
 The demo UI lets you see the engine in action right away. Using the `Remote Scene` drop-down menu, you can choose a scene to stream directly into the demo through the engine's **Asset Remote Streaming** support.
 
+![untoldengine-image-2](/docs/images/engine-highlight-2.png)
+
 ### I want to try my own USDZ
 
 Untold Engine uses its own native asset format: `.untold`.
@@ -85,94 +87,17 @@ To try your own `USDZ` file, first convert it to `.untold` using the `Tools` sec
 
 After the export is complete, open the Local Scene `Browse` drop-down menu, choose `.untold`, then browse for and select your exported `.untold` file.
 
----
-
-![untoldengine-image-2](/docs/images/engine-highlight-2.png)
-
-## Get a Feel for the API
-
-A small code sample to inspect and experiment with is available at `Sources/Sandbox/GameScene.swift`. Along with the [Usage Example](docs/API/UsageExamples.md), it shows how the Untold Engine API works in practice.
-
-The Sandbox target lets you test engine APIs — creating an entity, attaching a mesh, trying animations, and other scene setup.
-
-To run it from the CLI:
-
-```bash
-swift run sandbox
-```
-
-To run it in Xcode, select the `sandbox` scheme and press Run.
-
+> **Note:** The exporter requires [Blender](https://www.blender.org).
+ 
 ---
 
 ![untoldengine-image-3](/docs/images/engine-highlight-3.png)
 
-## Set Up an Xcode Project with Untold Engine
+## Getting Started
 
-Use `untoldengine-create` to generate a ready-to-run Xcode project with Untold Engine wired in.
+To create your own project/game using the Untold Engine, see 
+[Getting Started](docs/API/GettingStarted.md).
 
-Install it from the repository:
-
-```bash
-git clone https://github.com/untoldengine/UntoldEngine.git
-cd UntoldEngine
-./scripts/install-untoldengine-create.sh
-```
-
-### Vision Pro Example
-
-```bash
-mkdir VisionGame
-cd VisionGame
-untoldengine-create create VisionGame --platform visionos
-open VisionGame.xcodeproj
-```
-
-### What this creates for you
-
-- Xcode project + platform-specific app template files
-- `GameData` folder structure (`Scenes`, `Scripts`, `Models`, `Textures`, etc.)
-- Engine package dependencies configured for the selected platform
-- Starter `GameScene` code showing how to:
-  - Load a mesh (`city.usdz`)
-  - Enable geometry streaming
-  - Enable static batching
-
-Note: `city.usdz` should be placed in `GameData/model` (generated folder name is `GameData/Models`).
-
-### Platform options
-
-```bash
-# visionOS (Apple Vision Pro)
-untoldengine-create create MyGame --platform visionos
-
-# macOS (default)
-untoldengine-create create MyGame --platform macos
-
-# iOS with ARKit
-untoldengine-create create MyGame --platform iosar
-
-# iOS
-untoldengine-create create MyGame --platform ios
-```
-
-Dependency behavior by platform:
-
-- `visionos`: `UntoldEngineXR` + `UntoldEngineAR`
-- `iosar`: `UntoldEngineAR`
-- `ios` and `macos`: `UntoldEngine`
-
----
-
-## Visual Editor
-
-To make using the Untold Engine easier, you can use the **Untold Engine Studio** — a standalone editor for preparing assets, composing scenes, and generating scene files used inside your game. [Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)
-
-![untoldeditor-image-1](/docs/images/editor-highlight-1.png)
-
-Note, you still need the engine as a dependency in your project. The editor is only used for composing scenes.
-
----
 
 ## 🧱 Core Direction
 
@@ -332,4 +257,3 @@ Full license: https://www.mozilla.org/MPL/2.0/
 
 - [GitHub Discussions](https://github.com/untoldengine/UntoldEngine/discussions) — ideas and questions
 - [GitHub Issues](https://github.com/untoldengine/UntoldEngine/issues) — bugs and tasks
-

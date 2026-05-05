@@ -292,6 +292,69 @@ public enum RenderPasses {
         }
     }
 
+    @inline(__always)
+    private static func shouldSkipShadowEntity(_ entityId: EntityID) -> Bool {
+        if scene.mask(for: entityId) == nil { return true }
+        if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { return true }
+        if scene.get(component: CameraComponent.self, for: entityId) != nil { return true }
+        if scene.get(component: LightComponent.self, for: entityId) != nil { return true }
+        if scene.get(component: GizmoComponent.self, for: entityId) != nil { return true }
+        return false
+    }
+
+    private static func shadowFrustum(for cascadeIdx: Int) -> Frustum? {
+        guard cascadeIdx >= 0, cascadeIdx < shadowSystem.cascadeLightSpaceMatrices.count else {
+            return nil
+        }
+        let effectiveLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(
+            shadowSystem.cascadeLightSpaceMatrices[cascadeIdx]
+        )
+        return buildFrustum(from: effectiveLightMatrix)
+    }
+
+    private static func shadowCasterEntityIds(for cascadeIdx: Int) -> [EntityID] {
+        guard let frustum = shadowFrustum(for: cascadeIdx) else { return [] }
+
+        let transformId = getComponentId(for: WorldTransformComponent.self)
+        let localTransformId = getComponentId(for: LocalTransformComponent.self)
+        let renderId = getComponentId(for: RenderComponent.self)
+        let entities = queryEntitiesWithComponentIds([transformId, localTransformId, renderId], in: scene)
+
+        var result: [EntityID] = []
+        result.reserveCapacity(entities.count)
+
+        for entityId in entities {
+            if shouldSkipShadowEntity(entityId) { continue }
+            if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) { continue }
+
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  renderComponent.isVisible,
+                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
+                  let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
+            else { continue }
+
+            let (worldMin, worldMax) = worldAABB_MinMax(
+                localMin: localTransformComponent.boundingBox.min,
+                localMax: localTransformComponent.boundingBox.max,
+                worldMatrix: worldTransformComponent.space
+            )
+            if isAABBInFrustum(frustum, min: worldMin, max: worldMax) {
+                result.append(entityId)
+            }
+        }
+
+        return result
+    }
+
+    private static func shadowCasterBatchGroups(for cascadeIdx: Int) -> [BatchGroup] {
+        let groups = BatchingSystem.shared.batchGroups
+        guard !groups.isEmpty, let frustum = shadowFrustum(for: cascadeIdx) else { return [] }
+
+        return groups.filter {
+            isAABBInFrustum(frustum, min: $0.boundingBox.min, max: $0.boundingBox.max)
+        }
+    }
+
     /// Per-frame cached cluster-level visibility.  Both batch render passes (shadow +
     /// model) call this; the result is computed once and reused for the same frame index.
     private static func visibleBatchGroupsSnapshot() -> [BatchGroup] {
@@ -610,304 +673,228 @@ public enum RenderPasses {
     }
 
     public static let shadowExecution: RenderPassExecution = { commandBuffer in
+        // XR: shadow map is shared; only render cascades on eye 0.
+        if renderInfo.isXRStereoMode, renderInfo.currentEye > 0 { return }
+
         guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
             handleError(.pipelineStateNulled, "shadowPipeline is nil")
             return
         }
-
         if shadowPipeline.success == false {
             handleError(.pipelineStateNulled, shadowPipeline.name!)
             return
         }
 
-        shadowSystem.updateViewFromSunPerspective()
+        shadowSystem.updateCascades()
+        guard shadowSystem.isActive else { return }
+        guard !renderInfo.csmRenderPassDescriptors.isEmpty else { return }
 
-        // if shadow has no dir light space matrix then no need to proceed
-        guard let dirLight = shadowSystem.dirLightSpaceMatrix else { return }
-
-        guard let shadowDescriptor = renderInfo.shadowRenderPassDescriptor else {
-            handleError(.renderPassCreationFailed, "Shadow render pass descriptor not initialized")
-            return
-        }
-
-        guard
-            let renderEncoder = commandBuffer.makeRenderCommandEncoder(
-                descriptor: shadowDescriptor
-            )
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
         else {
-            handleError(.renderPassCreationFailed, "shadow Pass")
-            return
-        }
-
-        defer {
-            // Make sure no matter what we end the encoding at the end of the function
-            renderEncoder.popDebugGroup()
-            renderEncoder.endEncoding()
-        }
-
-        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
 
-        renderEncoder.label = "Shadow Pass"
-        renderEncoder.pushDebugGroup("Shadow Pass")
-        renderEncoder.setRenderPipelineState(shadowPipeline.pipelineState!)
-        renderEncoder.setDepthStencilState(shadowPipeline.depthState!)
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
 
-        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+        // Render each cascade into its own depth array slice.
+        for cascadeIdx in 0 ..< csmCascadeCount {
+            guard cascadeIdx < renderInfo.csmRenderPassDescriptors.count else { break }
+            let descriptor = renderInfo.csmRenderPassDescriptors[cascadeIdx]
+            descriptor.depthAttachment.loadAction = .clear
+            descriptor.depthAttachment.storeAction = .store
+            descriptor.depthAttachment.clearDepth = 1.0
 
-        renderEncoder.setDepthBias(0.005, slopeScale: 1.0, clamp: 1.0)
-        renderEncoder.setViewport(
-            MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0)
-        )
-
-        // send buffer data
-        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(dirLight)
-        renderEncoder.setVertexBytes(
-            &effectiveDirLightMatrix, length: MemoryLayout<simd_float4x4>.stride,
-            index: Int(shadowPassLightMatrixUniform.rawValue)
-        )
-
-        // need to send light ortho view matrix
-
-        // send info for each entity that conforms to shadows
-
-        // Create a component query for entities with both Transform and Render components
-
-        // Iterate over the entities found by the component query
-        for entityId in visibleEntityIds {
-            // Skip entities that are pending destroy
-            if scene.mask(for: entityId) == nil { continue }
-
-            // Skip batched entities if batching is enabled
-            if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) {
+            guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+                handleError(.renderPassCreationFailed, "Shadow Cascade \(cascadeIdx)")
                 continue
             }
 
-            if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
-            if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
+            renderEncoder.label = "Shadow Cascade \(cascadeIdx)"
+            renderEncoder.pushDebugGroup("Shadow Cascade \(cascadeIdx)")
+            renderEncoder.setRenderPipelineState(shadowPipeline.pipelineState!)
+            renderEncoder.setDepthStencilState(shadowPipeline.depthState!)
+            renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+            renderEncoder.setDepthBias(0.005, slopeScale: 1.0, clamp: 1.0)
+            renderEncoder.setViewport(
+                MTLViewport(originX: 0, originY: 0,
+                            width: Double(shadowResolution.x), height: Double(shadowResolution.y),
+                            znear: 0, zfar: 1)
+            )
 
-            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-                handleError(.noRenderComponent, entityId)
-                continue
-            }
+            var effectiveLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(
+                shadowSystem.cascadeLightSpaceMatrices[cascadeIdx]
+            )
+            renderEncoder.setVertexBytes(
+                &effectiveLightMatrix, length: MemoryLayout<simd_float4x4>.stride,
+                index: Int(shadowPassLightMatrixUniform.rawValue)
+            )
 
-            guard let transformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
-                handleError(.noWorldTransformComponent, entityId)
-                continue
-            }
+            let shadowCasterIds = shadowCasterEntityIds(for: cascadeIdx)
+            for entityId in shadowCasterIds {
+                guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { continue }
+                guard let transformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else { continue }
+                guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else { continue }
 
-            guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
-                handleError(.noLocalTransformComponent, entityId)
-                continue
-            }
+                for mesh in renderComponent.mesh {
+                    var modelUniforms = Uniforms()
+                    var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
+                    let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+                    let upperModelMatrix = matrix3x3_upper_left(modelMatrix)
+                    let normalMatrix = upperModelMatrix.inverse.transpose
 
-            if let lightComponent = scene.get(component: LightComponent.self, for: entityId) {
-                continue
-            }
+                    modelUniforms.modelViewMatrix = modelViewMatrix
+                    modelUniforms.normalMatrix = normalMatrix
+                    modelUniforms.viewMatrix = viewMatrix
+                    modelUniforms.modelMatrix = modelMatrix
+                    modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+                    modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-            if let gizmoComponent = scene.get(component: GizmoComponent.self, for: entityId) {
-                continue
-            }
-
-            for mesh in renderComponent.mesh {
-                // update uniforms
-                var modelUniforms = Uniforms()
-
-                let rootMatrix = transformComponent.space
-                var modelMatrix = simd_mul(rootMatrix, mesh.localSpace)
-
-                let viewMatrix: simd_float4x4 = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-
-                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
-
-                let upperModelMatrix: matrix_float3x3 = matrix3x3_upper_left(modelMatrix)
-
-                let inverseUpperModelMatrix: matrix_float3x3 = upperModelMatrix.inverse
-
-                let normalMatrix: matrix_float3x3 = inverseUpperModelMatrix.transpose
-
-                modelUniforms.modelViewMatrix = modelViewMatrix
-
-                modelUniforms.normalMatrix = normalMatrix
-
-                modelUniforms.viewMatrix = viewMatrix
-
-                modelUniforms.modelMatrix = modelMatrix
-
-                modelUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
-
-                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
-
-                renderEncoder.setVertexBytes(
-                    &modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue)
-                )
-
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(shadowPassModelPositionIndex.rawValue)].buffer,
-                    offset: 0, index: Int(shadowPassModelPositionIndex.rawValue)
-                )
-
-                // Only enable armature path when a valid joint transform buffer exists.
-                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
-                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
-
-                renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
-
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
-                    offset: 0, index: Int(shadowPassJointIdIndex.rawValue)
-                )
-
-                renderEncoder.setVertexBuffer(
-                    mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
-                    offset: 0, index: Int(shadowPassJointWeightsIndex.rawValue)
-                )
-
-                if let jointTransformBuffer {
-                    renderEncoder.setVertexBuffer(jointTransformBuffer, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
-                } else {
-                    var identityMatrix = matrix_identity_float4x4
-                    renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
-                }
-
-                for subMesh in mesh.submeshes {
-                    renderEncoder.drawIndexedPrimitivesTracked(
-                        type: subMesh.metalKitSubmesh.primitiveType,
-                        indexCount: subMesh.metalKitSubmesh.indexCount,
-                        indexType: subMesh.metalKitSubmesh.indexType,
-                        indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
-                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
-                        category: .shadow
+                    renderEncoder.setVertexBytes(
+                        &modelUniforms, length: MemoryLayout<Uniforms>.stride,
+                        index: Int(shadowPassModelUniform.rawValue)
                     )
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(shadowPassModelPositionIndex.rawValue)].buffer,
+                        offset: 0, index: Int(shadowPassModelPositionIndex.rawValue)
+                    )
+
+                    let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                    var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
+                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,
+                        offset: 0, index: Int(shadowPassJointIdIndex.rawValue)
+                    )
+                    renderEncoder.setVertexBuffer(
+                        mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer,
+                        offset: 0, index: Int(shadowPassJointWeightsIndex.rawValue)
+                    )
+                    if let jtb = jointTransformBuffer {
+                        renderEncoder.setVertexBuffer(jtb, offset: 0, index: Int(shadowPassJointTransformIndex.rawValue))
+                    } else {
+                        var identity = matrix_identity_float4x4
+                        renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
+                    }
+
+                    for subMesh in mesh.submeshes {
+                        renderEncoder.drawIndexedPrimitivesTracked(
+                            type: subMesh.metalKitSubmesh.primitiveType,
+                            indexCount: subMesh.metalKitSubmesh.indexCount,
+                            indexType: subMesh.metalKitSubmesh.indexType,
+                            indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                            indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                            category: .shadow
+                        )
+                    }
                 }
             }
-        }
 
-        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
     }
 
     public static let batchedShadowExecution: RenderPassExecution = { commandBuffer in
-        // Skip if batching is disabled
         guard BatchingSystem.shared.isEnabled() else { return }
 
-        // Cluster-level frustum cull: test each batch group's precomputed world-space
-        // AABB against the current-frame frustum.  One AABB test per batch group instead
-        // of one per entity — avoids the entity→batchId lookup entirely.
-        let visibleBatchGroups = visibleBatchGroupsSnapshot()
-        guard !visibleBatchGroups.isEmpty else { return }
+        // XR: shadow map shared; skip on eye 1.
+        if renderInfo.isXRStereoMode, renderInfo.currentEye > 0 { return }
 
         guard let shadowPipeline = PipelineManager.shared.renderPipelinesByType[.shadow] else {
             handleError(.pipelineStateNulled, "shadowPipeline is nil")
             return
         }
-
         if shadowPipeline.success == false {
             handleError(.pipelineStateNulled, shadowPipeline.name!)
             return
         }
 
-        // Shadow system should already be updated by shadowExecution
-        guard let dirLight = shadowSystem.dirLightSpaceMatrix else { return }
+        // Cascades were already computed by shadowExecution.
+        guard shadowSystem.isActive else { return }
+        guard !renderInfo.csmRenderPassDescriptors.isEmpty else { return }
 
-        guard let shadowDescriptor = renderInfo.shadowRenderPassDescriptor else {
-            handleError(.renderPassCreationFailed, "Shadow render pass descriptor not initialized")
-            return
-        }
-
-        // Reuse existing shadow descriptor (already configured by shadowExecution)
-        shadowDescriptor.depthAttachment.loadAction = .load
-
-        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: shadowDescriptor)
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
         else {
-            handleError(.renderPassCreationFailed, "Batched Shadow Pass")
-            return
-        }
-
-        defer {
-            renderEncoder.popDebugGroup()
-            renderEncoder.endEncoding()
-        }
-
-        renderEncoder.label = "Batched Shadow Pass"
-        renderEncoder.pushDebugGroup("Batched Shadow Pass")
-
-        renderEncoder.setRenderPipelineState(shadowPipeline.pipelineState!)
-        renderEncoder.setDepthStencilState(shadowPipeline.depthState!)
-        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
-
-        renderEncoder.setDepthBias(0.005, slopeScale: 1.0, clamp: 1.0)
-        renderEncoder.setViewport(
-            MTLViewport(originX: 0.0, originY: 0.0, width: Double(shadowResolution.x), height: Double(shadowResolution.y), znear: 0.0, zfar: 1.0)
-        )
-
-        // Set light space matrix (same as shadowExecution)
-        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(dirLight)
-        renderEncoder.setVertexBytes(
-            &effectiveDirLightMatrix, length: MemoryLayout<simd_float4x4>.stride,
-            index: Int(shadowPassLightMatrixUniform.rawValue)
-        )
-
-        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
 
-        // Create identity uniform (batched vertices are already in world space)
-        var batchUniforms = Uniforms()
         let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-        let modelMatrix = matrix_identity_float4x4
-        let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
-
-        batchUniforms.modelMatrix = modelMatrix
+        var batchUniforms = Uniforms()
+        batchUniforms.modelMatrix = matrix_identity_float4x4
         batchUniforms.viewMatrix = viewMatrix
-        batchUniforms.modelViewMatrix = modelViewMatrix
+        batchUniforms.modelViewMatrix = viewMatrix
         batchUniforms.normalMatrix = matrix_identity_float3x3
         batchUniforms.cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
         batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
 
-        // Render only batch groups that contain at least one visible entity.
-        for batchGroup in visibleBatchGroups {
-            guard let positionBuffer = batchGroup.positionBuffer,
-                  let indexBuffer = batchGroup.indexBuffer
-            else { continue }
+        for cascadeIdx in 0 ..< csmCascadeCount {
+            guard cascadeIdx < renderInfo.csmRenderPassDescriptors.count else { break }
 
-            // Set uniforms
+            // Batched geometry adds into the existing cascade depth slice (already written by shadowExecution).
+            let descriptor = renderInfo.csmRenderPassDescriptors[cascadeIdx]
+            descriptor.depthAttachment.loadAction = .load
+
+            guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+                handleError(.renderPassCreationFailed, "Batched Shadow Cascade \(cascadeIdx)")
+                continue
+            }
+
+            renderEncoder.label = "Batched Shadow Cascade \(cascadeIdx)"
+            renderEncoder.pushDebugGroup("Batched Shadow Cascade \(cascadeIdx)")
+            renderEncoder.setRenderPipelineState(shadowPipeline.pipelineState!)
+            renderEncoder.setDepthStencilState(shadowPipeline.depthState!)
+            renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+            renderEncoder.setDepthBias(0.005, slopeScale: 1.0, clamp: 1.0)
+            renderEncoder.setViewport(
+                MTLViewport(originX: 0, originY: 0,
+                            width: Double(shadowResolution.x), height: Double(shadowResolution.y),
+                            znear: 0, zfar: 1)
+            )
+
+            var effectiveLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(
+                shadowSystem.cascadeLightSpaceMatrices[cascadeIdx]
+            )
             renderEncoder.setVertexBytes(
-                &batchUniforms,
-                length: MemoryLayout<Uniforms>.stride,
-                index: Int(shadowPassModelUniform.rawValue)
+                &effectiveLightMatrix, length: MemoryLayout<simd_float4x4>.stride,
+                index: Int(shadowPassLightMatrixUniform.rawValue)
             )
 
-            // Set position buffer (shadows only need positions)
-            renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassModelPositionIndex.rawValue))
+            let shadowBatchGroups = shadowCasterBatchGroups(for: cascadeIdx)
+            for batchGroup in shadowBatchGroups {
+                guard let positionBuffer = batchGroup.positionBuffer,
+                      let indexBuffer = batchGroup.indexBuffer
+                else { continue }
 
-            // Static batched objects don't have armature
-            var hasArmature = false
-            renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
+                renderEncoder.setVertexBytes(&batchUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(shadowPassModelUniform.rawValue))
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassModelPositionIndex.rawValue))
 
-            // Set dummy joint buffers (shader expects them even when hasArmature is false)
-            renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassJointIdIndex.rawValue)) // Dummy
-            renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassJointWeightsIndex.rawValue)) // Dummy
+                var hasArmature = false
+                renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(shadowPassHasArmature.rawValue))
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassJointIdIndex.rawValue))
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(shadowPassJointWeightsIndex.rawValue))
+                var identity = matrix_identity_float4x4
+                renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
 
-            // Dummy joint transform buffer
-            var identityMatrix = matrix_identity_float4x4
-            renderEncoder.setVertexBytes(&identityMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(shadowPassJointTransformIndex.rawValue))
+                renderEncoder.drawIndexedPrimitivesTracked(
+                    type: .triangle,
+                    indexCount: batchGroup.indexCount,
+                    indexType: .uint32,
+                    indexBuffer: indexBuffer,
+                    indexBufferOffset: 0,
+                    category: .shadow,
+                    batched: true
+                )
+            }
 
-            // SINGLE SHADOW DRAW CALL FOR ENTIRE BATCH
-            renderEncoder.drawIndexedPrimitivesTracked(
-                type: .triangle,
-                indexCount: batchGroup.indexCount,
-                indexType: .uint32,
-                indexBuffer: indexBuffer,
-                indexBufferOffset: 0,
-                category: .shadow,
-                batched: true
-            )
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
         }
-
-        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
     public static let modelExecution: RenderPassExecution = { commandBuffer in
@@ -2003,10 +1990,15 @@ public enum RenderPasses {
         var effectiveCamPos = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
         renderEncoder.setFragmentBytes(&effectiveCamPos, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
 
-        let dirLightMatrix = shadowSystem.dirLightSpaceMatrix ?? matrix_identity_float4x4
-        var effectiveLightOrthoView = SceneRootTransform.shared.effectiveLightMatrix(dirLightMatrix)
+        // CSM uniforms: pack all cascade matrices + split distances into one struct.
+        var csmUniforms = shadowSystem.makeUniforms()
+        csmUniforms.cameraViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        // Apply SceneRootTransform to each cascade matrix.
+        csmUniforms.lightSpaceMatrices.0 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.0)
+        csmUniforms.lightSpaceMatrices.1 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.1)
+        csmUniforms.lightSpaceMatrices.2 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.2)
         renderEncoder.setFragmentBytes(
-            &effectiveLightOrthoView, length: MemoryLayout<simd_float4x4>.stride,
+            &csmUniforms, length: MemoryLayout<CSMUniforms>.stride,
             index: Int(lightPassLightOrthoViewMatrixIndex.rawValue)
         )
 
@@ -2035,9 +2027,9 @@ public enum RenderPasses {
 
         renderEncoder.setFragmentBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(lightPassLightParamsIndex.rawValue))
 
-        // shadow map
+        // CSM shadow array texture
         renderEncoder.setFragmentTexture(
-            textureResources.shadowMap, index: Int(lightPassShadowTextureIndex.rawValue)
+            textureResources.csmShadowMap, index: Int(lightPassShadowTextureIndex.rawValue)
         )
 
         let MAX_POINT_LIGHTS = 1024
@@ -2314,11 +2306,14 @@ public enum RenderPasses {
         }
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
-        let dirLightMatrix = shadowSystem.dirLightSpaceMatrix ?? matrix_identity_float4x4
-        var effectiveDirLightMatrix = SceneRootTransform.shared.effectiveLightMatrix(dirLightMatrix)
+        var transpCSM = shadowSystem.makeUniforms()
+        transpCSM.cameraViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        transpCSM.lightSpaceMatrices.0 = SceneRootTransform.shared.effectiveLightMatrix(transpCSM.lightSpaceMatrices.0)
+        transpCSM.lightSpaceMatrices.1 = SceneRootTransform.shared.effectiveLightMatrix(transpCSM.lightSpaceMatrices.1)
+        transpCSM.lightSpaceMatrices.2 = SceneRootTransform.shared.effectiveLightMatrix(transpCSM.lightSpaceMatrices.2)
         renderEncoder.setFragmentBytes(
-            &effectiveDirLightMatrix,
-            length: MemoryLayout<simd_float4x4>.stride,
+            &transpCSM,
+            length: MemoryLayout<CSMUniforms>.stride,
             index: Int(transparencyPassLightOrthoViewMatrixIndex.rawValue)
         )
 
@@ -2388,7 +2383,7 @@ public enum RenderPasses {
             index: Int(transparencyPassIBLBRDFMapTextureIndex.rawValue)
         )
         renderEncoder.setFragmentTexture(
-            textureResources.shadowMap,
+            textureResources.csmShadowMap,
             index: Int(transparencyPassShadowTextureIndex.rawValue)
         )
 

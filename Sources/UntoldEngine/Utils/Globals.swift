@@ -251,10 +251,12 @@ public let far: Float = 500
 public let near: Float = 0.01
 public let fov: Float = 65.0
 
-// Shadow max parameters
+// Shadow max parameters (legacy single-cascade — kept for reference)
 let shadowMaxWidth: Float = 300.0
 let shadowMaxHeight: Float = 300.0
 
+// CSM: per-cascade shadow map resolution and cascade count
+let csmCascadeCount: Int = 3
 let shadowResolution: simd_int2 = .init(2048, 2048)
 
 var rayTracingPipeline: ComputePipeline {
