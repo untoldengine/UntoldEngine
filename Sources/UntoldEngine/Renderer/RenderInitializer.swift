@@ -298,13 +298,19 @@ func initRenderPassDescriptors() {
         depthAttachment: (textureResources.depthMap, .dontCare, .dontCare, sceneDepthClearValue())
     )
 
-    // Shadow Render Pass
-    renderInfo.shadowRenderPassDescriptor = createRenderPassDescriptor(
-        width: Int(shadowResolution.x),
-        height: Int(shadowResolution.y),
-        colorAttachments: [(nil, .dontCare, .dontCare, nil)],
-        depthAttachment: (textureResources.shadowMap, .clear, .store, 1.0)
-    )
+    // CSM Shadow Render Passes — one descriptor per cascade, each clears its own array slice.
+    renderInfo.csmRenderPassDescriptors.removeAll()
+    for cascadeIdx in 0 ..< csmCascadeCount {
+        let desc = MTLRenderPassDescriptor()
+        desc.renderTargetWidth = Int(shadowResolution.x)
+        desc.renderTargetHeight = Int(shadowResolution.y)
+        desc.depthAttachment.texture = textureResources.csmShadowMap
+        desc.depthAttachment.loadAction = .clear
+        desc.depthAttachment.storeAction = .store
+        desc.depthAttachment.clearDepth = 1.0
+        desc.depthAttachment.slice = cascadeIdx
+        renderInfo.csmRenderPassDescriptors.append(desc)
+    }
 
     // Offscreen Render Pass
     renderInfo.offscreenRenderPassDescriptor = createRenderPassDescriptor(
@@ -396,16 +402,17 @@ func initTextureResources() {
     // Recreated on resize/init. Mark invalid until a new pyramid is built from depth.
     renderInfo.hzbIsValid = false
 
-    // Shadow Texture
-    textureResources.shadowMap = createTexture(
-        device: renderInfo.device,
-        label: "Shadow Texture",
-        pixelFormat: .depth32Float,
-        width: Int(shadowResolution.x),
-        height: Int(shadowResolution.y),
-        usage: [.shaderRead, .renderTarget],
-        storageMode: .private
-    )
+    // CSM Shadow Array Texture — one depth slice per cascade.
+    let csmDesc = MTLTextureDescriptor()
+    csmDesc.textureType = .type2DArray
+    csmDesc.pixelFormat = .depth32Float
+    csmDesc.width = Int(shadowResolution.x)
+    csmDesc.height = Int(shadowResolution.y)
+    csmDesc.arrayLength = csmCascadeCount
+    csmDesc.usage = [.shaderRead, .renderTarget]
+    csmDesc.storageMode = .private
+    textureResources.csmShadowMap = renderInfo.device.makeTexture(descriptor: csmDesc)
+    textureResources.csmShadowMap?.label = "CSM Shadow Cascade Array"
 
     // Color Texture
     textureResources.colorMap = createTexture(
