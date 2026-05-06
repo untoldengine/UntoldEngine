@@ -1955,6 +1955,7 @@ public enum RenderPasses {
         }
         renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
         // set the states for the pipeline
+        renderPassDescriptor.colorAttachments[0].texture = textureResources.deferredColorMap
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
