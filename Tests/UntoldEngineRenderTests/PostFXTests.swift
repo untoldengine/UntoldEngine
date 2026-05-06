@@ -36,6 +36,7 @@ final class PostFXTests: BaseRenderSetup {
         PostFX.enableChromaticAberration(false)
         PostFX.enableDepthOfField(false)
         FXAAParams.shared.enabled = false
+        TAAParams.shared.enabled = false
     }
 
     // MARK: - Parameter helpers

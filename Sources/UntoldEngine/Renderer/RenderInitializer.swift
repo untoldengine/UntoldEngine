@@ -392,6 +392,16 @@ func initRenderPassDescriptors() {
         ],
         depthAttachment: nil
     )
+
+    // TAA: velocity pass writes rg16Float motion vectors each frame.
+    renderInfo.velocityRenderPassDescriptor = createRenderPassDescriptor(
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        colorAttachments: [
+            (textureResources.velocityTexture, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+        ],
+        depthAttachment: nil
+    )
 }
 
 func initTextureResources() {
@@ -634,6 +644,62 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+
+    // TAA: screen-space motion vectors (rg16Float, camera-only velocity).
+    textureResources.velocityTexture = createTexture(
+        device: renderInfo.device,
+        label: "Velocity Texture",
+        pixelFormat: .rg16Float,
+        width: viewportWidth,
+        height: viewportHeight,
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .shared
+    )
+
+    // TAA output, history, and position-history textures (one set per eye in stereo).
+    let eyeCount = renderInfo.isXRStereoMode ? 2 : 1
+    for eye in 0 ..< eyeCount {
+        // .shared so the CPU can read it back via getBytes (PSNR tests, debug captures).
+        // History and position-history remain .private — they are GPU-internal only.
+        let outTex = createTexture(
+            device: renderInfo.device,
+            label: "TAA Output Eye \(eye)",
+            pixelFormat: wf.lookOutput,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.shaderRead, .renderTarget],
+            storageMode: .shared
+        )
+        let histTex = createTexture(
+            device: renderInfo.device,
+            label: "TAA History Eye \(eye)",
+            pixelFormat: wf.lookOutput,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.shaderRead, .renderTarget],
+            storageMode: .private
+        )
+        let posHistTex = createTexture(
+            device: renderInfo.device,
+            label: "TAA Position History Eye \(eye)",
+            pixelFormat: wf.gBufferPosition,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.shaderRead, .renderTarget],
+            storageMode: .private
+        )
+
+        if eye == 0 {
+            textureResources.taaOutputTexture = outTex
+            textureResources.taaHistoryTexture = histTex
+            textureResources.taaPositionHistoryTexture = posHistTex
+        }
+        textureResources.taaOutputTextureEye[eye] = outTex
+        textureResources.taaHistoryTextureEye[eye] = histTex
+        textureResources.taaPositionHistoryTextureEye[eye] = posHistTex
+    }
+    TemporalAA.shared.markReady()
+    Logger.log(message: "TAA textures initialised (\(eyeCount) eye(s)).")
 
     textureResources.fxaaTexture = createTexture(
         device: renderInfo.device,

@@ -291,7 +291,12 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         bypassPostProcessing = true
-        defer { bypassPostProcessing = false }
+        let savedTAA = TAAParams.shared.enabled
+        TAAParams.shared.enabled = false
+        defer {
+            bypassPostProcessing = false
+            TAAParams.shared.enabled = savedTAA
+        }
 
         let (graph, _) = buildGameModeGraph()
 
