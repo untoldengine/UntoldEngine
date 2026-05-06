@@ -1,0 +1,2640 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://untoldengine.github.io/UntoldEngine/Architecture/assetFormat/">
+      
+      
+        <link rel="prev" href="../meshResourceManager/">
+      
+      
+        <link rel="next" href="../assetProfiler/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../images/untoldenginewhite.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Asset Format - Untold Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#untoldengine-asset-format-untold" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Untold Engine" class="md-header__button md-logo" aria-label="Untold Engine" data-md-component="logo">
+      
+  <img src="../../images/untoldenginewhite.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Untold Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Asset Format
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/untoldengine/UntoldEngine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    untoldengine/UntoldEngine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Introduction
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../API/GettingStarted/" class="md-tabs__link">
+          
+  
+  
+  API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../renderingSystem/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../Contributor/ContributionGuidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Untold Engine" class="md-nav__button md-logo" aria-label="Untold Engine" data-md-component="logo">
+      
+  <img src="../../images/untoldenginewhite.png" alt="logo">
+
+    </a>
+    Untold Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/untoldengine/UntoldEngine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    untoldengine/UntoldEngine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/GettingStarted/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsageExamples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingRegistrationSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Registration System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingRenderingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingTransformSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transform System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingCameraSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Camera System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingInputSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingSpatialInput/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Input
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingLightingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lighting System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingMaterials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Materials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingAnimationSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Animation System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingPhysicsSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Physics System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingSteeringSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Steering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingPostFX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Post Effects
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingScenegraph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scene Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingLODSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LOD System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingStaticBatchingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Static Batching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingLOD-Batching-Streaming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LOD + Batching + Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingGeometryStreamingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geometry Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingAsyncLoading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Async Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingGaussianSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gaussian System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingProfiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/SpatialDebugger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Debugger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingTheLogger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingTheExporter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingUntoldEngineCLI/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Untold Engine CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/Optimizations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimizations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../renderingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../xrRenderingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XR Rendering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../outOfCore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Out-of-Core Geometry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../batchingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batching System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lodSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LOD System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tilebasedstreaming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tile-Based Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streamingRegionManager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Region Manager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streamingCacheLifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Cache Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geometryStreamingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geometry Streaming System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../textureStreamingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Texture Streaming System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../meshResourceManager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mesh Resource Manager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Format
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#physical-file-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Physical File Layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#header-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Header Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chunk-table-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chunk Table Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#string-table-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        String Table Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#entity-record-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entity Record Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mesh-record-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mesh Record Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#material-record-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Material Record Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#texture-reference-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Texture Reference Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vertex-layout-v1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vertex Layout V1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#packed-normal-and-tangent-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packed Normal and Tangent Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#index-data-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Index Data Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compression-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assetProfiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../progressiveAssetLoader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Progressive Asset Loader
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../asset_remote_streaming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Remote Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Contributor/ContributionGuidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Contributor/versioning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Versioning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Contributor/Formatting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Formatting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#physical-file-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Physical File Layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#header-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Header Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chunk-table-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chunk Table Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#string-table-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        String Table Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#entity-record-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entity Record Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mesh-record-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mesh Record Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#material-record-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Material Record Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#texture-reference-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Texture Reference Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vertex-layout-v1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vertex Layout V1
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#packed-normal-and-tangent-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packed Normal and Tangent Encoding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#index-data-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Index Data Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compression-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#validation-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validation Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="untoldengine-asset-format-untold">UntoldEngine Asset Format (<code>.untold</code>)</h1>
+<h2 id="overview">Overview</h2>
+<p><code>.untold</code> is the native runtime asset container for UntoldEngine tile streaming.</p>
+<p>It is <strong>not</strong> an interchange format and it is <strong>not</strong> intended to preserve full USD
+semantics. USD/USDZ remains the authoring/import format. The <code>.untold</code> container is the
+runtime package consumed by the engine for:</p>
+<ul>
+<li>tile files</li>
+<li>per-tile LOD files</li>
+<li>HLOD files</li>
+<li>shared bucket files</li>
+</ul>
+<p>V1 is intentionally narrow:</p>
+<ul>
+<li>static meshes only</li>
+<li>transforms</li>
+<li>bounds</li>
+<li>vertex/index buffers</li>
+<li>basic PBR materials</li>
+<li>texture references</li>
+<li>no animation</li>
+<li>no skinning</li>
+<li>no blend shapes</li>
+</ul>
+<p>The design goals are:</p>
+<ul>
+<li>fast runtime parse with no ModelIO dependency</li>
+<li>direct tile/HLOD/LOD streaming</li>
+<li>byte-range-friendly remote streaming (tiles are downloaded on demand from HTTP/HTTPS CDNs and cached locally before parsing; see <a href="../asset_remote_streaming/"><code>asset_remote_streaming.md</code></a>)</li>
+<li>explicit binary versioning</li>
+<li>stable on-disk layout independent of Swift ABI</li>
+</ul>
+<h2 id="core-rules">Core Rules</h2>
+<ul>
+<li>Endianness: little-endian for all integers and floats</li>
+<li>Float format: IEEE-754 <code>Float32</code></li>
+<li>Chunk alignment: 16-byte aligned file offsets</li>
+<li>String encoding: UTF-8, null-terminated</li>
+<li>Invalid reference sentinel: <code>UInt32.max</code></li>
+<li>Matrix encoding: 16 <code>Float32</code>s, column-major, matching <code>simd_float4x4</code></li>
+<li>AABB encoding: <code>min.xyz</code> followed by <code>max.xyz</code></li>
+<li>File offsets: absolute <code>UInt64</code> offsets from the start of the file</li>
+<li>Chunk-local offsets: <code>UInt64</code> offsets from the start of the uncompressed chunk payload</li>
+<li>Versioning: unsupported versions must be rejected by the loader</li>
+</ul>
+<p>The Swift types in
+<code>Sources/UntoldEngine/AssetFormat/UntoldFormat.swift</code>
+are the <strong>logical schema</strong>. They are not the authoritative on-disk memory layout.
+The exporter and loader must write/read fields explicitly.</p>
+<h2 id="physical-file-layout">Physical File Layout</h2>
+<p>Each <code>.untold</code> file is laid out as:</p>
+<ol>
+<li><code>FileHeader</code></li>
+<li><code>ChunkTable</code></li>
+<li>aligned chunk payloads</li>
+</ol>
+<p>Recommended chunk payload order:</p>
+<ol>
+<li><code>STRING_TABLE</code></li>
+<li><code>ENTITY_TABLE</code></li>
+<li><code>MESH_TABLE</code></li>
+<li><code>MATERIAL_TABLE</code></li>
+<li><code>TEXTURE_TABLE</code></li>
+<li><code>VERTEX_DATA</code></li>
+<li><code>INDEX_DATA</code></li>
+</ol>
+<p>This order allows the runtime to read metadata first and defer heavy geometry reads.</p>
+<h2 id="header-encoding">Header Encoding</h2>
+<p>The header is written field-by-field in this exact order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>magic[8]                     UInt8 x 8
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>formatVersion                UInt32
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>fileType                     UInt32
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>flags                        UInt32
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>headerSize                   UInt32
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>chunkCount                   UInt32
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>meshCount                    UInt32
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>materialCount                UInt32
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>textureRefCount              UInt32
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>entityCount                  UInt32
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>vertexLayout                 UInt32
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>reserved0                    UInt32
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>worldBounds.min              Float32 x 3
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>worldBounds.max              Float32 x 3
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>rootTransform                Float32 x 16
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>contentHash                  UInt8 x 32
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>reserved1                    UInt8 x 32
+</code></pre></div>
+<p>Rules:</p>
+<ul>
+<li><code>magic</code> must be exactly 8 bytes, recommended value: <code>"UNTOLD\0\0"</code></li>
+<li><code>headerSize</code> is the serialized byte size of the header, not <code>MemoryLayout</code></li>
+<li><code>contentHash</code> is exactly 32 bytes</li>
+<li><code>reserved1</code> is exactly 32 bytes</li>
+</ul>
+<h2 id="chunk-table-encoding">Chunk Table Encoding</h2>
+<p>Each chunk entry is written in this exact order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>chunkType                    UInt32
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>compressionType              UInt32
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>fileOffset                   UInt64
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>compressedSize               UInt64
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>uncompressedSize             UInt64
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>elementCount                 UInt32
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>reserved0                    UInt32
+</code></pre></div>
+<p>Rules:</p>
+<ul>
+<li><code>fileOffset</code> must be 16-byte aligned</li>
+<li>if compression is <code>none</code>, <code>compressedSize == uncompressedSize</code></li>
+<li><code>elementCount</code> is used for record-table chunks</li>
+</ul>
+<h2 id="string-table-encoding">String Table Encoding</h2>
+<p>The string table payload is a raw byte blob containing:</p>
+<ul>
+<li>concatenated UTF-8 strings</li>
+<li>one <code>0x00</code> terminator after each string</li>
+</ul>
+<p>Rules:</p>
+<ul>
+<li>all string references are <code>UInt32</code> byte offsets into this chunk</li>
+<li><code>UInt32.max</code> means “no string”</li>
+<li>the exporter should deduplicate strings</li>
+<li>the loader must verify that each referenced offset is within the chunk and reaches a null terminator before chunk end</li>
+</ul>
+<h2 id="entity-record-encoding">Entity Record Encoding</h2>
+<p>Each entity record is serialized in this exact order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>entityId                     UInt32
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>parentEntityId               UInt32
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>nameOffset                   UInt32
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>firstMeshRecordIndex         UInt32
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>meshRecordCount              UInt32
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>flags                        UInt32
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>localBounds.min              Float32 x 3
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>localBounds.max              Float32 x 3
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>worldBounds.min              Float32 x 3
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>worldBounds.max              Float32 x 3
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>localTransform               Float32 x 16
+</code></pre></div>
+<p>Rules:</p>
+<ul>
+<li><code>parentEntityId == UInt32.max</code> means no parent</li>
+<li>mesh records for one entity should be contiguous in the mesh table</li>
+<li><code>firstMeshRecordIndex + meshRecordCount</code> must stay within mesh table bounds</li>
+</ul>
+<h2 id="mesh-record-encoding">Mesh Record Encoding</h2>
+<p>Each mesh record is serialized in this exact order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>entityId                     UInt32
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>meshNameOffset               UInt32
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>materialIndex                UInt32
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>indexType                    UInt32
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>vertexCount                  UInt32
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>indexCount                   UInt32
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>vertexStrideBytes            UInt32
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>flags                        UInt32
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>vertexDataOffset             UInt64
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>indexDataOffset              UInt64
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>vertexDataSizeBytes          UInt64
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>indexDataSizeBytes           UInt64
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>estimatedGPUBytes            UInt64
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>reserved0                    UInt64
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>localBounds.min              Float32 x 3
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>localBounds.max              Float32 x 3
+</code></pre></div>
+<p>Rules:</p>
+<ul>
+<li><code>vertexDataOffset</code> is relative to the start of <code>VERTEX_DATA</code></li>
+<li><code>indexDataOffset</code> is relative to the start of <code>INDEX_DATA</code></li>
+<li><code>vertexDataSizeBytes == vertexCount * vertexStrideBytes</code></li>
+<li><code>indexDataSizeBytes == indexCount * indexElementSize</code></li>
+<li><code>materialIndex == UInt32.max</code> means no material</li>
+</ul>
+<h2 id="material-record-encoding">Material Record Encoding</h2>
+<p>Each material record is serialized in this exact order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>nameOffset                        UInt32
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>flags                             UInt32
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>baseColorFactor                   Float32 x 4
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>emissiveFactor                    Float32 x 3
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>normalScale                       Float32
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>metallicFactor                    Float32
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>roughnessFactor                   Float32
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>occlusionStrength                 Float32
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>alphaCutoff                       Float32
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>baseColorTextureIndex             UInt32
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>normalTextureIndex                UInt32
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>metallicTextureIndex              UInt32
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>roughnessTextureIndex             UInt32
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>emissiveTextureIndex              UInt32
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>occlusionTextureIndex             UInt32
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>reserved0                         UInt32 x 2
+</code></pre></div>
+<p>Rules:</p>
+<ul>
+<li>texture indices point into <code>TEXTURE_TABLE</code></li>
+<li>any texture index may be <code>UInt32.max</code></li>
+<li><code>flags</code> holds alpha mode, double-sided, transparent, and similar runtime bits</li>
+</ul>
+<h2 id="texture-reference-encoding">Texture Reference Encoding</h2>
+<p>Each texture record is serialized in this exact order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>nameOffset                    UInt32
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>uriOffset                     UInt32
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>textureFormat                 UInt32
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>flags                         UInt32
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>width                         UInt32
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>height                        UInt32
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>mipCount                      UInt32
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>reserved0                     UInt32
+</code></pre></div>
+<p>Rules:</p>
+<ul>
+<li><code>uriOffset</code> points into the string table</li>
+<li>the URI should reference a cooked texture asset or runtime-resolvable texture path</li>
+<li><code>textureFormat</code> describes the cooked/runtime texture format</li>
+</ul>
+<h2 id="vertex-layout-v1">Vertex Layout V1</h2>
+<p>V1 supports one layout only:</p>
+<ul>
+<li><code>UNT_VERTEX_LAYOUT_PBR_STATIC_V1</code></li>
+</ul>
+<p>Serialized layout:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>position.x                    Float32
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>position.y                    Float32
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>position.z                    Float32
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>normalPacked                  UInt32
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>tangentPacked                 UInt32
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>uv0.u                         UInt16
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>uv0.v                         UInt16
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>uv1.u                         UInt16
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>uv1.v                         UInt16
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>color0.r                      UInt8
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>color0.g                      UInt8
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>color0.b                      UInt8
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>color0.a                      UInt8
+</code></pre></div>
+<p>Total size: 32 bytes</p>
+<p>Rules:</p>
+<ul>
+<li><code>uv0</code> is required</li>
+<li><code>uv1</code> may be zeroed if unused</li>
+<li><code>color0</code> defaults to <code>255,255,255,255</code> if unused</li>
+</ul>
+<h2 id="packed-normal-and-tangent-encoding">Packed Normal and Tangent Encoding</h2>
+<p><code>normalPacked</code> and <code>tangentPacked</code> use signed normalized <code>10:10:10:2</code> packing.</p>
+<p>For <code>normalPacked</code>:</p>
+<ul>
+<li>X: signed normalized 10-bit</li>
+<li>Y: signed normalized 10-bit</li>
+<li>Z: signed normalized 10-bit</li>
+<li>W: unused, stored as 0</li>
+</ul>
+<p>For <code>tangentPacked</code>:</p>
+<ul>
+<li>X: signed normalized 10-bit tangent x</li>
+<li>Y: signed normalized 10-bit tangent y</li>
+<li>Z: signed normalized 10-bit tangent z</li>
+<li>W: handedness sign encoded in signed normalized 2-bit space</li>
+</ul>
+<p>Recommended tangent handedness mapping:</p>
+<ul>
+<li><code>+1</code> for non-negative handedness</li>
+<li><code>-1</code> for negative handedness</li>
+</ul>
+<p>Exporter rules:</p>
+<ul>
+<li>normalize input normal/tangent before packing</li>
+<li>clamp components to <code>[-1, 1]</code></li>
+<li>write <code>normalPacked.w = 0</code></li>
+<li>write <code>tangentPacked.w = +1</code> or <code>-1</code></li>
+</ul>
+<p>Runtime rule:</p>
+<ul>
+<li>reconstruct bitangent as <code>cross(normal, tangent.xyz) * tangentSign</code></li>
+</ul>
+<h2 id="index-data-rules">Index Data Rules</h2>
+<ul>
+<li><code>indexType = uint16</code> means 2 bytes per index</li>
+<li><code>indexType = uint32</code> means 4 bytes per index</li>
+<li>all indices in one mesh must use one type</li>
+<li>exporter should prefer <code>uint16</code> when <code>vertexCount &lt;= 65535</code></li>
+</ul>
+<h2 id="compression-rules">Compression Rules</h2>
+<p>Supported compression types:</p>
+<ul>
+<li><code>none</code></li>
+<li><code>lz4</code></li>
+<li><code>zstd</code></li>
+</ul>
+<p>Rules:</p>
+<ul>
+<li>compression is applied per chunk, not whole-file</li>
+<li>offsets stored in metadata reference the <strong>uncompressed</strong> chunk payload layout</li>
+<li>metadata chunks may remain uncompressed for simpler startup</li>
+<li>geometry chunks may be compressed</li>
+</ul>
+<h2 id="validation-rules">Validation Rules</h2>
+<p>The loader must reject files when:</p>
+<ul>
+<li>magic is invalid</li>
+<li>version is unsupported</li>
+<li>required chunks are missing</li>
+<li>chunk offsets exceed file length</li>
+<li>chunk offsets are not 16-byte aligned</li>
+<li>string offsets fall outside the string table</li>
+<li>mesh/entity/material/texture indices are out of range</li>
+<li>vertex or index ranges exceed their chunk bounds</li>
+<li><code>vertexStrideBytes</code> does not match the declared vertex layout</li>
+<li><code>indexDataSizeBytes</code> does not match <code>indexCount * indexElementSize</code></li>
+</ul>
+<h2 id="implementation-notes">Implementation Notes</h2>
+<p>Do not serialize <code>.untold</code> files using <code>MemoryLayout&lt;T&gt;</code> or direct struct dumps.</p>
+<p>Both the exporter and the loader must use explicit field-by-field helpers:</p>
+<ul>
+<li><code>writeUInt32LE</code></li>
+<li><code>writeUInt64LE</code></li>
+<li><code>writeFloat32LE</code></li>
+<li><code>writeBytes</code></li>
+<li><code>readUInt32LE</code></li>
+<li><code>readUInt64LE</code></li>
+<li><code>readFloat32LE</code></li>
+<li><code>readBytes</code></li>
+</ul>
+<p>This keeps the binary stable even if the Swift type layout changes.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

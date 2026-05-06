@@ -1,10 +1,4 @@
----
-id: versioning
-title: Versioning
-sidebar_position: 3
----
-
-#  Versioning
+# Versioning
 
 To help us identity the purpose of your commits, make sure to use the following tags in your commit messages. The tags will also automatically increment the the current version when pushed to github.
 

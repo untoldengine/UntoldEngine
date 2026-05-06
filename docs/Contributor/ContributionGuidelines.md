@@ -1,9 +1,3 @@
----
-id:  contributorguidelines
-title: Contributor Guidelines
-sidebar_position: 1
----
-
 # Contributing Guidelines
 
 Thank you for your interest in contributing! 

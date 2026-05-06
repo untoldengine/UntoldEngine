@@ -1,0 +1,93 @@
+site_name: Untold Engine
+site_url: https://untoldengine.github.io/UntoldEngine/
+repo_url: https://github.com/untoldengine/UntoldEngine
+repo_name: untoldengine/UntoldEngine
+
+docs_dir: docs
+
+theme:
+  name: material
+  logo: images/untoldenginewhite.png
+  favicon: images/untoldenginewhite.png
+  palette:
+    - scheme: slate
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+
+nav:
+  - Introduction: index.md
+  - API:
+    - Getting Started: API/GettingStarted.md
+    - Usage Examples: API/UsageExamples.md
+    - Registration System: API/UsingRegistrationSystem.md
+    - Rendering System: API/UsingRenderingSystem.md
+    - Transform System: API/UsingTransformSystem.md
+    - Camera System: API/UsingCameraSystem.md
+    - Input System: API/UsingInputSystem.md
+    - Spatial Input: API/UsingSpatialInput.md
+    - Lighting System: API/UsingLightingSystem.md
+    - Materials: API/UsingMaterials.md
+    - Animation System: API/UsingAnimationSystem.md
+    - Physics System: API/UsingPhysicsSystem.md
+    - Steering System: API/UsingSteeringSystem.md
+    - Post Effects: API/UsingPostFX.md
+    - Scene Graph: API/UsingScenegraph.md
+    - LOD System: API/UsingLODSystem.md
+    - Static Batching: API/UsingStaticBatchingSystem.md
+    - LOD + Batching + Streaming: API/UsingLOD-Batching-Streaming.md
+    - Geometry Streaming: API/UsingGeometryStreamingSystem.md
+    - Async Loading: API/UsingAsyncLoading.md
+    - Gaussian System: API/UsingGaussianSystem.md
+    - Profiler: API/UsingProfiler.md
+    - Spatial Debugger: API/SpatialDebugger.md
+    - Logger: API/UsingTheLogger.md
+    - Exporter: API/UsingTheExporter.md
+    - Untold Engine CLI: API/UsingUntoldEngineCLI.md
+    - Optimizations: API/Optimizations.md
+  - Architecture:
+    - Rendering System: Architecture/renderingSystem.md
+    - XR Rendering System: Architecture/xrRenderingSystem.md
+    - Out-of-Core Geometry: Architecture/outOfCore.md
+    - Batching System: Architecture/batchingSystem.md
+    - LOD System: Architecture/lodSystem.md
+    - Tile-Based Streaming: Architecture/tilebasedstreaming.md
+    - Streaming Region Manager: Architecture/streamingRegionManager.md
+    - Streaming Cache Lifecycle: Architecture/streamingCacheLifecycle.md
+    - Geometry Streaming System: Architecture/geometryStreamingSystem.md
+    - Texture Streaming System: Architecture/textureStreamingSystem.md
+    - Mesh Resource Manager: Architecture/meshResourceManager.md
+    - Asset Format: Architecture/assetFormat.md
+    - Asset Profiler: Architecture/assetProfiler.md
+    - Progressive Asset Loader: Architecture/progressiveAssetLoader.md
+    - Asset Remote Streaming: Architecture/asset_remote_streaming.md
+  - Contributing:
+    - Guidelines: Contributor/ContributionGuidelines.md
+    - Versioning: Contributor/versioning.md
+    - Formatting: Contributor/Formatting.md

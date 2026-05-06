@@ -1,0 +1,3654 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://untoldengine.github.io/UntoldEngine/Architecture/tilebasedstreaming/">
+      
+      
+        <link rel="prev" href="../lodSystem/">
+      
+      
+        <link rel="next" href="../streamingRegionManager/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../images/untoldenginewhite.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Tile-Based Streaming - Untold Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#untoldengine-tile-based-streaming-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Untold Engine" class="md-header__button md-logo" aria-label="Untold Engine" data-md-component="logo">
+      
+  <img src="../../images/untoldenginewhite.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Untold Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tile-Based Streaming
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/untoldengine/UntoldEngine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    untoldengine/UntoldEngine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Introduction
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../API/GettingStarted/" class="md-tabs__link">
+          
+  
+  
+  API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../renderingSystem/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../Contributor/ContributionGuidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Untold Engine" class="md-nav__button md-logo" aria-label="Untold Engine" data-md-component="logo">
+      
+  <img src="../../images/untoldenginewhite.png" alt="logo">
+
+    </a>
+    Untold Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/untoldengine/UntoldEngine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    untoldengine/UntoldEngine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/GettingStarted/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsageExamples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingRegistrationSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Registration System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingRenderingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingTransformSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transform System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingCameraSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Camera System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingInputSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingSpatialInput/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Input
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingLightingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lighting System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingMaterials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Materials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingAnimationSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Animation System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingPhysicsSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Physics System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingSteeringSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Steering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingPostFX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Post Effects
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingScenegraph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scene Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingLODSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LOD System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingStaticBatchingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Static Batching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingLOD-Batching-Streaming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LOD + Batching + Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingGeometryStreamingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geometry Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingAsyncLoading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Async Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingGaussianSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gaussian System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingProfiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/SpatialDebugger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Debugger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingTheLogger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingTheExporter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingUntoldEngineCLI/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Untold Engine CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/Optimizations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimizations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../renderingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../xrRenderingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XR Rendering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../outOfCore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Out-of-Core Geometry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../batchingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batching System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lodSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LOD System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tile-Based Streaming
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tile-Based Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#distance-band-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Distance Band Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#manifest-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manifest (JSON)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manifest (JSON)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top-level-manifest-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top-level manifest fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-tile-entry-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-tile entry fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hlod-manifest-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HLOD manifest contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-tile-lod-manifest-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-tile LOD manifest contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ecs-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ECS Components
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manifest-versions-and-quadtree-partitioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manifest Versions and Quadtree Partitioning
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manifest Versions and Quadtree Partitioning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#v3-uniform-grid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v3 — Uniform Grid
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v4-quadtree-floor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v4 — Quadtree Floor
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tile-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tile Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#states" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        States
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-scene-load-setentitystreamscene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Scene Load (setEntityStreamScene)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-streaming-update-per-tick-100-ms-steady-16-ms-burst" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Streaming Update (per tick, ~100 ms steady / ~16 ms burst)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-loadtileentityid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. loadTile(entityId:)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-occ-sub-mesh-upload-second-streaming-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. OCC Sub-Mesh Upload (second streaming tier)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-unloadtileentityid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. unloadTile(entityId:)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prefetch-radius" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefetch Radius
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unload-grace-period" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unload Grace Period
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memory-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Management
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#threading-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threading Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scene-reload-safety" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scene Reload Safety
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hlod-hierarchical-level-of-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HLOD (Hierarchical Level of Detail)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HLOD (Hierarchical Level of Detail)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#load-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unload-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unload trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#out-of-range-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out-of-range cleanup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-tile-lod-levels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-tile LOD Levels
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Per-tile LOD Levels">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lifecycle_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lod-selection-logic-per-frame-per-tile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LOD selection logic (per frame, per tile)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#loadlodlevelentityidlevelindex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        loadLODLevel(entityId:levelIndex:)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unloadlodlevelentityidlevelindex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unloadLODLevel(entityId:levelIndex:)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#out-of-range-cleanup_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out-of-range cleanup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interaction-with-loadtile-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction with loadTile completion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asset-loading-freeze-prevention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asset Loading Freeze Prevention
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asset Loading Freeze Prevention">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fix-timeout-guard-resumeonce" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fix: timeout guard + ResumeOnce
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-closing-the-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Force-closing the gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tile-parse-watchdog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile-Parse Watchdog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-design-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Design Parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streamingRegionManager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Region Manager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streamingCacheLifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Cache Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geometryStreamingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geometry Streaming System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../textureStreamingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Texture Streaming System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../meshResourceManager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mesh Resource Manager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assetFormat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assetProfiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../progressiveAssetLoader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Progressive Asset Loader
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../asset_remote_streaming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Remote Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Contributor/ContributionGuidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Contributor/versioning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Versioning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Contributor/Formatting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Formatting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#distance-band-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Distance Band Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#manifest-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manifest (JSON)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manifest (JSON)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#top-level-manifest-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top-level manifest fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-tile-entry-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-tile entry fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hlod-manifest-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HLOD manifest contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#per-tile-lod-manifest-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-tile LOD manifest contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ecs-components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ECS Components
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manifest-versions-and-quadtree-partitioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manifest Versions and Quadtree Partitioning
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manifest Versions and Quadtree Partitioning">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#v3-uniform-grid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v3 — Uniform Grid
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#v4-quadtree-floor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        v4 — Quadtree Floor
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tile-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tile Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#states" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        States
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-scene-load-setentitystreamscene" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Scene Load (setEntityStreamScene)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-streaming-update-per-tick-100-ms-steady-16-ms-burst" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Streaming Update (per tick, ~100 ms steady / ~16 ms burst)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-loadtileentityid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. loadTile(entityId:)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-occ-sub-mesh-upload-second-streaming-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. OCC Sub-Mesh Upload (second streaming tier)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-unloadtileentityid" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. unloadTile(entityId:)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prefetch-radius" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefetch Radius
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unload-grace-period" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unload Grace Period
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memory-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Management
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#threading-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Threading Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scene-reload-safety" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scene Reload Safety
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hlod-hierarchical-level-of-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HLOD (Hierarchical Level of Detail)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HLOD (Hierarchical Level of Detail)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#load-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unload-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unload trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#out-of-range-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out-of-range cleanup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-tile-lod-levels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-tile LOD Levels
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Per-tile LOD Levels">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#lifecycle_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lod-selection-logic-per-frame-per-tile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LOD selection logic (per frame, per tile)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#loadlodlevelentityidlevelindex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        loadLODLevel(entityId:levelIndex:)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unloadlodlevelentityidlevelindex" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unloadLODLevel(entityId:levelIndex:)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#out-of-range-cleanup_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Out-of-range cleanup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interaction-with-loadtile-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interaction with loadTile completion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asset-loading-freeze-prevention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Asset Loading Freeze Prevention
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asset Loading Freeze Prevention">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fix-timeout-guard-resumeonce" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fix: timeout guard + ResumeOnce
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#force-closing-the-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Force-closing the gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tile-parse-watchdog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile-Parse Watchdog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-design-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Design Parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="untoldengine-tile-based-streaming-architecture">UntoldEngine Tile-Based Streaming Architecture</h1>
+<h2 id="overview">Overview</h2>
+<p>UntoldEngine implements a multi-tier proximity-based geometry streaming system for large outdoor and indoor scenes on Apple platforms (macOS, visionOS). The system streams geometry in and out of GPU memory based on camera distance, using a spatial <strong>octree</strong> for efficient runtime range queries. Tile spatial partitioning in the manifest can follow either a uniform grid (v3) or a quadtree floor layout (v4) — see <a href="#manifest-versions-and-quadtree-partitioning">Manifest Versions and Quadtree Partitioning</a>.</p>
+<p><strong>Tier 1 — Tile streaming</strong> (<code>TileComponent</code>): coarse-grained. Each tile is a whole USDC file covering a bounded region of the world. Tiles load and unload as the camera moves through the scene.</p>
+<p><strong>Tier 2 — OCC mesh streaming</strong> (<code>StreamingComponent</code>): fine-grained. Inside a loaded tile, individual mesh stubs upload to the GPU incrementally, governed by distance bands and memory budgets.</p>
+<p><strong>HLOD (Hierarchical Level of Detail)</strong>: a coarse proxy mesh shown in place of an unloaded tile. Loaded when the tile leaves range, unloaded when the full tile finishes parsing. Provides continuity for distant geometry without holding the full tile in GPU memory.</p>
+<p><strong>Per-tile LOD levels</strong> (<code>TileLODLevel</code>): intermediate mesh representations that bridge the gap between the full tile (<code>streamingRadius</code>) and the HLOD switch distance. Finer than HLOD but coarser than the full tile; shown while the tile itself is unloaded and the camera is at mid-range.</p>
+<p><strong>Hysteresis</strong>: both HLOD and per-tile LOD transitions use a hysteresis band to prevent thrashing when the camera hovers near a switch boundary. A loaded representation is not unloaded until the camera moves meaningfully past the switch threshold (controlled by <code>hlodHysteresisFactor</code> and <code>lodHysteresisFactor</code>, both default 0.90 = 10% inner band). Without hysteresis, frame-to-frame distance jitter near a boundary causes rapid load/unload cycles that freeze the engine.</p>
+<h3 id="distance-band-summary">Distance Band Summary</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>camera distance →  close        mid-range       far         very far
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                   ──────────────────────────────────────────────────
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>full tile          ████████████
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>per-tile LOD 0                  ██████
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>per-tile LOD 1                          ██████
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>HLOD                                            ████████████████████
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>nothing visible    nothing                                  (if no HLOD)
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Band</th>
+<th>Representation</th>
+<th>Controlled by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&lt; streamingRadius</code></td>
+<td>Full tile (all submeshes)</td>
+<td><code>TileComponent.state == .parsed</code></td>
+</tr>
+<tr>
+<td><code>streamingRadius … LOD[n].switchDistance</code></td>
+<td>Per-tile LOD n (coarser each step)</td>
+<td><code>TileLODLevel.state</code></td>
+</tr>
+<tr>
+<td><code>&gt; last LOD switchDistance … hlodSwitchDistance</code></td>
+<td>HLOD proxy mesh</td>
+<td><code>TileComponent.hlodState</code></td>
+</tr>
+<tr>
+<td><code>&gt; hlodSwitchDistance</code></td>
+<td>Nothing (tile + HLOD both unloaded)</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="data-model">Data Model</h2>
+<h3 id="manifest-json">Manifest (JSON)</h3>
+<p>A scene is described by a manifest file listing tiles.</p>
+<h4 id="top-level-manifest-fields">Top-level manifest fields</h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>version</code></td>
+<td>Integer schema version (<code>3</code> = uniform grid, <code>4</code> = quadtree floor)</td>
+</tr>
+<tr>
+<td><code>partitioning_mode</code></td>
+<td><em>(v4 only)</em> <code>"uniform_grid"</code> or <code>"quadtree_floor"</code> — describes how tiles were partitioned by the export pipeline</td>
+</tr>
+<tr>
+<td><code>streaming_defaults</code></td>
+<td>Scene-wide fallback radii and priority used when a tile omits its own values</td>
+</tr>
+<tr>
+<td><code>tiles</code></td>
+<td>Array of tile entries (see below)</td>
+</tr>
+<tr>
+<td><code>shared_bucket</code></td>
+<td><em>(optional)</em> A single always-resident tile for geometry that spans many tiles</td>
+</tr>
+<tr>
+<td><code>tile_size</code></td>
+<td><em>(optional)</em> Tile footprint in world units, used to align batch cell size with tile boundaries</td>
+</tr>
+<tr>
+<td><code>interior_zone</code></td>
+<td><em>(v4 only)</em> Union AABB of all <code>ExteriorShell</code> tiles. Interior tiles are only loaded while the camera is inside this volume</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>streaming_defaults</code> block sets scene-wide fallback values for all per-tile fields. An optional <code>shared_bucket</code> entry holds geometry that spans many tiles and should always be resident (loaded as soon as the camera enters the scene).</p>
+<h4 id="per-tile-entry-fields">Per-tile entry fields</h4>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tile_id</code></td>
+<td>Human-readable name (e.g. <code>"tile_3_2"</code>)</td>
+</tr>
+<tr>
+<td><code>path_relative_to_manifest</code></td>
+<td>Path to the USDC file, relative to the manifest</td>
+</tr>
+<tr>
+<td><code>file_size_bytes</code></td>
+<td>Pre-computed file size used by the memory budget gate</td>
+</tr>
+<tr>
+<td><code>bounds.min</code> / <code>bounds.max</code></td>
+<td>World-space AABB used for octree insertion and frustum tests</td>
+</tr>
+<tr>
+<td><code>center</code></td>
+<td>World-space center (used for distance calculations)</td>
+</tr>
+<tr>
+<td><code>streaming_radius</code></td>
+<td><em>(optional)</em> Per-tile load threshold; falls back to <code>streaming_defaults</code></td>
+</tr>
+<tr>
+<td><code>unload_radius</code></td>
+<td><em>(optional)</em> Per-tile unload threshold; falls back to <code>streaming_defaults</code></td>
+</tr>
+<tr>
+<td><code>prefetch_radius</code></td>
+<td><em>(optional)</em> Per-tile prefetch start; falls back to <code>streaming_defaults</code>, then auto</td>
+</tr>
+<tr>
+<td><code>priority</code></td>
+<td><em>(optional)</em> Load order when multiple tiles are candidates</td>
+</tr>
+<tr>
+<td><code>hlod_levels</code></td>
+<td><em>(optional)</em> Array of HLOD proxy entries; see <a href="#hlod-hierarchical-level-of-detail">HLOD</a></td>
+</tr>
+<tr>
+<td><code>lod_levels</code></td>
+<td><em>(optional)</em> Array of per-tile intermediate LOD entries; see <a href="#per-tile-lod-levels">Per-tile LOD Levels</a></td>
+</tr>
+<tr>
+<td><code>floor_id</code></td>
+<td><em>(v4 only, optional)</em> Floor index within a building; <code>0</code> = ground floor</td>
+</tr>
+<tr>
+<td><code>quadtree_node_id</code></td>
+<td><em>(v4 only, optional)</em> Quadtree node identifier written by the export script (e.g. <code>"F02Q100"</code>); used for debug logging only, not required for streaming</td>
+</tr>
+<tr>
+<td><code>semantic_tier</code></td>
+<td><em>(v4 only, optional)</em> One of <code>"ExteriorShell"</code>, <code>"StructuralInterior"</code>, <code>"RoomContents"</code>, <code>"FineProps"</code>. The <code>streaming_radius</code> already encodes the correct load distance for the tier; no additional runtime logic is required</td>
+</tr>
+<tr>
+<td><code>interior</code></td>
+<td><em>(v4 only, optional)</em> When <code>true</code>, this tile contains interior-only geometry and is gated on the camera being inside <code>interior_zone</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="hlod-manifest-contract">HLOD manifest contract</h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">&quot;hlod_levels&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tiles/tile_0_0_hlod.usdc&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;switch_distance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">300.0</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="p">]</span>
+</code></pre></div>
+<p><code>switch_distance</code> is the camera distance beyond which the HLOD is shown in place of the tile. Typically a single entry per tile. The HLOD file is a coarse merged mesh exported by the content pipeline.</p>
+<h4 id="per-tile-lod-manifest-contract">Per-tile LOD manifest contract</h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">&quot;lod_levels&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tiles/tile_0_0_lod1.usdc&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;switch_distance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">80.0</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tiles/tile_0_0_lod2.usdc&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;switch_distance&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">150.0</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">]</span>
+</code></pre></div>
+<p>Entries <strong>must be sorted ascending by <code>switch_distance</code></strong> (smallest = finest = closest). <code>switch_distance</code> is the camera distance beyond which this LOD is preferred over the finer level (or the full tile). The engine sorts entries on load, so unsorted manifests are corrected at runtime, but sorted manifests are the canonical contract.</p>
+<h3 id="ecs-components">ECS Components</h3>
+<ul>
+<li><strong><code>TileComponent</code></strong> — attached to every tile stub entity created by <code>setEntityStreamScene()</code>. Carries all metadata needed for the streaming bootstrap and teardown lifecycle. Key fields added for HLOD and LOD:</li>
+<li><code>hlodURL</code>, <code>hlodEntityId</code>, <code>hlodState</code>, <code>hlodSwitchDistance</code>, <code>hlodLoadTask</code> — HLOD lifecycle</li>
+<li><code>lodLevels: [TileLODLevel]</code> — per-tile intermediate LOD entries</li>
+<li><code>meshEntityId</code> — the dedicated mesh-child entity ID, stored so the timeout guard can force-close <code>AssetLoadingGate</code> if <code>loadTextures()</code> hangs</li>
+<li><strong><code>TileLODLevel</code></strong> — one instance per LOD entry in the manifest. Carries <code>url</code>, <code>switchDistance</code>, <code>entityId</code>, <code>state</code> (<code>HLODAssetState</code>), and <code>loadTask</code>. Mirrors the HLOD lifecycle pattern.</li>
+<li><strong><code>TileLODTagComponent</code></strong> — lightweight tag placed on render-descendant mesh entities spawned by the streaming system for per-tile LOD levels and HLODs. Carries a <code>levelIndex</code> used by the LOD debug renderer (<code>colorRenderablesByLOD</code>) and by <code>BatchingSystem.resolveBatchCandidate</code> to derive the batch LOD index for these entities (which have no <code>LODComponent</code>). <code>levelIndex</code> follows <code>lodDebugPalette</code>: 1 = LOD1 (green), 2 = LOD2 (blue), 5 = HLOD (cyan).</li>
+<li><strong><code>StreamingComponent</code></strong> — attached to individual OCC mesh stubs created inside a loaded tile. Governs per-mesh load/unload within the second streaming tier.</li>
+<li><strong><code>RenderComponent</code></strong> — added to an entity only after its GPU geometry upload completes. Absence means the entity is invisible to culling and rendering.</li>
+</ul>
+<hr />
+<h2 id="manifest-versions-and-quadtree-partitioning">Manifest Versions and Quadtree Partitioning</h2>
+<p>The manifest schema has evolved across two versions:</p>
+<h3 id="v3-uniform-grid">v3 — Uniform Grid</h3>
+<p><code>"partitioning_mode": "uniform_grid"</code> (or <code>version: 3</code> without the field). Tiles are laid out in a regular spatial grid. There is no <code>interior_zone</code> and no semantic tier hierarchy. This is the original format produced by the v1 Blender export script.</p>
+<h3 id="v4-quadtree-floor">v4 — Quadtree Floor</h3>
+<p><code>"partitioning_mode": "quadtree_floor"</code> (or <code>version: 4</code>). Tiles are partitioned by a floor-level quadtree, typically for multi-storey indoor scenes. The export script assigns each tile a <code>quadtree_node_id</code> (e.g. <code>"F02Q100"</code>) and a <code>semantic_tier</code> label.</p>
+<p><strong>Semantic tiers</strong> encode the expected load distance by naming convention — the export pipeline sets <code>streaming_radius</code> to the correct value for each tier, so the runtime treats them identically during streaming. The tiers are:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ExteriorShell</code></td>
+<td>Outer building shell, always-visible facade geometry</td>
+</tr>
+<tr>
+<td><code>StructuralInterior</code></td>
+<td>Floors, walls, and structural elements inside the shell</td>
+</tr>
+<tr>
+<td><code>RoomContents</code></td>
+<td>Furniture and fixtures within individual rooms</td>
+</tr>
+<tr>
+<td><code>FineProps</code></td>
+<td>Small detail props, only visible at close range</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interior zone gating</strong> — the manifest's <code>interior_zone</code> is the union AABB of all <code>ExteriorShell</code> tiles. On each streaming tick, the engine checks whether the camera is inside this volume. Tiles with <code>"interior": true</code> are only dispatched for loading while the camera is inside. This prevents the engine from loading room-level geometry when the player is outside the building, regardless of distance.</p>
+<blockquote>
+<p>The quadtree partitioning is a content-pipeline and manifest-level concept. At runtime the engine uses an <strong>octree</strong> for spatial range queries (finding tile stubs near the camera). The manifest's <code>quadtree_node_id</code> is used for debug logging only and has no effect on streaming logic.</p>
+</blockquote>
+<hr />
+<h2 id="tile-lifecycle">Tile Lifecycle</h2>
+<h3 id="states">States</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>unloaded → parsing → parsed → unloading → unloaded
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>                  ↘ failed → (retry backoff) → unloaded
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.unloaded</code></td>
+<td>Stub registered; no geometry in flight</td>
+</tr>
+<tr>
+<td><code>.parsing</code></td>
+<td><code>setEntityMeshAsync</code> Task is running; GPU upload in progress</td>
+</tr>
+<tr>
+<td><code>.parsed</code></td>
+<td>Tile's child entities exist and are rendering (or uploading via OCC)</td>
+</tr>
+<tr>
+<td><code>.failed</code></td>
+<td>Last parse attempt failed; exponential backoff before retry (5 s → 10 s → 20 s → max 60 s)</td>
+</tr>
+<tr>
+<td><code>.unloading</code></td>
+<td>Teardown in progress; blocks re-dispatch for this tick</td>
+</tr>
+</tbody>
+</table>
+<h3 id="1-scene-load-setentitystreamscene">1. Scene Load (<code>setEntityStreamScene</code>)</h3>
+<ol>
+<li>Locates and decodes the manifest JSON (no geometry parsed). If the manifest URL is HTTP/HTTPS, it is downloaded and cached via <code>RemoteAssetDownloader</code> before decoding. Tile asset URLs in the manifest are resolved relative to the manifest's base URL, so remote manifests produce remote tile URLs (e.g. <code>https://cdn.example.com/scene/tiles/tile_0_0.untold</code>). See <a href="../asset_remote_streaming/"><code>asset_remote_streaming.md</code></a> for the full download lifecycle.</li>
+<li>Resets <code>interiorZone</code> and <code>firstRangeTimestamps</code> on <code>GeometryStreamingSystem</code> so stale scene-level state from a previous scene does not bleed into the new one.</li>
+<li>Registers the supplied root entity with <code>TiledSceneComponent</code>, <code>LocalTransformComponent</code>, and <code>ScenegraphComponent</code>.</li>
+<li>Registers one lightweight stub entity per tile inside a single <code>withWorldMutationGate</code>, parented under the root entity. Each stub receives:</li>
+<li>Identity world transform</li>
+<li><code>LocalTransformComponent.boundingBox</code> set to the tile's world-space AABB</li>
+<li><code>TileComponent</code> in <code>.unloaded</code> state, with all radii and metadata from the manifest</li>
+<li>Octree registration (so <code>queryNear</code> finds it immediately)</li>
+</ol>
+<p>No geometry is parsed or uploaded at this stage. The whole function completes in milliseconds regardless of scene size.</p>
+<h3 id="2-streaming-update-per-tick-100-ms-steady-16-ms-burst">2. Streaming Update (per tick, ~100 ms steady / ~16 ms burst)</h3>
+<p><code>GeometryStreamingSystem.update(cameraPosition:deltaTime:)</code> runs each frame. It queries the octree for all entities within <code>maxQueryRadius</code> (default 500 m). This is a <strong>query ceiling</strong>, not a load radius — it just defines the outer bound of the candidate pool. Each entity in the result is then tested against its own per-entity radii (<code>effectivePrefetchRadius</code>, <code>streamingRadius</code>, <code>unloadRadius</code>) to decide what actually happens. <code>maxQueryRadius</code> must be large enough to cover the largest <code>unloadRadius</code> in the scene, or far tiles will never be found for out-of-range teardown.</p>
+<p><strong>Camera velocity</strong> is computed each tick via exponential smoothing and used to project a <em>predictive position</em> (<code>velocityLookAheadTime = 0.5 s</code> ahead). Tile distances are scored against <code>min(actual, predictive)</code> so tiles in the direction of travel are prioritised before the camera physically arrives.</p>
+<p><strong>Tile load pass</strong> — for each <code>.unloaded</code> stub:</p>
+<ol>
+<li>Computes effective distance using the predictive position.</li>
+<li>Tests against <code>effectivePrefetchRadius</code> (see <a href="#prefetch-radius">Prefetch Radius</a>).</li>
+<li>Applies the <strong>frustum gate</strong> (padded AABB vs camera frustum, <code>tileFrustumGatePadding = 20 m</code>). Tiles fully outside the frustum are skipped this tick.</li>
+<li>Eligible tiles are sorted by priority (descending) then distance (ascending).</li>
+<li>Up to <code>maxConcurrentTileLoads</code> (default 2) are dispatched via <code>loadTile()</code>, subject to the <strong>memory budget gate</strong>: the total parse memory in flight must stay under <code>tileParseMemoryBudgetMB</code> (200 MB), with a guarantee that at least one tile always loads even if it alone exceeds the budget.</li>
+</ol>
+<p><strong>Tile unload pass</strong> — three sub-passes each tick. All passes use <code>min(actual, predictive)</code> distance, matching the load pass, so a tile the camera is approaching is not torn down mid-parse:</p>
+<ol>
+<li><strong>Nearby tiles</strong> still in the octree result but beyond <code>unloadRadius</code>.</li>
+<li><strong>Loaded tiles</strong> that drifted entirely outside <code>maxQueryRadius</code>.</li>
+<li><strong>Parsing tiles</strong> that drifted outside <code>maxQueryRadius</code> (fast movement or teleport).</li>
+</ol>
+<p>Both <code>.parsing</code> and <code>.parsed</code> tiles go through the <strong>grace period</strong> (see <a href="#unload-grace-period">Unload Grace Period</a>) before actual teardown (passes 1 and 2). Pass 3 tiles are genuinely beyond the 500 m query radius and are cancelled without a grace period — boundary oscillation cannot occur at that range. At most <code>maxTileUnloadsPerUpdate</code> (default 2) tiles are torn down per tick to spread GPU buffer releases across frames.</p>
+<h3 id="3-loadtileentityid">3. <code>loadTile(entityId:)</code></h3>
+<ol>
+<li>Sets <code>tileComp.state = .parsing</code>; reserves a slot in <code>activeTileLoads</code>.</li>
+<li>Creates a dedicated child <em>mesh entity</em> under the tile stub (<code>capturedMeshEntityId</code>) inside <code>withWorldMutationGate</code>. This guarantees <code>unloadTile</code>'s <code>collectTileDescendants</code> always has at least one child to destroy, regardless of how many submeshes the tile contains.</li>
+<li>Registers <code>capturedMeshEntityId → tileEntityId</code> in <code>meshEntityToTileEntity</code> for O(1) OCC upload counter updates.</li>
+<li>Spawns a Swift <code>Task</code> calling <code>setEntityMeshAsync(entityId: capturedMeshEntityId, streamingPolicy: .auto, blockRenderLoop: false)</code>.</li>
+<li><code>.auto</code> policy: the admission gate chooses <code>fullLoad</code> (parse + immediate GPU upload) or <code>outOfCore</code> (parse to CPU heap, upload stubs via <code>StreamingComponent</code>) based on tile file size and available RAM.</li>
+<li><code>blockRenderLoop: false</code> — tile parses do <strong>not</strong> hold the <code>AssetLoadingGate</code> open. Without this, concurrent tile parses would keep <code>isLoadingAny == true</code> for their full duration, freezing <code>visibleEntityIds</code> updates and stalling the render loop. LOD and HLOD loads also use <code>blockRenderLoop: false</code> for the same reason.</li>
+<li>Completion callback (fires on the main thread):</li>
+<li><strong>Zombie-state guard</strong> — checks <code>tc.state == .parsing</code>. If <code>unloadTile</code> ran while the parse was in flight, the state will be <code>.unloading</code>. The callback discards the result, destroys the pre-created child entity, and returns without marking the tile loaded.</li>
+<li>On confirmed <code>.parsing</code>: transitions to <code>.parsed</code>, seeds <code>totalOCCStubs</code> from <code>countOCCDescendants</code>.</li>
+<li><strong>fullLoad path</strong> (<code>occCount == 0</code>): all geometry is immediately GPU-resident. The callback:<ol>
+<li>Calls <code>setEntityStaticBatchComponent</code> to tag the entity hierarchy for cell-based static batching.</li>
+<li>Calls <code>BatchingSystem.shared.notifyTileEntitiesResident(_:)</code> with the set of render descendant IDs. This single call replaces the former two-step <code>queueResidencyEventsForRenderDescendants</code> + <code>notifyTileParsedEntities</code> pairing — it directly registers the entities in the batching system's pending additions and marks them for quiescence bypass, avoiding the per-entity event storm through <code>SystemEventBus</code>. See <a href="../batchingSystem/#tile-local-batch-promotion">Tile-Local Batch Promotion</a>.</li>
+</ol>
+</li>
+<li><strong>OCC path</strong> (<code>occCount &gt; 0</code>): <code>setEntityStaticBatchComponent</code> is called but residency notifications are not sent — they fire automatically as each OCC stub completes its GPU upload via the normal <code>handleResidencyChange</code> flow. The normal quiescence delay applies to keep the batch from rebuilding after each individual stub upload.</li>
+<li>On failure: destroys child entity, increments <code>failureCount</code>, sets state to <code>.failed</code> (retry backoff).</li>
+<li><strong><code>defer { releaseActiveTileLoad }</code></strong> — the concurrency slot is freed on all exit paths.</li>
+</ol>
+<h3 id="4-occ-sub-mesh-upload-second-streaming-tier">4. OCC Sub-Mesh Upload (second streaming tier)</h3>
+<p>For large tiles using the <code>outOfCore</code> path, <code>setEntityMeshAsync</code> creates child OCC stub entities under <code>capturedMeshEntityId</code>, each with a <code>StreamingComponent</code> in <code>.unloaded</code> state. <code>GeometryStreamingSystem.update()</code> iterates these stubs in a separate pass — uploading them in batches governed by <code>maxConcurrentLoads</code> (3), with a <code>nearBandMaxConcurrentLoads = 1</code> serial slot for the closest mesh stubs so distance-ordered appearance is preserved.</p>
+<p>Each completed OCC upload calls <code>incrementParentTileOCCCount(for:)</code>, which increments <code>tileComp.uploadedOCCStubs</code>. The <code>visualState</code> property (<code>TileVisualState</code>) tracks upload progress: <code>.empty</code> → <code>.partial</code> → <code>.usable</code> (≥ 50% uploaded) → <code>.complete</code>.</p>
+<h3 id="5-unloadtileentityid">5. <code>unloadTile(entityId:)</code></h3>
+<ol>
+<li>Captures <code>wasParsing = (tileComp.state == .parsing)</code>.</li>
+<li>Sets <code>tileComp.state = .unloading</code>; cancels <code>tileComp.loadTask</code>.</li>
+<li>If <code>wasParsing</code>: removes from <code>loadingTileEntities</code> and bails out. The Task completion callback will find <code>.unloading</code>, discard the result, and dispatch deferred child-entity cleanup — this avoids a concurrent ECS write race since <code>setEntityMeshAsync</code> may still be running.</li>
+<li>If <code>.parsed</code>: calls <code>collectTileDescendants(entityId)</code> to walk the child tree, cancelling any in-flight OCC streaming tasks. Calls <code>destroyEntity</code> on all descendants + <code>finalizePendingDestroys()</code>. This releases GPU buffers, removes octree entries, releases <code>MeshResourceManager</code> refs, and unregisters from <code>MemoryBudgetManager</code>.</li>
+<li>Calls <code>ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId:)</code> to free CPU-heap MDLAsset data for out-of-core tiles.</li>
+<li>Resets <code>totalOCCStubs</code>, <code>uploadedOCCStubs</code>, <code>pendingUnloadSince</code> to 0.</li>
+<li>Sets <code>tileComp.state = .unloaded</code>; removes from <code>loadedTileEntities</code>.</li>
+</ol>
+<p>The tile stub entity itself is <strong>never destroyed</strong>. It stays in the octree as a cheap placeholder so the streaming system reloads the tile on the next approach.</p>
+<hr />
+<h2 id="prefetch-radius">Prefetch Radius</h2>
+<p>The <strong>prefetch radius</strong> decouples "when the tile starts loading" from "when the tile must be visible." Tiles begin parsing as soon as the camera enters <code>effectivePrefetchRadius</code>, which is larger than <code>streamingRadius</code>. By the time the camera reaches <code>streamingRadius</code>, the parse is already complete and the geometry appears without a blank frame.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>                  camera direction →
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>─────────────────────────────────────────────────────
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                  prefetchRadius (auto: midpoint)
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                  │           streamingRadius
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>                  │           │        unloadRadius
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>                  ▼           ▼        ▼
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>  · · · · · · · ·|· · · · · ·|████████|· · · · · · ·
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>                 start       tile is  stop
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>                 loading     visible  loading
+</code></pre></div>
+<p><code>effectivePrefetchRadius</code> resolution (in priority order):
+1. Per-tile <code>prefetch_radius</code> field in the manifest
+2. Scene-wide <code>prefetch_radius</code> in <code>streaming_defaults</code>
+3. <strong>Auto</strong>: <code>streamingRadius + (unloadRadius − streamingRadius) × 0.5</code></p>
+<p>For the typical <code>streamingRadius = 80 m</code>, <code>unloadRadius = 120 m</code> default, auto resolves to <strong>100 m</strong> — giving 20 m of prefetch advance at walking speed (~1.5 m/s) that is ~13 seconds of loading headroom, well above the 1–2 s parse time for a 15–20 MB tile.</p>
+<hr />
+<h2 id="unload-grace-period">Unload Grace Period</h2>
+<p>When a <code>.parsed</code> tile (with visible GPU geometry) first exceeds <code>unloadRadius</code>, <code>pendingUnloadSince</code> is set to the current time. The tile is only torn down once <code>CFAbsoluteTimeGetCurrent() − pendingUnloadSince ≥ unloadGracePeriod</code> (default <strong>3 seconds</strong>).</p>
+<p>If the camera re-enters <code>unloadRadius</code> before the grace period expires, <code>pendingUnloadSince</code> is reset to 0 and the tile stays loaded with no interruption. This eliminates rapid load/unload oscillation at tile boundaries (the most common cause of flickering at tile edges).</p>
+<p>Both <code>.parsing</code> and <code>.parsed</code> tiles honour the grace period. <code>.parsing</code> tiles have no visible geometry, but the grace window lets an in-flight parse complete naturally rather than being cancelled and immediately re-dispatched. Immediate cancellation was a false economy: the cancelled Swift Task still ran to completion before the state could reset, so the tile was re-dispatched on the very next tick, creating a tight load-cancel loop.</p>
+<p><code>pendingUnloadSince</code> is also reset in <code>unloadTile()</code> so the counter is clean for the next load/unload cycle.</p>
+<hr />
+<h2 id="memory-management">Memory Management</h2>
+<ul>
+<li><strong><code>MemoryBudgetManager</code></strong> tracks geometry and texture GPU bytes against per-platform budgets (probed at startup).</li>
+<li>Before dispatching any tile load, the system checks <code>shouldEvictGeometry()</code>. If true, it runs <code>TextureStreamingSystem.shedTextureMemory</code> and <code>evictLRU</code> (capped at 8 evictions) before attempting a tile parse. This prevents a tile's multi-MB commit from pushing RAM over budget.</li>
+<li><strong>LRU eviction</strong> scores loaded streaming entities by camera distance × <code>evictionDistanceWeight</code> + GPU size × <code>evictionSizeWeight</code>. Entities within <code>visibleEvictionProtectionRadius</code> (30 m) are protected.</li>
+<li><strong>OS memory pressure</strong> callbacks (<code>DispatchSource.makeMemoryPressureSource</code>) set a flag; eviction is deferred to the next <code>update()</code> tick to stay single-threaded.</li>
+<li><strong><code>tripleVisibleEntities.clearAll()</code></strong> — called in <code>finalizePendingDestroys()</code> to clear all triple-buffer slots so the renderer does not read stale entity IDs after a scene reload.</li>
+</ul>
+<hr />
+<h2 id="threading-model">Threading Model</h2>
+<ul>
+<li>All ECS mutations (<code>createEntity</code>, <code>registerComponent</code>, <code>destroyEntity</code>, <code>finalizePendingDestroys</code>) must run on the <strong>main thread</strong>.</li>
+<li>Background Swift Tasks handle disk I/O, USDC parsing, and CPU→Metal buffer copies.</li>
+<li><code>withWorldMutationGate</code> is an activity counter, not a mutex. It does <strong>not</strong> provide mutual exclusion — it signals that ECS mutations are occurring.</li>
+<li><code>scene.exists(entityId)</code> guards before every ECS write in upload completions prevent writes to entities destroyed while an upload was in flight (cooperative cancellation race).</li>
+<li>Tile tracking sets (<code>loadedTileEntities</code>, <code>loadingTileEntities</code>, <code>activeTileLoads</code>, <code>meshEntityToTileEntity</code>) are protected by <code>stateLock</code> and accessed only through accessor methods.</li>
+</ul>
+<hr />
+<h2 id="scene-reload-safety">Scene Reload Safety</h2>
+<p>When <code>setEntityStreamScene</code> is called for a second time (replacing a previous scene):</p>
+<ol>
+<li>The caller destroys the old root entity (<code>destroyEntity(entityId: oldRoot)</code>), which cascades to all tile stubs. For each destroyed stub, <code>removeTileComponent</code> (the <code>ComponentRegistry</code> cleanup handler for <code>TileComponent</code>) cancels the tile's in-flight <code>loadTask</code> and calls <code>GeometryStreamingSystem.shared.unregisterTileEntity(entityId)</code>, removing stale IDs from all tracking sets atomically.</li>
+<li><code>setEntityStreamScene</code> resets <code>interiorZone</code> and <code>firstRangeTimestamps</code> so scene-level streaming state is clean for the new scene.</li>
+<li>New stubs are registered under the new root entity.</li>
+</ol>
+<p>Any tile Task that was already in flight and completes after step 1–2 finds <code>scene.exists(entityId) == false</code> and returns early via the <code>guard</code> in its completion closure. The <code>defer</code>-based slot release still fires, so no concurrency slot is leaked.</p>
+<hr />
+<hr />
+<h2 id="hlod-hierarchical-level-of-detail">HLOD (Hierarchical Level of Detail)</h2>
+<p>HLOD fills the gap beyond a tile's <code>unloadRadius</code> by showing a coarse proxy mesh while the full tile is not in GPU memory. This eliminates the visual "pop to nothing" when a tile leaves range.</p>
+<h3 id="lifecycle">Lifecycle</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>hlodState:  unloaded → loading → loaded → unloading → unloaded
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.unloaded</code></td>
+<td>No HLOD geometry in GPU memory</td>
+</tr>
+<tr>
+<td><code>.loading</code></td>
+<td><code>loadHLOD()</code> task running</td>
+</tr>
+<tr>
+<td><code>.loaded</code></td>
+<td>HLOD entity exists and is rendering</td>
+</tr>
+<tr>
+<td><code>.unloading</code></td>
+<td>Teardown in progress</td>
+</tr>
+</tbody>
+</table>
+<h3 id="load-trigger">Load trigger</h3>
+<p>HLOD is loaded when all of the following hold:
+- The tile has an <code>hlodURL</code> in its <code>TileComponent</code>
+- <code>dist &gt;= hlodSwitchDistance</code> (camera is beyond the switch threshold)
+- <code>tileComp.state != .parsed</code> (full tile is not resident — no redundant HLOD)
+- <code>hlodState == .unloaded</code>
+- <code>activeHLODLoadCount() &lt; maxConcurrentHLODLoads</code> (default 4) — prevents simultaneous mass dispatch of 100+ HLOD parses that would OOM-kill the process</p>
+<h3 id="unload-trigger">Unload trigger</h3>
+<p>HLOD is unloaded (and the load task cancelled) when:
+- The full tile reaches <code>.parsed</code> — full geometry has taken over; HLOD is redundant. No hysteresis here — always unload promptly.
+- <code>dist &lt; hlodSwitchDistance × hlodHysteresisFactor</code> (default 0.90) — camera has moved <strong>meaningfully</strong> inside the switch distance. The hysteresis band <code>[switchDistance × factor, switchDistance)</code> keeps the HLOD resident while the camera lingers at the boundary, preventing thrashing.</p>
+<p><strong>Race fix:</strong> <code>hlodState = .unloading</code> is set <strong>before</strong> <code>hlodLoadTask.cancel()</code>. This prevents the load completion callback from seeing <code>.loading</code> and incorrectly marking the HLOD as <code>.loaded</code> after teardown is already in progress.</p>
+<p><strong>Minimum dwell guard:</strong> After any HLOD load or unload, <code>tileComp.lastHLODTransitionTime</code> is stamped. The next HLOD transition is suppressed until <code>secondaryRepresentationMinDwellSeconds</code> (default 1.0 s) has elapsed. This prevents the HLOD from flip-flopping faster than once per second when the camera lingers at the switch boundary while hysteresis alone is insufficient.</p>
+<h3 id="out-of-range-cleanup">Out-of-range cleanup</h3>
+<p>A second pass after the main HLOD pass tears down HLOD entities for tiles that have drifted entirely outside <code>maxQueryRadius</code>. These tiles are no longer in the octree result and would otherwise remain with stale <code>.loaded</code> HLOD entities indefinitely.</p>
+<hr />
+<h2 id="per-tile-lod-levels">Per-tile LOD Levels</h2>
+<p>Per-tile LODs fill the mid-distance band between the full tile (<code>streamingRadius</code>) and the HLOD (<code>hlodSwitchDistance</code>). They are intermediate meshes — coarser than the full tile but finer than HLOD — shown while the tile itself is unloaded.</p>
+<p><strong>Distinction from HLOD:</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>HLOD</th>
+<th>Per-tile LOD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Purpose</td>
+<td>Replace unloaded tile at <em>very far</em> distances</td>
+<td>Provide finer intermediate detail at <em>mid</em> distances</td>
+</tr>
+<tr>
+<td>Memory concern</td>
+<td>Yes — always-resident coarse mesh</td>
+<td>Yes — one entity per active LOD level</td>
+</tr>
+<tr>
+<td>GPU cost concern</td>
+<td>Low (coarse mesh)</td>
+<td>Medium (finer than HLOD, less than full tile)</td>
+</tr>
+<tr>
+<td>Distance band</td>
+<td><code>&gt; hlodSwitchDistance</code></td>
+<td><code>streamingRadius … hlodSwitchDistance</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="lifecycle_1">Lifecycle</h3>
+<p>Each <code>TileLODLevel</code> follows the same <code>HLODAssetState</code> state machine as HLOD:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>state:  unloaded → loading → loaded → unloading → unloaded
+</code></pre></div>
+<h3 id="lod-selection-logic-per-frame-per-tile">LOD selection logic (per frame, per tile)</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>if HLOD is loaded or loading → unload all LOD levels (avoid dual representation)
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>if dist &gt;= hlodSwitchDistance → unload all LOD levels (HLOD pass handles this band)
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>find target index (with hysteresis):
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  for each level i:
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    threshold = (i is currently active) ? switchDistance × lodHysteresisFactor : switchDistance
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    last level where threshold ≤ dist → that level
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  no match (dist &lt; LOD[0].threshold)  → no LOD (tile will load or is already parsed)
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>load target level if .unloaded (capped by maxConcurrentLODLoads)
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>unload all other levels that are .loaded or .loading
+</code></pre></div>
+<p>The hysteresis ensures the currently active LOD level uses a lowered unload threshold (<code>switchDistance × lodHysteresisFactor</code>, default 0.90), so the camera must move meaningfully inward before the level is swapped. Levels that are not currently active use the full <code>switchDistance</code>.</p>
+<p><strong>Minimum dwell guard:</strong> LOD transitions are also gated by <code>secondaryRepresentationMinDwellSeconds</code> (default 1.0 s). After any per-tile LOD load or unload, <code>tileComp.lastLODTransitionTime</code> is stamped and the next transition is suppressed until 1.0 s has elapsed. This prevents oscillation between adjacent LOD levels when the camera is stationary near a switch threshold.</p>
+<p>When <code>tileComp.state == .parsed</code> (full tile is resident), all LOD levels are unloaded — the full tile has taken over for that distance band.</p>
+<h3 id="loadlodlevelentityidlevelindex"><code>loadLODLevel(entityId:levelIndex:)</code></h3>
+<ol>
+<li>Creates a child entity under the tile stub.</li>
+<li>Loads the LOD USDC via <code>setEntityMeshAsync</code> with <code>.immediate</code> policy and <code>blockRenderLoop: false</code> (small proxy mesh, must not stall the render loop).</li>
+<li>On success: tags render descendants with <code>TileLODTagComponent(levelIndex: capturedIndex + 1)</code> for LOD debug visualization, tags the entity for static batching (<code>setEntityStaticBatchComponent</code>), and calls <code>BatchingSystem.shared.notifyTileEntitiesResident(_:)</code> to bypass the quiescence delay.</li>
+<li>Marks the entity in <code>loadedLODEntities</code> tracking set.</li>
+</ol>
+<h3 id="unloadlodlevelentityidlevelindex"><code>unloadLODLevel(entityId:levelIndex:)</code></h3>
+<ol>
+<li>Sets <code>level.state = .unloading</code> <strong>before</strong> <code>level.loadTask?.cancel()</code> (same race fix as HLOD).</li>
+<li>Calls <code>BatchingSystem.shared.cancelPendingEntities(_:)</code> with the render descendant IDs — removes them from all pending batching queues before the entities are destroyed, preventing "entity is missing" errors on the next batching tick.</li>
+<li>Destroys the child entity.</li>
+<li>Force-releases <code>AssetLoadingGate</code> for the destroyed entity (idempotent no-op if the Task already closed it).</li>
+<li>Removes from <code>loadedLODEntities</code> when all levels are clear.</li>
+</ol>
+<h3 id="out-of-range-cleanup_1">Out-of-range cleanup</h3>
+<p>A pass after the LOD streaming pass tears down LOD entities for tiles outside <code>maxQueryRadius</code>, mirroring the HLOD cleanup pass.</p>
+<h3 id="interaction-with-loadtile-completion">Interaction with <code>loadTile</code> completion</h3>
+<p>When the full tile finishes parsing, <code>unloadAllLODLevels(entityId:)</code> is called alongside <code>unloadHLOD(entityId:)</code>. Both intermediate representations are removed as the full tile takes over.</p>
+<hr />
+<h2 id="asset-loading-freeze-prevention">Asset Loading Freeze Prevention</h2>
+<p><code>ModelIO</code>'s <code>loadTextures()</code> is a blocking call that can hang indefinitely on unsupported image formats inside USDC archives (e.g. a format that stalls the ObjC image decoder with no timeout). When it hangs, <code>AssetLoadingState.finishLoading</code> is never called, <code>AssetLoadingGate.isLoadingAny</code> stays <code>true</code> permanently, and <code>RenderingSystem</code> skips all ECS traversal and culling every frame — the app remains alive but the view is frozen.</p>
+<h3 id="fix-timeout-guard-resumeonce">Fix: timeout guard + <code>ResumeOnce</code></h3>
+<p><code>loadTextures()</code> in <code>RegistrationSystem</code> is wrapped with a <code>DispatchQueue</code> + 15-second deadline:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kd">let</span><span class="w"> </span><span class="nv">textureLoadOK</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="n">withCheckedContinuation</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">cont</span><span class="w"> </span><span class="k">in</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="kd">let</span><span class="w"> </span><span class="nv">once</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">ResumeOnce</span><span class="p">()</span><span class="w">        </span><span class="c1">// NSLock-backed: resumes cont exactly once</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="n">DispatchQueue</span><span class="p">.</span><span class="n">global</span><span class="p">(</span><span class="n">qos</span><span class="p">:</span><span class="w"> </span><span class="p">.</span><span class="n">userInitiated</span><span class="p">).</span><span class="k">async</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">        </span><span class="n">assetRef</span><span class="p">.</span><span class="n">loadTextures</span><span class="p">()</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">        </span><span class="n">once</span><span class="p">.</span><span class="n">callOnce</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">cont</span><span class="p">.</span><span class="n">resume</span><span class="p">(</span><span class="n">returning</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="n">DispatchQueue</span><span class="p">.</span><span class="n">global</span><span class="p">().</span><span class="n">asyncAfter</span><span class="p">(</span><span class="n">deadline</span><span class="p">:</span><span class="w"> </span><span class="p">.</span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">15.0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">        </span><span class="n">once</span><span class="p">.</span><span class="n">callOnce</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">cont</span><span class="p">.</span><span class="n">resume</span><span class="p">(</span><span class="n">returning</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">)</span><span class="w"> </span><span class="p">}</span><span class="w">   </span><span class="c1">// deadline fires</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="p">}</span>
+</code></pre></div>
+<p>If <code>loadTextures()</code> hangs, the deadline fires after 15 s and the async continuation proceeds without textures (geometry is still rendered, just untextured).</p>
+<h3 id="force-closing-the-gate">Force-closing the gate</h3>
+<p><code>TileComponent.meshEntityId</code> stores the dedicated mesh-child entity ID. If the tile is unloaded while a parse is in flight and <code>loadTextures()</code> is hung, the timeout guard retrieves <code>meshEntityId</code> and force-closes the gate:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kd">let</span><span class="w"> </span><span class="nv">hungMeshId</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">tc</span><span class="p">.</span><span class="n">meshEntityId</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">tc</span><span class="p">.</span><span class="n">meshEntityId</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">.</span><span class="n">invalid</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">if</span><span class="w"> </span><span class="n">hungMeshId</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="p">.</span><span class="n">invalid</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="n">Task</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="n">AssetLoadingState</span><span class="p">.</span><span class="n">shared</span><span class="p">.</span><span class="n">finishLoading</span><span class="p">(</span><span class="n">entityId</span><span class="p">:</span><span class="w"> </span><span class="n">hungMeshId</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">}</span>
+</code></pre></div>
+<p>This unblocks <code>AssetLoadingGate</code>, allowing the render loop to resume its normal ECS traversal.</p>
+<hr />
+<h2 id="tile-parse-watchdog">Tile-Parse Watchdog</h2>
+<p>The <code>loadTextures()</code> 15-second timeout (above) guards against a hung texture decode inside an already-running parse. A separate, coarser watchdog guards against the entire tile parse Task becoming stuck — for example when the OS suspends the Task, disk I/O stalls indefinitely, or a remote download never completes.</p>
+<p>On every streaming tick, <code>GeometryStreamingSystem.update()</code> checks every tile currently in <code>.parsing</code> state:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>if CFAbsoluteTimeGetCurrent() - tc.parseStartTime &gt; tileParseTimeoutSeconds (default 60 s):
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    cancel loadTask
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    force-close AssetLoadingGate for meshEntityId
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    increment failureCount → tile enters exponential backoff
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    release concurrency slot
+</code></pre></div>
+<p><strong><code>parseStartTime</code> is set after the remote fetch completes</strong>, not when <code>loadTile()</code> is first called. For remote tiles, the time waiting for the network does not count against the 60-second budget — only the actual CPU parse time does. This avoids spurious timeouts on slow connections.</p>
+<p><strong>Two distinct timeout layers:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Scope</th>
+<th>Deadline</th>
+<th>On trigger</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ResumeOnce</code> + <code>DispatchQueue</code></td>
+<td><code>loadTextures()</code> call only</td>
+<td>15 s</td>
+<td>Proceeds without textures; geometry still renders</td>
+</tr>
+<tr>
+<td>Tile-parse watchdog</td>
+<td>Entire tile parse Task</td>
+<td>60 s (<code>tileParseTimeoutSeconds</code>)</td>
+<td>Cancels task, marks <code>.failed</code>, enters retry backoff</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="key-design-parameters">Key Design Parameters</h2>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>maxConcurrentTileLoads</code></td>
+<td>2</td>
+<td>Hard cap on simultaneous tile parses</td>
+</tr>
+<tr>
+<td><code>maxConcurrentLODLoads</code></td>
+<td>4</td>
+<td>Hard cap on simultaneous per-tile LOD level loads</td>
+</tr>
+<tr>
+<td><code>maxConcurrentHLODLoads</code></td>
+<td>4</td>
+<td>Hard cap on simultaneous HLOD mesh loads</td>
+</tr>
+<tr>
+<td><code>lodHysteresisFactor</code></td>
+<td>0.90</td>
+<td>LOD unload threshold multiplier (10% inner band)</td>
+</tr>
+<tr>
+<td><code>hlodHysteresisFactor</code></td>
+<td>0.90</td>
+<td>HLOD unload threshold multiplier (10% inner band)</td>
+</tr>
+<tr>
+<td><code>tileParseMemoryBudgetMB</code></td>
+<td>200 MB</td>
+<td>Total CPU parse memory allowed in flight</td>
+</tr>
+<tr>
+<td><code>maxTileUnloadsPerUpdate</code></td>
+<td>2</td>
+<td>Max tile teardowns per streaming tick</td>
+</tr>
+<tr>
+<td><code>unloadGracePeriod</code></td>
+<td>3.0 s</td>
+<td>Hold time before tearing down a visible tile</td>
+</tr>
+<tr>
+<td><code>maxConcurrentLoads</code> (OCC)</td>
+<td>3</td>
+<td>Simultaneous mesh-level GPU uploads</td>
+</tr>
+<tr>
+<td><code>nearBandMaxConcurrentLoads</code></td>
+<td>1</td>
+<td>Serial slot for closest mesh stubs</td>
+</tr>
+<tr>
+<td><code>maxUnloadsPerUpdate</code> (mesh)</td>
+<td>12</td>
+<td>Max mesh-level unloads per tick</td>
+</tr>
+<tr>
+<td><code>updateInterval</code></td>
+<td>100 ms</td>
+<td>Streaming tick rate (steady state)</td>
+</tr>
+<tr>
+<td><code>burstTickInterval</code></td>
+<td>16 ms</td>
+<td>Tick rate during near-band backlog</td>
+</tr>
+<tr>
+<td><code>frustumGatePadding</code> (mesh)</td>
+<td>5 m</td>
+<td>Frustum pad for mesh-level candidates</td>
+</tr>
+<tr>
+<td><code>tileFrustumGatePadding</code></td>
+<td>20 m</td>
+<td>Frustum pad for tile-level candidates</td>
+</tr>
+<tr>
+<td><code>velocityLookAheadTime</code></td>
+<td>0.5 s</td>
+<td>Predictive position look-ahead</td>
+</tr>
+<tr>
+<td><code>velocityLookAheadMinSpeed</code></td>
+<td>1.5 m/s</td>
+<td>Minimum speed to activate look-ahead</td>
+</tr>
+<tr>
+<td><code>visibleEvictionProtectionRadius</code></td>
+<td>30 m</td>
+<td>Distance inside which eviction is blocked</td>
+</tr>
+<tr>
+<td><code>hlodSwitchDistance</code></td>
+<td>manifest <code>switch_distance</code></td>
+<td>Camera distance beyond which HLOD is shown</td>
+</tr>
+<tr>
+<td>LOD <code>switchDistance</code></td>
+<td>manifest <code>switch_distance</code> per entry</td>
+<td>Camera distance beyond which this LOD is preferred</td>
+</tr>
+<tr>
+<td><code>loadTextures()</code> timeout</td>
+<td>15 s</td>
+<td>Deadline before <code>ResumeOnce</code> force-proceeds without textures</td>
+</tr>
+<tr>
+<td><code>tileParseTimeoutSeconds</code></td>
+<td>60 s</td>
+<td>Watchdog deadline for an entire tile parse Task; forces tile to <code>.failed</code> and frees concurrency slot — distinct from the per-<code>loadTextures()</code> 15 s timeout</td>
+</tr>
+<tr>
+<td><code>secondaryRepresentationMinDwellSeconds</code></td>
+<td>1.0 s</td>
+<td>Minimum time a HLOD or per-tile LOD level must dwell before the next transition is allowed; prevents flip-flopping between representations faster than once per second</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
