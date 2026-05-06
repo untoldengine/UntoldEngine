@@ -1,0 +1,2898 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://untoldengine.github.io/UntoldEngine/Architecture/geometryStreamingSystem/">
+      
+      
+        <link rel="prev" href="../streamingCacheLifecycle/">
+      
+      
+        <link rel="next" href="../textureStreamingSystem/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../images/untoldenginewhite.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Geometry Streaming System - Untold Engine</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#geometrystreamingsystem" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Untold Engine" class="md-header__button md-logo" aria-label="Untold Engine" data-md-component="logo">
+      
+  <img src="../../images/untoldenginewhite.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Untold Engine
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Geometry Streaming System
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/untoldengine/UntoldEngine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    untoldengine/UntoldEngine
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Introduction
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../API/GettingStarted/" class="md-tabs__link">
+          
+  
+  
+  API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../renderingSystem/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../Contributor/ContributionGuidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Untold Engine" class="md-nav__button md-logo" aria-label="Untold Engine" data-md-component="logo">
+      
+  <img src="../../images/untoldenginewhite.png" alt="logo">
+
+    </a>
+    Untold Engine
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/untoldengine/UntoldEngine" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    untoldengine/UntoldEngine
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/GettingStarted/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsageExamples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingRegistrationSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Registration System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingRenderingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingTransformSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transform System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingCameraSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Camera System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingInputSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingSpatialInput/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Input
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingLightingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Lighting System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingMaterials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Materials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingAnimationSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Animation System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingPhysicsSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Physics System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingSteeringSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Steering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingPostFX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Post Effects
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingScenegraph/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scene Graph
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingLODSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LOD System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingStaticBatchingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Static Batching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingLOD-Batching-Streaming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LOD + Batching + Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingGeometryStreamingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geometry Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingAsyncLoading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Async Loading
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingGaussianSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gaussian System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingProfiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/SpatialDebugger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Debugger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingTheLogger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logger
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingTheExporter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exporter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/UsingUntoldEngineCLI/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Untold Engine CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../API/Optimizations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimizations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../renderingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../xrRenderingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    XR Rendering System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../outOfCore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Out-of-Core Geometry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../batchingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batching System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lodSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LOD System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tilebasedstreaming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tile-Based Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streamingRegionManager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Region Manager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streamingCacheLifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Cache Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geometry Streaming System
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geometry Streaming System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-setup-occ-stubs-inside-a-loaded-tile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Setup: OCC Stubs Inside a Loaded Tile
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#every-frame-updatecamerapositiondeltatime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Every Frame: update(cameraPosition:deltaTime:)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Every Frame: update(cameraPosition:deltaTime:)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-throttle-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Throttle Check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-spatial-query-via-octree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Spatial Query via Octree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-classify-each-nearby-entity-lines-129157" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Classify Each Nearby Entity (lines 129–157)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-out-of-range-loaded-entities-lines-164183" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Out-of-Range Loaded Entities (lines 164–183)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unloading-first-free-memory-before-loading-new-things-lines-191197" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unloading First: Free Memory Before Loading New Things (lines 191–197)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#loading-async-concurrency-limited" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading: Async, Concurrency-Limited
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#streamingcomponent-ownership-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StreamingComponent Ownership Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="StreamingComponent Ownership Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-to-use-instead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What to use instead
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lod-path-reloadlodentity-lines-313415" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LOD Path: reloadLODEntity() (lines 313–415)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memory-pressure-texture-relief-first-geometry-eviction-last" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Pressure: Texture Relief First, Geometry Eviction Last
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Memory Pressure: Texture Relief First, Geometry Eviction Last">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-texture-downgrade-relief" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — Texture downgrade relief
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-geometry-eviction-last-resort" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — Geometry eviction (last resort)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-os-memory-pressure-proactive-out-of-band" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — OS memory pressure (proactive, out-of-band)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#city-block-scenario-summary-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        City Block Scenario: Summary Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tile-level-streaming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile-Level Streaming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tile-Level Streaming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-frame-passes-in-update-tile-layer-in-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-frame passes in update() (tile layer, in order)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tilecomponent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TileComponent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tile-load-pass-inside-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile Load Pass (inside update())
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tile-unload-pass-inside-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile Unload Pass (inside update())
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Decisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../textureStreamingSystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Texture Streaming System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../meshResourceManager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mesh Resource Manager
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assetFormat/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assetProfiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Profiler
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../progressiveAssetLoader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Progressive Asset Loader
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../asset_remote_streaming/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asset Remote Streaming
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Contributor/ContributionGuidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Contributor/versioning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Versioning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Contributor/Formatting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Formatting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-setup-occ-stubs-inside-a-loaded-tile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Setup: OCC Stubs Inside a Loaded Tile
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#every-frame-updatecamerapositiondeltatime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Every Frame: update(cameraPosition:deltaTime:)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Every Frame: update(cameraPosition:deltaTime:)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-throttle-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Throttle Check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-spatial-query-via-octree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Spatial Query via Octree
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-classify-each-nearby-entity-lines-129157" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Classify Each Nearby Entity (lines 129–157)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-out-of-range-loaded-entities-lines-164183" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Out-of-Range Loaded Entities (lines 164–183)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unloading-first-free-memory-before-loading-new-things-lines-191197" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unloading First: Free Memory Before Loading New Things (lines 191–197)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#loading-async-concurrency-limited" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading: Async, Concurrency-Limited
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#streamingcomponent-ownership-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StreamingComponent Ownership Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="StreamingComponent Ownership Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-to-use-instead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What to use instead
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lod-path-reloadlodentity-lines-313415" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LOD Path: reloadLODEntity() (lines 313–415)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#memory-pressure-texture-relief-first-geometry-eviction-last" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Pressure: Texture Relief First, Geometry Eviction Last
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Memory Pressure: Texture Relief First, Geometry Eviction Last">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-texture-downgrade-relief" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1 — Texture downgrade relief
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-geometry-eviction-last-resort" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2 — Geometry eviction (last resort)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-os-memory-pressure-proactive-out-of-band" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3 — OS memory pressure (proactive, out-of-band)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#city-block-scenario-summary-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        City Block Scenario: Summary Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tile-level-streaming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile-Level Streaming
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tile-Level Streaming">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-frame-passes-in-update-tile-layer-in-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-frame passes in update() (tile layer, in order)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tilecomponent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TileComponent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tile-load-pass-inside-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile Load Pass (inside update())
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tile-unload-pass-inside-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tile Unload Pass (inside update())
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Decisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="geometrystreamingsystem">GeometryStreamingSystem</h1>
+<h2 id="the-setup-occ-stubs-inside-a-loaded-tile">The Setup: OCC Stubs Inside a Loaded Tile</h2>
+<p>Imagine a large tile has been parsed through <code>setEntityStreamScene(...)</code> and classified into the out-of-core path. The tile now contains many internally created OCC child stubs — <code>building_A</code>, <code>building_B</code>, <code>streetlamp_01</code>, <code>car_01</code>, etc. Each stub has a <code>StreamingComponent</code> that stores:</p>
+<ul>
+<li><code>assetFilename</code> / <code>assetExtension</code> — where the mesh or source asset came from</li>
+<li><code>streamingRadius</code> — how close the camera must be to <strong>load</strong> it</li>
+<li><code>unloadRadius</code> — how far before it gets <strong>unloaded</strong></li>
+<li><code>priority</code> — which buildings load first when slots are contested</li>
+<li><code>state</code> — <code>.unloaded</code>, <code>.loading</code>, <code>.loaded</code>, or <code>.unloading</code></li>
+</ul>
+<hr />
+<h2 id="every-frame-updatecamerapositiondeltatime">Every Frame: <code>update(cameraPosition:deltaTime:)</code></h2>
+<p>The engine calls this every frame. Here's what happens:</p>
+<h3 id="1-throttle-check">1. Throttle Check</h3>
+<p>The system normally does real work every <strong>0.1 seconds</strong> (<code>updateInterval</code>). Between ticks, it's a no-op. This prevents wasting CPU every single frame.</p>
+<p>When <code>lastPendingLoadBacklog &gt; 0</code> (candidates are queued but all slots are busy), the effective interval drops to <code>burstTickInterval</code> (default 16 ms). This prevents a 100 ms stall between slot pickups during active loading. The tick rate returns to 100 ms once the backlog drains.</p>
+<p><strong>OS pressure bypass</strong> — if a <code>pendingPressureRelief</code> flag is set (fired by the OS pressure callback on a background queue), the throttle check is bypassed entirely for that call. This guarantees eviction runs within one frame (≤ 11 ms at 90 fps) rather than waiting up to 100 ms for the next normal tick. Without this, a <code>.critical</code> signal arriving right after a tick would sit unprocessed for the full throttle interval — longer than visionOS's kill window.</p>
+<h3 id="2-spatial-query-via-octree">2. Spatial Query via Octree</h3>
+<p>Instead of checking every OCC child stub in the scene, it asks the <code>OctreeSystem</code>:</p>
+<blockquote>
+<p>"Give me every entity within 500m of the camera."</p>
+</blockquote>
+<p>This is the key performance trick — only nearby entities are evaluated.</p>
+<h3 id="3-classify-each-nearby-entity-lines-129157">3. Classify Each Nearby Entity (lines 129–157)</h3>
+<p>For each entity the octree returns, the system calculates the <strong>distance from camera to the entity's bounding box center</strong>, then:</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Condition</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.unloaded</code></td>
+<td>distance ≤ <code>streamingRadius</code></td>
+<td>→ add to <strong>load candidates</strong></td>
+</tr>
+<tr>
+<td><code>.loaded</code></td>
+<td>distance &gt; <code>unloadRadius</code></td>
+<td>→ add to <strong>unload candidates</strong></td>
+</tr>
+<tr>
+<td><code>.loaded</code></td>
+<td>still in range</td>
+<td>→ stamp <code>lastVisibleFrame</code> (keep alive)</td>
+</tr>
+<tr>
+<td><code>.loading</code> / <code>.unloading</code></td>
+<td>—</td>
+<td>skip, already in progress</td>
+</tr>
+</tbody>
+</table>
+<h3 id="4-out-of-range-loaded-entities-lines-164183">4. Out-of-Range Loaded Entities (lines 164–183)</h3>
+<p>The octree query only covers nearby space. But what if <code>building_Z</code> was loaded and the player sprinted far away — it might not be in the octree result anymore. So the system also checks its <code>loadedStreamingEntities</code> tracking set for any loaded entity <strong>not</strong> in the octree result, and adds those to unload candidates if they're too far.</p>
+<hr />
+<h2 id="unloading-first-free-memory-before-loading-new-things-lines-191197">Unloading First: Free Memory Before Loading New Things (lines 191–197)</h2>
+<p>Unload candidates are <strong>sorted farthest-first</strong> (most wasteful memory first). Up to <code>maxUnloadsPerUpdate = 12</code> are processed per tick to avoid frame spikes.</p>
+<p><code>unloadMesh()</code> does:
+1. Sets state → <code>.unloading</code>
+2. Notifies <code>BatchingSystem</code> the entity is retiring
+3. Cancels any in-flight load task
+4. Calls <code>MeshResourceManager.shared.release(entityId:)</code> — decrements reference count on the cached mesh
+5. Clears <code>render.mesh = []</code> — the GPU buffers are <strong>not destroyed</strong> (cache still owns them)
+6. Clears LOD level meshes if applicable
+7. Unregisters from <code>MemoryBudgetManager</code>
+8. Sets state → <code>.unloaded</code>
+9. Fires an <code>AssetResidencyChangedEvent(isResident: false)</code></p>
+<hr />
+<h2 id="loading-async-concurrency-limited">Loading: Async, Concurrency-Limited</h2>
+<p>Load candidates are <strong>sorted by priority then distance</strong> (high priority + closest first). Only <code>maxConcurrentLoads = 3</code> can be active simultaneously.</p>
+<p>Before dispatching, the scheduler applies four guards in order:</p>
+<ol>
+<li><strong>Tile ownership</strong> (<code>isTileOwned</code>) — the entity must be a descendant of a <code>TileComponent</code> entity. Non-tile-owned entities are rejected immediately and their state is never mutated. <code>StreamingComponent</code> is an internal, tile-subordinate mechanism; it is not valid on standalone entities. See <a href="#streamingcomponent-ownership-model">StreamingComponent Ownership Model</a> below.</li>
+<li><strong>CPU-entry readiness</strong> — OOC entities whose <code>CPUMeshEntry</code> is not yet stored in <code>ProgressiveAssetLoader</code> are skipped. This prevents pre-streaming stubs from holding slots while registration is still running.</li>
+<li><strong>Prewarm-active deferral</strong> — entities for roots whose background texture prewarm is still running are skipped. Dispatching while the prewarm holds the per-asset texture lock would block all concurrent slots for the remaining prewarm duration. Slots stay free until <code>isPrewarmActive</code> returns <code>false</code>.</li>
+<li><strong>Per-candidate geometry budget check</strong> — if the candidate's estimated GPU footprint would exceed the geometry budget, <code>evictLRU</code> is called first.</li>
+</ol>
+<p>When all near-band candidates share one <code>assetRootEntityId</code>, the near-band concurrency limit expands from <code>nearBandMaxConcurrentLoads</code> to <code>maxConcurrentLoads</code>. All sub-meshes of one USDZ are treated as a single burst rather than being serialized one-at-a-time.</p>
+<p><code>loadMesh()</code> does:
+1. Reserves a slot in <code>activeLoads</code> (thread-safe via <code>NSLock</code>)
+2. Sets state → <code>.loading</code>
+3. Notifies <code>BatchingSystem</code> streaming started
+4. Spawns a Swift <code>Task</code> (runs off the main thread)</p>
+<p>Inside the async task:
+- If the entity has a <code>LODComponent</code> → calls <code>reloadLODEntity()</code> which loads all LOD levels
+- Otherwise → calls <code>loadMeshAsync()</code> which goes to <code>MeshResourceManager</code> (cache-first, file fallback)
+- After loading, back on the main thread via <code>withWorldMutationGate</code>:
+  - Assigns <code>render.mesh</code> with fresh copies of uniform buffers (critical — prevents entities sharing GPU state from overwriting each other)
+  - Sets state → <code>.loaded</code>
+  - Fires <code>AssetResidencyChangedEvent(isResident: true)</code>
+  - Records load in <code>MemoryBudgetManager</code></p>
+<hr />
+<h2 id="streamingcomponent-ownership-model">StreamingComponent Ownership Model</h2>
+<p><code>StreamingComponent</code> is an <strong>internal, tile-subordinate</strong> component. It is not a public API for external callers.</p>
+<ul>
+<li>Only entities that are <strong>descendants of a <code>TileComponent</code> entity</strong> may have an active <code>StreamingComponent</code>. <code>loadMesh()</code> enforces this with the <code>isTileOwned()</code> guard, which walks the <code>ScenegraphComponent.parent</code> chain and returns <code>false</code> for any entity that has no <code>TileComponent</code> ancestor.</li>
+<li><code>StreamingComponent</code> stubs are created internally by <code>setEntityMeshAsync</code> for the out-of-core (OCC) path when a tile file is large enough to be split into sub-mesh stubs. External callers never attach <code>StreamingComponent</code> directly.</li>
+<li><code>enableStreaming()</code> is <code>internal</code>; it is not part of the public API.</li>
+</ul>
+<h3 id="what-to-use-instead">What to use instead</h3>
+<table>
+<thead>
+<tr>
+<th>Use case</th>
+<th>API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Streamable geometry exported by the Blender pipeline (terrain, city blocks, large scenes)</td>
+<td><code>setEntityStreamScene(entityId:url:completion:)</code> with a local or remote (<code>https://</code>) manifest URL</td>
+</tr>
+<tr>
+<td>Handcrafted streaming zones (dungeon rooms, level sectors, indoor areas)</td>
+<td><code>StreamingRegionManager</code> — register explicit <code>StreamingRegion</code> AABB + asset lists; no manifest required</td>
+</tr>
+<tr>
+<td>Always-resident objects (characters, props, HUD elements)</td>
+<td><code>setEntityMeshAsync(entityId:filename:withExtension:completion:)</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>setEntityStreamScene</code> is the <strong>preferred public entry point</strong> for streamable scene geometry. It accepts a root <code>EntityID</code> and a local <code>file://</code> path or remote <code>https://</code> URL. For remote URLs it downloads and caches the manifest via <code>RemoteAssetDownloader</code> before decoding. It then calls the internal <code>registerTiledScene()</code> and hands off all streaming lifecycle management to <code>GeometryStreamingSystem</code>. The backwards-compatible <code>loadTiledScene(manifest:)</code> / <code>loadTiledScene(url:)</code> overloads remain available and create an internal root entity automatically. See <a href="../asset_remote_streaming/"><code>asset_remote_streaming.md</code></a> for the full remote download lifecycle.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>isTileOwned(entityId:) — private helper in GeometryStreamingSystem+MeshStreaming.swift
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  Walks ScenegraphComponent.parent chain upward.
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  Returns true only if a TileComponent is found somewhere in the ancestry.
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  Returns false for any standalone entity (no parent chain, or chain ends without a tile).
+</code></pre></div>
+<hr />
+<h2 id="lod-path-reloadlodentity-lines-313415">LOD Path: <code>reloadLODEntity()</code> (lines 313–415)</h2>
+<p>For LOD entities (e.g., a skyscraper with 3 detail levels), it:
+1. Loads <strong>all LOD levels</strong> concurrently from cache/disk
+2. Calculates current camera-to-entity distance
+3. Picks the appropriate LOD level (highest detail that fits distance)
+4. Sets <code>renderComponent.mesh</code> to that LOD's mesh data
+5. Marks <code>lodComponent.currentLOD</code></p>
+<hr />
+<h2 id="memory-pressure-texture-relief-first-geometry-eviction-last">Memory Pressure: Texture Relief First, Geometry Eviction Last</h2>
+<p>The engine uses two independent memory pressure signals and responds to them in priority order:</p>
+<table>
+<thead>
+<tr>
+<th>Pressure signal</th>
+<th>Method</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Combined</td>
+<td><code>shouldEvict()</code></td>
+<td>Geometry pool ≥ 85% of <code>geometryBudget</code> <strong>OR</strong> texture pool ≥ 85% of <code>textureBudget</code></td>
+</tr>
+<tr>
+<td>Geometry only</td>
+<td><code>shouldEvictGeometry()</code></td>
+<td>Mesh allocations alone ≥ 85% of <code>geometryBudget</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why two signals?</strong> <code>TextureStreamingSystem</code> upgrades visible textures to higher resolutions after meshes load. Those upgrades increase <code>totalTextureMemory</code> in <code>MemoryBudgetManager</code>. If the load gate used the combined signal, texture upgrades on already-loaded meshes would silently prevent new mesh loads — even when the geometry-only footprint is well within budget. The split pools (<code>geometryBudget</code> + <code>textureBudget</code>) ensure each domain has an independent ceiling so neither can starve the other.</p>
+<h3 id="step-1-texture-downgrade-relief">Step 1 — Texture downgrade relief</h3>
+<p>Before considering geometry eviction, the system sheds texture quality on the farthest loaded entities:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>if combined pressure is high AND geometry pressure is NOT high:
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    TextureStreamingSystem.shedTextureMemory(maxEntities: 4)
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    → no geometry eviction; texture relief only
+</code></pre></div>
+<p><code>shedTextureMemory</code> forces the farthest entities in the <code>upgradedEntities</code> set to <code>minimumTextureDimension</code> immediately, bypassing the normal distance-band schedule. A distant wall dropping from 1024 px to 256 px is far less noticeable than a missing mesh.</p>
+<h3 id="step-2-geometry-eviction-last-resort">Step 2 — Geometry eviction (last resort)</h3>
+<p>Only triggered when geometry memory itself hits the high-water mark:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>if geometry pressure is high:
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    TextureStreamingSystem.shedTextureMemory(maxEntities: 8)   ← try texture relief first
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    evictLRU(cameraPosition:)                                  ← then fall back to geometry eviction
+</code></pre></div>
+<p><code>evictLRU</code>:
+1. First evicts unused cached meshes (<code>MeshResourceManager.evictUnused()</code>)
+2. Collects all loaded streaming entities
+3. Sorts by value score (far + large = first to go; see value-score eviction in the out-of-core walkthrough)
+4. Unloads them one by one until <strong>geometry-only</strong> pressure clears (loop breaks on <code>shouldEvictGeometry()</code>, not the combined signal)
+5. Skips entities that are both visible and within <code>visibleEvictionProtectionRadius</code> (30 m default)
+6. Accepts an optional <code>maxEvictions</code> cap (default <code>Int.max</code>). The OS pressure path passes <code>16</code> per call — this bounds single-frame work during a burst. Any remaining candidates spill to subsequent ticks.</p>
+<p>The <code>sizeFactor</code> in the eviction score is normalized against <code>geometryBudget</code> (not the combined budget), so a mesh consuming 80% of the geometry pool scores correctly rather than appearing to consume only ~48% of a combined total.</p>
+<h3 id="step-3-os-memory-pressure-proactive-out-of-band">Step 3 — OS memory pressure (proactive, out-of-band)</h3>
+<p>In addition to the per-tick budget checks above, <code>MemoryBudgetManager</code> subscribes to OS memory pressure events via <code>DispatchSource.makeMemoryPressureSource</code>:</p>
+<table>
+<thead>
+<tr>
+<th>OS signal</th>
+<th>Response</th>
+<th><code>maxEntities</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.warning</code></td>
+<td>Texture shed</td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>.critical</code></td>
+<td>Texture shed + double geometry eviction pass (capped at 16 per pass) + CPU heap release</td>
+<td>20</td>
+</tr>
+</tbody>
+</table>
+<p>The OS callback fires on a background queue and sets a <code>pendingPressureRelief</code> flag on <code>GeometryStreamingSystem</code>. The flag is drained at the <strong>start of the next <code>update()</code> tick</strong> on the main thread, so all eviction work stays on the same thread as the rest of the streaming system. This prevents the OS from silently escalating to <code>.critical</code> and terminating the process — on visionOS in particular, the window between <code>.warning</code> and process kill can be under a second.</p>
+<p><strong>CPU heap release on critical pressure</strong> — <code>evictLRU</code> only frees GPU Metal buffers tracked by <code>MemoryBudgetManager</code>. The OS measures total process memory, which includes <code>ProgressiveAssetLoader.rootAssetRefs</code> (the live <code>MDLAsset</code> tree and all child <code>CPUMeshEntry</code> vertex/index buffers). For a 500-building scene this CPU heap can reach hundreds of megabytes. On <code>.critical</code>, after the two geometry eviction passes, <code>GeometryStreamingSystem</code> calls <code>ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId:)</code> on every warm root. This frees the CPU heap immediately. The rehydration context (asset URL + loading policy) is retained, so a cold re-stream from disk is transparent when the camera re-approaches.</p>
+<hr />
+<h2 id="city-block-scenario-summary-flow">City Block Scenario: Summary Flow</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Player spawns at corner of city block
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>│
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>├─ Frame 1 tick: Octree finds 8 nearby buildings
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>│   ├─ 5 are unloaded + within streamingRadius → load candidates
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>│   └─ 3 are loading already → skip
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>│
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>├─ Up to 3 async loads fire simultaneously
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>│   ├─ building_A: cache miss → read from USDZ file
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>│   ├─ building_B: cache hit → instant
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>│   └─ building_C: cache miss → read from USDZ file
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>│
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>├─ Player walks forward → building_K enters range
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>│   └─ Queued in load candidates (backlog until a slot frees)
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>│
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>├─ Player runs past old buildings → building_A now &gt; unloadRadius
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>│   └─ render.mesh cleared, reference released, memory freed
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>│
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>└─ Memory pressure → LRU eviction kicks in
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    └─ building_E (not visible, oldest lastVisibleFrame) → evicted
+</code></pre></div>
+<p>The key design decisions here are:
+- <strong>Octree spatial query</strong> prevents O(n) entity iteration every tick
+- <strong>Concurrency cap (3)</strong> prevents GPU/IO saturation during fast movement
+- <strong>Adaptive tick rate</strong> — 16 ms during backlog, 100 ms steady-state — prevents stalls between slot pickups without wasting CPU when idle
+- <strong>Single-root burst detection</strong> — when all near-band candidates are sub-meshes of one asset, concurrency expands to the global cap so the asset loads in parallel rather than one mesh at a time
+- <strong>Background texture prewarm</strong> — <code>loadTextures()</code> runs at registration time so the first-upload path is a no-op and lock wait ≈ 0
+- <strong>Prewarm-active deferral</strong> — dispatch is held until the prewarm releases the texture lock, keeping all slots free for the burst
+- <strong>Narrowed texture lock scope</strong> — the per-asset lock covers only <code>ensureTexturesLoaded</code>; <code>makeMeshesFromCPUBuffers</code> runs outside the lock so all slots upload in parallel
+- <strong>CPU-entry readiness guard</strong> — stubs registered before their CPU data is ready are skipped rather than wasting a slot
+- <strong>Unload-before-load</strong> ordering ensures you free memory before consuming more
+- <strong>Cache ownership</strong> means unloading just clears references, actual GPU memory is reused if the same mesh comes back into range
+- <strong>Geometry-only load gate</strong> prevents texture upgrades from blocking mesh loads — each domain is budgeted independently
+- <strong>Texture relief before geometry eviction</strong> means a drop in distant texture resolution is always preferred over a missing mesh
+- <strong>Split geometry/texture pools</strong> (<code>geometryBudget</code> + <code>textureBudget</code>) give each domain an independent ceiling and high-water mark — a texture-heavy scene cannot crowd out geometry loads and vice versa
+- <strong>Runtime device budget probing</strong> — <code>geometryBudget</code> and <code>textureBudget</code> are derived at init from <code>MTLDevice.recommendedMaxWorkingSetSize</code> (macOS) or <code>os_proc_available_memory()</code> (visionOS/iOS) rather than hardcoded platform defaults; budgets adapt to actual device headroom
+- <strong>SceneRootTransform consistency</strong> — all distance calculations (GeometryStreamingSystem, LODSystem, inline LOD upload helpers) pass camera position through <code>SceneRootTransform.shared.effectiveCameraPosition()</code> so XR physical-head movement and scene-root translations are applied uniformly; raw <code>cameraComponent.localPosition</code> is never used directly for distance math
+- <strong>Camera sync always runs</strong> — <code>syncStreamingCameraPosition()</code> executes every frame regardless of the <code>loading</code> flag; decoupling it from the loading guard prevents the streaming camera from freezing while an asset load is in flight
+- <strong>OS memory pressure subscription</strong> — <code>DispatchSource.makeMemoryPressureSource</code> fires proactive texture shedding and geometry eviction before the OS escalates to process termination; the response runs on the next <code>update()</code> tick to stay single-threaded
+- <strong>evictLRU per-call cap</strong> — the <code>maxEvictions</code> parameter (default <code>Int.max</code>) bounds single-frame eviction work; the OS pressure path uses 16 per pass so a <code>.critical</code> burst doesn't spike one frame; remaining candidates spill to subsequent ticks
+- <strong>CPU heap release on critical pressure</strong> — on <code>.critical</code>, after geometry eviction, <code>ProgressiveAssetLoader.releaseWarmAsset()</code> is called for every warm root, freeing the MDLAsset CPU heap the OS measures; rehydration context survives so cold re-stream from disk is transparent</p>
+<hr />
+<h2 id="tile-level-streaming">Tile-Level Streaming</h2>
+<p>The tile-level streaming layer sits <strong>above</strong> the mesh-level OOC streaming. For full documentation, architecture diagrams, and tuning guidance see <a href="../tilebasedstreaming/"><code>docs/Architecture/tilebasedstreaming.md</code></a>. This section summarises the key design decisions that interlock with the mesh-level system documented above.</p>
+<h3 id="per-frame-passes-in-update-tile-layer-in-order">Per-frame passes in <code>update()</code> (tile layer, in order)</h3>
+<ol>
+<li><strong>Tile load pass</strong> — dispatches <code>.unloaded</code> stubs within <code>effectivePrefetchRadius</code> (frustum-gated, budget-gated, up to <code>maxConcurrentTileLoads</code>). Tiles with LOD levels are gated: the full tile only loads when the camera is within the finest LOD switch distance.</li>
+<li><strong>Tile unload pass</strong> — three sub-passes (nearby beyond <code>unloadRadius</code>, <code>.parsed</code> outside query radius, <code>.parsing</code> outside query radius).</li>
+<li><strong>HLOD streaming pass</strong> — for each tile stub, loads or unloads the HLOD proxy based on camera distance vs <code>hlodSwitchDistance</code> and <code>tileComp.state</code>. Uses <code>hlodHysteresisFactor</code> (default 0.90) to prevent thrashing at boundaries. Capped by <code>maxConcurrentHLODLoads</code> (default 4).</li>
+<li><strong>HLOD out-of-range cleanup</strong> — unloads HLOD entities for tiles that drifted entirely outside <code>maxQueryRadius</code>.</li>
+<li><strong>Per-tile LOD streaming pass</strong> — for each tile stub, finds the target LOD level for the current distance with hysteresis (<code>lodHysteresisFactor</code>, default 0.90). Skips when HLOD is resident (avoids dual representation). Loads target; unloads others; unloads all when tile is <code>.parsed</code>. Capped by <code>maxConcurrentLODLoads</code> (default 4).</li>
+<li><strong>Per-tile LOD out-of-range cleanup</strong> — unloads LOD entities for tiles outside <code>maxQueryRadius</code>.</li>
+</ol>
+<h3 id="tilecomponent">TileComponent</h3>
+<p>Tile stubs carry a <code>TileComponent</code> (no <code>StreamingComponent</code>, no <code>RenderComponent</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tileURL</code></td>
+<td>Absolute URL of the tile asset — <code>file://</code> for local scenes, <code>https://</code> for remote CDN scenes</td>
+</tr>
+<tr>
+<td><code>fileSizeBytes</code></td>
+<td>Pre-computed file size for the memory budget gate</td>
+</tr>
+<tr>
+<td><code>streamingRadius</code></td>
+<td>Visual display threshold — tile is rendered once parsed</td>
+</tr>
+<tr>
+<td><code>prefetchRadius</code></td>
+<td>Background load threshold (<code>&gt; streamingRadius</code>); auto = midpoint of stream/unload gap</td>
+</tr>
+<tr>
+<td><code>unloadRadius</code></td>
+<td>Distance beyond which teardown is scheduled</td>
+</tr>
+<tr>
+<td><code>priority</code></td>
+<td>Load-order priority when multiple tiles are candidates</td>
+</tr>
+<tr>
+<td><code>tileId</code></td>
+<td>Debug identifier matching the manifest <code>tile_id</code></td>
+</tr>
+<tr>
+<td><code>state</code></td>
+<td><code>.unloaded → .parsing → .parsed → .unloading</code></td>
+</tr>
+<tr>
+<td><code>pendingUnloadSince</code></td>
+<td>CFAbsoluteTime when tile first exceeded <code>unloadRadius</code>; 0 = in range</td>
+</tr>
+<tr>
+<td><code>loadTask</code></td>
+<td>The in-flight Swift <code>Task</code> (cancelled on teardown)</td>
+</tr>
+<tr>
+<td><code>meshEntityId</code></td>
+<td>The dedicated mesh-child entity ID; stored so the asset-loading timeout guard can force-close <code>AssetLoadingGate</code> if <code>loadTextures()</code> hangs</td>
+</tr>
+<tr>
+<td><code>hlodURL</code></td>
+<td>URL of the HLOD proxy USDC, if present in the manifest</td>
+</tr>
+<tr>
+<td><code>hlodEntityId</code></td>
+<td>ECS entity holding the HLOD mesh; <code>.invalid</code> when unloaded</td>
+</tr>
+<tr>
+<td><code>hlodState</code></td>
+<td>HLOD lifecycle: <code>.unloaded → .loading → .loaded → .unloading</code></td>
+</tr>
+<tr>
+<td><code>hlodSwitchDistance</code></td>
+<td>Camera distance beyond which the HLOD is shown</td>
+</tr>
+<tr>
+<td><code>hlodLoadTask</code></td>
+<td>In-flight HLOD load <code>Task</code> (cancelled before <code>hlodState = .unloading</code>)</td>
+</tr>
+<tr>
+<td><code>lodLevels</code></td>
+<td><code>[TileLODLevel]</code> — per-tile intermediate LOD entries parsed from manifest</td>
+</tr>
+<tr>
+<td><code>parseStartTime</code></td>
+<td><code>CFAbsoluteTime</code> set when tile CPU work begins (after remote fetch). The tile-parse watchdog uses this; stays 0 during remote download so the 60 s clock does not run on network latency</td>
+</tr>
+<tr>
+<td><code>lastHLODTransitionTime</code></td>
+<td><code>CFAbsoluteTime</code> of the most recent HLOD load/unload; used by <code>secondaryRepresentationMinDwellSeconds</code> guard to prevent faster-than-1 s HLOD flip-flop</td>
+</tr>
+<tr>
+<td><code>lastLODTransitionTime</code></td>
+<td><code>CFAbsoluteTime</code> of the most recent per-tile LOD load/unload; same dwell guard as HLOD</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tile-load-pass-inside-update">Tile Load Pass (inside <code>update()</code>)</h3>
+<p>After the mesh-level scan, a second pass handles tile stubs:</p>
+<ol>
+<li>For each <code>.unloaded</code> stub within <code>effectivePrefetchRadius + 1.0</code> (not <code>streamingRadius</code> — tiles start loading before the camera enters the display zone):</li>
+<li>Scores distance against the predictive (look-ahead) camera position.</li>
+<li>Applies the <strong>frustum gate</strong> (<code>tileStreamingFrustum</code>, padded by <code>tileFrustumGatePadding = 20 m</code>).</li>
+<li>Collects as a load candidate.</li>
+<li><strong>Geometry budget gate</strong> — if <code>shouldEvictGeometry()</code>, runs texture shedding and <code>evictLRU</code> (capped at 8) before dispatch.</li>
+<li>Up to <code>maxConcurrentTileLoads</code> (default <strong>2</strong>) dispatched via <code>loadTile()</code>, subject to the <code>tileParseMemoryBudgetMB</code> (200 MB) in-flight gate.</li>
+</ol>
+<h3 id="tile-unload-pass-inside-update">Tile Unload Pass (inside <code>update()</code>)</h3>
+<p>Three sub-passes each tick, capped at <code>maxTileUnloadsPerUpdate</code> (default <strong>2</strong>) total teardowns:</p>
+<ol>
+<li><strong>Nearby tiles beyond <code>unloadRadius</code></strong> — differentiates by state:</li>
+<li><code>.parsing</code> (not yet visible) — cancelled immediately, no grace delay.</li>
+<li><code>.parsed</code> (visible geometry) — starts or checks the <strong>unload grace period</strong> (<code>unloadGracePeriod = 3 s</code>). Tile only tears down after being out of range for the full grace period; the timer resets if the camera returns inside <code>unloadRadius</code>.</li>
+<li><strong><code>.parsed</code> tiles outside the octree query radius</strong> — same grace period logic.</li>
+<li><strong><code>.parsing</code> tiles outside the octree query radius</strong> — cancelled immediately to prevent ghost geometry flashes on fast movement or teleports.</li>
+</ol>
+<h3 id="design-decisions">Design Decisions</h3>
+<ul>
+<li><strong>Prefetch radius decouples load from display</strong> — tiles start loading at <code>effectivePrefetchRadius</code> (auto: midpoint of stream/unload gap) so the parse completes before the camera reaches the visual zone, eliminating blank-screen pops on tile entry.</li>
+<li><strong>Grace period prevents oscillation</strong> — a 3-second hold on <code>.parsed</code> tile teardown stops rapid load/unload cycles at tile boundaries, which was the primary cause of flickering in large scenes.</li>
+<li><strong><code>maxTileUnloadsPerUpdate = 2</code></strong> — spreading GPU buffer releases across frames prevents a single-frame blank when many tiles leave range simultaneously.</li>
+<li><strong><code>maxConcurrentTileLoads = 2</code></strong> — two concurrent parses balance throughput for large scenes against RAM spike risk. Each parse calls <code>MDLAsset(url:)</code> on a full USDC file; the <code>tileParseMemoryBudgetMB</code> gate serialises naturally when a large tile saturates the budget.</li>
+<li><strong><code>blockRenderLoop: false</code> on all tile/LOD/HLOD loads</strong> — <code>setEntityMeshAsync</code> is called with <code>blockRenderLoop: false</code> so that <code>AssetLoadingGate.isLoadingAny</code> is not held <code>true</code> during the (potentially multi-second) parse. Without this, concurrent parses freeze <code>visibleEntityIds</code> updates and stall the render loop.</li>
+<li><strong>Hysteresis on LOD/HLOD transitions</strong> — <code>lodHysteresisFactor</code> (default 0.90) and <code>hlodHysteresisFactor</code> (default 0.90) add a 10% inner band so the camera must move meaningfully past a switch boundary before the current representation is unloaded. Without hysteresis, frame-to-frame distance jitter causes rapid load/unload cycles that freeze the engine.</li>
+<li><strong><code>cancelPendingEntities</code> before entity destruction</strong> — when <code>unloadLODLevel</code> or <code>unloadHLOD</code> tears down child entities, it first calls <code>BatchingSystem.shared.cancelPendingEntities(_:)</code> with the render descendant IDs, purging them from all pending batching queues. This prevents "entity is missing" errors when the batching tick tries to process additions for entities that were destroyed between event queuing and tick processing.</li>
+<li><strong><code>notifyTileEntitiesResident</code> replaces the event storm</strong> — tile/LOD/HLOD load completions call <code>BatchingSystem.shared.notifyTileEntitiesResident(_:)</code> instead of the former two-step <code>queueResidencyEventsForRenderDescendants</code> + <code>notifyTileParsedEntities</code> pairing. The single call directly registers entities in the batching system's pending additions and marks them for quiescence bypass, avoiding hundreds of individual <code>AssetResidencyChangedEvent</code> objects through <code>SystemEventBus</code>.</li>
+<li><strong>Identity world transform on stubs</strong> — tile geometry is exported in world space; no runtime coordinate conversion needed.</li>
+<li><strong><code>.auto</code> streaming policy</strong> — tiles use the same admission gate as regular assets; unexpectedly large tiles are gracefully rejected and retried rather than crashing.</li>
+<li><strong>Zombie-state guard in completion</strong> — completion callback checks <code>tc.state == .parsing</code>. If <code>unloadTile</code> ran mid-parse (state is <code>.unloading</code>), result is discarded and the pre-created child entity is cleaned up — stub never enters a "geometry missing" zombie state.</li>
+<li><strong><code>defer</code> slot release</strong> — <code>releaseActiveTileLoad</code> in <code>defer</code> frees the concurrency slot on all exit paths (success, failure, cancelled-state early return).</li>
+<li><strong><code>removeTileComponent</code> deregisters from streaming system</strong> — cancels in-flight <code>loadTask</code> and calls <code>GeometryStreamingSystem.shared.unregisterTileEntity(entityId)</code> to atomically remove the entity from all four tile tracking sets (<code>loadedTileEntities</code>, <code>loadingTileEntities</code>, <code>activeTileLoads</code>, <code>meshEntityToTileEntity</code>).</li>
+<li><strong><code>reset()</code> clears tile tracking sets</strong> — called by <code>setEntityStreamScene()</code> (via <code>registerTiledScene</code>) to reset <code>interiorZone</code> and <code>firstRangeTimestamps</code> so stale scene-level state from the previous scene does not persist into the new scene's streaming passes.</li>
+<li><strong>HLOD unload race</strong> — <code>hlodState = .unloading</code> is set <strong>before</strong> <code>hlodLoadTask.cancel()</code>. The load-completion callback checks <code>hlodState</code> before marking <code>.loaded</code>; setting it first ensures the callback always discards a racing in-flight result.</li>
+<li><strong>Per-tile LOD follows the same race fix</strong> — <code>level.state = .unloading</code> is set before <code>level.loadTask?.cancel()</code>.</li>
+<li><strong>LOD unload-all on tile parse</strong> — when <code>loadTile</code>'s completion callback fires (state transitioning to <code>.parsed</code>), both <code>unloadHLOD(entityId:)</code> and <code>unloadAllLODLevels(entityId:)</code> are called. The full tile has taken over all distance bands; intermediate representations are no longer needed.</li>
+<li><strong><code>loadedLODEntities</code> tracking set</strong> — mirrors <code>loadedTileEntities</code> for the LOD layer. Allows <code>reset()</code> to cancel all in-flight LOD tasks and <code>setEntityStreamScene()</code> second-call safety to clear stale LOD entity IDs.</li>
+<li><strong><code>AssetLoadingGate</code> timeout</strong> — <code>meshEntityId</code> is stored in <code>TileComponent</code> so the timeout guard can call <code>AssetLoadingState.shared.finishLoading(entityId: meshEntityId)</code> without an O(n) map scan if <code>loadTextures()</code> hangs and the gate would otherwise remain open permanently.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
