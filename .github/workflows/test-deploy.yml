@@ -4,28 +4,25 @@ on:
   pull_request:
     branches:
       - develop
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+      - '.github/workflows/test-deploy.yml'
 
 jobs:
   test-deploy:
-    name: Test deployment
+    name: Test MkDocs build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: website
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: 20          # 18+ is fine; 20 matches your passing job
-          cache: npm
-          cache-dependency-path: website/package-lock.json
+          python-version: 3.x
 
       - name: Install dependencies
-        run: npm ci
+        run: pip install mkdocs-material
 
-      - name: Test build website
-        run: npm run build
-
+      - name: Test build docs
+        run: mkdocs build --strict
