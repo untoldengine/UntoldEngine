@@ -40,7 +40,7 @@ used inside your game.
 
 [Download Untold Engine Studio](https://github.com/untoldengine/UntoldEditor/releases)
 
-![untoldeditor-image-1](/docs/images/editor-highlight-1.png)
+![untoldeditor-image-1](../images/editor-highlight-1.png)
 
 To set up a project:
 1. Click on "New".
