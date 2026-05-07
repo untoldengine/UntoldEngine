@@ -52,6 +52,4 @@ public extension RenderPipelineType {
     static let fxaa: RenderPipelineType = "fxaa"
     static let transparency: RenderPipelineType = "transparency"
     static let debug: RenderPipelineType = "debug"
-    static let velocity: RenderPipelineType = "velocity"
-    static let taaResolve: RenderPipelineType = "taaResolve"
 }

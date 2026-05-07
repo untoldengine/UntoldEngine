@@ -1408,18 +1408,3 @@ public func enableBatching(_ enabled: Bool) {
 public func isBatchingEnabled() -> Bool {
     BatchingSystem.shared.isEnabled()
 }
-
-// MARK: - Halton low-discrepancy sequence
-
-private func halton(_ index: Int, _ base: Int) -> Float {
-    var f: Float = 1; var r: Float = 0; var i = index
-    while i > 0 {
-        f /= Float(base); r += f * Float(i % base); i /= base
-    }
-    return r
-}
-
-/// Pre-computed Halton(2,3) sub-pixel jitter table (16 samples, range [-0.5, 0.5]).
-/// Consumed by TemporalAA.currentJitter() for per-frame projection jitter.
-let haltonJitterTable: [simd_float2] =
-    (1 ... 16).map { i in simd_float2(halton(i, 2) - 0.5, halton(i, 3) - 0.5) }

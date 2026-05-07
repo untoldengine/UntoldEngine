@@ -216,8 +216,7 @@ class BaseRenderSetup: XCTestCase {
             targetName == "Bloom" ||
             targetName == "Vignette" ||
             targetName == "ColorGrading" ||
-            targetName == "FXAA" ||
-            targetName == "TAA"
+            targetName == "FXAA"
         {
             mode = "rgb"
         } else {
@@ -419,8 +418,7 @@ class BaseRenderSetup: XCTestCase {
             referenceName == "Bloom" ||
             referenceName == "Vignette" ||
             referenceName == "ColorGrading" ||
-            referenceName == "FXAA" ||
-            referenceName == "TAA"
+            referenceName == "FXAA"
         {
             chosenMode = "rgb"
         } else {
