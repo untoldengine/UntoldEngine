@@ -35,8 +35,9 @@ enum SceneAssetKind: String, Codable {
 
 struct SceneAssetReference: Codable {
     var kind: SceneAssetKind
-    /// Project-relative path from the asset base folder, such as
-    /// "Models/Robot/Robot.untold" or "StreamModels/City/City.json".
+    /// Asset path. For local assets this is a project-relative path from the asset base folder
+    /// (e.g. "Models/Robot/Robot.untold"). For remote stream models this is the full
+    /// https:// URL string (e.g. "https://cdn.example.com/dungeon/dungeon.json").
     var path: String
     var displayName: String? = nil
 }
@@ -266,6 +267,11 @@ private func sceneAssetReference(kind: SceneAssetKind, url: URL, displayName: St
         return SceneAssetReference(kind: .procedural, path: url.path, displayName: displayName)
     }
 
+    // Remote URLs are stored as their full https:// string so they survive round-trips.
+    if url.scheme?.lowercased() == "https" {
+        return SceneAssetReference(kind: kind, path: url.absoluteString, displayName: displayName)
+    }
+
     guard let relativePath = projectRelativeAssetPath(for: url) else {
         Logger.logWarning(message: "[SceneSerializer] Skipping non-project asset reference: \(url.path)")
         return nil
@@ -277,6 +283,11 @@ private func sceneAssetReference(kind: SceneAssetKind, url: URL, displayName: St
 private func resolvedSceneAssetURL(_ reference: SceneAssetReference) -> URL? {
     if reference.kind == .procedural {
         return URL(fileURLWithPath: reference.path)
+    }
+
+    // Remote URLs were stored as full https:// strings — return them directly.
+    if reference.path.hasPrefix("https://") {
+        return URL(string: reference.path)
     }
 
     guard let basePath = assetBasePath else {
@@ -899,7 +910,7 @@ public func loadGameScene(from url: URL) -> SceneData? {
     }
 }
 
-public enum MeshLoadingMode {
+public enum MeshLoadingMode: Sendable {
     case asyncDefault
     case sync
 }
@@ -1566,6 +1577,71 @@ public func deserializeScene(
 
     // Allow completion once all registrations are known and async work is finished.
     loadTracker.finishRegistration()
+}
+
+// MARK: - Scene Loading
+
+private let untoldSceneFileExtension = "untoldscene"
+
+private func normalizedUntoldSceneBaseName(_ sceneName: String) -> String? {
+    let trimmedName = sceneName.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmedName.isEmpty == false else {
+        return nil
+    }
+
+    let sceneURL = URL(fileURLWithPath: trimmedName)
+    let fileExtension = sceneURL.pathExtension.lowercased()
+    guard fileExtension.isEmpty || fileExtension == untoldSceneFileExtension else {
+        return nil
+    }
+
+    return sceneURL.deletingPathExtension().lastPathComponent
+}
+
+public func loadUntoldScene(
+    named sceneName: String,
+    meshLoadingMode: MeshLoadingMode = .asyncDefault,
+    completion: ((Bool) -> Void)? = nil
+) {
+    guard let sceneBaseName = normalizedUntoldSceneBaseName(sceneName) else {
+        Logger.log(message: "❌ loadUntoldScene(named:) only accepts .\(untoldSceneFileExtension) scene files or names without an extension. Received: \(sceneName)")
+        completion?(false)
+        return
+    }
+
+    guard let gameDataURL = assetBasePath else {
+        Logger.log(message: "❌ assetBasePath is not configured. Call setupAssetPaths() first.")
+        completion?(false)
+        return
+    }
+
+    let sceneURL = gameDataURL
+        .appendingPathComponent("Scenes", isDirectory: true)
+        .appendingPathComponent(sceneBaseName)
+        .appendingPathExtension(untoldSceneFileExtension)
+
+    guard FileManager.default.fileExists(atPath: sceneURL.path) else {
+        Logger.log(message: "❌ Scene file not found: \(sceneURL.path)")
+        completion?(false)
+        return
+    }
+
+    do {
+        let data = try Data(contentsOf: sceneURL)
+        let sceneData = try JSONDecoder().decode(SceneData.self, from: data)
+
+        assetBasePath = gameDataURL
+
+        Logger.log(message: "📄 Loading Untold scene: \(sceneURL.lastPathComponent)")
+
+        deserializeScene(sceneData: sceneData, meshLoadingMode: meshLoadingMode) {
+            Logger.log(message: "✅ Finished loading scene: \(sceneURL.lastPathComponent)")
+            completion?(true)
+        }
+    } catch {
+        Logger.log(message: "❌ Failed to load scene \(sceneURL.lastPathComponent): \(error.localizedDescription)")
+        completion?(false)
+    }
 }
 
 /// Notification posted when asset instance has finished loading and overrides have been applied
