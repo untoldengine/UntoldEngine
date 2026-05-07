@@ -128,6 +128,12 @@ if [[ "${DO_CLIFF}" == "true" ]]; then
   sed -i '' 's/Logger\.log(message: "Untold Engine Starting[^"]*")/Logger.log(message: "Untold Engine Starting. Version '"${NEXT}"'")/' \
     Sources/UntoldEngine/Renderer/UntoldEngine.swift
   echo "Updated startup log to ${NEXT} in UntoldEngine."
+
+  # Update stable release tag in README and GettingStarted doc
+  sed -i '' 's/git checkout v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*/git checkout v'"${NEXT}"'/' \
+    README.md \
+    docs/API/GettingStarted.md
+  echo "Updated checkout tag to v${NEXT} in README.md and docs/API/GettingStarted.md."
 fi
 
 # Optionally run Docusaurus docs:version
