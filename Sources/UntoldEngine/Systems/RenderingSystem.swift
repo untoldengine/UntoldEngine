@@ -55,12 +55,7 @@ func UpdateRenderingSystem(in view: MTKView) {
                 let cullingStart = CACurrentMediaTime()
             #endif
             EngineProfiler.shared.beginScope(.culling)
-            // Culling must see the unjittered projection so frustum planes are stable.
-            // The render graph (executeGraph below) still gets the jittered perspectiveSpace.
-            let jitteredProj = renderInfo.perspectiveSpace
-            renderInfo.perspectiveSpace = renderInfo.unjitteredPerspectiveSpace
             performFrustumCulling(commandBuffer: commandBuffer)
-            renderInfo.perspectiveSpace = jitteredProj
             EngineProfiler.shared.endScope(.culling)
             #if ENGINE_STATS_ENABLED
                 let cullingMs = (CACurrentMediaTime() - cullingStart) * 1000.0
@@ -292,52 +287,11 @@ public func buildGameModeGraph() -> RenderGraphResult {
     let gaussianPass = RenderPass(id: "gaussian", dependencies: ["model"], execute: RenderPasses.gaussianExecution)
     graph[gaussianPass.id] = gaussianPass
 
-    // TAA and FXAA are mutually exclusive. TAA takes priority.
-    let taaEnabled = TAAParams.shared.enabled && TemporalAA.shared.isSupported
-    let postProcessInputID: String
-
-    if taaEnabled {
-        // Camera-only velocity pass: reads positionMap (written by batchedModel) and outputs
-        // pixel-space motion vectors for temporal reprojection.
-        let velocityPass = RenderPass(
-            id: "velocity",
-            dependencies: ["batchedModel"],
-            execute: velocityRenderPass
-        )
-        graph[velocityPass.id] = velocityPass
-
-        // TAA resolves the lit scene before post-processing so effects like bloom,
-        // DoF, vignette, and the final look pass do not get temporally smeared.
-        let taaPass = RenderPass(
-            id: "taa",
-            dependencies: [spatialDebugPass.id, velocityPass.id],
-            execute: taaRenderPass
-        )
-        graph[taaPass.id] = taaPass
-
-        let taaPostProcessSourcePass = RenderPass(
-            id: "taaPostProcessSource",
-            dependencies: [taaPass.id],
-            execute: { _ in
-                let eyeIdx = renderInfo.isXRStereoMode ? renderInfo.currentEye : 0
-                let safeEye = min(eyeIdx, 1)
-                let resolvedTexture = safeEye == 0
-                    ? textureResources.taaOutputTexture
-                    : textureResources.taaOutputTextureEye[safeEye]
-                renderInfo.deferredRenderPassDescriptor?.colorAttachments[0].texture = resolvedTexture
-            }
-        )
-        graph[taaPostProcessSourcePass.id] = taaPostProcessSourcePass
-        postProcessInputID = taaPostProcessSourcePass.id
-    } else {
-        postProcessInputID = spatialDebugPass.id
-    }
-
     let postProcessID: String
     if bypassPostProcessing {
         let bypassPass = RenderPass(
             id: "postProcessBypass",
-            dependencies: [postProcessInputID],
+            dependencies: [spatialDebugPass.id],
             execute: { _ in
                 guard let deferredDescriptor = renderInfo.deferredRenderPassDescriptor else {
                     return
@@ -349,7 +303,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
         graph[bypassPass.id] = bypassPass
         postProcessID = bypassPass.id
     } else {
-        let postProcess = postProcessingEffects(graph: &graph, deferredPassId: postProcessInputID)
+        let postProcess = postProcessingEffects(graph: &graph, deferredPassId: spatialDebugPass.id)
         postProcessID = postProcess.id
     }
 
@@ -369,8 +323,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
     graph[lookPass.id] = lookPass
 
     let outputDependency: String
-
-    if !taaEnabled, FXAAParams.shared.enabled {
+    if FXAAParams.shared.enabled {
         let fxaaPass = RenderPass(
             id: "fxaa",
             dependencies: [lookPass.id],
@@ -788,7 +741,7 @@ func chromaticAberrationCustomization(encoder: MTLRenderCommandEncoder) {
 }
 
 let depthOfFieldRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
-    guard let sourceTexture = renderInfo.deferredRenderPassDescriptor?.colorAttachments[0].texture,
+    guard let sourceTexture = textureResources.deferredColorMap,
           let destinationTexture = textureResources.depthOfFieldTexture,
           let pipeline = PipelineManager.shared.renderPipelinesByType[.depthOfField]
     else {
@@ -835,198 +788,6 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
     var reverseZ = renderInfo.reverseZEnabled
     encoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: Int(depthOfFieldPassReverseZIndex.rawValue))
 }
-
-// MARK: - Camera-only Velocity Pass
-
-public let velocityRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
-    guard TAAParams.shared.enabled && TemporalAA.shared.isSupported else { return }
-
-    guard let pipeline = PipelineManager.shared.renderPipelinesByType[.velocity] else {
-        handleError(.pipelineStateNulled, "Velocity Pipeline is nil")
-        return
-    }
-    guard let descriptor = renderInfo.velocityRenderPassDescriptor else { return }
-
-    // Keep the velocity descriptor pointing at the current velocity texture
-    // (it may have been reallocated after a viewport resize).
-    descriptor.colorAttachments[0].texture = textureResources.velocityTexture
-
-    guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
-        handleError(.renderPassCreationFailed, "Velocity Pass")
-        return
-    }
-    renderEncoder.label = "Velocity Pass"
-    renderEncoder.pushDebugGroup("Velocity Pass")
-    defer { renderEncoder.popDebugGroup(); renderEncoder.endEncoding() }
-
-    renderEncoder.setRenderPipelineState(pipeline.pipelineState!)
-    renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
-    renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
-
-    renderEncoder.setFragmentTexture(textureResources.positionMap, index: 0)
-
-    // Determine which eye's VP matrices to use.
-    let eyeIdx = renderInfo.isXRStereoMode ? renderInfo.currentEye : 0
-    let safeEye = min(eyeIdx, 1)
-    var currentVP = renderInfo.currentViewProjectionEye[safeEye]
-    var previousVP = renderInfo.prevViewProjectionEye[safeEye]
-    var viewport = renderInfo.viewPort ?? simd_float2(1, 1)
-
-    renderEncoder.setFragmentBytes(&currentVP, length: MemoryLayout<simd_float4x4>.stride, index: 0)
-    renderEncoder.setFragmentBytes(&previousVP, length: MemoryLayout<simd_float4x4>.stride, index: 1)
-    renderEncoder.setFragmentBytes(&viewport, length: MemoryLayout<simd_float2>.stride, index: 2)
-
-    renderEncoder.drawIndexedPrimitivesTracked(
-        type: .triangle, indexCount: 6, indexType: .uint16,
-        indexBuffer: bufferResources.quadIndexBuffer!,
-        indexBufferOffset: 0
-    )
-}
-
-// MARK: - Custom TAA Resolve Pass
-
-public let taaRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
-    guard TAAParams.shared.enabled && TemporalAA.shared.isSupported else { return }
-    guard let pipeline = PipelineManager.shared.renderPipelinesByType[.taaResolve] else {
-        handleError(.pipelineStateNulled, "TAA Resolve Pipeline is nil")
-        return
-    }
-
-    let eyeIdx = renderInfo.isXRStereoMode ? renderInfo.currentEye : 0
-    let safeEye = min(eyeIdx, 1)
-
-    guard
-        let currentColor = textureResources.deferredColorMap,
-        let velocityTex = textureResources.velocityTexture,
-        let positionTex = textureResources.positionMap,
-        let outputTex = (safeEye == 0
-            ? textureResources.taaOutputTexture
-            : textureResources.taaOutputTextureEye[safeEye]),
-        let historyTex = (safeEye == 0
-            ? textureResources.taaHistoryTexture
-            : textureResources.taaHistoryTextureEye[safeEye]),
-        let positionHistoryTex = (safeEye == 0
-            ? textureResources.taaPositionHistoryTexture
-            : textureResources.taaPositionHistoryTextureEye[safeEye])
-    else {
-        handleError(.renderPassCreationFailed, "TAA Resolve: missing textures for eye \(safeEye)")
-        return
-    }
-
-    // --- Resolve pass ---
-    let descriptor = MTLRenderPassDescriptor()
-    descriptor.colorAttachments[0].texture = outputTex
-    descriptor.colorAttachments[0].loadAction = .dontCare
-    descriptor.colorAttachments[0].storeAction = .store
-
-    guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
-        handleError(.renderPassCreationFailed, "TAA Resolve encoder for eye \(safeEye)")
-        return
-    }
-    renderEncoder.label = "TAA Resolve Eye \(safeEye)"
-    renderEncoder.pushDebugGroup("TAA Resolve")
-
-    renderEncoder.setRenderPipelineState(pipeline.pipelineState!)
-    renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
-    renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
-
-    renderEncoder.setFragmentTexture(currentColor, index: 0)
-    renderEncoder.setFragmentTexture(historyTex, index: 1)
-    renderEncoder.setFragmentTexture(velocityTex, index: 2)
-    renderEncoder.setFragmentTexture(positionTex, index: 3)
-    renderEncoder.setFragmentTexture(positionHistoryTex, index: 4)
-
-    var viewport = renderInfo.viewPort ?? simd_float2(1, 1)
-    var resetFlag = UInt32(TemporalAA.shared.needsReset ? 1 : 0)
-    // XR uses a higher base weight for the current frame so the history sheds
-    // faster after head movement (0.65 → 35% history vs 0.1 → 90% for desktop).
-    let taaParams = TAAParams.shared
-    var blendFactor = renderInfo.isXRStereoMode
-        ? min(max(taaParams.xrBlendFactor, 0.0), 1.0)
-        : min(max(taaParams.desktopBlendFactor, 0.0), 1.0)
-
-    // Compute camera centre displacement in pixels between this frame and the
-    // previous one. Projecting a fixed reference point through both unjittered
-    // VP matrices gives a single scalar that reflects how much the whole view
-    // has shifted — including rotation where per-pixel motion at the image
-    // centre is near zero.
-    let curVP = renderInfo.currentViewProjectionEye[safeEye]
-    let prevVP = renderInfo.prevViewProjectionEye[safeEye]
-    let ref = simd_float4(0, 0, -1, 1)
-    let clipC = simd_mul(curVP, ref)
-    let clipP = simd_mul(prevVP, ref)
-    var camDisplacementPixels: Float = 0.0
-    if clipC.w > 0.001 && clipP.w > 0.001 {
-        let ndcC = simd_float2(clipC.x / clipC.w, clipC.y / clipC.w)
-        let ndcP = simd_float2(clipP.x / clipP.w, clipP.y / clipP.w)
-        camDisplacementPixels = simd_length((ndcC - ndcP) * viewport * 0.5)
-    }
-
-    var cameraPosition = simd_float3.zero
-    if let camera = CameraSystem.shared.activeCamera,
-       let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
-    {
-        cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
-    }
-    var positionRejectBase = taaParams.positionRejectBase
-    var positionRejectDistanceScale = taaParams.positionRejectDistanceScale
-    var motionBlendStart = taaParams.motionBlendStartPixels
-    var motionBlendEnd = taaParams.motionBlendEndPixels
-    var cameraBoostStart = taaParams.cameraBoostStartPixels
-    var cameraBoostEnd = taaParams.cameraBoostEndPixels
-    var clampRadius = taaParams.clampNeighborhoodRadius
-
-    renderEncoder.setFragmentBytes(&viewport, length: MemoryLayout<simd_float2>.stride, index: 0)
-    renderEncoder.setFragmentBytes(&resetFlag, length: MemoryLayout<UInt32>.stride, index: 1)
-    renderEncoder.setFragmentBytes(&blendFactor, length: MemoryLayout<Float>.stride, index: 2)
-    renderEncoder.setFragmentBytes(&camDisplacementPixels, length: MemoryLayout<Float>.stride, index: 3)
-    renderEncoder.setFragmentBytes(&cameraPosition, length: MemoryLayout<simd_float3>.stride, index: 4)
-    renderEncoder.setFragmentBytes(&positionRejectBase, length: MemoryLayout<Float>.stride, index: 5)
-    renderEncoder.setFragmentBytes(&positionRejectDistanceScale, length: MemoryLayout<Float>.stride, index: 6)
-    renderEncoder.setFragmentBytes(&motionBlendStart, length: MemoryLayout<Float>.stride, index: 7)
-    renderEncoder.setFragmentBytes(&motionBlendEnd, length: MemoryLayout<Float>.stride, index: 8)
-    renderEncoder.setFragmentBytes(&cameraBoostStart, length: MemoryLayout<Float>.stride, index: 9)
-    renderEncoder.setFragmentBytes(&cameraBoostEnd, length: MemoryLayout<Float>.stride, index: 10)
-    renderEncoder.setFragmentBytes(&clampRadius, length: MemoryLayout<Int32>.stride, index: 11)
-
-    renderEncoder.drawIndexedPrimitivesTracked(
-        type: .triangle, indexCount: 6, indexType: .uint16,
-        indexBuffer: bufferResources.quadIndexBuffer!,
-        indexBufferOffset: 0
-    )
-    renderEncoder.popDebugGroup()
-    renderEncoder.endEncoding()
-
-    // --- History blit: copy resolved output → history for next frame ---
-    if let blitEncoder = commandBuffer.makeBlitCommandEncoder() {
-        blitEncoder.label = "TAA History Blit Eye \(safeEye)"
-        blitEncoder.copy(
-            from: outputTex,
-            sourceSlice: 0, sourceLevel: 0,
-            sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-            sourceSize: MTLSize(width: outputTex.width, height: outputTex.height, depth: 1),
-            to: historyTex,
-            destinationSlice: 0, destinationLevel: 0,
-            destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
-        )
-        blitEncoder.copy(
-            from: positionTex,
-            sourceSlice: 0, sourceLevel: 0,
-            sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-            sourceSize: MTLSize(width: positionTex.width, height: positionTex.height, depth: 1),
-            to: positionHistoryTex,
-            destinationSlice: 0, destinationLevel: 0,
-            destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
-        )
-        blitEncoder.endEncoding()
-    }
-
-    // Advance Halton counter once after the last eye.
-    let isLastEye = !renderInfo.isXRStereoMode || renderInfo.currentEye == 1
-    if isLastEye { TemporalAA.shared.advanceFrame() }
-}
-
-// MARK: - FXAA Pass
 
 public let fxaaRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.lookTexture,
@@ -1166,12 +927,9 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
 }
 
 public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
-    let sourceTexture: MTLTexture?
-    if FXAAParams.shared.enabled, !(TAAParams.shared.enabled && TemporalAA.shared.isSupported) {
-        sourceTexture = textureResources.fxaaTexture
-    } else {
-        sourceTexture = textureResources.lookTexture
-    }
+    let sourceTexture = FXAAParams.shared.enabled
+        ? textureResources.fxaaTexture
+        : textureResources.lookTexture
     guard let sourceTexture else {
         handleError(.renderPassCreationFailed, "Output Transform Pass: source texture is nil")
         return

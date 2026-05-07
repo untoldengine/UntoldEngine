@@ -259,9 +259,6 @@ let shadowMaxHeight: Float = 300.0
 let csmCascadeCount: Int = 3
 let shadowResolution: simd_int2 = .init(2048, 2048)
 
-// TAA: Halton table size (frame counter lives inside TemporalAA)
-let haltonTableSize: Int = 16
-
 var rayTracingPipeline: ComputePipeline {
     get {
         let state = CoreRuntimeGlobals.shared
@@ -1476,39 +1473,10 @@ public final class DepthOfFieldParams: ObservableObject, @unchecked Sendable {
 public final class FXAAParams: ObservableObject, @unchecked Sendable {
     public static let shared = FXAAParams()
 
-    @Published public var enabled: Bool = false
+    @Published public var enabled: Bool = true
     @Published public var subpixelQuality: Float = 0.75 // 0.0–1.0; higher = stronger sub-pixel smoothing
     @Published public var edgeThreshold: Float = 0.125 // minimum local contrast to trigger AA
     @Published public var edgeThresholdMin: Float = 0.0625 // absolute threshold floor (skip very dark edges)
-}
-
-/// TAA + MetalFX Temporal Scaler parameters.
-/// TAA and FXAA are mutually exclusive — enabling TAA auto-disables FXAA.
-public final class TAAParams: ObservableObject, @unchecked Sendable {
-    public static let shared = TAAParams()
-
-    @Published public var enabled: Bool = true
-
-    /// Current-frame blend weight when running on the desktop / mono path.
-    @Published public var desktopBlendFactor: Float = 0.1
-
-    /// Current-frame blend weight when running stereo XR.
-    @Published public var xrBlendFactor: Float = 0.65
-
-    /// Pixel-motion range that ramps the resolve from history-heavy to current-heavy.
-    @Published public var motionBlendStartPixels: Float = 0.5
-    @Published public var motionBlendEndPixels: Float = 8.0
-
-    /// Camera/view-center displacement range that increases current-frame weight.
-    @Published public var cameraBoostStartPixels: Float = 2.0
-    @Published public var cameraBoostEndPixels: Float = 20.0
-
-    /// Base world-space rejection threshold plus distance-scaled slack.
-    @Published public var positionRejectBase: Float = 0.03
-    @Published public var positionRejectDistanceScale: Float = 0.001
-
-    /// Radius for current-frame color clamp neighbourhood. 1 = 3x3, 2 = 5x5.
-    @Published public var clampNeighborhoodRadius: Int32 = 1
 }
 
 /// SSAO Quality Settings

@@ -502,40 +502,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             initSizeableResources()
             pendingResize = false
         }
-
-        // TAA jitter (desktop / mono path).
-        // Apply a per-frame Halton sub-pixel offset to the projection matrix so the
-        // temporal scaler can accumulate multiple sample positions over time.
-        // Culling and shadow systems use unjitteredPerspectiveSpace to stay stable.
-        if TAAParams.shared.enabled, TemporalAA.shared.isSupported {
-            let jitter = TemporalAA.shared.currentJitter()
-            let vw = Float(renderInfo.viewPort.x)
-            let vh = Float(renderInfo.viewPort.y)
-            var jittered = renderInfo.unjitteredPerspectiveSpace
-            jittered[3][0] += jitter.x * 2.0 / vw
-            jittered[3][1] += jitter.y * 2.0 / vh
-            renderInfo.perspectiveSpace = jittered
-            renderInfo.taaJitterX = jitter.x
-            renderInfo.taaJitterY = jitter.y
-
-            // Track prev/current unjittered VP for the camera-only velocity pass.
-            if let cam = CameraSystem.shared.activeCamera,
-               let camComp = scene.get(component: CameraComponent.self, for: cam)
-            {
-                let effectiveView = SceneRootTransform.shared.effectiveViewMatrix(camComp.viewSpace)
-                let unjitteredVP = simd_mul(renderInfo.unjitteredPerspectiveSpace, effectiveView)
-                renderInfo.prevViewProjectionEye[0] = renderInfo.currentViewProjectionEye[0]
-                renderInfo.currentViewProjectionEye[0] = unjitteredVP
-
-                // Auto-reset TAA history after large camera jumps (teleport / scene cut).
-                TemporalAA.shared.checkAndResetIfNeeded(cameraPosition: camComp.localPosition)
-            }
-        } else {
-            renderInfo.perspectiveSpace = renderInfo.unjitteredPerspectiveSpace
-            renderInfo.taaJitterX = 0
-            renderInfo.taaJitterY = 0
-        }
-
         // Tick the progressive loader here (main thread, before runFrame) so newly
         // registered entities are picked up by BatchingSystem in the same frame.
         // In XR, UntoldEngineXR.renderNewFrame() dispatches this to the main thread
@@ -563,9 +529,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far
         )
 
-        // Store the clean (unjittered) projection. The per-frame draw() applies Halton
-        // jitter on top of this into perspectiveSpace before each render.
-        renderInfo.unjitteredPerspectiveSpace = projectionMatrix
         renderInfo.perspectiveSpace = projectionMatrix
 
         let viewPortSize: simd_float2 = simd_make_float2(Float(size.width), Float(size.height))
@@ -612,12 +575,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         renderer.initResources()
-
-        // On Vision Pro the display resolution is high enough that spatial aliasing is
-        // barely visible, and TAA's temporal ghosting is more noticeable than aliasing
-        // on a precision head-tracked display. FXAA gives clean edges with zero lag.
-        TAAParams.shared.enabled = false
-        FXAAParams.shared.enabled = true
 
         renderEnvironment = true
 
@@ -675,6 +632,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         projectionMatrix: simd_float4x4,
         eyeIndex: Int
     ) {
+        renderInfo.perspectiveSpace = projectionMatrix
+
         guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
@@ -682,45 +641,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         cameraComponent.viewSpace = viewMatrix
 
-        // --- Unjittered VP (used by culling, shadow cascades, and velocity) ---
-        let effectiveVM = SceneRootTransform.shared.effectiveViewMatrix(viewMatrix)
-        let unjitteredVP = simd_mul(projectionMatrix, effectiveVM)
-
-        // Save this eye's unjittered VP for next frame's per-eye HZB culling.
+        // Save this eye's view-projection for next frame's per-eye HZB culling.
         if renderInfo.isXRStereoMode {
-            if eyeIndex == 0 { renderInfo.xrEye0ViewProjection = unjitteredVP }
-            else { renderInfo.xrEye1ViewProjection = unjitteredVP }
-        }
-
-        // Track prev/current unjittered VP for the camera-only velocity pass.
-        let safeEye = min(eyeIndex, 1)
-        renderInfo.prevViewProjectionEye[safeEye] = renderInfo.currentViewProjectionEye[safeEye]
-        renderInfo.currentViewProjectionEye[safeEye] = unjitteredVP
-
-        // --- Jittered projection (rasterisation only) ---
-        // Both eyes share the same Halton sample for a given frame so the temporal
-        // accumulation in each per-eye scaler sees a consistent sample pattern.
-        if TAAParams.shared.enabled, TemporalAA.shared.isSupported {
-            let jitter = TemporalAA.shared.currentJitter()
-            let vw = Float(renderInfo.viewPort.x)
-            let vh = Float(renderInfo.viewPort.y)
-            var jittered = projectionMatrix
-            jittered[3][0] += jitter.x * 2.0 / vw
-            jittered[3][1] += jitter.y * 2.0 / vh
-            renderInfo.perspectiveSpace = jittered
-            renderInfo.unjitteredPerspectiveSpace = projectionMatrix
-            renderInfo.taaJitterX = jitter.x
-            renderInfo.taaJitterY = jitter.y
-
-            // Auto-reset TAA history after large head-position jumps (XR teleport).
-            if safeEye == 0 {
-                TemporalAA.shared.checkAndResetIfNeeded(cameraPosition: cameraComponent.localPosition)
-            }
-        } else {
-            renderInfo.perspectiveSpace = projectionMatrix
-            renderInfo.unjitteredPerspectiveSpace = projectionMatrix
-            renderInfo.taaJitterX = 0
-            renderInfo.taaJitterY = 0
+            let effectiveVM = SceneRootTransform.shared.effectiveViewMatrix(viewMatrix)
+            let eyeVP = simd_mul(projectionMatrix, effectiveVM)
+            if eyeIndex == 0 { renderInfo.xrEye0ViewProjection = eyeVP }
+            else { renderInfo.xrEye1ViewProjection = eyeVP }
         }
 
         configuration.updateXRRenderingSystemCallback!(.xr(commandBuffer: commandBuffer, passDescriptor: passDescriptor))

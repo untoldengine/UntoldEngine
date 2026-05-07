@@ -60,21 +60,6 @@ public struct RenderInfo {
     public var isXRStereoMode: Bool = false
     public var xrEye0ViewProjection: simd_float4x4 = matrix_identity_float4x4
     public var xrEye1ViewProjection: simd_float4x4 = matrix_identity_float4x4
-
-    // TAA / MetalFX Temporal Scaler
-    // unjitteredPerspectiveSpace is the clean projection matrix used by culling, shadow cascades,
-    // and velocity computation. perspectiveSpace carries the per-frame Halton jitter for rasterisation.
-    public var unjitteredPerspectiveSpace: simd_float4x4 = matrix_identity_float4x4
-    public var taaJitterX: Float = 0 // current frame jitter offset in pixels (X)
-    public var taaJitterY: Float = 0 // current frame jitter offset in pixels (Y)
-
-    // Per-eye unjittered view-projection matrices for camera-only velocity computation.
-    // Index 0 = left / mono,  index 1 = right (XR stereo).
-    public var prevViewProjectionEye: [simd_float4x4] = [matrix_identity_float4x4, matrix_identity_float4x4]
-    public var currentViewProjectionEye: [simd_float4x4] = [matrix_identity_float4x4, matrix_identity_float4x4]
-
-    /// Velocity pass render pass descriptor (writes rg16Float motion vectors)
-    public var velocityRenderPassDescriptor: MTLRenderPassDescriptor!
 }
 
 @inline(__always)
@@ -242,21 +227,6 @@ public struct TextureResources {
     public var depthMapEye: [MTLTexture?] = [nil, nil]
     public var hzbDepthPyramidEye: [MTLTexture?] = [nil, nil]
     public var hzbMipViewsEye: [[MTLTexture]] = [[], []]
-
-    // TAA / MetalFX Temporal Scaler textures.
-    // velocityTexture: rg16Float screen-space motion vectors (camera-only, re-computed each frame).
-    // taaOutputTexture: resolved TAA output for mono / desktop.
-    // taaOutputTextureEye[]: per-eye resolved TAA output for XR stereo.
-    public var velocityTexture: MTLTexture?
-    public var taaOutputTexture: MTLTexture?
-    public var taaOutputTextureEye: [MTLTexture?] = [nil, nil]
-    // History textures: the previous frame's resolved TAA output, read by the resolve shader.
-    public var taaHistoryTexture: MTLTexture?
-    public var taaHistoryTextureEye: [MTLTexture?] = [nil, nil]
-    // Previous frame's world-position G-buffer, used to reject stale history on
-    // disocclusions and object motion that camera-only velocity cannot represent.
-    public var taaPositionHistoryTexture: MTLTexture?
-    public var taaPositionHistoryTextureEye: [MTLTexture?] = [nil, nil]
 }
 
 public struct AccelStructResources {

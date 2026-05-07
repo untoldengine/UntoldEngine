@@ -43,9 +43,6 @@ using namespace metal;
 #include "../Shaders/SSAOUpsampleShader.metal"
 #include "../Shaders/spatialDebugShader.metal"
 #include "../Shaders/FXAAShader.metal"
-#include "../Shaders/velocityShader.metal"
-#include "../Shaders/taaResolveShader.metal"
-
 // Gaussian kernels
 #include "../Shaders/BitonicSort.metal"
 #include "../Shaders/Gaussians.metal"

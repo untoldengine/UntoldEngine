@@ -617,31 +617,6 @@ public func InitDebugPipeline() -> RenderPipeline? {
     )
 }
 
-public func InitTAAResolvePipeline() -> RenderPipeline? {
-    let wf = renderInfo.colorPipeline.working
-    return CreatePipeline(
-        vertexShader: "vertexTAAResolveShader",
-        fragmentShader: "fragmentTAAResolveShader",
-        vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [wf.lookOutput],
-        depthFormat: .invalid,
-        depthEnabled: false,
-        name: "TAA Resolve Pipeline"
-    )
-}
-
-public func InitVelocityPipeline() -> RenderPipeline? {
-    CreatePipeline(
-        vertexShader: "vertexVelocityShader",
-        fragmentShader: "fragmentVelocityShader",
-        vertexDescriptor: createPostProcessVertexDescriptor(),
-        colorFormats: [.rg16Float],
-        depthFormat: .invalid,
-        depthEnabled: false,
-        name: "Velocity Pipeline"
-    )
-}
-
 public func InitTransparencyPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexModelShader",
@@ -702,8 +677,6 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.outputTransform, InitOutputTransformPipeline),
         (.debug, InitDebugPipeline),
         (.transparency, InitTransparencyPipeline),
-        (.velocity, InitVelocityPipeline),
-        (.taaResolve, InitTAAResolvePipeline),
     ]
 }
 

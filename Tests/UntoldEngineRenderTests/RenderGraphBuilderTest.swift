@@ -15,14 +15,9 @@ import XCTest
 final class RenderGraphBuilderTest: BaseRenderSetup {
     override func setUp() async throws {
         try await super.setUp()
-        // Explicit state — don't rely on global defaults so tests are self-contained.
-        TAAParams.shared.enabled = true
-        FXAAParams.shared.enabled = false
     }
 
     override func tearDown() async throws {
-        TAAParams.shared.enabled = true
-        FXAAParams.shared.enabled = false
         try await super.tearDown()
     }
 
@@ -205,13 +200,6 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertNotNil(graph["look"], "Look pass should exist")
         XCTAssertNotNil(graph["outputTransform"], "Output transform pass should exist")
 
-        // TAA is enabled by default — verify TAA and velocity passes are present,
-        // and FXAA (mutually exclusive with TAA) is absent.
-        XCTAssertNotNil(graph["taa"], "TAA pass should exist when TAA is enabled")
-        XCTAssertNotNil(graph["velocity"], "Velocity pass should exist when TAA is enabled")
-        XCTAssertNotNil(graph["taaPostProcessSource"], "TAA source handoff pass should exist when TAA is enabled")
-        XCTAssertNil(graph["fxaa"], "FXAA pass must not exist when TAA takes priority")
-
         // Verify final pass
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
     }
@@ -275,11 +263,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             ("model", "lightPass"),
             ("lightPass", "transparency"),
             ("transparency", "spatialDebug"),
-            ("spatialDebug", "taa"),
-            ("batchedModel", "velocity"),
-            ("velocity", "taa"),
-            ("taa", "taaPostProcessSource"),
-            ("taaPostProcessSource", "depthOfField"),
+            ("spatialDebug", "depthOfField"),
             ("depthOfField", "chromatic"),
             ("chromatic", "bloomThreshold"),
             ("bloomThreshold", "precomp"),
@@ -289,66 +273,41 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         ])
     }
 
-    func testBuildGameModeGraph_BypassPostProcessing_WithTAA() {
+    func testBuildGameModeGraph_BypassPostProcessing_UsesBypassPass() {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         bypassPostProcessing = true
         defer { bypassPostProcessing = false }
 
-        // TAA is enabled (setUp default) — verifies the bypass path with TAA active.
         let (graph, finalPassID) = buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
-
-        // Post-processing chain replaced by bypass pass.
+        XCTAssertNotNil(graph["spatialDebug"], "Spatial debug pass should exist")
+        XCTAssertEqual(graph["spatialDebug"]?.dependencies, ["transparency"],
+                       "Spatial debug pass should depend on transparency")
         XCTAssertNotNil(graph["postProcessBypass"], "Bypass pass should exist when bypassPostProcessing is enabled")
-        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["taaPostProcessSource"],
-                       "Bypass pass should depend on the TAA post-process source handoff")
-        XCTAssertNil(graph["depthOfField"], "DepthOfField should not exist when bypassing post-processing")
-        XCTAssertNil(graph["chromatic"], "Chromatic should not exist when bypassing post-processing")
-        XCTAssertNil(graph["bloomThreshold"], "BloomThreshold should not exist when bypassing post-processing")
+        XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["spatialDebug"],
+                       "Bypass pass should depend on spatialDebug")
+        XCTAssertNotNil(graph["look"], "Look pass should exist when bypassing post-processing")
+        XCTAssertNotNil(graph["fxaa"], "FXAA pass should exist when bypassing post-processing")
+        XCTAssertNotNil(graph["outputTransform"], "Output transform should exist when bypassing post-processing")
 
-        // Precomp still depends on both the bypass pass and gaussian.
+        XCTAssertNil(graph["depthOfField"], "Depth of field pass should not exist when bypassing post-processing")
+        XCTAssertNil(graph["chromatic"], "Chromatic pass should not exist when bypassing post-processing")
+        XCTAssertNil(graph["bloomThreshold"], "Bloom threshold pass should not exist when bypassing post-processing")
+
         let precompDeps = graph["precomp"]?.dependencies.sorted() ?? []
-        XCTAssertTrue(precompDeps.contains("postProcessBypass"), "Precomp should depend on postProcessBypass")
-        XCTAssertTrue(precompDeps.contains("gaussian"), "Precomp should still depend on gaussian")
+        XCTAssertTrue(precompDeps.contains("postProcessBypass"),
+                      "Precomp should depend on postProcessBypass when bypassing post-processing")
+        XCTAssertTrue(precompDeps.contains("gaussian"),
+                      "Precomp should still depend on gaussian pass")
 
-        // TAA output chain: spatialDebug + velocity -> taa -> postProcessBypass -> precomp -> look.
-        XCTAssertNotNil(graph["taa"], "TAA pass should exist")
-        XCTAssertNotNil(graph["velocity"], "Velocity pass should exist alongside TAA")
-        XCTAssertNotNil(graph["taaPostProcessSource"], "TAA source handoff pass should exist")
-        XCTAssertNil(graph["fxaa"], "FXAA must not exist when TAA takes priority")
         XCTAssertEqual(graph["look"]?.dependencies, ["precomp"],
-                       "Look should depend on precomp")
-        let taaDeps = graph["taa"]?.dependencies.sorted() ?? []
-        XCTAssertTrue(taaDeps.contains("spatialDebug"), "TAA should depend on spatialDebug")
-        XCTAssertTrue(taaDeps.contains("velocity"), "TAA should depend on velocity")
-        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
-                       "Output transform should depend on look after TAA feeds post-processing")
-    }
-
-    func testBuildGameModeGraph_BypassPostProcessing_WithFXAA() {
-        renderInfo.immersionStyle = .none
-        renderEnvironment = true
-        bypassPostProcessing = true
-        TAAParams.shared.enabled = false
-        FXAAParams.shared.enabled = true
-        defer {
-            bypassPostProcessing = false
-            TAAParams.shared.enabled = true
-            FXAAParams.shared.enabled = false
-        }
-
-        let (graph, finalPassID) = buildGameModeGraph()
-
-        XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
-        XCTAssertNotNil(graph["fxaa"], "FXAA pass should exist when TAA is disabled and FXAA is enabled")
-        XCTAssertNil(graph["taa"], "TAA pass must not exist when TAA is disabled")
-        XCTAssertNil(graph["velocity"], "Velocity pass must not exist when TAA is disabled")
+                       "Look should depend on precomp when bypassing post-processing")
         XCTAssertEqual(graph["fxaa"]?.dependencies, ["look"],
-                       "FXAA should depend on look")
+                       "FXAA should depend on look when bypassing post-processing")
         XCTAssertEqual(graph["outputTransform"]?.dependencies, ["fxaa"],
-                       "Output transform should depend on fxaa")
+                       "Output transform should depend on fxaa when bypassing post-processing")
     }
 
     // MARK: - Gaussian Pass Integration Tests
@@ -443,115 +402,6 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         XCTAssertTrue(gaussianIndex < precompIndex,
                       "Gaussian pass must come before pre-composite pass")
-    }
-
-    // MARK: - TAA in the render graph
-
-    func testBuildGameModeGraph_TAAEnabled_CorrectDependencies() {
-        renderInfo.immersionStyle = .none
-        renderEnvironment = true
-
-        let (graph, _) = buildGameModeGraph()
-
-        // velocity reads the G-buffer position written by batchedModel.
-        XCTAssertEqual(graph["velocity"]?.dependencies, ["batchedModel"],
-                       "Velocity pass should depend on batchedModel")
-
-        // taa needs the lit scene before post-processing plus motion vectors.
-        let taaDeps = graph["taa"]?.dependencies.sorted() ?? []
-        XCTAssertTrue(taaDeps.contains("spatialDebug"), "TAA should depend on spatialDebug")
-        XCTAssertTrue(taaDeps.contains("velocity"), "TAA should depend on velocity")
-
-        XCTAssertEqual(graph["taaPostProcessSource"]?.dependencies, ["taa"],
-                       "TAA handoff should depend on the resolved TAA output")
-        XCTAssertEqual(graph["postProcessDisabledBypass"]?.dependencies, ["taaPostProcessSource"],
-                       "Post-processing should read from the TAA handoff when effects are disabled")
-        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
-                       "outputTransform should depend on look after TAA feeds post-processing")
-    }
-
-    func testBuildGameModeGraph_TAAEnabled_TopologicalOrder() throws {
-        renderInfo.immersionStyle = .none
-        renderEnvironment = true
-
-        let (graph, _) = buildGameModeGraph()
-        let sorted = try topologicalSortGraph(graph: graph)
-        let order = sorted.map(\.id)
-
-        assertTopologicalConstraints(order: order, constraints: [
-            ("batchedModel", "velocity"),
-            ("spatialDebug", "taa"),
-            ("velocity", "taa"),
-            ("taa", "taaPostProcessSource"),
-            ("taaPostProcessSource", "postProcessDisabledBypass"),
-            ("postProcessDisabledBypass", "precomp"),
-            ("precomp", "look"),
-            ("look", "outputTransform"),
-        ])
-    }
-
-    func testBuildGameModeGraph_TAADisabled_NoTAAOrVelocityPass() {
-        renderInfo.immersionStyle = .none
-        renderEnvironment = true
-        TAAParams.shared.enabled = false
-        defer { TAAParams.shared.enabled = true }
-
-        let (graph, _) = buildGameModeGraph()
-
-        XCTAssertNil(graph["taa"], "TAA pass must not exist when TAA is disabled")
-        XCTAssertNil(graph["velocity"], "Velocity pass must not exist when TAA is disabled")
-    }
-
-    func testBuildGameModeGraph_TAADisabled_OutputDependsOnLook() {
-        renderInfo.immersionStyle = .none
-        renderEnvironment = true
-        TAAParams.shared.enabled = false
-        FXAAParams.shared.enabled = false
-        defer {
-            TAAParams.shared.enabled = true
-            FXAAParams.shared.enabled = false
-        }
-
-        let (graph, _) = buildGameModeGraph()
-
-        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
-                       "outputTransform should depend directly on look when both TAA and FXAA are off")
-    }
-
-    func testBuildGameModeGraph_TAAAndFXAABothEnabled_TAAWins() {
-        renderInfo.immersionStyle = .none
-        renderEnvironment = true
-        TAAParams.shared.enabled = true
-        FXAAParams.shared.enabled = true
-        defer { FXAAParams.shared.enabled = false }
-
-        let (graph, _) = buildGameModeGraph()
-
-        XCTAssertNotNil(graph["taa"], "TAA pass should exist when both AA flags are enabled")
-        XCTAssertNil(graph["fxaa"], "FXAA pass must not exist when TAA takes priority")
-        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
-                       "outputTransform should depend on look because TAA feeds post-processing")
-    }
-
-    func testBuildGameModeGraph_TAADisabled_FXAAEnabled_CreatesFXAAPass() {
-        renderInfo.immersionStyle = .none
-        renderEnvironment = true
-        TAAParams.shared.enabled = false
-        FXAAParams.shared.enabled = true
-        defer {
-            TAAParams.shared.enabled = true
-            FXAAParams.shared.enabled = false
-        }
-
-        let (graph, _) = buildGameModeGraph()
-
-        XCTAssertNotNil(graph["fxaa"], "FXAA pass should exist when TAA is off and FXAA is on")
-        XCTAssertNil(graph["taa"], "TAA pass must not exist when TAA is disabled")
-        XCTAssertNil(graph["velocity"], "Velocity pass must not exist when TAA is disabled")
-        XCTAssertEqual(graph["fxaa"]?.dependencies, ["look"],
-                       "FXAA should depend on look")
-        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["fxaa"],
-                       "outputTransform should depend on fxaa")
     }
 
     // MARK: - Helper Methods
