@@ -356,12 +356,6 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
         id: "batchedModel", dependencies: [modelPass.id], execute: RenderPasses.batchedModelExecution
     )
     graph[batchedModelPass.id] = batchedModelPass
-    let hzbDepthSourcePass = RenderPass(
-        id: "hzbDepthSource",
-        dependencies: [batchedModelPass.id],
-        execute: RenderPasses.copyOpaqueDepthForHZBExecution
-    )
-    graph[hzbDepthSourcePass.id] = hzbDepthSourcePass
     // Update SSAO to depend on batched pass
     let ssaoPass = RenderPass(
         id: "ssao",
@@ -374,7 +368,7 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
     // Note: ssaoOptimizedExecution handles all blur/upsample internally
     // No need for separate ssaoBlur pass in the graph
 
-    let lightPass = RenderPass(id: "lightPass", dependencies: [hzbDepthSourcePass.id, modelPass.id, shadowPass.id, ssaoPass.id], execute: RenderPasses.lightExecution)
+    let lightPass = RenderPass(id: "lightPass", dependencies: [batchedModelPass.id, modelPass.id, shadowPass.id, ssaoPass.id], execute: RenderPasses.lightExecution)
     graph[lightPass.id] = lightPass
 }
 

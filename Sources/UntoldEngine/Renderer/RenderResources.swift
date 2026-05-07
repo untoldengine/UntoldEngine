@@ -157,7 +157,6 @@ public struct TextureResources {
     public var materialMap: MTLTexture?
     public var emissiveMap: MTLTexture?
     public var depthMap: MTLTexture?
-    public var hzbSourceDepthMap: MTLTexture?
     public var environmentColorMap: MTLTexture?
 
     // deferred

@@ -387,7 +387,7 @@ public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: In
         return
     }
 
-    guard let depthTexture = textureResources.hzbSourceDepthMap ?? textureResources.depthMap else {
+    guard let depthTexture = textureResources.depthMap else {
         handleError(.textureMissing, "Depth Texture")
         renderInfo.hzbIsValid = false
         textureResources.hzbDebugMipTexture = nil
