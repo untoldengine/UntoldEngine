@@ -229,12 +229,8 @@ final class BuildSystemTests: XCTestCase {
                       "GameScene.swift should contain update method")
         XCTAssertTrue(gameSceneContent.contains("func handleInput()"),
                       "GameScene.swift should contain handleInput method")
-        XCTAssertTrue(gameSceneContent.contains("func loadUntoldScene("),
-                      "GameScene.swift should include the loadUntoldScene helper")
-        XCTAssertTrue(gameSceneContent.contains(".appendingPathExtension(\"untoldscene\")"),
-                      "GameScene.swift should resolve .untoldscene files from GameData/Scenes")
-        XCTAssertTrue(gameSceneContent.contains("deserializeScene(sceneData: sceneData"),
-                      "GameScene.swift should deserialize SceneData through the engine helper")
+        XCTAssertFalse(gameSceneContent.contains("func loadUntoldScene("),
+                       "loadUntoldScene is a public engine API — it must not be redefined in GameScene.swift")
 
         // Verify GameSceneUtils content for extracted onboarding helpers
         let gameSceneUtilsKey = "Sources/{{PROJECT_NAME}}/GameSceneUtils.swift"
@@ -934,12 +930,8 @@ final class BuildSystemTests: XCTestCase {
                       "GameScene should have update method")
         XCTAssertTrue(gameSceneContent.contains("func handleInput()"),
                       "GameScene should have handleInput method")
-        XCTAssertTrue(gameSceneContent.contains("func loadUntoldScene("),
-                      "visionOS GameScene should include the loadUntoldScene helper")
-        XCTAssertTrue(gameSceneContent.contains(".appendingPathExtension(\"untoldscene\")"),
-                      "visionOS GameScene should resolve .untoldscene files from GameData/Scenes")
-        XCTAssertTrue(gameSceneContent.contains("deserializeScene(sceneData: sceneData"),
-                      "visionOS GameScene should deserialize SceneData through the engine helper")
+        XCTAssertFalse(gameSceneContent.contains("func loadUntoldScene("),
+                       "loadUntoldScene is a public engine API — it must not be redefined in visionOS GameScene.swift")
         XCTAssertFalse(gameSceneContent.contains("import SwiftUI"),
                        "GameScene should NOT import SwiftUI")
         XCTAssertFalse(gameSceneContent.contains("import UntoldEngineXR"),

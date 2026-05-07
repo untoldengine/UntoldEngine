@@ -67,6 +67,10 @@ http://www.haroldserrano.com
 
 The fastest way to experience Untold Engine is to run the demo project.
 
+> **Recommendation:** Use the latest stable release instead of the `develop`
+> branch. The `develop` branch is the bleeding-edge version of Untold Engine and
+> is updated frequently, so it may contain unstable changes or regressions.
+
 Clone the repository and launch the demo:
 
 ```bash

@@ -182,53 +182,6 @@ import Foundation
                 // Add your custom input handling here
             }
 
-            // MARK: - Scene Loading
-
-            /// Load a `.untoldscene` from `GameData/Scenes`.
-            ///
-            /// The scene file is JSON-backed and contains project-relative references to
-            /// `.untold`, stream-model manifests, animations, HDR files, and other scene assets.
-            /// `assetBasePath` must already point at `GameData`.
-            func loadUntoldScene(
-                named sceneName: String,
-                meshLoadingMode: MeshLoadingMode = .asyncDefault,
-                completion: ((Bool) -> Void)? = nil
-            ) {
-                guard let gameDataURL = assetBasePath else {
-                    Logger.log(message: "❌ assetBasePath is not configured. Call setupAssetPaths() first.")
-                    completion?(false)
-                    return
-                }
-
-                let sceneURL = gameDataURL
-                    .appendingPathComponent("Scenes", isDirectory: true)
-                    .appendingPathComponent(sceneName)
-                    .appendingPathExtension("untoldscene")
-
-                guard FileManager.default.fileExists(atPath: sceneURL.path) else {
-                    Logger.log(message: "❌ Scene file not found: \\(sceneURL.path)")
-                    completion?(false)
-                    return
-                }
-
-                do {
-                    let data = try Data(contentsOf: sceneURL)
-                    let sceneData = try JSONDecoder().decode(SceneData.self, from: data)
-
-                    // Ensure all relative asset references resolve against the bundled GameData.
-                    assetBasePath = gameDataURL
-
-                    Logger.log(message: "📄 Loading Untold scene: \\(sceneURL.lastPathComponent)")
-
-                    deserializeScene(sceneData: sceneData, meshLoadingMode: meshLoadingMode) {
-                        Logger.log(message: "✅ Finished loading scene: \\(sceneURL.lastPathComponent)")
-                        completion?(true)
-                    }
-                } catch {
-                    Logger.log(message: "❌ Failed to load scene \\(sceneURL.lastPathComponent): \\(error.localizedDescription)")
-                    completion?(false)
-                }
-            }
         }
         """
 
@@ -673,53 +626,6 @@ import Foundation
                 // Add your custom input handling here
             }
 
-            // MARK: - Scene Loading
-
-            /// Load a `.untoldscene` from `GameData/Scenes`.
-            ///
-            /// The scene file is JSON-backed and contains project-relative references to
-            /// `.untold`, stream-model manifests, animations, HDR files, and other scene assets.
-            /// `assetBasePath` must already point at `GameData`.
-            func loadUntoldScene(
-                named sceneName: String,
-                meshLoadingMode: MeshLoadingMode = .asyncDefault,
-                completion: ((Bool) -> Void)? = nil
-            ) {
-                guard let gameDataURL = assetBasePath else {
-                    Logger.log(message: "❌ assetBasePath is not configured. Call setupAssetPaths() first.")
-                    completion?(false)
-                    return
-                }
-
-                let sceneURL = gameDataURL
-                    .appendingPathComponent("Scenes", isDirectory: true)
-                    .appendingPathComponent(sceneName)
-                    .appendingPathExtension("untoldscene")
-
-                guard FileManager.default.fileExists(atPath: sceneURL.path) else {
-                    Logger.log(message: "❌ Scene file not found: \\(sceneURL.path)")
-                    completion?(false)
-                    return
-                }
-
-                do {
-                    let data = try Data(contentsOf: sceneURL)
-                    let sceneData = try JSONDecoder().decode(SceneData.self, from: data)
-
-                    // Ensure all relative asset references resolve against the bundled GameData.
-                    assetBasePath = gameDataURL
-
-                    Logger.log(message: "📄 Loading Untold scene: \\(sceneURL.lastPathComponent)")
-
-                    deserializeScene(sceneData: sceneData, meshLoadingMode: meshLoadingMode) {
-                        Logger.log(message: "✅ Finished loading scene: \\(sceneURL.lastPathComponent)")
-                        completion?(true)
-                    }
-                } catch {
-                    Logger.log(message: "❌ Failed to load scene \\(sceneURL.lastPathComponent): \\(error.localizedDescription)")
-                    completion?(false)
-                }
-            }
         }
         """
 
@@ -860,53 +766,6 @@ import Foundation
                 // Add your custom input handling here
             }
 
-            // MARK: - Scene Loading
-
-            /// Load a `.untoldscene` from `GameData/Scenes`.
-            ///
-            /// The scene file is JSON-backed and contains project-relative references to
-            /// `.untold`, stream-model manifests, animations, HDR files, and other scene assets.
-            /// `assetBasePath` must already point at `GameData`.
-            func loadUntoldScene(
-                named sceneName: String,
-                meshLoadingMode: MeshLoadingMode = .asyncDefault,
-                completion: ((Bool) -> Void)? = nil
-            ) {
-                guard let gameDataURL = assetBasePath else {
-                    Logger.log(message: "❌ assetBasePath is not configured. Call setupAssetPaths() first.")
-                    completion?(false)
-                    return
-                }
-
-                let sceneURL = gameDataURL
-                    .appendingPathComponent("Scenes", isDirectory: true)
-                    .appendingPathComponent(sceneName)
-                    .appendingPathExtension("untoldscene")
-
-                guard FileManager.default.fileExists(atPath: sceneURL.path) else {
-                    Logger.log(message: "❌ Scene file not found: \\(sceneURL.path)")
-                    completion?(false)
-                    return
-                }
-
-                do {
-                    let data = try Data(contentsOf: sceneURL)
-                    let sceneData = try JSONDecoder().decode(SceneData.self, from: data)
-
-                    // Ensure all relative asset references resolve against the bundled GameData.
-                    assetBasePath = gameDataURL
-
-                    Logger.log(message: "📄 Loading Untold scene: \\(sceneURL.lastPathComponent)")
-
-                    deserializeScene(sceneData: sceneData, meshLoadingMode: meshLoadingMode) {
-                        Logger.log(message: "✅ Finished loading scene: \\(sceneURL.lastPathComponent)")
-                        completion?(true)
-                    }
-                } catch {
-                    Logger.log(message: "❌ Failed to load scene \\(sceneURL.lastPathComponent): \\(error.localizedDescription)")
-                    completion?(false)
-                }
-            }
         }
         """
 
@@ -1251,53 +1110,6 @@ import Foundation
                 // Add your custom input handling here
             }
 
-            // MARK: - Scene Loading
-
-            /// Load a `.untoldscene` from `GameData/Scenes`.
-            ///
-            /// The scene file is JSON-backed and contains project-relative references to
-            /// `.untold`, stream-model manifests, animations, HDR files, and other scene assets.
-            /// `assetBasePath` must already point at `GameData`.
-            func loadUntoldScene(
-                named sceneName: String,
-                meshLoadingMode: MeshLoadingMode = .asyncDefault,
-                completion: ((Bool) -> Void)? = nil
-            ) {
-                guard let gameDataURL = assetBasePath else {
-                    Logger.log(message: "❌ assetBasePath is not configured. Call setupAssetPaths() first.")
-                    completion?(false)
-                    return
-                }
-
-                let sceneURL = gameDataURL
-                    .appendingPathComponent("Scenes", isDirectory: true)
-                    .appendingPathComponent(sceneName)
-                    .appendingPathExtension("untoldscene")
-
-                guard FileManager.default.fileExists(atPath: sceneURL.path) else {
-                    Logger.log(message: "❌ Scene file not found: \\(sceneURL.path)")
-                    completion?(false)
-                    return
-                }
-
-                do {
-                    let data = try Data(contentsOf: sceneURL)
-                    let sceneData = try JSONDecoder().decode(SceneData.self, from: data)
-
-                    // Ensure all relative asset references resolve against the bundled GameData.
-                    assetBasePath = gameDataURL
-
-                    Logger.log(message: "📄 Loading Untold scene: \\(sceneURL.lastPathComponent)")
-
-                    deserializeScene(sceneData: sceneData, meshLoadingMode: meshLoadingMode) {
-                        Logger.log(message: "✅ Finished loading scene: \\(sceneURL.lastPathComponent)")
-                        completion?(true)
-                    }
-                } catch {
-                    Logger.log(message: "❌ Failed to load scene \\(sceneURL.lastPathComponent): \\(error.localizedDescription)")
-                    completion?(false)
-                }
-            }
         }
 
         @MainActor
