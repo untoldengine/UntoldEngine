@@ -91,6 +91,7 @@ Common options:
 - `--all-meshes`: optional include hidden meshes
 - `--debug-aabb-only`: optional emit debug AABB payloads instead of geometry
 - `--quadtree`: optional partition tiles using a quad-tree instead of a uniform grid
+- `--scene-profile <auto|indoor|outdoor>`: optional streaming radius profile, defaults to `auto`. Radii are always proportional to scene size — no fixed distances to hand-tune. Use `outdoor` for cities, terrain, and large exterior scenes if auto-detection misses.
 - `--floor-count <number>`: optional number of vertical floors to split each tile into
 - `--blender <path>`: optional wrapper-level Blender override
 

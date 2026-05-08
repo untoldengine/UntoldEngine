@@ -225,21 +225,27 @@ SWITCH_DISTANCE_MIN_GAP      = 2.0
 SWITCH_DISTANCE_OUTER_MARGIN = 0.75
 
 # --- Quadtree / semantic-tier streaming radii -----------------
-# Used when a scene has been pre-annotated with the Untold phase-1+2 Blender
-# script.  Each semantic tier gets its own streaming and unload radius so the
-# engine loads only the geometry appropriate for the current camera distance.
-#
-# Adjust these to taste for your scene scale:
-#   ExteriorShell    — visible from far away; wide band
-#   StructuralInterior — walls, ceilings, floors; load when approaching
-#   RoomContents     — furniture, fixtures; load when near a room entrance
-#   FineProps        — small details; load only when very close
-TIER_STREAMING_RADII = {
-    "ExteriorShell":      {"streaming": 80.0, "unload": 120.0, "priority": 15},
-    "StructuralInterior": {"streaming": 15.0, "unload":  25.0, "priority": 10},
-    "RoomContents":       {"streaming":  5.0, "unload":   8.0, "priority":  8},
-    "FineProps":          {"streaming":  2.0, "unload":   4.0, "priority":  5},
+# Fractions of scene_half_diag — converted to world-space metres once at
+# export time so radii scale automatically with any scene size.
+#   indoor  — tight bands for room/building interiors
+#   outdoor — wider bands for cities, open-world, and street scenes
+# 'auto' (default) infers the profile from scene footprint and tier distribution.
+TIER_STREAMING_FRACTIONS = {
+    "indoor": {
+        "ExteriorShell":      {"streaming": 0.80, "unload": 1.20, "priority": 15},
+        "StructuralInterior": {"streaming": 0.30, "unload": 0.50, "priority": 10},
+        "RoomContents":       {"streaming": 0.10, "unload": 0.18, "priority":  8},
+        "FineProps":          {"streaming": 0.03, "unload": 0.06, "priority":  5},
+    },
+    "outdoor": {
+        "ExteriorShell":      {"streaming": 0.35, "unload": 0.55, "priority": 15},
+        "StructuralInterior": {"streaming": 0.25, "unload": 0.40, "priority": 12},
+        "RoomContents":       {"streaming": 0.10, "unload": 0.18, "priority":  8},
+        "FineProps":          {"streaming": 0.04, "unload": 0.08, "priority":  5},
+    },
 }
+SCENE_STREAMING_PROFILE = "auto"  # auto | indoor | outdoor
+_ACTIVE_TIER_RADII: dict = {}
 
 # Tiers for which HLOD and LOD variants are generated during quadtree export.
 # RoomContents (stream=5m) and FineProps (stream=2m) have radii too small for
@@ -2442,6 +2448,84 @@ def compute_shared_streaming_radii(scene_half_diag):
     return r, ur
 
 
+def infer_streaming_profile(use_quadtree, node_tier_groups, scene_half_diag, base_tile_size):
+    """Return 'indoor' or 'outdoor' for this export.
+
+    Explicit CLI choice wins.  Auto falls back to 'indoor' unless the scene
+    looks like a large outdoor/city layout: broad footprint, few ExteriorShell
+    objects, and most quadtree groups classified as StructuralInterior.
+    """
+    requested = (SCENE_STREAMING_PROFILE or "auto").lower()
+    if requested in TIER_STREAMING_FRACTIONS:
+        return requested
+
+    if not use_quadtree or not node_tier_groups:
+        return "indoor"
+
+    tier_counts: dict = {}
+    for (_, tier), objs in node_tier_groups.items():
+        tier_counts[tier] = tier_counts.get(tier, 0) + len(objs)
+
+    total = sum(tier_counts.values())
+    if total == 0:
+        return "indoor"
+
+    exterior_fraction  = tier_counts.get("ExteriorShell", 0) / total
+    structural_fraction = tier_counts.get("StructuralInterior", 0) / total
+    large_footprint = scene_half_diag >= max(150.0, base_tile_size * 8.0)
+
+    if large_footprint and exterior_fraction < 0.10 and structural_fraction >= 0.65:
+        return "outdoor"
+
+    return "indoor"
+
+
+def compute_tier_radii(scene_half_diag, profile):
+    """Convert fraction table for *profile* to world-space metres."""
+    fractions = TIER_STREAMING_FRACTIONS.get(profile, TIER_STREAMING_FRACTIONS["indoor"])
+    return {
+        tier: {
+            "streaming": max(1.0, scene_half_diag * v["streaming"]),
+            "unload":    max(2.0, scene_half_diag * v["unload"]),
+            "priority":  v["priority"],
+        }
+        for tier, v in fractions.items()
+    }
+
+
+def init_tier_radii(scene_half_diag, profile):
+    global _ACTIVE_TIER_RADII
+    _ACTIVE_TIER_RADII = compute_tier_radii(scene_half_diag, profile)
+
+
+def tier_streaming_radii(tier):
+    return _ACTIVE_TIER_RADII.get(tier, {})
+
+
+def log_streaming_profile(scene_bounds, scene_half_diag, resolved_profile):
+    """Print a human-readable summary of the resolved tier streaming radii."""
+    bx = scene_bounds["max"][0] - scene_bounds["min"][0]
+    by = scene_bounds["max"][1] - scene_bounds["min"][1]
+    bz = scene_bounds["max"][2] - scene_bounds["min"][2]
+    profile_label = resolved_profile
+    if SCENE_STREAMING_PROFILE == "auto":
+        profile_label = f"auto → {resolved_profile}"
+    print(
+        f"Streaming profile : {profile_label}\n"
+        f"  Scene dimensions    : {bx:.1f}m (W) × {by:.1f}m (D) × {bz:.1f}m (H)\n"
+        f"  Footprint half-diag : {scene_half_diag:.1f}m  ← multiplier base"
+    )
+    fractions = TIER_STREAMING_FRACTIONS.get(resolved_profile, TIER_STREAMING_FRACTIONS["indoor"])
+    for tier, v in fractions.items():
+        s = max(1.0, scene_half_diag * v["streaming"])
+        u = max(2.0, scene_half_diag * v["unload"])
+        print(
+            f"  {tier:25s}: "
+            f"{v['streaming']:.2f} × {scene_half_diag:.1f}m = {s:7.1f}m stream  |  "
+            f"{v['unload']:.2f} × {scene_half_diag:.1f}m = {u:7.1f}m unload"
+        )
+
+
 # ============================================================
 # SECTION 11: MEMORY ESTIMATION
 # ============================================================
@@ -3619,6 +3703,15 @@ def run():
     )
 
     # ------------------------------------------------------------------
+    # Resolve streaming profile and build per-tier radius table
+    # ------------------------------------------------------------------
+    resolved_profile = infer_streaming_profile(
+        use_quadtree, node_tier_groups, scene_half_diag, base_tile
+    )
+    init_tier_radii(scene_half_diag, resolved_profile)
+    log_streaming_profile(scene_bounds, scene_half_diag, resolved_profile)
+
+    # ------------------------------------------------------------------
     # Scene name and manifest path
     # ------------------------------------------------------------------
     scene_name = sanitize_name(
@@ -3650,6 +3743,11 @@ def run():
         "tile_size_mode": "auto" if AUTO_TILE_SIZE else "manual",
         "tile_size": {"x": tile_size_x, "y": tile_size_y, "z": tile_size_z},
         "scene_bounds": {"min": list(sb_usd["min"]), "max": list(sb_usd["max"])},
+        "streaming_profile": {
+            "requested": SCENE_STREAMING_PROFILE,
+            "resolved": resolved_profile,
+            "scene_half_diag": round(scene_half_diag, 3),
+        },
         "streaming_defaults": {
             "streaming_radius": streaming_r,
             "unload_radius": unload_r,
@@ -3707,7 +3805,7 @@ def run():
                 by_tier.setdefault(tier, 0)
                 by_tier[tier] += len(objs)
             for tier, count in sorted(by_tier.items()):
-                radii = TIER_STREAMING_RADII.get(tier, {})
+                radii = tier_streaming_radii(tier)
                 print(f"    {tier:25s}: {count:5d} objects  "
                       f"stream={radii.get('streaming','?')}m  "
                       f"unload={radii.get('unload','?')}m")
@@ -3720,7 +3818,7 @@ def run():
                 center    = aabb_center(aabb_usd) if aabb_usd else [0,0,0]
                 est_mem   = sum(estimate_object_memory_bytes(o, mesh_size_cache)
                                 for o in tile_objs)
-                tier_radii   = TIER_STREAMING_RADII.get(tier, {})
+                tier_radii   = tier_streaming_radii(tier)
                 floor_id = 0
                 for obj in tile_objs:
                     m = metadata_map.get(obj.name)
@@ -3953,7 +4051,7 @@ def run():
                             for o in tile_objs)
 
             # Fetch per-tier streaming radii; fall back to scene defaults.
-            tier_radii   = TIER_STREAMING_RADII.get(tier, {})
+            tier_radii   = tier_streaming_radii(tier)
             tile_stream  = tier_radii.get("streaming", streaming_r)
             tile_unload  = tier_radii.get("unload",    unload_r)
             tile_priority = tier_radii.get("priority", DEFAULT_STREAMING_PRIORITY)
@@ -4361,6 +4459,17 @@ def parse_args(argv):
         ),
     )
     parser.add_argument(
+        "--scene-profile",
+        choices=("auto", "indoor", "outdoor"),
+        default="auto",
+        help=(
+            "Streaming radius profile for semantic tiers. "
+            "'auto' infers the profile from scene size and tier distribution. "
+            "'outdoor' forces city/open-world bands; 'indoor' forces tight room-scale bands. "
+            "Radii are always proportional to scene_half_diag — no hardcoded distances."
+        ),
+    )
+    parser.add_argument(
         "--floor-count",
         type=int,
         default=None,
@@ -4409,6 +4518,7 @@ def apply_cli_overrides(args):
     global PERIMETER_MODE
     global PERIMETER_DEPTH
     global FORCE_QUADTREE
+    global SCENE_STREAMING_PROFILE
     global INLINE_FLOOR_COUNT_OVERRIDE
     global INLINE_FLOOR_BAND_HEIGHT_OVERRIDE
 
@@ -4452,6 +4562,8 @@ def apply_cli_overrides(args):
         PERIMETER_DEPTH = args.perimeter_depth
     if getattr(args, "quadtree", False):
         FORCE_QUADTREE = True
+    if getattr(args, "scene_profile", None):
+        SCENE_STREAMING_PROFILE = args.scene_profile
     if getattr(args, "floor_count", None) is not None:
         INLINE_FLOOR_COUNT_OVERRIDE = args.floor_count
     if getattr(args, "floor_band_height", None) is not None:
