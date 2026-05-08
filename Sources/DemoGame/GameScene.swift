@@ -49,6 +49,7 @@
         private var loadedContent: LoadedContent = .none
         private var cameraBehavior: CameraBehavior = .flyOrbit
         private var wasRightMousePressed: Bool = false
+        private var wasScrolling: Bool = false
 
         init() {
             InputSystem.shared.registerKeyboardEvents()
@@ -333,6 +334,25 @@
                 }
             }
             wasRightMousePressed = input.keyState.rightMousePressed
+
+            // Two-finger trackpad drag fires scrollWheel events — support it as an
+            // alternative orbit (and shift+scroll for yaw) so users don't need
+            // right-click drag. resetOrbitTarget fires only on the first scroll
+            // frame, matching the right-mouse-press behaviour above.
+            let scroll = input.scrollDelta
+            let isScrolling = (scroll.x != 0 || scroll.y != 0) && !input.keyState.rightMousePressed
+            if isScrolling {
+                if !wasScrolling {
+                    resetOrbitTarget(entityId: camera)
+                }
+                if input.keyState.shiftPressed {
+                    rotateCamera(entityId: camera, pitch: 0, yaw: scroll.x, sensitivity: -0.01)
+                } else {
+                    orbitCameraAround(entityId: camera, uDelta: scroll)
+                }
+            }
+            wasScrolling = isScrolling
+            input.scrollDelta = .zero
         }
 
         private func resetOrbitTarget(entityId: EntityID) {
