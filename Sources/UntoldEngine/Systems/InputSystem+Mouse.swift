@@ -144,13 +144,18 @@ public extension InputSystem {
             mouseX = Float(location.x)
             mouseY = Float(location.y)
 
-            mouseDeltaX = mouseX - lastMouseX
-            mouseDeltaY = mouseY - lastMouseY
+            // event.deltaX/Y gives device-independent per-event movement, avoiding
+            // the large position jumps that trackpad fast-swipes produce.
+            mouseDeltaX = Float(event.deltaX)
+            mouseDeltaY = Float(event.deltaY)
         }
 
         private func handleScrollWheel(_ event: NSEvent) {
-            scrollDelta.x = Float(event.scrollingDeltaX)
-            scrollDelta.y = Float(event.scrollingDeltaY)
+            // Scale trackpad (hasPreciseScrollingDeltas) to mouse-wheel magnitude so
+            // a two-finger drag orbits at a comparable speed to right-click drag.
+            let scale: Float = event.hasPreciseScrollingDeltas ? 0.2 : 1.0
+            scrollDelta.x = Float(event.scrollingDeltaX) * scale
+            scrollDelta.y = Float(event.scrollingDeltaY) * scale
         }
     #endif
 }
