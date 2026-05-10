@@ -312,6 +312,31 @@ public enum RenderPasses {
         return buildFrustum(from: effectiveLightMatrix)
     }
 
+    public static let copyOpaqueDepthForHZBExecution: RenderPassExecution = { commandBuffer in
+        guard renderInfo.isXRStereoMode,
+              renderInfo.immersionStyle == .mixed,
+              let sourceDepth = textureResources.depthMap,
+              let hzbSourceDepth = textureResources.hzbSourceDepthMap
+        else { return }
+
+        let width = min(sourceDepth.width, hzbSourceDepth.width)
+        let height = min(sourceDepth.height, hzbSourceDepth.height)
+        guard width > 0, height > 0 else { return }
+
+        guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else { return }
+        blitEncoder.label = "Copy Opaque Depth for XR HZB"
+        blitEncoder.copy(
+            from: sourceDepth,
+            sourceSlice: 0, sourceLevel: 0,
+            sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+            sourceSize: MTLSize(width: width, height: height, depth: 1),
+            to: hzbSourceDepth,
+            destinationSlice: 0, destinationLevel: 0,
+            destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
+        )
+        blitEncoder.endEncoding()
+    }
+
     private static func shadowCasterEntityIds(for cascadeIdx: Int) -> [EntityID] {
         guard let frustum = shadowFrustum(for: cascadeIdx) else { return [] }
 
