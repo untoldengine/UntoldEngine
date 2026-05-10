@@ -356,6 +356,23 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
         id: "batchedModel", dependencies: [modelPass.id], execute: RenderPasses.batchedModelExecution
     )
     graph[batchedModelPass.id] = batchedModelPass
+
+    // HZB is temporal: the depth captured during this frame is consumed by
+    // next-frame culling. In XR mixed mode, capture opaque depth before the
+    // transparency pass writes glass depth for compositor edges.
+    let opaqueDepthAnchorId: String
+    if renderInfo.isXRStereoMode && renderInfo.immersionStyle == .mixed {
+        let hzbDepthSourcePass = RenderPass(
+            id: "hzbDepthSource",
+            dependencies: [batchedModelPass.id],
+            execute: RenderPasses.copyOpaqueDepthForHZBExecution
+        )
+        graph[hzbDepthSourcePass.id] = hzbDepthSourcePass
+        opaqueDepthAnchorId = hzbDepthSourcePass.id
+    } else {
+        opaqueDepthAnchorId = batchedModelPass.id
+    }
+
     // Update SSAO to depend on batched pass
     let ssaoPass = RenderPass(
         id: "ssao",
@@ -368,7 +385,7 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
     // Note: ssaoOptimizedExecution handles all blur/upsample internally
     // No need for separate ssaoBlur pass in the graph
 
-    let lightPass = RenderPass(id: "lightPass", dependencies: [batchedModelPass.id, modelPass.id, shadowPass.id, ssaoPass.id], execute: RenderPasses.lightExecution)
+    let lightPass = RenderPass(id: "lightPass", dependencies: [opaqueDepthAnchorId, modelPass.id, shadowPass.id, ssaoPass.id], execute: RenderPasses.lightExecution)
     graph[lightPass.id] = lightPass
 }
 

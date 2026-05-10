@@ -342,6 +342,11 @@ func initFrustumCulllingCompute() {
 
 public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: Int? = nil) {
     // Per-eye stereo path for XR
+    // Current XR stereo rendering builds the shared mono HZB once after both eyes
+    // are rendered, so mixed-mode opaque-depth snapshotting is handled by the
+    // mono path below. If this per-eye path is wired up for mixed mode later, it
+    // needs matching per-eye opaque depth snapshots to avoid glass depth culling
+    // virtual meshes behind transparent surfaces.
     if let ei = eyeIndex, renderInfo.isXRStereoMode {
         guard hzbBuildPyramidPipeline.success,
               let pipelineState = hzbBuildPyramidPipeline.pipelineState,
@@ -387,7 +392,14 @@ public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: In
         return
     }
 
-    guard let depthTexture = textureResources.depthMap else {
+    let hzbDepthSource: MTLTexture?
+    if renderInfo.isXRStereoMode && renderInfo.immersionStyle == .mixed {
+        hzbDepthSource = textureResources.hzbSourceDepthMap ?? textureResources.depthMap
+    } else {
+        hzbDepthSource = textureResources.depthMap
+    }
+
+    guard let depthTexture = hzbDepthSource else {
         handleError(.textureMissing, "Depth Texture")
         renderInfo.hzbIsValid = false
         textureResources.hzbDebugMipTexture = nil
