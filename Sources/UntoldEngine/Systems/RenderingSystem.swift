@@ -361,7 +361,7 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
     // next-frame culling. In XR mixed mode, capture opaque depth before the
     // transparency pass writes glass depth for compositor edges.
     let opaqueDepthAnchorId: String
-    if renderInfo.isXRStereoMode && renderInfo.immersionStyle == .mixed {
+    if renderInfo.isXRStereoMode, renderInfo.immersionStyle == .mixed {
         let hzbDepthSourcePass = RenderPass(
             id: "hzbDepthSource",
             dependencies: [batchedModelPass.id],
