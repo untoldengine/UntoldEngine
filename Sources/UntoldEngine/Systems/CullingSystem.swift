@@ -393,7 +393,7 @@ public func buildHZBDepthPyramid(_ commandBuffer: MTLCommandBuffer, eyeIndex: In
     }
 
     let hzbDepthSource: MTLTexture?
-    if renderInfo.isXRStereoMode && renderInfo.immersionStyle == .mixed {
+    if renderInfo.isXRStereoMode, renderInfo.immersionStyle == .mixed {
         hzbDepthSource = textureResources.hzbSourceDepthMap ?? textureResources.depthMap
     } else {
         hzbDepthSource = textureResources.depthMap
