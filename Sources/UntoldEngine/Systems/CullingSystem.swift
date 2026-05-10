@@ -508,8 +508,9 @@ func executeHZBOcclusionCulling(
     var mipCount = UInt32(max(0, renderInfo.hzbMipCount))
     var reverseZFlag: UInt32 = renderInfo.reverseZEnabled ? 1 : 0
     var viewProjectionMatrix = viewProjection
-    // XR uses a larger bias to tolerate one-frame VP drift from 90 Hz head-tracking.
-    var occlusionBias: Float = renderInfo.isXRStereoMode ? 0.02 : 1e-4
+    // HZB is temporal, so use a conservative bias to tolerate one-frame camera
+    // and projection drift before declaring an object fully occluded.
+    var occlusionBias: Float = 0.02
 
     let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
     computeEncoder.label = "HZB Occlusion Culling pass"
