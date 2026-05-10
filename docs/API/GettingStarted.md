@@ -200,6 +200,34 @@ once the mesh is parsed and uploaded to GPU memory.
 
 ---
 
+## Loading an Untold Scene File
+
+Untold Engine Studio can save a composed scene as a `.untoldscene` file. A saved
+scene can include model placement, light properties, post-processing settings,
+and other scene data configured in the editor.
+
+Use `loadUntoldScene` to load that scene in your Xcode project. Place the
+`.untoldscene` file in `Sources/<ProjectName>/GameData/Scenes`, then pass the
+scene name without an extension, or with the `.untoldscene` extension.
+
+```swift
+
+//...After configureEngineSystems()
+
+loadUntoldScene(named: "LevelOne") { success in
+    if success {
+        moveCameraTo(entityId: findGameCamera(), 0.0, 3.0, 10.0)
+        ambientIntensity = 0.4
+    }
+    setSceneReady(success)
+}
+```
+
+By default, scene meshes load asynchronously. For tests or tools that need a
+blocking load, pass `meshLoadingMode: .sync`.
+
+---
+
 ## Loading a Streamed Scene
 
 Use `setEntityStreamScene` to load a large scene that streams tiles in and out of
