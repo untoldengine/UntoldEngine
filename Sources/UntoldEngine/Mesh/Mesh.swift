@@ -1483,6 +1483,7 @@ public struct Material {
                 .textureUsage: NSNumber(value: MTLTextureUsage([.shaderRead, .pixelFormatView]).rawValue),
                 .textureStorageMode: NSNumber(value: MTLStorageMode.private.rawValue),
                 .SRGB: NSNumber(value: isSRGB),
+                .generateMipmaps: NSNumber(value: true),
             ]
 
             // Grayscale PNGs produce an r8Unorm Metal texture.  The shader samples it as
