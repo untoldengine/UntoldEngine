@@ -523,16 +523,41 @@ if state.spatialTapActive, let entityId = state.pickedEntityId {
 
 ## Get Ground/Plane Hit Position
 
-To retrieve the exact world-space position where the user taps on the ground, use `pickRealSurfacePosition`. This is useful for calibration workflows where you need to anchor a point on the ground and scale a model relative to it.
+To retrieve the exact world-space position where the user taps on a real-world surface, use `pickRealSurfacePosition`. This raycasts against ARKit-detected physical planes in the user's environment. This is useful for calibration workflows where you need to anchor a point on the ground and scale a model relative to it.
+
+The `filter` parameter controls which plane alignments are considered:
+
+- `.horizontalAny` — horizontal planes only (floor, ceiling, table, seat)
+- `.verticalAny` — vertical planes only (wall, door, window)
+- `.any` — all detected planes regardless of alignment
 
 ```swift
 let state = InputSystem.shared.xrSpatialInputState
 
 if state.spatialTapActive{
+    // Hit a horizontal surface (e.g. floor or table)
     if let hit = pickRealSurfacePosition(
           rayOrigin: state.rayOriginWorld,
           rayDirection: state.rayDirectionWorld,
           filter: .horizontalAny
+      ) {
+          Logger.log(message: "Surface type: \(hit.surfaceKind)", vector: hit.worldPosition)
+      }
+
+    // Hit a vertical surface (e.g. wall or door)
+    if let hit = pickRealSurfacePosition(
+          rayOrigin: state.rayOriginWorld,
+          rayDirection: state.rayDirectionWorld,
+          filter: .verticalAny
+      ) {
+          Logger.log(message: "Surface type: \(hit.surfaceKind)", vector: hit.worldPosition)
+      }
+
+    // Hit any detected surface
+    if let hit = pickRealSurfacePosition(
+          rayOrigin: state.rayOriginWorld,
+          rayDirection: state.rayDirectionWorld,
+          filter: .any
       ) {
           Logger.log(message: "Surface type: \(hit.surfaceKind)", vector: hit.worldPosition)
       }
