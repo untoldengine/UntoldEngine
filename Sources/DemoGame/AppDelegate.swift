@@ -12,7 +12,12 @@
     final class AppDelegate: NSObject, NSApplicationDelegate {
         private enum Constants {
             static let appVersion = "0.12.10"
-            static let windowSize = NSSize(width: 1920, height: 1080)
+            static let defaultWindowSize = NSSize(width: 1920, height: 1080)
+            static let minimumWindowSize = NSSize(width: 640, height: 480)
+        }
+
+        private struct LaunchOptions {
+            var windowSize = Constants.defaultWindowSize
         }
 
         private enum ExportError: LocalizedError {
@@ -37,7 +42,11 @@
         func applicationDidFinishLaunching(_: Notification) {
             print("Launching Untold Engine v\(Constants.appVersion)")
 
-            setupWindow()
+            guard let launchOptions = parseLaunchOptions(arguments: CommandLine.arguments) else {
+                NSApp.terminate(nil)
+                return
+            }
+            setupWindow(size: launchOptions.windowSize)
             setupRendererAndScene()
             wireDemoStateCallbacks()
             presentHUD()
@@ -47,15 +56,88 @@
             true
         }
 
-        private func setupWindow() {
+        private func setupWindow(size: NSSize) {
             window = NSWindow(
-                contentRect: NSRect(origin: .zero, size: Constants.windowSize),
+                contentRect: NSRect(origin: .zero, size: size),
                 styleMask: [.titled, .closable, .resizable],
                 backing: .buffered,
                 defer: false
             )
             window.title = "Untold Engine v\(Constants.appVersion)"
+            window.minSize = Constants.minimumWindowSize
             window.center()
+        }
+
+        private func parseLaunchOptions(arguments: [String]) -> LaunchOptions? {
+            var options = LaunchOptions()
+            var index = 1
+
+            while index < arguments.count {
+                let argument = arguments[index]
+
+                if argument == "--help" || argument == "-h" {
+                    printUsage()
+                    return nil
+                }
+
+                if argument == "--resolution" {
+                    guard index + 1 < arguments.count else {
+                        print("Missing value for --resolution. Expected WIDTHxHEIGHT, for example 800x600.")
+                        printUsage()
+                        return nil
+                    }
+
+                    if let size = parseResolution(arguments[index + 1]) {
+                        options.windowSize = size
+                    } else {
+                        print("Invalid resolution '\(arguments[index + 1])'. Expected WIDTHxHEIGHT with minimum 640x480.")
+                        printUsage()
+                        return nil
+                    }
+                    index += 2
+                    continue
+                }
+
+                if argument.hasPrefix("--resolution=") {
+                    let value = String(argument.dropFirst("--resolution=".count))
+                    if let size = parseResolution(value) {
+                        options.windowSize = size
+                    } else {
+                        print("Invalid resolution '\(value)'. Expected WIDTHxHEIGHT with minimum 640x480.")
+                        printUsage()
+                        return nil
+                    }
+                }
+
+                index += 1
+            }
+
+            return options
+        }
+
+        private func parseResolution(_ value: String) -> NSSize? {
+            let normalized = value.lowercased()
+            let parts = normalized.split(separator: "x", omittingEmptySubsequences: false)
+            guard parts.count == 2,
+                  let width = Double(parts[0]),
+                  let height = Double(parts[1]),
+                  width >= Constants.minimumWindowSize.width,
+                  height >= Constants.minimumWindowSize.height
+            else {
+                return nil
+            }
+
+            return NSSize(width: width, height: height)
+        }
+
+        private func printUsage() {
+            print("""
+            Usage: swift run untolddemo [--resolution WIDTHxHEIGHT]
+
+            Options:
+              --resolution WIDTHxHEIGHT  Start the demo at a specific window size, for example 800x600.
+              -h, --help                 Show this help.
+            """)
         }
 
         private func setupRendererAndScene() {
@@ -161,6 +243,9 @@
             }
             demoState.onTileBoundsChanged = { enabled in
                 setTileBoundsDebug(enabled: enabled)
+            }
+            demoState.onMouseOverControlPanelChanged = { [weak self] isOver in
+                self?.gameScene.suppressCameraInput = isOver
             }
         }
 
