@@ -36,13 +36,10 @@ final class RendererTests: BaseRenderSetup {
         // Aspect ratio
         let aspect = Float(windowWidth) / Float(windowHeight)
 
-        // Compute the expected projection matrix
-        let expectedProjectionMatrix = matrixPerspectiveRightHand(
-            fovyRadians: degreesToRadians(degrees: fov),
-            aspectRatio: aspect,
-            nearZ: near,
-            farZ: far
-        )
+        // Compute the expected projection matrix, matching the renderer's active Z convention.
+        let expectedProjectionMatrix = renderInfo.reverseZEnabled
+            ? matrixPerspectiveRightHandReverseZ(fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far)
+            : matrixPerspectiveRightHand(fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far)
 
         // Compare with the initialized projection matrix in the renderer
         let actualProjectionMatrix = renderInfo.perspectiveSpace

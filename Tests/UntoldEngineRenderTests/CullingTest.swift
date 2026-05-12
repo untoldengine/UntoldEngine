@@ -122,14 +122,11 @@ final class CullingTest: BaseRenderSetup {
         let windowWidth = 1280
         let windowHeight = 720
 
-        // Initialize projection
+        // Initialize projection matching the renderer's active Z convention.
         let aspect = Float(windowWidth) / Float(windowHeight)
-        let projectionMatrix = matrixPerspectiveRightHand(
-            fovyRadians: degreesToRadians(degrees: fov),
-            aspectRatio: aspect,
-            nearZ: near,
-            farZ: far
-        )
+        let projectionMatrix = renderInfo.reverseZEnabled
+            ? matrixPerspectiveRightHandReverseZ(fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far)
+            : matrixPerspectiveRightHand(fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far)
 
         renderInfo.perspectiveSpace = projectionMatrix
 
@@ -140,10 +137,13 @@ final class CullingTest: BaseRenderSetup {
 
         let viewProjection: simd_float4x4 = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
 
-        let F = buildFrustum(from: viewProjection, ndcNear: 0, ndcFar: 1)
+        let ndcNear: Float = renderInfo.reverseZEnabled ? 1.0 : 0.0
+        let ndcFar: Float = renderInfo.reverseZEnabled ? 0.0 : 1.0
+
+        let F = buildFrustum(from: viewProjection, ndcNear: ndcNear, ndcFar: ndcFar)
 
         // Frustum center should evaluate >= 0 for all planes
-        let corners = unprojectCorners(viewProj: viewProjection)
+        let corners = unprojectCorners(viewProj: viewProjection, ndcNear: ndcNear, ndcFar: ndcFar)
         let center = corners.reduce(SIMD3<Float>(repeating: 0), +) / 8
         for p in F.planes {
             XCTAssertGreaterThanOrEqual(pointPlaneDistance(p, center), -1e-5, "Frustum center should be inside (plane inward)")
@@ -342,7 +342,10 @@ final class CullingTest: BaseRenderSetup {
             renderInfo.viewPort = originalViewport
         }
 
-        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: 1.0)
+        // "Clear" HZB — nothing occluding, camera sees to the far plane.
+        // Standard-Z: far = 1.0. Reverse-Z: far = 0.0.
+        let clearDepth: Float = renderInfo.reverseZEnabled ? 0.0 : 1.0
+        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: clearDepth)
         renderInfo.hzbMipCount = 1
         renderInfo.hzbIsValid = true
         renderInfo.viewPort = simd_float2(1920, 1080)
@@ -389,7 +392,10 @@ final class CullingTest: BaseRenderSetup {
             renderInfo.viewPort = originalViewport
         }
 
-        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: 0.2)
+        // "Solid" HZB — an occluder close to the camera sits in front of the candidate (z=0.8±0.1).
+        // Standard-Z: close = small value (0.2). Reverse-Z: close = large value (0.95).
+        let occluderDepth: Float = renderInfo.reverseZEnabled ? 0.95 : 0.2
+        textureResources.hzbDepthPyramid = makeHZBTestTexture(depthValue: occluderDepth)
         renderInfo.hzbMipCount = 1
         renderInfo.hzbIsValid = true
         renderInfo.viewPort = simd_float2(1920, 1080)

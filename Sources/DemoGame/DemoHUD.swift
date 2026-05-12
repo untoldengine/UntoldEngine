@@ -63,7 +63,9 @@
             let label: String
             let size: NSSize
 
-            var id: String { label }
+            var id: String {
+                label
+            }
         }
 
         private enum Constants {
