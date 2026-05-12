@@ -316,7 +316,7 @@
             )
             // }
 
-            if input.keyState.rightMousePressed && !suppressCameraInput {
+            if input.keyState.rightMousePressed, !suppressCameraInput {
                 if !wasRightMousePressed {
                     resetOrbitTarget(entityId: camera)
                 }

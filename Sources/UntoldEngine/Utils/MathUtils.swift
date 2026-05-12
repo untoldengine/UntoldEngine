@@ -274,7 +274,7 @@ public func matrixPerspectiveRightHand(
     )
 }
 
-// Reverse-Z variant: maps near→1, far→0, giving float32 precision to distant geometry.
+/// Reverse-Z variant: maps near→1, far→0, giving float32 precision to distant geometry.
 public func matrixPerspectiveRightHandReverseZ(
     fovyRadians fovy: Float, aspectRatio: Float, nearZ: Float, farZ: Float
 ) -> matrix_float4x4 {

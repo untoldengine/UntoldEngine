@@ -114,10 +114,9 @@ class BaseRenderSetup: XCTestCase {
         renderer.mtkView(renderer.metalView, drawableSizeWillChange: size)
         renderer.pendingResize = true
         let aspect = Float(windowWidth) / Float(windowHeight)
-        renderInfo.perspectiveSpace = matrixPerspectiveRightHand(
-            fovyRadians: degreesToRadians(degrees: fov),
-            aspectRatio: aspect, nearZ: near, farZ: far
-        )
+        renderInfo.perspectiveSpace = renderInfo.reverseZEnabled
+            ? matrixPerspectiveRightHandReverseZ(fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far)
+            : matrixPerspectiveRightHand(fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far)
 
         renderInfo.viewPort = simd_float2(Float(windowWidth), Float(windowHeight))
 
