@@ -223,6 +223,10 @@
         var showStats: Bool = true
         var stats: EngineStatsSnapshot = .init()
 
+        var isMouseOverControlPanel: Bool = false {
+            didSet { onMouseOverControlPanelChanged?(isMouseOverControlPanel) }
+        }
+
         // MARK: - Callbacks (wired by AppDelegate)
 
         var onLoadFile: ((String, @escaping @Sendable (Bool) -> Void) -> Void)?
@@ -238,6 +242,7 @@
         var onRenderDebugViewChanged: ((RenderDebugViewMode) -> Void)?
         var onSpatialDebugChanged: ((Bool, Bool, SpatialDebugLeafColorMode) -> Void)?
         var onTileBoundsChanged: ((Bool) -> Void)?
+        var onMouseOverControlPanelChanged: ((Bool) -> Void)?
 
         func applySelectedPostFXPreset() {
             let preset = selectedPostFXPreset.enginePreset

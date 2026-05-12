@@ -50,6 +50,7 @@
         private var cameraBehavior: CameraBehavior = .flyOrbit
         private var wasRightMousePressed: Bool = false
         private var wasScrolling: Bool = false
+        var suppressCameraInput: Bool = false
 
         init() {
             InputSystem.shared.registerKeyboardEvents()
@@ -315,7 +316,7 @@
             )
             // }
 
-            if input.keyState.rightMousePressed {
+            if input.keyState.rightMousePressed && !suppressCameraInput {
                 if !wasRightMousePressed {
                     resetOrbitTarget(entityId: camera)
                 }
@@ -340,7 +341,7 @@
             // right-click drag. resetOrbitTarget fires only on the first scroll
             // frame, matching the right-mouse-press behaviour above.
             let scroll = input.scrollDelta
-            let isScrolling = (scroll.x != 0 || scroll.y != 0) && !input.keyState.rightMousePressed
+            let isScrolling = (scroll.x != 0 || scroll.y != 0) && !input.keyState.rightMousePressed && !suppressCameraInput
             if isScrolling {
                 if !wasScrolling {
                     resetOrbitTarget(entityId: camera)
