@@ -532,17 +532,19 @@ float computeLuma(float3 color) {
     return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
 }
 
-float linearizeDepthForViewing(float depth, float near, float far){
-   
+float linearizeDepthForViewing(float depth, float near, float far, bool reverseZ){
+
     // Custom values for the scene
     float sceneNear = 0.1;
     float sceneFar = 50.0;
-    
-    float linear = near * far / (far + depth * (near - far)); // standard Z
 
-    // Normalize to 0–1 for visualization 
+    float linear = reverseZ
+        ? near * far / (near + depth * (far - near))
+        : near * far / (far + depth * (near - far));
+
+    // Normalize to 0–1 for visualization
     return saturate((linear - sceneNear) / (sceneFar - sceneNear));
-    
+
 }
 
 float linearizeDepth(float depth, float near, float far){

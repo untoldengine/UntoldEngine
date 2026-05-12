@@ -121,7 +121,8 @@ typedef enum{
 
 typedef enum{
     debugPassModeIndex,
-    debugPassFrustumPlanesIndex
+    debugPassFrustumPlanesIndex,
+    debugPassReverseZIndex
 }DebugPassBufferIndices;
 
 typedef enum{

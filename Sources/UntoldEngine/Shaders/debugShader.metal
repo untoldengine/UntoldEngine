@@ -26,7 +26,8 @@ fragment float4 fragmentDebugShader(VertexDebugOutput vertexOut [[stage_in]],
                                     texture2d<float> finalTexture[[texture(0)]],
                                     depth2d<float> depthTexture [[texture(1)]],
                                     constant int &debugMode [[buffer(debugPassModeIndex)]],
-                                    constant simd_float2 &frustumPlanes [[buffer(debugPassFrustumPlanesIndex)]]) {
+                                    constant simd_float2 &frustumPlanes [[buffer(debugPassFrustumPlanesIndex)]],
+                                    constant bool &reverseZ [[buffer(debugPassReverseZIndex)]]) {
 
     constexpr sampler s(min_filter::linear,mag_filter::linear);
 
@@ -39,7 +40,7 @@ fragment float4 fragmentDebugShader(VertexDebugOutput vertexOut [[stage_in]],
         float near = frustumPlanes.x;
         float far = frustumPlanes.y;
         float rawDepth = depthTexture.sample(s, vertexOut.uvCoords);
-        float normalized = linearizeDepthForViewing(rawDepth, near, far);
+        float normalized = linearizeDepthForViewing(rawDepth, near, far, reverseZ);
         return float4(normalized, normalized, normalized, 1.0);
     }
 

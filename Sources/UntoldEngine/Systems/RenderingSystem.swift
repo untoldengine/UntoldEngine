@@ -932,6 +932,13 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
                 index: Int(debugPassFrustumPlanesIndex.rawValue)
             )
 
+            var reverseZ = renderInfo.reverseZEnabled
+            encoder.setFragmentBytes(
+                &reverseZ,
+                length: MemoryLayout<Bool>.stride,
+                index: Int(debugPassReverseZIndex.rawValue)
+            )
+
             encoder.setFragmentTexture(debugDepth, index: 1)
         }
     )(commandBuffer)
