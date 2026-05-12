@@ -66,7 +66,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
         renderInfo.device = device
         renderInfo.commandQueue = commandQueue
-        renderInfo.reverseZEnabled = false
+        renderInfo.reverseZEnabled = true
         renderInfo.colorPixelFormat = .rgba16Float
         renderInfo.depthPixelFormat = renderer.metalView.depthStencilPixelFormat
         renderInfo.viewPort = simd_float2(
@@ -107,7 +107,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         renderInfo.commandQueue = commandQueue
-        renderInfo.reverseZEnabled = false
+        renderInfo.reverseZEnabled = true
         renderInfo.colorPixelFormat = .rgba16Float
         renderInfo.depthPixelFormat = view.depthStencilPixelFormat
         renderInfo.viewPort = simd_float2(
@@ -525,9 +525,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         let aspect = Float(size.width) / Float(size.height)
-        let projectionMatrix = matrixPerspectiveRightHand(
-            fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far
-        )
+        let projectionMatrix = renderInfo.reverseZEnabled
+            ? matrixPerspectiveRightHandReverseZ(fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far)
+            : matrixPerspectiveRightHand(fovyRadians: degreesToRadians(degrees: fov), aspectRatio: aspect, nearZ: near, farZ: far)
 
         renderInfo.perspectiveSpace = projectionMatrix
 
@@ -668,7 +668,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         }
 
         renderInfo.commandQueue = commandQueue
-        renderInfo.reverseZEnabled = false
+        renderInfo.reverseZEnabled = true
         renderInfo.colorPixelFormat = view.colorPixelFormat
         renderInfo.depthPixelFormat = view.depthStencilPixelFormat
         renderInfo.viewPort = simd_float2(Float(view.bounds.size.width), Float(view.bounds.size.height))
