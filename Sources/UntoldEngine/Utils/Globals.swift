@@ -248,7 +248,7 @@ var timePassedSinceLastFrame: Float {
 
 // Frustum info
 public let far: Float = 500
-public let near: Float = 0.01
+public let near: Float = 0.1
 public let fov: Float = 65.0
 
 // Shadow max parameters (legacy single-cascade — kept for reference)
