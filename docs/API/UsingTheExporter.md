@@ -130,6 +130,25 @@ Expected output layout:
 
 The manifest stores relative runtime paths so it remains portable across machines, repos, and app bundles.
 
+## Selective Merging With The NM_ Prefix
+
+When `MERGE_BY_MATERIAL` is enabled (the default), objects that share the same material within a tile are joined into a single mesh entity before export. This reduces draw calls significantly, but means multiple original objects collapse into one exported entity — losing their individual names.
+
+If you need certain objects to remain as separate identifiable entities (for example, to support tap-to-select workflows or per-object JSON lookups at runtime), prefix their name in Blender with `NM_`.
+
+Objects whose name starts with `NM_` are excluded from the merge step and exported individually, preserving their original name in the `.untold` file. All other objects are still merged normally.
+
+Example naming in Blender:
+
+- `NM_Pipe_001` — exported as its own entity, name survives into `.untold`
+- `NM_LightFixture_A` — exported as its own entity
+- `Wall_North` — merged with other same-material walls, one entity for the group
+- `Door_Main` — merged with same-material doors
+
+This lets you keep background geometry (walls, floors, ceilings) optimized while still being able to identify and interact with specific objects at runtime:
+
+To change the prefix or disable selective merging, edit `NO_MERGE_PREFIX` at the top of `scripts/tilestreamingpartition.py`. Set it to `""` to merge all objects regardless of name.
+
 ## Optimization Workflows
 
 After exporting assets, use [Optimizations](Optimizations.md) for optional
