@@ -2201,7 +2201,7 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
         )
 
     return ExportedMesh(
-        entity_name=mesh_object.name,
+        entity_name=mesh_object.get("mesh_original_name") or mesh_object.name,
         parent_entity_name=getattr(getattr(mesh_object, "parent", None), "name", None),
         mesh_name=mesh_object.data.name or mesh_object.name,
         local_transform_rows=local_transform_rows,
@@ -2384,7 +2384,7 @@ def extract_mesh_object(
         ) if _validate else None
 
         return ExportedMesh(
-            entity_name=mesh_object.name,
+            entity_name=mesh_object.get("mesh_original_name") or mesh_object.name,
             parent_entity_name=getattr(getattr(mesh_object, "parent", None), "name", None),
             mesh_name=mesh_object.data.name or mesh_object.name,
             local_transform_rows=local_transform_rows,
@@ -2615,7 +2615,7 @@ def extract_nodes_from_objects(
         parent_entity_name = parent.name if parent is not None and parent.as_pointer() in export_object_ids else None
         nodes.append(
             ExportedNode(
-                entity_name=obj.name,
+                entity_name=obj.get("mesh_original_name") or obj.name,
                 parent_entity_name=parent_entity_name,
                 local_transform_rows=local_transform_rows,
                 local_bounds=local_bounds,

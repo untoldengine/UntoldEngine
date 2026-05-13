@@ -180,6 +180,12 @@ CLIP_LOCAL_MESHES = False
 # tile.  No visual effect.  Requires BAKE_WORLD_TRANSFORMS.
 MERGE_BY_MATERIAL = True
 
+# Objects whose original name starts with this prefix are never merged, even
+# when MERGE_BY_MATERIAL is True.  They are exported as individual entities and
+# retain their original name in the .untold file.  Set to "" to disable.
+# Example: name an object "NM_Pipe_001" in Blender to keep it separate.
+NO_MERGE_PREFIX = "NM_"
+
 # Clip tolerance at tile boundaries.
 # for objects at large world coordinates (e.g. buildings at x=1500).
 SPLIT_CLIP_EPSILON = 1e-4
@@ -1606,6 +1612,7 @@ def duplicate_objects_to_scene(source_objects, temp_scene, bake_world=True):
         new_obj = src_obj.copy()
         if src_obj.data:
             new_obj.data = src_obj.data.copy()
+        new_obj["mesh_original_name"] = src_obj.name
         src_collection.objects.link(new_obj)
 
         if bake_world:
@@ -2062,6 +2069,7 @@ def split_objects_by_material(objects, temp_scene):
                         p.material_index = 0
 
                 new_obj = bpy.data.objects.new(f"{obj.name}_mat{mat_idx}", new_mesh)
+                new_obj["mesh_original_name"] = obj.get("mesh_original_name", obj.name)
                 new_obj.matrix_world = obj.matrix_world.copy()
                 temp_scene.collection.objects.link(new_obj)
                 result.append(new_obj)
@@ -2083,6 +2091,9 @@ def merge_objects_by_material(objects, temp_scene):
     is performed at the mesh-data level instead of via bpy.ops.object.join() so
     stale object transform caches cannot double-apply importer axis corrections.
 
+    Objects whose original name starts with NO_MERGE_PREFIX are passed through
+    untouched so they keep their own entity name in the exported file.
+
     Returns the reduced object list.
     """
     if len(objects) <= 1:
@@ -2090,14 +2101,20 @@ def merge_objects_by_material(objects, temp_scene):
 
     groups = {}
     non_mesh = []
+    protected = []
     for obj in objects:
         if obj.type != 'MESH' or obj.data is None:
             non_mesh.append(obj)
             continue
+        if NO_MERGE_PREFIX:
+            original_name = obj.get("mesh_original_name", obj.name)
+            if original_name.startswith(NO_MERGE_PREFIX):
+                protected.append(obj)
+                continue
         key = material_merge_key(obj)
         groups.setdefault(key, []).append(obj)
 
-    result = list(non_mesh)
+    result = list(non_mesh) + protected
     total_mesh_input = sum(len(g) for g in groups.values())
     total_merged_away = 0
     for key, group in groups.items():
@@ -2113,6 +2130,8 @@ def merge_objects_by_material(objects, temp_scene):
             print(f"  Warning: mesh merge failed ({len(group)} objects): {ex}")
             result.extend(group)
 
+    if protected:
+        print(f"  Mesh merge: {len(protected)} protected object(s) skipped (prefix '{NO_MERGE_PREFIX}')")
     if total_merged_away > 0:
         print(f"  Mesh merge: {total_mesh_input} → {total_mesh_input - total_merged_away} "
               f"objects ({total_merged_away} eliminated)")
@@ -2890,6 +2909,7 @@ def _config_snapshot() -> dict:
         "SOURCE_ORIENTATION":  SOURCE_ORIENTATION,
         "CLIP_LOCAL_MESHES":   CLIP_LOCAL_MESHES,
         "MERGE_BY_MATERIAL":   MERGE_BY_MATERIAL,
+        "NO_MERGE_PREFIX":     NO_MERGE_PREFIX,
         "BAKE_WORLD_TRANSFORMS": BAKE_WORLD_TRANSFORMS,
         "SPLIT_CLIP_EPSILON":  SPLIT_CLIP_EPSILON,
         "DEBUG_AABB_ONLY":     DEBUG_AABB_ONLY,
@@ -2900,13 +2920,14 @@ def _config_snapshot() -> dict:
 def _apply_bundle_config(cfg: dict) -> None:
     """Restore config globals in a worker process from a bundle dict."""
     global EXPORT_FORMAT, CONVERT_ORIENTATION, SOURCE_ORIENTATION
-    global CLIP_LOCAL_MESHES, MERGE_BY_MATERIAL, BAKE_WORLD_TRANSFORMS
+    global CLIP_LOCAL_MESHES, MERGE_BY_MATERIAL, NO_MERGE_PREFIX, BAKE_WORLD_TRANSFORMS
     global SPLIT_CLIP_EPSILON, DEBUG_AABB_ONLY, COMPRESS_GEOMETRY
     EXPORT_FORMAT         = cfg.get("EXPORT_FORMAT",         EXPORT_FORMAT)
     CONVERT_ORIENTATION   = cfg.get("CONVERT_ORIENTATION",   CONVERT_ORIENTATION)
     SOURCE_ORIENTATION    = cfg.get("SOURCE_ORIENTATION",    SOURCE_ORIENTATION)
     CLIP_LOCAL_MESHES     = cfg.get("CLIP_LOCAL_MESHES",     CLIP_LOCAL_MESHES)
     MERGE_BY_MATERIAL     = cfg.get("MERGE_BY_MATERIAL",     MERGE_BY_MATERIAL)
+    NO_MERGE_PREFIX       = cfg.get("NO_MERGE_PREFIX",       NO_MERGE_PREFIX)
     BAKE_WORLD_TRANSFORMS = cfg.get("BAKE_WORLD_TRANSFORMS", BAKE_WORLD_TRANSFORMS)
     SPLIT_CLIP_EPSILON    = cfg.get("SPLIT_CLIP_EPSILON",    SPLIT_CLIP_EPSILON)
     DEBUG_AABB_ONLY       = cfg.get("DEBUG_AABB_ONLY",       DEBUG_AABB_ONLY)
