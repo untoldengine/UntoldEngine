@@ -154,7 +154,7 @@ public func InitGridPipeline() -> RenderPipeline? {
         vertexDescriptor: createGridVertexDescriptor(),
         colorFormats: [wf.environment],
         depthFormat: renderInfo.depthPixelFormat,
-        depthCompareFunction: MTLCompareFunction.less,
+        depthCompareFunction: MTLCompareFunction.lessEqual,
         depthEnabled: false,
         blendMode: .alphaStraight,
         name: "Grid Pipeline"

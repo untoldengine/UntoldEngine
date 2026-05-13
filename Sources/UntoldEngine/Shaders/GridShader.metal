@@ -49,11 +49,10 @@ float3 unprojectPoint(float x, float y, float z, float4x4 uView, float4x4 uProje
     return unprojPoint.xyz/unprojPoint.w;
 }
 
-float computeDepth(float3 pos, float4x4 uView, float4x4 uProjection){
-
-    float4 clipSpacePos=uProjection*uView*float4(pos.xyz,1.0);
-    return (clipSpacePos.z/clipSpacePos.w);
-
+// vpMatrix must be the forward P*V transform (stored in uniformSpace.modelViewMatrix).
+float computeDepth(float3 pos, float4x4 vpMatrix){
+    float4 clipSpacePos = vpMatrix * float4(pos.xyz, 1.0);
+    return clipSpacePos.z / clipSpacePos.w;
 }
 
 float4 computeGrid(float3 uFragPos,float uScale){
@@ -81,16 +80,11 @@ float4 computeGrid(float3 uFragPos,float uScale){
     return color;
 }
 
-float computeLinearDepth(float3 pos,float near,float far, float4x4 uView, float4x4 uProjection){
-
-    float4 clipSpacePos=uProjection*uView*float4(pos.xyz,1.0);
-
-    float clipSpaceDepth=(clipSpacePos.z/clipSpacePos.w)*2.0-1.0; //put back between -1 and 1
-
-    float linearDepth=(2.0*near*far)/(far+near-clipSpaceDepth*(far-near)); //get linear value between 0.01 and 100
-
-    return linearDepth/far;
-
+// Computes normalized [0,1] distance from the camera to pos, independent of Z convention.
+// uInvView must be V^{-1} (stored in uniformSpace.viewMatrix); its translation column is the camera world position.
+float computeLinearDepth(float3 pos, float far, float4x4 uInvView){
+    float3 cameraPos = (uInvView * float4(0.0, 0.0, 0.0, 1.0)).xyz;
+    return length(pos - cameraPos) / far;
 }
 
 
@@ -117,16 +111,16 @@ fragment FragmentOut fragmentGridShader(VertexOutput vertexOut [[stage_in]], con
 
     FragmentOut finalColor;
 
-    float near=0.01;
     float far=100.0;
 
     float t=-vertexOut.nearPoint.y/(vertexOut.farPoint.y-vertexOut.nearPoint.y);
 
     float3 fragPosition=vertexOut.nearPoint+t*(vertexOut.farPoint-vertexOut.nearPoint);
 
-    finalColor.depth=clamp(computeDepth(fragPosition, uniformSpace.viewMatrix, uniformSpace.projectionMatrix),0.0,0.9);
+    // modelViewMatrix holds the forward P*V matrix for correct depth in any Z convention.
+    finalColor.depth=clamp(computeDepth(fragPosition, uniformSpace.modelViewMatrix),0.0,1.0);
 
-    float linearDepth=computeLinearDepth(fragPosition, near, far, uniformSpace.viewMatrix, uniformSpace.projectionMatrix);
+    float linearDepth=computeLinearDepth(fragPosition, far, uniformSpace.viewMatrix);
 
     float fading=max(0.0, (0.5-linearDepth));
 

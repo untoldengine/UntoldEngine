@@ -489,22 +489,20 @@ public enum RenderPasses {
         // update uniforms
         var gridUniforms = Uniforms()
 
-        let modelMatrix = simd_float4x4.init(1.0)
-
         guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
             return
         }
-        var viewMatrix: simd_float4x4 = cameraComponent.viewSpace
 
-        viewMatrix = viewMatrix.inverse
-        let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
-
-        gridUniforms.modelViewMatrix = modelViewMatrix
-        gridUniforms.viewMatrix = viewMatrix
-
-        // Note, the perspective projection space has to be inverted to create the infinite grid
+        // viewMatrix (inverted) and projectionMatrix (inverted) are used by the vertex shader
+        // to unproject NDC corners into world-space rays for the infinite grid.
+        let invView = cameraComponent.viewSpace.inverse
+        gridUniforms.viewMatrix = invView
         gridUniforms.projectionMatrix = renderInfo.perspectiveSpace.inverse
+
+        // modelViewMatrix repurposed: stores the forward P*V matrix so the fragment shader
+        // can compute correct clip-space depth regardless of Z convention.
+        gridUniforms.modelViewMatrix = simd_mul(renderInfo.perspectiveSpace, cameraComponent.viewSpace)
 
         if let gridUniformBuffer = bufferResources.gridUniforms {
             gridUniformBuffer.contents().copyMemory(
