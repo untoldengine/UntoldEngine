@@ -75,7 +75,6 @@
             static let panelCornerRadius: CGFloat = 8
             static let panelPadding: CGFloat = 12
             static let edgePadding: CGFloat = 16
-            static let compactMinimumPanelHeight: CGFloat = 220
             static let controlsPanelWidth: CGFloat = 320
             static let sidePanelWidth: CGFloat = 260
             static let resolutionPresets: [ResolutionPreset] = [
@@ -114,32 +113,17 @@
                     260,
                     min(Constants.controlsPanelWidth, proxy.size.width - Constants.edgePadding * 2)
                 )
+                let controlsHeight = max(0, proxy.size.height - Constants.edgePadding * 2)
 
                 ZStack(alignment: .topLeading) {
                     SceneView(renderer: renderer)
 
                     if isCompact {
                         if areControlsVisible {
-                            ScrollView {
-                                controlsPanel
-                                    .padding(Constants.panelPadding)
-                            }
-                            .frame(width: controlsWidth, alignment: .topLeading)
-                            .frame(
-                                maxHeight: max(Constants.compactMinimumPanelHeight, proxy.size.height - Constants.edgePadding * 2),
-                                alignment: .topLeading
-                            )
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Constants.panelCornerRadius))
-                            .padding(Constants.edgePadding)
-                            .onHover { state.isMouseOverControlPanel = $0 }
+                            controlsPanelContainer(width: controlsWidth, maxHeight: controlsHeight)
                         }
                     } else {
-                        controlsPanel
-                            .padding(Constants.panelPadding)
-                            .frame(width: Constants.controlsPanelWidth, alignment: .topLeading)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Constants.panelCornerRadius))
-                            .padding(Constants.edgePadding)
-                            .onHover { state.isMouseOverControlPanel = $0 }
+                        controlsPanelContainer(width: Constants.controlsPanelWidth, maxHeight: controlsHeight)
                     }
 
                     if isCompact {
@@ -365,6 +349,20 @@
                 Toggle("Engine Stats", isOn: $state.showStats)
                     .toggleStyle(.checkbox)
             }
+        }
+
+        private func controlsPanelContainer(width: CGFloat, maxHeight: CGFloat) -> some View {
+            ScrollView(.vertical) {
+                controlsPanel
+                    .padding(Constants.panelPadding)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+            .scrollIndicators(.visible)
+            .frame(width: width, alignment: .topLeading)
+            .frame(maxHeight: maxHeight, alignment: .topLeading)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Constants.panelCornerRadius))
+            .padding(Constants.edgePadding)
+            .onHover { state.isMouseOverControlPanel = $0 }
         }
 
         private var sidePanel: some View {
