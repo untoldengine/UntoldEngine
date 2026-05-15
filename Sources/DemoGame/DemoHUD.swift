@@ -344,6 +344,9 @@
                     Text("Depth").tag(RenderDebugViewMode.depth)
                     Text("SSAO (Blurred)").tag(RenderDebugViewMode.ssaoBlurred)
                     Text("FXAA Edges").tag(RenderDebugViewMode.fxaaEdgeDebug)
+                    Text("SMAA Edges").tag(RenderDebugViewMode.smaaEdges)
+                    Text("SMAA Blend").tag(RenderDebugViewMode.smaaBlend)
+                    Text("SMAA Difference").tag(RenderDebugViewMode.smaaDifference)
                 }
                 .pickerStyle(.menu)
 

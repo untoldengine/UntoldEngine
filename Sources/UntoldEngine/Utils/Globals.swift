@@ -1191,6 +1191,9 @@ public enum RenderDebugViewMode: Int, CaseIterable, Sendable {
     case depth = 3
     case ssaoBlurred = 4
     case fxaaEdgeDebug = 5
+    case smaaEdges = 6
+    case smaaBlend = 7
+    case smaaDifference = 8
 }
 
 // TODO: try to remove this var, because only make sense on the editor side
@@ -1415,6 +1418,7 @@ public var bypassPostProcessing: Bool {
 public enum AntiAliasingMode: Sendable {
     case none
     case fxaa
+    case smaa
 }
 
 public var antiAliasingMode: AntiAliasingMode {
@@ -1503,6 +1507,12 @@ public final class FXAAParams: ObservableObject, @unchecked Sendable {
     @Published public var subpixelQuality: Float = 0.75 // 0.0–1.0; higher = stronger sub-pixel smoothing
     @Published public var edgeThreshold: Float = 0.125 // minimum local contrast to trigger AA
     @Published public var edgeThresholdMin: Float = 0.0625 // absolute threshold floor (skip very dark edges)
+}
+
+public final class SMAAParams: ObservableObject, @unchecked Sendable {
+    public static let shared = SMAAParams()
+
+    @Published public var edgeThreshold: Float = 0.1
 }
 
 /// SSAO Quality Settings

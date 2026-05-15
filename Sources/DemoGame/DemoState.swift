@@ -41,6 +41,7 @@
         enum AntiAliasingOption: String, CaseIterable, Identifiable {
             case none = "None"
             case fxaa = "FXAA"
+            case smaa = "SMAA"
 
             var id: String {
                 rawValue
@@ -50,6 +51,7 @@
                 switch self {
                 case .none: .none
                 case .fxaa: .fxaa
+                case .smaa: .smaa
                 }
             }
         }

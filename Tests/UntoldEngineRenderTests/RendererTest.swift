@@ -316,6 +316,42 @@ final class RendererTests: BaseRenderSetup {
         XCTAssertTrue(outputPipeline.success, "Output transform pipeline should compile successfully")
     }
 
+    func testSMAAEdgesPipelineInitialized() {
+        guard let pipeline = PipelineManager.shared.renderPipelinesByType[.smaaEdges] else {
+            XCTFail("SMAA edges pipeline should be initialized")
+            return
+        }
+
+        XCTAssertTrue(pipeline.success, "SMAA edges pipeline should compile successfully")
+    }
+
+    func testSMAABlendWeightsPipelineInitialized() {
+        guard let pipeline = PipelineManager.shared.renderPipelinesByType[.smaaBlendWeights] else {
+            XCTFail("SMAA blend weights pipeline should be initialized")
+            return
+        }
+
+        XCTAssertTrue(pipeline.success, "SMAA blend weights pipeline should compile successfully")
+    }
+
+    func testSMAANeighborhoodPipelineInitialized() {
+        guard let pipeline = PipelineManager.shared.renderPipelinesByType[.smaaNeighborhood] else {
+            XCTFail("SMAA neighborhood pipeline should be initialized")
+            return
+        }
+
+        XCTAssertTrue(pipeline.success, "SMAA neighborhood pipeline should compile successfully")
+    }
+
+    func testSMAADifferencePipelineInitialized() {
+        guard let pipeline = PipelineManager.shared.renderPipelinesByType[.smaaDifference] else {
+            XCTFail("SMAA difference pipeline should be initialized")
+            return
+        }
+
+        XCTAssertTrue(pipeline.success, "SMAA difference pipeline should compile successfully")
+    }
+
     func testFinalColorWorkingTexturesConfigured() {
         let workingFormats = renderInfo.colorPipeline.working
 
@@ -336,6 +372,32 @@ final class RendererTests: BaseRenderSetup {
         let expectedEncoding: OutputEncodingMode = renderInfo.presentColorPixelFormat.isSRGBFormat ? .hardwareSRGB : .manualSRGBOETF
         XCTAssertEqual(renderInfo.colorPipeline.present.encodingMode, expectedEncoding,
                        "Present encoding mode should match the present pixel format policy")
+    }
+
+    func testSMAAIntermediateTexturesConfigured() {
+        guard let edges = textureResources.smaaEdgesTexture else {
+            XCTFail("SMAA edges texture should exist")
+            return
+        }
+        guard let blend = textureResources.smaaBlendTexture else {
+            XCTFail("SMAA blend texture should exist")
+            return
+        }
+
+        let expectedWidth = max(1, Int(renderInfo.viewPort.x))
+        let expectedHeight = max(1, Int(renderInfo.viewPort.y))
+
+        XCTAssertEqual(edges.pixelFormat, .rg8Unorm)
+        XCTAssertEqual(edges.width, expectedWidth)
+        XCTAssertEqual(edges.height, expectedHeight)
+        XCTAssertTrue(edges.usage.contains(.shaderRead))
+        XCTAssertTrue(edges.usage.contains(.renderTarget))
+
+        XCTAssertEqual(blend.pixelFormat, .rgba8Unorm)
+        XCTAssertEqual(blend.width, expectedWidth)
+        XCTAssertEqual(blend.height, expectedHeight)
+        XCTAssertTrue(blend.usage.contains(.shaderRead))
+        XCTAssertTrue(blend.usage.contains(.renderTarget))
     }
 
     func testIrradianceIBL() {

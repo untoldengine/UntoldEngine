@@ -478,6 +478,11 @@ typedef enum{
     fxaaPassEdgeThresholdMinIndex
 }FXAABufferIndices;
 
+typedef enum{
+    smaaPassTexelSizeIndex,
+    smaaPassEdgeThresholdIndex
+}SMAABufferIndices;
+
 // Transparency
 typedef enum{
     transparencyPassFragmentUniformIndex,
