@@ -58,6 +58,24 @@
         }
     }
 
+    struct AntiAliasingOptionsView: View {
+        @Bindable var state: DemoState
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Anti-Aliasing")
+                    .foregroundStyle(.secondary)
+
+                Picker("Anti-Aliasing", selection: $state.antiAliasingOption) {
+                    ForEach(DemoState.AntiAliasingOption.allCases) { option in
+                        Text(option.rawValue).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+        }
+    }
+
     struct DemoHUD: View {
         private struct ResolutionPreset: Identifiable {
             let label: String
@@ -238,6 +256,8 @@
 
                 sectionLabel("POST FX")
 
+                AntiAliasingOptionsView(state: state)
+
                 HStack(alignment: .center, spacing: 8) {
                     Picker("Preset", selection: $state.selectedPostFXPreset) {
                         ForEach(DemoState.PostFXPreset.allCases) { preset in
@@ -323,6 +343,8 @@
                     Text("Normal").tag(RenderDebugViewMode.normal)
                     Text("Depth").tag(RenderDebugViewMode.depth)
                     Text("SSAO (Blurred)").tag(RenderDebugViewMode.ssaoBlurred)
+                    Text("AA: None").tag(RenderDebugViewMode.antiAliasingNone)
+                    Text("AA: FXAA").tag(RenderDebugViewMode.antiAliasingFXAA)
                 }
                 .pickerStyle(.menu)
 

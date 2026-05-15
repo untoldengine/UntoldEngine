@@ -323,16 +323,21 @@ public func buildGameModeGraph() -> RenderGraphResult {
     graph[lookPass.id] = lookPass
 
     let outputDependency: String
-    if FXAAParams.shared.enabled {
-        let fxaaPass = RenderPass(
-            id: "fxaa",
-            dependencies: [lookPass.id],
-            execute: fxaaRenderPass
-        )
+    if renderDebugViewMode == .antiAliasingFXAA {
+        let fxaaPass = RenderPass(id: "fxaa", dependencies: [lookPass.id], execute: fxaaRenderPass)
         graph[fxaaPass.id] = fxaaPass
         outputDependency = fxaaPass.id
-    } else {
+    } else if renderDebugViewMode == .antiAliasingNone {
         outputDependency = lookPass.id
+    } else {
+        switch antiAliasingMode {
+        case .fxaa:
+            let fxaaPass = RenderPass(id: "fxaa", dependencies: [lookPass.id], execute: fxaaRenderPass)
+            graph[fxaaPass.id] = fxaaPass
+            outputDependency = fxaaPass.id
+        case .none:
+            outputDependency = lookPass.id
+        }
     }
 
     let outputPass = RenderPass(
@@ -802,7 +807,7 @@ func depthOfFieldCustomization(encoder: MTLRenderCommandEncoder) {
 
 public let fxaaRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     guard let sourceTexture = textureResources.lookTexture,
-          let destinationTexture = textureResources.fxaaTexture,
+          let destinationTexture = textureResources.antiAliasingTexture,
           let pipeline = PipelineManager.shared.renderPipelinesByType[.fxaa]
     else {
         handleError(.renderPassCreationFailed, "FXAA Pass: missing texture or pipeline")
@@ -824,7 +829,7 @@ func fxaaCustomization(encoder: MTLRenderCommandEncoder) {
     encoder.setFragmentBytes(&texelSize, length: MemoryLayout<simd_float2>.stride,
                              index: Int(fxaaPassTexelSizeIndex.rawValue))
 
-    var enabled = Int32(FXAAParams.shared.enabled ? 1 : 0)
+    var enabled = Int32(1) // pass is only inserted when FXAA is the active mode
     encoder.setFragmentBytes(&enabled, length: MemoryLayout<Int32>.stride,
                              index: Int(fxaaPassEnabledIndex.rawValue))
 
@@ -863,6 +868,17 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
         return textureResources.colorMap ?? textureResources.sceneCompositeTexture
     case .ssaoBlurred:
         return textureResources.ssaoBlurTexture
+    case .antiAliasingNone, .antiAliasingFXAA:
+        return textureResources.lookTexture
+    }
+}
+
+private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Bool {
+    switch mode {
+    case .lit, .antiAliasingNone, .antiAliasingFXAA:
+        return true
+    case .albedo, .normal, .depth, .ssaoBlurred:
+        return false
     }
 }
 
@@ -873,7 +889,7 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
         return
     }
 
-    if viewMode == .lit {
+    if lookPassShouldRenderLitOutput(for: viewMode) {
         guard let sourceTexture = textureResources.sceneCompositeTexture else {
             handleError(.renderPassCreationFailed, "Look Pass: source texture is nil")
             return
@@ -945,9 +961,17 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
 }
 
 public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
-    let sourceTexture = FXAAParams.shared.enabled
-        ? textureResources.fxaaTexture
-        : textureResources.lookTexture
+    let sourceTexture: MTLTexture?
+    switch renderDebugViewMode {
+    case .antiAliasingNone:
+        sourceTexture = textureResources.lookTexture
+    case .antiAliasingFXAA:
+        sourceTexture = textureResources.antiAliasingTexture
+    default:
+        sourceTexture = antiAliasingMode != .none
+            ? textureResources.antiAliasingTexture
+            : textureResources.lookTexture
+    }
     guard let sourceTexture else {
         handleError(.renderPassCreationFailed, "Output Transform Pass: source texture is nil")
         return

@@ -637,9 +637,9 @@ func initTextureResources() {
         storageMode: .shared
     )
 
-    textureResources.fxaaTexture = createTexture(
+    textureResources.antiAliasingTexture = createTexture(
         device: renderInfo.device,
-        label: "FXAA Output Texture",
+        label: "Anti-Aliasing Output Texture",
         pixelFormat: wf.lookOutput,
         width: viewportWidth,
         height: viewportHeight,

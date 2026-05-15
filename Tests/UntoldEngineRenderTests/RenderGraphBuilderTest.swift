@@ -306,6 +306,46 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Output transform should depend on fxaa when bypassing post-processing")
     }
 
+    func testBuildGameModeGraph_AADebugNoneBypassesFXAA() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        antiAliasingMode = .fxaa
+        renderDebugViewMode = .antiAliasingNone
+        defer {
+            antiAliasingMode = .fxaa
+            renderDebugViewMode = .lit
+        }
+
+        let (graph, finalPassID) = buildGameModeGraph()
+
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNil(graph["fxaa"], "FXAA pass should not exist when viewing AA: None")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
+                       "Output transform should read look directly for AA: None debug view")
+    }
+
+    func testBuildGameModeGraph_AADebugFXAAForcesFXAA() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        antiAliasingMode = .none
+        renderDebugViewMode = .antiAliasingFXAA
+        defer {
+            antiAliasingMode = .fxaa
+            renderDebugViewMode = .lit
+        }
+
+        let (graph, finalPassID) = buildGameModeGraph()
+
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNotNil(graph["fxaa"], "FXAA pass should exist when viewing AA: FXAA")
+        XCTAssertEqual(graph["fxaa"]?.dependencies, ["look"],
+                       "FXAA should depend on look for AA: FXAA debug view")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["fxaa"],
+                       "Output transform should read FXAA output for AA: FXAA debug view")
+    }
+
     // MARK: - Gaussian Pass Integration Tests
 
     func testBuildGameModeGraph_GaussianPassExists() {
