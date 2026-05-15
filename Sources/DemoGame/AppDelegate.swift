@@ -228,6 +228,9 @@
                     intensity: Float(intensity)
                 )
             }
+            demoState.onAntiAliasingChanged = { [weak self] mode in
+                self?.gameScene.setAntiAliasing(mode)
+            }
             demoState.onTextureStreamingTierDebugChanged = { [weak self] enabled in
                 self?.gameScene.setStreamingTierDebug(enabled)
             }

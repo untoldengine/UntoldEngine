@@ -81,6 +81,8 @@ class BaseRenderSetup: XCTestCase {
         timePassedSinceLastFrame = 0.0
         renderEnvironment = false
         applyIBL = false
+        antiAliasingMode = .fxaa
+        renderDebugViewMode = .lit
         currentGlobalTime = 0.0
     }
 

@@ -251,6 +251,11 @@
             SSAO.setIntensity(intensity)
         }
 
+        /// Selects the active anti-aliasing pass used by the render graph.
+        func setAntiAliasing(_ mode: AntiAliasingMode) {
+            antiAliasingMode = mode
+        }
+
         /// Toggles the per-entity LOD level colour overlay.
         func setLodDebug(_ enabled: Bool) {
             setLODLevelDebug(enabled: enabled)

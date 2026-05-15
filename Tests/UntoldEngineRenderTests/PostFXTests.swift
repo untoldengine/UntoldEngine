@@ -35,7 +35,7 @@ final class PostFXTests: BaseRenderSetup {
         PostFX.enableVignette(false)
         PostFX.enableChromaticAberration(false)
         PostFX.enableDepthOfField(false)
-        FXAAParams.shared.enabled = false
+        antiAliasingMode = .none
     }
 
     // MARK: - Parameter helpers
@@ -172,17 +172,18 @@ final class PostFXTests: BaseRenderSetup {
         PostFX.enableColorGrading(false)
 
         // --- FXAA ---
-        FXAAParams.shared.enabled = true
+        antiAliasingMode = .fxaa
         renderer.draw(in: renderer.metalView)
         let expFXAA = expectation(description: "FXAA ref")
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            if let tex = textureResources.fxaaTexture {
+            if let tex = textureResources.antiAliasingTexture {
                 self.testGenerateRenderTarget(targetName: "FXAA", texture: tex)
             }
             expFXAA.fulfill()
         }
         wait(for: [expFXAA], timeout: TimeInterval(timeoutFactor))
-        FXAAParams.shared.enabled = false
+
+        antiAliasingMode = .none
     }
 
     // MARK: - PSNR Tests
@@ -304,13 +305,13 @@ final class PostFXTests: BaseRenderSetup {
 
     func testFXAA() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
-        FXAAParams.shared.enabled = true
+        antiAliasingMode = .fxaa
         renderer.draw(in: renderer.metalView)
 
         let exp = expectation(description: "FXAA PSNR")
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            guard let tex = textureResources.fxaaTexture else {
-                XCTFail("fxaaTexture should exist after enabling FXAA")
+            guard let tex = textureResources.antiAliasingTexture else {
+                XCTFail("antiAliasingTexture should exist after setting antiAliasingMode = .fxaa")
                 exp.fulfill()
                 return
             }

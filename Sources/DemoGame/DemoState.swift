@@ -38,6 +38,22 @@
             }
         }
 
+        enum AntiAliasingOption: String, CaseIterable, Identifiable {
+            case none = "None"
+            case fxaa = "FXAA"
+
+            var id: String {
+                rawValue
+            }
+
+            var engineMode: AntiAliasingMode {
+                switch self {
+                case .none: .none
+                case .fxaa: .fxaa
+                }
+            }
+        }
+
         @ObservationIgnored private var isApplyingPostFXPreset = false
 
         struct RemoteSceneOption: Identifiable, Hashable {
@@ -194,6 +210,10 @@
 
         var selectedPostFXPreset: PostFXPreset = .neutral
 
+        var antiAliasingOption: AntiAliasingOption = .fxaa {
+            didSet { onAntiAliasingChanged?(antiAliasingOption.engineMode) }
+        }
+
         var textureStreamingTierDebugEnabled: Bool = false {
             didSet { onTextureStreamingTierDebugChanged?(textureStreamingTierDebugEnabled) }
         }
@@ -238,6 +258,7 @@
         var onLodDebugChanged: ((Bool) -> Void)?
         var onColorGradingChanged: ((Bool, Double, Double, Double, Double) -> Void)?
         var onSSAOChanged: ((Bool, Double, Double, Double) -> Void)?
+        var onAntiAliasingChanged: ((AntiAliasingMode) -> Void)?
         var onTextureStreamingTierDebugChanged: ((Bool) -> Void)?
         var onRenderDebugViewChanged: ((RenderDebugViewMode) -> Void)?
         var onSpatialDebugChanged: ((Bool, Bool, SpatialDebugLeafColorMode) -> Void)?

@@ -590,6 +590,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var activeEntityValue: EntityID = .invalid
     private var enableEngineMetricsValue: Bool = false
     private var bypassPostProcessingValue: Bool = false
+    private var antiAliasingModeValue: AntiAliasingMode = .fxaa
     private var renderDebugViewModeValue: RenderDebugViewMode = .lit
     private var entityMeshMapValue: [EntityID: [Mesh]] = [:]
     private var entityNameMapValue: [EntityID: String] = [:]
@@ -1046,6 +1047,20 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
         }
     }
 
+    var antiAliasingMode: AntiAliasingMode {
+        get {
+            lock.lock()
+            let value = antiAliasingModeValue
+            lock.unlock()
+            return value
+        }
+        set {
+            lock.lock()
+            antiAliasingModeValue = newValue
+            lock.unlock()
+        }
+    }
+
     var renderDebugViewMode: RenderDebugViewMode {
         get {
             lock.lock()
@@ -1175,6 +1190,8 @@ public enum RenderDebugViewMode: Int, CaseIterable, Sendable {
     case normal = 2
     case depth = 3
     case ssaoBlurred = 4
+    case antiAliasingNone = 5
+    case antiAliasingFXAA = 6
 }
 
 // TODO: try to remove this var, because only make sense on the editor side
@@ -1395,6 +1412,17 @@ public var bypassPostProcessing: Bool {
     set { RuntimeGlobalsStore.shared.bypassPostProcessing = newValue }
 }
 
+/// Selects the active anti-aliasing pass inserted after the look pass.
+public enum AntiAliasingMode: Sendable {
+    case none
+    case fxaa
+}
+
+public var antiAliasingMode: AntiAliasingMode {
+    get { RuntimeGlobalsStore.shared.antiAliasingMode }
+    set { RuntimeGlobalsStore.shared.antiAliasingMode = newValue }
+}
+
 public var renderDebugViewMode: RenderDebugViewMode {
     get { RuntimeGlobalsStore.shared.renderDebugViewMode }
     set { RuntimeGlobalsStore.shared.renderDebugViewMode = newValue }
@@ -1473,7 +1501,6 @@ public final class DepthOfFieldParams: ObservableObject, @unchecked Sendable {
 public final class FXAAParams: ObservableObject, @unchecked Sendable {
     public static let shared = FXAAParams()
 
-    @Published public var enabled: Bool = true
     @Published public var subpixelQuality: Float = 0.75 // 0.0–1.0; higher = stronger sub-pixel smoothing
     @Published public var edgeThreshold: Float = 0.125 // minimum local contrast to trigger AA
     @Published public var edgeThresholdMin: Float = 0.0625 // absolute threshold floor (skip very dark edges)
