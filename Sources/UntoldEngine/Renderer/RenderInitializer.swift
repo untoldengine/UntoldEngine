@@ -108,6 +108,45 @@ func createTexture(
     return texture
 }
 
+func createSMAALookupTexture(
+    device: MTLDevice,
+    label: String,
+    pixelFormat: MTLPixelFormat,
+    width: Int,
+    height: Int,
+    bytes: [UInt8],
+    bytesPerRow: Int,
+    expectedByteCount: Int
+) -> MTLTexture? {
+    guard bytes.count == expectedByteCount else {
+        Logger.logWarning(
+            message: "\(label) byte count mismatch: expected \(expectedByteCount), got \(bytes.count)"
+        )
+        return nil
+    }
+
+    guard let texture = createTexture(
+        device: device,
+        label: label,
+        pixelFormat: pixelFormat,
+        width: width,
+        height: height,
+        usage: [.shaderRead],
+        storageMode: .shared
+    ) else {
+        return nil
+    }
+
+    texture.replace(
+        region: MTLRegionMake2D(0, 0, width, height),
+        mipmapLevel: 0,
+        withBytes: bytes,
+        bytesPerRow: bytesPerRow
+    )
+
+    return texture
+}
+
 @inline(__always)
 func calculateHZBMipCount(width: Int, height: Int) -> Int {
     let maxDim = max(1, max(width, height))
@@ -645,6 +684,48 @@ func initTextureResources() {
         height: viewportHeight,
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
+    )
+
+    textureResources.smaaEdgesTexture = createTexture(
+        device: renderInfo.device,
+        label: "SMAA Edges Texture",
+        pixelFormat: .rg8Unorm,
+        width: viewportWidth,
+        height: viewportHeight,
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .shared
+    )
+
+    textureResources.smaaBlendTexture = createTexture(
+        device: renderInfo.device,
+        label: "SMAA Blend Texture",
+        pixelFormat: .rgba8Unorm,
+        width: viewportWidth,
+        height: viewportHeight,
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .shared
+    )
+
+    textureResources.smaaAreaTexture = createSMAALookupTexture(
+        device: renderInfo.device,
+        label: "SMAA Area Texture",
+        pixelFormat: .rg8Unorm,
+        width: SMAATextureLayout.areaWidth,
+        height: SMAATextureLayout.areaHeight,
+        bytes: smaaAreaTexBytes,
+        bytesPerRow: SMAATextureLayout.areaBytesPerRow,
+        expectedByteCount: SMAATextureLayout.areaByteCount
+    )
+
+    textureResources.smaaSearchTexture = createSMAALookupTexture(
+        device: renderInfo.device,
+        label: "SMAA Search Texture",
+        pixelFormat: .r8Unorm,
+        width: SMAATextureLayout.searchWidth,
+        height: SMAATextureLayout.searchHeight,
+        bytes: smaaSearchTexBytes,
+        bytesPerRow: SMAATextureLayout.searchBytesPerRow,
+        expectedByteCount: SMAATextureLayout.searchByteCount
     )
 
     // HZB depth pyramid texture and per-mip views

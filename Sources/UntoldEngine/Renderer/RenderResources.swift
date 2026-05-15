@@ -216,6 +216,10 @@ public struct TextureResources {
     public var sceneCompositeTexture: MTLTexture?
     public var lookTexture: MTLTexture?
     public var antiAliasingTexture: MTLTexture?
+    public var smaaEdgesTexture: MTLTexture?
+    public var smaaBlendTexture: MTLTexture?
+    public var smaaAreaTexture: MTLTexture?
+    public var smaaSearchTexture: MTLTexture?
 
     // Hi-Z / HZB (single pyramid — macOS / non-stereo path)
     public var hzbDepthPyramid: MTLTexture?

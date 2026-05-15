@@ -615,6 +615,54 @@ public func InitFXAAEdgeDebugPipeline() -> RenderPipeline? {
     )
 }
 
+public func InitSMAAEdgesPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexSMAAShader",
+        fragmentShader: "fragmentSMAAEdgeDetectionShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [.rg8Unorm],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "SMAA Edges Pipeline"
+    )
+}
+
+public func InitSMAABlendWeightsPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexSMAAShader",
+        fragmentShader: "fragmentSMAABlendWeightShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [.rgba8Unorm],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "SMAA Blend Weights Pipeline"
+    )
+}
+
+public func InitSMAANeighborhoodPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexSMAAShader",
+        fragmentShader: "fragmentSMAANeighborhoodShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPipeline.working.lookOutput],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "SMAA Neighborhood Pipeline"
+    )
+}
+
+public func InitSMAADifferencePipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexSMAAShader",
+        fragmentShader: "fragmentSMAADifferenceShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [.rgba8Unorm],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "SMAA Difference Pipeline"
+    )
+}
+
 public func InitDebugPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexDebugShader",
@@ -687,6 +735,10 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.look, InitLookPipeline),
         (.fxaa, InitFXAAPipeline),
         (.fxaaEdgeDebug, InitFXAAEdgeDebugPipeline),
+        (.smaaEdges, InitSMAAEdgesPipeline),
+        (.smaaBlendWeights, InitSMAABlendWeightsPipeline),
+        (.smaaNeighborhood, InitSMAANeighborhoodPipeline),
+        (.smaaDifference, InitSMAADifferencePipeline),
         (.outputTransform, InitOutputTransformPipeline),
         (.debug, InitDebugPipeline),
         (.transparency, InitTransparencyPipeline),

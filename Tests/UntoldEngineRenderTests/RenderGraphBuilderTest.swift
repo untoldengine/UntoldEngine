@@ -328,6 +328,105 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Output transform should read the FXAA edge debug output")
     }
 
+    func testBuildGameModeGraph_SMAAUsesThreePassChain() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        antiAliasingMode = .smaa
+        defer { antiAliasingMode = .fxaa }
+
+        let (graph, finalPassID) = buildGameModeGraph()
+
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
+        XCTAssertNotNil(graph["look"], "Look pass should exist")
+        XCTAssertNil(graph["fxaa"], "FXAA pass should not exist when SMAA is active")
+        XCTAssertNotNil(graph["smaaEdges"], "SMAA edge pass should exist")
+        XCTAssertNotNil(graph["smaaBlendWeights"], "SMAA blend-weight pass should exist")
+        XCTAssertNotNil(graph["smaaNeighborhood"], "SMAA neighborhood pass should exist")
+        XCTAssertEqual(graph["smaaEdges"]?.dependencies, ["look"],
+                       "SMAA edge pass should depend on look")
+        XCTAssertEqual(graph["smaaBlendWeights"]?.dependencies, ["smaaEdges"],
+                       "SMAA blend-weight pass should depend on edge detection")
+        XCTAssertEqual(graph["smaaNeighborhood"]?.dependencies, ["smaaBlendWeights"],
+                       "SMAA neighborhood pass should depend on blend weights")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["smaaNeighborhood"],
+                       "Output transform should read the SMAA neighborhood output")
+    }
+
+    func testBuildGameModeGraph_SMAAEdgesDebugStopsAfterEdgePass() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        antiAliasingMode = .none
+        renderDebugViewMode = .smaaEdges
+        defer {
+            antiAliasingMode = .fxaa
+            renderDebugViewMode = .lit
+        }
+
+        let (graph, finalPassID) = buildGameModeGraph()
+
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
+        XCTAssertNotNil(graph["smaaEdges"], "SMAA edge pass should exist for edge debug")
+        XCTAssertNil(graph["smaaBlendWeights"], "SMAA blend pass should not run for edge debug")
+        XCTAssertNil(graph["smaaNeighborhood"], "SMAA neighborhood pass should not run for edge debug")
+        XCTAssertEqual(graph["smaaEdges"]?.dependencies, ["look"],
+                       "SMAA edge debug should depend on look")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["smaaEdges"],
+                       "Output transform should read the SMAA edge texture")
+    }
+
+    func testBuildGameModeGraph_SMAABlendDebugStopsAfterBlendPass() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        antiAliasingMode = .none
+        renderDebugViewMode = .smaaBlend
+        defer {
+            antiAliasingMode = .fxaa
+            renderDebugViewMode = .lit
+        }
+
+        let (graph, finalPassID) = buildGameModeGraph()
+
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
+        XCTAssertNotNil(graph["smaaEdges"], "SMAA edge pass should exist for blend debug")
+        XCTAssertNotNil(graph["smaaBlendWeights"], "SMAA blend pass should exist for blend debug")
+        XCTAssertNil(graph["smaaNeighborhood"], "SMAA neighborhood pass should not run for blend debug")
+        XCTAssertEqual(graph["smaaEdges"]?.dependencies, ["look"],
+                       "SMAA edge pass should depend on look")
+        XCTAssertEqual(graph["smaaBlendWeights"]?.dependencies, ["smaaEdges"],
+                       "SMAA blend debug should depend on edge detection")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["smaaBlendWeights"],
+                       "Output transform should read the SMAA blend texture")
+    }
+
+    func testBuildGameModeGraph_SMAADifferenceDebugRunsFullChain() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        antiAliasingMode = .none
+        renderDebugViewMode = .smaaDifference
+        defer {
+            antiAliasingMode = .fxaa
+            renderDebugViewMode = .lit
+        }
+
+        let (graph, finalPassID) = buildGameModeGraph()
+
+        XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
+        XCTAssertNotNil(graph["smaaEdges"], "SMAA edge pass should exist for difference debug")
+        XCTAssertNotNil(graph["smaaBlendWeights"], "SMAA blend pass should exist for difference debug")
+        XCTAssertNotNil(graph["smaaNeighborhood"], "SMAA neighborhood pass should exist for difference debug")
+        XCTAssertNotNil(graph["smaaDifference"], "SMAA difference pass should exist for difference debug")
+        XCTAssertEqual(graph["smaaEdges"]?.dependencies, ["look"],
+                       "SMAA edge pass should depend on look")
+        XCTAssertEqual(graph["smaaBlendWeights"]?.dependencies, ["smaaEdges"],
+                       "SMAA blend pass should depend on edge detection")
+        XCTAssertEqual(graph["smaaNeighborhood"]?.dependencies, ["smaaBlendWeights"],
+                       "SMAA neighborhood pass should depend on blend weights")
+        XCTAssertEqual(graph["smaaDifference"]?.dependencies, ["smaaNeighborhood"],
+                       "SMAA difference pass should compare after neighborhood resolve")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["smaaDifference"],
+                       "Output transform should read the SMAA difference texture")
+    }
+
     // MARK: - Gaussian Pass Integration Tests
 
     func testBuildGameModeGraph_GaussianPassExists() {

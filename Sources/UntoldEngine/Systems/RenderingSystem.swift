@@ -327,12 +327,70 @@ public func buildGameModeGraph() -> RenderGraphResult {
         let fxaaEdgeDebugPass = RenderPass(id: "fxaaEdgeDebug", dependencies: [lookPass.id], execute: fxaaEdgeDebugRenderPass)
         graph[fxaaEdgeDebugPass.id] = fxaaEdgeDebugPass
         outputDependency = fxaaEdgeDebugPass.id
+    } else if renderDebugViewMode == .smaaEdges {
+        let smaaEdgesPass = RenderPass(id: "smaaEdges", dependencies: [lookPass.id], execute: smaaEdgesRenderPass)
+        graph[smaaEdgesPass.id] = smaaEdgesPass
+        outputDependency = smaaEdgesPass.id
+    } else if renderDebugViewMode == .smaaBlend {
+        let smaaEdgesPass = RenderPass(id: "smaaEdges", dependencies: [lookPass.id], execute: smaaEdgesRenderPass)
+        graph[smaaEdgesPass.id] = smaaEdgesPass
+
+        let smaaBlendWeightsPass = RenderPass(
+            id: "smaaBlendWeights",
+            dependencies: [smaaEdgesPass.id],
+            execute: smaaBlendWeightsRenderPass
+        )
+        graph[smaaBlendWeightsPass.id] = smaaBlendWeightsPass
+        outputDependency = smaaBlendWeightsPass.id
+    } else if renderDebugViewMode == .smaaDifference {
+        let smaaEdgesPass = RenderPass(id: "smaaEdges", dependencies: [lookPass.id], execute: smaaEdgesRenderPass)
+        graph[smaaEdgesPass.id] = smaaEdgesPass
+
+        let smaaBlendWeightsPass = RenderPass(
+            id: "smaaBlendWeights",
+            dependencies: [smaaEdgesPass.id],
+            execute: smaaBlendWeightsRenderPass
+        )
+        graph[smaaBlendWeightsPass.id] = smaaBlendWeightsPass
+
+        let smaaNeighborhoodPass = RenderPass(
+            id: "smaaNeighborhood",
+            dependencies: [smaaBlendWeightsPass.id],
+            execute: smaaNeighborhoodRenderPass
+        )
+        graph[smaaNeighborhoodPass.id] = smaaNeighborhoodPass
+
+        let smaaDifferencePass = RenderPass(
+            id: "smaaDifference",
+            dependencies: [smaaNeighborhoodPass.id],
+            execute: smaaDifferenceRenderPass
+        )
+        graph[smaaDifferencePass.id] = smaaDifferencePass
+        outputDependency = smaaDifferencePass.id
     } else {
         switch antiAliasingMode {
         case .fxaa:
             let fxaaPass = RenderPass(id: "fxaa", dependencies: [lookPass.id], execute: fxaaRenderPass)
             graph[fxaaPass.id] = fxaaPass
             outputDependency = fxaaPass.id
+        case .smaa:
+            let smaaEdgesPass = RenderPass(id: "smaaEdges", dependencies: [lookPass.id], execute: smaaEdgesRenderPass)
+            graph[smaaEdgesPass.id] = smaaEdgesPass
+
+            let smaaBlendWeightsPass = RenderPass(
+                id: "smaaBlendWeights",
+                dependencies: [smaaEdgesPass.id],
+                execute: smaaBlendWeightsRenderPass
+            )
+            graph[smaaBlendWeightsPass.id] = smaaBlendWeightsPass
+
+            let smaaNeighborhoodPass = RenderPass(
+                id: "smaaNeighborhood",
+                dependencies: [smaaBlendWeightsPass.id],
+                execute: smaaNeighborhoodRenderPass
+            )
+            graph[smaaNeighborhoodPass.id] = smaaNeighborhoodPass
+            outputDependency = smaaNeighborhoodPass.id
         case .none:
             outputDependency = lookPass.id
         }
@@ -837,6 +895,88 @@ public let fxaaEdgeDebugRenderPass: RenderPasses.RenderPassExecution = { command
     )(commandBuffer)
 }
 
+public let smaaEdgesRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
+    guard let sourceTexture = textureResources.lookTexture,
+          let destinationTexture = textureResources.smaaEdgesTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.smaaEdges]
+    else {
+        handleError(.renderPassCreationFailed, "SMAA Edge Pass: missing texture or pipeline")
+        return
+    }
+
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: smaaEdgesCustomization
+    )(commandBuffer)
+}
+
+public let smaaBlendWeightsRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
+    guard let sourceTexture = textureResources.smaaEdgesTexture,
+          let destinationTexture = textureResources.smaaBlendTexture,
+          let areaTexture = textureResources.smaaAreaTexture,
+          let searchTexture = textureResources.smaaSearchTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.smaaBlendWeights]
+    else {
+        handleError(.renderPassCreationFailed, "SMAA Blend Weight Pass: missing texture or pipeline")
+        return
+    }
+
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: { encoder in
+            smaaBlendWeightsCustomization(
+                encoder: encoder,
+                areaTexture: areaTexture,
+                searchTexture: searchTexture
+            )
+        }
+    )(commandBuffer)
+}
+
+public let smaaNeighborhoodRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
+    guard let sourceTexture = textureResources.lookTexture,
+          let destinationTexture = textureResources.antiAliasingTexture,
+          let blendTexture = textureResources.smaaBlendTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.smaaNeighborhood]
+    else {
+        handleError(.renderPassCreationFailed, "SMAA Neighborhood Pass: missing texture or pipeline")
+        return
+    }
+
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: { encoder in
+            smaaNeighborhoodCustomization(encoder: encoder, blendTexture: blendTexture)
+        }
+    )(commandBuffer)
+}
+
+public let smaaDifferenceRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
+    guard let sourceTexture = textureResources.antiAliasingTexture,
+          let originalTexture = textureResources.lookTexture,
+          let destinationTexture = textureResources.smaaBlendTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.smaaDifference]
+    else {
+        handleError(.renderPassCreationFailed, "SMAA Difference Pass: missing texture or pipeline")
+        return
+    }
+
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: { encoder in
+            encoder.setFragmentTexture(originalTexture, index: 1)
+        }
+    )(commandBuffer)
+}
+
 func fxaaCustomization(encoder: MTLRenderCommandEncoder) {
     let srcW = Float(max(textureResources.lookTexture?.width ?? 1, 1))
     let srcH = Float(max(textureResources.lookTexture?.height ?? 1, 1))
@@ -859,6 +999,58 @@ func fxaaCustomization(encoder: MTLRenderCommandEncoder) {
     var edgeThresholdMin = FXAAParams.shared.edgeThresholdMin
     encoder.setFragmentBytes(&edgeThresholdMin, length: MemoryLayout<Float>.stride,
                              index: Int(fxaaPassEdgeThresholdMinIndex.rawValue))
+}
+
+func smaaEdgesCustomization(encoder: MTLRenderCommandEncoder) {
+    let srcW = Float(max(textureResources.lookTexture?.width ?? 1, 1))
+    let srcH = Float(max(textureResources.lookTexture?.height ?? 1, 1))
+    var texelSize = simd_float2(1.0 / srcW, 1.0 / srcH)
+    encoder.setFragmentBytes(
+        &texelSize,
+        length: MemoryLayout<simd_float2>.stride,
+        index: Int(smaaPassTexelSizeIndex.rawValue)
+    )
+
+    var threshold = SMAAParams.shared.edgeThreshold
+    encoder.setFragmentBytes(
+        &threshold,
+        length: MemoryLayout<Float>.stride,
+        index: Int(smaaPassEdgeThresholdIndex.rawValue)
+    )
+}
+
+func smaaBlendWeightsCustomization(
+    encoder: MTLRenderCommandEncoder,
+    areaTexture: MTLTexture,
+    searchTexture: MTLTexture
+) {
+    let srcW = Float(max(textureResources.smaaEdgesTexture?.width ?? 1, 1))
+    let srcH = Float(max(textureResources.smaaEdgesTexture?.height ?? 1, 1))
+    var texelSize = simd_float2(1.0 / srcW, 1.0 / srcH)
+    encoder.setFragmentBytes(
+        &texelSize,
+        length: MemoryLayout<simd_float2>.stride,
+        index: Int(smaaPassTexelSizeIndex.rawValue)
+    )
+
+    encoder.setFragmentTexture(areaTexture, index: 1)
+    encoder.setFragmentTexture(searchTexture, index: 2)
+}
+
+func smaaNeighborhoodCustomization(
+    encoder: MTLRenderCommandEncoder,
+    blendTexture: MTLTexture
+) {
+    let srcW = Float(max(textureResources.lookTexture?.width ?? 1, 1))
+    let srcH = Float(max(textureResources.lookTexture?.height ?? 1, 1))
+    var texelSize = simd_float2(1.0 / srcW, 1.0 / srcH)
+    encoder.setFragmentBytes(
+        &texelSize,
+        length: MemoryLayout<simd_float2>.stride,
+        index: Int(smaaPassTexelSizeIndex.rawValue)
+    )
+
+    encoder.setFragmentTexture(blendTexture, index: 1)
 }
 
 func outputTransformCustomization(encoder: MTLRenderCommandEncoder) {
@@ -885,12 +1077,18 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
         return textureResources.ssaoBlurTexture
     case .fxaaEdgeDebug:
         return textureResources.lookTexture
+    case .smaaEdges:
+        return textureResources.smaaEdgesTexture
+    case .smaaBlend:
+        return textureResources.smaaBlendTexture
+    case .smaaDifference:
+        return textureResources.smaaBlendTexture
     }
 }
 
 private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Bool {
     switch mode {
-    case .lit, .fxaaEdgeDebug:
+    case .lit, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference:
         return true
     case .albedo, .normal, .depth, .ssaoBlurred:
         return false
@@ -980,6 +1178,12 @@ public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { comma
     switch renderDebugViewMode {
     case .fxaaEdgeDebug:
         sourceTexture = textureResources.antiAliasingTexture
+    case .smaaEdges:
+        sourceTexture = textureResources.smaaEdgesTexture
+    case .smaaBlend:
+        sourceTexture = textureResources.smaaBlendTexture
+    case .smaaDifference:
+        sourceTexture = textureResources.smaaBlendTexture
     default:
         sourceTexture = antiAliasingMode != .none
             ? textureResources.antiAliasingTexture
