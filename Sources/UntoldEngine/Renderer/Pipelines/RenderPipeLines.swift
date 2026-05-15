@@ -603,6 +603,18 @@ public func InitFXAAPipeline() -> RenderPipeline? {
     )
 }
 
+public func InitFXAAEdgeDebugPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexFXAAShader",
+        fragmentShader: "fragmentFXAAEdgeDebugShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPipeline.working.lookOutput],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "FXAA Edge Debug Pipeline"
+    )
+}
+
 public func InitDebugPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexDebugShader",
@@ -674,6 +686,7 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.spatialDebug, InitSpatialDebugPipeline),
         (.look, InitLookPipeline),
         (.fxaa, InitFXAAPipeline),
+        (.fxaaEdgeDebug, InitFXAAEdgeDebugPipeline),
         (.outputTransform, InitOutputTransformPipeline),
         (.debug, InitDebugPipeline),
         (.transparency, InitTransparencyPipeline),

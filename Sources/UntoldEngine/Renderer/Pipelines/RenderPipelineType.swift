@@ -50,6 +50,7 @@ public extension RenderPipelineType {
     static let look: RenderPipelineType = "look"
     static let outputTransform: RenderPipelineType = "outputTransform"
     static let fxaa: RenderPipelineType = "fxaa"
+    static let fxaaEdgeDebug: RenderPipelineType = "fxaaEdgeDebug"
     static let transparency: RenderPipelineType = "transparency"
     static let debug: RenderPipelineType = "debug"
 }

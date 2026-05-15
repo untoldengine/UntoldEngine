@@ -323,12 +323,10 @@ public func buildGameModeGraph() -> RenderGraphResult {
     graph[lookPass.id] = lookPass
 
     let outputDependency: String
-    if renderDebugViewMode == .antiAliasingFXAA {
-        let fxaaPass = RenderPass(id: "fxaa", dependencies: [lookPass.id], execute: fxaaRenderPass)
-        graph[fxaaPass.id] = fxaaPass
-        outputDependency = fxaaPass.id
-    } else if renderDebugViewMode == .antiAliasingNone {
-        outputDependency = lookPass.id
+    if renderDebugViewMode == .fxaaEdgeDebug {
+        let fxaaEdgeDebugPass = RenderPass(id: "fxaaEdgeDebug", dependencies: [lookPass.id], execute: fxaaEdgeDebugRenderPass)
+        graph[fxaaEdgeDebugPass.id] = fxaaEdgeDebugPass
+        outputDependency = fxaaEdgeDebugPass.id
     } else {
         switch antiAliasingMode {
         case .fxaa:
@@ -822,6 +820,23 @@ public let fxaaRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     )(commandBuffer)
 }
 
+public let fxaaEdgeDebugRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
+    guard let sourceTexture = textureResources.lookTexture,
+          let destinationTexture = textureResources.antiAliasingTexture,
+          let pipeline = PipelineManager.shared.renderPipelinesByType[.fxaaEdgeDebug]
+    else {
+        handleError(.renderPassCreationFailed, "FXAA Edge Debug Pass: missing texture or pipeline")
+        return
+    }
+
+    RenderPasses.executePostProcess(
+        pipeline,
+        source: sourceTexture,
+        destination: destinationTexture,
+        customization: fxaaCustomization
+    )(commandBuffer)
+}
+
 func fxaaCustomization(encoder: MTLRenderCommandEncoder) {
     let srcW = Float(max(textureResources.lookTexture?.width ?? 1, 1))
     let srcH = Float(max(textureResources.lookTexture?.height ?? 1, 1))
@@ -868,14 +883,14 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
         return textureResources.colorMap ?? textureResources.sceneCompositeTexture
     case .ssaoBlurred:
         return textureResources.ssaoBlurTexture
-    case .antiAliasingNone, .antiAliasingFXAA:
+    case .fxaaEdgeDebug:
         return textureResources.lookTexture
     }
 }
 
 private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Bool {
     switch mode {
-    case .lit, .antiAliasingNone, .antiAliasingFXAA:
+    case .lit, .fxaaEdgeDebug:
         return true
     case .albedo, .normal, .depth, .ssaoBlurred:
         return false
@@ -963,9 +978,7 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
 public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
     let sourceTexture: MTLTexture?
     switch renderDebugViewMode {
-    case .antiAliasingNone:
-        sourceTexture = textureResources.lookTexture
-    case .antiAliasingFXAA:
+    case .fxaaEdgeDebug:
         sourceTexture = textureResources.antiAliasingTexture
     default:
         sourceTexture = antiAliasingMode != .none

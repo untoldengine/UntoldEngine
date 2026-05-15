@@ -343,8 +343,7 @@
                     Text("Normal").tag(RenderDebugViewMode.normal)
                     Text("Depth").tag(RenderDebugViewMode.depth)
                     Text("SSAO (Blurred)").tag(RenderDebugViewMode.ssaoBlurred)
-                    Text("AA: None").tag(RenderDebugViewMode.antiAliasingNone)
-                    Text("AA: FXAA").tag(RenderDebugViewMode.antiAliasingFXAA)
+                    Text("FXAA Edges").tag(RenderDebugViewMode.fxaaEdgeDebug)
                 }
                 .pickerStyle(.menu)
 
