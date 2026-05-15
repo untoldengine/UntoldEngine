@@ -173,3 +173,66 @@ fragment float4 fragmentFXAAShader(
 
     return colorTexture.sample(s, finalUV);
 }
+
+fragment float4 fragmentFXAAEdgeDebugShader(
+    VertexCompositeOutput in              [[stage_in]],
+    texture2d<float>      colorTexture    [[texture(0)]],
+    constant float2      &texelSize       [[buffer(fxaaPassTexelSizeIndex)]],
+    constant int         &enabled         [[buffer(fxaaPassEnabledIndex)]],
+    constant float       &subpixelQuality [[buffer(fxaaPassSubpixelIndex)]],
+    constant float       &edgeThreshold   [[buffer(fxaaPassEdgeThresholdIndex)]],
+    constant float       &edgeThresholdMin[[buffer(fxaaPassEdgeThresholdMinIndex)]]
+) {
+    constexpr sampler s(min_filter::linear, mag_filter::linear, address::clamp_to_edge);
+    (void)subpixelQuality;
+
+    if (!enabled) {
+        return float4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    float2 uv = in.uvCoords;
+    float4 center = colorTexture.sample(s, uv);
+
+    const float kAlpha = 0.1;
+    float lumaM = lumaFromLinear(center.rgb);
+
+    float4 sN = colorTexture.sample(s, uv + float2( 0.0,  1.0) * texelSize);
+    float4 sS = colorTexture.sample(s, uv + float2( 0.0, -1.0) * texelSize);
+    float4 sE = colorTexture.sample(s, uv + float2( 1.0,  0.0) * texelSize);
+    float4 sW = colorTexture.sample(s, uv + float2(-1.0,  0.0) * texelSize);
+
+    float lumaN = guardedLuma(sN, lumaM, kAlpha);
+    float lumaS = guardedLuma(sS, lumaM, kAlpha);
+    float lumaE = guardedLuma(sE, lumaM, kAlpha);
+    float lumaW = guardedLuma(sW, lumaM, kAlpha);
+
+    float lumaMin = min(lumaM, min(min(lumaN, lumaS), min(lumaE, lumaW)));
+    float lumaMax = max(lumaM, max(max(lumaN, lumaS), max(lumaE, lumaW)));
+    float lumaRange = lumaMax - lumaMin;
+
+    if (lumaRange < max(edgeThresholdMin, lumaMax * edgeThreshold)) {
+        return float4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    float4 sNW = colorTexture.sample(s, uv + float2(-1.0,  1.0) * texelSize);
+    float4 sNE = colorTexture.sample(s, uv + float2( 1.0,  1.0) * texelSize);
+    float4 sSW = colorTexture.sample(s, uv + float2(-1.0, -1.0) * texelSize);
+    float4 sSE = colorTexture.sample(s, uv + float2( 1.0, -1.0) * texelSize);
+
+    float lumaNW = guardedLuma(sNW, lumaM, kAlpha);
+    float lumaNE = guardedLuma(sNE, lumaM, kAlpha);
+    float lumaSW = guardedLuma(sSW, lumaM, kAlpha);
+    float lumaSE = guardedLuma(sSE, lumaM, kAlpha);
+
+    float edgeH = abs(-2.0 * lumaW + lumaNW + lumaSW)
+                + abs(-2.0 * lumaM + lumaN  + lumaS)  * 2.0
+                + abs(-2.0 * lumaE + lumaNE + lumaSE);
+    float edgeV = abs(-2.0 * lumaN + lumaNW + lumaNE)
+                + abs(-2.0 * lumaM + lumaW  + lumaE)  * 2.0
+                + abs(-2.0 * lumaS + lumaSW + lumaSE);
+
+    float intensity = saturate(lumaRange / max(edgeThresholdMin, 1.0e-5));
+    return edgeH >= edgeV
+        ? float4(intensity, 0.0, 0.0, 1.0)
+        : float4(0.0, intensity, 0.0, 1.0);
+}

@@ -306,30 +306,11 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Output transform should depend on fxaa when bypassing post-processing")
     }
 
-    func testBuildGameModeGraph_AADebugNoneBypassesFXAA() {
-        renderInfo.immersionStyle = .none
-        renderEnvironment = true
-        antiAliasingMode = .fxaa
-        renderDebugViewMode = .antiAliasingNone
-        defer {
-            antiAliasingMode = .fxaa
-            renderDebugViewMode = .lit
-        }
-
-        let (graph, finalPassID) = buildGameModeGraph()
-
-        XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
-        XCTAssertNotNil(graph["look"], "Look pass should exist")
-        XCTAssertNil(graph["fxaa"], "FXAA pass should not exist when viewing AA: None")
-        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
-                       "Output transform should read look directly for AA: None debug view")
-    }
-
-    func testBuildGameModeGraph_AADebugFXAAForcesFXAA() {
+    func testBuildGameModeGraph_FXAAEdgeDebugUsesDiagnosticPass() {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         antiAliasingMode = .none
-        renderDebugViewMode = .antiAliasingFXAA
+        renderDebugViewMode = .fxaaEdgeDebug
         defer {
             antiAliasingMode = .fxaa
             renderDebugViewMode = .lit
@@ -339,11 +320,12 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
         XCTAssertNotNil(graph["look"], "Look pass should exist")
-        XCTAssertNotNil(graph["fxaa"], "FXAA pass should exist when viewing AA: FXAA")
-        XCTAssertEqual(graph["fxaa"]?.dependencies, ["look"],
-                       "FXAA should depend on look for AA: FXAA debug view")
-        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["fxaa"],
-                       "Output transform should read FXAA output for AA: FXAA debug view")
+        XCTAssertNotNil(graph["fxaaEdgeDebug"], "FXAA edge debug pass should exist")
+        XCTAssertNil(graph["fxaa"], "Normal FXAA pass should not exist when viewing FXAA edge debug")
+        XCTAssertEqual(graph["fxaaEdgeDebug"]?.dependencies, ["look"],
+                       "FXAA edge debug should depend on look")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["fxaaEdgeDebug"],
+                       "Output transform should read the FXAA edge debug output")
     }
 
     // MARK: - Gaussian Pass Integration Tests

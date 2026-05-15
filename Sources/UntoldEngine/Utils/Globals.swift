@@ -1190,8 +1190,7 @@ public enum RenderDebugViewMode: Int, CaseIterable, Sendable {
     case normal = 2
     case depth = 3
     case ssaoBlurred = 4
-    case antiAliasingNone = 5
-    case antiAliasingFXAA = 6
+    case fxaaEdgeDebug = 5
 }
 
 // TODO: try to remove this var, because only make sense on the editor side
