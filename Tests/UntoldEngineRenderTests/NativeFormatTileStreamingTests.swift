@@ -189,6 +189,76 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
                       "Tile should advance through parsing (parseStartTime > 0) or reach .parsed within timeout")
     }
 
+    // MARK: - Scene-root scale invariance
+
+    /// Verifies that the streaming system correctly handles a tiled scene that is scaled
+    /// down via SceneRootTransform (the "virtual camera" approach used to let users
+    /// inspect a miniature scene before placing it at full size).
+    ///
+    /// Mechanism: GeometryStreamingSystem.update() calls
+    ///   effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraPos)
+    /// which applies inverseMatrix (scale 10 when scene scale is 0.1), making the camera
+    /// appear 10× farther from every tile in entity space.  calculateDistance() then
+    /// computes distance in entity-local space, so the effective streaming radius shrinks
+    /// proportionally with the scene scale.
+    ///
+    /// Scenario (matching a client's AR placement workflow):
+    ///   manifest: tile at origin, streamingRadius=50, unloadRadius=120
+    ///   → effectivePrefetchRadius = 50 + (120−50)×0.5 = 85 m
+    ///   → dispatch condition: entityLocalDist ≤ 86 m
+    ///
+    ///   camera at world (9, 0, 0):
+    ///     scale 0.1  → effective camera at (90, 0, 0) → dist to tile AABB = 89 m > 86 → BLOCKED
+    ///     scale 1.0  → effective camera at  (9, 0, 0) → dist to tile AABB =  8 m ≤ 86 → DISPATCHED
+    func testTiledScene_scaleDownViaSceneRootTransform_reducesEffectiveStreamingRadius() throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        defer {
+            // Always restore identity so other tests are not affected.
+            SceneRootTransform.shared.reset()
+        }
+
+        // ── Scale-down phase: camera at world (9, 0, 0) but scene scaled to 0.1 ──
+        // Entity-local camera = inverseScale(0.1) × (9,0,0) = (90, 0, 0).
+        // Closest AABB point = (1, 0, 0), local distance = 89 m > prefetchRadius+1 (86 m).
+        // Tile must NOT be dispatched.
+        SceneRootTransform.shared.scale = simd_float3(0.1, 0.1, 0.1)
+        SceneRootTransform.shared.updateIfNeeded()
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(9, 0, 0),
+            deltaTime: 0.016
+        )
+
+        let tcSmall = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(
+            tcSmall.state, .unloaded,
+            "At scale 0.1 the tile is 89 m from the camera in entity space " +
+            "(> prefetchRadius 85 m) and must not be dispatched"
+        )
+
+        // ── Scale-up phase: restore to 1.0, same camera position ──
+        // Entity-local camera = (9, 0, 0). Distance to tile AABB = 8 m ≤ 86 m.
+        // Tile must be dispatched (state transitions to .parsing synchronously in loadTile).
+        SceneRootTransform.shared.scale = simd_float3(1, 1, 1)
+        SceneRootTransform.shared.updateIfNeeded()
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(9, 0, 0),
+            deltaTime: 0.016
+        )
+
+        let tcFull = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(
+            tcFull.state, .parsing,
+            "At scale 1.0 the tile is 8 m from the camera in entity space " +
+            "(≤ prefetchRadius 85 m) and must be dispatched to .parsing"
+        )
+    }
+
     // MARK: - HLOD lifecycle
 
     func testHLOD_loadIsNoOpWhenAlreadyLoaded() async throws {
