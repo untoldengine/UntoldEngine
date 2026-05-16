@@ -78,6 +78,34 @@ All parameters have defaults (matching `.neutral`), so you only need to specify 
 
 ---
 
+## Anti-Aliasing
+
+Anti-aliasing is configured through the `antiAliasingMode` global, not through the `PostFX` namespace:
+
+```swift
+antiAliasingMode = .fxaa   // Fast Approximate Anti-Aliasing (default)
+antiAliasingMode = .smaa   // Subpixel Morphological Anti-Aliasing (3-pass)
+antiAliasingMode = .none   // No anti-aliasing
+```
+
+| Mode | Description |
+|---|---|
+| `.fxaa` | Single-pass screen-space filter. Fast, slightly softens fine detail. |
+| `.smaa` | Three-pass chain (edge detection → blend weights → neighborhood blend). Sharper than FXAA, handles diagonal and corner patterns. Costs ~3× the GPU time of FXAA. |
+| `.none` | Anti-aliasing skipped entirely. The output transform reads directly from the look pass. |
+
+SMAA also exposes intermediate debug views via `renderDebugViewMode`:
+
+```swift
+renderDebugViewMode = .smaaEdges      // Show edge detection result
+renderDebugViewMode = .smaaBlend      // Show blend-weight texture
+renderDebugViewMode = .smaaDifference // Show original vs. resolved difference
+renderDebugViewMode = .fxaaEdgeDebug  // Show FXAA luma-gradient edge map
+renderDebugViewMode = .lit            // Normal rendering (default)
+```
+
+---
+
 ## Enabling Individual Effects
 
 For fine-grained control outside of presets, you can enable or disable individual effects:
@@ -91,7 +119,7 @@ PostFX.setEnabled(.chromaticAberration, false)
 And read their current state:
 
 ```swift
-let isActive = PostFX.isEnabled(.bloom)
+let isActive = PostFX.isEnabled(.bloomThreshold)
 ```
 
 ### Available Effects
@@ -100,11 +128,19 @@ let isActive = PostFX.isEnabled(.bloom)
 |---|---|
 | `.colorGrading` | Exposure, brightness, contrast, saturation, temperature, tint |
 | `.colorCorrection` | Lift/gamma/gain per-channel color correction |
-| `.bloomThreshold` | Bright-pass filter for bloom |
+| `.bloomThreshold` | Bright-pass filter that feeds the bloom blur chain |
 | `.bloomComposite` | Bloom blend pass |
 | `.vignette` | Screen-edge darkening |
 | `.chromaticAberration` | RGB channel fringing |
-| `.depthOfField` | Focus blur |
+| `.depthOfField` | Vogel-disc focus blur (16 samples) |
+
+> **SSAO is not a `PostFXEffect`** — it has its own enable API:
+> ```swift
+> SSAO.setEnabled(true)
+> // or directly:
+> SSAOParams.shared.enabled = true
+> ```
+> SSAO is also configured through `PostFXPreset` when you call `PostFX.apply(preset)`, but it is not accessible via `PostFX.setEnabled(...)` or `PostFX.isEnabled(...)`.
 
 ---
 

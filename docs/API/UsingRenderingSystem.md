@@ -68,3 +68,37 @@ Once everything is set up:
 
 ---
 
+## Anti-Aliasing
+
+Set the anti-aliasing mode globally before the first frame (or at any point to change it at runtime):
+
+```swift
+antiAliasingMode = .fxaa   // Fast Approximate Anti-Aliasing (default)
+antiAliasingMode = .smaa   // Subpixel Morphological Anti-Aliasing
+antiAliasingMode = .none   // Disabled
+```
+
+SMAA produces sharper results than FXAA and handles diagonal/corner patterns, at roughly 3× the GPU cost of FXAA. For most scenes `.fxaa` is a good default. See [UsingPostFX](UsingPostFX.md) for debug views that let you inspect the intermediate AA passes.
+
+---
+
+## Debug View Modes
+
+The engine can visualize individual G-Buffer layers and anti-aliasing internals in place of the final lit image:
+
+```swift
+renderDebugViewMode = .lit             // Normal output (default)
+renderDebugViewMode = .albedo          // G-Buffer base color
+renderDebugViewMode = .normal          // G-Buffer surface normals
+renderDebugViewMode = .depth           // Linearized depth buffer (grayscale)
+renderDebugViewMode = .ssaoBlurred     // SSAO occlusion result
+renderDebugViewMode = .fxaaEdgeDebug   // FXAA luma-gradient edge map
+renderDebugViewMode = .smaaEdges       // SMAA edge detection output
+renderDebugViewMode = .smaaBlend       // SMAA blend-weight texture
+renderDebugViewMode = .smaaDifference  // Original vs. SMAA-resolved difference
+```
+
+Restore normal rendering with `renderDebugViewMode = .lit`.
+
+---
+

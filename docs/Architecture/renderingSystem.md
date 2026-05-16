@@ -98,7 +98,8 @@ environment/grid
                                                             └── [post-processing chain]
                                                                         └── precomp ◄── (gaussian joins here)
                                                                                 └── look
-                                                                                        └── outputTransform
+                                                                                        └── [aa: fxaa / smaa×3 / none]
+                                                                                                    └── outputTransform
 ```
 
 ### Base Pass (environment or grid)
@@ -185,6 +186,7 @@ Note that Gaussian **does not** depend on `lightPass`, `transparency`, or the po
 ```
 spatialDebug → depthOfField → chromatic → bloomThreshold
     → blur_hor_1 → blur_ver_1 → blur_hor_2 → blur_ver_2
+    → blur_hor_3 → blur_ver_3 → blur_hor_4 → blur_ver_4
     → bloomComposite → vignette
 ```
 
@@ -192,16 +194,17 @@ spatialDebug → depthOfField → chromatic → bloomThreshold
 
 **Fast path:** If every effect (`BloomThresholdParams`, `VignetteParams`, `ChromaticAberrationParams`, `DepthOfFieldParams`) is disabled, the entire chain is replaced by a single bypass pass that points the post-process descriptor at the deferred output texture directly. This avoids allocating ~142 MB of intermediate render targets that would be unused.
 
-The number of blur iterations is driven by `BloomThresholdParams.shared.enabled` — when bloom is on, two horizontal/vertical pairs are dispatched; when off, zero. The loop that generates blur nodes in the graph is:
+The number of blur iterations is driven by `BloomThresholdParams.shared.enabled` — when bloom is on, **four** horizontal/vertical pairs are dispatched using a 9-tap Gaussian kernel (radius 6); when off, zero. The loop that generates blur nodes in the graph is:
 
 ```swift
+let blurPassCount = BloomThresholdParams.shared.enabled ? 4 : 0
 for i in 0 ..< blurPassCount {
-    // horizontal blur pass
-    // vertical blur pass
+    // horizontal blur pass  (blur_pass_hor_pass{i+1})
+    // vertical blur pass    (blur_pass_ver_pass{i+1})
 }
 ```
 
-So the graph topology literally changes based on whether bloom is enabled.
+So the graph topology literally changes based on whether bloom is enabled — from 0 blur nodes (disabled) to 8 blur nodes (4 hor + 4 ver, when enabled).
 
 ### Pre-Composite Pass
 
@@ -211,21 +214,58 @@ RenderPass(id: "precomp", dependencies: [postProcessID, gaussianPass.id])
 
 This is the **convergence point** of the two parallel tracks. The post-processed scene color and the Gaussian splat render both arrive here and are composited into a single texture. Neither track can be finalized without the other.
 
-### Look Pass (Color Grading)
+### Look Pass (Color Grading / G-Buffer Debug)
 
 ```swift
 RenderPass(id: "look", dependencies: ["precomp"])
 ```
 
-Applies lift/gamma/gain color correction and optional LUT-based grading to the composited image.
+In normal rendering (`renderDebugViewMode == .lit`), applies exposure, lift/gamma/gain color correction, and optional color grading to the composited image.
+
+When `renderDebugViewMode` is set to a G-Buffer visualization mode, the look pass instead reads directly from a G-Buffer texture and bypasses color grading entirely:
+
+| `renderDebugViewMode` | Look pass source |
+|---|---|
+| `.lit`, `.fxaaEdgeDebug`, `.smaaEdges`, `.smaaBlend`, `.smaaDifference` | Color-graded composite (`sceneCompositeTexture`) |
+| `.albedo` | G-Buffer albedo texture |
+| `.normal` | G-Buffer normal texture |
+| `.depth` | Depth buffer (linearized, visualized as grayscale) |
+| `.ssaoBlurred` | SSAO blur result texture |
+
+The look texture is always the output — downstream passes (anti-aliasing, output transform) read from it regardless of which path ran.
+
+### Anti-Aliasing Pass
+
+After the look pass, the graph inserts an anti-aliasing pass whose topology depends on `antiAliasingMode`:
+
+| `antiAliasingMode` | Passes added | Graph edges |
+|---|---|---|
+| `.fxaa` | `fxaa` | `look → fxaa → outputTransform` |
+| `.smaa` | `smaaEdges`, `smaaBlendWeights`, `smaaNeighborhood` | `look → smaaEdges → smaaBlendWeights → smaaNeighborhood → outputTransform` |
+| `.none` | *(none)* | `look → outputTransform` |
+
+**FXAA** is a single-pass screen-space filter that attenuates aliased edges using local luma contrast.
+
+**SMAA** (Subpixel Morphological Anti-Aliasing) is a three-pass chain:
+1. **Edge detection** (`smaaEdges`) — identifies aliased edges from the look texture using luma and chroma gradients. Also detects diagonal patterns.
+2. **Blend-weight calculation** (`smaaBlendWeights`) — computes per-pixel blend weights from the SMAA area and search look-up textures, accounting for corner patterns.
+3. **Neighborhood blending** (`smaaNeighborhood`) — applies the blend weights to the look texture, producing the final anti-aliased image in `antiAliasingTexture`.
+
+Both FXAA and SMAA write their result into `antiAliasingTexture`. The `outputTransform` pass reads from this texture when AA is active, or directly from `lookTexture` when `antiAliasingMode == .none`.
+
+> **Debug views that expose AA internals:**
+> - `renderDebugViewMode = .fxaaEdgeDebug` — shows the luma-gradient edge map computed by FXAA
+> - `renderDebugViewMode = .smaaEdges` — shows the edge detection output (stops before blend weights)
+> - `renderDebugViewMode = .smaaBlend` — shows the blend-weight texture (stops before neighborhood blend)
+> - `renderDebugViewMode = .smaaDifference` — shows the difference between the original and SMAA-resolved image
 
 ### Output Transform Pass
 
 ```swift
-RenderPass(id: "outputTransform", dependencies: ["look"])
+RenderPass(id: "outputTransform", dependencies: [antiAliasingPassId])
 ```
 
-Tone maps the HDR scene color into the display's color space (SDR or EDR depending on the target). This is the **terminal node** of the graph — its output texture is what gets presented to the drawable.
+Tone maps the HDR scene color into the display's color space (SDR or EDR depending on the target). This is the **terminal node** of the graph. Its source texture is `antiAliasingTexture` when AA is active, or `lookTexture` when `antiAliasingMode == .none`.
 
 ---
 
@@ -298,7 +338,8 @@ The completion handler fires on the GPU thread when the command buffer finishes 
 [GPU render] gaussian                 (sorted splats)
 [GPU render] post-processing chain    (DOF, bloom, vignette)
 [GPU render] precomp                  (merge scene + splats)
-[GPU render] look                     (color grading)
+[GPU render] look                     (color grading / G-Buffer debug)
+[GPU render] anti-aliasing            (FXAA / SMAA 3-pass / skipped for .none)
 [GPU render] outputTransform          (tone map → drawable)
 [GPU compute] buildHZB                (depth pyramid for next frame)
         │
