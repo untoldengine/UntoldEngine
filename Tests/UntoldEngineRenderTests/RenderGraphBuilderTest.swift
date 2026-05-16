@@ -427,6 +427,91 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "Output transform should read the SMAA difference texture")
     }
 
+    // MARK: - AntiAliasing .none Mode
+
+    /// When antiAliasingMode is .none, no AA pass of any kind should appear in the graph
+    /// and outputTransform must depend directly on look rather than on an AA pass.
+    func testBuildGameModeGraph_NoAAMode_HasNoAAPassAndConnectsDirectlyToOutput() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        antiAliasingMode = .none
+        renderDebugViewMode = .lit
+        defer {
+            antiAliasingMode = .fxaa
+            renderDebugViewMode = .lit
+        }
+
+        let (graph, finalPassID) = buildGameModeGraph()
+
+        XCTAssertEqual(finalPassID, "outputTransform")
+        XCTAssertNil(graph["fxaa"],              "No FXAA pass when antiAliasingMode is .none")
+        XCTAssertNil(graph["smaaEdges"],         "No SMAA edges pass when antiAliasingMode is .none")
+        XCTAssertNil(graph["smaaBlendWeights"],  "No SMAA blend-weight pass when antiAliasingMode is .none")
+        XCTAssertNil(graph["smaaNeighborhood"],  "No SMAA neighborhood pass when antiAliasingMode is .none")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
+                       "outputTransform must depend directly on look when no AA is active")
+    }
+
+    // MARK: - G-Buffer Debug View Modes
+
+    /// Switching renderDebugViewMode to any G-Buffer visualization mode must not change the
+    /// set of passes in the render graph. The routing change is inside the look pass execution
+    /// closure, not in the graph topology.
+    func testBuildGameModeGraph_GBufferDebugModes_ProduceSamePassSetAsLitMode() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        antiAliasingMode = .fxaa
+        defer { renderDebugViewMode = .lit }
+
+        renderDebugViewMode = .lit
+        let (baseGraph, _) = buildGameModeGraph()
+        let baseKeys = Set(baseGraph.keys)
+
+        for mode in [RenderDebugViewMode.albedo, .normal, .depth, .ssaoBlurred] {
+            renderDebugViewMode = mode
+            let (graph, finalPassID) = buildGameModeGraph()
+            XCTAssertEqual(Set(graph.keys), baseKeys,
+                           "Graph pass set must equal .lit mode for .\(mode) debug mode")
+            XCTAssertEqual(finalPassID, "outputTransform",
+                           "Final pass must be outputTransform in .\(mode) debug mode")
+        }
+    }
+
+    // MARK: - Bloom Disabled State
+
+    /// When BloomThresholdParams.enabled is false but at least one other effect is active,
+    /// the full post-process chain runs but the variable-length blur chain must be entirely
+    /// absent and bloomComposite must depend directly on bloomThreshold with no blur
+    /// intermediates in between.
+    /// Note: when ALL effects are disabled, postProcessingEffects() short-circuits to a
+    /// lightweight bypass pass (postProcessDisabledBypass) — bloomComposite never appears.
+    /// This test enables vignette to keep the full chain alive while isolating bloom state.
+    func testBuildGameModeGraph_BloomDisabled_BlurPassesAbsent() {
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+
+        let wasBloom = BloomThresholdParams.shared.enabled
+        let wasVignette = VignetteParams.shared.enabled
+        BloomThresholdParams.shared.enabled = false
+        VignetteParams.shared.enabled = true  // keep the full chain alive; bloom alone is off
+        defer {
+            BloomThresholdParams.shared.enabled = wasBloom
+            VignetteParams.shared.enabled = wasVignette
+        }
+
+        let (graph, _) = buildGameModeGraph()
+
+        // No blur passes should exist when bloom is disabled.
+        XCTAssertNil(graph["blur_pass_hor_pass1"], "Horizontal blur pass 1 must not exist when bloom is disabled")
+        XCTAssertNil(graph["blur_pass_ver_pass1"], "Vertical blur pass 1 must not exist when bloom is disabled")
+        XCTAssertNil(graph["blur_pass_hor_pass2"], "Horizontal blur pass 2 must not exist when bloom is disabled")
+        XCTAssertNil(graph["blur_pass_ver_pass2"], "Vertical blur pass 2 must not exist when bloom is disabled")
+
+        // bloomComposite must depend directly on bloomThreshold (no blur intermediates).
+        XCTAssertEqual(graph["bloomComposite"]?.dependencies, ["bloomThreshold"],
+                       "bloomComposite must depend directly on bloomThreshold when bloom is disabled")
+    }
+
     // MARK: - Gaussian Pass Integration Tests
 
     func testBuildGameModeGraph_GaussianPassExists() {
