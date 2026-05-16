@@ -66,14 +66,13 @@ Unload candidates are **sorted farthest-first** (most wasteful memory first). Up
 
 Load candidates are **sorted by priority then distance** (high priority + closest first). Only `maxConcurrentLoads = 3` can be active simultaneously.
 
-Before dispatching, the scheduler applies four guards in order:
+Before dispatching, the scheduler applies three guards in order:
 
 1. **Tile ownership** (`isTileOwned`) — the entity must be a descendant of a `TileComponent` entity. Non-tile-owned entities are rejected immediately and their state is never mutated. `StreamingComponent` is an internal, tile-subordinate mechanism; it is not valid on standalone entities. See [StreamingComponent Ownership Model](#streamingcomponent-ownership-model) below.
 2. **CPU-entry readiness** — OOC entities whose `CPUMeshEntry` is not yet stored in `ProgressiveAssetLoader` are skipped. This prevents pre-streaming stubs from holding slots while registration is still running.
-3. **Prewarm-active deferral** — entities for roots whose background texture prewarm is still running are skipped. Dispatching while the prewarm holds the per-asset texture lock would block all concurrent slots for the remaining prewarm duration. Slots stay free until `isPrewarmActive` returns `false`.
-4. **Per-candidate geometry budget check** — if the candidate's estimated GPU footprint would exceed the geometry budget, `evictLRU` is called first.
+3. **Per-candidate geometry budget check** — if the candidate's estimated GPU footprint would exceed the geometry budget, `evictLRU` is called first.
 
-When all near-band candidates share one `assetRootEntityId`, the near-band concurrency limit expands from `nearBandMaxConcurrentLoads` to `maxConcurrentLoads`. All sub-meshes of one USDZ are treated as a single burst rather than being serialized one-at-a-time.
+When all near-band candidates share one `assetRootEntityId`, the near-band concurrency limit expands from `nearBandMaxConcurrentLoads` to `maxConcurrentLoads`. All sub-meshes of one tile asset are treated as a single burst rather than being serialized one-at-a-time.
 
 `loadMesh()` does:
 1. Reserves a slot in `activeLoads` (thread-safe via `NSLock`)
@@ -184,7 +183,7 @@ In addition to the per-tick budget checks above, `MemoryBudgetManager` subscribe
 
 The OS callback fires on a background queue and sets a `pendingPressureRelief` flag on `GeometryStreamingSystem`. The flag is drained at the **start of the next `update()` tick** on the main thread, so all eviction work stays on the same thread as the rest of the streaming system. This prevents the OS from silently escalating to `.critical` and terminating the process — on visionOS in particular, the window between `.warning` and process kill can be under a second.
 
-**CPU heap release on critical pressure** — `evictLRU` only frees GPU Metal buffers tracked by `MemoryBudgetManager`. The OS measures total process memory, which includes `ProgressiveAssetLoader.rootAssetRefs` (the live `MDLAsset` tree and all child `CPUMeshEntry` vertex/index buffers). For a 500-building scene this CPU heap can reach hundreds of megabytes. On `.critical`, after the two geometry eviction passes, `GeometryStreamingSystem` calls `ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId:)` on every warm root. This frees the CPU heap immediately. The rehydration context (asset URL + loading policy) is retained, so a cold re-stream from disk is transparent when the camera re-approaches.
+**CPU heap release on critical pressure** — `evictLRU` only frees GPU Metal buffers tracked by `MemoryBudgetManager`. The OS measures total process memory, which includes `ProgressiveAssetLoader.rootAssetRefs` (the live asset parse tree and all child `CPUMeshEntry` vertex/index buffers). For a 500-building scene this CPU heap can reach hundreds of megabytes. On `.critical`, after the two geometry eviction passes, `GeometryStreamingSystem` calls `ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId:)` on every warm root. This frees the CPU heap immediately. The rehydration context (asset URL + loading policy) is retained, so a cold re-stream from disk is transparent when the camera re-approaches.
 
 ---
 
@@ -198,9 +197,9 @@ Player spawns at corner of city block
 │   └─ 3 are loading already → skip
 │
 ├─ Up to 3 async loads fire simultaneously
-│   ├─ building_A: cache miss → read from USDZ file
+│   ├─ building_A: cache miss → read from .untold file
 │   ├─ building_B: cache hit → instant
-│   └─ building_C: cache miss → read from USDZ file
+│   └─ building_C: cache miss → read from .untold file
 │
 ├─ Player walks forward → building_K enters range
 │   └─ Queued in load candidates (backlog until a slot frees)
@@ -217,9 +216,6 @@ The key design decisions here are:
 - **Concurrency cap (3)** prevents GPU/IO saturation during fast movement
 - **Adaptive tick rate** — 16 ms during backlog, 100 ms steady-state — prevents stalls between slot pickups without wasting CPU when idle
 - **Single-root burst detection** — when all near-band candidates are sub-meshes of one asset, concurrency expands to the global cap so the asset loads in parallel rather than one mesh at a time
-- **Background texture prewarm** — `loadTextures()` runs at registration time so the first-upload path is a no-op and lock wait ≈ 0
-- **Prewarm-active deferral** — dispatch is held until the prewarm releases the texture lock, keeping all slots free for the burst
-- **Narrowed texture lock scope** — the per-asset lock covers only `ensureTexturesLoaded`; `makeMeshesFromCPUBuffers` runs outside the lock so all slots upload in parallel
 - **CPU-entry readiness guard** — stubs registered before their CPU data is ready are skipped rather than wasting a slot
 - **Unload-before-load** ordering ensures you free memory before consuming more
 - **Cache ownership** means unloading just clears references, actual GPU memory is reused if the same mesh comes back into range
@@ -231,7 +227,7 @@ The key design decisions here are:
 - **Camera sync always runs** — `syncStreamingCameraPosition()` executes every frame regardless of the `loading` flag; decoupling it from the loading guard prevents the streaming camera from freezing while an asset load is in flight
 - **OS memory pressure subscription** — `DispatchSource.makeMemoryPressureSource` fires proactive texture shedding and geometry eviction before the OS escalates to process termination; the response runs on the next `update()` tick to stay single-threaded
 - **evictLRU per-call cap** — the `maxEvictions` parameter (default `Int.max`) bounds single-frame eviction work; the OS pressure path uses 16 per pass so a `.critical` burst doesn't spike one frame; remaining candidates spill to subsequent ticks
-- **CPU heap release on critical pressure** — on `.critical`, after geometry eviction, `ProgressiveAssetLoader.releaseWarmAsset()` is called for every warm root, freeing the MDLAsset CPU heap the OS measures; rehydration context survives so cold re-stream from disk is transparent
+- **CPU heap release on critical pressure** — on `.critical`, after geometry eviction, `ProgressiveAssetLoader.releaseWarmAsset()` is called for every warm root, freeing the CPU heap the OS measures; rehydration context survives so cold re-stream from disk is transparent
 
 ---
 
@@ -264,8 +260,8 @@ Tile stubs carry a `TileComponent` (no `StreamingComponent`, no `RenderComponent
 | `state` | `.unloaded → .parsing → .parsed → .unloading` |
 | `pendingUnloadSince` | CFAbsoluteTime when tile first exceeded `unloadRadius`; 0 = in range |
 | `loadTask` | The in-flight Swift `Task` (cancelled on teardown) |
-| `meshEntityId` | The dedicated mesh-child entity ID; stored so the asset-loading timeout guard can force-close `AssetLoadingGate` if `loadTextures()` hangs |
-| `hlodURL` | URL of the HLOD proxy USDC, if present in the manifest |
+| `meshEntityId` | The dedicated mesh-child entity ID; stored so the parse-timeout watchdog can force-close `AssetLoadingGate` if the parse Task becomes stuck |
+| `hlodURL` | URL of the HLOD proxy `.untold` asset, if present in the manifest |
 | `hlodEntityId` | ECS entity holding the HLOD mesh; `.invalid` when unloaded |
 | `hlodState` | HLOD lifecycle: `.unloaded → .loading → .loaded → .unloading` |
 | `hlodSwitchDistance` | Camera distance beyond which the HLOD is shown |
@@ -301,7 +297,7 @@ Three sub-passes each tick, capped at `maxTileUnloadsPerUpdate` (default **2**) 
 - **Prefetch radius decouples load from display** — tiles start loading at `effectivePrefetchRadius` (auto: midpoint of stream/unload gap) so the parse completes before the camera reaches the visual zone, eliminating blank-screen pops on tile entry.
 - **Grace period prevents oscillation** — a 3-second hold on `.parsed` tile teardown stops rapid load/unload cycles at tile boundaries, which was the primary cause of flickering in large scenes.
 - **`maxTileUnloadsPerUpdate = 2`** — spreading GPU buffer releases across frames prevents a single-frame blank when many tiles leave range simultaneously.
-- **`maxConcurrentTileLoads = 2`** — two concurrent parses balance throughput for large scenes against RAM spike risk. Each parse calls `MDLAsset(url:)` on a full USDC file; the `tileParseMemoryBudgetMB` gate serialises naturally when a large tile saturates the budget.
+- **`maxConcurrentTileLoads = 2`** — two concurrent parses balance throughput for large scenes against RAM spike risk. Each parse runs `UntoldReader` on a full `.untold` file; the `tileParseMemoryBudgetMB` gate serialises naturally when a large tile saturates the budget.
 - **`blockRenderLoop: false` on all tile/LOD/HLOD loads** — `setEntityMeshAsync` is called with `blockRenderLoop: false` so that `AssetLoadingGate.isLoadingAny` is not held `true` during the (potentially multi-second) parse. Without this, concurrent parses freeze `visibleEntityIds` updates and stall the render loop.
 - **Hysteresis on LOD/HLOD transitions** — `lodHysteresisFactor` (default 0.90) and `hlodHysteresisFactor` (default 0.90) add a 10% inner band so the camera must move meaningfully past a switch boundary before the current representation is unloaded. Without hysteresis, frame-to-frame distance jitter causes rapid load/unload cycles that freeze the engine.
 - **`cancelPendingEntities` before entity destruction** — when `unloadLODLevel` or `unloadHLOD` tears down child entities, it first calls `BatchingSystem.shared.cancelPendingEntities(_:)` with the render descendant IDs, purging them from all pending batching queues. This prevents "entity is missing" errors when the batching tick tries to process additions for entities that were destroyed between event queuing and tick processing.
@@ -316,4 +312,4 @@ Three sub-passes each tick, capped at `maxTileUnloadsPerUpdate` (default **2**) 
 - **Per-tile LOD follows the same race fix** — `level.state = .unloading` is set before `level.loadTask?.cancel()`.
 - **LOD unload-all on tile parse** — when `loadTile`'s completion callback fires (state transitioning to `.parsed`), both `unloadHLOD(entityId:)` and `unloadAllLODLevels(entityId:)` are called. The full tile has taken over all distance bands; intermediate representations are no longer needed.
 - **`loadedLODEntities` tracking set** — mirrors `loadedTileEntities` for the LOD layer. Allows `reset()` to cancel all in-flight LOD tasks and `setEntityStreamScene()` second-call safety to clear stale LOD entity IDs.
-- **`AssetLoadingGate` timeout** — `meshEntityId` is stored in `TileComponent` so the timeout guard can call `AssetLoadingState.shared.finishLoading(entityId: meshEntityId)` without an O(n) map scan if `loadTextures()` hangs and the gate would otherwise remain open permanently.
+- **`AssetLoadingGate` timeout** — `meshEntityId` is stored in `TileComponent` so the parse-timeout watchdog can call `AssetLoadingState.shared.finishLoading(entityId: meshEntityId)` defensively if the parse Task becomes permanently stuck.

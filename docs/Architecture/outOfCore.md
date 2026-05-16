@@ -7,7 +7,7 @@ UntoldEngine still uses an out-of-core (OOC) geometry path, but it is now part o
 The public entry point for streamed geometry is:
 
 ```swift
-setEntityStreamScene(entityId: sceneRoot, manifest: "city")
+setEntityStreamScene(entityId: sceneRoot, manifest: "city", withExtension: "json") { _ in }
 ```
 
 Inside that pipeline, large tiles may be classified as **OOC** during `setEntityMeshAsync(streamingPolicy: .auto)`.
@@ -86,7 +86,7 @@ For an OOC tile, `registerProgressiveStubEntity(...)` creates one ECS stub per m
 
 Each stub stores a `CPUMeshEntry` in `ProgressiveAssetLoader`, including:
 
-- source `MDLObject`
+- source asset node reference
 - vertex descriptor
 - unique mesh name
 - estimated GPU bytes
@@ -122,7 +122,7 @@ On critical pressure, the engine may release warm CPU state:
 ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId:)
 ```
 
-This frees the retained `MDLAsset` tree and CPU mesh buffers but preserves the rehydration context. A later re-approach reparses the root asset once and rebuilds the CPU registry.
+This frees the retained asset parse tree and CPU mesh buffers but preserves the rehydration context. A later re-approach reparses the root asset once and rebuilds the CPU registry.
 
 ## Interaction with Tile Streaming
 

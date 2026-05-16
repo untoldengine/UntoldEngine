@@ -156,8 +156,7 @@ GeometryStreamingSystem: camera enters prefetchRadius for tile_0_0
           │       └─ Cache miss? → download, store, return local path
           │
           ├─ Parse asset at local path
-          │   ├─ .untold → UntoldReader (no ModelIO dependency)
-          │   └─ .usdz/.usdc → ModelIO via NativeFormatLoader
+          │   └─ .untold → UntoldReader
           │
           └─ Upload geometry to Metal GPU buffers
 ```
