@@ -184,6 +184,19 @@ final class PostFXTests: BaseRenderSetup {
         wait(for: [expFXAA], timeout: TimeInterval(timeoutFactor))
 
         antiAliasingMode = .none
+
+        // --- SMAA ---
+        antiAliasingMode = .smaa
+        renderer.draw(in: renderer.metalView)
+        let expSMAA = expectation(description: "SMAA ref")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if let tex = textureResources.antiAliasingTexture {
+                self.testGenerateRenderTarget(targetName: "SMAA", texture: tex)
+            }
+            expSMAA.fulfill()
+        }
+        wait(for: [expSMAA], timeout: TimeInterval(timeoutFactor))
+        antiAliasingMode = .none
     }
 
     // MARK: - PSNR Tests
@@ -316,6 +329,102 @@ final class PostFXTests: BaseRenderSetup {
                 return
             }
             self.psnrTest(targetName: "FXAA", texture: tex)
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+    }
+
+    func testSMAA() throws {
+        // Skip until SMAAReference.png is generated and committed to the test bundle.
+        // To generate: uncomment testGeneratePostFXReferenceImages, run it once, then
+        // add the saved SMAAReference.png to Tests/UntoldEngineRenderTests/Resources/.
+        guard Bundle.module.url(forResource: "SMAAReference", withExtension: "png") != nil else {
+            throw XCTSkip("SMAAReference.png not in test bundle — run testGeneratePostFXReferenceImages to create it")
+        }
+
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        antiAliasingMode = .smaa
+        renderer.draw(in: renderer.metalView)
+
+        let exp = expectation(description: "SMAA PSNR")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            guard let tex = textureResources.antiAliasingTexture else {
+                XCTFail("antiAliasingTexture should exist after setting antiAliasingMode = .smaa")
+                exp.fulfill()
+                return
+            }
+            self.psnrTest(targetName: "SMAA", texture: tex)
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+    }
+
+    // MARK: - G-Buffer Debug View Mode Smoke Tests
+    //
+    // These verify the G-Buffer visualization paths (albedo, normal, depth, ssaoBlurred)
+    // execute without error and produce a non-nil look texture. They do not use PSNR
+    // reference images — correctness of the visual output is verified by inspection when
+    // reference images are regenerated.
+
+    func testDebugViewMode_Albedo_ProducesLookTexture() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        renderDebugViewMode = .albedo
+        defer { renderDebugViewMode = .lit }
+        renderer.draw(in: renderer.metalView)
+
+        let exp = expectation(description: "Albedo debug view")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            XCTAssertNotNil(textureResources.lookTexture,
+                            "lookTexture must be non-nil after rendering in .albedo debug mode")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+    }
+
+    func testDebugViewMode_Normal_ProducesLookTexture() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        renderDebugViewMode = .normal
+        defer { renderDebugViewMode = .lit }
+        renderer.draw(in: renderer.metalView)
+
+        let exp = expectation(description: "Normal debug view")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            XCTAssertNotNil(textureResources.lookTexture,
+                            "lookTexture must be non-nil after rendering in .normal debug mode")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+    }
+
+    func testDebugViewMode_Depth_ProducesLookTexture() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        renderDebugViewMode = .depth
+        defer { renderDebugViewMode = .lit }
+        renderer.draw(in: renderer.metalView)
+
+        let exp = expectation(description: "Depth debug view")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            XCTAssertNotNil(textureResources.lookTexture,
+                            "lookTexture must be non-nil after rendering in .depth debug mode")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+    }
+
+    func testDebugViewMode_SSAOBlurred_ProducesLookTexture() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        SSAO.setEnabled(true)
+        renderDebugViewMode = .ssaoBlurred
+        defer {
+            renderDebugViewMode = .lit
+            SSAO.setEnabled(false)
+        }
+        renderer.draw(in: renderer.metalView)
+
+        let exp = expectation(description: "SSAO blurred debug view")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            XCTAssertNotNil(textureResources.lookTexture,
+                            "lookTexture must be non-nil after rendering in .ssaoBlurred debug mode")
             exp.fulfill()
         }
         wait(for: [exp], timeout: TimeInterval(timeoutFactor))
