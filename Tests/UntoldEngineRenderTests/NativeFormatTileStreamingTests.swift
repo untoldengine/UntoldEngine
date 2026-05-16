@@ -13,6 +13,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
+import simd
 @preconcurrency @testable import UntoldEngine
 import XCTest
 
@@ -186,6 +187,257 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         }
         XCTAssertTrue(parseProgressed,
                       "Tile should advance through parsing (parseStartTime > 0) or reach .parsed within timeout")
+    }
+
+    // MARK: - HLOD lifecycle
+
+    func testHLOD_loadIsNoOpWhenAlreadyLoaded() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: true, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        GeometryStreamingSystem.shared.loadHLOD(entityId: tileEntityId)
+        let hlodLoaded = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.hlodState == .loaded
+        }
+        XCTAssertTrue(hlodLoaded, "HLOD should reach .loaded before second loadHLOD call")
+
+        let firstHLODEntityId = scene.get(component: TileComponent.self, for: tileEntityId)?.hlodEntityId
+
+        // Second call must be a no-op: guard requires hlodState == .unloaded.
+        GeometryStreamingSystem.shared.loadHLOD(entityId: tileEntityId)
+
+        try await Task.sleep(nanoseconds: 100_000_000) // 100 ms
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.hlodState, .loaded, "loadHLOD on an already-loaded tile should be a no-op")
+        XCTAssertEqual(tc.hlodEntityId, firstHLODEntityId, "Second loadHLOD must not replace the existing HLOD entity")
+    }
+
+    func testHLOD_cancelDuringLoading() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: true, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        GeometryStreamingSystem.shared.loadHLOD(entityId: tileEntityId)
+
+        // Capture state before cancel to confirm we caught it mid-load.
+        let tcMidLoad = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tcMidLoad.hlodState, .loading, "State should be .loading before unloadHLOD")
+
+        // Cancel synchronously — unloadHLOD sets .unloading then .unloaded in the same call.
+        GeometryStreamingSystem.shared.unloadHLOD(entityId: tileEntityId)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.hlodState, .unloaded, "Cancelled HLOD load must leave state as .unloaded")
+        XCTAssertNil(tc.hlodEntityId, "Cancelled HLOD entity reference must be cleared")
+
+        // Wait for the background Task to settle so no phantom child survives.
+        let childrenClear = await waitUntil(timeout: 2.0) {
+            getEntityChildren(parentId: tileEntityId).isEmpty
+        }
+        XCTAssertTrue(childrenClear, "No HLOD child entity should survive after cancellation")
+    }
+
+    func testHLOD_unloadedWhenFullTileParsed() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: true, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        GeometryStreamingSystem.shared.loadHLOD(entityId: tileEntityId)
+        let hlodLoaded = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.hlodState == .loaded
+        }
+        XCTAssertTrue(hlodLoaded, "HLOD should be resident before full tile parse")
+
+        // Parsing the full tile calls unloadHLOD internally on success.
+        GeometryStreamingSystem.shared.loadTile(entityId: tileEntityId)
+        let tileParsed = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.state == .parsed
+        }
+        XCTAssertTrue(tileParsed, "Full tile should reach .parsed state")
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.hlodState, .unloaded, "HLOD must be unloaded automatically when full tile parses")
+        XCTAssertNil(tc.hlodEntityId, "HLOD entity reference must be nil after full tile parses")
+    }
+
+    func testHLOD_doubleUnloadIsNoOp() throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: true, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        // Unloading when already .unloaded must not crash or change state.
+        GeometryStreamingSystem.shared.unloadHLOD(entityId: tileEntityId)
+        GeometryStreamingSystem.shared.unloadHLOD(entityId: tileEntityId)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.hlodState, .unloaded)
+        XCTAssertNil(tc.hlodEntityId)
+    }
+
+    func testHLOD_lastTransitionTimeSetOnLoad() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: true, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+        let beforeLoad = CFAbsoluteTimeGetCurrent()
+
+        GeometryStreamingSystem.shared.loadHLOD(entityId: tileEntityId)
+        let hlodLoaded = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.hlodState == .loaded
+        }
+        XCTAssertTrue(hlodLoaded)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertGreaterThan(tc.lastHLODTransitionTime, beforeLoad,
+                             "lastHLODTransitionTime must be stamped at HLOD load completion")
+    }
+
+    func testHLOD_lastTransitionTimeUpdatedOnUnload() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: true, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        GeometryStreamingSystem.shared.loadHLOD(entityId: tileEntityId)
+        let hlodLoaded = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.hlodState == .loaded
+        }
+        XCTAssertTrue(hlodLoaded)
+
+        let timeAfterLoad = try XCTUnwrap(
+            scene.get(component: TileComponent.self, for: tileEntityId)
+        ).lastHLODTransitionTime
+
+        try await Task.sleep(nanoseconds: 10_000_000) // 10 ms — ensures strict ordering
+
+        GeometryStreamingSystem.shared.unloadHLOD(entityId: tileEntityId)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertGreaterThanOrEqual(tc.lastHLODTransitionTime, timeAfterLoad,
+                                    "lastHLODTransitionTime must be re-stamped on HLOD unload")
+    }
+
+    // MARK: - Tile parse timeout guard
+
+    /// Injects stuck-parse state directly (no real hung parse needed) and
+    /// verifies the timeout guard transitions the tile to .failed with retry bookkeeping.
+    func testTimeoutGuard_transitionsParsingToFailed() throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        // Create a stand-in mesh child entity — mirrors what loadTile creates.
+        // We reuse tileEntityId as the meshEntityId value so finishLoading has
+        // a valid (though already-idempotent) entity ID to pass through.
+        let tileComp = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        tileComp.state = .parsing
+        tileComp.parseStartTime = CFAbsoluteTimeGetCurrent() - 120.0 // 120s ago — well past 60s threshold
+        tileComp.meshEntityId = tileEntityId // valid non-.invalid id for gate-release path
+
+        // Enroll in tracking sets the same way loadTile does.
+        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1_024)
+        GeometryStreamingSystem.shared.markLoadingTileEntity(tileEntityId)
+
+        GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.state, .failed,
+                       "Tile stuck in .parsing for >tileParseTimeoutSeconds must transition to .failed")
+        XCTAssertEqual(tc.failureCount, 1, "Timeout must increment failureCount for retry backoff")
+        XCTAssertEqual(tc.parseStartTime, 0, "parseStartTime must be cleared after timeout")
+        XCTAssertEqual(tc.meshEntityId, .invalid, "meshEntityId must be cleared after timeout")
+    }
+
+    /// A tile that was .unloading when the timeout fires should go to .unloaded, not .failed.
+    func testTimeoutGuard_transitionsUnloadingToUnloaded() throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        let tileComp = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        tileComp.state = .unloading
+        tileComp.parseStartTime = CFAbsoluteTimeGetCurrent() - 120.0
+        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1_024)
+        GeometryStreamingSystem.shared.markLoadingTileEntity(tileEntityId)
+
+        GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0
+        // Camera placed beyond the tile's effectivePrefetchRadius (85 m) so the tile
+        // load pass does not immediately re-dispatch the tile after the timeout guard
+        // clears it to .unloaded in the same update() tick.
+        GeometryStreamingSystem.shared.update(cameraPosition: simd_float3(500, 0, 0), deltaTime: 0.016)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.state, .unloaded,
+                       "Timed-out .unloading tile must go to .unloaded, not .failed")
+        XCTAssertEqual(tc.failureCount, 0,
+                       "Timeout of an .unloading tile must not increment failureCount")
+    }
+
+    /// The guard requires parseStartTime > 0.  When it is 0 (download still in flight)
+    /// the guard must not fire even with a zero-second threshold.
+    func testTimeoutGuard_doesNotFireWhenParseStartTimeIsZero() throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        let tileComp = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        tileComp.state = .parsing
+        tileComp.parseStartTime = 0 // download still pending — clock not yet started
+        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1_024)
+        GeometryStreamingSystem.shared.markLoadingTileEntity(tileEntityId)
+
+        GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 0.0 // would fire immediately if start > 0
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.state, .parsing,
+                       "Timeout guard must not fire while parseStartTime is 0 (remote download in progress)")
+        XCTAssertEqual(tc.failureCount, 0)
+
+        // Clean up injected state so tearDown drains cleanly.
+        GeometryStreamingSystem.shared.unmarkLoadingTileEntity(tileEntityId)
+        GeometryStreamingSystem.shared.releaseActiveTileLoad(entityId: tileEntityId)
+        tileComp.state = .unloaded
+        tileComp.parseStartTime = 0
+        GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0
+    }
+
+    /// A parse that just started must not be timed out even if the threshold is very low.
+    func testTimeoutGuard_doesNotFireBeforeThreshold() throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        let tileComp = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        tileComp.state = .parsing
+        tileComp.parseStartTime = CFAbsoluteTimeGetCurrent() // started right now
+        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1_024)
+        GeometryStreamingSystem.shared.markLoadingTileEntity(tileEntityId)
+
+        GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.state, .parsing,
+                       "Timeout guard must not fire before tileParseTimeoutSeconds have elapsed")
+        XCTAssertEqual(tc.failureCount, 0)
+
+        // Clean up injected state so tearDown drains cleanly.
+        GeometryStreamingSystem.shared.unmarkLoadingTileEntity(tileEntityId)
+        GeometryStreamingSystem.shared.releaseActiveTileLoad(entityId: tileEntityId)
+        tileComp.state = .unloaded
+        tileComp.parseStartTime = 0
     }
 
     private func loadSceneManifest(at manifestURL: URL) throws {
