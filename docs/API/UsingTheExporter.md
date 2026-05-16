@@ -36,11 +36,13 @@ Common options:
 
 - `--input <path>`: required source `.usd`, `.usda`, `.usdc`, or `.usdz`
 - `--output <path>`: required destination `.untold`
-- `--file-type <tile|lod|hlod|shared>`: optional, defaults to `tile`
+- `--file-type <tile|lod|hlod|shared|animation>`: optional, defaults to `tile`
 - `--mesh-name <name>`: optional, export only one mesh from a multi-mesh asset
 - `--ConvertOrientation`: optional, convert the export into engine space
 - `--source-orientation <blender-native|engine-oriented>`: optional, defaults to `blender-native`
 - `--validate`: optional, also writes `<name>.validation.json`
+- `--compress-geometry`: optional, LZ4-compress vertex and index chunks (requires `pip install lz4`)
+- `--animation`: optional, export animation clips only — no mesh geometry is written
 - `--blender <path>`: optional wrapper-level Blender override
 
 Example:
@@ -92,7 +94,10 @@ Common options:
 - `--debug-aabb-only`: optional emit debug AABB payloads instead of geometry
 - `--quadtree`: optional partition tiles using a quad-tree instead of a uniform grid
 - `--scene-profile <auto|indoor|outdoor>`: optional streaming radius profile, defaults to `auto`. Radii are always proportional to scene size — no fixed distances to hand-tune. Use `outdoor` for cities, terrain, and large exterior scenes if auto-detection misses.
-- `--floor-count <number>`: optional number of vertical floors to split each tile into
+- `--floor-count <number>`: optional number of vertical floors to split each tile into (for quadtree mode)
+- `--floor-band-height <number>`: optional per-floor height in world units (overrides auto-detection from scene Z extent)
+- `--parallel-workers <number>`: optional number of parallel Blender worker processes (`0` = auto-detect CPU count, `1` = sequential)
+- `--compress-geometry`: optional LZ4-compress vertex and index chunks in every exported tile payload (requires `pip install lz4`)
 - `--blender <path>`: optional wrapper-level Blender override
 
 Example:

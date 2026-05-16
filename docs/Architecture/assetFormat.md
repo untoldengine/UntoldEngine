@@ -13,17 +13,17 @@ runtime package consumed by the engine for:
 - HLOD files
 - shared bucket files
 
-V1 is intentionally narrow:
+V1 supports:
 
-- static meshes only
-- transforms
-- bounds
-- vertex/index buffers
-- basic PBR materials
-- texture references
-- no animation
-- no skinning
-- no blend shapes
+- static meshes (transforms, bounds, vertex/index buffers)
+- basic PBR materials and texture references
+- skeletal rigs (skeleton hierarchy, bind/rest poses)
+- skinning (joint indices and weights per vertex)
+- animation clips (translation and rotation keyframe channels)
+
+Not yet supported:
+
+- blend shapes / morph targets
 
 The design goals are:
 
@@ -59,7 +59,7 @@ Each `.untold` file is laid out as:
 2. `ChunkTable`
 3. aligned chunk payloads
 
-Recommended chunk payload order:
+Recommended chunk payload order for **mesh files**:
 
 1. `STRING_TABLE`
 2. `ENTITY_TABLE`
@@ -68,6 +68,23 @@ Recommended chunk payload order:
 5. `TEXTURE_TABLE`
 6. `VERTEX_DATA`
 7. `INDEX_DATA`
+
+Optional additional chunks for **skeletal / animated files**:
+
+8. `SKELETON_TABLE`
+9. `SKELETON_JOINT_TABLE`
+10. `SKIN_TABLE`
+11. `SKIN_JOINT_MAPPING_TABLE`
+12. `JOINT_INDEX_DATA`
+13. `JOINT_WEIGHT_DATA`
+
+Chunk payload order for **animation-only files** (`fileType = animation`):
+
+1. `STRING_TABLE`
+2. `ANIMATION_CLIP_TABLE`
+3. `ANIMATION_CHANNEL_TABLE`
+4. `TRANSLATION_KEYFRAME_TABLE`
+5. `ROTATION_KEYFRAME_TABLE`
 
 This order allows the runtime to read metadata first and defer heavy geometry reads.
 
@@ -314,20 +331,114 @@ Runtime rule:
 - all indices in one mesh must use one type
 - exporter should prefer `uint16` when `vertexCount <= 65535`
 
+## Skeleton Record Encoding
+
+Each skeleton record is serialized in this exact order:
+
+```text
+entityId                     UInt32
+nameOffset                   UInt32
+firstJointIndex              UInt32
+jointCount                   UInt32
+```
+
+## Skeleton Joint Record Encoding
+
+Each joint record is serialized in this exact order:
+
+```text
+parentJointIndex             UInt32    (UInt32.max = root joint)
+jointPathOffset              UInt32    (string table offset for the joint's hierarchy path)
+flags                        UInt32
+bindTransform                Float32 x 16   (column-major 4×4)
+restTransform                Float32 x 16   (column-major 4×4)
+```
+
+## Skin Record Encoding
+
+Each skin record is serialized in this exact order:
+
+```text
+entityId                     UInt32
+meshRecordIndex              UInt32
+skeletonEntityId             UInt32
+jointCount                   UInt32
+firstJointMappingIndex       UInt32
+jointMappingCount            UInt32
+jointIndexDataOffset         UInt64
+jointWeightDataOffset        UInt64
+vertexCount                  UInt32
+reserved0                    UInt32
+```
+
+Rules:
+
+- `JOINT_INDEX_DATA` stores 4 packed `UInt8` joint indices per vertex (4 bytes × vertexCount)
+- `JOINT_WEIGHT_DATA` stores 4 packed `UInt8` weights per vertex, normalized to 255 (4 bytes × vertexCount)
+- up to 4 joints per vertex; unused slots are zero-padded
+
+## Skin Joint Mapping Record Encoding
+
+```text
+skeletonJointIndex           UInt32
+```
+
+## Animation Clip Record Encoding
+
+```text
+nameOffset                   UInt32
+reserved0                    UInt32
+duration                     Float32 (seconds)
+reserved1                    UInt32
+firstChannelIndex            UInt32
+channelCount                 UInt32
+```
+
+## Animation Channel Record Encoding
+
+```text
+jointPathOffset              UInt32
+firstTranslationIndex        UInt32
+translationCount             UInt32
+firstRotationIndex           UInt32
+rotationCount                UInt32
+reserved0                    UInt32
+```
+
+## Translation Keyframe Record Encoding
+
+```text
+time                         Float32 (seconds)
+value.x                      Float32
+value.y                      Float32
+value.z                      Float32
+```
+
+## Rotation Keyframe Record Encoding
+
+```text
+time                         Float32 (seconds)
+value.x                      Float32   (quaternion, XYZW)
+value.y                      Float32
+value.z                      Float32
+value.w                      Float32
+```
+
 ## Compression Rules
 
 Supported compression types:
 
 - `none`
 - `lz4`
-- `zstd`
+
+> `zstd` is listed in some early spec revisions but is **not currently implemented** by the exporter or runtime. Loaders must reject files with `compressionType = zstd`.
 
 Rules:
 
 - compression is applied per chunk, not whole-file
 - offsets stored in metadata reference the **uncompressed** chunk payload layout
 - metadata chunks may remain uncompressed for simpler startup
-- geometry chunks may be compressed
+- geometry chunks (`VERTEX_DATA`, `INDEX_DATA`) may be compressed; pass `--compress-geometry` to the exporter to enable LZ4
 
 ## Validation Rules
 
