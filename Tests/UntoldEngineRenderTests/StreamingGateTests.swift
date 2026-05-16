@@ -21,7 +21,6 @@ import XCTest
 
 @MainActor
 final class StreamingGateTests: BaseRenderSetup {
-
     override func setUp() async throws {
         try await super.setUp()
         GeometryStreamingSystem.shared.reset()
@@ -198,8 +197,8 @@ final class StreamingGateTests: BaseRenderSetup {
 
     // MARK: - Frustum gate
 
-    // Sets up the active camera looking toward -Z from the origin, which is the
-    // orientation expected by all frustum gate tests.
+    /// Sets up the active camera looking toward -Z from the origin, which is the
+    /// orientation expected by all frustum gate tests.
     private func setUpCameraLookingNegativeZ() {
         let camera = findGameCamera()
         CameraSystem.shared.activeCamera = camera

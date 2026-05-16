@@ -360,6 +360,7 @@ final class PostFXTests: BaseRenderSetup {
     }
 
     // MARK: - G-Buffer Debug View Mode Smoke Tests
+
     //
     // These verify the G-Buffer visualization paths (albedo, normal, depth, ssaoBlurred)
     // execute without error and produce a non-nil look texture. They do not use PSNR

@@ -237,7 +237,7 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertEqual(
             tcSmall.state, .unloaded,
             "At scale 0.1 the tile is 89 m from the camera in entity space " +
-            "(> prefetchRadius 85 m) and must not be dispatched"
+                "(> prefetchRadius 85 m) and must not be dispatched"
         )
 
         // ── Scale-up phase: restore to 1.0, same camera position ──
@@ -255,7 +255,7 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         XCTAssertEqual(
             tcFull.state, .parsing,
             "At scale 1.0 the tile is 8 m from the camera in entity space " +
-            "(≤ prefetchRadius 85 m) and must be dispatched to .parsing"
+                "(≤ prefetchRadius 85 m) and must be dispatched to .parsing"
         )
     }
 
@@ -412,7 +412,7 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         tileComp.meshEntityId = tileEntityId // valid non-.invalid id for gate-release path
 
         // Enroll in tracking sets the same way loadTile does.
-        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1_024)
+        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1024)
         GeometryStreamingSystem.shared.markLoadingTileEntity(tileEntityId)
 
         GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0
@@ -436,7 +436,7 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         let tileComp = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
         tileComp.state = .unloading
         tileComp.parseStartTime = CFAbsoluteTimeGetCurrent() - 120.0
-        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1_024)
+        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1024)
         GeometryStreamingSystem.shared.markLoadingTileEntity(tileEntityId)
 
         GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0
@@ -463,7 +463,7 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         let tileComp = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
         tileComp.state = .parsing
         tileComp.parseStartTime = 0 // download still pending — clock not yet started
-        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1_024)
+        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1024)
         GeometryStreamingSystem.shared.markLoadingTileEntity(tileEntityId)
 
         GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 0.0 // would fire immediately if start > 0
@@ -492,7 +492,7 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         let tileComp = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
         tileComp.state = .parsing
         tileComp.parseStartTime = CFAbsoluteTimeGetCurrent() // started right now
-        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1_024)
+        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(entityId: tileEntityId, fileSizeBytes: 1024)
         GeometryStreamingSystem.shared.markLoadingTileEntity(tileEntityId)
 
         GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0

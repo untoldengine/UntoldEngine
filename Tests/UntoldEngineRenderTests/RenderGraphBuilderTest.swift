@@ -444,10 +444,10 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         let (graph, finalPassID) = buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform")
-        XCTAssertNil(graph["fxaa"],              "No FXAA pass when antiAliasingMode is .none")
-        XCTAssertNil(graph["smaaEdges"],         "No SMAA edges pass when antiAliasingMode is .none")
-        XCTAssertNil(graph["smaaBlendWeights"],  "No SMAA blend-weight pass when antiAliasingMode is .none")
-        XCTAssertNil(graph["smaaNeighborhood"],  "No SMAA neighborhood pass when antiAliasingMode is .none")
+        XCTAssertNil(graph["fxaa"], "No FXAA pass when antiAliasingMode is .none")
+        XCTAssertNil(graph["smaaEdges"], "No SMAA edges pass when antiAliasingMode is .none")
+        XCTAssertNil(graph["smaaBlendWeights"], "No SMAA blend-weight pass when antiAliasingMode is .none")
+        XCTAssertNil(graph["smaaNeighborhood"], "No SMAA neighborhood pass when antiAliasingMode is .none")
         XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
                        "outputTransform must depend directly on look when no AA is active")
     }
@@ -493,7 +493,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         let wasBloom = BloomThresholdParams.shared.enabled
         let wasVignette = VignetteParams.shared.enabled
         BloomThresholdParams.shared.enabled = false
-        VignetteParams.shared.enabled = true  // keep the full chain alive; bloom alone is off
+        VignetteParams.shared.enabled = true // keep the full chain alive; bloom alone is off
         defer {
             BloomThresholdParams.shared.enabled = wasBloom
             VignetteParams.shared.enabled = wasVignette
