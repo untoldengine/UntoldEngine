@@ -6,7 +6,7 @@
 
 ## Scenario: A City Block with 500 Buildings
 
-Imagine a USDZ scene with a city block containing 500 buildings. Each building has a `RenderComponent` with meshes and submeshes, and each submesh has a `Material` containing up to four PBR textures:
+Imagine a tiled scene with a city block containing 500 buildings. Each building has a `RenderComponent` with meshes and submeshes, and each submesh has a `Material` containing up to four PBR textures:
 
 - **Base Color** (sRGB)
 - **Roughness** (linear)
@@ -134,7 +134,7 @@ Each `StreamWorkItem` carries:
 - The mesh/submesh index to know where to write back
 - The direction (`.upgrade` or `.downgrade`)
 - The target max dimension (`nil` means full source resolution)
-- The texture source: either an `MDLTexture` object or a `URL` on disk
+- The texture source: either a decoded texture object or a `URL` on disk
 
 ---
 
@@ -154,7 +154,7 @@ Inside the `Task`, for each work item:
 
 ```
 loadSourceTexture(source, isSRGB:, loader:)
-  └─ MTKTextureLoader loads the original MDLTexture or URL from disk
+  └─ MTKTextureLoader loads the original texture source or URL from disk
   └─ options: shaderRead | pixelFormatView, generateMipmaps: true, SRGB flag
   └─ Returns a full-resolution MTLTexture
 
@@ -230,10 +230,10 @@ After applying, the entity's membership in `upgradedEntities` is updated: if any
 | Scene loads | All 500 buildings loaded at 256px (minimum tier) by TextureLoader |
 | Camera 30m away from Building #42 | distance > 20m → already at minimum, no work |
 | Camera walks to 18m away | distance 18m → desired = 1024px medium; upgrade scheduled |
-| Upgrade task runs | Loads MDLTexture from source → 1024px; applied to ECS + batch |
+| Upgrade task runs | Loads texture from source → 1024px; applied to ECS + batch |
 | Building #42 added to `upgradedEntities` | (1024px > minimum) |
 | Camera walks to 10m away | distance 10m ≤ 12m → desired = nil (full); upgrade scheduled |
-| Upgrade task runs | Loads MDLTexture → full 2048px, no GPU resample needed; applied |
+| Upgrade task runs | Loads texture → full 2048px, no GPU resample needed; applied |
 | Camera walks away to 15m | distance 15m > 12m × (1 + 0.15) → downgrade to 1024px; scheduled |
 | Downgrade task runs | GPU resamples 2048px → 1024px; applied |
 | Camera walks away to 25m | distance 25m > 20m × (1 + 0.15) → downgrade to 256px minimum; scheduled |
@@ -415,7 +415,7 @@ The engine ships a native ASTC texture loader (`NativeTexFormat.swift`, `NativeT
 
 **How it interacts with texture streaming:**
 
-- ASTC textures embedded in `.untold` files are decoded by `NativeTextureLoader` at load time and handed to the same `TextureLoader` GPU cache used by the USDZ/USDC path. From the streaming system's perspective, they are ordinary `MTLTexture` objects.
+- ASTC textures embedded in `.untold` files are decoded by `NativeTextureLoader` at load time and handed to the same `TextureLoader` GPU cache. From the streaming system's perspective, they are ordinary `MTLTexture` objects.
 - All three streaming tiers (full, medium, minimum) apply normally — the system GPU-resamples the decoded ASTC texture to the target tier dimension using `MPSImageBilinearScale`, just as it does for PNG or JPEG source textures.
 - ASTC textures are typically much smaller on disk than uncompressed equivalents, so they reduce download time for remote tile assets and reduce `ProgressiveAssetLoader` CPU heap pressure.
 - The `.superdetailed` and `.detailed` streaming profiles note ASTC as the recommended source format for high-resolution hero assets on memory-constrained devices.
@@ -433,59 +433,3 @@ The engine ships a native ASTC texture loader (`NativeTexFormat.swift`, `NativeT
 
 This ensures every freshly loaded entity starts at the streaming system's minimum tier. The streaming system then only **upgrades** as the camera approaches — it never issues an immediate downgrade on a newly-loaded entity (which would have been visible as a resolution pop on the first frame the entity appeared).
 
----
-
-## TextureLoader Cache Key Design
-
-`TextureLoader` (the private helper class in `Mesh.swift`) maintains a per-instance GPU texture cache keyed by `TextureCacheKey(id: String, isSRGB: Bool)`. Two possible key strategies are used depending on what information ModelIO provides:
-
-### Priority 1 — Bracket-notation path (safe for deduplication)
-
-When `property.stringValue` contains a parseable USDZ bracket path
-(e.g. `"file:///scene.usdz[0/floor_albedo.png]"`), the key is:
-`usdz-embedded://0/floor_albedo.png`
-
-This is unique per physical embedded file. Two materials that reference the **same** embedded texture file correctly share one GPU texture via this key.
-
-### Priority 2 — Object identity (safe from collision)
-
-When bracket notation is absent, the key is the MDLTexture object's memory address:
-`mdl-obj-<hex-pointer>`
-
-This is used because the name-based fallback (`usdz-embedded://GameData/embedded_Basecolor_map`) is **not** safe as a cache key: multiple genuinely different materials can map to the same synthetic name when their MDLTexture objects have an empty `.name` property. Using a shared cache entry for different physical textures causes some meshes to display the wrong texture on first load.
-
-Sharing still works correctly: two code paths that hold a reference to the **same** MDLTexture object (same pointer) get the same cache key and share one GPU texture, which is the intended deduplication.
-
-### outputURL vs. cacheKeyURL
-
-Both values use the same strategy: bracket URL when available, object-identity URL otherwise.
-
-| Field | Value | Used by |
-|---|---|---|
-| `cacheKeyURL` | Bracket URL or object-identity URL | GPU `textureCache` lookup only |
-| `outputURL` → `material.baseColorURL` | Bracket URL or object-identity URL | `BatchingSystem.getMaterialHash`, `TextureStreamingSystem` source reference |
-
-**Why both use object identity when bracket notation is absent:**
-
-The name-based fallback (`usdz-embedded://scene.usdz/embedded_Basecolor_map`) is the same string for every unnamed texture from the same USDZ, regardless of its actual pixel content. `BatchingSystem.normalizeTextureURL` then strips the asset-scope host, collapsing all unnamed textures to the same token (`usdz-embedded://embedded_Basecolor_map`). This causes `getMaterialHash` to produce the same hash for entities with genuinely different textures, grouping them into one batch and rendering all of them with the first entity's GPU texture — the wrong texture on every other entity.
-
-Using object identity for `outputURL` as well means:
-- Same MDLTexture pointer → same physical texture → same `material.baseColorURL` → same batch hash → share a batch group ✓
-- Different MDLTexture pointers → different physical textures → different `material.baseColorURL` → different batch hash → separate batch groups ✓
-
-The MDLAsset is kept alive in `ProgressiveAssetLoader.rootAssetRefs` for the entity's lifetime, so MDLTexture pointers are stable across warm eviction/re-upload cycles.
-
-### Diagnostic Logging
-
-Set `textureCacheLoggingEnabled = true` before loading to trace every cache hit/miss:
-
-```swift
-// Enable before calling setEntityMeshAsync
-textureCacheLoggingEnabled = true
-```
-
-Each log line contains: `HIT/MISS`, cache key, key source (`bracket` / `obj-identity(unnamed)` / `obj-identity(named-no-bracket)`), MDLTexture pointer, texture name, map type, and isSRGB flag.
-
-**Before the fix:** you would see `HIT` entries where the same key is reused across different MDLTexture object identities for base-color textures — the collision.
-
-**After the fix:** each unnamed/no-bracket texture gets its own `obj-identity` key; `HIT` entries are only seen when the same MDLTexture object is referenced by multiple materials (correct sharing).

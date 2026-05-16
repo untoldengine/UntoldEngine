@@ -4,7 +4,7 @@
 
 UntoldEngine implements a multi-tier proximity-based geometry streaming system for large outdoor and indoor scenes on Apple platforms (macOS, visionOS). The system streams geometry in and out of GPU memory based on camera distance, using a spatial **octree** for efficient runtime range queries. Tile spatial partitioning in the manifest can follow either a uniform grid (v3) or a quadtree floor layout (v4) — see [Manifest Versions and Quadtree Partitioning](#manifest-versions-and-quadtree-partitioning).
 
-**Tier 1 — Tile streaming** (`TileComponent`): coarse-grained. Each tile is a whole USDC file covering a bounded region of the world. Tiles load and unload as the camera moves through the scene.
+**Tier 1 — Tile streaming** (`TileComponent`): coarse-grained. Each tile is a `.untold` binary file covering a bounded region of the world. Tiles load and unload as the camera moves through the scene.
 
 **Tier 2 — OCC mesh streaming** (`StreamingComponent`): fine-grained. Inside a loaded tile, individual mesh stubs upload to the GPU incrementally, governed by distance bands and memory budgets.
 
@@ -60,7 +60,7 @@ The `streaming_defaults` block sets scene-wide fallback values for all per-tile 
 | Field | Description |
 |---|---|
 | `tile_id` | Human-readable name (e.g. `"tile_3_2"`) |
-| `path_relative_to_manifest` | Path to the USDC file, relative to the manifest |
+| `path_relative_to_manifest` | Path to the tile's `.untold` file, relative to the manifest |
 | `file_size_bytes` | Pre-computed file size used by the memory budget gate |
 | `bounds.min` / `bounds.max` | World-space AABB used for octree insertion and frustum tests |
 | `center` | World-space center (used for distance calculations) |
@@ -79,7 +79,7 @@ The `streaming_defaults` block sets scene-wide fallback values for all per-tile 
 
 ```json
 "hlod_levels": [
-  { "path": "tiles/tile_0_0_hlod.usdc", "switch_distance": 300.0 }
+  { "path": "tiles/tile_0_0_hlod.untold", "switch_distance": 300.0 }
 ]
 ```
 
@@ -89,8 +89,8 @@ The `streaming_defaults` block sets scene-wide fallback values for all per-tile 
 
 ```json
 "lod_levels": [
-  { "path": "tiles/tile_0_0_lod1.usdc", "switch_distance": 80.0 },
-  { "path": "tiles/tile_0_0_lod2.usdc", "switch_distance": 150.0 }
+  { "path": "tiles/tile_0_0_lod1.untold", "switch_distance": 80.0 },
+  { "path": "tiles/tile_0_0_lod2.untold", "switch_distance": 150.0 }
 ]
 ```
 
@@ -101,7 +101,7 @@ Entries **must be sorted ascending by `switch_distance`** (smallest = finest = c
 - **`TileComponent`** — attached to every tile stub entity created by `setEntityStreamScene()`. Carries all metadata needed for the streaming bootstrap and teardown lifecycle. Key fields added for HLOD and LOD:
   - `hlodURL`, `hlodEntityId`, `hlodState`, `hlodSwitchDistance`, `hlodLoadTask` — HLOD lifecycle
   - `lodLevels: [TileLODLevel]` — per-tile intermediate LOD entries
-  - `meshEntityId` — the dedicated mesh-child entity ID, stored so the timeout guard can force-close `AssetLoadingGate` if `loadTextures()` hangs
+  - `meshEntityId` — the dedicated mesh-child entity ID, stored so the parse-timeout watchdog can force-close `AssetLoadingGate` if the parse Task becomes stuck
 - **`TileLODLevel`** — one instance per LOD entry in the manifest. Carries `url`, `switchDistance`, `entityId`, `state` (`HLODAssetState`), and `loadTask`. Mirrors the HLOD lifecycle pattern.
 - **`TileLODTagComponent`** — lightweight tag placed on render-descendant mesh entities spawned by the streaming system for per-tile LOD levels and HLODs. Carries a `levelIndex` used by the LOD debug renderer (`colorRenderablesByLOD`) and by `BatchingSystem.resolveBatchCandidate` to derive the batch LOD index for these entities (which have no `LODComponent`). `levelIndex` follows `lodDebugPalette`: 1 = LOD1 (green), 2 = LOD2 (blue), 5 = HLOD (cyan).
 - **`StreamingComponent`** — attached to individual OCC mesh stubs created inside a loaded tile. Governs per-mesh load/unload within the second streaming tier.
@@ -218,7 +218,7 @@ Each completed OCC upload calls `incrementParentTileOCCCount(for:)`, which incre
 2. Sets `tileComp.state = .unloading`; cancels `tileComp.loadTask`.
 3. If `wasParsing`: removes from `loadingTileEntities` and bails out. The Task completion callback will find `.unloading`, discard the result, and dispatch deferred child-entity cleanup — this avoids a concurrent ECS write race since `setEntityMeshAsync` may still be running.
 4. If `.parsed`: calls `collectTileDescendants(entityId)` to walk the child tree, cancelling any in-flight OCC streaming tasks. Calls `destroyEntity` on all descendants + `finalizePendingDestroys()`. This releases GPU buffers, removes octree entries, releases `MeshResourceManager` refs, and unregisters from `MemoryBudgetManager`.
-5. Calls `ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId:)` to free CPU-heap MDLAsset data for out-of-core tiles.
+5. Calls `ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId:)` to free CPU-heap asset data for out-of-core tiles.
 6. Resets `totalOCCStubs`, `uploadedOCCStubs`, `pendingUnloadSince` to 0.
 7. Sets `tileComp.state = .unloaded`; removes from `loadedTileEntities`.
 
@@ -276,7 +276,7 @@ Both `.parsing` and `.parsed` tiles honour the grace period. `.parsing` tiles ha
 ## Threading Model
 
 - All ECS mutations (`createEntity`, `registerComponent`, `destroyEntity`, `finalizePendingDestroys`) must run on the **main thread**.
-- Background Swift Tasks handle disk I/O, USDC parsing, and CPU→Metal buffer copies.
+- Background Swift Tasks handle disk I/O, `.untold` file parsing, and CPU→Metal buffer copies.
 - `withWorldMutationGate` is an activity counter, not a mutex. It does **not** provide mutual exclusion — it signals that ECS mutations are occurring.
 - `scene.exists(entityId)` guards before every ECS write in upload completions prevent writes to entities destroyed while an upload was in flight (cooperative cancellation race).
 - Tile tracking sets (`loadedTileEntities`, `loadingTileEntities`, `activeTileLoads`, `meshEntityToTileEntity`) are protected by `stateLock` and accessed only through accessor methods.
@@ -385,7 +385,7 @@ When `tileComp.state == .parsed` (full tile is resident), all LOD levels are unl
 ### `loadLODLevel(entityId:levelIndex:)`
 
 1. Creates a child entity under the tile stub.
-2. Loads the LOD USDC via `setEntityMeshAsync` with `.immediate` policy and `blockRenderLoop: false` (small proxy mesh, must not stall the render loop).
+2. Loads the LOD `.untold` asset via `setEntityMeshAsync` with `.immediate` policy and `blockRenderLoop: false` (small proxy mesh, must not stall the render loop).
 3. On success: tags render descendants with `TileLODTagComponent(levelIndex: capturedIndex + 1)` for LOD debug visualization, tags the entity for static batching (`setEntityStaticBatchComponent`), and calls `BatchingSystem.shared.notifyTileEntitiesResident(_:)` to bypass the quiescence delay.
 4. Marks the entity in `loadedLODEntities` tracking set.
 
@@ -409,30 +409,9 @@ When the full tile finishes parsing, `unloadAllLODLevels(entityId:)` is called a
 
 ## Asset Loading Freeze Prevention
 
-`ModelIO`'s `loadTextures()` is a blocking call that can hang indefinitely on unsupported image formats inside USDC archives (e.g. a format that stalls the ObjC image decoder with no timeout). When it hangs, `AssetLoadingState.finishLoading` is never called, `AssetLoadingGate.isLoadingAny` stays `true` permanently, and `RenderingSystem` skips all ECS traversal and culling every frame — the app remains alive but the view is frozen.
+The `.untold` format loads via `UntoldReader` without calling `loadTextures()` or any blocking ModelIO API, so tile parses do not produce `AssetLoadingGate` hangs by design.
 
-### Fix: timeout guard + `ResumeOnce`
-
-`loadTextures()` in `RegistrationSystem` is wrapped with a `DispatchQueue` + 15-second deadline:
-
-```swift
-let textureLoadOK = await withCheckedContinuation { cont in
-    let once = ResumeOnce()        // NSLock-backed: resumes cont exactly once
-    DispatchQueue.global(qos: .userInitiated).async {
-        assetRef.loadTextures()
-        once.callOnce { cont.resume(returning: true) }
-    }
-    DispatchQueue.global().asyncAfter(deadline: .now() + 15.0) {
-        once.callOnce { cont.resume(returning: false) }   // deadline fires
-    }
-}
-```
-
-If `loadTextures()` hangs, the deadline fires after 15 s and the async continuation proceeds without textures (geometry is still rendered, just untextured).
-
-### Force-closing the gate
-
-`TileComponent.meshEntityId` stores the dedicated mesh-child entity ID. If the tile is unloaded while a parse is in flight and `loadTextures()` is hung, the timeout guard retrieves `meshEntityId` and force-closes the gate:
+The 60-second tile-parse watchdog (see [Tile-Parse Watchdog](#tile-parse-watchdog) below) serves as the safety net for any stuck parse Task — for example when the OS suspends the Task or disk I/O stalls indefinitely. When the watchdog fires it force-closes the gate defensively:
 
 ```swift
 let hungMeshId = tc.meshEntityId
@@ -442,13 +421,13 @@ if hungMeshId != .invalid {
 }
 ```
 
-This unblocks `AssetLoadingGate`, allowing the render loop to resume its normal ECS traversal.
+`finishLoading` is idempotent — if the Task already closed the gate normally, this call is a no-op.
 
 ---
 
 ## Tile-Parse Watchdog
 
-The `loadTextures()` 15-second timeout (above) guards against a hung texture decode inside an already-running parse. A separate, coarser watchdog guards against the entire tile parse Task becoming stuck — for example when the OS suspends the Task, disk I/O stalls indefinitely, or a remote download never completes.
+The tile-parse watchdog guards against the entire tile parse Task becoming stuck — for example when the OS suspends the Task, disk I/O stalls indefinitely, or a remote download never completes.
 
 On every streaming tick, `GeometryStreamingSystem.update()` checks every tile currently in `.parsing` state:
 
@@ -466,7 +445,6 @@ if CFAbsoluteTimeGetCurrent() - tc.parseStartTime > tileParseTimeoutSeconds (def
 
 | Mechanism | Scope | Deadline | On trigger |
 |---|---|---|---|
-| `ResumeOnce` + `DispatchQueue` | `loadTextures()` call only | 15 s | Proceeds without textures; geometry still renders |
 | Tile-parse watchdog | Entire tile parse Task | 60 s (`tileParseTimeoutSeconds`) | Cancels task, marks `.failed`, enters retry backoff |
 
 ---
@@ -495,6 +473,5 @@ if CFAbsoluteTimeGetCurrent() - tc.parseStartTime > tileParseTimeoutSeconds (def
 | `visibleEvictionProtectionRadius` | 30 m | Distance inside which eviction is blocked |
 | `hlodSwitchDistance` | manifest `switch_distance` | Camera distance beyond which HLOD is shown |
 | LOD `switchDistance` | manifest `switch_distance` per entry | Camera distance beyond which this LOD is preferred |
-| `loadTextures()` timeout | 15 s | Deadline before `ResumeOnce` force-proceeds without textures |
-| `tileParseTimeoutSeconds` | 60 s | Watchdog deadline for an entire tile parse Task; forces tile to `.failed` and frees concurrency slot — distinct from the per-`loadTextures()` 15 s timeout |
+| `tileParseTimeoutSeconds` | 60 s | Watchdog deadline for an entire tile parse Task; forces tile to `.failed` and frees concurrency slot |
 | `secondaryRepresentationMinDwellSeconds` | 1.0 s | Minimum time a HLOD or per-tile LOD level must dwell before the next transition is allowed; prevents flip-flopping between representations faster than once per second |

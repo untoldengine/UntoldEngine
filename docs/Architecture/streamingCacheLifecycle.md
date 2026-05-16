@@ -84,7 +84,7 @@ Under critical memory pressure the engine may call:
 ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId:)
 ```
 
-That frees the retained `MDLAsset` tree and child CPU buffers for that streamed root while preserving enough context to reparse later.
+That frees the retained asset parse tree and child CPU buffers for that streamed root while preserving enough context to reparse later.
 
 ## Why the Split Exists
 

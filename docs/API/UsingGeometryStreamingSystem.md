@@ -48,7 +48,7 @@ Remote manifests are downloaded and cached locally. Tile, HLOD, and per-tile LOD
 
 The engine uses multiple geometry layers:
 
-- **Full tile**: the main tile payload loaded by `loadTile()`
+- **Full tile**: the main tile payload loaded by `loadTile()`. Tile assets use the `.untold` binary format, loaded by `UntoldReader` without ModelIO.
 - **Per-tile LOD**: intermediate meshes shown while the full tile is still out of range
 - **HLOD**: coarse far-distance proxy
 - **OCC sub-mesh stubs**: fine-grained `StreamingComponent` entities created internally inside large tiles
@@ -76,7 +76,7 @@ If `prefetch_radius` is omitted, the engine computes it automatically from the g
 Each update tick, `GeometryStreamingSystem`:
 
 1. Queries the octree within `maxQueryRadius`.
-2. Chooses tile parse candidates using predictive camera motion and a frustum gate.
+2. Chooses tile parse candidates using predictive camera motion (velocity look-ahead), a frustum gate, and an optional interior zone gate.
 3. Parses up to `maxConcurrentTileLoads` tiles, subject to `tileParseMemoryBudgetMB`.
 4. Streams OCC child meshes inside loaded tiles using `maxConcurrentLoads`.
 5. Unloads tiles, LODs, HLODs, and OCC meshes when they leave range or memory pressure requires eviction.
@@ -93,11 +93,34 @@ Important defaults:
 ## Useful Runtime Knobs
 
 ```swift
+// Tile concurrency
 GeometryStreamingSystem.shared.maxConcurrentTileLoads = 2
 GeometryStreamingSystem.shared.maxConcurrentLoads = 3
+GeometryStreamingSystem.shared.maxConcurrentLODLoads = 4
+GeometryStreamingSystem.shared.maxConcurrentHLODLoads = 4
+
+// Frustum gate
 GeometryStreamingSystem.shared.enableFrustumGate = true
-GeometryStreamingSystem.shared.tileFrustumGatePadding = 20.0
-GeometryStreamingSystem.shared.maxQueryRadius = 500.0
+GeometryStreamingSystem.shared.tileFrustumGatePadding = 20.0   // m — wider pad for tiles
+GeometryStreamingSystem.shared.frustumGatePadding = 5.0        // m — pad for mesh-level OCC
+
+// Spatial query
+GeometryStreamingSystem.shared.maxQueryRadius = 500.0          // must cover farthest unload_radius
+
+// Velocity predictor (predictive tile loading)
+GeometryStreamingSystem.shared.velocityLookAheadTime = 0.5     // s — how far ahead to project
+GeometryStreamingSystem.shared.velocityLookAheadMinSpeed = 1.5 // m/s — activation threshold
+
+// Interior zone gating (v4 quadtree-floor manifests)
+// Tiles tagged interior=true only load when the camera is inside this AABB.
+// Set automatically from the manifest; override if needed:
+GeometryStreamingSystem.shared.interiorZone = AABB(
+    min: simd_float3(-10, 0, -10),
+    max: simd_float3(10, 5, 10)
+)
+
+// Parse safety
+GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0  // watchdog deadline per tile
 ```
 
 Use `maxQueryRadius` large enough to cover the farthest `unload_radius` in the scene, or out-of-range tiles may not be discovered for teardown.
