@@ -42,10 +42,16 @@ func UpdateRenderingSystem(in view: MTKView) {
         renderInfo.lastCommandBuffer = commandBuffer
         renderInfo.currentInFlightFrameSlot = acquireUniformFrameSlot()
 
+        // Always refresh the scene-root matrices so that effectiveCameraPosition() and
+        // effectiveViewMatrix() reflect any SceneRootTransform changes (position, rotation,
+        // scale) that the app made this frame — including changes made while assets are loading.
+        // updateIfNeeded() is a pure matrix recompute with no ECS traversal, so it is safe to
+        // call unconditionally regardless of the loading gate state.
+        SceneRootTransform.shared.updateIfNeeded()
+
         // Skip render prep (culling, gaussian, bitonic) while loading - these traverse ECS.
         // The render graph still executes using the stale visibleEntityIds.
         if !loading {
-            SceneRootTransform.shared.updateIfNeeded()
             #if ENGINE_STATS_ENABLED
                 let renderPrepStart = CACurrentMediaTime()
             #endif
