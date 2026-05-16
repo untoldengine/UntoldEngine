@@ -174,5 +174,143 @@ class UntoldExplorerTests(unittest.TestCase):
         self.assertEqual(padded[2:], [0.0, 0.0])
 
 
+    def test_float_to_half_bits_known_values(self) -> None:
+        # IEEE-754 half-precision reference values
+        self.assertEqual(u.float_to_half_bits(0.0), 0x0000)
+        self.assertEqual(u.float_to_half_bits(1.0), 0x3C00)
+        self.assertEqual(u.float_to_half_bits(-1.0), 0xBC00)
+        self.assertEqual(u.float_to_half_bits(0.5), 0x3800)
+
+    def test_binary_writer_remaining_types(self) -> None:
+        # write_u32
+        w32 = u.BinaryWriter()
+        w32.write_u32(0xDEADBEEF)
+        self.assertEqual(w32.data, bytes([0xEF, 0xBE, 0xAD, 0xDE]))  # little-endian
+
+        # write_u64
+        w64 = u.BinaryWriter()
+        w64.write_u64(0x0102030405060708)
+        self.assertEqual(w64.count, 8)
+
+        # write_f32 — IEEE-754 1.0f = 0x3F800000
+        wf = u.BinaryWriter()
+        wf.write_f32(1.0)
+        self.assertEqual(wf.count, 4)
+        self.assertEqual(int.from_bytes(wf.data, "little"), 0x3F800000)
+
+        # write_c_string — null-terminated UTF-8
+        ws = u.BinaryWriter()
+        ws.write_c_string("hello")
+        self.assertEqual(ws.data, b"hello\x00")
+        self.assertEqual(ws.count, 6)
+
+        # write_matrix4x4_column_major — 16 floats = 64 bytes
+        wm = u.BinaryWriter()
+        wm.write_matrix4x4_column_major(u.identity_matrix_rows())
+        self.assertEqual(wm.count, 64)
+
+    def test_aabb_corners_returns_eight_distinct_points(self) -> None:
+        bounds = u.AABB((0.0, 0.0, 0.0), (1.0, 2.0, 3.0))
+        corners = u.aabb_corners(bounds)
+        self.assertEqual(len(corners), 8)
+        # All combinations of min/max must appear
+        self.assertIn((0.0, 0.0, 0.0), corners)
+        self.assertIn((1.0, 2.0, 3.0), corners)
+        self.assertIn((1.0, 0.0, 0.0), corners)
+        self.assertIn((0.0, 2.0, 3.0), corners)
+        # All 8 corners must be distinct
+        self.assertEqual(len(set(corners)), 8)
+
+    def test_matrix_rows_operations(self) -> None:
+        I = u.identity_matrix_rows()
+
+        # Identity × Identity = Identity
+        self.assertEqual(u.matrix_rows_multiply(I, I), I)
+
+        # Identity does not move a point
+        pt = u.transform_point_rows(I, (1.0, 2.0, 3.0))
+        self.assertAlmostEqual(pt[0], 1.0)
+        self.assertAlmostEqual(pt[1], 2.0)
+        self.assertAlmostEqual(pt[2], 3.0)
+
+        # Identity does not rotate a direction
+        d = u.transform_direction_rows(I, (0.0, 0.0, 1.0), (0.0, 0.0, 1.0))
+        self.assertAlmostEqual(d[0], 0.0)
+        self.assertAlmostEqual(d[1], 0.0)
+        self.assertAlmostEqual(d[2], 1.0)
+
+    def test_write_chunk_entry_and_record_sizes(self) -> None:
+        # Chunk entry must be exactly CHUNK_ENTRY_SIZE bytes
+        w = u.BinaryWriter()
+        u.write_chunk_entry(
+            w,
+            chunk_type=u.CHUNK_TYPES["mesh_table"],
+            compression_type=u.COMPRESSION_NONE,
+            file_offset=256,
+            compressed_size=1024,
+            uncompressed_size=1024,
+            element_count=5,
+        )
+        self.assertEqual(w.count, u.CHUNK_ENTRY_SIZE)
+
+        # Entity record: 6×u32 + 2×AABB(24) + matrix4x4(64) = 24+24+24+64 = 136 bytes
+        we = u.BinaryWriter()
+        entity = u.EntityRecord(
+            entity_id=1,
+            parent_entity_id=u.INVALID_INDEX,
+            name_offset=0,
+            first_mesh_record_index=0,
+            mesh_record_count=1,
+            flags=0,
+            local_bounds=u.AABB((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)),
+            world_bounds=u.AABB((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)),
+            local_transform_rows=u.identity_matrix_rows(),
+        )
+        u.write_entity_record(we, entity)
+        self.assertEqual(we.count, 136)
+
+        # Material record: 88 bytes (per assetFormat.md schema)
+        wm = u.BinaryWriter()
+        mat = u.MaterialRecord(
+            name_offset=0, flags=0,
+            base_color_factor=(1.0, 1.0, 1.0, 1.0),
+            emissive_factor=(0.0, 0.0, 0.0),
+            normal_scale=1.0, metallic_factor=0.0, roughness_factor=1.0,
+            occlusion_strength=1.0, alpha_cutoff=0.5,
+            base_color_texture_index=u.INVALID_INDEX,
+            normal_texture_index=u.INVALID_INDEX,
+            metallic_texture_index=u.INVALID_INDEX,
+            roughness_texture_index=u.INVALID_INDEX,
+            emissive_texture_index=u.INVALID_INDEX,
+            occlusion_texture_index=u.INVALID_INDEX,
+        )
+        u.write_material_record(wm, mat)
+        self.assertEqual(wm.count, 88)
+
+        # Texture record: 8×u32 = 32 bytes
+        wt = u.BinaryWriter()
+        tex = u.TextureRecord(
+            name_offset=0, uri_offset=0, texture_format=0, flags=0,
+            width=512, height=512, mip_count=1,
+        )
+        u.write_texture_record(wt, tex)
+        self.assertEqual(wt.count, 32)
+
+    def test_main_rejects_non_usd_and_missing_input(self) -> None:
+        import tempfile
+
+        # Non-USD extension raises RuntimeError before any Blender call
+        with tempfile.NamedTemporaryFile(suffix=".obj", delete=False) as f:
+            non_usd = f.name
+        with self.assertRaises(RuntimeError) as ctx:
+            u.main(["script", "--input", non_usd, "--output", "/tmp/out.untold"])
+        self.assertIn("Unsupported", str(ctx.exception))
+
+        # Missing file raises RuntimeError before any Blender call
+        with self.assertRaises(RuntimeError) as ctx2:
+            u.main(["script", "--input", "/nonexistent/ghost.usdz", "--output", "/tmp/out.untold"])
+        self.assertIn("does not exist", str(ctx2.exception))
+
+
 if __name__ == "__main__":
     unittest.main()
