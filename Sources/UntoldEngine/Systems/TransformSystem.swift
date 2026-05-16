@@ -431,6 +431,38 @@ public func translateSceneTo(position: simd_float3) {
     SceneRootTransform.shared.position = position
 }
 
+/// Scale the entire scene uniformly without modifying individual entity transforms.
+///
+/// Use this — **not** `scaleTo(entityId:scale:)` on the scene root entity — when you need to
+/// shrink a tiled scene for inspection (e.g. calibration mode) and then restore it to full size.
+///
+/// `scaleTo(entityId:)` on the scene root propagates the new world transform through every tile
+/// stub and its parsed children, which can be hundreds of expensive ECS writes for a large tiled
+/// scene. On scale-up, it also causes every tile to appear instantly within streaming range,
+/// potentially triggering a memory burst on memory-constrained devices (e.g. Vision Pro).
+///
+/// This function uses the virtual-camera trick: no entity transforms are modified.
+/// The streaming system's `effectiveCameraPosition()` accounts for the scale automatically,
+/// so streaming distances shrink proportionally — tiles only load when the camera is within
+/// `streamingRadius × scale` world-space units of a tile.
+public func scaleSceneTo(_ scale: Float) {
+    guard scale.isFinite, scale > 0 else {
+        handleError(.valueisNaN, "Scene scale must be finite and positive", .invalid)
+        return
+    }
+    SceneRootTransform.shared.scale = simd_float3(scale, scale, scale)
+}
+
+/// Scale the entire scene non-uniformly without modifying individual entity transforms.
+/// Prefer the uniform overload `scaleSceneTo(_ scale: Float)` for most use cases.
+public func scaleSceneTo(_ scale: simd_float3) {
+    guard scale.x.isFinite, scale.y.isFinite, scale.z.isFinite else {
+        handleError(.valueisNaN, "Scene scale must be finite", .invalid)
+        return
+    }
+    SceneRootTransform.shared.scale = scale
+}
+
 /// Convert a point from scene-local/entity space to visual world space.
 public func sceneLocalToVisualWorld(_ position: simd_float3) -> simd_float3 {
     SceneRootTransform.shared.sceneLocalToVisualWorld(position)
