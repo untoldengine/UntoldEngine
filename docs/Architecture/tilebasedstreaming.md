@@ -271,6 +271,29 @@ Both `.parsing` and `.parsed` tiles honour the grace period. `.parsing` tiles ha
 - **OS memory pressure** callbacks (`DispatchSource.makeMemoryPressureSource`) set a flag; eviction is deferred to the next `update()` tick to stay single-threaded.
 - **`tripleVisibleEntities.clearAll()`** — called in `finalizePendingDestroys()` to clear all triple-buffer slots so the renderer does not read stale entity IDs after a scene reload.
 
+### `evictLRU` limitation with full-load tile geometry
+
+`evictLRU` targets `loadedStreamingEntities` — the set of OCC mesh stubs (entities with `StreamingComponent`). Full-load tile geometry lives on `RenderComponent` entities created by the `fullLoad` path of `setEntityMeshAsync` and is **not** in `loadedStreamingEntities`. This means:
+
+- `MemoryBudgetManager.shouldEvictGeometry()` correctly reports that memory is in use.
+- `evictLRU` runs but frees nothing from those tiles.
+- `shouldEvictGeometry()` stays true.
+- The tile load loop's `guard !shouldEvictGeometry() else { break }` fires and **no new tiles load**.
+
+The only mechanism that can free full-load tile GPU memory is the **tile unload pass** calling `unloadTile()`. That pass has a 3-second grace period and a `maxTileUnloadsPerUpdate = 2` cap. For a 200-tile scene, full cleanup takes 10+ seconds after the camera moves away.
+
+### `forceUnloadAllParsedTiles()` — explicit session transition
+
+When an app transitions between "active" and "inspection/calibration" modes (e.g. scaling a tiled scene down to miniature for placement), the previous session's tiles must be explicitly freed before the next full-scale session loads new tiles. Without an explicit unload, the memory budget deadlock described above stalls the new session for 10+ seconds.
+
+```swift
+GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+```
+
+This iterates `loadedTileEntities` and calls `unloadTile()` for every `.parsed` tile, **bypassing the grace period and per-tick cap**. `unloadTile()` destroys the mesh-root child entity and all its descendants inside `withWorldMutationGate`, calls `finalizePendingDestroys()`, and unregisters GPU memory from `MemoryBudgetManager`. It also unloads any resident HLOD and per-tile LOD representations. By the time the call returns, `shouldEvictGeometry()` reflects the freed memory and the next session can load tiles without hitting the budget guard.
+
+**When to call it:** call `forceUnloadAllParsedTiles()` when the user deliberately exits the active rendering session — for example, tapping a "recalibrate" or "place model" button that scales the scene down to a miniature view. Do **not** call it during normal streaming (movement, room changes) — the distance-based unload pass handles those cases correctly and with appropriate hysteresis.
+
 ---
 
 ## Threading Model

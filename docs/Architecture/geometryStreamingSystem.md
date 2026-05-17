@@ -170,6 +170,8 @@ if geometry pressure is high:
 5. Skips entities that are both visible and within `visibleEvictionProtectionRadius` (30 m default)
 6. Accepts an optional `maxEvictions` cap (default `Int.max`). The OS pressure path passes `16` per call — this bounds single-frame work during a burst. Any remaining candidates spill to subsequent ticks.
 
+> **`evictLRU` does not reach full-load tile geometry.** `loadedStreamingEntities` tracks OCC mesh stubs (`StreamingComponent` entities). Full-load tiles use the `fullLoad` path of `setEntityMeshAsync`, which creates `RenderComponent` entities that are **not** in `loadedStreamingEntities`. `evictLRU` therefore cannot free their GPU buffers. The tile unload pass (via `unloadTile()`) is the only mechanism that frees full-load tile geometry, but it has a 3-second grace period and a 2-per-tick cap. For explicit session transitions, call `GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()` instead — see [`tilebasedstreaming.md`](tilebasedstreaming.md#forceunloadallparsedtiles----explicit-session-transition).
+
 The `sizeFactor` in the eviction score is normalized against `geometryBudget` (not the combined budget), so a mesh consuming 80% of the geometry pool scores correctly rather than appearing to consume only ~48% of a combined total.
 
 ### Step 3 — OS memory pressure (proactive, out-of-band)
