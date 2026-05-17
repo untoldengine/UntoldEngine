@@ -125,6 +125,60 @@ GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0  // watchdog deadl
 
 Use `maxQueryRadius` large enough to cover the farthest `unload_radius` in the scene, or out-of-range tiles may not be discovered for teardown.
 
+## Session Transitions — `forceUnloadAllParsedTiles()`
+
+```swift
+GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+```
+
+This call immediately unloads every `.parsed` tile and all resident HLOD and LOD representations, bypassing the 3-second grace period and the 2-per-tick unload cap. It runs synchronously on the main thread: for each tile it destroys the mesh-root child entity and all its descendants via `unloadTile()`, calls `finalizePendingDestroys()`, and unregisters the GPU allocation from `MemoryBudgetManager`. When it returns, `shouldEvictGeometry()` reflects the freed memory.
+
+### Why you need it
+
+Full-load tile GPU memory is tracked by `MemoryBudgetManager` but is **not** in `loadedStreamingEntities` — the set that `evictLRU` targets. If you start a new tile-loading session while old tiles are still resident, this sequence locks the load loop:
+
+1. `shouldEvictGeometry()` is `true` — old tiles still occupy the budget.
+2. `evictLRU` runs and frees nothing (wrong entity set).
+3. `guard !shouldEvictGeometry() else { break }` fires every tick.
+4. No new tiles load. The scene freezes until the slow distance-based unload completes (3-second grace period × 2-per-tick cap = **10+ seconds** for a large scene).
+
+### When to call it
+
+Call `forceUnloadAllParsedTiles()` whenever you are about to start a new tile-loading session while tiles from a previous one may still be in GPU memory. The two common cases are:
+
+**1. Switching between full-scale and calibration/inspection mode**
+
+When a user scales the scene down to inspect or reposition it (e.g. a miniature placement workflow), the previous full-scale session's tiles must be freed before they switch back to full scale:
+
+```swift
+// Entering calibration — free the previous full-scale session's memory.
+GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+scaleSceneTo(calibrationScale)
+translateSceneTo(position: placementTarget)
+```
+
+Without this call, every calibration → full-scale cycle leaves more tiles in memory. After a few cycles the memory budget is exhausted, `shouldEvictGeometry()` permanently breaks the load loop, and the scene freezes.
+
+**2. Switching directly from one tiled scene to another**
+
+When the user cancels a scene mid-load and immediately loads a different one, tiles from the first scene may be partially or fully parsed:
+
+```swift
+// User tapped "wrong scene" and is loading a different one.
+GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+destroyEntity(entityId: oldSceneRoot)
+setEntityStreamScene(entityId: newSceneRoot, manifest: "correct_scene") { ... }
+```
+
+This guarantees the memory budget is clean before the new scene's first streaming tick runs. Without it there is a race between `finalizePendingDestroys()` (which frees GPU memory when the old root entity is torn down) and the streaming tick that checks `shouldEvictGeometry()` — the tick can fire before the destroy finalizes, blocking early tile loads in the new scene.
+
+### When NOT to call it
+
+- **Normal camera movement and room transitions** — the distance-based unload pass handles these with appropriate hysteresis. Calling `forceUnloadAllParsedTiles()` here would discard tiles the user is about to need.
+- **Returning to a menu with no subsequent tile loading** — `destroyEntity` on the scene root cascades through all tile stubs; their component cleanup (`removeTileComponent`) cancels in-flight tasks and removes them from tracking sets. No explicit unload is needed.
+
+The rule of thumb: **call it whenever you know a new tile-streaming session is about to start and you cannot guarantee the previous session has already finished unloading.**
+
 ## Interaction with Other Systems
 
 - **Texture streaming**: `setEntityStreamScene(...)` automatically aligns texture distance bands to the manifest radii.

@@ -1459,6 +1459,56 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
     }
 
+    /// Immediately unload every currently `.parsed` or `.parsing` tile, bypassing
+    /// the normal 3-second grace period and the 2-per-tick unload cap.
+    ///
+    /// Call this when the user intentionally leaves the full-scale session
+    /// (e.g. entering calibration mode in a spatial app).  Without an explicit
+    /// unload the streaming system relies on the distance-based unload pass to
+    /// reclaim full-load tile GPU memory; that pass runs at 2 tiles/tick with a
+    /// 3-second grace period, meaning a 200-tile scene can take 10+ seconds to
+    /// fully free.  During that window `MemoryBudgetManager.shouldEvictGeometry()`
+    /// stays `true` — because full-load tile geometry is tracked there but is
+    /// NOT in `loadedStreamingEntities` and therefore cannot be freed by
+    /// `evictLRU` — which hard-breaks the tile load loop in the next session,
+    /// causing the scene to appear frozen until the slow unload completes.
+    ///
+    /// **Why `.parsing` tiles are also cancelled:**
+    /// A tile in `.parsing` state has a background Task running `setEntityMeshAsync`.
+    /// If that Task completes *after* this call returns and `tc.state` is still
+    /// `.parsing`, the Task's success path marks the tile `.parsed`, registers GPU
+    /// memory in `MemoryBudgetManager`, and adds children to batching — silently
+    /// recreating the exact memory-budget blockage this API is meant to prevent.
+    /// Calling `unloadTile()` on a `.parsing` tile sets state to `.unloading` before
+    /// cancelling the Task; the completion callback then finds `.unloading` instead
+    /// of `.parsing`, takes the cleanup path, and never enters the success path.
+    ///
+    /// This API frees GPU memory immediately so the next full-scale session can
+    /// start loading tiles with a clean memory budget.
+    public func forceUnloadAllParsedTiles() {
+        // Cancel in-flight (.parsing) tiles first so their Tasks cannot complete
+        // through the success path after this call returns.
+        let parsingSnapshot = loadingTileEntitiesSnapshot()
+        for entityId in parsingSnapshot {
+            unloadTile(entityId: entityId) // sets state to .unloading; Task cleanup deferred
+        }
+        // Unload already-.parsed tiles synchronously (destroys mesh children immediately).
+        let parsedSnapshot = loadedTileEntitiesSnapshot()
+        for entityId in parsedSnapshot {
+            unloadTile(entityId: entityId)
+        }
+        // Also tear down any HLOD and per-tile LOD representations that are
+        // still resident so they don't hold GPU memory across sessions.
+        let hlodSnapshot = loadedHLODEntitiesSnapshot()
+        for entityId in hlodSnapshot {
+            unloadHLOD(entityId: entityId)
+        }
+        let lodSnapshot = loadedLODEntitiesSnapshot()
+        for entityId in lodSnapshot {
+            unloadAllLODLevels(entityId: entityId)
+        }
+    }
+
     /// Reset internal state (useful for tests and scene changes)
     public func reset() {
         withWorldMutationGate {

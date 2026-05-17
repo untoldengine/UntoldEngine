@@ -259,6 +259,169 @@ final class NativeFormatTileStreamingTests: BaseRenderSetup {
         )
     }
 
+    // MARK: - forceUnloadAllParsedTiles
+
+    /// Core case: a single parsed tile is immediately transitioned to .unloaded and its
+    /// mesh-root child entity is destroyed synchronously.
+    func testForceUnloadAllParsedTiles_unloadsParsedTileAndDestroysDescendants() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        GeometryStreamingSystem.shared.loadTile(entityId: tileEntityId)
+        let tileParsed = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.state == .parsed
+        }
+        XCTAssertTrue(tileParsed, "Tile must reach .parsed before the force-unload test")
+        XCTAssertFalse(getEntityChildren(parentId: tileEntityId).isEmpty,
+                       "Parsed tile must have at least one mesh-root child")
+
+        GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.state, .unloaded,
+                       "forceUnloadAllParsedTiles must transition the tile to .unloaded synchronously")
+        XCTAssertTrue(getEntityChildren(parentId: tileEntityId).isEmpty,
+                      "forceUnloadAllParsedTiles must destroy the tile's mesh-root child entity")
+    }
+
+    /// A resident HLOD mesh is unloaded even when the full tile itself is not .parsed,
+    /// because forceUnloadAllParsedTiles iterates loadedHLODEntities independently.
+    func testForceUnloadAllParsedTiles_unloadsResidentHLOD() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: true, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        GeometryStreamingSystem.shared.loadHLOD(entityId: tileEntityId)
+        let hlodLoaded = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.hlodState == .loaded
+        }
+        XCTAssertTrue(hlodLoaded, "HLOD must reach .loaded before the force-unload test")
+
+        GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.hlodState, .unloaded,
+                       "forceUnloadAllParsedTiles must unload resident HLOD meshes")
+        XCTAssertNil(tc.hlodEntityId,
+                     "HLOD entity reference must be cleared after force-unload")
+    }
+
+    /// A resident per-tile LOD level is unloaded even when the full tile itself is not .parsed.
+    func testForceUnloadAllParsedTiles_unloadsResidentLODLevels() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: true)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        GeometryStreamingSystem.shared.loadLODLevel(entityId: tileEntityId, levelIndex: 0)
+        let lodLoaded = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.lodLevels.first?.state == .loaded
+        }
+        XCTAssertTrue(lodLoaded, "LOD level must reach .loaded before the force-unload test")
+
+        GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        XCTAssertEqual(tc.lodLevels.first?.state, .unloaded,
+                       "forceUnloadAllParsedTiles must unload resident per-tile LOD levels")
+        XCTAssertEqual(tc.lodLevels.first?.entityId, .invalid,
+                       "LOD entity ID must be cleared after force-unload")
+    }
+
+    /// Tiles that are still in .parsing state when forceUnloadAllParsedTiles() is called
+    /// must be transitioned to .unloading, not left running.  Without this, the background
+    /// Task can complete through its success path after the call returns, register GPU
+    /// memory in MemoryBudgetManager, and reintroduce the exact memory-budget blockage
+    /// the API is meant to prevent.
+    ///
+    /// State is injected directly (same technique as the timeout-guard tests) to make the
+    /// test deterministic — we need the tile to be in .parsing when the call fires.
+    func testForceUnloadAllParsedTiles_cancelsParsingSoSuccessPathCannotFire() throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        // Inject .parsing state: enrol in tracking sets the same way loadTile() does,
+        // but skip spawning a real Task so we control the exact moment forceUnload fires.
+        let tileComp = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId))
+        tileComp.state = .parsing
+        tileComp.parseStartTime = CFAbsoluteTimeGetCurrent()
+        _ = GeometryStreamingSystem.shared.reserveActiveTileLoad(
+            entityId: tileEntityId, fileSizeBytes: 1024
+        )
+        GeometryStreamingSystem.shared.markLoadingTileEntity(tileEntityId)
+
+        // Call forceUnloadAllParsedTiles() while the tile is in .parsing.
+        GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+
+        // The tile must be .unloading (unloadTile() set state before cancelling the Task).
+        // This ensures any real Task completion that arrives later finds .unloading and
+        // takes the cleanup path instead of the success path.
+        let state = try XCTUnwrap(scene.get(component: TileComponent.self, for: tileEntityId)?.state)
+        XCTAssertEqual(state, .unloading,
+                       "forceUnloadAllParsedTiles must transition .parsing tiles to .unloading " +
+                           "so their completion callbacks cannot enter the success path")
+
+        // Clean up injected tracking state so tearDown drains cleanly.
+        GeometryStreamingSystem.shared.releaseActiveTileLoad(entityId: tileEntityId)
+        tileComp.state = .unloaded
+        tileComp.parseStartTime = 0
+    }
+
+    /// When no tiles are loaded, forceUnloadAllParsedTiles must be a safe no-op.
+    func testForceUnloadAllParsedTiles_isNoOpWhenNothingIsLoaded() throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+        XCTAssertEqual(scene.get(component: TileComponent.self, for: tileEntityId)?.state, .unloaded,
+                       "Precondition: tile must start in .unloaded state")
+
+        // Must not crash and tile must remain .unloaded.
+        GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+
+        XCTAssertEqual(scene.get(component: TileComponent.self, for: tileEntityId)?.state, .unloaded)
+    }
+
+    /// The primary session-transition contract: after forceUnloadAllParsedTiles the tile
+    /// can be immediately re-dispatched for loading with no memory-budget deadlock.
+    /// This is the key scenario for calibration ↔ full-scale cycling in AR/VR apps:
+    /// without forceUnloadAllParsedTiles, shouldEvictGeometry() would block new tile
+    /// loads until the slow distance-based unload pass completed (10+ seconds).
+    func testForceUnloadAllParsedTiles_tileIsReloadableImmediatelyAfterSessionTransition() async throws {
+        let fixture = try makeUntoldTileSceneFixture(includeHLOD: false, includeLOD: false)
+        try loadSceneManifest(at: fixture.manifestURL)
+
+        let tileEntityId = try XCTUnwrap(findEntity(named: fixture.tileID))
+
+        // ── Session 1: parse the tile ──────────────────────────────────────────
+        GeometryStreamingSystem.shared.loadTile(entityId: tileEntityId)
+        let session1Parsed = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.state == .parsed
+        }
+        XCTAssertTrue(session1Parsed, "Tile must reach .parsed in session 1")
+
+        // ── Simulate session transition (e.g. entering calibration mode) ───────
+        GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
+
+        XCTAssertEqual(scene.get(component: TileComponent.self, for: tileEntityId)?.state, .unloaded,
+                       "Tile must be .unloaded after forceUnloadAllParsedTiles")
+        XCTAssertTrue(getEntityChildren(parentId: tileEntityId).isEmpty,
+                      "Mesh children must be destroyed after forceUnloadAllParsedTiles")
+
+        // ── Session 2: tile must reload cleanly without any budget blockage ─────
+        GeometryStreamingSystem.shared.loadTile(entityId: tileEntityId)
+        let session2Parsed = await waitUntil(timeout: 5.0) {
+            scene.get(component: TileComponent.self, for: tileEntityId)?.state == .parsed
+        }
+        XCTAssertTrue(session2Parsed,
+                      "Tile must be reloadable in session 2 with no memory-budget deadlock")
+    }
+
     // MARK: - HLOD lifecycle
 
     func testHLOD_loadIsNoOpWhenAlreadyLoaded() async throws {
