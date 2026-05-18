@@ -243,6 +243,121 @@ final class RealSurfacePickingSystemTests: XCTestCase {
         XCTAssertEqual(hit.distance, 2.0, accuracy: 0.001)
     }
 
+    func testFloorOnlySkipsCloserTableAndHitsFloor() {
+        // Paired assertion for testClosestPlaneWins: the table is closer, but .floorOnly
+        // skips it and the ray continues to the floor.
+        let floor = makeHorizontalPlane(centerY: 1, width: 10, depth: 10, classification: .floor)
+        let table = makeHorizontalPlane(centerY: 3, width: 10, depth: 10, classification: .table)
+        RealSurfacePlaneStore.shared.update(planes: [floor, table])
+
+        let hit = pickRealSurfacePosition(
+            rayOrigin: simd_float3(0, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: .floorOnly
+        )
+
+        XCTAssertEqual(hit?.worldPosition.y ?? -1, 1.0, accuracy: 0.001)
+        XCTAssertEqual(hit?.surfaceKind, .floor)
+    }
+
+    func testTableOnlySkipsFloor() {
+        let floor = makeHorizontalPlane(centerY: 0, width: 10, depth: 10, classification: .floor)
+        let table = makeHorizontalPlane(centerY: 2, width: 10, depth: 10, classification: .table)
+        RealSurfacePlaneStore.shared.update(planes: [floor, table])
+
+        let hit = pickRealSurfacePosition(
+            rayOrigin: simd_float3(0, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: .tableOnly
+        )
+
+        XCTAssertEqual(hit?.worldPosition.y ?? -1, 2.0, accuracy: 0.001)
+        XCTAssertEqual(hit?.surfaceKind, .table)
+    }
+
+    // MARK: - Filter by Kind
+
+    func testKindsFilterPicksClosestEligible() {
+        // With kinds: [.floor, .table], the table is closer and should win.
+        let floor = makeHorizontalPlane(centerY: 0, width: 10, depth: 10, classification: .floor)
+        let table = makeHorizontalPlane(centerY: 2, width: 10, depth: 10, classification: .table)
+        RealSurfacePlaneStore.shared.update(planes: [floor, table])
+
+        let hit = pickRealSurfacePosition(
+            rayOrigin: simd_float3(0, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: RealSurfaceFilter(alignment: .horizontal, kinds: [.floor, .table])
+        )
+
+        XCTAssertEqual(hit?.worldPosition.y ?? -1, 2.0, accuracy: 0.001)
+        XCTAssertEqual(hit?.surfaceKind, .table)
+    }
+
+    func testKindsFilterExcludesNonMatchingClassification() {
+        // Ceiling is horizontal but not in the kinds set — should be skipped.
+        let ceiling = makeHorizontalPlane(centerY: 3, width: 10, depth: 10, classification: .ceiling)
+        let floor = makeHorizontalPlane(centerY: 0, width: 10, depth: 10, classification: .floor)
+        RealSurfacePlaneStore.shared.update(planes: [ceiling, floor])
+
+        let hit = pickRealSurfacePosition(
+            rayOrigin: simd_float3(0, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: RealSurfaceFilter(alignment: .horizontal, kinds: [.floor, .table])
+        )
+
+        // Ceiling at y=3 is closer but excluded; floor at y=0 should be returned.
+        XCTAssertEqual(hit?.worldPosition.y ?? -1, 0.0, accuracy: 0.001)
+        XCTAssertEqual(hit?.surfaceKind, .floor)
+    }
+
+    // MARK: - Hit Y-Range Filter
+
+    func testHitYRangeExcludesFloorWhenTargetingDesk() {
+        // Floor at y=0 is inside the ray path but outside the desk Y-range — should be skipped.
+        let floor = makeHorizontalPlane(centerY: 0, width: 10, depth: 10, classification: .floor)
+        RealSurfacePlaneStore.shared.update(planes: [floor])
+
+        let hit = pickRealSurfacePosition(
+            rayOrigin: simd_float3(0, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: .horizontalAny,
+            hitYRange: 0.5 ... 1.1
+        )
+
+        XCTAssertNil(hit, "Floor at y=0 should be excluded by hitYRange 0.5...1.1")
+    }
+
+    func testHitYRangeAcceptsHitWithinRange() {
+        let desk = makeHorizontalPlane(centerY: 0.75, width: 10, depth: 10, classification: .unknown)
+        RealSurfacePlaneStore.shared.update(planes: [desk])
+
+        let hit = pickRealSurfacePosition(
+            rayOrigin: simd_float3(0, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: .horizontalAny,
+            hitYRange: 0.5 ... 1.1
+        )
+
+        XCTAssertNotNil(hit, "Plane at y=0.75 should be accepted by hitYRange 0.5...1.1")
+        XCTAssertEqual(hit?.worldPosition.y ?? -1, 0.75, accuracy: 0.001)
+    }
+
+    func testHitYRangeSkipsCloserPlaneOutsideRangeAndHitsFarther() {
+        // Table at y=3 is closer but above the desk range; floor at y=0.75 is within range.
+        let aboveRange = makeHorizontalPlane(centerY: 3, width: 10, depth: 10, classification: .table)
+        let inRange = makeHorizontalPlane(centerY: 0.75, width: 10, depth: 10, classification: .unknown)
+        RealSurfacePlaneStore.shared.update(planes: [aboveRange, inRange])
+
+        let hit = pickRealSurfacePosition(
+            rayOrigin: simd_float3(0, 5, 0),
+            rayDirection: simd_float3(0, -1, 0),
+            filter: .horizontalAny,
+            hitYRange: 0.5 ... 1.1
+        )
+
+        XCTAssertEqual(hit?.worldPosition.y ?? -1, 0.75, accuracy: 0.001)
+    }
+
     // MARK: - Filter by Alignment
 
     func testHorizontalFilterIgnoresVerticalPlanes() {
