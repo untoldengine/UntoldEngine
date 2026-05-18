@@ -1,4 +1,18 @@
 # Changelog
+## v0.12.12 - 2026-05-18
+### 🐞 Fixes
+- [Patch] Replace FXAA toggle with anti-aliasing mode selector (0111454…)
+- [Patch] Added a FXAA debug texture view (00dd9f5…)
+- [Patch] Added MSAA anti-aliasing - WIP (50d4733…)
+- [Patch] Improve SMAA diagonal and corner handling (552884b…)
+- [Patch] Exposed setSceneScale API (37fed13…)
+- [Patch] Refresh scene-root transform in rendering loop (cc87a41…)
+- [Patch] added function to force unload all parsed tiles (43e27fa…)
+- [Patch] Fixed horizontal plane detection (5e2c088…)
+### 📚 Docs
+- [Docs] Updated streaming system docs (cbc9648…)
+- [Docs] Updated rendering docs (a521557…)
+- [Docs] Updated exported documentation (ccc4dc4…)
 ## v0.12.11 - 2026-05-13
 ### 🐞 Fixes
 - [Patch] Fix SSAO floating in XR (9a0fba5…)
