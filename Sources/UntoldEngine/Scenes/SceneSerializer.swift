@@ -24,6 +24,7 @@ public struct SceneData: Codable {
     var chromaticAberration: ChromaticAberrationData? = nil
     var depthOfField: DepthOfFieldData? = nil
     var ssao: SSAOData? = nil
+    var antiAliasing: AntiAliasingData? = nil
 }
 
 enum SceneAssetKind: String, Codable {
@@ -98,6 +99,28 @@ struct SSAOData: Codable {
     var bias: Float = 0.0
     var intensity: Float = 0.0
     var enabled: Bool? = false
+}
+
+enum AntiAliasingModeData: String, Codable {
+    case none
+    case fxaa
+    case smaa
+}
+
+struct FXAAData: Codable {
+    var subpixelQuality: Float = 0.75
+    var edgeThreshold: Float = 0.125
+    var edgeThresholdMin: Float = 0.0625
+}
+
+struct SMAAData: Codable {
+    var edgeThreshold: Float = 0.1
+}
+
+struct AntiAliasingData: Codable {
+    var mode: AntiAliasingModeData = .fxaa
+    var fxaa: FXAAData = .init()
+    var smaa: SMAAData = .init()
 }
 
 struct LightData: Codable {
@@ -880,6 +903,25 @@ public func serializeScene() -> SceneData {
 
     sceneData.ssao = SSAOData(radius: SSAOParams.shared.radius, bias: SSAOParams.shared.bias, intensity: SSAOParams.shared.intensity, enabled: SSAOParams.shared.enabled)
 
+    let antiAliasingModeData: AntiAliasingModeData
+    switch antiAliasingMode {
+    case .none:
+        antiAliasingModeData = .none
+    case .fxaa:
+        antiAliasingModeData = .fxaa
+    case .smaa:
+        antiAliasingModeData = .smaa
+    }
+    sceneData.antiAliasing = AntiAliasingData(
+        mode: antiAliasingModeData,
+        fxaa: FXAAData(
+            subpixelQuality: FXAAParams.shared.subpixelQuality,
+            edgeThreshold: FXAAParams.shared.edgeThreshold,
+            edgeThresholdMin: FXAAParams.shared.edgeThresholdMin
+        ),
+        smaa: SMAAData(edgeThreshold: SMAAParams.shared.edgeThreshold)
+    )
+
     // save asset base path
     sceneData.assetBasePath = assetBasePath
 
@@ -1077,6 +1119,22 @@ public func deserializeScene(
         if let enabled = ssao.enabled {
             SSAOParams.shared.enabled = enabled
         }
+    }
+
+    if let antiAliasing = sceneData.antiAliasing {
+        switch antiAliasing.mode {
+        case .none:
+            antiAliasingMode = .none
+        case .fxaa:
+            antiAliasingMode = .fxaa
+        case .smaa:
+            antiAliasingMode = .smaa
+        }
+
+        FXAAParams.shared.subpixelQuality = antiAliasing.fxaa.subpixelQuality
+        FXAAParams.shared.edgeThreshold = antiAliasing.fxaa.edgeThreshold
+        FXAAParams.shared.edgeThresholdMin = antiAliasing.fxaa.edgeThresholdMin
+        SMAAParams.shared.edgeThreshold = antiAliasing.smaa.edgeThreshold
     }
 
     withWorldMutationGate {
