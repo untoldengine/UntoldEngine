@@ -525,44 +525,159 @@ if state.spatialTapActive, let entityId = state.pickedEntityId {
 
 To retrieve the exact world-space position where the user taps on a real-world surface, use `pickRealSurfacePosition`. This raycasts against ARKit-detected physical planes in the user's environment. This is useful for calibration workflows where you need to anchor a point on the ground and scale a model relative to it.
 
-The `filter` parameter controls which plane alignments are considered:
+The `filter` parameter controls which planes are considered by **alignment** and, optionally, by **surface classification**. The function always returns the single closest hit that passes the filter.
 
-- `.horizontalAny` — horizontal planes only (floor, ceiling, table, seat)
+### Alignment presets
+
+- `.horizontalAny` — horizontal planes only (floor, ceiling, table, seat). **Warning:** this includes tables and seats — use `.floorOnly` when you need the floor specifically.
 - `.verticalAny` — vertical planes only (wall, door, window)
 - `.any` — all detected planes regardless of alignment
+
+### Classification presets
+
+- `.floorOnly` — floor planes only (recommended for ground anchoring)
+- `.tableOnly` — table planes only
+- `.wallOnly` — wall planes only
+
+### Picking whichever surface the user is pointing at
+
+When your app needs to respond to floor or table (whichever the user taps), use a **single call** with a multi-kind filter and inspect `surfaceKind` in the result. Because the function returns the closest qualifying hit, this correctly returns the table when pointing at the table and the floor when pointing at the floor.
 
 ```swift
 let state = InputSystem.shared.xrSpatialInputState
 
-if state.spatialTapActive{
-    // Hit a horizontal surface (e.g. floor or table)
-    if let hit = pickRealSurfacePosition(
-          rayOrigin: state.rayOriginWorld,
-          rayDirection: state.rayDirectionWorld,
-          filter: .horizontalAny
-      ) {
-          Logger.log(message: "Surface type: \(hit.surfaceKind)", vector: hit.worldPosition)
-      }
+if state.spatialTapActive {
+    let filter = RealSurfaceFilter(alignment: .horizontal, kinds: [.floor, .table])
 
-    // Hit a vertical surface (e.g. wall or door)
     if let hit = pickRealSurfacePosition(
-          rayOrigin: state.rayOriginWorld,
-          rayDirection: state.rayDirectionWorld,
-          filter: .verticalAny
-      ) {
-          Logger.log(message: "Surface type: \(hit.surfaceKind)", vector: hit.worldPosition)
-      }
-
-    // Hit any detected surface
-    if let hit = pickRealSurfacePosition(
-          rayOrigin: state.rayOriginWorld,
-          rayDirection: state.rayDirectionWorld,
-          filter: .any
-      ) {
-          Logger.log(message: "Surface type: \(hit.surfaceKind)", vector: hit.worldPosition)
-      }
+        rayOrigin: state.rayOriginWorld,
+        rayDirection: state.rayDirectionWorld,
+        filter: filter
+    ) {
+        switch hit.surfaceKind {
+        case .floor:
+            Logger.log(message: "Floor hit", vector: hit.worldPosition)
+        case .table:
+            Logger.log(message: "Table hit", vector: hit.worldPosition)
+        default:
+            break
+        }
+    }
 }
 ```
+
+> **Anti-pattern — do not call `pickRealSurfacePosition` twice in the same tap handler with different classification filters.** Each call is an independent ray cast. When pointing at a table, a `.floorOnly` call will skip the table plane and keep going until it hits the large floor plane behind it — so both calls return a hit even though the user only pointed at one surface. Use a single call and branch on `surfaceKind`.
+
+### Other filter examples
+
+```swift
+let state = InputSystem.shared.xrSpatialInputState
+
+if state.spatialTapActive {
+    // Floor only — always ignores tables, seats, and ceilings
+    if let hit = pickRealSurfacePosition(
+        rayOrigin: state.rayOriginWorld,
+        rayDirection: state.rayDirectionWorld,
+        filter: .floorOnly
+    ) {
+        Logger.log(message: "Floor hit", vector: hit.worldPosition)
+    }
+
+    // Any horizontal surface — inspect kind after the fact
+    if let hit = pickRealSurfacePosition(
+        rayOrigin: state.rayOriginWorld,
+        rayDirection: state.rayDirectionWorld,
+        filter: .horizontalAny
+    ) {
+        Logger.log(message: "Surface type: \(hit.surfaceKind)", vector: hit.worldPosition)
+    }
+
+    // Vertical surface (wall, door, window)
+    if let hit = pickRealSurfacePosition(
+        rayOrigin: state.rayOriginWorld,
+        rayDirection: state.rayDirectionWorld,
+        filter: .verticalAny
+    ) {
+        Logger.log(message: "Surface type: \(hit.surfaceKind)", vector: hit.worldPosition)
+    }
+}
+```
+
+### Choosing the right filter
+
+| Goal | Filter to use |
+|---|---|
+| Always anchor to the floor, ignore furniture | `.floorOnly` |
+| Always anchor to the table, ignore floor | `.tableOnly` |
+| Whichever surface the user taps | `kinds: [.floor, .table]` + check `surfaceKind` |
+| Any horizontal surface | `.horizontalAny` + check `surfaceKind` |
+
+### Diagnosing unexpected classification
+
+If surfaces are not being detected as expected, call this at any point to print every plane ARKit currently tracks, including its classification, Y position, and size:
+
+```swift
+RealSurfacePlaneStore.shared.logAllPlanes()
+```
+
+Sample output:
+
+```
+── RealSurfacePlaneStore: 3 plane(s) ──────────────────
+  [a1b2c3d4] alignment=horizontal  classification=floor    y=-0.02m  size=4.20x3.80
+  [e5f6a7b8] alignment=horizontal  classification=unknown  y=+0.74m  size=1.10x0.60
+  [c9d0e1f2] alignment=vertical    classification=wall     y=+1.20m  size=2.40x0.10
+────────────────────────────────────────────────────────────────────
+```
+
+This reveals a common issue: **ARKit frequently classifies desks and tables as `.unknown`** rather than `.table`, especially when the surface has not been scanned from multiple angles or the room lighting is poor. Waiting and walking around the furniture can help ARKit reclassify.
+
+### Targeting surfaces by height (Y-range filter)
+
+When ARKit does not classify a desk or table correctly, use the `hitYRange` parameter to restrict hits by the world-space Y coordinate of the intersection point. This is reliable regardless of classification.
+
+Floor is always near Y≈0. A standard desk or table is typically between 0.5m and 1.1m:
+
+```swift
+let state = InputSystem.shared.xrSpatialInputState
+
+if state.spatialTapActive {
+    // Floor — accept hits within ±20 cm of ground level
+    if let hit = pickRealSurfacePosition(
+        rayOrigin: state.rayOriginWorld,
+        rayDirection: state.rayDirectionWorld,
+        filter: .horizontalAny,
+        hitYRange: (-0.2)...0.2
+    ) {
+        Logger.log(message: "Floor hit (Y=\(hit.worldPosition.y))", vector: hit.worldPosition)
+    }
+
+    // Desk or table — accept hits between 0.5m and 1.1m
+    if let hit = pickRealSurfacePosition(
+        rayOrigin: state.rayOriginWorld,
+        rayDirection: state.rayDirectionWorld,
+        filter: .horizontalAny,
+        hitYRange: 0.5...1.1
+    ) {
+        Logger.log(message: "Desk hit (Y=\(hit.worldPosition.y))", vector: hit.worldPosition)
+    }
+}
+```
+
+You can combine `hitYRange` with a classification filter. When ARKit does classify surfaces correctly this gives the tightest constraint:
+
+```swift
+if let hit = pickRealSurfacePosition(
+    rayOrigin: state.rayOriginWorld,
+    rayDirection: state.rayDirectionWorld,
+    filter: .floorOnly,
+    hitYRange: (-0.2)...0.2
+) { ... }
+```
+
+### Note on ARKit classification timing
+
+ARKit can initially report a newly-detected horizontal plane as `.unknown` before it has gathered enough geometry to classify it as floor or table. If placement feels unreliable immediately after startup, wait a few seconds and walk around the surface to give ARKit more data. Use `logAllPlanes()` to monitor classification as it updates.
 
 ------------------------------------------------------------------------
 

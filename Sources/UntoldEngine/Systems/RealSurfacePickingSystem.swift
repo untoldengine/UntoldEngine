@@ -36,9 +36,13 @@ public enum RealSurfaceAlignment: Sendable {
 /// Filter passed to `pickRealSurfacePosition` to restrict which detected planes are considered.
 public struct RealSurfaceFilter: Sendable {
     public let alignment: RealSurfaceAlignment
+    /// When non-nil, only planes whose classification is in this set are considered.
+    /// Pass `nil` (the default) to accept any surface kind within the alignment.
+    public let kinds: Set<RealSurfaceKind>?
 
-    public init(alignment: RealSurfaceAlignment) {
+    public init(alignment: RealSurfaceAlignment, kinds: Set<RealSurfaceKind>? = nil) {
         self.alignment = alignment
+        self.kinds = kinds
     }
 
     /// Accept any horizontal plane (floor, ceiling, table, etc.).
@@ -47,6 +51,12 @@ public struct RealSurfaceFilter: Sendable {
     public static let verticalAny = RealSurfaceFilter(alignment: .vertical)
     /// Accept any detected plane regardless of alignment.
     public static let any = RealSurfaceFilter(alignment: .any)
+    /// Accept floor planes only.
+    public static let floorOnly = RealSurfaceFilter(alignment: .horizontal, kinds: [.floor])
+    /// Accept table planes only.
+    public static let tableOnly = RealSurfaceFilter(alignment: .horizontal, kinds: [.table])
+    /// Accept wall planes only.
+    public static let wallOnly = RealSurfaceFilter(alignment: .vertical, kinds: [.wall])
 }
 
 /// The result of a successful `pickRealSurfacePosition` call.
@@ -138,6 +148,29 @@ public final class RealSurfacePlaneStore: @unchecked Sendable {
             state.removeAll()
         }
     }
+
+    /// Print every currently tracked plane to the console — useful for diagnosing missing
+    /// or misclassified surfaces (e.g. a desk showing up as `.unknown` instead of `.table`).
+    public func logAllPlanes() {
+        let planes = snapshot()
+        print("── RealSurfacePlaneStore: \(planes.count) plane(s) ──────────────────")
+        for plane in planes {
+            let t = plane.originFromAnchorTransform
+            let y = t.columns.3.y
+            print(
+                String(
+                    format: "  [%@] alignment=%-10@ classification=%-8@ y=%+.2fm  size=%.2fx%.2f",
+                    String(plane.id.uuidString.prefix(8)),
+                    "\(plane.alignment)",
+                    "\(plane.classification)",
+                    y,
+                    plane.extentWidth,
+                    plane.extentHeight
+                )
+            )
+        }
+        print("────────────────────────────────────────────────────────────────────")
+    }
 }
 
 // MARK: - Picking Function
@@ -147,7 +180,11 @@ public final class RealSurfacePlaneStore: @unchecked Sendable {
 /// - Parameters:
 ///   - rayOrigin: World-space ray origin (e.g. from `XRSpatialInputState.rayOriginWorld`).
 ///   - rayDirection: World-space ray direction (does not need to be normalized).
-///   - filter: Which plane alignments to consider.
+///   - filter: Which plane alignments and classifications to consider.
+///   - hitYRange: When non-nil, only hits whose world-space Y coordinate falls within this
+///     range are accepted. Use this to disambiguate surfaces by height when ARKit does not
+///     classify them correctly — e.g. `0.5...1.2` to target desk height, `(-0.2)...0.2`
+///     for the floor. Defaults to unlimited (no Y constraint).
 ///   - maxDistance: Maximum ray distance (in meters) to accept a hit. Defaults to unlimited.
 /// - Returns: A `RealSurfaceHit` with the world-space hit position, surface kind, distance,
 ///   and plane normal, or `nil` if no detected plane was hit.
@@ -155,6 +192,7 @@ public func pickRealSurfacePosition(
     rayOrigin: simd_float3,
     rayDirection: simd_float3,
     filter: RealSurfaceFilter = .any,
+    hitYRange: ClosedRange<Float>? = nil,
     maxDistance: Float = .greatestFiniteMagnitude
 ) -> RealSurfaceHit? {
     // Validate ray direction.
@@ -196,6 +234,11 @@ public func pickRealSurfacePosition(
             guard plane.alignment == .vertical else { continue }
         case .any:
             break
+        }
+
+        // Filter by surface kind when the caller requested specific classifications.
+        if let kinds = filter.kinds {
+            guard kinds.contains(plane.classification) else { continue }
         }
 
         // Extract plane center and normal from the anchor transform.
@@ -261,6 +304,13 @@ public func pickRealSurfacePosition(
               abs(hitInExtent.z) <= halfHeight
         else {
             continue
+        }
+
+        // Optional Y-range filter applied in world space. This is the reliable
+        // fallback when ARKit has not yet classified a surface (e.g. desk stays
+        // `.unknown` instead of `.table`): callers can bracket by physical height.
+        if let yRange = hitYRange {
+            guard yRange.contains(hitWorld.y) else { continue }
         }
 
         let distance = simd_length(hitPosition - localRayOrigin)
