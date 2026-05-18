@@ -826,6 +826,33 @@ final class SceneSerializerTests: BaseRenderSetup {
         SSAOParams.shared.intensity = 0.0
     }
 
+    func testSerializeAntiAliasingSettings() {
+        // Modify anti-aliasing
+        antiAliasingMode = .smaa
+        FXAAParams.shared.subpixelQuality = 0.61
+        FXAAParams.shared.edgeThreshold = 0.11
+        FXAAParams.shared.edgeThresholdMin = 0.04
+        SMAAParams.shared.edgeThreshold = 0.18
+
+        // Serialize
+        let sceneData = serializeScene()
+
+        // Verify
+        XCTAssertNotNil(sceneData.antiAliasing, "Anti-aliasing data should be serialized")
+        XCTAssertEqual(sceneData.antiAliasing?.mode, .smaa, "Anti-aliasing mode should match")
+        XCTAssertEqual(sceneData.antiAliasing?.fxaa.subpixelQuality ?? -1.0, 0.61, accuracy: 0.0001, "FXAA subpixel quality should match")
+        XCTAssertEqual(sceneData.antiAliasing?.fxaa.edgeThreshold ?? -1.0, 0.11, accuracy: 0.0001, "FXAA edge threshold should match")
+        XCTAssertEqual(sceneData.antiAliasing?.fxaa.edgeThresholdMin ?? -1.0, 0.04, accuracy: 0.0001, "FXAA minimum edge threshold should match")
+        XCTAssertEqual(sceneData.antiAliasing?.smaa.edgeThreshold ?? -1.0, 0.18, accuracy: 0.0001, "SMAA edge threshold should match")
+
+        // Reset
+        antiAliasingMode = .fxaa
+        FXAAParams.shared.subpixelQuality = 0.75
+        FXAAParams.shared.edgeThreshold = 0.125
+        FXAAParams.shared.edgeThresholdMin = 0.0625
+        SMAAParams.shared.edgeThreshold = 0.1
+    }
+
     // MARK: - Asset Instance Override Tests
 
     func testSerializeSceneStoresDerivedNodeNameOverride() {
@@ -931,6 +958,40 @@ final class SceneSerializerTests: BaseRenderSetup {
         ColorGradingParams.shared.enabled = false
         BloomThresholdParams.shared.enabled = false
         VignetteParams.shared.enabled = false
+    }
+
+    func testDeserializeAntiAliasingSettings() {
+        // Create scene data with anti-aliasing
+        var sceneData = SceneData()
+        sceneData.antiAliasing = AntiAliasingData(
+            mode: .smaa,
+            fxaa: FXAAData(
+                subpixelQuality: 0.44,
+                edgeThreshold: 0.08,
+                edgeThresholdMin: 0.02
+            ),
+            smaa: SMAAData(edgeThreshold: 0.22)
+        )
+
+        // Deserialize
+        deserializeScene(sceneData: sceneData)
+
+        // Verify anti-aliasing was applied
+        if case .smaa = antiAliasingMode {
+        } else {
+            XCTFail("Anti-aliasing mode should be SMAA")
+        }
+        XCTAssertEqual(FXAAParams.shared.subpixelQuality, 0.44, accuracy: 0.0001, "FXAA subpixel quality should be applied")
+        XCTAssertEqual(FXAAParams.shared.edgeThreshold, 0.08, accuracy: 0.0001, "FXAA edge threshold should be applied")
+        XCTAssertEqual(FXAAParams.shared.edgeThresholdMin, 0.02, accuracy: 0.0001, "FXAA minimum edge threshold should be applied")
+        XCTAssertEqual(SMAAParams.shared.edgeThreshold, 0.22, accuracy: 0.0001, "SMAA edge threshold should be applied")
+
+        // Cleanup
+        antiAliasingMode = .fxaa
+        FXAAParams.shared.subpixelQuality = 0.75
+        FXAAParams.shared.edgeThreshold = 0.125
+        FXAAParams.shared.edgeThresholdMin = 0.0625
+        SMAAParams.shared.edgeThreshold = 0.1
     }
 
     // MARK: - Parent-Child Hierarchy Tests
