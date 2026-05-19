@@ -557,7 +557,7 @@ final class StreamLodBatchLODAwareStreamingTests: BaseRenderSetup {
 
 // MARK: - LOD+OOC Integration Tests
 
-/// Tests that verify the LOD+OOC integration path in ProgressiveAssetLoader.
+// Tests that verify the LOD+OOC integration path in ProgressiveAssetLoader.
 
 // MARK: - Region Streaming Event Tests
 

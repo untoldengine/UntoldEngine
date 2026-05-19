@@ -463,13 +463,11 @@ class BaseRenderSetup: XCTestCase {
         // Stadium — cube placeholder (no .usdz anymore)
         let stadium = createEntity()
         let stadiumExp = XCTestExpectation(description: "stadium loaded")
-        
+
         setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "untold")
-            
-        rotateBy(entityId: stadium, angle: -90.0, axis: simd_float3(1.0,0.0,0.0))
+
+        rotateBy(entityId: stadium, angle: -90.0, axis: simd_float3(1.0, 0.0, 0.0))
         setEntityName(entityId: stadium, name: "stadium")
-        
-        
 
         // Player (animated) — load actual .untold asset so AnimationComponent is registered
         let player = createEntity()
@@ -481,8 +479,7 @@ class BaseRenderSetup: XCTestCase {
         setEntityMesh(entityId: ball, filename: "ball", withExtension: "untold")
         setEntityName(entityId: ball, name: "ball")
         translateBy(entityId: ball, position: simd_float3(0.0, 0.4, 3.0))
-        
-        
+
         // helmet pbr
 //        let helmet = createEntity()
 //        setEntityMesh(entityId: helmet, filename: "helmet", withExtension: "untold")

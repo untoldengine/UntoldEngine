@@ -143,5 +143,4 @@ public enum AssetProfiler {
 
         return .eager
     }
-
 }

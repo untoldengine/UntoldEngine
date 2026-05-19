@@ -283,6 +283,7 @@ extension GeometryStreamingSystem {
 
         return scene.exists(entityId)
     }
+
     /// Load mesh asynchronously - returns true on success, false on failure
     func loadMeshAsync(
         entityId: EntityID,
