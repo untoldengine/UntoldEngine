@@ -404,7 +404,7 @@ final class SceneSerializerTests: BaseRenderSetup {
     func testRoundTripAnimationComponentViaJSON() {
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "AnimatedEntity")
-        setEntityMesh(entityId: entityId, filename: "redplayer", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entityId, meshes: BasicPrimitives.createSphere(), assetName: "redplayer")
 
         let animationURL = LoadingSystem.shared.resourceURL(forResource: "running", withExtension: "usdz")
         guard let animationURL else {

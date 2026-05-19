@@ -31,7 +31,7 @@ final class GPUMemoryTest: BaseRenderSetup {
     func testMeshGPUMemorySize_includesVertexAndIndexBuffers() {
         // Given: Load a mesh that has vertex and index buffers
         let entityId = createEntity()
-        setEntityMesh(entityId: entityId, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entityId, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               let mesh = renderComponent.mesh.first
@@ -70,7 +70,7 @@ final class GPUMemoryTest: BaseRenderSetup {
     func testMeshGPUMemorySize_noUniformBuffers() {
         // Uniforms are now written per-draw via setVertexBytes — no per-mesh MTLBuffer is allocated.
         let entityId = createEntity()
-        setEntityMesh(entityId: entityId, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entityId, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               let mesh = renderComponent.mesh.first
@@ -89,7 +89,7 @@ final class GPUMemoryTest: BaseRenderSetup {
     func testMeshGPUMemorySize_includesSkinBuffers() {
         // Given: Load an animated mesh with skin data
         let entityId = createEntity()
-        setEntityMesh(entityId: entityId, filename: "redplayer", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entityId, meshes: BasicPrimitives.createSphere(), assetName: "redplayer")
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               let mesh = renderComponent.mesh.first
@@ -118,7 +118,7 @@ final class GPUMemoryTest: BaseRenderSetup {
     func testMeshGPUMemorySize_calculatesCorrectTotal() {
         // Given: Load a mesh
         let entityId = createEntity()
-        setEntityMesh(entityId: entityId, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entityId, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               let mesh = renderComponent.mesh.first
@@ -158,7 +158,7 @@ final class GPUMemoryTest: BaseRenderSetup {
     func testMeshTextureMemorySize_sumsSubmeshTextures() {
         // Given: Load a mesh with textures
         let entityId = createEntity()
-        setEntityMesh(entityId: entityId, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entityId, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               !renderComponent.mesh.isEmpty
@@ -223,7 +223,7 @@ final class GPUMemoryTest: BaseRenderSetup {
     func testMeshTotalGPUMemorySize_sumsGPUAndTextureMemory() {
         // Given: Load a mesh with both geometry and textures
         let entityId = createEntity()
-        setEntityMesh(entityId: entityId, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entityId, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               !renderComponent.mesh.isEmpty
@@ -286,7 +286,7 @@ final class GPUMemoryTest: BaseRenderSetup {
     func testSubMeshTextureMemorySize_calculatesAllTextureTypes() {
         // Given: Load a mesh that has materials
         let entityId = createEntity()
-        setEntityMesh(entityId: entityId, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entityId, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               !renderComponent.mesh.isEmpty
@@ -377,7 +377,7 @@ final class GPUMemoryTest: BaseRenderSetup {
     func testSkinGPUMemorySize_calculatesJointTransformBuffer() {
         // Given: Load an animated mesh with skin
         let entityId = createEntity()
-        setEntityMesh(entityId: entityId, filename: "redplayer", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entityId, meshes: BasicPrimitives.createSphere(), assetName: "redplayer")
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
               let mesh = renderComponent.mesh.first,
@@ -438,10 +438,10 @@ final class GPUMemoryTest: BaseRenderSetup {
     func testMultipleMeshesTotalMemory() {
         // Given: Load multiple entities with meshes
         let entity1 = createEntity()
-        setEntityMesh(entityId: entity1, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entity1, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         let entity2 = createEntity()
-        setEntityMesh(entityId: entity2, filename: "redplayer", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entity2, meshes: BasicPrimitives.createSphere(), assetName: "redplayer")
 
         guard let rc1 = scene.get(component: RenderComponent.self, for: entity1),
               let rc2 = scene.get(component: RenderComponent.self, for: entity2),

@@ -12,7 +12,6 @@
 import CShaderTypes
 import Foundation
 import MetalKit
-@preconcurrency import ModelIO
 
 @inline(__always)
 private func enforceRegistrationMainActor() {
@@ -50,15 +49,10 @@ private final class ResumeOnce: @unchecked Sendable {
     }
 }
 
-private struct SendableMDLAssetBox: @unchecked Sendable {
-    let asset: MDLAsset
-}
-
 private final class RegistrationRuntimeState: @unchecked Sendable {
     let lock = NSLock()
     var pendingDestroyCompletions: [() -> Void] = []
     var componentCleanupHandlersRegistered = false
-    var skeletonCache: [URL: MDLSkeleton?] = [:]
     var customComponentEncoderMap: [ObjectIdentifier: (EntityID) -> Data?] = [:]
     var customComponentDecoderMap: [String: (EntityID, Data) -> Void] = [:]
     var customComponentTypeNameById: [ObjectIdentifier: String] = [:]
@@ -369,71 +363,6 @@ private func splitMeshGroupBySourceName(_ meshGroup: [Mesh]) -> [String: [Mesh]]
     return grouped
 }
 
-private func detectImportedLODGroups(from meshGroups: [[Mesh]]) -> [ImportedLODGroupCandidate]? {
-    var meshesBySourceName: [String: [Mesh]] = [:]
-
-    for meshGroup in meshGroups {
-        let groupedBySourceName = splitMeshGroupBySourceName(meshGroup)
-        for (sourceName, sourceMeshes) in groupedBySourceName {
-            meshesBySourceName[sourceName, default: []].append(contentsOf: sourceMeshes)
-        }
-    }
-
-    let detectionResult = detectImportedLODGroups(fromSourceNames: Array(meshesBySourceName.keys))
-    if !detectionResult.ambiguousBaseNames.isEmpty {
-        let baseNames = detectionResult.ambiguousBaseNames.sorted().joined(separator: ", ")
-        Logger.logWarning(message: "Ambiguous imported LOD groups skipped: \(baseNames)")
-    }
-
-    var detectedGroups: [ImportedLODGroupCandidate] = []
-    detectedGroups.reserveCapacity(detectionResult.groups.count)
-
-    for group in detectionResult.groups {
-        if group.levels.contains(where: { $0.lodIndex == 0 }) == false {
-            Logger.logWarning(message: "Imported LOD group '\(group.baseName)' is missing LOD0.")
-        }
-
-        let missingIndices = missingLODIndices(for: group.levels)
-        if !missingIndices.isEmpty {
-            let indices = missingIndices.map(String.init).joined(separator: ", ")
-            Logger.logWarning(message: "Imported LOD group '\(group.baseName)' has sparse levels. Missing: \(indices)")
-        }
-
-        var meshLevels: [ImportedLODLevelCandidate] = []
-        meshLevels.reserveCapacity(group.levels.count)
-
-        for level in group.levels {
-            guard let sourceMeshes = meshesBySourceName[level.sourceName], !sourceMeshes.isEmpty else {
-                continue
-            }
-            meshLevels.append(
-                ImportedLODLevelCandidate(
-                    lodIndex: level.lodIndex,
-                    sourceName: level.sourceName,
-                    meshes: sourceMeshes
-                )
-            )
-        }
-
-        guard meshLevels.count >= 2 else {
-            continue
-        }
-
-        detectedGroups.append(
-            ImportedLODGroupCandidate(
-                baseName: group.baseName,
-                levels: meshLevels.sorted { $0.lodIndex < $1.lodIndex }
-            )
-        )
-    }
-
-    guard !detectedGroups.isEmpty else {
-        return nil
-    }
-
-    return detectedGroups.sorted { $0.baseName < $1.baseName }
-}
-
 private func meshesWithDefaultSkin(_ meshes: [Mesh]) -> [Mesh] {
     var updatedMeshes = meshes
     let defaultSkin = Skin()
@@ -548,231 +477,7 @@ private func applyImportedTransformFromMeshGroup(_ meshGroup: [Mesh], to entityI
 }
 
 @discardableResult
-private func tryRegisterImportedLODGroup(
-    entityId: EntityID,
-    url: URL,
-    filename: String,
-    withExtension: String,
-    nonEmptyMeshes: [[Mesh]]
-) -> Bool {
-    guard let importedLODGroups = detectImportedLODGroups(from: nonEmptyMeshes) else {
-        return false
-    }
 
-    if importedLODGroups.count == 1, let importedLOD = importedLODGroups.first {
-        let lodLevels = buildImportedLODLevels(from: importedLOD, url: url)
-        guard let activeLODIndex = lodLevels.firstIndex(where: { !$0.mesh.isEmpty }) else {
-            return false
-        }
-
-        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-            registerTransformComponent(entityId: entityId)
-        }
-
-        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-            registerSceneGraphComponent(entityId: entityId)
-        }
-
-        let activeLOD = lodLevels[activeLODIndex]
-        let activeAssetName = activeLOD.assetName ?? importedLOD.baseName
-        associateMeshesToEntity(entityId: entityId, meshes: activeLOD.mesh)
-        registerRenderComponent(entityId: entityId, meshes: activeLOD.mesh, url: url, assetName: activeAssetName)
-        configureLODComponent(entityId: entityId, lodLevels: lodLevels, activeLODIndex: activeLODIndex)
-
-        setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
-        Logger.log(message: "✅ Auto-detected imported LOD group '\(importedLOD.baseName)' with \(importedLOD.levels.count) levels")
-        return true
-    }
-
-    // Multiple LOD families in one USDZ: create asset root + one child entity per base group.
-    let assetInstanceComp = AssetInstanceComponent(
-        assetURL: url,
-        assetName: filename,
-        importMode: "preserveHierarchy",
-        rootPrimPath: nil
-    )
-    registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
-    if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
-        instanceComp.assetURL = assetInstanceComp.assetURL
-        instanceComp.assetName = assetInstanceComp.assetName
-        instanceComp.importMode = assetInstanceComp.importMode
-        instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
-    }
-
-    var createdChildren = 0
-
-    for (index, importedLOD) in importedLODGroups.enumerated() {
-        let lodLevels = buildImportedLODLevels(from: importedLOD, url: url)
-        guard let activeLODIndex = lodLevels.firstIndex(where: { !$0.mesh.isEmpty }) else {
-            continue
-        }
-
-        let childEntityId = createEntity()
-        if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
-            registerTransformComponent(entityId: childEntityId)
-        }
-        if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
-            registerSceneGraphComponent(entityId: childEntityId)
-        }
-
-        let activeLOD = lodLevels[activeLODIndex]
-        applyImportedTransformFromMeshGroup(activeLOD.mesh, to: childEntityId)
-        let activeAssetName = activeLOD.assetName ?? importedLOD.baseName
-        associateMeshesToEntity(entityId: childEntityId, meshes: activeLOD.mesh)
-        registerRenderComponent(entityId: childEntityId, meshes: activeLOD.mesh, url: url, assetName: activeAssetName)
-        configureLODComponent(entityId: childEntityId, lodLevels: lodLevels, activeLODIndex: activeLODIndex)
-
-        setEntityName(entityId: childEntityId, name: importedLOD.baseName)
-        setParent(childId: childEntityId, parentId: entityId)
-
-        let nodePath = generateStableNodePath(assetName: importedLOD.baseName, index: index)
-        let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: entityId, nodePath: nodePath)
-        registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
-        if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
-            derived.assetRootEntityId = derivedComp.assetRootEntityId
-            derived.nodePath = derivedComp.nodePath
-        }
-
-        setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
-        createdChildren += 1
-    }
-
-    guard createdChildren > 0 else {
-        return false
-    }
-
-    Logger.log(message: "✅ Auto-detected imported LOD groups: \(createdChildren) entities created from \(importedLODGroups.count) LOD families")
-    return true
-}
-
-private func setEntityMeshCommon(
-    entityId: EntityID,
-    filename: String,
-    withExtension: String,
-    flip _: Bool,
-    meshLoader: (URL) -> [[Mesh]],
-    entityName _: String?,
-    assetName: String?
-) -> Bool {
-    guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
-        handleError(.filenameNotFound, filename)
-        return false
-    }
-
-    if url.pathExtension == "dae" {
-        handleError(.fileTypeNotSupported, url.pathExtension)
-        return false
-    }
-
-    let meshes = meshLoader(url)
-    let supportsSkeletons = RuntimeAssetSource.infer(from: url).kind != .untold
-
-    // Cache meshes for streaming system (so reloads don't require disk I/O)
-    MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: meshes)
-
-    if meshes.isEmpty {
-        handleError(.assetDataMissing, filename)
-        return false
-    }
-
-    var nonEmptyMeshes = meshes.filter { !$0.isEmpty }
-
-    if let assetNameExist = assetName {
-        if let matchedMesh = nonEmptyMeshes.first(where: { $0.first?.assetName == assetNameExist }) {
-            nonEmptyMeshes = [matchedMesh]
-        } else {
-            handleError(.assetDataMissing, "No mesh with asset name \(assetNameExist)")
-            return false
-        }
-    }
-
-    if tryRegisterImportedLODGroup(
-        entityId: entityId,
-        url: url,
-        filename: filename,
-        withExtension: withExtension,
-        nonEmptyMeshes: nonEmptyMeshes
-    ) {
-        return true
-    }
-
-    if nonEmptyMeshes.count == 1 {
-        let mesh = nonEmptyMeshes[0]
-
-        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-            registerTransformComponent(entityId: entityId)
-        }
-
-        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-            registerSceneGraphComponent(entityId: entityId)
-        }
-
-        associateMeshesToEntity(entityId: entityId, meshes: mesh)
-        registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-        if supportsSkeletons {
-            setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
-        }
-
-    } else if nonEmptyMeshes.count > 1 {
-        // Multi-mesh asset: mark root as AssetInstance, children as DerivedAssetNode
-        let assetInstanceComp = AssetInstanceComponent(
-            assetURL: url,
-            assetName: assetName ?? filename,
-            importMode: "preserveHierarchy",
-            rootPrimPath: nil
-        )
-        registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
-        if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
-            instanceComp.assetURL = assetInstanceComp.assetURL
-            instanceComp.assetName = assetInstanceComp.assetName
-            instanceComp.importMode = assetInstanceComp.importMode
-            instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
-        }
-
-        for (index, mesh) in nonEmptyMeshes.enumerated() {
-            let childEntityId = createEntity()
-
-            if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
-                registerTransformComponent(entityId: childEntityId)
-            }
-
-            if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
-                registerSceneGraphComponent(entityId: childEntityId)
-            }
-
-            // Extract full transform (translation, rotation, scale) from mesh world space
-            // before RenderComponent registration.
-            if let firstMesh = mesh.first {
-                applyWorldTransform(firstMesh.worldSpace, to: childEntityId)
-            }
-
-            associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
-
-            registerRenderComponent(entityId: childEntityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-
-            let meshAssetName = mesh.first!.assetName
-            setEntityName(entityId: childEntityId, name: meshAssetName)
-
-            setParent(childId: childEntityId, parentId: entityId)
-
-            // Tag as derived node with stable nodePath
-            let nodePath = generateStableNodePath(assetName: meshAssetName, index: index)
-            let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: entityId, nodePath: nodePath)
-            registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
-            if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
-                derived.assetRootEntityId = derivedComp.assetRootEntityId
-                derived.nodePath = derivedComp.nodePath
-            }
-
-            // look for any skeletons in asset
-            if supportsSkeletons {
-                setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
-            }
-        }
-    }
-
-    return true
-}
 
 private func loadUntoldRuntimeAsset(url: URL) -> RuntimeAsset? {
     do {
@@ -848,7 +553,7 @@ private func ensureUntoldNodeComponents(entityId: EntityID) {
     }
 }
 
-private func makeMeshes(from node: RuntimeAssetNode) -> [Mesh] {
+func makeMeshes(from node: RuntimeAssetNode) -> [Mesh] {
     node.primitives.compactMap { primitive -> Mesh? in
         guard var mesh = Mesh.makeMesh(from: primitive, device: renderInfo.device) else {
             return nil
@@ -857,6 +562,162 @@ private func makeMeshes(from node: RuntimeAssetNode) -> [Mesh] {
         mesh.worldSpace = matrix_identity_float4x4
         return mesh
     }
+}
+
+/// Register one RuntimeAssetNode as a zero-GPU OCC stub entity.
+///
+/// Creates the ECS presence (transform, scenegraph, streaming component) with no GPU allocation.
+/// GeometryStreamingSystem uploads via uploadFromRuntimeEntry when the entity enters streaming range.
+@discardableResult
+private func registerUntoldProgressiveStubEntity(
+    node: RuntimeAssetNode,
+    index: Int,
+    uniqueAssetName: String,
+    rootEntityId: EntityID,
+    url _: URL,
+    filename: String,
+    withExtension ext: String
+) -> EntityID {
+    let childEntityId = createEntity()
+
+    ensureUntoldNodeComponents(entityId: childEntityId)
+    applyWorldTransform(node.worldTransform, to: childEntityId)
+
+    if let local = scene.get(component: LocalTransformComponent.self, for: childEntityId) {
+        local.boundingBox = (min: node.localBounds.min, max: node.localBounds.max)
+    }
+
+    setEntityName(entityId: childEntityId, name: uniqueAssetName)
+    setParent(childId: childEntityId, parentId: rootEntityId)
+
+    let nodePath = generateStableNodePath(assetName: uniqueAssetName, index: index)
+    registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
+    if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
+        derived.assetRootEntityId = rootEntityId
+        derived.nodePath = nodePath
+    }
+
+    registerComponent(entityId: childEntityId, componentType: StreamingComponent.self)
+    if let sc = scene.get(component: StreamingComponent.self, for: childEntityId) {
+        sc.assetFilename = filename
+        sc.assetExtension = ext
+        sc.assetName = uniqueAssetName
+        sc.state = .unloaded
+        // Placeholder radii — enableStreaming() (called by GeometryStreamingSystem via tile) sets real values.
+        sc.streamingRadius = Float.greatestFiniteMagnitude
+        sc.unloadRadius = Float.greatestFiniteMagnitude
+    }
+
+    return childEntityId
+}
+
+/// Register all renderable nodes in a .untold RuntimeAsset as OCC stub entities.
+///
+/// Each node with primitives becomes a zero-GPU stub with StreamingComponent(.unloaded) and a
+/// CPURuntimeEntry in ProgressiveAssetLoader. GeometryStreamingSystem drives GPU upload via
+/// uploadFromRuntimeEntry when each entity enters streaming range.
+@discardableResult
+private func registerUntoldRuntimeAssetOCC(
+    entityId: EntityID,
+    runtimeAsset: RuntimeAsset,
+    url: URL,
+    filename: String,
+    withExtension ext: String,
+    assetName _: String?
+) -> Bool {
+    guard !runtimeAsset.nodes.isEmpty else {
+        handleError(.assetDataMissing, filename)
+        return false
+    }
+
+    ensureUntoldNodeComponents(entityId: entityId)
+    applyLocalTransform(runtimeAsset.rootTransform, to: entityId)
+
+    var entityByNodeID: [UInt32: EntityID] = [:]
+    var childIds: [EntityID] = []
+    var index = 0
+
+    let residencyPolicy = AssetLoadingPolicy(geometry: .streaming, texture: .eager, source: .auto)
+
+    for node in runtimeAsset.nodes {
+        if runtimeAsset.nodes.count == 1, node.parentID == nil {
+            // Single-node asset: root entity is the stub.
+            let uniqueName = node.name
+            let estimatedBytes = node.primitives.reduce(0) { $0 + $1.estimatedGPUBytes }
+
+            applyWorldTransform(node.worldTransform, to: entityId)
+            if let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
+                local.boundingBox = (min: node.localBounds.min, max: node.localBounds.max)
+            }
+            setEntityName(entityId: entityId, name: uniqueName)
+
+            registerComponent(entityId: entityId, componentType: StreamingComponent.self)
+            if let sc = scene.get(component: StreamingComponent.self, for: entityId) {
+                sc.assetFilename = filename
+                sc.assetExtension = ext
+                sc.assetName = uniqueName
+                sc.state = .unloaded
+                sc.streamingRadius = Float.greatestFiniteMagnitude
+                sc.unloadRadius = Float.greatestFiniteMagnitude
+            }
+
+            let entry = ProgressiveAssetLoader.CPURuntimeEntry(
+                node: node,
+                url: url,
+                uniqueAssetName: uniqueName,
+                estimatedGPUBytes: estimatedBytes,
+                residencyPolicy: residencyPolicy
+            )
+            ProgressiveAssetLoader.shared.storeCPURuntimeEntry(entry, for: entityId)
+            childIds.append(entityId)
+            entityByNodeID[node.id] = entityId
+
+        } else if node.primitives.isEmpty {
+            // Container node — hierarchy entity only, no StreamingComponent.
+            let containerEntityId = createEntity()
+            ensureUntoldNodeComponents(entityId: containerEntityId)
+            applyLocalTransform(node.localTransform, to: containerEntityId)
+            setEntityName(entityId: containerEntityId, name: node.name)
+            let parentEntityId = node.parentID.flatMap { entityByNodeID[$0] } ?? entityId
+            setParent(childId: containerEntityId, parentId: parentEntityId)
+            entityByNodeID[node.id] = containerEntityId
+
+        } else {
+            // Renderable node — OCC stub.
+            let uniqueName = "\(node.name)#\(index)"
+            let childEntityId = registerUntoldProgressiveStubEntity(
+                node: node,
+                index: index,
+                uniqueAssetName: uniqueName,
+                rootEntityId: entityId,
+                url: url,
+                filename: filename,
+                withExtension: ext
+            )
+
+            let estimatedBytes = node.primitives.reduce(0) { $0 + $1.estimatedGPUBytes }
+            let entry = ProgressiveAssetLoader.CPURuntimeEntry(
+                node: node,
+                url: url,
+                uniqueAssetName: uniqueName,
+                estimatedGPUBytes: estimatedBytes,
+                residencyPolicy: residencyPolicy
+            )
+            ProgressiveAssetLoader.shared.storeCPURuntimeEntry(entry, for: childEntityId)
+            childIds.append(childEntityId)
+            entityByNodeID[node.id] = childEntityId
+            index += 1
+        }
+    }
+
+    ProgressiveAssetLoader.shared.registerChildren(childIds, for: entityId)
+    syncWorldTransformAndMarkOctreeDirty(entityId: entityId)
+
+    Logger.log(
+        message: "[OutOfCore] '\(filename)': .untold → OCC stub registration (\(childIds.count) stubs)",
+        category: LogCategory.oocStatus.rawValue
+    )
+    return true
 }
 
 @discardableResult
@@ -1043,6 +904,20 @@ private func registerUntoldRuntimeAsset(
         _ = registerUntoldNodePayload(entityId: targetEntityId, node: node, nodesByID: nodesByID, url: url)
     }
 
+    // Register animation clips embedded in the asset (e.g. redplayer.untold walk/run cycles).
+    // Resolve to the skinned descendant if the root is a container (skeleton hierarchy).
+    let animClips = runtimeAsset.animationClips
+    if !animClips.isEmpty {
+        let animTarget = resolveEntityForAnimationBinding(entityId: entityId) ?? entityId
+        if let animComp = ensureAnimationComponent(entityId: animTarget, errorEntityId: entityId) {
+            let registeredNames = registerRuntimeAnimationClips(animClips, preferredName: animClips.first?.name ?? "", to: animComp)
+            appendAnimationSourceURLIfNeeded(url, to: animComp)
+            if animComp.currentAnimation == nil, let first = registeredNames.first {
+                animComp.currentAnimation = animComp.animationClips[first]
+            }
+        }
+    }
+
     // Propagate world transforms for the full hierarchy now that all nodes are
     // registered. setParent() calls syncWorldTransformAndMarkOctreeDirty on each
     // child, but at that point the root entity's worldTransformComponent.space has
@@ -1061,86 +936,6 @@ func generateStableNodePath(assetName: String, index: Int) -> String {
     "Root/\(assetName)#\(index)"
 }
 
-/// Register one MDLMesh leaf as an out-of-core stub entity.
-///
-/// Creates the full ECS presence (transform, scenegraph, streaming component) with NO GPU
-/// allocation. The `StreamingComponent` starts in `.unloaded` state with placeholder
-/// radii (`Float.greatestFiniteMagnitude`) so the streaming system ignores the entity
-/// until `enableStreaming()` is called and real radii are set.
-///
-/// **Must be called from within an existing `withWorldMutationGate` block.**
-/// The caller (setEntityMeshAsync) wraps the entire stub-registration loop in a single gate
-/// acquisition rather than one gate per stub, avoiding N × acquire/release overhead for
-/// assets with hundreds of mesh leaves.
-///
-/// The caller is responsible for storing the MDLMesh in `ProgressiveAssetLoader.cpuMeshRegistry`
-/// so `GeometryStreamingSystem.loadMeshAsync` can upload it from CPU when the entity enters range.
-///
-/// - Returns: The newly created child `EntityID`.
-@discardableResult
-func registerProgressiveStubEntity(
-    mdlObject: MDLObject,
-    index: Int,
-    uniqueAssetName: String,
-    rootEntityId: EntityID,
-    url _: URL,
-    filename: String,
-    withExtension ext: String
-) -> EntityID {
-    let childEntityId = createEntity()
-
-    if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
-        registerTransformComponent(entityId: childEntityId)
-    }
-
-    if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
-        registerSceneGraphComponent(entityId: childEntityId)
-    }
-
-    // Set world position from the MDLObject's composed transform.
-    // This is what the octree and distance calculations will use.
-    let worldTransform = composedWorldTransform(for: mdlObject)
-    applyWorldTransform(worldTransform, to: childEntityId)
-
-    // Seed the bounding box from the MDLMesh so OctreeSystem and calculateDistance
-    // compute meaningful spatial extents even before the RenderComponent exists.
-    if let mdlMesh = mdlObject as? MDLMesh,
-       let local = scene.get(component: LocalTransformComponent.self, for: childEntityId)
-    {
-        local.boundingBox = (min: mdlMesh.boundingBox.minBounds, max: mdlMesh.boundingBox.maxBounds)
-    }
-
-    setEntityName(entityId: childEntityId, name: uniqueAssetName)
-    setParent(childId: childEntityId, parentId: rootEntityId)
-
-    // Stable identity for serialisation / scene graph lookup.
-    let nodePath = generateStableNodePath(assetName: uniqueAssetName, index: index)
-    registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
-    if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
-        derived.assetRootEntityId = rootEntityId
-        derived.nodePath = nodePath
-    }
-
-    // StreamingComponent in .unloaded state — GPU resources will be created by
-    // GeometryStreamingSystem when the entity enters streamingRadius.
-    registerComponent(entityId: childEntityId, componentType: StreamingComponent.self)
-    if let sc = scene.get(component: StreamingComponent.self, for: childEntityId) {
-        sc.assetFilename = filename
-        sc.assetExtension = ext
-        sc.assetName = uniqueAssetName
-        sc.state = .unloaded
-        // Large placeholder radii: enableStreaming() sets the real values.
-        // This prevents the streaming system from immediately queueing a disk-based
-        // reload before the out-of-core CPU registry entry is in place.
-        sc.streamingRadius = Float.greatestFiniteMagnitude
-        sc.unloadRadius = Float.greatestFiniteMagnitude
-    }
-
-    // Register with the octree so update() spatial queries can find this stub.
-    OctreeSystem.shared.registerEntity(childEntityId)
-
-    return childEntityId
-}
 
 /// Synchronously load and set an entity mesh on the calling thread.
 ///
@@ -1150,39 +945,6 @@ func registerProgressiveStubEntity(
 ///
 /// For large assets or any asset that should benefit from distance-based streaming and
 /// eviction, use `setEntityMeshAsync(streamingPolicy:)` instead.
-public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, assetName: String? = nil, flip: Bool = true, coordinateConversion: CoordinateSystemConversion = .autoDetect) {
-    if let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil),
-       RuntimeAssetSource.infer(from: url).kind == .untold
-    {
-        if let runtimeAsset = loadUntoldRuntimeAsset(url: url),
-           registerUntoldRuntimeAsset(
-               entityId: entityId,
-               runtimeAsset: runtimeAsset,
-               url: url,
-               filename: filename,
-               withExtension: withExtension,
-               assetName: assetName
-           )
-        {
-            return
-        }
-
-        loadFallbackMesh(entityId: entityId, filename: filename)
-        return
-    }
-
-    _ = setEntityMeshCommon(
-        entityId: entityId,
-        filename: filename,
-        withExtension: withExtension,
-        flip: flip,
-        meshLoader: { url in
-            Mesh.loadSceneMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, coordinateConversion: coordinateConversion)
-        },
-        entityName: nil,
-        assetName: assetName
-    )
-}
 
 /// Controls how `setEntityMeshAsync` manages GPU residency for a loaded asset.
 public enum MeshStreamingPolicy: Sendable {
@@ -1257,13 +1019,39 @@ public func setEntityMeshAsync(
         }
 
         if RuntimeAssetSource.infer(from: url).kind == .untold {
-            if streamingPolicy != .immediate {
-                Logger.logWarning(message: "[Untold] '.untold' assets currently use the immediate full-load path. Ignoring streaming policy '\(streamingPolicy)'.")
+            guard let runtimeAsset = loadUntoldRuntimeAsset(url: url) else {
+                loadFallbackMesh(entityId: entityId, filename: filename)
+                await AssetLoadingState.shared.finishLoading(entityId: entityId)
+                completionBox?.call(false)
+                return
+            }
+
+            // OCC is only valid for whole-asset loads. Named-node loads always full-load.
+            let useOCC: Bool
+            if assetName != nil {
+                useOCC = false
+            } else {
+                switch streamingPolicy {
+                case .immediate:
+                    useOCC = false
+                case .outOfCore:
+                    useOCC = true
+                case .auto:
+                    let renderableNodes = runtimeAsset.nodes.filter { !$0.primitives.isEmpty }
+                    let estimatedGeometryBytes = renderableNodes
+                        .flatMap(\.primitives)
+                        .reduce(0) { $0 + $1.estimatedGPUBytes }
+                    let budget = MemoryBudgetManager.shared.geometryBudget
+                    let budgetFraction: Float = budget > 0
+                        ? Float(estimatedGeometryBytes) / Float(budget)
+                        : 1.0
+                    useOCC = renderableNodes.count >= 50 || budgetFraction > 0.30
+                }
             }
 
             let didLoad: Bool
-            if let runtimeAsset = loadUntoldRuntimeAsset(url: url) {
-                didLoad = registerUntoldRuntimeAsset(
+            if useOCC {
+                didLoad = registerUntoldRuntimeAssetOCC(
                     entityId: entityId,
                     runtimeAsset: runtimeAsset,
                     url: url,
@@ -1272,7 +1060,14 @@ public func setEntityMeshAsync(
                     assetName: assetName
                 )
             } else {
-                didLoad = false
+                didLoad = registerUntoldRuntimeAsset(
+                    entityId: entityId,
+                    runtimeAsset: runtimeAsset,
+                    url: url,
+                    filename: filename,
+                    withExtension: withExtension,
+                    assetName: assetName
+                )
             }
 
             if !didLoad {
@@ -1284,740 +1079,11 @@ public func setEntityMeshAsync(
             return
         }
 
-        // MARK: Out-of-core / small-file routing
-
-        // All assets parse with a CPU-only allocator to avoid the GPU memory spike caused
-        // by MTKMeshBufferAllocator pre-allocating Metal buffers for the entire scene.
-        //
-        // Two-stage admission gate (V1):
-        //   Stage 1 (pre-parse):  coarse file-size × expansion multiplier check — rejects
-        //                         obviously unsafe assets before Model I/O touches the file.
-        //   Stage 2 (post-parse): accurate profiler-based check after parse completes —
-        //                         the final authority. Note: Stage 2 cannot prevent the
-        //                         parse-time RAM spike; it prevents all downstream work
-        //                         (stub registration, MDLAsset retention, CPU registry storage).
-        //
-        // If both gates pass, large assets register every leaf mesh immediately as a stub
-        // entity (zero-GPU). CPU-side MDLMesh data is stored in ProgressiveAssetLoader so
-        // GeometryStreamingSystem can upload each stub on demand without a disk re-read.
-        // Small assets create all Metal resources right here in a single pass.
-        if assetName == nil {
-            // ── Stage 1: Pre-parse admission gate ─────────────────────────────────────
-            // Compute file size before parseAssetAsync so the gate fires before Model I/O
-            // allocates CPU heap for all mesh buffers.
-            //
-            // Expansion factor: 20× — conservative upper bound for USDZ geometry
-            //   decompression. Real-world worst case is ~55× (a 159 MB city USDZ
-            //   expanding to ~8858 MB of geometry). 20× catches obvious outliers without
-            //   rejecting normal-sized files.
-            //
-            // Three-zone model:
-            //   Safe zone     projectedCPU ≤ 50% RAM  — allow, no log
-            //   Soft zone     projectedCPU  > 50% AND < 75% RAM
-            //                 → log warning, allow parse, delegate to Stage 2
-            //                 → expected for texture-heavy USDZs: compressed texture bytes
-            //                   in a USDZ do not expand at parse time (MDLMeshBufferData-
-            //                   Allocator only decompresses geometry; textures are decoded
-            //                   lazily at first-upload time via ensureTexturesLoaded).
-            //                   Stage 2 is the accurate authority for these borderline cases.
-            //   Hard reject   projectedCPU ≥ 75% RAM  — reject before parse, load fallback
-            //                 → geometry expansion of this magnitude would risk an OOM kill
-            //                   before Stage 2 can even run.
-            //
-            // Known gap: the assetName != nil path (Mesh.loadSceneMeshesAsync) is not
-            // guarded. That path is only used for named-mesh lookups and is not expected
-            // to be called with large assets in normal production use.
-            //
-            // Future refinement: a lightweight USDZ ZIP central-directory scan could
-            // separate texture-entry bytes from scene-entry bytes before parsing and apply
-            // the 20× multiplier only to the scene portion, eliminating soft-zone false
-            // positives for texture-heavy assets entirely. Validate the soft-zone model
-            // on real assets before adding that complexity.
-            let fileSizeBytes = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int ?? 0
-            if fileSizeBytes > 0 {
-                let physicalMemory = Int(ProcessInfo.processInfo.physicalMemory)
-                let softZoneThreshold = Int(Double(physicalMemory) * 0.50) // soft zone starts here
-                let hardRejectThreshold = Int(Double(physicalMemory) * 0.75) // hard reject at or above
-                let projectedCPUBytes = fileSizeBytes * 20
-
-                let fileMB = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                let projGB = String(format: "%.1f", Double(projectedCPUBytes) / 1_073_741_824)
-                let ramGB = String(format: "%.1f", Double(physicalMemory) / 1_073_741_824)
-
-                if projectedCPUBytes >= hardRejectThreshold {
-                    let thrGB = String(format: "%.1f", Double(hardRejectThreshold) / 1_073_741_824)
-                    handleError(.assetAdmissionRejected, "Stage 1: \(fileMB) MB file, projected ~\(projGB) GB CPU (threshold \(thrGB) GB)", filename)
-                    loadFallbackMesh(entityId: entityId, filename: filename)
-                    await AssetLoadingState.shared.finishLoading(entityId: entityId)
-                    completionBox?.call(false)
-                    return
-                } else if projectedCPUBytes > softZoneThreshold {
-                    let softGB = String(format: "%.1f", Double(softZoneThreshold) / 1_073_741_824)
-                    Logger.logWarning(message: "[AdmissionGate] Stage 1 SOFT ZONE '\(filename)' — File: \(fileMB) MB | Expansion: 20× | Projected CPU: ~\(projGB) GB | Soft threshold: \(softGB) GB (50% of \(ramGB) GB RAM). Parse will proceed; Stage 2 is the authoritative gate. Typical for texture-heavy assets whose compressed texture bytes do not expand at parse time.")
-                    // Fall through — parse proceeds. Stage 2 is the accurate authority.
-                }
-                // else: safe zone (projectedCPU ≤ softZoneThreshold) — allow, no log.
-            }
-
-            guard let assetData = await Mesh.parseAssetAsync(
-                url: url,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                coordinateConversion: coordinateConversion
-            ) else {
-                handleError(.assetDataMissing, filename)
-                loadFallbackMesh(entityId: entityId, filename: filename)
-                await AssetLoadingState.shared.finishLoading(entityId: entityId)
-                completionBox?.call(false)
-                return
-            }
-
-            // ── Stage 2: Post-parse accurate admission gate ───────────────────────────
-            // AssetProfiler measures actual geometry + texture byte estimates from the
-            // parsed MDLMesh objects. This is the accurate gate; Stage 1 (pre-parse) is
-            // only a coarse early filter.
-            //
-            // IMPORTANT: by the time this check runs, parseAssetAsync() has already
-            // allocated CPU heap for all MDLMesh buffers. This gate cannot prevent the
-            // parse-time RAM spike. What it prevents is all downstream work:
-            //   - stub registration (no ECS entities created),
-            //   - MDLAsset retention in rootAssetRefs (no CPU RAM kept permanently),
-            //   - CPU registry storage in ProgressiveAssetLoader.
-            // When the gate fires, assetData goes out of scope and ARC releases the
-            // parsed MDLMesh buffers, recovering the RAM that the parse consumed.
-            //
-            // The profile is computed regardless of streamingPolicy so all three policy
-            // modes (.auto, .outOfCore, .immediate) are subject to the same gate.
-            let assetProfile = AssetProfiler.profile(url: url, assetData: assetData, fileSizeBytes: fileSizeBytes)
-            let postParsePhysicalMemory = Int(ProcessInfo.processInfo.physicalMemory)
-            let postParseSafetyThreshold = Int(Double(postParsePhysicalMemory) * 0.75)
-            if assetProfile.estimatedGeometryBytes > postParseSafetyThreshold {
-                let geoGB = String(format: "%.1f", Double(assetProfile.estimatedGeometryBytes) / 1_073_741_824)
-                let thrGB = String(format: "%.1f", Double(postParseSafetyThreshold) / 1_073_741_824)
-                let ramGB = String(format: "%.1f", Double(postParsePhysicalMemory) / 1_073_741_824)
-                let fileMBStr = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                handleError(.assetAdmissionRejected, "Stage 2: \(fileMBStr) MB file, profiled geometry ~\(geoGB) GB (threshold \(thrGB) GB of \(ramGB) GB RAM)", filename)
-                // Load fallback so the entity is visually stable — the scene shows a
-                // placeholder cube rather than an invisible, mesh-less entity.
-                loadFallbackMesh(entityId: entityId, filename: filename)
-                await AssetLoadingState.shared.finishLoading(entityId: entityId)
-                completionBox?.call(false)
-                return
-            }
-
-            // Resolve the effective loading policy from the caller's streamingPolicy.
-            //
-            // For .auto, AssetProfiler classifies the already-computed assetProfile
-            // against the live platform memory budget to select independent geometry
-            // and texture residency policies.
-            //
-            // For .outOfCore / .immediate, the caller's intent is mapped directly to the
-            // policy types for a clean internal representation.
-            let loadingPolicy: AssetLoadingPolicy
-            let outOfCoreReason: String?
-            switch streamingPolicy {
-            case .outOfCore:
-                loadingPolicy = .geometryStreaming
-                outOfCoreReason = "explicit .outOfCore policy"
-            case .immediate:
-                loadingPolicy = .fullLoad
-                outOfCoreReason = nil
-            case .auto:
-                let budget = MemoryBudgetManager.shared.meshBudget
-                loadingPolicy = AssetProfiler.classifyPolicy(profile: assetProfile, budget: budget)
-
-                let fileMB = String(format: "%.1f", Double(fileSizeBytes) / 1_048_576)
-                let geoMB = String(format: "%.1f", Double(assetProfile.estimatedGeometryBytes) / 1_048_576)
-                let texMB = String(format: "%.1f", Double(assetProfile.estimatedTextureBytes) / 1_048_576)
-                let budgetMB = String(format: "%.0f", Double(budget) / 1_048_576)
-                Logger.log(message: "[AssetProfiler] '\(filename)' (\(fileMB) MB) → \(assetProfile.assetCharacter.rawValue) | geo ~\(geoMB) MB, tex ~\(texMB) MB | budget: \(budgetMB) MB | meshes: \(assetProfile.meshCount)")
-                Logger.log(message: "[AssetProfiler] Policy → geometry: \(loadingPolicy.geometryPolicy.rawValue), texture: \(loadingPolicy.texturePolicy.rawValue) (source: \(loadingPolicy.source.rawValue))")
-
-                if loadingPolicy.geometryPolicy == .streaming {
-                    outOfCoreReason = "\(assetProfile.assetCharacter.rawValue) asset, geo ~\(geoMB) MB on \(budgetMB) MB budget"
-                } else {
-                    outOfCoreReason = nil
-                }
-            }
-
-            // Detect LOD groups before choosing the loading path.
-            let topLevelNames = assetData.topLevelObjects.map {
-                ($0 as? MDLMesh)?.parent?.name ?? $0.name
-            }
-            let lodNameDetection = detectImportedLODGroups(fromSourceNames: topLevelNames)
-            let hasLODGroups = !lodNameDetection.groups.isEmpty
-            let useOutOfCore = loadingPolicy.geometryPolicy == .streaming
-
-            if useOutOfCore, hasLODGroups {
-                // LOD + OUT-OF-CORE PATH ────────────────────────────────────────────────
-                // Each LOD group becomes ONE entity with a LODComponent whose levels are
-                // stub LODLevels (empty mesh, .notResident). CPU-side MDLObject data for
-                // each level is stored in ProgressiveAssetLoader.cpuLODRegistry so
-                // GeometryStreamingSystem can upload only the active LOD level from RAM
-                // when the entity enters streaming range — no disk re-read required.
-                Logger.log(
-                    message: "[OutOfCore] '\(filename)': LOD asset with \(lodNameDetection.groups.count) group(s) — LOD+OOC stub registration (\(assetData.totalObjectCount) objects)",
-                    category: LogCategory.oocStatus.rawValue
-                )
-
-                // Build name→MDLObject map using the same naming formula as topLevelNames.
-                var nameToObject: [String: MDLObject] = [:]
-                for obj in assetData.topLevelObjects {
-                    let name = (obj as? MDLMesh)?.parent?.name ?? obj.name
-                    nameToObject[name] = obj
-                }
-
-                let isMultiGroup = lodNameDetection.groups.count > 1
-
-                // Register AssetInstanceComponent on root for multi-group assets.
-                if isMultiGroup {
-                    withWorldMutationGate {
-                        registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
-                        if let inst = scene.get(component: AssetInstanceComponent.self, for: entityId) {
-                            inst.assetURL = url
-                            inst.assetName = filename
-                            inst.importMode = "preserveHierarchy"
-                        }
-                    }
-                }
-
-                var lodGroupEntityIds: [EntityID] = []
-                lodGroupEntityIds.reserveCapacity(lodNameDetection.groups.count)
-                var cpuLODEntries: [(groupEntityId: EntityID, lodIndex: Int, entry: ProgressiveAssetLoader.CPUMeshEntry)] = []
-                cpuLODEntries.reserveCapacity(assetData.totalObjectCount)
-
-                let configuredDistances = LODConfig.shared.lodDistances
-
-                withWorldMutationGate {
-                    for (groupIdx, group) in lodNameDetection.groups.enumerated() {
-                        // Single group: the root entity IS the LOD entity.
-                        // Multi-group: create a child entity per group.
-                        let groupEntityId: EntityID
-                        if isMultiGroup {
-                            groupEntityId = createEntity()
-                            if hasComponent(entityId: groupEntityId, componentType: LocalTransformComponent.self) == false {
-                                registerTransformComponent(entityId: groupEntityId)
-                            }
-                            if hasComponent(entityId: groupEntityId, componentType: ScenegraphComponent.self) == false {
-                                registerSceneGraphComponent(entityId: groupEntityId)
-                            }
-                            setEntityName(entityId: groupEntityId, name: group.baseName)
-                            setParent(childId: groupEntityId, parentId: entityId)
-                            let nodePath = generateStableNodePath(assetName: group.baseName, index: groupIdx)
-                            registerComponent(entityId: groupEntityId, componentType: DerivedAssetNodeComponent.self)
-                            if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: groupEntityId) {
-                                derived.assetRootEntityId = entityId
-                                derived.nodePath = nodePath
-                            }
-                        } else {
-                            groupEntityId = entityId
-                            if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-                                registerTransformComponent(entityId: entityId)
-                            }
-                            if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-                                registerSceneGraphComponent(entityId: entityId)
-                            }
-                        }
-
-                        // Seed transform and bounding box from the LOD0 MDLObject.
-                        if let lod0Level = group.levels.first(where: { $0.lodIndex == 0 }),
-                           let lod0Object = nameToObject[lod0Level.sourceName]
-                        {
-                            let worldTransform = composedWorldTransform(for: lod0Object)
-                            applyWorldTransform(worldTransform, to: groupEntityId)
-                            if let mdlMesh = lod0Object as? MDLMesh,
-                               let local = scene.get(component: LocalTransformComponent.self, for: groupEntityId)
-                            {
-                                local.boundingBox = (min: mdlMesh.boundingBox.minBounds, max: mdlMesh.boundingBox.maxBounds)
-                            }
-                        }
-
-                        // Build stub LODLevels: empty mesh + .notResident for every level.
-                        let maxLODIndex = group.levels.map(\.lodIndex).max() ?? 0
-                        var stubLODLevels: [LODLevel] = (0 ... maxLODIndex).map { lodIdx in
-                            LODLevel(
-                                mesh: [],
-                                maxDistance: defaultLODMaxDistance(for: lodIdx, configuredDistances: configuredDistances),
-                                url: url,
-                                assetName: nil
-                            )
-                        }
-                        for level in group.levels {
-                            stubLODLevels[level.lodIndex] = LODLevel(
-                                mesh: [],
-                                maxDistance: defaultLODMaxDistance(for: level.lodIndex, configuredDistances: configuredDistances),
-                                url: url,
-                                assetName: level.sourceName
-                            )
-                        }
-
-                        // Configure LODComponent with stubs (nothing resident yet).
-                        configureLODComponent(entityId: groupEntityId, lodLevels: stubLODLevels, activeLODIndex: 0)
-
-                        // StreamingComponent (.unloaded) so GeometryStreamingSystem picks this up.
-                        registerComponent(entityId: groupEntityId, componentType: StreamingComponent.self)
-                        if let sc = scene.get(component: StreamingComponent.self, for: groupEntityId) {
-                            sc.assetFilename = filename
-                            sc.assetExtension = withExtension
-                            sc.assetName = group.baseName
-                            sc.state = .unloaded
-                            // Placeholder radii — enableStreaming() sets the real values.
-                            sc.streamingRadius = Float.greatestFiniteMagnitude
-                            sc.unloadRadius = Float.greatestFiniteMagnitude
-                        }
-
-                        OctreeSystem.shared.registerEntity(groupEntityId)
-                        lodGroupEntityIds.append(groupEntityId)
-
-                        // Collect CPU entries (stored outside the gate below).
-                        for level in group.levels {
-                            guard let obj = nameToObject[level.sourceName] else { continue }
-                            let estimatedGPUBytes: Int = {
-                                guard let mdlMesh = obj as? MDLMesh else { return 0 }
-                                let stride = Int((mdlMesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48)
-                                return mdlMesh.vertexCount * stride + mdlMesh.vertexCount * 3 * 4
-                            }()
-                            let entry = ProgressiveAssetLoader.CPUMeshEntry(
-                                object: obj,
-                                vertexDescriptor: vertexDescriptor.model,
-                                textureLoader: assetData.textureLoader,
-                                device: renderInfo.device,
-                                url: url,
-                                filename: filename,
-                                withExtension: withExtension,
-                                uniqueAssetName: level.sourceName,
-                                estimatedGPUBytes: estimatedGPUBytes,
-                                residencyPolicy: loadingPolicy
-                            )
-                            cpuLODEntries.append((groupEntityId, level.lodIndex, entry))
-                        }
-                    }
-                }
-
-                // Store CPU LOD entries outside the gate (lock-based, no ECS mutation).
-                for (groupEntityId, lodIdx, entry) in cpuLODEntries {
-                    ProgressiveAssetLoader.shared.storeCPULODMesh(entry, for: groupEntityId, lodIndex: lodIdx)
-                }
-
-                // Keep MDLAsset alive so MDLMeshBufferDataAllocator is not prematurely released.
-                ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: entityId)
-                ProgressiveAssetLoader.shared.registerChildren(lodGroupEntityIds, for: entityId)
-                ProgressiveAssetLoader.shared.storeRootRehydrationContext(url: url, policy: loadingPolicy, for: entityId)
-
-                Logger.log(
-                    message: "[OutOfCore] '\(filename)': \(lodGroupEntityIds.count) LOD group entities registered — GeometryStreamingSystem will upload active LOD on demand",
-                    category: LogCategory.oocStatus.rawValue
-                )
-
-                await AssetLoadingState.shared.finishLoading(entityId: entityId)
-                completionBox?.call(true)
-                return
-            }
-
-            if useOutOfCore {
-                // OUT-OF-CORE PATH ──────────────────────────────────────────────────────
-                // Register ALL leaf meshes immediately as .unloaded stub entities (ECS-only,
-                // no GPU allocation). Each stub's MDLMesh data is stored in the CPU registry
-                // so GeometryStreamingSystem can upload it from RAM when the entity enters
-                // streaming range — no disk re-read required.
-                //
-                // This replaces the old ProgressiveLoadJob / tick() approach:
-                //   Old: upload nearest N → skip rest → skipped entities permanently absent
-                //   New: all entities present from the start, streaming drives GPU residency
-                Logger.log(
-                    message: "[OutOfCore] '\(filename)': \(outOfCoreReason ?? "policy") → out-of-core stub registration (\(assetData.totalObjectCount) stubs)",
-                    category: LogCategory.oocStatus.rawValue
-                )
-
-                // Register AssetInstanceComponent on the root entity so scene-graph
-                // serialisation can identify this as a multi-mesh asset instance.
-                withWorldMutationGate {
-                    let assetInstanceComp = AssetInstanceComponent(
-                        assetURL: url,
-                        assetName: filename,
-                        importMode: "preserveHierarchy",
-                        rootPrimPath: nil
-                    )
-                    registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
-                    if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
-                        instanceComp.assetURL = assetInstanceComp.assetURL
-                        instanceComp.assetName = assetInstanceComp.assetName
-                        instanceComp.importMode = assetInstanceComp.importMode
-                        instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
-                    }
-                }
-
-                // Register ALL stub entities inside a single withWorldMutationGate.
-                // Batching N stubs into one gate acquisition avoids N × acquire/release
-                // overhead on assets with hundreds of mesh leaves (e.g. 500 buildings).
-                var childEntityIds: [EntityID] = []
-                childEntityIds.reserveCapacity(assetData.totalObjectCount)
-                var cpuEntries: [(EntityID, ProgressiveAssetLoader.CPUMeshEntry)] = []
-                cpuEntries.reserveCapacity(assetData.totalObjectCount)
-
-                withWorldMutationGate {
-                    for (i, obj) in assetData.topLevelObjects.enumerated() {
-                        let baseName = (obj as? MDLMesh)?.parent?.name ?? obj.name
-                        let uniqueAssetName = "\(baseName)#\(i)"
-
-                        let childId = registerProgressiveStubEntity(
-                            mdlObject: obj,
-                            index: i,
-                            uniqueAssetName: uniqueAssetName,
-                            rootEntityId: entityId,
-                            url: url,
-                            filename: filename,
-                            withExtension: withExtension
-                        )
-
-                        // Estimate GPU bytes from MDLMesh vertex/index counts.
-                        // Used by GeometryStreamingSystem for pre-emptive budget reservation
-                        // before starting a CPU→Metal upload, so the budget gate fires before
-                        // a load rather than reacting after allocation.
-                        let estimatedGPUBytes: Int = {
-                            guard let mdlMesh = obj as? MDLMesh else { return 0 }
-                            let stride = Int((mdlMesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48)
-                            let vertexBytes = mdlMesh.vertexCount * stride
-                            // Approximate: ~3 indices per vertex (conservative, no sharing assumed)
-                            let indexBytes = mdlMesh.vertexCount * 3 * 4
-                            return vertexBytes + indexBytes
-                        }()
-
-                        let entry = ProgressiveAssetLoader.CPUMeshEntry(
-                            object: obj,
-                            vertexDescriptor: vertexDescriptor.model,
-                            textureLoader: assetData.textureLoader,
-                            device: renderInfo.device,
-                            url: url,
-                            filename: filename,
-                            withExtension: withExtension,
-                            uniqueAssetName: uniqueAssetName,
-                            estimatedGPUBytes: estimatedGPUBytes,
-                            residencyPolicy: loadingPolicy
-                        )
-                        cpuEntries.append((childId, entry))
-                        childEntityIds.append(childId)
-                    }
-                }
-
-                // Store CPU entries outside the gate (lock-based, no ECS mutation).
-                for (childId, entry) in cpuEntries {
-                    ProgressiveAssetLoader.shared.storeCPUMesh(entry, for: childId)
-                }
-
-                // Keep MDLAsset alive so the MDLMeshBufferDataAllocator backing all
-                // child CPU buffers is not released prematurely.
-                ProgressiveAssetLoader.shared.storeAsset(assetData.asset, for: entityId)
-                ProgressiveAssetLoader.shared.registerChildren(childEntityIds, for: entityId)
-
-                // Store URL + policy so GeometryStreamingSystem can re-parse from disk if
-                // releaseWarmAsset() transitions this asset to CPU-cold in a future frame.
-                ProgressiveAssetLoader.shared.storeRootRehydrationContext(
-                    url: url,
-                    policy: loadingPolicy,
-                    for: entityId
-                )
-
-                Logger.log(
-                    message: "[OutOfCore] '\(filename)': \(assetData.totalObjectCount) stubs registered — GeometryStreamingSystem will upload on demand",
-                    category: LogCategory.oocStatus.rawValue
-                )
-
-                // Release the loading gate immediately — no GPU work happens here.
-                await AssetLoadingState.shared.finishLoading(entityId: entityId)
-                completionBox?.call(true)
-                return
-            }
-
-            // SMALL-FILE FAST PATH (CPU-parsed) ────────────────────────────────────────
-            // File is below the size threshold: create all mesh groups from the
-            // CPU-parsed data right now, then continue with the normal registration code below.
-            // Must use makeMeshesFromCPUBuffers (not makeMeshes) because parseAssetAsync
-            // uses MDLMeshBufferDataAllocator — CPU-heap buffers that MTKMesh(mesh:device:)
-            // cannot accept directly (MTKModelErrorNoMTLBuffer). makeMeshesFromCPUBuffers
-            // copies each buffer to a fresh MTKMeshBufferAllocator-backed buffer first.
-            //
-            // parseAssetAsync intentionally skips loadTextures() to defer the decompression
-            // cost. The OOC path calls ensureTexturesLoaded() in uploadFromCPUEntry before
-            // makeMeshesFromCPUBuffers. This fast path bypasses that route, so we must call
-            // loadTextures() here to ensure USDZ-embedded textures are decoded — otherwise
-            // MTKTextureLoader cannot read the pixel data and all textures silently fail.
-            //
-            // loadTextures() is a blocking C/ObjC call that can hang indefinitely when
-            // ModelIO encounters an unsupported image format inside the USDZ archive.
-            // Running it on a DispatchQueue (not the Swift cooperative pool) isolates the
-            // hang from other async work.  A 15-second deadline resumes the continuation
-            // with false so the load proceeds without textures rather than freezing
-            // the render loop via AssetLoadingGate.  ResumeOnce guarantees the
-            // continuation fires exactly once regardless of which side wins the race.
-            Logger.log(message: "[Streaming] '\(filename)': loadTextures() start")
-            let textureLoadOK = await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
-                let once = ResumeOnce()
-                let assetRef = SendableMDLAssetBox(asset: assetData.asset)
-                let nameForLog = filename
-                DispatchQueue.global(qos: .userInitiated).async {
-                    assetRef.asset.loadTextures()
-                    once.callOnce { cont.resume(returning: true) }
-                }
-                DispatchQueue.global().asyncAfter(deadline: .now() + 15.0) {
-                    once.callOnce {
-                        Logger.logWarning(message: "[Streaming] '\(nameForLog)': loadTextures() timed out after 15s — proceeding without textures")
-                        cont.resume(returning: false)
-                    }
-                }
-            }
-            Logger.log(message: "[Streaming] '\(filename)': loadTextures() \(textureLoadOK ? "complete" : "timed out")")
-            let smallAssetMeshes: [[Mesh]] = assetData.topLevelObjects.map { obj in
-                Mesh.makeMeshesFromCPUBuffers(
-                    object: obj,
-                    vertexDescriptor: vertexDescriptor.model,
-                    textureLoader: assetData.textureLoader,
-                    device: renderInfo.device,
-                    flip: true
-                )
-            }
-            MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: smallAssetMeshes)
-
-            // Continue to the validation + registration block below using these meshes.
-            // ─── SMALL-ASSET CONTINUATION ──────────────────────────────────────────────
-            let meshes = smallAssetMeshes
-
-            if meshes.isEmpty {
-                handleError(.assetDataMissing, filename)
-                loadFallbackMesh(entityId: entityId, filename: filename)
-                await AssetLoadingState.shared.finishLoading(entityId: entityId)
-                completionBox?.call(false)
-                return
-            }
-
-            let nonEmptyMeshes = meshes.filter { !$0.isEmpty }
-
-            // assetName is nil here (progressive path requires nil assetName).
-
-            await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: 0, totalMeshes: nonEmptyMeshes.count, phase: .registering)
-
-            var loadingEntityIds: [EntityID] = [entityId]
-
-            let handledImportedLOD = tryRegisterImportedLODGroup(
-                entityId: entityId,
-                url: url,
-                filename: filename,
-                withExtension: withExtension,
-                nonEmptyMeshes: nonEmptyMeshes
-            )
-
-            if handledImportedLOD {
-                await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: nonEmptyMeshes.count, totalMeshes: nonEmptyMeshes.count)
-            } else if nonEmptyMeshes.count == 1 {
-                let mesh = nonEmptyMeshes[0]
-                associateMeshesToEntity(entityId: entityId, meshes: mesh)
-                registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-                setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
-                if let renderComp = scene.get(component: RenderComponent.self, for: entityId) {
-                    renderComp.isVisible = false
-                }
-                await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: 1, totalMeshes: 1)
-            } else if nonEmptyMeshes.count > 1 {
-                let assetInstanceComp = AssetInstanceComponent(
-                    assetURL: url,
-                    assetName: filename,
-                    importMode: "preserveHierarchy",
-                    rootPrimPath: nil
-                )
-                registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
-                if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
-                    instanceComp.assetURL = assetInstanceComp.assetURL
-                    instanceComp.assetName = assetInstanceComp.assetName
-                    instanceComp.importMode = assetInstanceComp.importMode
-                    instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
-                }
-                for (index, mesh) in nonEmptyMeshes.enumerated() {
-                    let childEntityId = createEntity()
-                    if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
-                        registerTransformComponent(entityId: childEntityId)
-                    }
-                    if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
-                        registerSceneGraphComponent(entityId: childEntityId)
-                    }
-                    if let firstMesh = mesh.first {
-                        applyWorldTransform(firstMesh.worldSpace, to: childEntityId)
-                    }
-                    associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
-                    registerRenderComponent(entityId: childEntityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-                    let meshAssetName = mesh.first!.assetName
-                    setEntityName(entityId: childEntityId, name: meshAssetName)
-                    setParent(childId: childEntityId, parentId: entityId)
-                    let nodePath = generateStableNodePath(assetName: meshAssetName, index: index)
-                    let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: entityId, nodePath: nodePath)
-                    registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
-                    if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
-                        derived.assetRootEntityId = derivedComp.assetRootEntityId
-                        derived.nodePath = derivedComp.nodePath
-                    }
-                    setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
-                    if let renderComp = scene.get(component: RenderComponent.self, for: childEntityId) {
-                        renderComp.isVisible = false
-                    }
-                    loadingEntityIds.append(childEntityId)
-                    await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: index + 1, totalMeshes: nonEmptyMeshes.count)
-                }
-            }
-
-            for id in loadingEntityIds {
-                if let renderComp = scene.get(component: RenderComponent.self, for: id) {
-                    renderComp.isVisible = true
-                }
-            }
-
-            await AssetLoadingState.shared.finishLoading(entityId: entityId)
-            completionBox?.call(true)
-            return
-        }
-
-        // ORIGINAL PATH (assetName specified, or progressive loading disabled) ──────────
-        // Uses MTKMeshBufferAllocator: all Metal buffers allocated at parse time.
-        // Kept for named-mesh lookups and fallback when progressive loading is off.
-        let meshes = await Mesh.loadSceneMeshesAsync(
-            url: url,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            coordinateConversion: coordinateConversion
-        ) { current, total in
-            guard total > 0 else { return }
-
-            Task {
-                await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: current, totalMeshes: total)
-            }
-        }
-
-        // Cache meshes for streaming system (so reloads don't require disk I/O)
-        MeshResourceManager.shared.cacheLoadedMeshes(url: url, meshArrays: meshes)
-
-        // Process on main thread - validate meshes first
-        if meshes.isEmpty {
-            handleError(.assetDataMissing, filename)
-            loadFallbackMesh(entityId: entityId, filename: filename)
-            await AssetLoadingState.shared.finishLoading(entityId: entityId)
-            completionBox?.call(false)
-            return
-        }
-
-        var nonEmptyMeshes = meshes.filter { !$0.isEmpty }
-
-        if let assetNameExist = assetName {
-            if let matchedMesh = nonEmptyMeshes.first(where: { $0.first?.assetName == assetNameExist }) {
-                nonEmptyMeshes = [matchedMesh]
-            } else {
-                handleError(.assetDataMissing, "No mesh with asset name \(assetNameExist)")
-                loadFallbackMesh(entityId: entityId, filename: filename)
-                await AssetLoadingState.shared.finishLoading(entityId: entityId)
-                completionBox?.call(false)
-                return
-            }
-        }
-
-        // Register components in batches to avoid blocking
-        // Update progress to show registration phase
-        await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: 0, totalMeshes: nonEmptyMeshes.count, phase: .registering)
-
-        // Track entities being loaded to hide them during registration
-        var loadingEntityIds: [EntityID] = [entityId]
-
-        let handledImportedLOD = tryRegisterImportedLODGroup(
-            entityId: entityId,
-            url: url,
-            filename: filename,
-            withExtension: withExtension,
-            nonEmptyMeshes: nonEmptyMeshes
-        )
-
-        if handledImportedLOD {
-            await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: nonEmptyMeshes.count, totalMeshes: nonEmptyMeshes.count)
-        } else if nonEmptyMeshes.count == 1 {
-            let mesh = nonEmptyMeshes[0]
-            associateMeshesToEntity(entityId: entityId, meshes: mesh)
-            registerRenderComponent(entityId: entityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-            setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
-
-            // Hide during registration
-            if let renderComp = scene.get(component: RenderComponent.self, for: entityId) {
-                renderComp.isVisible = false
-            }
-            await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: 1, totalMeshes: 1)
-        } else if nonEmptyMeshes.count > 1 {
-            // Multi-mesh asset: mark root as AssetInstance, children as DerivedAssetNode
-            let assetInstanceComp = AssetInstanceComponent(
-                assetURL: url,
-                assetName: assetName ?? filename,
-                importMode: "preserveHierarchy",
-                rootPrimPath: nil
-            )
-            registerComponent(entityId: entityId, componentType: AssetInstanceComponent.self)
-            if let instanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
-                instanceComp.assetURL = assetInstanceComp.assetURL
-                instanceComp.assetName = assetInstanceComp.assetName
-                instanceComp.importMode = assetInstanceComp.importMode
-                instanceComp.rootPrimPath = assetInstanceComp.rootPrimPath
-            }
-
-            // Process mesh groups without artificial delays to maximize import throughput.
-            for (index, mesh) in nonEmptyMeshes.enumerated() {
-                let childEntityId = createEntity()
-
-                if hasComponent(entityId: childEntityId, componentType: LocalTransformComponent.self) == false {
-                    registerTransformComponent(entityId: childEntityId)
-                }
-
-                if hasComponent(entityId: childEntityId, componentType: ScenegraphComponent.self) == false {
-                    registerSceneGraphComponent(entityId: childEntityId)
-                }
-
-                // Extract full transform (translation, rotation, scale) from mesh world space
-                // before RenderComponent registration.
-                if let firstMesh = mesh.first {
-                    applyWorldTransform(firstMesh.worldSpace, to: childEntityId)
-                }
-
-                associateMeshesToEntity(entityId: childEntityId, meshes: mesh)
-                registerRenderComponent(entityId: childEntityId, meshes: mesh, url: url, assetName: mesh.first!.assetName)
-
-                let meshAssetName = mesh.first!.assetName
-                setEntityName(entityId: childEntityId, name: meshAssetName)
-                setParent(childId: childEntityId, parentId: entityId)
-
-                // Tag as derived node with stable nodePath
-                let nodePath = generateStableNodePath(assetName: meshAssetName, index: index)
-                let derivedComp = DerivedAssetNodeComponent(assetRootEntityId: entityId, nodePath: nodePath)
-                registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
-                if let derived = scene.get(component: DerivedAssetNodeComponent.self, for: childEntityId) {
-                    derived.assetRootEntityId = derivedComp.assetRootEntityId
-                    derived.nodePath = derivedComp.nodePath
-                }
-
-                setEntitySkeleton(entityId: childEntityId, filename: filename, withExtension: withExtension)
-
-                // Hide during registration
-                if let renderComp = scene.get(component: RenderComponent.self, for: childEntityId) {
-                    renderComp.isVisible = false
-                }
-
-                // Add child to loading set
-                loadingEntityIds.append(childEntityId)
-
-                // Update registration progress
-                await AssetLoadingState.shared.updateProgress(entityId: entityId, currentMesh: index + 1, totalMeshes: nonEmptyMeshes.count)
-            }
-        }
-
-        // Mark all entities as visible now that registration is complete
-        for id in loadingEntityIds {
-            if let renderComp = scene.get(component: RenderComponent.self, for: id) {
-                renderComp.isVisible = true
-            }
-        }
-
+        // Non-.untold assets are not supported. Log and return a fallback.
+        Logger.logWarning(message: "[RegistrationSystem] Only .untold format is supported. Ignoring '\(filename).\(withExtension)'.")
+        loadFallbackMesh(entityId: entityId, filename: filename)
         await AssetLoadingState.shared.finishLoading(entityId: entityId)
-        completionBox?.call(true)
+        completionBox?.call(false)
     }
 }
 
@@ -2772,23 +1838,6 @@ private func normalizeTileStreamingBands(
     return (normalizedPrefetch, normalizedHLOD, normalizedLODs)
 }
 
-// Lightweight second MDLAsset pass that extracts cameras and lights only.
-// Uses a bare MDLAsset (no vertex descriptor, no allocator) so no geometry
-// buffers are allocated — this is cheap even for large scenes.
-
-/// Cache to avoid reloading USDZ files multiple times for skeleton checks
-private var skeletonCache: [URL: MDLSkeleton?] {
-    get {
-        registrationRuntimeState.lock.lock()
-        defer { registrationRuntimeState.lock.unlock() }
-        return registrationRuntimeState.skeletonCache
-    }
-    set {
-        registrationRuntimeState.lock.lock()
-        registrationRuntimeState.skeletonCache = newValue
-        registrationRuntimeState.lock.unlock()
-    }
-}
 
 func removeEntityMesh(entityId: EntityID) {
     var removedAnyResourceOwner = false
@@ -2818,88 +1867,7 @@ func removeEntityMesh(entityId: EntityID) {
     MemoryBudgetManager.shared.unregisterMesh(entityId: entityId)
 }
 
-public func setEntitySkeleton(entityId: EntityID, filename: String, withExtension: String) {
-    enforceRegistrationMainActor()
-    guard let url: URL = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
-        handleError(.filenameNotFound, filename)
-        return
-    }
 
-    // Check cache first to avoid reloading USDZ
-    let cachedSkeleton: MDLSkeleton?
-    if let cached = skeletonCache[url] {
-        cachedSkeleton = cached
-    } else {
-        // Not in cache - load USDZ once and cache result
-        let bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
-        let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor.model, bufferAllocator: bufferAllocator)
-        let skeletons = asset.childObjects(of: MDLSkeleton.self) as? [MDLSkeleton] ?? []
-        cachedSkeleton = skeletons.first
-        skeletonCache[url] = cachedSkeleton // Cache for future calls
-    }
-
-    if cachedSkeleton == nil {
-        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-            handleError(.noRenderComponent, entityId)
-            return
-        }
-
-        let skin = Skin()
-
-        for index in renderComponent.mesh.indices {
-            renderComponent.mesh[index].skin = skin
-        }
-
-        return
-    }
-
-    let skeleton = Skeleton(mdlSkeleton: cachedSkeleton!)!
-
-    // register Skeleton Component
-    registerComponent(entityId: entityId, componentType: SkeletonComponent.self)
-
-    guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
-        handleError(.noSkeletonComponent, entityId)
-        return
-    }
-
-    skeletonComponent.skeleton = skeleton
-
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        handleError(.noRenderComponent, entityId)
-        return
-    }
-
-    for mesh in renderComponent.mesh {
-        setEntitySkin(entityId: entityId, mdlMesh: mesh.modelMDLMesh)
-    }
-}
-
-public func setEntitySkin(entityId: EntityID, mdlMesh: MDLMesh) {
-    guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
-        handleError(.noSkeletonComponent, entityId)
-        return
-    }
-
-    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        handleError(.noRenderComponent, entityId)
-        return
-    }
-
-    let animationBindComponent = mdlMesh.componentConforming(to: MDLComponent.self) as? MDLAnimationBindComponent
-
-    let skin = Skin(animationBindComponent: animationBindComponent, skeleton: skeletonComponent.skeleton)
-
-    // update the buffer with rest pose
-    skeletonComponent.skeleton.resetPoseToRest()
-
-    skin?.updateJointMatrices(skeleton: skeletonComponent.skeleton)
-
-    // Assign skin to mesh
-    for index in renderComponent.mesh.indices where renderComponent.mesh[index].modelMDLMesh == mdlMesh {
-        renderComponent.mesh[index].skin = skin
-    }
-}
 
 public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String, name: String) {
     let targetEntityId = resolveEntityForAnimationBinding(entityId: entityId) ?? entityId
@@ -2942,34 +1910,6 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
         return
     }
 
-    let bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
-
-    let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor.model, bufferAllocator: bufferAllocator)
-
-    let assetAnimations = asset.animations.objects.compactMap {
-        $0 as? MDLPackedJointAnimation
-    }
-
-    if assetAnimations.isEmpty {
-        handleError(.assetHasNoAnimation, filename)
-        return
-    }
-
-    withWorldMutationGate {
-        guard let animationComponent = ensureAnimationComponent(entityId: targetEntityId, errorEntityId: entityId) else {
-            return
-        }
-
-        for assetAnimation in assetAnimations {
-            let animationClip = AnimationClip(animation: assetAnimation, animationName: name)
-            animationComponent.animationClips[name] = animationClip
-        }
-
-        appendAnimationSourceURLIfNeeded(url, to: animationComponent)
-        if animationComponent.currentAnimation == nil {
-            animationComponent.currentAnimation = animationComponent.animationClips[name]
-        }
-    }
 }
 
 func removeEntityAnimations(entityId: EntityID) {
@@ -3325,10 +2265,13 @@ public func loadRawMesh(
         return []
     }
 
-    let meshes = Mesh.loadMeshWithName(name: name, url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
-
-    if !meshes.isEmpty {
-        return meshes
+    // Load named node from .untold asset.
+    if let runtimeAsset = loadUntoldRuntimeAsset(url: url),
+       let node = runtimeAsset.nodes.first(where: { $0.name == name }),
+       !node.primitives.isEmpty
+    {
+        let meshes = makeMeshes(from: node)
+        if !meshes.isEmpty { return meshes }
     }
 
     // ---- Fallback path: fabricate a safe default mesh ----
@@ -3641,12 +2584,13 @@ public func addLODLevel(
         }
 
         // Load meshes for this LOD
-        var meshes = await Mesh.loadMeshesAsync(
-            url: url,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+        guard let runtimeAsset = try? NativeFormatLoader().loadAssetSync(from: url) else {
+            completionBox?.call(false)
+            return
+        }
+        var meshes: [Mesh] = runtimeAsset.nodes
+            .filter { !$0.primitives.isEmpty }
+            .flatMap { makeMeshes(from: $0) }
 
         // Assign empty skin to all meshes (required by shaders)
         let skin = Skin()
@@ -3837,12 +2781,13 @@ public func replaceLODLevel(
         }
 
         // Load new meshes
-        var meshes = await Mesh.loadMeshesAsync(
-            url: newURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+        guard let runtimeAsset2 = try? NativeFormatLoader().loadAssetSync(from: newURL) else {
+            completionBox?.call(false)
+            return
+        }
+        var meshes: [Mesh] = runtimeAsset2.nodes
+            .filter { !$0.primitives.isEmpty }
+            .flatMap { makeMeshes(from: $0) }
 
         // Assign empty skin to all meshes
         let skin = Skin()

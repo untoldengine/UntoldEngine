@@ -1210,20 +1210,19 @@ public func deserializeScene(
 
                 switch meshLoadingMode {
                 case .sync:
-                    setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil)
-                    applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
-
-                    // Restore Static Batch Component (sync mode - mesh already loaded)
-                    if sceneDataEntity.hasStaticBatchComponent == true {
-                        setEntityStaticBatchComponent(entityId: entityId)
-                    }
-                    // Apply overrides synchronously after import (must run after static restore so
-                    // per-node static opt-outs can remove static from selected children).
-                    applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
-
-                    // Setup animations (skeleton is now available)
-                    if sceneDataEntity.hasAnimationComponent == true {
-                        applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
+                    loadTracker.registerLoad()
+                    setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: nil) { success in
+                        applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                        if success {
+                            if sceneDataEntity.hasStaticBatchComponent == true {
+                                setEntityStaticBatchComponent(entityId: entityId)
+                            }
+                            applyAssetInstanceOverrides(entityId: entityId, overrides: assetInstance.overrides)
+                            if sceneDataEntity.hasAnimationComponent == true {
+                                applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
+                            }
+                        }
+                        loadTracker.completeLoad()
                     }
                 case .asyncDefault:
                     loadTracker.registerLoad()
@@ -1266,18 +1265,19 @@ public func deserializeScene(
                             setEntityStaticBatchComponent(entityId: entityId)
                         }
                     } else {
-                        setEntityMesh(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName)
-                        applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
-
-                        // Restore Static Batch Component (sync mode - mesh already loaded)
-                        if sceneDataEntity.hasStaticBatchComponent == true {
-                            setEntityStaticBatchComponent(entityId: entityId)
+                        loadTracker.registerLoad()
+                        setEntityMeshAsync(entityId: entityId, filename: filename, withExtension: withExtension, assetName: sceneDataEntity.assetName) { success in
+                            applyDeserializedLocalTransform(entityId: entityId, entityData: sceneDataEntity)
+                            if success {
+                                if sceneDataEntity.hasStaticBatchComponent == true {
+                                    setEntityStaticBatchComponent(entityId: entityId)
+                                }
+                                if sceneDataEntity.hasAnimationComponent == true {
+                                    applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
+                                }
+                            }
+                            loadTracker.completeLoad()
                         }
-                    }
-
-                    // Setup animations (skeleton is now available)
-                    if sceneDataEntity.hasAnimationComponent == true {
-                        applyDeserializedAnimations(entityId: entityId, entityData: sceneDataEntity)
                     }
                 case .asyncDefault:
                     if isProcedural {

@@ -8,7 +8,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-import ModelIO
 import simd
 @testable import UntoldEngine
 import XCTest
@@ -155,40 +154,42 @@ final class GeometryStreamingEvictionTests: BaseRenderSetup {
         return entityId
     }
 
-    // MARK: - Test 1: CPUMeshEntry estimatedGPUBytes round-trip
+    // MARK: - Test 1: CPURuntimeEntry estimatedGPUBytes round-trip
 
-    /// `estimatedGPUBytes` is computed at stub-registration time and stored in
-    /// `CPUMeshEntry`. Verify the value survives `storeCPUMesh` / `retrieveCPUMesh`
-    /// and is cleared by `removeCPUMesh`.
-    func testCPUMeshEntryEstimatedGPUBytesStoredAndRetrieved() {
+    /// `estimatedGPUBytes` is stored in `CPURuntimeEntry` at stub-registration time.
+    /// Verify the value survives `storeCPURuntimeEntry` / `retrieveCPURuntimeEntry`
+    /// and is cleared by `removeCPURuntimeEntry`.
+    func testCPURuntimeEntryEstimatedGPUBytesStoredAndRetrieved() {
         let entityId: EntityID = 99001
         let expectedBytes = 1_234_567
 
-        let entry = ProgressiveAssetLoader.CPUMeshEntry(
-            object: MDLObject(),
-            vertexDescriptor: MDLVertexDescriptor(),
-            textureLoader: TextureLoader(device: renderInfo.device),
-            device: renderInfo.device,
+        let dummyNode = RuntimeAssetNode(
+            id: 0,
+            name: "TestNode",
+            localBounds: RuntimeAABB(min: .zero, max: simd_float3(1, 1, 1)),
+            worldBounds: RuntimeAABB(min: .zero, max: simd_float3(1, 1, 1)),
+            primitives: []
+        )
+        let entry = ProgressiveAssetLoader.CPURuntimeEntry(
+            node: dummyNode,
             url: URL(fileURLWithPath: "/dev/null"),
-            filename: "test",
-            withExtension: "usdz",
             uniqueAssetName: "TestMesh#0",
             estimatedGPUBytes: expectedBytes,
             residencyPolicy: .fullLoad
         )
 
-        ProgressiveAssetLoader.shared.storeCPUMesh(entry, for: entityId)
+        ProgressiveAssetLoader.shared.storeCPURuntimeEntry(entry, for: entityId)
 
-        let retrieved = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId)
+        let retrieved = ProgressiveAssetLoader.shared.retrieveCPURuntimeEntry(for: entityId)
         XCTAssertEqual(
             retrieved?.estimatedGPUBytes, expectedBytes,
-            "estimatedGPUBytes should survive storeCPUMesh / retrieveCPUMesh round-trip"
+            "estimatedGPUBytes should survive storeCPURuntimeEntry / retrieveCPURuntimeEntry round-trip"
         )
 
-        ProgressiveAssetLoader.shared.removeCPUMesh(for: entityId)
+        ProgressiveAssetLoader.shared.removeCPURuntimeEntry(for: entityId)
         XCTAssertNil(
-            ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
-            "Entry should be absent after removeCPUMesh"
+            ProgressiveAssetLoader.shared.retrieveCPURuntimeEntry(for: entityId),
+            "Entry should be absent after removeCPURuntimeEntry"
         )
     }
 

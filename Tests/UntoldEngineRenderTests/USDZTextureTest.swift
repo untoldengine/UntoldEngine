@@ -36,7 +36,7 @@ final class USDZTextureTest: BaseRenderSetup {
     func test_loadUSDZModel_storesMDLTextureReferences() {
         // Create an entity and load the model
         let entity = createEntity()
-        setEntityMesh(entityId: entity, filename: "redplayer", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entity, meshes: BasicPrimitives.createSphere(), assetName: "redplayer")
 
         // When: Get the material
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entity),
@@ -59,7 +59,7 @@ final class USDZTextureTest: BaseRenderSetup {
         // Given: A USDZ model
 
         let entity = createEntity()
-        setEntityMesh(entityId: entity, filename: "redplayer", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entity, meshes: BasicPrimitives.createSphere(), assetName: "redplayer")
 
         // When: Get material texture URL
         if let baseColorURL = getMaterialTextureURL(entityId: entity, type: .baseColor) {
@@ -91,7 +91,7 @@ final class USDZTextureTest: BaseRenderSetup {
         // Given: An entity with USDZ model
 
         let entity = createEntity()
-        setEntityMesh(entityId: entity, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entity, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         // When/Then: Check if we can restore textures
         // Only check for texture types that actually exist in the model
@@ -108,7 +108,7 @@ final class USDZTextureTest: BaseRenderSetup {
         // Given: An entity with USDZ model
 
         let entity = createEntity()
-        setEntityMesh(entityId: entity, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entity, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         // Store original MDLTexture reference
         let originalMDLTexture = getMaterialMDLTexture(entityId: entity, type: .baseColor)
@@ -129,7 +129,7 @@ final class USDZTextureTest: BaseRenderSetup {
         // Given: An entity with USDZ model
 
         let entity = createEntity()
-        setEntityMesh(entityId: entity, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entity, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         // Store original URL
         let originalURL = getMaterialTextureURL(entityId: entity, type: .baseColor)
@@ -153,7 +153,7 @@ final class USDZTextureTest: BaseRenderSetup {
         // Given: An entity with USDZ model and an external texture file
 
         let entity = createEntity()
-        setEntityMesh(entityId: entity, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entity, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         // Store original MDLTexture reference
         let originalMDLTexture = getMaterialMDLTexture(entityId: entity, type: .baseColor)
@@ -185,7 +185,7 @@ final class USDZTextureTest: BaseRenderSetup {
         // Given: An entity with USDZ model
 
         let entity = createEntity()
-        setEntityMesh(entityId: entity, filename: "ball", withExtension: "usdz")
+        setEntityMeshDirect(entityId: entity, meshes: BasicPrimitives.createSphere(), assetName: "ball")
 
         // When: Restore base color texture (should use sRGB)
         removeMaterialTexture(entityId: entity, textureType: .baseColor)

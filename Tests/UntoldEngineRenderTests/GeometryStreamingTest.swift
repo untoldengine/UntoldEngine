@@ -95,22 +95,12 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testEnableStreamingForSingleMeshEntity() {
         // Given: A single-mesh entity with RenderComponent
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let entity = createEntity()
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let entity = createEntity()
+        let meshes = BasicPrimitives.createSphere()
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
             renderComponent.mesh = meshes
-            renderComponent.assetURL = ballURL
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             renderComponent.assetName = "ball"
         }
 
@@ -251,24 +241,14 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testGetStatsWithStreamingEntities() {
         // Given: Create streaming entities with different states
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        // Create 2 loaded entities
+                // Create 2 loaded entities
         for _ in 0 ..< 2 {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
+            let meshes = BasicPrimitives.createSphere()
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
             _ = scene.assign(to: entity, component: LocalTransformComponent.self)
             _ = scene.assign(to: entity, component: WorldTransformComponent.self)
@@ -299,22 +279,12 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testStreamingUpdateUnloadsDistantEntities() {
         // Given: A loaded streaming entity
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let entity = createEntity()
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let entity = createEntity()
+        let meshes = BasicPrimitives.createSphere()
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
             renderComponent.mesh = meshes
-            renderComponent.assetURL = ballURL
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
         }
 
         if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -356,26 +326,16 @@ final class GeometryStreamingTest: BaseRenderSetup {
     }
 
     func testStreamingUpdateRespectsUnloadBudgetPerTick() {
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        GeometryStreamingSystem.shared.maxUnloadsPerUpdate = 1
+                GeometryStreamingSystem.shared.maxUnloadsPerUpdate = 1
         GeometryStreamingSystem.shared.enabled = true
 
         func makeLoadedEntity(positionX: Float) -> EntityID {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
+            let meshes = BasicPrimitives.createSphere()
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
 
             if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -413,22 +373,12 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testForceUnload() {
         // Given: A loaded streaming entity
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let entity = createEntity()
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let entity = createEntity()
+        let meshes = BasicPrimitives.createSphere()
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
             renderComponent.mesh = meshes
-            renderComponent.assetURL = ballURL
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
         }
         _ = scene.assign(to: entity, component: LocalTransformComponent.self)
         _ = scene.assign(to: entity, component: WorldTransformComponent.self)
@@ -485,22 +435,12 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testUnloadRadiusMustBeGreaterThanStreamingRadius() {
         // Given: An entity with streaming
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let entity = createEntity()
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let entity = createEntity()
+        let meshes = BasicPrimitives.createSphere()
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
             renderComponent.mesh = meshes
-            renderComponent.assetURL = ballURL
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
         }
         _ = scene.assign(to: entity, component: LocalTransformComponent.self)
         _ = scene.assign(to: entity, component: WorldTransformComponent.self)
@@ -558,23 +498,13 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testStreamingIntegrationWithRendering() {
         // Given: Create streaming entities
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        for i in 0 ..< 3 {
+                for i in 0 ..< 3 {
             let entity = createEntity()
-            let meshes = Mesh.loadMeshes(
-                url: ballURL,
-                vertexDescriptor: vertexDescriptor.model,
-                device: renderInfo.device,
-                flip: true
-            )
+            let meshes = BasicPrimitives.createSphere()
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
 
             if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {

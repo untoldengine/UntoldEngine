@@ -168,18 +168,8 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testGenerateBatchesWithMultipleStaticEntities() {
         // Given: Load a simple model
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        // Load meshes once so all entities share the same texture object identity
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                // Load meshes once so all entities share the same texture object identity
+        let meshes = BasicPrimitives.createSphere()
 
         // Create multiple entities with same mesh (same material)
         var entities: [EntityID] = []
@@ -189,7 +179,7 @@ final class StaticBatchingTest: BaseRenderSetup {
             // Add RenderComponent
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
                 renderComponent.assetName = "ball"
             }
 
@@ -223,17 +213,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testBatchGroupBufferCreation() {
         // Given: Load a model and create batched entities
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let meshes = BasicPrimitives.createSphere()
 
         for _ in 0 ..< 3 {
             let entity = createEntity()
@@ -271,12 +251,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testClearBatches() {
         // Given: Create some batches
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let meshes = Mesh.loadMeshes(url: ballURL, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: true)
+                let meshes = BasicPrimitives.createSphere()
 
         for _ in 0 ..< 3 {
             let entity = createEntity()
@@ -430,19 +405,10 @@ final class StaticBatchingTest: BaseRenderSetup {
         // Measure performance of batch generation with many entities
         measure {
             // Given: Create 50 static entities
-            guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-                return
-            }
-
             for _ in 0 ..< 50 {
                 let entity = createEntity()
 
-                let meshes = Mesh.loadMeshes(
-                    url: ballURL,
-                    vertexDescriptor: vertexDescriptor.model,
-                    device: renderInfo.device,
-                    flip: true
-                )
+                let meshes = BasicPrimitives.createSphere()
 
                 if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                     renderComponent.mesh = meshes
@@ -467,17 +433,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         // This test verifies that batching integrates with the rendering system
 
         // Given: Create batched entities
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let meshes = BasicPrimitives.createSphere()
 
         for i in 0 ..< 3 {
             let entity = createEntity()
@@ -620,17 +576,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testBatchStatistics() {
         // Given: Create entities and generate batches
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let meshes = BasicPrimitives.createSphere()
 
         let entityCount = 10
         for _ in 0 ..< entityCount {
@@ -673,17 +619,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     func testBatchingSystemMovesEntityToNewBatchOnLODChange() {
         // Given: Create batched entities with LOD components
         // Note: BatchingSystem requires at least 2 entities with same material+LOD to form a batch
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let meshes = BasicPrimitives.createSphere()
 
         // Create 4 entities at LOD 0
         var lod0Entities: [EntityID] = []
@@ -692,7 +628,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
 
             if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -761,17 +697,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testBatchingSystemRemovesEntityOnMeshEviction() {
         // Given: Create batched entities
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let meshes = BasicPrimitives.createSphere()
 
         var entities: [EntityID] = []
         for _ in 0 ..< 4 {
@@ -779,7 +705,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
                 renderComponent.assetName = "ball"
             }
 
@@ -809,7 +735,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
         let evictionEvent = AssetResidencyChangedEvent(
             entityId: targetEntity,
-            assetURL: ballURL,
+            assetURL: URL(fileURLWithPath: "/dev/null/ball"),
             meshName: "ball",
             isResident: false
         )
@@ -831,25 +757,15 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testBatchingSystemAddsEntityWhenMeshBecomesResident() {
         // Given: Create an entity without mesh initially
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        // Load meshes once so all entities share the same texture object identity
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                // Load meshes once so all entities share the same texture object identity
+        let meshes = BasicPrimitives.createSphere()
 
         // First, create some batched entities so there's a batch to join
         for _ in 0 ..< 3 {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
             _ = scene.assign(to: entity, component: LocalTransformComponent.self)
             _ = scene.assign(to: entity, component: WorldTransformComponent.self)
@@ -860,7 +776,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         let targetEntity = createEntity()
         if let renderComponent = scene.assign(to: targetEntity, component: RenderComponent.self) {
             renderComponent.mesh = [] // Empty initially
-            renderComponent.assetURL = ballURL
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             renderComponent.assetName = "ball"
         }
         _ = scene.assign(to: targetEntity, component: LocalTransformComponent.self)
@@ -882,7 +798,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         // Emit residency change event indicating mesh became resident
         let residencyEvent = AssetResidencyChangedEvent(
             entityId: targetEntity,
-            assetURL: ballURL,
+            assetURL: URL(fileURLWithPath: "/dev/null/ball"),
             meshName: "ball",
             isResident: true
         )
@@ -906,25 +822,15 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testQuiescenceDelaysPromotionToBatchPending() {
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
+                BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(2)
 
-        BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(2)
-
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+        let meshes = BasicPrimitives.createSphere()
 
         for _ in 0 ..< 3 {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
             _ = scene.assign(to: entity, component: LocalTransformComponent.self)
             _ = scene.assign(to: entity, component: WorldTransformComponent.self)
@@ -934,7 +840,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         let targetEntity = createEntity()
         if let renderComponent = scene.assign(to: targetEntity, component: RenderComponent.self) {
             renderComponent.mesh = []
-            renderComponent.assetURL = ballURL
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             renderComponent.assetName = "ball"
         }
         _ = scene.assign(to: targetEntity, component: LocalTransformComponent.self)
@@ -951,7 +857,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         SystemEventBus.shared.queueResidencyChange(
             AssetResidencyChangedEvent(
                 entityId: targetEntity,
-                assetURL: ballURL,
+                assetURL: URL(fileURLWithPath: "/dev/null/ball"),
                 meshName: "ball",
                 isResident: true
             )
@@ -980,17 +886,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     func testTickProcessesPendingRemovalsAndAdditions() {
         // Given: Create batched entities
         // Note: tick() processes pending entity changes and rebuilds affected cells incrementally
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let meshes = BasicPrimitives.createSphere()
 
         // Create entities at LOD 0
         var lod0Entities: [EntityID] = []
@@ -998,7 +894,7 @@ final class StaticBatchingTest: BaseRenderSetup {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
             if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
                 transform.position = simd_float3(Float(i) * 2.0, 0, 0)
@@ -1021,7 +917,7 @@ final class StaticBatchingTest: BaseRenderSetup {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
             if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
                 transform.position = simd_float3(Float(i) * 2.0, 10, 0)
@@ -1058,7 +954,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         }
         let evictionEvent = AssetResidencyChangedEvent(
             entityId: entityToEvict,
-            assetURL: ballURL,
+            assetURL: URL(fileURLWithPath: "/dev/null/ball"),
             meshName: "ball",
             isResident: false
         )
@@ -1098,26 +994,16 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testTickRebuildsOnlyDirtyCells() {
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        BatchingSystem.shared.setBatchCellSize(10.0)
+                BatchingSystem.shared.setBatchCellSize(10.0)
         enableBatching(true)
 
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+        let meshes = BasicPrimitives.createSphere()
 
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
                 renderComponent.assetName = "ball"
             }
             if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -1147,7 +1033,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         }
         let evictionEvent = AssetResidencyChangedEvent(
             entityId: cell0EntityA,
-            assetURL: ballURL,
+            assetURL: URL(fileURLWithPath: "/dev/null/ball"),
             meshName: "ball",
             isResident: false
         )
@@ -1171,27 +1057,17 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testTickProcessesRemainingDirtyCellsAcrossFramesWhenBudgetLimited() {
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        BatchingSystem.shared.setBatchCellSize(10.0)
+                BatchingSystem.shared.setBatchCellSize(10.0)
         BatchingSystem.shared.setMaxDirtyCellsPerTick(1)
         enableBatching(true)
 
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+        let meshes = BasicPrimitives.createSphere()
 
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
                 renderComponent.assetName = "ball"
             }
             if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -1220,7 +1096,7 @@ final class StaticBatchingTest: BaseRenderSetup {
             }
             let evictionEvent = AssetResidencyChangedEvent(
                 entityId: entityId,
-                assetURL: ballURL,
+                assetURL: URL(fileURLWithPath: "/dev/null/ball"),
                 meshName: "ball",
                 isResident: false
             )
@@ -1242,30 +1118,20 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testTickDefersSomeDirtyCellsWhenWorkBudgetIsExceeded() {
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        BatchingSystem.shared.setBatchCellSize(10.0)
+                BatchingSystem.shared.setBatchCellSize(10.0)
         BatchingSystem.shared.setMaxDirtyCellsPerTick(4)
         BatchingSystem.shared.setMaxRebuildVerticesPerTick(1_000_000_000)
         BatchingSystem.shared.setMaxRebuildIndicesPerTick(1_000_000_000)
         BatchingSystem.shared.setMaxRebuildBufferBytesPerTick(1)
         enableBatching(true)
 
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+        let meshes = BasicPrimitives.createSphere()
 
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
                 renderComponent.assetName = "ball"
             }
             if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -1295,7 +1161,7 @@ final class StaticBatchingTest: BaseRenderSetup {
             }
             let evictionEvent = AssetResidencyChangedEvent(
                 entityId: entityId,
-                assetURL: ballURL,
+                assetURL: URL(fileURLWithPath: "/dev/null/ball"),
                 meshName: "ball",
                 isResident: false
             )
@@ -1314,30 +1180,20 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testTickMarksOversizedCellsRuntimeIneligible() {
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        BatchingSystem.shared.setBatchCellSize(10.0)
+                BatchingSystem.shared.setBatchCellSize(10.0)
         BatchingSystem.shared.setMaxRuntimeCellVertices(1)
         BatchingSystem.shared.setMaxRuntimeCellIndices(1_000_000_000)
         BatchingSystem.shared.setMaxRuntimeCellBufferBytes(1_000_000_000)
         BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
         enableBatching(true)
 
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+        let meshes = BasicPrimitives.createSphere()
 
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
                 renderComponent.assetName = "ball"
             }
             if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -1396,12 +1252,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testBackgroundArtifactBuildAppliesOnSubsequentTick() {
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        BatchingSystem.shared.setBatchCellSize(10.0)
+                BatchingSystem.shared.setBatchCellSize(10.0)
         BatchingSystem.shared.setBackgroundArtifactBuildEnabled(true)
         BatchingSystem.shared.setMaxDirtyCellsPerTick(1)
         BatchingSystem.shared.setMaxBuildDispatchesPerTick(1)
@@ -1409,18 +1260,13 @@ final class StaticBatchingTest: BaseRenderSetup {
         BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
         enableBatching(true)
 
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+        let meshes = BasicPrimitives.createSphere()
 
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
                 renderComponent.assetName = "ball"
             }
             if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -1443,7 +1289,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         SystemEventBus.shared.queueResidencyChange(
             AssetResidencyChangedEvent(
                 entityId: entityA,
-                assetURL: ballURL,
+                assetURL: URL(fileURLWithPath: "/dev/null/ball"),
                 meshName: "ball",
                 isResident: false
             )
@@ -1469,28 +1315,18 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testVisibilityGateDefersOffscreenCellBatchRebuild() {
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        BatchingSystem.shared.setBatchCellSize(10.0)
+                BatchingSystem.shared.setBatchCellSize(10.0)
         BatchingSystem.shared.setVisibilityGatedBatchBuildEnabled(true)
         BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
         enableBatching(true)
 
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+        let meshes = BasicPrimitives.createSphere()
 
         func makeEntity(position: simd_float3) -> EntityID {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
                 renderComponent.assetName = "ball"
             }
             if let localTransform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -1514,7 +1350,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         SystemEventBus.shared.queueResidencyChange(
             AssetResidencyChangedEvent(
                 entityId: entityA,
-                assetURL: ballURL,
+                assetURL: URL(fileURLWithPath: "/dev/null/ball"),
                 meshName: "ball",
                 isResident: false
             )
@@ -1540,17 +1376,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testGenerateBatchesCreatesSeparateBatchesForDifferentLODs() {
         // Given: Create entities with same material but different LOD levels
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let meshes = BasicPrimitives.createSphere()
 
         // Create entities at LOD 0
         var lod0Entities: [EntityID] = []
@@ -1558,7 +1384,7 @@ final class StaticBatchingTest: BaseRenderSetup {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
             if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
                 transform.position = simd_float3(Float(i) * 2.0, 0, 0)
@@ -1577,7 +1403,7 @@ final class StaticBatchingTest: BaseRenderSetup {
             let entity = createEntity()
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
             if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
                 transform.position = simd_float3(Float(i) * 2.0, 5, 0)
@@ -1792,17 +1618,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         // usdz-embedded://<meshName>/embedded_Basecolor_map
         // Even with different mesh hosts, entities should still batch together
         // when they share the same source asset and embedded texture token.
-        guard let ballURL = getResourceURL(resourceName: "ball", ext: "usdz", subName: nil) else {
-            XCTFail("❌ Failed to load ball.usdz")
-            return
-        }
-
-        let meshes = Mesh.loadMeshes(
-            url: ballURL,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            flip: true
-        )
+                let meshes = BasicPrimitives.createSphere()
 
         var entities: [EntityID] = []
         for i in 0 ..< 3 {
@@ -1810,7 +1626,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = ballURL
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
             }
 
             if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {

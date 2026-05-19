@@ -30,11 +30,13 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
 
     override func initializeAssets() {}
 
-    func testSetEntityMesh_loadsUntoldMesh() {
+    func testSetEntityMesh_loadsUntoldMesh() async {
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "UntoldSyncEntity")
 
-        setEntityMesh(entityId: entityId, filename: "redplayer", withExtension: "untold")
+        let loadExp_entityId = expectation(description: "redplayer loaded")
+        setEntityMeshAsync(entityId: entityId, filename: "redplayer", withExtension: "untold") { _ in loadExp_entityId.fulfill() }
+        await fulfillment(of: [loadExp_entityId], timeout: 10)
 
         // The root entity always gets transform + scenegraph components.
         XCTAssertTrue(hasComponent(entityId: entityId, componentType: LocalTransformComponent.self))
@@ -109,7 +111,9 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "NamedNodeEntity")
 
-        setEntityMesh(entityId: entityId, filename: "redplayer", withExtension: "untold", assetName: nodeName)
+        let namedLoadExp = expectation(description: "named node loaded")
+        setEntityMeshAsync(entityId: entityId, filename: "redplayer", withExtension: "untold", assetName: nodeName) { _ in namedLoadExp.fulfill() }
+        await fulfillment(of: [namedLoadExp], timeout: 10)
 
         // Named-node load registers the mesh directly on entityId — no child entities.
         XCTAssertTrue(
@@ -127,12 +131,14 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         XCTAssertEqual(renderComponent.assetName, nodeName, "RenderComponent assetName must match requested node name")
     }
 
-    func testSetEntityMesh_returnsFalseForUnknownNodeName() {
+    func testSetEntityMesh_returnsFalseForUnknownNodeName() async {
         let entityId = createEntity()
         setEntityName(entityId: entityId, name: "BadNameEntity")
 
         // An unknown assetName should fall back to the fallback mesh, not crash.
-        setEntityMesh(entityId: entityId, filename: "redplayer", withExtension: "untold", assetName: "nonexistent_node_xyz")
+        let badNameExp = expectation(description: "bad name loaded")
+        setEntityMeshAsync(entityId: entityId, filename: "redplayer", withExtension: "untold", assetName: "nonexistent_node_xyz") { _ in badNameExp.fulfill() }
+        await fulfillment(of: [badNameExp], timeout: 10)
 
         // The entity should still have components (fallback mesh registers them),
         // but no RenderComponent with the bad name.
@@ -141,7 +147,7 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         }
     }
 
-    func testSetEntityAnimations_resolvesHierarchicalUntoldRootToSkinnedDescendant() throws {
+    func testSetEntityAnimations_resolvesHierarchicalUntoldRootToSkinnedDescendant() async throws {
         guard let modelURL = Bundle.module.url(forResource: "redplayer", withExtension: "untold") else {
             XCTFail("Failed to locate redplayer.untold")
             return
@@ -166,7 +172,9 @@ final class NativeFormatRegistrationTests: BaseRenderSetup {
         let rootEntity = createEntity()
         setEntityName(entityId: rootEntity, name: "HierarchicalUntoldRoot")
 
-        setEntityMesh(entityId: rootEntity, filename: "redplayer", withExtension: "untold")
+        let loadExp_rootEntity = expectation(description: "redplayer loaded")
+        setEntityMeshAsync(entityId: rootEntity, filename: "redplayer", withExtension: "untold") { _ in loadExp_rootEntity.fulfill() }
+        await fulfillment(of: [loadExp_rootEntity], timeout: 10)
 
         let bindingEntity = try XCTUnwrap(resolveEntityForAnimationBinding(entityId: rootEntity))
         XCTAssertNotEqual(bindingEntity, rootEntity)
