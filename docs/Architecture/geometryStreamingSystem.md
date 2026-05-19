@@ -69,7 +69,7 @@ Load candidates are **sorted by priority then distance** (high priority + closes
 Before dispatching, the scheduler applies three guards in order:
 
 1. **Tile ownership** (`isTileOwned`) — the entity must be a descendant of a `TileComponent` entity. Non-tile-owned entities are rejected immediately and their state is never mutated. `StreamingComponent` is an internal, tile-subordinate mechanism; it is not valid on standalone entities. See [StreamingComponent Ownership Model](#streamingcomponent-ownership-model) below.
-2. **CPU-entry readiness** — OOC entities whose `CPUMeshEntry` is not yet stored in `ProgressiveAssetLoader` are skipped. This prevents pre-streaming stubs from holding slots while registration is still running.
+2. **CPU-entry readiness** — OOC entities whose `CPURuntimeEntry` is not yet stored in `ProgressiveAssetLoader` are skipped. This prevents pre-streaming stubs from holding slots while registration is still running.
 3. **Per-candidate geometry budget check** — if the candidate's estimated GPU footprint would exceed the geometry budget, `evictLRU` is called first.
 
 When all near-band candidates share one `assetRootEntityId`, the near-band concurrency limit expands from `nearBandMaxConcurrentLoads` to `maxConcurrentLoads`. All sub-meshes of one tile asset are treated as a single burst rather than being serialized one-at-a-time.
@@ -81,8 +81,9 @@ When all near-band candidates share one `assetRootEntityId`, the near-band concu
 4. Spawns a Swift `Task` (runs off the main thread)
 
 Inside the async task:
+- If the entity has a native OCC CPU entry → uploads from `ProgressiveAssetLoader.CPURuntimeEntry`
 - If the entity has a `LODComponent` → calls `reloadLODEntity()` which loads all LOD levels
-- Otherwise → calls `loadMeshAsync()` which goes to `MeshResourceManager` (cache-first, file fallback)
+- Otherwise → calls `loadMeshAsync()` which goes to `MeshResourceManager` for cache-backed `.untold` loading
 - After loading, back on the main thread via `withWorldMutationGate`:
   - Assigns `render.mesh` with fresh copies of uniform buffers (critical — prevents entities sharing GPU state from overwriting each other)
   - Sets state → `.loaded`
@@ -185,7 +186,7 @@ In addition to the per-tick budget checks above, `MemoryBudgetManager` subscribe
 
 The OS callback fires on a background queue and sets a `pendingPressureRelief` flag on `GeometryStreamingSystem`. The flag is drained at the **start of the next `update()` tick** on the main thread, so all eviction work stays on the same thread as the rest of the streaming system. This prevents the OS from silently escalating to `.critical` and terminating the process — on visionOS in particular, the window between `.warning` and process kill can be under a second.
 
-**CPU heap release on critical pressure** — `evictLRU` only frees GPU Metal buffers tracked by `MemoryBudgetManager`. The OS measures total process memory, which includes `ProgressiveAssetLoader.rootAssetRefs` (the live asset parse tree and all child `CPUMeshEntry` vertex/index buffers). For a 500-building scene this CPU heap can reach hundreds of megabytes. On `.critical`, after the two geometry eviction passes, `GeometryStreamingSystem` calls `ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId:)` on every warm root. This frees the CPU heap immediately. The rehydration context (asset URL + loading policy) is retained, so a cold re-stream from disk is transparent when the camera re-approaches.
+**CPU heap ownership** — `evictLRU` frees GPU Metal buffers tracked by `MemoryBudgetManager`. Native OCC CPU data is owned by `ProgressiveAssetLoader` as `CPURuntimeEntry` records and is released when the tile/root is unloaded through `removeOutOfCoreAsset(rootEntityId:)`.
 
 ---
 
@@ -229,7 +230,7 @@ The key design decisions here are:
 - **Camera sync always runs** — `syncStreamingCameraPosition()` executes every frame regardless of the `loading` flag; decoupling it from the loading guard prevents the streaming camera from freezing while an asset load is in flight
 - **OS memory pressure subscription** — `DispatchSource.makeMemoryPressureSource` fires proactive texture shedding and geometry eviction before the OS escalates to process termination; the response runs on the next `update()` tick to stay single-threaded
 - **evictLRU per-call cap** — the `maxEvictions` parameter (default `Int.max`) bounds single-frame eviction work; the OS pressure path uses 16 per pass so a `.critical` burst doesn't spike one frame; remaining candidates spill to subsequent ticks
-- **CPU heap release on critical pressure** — on `.critical`, after geometry eviction, `ProgressiveAssetLoader.releaseWarmAsset()` is called for every warm root, freeing the CPU heap the OS measures; rehydration context survives so cold re-stream from disk is transparent
+- **Native OCC CPU registry** — OCC uploads read `CPURuntimeEntry` values from `ProgressiveAssetLoader`; those entries are released with the tile/root lifecycle
 
 ---
 
@@ -305,7 +306,7 @@ Three sub-passes each tick, capped at `maxTileUnloadsPerUpdate` (default **2**) 
 - **`cancelPendingEntities` before entity destruction** — when `unloadLODLevel` or `unloadHLOD` tears down child entities, it first calls `BatchingSystem.shared.cancelPendingEntities(_:)` with the render descendant IDs, purging them from all pending batching queues. This prevents "entity is missing" errors when the batching tick tries to process additions for entities that were destroyed between event queuing and tick processing.
 - **`notifyTileEntitiesResident` replaces the event storm** — tile/LOD/HLOD load completions call `BatchingSystem.shared.notifyTileEntitiesResident(_:)` instead of the former two-step `queueResidencyEventsForRenderDescendants` + `notifyTileParsedEntities` pairing. The single call directly registers entities in the batching system's pending additions and marks them for quiescence bypass, avoiding hundreds of individual `AssetResidencyChangedEvent` objects through `SystemEventBus`.
 - **Identity world transform on stubs** — tile geometry is exported in world space; no runtime coordinate conversion needed.
-- **`.auto` streaming policy** — tiles use the same admission gate as regular assets; unexpectedly large tiles are gracefully rejected and retried rather than crashing.
+- **`.auto` streaming policy** — tile loads use native `.untold` admission to choose immediate full-tile upload or OCC child-stub registration.
 - **Zombie-state guard in completion** — completion callback checks `tc.state == .parsing`. If `unloadTile` ran mid-parse (state is `.unloading`), result is discarded and the pre-created child entity is cleaned up — stub never enters a "geometry missing" zombie state.
 - **`defer` slot release** — `releaseActiveTileLoad` in `defer` frees the concurrency slot on all exit paths (success, failure, cancelled-state early return).
 - **`removeTileComponent` deregisters from streaming system** — cancels in-flight `loadTask` and calls `GeometryStreamingSystem.shared.unregisterTileEntity(entityId)` to atomically remove the entity from all four tile tracking sets (`loadedTileEntities`, `loadingTileEntities`, `activeTileLoads`, `meshEntityToTileEntity`).

@@ -10,17 +10,17 @@ The public entry point for streamed geometry is:
 setEntityStreamScene(entityId: sceneRoot, manifest: "city", withExtension: "json") { _ in }
 ```
 
-Inside that pipeline, large tiles may be classified as **OOC** during `setEntityMeshAsync(streamingPolicy: .auto)`.
+Inside that pipeline, large tiles may be classified as **OCC/OOC** during the internal `setEntityMeshAsync(streamingPolicy: .auto)` tile parse.
 
 ## The Three Runtime Roles
 
 | System | Responsibility |
 |---|---|
-| `RegistrationSystem` | Parses the tile payload and chooses `fullLoad` vs OOC registration |
-| `ProgressiveAssetLoader` | Stores CPU-resident `CPUMeshEntry` records and warm/cold rehydration context |
+| `RegistrationSystem` | Parses the `.untold` tile payload and chooses immediate vs OCC registration |
+| `ProgressiveAssetLoader` | Stores CPU-resident `CPURuntimeEntry` records keyed by OCC stub entity |
 | `GeometryStreamingSystem` | Uploads and evicts tile-owned OCC stubs by distance and budget |
 
-`MeshResourceManager` still serves disk/cache-backed mesh loads for non-OOC paths, but OOC residency is fundamentally driven by `ProgressiveAssetLoader`.
+`MeshResourceManager` serves cache-backed `.untold` loads for non-OCC paths. OCC residency is driven by `ProgressiveAssetLoader`.
 
 ## What OOC Means Now
 
@@ -28,7 +28,7 @@ When a large tile is routed to the OOC path:
 
 1. The tile payload is parsed on the CPU.
 2. Child stub entities are created with `StreamingComponent(state: .unloaded)`.
-3. Their CPU mesh data is stored in `ProgressiveAssetLoader`.
+3. Their `RuntimeAssetNode` CPU data is stored in `ProgressiveAssetLoader`.
 4. `GeometryStreamingSystem` uploads those stubs incrementally as the camera approaches.
 5. Evicted stubs can re-upload from the warm CPU registry without reparsing the file.
 
@@ -38,8 +38,10 @@ Those `StreamingComponent` stubs are valid only when they are descendants of a `
 
 The runtime still exposes `MeshStreamingPolicy`, but the architecture has moved:
 
-- `setEntityMeshAsync(..., streamingPolicy: .auto)` is fine for normal always-resident assets
+- `setEntityMesh(...)` is synchronous and always immediate
+- `setEntityMeshAsync(...)` defaults to `.immediate` and is for always-resident assets
 - `setEntityMeshAsync(..., streamingPolicy: .immediate)` forces full upload
+- `setEntityMeshAsync(..., streamingPolicy: .auto)` is used by tile loading so the runtime can choose immediate vs OCC
 - `setEntityStreamScene(...)` is the supported public streaming path
 - `StreamingComponent` and `enableStreaming(...)` are internal tile/OOC mechanisms
 
@@ -75,19 +77,20 @@ The asset admission/classification stage decides whether this tile becomes:
 
 ### 2. Stub registration
 
-For an OOC tile, `registerProgressiveStubEntity(...)` creates one ECS stub per mesh leaf:
+For an OOC tile, `registerUntoldProgressiveStubEntity(...)` creates one ECS stub per renderable `RuntimeAssetNode`:
 
 - transform and bounds are registered immediately
 - `StreamingComponent` starts as `.unloaded`
 - the stub is inserted into the octree
 - no GPU buffers are created yet
+- renderable nodes are always child entities, including single-node assets, so descendant tracking is consistent
 
 ### 3. CPU registry
 
-Each stub stores a `CPUMeshEntry` in `ProgressiveAssetLoader`, including:
+Each stub stores a `CPURuntimeEntry` in `ProgressiveAssetLoader`, including:
 
-- source asset node reference
-- vertex descriptor
+- source `RuntimeAssetNode`
+- source `.untold` URL
 - unique mesh name
 - estimated GPU bytes
 - original loading policy
@@ -114,16 +117,6 @@ When the camera moves away or geometry pressure rises:
 
 This is why a normal OOC re-approach can re-upload without a disk read.
 
-### 6. Warm-to-cold transition
-
-On critical pressure, the engine may release warm CPU state:
-
-```swift
-ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId:)
-```
-
-This frees the retained asset parse tree and CPU mesh buffers but preserves the rehydration context. A later re-approach reparses the root asset once and rebuilds the CPU registry.
-
 ## Interaction with Tile Streaming
 
 OOC is just one representation inside the broader tile system:
@@ -138,6 +131,6 @@ That is why the runtime documentation should describe OOC as an implementation d
 ## Key Takeaways
 
 - OOC still exists, but it is now subordinate to tile ownership.
-- `ProgressiveAssetLoader` is the CPU residency layer.
+- `ProgressiveAssetLoader` is the `.untold` CPU runtime-node residency layer.
 - `GeometryStreamingSystem` is the GPU residency scheduler.
 - `setEntityStreamScene(...)` is the supported public streaming API surface.

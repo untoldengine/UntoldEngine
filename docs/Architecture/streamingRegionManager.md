@@ -86,8 +86,8 @@ let region = StreamingRegion(
     bounds: AABB(min: simd_float3(-50, 0, -50), max: simd_float3(50, 10, 50)),
     priority: 1,
     assets: [
-        AssetReference(filename: "dungeon_room_A", withExtension: "usdz"),
-        AssetReference(filename: "dungeon_room_A_props", withExtension: "usdz"),
+        AssetReference(filename: "dungeon_room_A", withExtension: "untold"),
+        AssetReference(filename: "dungeon_room_A_props", withExtension: "untold"),
     ],
     estimatedMemorySize: 40_000_000  // 40 MB estimate
 )
@@ -175,7 +175,7 @@ let stats = StreamingRegionManager.shared.getStats()
 
 ## Relationship to `GeometryStreamingSystem`
 
-`StreamingRegionManager` is independent of `GeometryStreamingSystem`. They can run simultaneously — for example, a tile-streamed outdoor scene (`setEntityStreamScene`) with handcrafted interior sectors (`StreamingRegionManager`). Both systems share `MemoryBudgetManager`, so memory pressure from one is visible to the other.
+`StreamingRegionManager` is independent of `GeometryStreamingSystem`. It loads region assets through `setEntityMeshAsync`, so region assets are immediate/cache-backed `.untold` loads rather than tile-owned OCC stubs. It can run alongside a tile-streamed outdoor scene (`setEntityStreamScene`) with handcrafted interior sectors. Both systems share `MemoryBudgetManager`, so memory pressure from one is visible to the other.
 
 `StreamingRegionManager` does **not** use the octree, frustum gating, prefetch radius, grace-period teardown, or HLOD/LOD systems. It is intentionally simpler. For any of those features, use `setEntityStreamScene` with a manifest.
 

@@ -194,7 +194,7 @@ Both `.parsing` and `.parsed` tiles go through the **grace period** (see [Unload
 2. Creates a dedicated child *mesh entity* under the tile stub (`capturedMeshEntityId`) inside `withWorldMutationGate`. This guarantees `unloadTile`'s `collectTileDescendants` always has at least one child to destroy, regardless of how many submeshes the tile contains.
 3. Registers `capturedMeshEntityId → tileEntityId` in `meshEntityToTileEntity` for O(1) OCC upload counter updates.
 4. Spawns a Swift `Task` calling `setEntityMeshAsync(entityId: capturedMeshEntityId, streamingPolicy: .auto, blockRenderLoop: false)`.
-   - `.auto` policy: the admission gate chooses `fullLoad` (parse + immediate GPU upload) or `outOfCore` (parse to CPU heap, upload stubs via `StreamingComponent`) based on tile file size and available RAM.
+   - `.auto` policy: the admission gate chooses `fullLoad` (parse + immediate GPU upload) or `outOfCore` (store native `RuntimeAssetNode` CPU data and upload child stubs via `StreamingComponent`) based on renderable node count and geometry budget fraction.
    - `blockRenderLoop: false` — tile parses do **not** hold the `AssetLoadingGate` open. Without this, concurrent tile parses would keep `isLoadingAny == true` for their full duration, freezing `visibleEntityIds` updates and stalling the render loop. LOD and HLOD loads also use `blockRenderLoop: false` for the same reason.
 5. Completion callback (fires on the main thread):
    - **Zombie-state guard** — checks `tc.state == .parsing`. If `unloadTile` ran while the parse was in flight, the state will be `.unloading`. The callback discards the result, destroys the pre-created child entity, and returns without marking the tile loaded.
@@ -218,7 +218,7 @@ Each completed OCC upload calls `incrementParentTileOCCCount(for:)`, which incre
 2. Sets `tileComp.state = .unloading`; cancels `tileComp.loadTask`.
 3. If `wasParsing`: removes from `loadingTileEntities` and bails out. The Task completion callback will find `.unloading`, discard the result, and dispatch deferred child-entity cleanup — this avoids a concurrent ECS write race since `setEntityMeshAsync` may still be running.
 4. If `.parsed`: calls `collectTileDescendants(entityId)` to walk the child tree, cancelling any in-flight OCC streaming tasks. Calls `destroyEntity` on all descendants + `finalizePendingDestroys()`. This releases GPU buffers, removes octree entries, releases `MeshResourceManager` refs, and unregisters from `MemoryBudgetManager`.
-5. Calls `ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId:)` to free CPU-heap asset data for out-of-core tiles.
+5. Calls `ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId:)` to free `CPURuntimeEntry` data for out-of-core tiles.
 6. Resets `totalOCCStubs`, `uploadedOCCStubs`, `pendingUnloadSince` to 0.
 7. Sets `tileComp.state = .unloaded`; removes from `loadedTileEntities`.
 

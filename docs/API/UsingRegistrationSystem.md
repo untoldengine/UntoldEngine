@@ -39,6 +39,17 @@ This function:
 - Loads the mesh from the specified `.untold` file.
 - Associates the mesh with the entity.
 - Registers default components like RenderComponent and TransformComponent.
+- Uses the immediate path; the mesh is GPU-resident when the function returns.
+
+For asynchronous always-resident loading, use:
+
+```swift
+setEntityMeshAsync(entityId: entity, filename: "model", withExtension: "untold") { success in
+    // Mesh is registered on success.
+}
+```
+
+For large streamed scenes, use `setEntityStreamScene(...)`. The streaming/OCC path is owned by the tile manifest pipeline, not by direct `StreamingComponent` authoring.
 
 ---
 

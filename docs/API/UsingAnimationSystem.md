@@ -20,9 +20,8 @@ let redPlayer = createEntity()
 Load your rigged model's `.untold` runtime asset and link it to the entity. This step ensures the entity is visually represented in the scene.
 
 ```swift
-setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "untold", flip: false)
+setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "untold")
 ```
->>> Note: If your model renders with the wrong orientation, set the flip parameter to false.
 
 ---
 

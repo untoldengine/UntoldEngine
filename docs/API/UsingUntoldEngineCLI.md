@@ -133,9 +133,9 @@ MyGame/
             └── Shaders/
 ```
 
-The starter `GameScene.swift` shows how to load a mesh, enable geometry streaming, and enable static batching.
+The starter `GameScene.swift` shows how to load `.untold` runtime assets, use `setEntityStreamScene(...)` for streamed scenes, and enable static batching.
 
-> **Note:** The demo references `city.usdz`. Place that file in `GameData/Models/` before running.
+> **Note:** Runtime examples expect `.untold` assets. Convert USD/USDZ authoring files with the exporter before placing them in `GameData/Models/`.
 
 ---
 

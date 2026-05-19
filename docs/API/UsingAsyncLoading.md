@@ -1,6 +1,6 @@
 # Async Loading System
 
-UntoldEngine loads meshes asynchronously so scene setup does not stall the render loop. Use native `.untold` assets for runtime geometry; legacy USD/USDZ runtime paths are still supported.
+UntoldEngine loads meshes asynchronously so scene setup does not stall the render loop. Use native `.untold` assets for runtime geometry. USD/USDZ files remain authoring/import inputs for the exporter, but runtime mesh loading and streaming use `.untold`.
 
 ## What the API Does
 
@@ -24,7 +24,7 @@ The completion `Bool` is a **success flag**:
 - `true`: the asset loaded and registered successfully
 - `false`: loading failed and the engine fell back to the default placeholder mesh
 
-It does **not** indicate whether the asset used an out-of-core path.
+For ordinary public use, this API loads the asset immediately into GPU residency. It does not opt the asset into tile streaming.
 
 ## Scene Readiness Guard
 
@@ -49,12 +49,25 @@ For ordinary `setEntityMeshAsync(...)` and `setEntityStreamScene(...)` flows, th
 
 | Use case | API |
 |---|---|
+| Small asset needed immediately on the next line | `setEntityMesh(...)` |
 | Single always-resident asset | `setEntityMeshAsync(...)` |
 | Large streamed world | `setEntityStreamScene(...)` |
 
+### Synchronous always-resident asset
+
+Use `setEntityMesh` when setup code needs the mesh registered before the next statement runs:
+
+```swift
+let player = createEntity()
+setEntityMesh(entityId: player, filename: "player", withExtension: "untold")
+translateTo(entityId: player, position: simd_float3(0, 0, 0))
+```
+
+This is a blocking immediate load. Do not use it for large runtime assets or tile-streamed worlds.
+
 ### Always-resident asset
 
-Use `setEntityMeshAsync` for props, characters, gameplay objects, HUD meshes, and any asset that should stay resident.
+Use `setEntityMeshAsync` for props, characters, gameplay objects, HUD meshes, and any asset that should stay resident but can load off the main setup path.
 
 ```swift
 setEntityMeshAsync(
@@ -100,12 +113,11 @@ This is the public streaming workflow. Do not build app-level streaming logic ar
 
 ## `streamingPolicy`
 
-`setEntityMeshAsync` accepts a `streamingPolicy` parameter to control how geometry
-is uploaded to the GPU. For standalone assets, two values are relevant:
+`setEntityMeshAsync` accepts a `streamingPolicy` parameter, but the public contract is intentionally narrow:
 
-- `.auto` — default; the engine chooses full upload or incremental based on asset size
-- `.immediate` — always uploads in a single pass; use for props that must appear fully
-  formed on first frame (player characters, weapons, HUD objects)
+- `.immediate` — default for `setEntityMeshAsync`; uploads in one pass and leaves the asset GPU-resident.
+- `.auto` — used by `setEntityStreamScene(...)` internally for tile payloads so the runtime can choose full-tile upload vs OCC stub registration.
+- `.outOfCore` — internal/specialized tile OCC route; do not use it as an app-level streaming API.
 
 ```swift
 setEntityMeshAsync(
@@ -172,6 +184,7 @@ Task {
 
 ## Notes
 
-- `.untold` is the preferred runtime format for static geometry.
+- `.untold` is the runtime format for mesh loading and streaming.
+- USD/USDZ assets should be converted to `.untold` before runtime use.
 - Animation clips exported with `--animation` can be loaded as `.untold` assets.
 - `setEntityStreamScene(...)` automatically aligns texture streaming distances to the manifest radii and enables the full tile/HLOD/LOD/OCC streaming pipeline.
