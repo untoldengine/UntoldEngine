@@ -7,7 +7,7 @@ For a broader first project walkthrough, see [Getting Started](GettingStarted.md
 
 ## Export Assets First
 
-Untold Engine uses `.untold` as its preferred runtime asset format. Keep USD/USDZ
+Untold Engine uses `.untold` as its runtime asset format. Keep USD/USDZ
 as your authoring format, then export it before loading it in the engine.
 
 Convert one asset:

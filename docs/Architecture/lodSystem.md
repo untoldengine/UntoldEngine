@@ -4,13 +4,13 @@ UntoldEngine has two separate LOD mechanisms that operate at different granulari
 
 | | **Entity-level LOD** (this document) | **Per-tile LOD** (tile streaming) |
 |---|---|---|
-| Unit | Individual mesh entity (`LODComponent`) | Whole tile USDC file (`TileLODLevel`) |
+| Unit | Individual mesh entity (`LODComponent`) | Whole tile `.untold` file (`TileLODLevel`) |
 | Control | `LODSystem` — runs every frame | `GeometryStreamingSystem.update()` — runs per tick |
 | Switch trigger | Camera distance vs `LODLevel.maxDistance` | Camera distance vs `TileLODLevel.switchDistance` (with hysteresis) |
 | Hysteresis | 5-unit inner band on finer-LOD transitions only | `lodHysteresisFactor` (default 0.90 = 10% band) on active level |
 | Meshes in memory | All LOD levels GPU-resident simultaneously | Only the active LOD level is loaded |
 | Use case | Individual detailed objects (buildings, props) | Tile-granularity intermediate representations for large scenes |
-| Content pipeline | Separate OBJ/USDZ per LOD level, wired via `LODComponent` | Separate USDC per tile LOD, listed in manifest `lod_levels` array |
+| Content pipeline | Separate `.untold` files per LOD level, wired via `LODComponent` | Separate `.untold` files per tile LOD, listed in manifest `lod_levels` array |
 | Debug tagging | `LODComponent.currentLOD` read by LOD debug renderer | `TileLODTagComponent.levelIndex` placed on render descendants |
 
 Per-tile LOD documentation: [`docs/Architecture/tilebasedstreaming.md`](tilebasedstreaming.md#per-tile-lod-levels).
@@ -142,22 +142,18 @@ The system processes all 500 in sequence, but buildings where LOD hasn't changed
 
 ---
 
-### LOD + Out-of-Core Integration
+### Relationship to OCC
 
-Prior to this integration, LOD and OOC were mutually exclusive: assets that qualified for out-of-core streaming would bypass LOD group detection, causing each `LOD0`/`LOD1`/`LOD2` object to become an independent stub entity.
+The old ModelIO LOD+OOC path has been removed. There is no
+`cpuLODRegistry`, `CPUMeshEntry`, or cold rehydration path in the current
+native streaming architecture.
 
-**How it works now:**
+Current behavior is split by level:
 
-`setEntityMeshAsync` runs LOD group detection *before* the OOC branching decision. When the asset both qualifies for OOC streaming *and* contains LOD groups, the **LOD+OOC path** runs:
-
-1. **Registration** — one entity per LOD group (not one per MDLObject). Each entity gets a `LODComponent` with stub `LODLevel`s (empty mesh, `.notResident`) and a `StreamingComponent(.unloaded)`.
-
-2. **CPU registry** — `ProgressiveAssetLoader.cpuLODRegistry[groupEntityId][lodIndex]` stores a `CPUMeshEntry` for every LOD level. The MDLAsset is retained so CPU buffers remain valid.
-
-3. **GPU upload** — when `GeometryStreamingSystem` picks up the entity (`.unloaded` → in streaming range), it calls `uploadActiveLODFromCPU`. This uploads **all** LOD levels in one pass from the CPU registry, marks each `LODLevel.residencyState = .resident`, and sets `renderComponent.mesh` to the level appropriate for the current camera distance.
-
-4. **LOD switching after load** — `LODSystem.applyLOD` continues to work as normal: it reads from `lodComponent.lodLevels[n].mesh` (now populated) and swaps `renderComponent.mesh`. No additional streaming requests are needed — all levels are already GPU-resident.
-
-5. **Cold re-hydration** — if `releaseWarmAsset` was called on the root and a group entity re-enters streaming range, `rehydrateColdAsset` re-parses the USDZ, re-runs LOD detection, and rebuilds `cpuLODRegistry` entries before `uploadActiveLODFromCPU` runs.
-
-**Result:** the caller sets any `MeshStreamingPolicy` and LOD assets always get proper `LODComponent` wiring. The mutual exclusivity that required users to choose between OOC and LOD is eliminated.
+- Entity-level LOD is an always-resident object workflow. LOD levels are loaded
+  as `.untold` mesh assets and swapped by `LODSystem`.
+- Tile-level LOD is part of `setEntityStreamScene(...)`. The manifest lists
+  `.untold` LOD payloads, and `GeometryStreamingSystem` loads/unloads the active
+  tile LOD representation by distance.
+- OCC applies inside large full-tile `.untold` payloads. It creates child
+  `StreamingComponent` stubs backed by `ProgressiveAssetLoader.CPURuntimeEntry`.

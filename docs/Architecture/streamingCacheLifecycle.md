@@ -5,8 +5,8 @@ This document describes how the current streaming architecture manages geometry 
 | Layer | Owns |
 |---|---|
 | `GeometryStreamingSystem` | Distance-based residency decisions |
-| `ProgressiveAssetLoader` | Warm/cold CPU mesh state for tile-owned OOC assets |
-| `MeshResourceManager` | Shared GPU mesh cache for non-OOC and disk-backed reload paths |
+| `ProgressiveAssetLoader` | Warm CPU `RuntimeAssetNode` state for tile-owned OCC assets |
+| `MeshResourceManager` | Shared GPU mesh cache for immediate/cache-backed `.untold` paths |
 
 ## Two Residency Modes
 
@@ -23,10 +23,10 @@ For eager loads, `MeshResourceManager` owns the shared mesh data:
 
 For large streamed tiles, `ProgressiveAssetLoader` owns the CPU source data:
 
-- `CPUMeshEntry` stores the parsed CPU mesh buffers
+- `CPURuntimeEntry` stores the parsed `RuntimeAssetNode`
 - `GeometryStreamingSystem` uploads those buffers on demand
 - eviction normally drops only GPU residency
-- critical-pressure cooling may release the CPU copy too
+- tile teardown releases the CPU entries for that root
 
 ## Current Lifecycle
 
@@ -41,7 +41,7 @@ When a tile enters prefetch range, `loadTile(entityId:)` parses the tile payload
 At that point the runtime chooses one of two outcomes:
 
 - **full-load tile**: render entities are GPU-resident immediately
-- **OOC tile**: child `StreamingComponent` stubs are registered and backed by `CPUMeshEntry`
+- **OCC tile**: child `StreamingComponent` stubs are registered and backed by `CPURuntimeEntry`
 
 ### 3. OOC upload
 
@@ -49,9 +49,8 @@ For OOC stubs, `GeometryStreamingSystem.loadMesh(...)`:
 
 1. checks tile ownership
 2. reserves an active streaming slot
-3. uploads from `ProgressiveAssetLoader` when warm
-4. falls back to cold rehydration if the root was cooled
-5. marks the entity loaded and emits residency change events
+3. uploads from `ProgressiveAssetLoader`
+4. marks the entity loaded and emits residency change events
 
 ### 4. Full-load cache use
 
@@ -70,21 +69,11 @@ When geometry leaves range or memory pressure rises:
 
 - `unloadMesh(...)` clears the entity's live mesh reference
 - `MeshResourceManager.release(entityId:)` decrements shared cache refs when applicable
-- OOC stubs keep their CPU source warm unless explicitly cooled
+- OCC stubs keep their CPU source warm until tile/root teardown
 
 ### 6. Cache cleanup
 
 `MeshResourceManager.evictUnused()` removes zero-ref cached meshes. This is the first stage of geometry relief before more aggressive runtime eviction.
-
-### 7. CPU cooling
-
-Under critical memory pressure the engine may call:
-
-```swift
-ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId:)
-```
-
-That frees the retained asset parse tree and child CPU buffers for that streamed root while preserving enough context to reparse later.
 
 ## Why the Split Exists
 
@@ -100,6 +89,6 @@ When reviewing a streamed tile today, think of residency in this order:
 
 1. Is the tile stub in range?
 2. Did the tile classify as full-load or OOC?
-3. If OOC, is the CPU source warm or cold?
+3. If OOC, does the child stub have a `CPURuntimeEntry`?
 4. Is the GPU copy currently resident?
 5. Is batching representing the entity directly or via a cell artifact?

@@ -2,230 +2,148 @@
 
 ## TL;DR
 
-`ProgressiveAssetLoader` is a **CPU registry** — its sole responsibility is storing `CPUMeshEntry` records for out-of-core stub entities and serving them to `GeometryStreamingSystem` on demand.
+`ProgressiveAssetLoader` is the CPU registry for native `.untold` out-of-core
+geometry. It stores `CPURuntimeEntry` records for tile-owned OCC stub entities
+and serves those records to `GeometryStreamingSystem` when a stub enters
+streaming range.
 
-> **Note:** This document describes the current architecture. The earlier tick-based progressive loader (per-frame job queue, `PendingObjectItem`, `enqueue(job)`, `tick()` processing N meshes per frame) was replaced by the out-of-core stub system. `tick()` is retained as a no-op for call-site compatibility only.
+The previous USDZ/ModelIO path (`MDLAsset`, `MDLObject`, `MDLMesh`,
+`CPUMeshEntry`, LOD+OOC registries, texture prewarm locks, and cold
+rehydration) has been removed from the streaming/OCC system. Runtime OCC now
+operates on `.untold` `RuntimeAssetNode` data only.
+
+`tick()` remains as a no-op compatibility shim.
 
 ---
 
 ## What It Stores
 
-When `setEntityMeshAsync` routes an asset through the out-of-core path it stores CPU-side geometry in one of two registries depending on whether the asset contains LOD groups:
-
-- **`cpuMeshRegistry`** (`[EntityID: CPUMeshEntry]`) — one entry per stub entity (regular OOC assets)
-- **`cpuLODRegistry`** (`[EntityID: [Int: CPUMeshEntry]]`) — one entry per LOD level per LOD group entity (LOD+OOC assets)
-
-Both registries store `CPUMeshEntry` records:
+When a `.untold` tile is routed through the OCC path, registration creates
+zero-GPU child stubs for each renderable runtime node. Each stub gets one CPU
+entry:
 
 ```swift
-struct CPUMeshEntry {
-    let object: MDLObject           // MDLMesh with CPU-heap vertex/index data
-    let vertexDescriptor: MDLVertexDescriptor
-    let textureLoader: TextureLoader
-    let device: MTLDevice
+struct CPURuntimeEntry {
+    let node: RuntimeAssetNode
     let url: URL
-    let filename: String
-    let withExtension: String
-    let uniqueAssetName: String     // "Hull_A#42" — stable across load cycles
-    let estimatedGPUBytes: Int      // vertex + index bytes; used for pre-emptive budget reservation
+    let uniqueAssetName: String
+    let estimatedGPUBytes: Int
+    let residencyPolicy: AssetLoadingPolicy
 }
 ```
 
-Entries are keyed by child entity ID. `GeometryStreamingSystem` retrieves them via `retrieveCPUMesh(for:)` when an entity enters streaming range, copies the MDL buffers into Metal-backed buffers, and registers a `RenderComponent`. The CPU entry is **never removed on unload** — re-approaching an evicted entity re-uploads from RAM with no disk I/O.
-
-### LOD CPU Registry (LOD+OOC Path)
-
-When a USDZ asset contains LOD groups (top-level objects named `Tree_LOD0`, `Tree_LOD1`, etc.) and qualifies for OOC streaming, `setEntityMeshAsync` takes the **LOD+OOC path** instead of the per-stub path:
-
-- One entity is created per LOD group (instead of one entity per MDLObject)
-- Each entity gets a `LODComponent` with stub `LODLevel`s — empty mesh arrays, `residencyState: .notResident`
-- One `CPUMeshEntry` is stored in `cpuLODRegistry[groupEntityId][lodIndex]` for each LOD level
+Entries live in:
 
 ```swift
-// LOD+OOC: per-level CPU entries, keyed by (group entity ID, LOD index)
-cpuLODRegistry[treeEntityId] = [
-    0: CPUMeshEntry(object: tree_LOD0_MDLObject, uniqueAssetName: "Tree_LOD0", ...),
-    1: CPUMeshEntry(object: tree_LOD1_MDLObject, uniqueAssetName: "Tree_LOD1", ...),
-    2: CPUMeshEntry(object: tree_LOD2_MDLObject, uniqueAssetName: "Tree_LOD2", ...),
-]
+private var cpuRuntimeRegistry: [EntityID: CPURuntimeEntry]
+private var rootEntityChildren: [EntityID: [EntityID]]
 ```
 
-`GeometryStreamingSystem` detects the LOD+OOC path via `hasCPULODData(for:)` and calls `uploadActiveLODFromCPU` instead of `uploadFromCPUEntry`. This uploads **all** LOD levels from the CPU registry in one pass, then sets the render component to the level appropriate for the current camera distance. Subsequent LOD switches are handled by `LODSystem` which swaps `renderComponent.mesh` from the already-resident `lodComponent.lodLevels` array — no additional streaming needed until the entity is evicted and re-enters range.
+The key is the OCC stub entity ID. `rootEntityChildren` groups those stub IDs
+under the tile mesh-root entity so teardown can remove all CPU entries for a
+tile at once.
+
+`RuntimeAssetNode` owns self-contained vertex and index `Data` blobs, so no
+parent `MDLAsset` or file container has to remain alive for buffer validity.
 
 ---
 
-## The MDLAsset Lifetime Problem
+## Registration Flow
 
-`MDLMeshBufferDataAllocator` (used by `parseAssetAsync`) backs all CPU buffers via the `MDLAsset` container. If the asset is released, all child MDLMesh CPU pointers become dangling.
-
-`ProgressiveAssetLoader` solves this with `rootAssetRefs`:
-
-```swift
-private var rootAssetRefs: [EntityID: MDLAsset] = [:]
+```
+setEntityStreamScene(...)
+  └─ GeometryStreamingSystem.loadTile(...)
+      └─ setEntityMeshAsync(..., streamingPolicy: .auto, blockRenderLoop: false)
+          ├─ NativeFormatLoader.loadAssetSync(...)  → RuntimeAsset
+          ├─ classify tile as immediate or OCC
+          └─ registerUntoldRuntimeAssetOCC(...)
+              ├─ create child OCC stubs
+              ├─ attach StreamingComponent(.unloaded)
+              ├─ register each stub in the octree
+              ├─ storeCPURuntimeEntry(entry, for: childStubId)
+              └─ registerChildren(childStubIds, for: tileMeshRootId)
 ```
 
-`storeAsset(_:for:)` pins the `MDLAsset` to the root entity ID. It stays alive until `removeOutOfCoreAsset(rootEntityId:)` is called at entity destruction time.
+Renderable nodes are always represented by child stub entities, including
+single-node assets. This keeps descendant counting and tile ownership checks
+consistent.
+
+For parented nodes, registration computes:
+
+```swift
+childLocal = inverse(parentWorld) * nodeWorld
+```
+
+After `setParent`, the stub lands at the node's intended world transform
+without double-applying the parent transform.
 
 ---
 
-## Background Texture Prewarm
+## Upload Flow
 
-`storeAsset(_:for:)` immediately fires a background `Task` at `.userInitiated` priority to call `loadTextures()` before any mesh enters streaming range:
-
-```swift
-func storeAsset(_ asset: MDLAsset, for rootEntityId: EntityID) {
-    // Pin the asset and create the per-asset texture lock.
-    lock.lock()
-    rootAssetRefs[rootEntityId] = asset
-    assetTextureLocks[rootEntityId] = NSLock()
-    lock.unlock()
-    // Kick off background prewarm immediately.
-    prewarmTexturesAsync(for: rootEntityId)
-}
-```
-
-The prewarm task acquires the per-asset texture lock, calls `ensureTexturesLoaded`, and releases the lock — all off the critical path. By the time the first mesh enters streaming range, `loadTextures()` has typically already completed, so the first-upload path sees a no-op `ensureTexturesLoaded` call and zero lock wait.
-
-`activePrewarmRoots` tracks which roots have an in-flight prewarm task. `GeometryStreamingSystem` queries `isPrewarmActive(for:)` in the dispatch loop and defers uploading entities for that root until the prewarm completes. This prevents the first batch of uploads from blocking on the texture lock for the full remaining prewarm duration.
-
----
-
-## Per-Asset Texture Serialization
-
-`MDLAsset` is not thread-safe. Two `GeometryStreamingSystem` tasks uploading different meshes from the same asset concurrently can race during `loadTextures()`. `ProgressiveAssetLoader` prevents this with a per-asset `NSLock`:
+When a stub enters range, `GeometryStreamingSystem` retrieves its CPU entry:
 
 ```swift
-private var assetTextureLocks: [EntityID: NSLock] = [:]
+let entry = ProgressiveAssetLoader.shared.retrieveCPURuntimeEntry(for: entityId)
 ```
 
-`storeAsset` creates the lock alongside the asset reference. Every upload task brackets only `ensureTexturesLoaded` with the lock — the lock is released **before** `makeMeshesFromCPUBuffers`:
+The upload path converts `entry.node.primitives` into engine `Mesh` values,
+creates Metal buffers, registers a `RenderComponent`, and marks the
+`StreamingComponent` as `.loaded`.
 
-```swift
-ProgressiveAssetLoader.shared.acquireAssetTextureLock(for: rootId)
-ProgressiveAssetLoader.shared.ensureTexturesLoaded(for: rootId)
-ProgressiveAssetLoader.shared.releaseAssetTextureLock(for: rootId)
-// makeMeshesFromCPUBuffers runs without the lock — MDLAsset is read-only after loadTextures()
-```
-
-After `loadTextures()` completes the `MDLAsset` is in a stable read-only state. Concurrent `makeMeshesFromCPUBuffers` calls from the same asset are safe without the lock, so all three upload slots can proceed in parallel once the prewarm is done.
-
-Only the `ensureTexturesLoaded` call is serialized per asset. Meshes from *different* assets upload concurrently without any contention.
-
----
-
-## Deferred `loadTextures()`
-
-Large assets skip `asset.loadTextures()` at parse time to avoid the OOM risk of decompressing all textures before the app is interactive. The call is deferred via `ensureTexturesLoaded`:
-
-```swift
-func ensureTexturesLoaded(for rootEntityId: EntityID) {
-    // Must be called while per-asset texture lock is held.
-    // Calls asset.loadTextures() exactly once per asset lifetime.
-}
-```
-
-`assetTexturesLoaded: Set<EntityID>` ensures the call happens exactly once. In normal operation the prewarm task wins the race and marks the asset loaded before any upload task reaches `ensureTexturesLoaded`, making the upload-path call a no-op.
+Normal unload clears GPU residency but keeps the `CPURuntimeEntry` warm, so
+re-approaching the same stub re-uploads from CPU memory without reparsing the
+`.untold` file.
 
 ---
 
 ## API Surface
 
 | Method | Purpose |
-|--------|---------|
-| `storeCPUMesh(_:for:)` | Store a `CPUMeshEntry` keyed by child entity ID (regular OOC) |
-| `retrieveCPUMesh(for:)` | Fetch the entry for `GeometryStreamingSystem` upload (regular OOC) |
-| `removeCPUMesh(for:)` | Remove a single entry (rarely needed; prefer `removeOutOfCoreAsset`) |
-| `storeCPULODMesh(_:for:lodIndex:)` | Store a `CPUMeshEntry` for one LOD level of a LOD group entity |
-| `retrieveCPULODMesh(for:lodIndex:)` | Fetch the entry for a specific LOD level |
-| `retrieveAllCPULODMeshes(for:)` | Fetch all LOD-level entries for a group entity |
-| `hasCPULODData(for:)` | Returns `true` if the entity was registered via the LOD+OOC path |
-| `removeCPULODEntry(for:)` | Remove all LOD entries for a group entity |
-| `storeAsset(_:for:)` | Pin an `MDLAsset`, create its per-asset texture lock, and kick off background prewarm |
-| `isPrewarmActive(for:)` | Returns `true` while the background prewarm task holds the texture lock for this root |
-| `registerChildren(_:for:)` | Associate child entity IDs with a root for bulk cleanup |
-| `acquireAssetTextureLock(for:)` | Lock before calling `ensureTexturesLoaded` |
-| `releaseAssetTextureLock(for:)` | Unlock immediately after `ensureTexturesLoaded` — before GPU upload work |
-| `ensureTexturesLoaded(for:)` | Call `loadTextures()` exactly once per asset (must hold texture lock) |
-| `removeOutOfCoreAsset(rootEntityId:)` | Release all CPU entries (both registries) + MDLAsset for a destroyed root entity |
-| `cancelAll()` | Release everything — use on scene reset or test teardown |
-| `tick()` | No-op stub; retained for call-site compatibility |
+|---|---|
+| `storeCPURuntimeEntry(_:for:)` | Store one `.untold` runtime node entry for an OCC stub |
+| `retrieveCPURuntimeEntry(for:)` | Fetch the entry for GPU upload |
+| `hasCPURuntimeData(for:)` | Check whether a stub has CPU data ready |
+| `removeCPURuntimeEntry(for:)` | Remove one stub entry |
+| `registerChildren(_:for:)` | Associate child stub IDs with a tile/root entity |
+| `getChildren(for:)` | Return registered OCC children for a root |
+| `removeOutOfCoreAsset(rootEntityId:)` | Release all CPU entries for a root |
+| `cancelAll()` | Release all CPU entries; used for scene reset and tests |
+| `tick()` | No-op compatibility shim |
+
+There is no longer a public or internal `storeAsset`, `releaseWarmAsset`,
+`cpuLODRegistry`, `rootAssetRefs`, or per-asset texture lock in this system.
 
 ---
 
-## Data Flow
+## Memory Model
 
 ```
-setEntityMeshAsync (out-of-core path — regular OOC)
-  │
-  ├─ parseAssetAsync()               → MDLAsset in CPU RAM (no GPU spike)
-  ├─ registerProgressiveStubEntity() → N ECS stubs, StreamingComponent(.unloaded)
-  ├─ storeCPUMesh(entry, for: childId) × N  → cpuMeshRegistry
-  ├─ storeAsset(asset, for: rootId)   → rootAssetRefs, assetTextureLocks
-  │     └─ prewarmTexturesAsync()    → background Task: acquireLock / loadTextures() / releaseLock
-  ├─ registerChildren(childIds, for: rootId)
-  └─ completion(true)                → GeometryStreamingSystem picks up stubs automatically (always running)
-
-setEntityMeshAsync (out-of-core path — LOD+OOC)
-  │
-  ├─ parseAssetAsync()               → MDLAsset in CPU RAM
-  ├─ detectImportedLODGroups()        → N LOD groups detected
-  ├─ (per group) createEntity + LODComponent(stubs) + StreamingComponent(.unloaded)
-  ├─ storeCPULODMesh(entry, for: groupId, lodIndex:) × (N groups × L levels)  → cpuLODRegistry
-  ├─ storeAsset(asset, for: rootId)
-  │     └─ prewarmTexturesAsync()    → background Task: acquireLock / loadTextures() / releaseLock
-  ├─ registerChildren(groupEntityIds, for: rootId)
-  └─ completion(true)
-
-GeometryStreamingSystem (adaptive tick: 16 ms during backlog, 100 ms steady-state)
-  │
-  ├─ isPrewarmActive(rootId)?  → YES → defer all entities for this root (slots stay free)
-  │
-  ├─ entity within streamingRadius && state == .unloaded
-  │   ├─ hasCPULODData?  → YES → uploadActiveLODFromCPU()
-  │   │     ├─ retrieveAllCPULODMeshes(for: entityId)
-  │   │     ├─ acquireAssetTextureLock / ensureTexturesLoaded / releaseAssetTextureLock
-  │   │     ├─ makeMeshesFromCPUBuffers() × L levels  ← lock released; parallel uploads safe
-  │   │     ├─ LODComponent.lodLevels[i].residencyState = .resident  for each uploaded level
-  │   │     └─ registerRenderComponent() at distance-appropriate LOD
-  │   │
-  │   └─ hasCPULODData?  → NO  → retrieveCPUMesh / uploadFromCPUEntry (regular OOC)
-  │         ├─ acquireAssetTextureLock / ensureTexturesLoaded / releaseAssetTextureLock
-  │         ├─ makeMeshesFromCPUBuffers()  ← lock released; parallel uploads safe
-  │         └─ registerRenderComponent()
-  │
-  └─ entity beyond unloadRadius && state == .loaded
-      └─ render.mesh = []  (cpu entries kept — re-upload from RAM on re-approach)
-
-destroyAllEntities / scene reset
-  └─ removeOutOfCoreAsset(rootEntityId:)  → frees both CPU registries + MDLAsset
+CPU RAM:  RuntimeAssetNode Data blobs for unloaded/loaded OCC stubs
+GPU RAM:  Only OCC stubs currently within streaming range
+Disk:     Read when the tile is parsed
 ```
 
----
-
-## Memory Model at Steady State
-
-```
-CPU RAM:  all leaf meshes' MDLMesh vertex/index data — always resident
-GPU RAM:  only entities within streamingRadius — uploaded on demand
-Disk:     read exactly once at parse time
-```
-
-This trades a modest CPU-RAM footprint for predictable GPU memory usage and zero-latency re-uploads after eviction.
+This trades CPU memory for predictable GPU residency. The CPU copy is retained
+until the tile/root is destroyed or `removeOutOfCoreAsset(rootEntityId:)` is
+called.
 
 ---
 
 ## Cleanup
 
-Call `removeOutOfCoreAsset(rootEntityId:)` when destroying a root entity to free its CPU-heap geometry and texture-lock state:
+Tile unload calls:
 
 ```swift
 ProgressiveAssetLoader.shared.removeOutOfCoreAsset(rootEntityId: rootId)
 ```
 
-`destroyAllEntities` does not call this automatically — you must call it explicitly if you are managing entity lifetimes outside the engine's destruction path.
+This removes all `CPURuntimeEntry` records registered for that root.
 
-For full teardown (scene resets, tests):
+For full teardown:
 
 ```swift
 ProgressiveAssetLoader.shared.cancelAll()
 ```
+
+Use this during scene resets and test teardown.

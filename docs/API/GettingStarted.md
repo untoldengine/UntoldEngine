@@ -250,7 +250,7 @@ setEntityStreamScene(entityId: sceneRoot, manifest: "dungeon", withExtension: "j
 
 ## Loading a Remote Streamed Scene
 
-To streame a remote scene, you use the same function `setEntityStreamedScene()` but provide a url to your manifest json file.
+To stream a remote scene, use the same `setEntityStreamScene(...)` API with a URL to your manifest JSON file.
 
 ```swift
 // Remote manifest (downloaded and cached on demand)
