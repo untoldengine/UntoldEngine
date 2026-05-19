@@ -1056,7 +1056,7 @@ public func deserializeScene(
     if let env = sceneData.environment {
         applyIBL = env.applyIBL ?? false
         renderEnvironment = env.renderEnvironment ?? false
-        ambientIntensity = env.ambientIntensity ?? 0.44
+        ambientIntensity = env.ambientIntensity ?? 0.4
 
         // Only generate HDR if IBL is explicitly enabled and HDR is specified
         if applyIBL, let hdr = env.hdr, !hdr.isEmpty {
