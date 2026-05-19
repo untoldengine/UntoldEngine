@@ -583,7 +583,7 @@ private final class RuntimeGlobalsStore: @unchecked Sendable {
     private var gameModeValue: Bool = true
     private var applyIBLValue: Bool = false
     private var renderEnvironmentValue: Bool = false
-    private var ambientIntensityValue: Float = 1.0
+    private var ambientIntensityValue: Float = 0.4
     private var hdrURLValue: String = "teatro_massimo_2k.hdr"
     private var resourceURLValue: URL?
     private var assetBasePathValue: URL?
