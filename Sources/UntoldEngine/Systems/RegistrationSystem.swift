@@ -478,7 +478,6 @@ private func applyImportedTransformFromMeshGroup(_ meshGroup: [Mesh], to entityI
 
 @discardableResult
 
-
 private func loadUntoldRuntimeAsset(url: URL) -> RuntimeAsset? {
     do {
         return try NativeFormatLoader().loadAssetSync(from: url)
@@ -933,15 +932,14 @@ func generateStableNodePath(assetName: String, index: Int) -> String {
     "Root/\(assetName)#\(index)"
 }
 
-
-/// Synchronously load and set an entity mesh on the calling thread.
-///
-/// This API always uses the **immediate** path: all Metal resources are created in a single
-/// pass before the function returns. It does not support out-of-core stub registration or
-/// distance-based streaming — the mesh is permanently GPU-resident after this call.
-///
-/// For large assets or any asset that should benefit from distance-based streaming and
-/// eviction, use `setEntityMeshAsync(streamingPolicy:)` instead.
+// Synchronously load and set an entity mesh on the calling thread.
+//
+// This API always uses the **immediate** path: all Metal resources are created in a single
+// pass before the function returns. It does not support out-of-core stub registration or
+// distance-based streaming — the mesh is permanently GPU-resident after this call.
+//
+// For large assets or any asset that should benefit from distance-based streaming and
+// eviction, use `setEntityMeshAsync(streamingPolicy:)` instead.
 
 /// Controls how `setEntityMeshAsync` manages GPU residency for a loaded asset.
 public enum MeshStreamingPolicy: Sendable {
@@ -1021,7 +1019,7 @@ public func setEntityMeshAsync(
     withExtension: String,
     assetName: String? = nil,
     flip _: Bool = true,
-    coordinateConversion: CoordinateSystemConversion = .autoDetect,
+    coordinateConversion _: CoordinateSystemConversion = .autoDetect,
     streamingPolicy: MeshStreamingPolicy = .immediate,
     blockRenderLoop: Bool = true,
     completion: ((Bool) -> Void)? = nil
@@ -1884,7 +1882,6 @@ private func normalizeTileStreamingBands(
     return (normalizedPrefetch, normalizedHLOD, normalizedLODs)
 }
 
-
 func removeEntityMesh(entityId: EntityID) {
     var removedAnyResourceOwner = false
 
@@ -1912,8 +1909,6 @@ func removeEntityMesh(entityId: EntityID) {
 
     MemoryBudgetManager.shared.unregisterMesh(entityId: entityId)
 }
-
-
 
 public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String, name: String) {
     let targetEntityId = resolveEntityForAnimationBinding(entityId: entityId) ?? entityId
@@ -1955,7 +1950,6 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
         }
         return
     }
-
 }
 
 func removeEntityAnimations(entityId: EntityID) {

@@ -168,7 +168,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testGenerateBatchesWithMultipleStaticEntities() {
         // Given: Load a simple model
-                // Load meshes once so all entities share the same texture object identity
+        // Load meshes once so all entities share the same texture object identity
         let meshes = BasicPrimitives.createSphere()
 
         // Create multiple entities with same mesh (same material)
@@ -213,7 +213,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testBatchGroupBufferCreation() {
         // Given: Load a model and create batched entities
-                let meshes = BasicPrimitives.createSphere()
+        let meshes = BasicPrimitives.createSphere()
 
         for _ in 0 ..< 3 {
             let entity = createEntity()
@@ -251,7 +251,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testClearBatches() {
         // Given: Create some batches
-                let meshes = BasicPrimitives.createSphere()
+        let meshes = BasicPrimitives.createSphere()
 
         for _ in 0 ..< 3 {
             let entity = createEntity()
@@ -433,7 +433,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         // This test verifies that batching integrates with the rendering system
 
         // Given: Create batched entities
-                let meshes = BasicPrimitives.createSphere()
+        let meshes = BasicPrimitives.createSphere()
 
         for i in 0 ..< 3 {
             let entity = createEntity()
@@ -576,7 +576,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testBatchStatistics() {
         // Given: Create entities and generate batches
-                let meshes = BasicPrimitives.createSphere()
+        let meshes = BasicPrimitives.createSphere()
 
         let entityCount = 10
         for _ in 0 ..< entityCount {
@@ -619,7 +619,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     func testBatchingSystemMovesEntityToNewBatchOnLODChange() {
         // Given: Create batched entities with LOD components
         // Note: BatchingSystem requires at least 2 entities with same material+LOD to form a batch
-                let meshes = BasicPrimitives.createSphere()
+        let meshes = BasicPrimitives.createSphere()
 
         // Create 4 entities at LOD 0
         var lod0Entities: [EntityID] = []
@@ -697,7 +697,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testBatchingSystemRemovesEntityOnMeshEviction() {
         // Given: Create batched entities
-                let meshes = BasicPrimitives.createSphere()
+        let meshes = BasicPrimitives.createSphere()
 
         var entities: [EntityID] = []
         for _ in 0 ..< 4 {
@@ -757,7 +757,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testBatchingSystemAddsEntityWhenMeshBecomesResident() {
         // Given: Create an entity without mesh initially
-                // Load meshes once so all entities share the same texture object identity
+        // Load meshes once so all entities share the same texture object identity
         let meshes = BasicPrimitives.createSphere()
 
         // First, create some batched entities so there's a batch to join
@@ -822,7 +822,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testQuiescenceDelaysPromotionToBatchPending() {
-                BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(2)
+        BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(2)
 
         let meshes = BasicPrimitives.createSphere()
 
@@ -886,7 +886,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     func testTickProcessesPendingRemovalsAndAdditions() {
         // Given: Create batched entities
         // Note: tick() processes pending entity changes and rebuilds affected cells incrementally
-                let meshes = BasicPrimitives.createSphere()
+        let meshes = BasicPrimitives.createSphere()
 
         // Create entities at LOD 0
         var lod0Entities: [EntityID] = []
@@ -994,7 +994,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testTickRebuildsOnlyDirtyCells() {
-                BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setBatchCellSize(10.0)
         enableBatching(true)
 
         let meshes = BasicPrimitives.createSphere()
@@ -1057,7 +1057,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testTickProcessesRemainingDirtyCellsAcrossFramesWhenBudgetLimited() {
-                BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setBatchCellSize(10.0)
         BatchingSystem.shared.setMaxDirtyCellsPerTick(1)
         enableBatching(true)
 
@@ -1118,7 +1118,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testTickDefersSomeDirtyCellsWhenWorkBudgetIsExceeded() {
-                BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setBatchCellSize(10.0)
         BatchingSystem.shared.setMaxDirtyCellsPerTick(4)
         BatchingSystem.shared.setMaxRebuildVerticesPerTick(1_000_000_000)
         BatchingSystem.shared.setMaxRebuildIndicesPerTick(1_000_000_000)
@@ -1180,7 +1180,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testTickMarksOversizedCellsRuntimeIneligible() {
-                BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setBatchCellSize(10.0)
         BatchingSystem.shared.setMaxRuntimeCellVertices(1)
         BatchingSystem.shared.setMaxRuntimeCellIndices(1_000_000_000)
         BatchingSystem.shared.setMaxRuntimeCellBufferBytes(1_000_000_000)
@@ -1252,7 +1252,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testBackgroundArtifactBuildAppliesOnSubsequentTick() {
-                BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setBatchCellSize(10.0)
         BatchingSystem.shared.setBackgroundArtifactBuildEnabled(true)
         BatchingSystem.shared.setMaxDirtyCellsPerTick(1)
         BatchingSystem.shared.setMaxBuildDispatchesPerTick(1)
@@ -1315,7 +1315,7 @@ final class StaticBatchingTest: BaseRenderSetup {
     }
 
     func testVisibilityGateDefersOffscreenCellBatchRebuild() {
-                BatchingSystem.shared.setBatchCellSize(10.0)
+        BatchingSystem.shared.setBatchCellSize(10.0)
         BatchingSystem.shared.setVisibilityGatedBatchBuildEnabled(true)
         BatchingSystem.shared.setQuiescenceFramesBeforeBatchBuild(0)
         enableBatching(true)
@@ -1376,7 +1376,7 @@ final class StaticBatchingTest: BaseRenderSetup {
 
     func testGenerateBatchesCreatesSeparateBatchesForDifferentLODs() {
         // Given: Create entities with same material but different LOD levels
-                let meshes = BasicPrimitives.createSphere()
+        let meshes = BasicPrimitives.createSphere()
 
         // Create entities at LOD 0
         var lod0Entities: [EntityID] = []
@@ -1618,7 +1618,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         // usdz-embedded://<meshName>/embedded_Basecolor_map
         // Even with different mesh hosts, entities should still batch together
         // when they share the same source asset and embedded texture token.
-                let meshes = BasicPrimitives.createSphere()
+        let meshes = BasicPrimitives.createSphere()
 
         var entities: [EntityID] = []
         for i in 0 ..< 3 {

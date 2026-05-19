@@ -95,7 +95,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testEnableStreamingForSingleMeshEntity() {
         // Given: A single-mesh entity with RenderComponent
-                let entity = createEntity()
+        let entity = createEntity()
         let meshes = BasicPrimitives.createSphere()
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
@@ -241,7 +241,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testGetStatsWithStreamingEntities() {
         // Given: Create streaming entities with different states
-                // Create 2 loaded entities
+        // Create 2 loaded entities
         for _ in 0 ..< 2 {
             let entity = createEntity()
             let meshes = BasicPrimitives.createSphere()
@@ -279,7 +279,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testStreamingUpdateUnloadsDistantEntities() {
         // Given: A loaded streaming entity
-                let entity = createEntity()
+        let entity = createEntity()
         let meshes = BasicPrimitives.createSphere()
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
@@ -326,7 +326,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
     }
 
     func testStreamingUpdateRespectsUnloadBudgetPerTick() {
-                GeometryStreamingSystem.shared.maxUnloadsPerUpdate = 1
+        GeometryStreamingSystem.shared.maxUnloadsPerUpdate = 1
         GeometryStreamingSystem.shared.enabled = true
 
         func makeLoadedEntity(positionX: Float) -> EntityID {
@@ -373,7 +373,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testForceUnload() {
         // Given: A loaded streaming entity
-                let entity = createEntity()
+        let entity = createEntity()
         let meshes = BasicPrimitives.createSphere()
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
@@ -435,7 +435,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testUnloadRadiusMustBeGreaterThanStreamingRadius() {
         // Given: An entity with streaming
-                let entity = createEntity()
+        let entity = createEntity()
         let meshes = BasicPrimitives.createSphere()
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
@@ -498,7 +498,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
     func testStreamingIntegrationWithRendering() {
         // Given: Create streaming entities
-                for i in 0 ..< 3 {
+        for i in 0 ..< 3 {
             let entity = createEntity()
             let meshes = BasicPrimitives.createSphere()
 

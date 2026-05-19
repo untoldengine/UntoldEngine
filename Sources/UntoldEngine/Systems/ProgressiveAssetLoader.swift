@@ -37,7 +37,7 @@ public final class ProgressiveAssetLoader: @unchecked Sendable {
     /// RuntimeAssetNode is a value type whose vertexData/indexData are self-contained Data blobs
     /// — no parent asset reference is needed to keep the buffers alive. Stored in
     /// cpuRuntimeRegistry keyed by child entity ID.
-    struct CPURuntimeEntry: Sendable {
+    struct CPURuntimeEntry {
         let node: RuntimeAssetNode
         let url: URL
         let uniqueAssetName: String
