@@ -23,7 +23,7 @@ public class MeshNode: Node, NodeAnimations, NodeKinetics {
 
         if name == nil { setEntityName(entityId: self.entityID, name: resource) }
 
-        setEntityMesh(entityId: self.entityID, filename: resource.filename, withExtension: resource.extensionName)
+        setEntityMeshAsync(entityId: self.entityID, filename: resource.filename, withExtension: resource.extensionName)
     }
 
     public func materialData(

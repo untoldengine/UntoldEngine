@@ -52,7 +52,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         setEntityMeshAsync(
             entityId: entityId,
             filename: "ball",
-            withExtension: "usdz"
+            withExtension: "untold"
         ) { success in
             loadSuccess = success
             expectation.fulfill()
@@ -88,7 +88,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         setEntityMeshAsync(
             entityId: entityId,
             filename: "stadium",
-            withExtension: "usdz"
+            withExtension: "untold"
         ) { success in
             loadSuccess = success
             expectation.fulfill()
@@ -143,7 +143,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         setEntityMeshAsync(
             entityId: entityId,
             filename: "nonexistent_model",
-            withExtension: "usdz"
+            withExtension: "untold"
         ) { success in
             loadSuccess = success
             expectation.fulfill()
@@ -227,7 +227,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         setEntityMeshAsync(
             entityId: entityId,
             filename: "ball",
-            withExtension: "usdz"
+            withExtension: "untold"
         ) { _ in
             loadingCompleteExpectation.fulfill()
         }
@@ -273,9 +273,9 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
             }
         }
 
-        setEntityMeshAsync(entityId: entity1, filename: "ball", withExtension: "usdz") { _ in expectation1.fulfill() }
-        setEntityMeshAsync(entityId: entity2, filename: "ball", withExtension: "usdz") { _ in expectation2.fulfill() }
-        setEntityMeshAsync(entityId: entity3, filename: "ball", withExtension: "usdz") { _ in expectation3.fulfill() }
+        setEntityMeshAsync(entityId: entity1, filename: "ball", withExtension: "untold") { _ in expectation1.fulfill() }
+        setEntityMeshAsync(entityId: entity2, filename: "ball", withExtension: "untold") { _ in expectation2.fulfill() }
+        setEntityMeshAsync(entityId: entity3, filename: "ball", withExtension: "untold") { _ in expectation3.fulfill() }
 
         // Then: All should complete
         await fulfillment(of: [expectation1, expectation2, expectation3], timeout: 10.0)
@@ -319,7 +319,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         setEntityMeshAsync(
             entityId: entityId,
             filename: "stadium",
-            withExtension: "usdz"
+            withExtension: "untold"
         ) { _ in
             expectation.fulfill()
         }
@@ -356,7 +356,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
         // When: Load mesh asynchronously
         let expectation = XCTestExpectation(description: "Mesh loaded")
-        setEntityMeshAsync(entityId: entityId, filename: "ball", withExtension: "usdz") { _ in
+        setEntityMeshAsync(entityId: entityId, filename: "ball", withExtension: "untold") { _ in
             expectation.fulfill()
         }
 
@@ -379,7 +379,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
 
         // When: Load mesh asynchronously
         let expectation = XCTestExpectation(description: "Mesh loaded")
-        setEntityMeshAsync(entityId: entityId, filename: "ball", withExtension: "usdz") { _ in
+        setEntityMeshAsync(entityId: entityId, filename: "ball", withExtension: "untold") { _ in
             expectation.fulfill()
         }
 
@@ -426,7 +426,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         }
 
         let expectation = XCTestExpectation(description: "Loading complete")
-        setEntityMeshAsync(entityId: entityId, filename: "stadium", withExtension: "usdz") { _ in
+        setEntityMeshAsync(entityId: entityId, filename: "stadium", withExtension: "untold") { _ in
             expectation.fulfill()
         }
 
@@ -560,7 +560,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         setEntityMeshAsync(
             entityId: entityId,
             filename: "ball",
-            withExtension: "usdz",
+            withExtension: "untold",
             coordinateConversion: .forceZUpToYUp
         ) { success in
             loadSuccess = success
@@ -589,7 +589,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         setEntityMeshAsync(
             entityId: entityId,
             filename: "stadium",
-            withExtension: "usdz",
+            withExtension: "untold",
             assetName: "stadium" // Using the file name as asset name
         ) { success in
             loadSuccess = success
@@ -615,7 +615,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
         setEntityMeshAsync(
             entityId: entityId,
             filename: "nonexistent",
-            withExtension: "usdz"
+            withExtension: "untold"
         ) { success in
             loadSuccess = success
             expectation.fulfill()
@@ -652,7 +652,7 @@ final class AsyncMeshLoadingTest: BaseRenderSetup {
             let exp = XCTestExpectation(description: "Entity \(i) loaded")
             expectations.append(exp)
 
-            setEntityMeshAsync(entityId: entities[i], filename: "ball", withExtension: "usdz") { _ in
+            setEntityMeshAsync(entityId: entities[i], filename: "ball", withExtension: "untold") { _ in
                 exp.fulfill()
             }
         }

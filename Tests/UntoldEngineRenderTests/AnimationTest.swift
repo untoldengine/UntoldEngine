@@ -124,19 +124,25 @@ final class AnimationTests: BaseRenderSetup {
     override func initializeAssets() {
         cameraLookAt(entityId: findGameCamera(), eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
         ambientIntensity = 0.4
-
         let sunEntity: EntityID = createEntity()
         createDirLight(entityId: sunEntity)
-
-        // Player (animated, named for lookup). Use synchronous load so the entity
-        // is fully registered (RenderComponent + SkeletonComponent on its child)
-        // before setUp calls setVisibleEntities() and tests access findEntity("player").
+        // Player entity is created here; actual async load happens in setUp override below.
         let player = createEntity()
-        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "untold")
-        // Name must be set after setEntityMesh: the loader overwrites the root entity's
-        // name with the asset's root node name during registration.
         setEntityName(entityId: player, name: "player")
+    }
+
+    override func setUp() async throws {
+        try await super.setUp()
+        // Load the actual redplayer.untold asset so SkeletonComponent and AnimationComponent
+        // are registered. This must run in an async context so we can await completion.
+        guard let player = findEntity(name: "player") else { return }
+        let exp = XCTestExpectation(description: "redplayer loaded")
+        setEntityMeshAsync(entityId: player, filename: "redplayer", withExtension: "untold") { _ in
+            exp.fulfill()
+        }
+        await fulfillment(of: [exp], timeout: 10)
         setEntityAnimations(entityId: player, filename: "running", withExtension: "untold", name: "running")
         changeAnimation(entityId: player, name: "running")
+        setVisibleEntities()
     }
 }

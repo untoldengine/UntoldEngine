@@ -80,7 +80,7 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
 
     override func initializeAssets() {}
 
-    func testSetEntityMesh_buildsEntityHierarchyFromUntoldNodes() throws {
+    func testSetEntityMesh_buildsEntityHierarchyFromUntoldNodes() async throws {
         let fixture = try makeHierarchicalUntoldFixture()
         let originalResourceURLFn = LoadingSystem.shared.resourceURLFn
         LoadingSystem.shared.resourceURLFn = { name, ext, _ in
@@ -92,7 +92,9 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
         let rootEntity = createEntity()
         setEntityName(entityId: rootEntity, name: "HierarchyRoot")
 
-        setEntityMesh(entityId: rootEntity, filename: "hierarchy", withExtension: "untold")
+        let loadExp_rootEntity = expectation(description: "hierarchy loaded")
+        setEntityMeshAsync(entityId: rootEntity, filename: "hierarchy", withExtension: "untold") { _ in loadExp_rootEntity.fulfill() }
+        await fulfillment(of: [loadExp_rootEntity], timeout: 10)
 
         // rootEntity is the scene container — keeps its original name, no mesh, no derived tag.
         XCTAssertTrue(hasComponent(entityId: rootEntity, componentType: AssetInstanceComponent.self))
@@ -138,7 +140,7 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
         XCTAssertTrue(transformsApproximatelyEqualForTest(childRender.mesh[0].localSpace, matrix_identity_float4x4))
     }
 
-    func testSetEntityMesh_buildsEntityHierarchyFromRealUntoldFixture() throws {
+    func testSetEntityMesh_buildsEntityHierarchyFromRealUntoldFixture() async throws {
         guard let url = Bundle.module.url(forResource: "cubeparentchild", withExtension: "untold") else {
             XCTFail("Failed to locate cubeparentchild.untold in test resources")
             return
@@ -155,7 +157,9 @@ final class NativeFormatHierarchyRegistrationTests: BaseRenderSetup {
         let rootEntity = createEntity()
         setEntityName(entityId: rootEntity, name: "CubeParentChildRoot")
 
-        setEntityMesh(entityId: rootEntity, filename: "cubeparentchild", withExtension: "untold")
+        let loadExp_rootEntity = expectation(description: "cubeparentchild loaded")
+        setEntityMeshAsync(entityId: rootEntity, filename: "cubeparentchild", withExtension: "untold") { _ in loadExp_rootEntity.fulfill() }
+        await fulfillment(of: [loadExp_rootEntity], timeout: 10)
 
         let allDerivedNodes = collectDescendantEntities(from: rootEntity).filter {
             hasComponent(entityId: $0, componentType: DerivedAssetNodeComponent.self)

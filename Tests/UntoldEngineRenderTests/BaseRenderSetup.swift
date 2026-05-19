@@ -460,20 +460,22 @@ class BaseRenderSetup: XCTestCase {
 
         cameraLookAt(entityId: camera, eye: simd_float3(0.0, 3.0, 7.0), target: simd_float3(0.0, 0.0, 0.0), up: simd_float3(0.0, 1.0, 0.0))
 
-        // Stadium (static mesh)
+        // Stadium — cube placeholder (no .usdz anymore)
         let stadium = createEntity()
-        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdz")
+        setEntityMeshDirect(entityId: stadium, meshes: BasicPrimitives.createCube(), assetName: "stadium")
         translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
         setEntityName(entityId: stadium, name: "stadium")
 
-        // Player (animated, named for lookup)
+        // Player (animated) — load actual .untold asset so AnimationComponent is registered
         let player = createEntity()
-        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "untold")
         setEntityName(entityId: player, name: "player")
+        let playerExp = XCTestExpectation(description: "redplayer loaded")
+        setEntityMeshAsync(entityId: player, filename: "redplayer", withExtension: "untold") { _ in playerExp.fulfill() }
+        let _ = XCTWaiter.wait(for: [playerExp], timeout: 10)
 
-        // Ball (named for lookup)
+        // Ball — sphere placeholder
         let ball = createEntity()
-        setEntityMesh(entityId: ball, filename: "ball", withExtension: "untold")
+        setEntityMeshDirect(entityId: ball, meshes: BasicPrimitives.createSphere(), assetName: "ball")
         setEntityName(entityId: ball, name: "ball")
         translateBy(entityId: ball, position: simd_float3(0.0, 0.4, 3.0))
 

@@ -95,13 +95,18 @@ public extension MeshResourceManager {
         }
         defer { finishInFlightLoad(url: url) }
 
-        // Load all meshes from file
-        let meshArrays = await Mesh.loadSceneMeshesAsync(
-            url: url,
-            vertexDescriptor: vertexDescriptor.model,
-            device: renderInfo.device,
-            coordinateConversion: .autoDetect
-        )
+        // Load all meshes from .untold file via native loader.
+        guard url.pathExtension.lowercased() == "untold" else {
+            Logger.logWarning(message: "[MeshResourceManager] Only .untold assets are supported. Ignoring '\(url.lastPathComponent)'.")
+            return
+        }
+        guard let runtimeAsset = try? NativeFormatLoader().loadAssetSync(from: url) else { return }
+        let meshArrays: [[Mesh]] = runtimeAsset.nodes
+            .filter { !$0.primitives.isEmpty }
+            .compactMap { node -> [Mesh]? in
+                let meshes = makeMeshes(from: node)
+                return meshes.isEmpty ? nil : meshes
+            }
 
         guard !meshArrays.isEmpty else { return }
 

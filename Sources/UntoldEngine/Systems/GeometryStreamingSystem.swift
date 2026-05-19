@@ -1132,19 +1132,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 // Second pass for critical pressure: push harder to free geometry.
                 evictedByLRU += evictLRU(cameraPosition: effectiveCameraPosition, maxEvictions: 16)
 
-                // Release CPU-heap (MDLAsset + CPUMeshEntry buffers) for all warm OOC roots.
-                // evictLRU only frees GPU Metal buffers tracked by MemoryBudgetManager; the OS
-                // measures total process memory, which includes the CPU mesh heap that
-                // ProgressiveAssetLoader keeps alive. Releasing it here can free several hundred
-                // MB on a heavy geometry scene. The rehydration context (URL + policy) survives,
-                // so re-approach triggers a transparent cold re-stream from disk.
-                let warmRoots = ProgressiveAssetLoader.shared.allWarmRootEntityIds()
-                for rootId in warmRoots {
-                    ProgressiveAssetLoader.shared.releaseWarmAsset(rootEntityId: rootId)
-                }
-                if !warmRoots.isEmpty {
-                    print("[GeometryStreaming] Critical pressure: released CPU heap for \(warmRoots.count) OOC root(s)")
-                }
+                // TODO: release .untold OCC CPU heap entries under critical pressure
+                // (CPURuntimeEntry Data blobs per stub entity).
             }
             evictionTriggered = true
         }
@@ -1237,28 +1226,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 // Dispatching them wastes a slot on a disk-path fallback that will fail —
                 // CPU entries are populated by the registration system shortly after this tick.
                 // Cold roots are exempt: they rehydrate intentionally from disk.
-                if let rootId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId {
-                    // Skip entities whose CPU data isn't registered yet (pre-streaming slot jam).
-                    if !ProgressiveAssetLoader.shared.isColdRoot(rootId),
-                       ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) == nil,
-                       !ProgressiveAssetLoader.shared.hasCPULODData(for: entityId)
-                    {
-                        continue
-                    }
-                    // Defer dispatch until background prewarm releases the per-asset texture lock.
-                    // Dispatching while prewarm holds the lock blocks the first batch for the full
-                    // remaining prewarm duration (~1-2 s). Wait until lockWait ≈ 0.
-                    if ProgressiveAssetLoader.shared.isPrewarmActive(for: rootId) {
-                        continue
-                    }
+                // Skip .untold OCC stubs whose CPU data isn't registered yet.
+                if ProgressiveAssetLoader.shared.hasCPURuntimeData(for: entityId) == false,
+                   scene.get(component: DerivedAssetNodeComponent.self, for: entityId) != nil
+                {
+                    continue
                 }
                 // Per-candidate geometry budget check: evict if this mesh won't fit.
-                if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
-                   !MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes)
+                if let runtimeEntry = ProgressiveAssetLoader.shared.retrieveCPURuntimeEntry(for: entityId),
+                   !MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: runtimeEntry.estimatedGPUBytes)
                 {
                     evictedByLRU += evictLRU(cameraPosition: effectiveCameraPosition)
                     evictionTriggered = true
-                    guard MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes) else { continue }
+                    guard MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: runtimeEntry.estimatedGPUBytes) else { continue }
                 }
                 loadMesh(entityId: entityId, isNearBand: true)
                 startedLoads += 1
@@ -1270,26 +1250,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             var restDispatched = 0
             for (entityId, _, _, _) in restBandCandidates {
                 guard restDispatched < restSlots else { break }
-                // Same guard: skip OOC child entities whose CPU data isn't ready yet.
-                if let rootId = scene.get(component: DerivedAssetNodeComponent.self, for: entityId)?.assetRootEntityId {
-                    if !ProgressiveAssetLoader.shared.isColdRoot(rootId),
-                       ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId) == nil,
-                       !ProgressiveAssetLoader.shared.hasCPULODData(for: entityId)
-                    {
-                        continue
-                    }
-                    // Defer until background prewarm releases the texture lock.
-                    if ProgressiveAssetLoader.shared.isPrewarmActive(for: rootId) {
-                        continue
-                    }
+                // Skip .untold OCC stubs whose CPU data isn't registered yet.
+                if ProgressiveAssetLoader.shared.hasCPURuntimeData(for: entityId) == false,
+                   scene.get(component: DerivedAssetNodeComponent.self, for: entityId) != nil
+                {
+                    continue
                 }
                 // Per-candidate geometry budget check for out-of-core rest-band entities.
-                if let cpuEntry = ProgressiveAssetLoader.shared.retrieveCPUMesh(for: entityId),
-                   !MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes)
+                if let runtimeEntry = ProgressiveAssetLoader.shared.retrieveCPURuntimeEntry(for: entityId),
+                   !MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: runtimeEntry.estimatedGPUBytes)
                 {
                     evictedByLRU += evictLRU(cameraPosition: effectiveCameraPosition)
                     evictionTriggered = true
-                    guard MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: cpuEntry.estimatedGPUBytes) else { continue }
+                    guard MemoryBudgetManager.shared.canAcceptMesh(sizeBytes: runtimeEntry.estimatedGPUBytes) else { continue }
                 }
                 loadMesh(entityId: entityId, isNearBand: false)
                 startedLoads += 1

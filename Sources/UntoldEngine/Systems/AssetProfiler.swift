@@ -9,17 +9,10 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import Foundation
-import MetalKit
-import ModelIO
 
 // MARK: - Asset Profile
 
 /// A lightweight snapshot of an asset's composition used to select the optimal loading policy.
-///
-/// All byte estimates are rough order-of-magnitude approximations computed at registration
-/// time — no texture decompression or full GPU allocation is performed. `AssetProfiler` is
-/// designed to run in < a few milliseconds inside the async registration task, well within
-/// the cost of `Mesh.parseAssetAsync()` itself.
 public struct AssetProfile: Sendable {
     // MARK: Byte Estimates
 
@@ -27,20 +20,17 @@ public struct AssetProfile: Sendable {
     public let totalFileBytes: Int
 
     /// Estimated GPU geometry footprint: vertex + index buffers summed across all meshes.
-    /// Uses the same vertex-stride formula as `CPUMeshEntry.estimatedGPUBytes`.
     public let estimatedGeometryBytes: Int
 
-    /// Estimated GPU texture footprint. Derived from texture URL file sizes with a
-    /// decompression expansion factor, or a heuristic when textures are embedded in USDZ.
-    /// May be 0 if no material texture references could be resolved.
+    /// Estimated GPU texture footprint.
     public let estimatedTextureBytes: Int
 
     // MARK: Structural Signals
 
-    /// Number of top-level `MDLMesh` objects in the parsed asset.
+    /// Number of top-level mesh objects in the parsed asset.
     public let meshCount: Int
 
-    /// Total number of `MDLSubmesh` / material slots encountered across all meshes.
+    /// Total number of material slots encountered across all meshes.
     public let materialCount: Int
 
     /// GPU byte estimate for the single largest individual mesh in the asset.
@@ -77,108 +67,8 @@ public struct AssetProfile: Sendable {
 
 // MARK: - Asset Profiler
 
-/// Analyzes a parsed `ProgressiveAssetData` to produce an `AssetProfile` and recommend
-/// the most appropriate `AssetLoadingPolicy` for the current platform memory budget.
-///
-/// ## Usage
-/// ```swift
-/// let profile = AssetProfiler.profile(url: url, assetData: assetData, fileSizeBytes: fileSize)
-/// let policy  = AssetProfiler.classifyPolicy(profile: profile, budget: MemoryBudgetManager.shared.meshBudget)
-/// ```
-///
-/// `AssetProfiler` runs after `Mesh.parseAssetAsync()` returns a `ProgressiveAssetData` and
-/// before any ECS entity or GPU resource is created, so it has access to all `MDLMesh`
-/// objects but no Metal allocations have occurred yet.
+/// Classifies asset loading policy from an `AssetProfile` and the current memory budget.
 public enum AssetProfiler {
-    // MARK: - Profile
-
-    /// Build an `AssetProfile` from a parsed asset.
-    ///
-    /// - Parameters:
-    ///   - url: Source URL of the asset (used only to stat on-disk size when `fileSizeBytes == 0`).
-    ///   - assetData: Result of `Mesh.parseAssetAsync()`.
-    ///   - fileSizeBytes: Pre-computed on-disk file size in bytes. Pass 0 to skip (estimates only).
-    /// - Returns: A populated `AssetProfile`.
-    static func profile(
-        url _: URL,
-        assetData: Mesh.ProgressiveAssetData,
-        fileSizeBytes: Int
-    ) -> AssetProfile {
-        var totalGeometryBytes = 0
-        var largestMeshBytes = 0
-        var materialCount = 0
-        var uniqueTextureRefs = Set<String>()
-        var meshCount = 0
-
-        for obj in assetData.topLevelObjects {
-            guard let mesh = obj as? MDLMesh else { continue }
-            meshCount += 1
-
-            // Geometry estimate: vertex bytes + index bytes.
-            // Identical formula to CPUMeshEntry.estimatedGPUBytes so the profiler and the
-            // budget manager agree on per-mesh costs.
-            let stride = Int(
-                (mesh.vertexDescriptor.layouts.firstObject as? MDLVertexBufferLayout)?.stride ?? 48
-            )
-            let vertexBytes = mesh.vertexCount * stride
-            let indexBytes = mesh.vertexCount * 3 * 4 // ~3 indices/vertex, 4 bytes each
-            let meshBytes = vertexBytes + indexBytes
-            totalGeometryBytes += meshBytes
-            largestMeshBytes = max(largestMeshBytes, meshBytes)
-
-            // Scan submesh materials for texture URL references.
-            if let submeshes = mesh.submeshes {
-                for case let submesh as MDLSubmesh in submeshes {
-                    guard let material = submesh.material else { continue }
-                    materialCount += 1
-                    scanMaterialForTextureRefs(material, into: &uniqueTextureRefs)
-                }
-            }
-        }
-
-        // Estimate total texture GPU footprint from the collected URL references.
-        let textureBytes = estimateTextureBytes(
-            textureRefs: uniqueTextureRefs,
-            fileSizeBytes: fileSizeBytes,
-            geometryBytes: totalGeometryBytes
-        )
-
-        // Classify the asset's dominant memory domain.
-        let isMonolithic = meshCount <= 2
-        let assetCharacter: AssetProfile.AssetCharacter
-
-        if isMonolithic {
-            assetCharacter = .monolithic
-        } else {
-            let total = totalGeometryBytes + textureBytes
-            if total == 0 {
-                assetCharacter = .mixed
-            } else {
-                let textureFraction = Float(textureBytes) / Float(total)
-                let geoFraction = Float(totalGeometryBytes) / Float(total)
-                switch (textureFraction, geoFraction) {
-                case let (t, _) where t > 0.75:
-                    assetCharacter = .textureDominated
-                case let (_, g) where g > 0.75:
-                    assetCharacter = .geometryDominated
-                default:
-                    assetCharacter = .mixed
-                }
-            }
-        }
-
-        return AssetProfile(
-            totalFileBytes: fileSizeBytes,
-            estimatedGeometryBytes: totalGeometryBytes,
-            estimatedTextureBytes: textureBytes,
-            meshCount: meshCount,
-            materialCount: materialCount,
-            largestSingleMeshBytes: largestMeshBytes,
-            isEffectivelyMonolithic: isMonolithic,
-            assetCharacter: assetCharacter
-        )
-    }
-
     // MARK: - Classify Policy
 
     /// Recommend an `AssetLoadingPolicy` for the given profile and platform memory budget.
@@ -254,83 +144,4 @@ public enum AssetProfiler {
         return .eager
     }
 
-    // MARK: - Private: Texture Estimation Helpers
-
-    /// Collect texture URL strings from an MDLMaterial's known semantic slots.
-    ///
-    /// Checks `urlValue` and `stringValue` for each semantic. Both regular file URLs and
-    /// USDZ bracket-notation strings (e.g. `"file:///asset.usdz[0/texture.png]"`) are captured.
-    private static func scanMaterialForTextureRefs(
-        _ material: MDLMaterial,
-        into refs: inout Set<String>
-    ) {
-        let textureSemantics: [MDLMaterialSemantic] = [
-            .baseColor,
-            .roughness,
-            .metallic,
-            .bump,
-            .emission,
-            .opacity,
-            .ambientOcclusion,
-        ]
-        for semantic in textureSemantics {
-            guard let prop = material.property(with: semantic) else { continue }
-            if let url = prop.urlValue {
-                refs.insert(url.absoluteString)
-            } else if let str = prop.stringValue, !str.isEmpty {
-                refs.insert(str)
-            }
-        }
-    }
-
-    /// Estimate the GPU texture footprint from a set of texture URL strings.
-    ///
-    /// **Regular file URLs**: stats the file and multiplies by 3× (conservative PNG/JPEG
-    /// decode expansion; ASTC expands ~6–8× but is less common for external files).
-    ///
-    /// **USDZ-embedded textures** (bracket-notation URLs): cannot stat individual zip entries
-    /// without decompressing. Uses a single heuristic: `(fileSize − geometryBytes) × 3`.
-    /// This overestimates for geometry-heavy USDZs but is safe to err high (only triggers
-    /// more streaming, never less).
-    ///
-    /// **No URLs found**: returns 0 (profiler leaves texture policy to the default).
-    private static func estimateTextureBytes(
-        textureRefs: Set<String>,
-        fileSizeBytes: Int,
-        geometryBytes: Int
-    ) -> Int {
-        guard !textureRefs.isEmpty else { return 0 }
-
-        var totalBytes = 0
-        var hasEmbeddedTextures = false
-
-        for ref in textureRefs {
-            if ref.contains("[") {
-                // USDZ bracket-notation — embedded textures; use a file-level heuristic below.
-                hasEmbeddedTextures = true
-            } else if let textureURL = URL(string: ref), textureURL.isFileURL {
-                let fileSize = (try? FileManager.default.attributesOfItem(atPath: textureURL.path))?[.size] as? Int ?? 0
-                if textureURL.pathExtension.lowercased() == "utex" {
-                    // .utex is the engine-native ASTC container: the file payload IS the GPU
-                    // data (ASTC blocks transferred as-is).  No decode expansion — file size
-                    // ≈ GPU allocation.  Use 1× with no multiplier.
-                    totalBytes += fileSize
-                } else {
-                    // PNG/JPEG typically decode to 3–4× their compressed size on the GPU.
-                    totalBytes += fileSize * 3
-                }
-            }
-        }
-
-        // For embedded USDZ textures where we cannot stat individual entries:
-        // estimate total packed texture bytes as (fileSize − estimated_packed_geometry).
-        // Packed geometry is roughly 1/10 of its uncompressed GPU size.
-        if hasEmbeddedTextures, totalBytes == 0 {
-            let estimatedPackedGeometry = geometryBytes / 10
-            let estimatedPackedTextureBytes = max(0, fileSizeBytes - estimatedPackedGeometry)
-            totalBytes = estimatedPackedTextureBytes * 3
-        }
-
-        return totalBytes
-    }
 }
