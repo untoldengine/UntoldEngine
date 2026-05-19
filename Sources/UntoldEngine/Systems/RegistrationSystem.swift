@@ -568,11 +568,16 @@ func makeMeshes(from node: RuntimeAssetNode) -> [Mesh] {
 ///
 /// Creates the ECS presence (transform, scenegraph, streaming component) with no GPU allocation.
 /// GeometryStreamingSystem uploads via uploadFromRuntimeEntry when the entity enters streaming range.
+///
+/// - Parameters:
+///   - parentEntityId: The direct scene-graph parent (may be a container node, not always the asset root).
+///   - rootEntityId: The asset root entity used for DerivedAssetNodeComponent tracking.
 @discardableResult
 private func registerUntoldProgressiveStubEntity(
     node: RuntimeAssetNode,
     index: Int,
     uniqueAssetName: String,
+    parentEntityId: EntityID,
     rootEntityId: EntityID,
     url _: URL,
     filename: String,
@@ -581,14 +586,28 @@ private func registerUntoldProgressiveStubEntity(
     let childEntityId = createEntity()
 
     ensureUntoldNodeComponents(entityId: childEntityId)
-    applyWorldTransform(node.worldTransform, to: childEntityId)
+
+    // Compute the local transform that will produce node.worldTransform after parenting.
+    // After setParent: childWorld = parentWorld × childLocal
+    // We want childWorld = node.worldTransform, so:
+    //   childLocal = inverse(parentWorld) × node.worldTransform
+    // For tile geometry (parentWorld = identity) this equals node.worldTransform directly.
+    // For non-identity parents this prevents double-application of the parent transform.
+    let parentWorldTransform = scene.get(component: WorldTransformComponent.self, for: parentEntityId)?.space
+        ?? matrix_identity_float4x4
+    let localTransform = simd_mul(parentWorldTransform.inverse, node.worldTransform)
+    applyLocalTransform(localTransform, to: childEntityId)
 
     if let local = scene.get(component: LocalTransformComponent.self, for: childEntityId) {
         local.boundingBox = (min: node.localBounds.min, max: node.localBounds.max)
     }
 
     setEntityName(entityId: childEntityId, name: uniqueAssetName)
-    setParent(childId: childEntityId, parentId: rootEntityId)
+    setParent(childId: childEntityId, parentId: parentEntityId)
+
+    // Register with the octree so GeometryStreamingSystem.update() finds this stub
+    // via queryNear. Without this, the stub is invisible to the streaming scheduler.
+    OctreeSystem.shared.registerEntity(childEntityId)
 
     let nodePath = generateStableNodePath(assetName: uniqueAssetName, index: index)
     registerComponent(entityId: childEntityId, componentType: DerivedAssetNodeComponent.self)
@@ -613,9 +632,13 @@ private func registerUntoldProgressiveStubEntity(
 
 /// Register all renderable nodes in a .untold RuntimeAsset as OCC stub entities.
 ///
-/// Each node with primitives becomes a zero-GPU stub with StreamingComponent(.unloaded) and a
-/// CPURuntimeEntry in ProgressiveAssetLoader. GeometryStreamingSystem drives GPU upload via
-/// uploadFromRuntimeEntry when each entity enters streaming range.
+/// Each node with primitives becomes a zero-GPU child stub with StreamingComponent(.unloaded)
+/// and a CPURuntimeEntry in ProgressiveAssetLoader. Container nodes (no primitives) become
+/// plain hierarchy entities. Renderable nodes are always created as CHILDREN of entityId
+/// (never as entityId itself) so countOCCDescendants finds them correctly.
+///
+/// Hierarchy is preserved: a renderable node whose parentID points to a container node is
+/// parented to that container entity, not directly to entityId.
 @discardableResult
 private func registerUntoldRuntimeAssetOCC(
     entityId: EntityID,
@@ -640,39 +663,7 @@ private func registerUntoldRuntimeAssetOCC(
     let residencyPolicy = AssetLoadingPolicy(geometry: .streaming, texture: .eager, source: .auto)
 
     for node in runtimeAsset.nodes {
-        if runtimeAsset.nodes.count == 1, node.parentID == nil {
-            // Single-node asset: root entity is the stub.
-            let uniqueName = node.name
-            let estimatedBytes = node.primitives.reduce(0) { $0 + $1.estimatedGPUBytes }
-
-            applyWorldTransform(node.worldTransform, to: entityId)
-            if let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
-                local.boundingBox = (min: node.localBounds.min, max: node.localBounds.max)
-            }
-            setEntityName(entityId: entityId, name: uniqueName)
-
-            registerComponent(entityId: entityId, componentType: StreamingComponent.self)
-            if let sc = scene.get(component: StreamingComponent.self, for: entityId) {
-                sc.assetFilename = filename
-                sc.assetExtension = ext
-                sc.assetName = uniqueName
-                sc.state = .unloaded
-                sc.streamingRadius = Float.greatestFiniteMagnitude
-                sc.unloadRadius = Float.greatestFiniteMagnitude
-            }
-
-            let entry = ProgressiveAssetLoader.CPURuntimeEntry(
-                node: node,
-                url: url,
-                uniqueAssetName: uniqueName,
-                estimatedGPUBytes: estimatedBytes,
-                residencyPolicy: residencyPolicy
-            )
-            ProgressiveAssetLoader.shared.storeCPURuntimeEntry(entry, for: entityId)
-            childIds.append(entityId)
-            entityByNodeID[node.id] = entityId
-
-        } else if node.primitives.isEmpty {
+        if node.primitives.isEmpty {
             // Container node — hierarchy entity only, no StreamingComponent.
             let containerEntityId = createEntity()
             ensureUntoldNodeComponents(entityId: containerEntityId)
@@ -683,12 +674,18 @@ private func registerUntoldRuntimeAssetOCC(
             entityByNodeID[node.id] = containerEntityId
 
         } else {
-            // Renderable node — OCC stub.
-            let uniqueName = "\(node.name)#\(index)"
+            // Renderable node — always a CHILD OCC stub (never the root entity).
+            // This ensures countOCCDescendants finds it correctly even for single-node assets.
+            let uniqueName = runtimeAsset.nodes.filter { !$0.primitives.isEmpty }.count == 1
+                ? node.name
+                : "\(node.name)#\(index)"
+            // Parent to the node's actual parent (container) if it has one; otherwise to entityId.
+            let parentEntityId = node.parentID.flatMap { entityByNodeID[$0] } ?? entityId
             let childEntityId = registerUntoldProgressiveStubEntity(
                 node: node,
                 index: index,
                 uniqueAssetName: uniqueName,
+                parentEntityId: parentEntityId,
                 rootEntityId: entityId,
                 url: url,
                 filename: filename,
@@ -976,7 +973,7 @@ public func setEntityMeshAsync(
     assetName: String? = nil,
     flip _: Bool = true,
     coordinateConversion: CoordinateSystemConversion = .autoDetect,
-    streamingPolicy: MeshStreamingPolicy = .auto,
+    streamingPolicy: MeshStreamingPolicy = .immediate,
     blockRenderLoop: Bool = true,
     completion: ((Bool) -> Void)? = nil
 ) {
