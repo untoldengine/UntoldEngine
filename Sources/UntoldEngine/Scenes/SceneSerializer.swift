@@ -377,6 +377,24 @@ private func collectDerivedAnimationSourceURLs(rootEntityId: EntityID, currentEn
     }
 }
 
+private func collectDerivedAssetNodeIds(rootEntityId: EntityID, currentEntityId: EntityID, derivedEntityIds: inout [EntityID]) {
+    for childId in getEntityChildren(parentId: currentEntityId) {
+        if let derivedComp = scene.get(component: DerivedAssetNodeComponent.self, for: childId),
+           derivedComp.assetRootEntityId == rootEntityId
+        {
+            derivedEntityIds.append(childId)
+        }
+
+        collectDerivedAssetNodeIds(rootEntityId: rootEntityId, currentEntityId: childId, derivedEntityIds: &derivedEntityIds)
+    }
+}
+
+private func derivedAssetNodeIds(rootEntityId: EntityID) -> [EntityID] {
+    var derivedEntityIds: [EntityID] = []
+    collectDerivedAssetNodeIds(rootEntityId: rootEntityId, currentEntityId: rootEntityId, derivedEntityIds: &derivedEntityIds)
+    return derivedEntityIds
+}
+
 private func animationSourceURLsForSerialization(entityId: EntityID) -> [URL] {
     var urls: [URL] = []
     var seen = Set<String>()
@@ -766,9 +784,8 @@ public func serializeScene() -> SceneData {
         if let assetInstanceComp = scene.get(component: AssetInstanceComponent.self, for: entityId) {
             // Collect overrides from derived descendants
             var overrides: [AssetOverrideData] = []
-            let children = getEntityChildren(parentId: entityId)
 
-            for childId in children {
+            for childId in derivedAssetNodeIds(rootEntityId: entityId) {
                 if let derivedComp = scene.get(component: DerivedAssetNodeComponent.self, for: childId) {
                     // Only collect overrides if the derived node belongs to this asset instance
                     if derivedComp.assetRootEntityId == entityId {
@@ -1711,9 +1728,8 @@ public extension Notification.Name {
 private func applyAssetInstanceOverrides(entityId: EntityID, overrides: [AssetOverrideData]) {
     // Build nodePath -> derived entity map
     var nodePathMap: [String: EntityID] = [:]
-    let children = getEntityChildren(parentId: entityId)
 
-    for childId in children {
+    for childId in derivedAssetNodeIds(rootEntityId: entityId) {
         if let derivedComp = scene.get(component: DerivedAssetNodeComponent.self, for: childId) {
             nodePathMap[derivedComp.nodePath] = childId
         }
