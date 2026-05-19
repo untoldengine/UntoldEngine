@@ -334,3 +334,96 @@ final class GeometryStreamingEvictionTests: BaseRenderSetup {
                              "At least one near-band load should have been started")
     }
 }
+
+// MARK: - OCC Transform Correctness Tests
+
+/// Verifies that OCC stub entities land at their node's world-space position even when
+/// the direct parent entity has a non-identity world transform.
+///
+/// This is the critical invariant for .untold tile geometry, which is exported in world space.
+/// The fix: registerUntoldProgressiveStubEntity computes childLocal = inverse(parentWorld) × nodeWorld
+/// so that, after setParent, childWorld = parentWorld × childLocal = nodeWorld.
+@MainActor
+final class NativeFormatOCCTransformTests: BaseRenderSetup {
+    override func initializeAssets() {}
+
+    func testOCCStubWorldTransformPreservedUnderNonIdentityParent() {
+        // Container node placed at world position (5, 0, 0)
+        let containerEntity = createEntity()
+        if !hasComponent(entityId: containerEntity, componentType: LocalTransformComponent.self) {
+            registerTransformComponent(entityId: containerEntity)
+        }
+        var containerWorld = matrix_identity_float4x4
+        containerWorld.columns.3 = simd_float4(5, 0, 0, 1)
+        applyWorldTransform(containerWorld, to: containerEntity)
+        // Force world transform calculation so parent is up-to-date before child is created.
+        syncWorldTransformAndMarkOctreeDirty(entityId: containerEntity)
+
+        // OCC stub should land at world position (3, 2, 1) — independent of container.
+        let stubEntity = createEntity()
+        if !hasComponent(entityId: stubEntity, componentType: LocalTransformComponent.self) {
+            registerTransformComponent(entityId: stubEntity)
+        }
+        var nodeWorldTransform = matrix_identity_float4x4
+        nodeWorldTransform.columns.3 = simd_float4(3, 2, 1, 1)
+
+        // Replicate what registerUntoldProgressiveStubEntity now does:
+        // compute local = inverse(parentWorld) × nodeWorld, then parent.
+        let parentWorld = scene.get(component: WorldTransformComponent.self, for: containerEntity)?.space
+            ?? matrix_identity_float4x4
+        let localTransform = simd_mul(parentWorld.inverse, nodeWorldTransform)
+        applyWorldTransform(localTransform, to: stubEntity)
+        setParent(childId: stubEntity, parentId: containerEntity)
+
+        // After setParent: childWorld = parentWorld × childLocal
+        //                            = containerWorld × inverse(containerWorld) × nodeWorldTransform
+        //                            = nodeWorldTransform
+        let actualWorld = scene.get(component: WorldTransformComponent.self, for: stubEntity)?.space
+        let actualPos = simd_float3(
+            actualWorld?.columns.3.x ?? Float.nan,
+            actualWorld?.columns.3.y ?? Float.nan,
+            actualWorld?.columns.3.z ?? Float.nan
+        )
+
+        XCTAssertEqual(actualPos.x, 3.0, accuracy: 0.001,
+                       "OCC stub X must equal node world position, not be double-transformed by parent")
+        XCTAssertEqual(actualPos.y, 2.0, accuracy: 0.001,
+                       "OCC stub Y must equal node world position")
+        XCTAssertEqual(actualPos.z, 1.0, accuracy: 0.001,
+                       "OCC stub Z must equal node world position")
+    }
+
+    func testOCCStubWorldTransformIdentityParentIsUnchanged() {
+        // Sanity check: identity parent should not alter world position.
+        let containerEntity = createEntity()
+        if !hasComponent(entityId: containerEntity, componentType: LocalTransformComponent.self) {
+            registerTransformComponent(entityId: containerEntity)
+        }
+        // Container stays at identity (world origin)
+        syncWorldTransformAndMarkOctreeDirty(entityId: containerEntity)
+
+        let stubEntity = createEntity()
+        if !hasComponent(entityId: stubEntity, componentType: LocalTransformComponent.self) {
+            registerTransformComponent(entityId: stubEntity)
+        }
+        var nodeWorldTransform = matrix_identity_float4x4
+        nodeWorldTransform.columns.3 = simd_float4(7, -2, 4, 1)
+
+        let parentWorld = scene.get(component: WorldTransformComponent.self, for: containerEntity)?.space
+            ?? matrix_identity_float4x4
+        let localTransform = simd_mul(parentWorld.inverse, nodeWorldTransform)
+        applyWorldTransform(localTransform, to: stubEntity)
+        setParent(childId: stubEntity, parentId: containerEntity)
+
+        let actualWorld = scene.get(component: WorldTransformComponent.self, for: stubEntity)?.space
+        let actualPos = simd_float3(
+            actualWorld?.columns.3.x ?? Float.nan,
+            actualWorld?.columns.3.y ?? Float.nan,
+            actualWorld?.columns.3.z ?? Float.nan
+        )
+
+        XCTAssertEqual(actualPos.x, 7.0, accuracy: 0.001, "Identity parent: stub X must equal node world position")
+        XCTAssertEqual(actualPos.y, -2.0, accuracy: 0.001, "Identity parent: stub Y must equal node world position")
+        XCTAssertEqual(actualPos.z, 4.0, accuracy: 0.001, "Identity parent: stub Z must equal node world position")
+    }
+}

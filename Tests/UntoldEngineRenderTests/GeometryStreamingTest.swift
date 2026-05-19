@@ -55,7 +55,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
         // Given: StreamingComponent with convenience initializer
         let component = StreamingComponent(
             filename: "testModel",
-            withExtension: "usdz",
+            withExtension: "untold",
             streamingRadius: 50.0,
             unloadRadius: 75.0,
             priority: 5
@@ -63,7 +63,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
         // Then: Should have provided values
         XCTAssertEqual(component.assetFilename, "testModel", "❌ Filename should match")
-        XCTAssertEqual(component.assetExtension, "usdz", "❌ Extension should match")
+        XCTAssertEqual(component.assetExtension, "untold", "❌ Extension should match")
         XCTAssertEqual(component.streamingRadius, 50.0, "❌ Streaming radius should match")
         XCTAssertEqual(component.unloadRadius, 75.0, "❌ Unload radius should match")
         XCTAssertEqual(component.priority, 5, "❌ Priority should match")
@@ -100,7 +100,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
             renderComponent.mesh = meshes
-            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball.untold")
             renderComponent.assetName = "ball"
         }
 
@@ -123,7 +123,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
         XCTAssertEqual(streaming?.priority, 10, "❌ Priority should match")
         XCTAssertEqual(streaming?.state, .loaded, "❌ State should be .loaded (mesh already present)")
         XCTAssertEqual(streaming?.assetFilename, "ball", "❌ Filename should be extracted from URL")
-        XCTAssertEqual(streaming?.assetExtension, "usdz", "❌ Extension should be extracted from URL")
+        XCTAssertEqual(streaming?.assetExtension, "untold", "❌ Extension should be extracted from URL")
     }
 
     func testEnableStreamingFailsWithoutRenderComponent() {
@@ -196,7 +196,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
         // When: Create a streaming entity (deferred loading)
         let entity = createStreamingEntity(
             filename: "testModel",
-            withExtension: "usdz",
+            withExtension: "untold",
             streamingRadius: 200.0,
             unloadRadius: 300.0,
             priority: 2
@@ -213,7 +213,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
         let streaming = scene.get(component: StreamingComponent.self, for: entity)
         XCTAssertNotNil(streaming, "❌ Should have StreamingComponent")
         XCTAssertEqual(streaming?.assetFilename, "testModel", "❌ Filename should match")
-        XCTAssertEqual(streaming?.assetExtension, "usdz", "❌ Extension should match")
+        XCTAssertEqual(streaming?.assetExtension, "untold", "❌ Extension should match")
         XCTAssertEqual(streaming?.streamingRadius, 200.0, "❌ Streaming radius should match")
         XCTAssertEqual(streaming?.unloadRadius, 300.0, "❌ Unload radius should match")
         XCTAssertEqual(streaming?.priority, 2, "❌ Priority should match")
@@ -248,7 +248,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball.untold")
             }
             _ = scene.assign(to: entity, component: LocalTransformComponent.self)
             _ = scene.assign(to: entity, component: WorldTransformComponent.self)
@@ -284,7 +284,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
             renderComponent.mesh = meshes
-            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball.untold")
         }
 
         if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -335,7 +335,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball.untold")
             }
 
             if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
@@ -378,7 +378,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
             renderComponent.mesh = meshes
-            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball.untold")
         }
         _ = scene.assign(to: entity, component: LocalTransformComponent.self)
         _ = scene.assign(to: entity, component: WorldTransformComponent.self)
@@ -406,7 +406,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
         // Given: Multiple unloaded streaming entities with different priorities
         let lowPriorityEntity = createStreamingEntity(
             filename: "model",
-            withExtension: "usdz",
+            withExtension: "untold",
             streamingRadius: 100.0,
             unloadRadius: 150.0,
             priority: 1
@@ -414,7 +414,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
         let highPriorityEntity = createStreamingEntity(
             filename: "model",
-            withExtension: "usdz",
+            withExtension: "untold",
             streamingRadius: 100.0,
             unloadRadius: 150.0,
             priority: 10
@@ -440,7 +440,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
             renderComponent.mesh = meshes
-            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
+            renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball.untold")
         }
         _ = scene.assign(to: entity, component: LocalTransformComponent.self)
         _ = scene.assign(to: entity, component: WorldTransformComponent.self)
@@ -469,7 +469,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
         // Given: A deferred streaming entity created outside any tile hierarchy.
         let entity = createStreamingEntity(
             filename: "ball",
-            withExtension: "usdz",
+            withExtension: "untold",
             streamingRadius: 200.0,
             unloadRadius: 300.0,
             priority: 0
@@ -504,7 +504,7 @@ final class GeometryStreamingTest: BaseRenderSetup {
 
             if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
                 renderComponent.mesh = meshes
-                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball")
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/ball.untold")
             }
 
             if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {

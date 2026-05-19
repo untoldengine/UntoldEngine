@@ -462,7 +462,7 @@ class BaseRenderSetup: XCTestCase {
 
         // Stadium — cube placeholder (no .usdz anymore)
         let stadium = createEntity()
-        setEntityMeshDirect(entityId: stadium, meshes: BasicPrimitives.createCube(), assetName: "stadium")
+        setEntityMeshAsync(entityId: stadium, filename: "stadium", withExtension: "untold")
         translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
         setEntityName(entityId: stadium, name: "stadium")
 
@@ -475,7 +475,7 @@ class BaseRenderSetup: XCTestCase {
 
         // Ball — sphere placeholder
         let ball = createEntity()
-        setEntityMeshDirect(entityId: ball, meshes: BasicPrimitives.createSphere(), assetName: "ball")
+        setEntityMeshAsync(entityId: ball, filename: "ball", withExtension: "untold")
         setEntityName(entityId: ball, name: "ball")
         translateBy(entityId: ball, position: simd_float3(0.0, 0.4, 3.0))
 
