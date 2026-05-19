@@ -462,23 +462,27 @@ class BaseRenderSetup: XCTestCase {
 
         // Stadium — cube placeholder (no .usdz anymore)
         let stadium = createEntity()
-        setEntityMeshAsync(entityId: stadium, filename: "stadium", withExtension: "untold")
-        translateBy(entityId: stadium, position: simd_float3(0.0, 0.0, 0.0))
+        let stadiumExp = XCTestExpectation(description: "stadium loaded")
+        
+        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "untold")
+            
+        rotateBy(entityId: stadium, angle: -90.0, axis: simd_float3(1.0,0.0,0.0))
         setEntityName(entityId: stadium, name: "stadium")
+        
+        
 
         // Player (animated) — load actual .untold asset so AnimationComponent is registered
         let player = createEntity()
         setEntityName(entityId: player, name: "player")
-        let playerExp = XCTestExpectation(description: "redplayer loaded")
-        setEntityMeshAsync(entityId: player, filename: "redplayer", withExtension: "untold") { _ in playerExp.fulfill() }
-        let _ = XCTWaiter.wait(for: [playerExp], timeout: 10)
+        setEntityMesh(entityId: player, filename: "redplayer", withExtension: "untold")
 
         // Ball — sphere placeholder
         let ball = createEntity()
-        setEntityMeshAsync(entityId: ball, filename: "ball", withExtension: "untold")
+        setEntityMesh(entityId: ball, filename: "ball", withExtension: "untold")
         setEntityName(entityId: ball, name: "ball")
         translateBy(entityId: ball, position: simd_float3(0.0, 0.4, 3.0))
-
+        
+        
         // helmet pbr
 //        let helmet = createEntity()
 //        setEntityMesh(entityId: helmet, filename: "helmet", withExtension: "untold")

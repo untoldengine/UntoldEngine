@@ -965,6 +965,55 @@ public enum MeshStreamingPolicy: Sendable {
     case immediate
 }
 
+/// Synchronously load a .untold mesh onto an entity.
+///
+/// Blocks the calling thread until the asset is fully registered and GPU-resident.
+/// Use for small, always-resident assets where you need the mesh available on the
+/// next line (e.g. scene initialisation, editor tooling, simple demos).
+///
+/// For large assets or anything loaded at runtime, prefer `setEntityMeshAsync` —
+/// it loads off the main thread and avoids frame hitches.
+public func setEntityMesh(
+    entityId: EntityID,
+    filename: String,
+    withExtension: String,
+    assetName: String? = nil
+) {
+    guard let url = LoadingSystem.shared.resourceURL(
+        forResource: filename,
+        withExtension: withExtension,
+        subResource: nil
+    ) else {
+        handleError(.filenameNotFound, filename)
+        loadFallbackMesh(entityId: entityId, filename: filename)
+        return
+    }
+
+    guard RuntimeAssetSource.infer(from: url).kind == .untold else {
+        Logger.logWarning(message: "[RegistrationSystem] setEntityMesh only supports .untold assets. Use setEntityMeshAsync for other formats.")
+        loadFallbackMesh(entityId: entityId, filename: filename)
+        return
+    }
+
+    guard let runtimeAsset = loadUntoldRuntimeAsset(url: url) else {
+        loadFallbackMesh(entityId: entityId, filename: filename)
+        return
+    }
+
+    let didLoad = registerUntoldRuntimeAsset(
+        entityId: entityId,
+        runtimeAsset: runtimeAsset,
+        url: url,
+        filename: filename,
+        withExtension: withExtension,
+        assetName: assetName
+    )
+
+    if !didLoad {
+        loadFallbackMesh(entityId: entityId, filename: filename)
+    }
+}
+
 /// Asynchronously load and set entity mesh without blocking the main thread
 public func setEntityMeshAsync(
     entityId: EntityID,
