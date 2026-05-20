@@ -36,6 +36,10 @@ Common tile exporter flags:
                      Radii are always proportional to scene size — no fixed distances
                      to tweak. 'auto' infers the profile; use 'outdoor' to force
                      city/open-world bands if auto-detection misses.
+  --tier-radius TIER=STREAM,UNLOAD[,PRIORITY]
+                     Override semantic-tier radii in metres. May be repeated.
+                     Example: --tier-radius StructuralInterior=10,16
+                              --tier-radius RoomContents=5,9,8
   --floor-count N    Pin the number of floors (inline quadtree mode). Use when
                      auto-detection is wrong due to outlier objects inflating the Z range.
   --floor-band-height N  Pin the per-floor height in metres. Floor count is derived

@@ -251,6 +251,7 @@ TIER_STREAMING_FRACTIONS = {
     },
 }
 SCENE_STREAMING_PROFILE = "auto"  # auto | indoor | outdoor
+TIER_RADIUS_OVERRIDES: dict = {}  # tier -> {"streaming": metres, "unload": metres, optional "priority": int}
 _ACTIVE_TIER_RADII: dict = {}
 
 # Tiers for which HLOD and LOD variants are generated during quadtree export.
@@ -2502,7 +2503,7 @@ def infer_streaming_profile(use_quadtree, node_tier_groups, scene_half_diag, bas
 def compute_tier_radii(scene_half_diag, profile):
     """Convert fraction table for *profile* to world-space metres."""
     fractions = TIER_STREAMING_FRACTIONS.get(profile, TIER_STREAMING_FRACTIONS["indoor"])
-    return {
+    radii = {
         tier: {
             "streaming": max(1.0, scene_half_diag * v["streaming"]),
             "unload":    max(2.0, scene_half_diag * v["unload"]),
@@ -2510,6 +2511,22 @@ def compute_tier_radii(scene_half_diag, profile):
         }
         for tier, v in fractions.items()
     }
+    for tier, override in TIER_RADIUS_OVERRIDES.items():
+        fallback_fraction = fractions.get(DEFAULT_SEMANTIC_TIER, {"streaming": 0.1, "unload": 0.18})
+        existing = radii.get(tier, {
+            "streaming": max(1.0, scene_half_diag * fallback_fraction["streaming"]),
+            "unload": max(2.0, scene_half_diag * fallback_fraction["unload"]),
+            "priority": DEFAULT_STREAMING_PRIORITY,
+        })
+        streaming = float(override["streaming"])
+        unload = float(override["unload"])
+        priority = int(override.get("priority", existing.get("priority", DEFAULT_STREAMING_PRIORITY)))
+        radii[tier] = {
+            "streaming": max(1.0, streaming),
+            "unload": max(max(2.0, unload), max(1.0, streaming) + 0.1),
+            "priority": priority,
+        }
+    return radii
 
 
 def init_tier_radii(scene_half_diag, profile):
@@ -2519,6 +2536,47 @@ def init_tier_radii(scene_half_diag, profile):
 
 def tier_streaming_radii(tier):
     return _ACTIVE_TIER_RADII.get(tier, {})
+
+
+def parse_tier_radius_override(raw_value):
+    """Parse Tier=stream,unload[,priority] from the CLI."""
+    if "=" not in raw_value:
+        raise argparse.ArgumentTypeError(
+            f"Invalid --tier-radius '{raw_value}'. Expected Tier=stream,unload[,priority]."
+        )
+    tier, values = raw_value.split("=", 1)
+    tier = tier.strip()
+    if not tier:
+        raise argparse.ArgumentTypeError("Invalid --tier-radius: tier name is empty.")
+    parts = [p.strip() for p in values.split(",") if p.strip()]
+    if len(parts) not in (2, 3):
+        raise argparse.ArgumentTypeError(
+            f"Invalid --tier-radius '{raw_value}'. Expected Tier=stream,unload[,priority]."
+        )
+    try:
+        streaming = float(parts[0])
+        unload = float(parts[1])
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"Invalid --tier-radius '{raw_value}'. Stream and unload must be numbers."
+        ) from exc
+    if streaming <= 0 or unload <= 0:
+        raise argparse.ArgumentTypeError(
+            f"Invalid --tier-radius '{raw_value}'. Stream and unload must be positive metres."
+        )
+    if unload <= streaming:
+        raise argparse.ArgumentTypeError(
+            f"Invalid --tier-radius '{raw_value}'. Unload radius must be greater than streaming radius."
+        )
+    override = {"streaming": streaming, "unload": unload}
+    if len(parts) == 3:
+        try:
+            override["priority"] = int(parts[2])
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError(
+                f"Invalid --tier-radius '{raw_value}'. Priority must be an integer."
+            ) from exc
+    return tier, override
 
 
 def log_streaming_profile(scene_bounds, scene_half_diag, resolved_profile):
@@ -2534,14 +2592,13 @@ def log_streaming_profile(scene_bounds, scene_half_diag, resolved_profile):
         f"  Scene dimensions    : {bx:.1f}m (W) × {by:.1f}m (D) × {bz:.1f}m (H)\n"
         f"  Footprint half-diag : {scene_half_diag:.1f}m  ← multiplier base"
     )
-    fractions = TIER_STREAMING_FRACTIONS.get(resolved_profile, TIER_STREAMING_FRACTIONS["indoor"])
-    for tier, v in fractions.items():
-        s = max(1.0, scene_half_diag * v["streaming"])
-        u = max(2.0, scene_half_diag * v["unload"])
+    for tier, radii in _ACTIVE_TIER_RADII.items():
+        override_suffix = "  (override)" if tier in TIER_RADIUS_OVERRIDES else ""
         print(
             f"  {tier:25s}: "
-            f"{v['streaming']:.2f} × {scene_half_diag:.1f}m = {s:7.1f}m stream  |  "
-            f"{v['unload']:.2f} × {scene_half_diag:.1f}m = {u:7.1f}m unload"
+            f"{radii['streaming']:7.1f}m stream  |  "
+            f"{radii['unload']:7.1f}m unload  |  "
+            f"priority={radii.get('priority', DEFAULT_STREAMING_PRIORITY)}{override_suffix}"
         )
 
 
@@ -3768,6 +3825,8 @@ def run():
             "requested": SCENE_STREAMING_PROFILE,
             "resolved": resolved_profile,
             "scene_half_diag": round(scene_half_diag, 3),
+            "tier_radius_overrides": TIER_RADIUS_OVERRIDES,
+            "tier_radii": _ACTIVE_TIER_RADII,
         },
         "streaming_defaults": {
             "streaming_radius": streaming_r,
@@ -4491,6 +4550,18 @@ def parse_args(argv):
         ),
     )
     parser.add_argument(
+        "--tier-radius",
+        action="append",
+        type=parse_tier_radius_override,
+        default=[],
+        metavar="TIER=STREAM,UNLOAD[,PRIORITY]",
+        help=(
+            "Override one semantic tier's stream/unload radii in metres. "
+            "May be repeated. Example: "
+            "--tier-radius StructuralInterior=10,16 --tier-radius RoomContents=5,9,8"
+        ),
+    )
+    parser.add_argument(
         "--floor-count",
         type=int,
         default=None,
@@ -4540,6 +4611,7 @@ def apply_cli_overrides(args):
     global PERIMETER_DEPTH
     global FORCE_QUADTREE
     global SCENE_STREAMING_PROFILE
+    global TIER_RADIUS_OVERRIDES
     global INLINE_FLOOR_COUNT_OVERRIDE
     global INLINE_FLOOR_BAND_HEIGHT_OVERRIDE
 
@@ -4585,6 +4657,9 @@ def apply_cli_overrides(args):
         FORCE_QUADTREE = True
     if getattr(args, "scene_profile", None):
         SCENE_STREAMING_PROFILE = args.scene_profile
+    if getattr(args, "tier_radius", None):
+        for tier, override in args.tier_radius:
+            TIER_RADIUS_OVERRIDES[tier] = override
     if getattr(args, "floor_count", None) is not None:
         INLINE_FLOOR_COUNT_OVERRIDE = args.floor_count
     if getattr(args, "floor_band_height", None) is not None:

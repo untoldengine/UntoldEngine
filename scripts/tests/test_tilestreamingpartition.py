@@ -248,6 +248,7 @@ class TileStreamingPartitionTests(unittest.TestCase):
         self.assertFalse(args.compress_geometry)
         self.assertFalse(args.quadtree)
         self.assertEqual(args.scene_profile, "auto")
+        self.assertEqual(args.tier_radius, [])
 
     def test_parse_args_tile_size_and_flags(self) -> None:
         args = t.parse_args([
@@ -259,6 +260,8 @@ class TileStreamingPartitionTests(unittest.TestCase):
             "--compress-geometry",
             "--quadtree",
             "--scene-profile", "outdoor",
+            "--tier-radius", "StructuralInterior=10,16",
+            "--tier-radius", "RoomContents=5,9,8",
             "--dry-run",
             "--parallel-workers", "4",
         ])
@@ -269,8 +272,31 @@ class TileStreamingPartitionTests(unittest.TestCase):
         self.assertTrue(args.compress_geometry)
         self.assertTrue(args.quadtree)
         self.assertEqual(args.scene_profile, "outdoor")
+        self.assertEqual(args.tier_radius, [
+            ("StructuralInterior", {"streaming": 10.0, "unload": 16.0}),
+            ("RoomContents", {"streaming": 5.0, "unload": 9.0, "priority": 8}),
+        ])
         self.assertTrue(args.dry_run)
         self.assertEqual(args.parallel_workers, 4)
+
+    def test_compute_tier_radii_applies_absolute_overrides(self) -> None:
+        previous = dict(t.TIER_RADIUS_OVERRIDES)
+        try:
+            t.TIER_RADIUS_OVERRIDES.clear()
+            t.TIER_RADIUS_OVERRIDES.update({
+                "StructuralInterior": {"streaming": 10.0, "unload": 16.0},
+                "RoomContents": {"streaming": 5.0, "unload": 9.0, "priority": 8},
+            })
+            radii = t.compute_tier_radii(scene_half_diag=100.0, profile="indoor")
+            self.assertEqual(radii["StructuralInterior"]["streaming"], 10.0)
+            self.assertEqual(radii["StructuralInterior"]["unload"], 16.0)
+            self.assertEqual(radii["StructuralInterior"]["priority"], 10)
+            self.assertEqual(radii["RoomContents"]["streaming"], 5.0)
+            self.assertEqual(radii["RoomContents"]["unload"], 9.0)
+            self.assertEqual(radii["RoomContents"]["priority"], 8)
+        finally:
+            t.TIER_RADIUS_OVERRIDES.clear()
+            t.TIER_RADIUS_OVERRIDES.update(previous)
 
     def test_parse_args_blender_separator(self) -> None:
         # When invoked via Blender, argv contains "--" before the script args
