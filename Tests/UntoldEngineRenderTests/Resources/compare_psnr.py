@@ -78,6 +78,12 @@ def to_rgb(img: np.ndarray):
         return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     return img
 
+def psnr_data_range(*imgs: np.ndarray):
+    dtype = np.result_type(*[img.dtype for img in imgs])
+    if np.issubdtype(dtype, np.integer):
+        return np.iinfo(dtype).max
+    return 1.0
+
 def main():
     ref_path, test_path, threshold, resize, mode = parse_args(sys.argv)
 
@@ -127,8 +133,7 @@ def main():
         ref_use = to_rgb(ref)
         test_use = to_rgb(test)
 
-    # Compute PSNR on uint8 directly (data_range=255)
-    psnr = peak_signal_noise_ratio(ref_use, test_use, data_range=255)
+    psnr = peak_signal_noise_ratio(ref_use, test_use, data_range=psnr_data_range(ref_use, test_use))
     print(f"{psnr:.6f}")
 
     if psnr < threshold:
@@ -137,4 +142,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

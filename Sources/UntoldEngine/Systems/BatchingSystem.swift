@@ -488,7 +488,7 @@ public class BatchingSystem: @unchecked Sendable {
     private var backgroundArtifactBuildEnabled: Bool = true
     private var maxBuildDispatchesPerTick: Int = 4
     private var maxArtifactAppliesPerTick: Int = 4
-    private var lastTickDiagnostics: BatchingTickDiagnostics = .init()
+    private(set) var lastTickDiagnostics: BatchingTickDiagnostics = .init()
     private var batchIndexNeedsRebuild: Bool = false
     private var tickCounter: Int = 0
     private var cellLastVisibleFrame: [BatchCellID: Int] = [:]
@@ -563,12 +563,46 @@ public class BatchingSystem: @unchecked Sendable {
     /// Call this before destroying LOD/HLOD child entities so their queued additions
     /// are never processed after the entity is gone, eliminating "entity is missing"
     /// errors and wasted batch rebuilds on the next tick.
+    ///
+    /// Only cancels *pending* state — entities already committed to `entityToCellMembership`
+    /// by a previous batch tick are not removed.  Use `notifyTileEntitiesUnloading` when
+    /// destroying tile geometry to also clean committed state.
     public func cancelPendingEntities(_ entityIds: Set<EntityID>) {
         guard !entityIds.isEmpty else { return }
         pendingEntityAdditions.subtract(entityIds)
         pendingEntityRemovals.subtract(entityIds)
         newlyResidentEntities.subtract(entityIds)
         tileParsedEntityIds.subtract(entityIds)
+    }
+
+    /// Full batching cleanup for tile entities that are about to be destroyed.
+    ///
+    /// Handles both cases:
+    /// - Entities still in the *pending* queue (batch tick hasn't run yet): removes
+    ///   them so the addition is never processed on a destroyed entity.
+    /// - Entities already *committed* to `entityToCellMembership` (a previous batch tick
+    ///   ran): queues them for removal so stale map entries are cleared before entity IDs
+    ///   are recycled by the ECS.  Without this, a new tile whose mesh entity gets a
+    ///   recycled ID lands in the wrong batch cell, corrupting batch state and causing
+    ///   "entity is missing" errors when the next batch tick processes the stale entry.
+    public func notifyTileEntitiesUnloading(_ entityIds: Set<EntityID>) {
+        guard !entityIds.isEmpty else { return }
+        // Cancel any pending additions — prevents processing additions on dead entities.
+        pendingEntityAdditions.subtract(entityIds)
+        newlyResidentEntities.subtract(entityIds)
+        tileParsedEntityIds.subtract(entityIds)
+        // Queue removal from committed state.  removeEntityFromBatchingTracking is called
+        // by the batch tick; it only manipulates BatchingSystem-internal dictionaries and
+        // does not access ECS data, so it is safe to call after destroyEntity.
+        pendingEntityRemovals.formUnion(entityIds)
+    }
+
+    /// Compact one-line summary for periodic heartbeat logging.
+    /// Reports the fields most likely to reveal accumulation bugs:
+    /// registered entity count, dirty cells, and last rebuild cost.
+    public func diagnosticSummary() -> String {
+        let d = lastTickDiagnostics
+        return "batch: registered=\(entityToCellMembership.count) dirty=\(d.dirtyCellsBeforePrune) rebuildMs=\(String(format: "%.1f", d.rebuildWorkMs)) groups=\(batchGroups.count)"
     }
 
     private func handleLODChange(_ event: EntityLODChangedEvent) {

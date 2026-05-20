@@ -36,6 +36,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Maximum radius to query from octree (should cover largest unload radius)
     public var maxQueryRadius: Float = 500.0
 
+    /// Maximum Y-axis distance between the camera and a tile's world-space Y centre
+    /// before the tile is excluded from streaming consideration.
+    ///
+    /// For multi-floor buildings this prevents all 10 floors from being simultaneous
+    /// load/unload candidates when the camera is on a single floor.  Without this gate
+    /// every floor transition causes O(floors × tiles_per_floor) simultaneous unloads
+    /// — a spike that starves the render loop and causes the Metal command-buffer
+    /// semaphore to block.
+    ///
+    /// Default 12 m ≈ ±2 floors (floor band ≈ 3 m, radii ≤ 10 m for SI).
+    /// Set to Float.greatestFiniteMagnitude to disable (open-world scenes with no floors).
+    public var floorProximityGateY: Float = 12.0
+
     // MARK: - Near-Band Concurrency
 
     /// Fraction of an entity's streamingRadius that defines the "near band".
@@ -255,6 +268,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     let stateLock = NSLock()
     var timeSinceLastUpdate: Float = 0
     var timeSinceCameraDiagLog: Float = 0
+    var lastCameraWallDiagTime: Double = 0.0
+    var sessionStartWallTime: Double = 0.0
+    /// Peak streaming tick duration (ms) since the last heartbeat — reset each heartbeat.
+    var peakTickMs: Double = 0.0
     var activeLoads: Set<EntityID> = []
     var activeLoadStartTimes: [EntityID: Double] = [:]
     /// Subset of activeLoads that belong to the near band. Tracked separately so the
@@ -516,6 +533,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
         timeSinceLastUpdate = 0
         let updateStart = CFAbsoluteTimeGetCurrent()
+        if sessionStartWallTime == 0.0 {
+            sessionStartWallTime = updateStart
+            lastCameraWallDiagTime = updateStart
+        }
 
         // Use Octree for efficient spatial query - only check nearby entities for loading
         // Query with the max unload radius to catch all potentially relevant entities
@@ -542,14 +563,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             ? effectiveCameraPosition + cameraVelocity * velocityLookAheadTime
             : effectiveCameraPosition
 
-        // Periodic camera position log — confirms the XR headset position is flowing through
-        // to the streaming system. Fires every 5 s so it is readable in a test session without
-        // being noisy in steady-state. Check these values are changing when physically walking
-        // on Vision Pro; a frozen value indicates the ARKit→ECS sync is broken.
-        timeSinceCameraDiagLog += deltaTime
-        if timeSinceCameraDiagLog >= 5.0 {
-            timeSinceCameraDiagLog = 0
-            Logger.log(message: "[GeometryStreaming] camera pos: (\(String(format: "%.2f", effectiveCameraPosition.x)), \(String(format: "%.2f", effectiveCameraPosition.y)), \(String(format: "%.2f", effectiveCameraPosition.z))) loaded=\(loadedStreamingEntities.count)", category: LogCategory.xrCamera.rawValue)
+        // Periodic heartbeat — uses wall-clock time so it fires every 5 s of real time
+        // regardless of deltaTime magnitude or tick throttling.
+        let wallNow = CFAbsoluteTimeGetCurrent()
+        if wallNow - lastCameraWallDiagTime >= 5.0 {
+            lastCameraWallDiagTime = wallNow
+            let bStats = MemoryBudgetManager.shared.getStats()
+            let bPct = Int((bStats.geometryUtilization * 100).rounded())
+            let tilesLoaded = loadedTileEntitiesSnapshot().count
+            let tilesLoading = loadingTileEntitiesSnapshot().count
+            let bSys = BatchingSystem.shared.diagnosticSummary()
+            let capturedPeak = peakTickMs
+            peakTickMs = 0.0
+            Logger.log(message: "[StreamingHB] t=\(Int(wallNow - sessionStartWallTime))s cam=(\(String(format: "%.1f", effectiveCameraPosition.x)),\(String(format: "%.1f", effectiveCameraPosition.y)),\(String(format: "%.1f", effectiveCameraPosition.z))) geom=\(bStats.meshMemoryUsed / (1024 * 1024))MB(\(bPct)%) tiles=\(tilesLoaded)loaded/\(tilesLoading)loading peakTickMs=\(String(format: "%.1f", capturedPeak)) shadowCasters=\(RenderPasses.lastShadowCasterCount) \(bSys)")
         }
 
         let nearbyEntities = OctreeSystem.shared.queryNear(point: effectiveCameraPosition, radius: maxQueryRadius)
@@ -727,6 +753,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
             guard tileComp.state == .unloaded else { continue }
 
+            // Floor-proximity gate: skip tile stubs whose Y centre is too far from the
+            // camera.  Without this, all 10 floors are simultaneous load candidates
+            // inside a multi-floor building — O(floor_count × tiles_per_floor) work
+            // per tick that spikes when the camera crosses a floor boundary.
+            // Tiles already PARSED are not affected (unload is governed by their own
+            // unloadRadius); the gate only suppresses new load dispatches for distant floors.
+            if floorProximityGateY < Float.greatestFiniteMagnitude,
+               tileComp.hasFloorMetadata
+            {
+                let yDist = abs(tileComp.worldYCenter - effectiveCameraPosition.y)
+                if yDist > floorProximityGateY { continue }
+            }
+
             let distance = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
 
             // 4.5: Use predictive distance (min of actual vs look-ahead) so tiles in
@@ -777,7 +816,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 TextureStreamingSystem.shared.shedTextureMemory(
                     cameraPosition: effectiveCameraPosition, maxEntities: 4
                 )
-                _ = evictLRU(cameraPosition: effectiveCameraPosition, maxEvictions: 8)
+                let lruEvicted = evictLRU(cameraPosition: effectiveCameraPosition, maxEvictions: 8)
+                // evictLRU only reclaims OCC/out-of-core stubs.  When all loaded geometry is
+                // from the fullLoad path (0 OCC stubs), lruEvicted is always 0 and the budget
+                // never clears, permanently blocking the tile load loop.  evictTileGeometry
+                // handles fullLoad tiles, HLODs, and LODs as a second-stage pass.
+                if MemoryBudgetManager.shared.shouldEvictGeometry() {
+                    let tileEvicted = evictTileGeometry(cameraPosition: effectiveCameraPosition, maxEvictions: 2)
+                    if lruEvicted == 0, tileEvicted == 0 {
+                        Logger.logWarning(message: "[TileStreaming] Geometry budget over threshold but no eviction candidates found — consider reducing scene size or shared bucket memory.")
+                    }
+                }
             }
 
             tileLoadCandidates.sort { lhs, rhs in
@@ -1271,6 +1320,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
 
         let updateWorkMs = (CFAbsoluteTimeGetCurrent() - updateStart) * 1000.0
+        peakTickMs = max(peakTickMs, updateWorkMs)
         let activeLoadsAtEnd = activeLoadCountSnapshot()
         withStateLock {
             diagnostics.updateFrame = currentFrame

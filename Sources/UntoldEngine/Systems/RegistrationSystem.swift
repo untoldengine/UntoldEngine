@@ -1036,19 +1036,12 @@ public func setEntityMeshAsync(
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
         }
 
-        // Ensure entity has required components while loading gate is active.
-        if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
-            registerTransformComponent(entityId: entityId)
-        }
-
-        if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
-            registerSceneGraphComponent(entityId: entityId)
-        }
-
         // Get URL
         guard let url = LoadingSystem.shared.resourceURL(forResource: filename, withExtension: withExtension, subResource: nil) else {
             handleError(.filenameNotFound, filename)
-            loadFallbackMesh(entityId: entityId, filename: filename)
+            withWorldMutationGate {
+                loadFallbackMesh(entityId: entityId, filename: filename)
+            }
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
             completionBox?.call(false)
             return
@@ -1056,7 +1049,9 @@ public func setEntityMeshAsync(
 
         if url.pathExtension == "dae" {
             handleError(.fileTypeNotSupported, url.pathExtension)
-            loadFallbackMesh(entityId: entityId, filename: filename)
+            withWorldMutationGate {
+                loadFallbackMesh(entityId: entityId, filename: filename)
+            }
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
             completionBox?.call(false)
             return
@@ -1064,7 +1059,9 @@ public func setEntityMeshAsync(
 
         if RuntimeAssetSource.infer(from: url).kind == .untold {
             guard let runtimeAsset = loadUntoldRuntimeAsset(url: url) else {
-                loadFallbackMesh(entityId: entityId, filename: filename)
+                withWorldMutationGate {
+                    loadFallbackMesh(entityId: entityId, filename: filename)
+                }
                 await AssetLoadingState.shared.finishLoading(entityId: entityId)
                 completionBox?.call(false)
                 return
@@ -1093,29 +1090,41 @@ public func setEntityMeshAsync(
                 }
             }
 
-            let didLoad: Bool
-            if useOCC {
-                didLoad = registerUntoldRuntimeAssetOCC(
-                    entityId: entityId,
-                    runtimeAsset: runtimeAsset,
-                    url: url,
-                    filename: filename,
-                    withExtension: withExtension,
-                    assetName: assetName
-                )
-            } else {
-                didLoad = registerUntoldRuntimeAsset(
-                    entityId: entityId,
-                    runtimeAsset: runtimeAsset,
-                    url: url,
-                    filename: filename,
-                    withExtension: withExtension,
-                    assetName: assetName
-                )
-            }
+            let didLoad: Bool = withWorldMutationGate {
+                if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
+                    registerTransformComponent(entityId: entityId)
+                }
 
-            if !didLoad {
-                loadFallbackMesh(entityId: entityId, filename: filename)
+                if hasComponent(entityId: entityId, componentType: ScenegraphComponent.self) == false {
+                    registerSceneGraphComponent(entityId: entityId)
+                }
+
+                let loaded: Bool
+                if useOCC {
+                    loaded = registerUntoldRuntimeAssetOCC(
+                        entityId: entityId,
+                        runtimeAsset: runtimeAsset,
+                        url: url,
+                        filename: filename,
+                        withExtension: withExtension,
+                        assetName: assetName
+                    )
+                } else {
+                    loaded = registerUntoldRuntimeAsset(
+                        entityId: entityId,
+                        runtimeAsset: runtimeAsset,
+                        url: url,
+                        filename: filename,
+                        withExtension: withExtension,
+                        assetName: assetName
+                    )
+                }
+
+                if !loaded {
+                    loadFallbackMesh(entityId: entityId, filename: filename)
+                }
+
+                return loaded
             }
 
             await AssetLoadingState.shared.finishLoading(entityId: entityId)
@@ -1125,7 +1134,9 @@ public func setEntityMeshAsync(
 
         // Non-.untold assets are not supported. Log and return a fallback.
         Logger.logWarning(message: "[RegistrationSystem] Only .untold format is supported. Ignoring '\(filename).\(withExtension)'.")
-        loadFallbackMesh(entityId: entityId, filename: filename)
+        withWorldMutationGate {
+            loadFallbackMesh(entityId: entityId, filename: filename)
+        }
         await AssetLoadingState.shared.finishLoading(entityId: entityId)
         completionBox?.call(false)
     }
@@ -1643,7 +1654,13 @@ private func registerTiledScene(
     } else {
         manifestTileSize = tileManifest.streamingDefaults.streamingRadius
     }
-    BatchingSystem.shared.setBatchCellSize(manifestTileSize * 2.0)
+    // Cell size = 1× tile footprint (was 2×).  At 2× (50 m cells) each cell contains
+    // ~46 tiles × ~3 entities × ~2500 vertices ≈ 350 K vertices — more than 2× the
+    // 160 K complexity-guard limit, so 6 of 9 cells are permanently blocked from batching
+    // and render individually (opaque 300 draw calls → GPU overload → freeze).
+    // At 1× (25 m cells) each cell contains ~15 tiles × ~3 entities × ~2500 vertices
+    // ≈ 115 K vertices, within the limit — all cells form batch groups.
+    BatchingSystem.shared.setBatchCellSize(manifestTileSize * 1.0)
     enableBatching(true)
 
     // ── 4. Register tile stub entities ────────────────────────────────────
@@ -1722,6 +1739,11 @@ private func registerTiledScene(
                 tileComp.prefetchRadius = normalizedBands.prefetchRadius
                 tileComp.tileId = tile.tileId
                 tileComp.isInterior = tile.isInterior ?? false
+                tileComp.hasFloorMetadata = tileManifest.partitioningMode == "quadtree_floor" && tile.floorId != nil
+                tileComp.floorId = tile.floorId ?? 0
+                tileComp.worldYCenter = tile.center.count >= 2
+                    ? Float(tile.center[1]) // manifest center[1] = Y (engine up-axis)
+                    : 0
                 tileComp.state = .unloaded
 
                 // Log semantic-tier info when present (v4 quadtree manifests).

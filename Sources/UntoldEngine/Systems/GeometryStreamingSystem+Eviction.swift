@@ -101,6 +101,13 @@ extension GeometryStreamingSystem {
     /// while never entering loadedStreamingEntities. When the geometry budget is blocked by
     /// those representations, mesh-only eviction makes no progress and the streaming system
     /// can stall under permanent pressure.
+    ///
+    /// Protection floor: each tile's own `streamingRadius`, not the global
+    /// `visibleEvictionProtectionRadius`.  A tile beyond its streaming radius is in the
+    /// hysteresis zone — the load pass will not re-dispatch it until the camera re-enters
+    /// `effectivePrefetchRadius`, so evicting it here does not cause immediate thrashing.
+    /// Tiles AT or INSIDE their streaming radius are protected because they would be
+    /// re-queued on the very next streaming tick.
     func evictTileGeometry(cameraPosition: simd_float3, maxEvictions: Int = Int.max) -> Int {
         enum TileEvictionKind {
             case fullTile
@@ -117,7 +124,9 @@ extension GeometryStreamingSystem {
                   tileComp.state == .parsed
             else { continue }
             let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
-            guard distance >= visibleEvictionProtectionRadius else { continue }
+            // Protect tiles within their own streaming radius — they would be re-dispatched
+            // immediately, causing a load/evict cycle that wastes bandwidth and CPU.
+            guard distance > tileComp.streamingRadius else { continue }
             candidates.append((entityId, .fullTile, distance))
             seen.insert(entityId)
         }
@@ -129,7 +138,7 @@ extension GeometryStreamingSystem {
                   tileComp.hlodState == .loaded
             else { continue }
             let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
-            guard distance >= visibleEvictionProtectionRadius else { continue }
+            guard distance > tileComp.streamingRadius else { continue }
             candidates.append((entityId, .hlod, distance))
             seen.insert(entityId)
         }
@@ -141,7 +150,7 @@ extension GeometryStreamingSystem {
                   tileComp.lodLevels.contains(where: { $0.state == .loaded })
             else { continue }
             let distance = calculateDistance(entityId: entityId, cameraPosition: cameraPosition)
-            guard distance >= visibleEvictionProtectionRadius else { continue }
+            guard distance > tileComp.streamingRadius else { continue }
             candidates.append((entityId, .lod, distance))
         }
 

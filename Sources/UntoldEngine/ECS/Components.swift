@@ -496,6 +496,22 @@ public class TileComponent: Component {
     /// tiles on the camera being inside the scene's interior_zone.
     public var isInterior: Bool = false
 
+    /// True when this tile came from a floor-aware manifest entry.
+    /// The floor-proximity gate must key off this explicit metadata, not a nonzero
+    /// Y center, because older uniform-grid manifests can have large padded Y bounds.
+    public var hasFloorMetadata: Bool = false
+
+    /// Floor index from the manifest.  0 is a valid ground-floor value when
+    /// `hasFloorMetadata` is true.
+    /// Used by the floor-proximity gate in GeometryStreamingSystem to skip tiles
+    /// whose floor band is vertically distant from the camera.
+    public var floorId: Int = 0
+
+    /// Y-axis centre of the tile's world-space AABB.
+    /// Stored at registration time so the floor-proximity gate can skip vertically
+    /// distant tiles without a repeated LocalTransformComponent lookup per tick.
+    public var worldYCenter: Float = 0
+
     /// Asset-level lifecycle state driven by the streaming bootstrap.
     public var state: TileAssetState = .unloaded
 

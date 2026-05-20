@@ -173,7 +173,7 @@ extension GeometryStreamingSystem {
         if let hlodId = capturedHlodEntityId {
             let renderIds = collectRenderDescendantIds(hlodId)
             if !renderIds.isEmpty {
-                BatchingSystem.shared.cancelPendingEntities(renderIds)
+                BatchingSystem.shared.notifyTileEntitiesUnloading(renderIds)
                 TextureStreamingSystem.shared.cancelEntities(renderIds)
             }
         }
@@ -358,7 +358,7 @@ extension GeometryStreamingSystem {
         if capturedLodEntityId != .invalid {
             let renderIds = collectRenderDescendantIds(capturedLodEntityId)
             if !renderIds.isEmpty {
-                BatchingSystem.shared.cancelPendingEntities(renderIds)
+                BatchingSystem.shared.notifyTileEntitiesUnloading(renderIds)
                 TextureStreamingSystem.shared.cancelEntities(renderIds)
             }
         }
@@ -579,7 +579,9 @@ extension GeometryStreamingSystem {
                             }
                         }
 
-                        Logger.log(message: "[TileStreaming] Tile '\(tileId)' parsed (\(occCount) OCC stubs pending GPU upload).")
+                        let budgetStats = MemoryBudgetManager.shared.getStats()
+                        let geomPct = Int((budgetStats.geometryUtilization * 100).rounded())
+                        Logger.log(message: "[TileStreaming] Tile '\(tileId)' parsed (\(occCount) OCC stubs pending GPU upload). geom=\(budgetStats.meshMemoryUsed / (1024 * 1024))MB/\(budgetStats.geometryBudget / (1024 * 1024))MB (\(geomPct)%)")
                     } else {
                         // Destroy the pre-created child entity on failure so it
                         // doesn't leak as an empty, invisible stub.
@@ -696,6 +698,7 @@ extension GeometryStreamingSystem {
 
         let tileId = tileComp.tileId
         let wasParsing = tileComp.state == .parsing
+        let unloadStart = CFAbsoluteTimeGetCurrent()
 
         withWorldMutationGate {
             // Mark as unloading to prevent the load pass from re-dispatching this tick.
@@ -734,11 +737,16 @@ extension GeometryStreamingSystem {
 
             let descendants = collectTileDescendants(entityId)
 
-            // Cancel in-flight texture ops and bulk-remove stale upgradedEntities
-            // entries before destroying — prevents lazy cleanup accumulation and
-            // stops new texture upgrade ops from being scheduled on dying entities.
+            // Full batching + texture cleanup before destroying.
+            // notifyTileEntitiesUnloading handles BOTH pending-queue entries (entities
+            // not yet committed by the batch tick) AND committed entityToCellMembership
+            // entries (entities already processed by a previous batch tick).  Without the
+            // committed-state cleanup, destroyed entity IDs that get recycled by the ECS
+            // land in the wrong batch cell, causing "entity is missing" errors and meshes
+            // that appear as green AABBs but never render.
             let renderDescendants = collectRenderDescendantIds(entityId)
             if !renderDescendants.isEmpty {
+                BatchingSystem.shared.notifyTileEntitiesUnloading(renderDescendants)
                 TextureStreamingSystem.shared.cancelEntities(renderDescendants)
             }
 
@@ -766,7 +774,9 @@ extension GeometryStreamingSystem {
             tileComp.parseStartTime = 0
             unmarkLoadedTileEntity(entityId)
 
-            Logger.log(message: "[TileStreaming] Tile '\(tileId)' unloaded (\(descendants.count) child entities destroyed).")
+            let unloadMs = (CFAbsoluteTimeGetCurrent() - unloadStart) * 1000.0
+            let unloadSuffix = unloadMs > 50 ? " ⚠️ slow=\(String(format: "%.0f", unloadMs))ms" : ""
+            Logger.log(message: "[TileStreaming] Tile '\(tileId)' unloaded (\(descendants.count) child entities destroyed).\(unloadSuffix)")
         }
     }
 
