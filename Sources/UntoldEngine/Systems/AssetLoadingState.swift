@@ -85,20 +85,50 @@ public final class AssetLoadingGate: @unchecked Sendable {
     }
 }
 
+private final class WorldAccessGate: @unchecked Sendable {
+    static let shared = WorldAccessGate()
+
+    private let lock = NSRecursiveLock()
+
+    private init() {}
+
+    func sync<T>(_ body: () throws -> T) rethrows -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return try body()
+    }
+
+    func lockAccess() {
+        lock.lock()
+    }
+
+    func unlockAccess() {
+        lock.unlock()
+    }
+}
+
+/// Execute a world/ECS access critical section without changing render loading state.
+@inline(__always)
+public func withWorldAccessGate<T>(_ body: () throws -> T) rethrows -> T {
+    try WorldAccessGate.shared.sync(body)
+}
+
+@inline(__always)
+public func lockWorldAccessGate() {
+    WorldAccessGate.shared.lockAccess()
+}
+
+@inline(__always)
+public func unlockWorldAccessGate() {
+    WorldAccessGate.shared.unlockAccess()
+}
+
 /// Execute a world-mutation critical section while pausing XR scene traversal.
 @inline(__always)
 public func withWorldMutationGate<T>(_ body: () throws -> T) rethrows -> T {
     AssetLoadingGate.shared.beginLoading()
     defer { AssetLoadingGate.shared.finishLoading() }
-    return try body()
-}
-
-/// Async variant for world-mutation critical sections.
-@inline(__always)
-public func withWorldMutationGate<T>(_ body: () async throws -> T) async rethrows -> T {
-    AssetLoadingGate.shared.beginLoading()
-    defer { AssetLoadingGate.shared.finishLoading() }
-    return try await body()
+    return try WorldAccessGate.shared.sync(body)
 }
 
 /// Loading phase enum

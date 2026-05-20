@@ -244,17 +244,58 @@ final class RemoteStreamFlyThroughTests: BaseRenderSetup {
         }
     }
 
-    /// True when at least one tile has parsed and no tile is still mid-parse.
+    /// True when at least one tile has parsed and every tile currently inside
+    /// the prefetch band has either parsed or moved out of consideration.
     private func tilesAreReady(sceneRoot: EntityID) -> Bool {
+        let camera = findGameCamera()
+        let cameraPosition = getCameraPosition(entityId: camera)
+        let tileFrustum = GeometryStreamingSystem.shared.enableFrustumGate
+            ? GeometryStreamingSystem.shared.buildStreamingFrustum(
+                sidePad: GeometryStreamingSystem.shared.tileFrustumGatePadding
+            )
+            : nil
         let tileIds = getEntityChildren(parentId: sceneRoot)
         guard !tileIds.isEmpty else { return false }
         let hasParsed = tileIds.contains {
             scene.get(component: TileComponent.self, for: $0)?.state == .parsed
         }
-        let stillParsing = tileIds.contains {
-            scene.get(component: TileComponent.self, for: $0)?.state == .parsing
+        let hasUnreadyRelevantTile = tileIds.contains {
+            guard let tile = scene.get(component: TileComponent.self, for: $0) else { return false }
+            guard tile.state != .parsed else { return false }
+            guard tilePassesFloorGate(tile: tile, cameraPosition: cameraPosition) else { return false }
+            guard tilePassesFrustumGate(entityId: $0, frustum: tileFrustum) else { return false }
+            return tileDistance(entityId: $0, cameraPosition: cameraPosition) <= tile.effectivePrefetchRadius + 1.0
         }
-        return hasParsed && !stillParsing
+        return hasParsed && !hasUnreadyRelevantTile
+    }
+
+    private func tilePassesFloorGate(tile: TileComponent, cameraPosition: simd_float3) -> Bool {
+        let gate = GeometryStreamingSystem.shared.floorProximityGateY
+        guard gate < Float.greatestFiniteMagnitude, tile.hasFloorMetadata else { return true }
+        return abs(tile.worldYCenter - cameraPosition.y) <= gate
+    }
+
+    private func tilePassesFrustumGate(entityId: EntityID, frustum: Frustum?) -> Bool {
+        guard let frustum else { return true }
+        guard let local = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+            return true
+        }
+        let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
+        let halfExtent = (local.boundingBox.max - local.boundingBox.min) * 0.5
+        return isAABBInFrustum(center: center, halfExtent: halfExtent, frustum: frustum)
+    }
+
+    private func tileDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
+        guard let local = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+            return Float.greatestFiniteMagnitude
+        }
+
+        let closest = simd_float3(
+            min(max(cameraPosition.x, local.boundingBox.min.x), local.boundingBox.max.x),
+            min(max(cameraPosition.y, local.boundingBox.min.y), local.boundingBox.max.y),
+            min(max(cameraPosition.z, local.boundingBox.min.z), local.boundingBox.max.z)
+        )
+        return simd_length(cameraPosition - closest)
     }
 
     /// Simulates the camera flying from `origin` to `destination` at 60 fps

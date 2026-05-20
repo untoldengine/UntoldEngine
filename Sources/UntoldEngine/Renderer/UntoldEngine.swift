@@ -326,6 +326,8 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             }
         #endif
         EngineProfiler.shared.beginFrame()
+        lockWorldAccessGate()
+        defer { unlockWorldAccessGate() }
 
         // finalize destroys once per frame
         if needsFinalizeDestroys {

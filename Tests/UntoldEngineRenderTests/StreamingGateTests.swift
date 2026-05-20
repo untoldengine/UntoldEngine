@@ -106,7 +106,9 @@ final class StreamingGateTests: BaseRenderSetup {
         center: simd_float3,
         halfExtent: simd_float3 = simd_float3(1, 1, 1),
         streamingRadius: Float,
-        unloadRadius: Float
+        unloadRadius: Float,
+        hasFloorMetadata: Bool = false,
+        worldYCenter: Float? = nil
     ) -> EntityID {
         let entityId = createEntity()
         registerTransformComponent(entityId: entityId)
@@ -124,6 +126,8 @@ final class StreamingGateTests: BaseRenderSetup {
             tc.tileURL = URL(fileURLWithPath: "/dev/null") // parse fails fast; .parsing is set synchronously
             tc.streamingRadius = streamingRadius
             tc.unloadRadius = unloadRadius
+            tc.hasFloorMetadata = hasFloorMetadata
+            tc.worldYCenter = worldYCenter ?? center.y
             tc.state = .unloaded
         }
 
@@ -262,6 +266,40 @@ final class StreamingGateTests: BaseRenderSetup {
         // maxConcurrentTileLoads defaults to 2, so both can be in-flight simultaneously.
         XCTAssertEqual(tcIn.state, .parsing, "In-frustum tile must dispatch when gate is disabled")
         XCTAssertEqual(tcOut.state, .parsing, "Out-of-frustum tile must also dispatch when gate is disabled")
+    }
+
+    // MARK: - Floor proximity gate
+
+    func testFloorProximityGate_ignoresLargeYCenterWithoutFloorMetadata() throws {
+        let tile = makeTileStub(
+            center: .zero,
+            streamingRadius: 1000.0,
+            unloadRadius: 2000.0,
+            hasFloorMetadata: false,
+            worldYCenter: 5000.0
+        )
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tile))
+        XCTAssertEqual(tc.state, .parsing,
+                       "Uniform-grid tiles must not be floor-gated just because their manifest Y center is nonzero")
+    }
+
+    func testFloorProximityGate_blocksVerticallyDistantFloorTile() throws {
+        let tile = makeTileStub(
+            center: .zero,
+            streamingRadius: 1000.0,
+            unloadRadius: 2000.0,
+            hasFloorMetadata: true,
+            worldYCenter: 5000.0
+        )
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tile))
+        XCTAssertEqual(tc.state, .unloaded,
+                       "Floor-aware tiles outside floorProximityGateY must remain unloaded")
     }
 
     // MARK: - Velocity predictor

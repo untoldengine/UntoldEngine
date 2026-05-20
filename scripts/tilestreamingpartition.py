@@ -1157,10 +1157,28 @@ def build_quadtree_assignments(objects, object_bounds, inline_metadata=None):
             shared_objects.append(obj)
             continue
 
-        # Root-spanning objects (depth == 0, spanning) cover the entire scene
-        # footprint and cannot be confined to one node.
+        # Root-spanning objects (depth == 0, spanning) span the full XZ footprint
+        # of their floor's quadtree root and cannot be assigned to a single node.
+        #
+        # Split by semantic tier:
+        # - ExteriorShell: genuinely building-wide geometry (facades, shells, roofs).
+        #   These belong in the global shared bucket — they have no per-floor
+        #   affinity and must be resident whenever the building is visible.
+        # - Interior tiers (SI, RC, FP): floor-spanning ceilings, corridor railings,
+        #   merged prop groups, etc.  Routing these to the global shared bucket makes
+        #   them always-resident, inflating shared bucket memory by 10–20× relative
+        #   to their actual floor-level streaming need.  Instead, assign them to a
+        #   per-floor root tile (node_id = floor root, same tier) so they load and
+        #   unload with the floor's streaming radii and interior-zone gate.
         if meta["spatial_class"] == "spanning" and meta["depth"] == 0:
-            shared_objects.append(obj)
+            tier = _resolve_tier(meta)
+            if tier == "ExteriorShell":
+                shared_objects.append(obj)
+            else:
+                floor_id = meta.get("floor_id", 1)
+                floor_root_node = f"F{floor_id:02d}_Q"
+                floor_root_key  = (floor_root_node, tier)
+                node_tier_groups.setdefault(floor_root_key, []).append(obj)
             continue
 
         tier = _resolve_tier(meta)

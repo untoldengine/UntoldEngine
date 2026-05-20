@@ -15,6 +15,9 @@ import Metal
 import MetalKit
 
 public enum RenderPasses {
+    /// Count of unbatched shadow-caster entities from the most recent frame.
+    /// Updated by shadowCasterEntityIds (main thread); read by the streaming heartbeat (main thread).
+    public nonisolated(unsafe) static var lastShadowCasterCount: Int = 0
     public typealias RenderPassExecution = @Sendable (MTLCommandBuffer) -> Void
 
     private static let runtimeState = RuntimeState()
@@ -350,7 +353,16 @@ public enum RenderPasses {
 
         for entityId in entities {
             if shouldSkipShadowEntity(entityId) { continue }
-            if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) { continue }
+            if BatchingSystem.shared.isEnabled() {
+                // Batch-eligible entities (StaticBatchComponent present) are always drawn
+                // via shadowCasterBatchGroups — whether or not the batch rebuild has landed
+                // yet.  Skipping them here prevents O(n_loaded_tiles) shadow draw calls that
+                // scale with the scene and eventually overflow the GPU command buffer budget.
+                // During the brief batch-rebuild window their shadow is absent; this is
+                // preferable to the alternative of the app freezing at ~300+ loaded tiles.
+                if scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
+                if BatchingSystem.shared.isBatched(entityId: entityId) { continue }
+            }
 
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
                   renderComponent.isVisible,
@@ -368,6 +380,7 @@ public enum RenderPasses {
             }
         }
 
+        lastShadowCasterCount = result.count
         return result
     }
 

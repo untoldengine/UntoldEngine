@@ -31,7 +31,7 @@
 
         private enum Constants {
             static let orbitTargetOffset: Float = 25.0
-            static let cameraMoveSpeed: Float = 1.0
+            static let cameraMoveSpeed: Float = 0.5
             static let cameraInputDeltaTime: Float = 0.1
             static let streamingPriority: Int = 10
             static let citySceneID = "city"
@@ -76,6 +76,8 @@
 
             applyIBL = true
             renderEnvironment = false
+
+            setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
         }
     }
 
