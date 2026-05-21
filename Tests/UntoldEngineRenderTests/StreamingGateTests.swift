@@ -321,6 +321,153 @@ final class StreamingGateTests: BaseRenderSetup {
                        "Exterior shell tiles must not be floor-gated; upper facade floors need to stream from outside")
     }
 
+    // MARK: - Importance sort
+
+    // These tests verify that tileImportanceComponents drives the tile load order.
+    // maxConcurrentTileLoads is forced to 1 so only the top-ranked candidate is
+    // dispatched per tick — the second tile remaining .unloaded is the observable
+    // signal that ordering worked correctly.
+    //
+    // Geometry notes (camera at origin, cameraForward = (0, 0, -1)):
+    //   Surface distance = simd_distance(camera, closestAABBPoint)
+    //   Solid angle      = projectedSilhouetteArea / distance²
+    //   ViewAlignment    = viewAlignmentMinWeight + (1 − minWeight) × dot(forward, dirToTile)
+
+    func testImportanceSort_largeAabbLoadsBeforeSmallAtEqualDistance() throws {
+        setUpCameraLookingNegativeZ()
+        let oldMax = GeometryStreamingSystem.shared.maxConcurrentTileLoads
+        GeometryStreamingSystem.shared.maxConcurrentTileLoads = 1
+        defer { GeometryStreamingSystem.shared.maxConcurrentTileLoads = oldMax }
+
+        // Both tiles have AABB surface-distance 50 m so raw distance cannot break the
+        // tie.  The large tile (hx=hy=hz=5) subtends a 25× greater solid angle
+        // (projectedArea = 50 vs 2) and must be dispatched first.
+        let largeTile = makeTileStub(
+            center: simd_float3(0, 0, -55),
+            halfExtent: simd_float3(5, 5, 5),   // AABB max-z = -50 → surface dist = 50 m
+            streamingRadius: 200.0,
+            unloadRadius: 400.0
+        )
+        let smallTile = makeTileStub(
+            center: simd_float3(0, 0, -51),
+            halfExtent: simd_float3(1, 1, 1),   // AABB max-z = -50 → surface dist = 50 m
+            streamingRadius: 200.0,
+            unloadRadius: 400.0
+        )
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tcLarge = try XCTUnwrap(scene.get(component: TileComponent.self, for: largeTile))
+        let tcSmall = try XCTUnwrap(scene.get(component: TileComponent.self, for: smallTile))
+        XCTAssertEqual(tcLarge.state, .parsing,
+                       "Large tile (solid angle 25× greater) must be dispatched first at equal surface distance")
+        XCTAssertEqual(tcSmall.state, .unloaded,
+                       "Small tile must wait when the single load slot is held by the larger-solid-angle tile")
+    }
+
+    func testImportanceSort_onAxisTileLoadsBeforePeripheralAtEqualAabbAndDistance() throws {
+        setUpCameraLookingNegativeZ()
+        // Frustum gate is already disabled in setUp; the 90°-off-axis tile must reach
+        // the importance sort, not be filtered before it.
+        let oldMax = GeometryStreamingSystem.shared.maxConcurrentTileLoads
+        GeometryStreamingSystem.shared.maxConcurrentTileLoads = 1
+        defer { GeometryStreamingSystem.shared.maxConcurrentTileLoads = oldMax }
+
+        // Both cubes: halfExtent (1,1,1), surface distance 50 m.
+        // Equal solid angles — view alignment is the only differentiator.
+        // On-axis: dot((0,0,-1),(0,0,-1)) = 1.0  → viewAlignment = 1.0
+        // Off-axis: dot((0,0,-1),(1,0,0)) = 0.0  → viewAlignment = 0.2 (minWeight)
+        let onAxisTile = makeTileStub(
+            center: simd_float3(0, 0, -51),   // directly ahead; surface at z = -50
+            halfExtent: simd_float3(1, 1, 1),
+            streamingRadius: 200.0,
+            unloadRadius: 400.0
+        )
+        let offAxisTile = makeTileStub(
+            center: simd_float3(51, 0, 0),    // 90° off-axis; surface at x = 50
+            halfExtent: simd_float3(1, 1, 1),
+            streamingRadius: 200.0,
+            unloadRadius: 400.0
+        )
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tcOn = try XCTUnwrap(scene.get(component: TileComponent.self, for: onAxisTile))
+        let tcOff = try XCTUnwrap(scene.get(component: TileComponent.self, for: offAxisTile))
+        XCTAssertEqual(tcOn.state, .parsing,
+                       "On-axis tile (viewAlignment 1.0) must load before peripheral tile (viewAlignment 0.2)")
+        XCTAssertEqual(tcOff.state, .unloaded,
+                       "Peripheral tile must wait when the load slot is held by the on-axis tile")
+    }
+
+    func testImportanceSort_disabledRevertsToPureDistanceOrdering() throws {
+        setUpCameraLookingNegativeZ()
+        let oldMax = GeometryStreamingSystem.shared.maxConcurrentTileLoads
+        GeometryStreamingSystem.shared.maxConcurrentTileLoads = 1
+        GeometryStreamingSystem.shared.enableImportanceSort = false
+        defer {
+            GeometryStreamingSystem.shared.maxConcurrentTileLoads = oldMax
+            GeometryStreamingSystem.shared.enableImportanceSort = true
+        }
+
+        // Close small tile at 30 m; far large tile at 60 m.
+        // With importance sort OFF the streaming system falls back to raw distance:
+        // the close tile wins despite having a ~400× smaller solid angle.
+        let closeSmallTile = makeTileStub(
+            center: simd_float3(0, 0, -31),
+            halfExtent: simd_float3(1, 1, 1),   // surface at z = -30 → distance 30 m
+            streamingRadius: 200.0,
+            unloadRadius: 400.0
+        )
+        let farLargeTile = makeTileStub(
+            center: simd_float3(0, 0, -100),
+            halfExtent: simd_float3(40, 40, 40), // surface at z = -60 → distance 60 m
+            streamingRadius: 200.0,
+            unloadRadius: 400.0
+        )
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tcClose = try XCTUnwrap(scene.get(component: TileComponent.self, for: closeSmallTile))
+        let tcFar = try XCTUnwrap(scene.get(component: TileComponent.self, for: farLargeTile))
+        XCTAssertEqual(tcClose.state, .parsing,
+                       "Closer tile must load first when importance sort is disabled")
+        XCTAssertEqual(tcFar.state, .unloaded,
+                       "Far tile must wait when sort is disabled, regardless of its solid angle advantage")
+    }
+
+    func testImportanceSort_enabledPrefersHighSolidAngleOverRawDistance() throws {
+        setUpCameraLookingNegativeZ()
+        let oldMax = GeometryStreamingSystem.shared.maxConcurrentTileLoads
+        GeometryStreamingSystem.shared.maxConcurrentTileLoads = 1
+        defer { GeometryStreamingSystem.shared.maxConcurrentTileLoads = oldMax }
+
+        // Same geometry as the disabled test; importance sort is on (default).
+        // The far large tile's solid angle (≈0.89) dominates the close small tile's
+        // (≈0.002) by ~400×.  It must load first despite being 2× farther away.
+        let closeSmallTile = makeTileStub(
+            center: simd_float3(0, 0, -31),
+            halfExtent: simd_float3(1, 1, 1),   // distance 30 m, solidAngle ≈ 0.002
+            streamingRadius: 200.0,
+            unloadRadius: 400.0
+        )
+        let farLargeTile = makeTileStub(
+            center: simd_float3(0, 0, -100),
+            halfExtent: simd_float3(40, 40, 40), // distance 60 m, solidAngle ≈ 0.89
+            streamingRadius: 200.0,
+            unloadRadius: 400.0
+        )
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tcClose = try XCTUnwrap(scene.get(component: TileComponent.self, for: closeSmallTile))
+        let tcFar = try XCTUnwrap(scene.get(component: TileComponent.self, for: farLargeTile))
+        XCTAssertEqual(tcFar.state, .parsing,
+                       "Far large tile (solid angle ≈ 0.89) must load first — importance beats raw distance")
+        XCTAssertEqual(tcClose.state, .unloaded,
+                       "Close small tile (solid angle ≈ 0.002) must wait when outranked by solid angle")
+    }
+
     // MARK: - Velocity predictor
 
     // Tile position and radii used for all velocity predictor tests.
