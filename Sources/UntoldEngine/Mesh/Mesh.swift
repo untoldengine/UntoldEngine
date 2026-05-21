@@ -47,6 +47,14 @@ public struct Mesh {
     var boundingBox: (min: simd_float3, max: simd_float3)
     var skin: Skin?
 
+    public var name: String {
+        assetName
+    }
+
+    public var localBounds: (min: simd_float3, max: simd_float3) {
+        boundingBox
+    }
+
     /// Create a Mesh from an in-memory MDLMesh (used by the native .untold upload path).
     ///
     /// `makeMesh(from: RuntimeMeshPrimitive)` builds an in-memory MDLMesh from decoded
