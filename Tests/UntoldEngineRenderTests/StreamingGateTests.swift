@@ -468,6 +468,42 @@ final class StreamingGateTests: BaseRenderSetup {
                        "Close small tile (solid angle ≈ 0.002) must wait when outranked by solid angle")
     }
 
+    // MARK: - Occlusion sort camera guard
+
+    func testOcclusionSort_disabledWhenNoCameraAvailable() throws {
+        // No active camera — viewProjMatrixValid must be false this tick, so the
+        // occluder build is skipped and both tiles get occlusionScore = 1.0.
+        // Phase 1 importance sort still applies: the larger tile loads first.
+        CameraSystem.shared.activeCamera = nil
+        let oldMax = GeometryStreamingSystem.shared.maxConcurrentTileLoads
+        GeometryStreamingSystem.shared.maxConcurrentTileLoads = 1
+        defer { GeometryStreamingSystem.shared.maxConcurrentTileLoads = oldMax }
+
+        // Large tile and small tile at equal distance — large wins on solid angle alone.
+        let largeTile = makeTileStub(
+            center: simd_float3(0, 0, -55),
+            halfExtent: simd_float3(5, 5, 5),
+            streamingRadius: 200.0,
+            unloadRadius: 400.0
+        )
+        let smallTile = makeTileStub(
+            center: simd_float3(0, 0, -51),
+            halfExtent: simd_float3(1, 1, 1),
+            streamingRadius: 200.0,
+            unloadRadius: 400.0
+        )
+
+        // Should not crash or stall — occlusion is simply skipped this tick.
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tcLarge = try XCTUnwrap(scene.get(component: TileComponent.self, for: largeTile))
+        let tcSmall = try XCTUnwrap(scene.get(component: TileComponent.self, for: smallTile))
+        XCTAssertEqual(tcLarge.state, .parsing,
+                       "Large tile must still load first via solid-angle sort even when occlusion is skipped (no camera)")
+        XCTAssertEqual(tcSmall.state, .unloaded,
+                       "Small tile must wait — importance sort still applies without occlusion")
+    }
+
     // MARK: - Velocity predictor
 
     // Tile position and radii used for all velocity predictor tests.
