@@ -464,9 +464,11 @@ public class BatchingSystem: @unchecked Sendable {
     private var pendingEntityRemovals: Set<EntityID> = []
     private var pendingEntityAdditions: Set<EntityID> = []
     private var newlyResidentEntities: Set<EntityID> = []
-    /// Entities that arrived from a fully-loaded tile parse (occCount == 0).
-    /// These are processed with deferBatchBuild = false and their cells are
-    /// promoted to batchPending immediately, bypassing the quiescence delay.
+    /// Entities registered via notifyTileParsedEntities (legacy direct path).
+    /// notifyTileEntitiesResident no longer pre-populates this set — drain-queue
+    /// entities go through the normal quiescence path so that multiple drain slices
+    /// for the same cell coalesce into a single rebuild rather than rebuilding once
+    /// per slice.
     private var tileParsedEntityIds: Set<EntityID> = []
     /// FIFO queue of tile-resident entities waiting for per-entity cell registration.
     /// Populated by notifyTileEntitiesResident; drained at maxTileResidentDrainPerTick
@@ -559,11 +561,15 @@ public class BatchingSystem: @unchecked Sendable {
         guard batchingEnabled else { return }
         guard !entityIds.isEmpty else { return }
 
-        // Pre-mark as tile-parsed so the quiescence bypass is already set when the
-        // drain processes each entity in a future tick.
-        tileParsedEntityIds.formUnion(entityIds)
-
         // Enqueue for deferred per-entity registration — O(N) appends, no ECS work.
+        // Entities are intentionally NOT pre-marked in tileParsedEntityIds here.
+        // Doing so caused drain slices to bypass quiescence and promote their cell
+        // to batchPending immediately, triggering a batch rebuild per slice.  For a
+        // 30-entity tile drained at 16/tick, that was 2 rebuilds instead of 1.
+        // Without the pre-mark, drained entities enter via deferBatchBuild = true →
+        // normal quiescence path.  Subsequent slices for the same cell arrive within
+        // the 1-frame quiescence window and reset the timer, so the cell rebuilds
+        // once after the last slice — regardless of how many slices the tile produced.
         pendingTileResidentQueue.append(contentsOf: entityIds)
     }
 
@@ -822,9 +828,11 @@ public class BatchingSystem: @unchecked Sendable {
         pendingEntityRemovals.removeAll(keepingCapacity: true)
 
         // Process additions / cell updates based on latest entity state.
-        // Tile-parsed entities (from a just-loaded fullLoad tile) bypass the
-        // quiescence delay: we clear them from newlyResidentEntities so
-        // deferBatchBuild stays false, and track them for immediate promotion below.
+        // Drain-queue entities arrive with deferBatchBuild = true (they are in
+        // newlyResidentEntities but NOT in tileParsedEntityIds) so they go through
+        // the normal quiescence path.  The tileParsedEntityIds fast path is kept for
+        // any future caller of notifyTileParsedEntities but is not triggered by
+        // notifyTileEntitiesResident, which deliberately omits the pre-mark.
         var tileEntitiesAdded: Set<EntityID> = []
         for entityId in pendingEntityAdditions {
             let isTileParsed = tileParsedEntityIds.contains(entityId)
