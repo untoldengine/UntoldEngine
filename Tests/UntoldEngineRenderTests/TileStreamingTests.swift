@@ -409,15 +409,15 @@ final class TileOcclusionSortTests: XCTestCase {
                        "Occluder beyond the candidate must not reduce the score")
     }
 
-    func testTileOcclusionScore_fullyOccludedReturnsZero() {
+    func testTileOcclusionScore_fullyOccludedReturnsMinWeight() {
         let candidate = SR(minX: -0.5, minY: -0.5, maxX: 0.5, maxY: 0.5)
         // Closer occluder covers the candidate entirely.
         let occluder = Occ(rect: SR(minX: -1, minY: -1, maxX: 1, maxY: 1), distance: 10)
         let score = sys.tileOcclusionScore(
             candidateRect: candidate, distance: 50, occluders: [occluder]
         )
-        XCTAssertEqual(score, 0.0, accuracy: 1e-5,
-                       "Candidate fully covered by a closer occluder must score 0")
+        XCTAssertEqual(score, sys.occlusionMinWeight, accuracy: 1e-5,
+                       "Fully occluded tile must return occlusionMinWeight, not zero — AABBs over-approximate opaque coverage")
     }
 
     func testTileOcclusionScore_partialCoverageScoreIsCorrect() {
@@ -454,8 +454,8 @@ final class TileOcclusionSortTests: XCTestCase {
         let atScore = sys.tileOcclusionScore(
             candidateRect: candidate, distance: 50, occluders: [atOccluder]
         )
-        XCTAssertEqual(atScore, 0.0, accuracy: 1e-5,
-                       "56/64 cells covered (≥ 85% threshold) → score = 0")
+        XCTAssertEqual(atScore, sys.occlusionMinWeight, accuracy: 1e-5,
+                       "56/64 cells covered (≥ 85% threshold) → score = occlusionMinWeight, not hard zero")
     }
 
     func testTileOcclusionScore_overlappingOccludersDoNotDoubleCount() {

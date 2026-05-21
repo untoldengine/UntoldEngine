@@ -279,10 +279,18 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     public var enableOcclusionSort: Bool = true
 
     /// Coverage fraction at which a tile is treated as fully occluded and
-    /// receives occlusionScore = 0.  A tile 85% covered by loaded geometry
-    /// is unlikely to contribute meaningfully to the visible scene.
+    /// receives occlusionScore = occlusionMinWeight.  A tile 85% covered by
+    /// loaded geometry is unlikely to contribute meaningfully to the visible scene.
     /// Range (0, 1].  Default 0.85.
     public var occlusionFullThreshold: Float = 0.85
+
+    /// Minimum occlusionScore returned even for tiles classified as fully blocked.
+    /// Tile AABBs are used as opaque proxies, but the actual geometry may be sparse,
+    /// glass, or have open areas.  A non-zero floor ensures no tile is permanently
+    /// pushed to the back of the load queue solely because another tile's bounding
+    /// box overlaps it in screen space — it will still load, just later.
+    /// Range [0, 1).  Default 0.05.  Set to 0 to restore hard zero behaviour.
+    public var occlusionMinWeight: Float = 0.05
 
     // Screen-space rectangle in NDC [-1, 1] × [-1, 1].
     // Used to represent the projected AABB footprint of a tile for occlusion scoring.
@@ -1657,12 +1665,16 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     }
 
     /// Returns the fraction of `candidateRect` NOT covered by the union of closer
-    /// loaded-tile occluders.  1.0 = fully visible, 0 = blocked ≥ occlusionFullThreshold.
+    /// loaded-tile occluders.  1.0 = fully visible, occlusionMinWeight = fully blocked.
     ///
     /// Coverage is computed on an 8×8 NDC grid using bitmask union (|) so overlapping
-    /// occluders are never double-counted — the previous additive sum could falsely mark
-    /// a tile as fully blocked when two occluders each covered the same screen region.
-    /// Occluders must be sorted ascending by distance for the early-exit to work.
+    /// occluders are never double-counted.  Occluders must be sorted ascending by
+    /// distance for the early-exit to work.
+    ///
+    /// The return value is floored at occlusionMinWeight (default 0.05) rather than 0
+    /// so a tile classified as fully blocked by AABB heuristics still has a small chance
+    /// of loading — tile AABBs are opaque proxies and may over-occlude glass, sparse
+    /// meshes, or concave geometry.
     func tileOcclusionScore(candidateRect: ScreenRect, distance: Float,
                              occluders: [TileOccluder]) -> Float {
         let candidateMask = rectToScreenMask(candidateRect)
@@ -1676,12 +1688,15 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         for occluder in occluders {
             guard occluder.distance < distance else { break }
             unionMask |= rectToScreenMask(occluder.rect)
-            // Early exit when enough cells are covered — avoids scanning the rest.
-            if (unionMask & candidateMask).nonzeroBitCount >= thresholdCells { return 0 }
+            // Early exit when enough cells are covered — floor at occlusionMinWeight so
+            // over-conservative AABB coverage (glass, sparse mesh) doesn't hard-block loads.
+            if (unionMask & candidateMask).nonzeroBitCount >= thresholdCells {
+                return occlusionMinWeight
+            }
         }
 
         let coveredCells = (unionMask & candidateMask).nonzeroBitCount
-        return 1.0 - Float(coveredCells) / Float(candidateCells)
+        return max(occlusionMinWeight, 1.0 - Float(coveredCells) / Float(candidateCells))
     }
 
     func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
