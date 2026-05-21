@@ -1626,22 +1626,56 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                           maxX: min( 1, ndcMaxX), maxY: min( 1, ndcMaxY))
     }
 
-    /// Returns the fraction of `candidateRect` NOT covered by closer loaded-tile
-    /// occluders.  1.0 = fully visible, 0 = fully blocked (≥ `occlusionFullThreshold`
-    /// covered).  Occluders must be sorted ascending by distance so the loop can
-    /// short-circuit once coverage exceeds the threshold.
+    /// Maps a ScreenRect to the 8×8 NDC grid cells it overlaps, as a UInt64 bitmask.
+    ///
+    /// The screen is divided into 64 cells (8 columns × 8 rows) each 0.25 NDC units wide.
+    /// Bit i represents cell (i / 8, i % 8).  Cell boundaries that fall inside a rect are
+    /// included conservatively (floor of the upper bound) so occluder coverage is never
+    /// understated.  Using a bitmask means unioning two overlapping occluders with `|`
+    /// produces the correct union area — no double-counting.
+    func rectToScreenMask(_ rect: ScreenRect) -> UInt64 {
+        let gridN = 8
+        let scale = Float(gridN) * 0.5       // maps NDC [-1, 1] → [0, gridN]
+        let c0 = max(0,        Int(floor((rect.minX + 1.0) * scale)))
+        let c1 = min(gridN - 1, Int(floor((rect.maxX + 1.0) * scale)))
+        let r0 = max(0,        Int(floor((rect.minY + 1.0) * scale)))
+        let r1 = min(gridN - 1, Int(floor((rect.maxY + 1.0) * scale)))
+        guard c0 <= c1, r0 <= r1 else { return 0 }
+        var mask: UInt64 = 0
+        for r in r0 ... r1 {
+            for c in c0 ... c1 {
+                mask |= 1 << UInt64(r * gridN + c)
+            }
+        }
+        return mask
+    }
+
+    /// Returns the fraction of `candidateRect` NOT covered by the union of closer
+    /// loaded-tile occluders.  1.0 = fully visible, 0 = blocked ≥ occlusionFullThreshold.
+    ///
+    /// Coverage is computed on an 8×8 NDC grid using bitmask union (|) so overlapping
+    /// occluders are never double-counted — the previous additive sum could falsely mark
+    /// a tile as fully blocked when two occluders each covered the same screen region.
+    /// Occluders must be sorted ascending by distance for the early-exit to work.
     func tileOcclusionScore(candidateRect: ScreenRect, distance: Float,
                              occluders: [TileOccluder]) -> Float {
-        let candidateArea = candidateRect.area
-        guard candidateArea > 1e-6 else { return 1.0 }
+        let candidateMask = rectToScreenMask(candidateRect)
+        guard candidateMask != 0 else { return 1.0 }
+        let candidateCells = candidateMask.nonzeroBitCount
 
-        var coveredArea: Float = 0
+        // Convert the threshold fraction to a cell count once; avoids repeated division.
+        let thresholdCells = Int((Float(candidateCells) * occlusionFullThreshold).rounded(.up))
+
+        var unionMask: UInt64 = 0
         for occluder in occluders {
             guard occluder.distance < distance else { break }
-            coveredArea += candidateRect.intersectionArea(with: occluder.rect)
-            if coveredArea / candidateArea >= occlusionFullThreshold { return 0 }
+            unionMask |= rectToScreenMask(occluder.rect)
+            // Early exit when enough cells are covered — avoids scanning the rest.
+            if (unionMask & candidateMask).nonzeroBitCount >= thresholdCells { return 0 }
         }
-        return 1.0 - min(1.0, coveredArea / candidateArea)
+
+        let coveredCells = (unionMask & candidateMask).nonzeroBitCount
+        return 1.0 - Float(coveredCells) / Float(candidateCells)
     }
 
     func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {

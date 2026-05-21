@@ -420,15 +420,17 @@ final class TileOcclusionSortTests: XCTestCase {
                        "Candidate fully covered by a closer occluder must score 0")
     }
 
-    func testTileOcclusionScore_halfCoveredReturnsHalf() {
-        // Candidate [0,1]×[0,1], area = 1.0. Occluder covers [0,0.5]×[0,1], overlap = 0.5.
-        let candidate = SR(minX: 0, minY: 0, maxX: 1, maxY: 1)
-        let occluder = Occ(rect: SR(minX: 0, minY: 0, maxX: 0.5, maxY: 1), distance: 10)
+    func testTileOcclusionScore_partialCoverageScoreIsCorrect() {
+        // Full-screen candidate (64 grid cells).
+        // Left-half occluder [-1,0]×[-1,1]: cols 0–4 × rows 0–7 = 40 cells.
+        // Expected coverage = 40/64, score = 1 - 40/64 = 0.375 (exact on the 8×8 grid).
+        let candidate = SR(minX: -1, minY: -1, maxX: 1, maxY: 1)
+        let occluder = Occ(rect: SR(minX: -1, minY: -1, maxX: 0, maxY: 1), distance: 10)
         let score = sys.tileOcclusionScore(
             candidateRect: candidate, distance: 50, occluders: [occluder]
         )
-        XCTAssertEqual(score, 0.5, accuracy: 1e-4,
-                       "50% covered candidate must score 0.5")
+        XCTAssertEqual(score, 0.375, accuracy: 1e-4,
+                       "40 of 64 grid cells covered → score = 1 - 40/64 = 0.375")
     }
 
     func testTileOcclusionScore_coverageBelowThresholdIsNotZero() {
@@ -436,16 +438,47 @@ final class TileOcclusionSortTests: XCTestCase {
         sys.occlusionFullThreshold = 0.85
         defer { sys.occlusionFullThreshold = old }
 
-        // Occluder covers 80% of the candidate — below the 85% threshold, so score > 0.
-        let candidate = SR(minX: 0, minY: 0, maxX: 1, maxY: 1)
-        let occluder = Occ(rect: SR(minX: 0, minY: 0, maxX: 0.8, maxY: 1), distance: 10)
-        let score = sys.tileOcclusionScore(
-            candidateRect: candidate, distance: 50, occluders: [occluder]
+        // Full-screen candidate → 64 cells; thresholdCells = ceil(64 × 0.85) = 55.
+        // Occluder at maxY = 0.4 → rows 0–5, all cols = 48 cells < 55 → score > 0.
+        // Occluder at maxY = 0.5 → rows 0–6, all cols = 56 cells ≥ 55 → score = 0.
+        let candidate = SR(minX: -1, minY: -1, maxX: 1, maxY: 1)
+
+        let belowOccluder = Occ(rect: SR(minX: -1, minY: -1, maxX: 1, maxY: 0.4), distance: 10)
+        let belowScore = sys.tileOcclusionScore(
+            candidateRect: candidate, distance: 50, occluders: [belowOccluder]
         )
-        XCTAssertGreaterThan(score, 0,
-                             "80% coverage is below the 85% threshold — score must not be zero")
-        XCTAssertEqual(score, 0.2, accuracy: 1e-4,
-                       "Uncovered fraction = 1 - 0.8 = 0.2")
+        XCTAssertEqual(belowScore, 0.25, accuracy: 1e-4,
+                       "48/64 cells covered (< 85% threshold) → score = 1 - 0.75 = 0.25")
+
+        let atOccluder = Occ(rect: SR(minX: -1, minY: -1, maxX: 1, maxY: 0.5), distance: 10)
+        let atScore = sys.tileOcclusionScore(
+            candidateRect: candidate, distance: 50, occluders: [atOccluder]
+        )
+        XCTAssertEqual(atScore, 0.0, accuracy: 1e-5,
+                       "56/64 cells covered (≥ 85% threshold) → score = 0")
+    }
+
+    func testTileOcclusionScore_overlappingOccludersDoNotDoubleCount() {
+        // Two occluders that cover the same screen region must produce the same score
+        // as a single occluder — union coverage, not additive sum.
+        // With the old additive algorithm, two identical occluders would double the
+        // covered area and could trigger the threshold even when only ~40% is covered.
+        let candidate = SR(minX: -1, minY: -1, maxX: 1, maxY: 1) // 64 cells
+        let oA = Occ(rect: SR(minX: -1, minY: -1, maxX: 0, maxY: 1), distance: 10) // 40 cells
+        let oB = Occ(rect: SR(minX: -1, minY: -1, maxX: 0, maxY: 1), distance: 20) // same region
+
+        let scoreOne = sys.tileOcclusionScore(
+            candidateRect: candidate, distance: 50, occluders: [oA]
+        )
+        let scoreTwo = sys.tileOcclusionScore(
+            candidateRect: candidate, distance: 50, occluders: [oA, oB]
+        )
+        XCTAssertEqual(scoreOne, scoreTwo, accuracy: 1e-5,
+                       "Two overlapping occluders must give the same score as one — no double counting")
+        XCTAssertLessThan(scoreOne, 1.0,
+                          "Partial occluder must reduce score below 1.0")
+        XCTAssertGreaterThan(scoreOne, 0.0,
+                             "40/64 cells covered is below the default 85% threshold — score must remain above 0")
     }
 
     func testTileOcclusionScore_noOverlapReturnsOne() {
