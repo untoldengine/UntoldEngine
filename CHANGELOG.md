@@ -1,4 +1,28 @@
 # Changelog
+## v0.12.13 - 2026-05-21
+### 🐞 Fixes
+- [Patch] Added AA parameters to serializer (3d81b55…)
+- [Patch] Set ambient default value to 0.4 (c5a72a2…)
+- [Patch] Use recursive traversal for derived asset node ids in serialization (41acc07…)
+- [Patch] Route native OCC stubs through child entities (e1b2935…)
+- [Patch] Reimplented setEntityMesh (6250f0a…)
+- [Patch] Added radii to structured content to stream system (5392935…)
+- [Patch] Stabilize tiled streaming world mutations (e3436fd…)
+- [Patch] Guard floor-proximity gate on interior tiles only (ec4a36c…)
+- [Patch] Enforce minimum residency for parsed tiles before unload or eviction (224d528…)
+- [Patch] [Feature] Replace radius/distance importance with tile view importance (291a626…)
+- [Patch] Add screen-space AABB occlusion factor to tile importance sort (96f1b39…)
+- [Patch] Spread tile parse-completion batching work across frames (c5f3c50…)
+- [Patch] Skip near-plane-clipping tiles as occluders in screen-space occlusion sort (751398b…)
+- [Patch] Disable occlusion sort when no active camera is available (c378cb1…)
+- [Patch] Replace additive occlusion coverage with 8×8 grid union bitmask (9d3bfac…)
+- [Patch] Use closest AABB point for view alignment instead of tile center (d72106a…)
+- [Patch] Floor occlusionScore at occlusionMinWeight to prevent hard load suppression (abd3dbd…)
+- [Patch] Harden tile-resident drain queue in BatchingSystem (2b5713c…)
+- [Patch] Guard rectToScreenMask against zero-area rects (ecc8d46…)
+- [Patch] Route tile-resident drain entities through quiescence to prevent repeated cell rebuilds (aec4112…)
+### 📚 Docs
+- [Docs] Updated streaming docs (ed14520…)
 ## v0.12.12 - 2026-05-18
 ### 🐞 Fixes
 - [Patch] Replace FXAA toggle with anti-aliasing mode selector (0111454…)
