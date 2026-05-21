@@ -1555,11 +1555,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             + half.x * half.y * abs(dir.z))
         let solidAngle = projectedArea / max(distance * distance, 1.0)
 
-        // Dot product of camera forward with direction to tile center.
-        // 1.0 = tile directly ahead; ~0 = tile at frustum edge.
-        // Remapped to [viewAlignmentMinWeight, 1.0] to preserve solid-angle
-        // contribution for peripheral tiles the frustum gate allows through.
-        let alignment = max(0, simd_dot(cameraForward, dir))
+        // View alignment: direction from camera to the CLOSEST AABB surface point,
+        // not the center.  For large anisotropic tiles (a 400 m facade, a wide floor
+        // slab) the center can be far off-axis while the visible surface is directly
+        // in front — using the center underranks these tiles when they matter most.
+        // The closest point represents "the part the camera is actually pointing toward."
+        // Falls back to cameraForward when the camera is inside the AABB (distance ≈ 0).
+        let closestPoint = simd_clamp(cameraPosition, local.boundingBox.min, local.boundingBox.max)
+        let rawClose = closestPoint - cameraPosition
+        let closeLen = simd_length(rawClose)
+        let closeDir = closeLen > 1e-4 ? rawClose / closeLen : cameraForward
+        let alignment = max(0, simd_dot(cameraForward, closeDir))
         let viewAlignment = viewAlignmentMinWeight + (1.0 - viewAlignmentMinWeight) * alignment
 
         return (solidAngle, viewAlignment)

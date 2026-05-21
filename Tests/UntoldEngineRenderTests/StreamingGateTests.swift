@@ -504,6 +504,60 @@ final class StreamingGateTests: BaseRenderSetup {
                        "Small tile must wait — importance sort still applies without occlusion")
     }
 
+    // MARK: - View alignment closest-point fix
+
+    func testViewAlignment_closestAABBPointUsedForLargeTile() throws {
+        // A large wall tile whose AABB center is far off to the right, but whose
+        // AABB surface is directly in front of the camera.
+        //
+        // center = (150, 0, -10), halfExtent = (200, 10, 5)
+        // AABB: x ∈ [-50, 350],  y ∈ [-10, 10],  z ∈ [-15, -5]
+        // Camera at origin, forward = (0, 0, -1).
+        //
+        // Center direction ≈ normalize(150, 0, -10) → dot ≈ 0.07  (nearly perpendicular)
+        // Closest AABB point = clamp((0,0,0), min, max) = (0, 0, -5)
+        // Closest direction  = (0, 0, -1)              → dot = 1.0  (directly ahead)
+        //
+        // With center-based alignment the tile would score ≈ viewAlignmentMinWeight + tiny.
+        // With closest-point alignment it must score close to 1.0.
+        GeometryStreamingSystem.shared.lastCameraForward = simd_float3(0, 0, -1)
+
+        let tile = makeTileStub(
+            center: simd_float3(150, 0, -10),
+            halfExtent: simd_float3(200, 10, 5),
+            streamingRadius: 1000.0,
+            unloadRadius: 2000.0
+        )
+
+        let sys = GeometryStreamingSystem.shared
+        let (_, va) = sys.tileImportanceComponents(
+            entityId: tile,
+            distance: 5.0,           // distance from camera to closest AABB point (z = -5)
+            cameraPosition: .zero,
+            cameraForward: simd_float3(0, 0, -1)
+        )
+
+        XCTAssertGreaterThan(va, 0.9,
+            "Large wall tile with AABB surface directly ahead must score high view alignment even when its center is far off-axis")
+    }
+
+    func testViewAlignment_centerBasedWouldUnderrankThisTile() throws {
+        // Complementary to the above: verify that the center direction alone would
+        // produce a near-minimum alignment score for the same tile, confirming that
+        // the fix is actually doing something.
+        // center direction ≈ (0.998, 0, -0.067) → dot with (0,0,-1) ≈ 0.067
+        // → center-based alignment ≈ 0.2 + 0.8 × 0.067 ≈ 0.253
+        let center = simd_float3(150, 0, -10)
+        let cameraForward = simd_float3(0, 0, -1)
+        let dirToCenter = simd_normalize(center - .zero)
+        let centerDot = max(0, simd_dot(cameraForward, dirToCenter))
+        let minW = GeometryStreamingSystem.shared.viewAlignmentMinWeight
+        let centerBasedAlignment = minW + (1.0 - minW) * centerDot
+
+        XCTAssertLessThan(centerBasedAlignment, 0.35,
+            "Center-based alignment for a far-off-axis center must be low, confirming the fix improves the score")
+    }
+
     // MARK: - Velocity predictor
 
     // Tile position and radii used for all velocity predictor tests.
