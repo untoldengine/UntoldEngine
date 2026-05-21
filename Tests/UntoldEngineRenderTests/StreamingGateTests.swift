@@ -506,7 +506,7 @@ final class StreamingGateTests: BaseRenderSetup {
 
     // MARK: - View alignment closest-point fix
 
-    func testViewAlignment_closestAABBPointUsedForLargeTile() throws {
+    func testViewAlignment_closestAABBPointUsedForLargeTile() {
         // A large wall tile whose AABB center is far off to the right, but whose
         // AABB surface is directly in front of the camera.
         //
@@ -532,16 +532,16 @@ final class StreamingGateTests: BaseRenderSetup {
         let sys = GeometryStreamingSystem.shared
         let (_, va) = sys.tileImportanceComponents(
             entityId: tile,
-            distance: 5.0,           // distance from camera to closest AABB point (z = -5)
+            distance: 5.0, // distance from camera to closest AABB point (z = -5)
             cameraPosition: .zero,
             cameraForward: simd_float3(0, 0, -1)
         )
 
         XCTAssertGreaterThan(va, 0.9,
-            "Large wall tile with AABB surface directly ahead must score high view alignment even when its center is far off-axis")
+                             "Large wall tile with AABB surface directly ahead must score high view alignment even when its center is far off-axis")
     }
 
-    func testViewAlignment_centerBasedWouldUnderrankThisTile() throws {
+    func testViewAlignment_centerBasedWouldUnderrankThisTile() {
         // Complementary to the above: verify that the center direction alone would
         // produce a near-minimum alignment score for the same tile, confirming that
         // the fix is actually doing something.
@@ -555,7 +555,7 @@ final class StreamingGateTests: BaseRenderSetup {
         let centerBasedAlignment = minW + (1.0 - minW) * centerDot
 
         XCTAssertLessThan(centerBasedAlignment, 0.35,
-            "Center-based alignment for a far-off-axis center must be low, confirming the fix improves the score")
+                          "Center-based alignment for a far-off-axis center must be low, confirming the fix improves the score")
     }
 
     // MARK: - Velocity predictor

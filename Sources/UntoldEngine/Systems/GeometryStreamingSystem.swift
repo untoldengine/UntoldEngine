@@ -301,7 +301,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         var maxX: Float
         var maxY: Float
 
-        var area: Float { max(0, maxX - minX) * max(0, maxY - minY) }
+        var area: Float {
+            max(0, maxX - minX) * max(0, maxY - minY)
+        }
 
         func intersectionArea(with other: ScreenRect) -> Float {
             let ix = max(0, min(maxX, other.maxX) - max(minX, other.minX))
@@ -840,7 +842,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 let rect = projectAABBToScreen(
                     min: local.boundingBox.min, max: local.boundingBox.max,
                     viewProj: lastViewProjMatrix,
-                    allowNearPlaneExpansion: false  // discard tiles clipping the near plane
+                    allowNearPlaneExpansion: false // discard tiles clipping the near plane
                 )
                 guard rect.area > 1e-6 else { continue } // behind or clipping camera — not a valid occluder
                 tileOccluders.append(TileOccluder(rect: rect, distance: dist))
@@ -1595,8 +1597,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     ///
     /// If every corner is behind the camera a zero-area rect is returned in both modes.
     func projectAABBToScreen(min bbMin: simd_float3, max bbMax: simd_float3,
-                              viewProj: simd_float4x4,
-                              allowNearPlaneExpansion: Bool = true) -> ScreenRect {
+                             viewProj: simd_float4x4,
+                             allowNearPlaneExpansion: Bool = true) -> ScreenRect
+    {
         let corners: [simd_float3] = [
             bbMin,
             simd_float3(bbMax.x, bbMin.y, bbMin.z),
@@ -1607,8 +1610,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             simd_float3(bbMin.x, bbMax.y, bbMax.z),
             bbMax,
         ]
-        var ndcMinX: Float =  Float.greatestFiniteMagnitude
-        var ndcMinY: Float =  Float.greatestFiniteMagnitude
+        var ndcMinX = Float.greatestFiniteMagnitude
+        var ndcMinY = Float.greatestFiniteMagnitude
         var ndcMaxX: Float = -Float.greatestFiniteMagnitude
         var ndcMaxY: Float = -Float.greatestFiniteMagnitude
         var anyBehind = false
@@ -1637,7 +1640,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             ndcMinY = min(ndcMinY, -1); ndcMaxY = max(ndcMaxY, 1)
         }
         return ScreenRect(minX: max(-1, ndcMinX), minY: max(-1, ndcMinY),
-                          maxX: min( 1, ndcMaxX), maxY: min( 1, ndcMaxY))
+                          maxX: min(1, ndcMaxX), maxY: min(1, ndcMaxY))
     }
 
     /// Maps a ScreenRect to the 8×8 NDC grid cells it overlaps, as a UInt64 bitmask.
@@ -1653,10 +1656,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // single-cell mask.  Reject before any cell computation.
         guard rect.area > 1e-6 else { return 0 }
         let gridN = 8
-        let scale = Float(gridN) * 0.5       // maps NDC [-1, 1] → [0, gridN]
-        let c0 = max(0,        Int(floor((rect.minX + 1.0) * scale)))
+        let scale = Float(gridN) * 0.5 // maps NDC [-1, 1] → [0, gridN]
+        let c0 = max(0, Int(floor((rect.minX + 1.0) * scale)))
         let c1 = min(gridN - 1, Int(floor((rect.maxX + 1.0) * scale)))
-        let r0 = max(0,        Int(floor((rect.minY + 1.0) * scale)))
+        let r0 = max(0, Int(floor((rect.minY + 1.0) * scale)))
         let r1 = min(gridN - 1, Int(floor((rect.maxY + 1.0) * scale)))
         guard c0 <= c1, r0 <= r1 else { return 0 }
         var mask: UInt64 = 0
@@ -1680,7 +1683,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// of loading — tile AABBs are opaque proxies and may over-occlude glass, sparse
     /// meshes, or concave geometry.
     func tileOcclusionScore(candidateRect: ScreenRect, distance: Float,
-                             occluders: [TileOccluder]) -> Float {
+                            occluders: [TileOccluder]) -> Float
+    {
         let candidateMask = rectToScreenMask(candidateRect)
         guard candidateMask != 0 else { return 1.0 }
         let candidateCells = candidateMask.nonzeroBitCount

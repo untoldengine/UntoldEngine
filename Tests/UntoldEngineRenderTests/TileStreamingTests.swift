@@ -218,7 +218,7 @@ final class TileComponentUnitTests: XCTestCase {
 
         // Re-enable and tick: the drain must process nothing (queue was cleared).
         batch.setEnabled(true)
-        batch.maxTileResidentDrainPerTick = Int.max  // drain everything if anything remains
+        batch.maxTileResidentDrainPerTick = Int.max // drain everything if anything remains
         batch.tick()
 
         // If the queue was not cleared on disable, the fake entities would have been
@@ -246,7 +246,7 @@ final class TileComponentUnitTests: XCTestCase {
         // (scene.exists returns false) but the queue accounting is still exercised.
         let fakeIds: Set<EntityID> = [
             0xCAFE_0001, 0xCAFE_0002, 0xCAFE_0003,
-            0xCAFE_0004, 0xCAFE_0005, 0xCAFE_0006
+            0xCAFE_0004, 0xCAFE_0005, 0xCAFE_0006,
         ]
         batch.notifyTileEntitiesResident(fakeIds)
 
@@ -283,7 +283,7 @@ final class TileComponentUnitTests: XCTestCase {
         // Calling a tick with an empty queue must not crash, even with a negative drain.
         // (Full crash-path coverage requires batching enabled + non-empty queue, which
         // is exercised by streaming integration tests that set drain to specific values.)
-        _ = sys  // suppress unused warning
+        _ = sys // suppress unused warning
     }
 
     func testTileUnloadDwell_requiresGraceAndMinimumResidency() {
@@ -401,7 +401,9 @@ final class TripleCPUBufferTests: XCTestCase {
 final class TileOcclusionSortTests: XCTestCase {
     private typealias SR = GeometryStreamingSystem.ScreenRect
     private typealias Occ = GeometryStreamingSystem.TileOccluder
-    private var sys: GeometryStreamingSystem { GeometryStreamingSystem.shared }
+    private var sys: GeometryStreamingSystem {
+        GeometryStreamingSystem.shared
+    }
 
     // MARK: ScreenRect geometry
 
@@ -467,13 +469,13 @@ final class TileOcclusionSortTests: XCTestCase {
         // Identity VP: clip = world position (w=1), NDC = world x/y.
         let rect = sys.projectAABBToScreen(
             min: simd_float3(-0.5, -0.5, -0.5),
-            max: simd_float3( 0.5,  0.5,  0.5),
+            max: simd_float3(0.5, 0.5, 0.5),
             viewProj: matrix_identity_float4x4
         )
         XCTAssertEqual(rect.minX, -0.5, accuracy: 1e-5)
         XCTAssertEqual(rect.minY, -0.5, accuracy: 1e-5)
-        XCTAssertEqual(rect.maxX,  0.5, accuracy: 1e-5)
-        XCTAssertEqual(rect.maxY,  0.5, accuracy: 1e-5)
+        XCTAssertEqual(rect.maxX, 0.5, accuracy: 1e-5)
+        XCTAssertEqual(rect.maxY, 0.5, accuracy: 1e-5)
     }
 
     func testProjectAABBToScreen_nearPlaneClip_returnsZeroAreaWhenExpansionDisabled() {
@@ -481,8 +483,8 @@ final class TileOcclusionSortTests: XCTestCase {
         // With identity VP w = 1 for all corners, so we need a VP that puts some corners behind.
         // Construct a matrix that flips the z convention so z > 0 corners get w < 0.
         var flipZ = matrix_identity_float4x4
-        flipZ.columns.2.z = -1  // clip.w = 1, clip.z = -z → corners at z > 0 get negative z in clip
-        flipZ.columns.3.w = -1  // make w negative for all corners → all behind near plane
+        flipZ.columns.2.z = -1 // clip.w = 1, clip.z = -z → corners at z > 0 get negative z in clip
+        flipZ.columns.3.w = -1 // make w negative for all corners → all behind near plane
         // All corners behind → hasValid = false → zero area regardless of mode.
         // For a partial clip, mix: use a box spanning z = -1 to z = 1 with a VP
         // that maps z = -1 to w = 2 (in front) and z = 1 to w = 0 (on near plane).
@@ -494,25 +496,25 @@ final class TileOcclusionSortTests: XCTestCase {
         // Use a perspective-like matrix: w_clip = -z_world (front = negative z world).
         var perspLike = matrix_identity_float4x4
         perspLike.columns.2 = simd_float4(0, 0, 0, -1) // w_clip = -z_world
-        perspLike.columns.3 = simd_float4(0, 0, 1,  0) // z_clip = 1 (constant)
+        perspLike.columns.3 = simd_float4(0, 0, 1, 0) // z_clip = 1 (constant)
 
         // Box from z = -2 to z = 2: corners at z=-2 → w=2 (in front),
         //                            corners at z= 2 → w=-2 (behind).
         // anyBehind = true, hasValid = true.
         let rect_occluder = sys.projectAABBToScreen(
             min: simd_float3(-1, -1, -2),
-            max: simd_float3( 1,  1,  2),
+            max: simd_float3(1, 1, 2),
             viewProj: perspLike,
-            allowNearPlaneExpansion: false   // occluder mode
+            allowNearPlaneExpansion: false // occluder mode
         )
         XCTAssertEqual(rect_occluder.area, 0, accuracy: 1e-6,
                        "Near-plane-clipping tile must return zero-area in occluder mode to prevent full-screen false occlusion")
 
         let rect_candidate = sys.projectAABBToScreen(
             min: simd_float3(-1, -1, -2),
-            max: simd_float3( 1,  1,  2),
+            max: simd_float3(1, 1, 2),
             viewProj: perspLike,
-            allowNearPlaneExpansion: true    // candidate mode — keeps conservative expansion
+            allowNearPlaneExpansion: true // candidate mode — keeps conservative expansion
         )
         XCTAssertGreaterThan(rect_candidate.area, 0,
                              "Near-plane-clipping tile must keep a non-zero footprint in candidate mode")
@@ -522,13 +524,13 @@ final class TileOcclusionSortTests: XCTestCase {
         // A very large box whose NDC corners exceed ±1 must be clamped to ±1.
         let rect = sys.projectAABBToScreen(
             min: simd_float3(-5, -5, 0),
-            max: simd_float3( 5,  5, 0),
+            max: simd_float3(5, 5, 0),
             viewProj: matrix_identity_float4x4
         )
         XCTAssertEqual(rect.minX, -1.0, accuracy: 1e-5)
         XCTAssertEqual(rect.minY, -1.0, accuracy: 1e-5)
-        XCTAssertEqual(rect.maxX,  1.0, accuracy: 1e-5)
-        XCTAssertEqual(rect.maxY,  1.0, accuracy: 1e-5)
+        XCTAssertEqual(rect.maxX, 1.0, accuracy: 1e-5)
+        XCTAssertEqual(rect.maxY, 1.0, accuracy: 1e-5)
     }
 
     // MARK: tileOcclusionScore
