@@ -563,6 +563,20 @@ func makeMeshes(from node: RuntimeAssetNode) -> [Mesh] {
     }
 }
 
+/// Pre-build Metal meshes for all renderable nodes in a runtime asset.
+/// Returns a map of nodeID → [Mesh] built via makeMeshes() — pure MTLBuffer allocation,
+/// no ECS access. Safe to call outside withWorldMutationGate.
+func prebuildNodeMeshes(from nodes: [RuntimeAssetNode]) -> [UInt32: [Mesh]] {
+    var result: [UInt32: [Mesh]] = [:]
+    for node in nodes where !node.primitives.isEmpty {
+        let meshes = makeMeshes(from: node)
+        if !meshes.isEmpty {
+            result[node.id] = meshes
+        }
+    }
+    return result
+}
+
 /// Register one RuntimeAssetNode as a zero-GPU OCC stub entity.
 ///
 /// Creates the ECS presence (transform, scenegraph, streaming component) with no GPU allocation.
@@ -721,9 +735,12 @@ private func registerUntoldNodePayload(
     entityId: EntityID,
     node: RuntimeAssetNode,
     nodesByID: [UInt32: RuntimeAssetNode],
-    url: URL
+    url: URL,
+    prebuiltMeshes: [Mesh]? = nil
 ) -> Bool {
-    let meshes = makeMeshes(from: node)
+    // Use pre-built meshes when provided (built outside withWorldMutationGate to avoid
+    // long gate holds); fall back to makeMeshes() for synchronous call sites.
+    let meshes = prebuiltMeshes ?? makeMeshes(from: node)
     guard !meshes.isEmpty else { return false }
 
     associateMeshesToEntity(entityId: entityId, meshes: meshes)
@@ -801,7 +818,8 @@ private func registerUntoldRuntimeAsset(
     url: URL,
     filename: String,
     withExtension: String,
-    assetName: String? = nil
+    assetName: String? = nil,
+    prebuiltMeshes: [UInt32: [Mesh]] = [:]
 ) -> Bool {
     guard !runtimeAsset.nodes.isEmpty else {
         handleError(.assetDataMissing, filename)
@@ -827,7 +845,13 @@ private func registerUntoldRuntimeAsset(
             return false
         }
 
-        guard registerUntoldNodePayload(entityId: entityId, node: matchedNode, nodesByID: nodesByID, url: url) else {
+        guard registerUntoldNodePayload(
+            entityId: entityId,
+            node: matchedNode,
+            nodesByID: nodesByID,
+            url: url,
+            prebuiltMeshes: prebuiltMeshes[matchedNode.id]
+        ) else {
             handleError(.assetDataMissing, "Node '\(assetName)' in '\(filename).\(withExtension)' has no renderable primitives")
             return false
         }
@@ -897,7 +921,13 @@ private func registerUntoldRuntimeAsset(
             continue
         }
 
-        _ = registerUntoldNodePayload(entityId: targetEntityId, node: node, nodesByID: nodesByID, url: url)
+        _ = registerUntoldNodePayload(
+            entityId: targetEntityId,
+            node: node,
+            nodesByID: nodesByID,
+            url: url,
+            prebuiltMeshes: prebuiltMeshes[node.id]
+        )
     }
 
     // Register animation clips embedded in the asset (e.g. redplayer.untold walk/run cycles).
@@ -1090,6 +1120,13 @@ public func setEntityMeshAsync(
                 }
             }
 
+            // Pre-build Metal buffers for all renderable nodes BEFORE acquiring the gate.
+            // makeMeshes() allocates MTLBuffers — pure GPU-resource work with no ECS access.
+            // Keeping this inside withWorldMutationGate was the root cause of 30-40ms gate
+            // holds during HLOD and LOD tile registration, which blocked the main thread.
+            // OCC path builds meshes separately (CPU→GPU upload), so no pre-build needed there.
+            let prebuiltMeshes: [UInt32: [Mesh]] = useOCC ? [:] : prebuildNodeMeshes(from: runtimeAsset.nodes)
+
             let didLoad: Bool = withWorldMutationGate {
                 if hasComponent(entityId: entityId, componentType: LocalTransformComponent.self) == false {
                     registerTransformComponent(entityId: entityId)
@@ -1116,7 +1153,8 @@ public func setEntityMeshAsync(
                         url: url,
                         filename: filename,
                         withExtension: withExtension,
-                        assetName: assetName
+                        assetName: assetName,
+                        prebuiltMeshes: prebuiltMeshes
                     )
                 }
 

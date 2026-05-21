@@ -643,12 +643,19 @@ public class BatchingSystem: @unchecked Sendable {
         guard batchingEnabled else { return }
         guard scene.exists(event.entityId) else { return }
 
-        pendingEntityRemovals.insert(event.entityId)
-        pendingEntityAdditions.insert(event.entityId)
-
-        if let cellId = entityToCellMembership[event.entityId] {
-            dirtyCells.insert(cellId)
+        // Only queue removal when the entity is already committed to a batch cell.
+        // For unbatched entities, removeEntityFromBatchingTracking is a no-op (it exits
+        // immediately on a nil entityToCellMembership lookup) but still costs an
+        // iteration in the removal loop each tick.
+        // The premature dirtyCells.insert is also omitted: removeEntityFromBatchingTracking
+        // calls markCellDirtyForFallback during the tick which inserts the same cell —
+        // the early insert only caused a redundant estimateCellWork() call on the same tick.
+        if entityToCellMembership[event.entityId] != nil {
+            pendingEntityRemovals.insert(event.entityId)
         }
+
+        // Always re-queue for addition so the entity rebatches under its new LOD key.
+        pendingEntityAdditions.insert(event.entityId)
     }
 
     private func handleResidencyChange(_ event: AssetResidencyChangedEvent) {
