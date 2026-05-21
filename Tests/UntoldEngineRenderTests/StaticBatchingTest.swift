@@ -1613,6 +1613,109 @@ final class StaticBatchingTest: BaseRenderSetup {
         print("   Chair batch ID: \(chairBatchId?.uuidString ?? "nil")")
     }
 
+    func testRuntimeOpacityChangeRemovesBatchedEntity() {
+        // Verify that calling updateMaterialOpacity on a batched entity correctly
+        // removes it from the batch so the transparency pass can render it.
+        // This covers the client scenario: model loaded from .json, opacity changed at runtime.
+        let meshes = BasicPrimitives.createSphere()
+
+        var entities: [EntityID] = []
+        for i in 0 ..< 3 {
+            let entity = createEntity()
+
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/opacity_test_\(i)")
+            }
+
+            if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                transform.position = simd_float3(Float(i) * 2.0, 0, 0)
+            }
+
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+            entities.append(entity)
+        }
+
+        enableBatching(true)
+        generateBatches()
+
+        let target = entities[0]
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: target),
+                      "❌ Entity should be batched before opacity change")
+
+        // Simulate the client call: change opacity at runtime
+        updateMaterialOpacity(entityId: target, opacity: 0.5)
+
+        // Process the pending batch update triggered by the opacity change
+        BatchingSystem.shared.tick()
+
+        // Entity must leave the batch so the transparency pass can pick it up
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: target),
+                       "❌ Entity should be removed from batch after opacity change (transparency pass must render it)")
+
+        // Material must have switched to blend mode
+        let alphaMode = getMaterialAlphaMode(entityId: target)
+        XCTAssertEqual(alphaMode, .blend,
+                       "❌ Alpha mode should be .blend after opacity change")
+
+        // The opacity value must be stored in the material
+        let opacity = getMaterialOpacity(entityId: target)
+        XCTAssertEqual(opacity, 0.5, accuracy: 0.001,
+                       "❌ Material opacity should reflect the requested value")
+
+        // Other entities in the same cell should remain batched
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: entities[1]),
+                      "❌ Other entities in the cell should remain batched")
+    }
+
+    func testRuntimeOpacityRestoreRebatchesEntity() {
+        // Verify that restoring opacity to 1.0 on a previously transparent batched entity
+        // returns it to the batch on the next rebuild.
+        let meshes = BasicPrimitives.createSphere()
+
+        var entities: [EntityID] = []
+        for i in 0 ..< 3 {
+            let entity = createEntity()
+
+            if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
+                renderComponent.mesh = meshes
+                renderComponent.assetURL = URL(fileURLWithPath: "/dev/null/opacity_restore_\(i)")
+            }
+
+            if let transform = scene.assign(to: entity, component: LocalTransformComponent.self) {
+                transform.position = simd_float3(Float(i) * 2.0, 0, 0)
+            }
+
+            _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+            setEntityStaticBatchComponent(entityId: entity)
+            entities.append(entity)
+        }
+
+        enableBatching(true)
+        generateBatches()
+
+        let target = entities[0]
+
+        // Make transparent
+        updateMaterialOpacity(entityId: target, opacity: 0.5)
+        BatchingSystem.shared.tick()
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: target),
+                       "❌ Entity should be unbatched after going transparent")
+
+        // Restore to fully opaque
+        updateMaterialOpacity(entityId: target, opacity: 1.0)
+        // tick processes pending changes and schedules a cell rebuild
+        BatchingSystem.shared.tick()
+        // Second tick executes the rebuild (cell moves from batchPending → built)
+        BatchingSystem.shared.tick()
+
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: target),
+                      "❌ Entity should be re-batched after opacity restored to 1.0")
+        XCTAssertEqual(getMaterialAlphaMode(entityId: target), .opaque,
+                       "❌ Alpha mode should revert to .opaque when opacity is restored to 1.0")
+    }
+
     func testLegacyEmbeddedPseudoURLsDoNotSplitBatching() throws {
         // Legacy embedded pseudo-URLs were mesh-scoped:
         // usdz-embedded://<meshName>/embedded_Basecolor_map
