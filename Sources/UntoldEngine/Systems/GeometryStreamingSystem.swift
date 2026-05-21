@@ -149,6 +149,12 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// geometry and are cancelled immediately when out of range.
     public var unloadGracePeriod: Float = 3.0
 
+    /// Minimum seconds a parsed full tile remains resident before normal unload
+    /// or geometry-pressure eviction may tear it down. This prevents large
+    /// floor/facade tiles from appearing briefly and disappearing again while the
+    /// camera settles near a streaming boundary.
+    public var minimumParsedTileResidentSeconds: Double = 8.0
+
     /// Total CPU memory (MB) allowed to be in-flight across all concurrent tile parses.
     /// Small tiles consume little budget and can parse in parallel; a single large tile
     /// may saturate the budget and serialize naturally.
@@ -409,6 +415,23 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     func markLoadedTileEntity(_ entityId: EntityID) {
         withStateLock { _ = loadedTileEntities.insert(entityId) }
+    }
+
+    func tileUnloadDwellSatisfied(_ tileComp: TileComponent, now: CFAbsoluteTime) -> Bool {
+        guard tileComp.pendingUnloadSince > 0,
+              now - tileComp.pendingUnloadSince >= Double(unloadGracePeriod)
+        else {
+            return false
+        }
+
+        guard tileComp.state == .parsed,
+              tileComp.parsedResidentSince > 0,
+              minimumParsedTileResidentSeconds > 0
+        else {
+            return true
+        }
+
+        return now - tileComp.parsedResidentSince >= minimumParsedTileResidentSeconds
     }
 
     func unmarkLoadedTileEntity(_ entityId: EntityID) {
@@ -1013,7 +1036,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 // Both .parsing and .parsed honour the grace period (see comment above).
                 if tileComp.pendingUnloadSince == 0 {
                     tileComp.pendingUnloadSince = now
-                } else if now - tileComp.pendingUnloadSince >= Double(unloadGracePeriod) {
+                } else if tileUnloadDwellSatisfied(tileComp, now: now) {
                     tileUnloadCandidates.append(entityId)
                 }
             }
@@ -1037,7 +1060,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             if effectiveUnloadDist2 > tileComp.unloadRadius {
                 if tileComp.pendingUnloadSince == 0 {
                     tileComp.pendingUnloadSince = now
-                } else if now - tileComp.pendingUnloadSince >= Double(unloadGracePeriod) {
+                } else if tileUnloadDwellSatisfied(tileComp, now: now) {
                     tileUnloadCandidates.append(entityId)
                 }
             } else if tileComp.pendingUnloadSince != 0 {
@@ -1560,6 +1583,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     tc.loadTask = nil
                     if tc.state == .parsing { tc.state = .unloaded }
                     tc.pendingUnloadSince = 0
+                    tc.parsedResidentSince = 0
                     // Cancel any in-flight HLOD load and reset state.
                     tc.hlodLoadTask?.cancel()
                     tc.hlodLoadTask = nil

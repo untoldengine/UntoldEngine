@@ -543,6 +543,7 @@ extension GeometryStreamingSystem {
                         tc.uploadedOCCStubs = 0
                         tc.failureCount = 0 // clear retry counter on successful parse
                         tc.state = .parsed
+                        tc.parsedResidentSince = CFAbsoluteTimeGetCurrent()
                         self.markLoadedTileEntity(entityId)
                         self.recordTileRepresentationSwap(entityId: entityId, tileId: tileId, representation: "tile:parsed")
 
@@ -768,6 +769,7 @@ extension GeometryStreamingSystem {
             tileComp.totalOCCStubs = 0
             tileComp.uploadedOCCStubs = 0
             tileComp.pendingUnloadSince = 0
+            tileComp.parsedResidentSince = 0
 
             // Reset stub so the next approach triggers a fresh loadTile() call.
             tileComp.state = .unloaded

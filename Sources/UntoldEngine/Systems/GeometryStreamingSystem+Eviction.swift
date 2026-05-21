@@ -117,6 +117,7 @@ extension GeometryStreamingSystem {
 
         var candidates: [(entityId: EntityID, kind: TileEvictionKind, distance: Float)] = []
         var seen: Set<EntityID> = []
+        let now = CFAbsoluteTimeGetCurrent()
 
         for entityId in loadedTileEntitiesSnapshot() {
             guard scene.exists(entityId),
@@ -127,6 +128,9 @@ extension GeometryStreamingSystem {
             // Protect tiles within their own streaming radius — they would be re-dispatched
             // immediately, causing a load/evict cycle that wastes bandwidth and CPU.
             guard distance > tileComp.streamingRadius else { continue }
+            guard tileComp.parsedResidentSince == 0 ||
+                now - tileComp.parsedResidentSince >= minimumParsedTileResidentSeconds
+            else { continue }
             candidates.append((entityId, .fullTile, distance))
             seen.insert(entityId)
         }
