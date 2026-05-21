@@ -1648,6 +1648,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// understated.  Using a bitmask means unioning two overlapping occluders with `|`
     /// produces the correct union area — no double-counting.
     func rectToScreenMask(_ rect: ScreenRect) -> UInt64 {
+        // A zero-area rect (e.g. from an all-behind-camera tile) maps min == max to the
+        // same cell on each axis, passing the c0 <= c1 guard and producing a spurious
+        // single-cell mask.  Reject before any cell computation.
+        guard rect.area > 1e-6 else { return 0 }
         let gridN = 8
         let scale = Float(gridN) * 0.5       // maps NDC [-1, 1] → [0, gridN]
         let c0 = max(0,        Int(floor((rect.minX + 1.0) * scale)))

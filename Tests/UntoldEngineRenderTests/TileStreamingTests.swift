@@ -404,6 +404,31 @@ final class TileOcclusionSortTests: XCTestCase {
         XCTAssertEqual(a.intersectionArea(with: b), 0, accuracy: 1e-6)
     }
 
+    func testScreenRect_zeroAreaRectMapsToZeroMask() {
+        // ScreenRect(0,0,0,0): minX == maxX and minY == maxY both map to cell 4 via
+        // floor((0+1)*4) = 4.  Without the area guard, c0 == c1 and r0 == r1 both
+        // pass the c0 <= c1 check, producing a spurious single-cell mask (bit 36 set).
+        // With the guard, rectToScreenMask returns 0 immediately.
+        let zeroRect = SR(minX: 0, minY: 0, maxX: 0, maxY: 0)
+        XCTAssertEqual(zeroRect.area, 0, accuracy: 1e-6)
+        let mask = sys.rectToScreenMask(zeroRect)
+        XCTAssertEqual(mask, 0,
+                       "Zero-area rect must produce a zero bitmask — equal min/max map to the same cell and must not count as coverage")
+    }
+
+    func testTileOcclusionScore_zeroAreaCandidateReturnsOne() {
+        // A candidate whose projected AABB has zero area (e.g. all corners behind camera)
+        // must be treated as fully visible (score = 1.0), not spuriously occluded by
+        // the single grid cell that a zero-area rect incorrectly maps to.
+        let zeroCandidate = SR(minX: 0, minY: 0, maxX: 0, maxY: 0)
+        let fullOccluder = Occ(rect: SR(minX: -1, minY: -1, maxX: 1, maxY: 1), distance: 10)
+        let score = sys.tileOcclusionScore(
+            candidateRect: zeroCandidate, distance: 50, occluders: [fullOccluder]
+        )
+        XCTAssertEqual(score, 1.0, accuracy: 1e-5,
+                       "Zero-area candidate must return 1.0 — it has no screen footprint to occlude")
+    }
+
     // MARK: projectAABBToScreen
 
     func testProjectAABBToScreen_unitBoxWithIdentityMatrix() {
