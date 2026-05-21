@@ -273,6 +273,151 @@ final class TripleCPUBufferTests: XCTestCase {
     }
 }
 
+// MARK: - Tile occlusion sort unit tests
+
+/// Unit tests for the occlusion-scoring components of view-importance tile sorting.
+/// Uses GeometryStreamingSystem.shared only as a method host — no ECS or GPU state
+/// is created or modified.  Tests cover ScreenRect geometry, projectAABBToScreen
+/// projection, and tileOcclusionScore coverage fractions with exact expected values.
+final class TileOcclusionSortTests: XCTestCase {
+    private typealias SR = GeometryStreamingSystem.ScreenRect
+    private typealias Occ = GeometryStreamingSystem.TileOccluder
+    private var sys: GeometryStreamingSystem { GeometryStreamingSystem.shared }
+
+    // MARK: ScreenRect geometry
+
+    func testScreenRect_areaOfUnitSquare() {
+        let r = SR(minX: -0.5, minY: -0.5, maxX: 0.5, maxY: 0.5)
+        XCTAssertEqual(r.area, 1.0, accuracy: 1e-5)
+    }
+
+    func testScreenRect_areaOfZeroWidthRectIsZero() {
+        let r = SR(minX: 0, minY: 0, maxX: 0, maxY: 0)
+        XCTAssertEqual(r.area, 0, accuracy: 1e-6,
+                       "Degenerate rect (zero area) must return 0 — used for behind-camera tiles")
+    }
+
+    func testScreenRect_intersectionArea_fullyContained() {
+        let outer = SR(minX: -1, minY: -1, maxX: 1, maxY: 1)
+        let inner = SR(minX: -0.5, minY: -0.5, maxX: 0.5, maxY: 0.5)
+        XCTAssertEqual(outer.intersectionArea(with: inner), 1.0, accuracy: 1e-5,
+                       "Intersection of contained rect must equal the inner rect area")
+    }
+
+    func testScreenRect_intersectionArea_partialOverlap() {
+        // a = [0,1]×[0,1], b = [0.5,1.5]×[0.5,1.5] → overlap = [0.5,1]×[0.5,1] = 0.25
+        let a = SR(minX: 0, minY: 0, maxX: 1, maxY: 1)
+        let b = SR(minX: 0.5, minY: 0.5, maxX: 1.5, maxY: 1.5)
+        XCTAssertEqual(a.intersectionArea(with: b), 0.25, accuracy: 1e-5)
+    }
+
+    func testScreenRect_intersectionArea_noOverlap() {
+        let a = SR(minX: 0, minY: 0, maxX: 1, maxY: 1)
+        let b = SR(minX: 2, minY: 2, maxX: 3, maxY: 3)
+        XCTAssertEqual(a.intersectionArea(with: b), 0, accuracy: 1e-6)
+    }
+
+    // MARK: projectAABBToScreen
+
+    func testProjectAABBToScreen_unitBoxWithIdentityMatrix() {
+        // Identity VP: clip = world position (w=1), NDC = world x/y.
+        let rect = sys.projectAABBToScreen(
+            min: simd_float3(-0.5, -0.5, -0.5),
+            max: simd_float3( 0.5,  0.5,  0.5),
+            viewProj: matrix_identity_float4x4
+        )
+        XCTAssertEqual(rect.minX, -0.5, accuracy: 1e-5)
+        XCTAssertEqual(rect.minY, -0.5, accuracy: 1e-5)
+        XCTAssertEqual(rect.maxX,  0.5, accuracy: 1e-5)
+        XCTAssertEqual(rect.maxY,  0.5, accuracy: 1e-5)
+    }
+
+    func testProjectAABBToScreen_ndcOverflowIsClamped() {
+        // A very large box whose NDC corners exceed ±1 must be clamped to ±1.
+        let rect = sys.projectAABBToScreen(
+            min: simd_float3(-5, -5, 0),
+            max: simd_float3( 5,  5, 0),
+            viewProj: matrix_identity_float4x4
+        )
+        XCTAssertEqual(rect.minX, -1.0, accuracy: 1e-5)
+        XCTAssertEqual(rect.minY, -1.0, accuracy: 1e-5)
+        XCTAssertEqual(rect.maxX,  1.0, accuracy: 1e-5)
+        XCTAssertEqual(rect.maxY,  1.0, accuracy: 1e-5)
+    }
+
+    // MARK: tileOcclusionScore
+
+    func testTileOcclusionScore_emptyOccluderListReturnsOne() {
+        let candidate = SR(minX: -0.5, minY: -0.5, maxX: 0.5, maxY: 0.5)
+        let score = sys.tileOcclusionScore(
+            candidateRect: candidate, distance: 50, occluders: []
+        )
+        XCTAssertEqual(score, 1.0, accuracy: 1e-5,
+                       "No occluders — tile is fully visible")
+    }
+
+    func testTileOcclusionScore_occluderBeyondCandidateIsIgnored() {
+        let candidate = SR(minX: -0.5, minY: -0.5, maxX: 0.5, maxY: 0.5)
+        // Occluder is farther (dist 100) than the candidate (dist 50) — must be skipped.
+        let occluder = Occ(rect: SR(minX: -1, minY: -1, maxX: 1, maxY: 1), distance: 100)
+        let score = sys.tileOcclusionScore(
+            candidateRect: candidate, distance: 50, occluders: [occluder]
+        )
+        XCTAssertEqual(score, 1.0, accuracy: 1e-5,
+                       "Occluder beyond the candidate must not reduce the score")
+    }
+
+    func testTileOcclusionScore_fullyOccludedReturnsZero() {
+        let candidate = SR(minX: -0.5, minY: -0.5, maxX: 0.5, maxY: 0.5)
+        // Closer occluder covers the candidate entirely.
+        let occluder = Occ(rect: SR(minX: -1, minY: -1, maxX: 1, maxY: 1), distance: 10)
+        let score = sys.tileOcclusionScore(
+            candidateRect: candidate, distance: 50, occluders: [occluder]
+        )
+        XCTAssertEqual(score, 0.0, accuracy: 1e-5,
+                       "Candidate fully covered by a closer occluder must score 0")
+    }
+
+    func testTileOcclusionScore_halfCoveredReturnsHalf() {
+        // Candidate [0,1]×[0,1], area = 1.0. Occluder covers [0,0.5]×[0,1], overlap = 0.5.
+        let candidate = SR(minX: 0, minY: 0, maxX: 1, maxY: 1)
+        let occluder = Occ(rect: SR(minX: 0, minY: 0, maxX: 0.5, maxY: 1), distance: 10)
+        let score = sys.tileOcclusionScore(
+            candidateRect: candidate, distance: 50, occluders: [occluder]
+        )
+        XCTAssertEqual(score, 0.5, accuracy: 1e-4,
+                       "50% covered candidate must score 0.5")
+    }
+
+    func testTileOcclusionScore_coverageBelowThresholdIsNotZero() {
+        let old = sys.occlusionFullThreshold
+        sys.occlusionFullThreshold = 0.85
+        defer { sys.occlusionFullThreshold = old }
+
+        // Occluder covers 80% of the candidate — below the 85% threshold, so score > 0.
+        let candidate = SR(minX: 0, minY: 0, maxX: 1, maxY: 1)
+        let occluder = Occ(rect: SR(minX: 0, minY: 0, maxX: 0.8, maxY: 1), distance: 10)
+        let score = sys.tileOcclusionScore(
+            candidateRect: candidate, distance: 50, occluders: [occluder]
+        )
+        XCTAssertGreaterThan(score, 0,
+                             "80% coverage is below the 85% threshold — score must not be zero")
+        XCTAssertEqual(score, 0.2, accuracy: 1e-4,
+                       "Uncovered fraction = 1 - 0.8 = 0.2")
+    }
+
+    func testTileOcclusionScore_noOverlapReturnsOne() {
+        // Occluder is closer but covers a completely different screen region.
+        let candidate = SR(minX: 0.5, minY: 0.5, maxX: 1, maxY: 1)
+        let occluder = Occ(rect: SR(minX: -1, minY: -1, maxX: 0, maxY: 0), distance: 10)
+        let score = sys.tileOcclusionScore(
+            candidateRect: candidate, distance: 50, occluders: [occluder]
+        )
+        XCTAssertEqual(score, 1.0, accuracy: 1e-5,
+                       "Non-overlapping occluder must not reduce the score")
+    }
+}
+
 // MARK: - LOD hysteresis integration tests
 
 /// Verifies that the GeometryStreamingSystem respects `lodHysteresisFactor`

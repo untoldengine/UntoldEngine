@@ -344,13 +344,13 @@ final class StreamingGateTests: BaseRenderSetup {
         // (projectedArea = 50 vs 2) and must be dispatched first.
         let largeTile = makeTileStub(
             center: simd_float3(0, 0, -55),
-            halfExtent: simd_float3(5, 5, 5),   // AABB max-z = -50 → surface dist = 50 m
+            halfExtent: simd_float3(5, 5, 5), // AABB max-z = -50 → surface dist = 50 m
             streamingRadius: 200.0,
             unloadRadius: 400.0
         )
         let smallTile = makeTileStub(
             center: simd_float3(0, 0, -51),
-            halfExtent: simd_float3(1, 1, 1),   // AABB max-z = -50 → surface dist = 50 m
+            halfExtent: simd_float3(1, 1, 1), // AABB max-z = -50 → surface dist = 50 m
             streamingRadius: 200.0,
             unloadRadius: 400.0
         )
@@ -378,13 +378,13 @@ final class StreamingGateTests: BaseRenderSetup {
         // On-axis: dot((0,0,-1),(0,0,-1)) = 1.0  → viewAlignment = 1.0
         // Off-axis: dot((0,0,-1),(1,0,0)) = 0.0  → viewAlignment = 0.2 (minWeight)
         let onAxisTile = makeTileStub(
-            center: simd_float3(0, 0, -51),   // directly ahead; surface at z = -50
+            center: simd_float3(0, 0, -51), // directly ahead; surface at z = -50
             halfExtent: simd_float3(1, 1, 1),
             streamingRadius: 200.0,
             unloadRadius: 400.0
         )
         let offAxisTile = makeTileStub(
-            center: simd_float3(51, 0, 0),    // 90° off-axis; surface at x = 50
+            center: simd_float3(51, 0, 0), // 90° off-axis; surface at x = 50
             halfExtent: simd_float3(1, 1, 1),
             streamingRadius: 200.0,
             unloadRadius: 400.0
@@ -415,7 +415,7 @@ final class StreamingGateTests: BaseRenderSetup {
         // the close tile wins despite having a ~400× smaller solid angle.
         let closeSmallTile = makeTileStub(
             center: simd_float3(0, 0, -31),
-            halfExtent: simd_float3(1, 1, 1),   // surface at z = -30 → distance 30 m
+            halfExtent: simd_float3(1, 1, 1), // surface at z = -30 → distance 30 m
             streamingRadius: 200.0,
             unloadRadius: 400.0
         )
@@ -447,7 +447,7 @@ final class StreamingGateTests: BaseRenderSetup {
         // (≈0.002) by ~400×.  It must load first despite being 2× farther away.
         let closeSmallTile = makeTileStub(
             center: simd_float3(0, 0, -31),
-            halfExtent: simd_float3(1, 1, 1),   // distance 30 m, solidAngle ≈ 0.002
+            halfExtent: simd_float3(1, 1, 1), // distance 30 m, solidAngle ≈ 0.002
             streamingRadius: 200.0,
             unloadRadius: 400.0
         )

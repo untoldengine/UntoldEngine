@@ -228,7 +228,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     var lastCameraPosition: simd_float3?
     var cameraVelocity: simd_float3 = .zero
-    var lastCameraForward: simd_float3 = simd_float3(0, 0, -1)
+    var lastCameraForward: simd_float3 = .init(0, 0, -1)
+    var lastViewProjMatrix: simd_float4x4 = matrix_identity_float4x4
 
     // MARK: - Frustum Gate
 
@@ -269,6 +270,37 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// peripheral tile still contributes its solid angle rather than scoring zero.
     /// Range [0, 1].  Default 0.2.
     public var viewAlignmentMinWeight: Float = 0.2
+
+    /// When true, tile load candidates are additionally weighted by how much
+    /// of their screen-space footprint is already covered by closer loaded tiles.
+    /// A tile 100% covered by a loaded occluder scores 0 and is deprioritised
+    /// without being excluded — it will still load once the slot is free.
+    /// Default: true.  Set to false to disable occlusion weighting.
+    public var enableOcclusionSort: Bool = true
+
+    /// Coverage fraction at which a tile is treated as fully occluded and
+    /// receives occlusionScore = 0.  A tile 85% covered by loaded geometry
+    /// is unlikely to contribute meaningfully to the visible scene.
+    /// Range (0, 1].  Default 0.85.
+    public var occlusionFullThreshold: Float = 0.85
+
+    // Screen-space rectangle in NDC [-1, 1] × [-1, 1].
+    // Used to represent the projected AABB footprint of a tile for occlusion scoring.
+    struct TileOccluder { let rect: ScreenRect; let distance: Float }
+    struct ScreenRect {
+        var minX: Float
+        var minY: Float
+        var maxX: Float
+        var maxY: Float
+
+        var area: Float { max(0, maxX - minX) * max(0, maxY - minY) }
+
+        func intersectionArea(with other: ScreenRect) -> Float {
+            let ix = max(0, min(maxX, other.maxX) - max(minX, other.minX))
+            let iy = max(0, min(maxY, other.maxY) - max(minY, other.minY))
+            return ix * iy
+        }
+    }
 
     // MARK: - OS Memory Pressure
 
@@ -628,6 +660,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             let fwd = simd_float3(-ev.columns.0.z, -ev.columns.1.z, -ev.columns.2.z)
             let len = simd_length(fwd)
             if len > 1e-6 { lastCameraForward = fwd / len }
+            // Cache for occlusion projection — reused by projectAABBToScreen this tick.
+            lastViewProjMatrix = simd_mul(renderInfo.perspectiveSpace, ev)
         }
 
         var loadCandidates: [(EntityID, Float, Int, Float)] = [] // (entity, distance, priority, importance)
@@ -778,7 +812,32 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // policy).  Concurrency is governed by a memory budget gate (4.4) instead
         // of a hard count: small tiles parse in parallel; one large tile saturates
         // the budget naturally.
-        var tileLoadCandidates: [(EntityID, Float, Int, Float, Float)] = [] // (entity, effectiveDist, priority, solidAngle, viewAlignment)
+
+        // Build the occluder list once per tick from already-loaded tiles.
+        // Manifest-stored bounds (LocalTransformComponent) are available for all
+        // tiles regardless of load state, so only the .parsed filter is needed —
+        // no chicken-and-egg problem.  Sorted ascending by distance so the coverage
+        // accumulation loop can exit early once it passes the candidate's distance.
+        var tileOccluders: [TileOccluder] = []
+        if enableOcclusionSort {
+            for eid in loadedTileEntitiesSnapshot() {
+                guard scene.exists(eid),
+                      let tc = scene.get(component: TileComponent.self, for: eid),
+                      tc.state == .parsed,
+                      let local = scene.get(component: LocalTransformComponent.self, for: eid)
+                else { continue }
+                let dist = calculateDistance(entityId: eid, cameraPosition: effectiveCameraPosition)
+                let rect = projectAABBToScreen(
+                    min: local.boundingBox.min, max: local.boundingBox.max,
+                    viewProj: lastViewProjMatrix
+                )
+                guard rect.area > 1e-6 else { continue } // behind camera — not a valid occluder
+                tileOccluders.append(TileOccluder(rect: rect, distance: dist))
+            }
+            tileOccluders.sort { $0.distance < $1.distance }
+        }
+
+        var tileLoadCandidates: [(EntityID, Float, Int, Float, Float, Float)] = [] // (entity, effectiveDist, priority, solidAngle, viewAlignment, occlusionScore)
         for entityId in nearbyEntities {
             guard scene.exists(entityId) else { continue }
             guard let tileComp = scene.get(component: TileComponent.self, for: entityId)
@@ -854,7 +913,24 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     cameraPosition: effectiveCameraPosition,
                     cameraForward: lastCameraForward
                 )
-                tileLoadCandidates.append((entityId, effectiveDist, tileComp.priority, sa, va))
+                // Occlusion score: fraction of this tile's screen footprint NOT
+                // covered by closer loaded tiles.  1.0 = fully visible, 0 = fully
+                // blocked.  Skipped when occluder list is empty (no loaded tiles yet)
+                // or when occlusion sort is disabled.
+                let occ: Float
+                if enableOcclusionSort, !tileOccluders.isEmpty,
+                   let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+                {
+                    let rect = projectAABBToScreen(
+                        min: local.boundingBox.min, max: local.boundingBox.max,
+                        viewProj: lastViewProjMatrix
+                    )
+                    occ = tileOcclusionScore(candidateRect: rect, distance: effectiveDist,
+                                             occluders: tileOccluders)
+                } else {
+                    occ = 1.0
+                }
+                tileLoadCandidates.append((entityId, effectiveDist, tileComp.priority, sa, va, occ))
             }
         }
         if !tileLoadCandidates.isEmpty {
@@ -886,13 +962,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             tileLoadCandidates.sort { lhs, rhs in
                 if lhs.2 != rhs.2 { return lhs.2 > rhs.2 } // priority descending
                 if enableImportanceSort {
-                    let lScore = (lhs.3 / saFloor) * lhs.4  // solidAngleNorm × viewAlignment
-                    let rScore = (rhs.3 / saFloor) * rhs.4
+                    let lScore = (lhs.3 / saFloor) * lhs.4 * lhs.5 // solidAngleNorm × viewAlignment × occlusionScore
+                    let rScore = (rhs.3 / saFloor) * rhs.4 * rhs.5
                     if abs(lScore - rScore) > 0.001 { return lScore > rScore }
                 }
                 return lhs.1 < rhs.1 // fallback: closer first
             }
-            for (entityId, _, _, _, _) in tileLoadCandidates {
+            for (entityId, _, _, _, _, _) in tileLoadCandidates {
                 // Hard cap: never exceed maxConcurrentTileLoads regardless of budget.
                 guard activeTileLoadCount() < maxConcurrentTileLoads else { break }
                 // Re-check overall geometry budget after each dispatch.
@@ -1472,8 +1548,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // Captures the actual visible footprint of anisotropic tiles (floors, walls)
         // that radius/distance treats as spheres and systematically undersizes.
         let projectedArea = 2.0 * (half.y * half.z * abs(dir.x)
-                                 + half.x * half.z * abs(dir.y)
-                                 + half.x * half.y * abs(dir.z))
+            + half.x * half.z * abs(dir.y)
+            + half.x * half.y * abs(dir.z))
         let solidAngle = projectedArea / max(distance * distance, 1.0)
 
         // Dot product of camera forward with direction to tile center.
@@ -1484,6 +1560,72 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         let viewAlignment = viewAlignmentMinWeight + (1.0 - viewAlignmentMinWeight) * alignment
 
         return (solidAngle, viewAlignment)
+    }
+
+    /// Projects an AABB into NDC screen space using the cached view-projection matrix.
+    ///
+    /// All 8 corners are transformed.  Corners with w ≤ 0 (behind the near plane)
+    /// are skipped and the remaining valid corners are expanded conservatively to the
+    /// screen edges, so partially-clipped tiles never produce garbage NDC values.
+    /// If every corner is behind the camera a zero-area rect is returned — the tile
+    /// contributes no screen coverage and should not count as an occluder.
+    func projectAABBToScreen(min bbMin: simd_float3, max bbMax: simd_float3,
+                              viewProj: simd_float4x4) -> ScreenRect {
+        let corners: [simd_float3] = [
+            bbMin,
+            simd_float3(bbMax.x, bbMin.y, bbMin.z),
+            simd_float3(bbMin.x, bbMax.y, bbMin.z),
+            simd_float3(bbMin.x, bbMin.y, bbMax.z),
+            simd_float3(bbMax.x, bbMax.y, bbMin.z),
+            simd_float3(bbMax.x, bbMin.y, bbMax.z),
+            simd_float3(bbMin.x, bbMax.y, bbMax.z),
+            bbMax,
+        ]
+        var ndcMinX: Float =  Float.greatestFiniteMagnitude
+        var ndcMinY: Float =  Float.greatestFiniteMagnitude
+        var ndcMaxX: Float = -Float.greatestFiniteMagnitude
+        var ndcMaxY: Float = -Float.greatestFiniteMagnitude
+        var anyBehind = false
+        var hasValid = false
+
+        for c in corners {
+            let clip = viewProj * simd_float4(c, 1)
+            guard clip.w > 1e-6 else { anyBehind = true; continue }
+            hasValid = true
+            let nx = clip.x / clip.w
+            let ny = clip.y / clip.w
+            ndcMinX = min(ndcMinX, nx); ndcMaxX = max(ndcMaxX, nx)
+            ndcMinY = min(ndcMinY, ny); ndcMaxY = max(ndcMaxY, ny)
+        }
+
+        guard hasValid else { return ScreenRect(minX: 0, minY: 0, maxX: 0, maxY: 0) }
+
+        // Any clipped corner conservatively expands the rect to the screen edge so
+        // partially-visible tiles don't undercount their footprint.
+        if anyBehind {
+            ndcMinX = min(ndcMinX, -1); ndcMaxX = max(ndcMaxX, 1)
+            ndcMinY = min(ndcMinY, -1); ndcMaxY = max(ndcMaxY, 1)
+        }
+        return ScreenRect(minX: max(-1, ndcMinX), minY: max(-1, ndcMinY),
+                          maxX: min( 1, ndcMaxX), maxY: min( 1, ndcMaxY))
+    }
+
+    /// Returns the fraction of `candidateRect` NOT covered by closer loaded-tile
+    /// occluders.  1.0 = fully visible, 0 = fully blocked (≥ `occlusionFullThreshold`
+    /// covered).  Occluders must be sorted ascending by distance so the loop can
+    /// short-circuit once coverage exceeds the threshold.
+    func tileOcclusionScore(candidateRect: ScreenRect, distance: Float,
+                             occluders: [TileOccluder]) -> Float {
+        let candidateArea = candidateRect.area
+        guard candidateArea > 1e-6 else { return 1.0 }
+
+        var coveredArea: Float = 0
+        for occluder in occluders {
+            guard occluder.distance < distance else { break }
+            coveredArea += candidateRect.intersectionArea(with: occluder.rect)
+            if coveredArea / candidateArea >= occlusionFullThreshold { return 0 }
+        }
+        return 1.0 - min(1.0, coveredArea / candidateArea)
     }
 
     func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
