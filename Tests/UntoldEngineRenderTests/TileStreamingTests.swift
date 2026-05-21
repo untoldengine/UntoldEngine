@@ -228,6 +228,38 @@ final class TileComponentUnitTests: XCTestCase {
         XCTAssertTrue(true, "System must survive disable/re-enable cycle with queued entities")
     }
 
+    func testNotifyTileEntitiesResident_drainStillWorksAfterQuiescenceFix() {
+        // Verifies that removing the tileParsedEntityIds pre-mark from
+        // notifyTileEntitiesResident did not break the drain mechanism.
+        // Entities must still be enqueued, drained across ticks, and leave the
+        // queue empty — just via the quiescence path instead of the bypass path.
+        let batch = BatchingSystem.shared
+        let oldDrain = batch.maxTileResidentDrainPerTick
+        defer {
+            batch.maxTileResidentDrainPerTick = oldDrain
+            batch.setEnabled(false)
+        }
+
+        batch.setEnabled(true)
+
+        // Queue 6 fake entities that don't exist in ECS — drain silently skips them
+        // (scene.exists returns false) but the queue accounting is still exercised.
+        let fakeIds: Set<EntityID> = [
+            0xCAFE_0001, 0xCAFE_0002, 0xCAFE_0003,
+            0xCAFE_0004, 0xCAFE_0005, 0xCAFE_0006
+        ]
+        batch.notifyTileEntitiesResident(fakeIds)
+
+        // Drain everything in one tick.
+        batch.maxTileResidentDrainPerTick = Int.max
+        batch.tick()
+
+        // Queue must be empty — quiescence path does not stall the drain.
+        let summary = batch.diagnosticSummary()
+        XCTAssertFalse(summary.contains("residentQueue"),
+                       "After full drain the queue must be empty whether entities use the bypass or quiescence path; got: \(summary)")
+    }
+
     func testMaxTileResidentDrainPerTick_negativeValueClampsTo1AtDrainSite() {
         let sys = GeometryStreamingSystem.shared
         let old = BatchingSystem.shared.maxTileResidentDrainPerTick
