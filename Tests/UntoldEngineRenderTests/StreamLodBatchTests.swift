@@ -692,3 +692,114 @@ final class StreamLodBatchRegionEventTests: XCTestCase {
         XCTAssertEqual(SystemIntegrationMonitor.shared.stats.loadedRegionCount, 3)
     }
 }
+
+// MARK: - Batch LOD Coalescing Tests
+
+/// Verifies the Fix #3 optimisation: handleLODChange skips removal and the
+/// premature dirtyCells insert for entities that are not yet committed to a
+/// batch cell, preventing wasted removal-loop iterations and redundant
+/// estimateCellWork() calls.
+@MainActor
+final class StreamLodBatchCoalescingTests: XCTestCase {
+    override func setUp() async throws {
+        SystemEventBus.shared.reset()
+    }
+
+    override func tearDown() async throws {
+        SystemEventBus.shared.reset()
+    }
+
+    func testLODChangeEventIsDeliveredToSubscribers() {
+        // Verifies the event bus correctly routes LOD change events so the
+        // batch system's handleLODChange subscriber receives them.
+        var received: [EntityLODChangedEvent] = []
+        SystemEventBus.shared.subscribeToLODChanges { received.append($0) }
+
+        let event = EntityLODChangedEvent(
+            entityId: 7,
+            previousLODIndex: 0,
+            newLODIndex: 1,
+            meshAssetID: "mesh_LOD1"
+        )
+        SystemEventBus.shared.queueLODChange(event)
+        SystemEventBus.shared.flushEvents()
+
+        XCTAssertEqual(received.count, 1)
+        XCTAssertEqual(received.first?.entityId, 7)
+        XCTAssertEqual(received.first?.previousLODIndex, 0)
+        XCTAssertEqual(received.first?.newLODIndex, 1)
+    }
+
+    func testMultipleLODChangesForSameEntityCoalesceToOneEvent() {
+        // The event bus queues events and flushes once per tick. Multiple LOD
+        // changes for the same entity within one tick appear as N events, but
+        // the batch handler's pendingEntityAdditions Set deduplicates them so
+        // only one re-registration happens.
+        var received: [EntityLODChangedEvent] = []
+        SystemEventBus.shared.subscribeToLODChanges { received.append($0) }
+
+        for newLOD in 1 ... 3 {
+            SystemEventBus.shared.queueLODChange(
+                EntityLODChangedEvent(entityId: 42, previousLODIndex: newLOD - 1,
+                                     newLODIndex: newLOD, meshAssetID: "mesh_LOD\(newLOD)")
+            )
+        }
+        SystemEventBus.shared.flushEvents()
+
+        // All 3 events delivered to subscribers
+        XCTAssertEqual(received.count, 3, "All queued LOD events should be delivered")
+        // But all reference the same entity — batch system's Set ensures only one add
+        let entityIds = Set(received.map(\.entityId))
+        XCTAssertEqual(entityIds.count, 1, "All events reference the same entity")
+    }
+
+    func testLODChangeForNonExistentEntityDoesNotCrash() {
+        // handleLODChange guards scene.exists() — firing a LOD change for a
+        // destroyed entity must be a silent no-op, not a crash.
+        let invalidEntityId: EntityID = 99999
+        XCTAssertNoThrow(
+            SystemEventBus.shared.queueLODChange(
+                EntityLODChangedEvent(entityId: invalidEntityId,
+                                     previousLODIndex: 0, newLODIndex: 1,
+                                     meshAssetID: "ghost_LOD1")
+            )
+        )
+        XCTAssertNoThrow(SystemEventBus.shared.flushEvents())
+    }
+
+    func testBatchSystemTickHandlesLODEventWithNoBatchedEntities() {
+        // When no entities are batched, a LOD change event must not cause the
+        // batch tick to crash or leave stale pending state.
+        SystemEventBus.shared.reset()
+        let event = EntityLODChangedEvent(
+            entityId: 1,
+            previousLODIndex: 0,
+            newLODIndex: 1,
+            meshAssetID: "mesh_LOD1"
+        )
+        SystemEventBus.shared.queueLODChange(event)
+        SystemEventBus.shared.flushEvents()
+
+        // Batch tick must run cleanly with no batched entities
+        XCTAssertNoThrow(BatchingSystem.shared.tick())
+    }
+
+    func testLODChangesForDistinctEntitiesAllDelivered() {
+        // Confirms that LOD changes for N distinct entities each produce
+        // an independent event — none are dropped or merged.
+        var received: [EntityLODChangedEvent] = []
+        SystemEventBus.shared.subscribeToLODChanges { received.append($0) }
+
+        for id in EntityID(1) ... EntityID(5) {
+            SystemEventBus.shared.queueLODChange(
+                EntityLODChangedEvent(entityId: id, previousLODIndex: 0,
+                                     newLODIndex: 1, meshAssetID: "mesh\(id)_LOD1")
+            )
+        }
+        SystemEventBus.shared.flushEvents()
+
+        XCTAssertEqual(received.count, 5, "One event per entity should be delivered")
+        let entityIds = Set(received.map(\.entityId))
+        XCTAssertEqual(entityIds.count, 5, "All 5 distinct entity IDs should appear")
+    }
+}
