@@ -20,6 +20,11 @@ public enum RenderPasses {
     public nonisolated(unsafe) static var lastShadowCasterCount: Int = 0
     public typealias RenderPassExecution = @Sendable (MTLCommandBuffer) -> Void
 
+    /// Maximum distance from the camera at which an entity is considered for shadow casting.
+    /// Entities whose closest AABB point exceeds this distance are skipped across all cascade passes.
+    /// Set to 0 to disable distance culling. Default: 40 world units.
+    public nonisolated(unsafe) static var maxShadowCastingDistance: Float = 40.0
+
     private static let runtimeState = RuntimeState()
     private static let lodDebugPalette: [simd_float3] = [
         simd_float3(1.0, 0.0, 0.0), // LOD0 = red
@@ -343,6 +348,14 @@ public enum RenderPasses {
     private static func shadowCasterEntityIds(for cascadeIdx: Int) -> [EntityID] {
         guard let frustum = shadowFrustum(for: cascadeIdx) else { return [] }
 
+        let cameraPosition: simd_float3
+        if let cam = CameraSystem.shared.activeCamera,
+           let camComp = scene.get(component: CameraComponent.self, for: cam) {
+            cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(camComp.localPosition)
+        } else {
+            cameraPosition = .zero
+        }
+
         let transformId = getComponentId(for: WorldTransformComponent.self)
         let localTransformId = getComponentId(for: LocalTransformComponent.self)
         let renderId = getComponentId(for: RenderComponent.self)
@@ -375,6 +388,11 @@ public enum RenderPasses {
                 localMax: localTransformComponent.boundingBox.max,
                 worldMatrix: worldTransformComponent.space
             )
+            if shadowEntityBeyondMaxDistance(
+                worldMin: worldMin, worldMax: worldMax,
+                cameraPosition: cameraPosition,
+                maxDistance: RenderPasses.maxShadowCastingDistance
+            ) { continue }
             if isAABBInFrustum(frustum, min: worldMin, max: worldMax) {
                 result.append(entityId)
             }
@@ -3061,4 +3079,20 @@ private func uploadAndBindLights<T>(
     // Bind
     encoder.setFragmentBuffer(buf, offset: 0, index: bufferIndex)
     return true
+}
+
+// MARK: - Shadow distance culling helper (internal — exposed for testing via @testable import)
+
+/// Returns true when the entity's AABB is farther than maxDistance from the camera.
+/// Uses closest-point-on-AABB distance so large meshes near the camera are never wrongly excluded.
+/// maxDistance == 0 disables culling (always returns false).
+func shadowEntityBeyondMaxDistance(
+    worldMin: simd_float3,
+    worldMax: simd_float3,
+    cameraPosition: simd_float3,
+    maxDistance: Float
+) -> Bool {
+    guard maxDistance > 0 else { return false }
+    let closest = simd_clamp(cameraPosition, worldMin, worldMax)
+    return simd_distance(cameraPosition, closest) > maxDistance
 }
