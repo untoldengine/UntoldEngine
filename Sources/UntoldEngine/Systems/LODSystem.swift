@@ -15,13 +15,38 @@ public class LODSystem: @unchecked Sendable {
     public static let shared = LODSystem()
     private init() {}
 
+    private var frameCounter: Int = 0
+    private var lastCameraPosition: simd_float3 = .zero
+    private var hasRunOnce: Bool = false
+
+    /// Resets throttle state. Call between tests to ensure a clean baseline.
+    public func reset() {
+        frameCounter = 0
+        lastCameraPosition = .zero
+        hasRunOnce = false
+    }
+
     public func update(deltaTime: Float) {
+        frameCounter &+= 1
+
         // Get active camera
         guard let camera = CameraSystem.shared.activeCamera,
               let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
         else { return }
 
         let cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+
+        guard lodShouldRunThisFrame(
+            frameCounter: frameCounter,
+            hasRunOnce: hasRunOnce,
+            interval: LODConfig.shared.lodUpdateFrameInterval,
+            cameraPosition: cameraPosition,
+            lastCameraPosition: lastCameraPosition,
+            displacementThreshold: LODConfig.shared.minimumCameraDisplacementForLODUpdate
+        ) else { return }
+
+        hasRunOnce = true
+        lastCameraPosition = cameraPosition
 
         // Query entities with LOD components
         let lodId = getComponentId(for: LODComponent.self)
@@ -211,4 +236,24 @@ public class LODSystem: @unchecked Sendable {
         let urlString = lodLevel.url?.absoluteString ?? "unknown"
         return "\(urlString)_LOD\(lodIndex)"
     }
+}
+
+// MARK: - Internal helpers (exposed for testing via @testable import)
+
+/// Pure decision function: returns true when the LOD system should run a full entity
+/// update this frame. Extracted from LODSystem.update() for deterministic unit testing.
+func lodShouldRunThisFrame(
+    frameCounter: Int,
+    hasRunOnce: Bool,
+    interval: Int,
+    cameraPosition: simd_float3,
+    lastCameraPosition: simd_float3,
+    displacementThreshold: Float
+) -> Bool {
+    // Always run on the very first call so entities get an initial LOD assignment.
+    guard hasRunOnce else { return true }
+    // Periodic throttle: run once every `interval` frames.
+    if frameCounter % max(1, interval) == 0 { return true }
+    // Fast-path: camera jumped far enough since last update — run immediately.
+    return simd_distance(cameraPosition, lastCameraPosition) > displacementThreshold
 }

@@ -18,6 +18,7 @@ final class LODSystemTests: XCTestCase {
 
     override func setUp() async throws {
         resetEngineTestState()
+        LODSystem.shared.reset()
         testEntity = createEntity()
         registerTransformComponent(entityId: testEntity)
     }
@@ -449,5 +450,93 @@ final class LODSystemTests: XCTestCase {
         // Entity should still have its LODComponent intact
         XCTAssertTrue(hasComponent(entityId: entity, componentType: LODComponent.self),
                       "LODComponent should still exist after update")
+    }
+
+    // MARK: - LOD Throttle Tests
+
+    func testLODThrottleConfigDefaults() {
+        XCTAssertEqual(LODConfig.shared.lodUpdateFrameInterval, 4,
+                       "Default frame interval should be 4")
+        XCTAssertEqual(LODConfig.shared.minimumCameraDisplacementForLODUpdate, 0.5, accuracy: 0.001,
+                       "Default displacement threshold should be 0.5 world units")
+    }
+
+    func testShouldRunOnFirstCall() {
+        // hasRunOnce = false → always run regardless of frame counter or position
+        XCTAssertTrue(lodShouldRunThisFrame(
+            frameCounter: 1, hasRunOnce: false, interval: 4,
+            cameraPosition: .zero, lastCameraPosition: .zero, displacementThreshold: 0.5
+        ))
+    }
+
+    func testShouldRunOnFrameInterval() {
+        // Frame 4 (4 % 4 == 0) → throttle triggers
+        XCTAssertTrue(lodShouldRunThisFrame(
+            frameCounter: 4, hasRunOnce: true, interval: 4,
+            cameraPosition: .zero, lastCameraPosition: .zero, displacementThreshold: 0.5
+        ))
+        // Frame 8 also triggers
+        XCTAssertTrue(lodShouldRunThisFrame(
+            frameCounter: 8, hasRunOnce: true, interval: 4,
+            cameraPosition: .zero, lastCameraPosition: .zero, displacementThreshold: 0.5
+        ))
+    }
+
+    func testShouldNotRunBetweenIntervals() {
+        // Frames 1-3 with a static camera should be skipped
+        for frame in [1, 2, 3] {
+            XCTAssertFalse(lodShouldRunThisFrame(
+                frameCounter: frame, hasRunOnce: true, interval: 4,
+                cameraPosition: .zero, lastCameraPosition: .zero, displacementThreshold: 0.5
+            ), "Frame \(frame) should be skipped (static camera, not on interval)")
+        }
+    }
+
+    func testShouldRunWhenCameraExceedsDisplacementThreshold() {
+        // Camera moved 1.0 unit, threshold is 0.5 → force run even off-interval
+        XCTAssertTrue(lodShouldRunThisFrame(
+            frameCounter: 2, hasRunOnce: true, interval: 4,
+            cameraPosition: simd_float3(1, 0, 0),
+            lastCameraPosition: .zero,
+            displacementThreshold: 0.5
+        ))
+    }
+
+    func testShouldNotRunWhenCameraMovedBelowThreshold() {
+        // Camera moved 0.1 unit, threshold 0.5, not on interval → skip
+        XCTAssertFalse(lodShouldRunThisFrame(
+            frameCounter: 2, hasRunOnce: true, interval: 4,
+            cameraPosition: simd_float3(0.1, 0, 0),
+            lastCameraPosition: .zero,
+            displacementThreshold: 0.5
+        ))
+    }
+
+    func testIntervalOf1RunsEveryFrame() {
+        // interval = 1 → N % 1 == 0 always → every frame triggers
+        for frame in 1 ... 10 {
+            XCTAssertTrue(lodShouldRunThisFrame(
+                frameCounter: frame, hasRunOnce: true, interval: 1,
+                cameraPosition: .zero, lastCameraPosition: .zero, displacementThreshold: 0.5
+            ), "Interval 1 should trigger every frame (failed at frame \(frame))")
+        }
+    }
+
+    func testIntervalClampedToMinimumOne() {
+        // interval = 0 is clamped to 1 → runs every frame
+        XCTAssertTrue(lodShouldRunThisFrame(
+            frameCounter: 3, hasRunOnce: true, interval: 0,
+            cameraPosition: .zero, lastCameraPosition: .zero, displacementThreshold: 0.5
+        ))
+    }
+
+    func testResetClearsThrottleState() {
+        // Reset should not crash and should make the system run on the very next update()
+        XCTAssertNoThrow(LODSystem.shared.reset())
+        // After reset, the decision function sees hasRunOnce=false → returns true
+        XCTAssertTrue(lodShouldRunThisFrame(
+            frameCounter: 2, hasRunOnce: false, interval: 4,
+            cameraPosition: .zero, lastCameraPosition: .zero, displacementThreshold: 0.5
+        ))
     }
 }

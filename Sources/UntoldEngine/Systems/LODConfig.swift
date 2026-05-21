@@ -55,4 +55,13 @@ public struct LODConfig {
     // Enable smooth transitions - Not yet implemented
     public var enableFadeTransitions: Bool = false
     public var fadeTransitionTime: Float = 0.3
+
+    /// Number of frames between full LOD entity queries.
+    /// 1 = every frame, 4 = every 4 frames (default). Higher values reduce CPU overhead
+    /// in tile-heavy scenes at the cost of slightly delayed LOD transitions.
+    public var lodUpdateFrameInterval: Int = 4
+
+    /// Camera must move at least this many world units since the last LOD update
+    /// before a new update is forced ahead of the frame-interval throttle.
+    public var minimumCameraDisplacementForLODUpdate: Float = 0.5
 }
