@@ -45,9 +45,9 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// — a spike that starves the render loop and causes the Metal command-buffer
     /// semaphore to block.
     ///
-    /// Default 12 m ≈ ±2 floors (floor band ≈ 3 m, radii ≤ 10 m for SI).
+    /// Default 5 m ≈ the current floor plus immediate vertical neighbours.
     /// Set to Float.greatestFiniteMagnitude to disable (open-world scenes with no floors).
-    public var floorProximityGateY: Float = 12.0
+    public var floorProximityGateY: Float = 5.0
 
     // MARK: - Near-Band Concurrency
 
@@ -759,7 +759,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             // per tick that spikes when the camera crosses a floor boundary.
             // Tiles already PARSED are not affected (unload is governed by their own
             // unloadRadius); the gate only suppresses new load dispatches for distant floors.
-            if floorProximityGateY < Float.greatestFiniteMagnitude,
+            if tileComp.isInterior,
+               floorProximityGateY < Float.greatestFiniteMagnitude,
                tileComp.hasFloorMetadata
             {
                 let yDist = abs(tileComp.worldYCenter - effectiveCameraPosition.y)
