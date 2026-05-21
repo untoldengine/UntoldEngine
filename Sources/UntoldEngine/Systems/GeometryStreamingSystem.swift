@@ -228,6 +228,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     var lastCameraPosition: simd_float3?
     var cameraVelocity: simd_float3 = .zero
+    var lastCameraForward: simd_float3 = simd_float3(0, 0, -1)
 
     // MARK: - Frustum Gate
 
@@ -256,12 +257,18 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
     // MARK: - Load Priority
 
-    /// When true, load candidates within the same priority tier are sorted by
-    /// screen-space importance (bounding radius / distance) instead of raw distance.
-    /// Objects that subtend a larger solid angle in the camera view are loaded first,
-    /// so a large building at 50 m beats a small prop at 45 m.
+    /// When true, tile load candidates within the same priority tier are sorted by
+    /// view-importance score (projected solid angle × view alignment) instead of
+    /// raw distance.  A large tile that fills the center of view loads before a
+    /// small tile at the same distance on the periphery.
     /// Default: true.  Set to false to revert to pure distance ordering.
     public var enableImportanceSort: Bool = true
+
+    /// Minimum view-alignment weight for tiles at the frustum edge.
+    /// Remaps the dot-product alignment from [0, 1] to [minWeight, 1.0] so a
+    /// peripheral tile still contributes its solid angle rather than scoring zero.
+    /// Range [0, 1].  Default 0.2.
+    public var viewAlignmentMinWeight: Float = 0.2
 
     // MARK: - OS Memory Pressure
 
@@ -610,6 +617,19 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // coarser than mesh stubs — a single tile pop-in is far more noticeable.
         let tileStreamingFrustum: Frustum? = enableFrustumGate ? buildStreamingFrustum(sidePad: tileFrustumGatePadding) : nil
 
+        // Extract camera forward from the view matrix for tile importance scoring.
+        // Uses the same camera component that buildStreamingFrustum reads, so no
+        // extra ECS lookup is needed beyond what is already paid this tick.
+        if let cameraId = CameraSystem.shared.activeCamera,
+           let cc = scene.get(component: CameraComponent.self, for: cameraId)
+        {
+            let ev = SceneRootTransform.shared.effectiveViewMatrix(cc.viewSpace)
+            // The third row of the view matrix is -cameraForward in right-handed view space.
+            let fwd = simd_float3(-ev.columns.0.z, -ev.columns.1.z, -ev.columns.2.z)
+            let len = simd_length(fwd)
+            if len > 1e-6 { lastCameraForward = fwd / len }
+        }
+
         var loadCandidates: [(EntityID, Float, Int, Float)] = [] // (entity, distance, priority, importance)
         var unloadCandidates: [(EntityID, Float)] = [] // (entity, distance)
 
@@ -758,7 +778,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // policy).  Concurrency is governed by a memory budget gate (4.4) instead
         // of a hard count: small tiles parse in parallel; one large tile saturates
         // the budget naturally.
-        var tileLoadCandidates: [(EntityID, Float, Int, Float)] = [] // (entity, effectiveDist, priority, importance)
+        var tileLoadCandidates: [(EntityID, Float, Int, Float, Float)] = [] // (entity, effectiveDist, priority, solidAngle, viewAlignment)
         for entityId in nearbyEntities {
             guard scene.exists(entityId) else { continue }
             guard let tileComp = scene.get(component: TileComponent.self, for: entityId)
@@ -828,7 +848,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                         continue
                     }
                 }
-                tileLoadCandidates.append((entityId, effectiveDist, tileComp.priority, importanceScore(entityId: entityId, distance: effectiveDist)))
+                let (sa, va) = tileImportanceComponents(
+                    entityId: entityId,
+                    distance: effectiveDist,
+                    cameraPosition: effectiveCameraPosition,
+                    cameraForward: lastCameraForward
+                )
+                tileLoadCandidates.append((entityId, effectiveDist, tileComp.priority, sa, va))
             }
         }
         if !tileLoadCandidates.isEmpty {
@@ -853,12 +879,20 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 }
             }
 
+            // Normalize solid angles relative to the largest candidate so the
+            // score is scale-invariant across different scene sizes.
+            let maxSA = tileLoadCandidates.max(by: { $0.3 < $1.3 })?.3 ?? 1.0
+            let saFloor = max(maxSA, 1e-6)
             tileLoadCandidates.sort { lhs, rhs in
                 if lhs.2 != rhs.2 { return lhs.2 > rhs.2 } // priority descending
-                if enableImportanceSort { return lhs.3 > rhs.3 } // larger screen footprint first
+                if enableImportanceSort {
+                    let lScore = (lhs.3 / saFloor) * lhs.4  // solidAngleNorm × viewAlignment
+                    let rScore = (rhs.3 / saFloor) * rhs.4
+                    if abs(lScore - rScore) > 0.001 { return lScore > rScore }
+                }
                 return lhs.1 < rhs.1 // fallback: closer first
             }
-            for (entityId, _, _, _) in tileLoadCandidates {
+            for (entityId, _, _, _, _) in tileLoadCandidates {
                 // Hard cap: never exceed maxConcurrentTileLoads regardless of budget.
                 guard activeTileLoadCount() < maxConcurrentTileLoads else { break }
                 // Re-check overall geometry budget after each dispatch.
@@ -1402,6 +1436,54 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             radius = 1.0
         }
         return radius / max(distance, 1.0)
+    }
+
+    /// Returns the two raw importance components for a tile load candidate.
+    ///
+    /// - `solidAngle`: projected silhouette area of the tile AABB as seen from the
+    ///   camera, divided by distance².  Proportional to how many pixels the tile
+    ///   occupies.  Unnormalized — the caller normalizes across the full candidate set.
+    /// - `viewAlignment`: how centered the tile is in the camera's view, remapped
+    ///   from [0, 1] to [viewAlignmentMinWeight, 1.0] so peripheral tiles are
+    ///   penalised but not zeroed.
+    ///
+    /// Tile stubs have identity world transforms so local AABB == world AABB;
+    /// no matrix multiply is needed to get world-space half-extents.
+    func tileImportanceComponents(
+        entityId: EntityID,
+        distance: Float,
+        cameraPosition: simd_float3,
+        cameraForward: simd_float3
+    ) -> (solidAngle: Float, viewAlignment: Float) {
+        guard let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+        else { return (0, 1) }
+
+        let half = (local.boundingBox.max - local.boundingBox.min) * 0.5
+        let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
+
+        // Unit vector from camera to tile center.
+        // Falls back to cameraForward when the camera is inside the tile (distance ≈ 0).
+        let raw = center - cameraPosition
+        let rawLen = simd_length(raw)
+        let dir = rawLen > 1e-4 ? raw / rawLen : cameraForward
+
+        // Projected silhouette area of the AABB seen from direction dir:
+        //   2 × (hy·hz·|dx| + hx·hz·|dy| + hx·hy·|dz|)
+        // Captures the actual visible footprint of anisotropic tiles (floors, walls)
+        // that radius/distance treats as spheres and systematically undersizes.
+        let projectedArea = 2.0 * (half.y * half.z * abs(dir.x)
+                                 + half.x * half.z * abs(dir.y)
+                                 + half.x * half.y * abs(dir.z))
+        let solidAngle = projectedArea / max(distance * distance, 1.0)
+
+        // Dot product of camera forward with direction to tile center.
+        // 1.0 = tile directly ahead; ~0 = tile at frustum edge.
+        // Remapped to [viewAlignmentMinWeight, 1.0] to preserve solid-angle
+        // contribution for peripheral tiles the frustum gate allows through.
+        let alignment = max(0, simd_dot(cameraForward, dir))
+        let viewAlignment = viewAlignmentMinWeight + (1.0 - viewAlignmentMinWeight) * alignment
+
+        return (solidAngle, viewAlignment)
     }
 
     func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
