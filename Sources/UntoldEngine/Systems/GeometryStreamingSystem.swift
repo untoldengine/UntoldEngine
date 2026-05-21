@@ -829,9 +829,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 let dist = calculateDistance(entityId: eid, cameraPosition: effectiveCameraPosition)
                 let rect = projectAABBToScreen(
                     min: local.boundingBox.min, max: local.boundingBox.max,
-                    viewProj: lastViewProjMatrix
+                    viewProj: lastViewProjMatrix,
+                    allowNearPlaneExpansion: false  // discard tiles clipping the near plane
                 )
-                guard rect.area > 1e-6 else { continue } // behind camera — not a valid occluder
+                guard rect.area > 1e-6 else { continue } // behind or clipping camera — not a valid occluder
                 tileOccluders.append(TileOccluder(rect: rect, distance: dist))
             }
             tileOccluders.sort { $0.distance < $1.distance }
@@ -1565,12 +1566,21 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Projects an AABB into NDC screen space using the cached view-projection matrix.
     ///
     /// All 8 corners are transformed.  Corners with w ≤ 0 (behind the near plane)
-    /// are skipped and the remaining valid corners are expanded conservatively to the
-    /// screen edges, so partially-clipped tiles never produce garbage NDC values.
-    /// If every corner is behind the camera a zero-area rect is returned — the tile
-    /// contributes no screen coverage and should not count as an occluder.
+    /// are skipped; what happens next depends on `allowNearPlaneExpansion`:
+    ///
+    ///   true  (candidates): expands the rect to the screen edges so partially-clipped
+    ///         tiles don't undercount their footprint — a tile the camera is near should
+    ///         not be penalised by a smaller-than-real occluder target.
+    ///
+    ///   false (occluders):  returns a zero-area rect immediately.  A tile whose AABB
+    ///         clips the near plane — e.g. an ExteriorShell the camera is standing inside
+    ///         — would otherwise expand to fill the screen and drive every candidate's
+    ///         occlusionScore to 0.
+    ///
+    /// If every corner is behind the camera a zero-area rect is returned in both modes.
     func projectAABBToScreen(min bbMin: simd_float3, max bbMax: simd_float3,
-                              viewProj: simd_float4x4) -> ScreenRect {
+                              viewProj: simd_float4x4,
+                              allowNearPlaneExpansion: Bool = true) -> ScreenRect {
         let corners: [simd_float3] = [
             bbMin,
             simd_float3(bbMax.x, bbMin.y, bbMin.z),
@@ -1600,9 +1610,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         guard hasValid else { return ScreenRect(minX: 0, minY: 0, maxX: 0, maxY: 0) }
 
-        // Any clipped corner conservatively expands the rect to the screen edge so
-        // partially-visible tiles don't undercount their footprint.
         if anyBehind {
+            guard allowNearPlaneExpansion else {
+                // Occluder mode: discard near-plane-clipped tiles rather than expanding
+                // them to full-screen, which would falsely drive candidate scores to 0.
+                return ScreenRect(minX: 0, minY: 0, maxX: 0, maxY: 0)
+            }
+            // Candidate mode: expand conservatively so the footprint isn't undercounted.
             ndcMinX = min(ndcMinX, -1); ndcMaxX = max(ndcMaxX, 1)
             ndcMinY = min(ndcMinY, -1); ndcMaxY = max(ndcMaxY, 1)
         }
