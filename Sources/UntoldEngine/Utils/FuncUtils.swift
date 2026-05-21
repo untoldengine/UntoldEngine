@@ -1003,6 +1003,8 @@ public func updateMaterialOpacity(
                     material.baseColorValue.w = clampedOpacity
                     if clampedOpacity < 0.999 {
                         material.alphaMode = .blend
+                    } else if material.alphaMode == .blend, !material.hasBaseMap {
+                        material.alphaMode = .opaque
                     }
                 }
                 didAnyUpdate = didAnyUpdate || didUpdate
@@ -1034,6 +1036,8 @@ public func updateMaterialOpacity(
         material.baseColorValue.w = clampedOpacity
         if clampedOpacity < 0.999 {
             material.alphaMode = .blend
+        } else if material.alphaMode == .blend, !material.hasBaseMap {
+            material.alphaMode = .opaque
         }
     }) else {
         return
