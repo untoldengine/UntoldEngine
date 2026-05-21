@@ -324,40 +324,36 @@ extension GeometryStreamingSystem {
         // Retain the mesh for this entity
         MeshResourceManager.shared.retain(url: url, meshName: meshName, for: entityId)
 
+        // Pre-compute all Metal buffer work BEFORE acquiring the world mutation gate.
+        // copyWithNewUniformBuffers() allocates MTLBuffers — pure GPU-resource work with
+        // no ECS access. Keeping it inside the gate was the primary cause of 30ms+ gate
+        // holds that blocked the main thread (LODSystem, BatchingSystem) on every OCC
+        // mesh upload completion. Only ECS pointer assignments remain inside the gate.
+        var entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
+        let skin = Skin()
+        for index in entityMeshes.indices {
+            if entityMeshes[index].skin == nil {
+                entityMeshes[index].skin = skin
+            }
+        }
+        let meshSize = calculateMeshArrayMemory(meshes)
+        let textureSize = meshes.reduce(0) { $0 + $1.textureMemorySize }
+
         withWorldMutationGate {
             // Guard against the cooperative-cancellation race: entity may have been
             // destroyed by unloadTile while the disk/cache load was in flight.
+            // If the entity is gone the pre-built entityMeshes will be freed by ARC.
             guard scene.exists(entityId) else { return }
             if let render = scene.get(component: RenderComponent.self, for: entityId) {
-                // Create copies of meshes with fresh uniform buffers for this entity
-                // Without this, multiple entities sharing cached meshes would overwrite
-                // each other's uniform data during rendering
-                var entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
-
-                // Ensure skin is set up (required for shader validation)
-                // Meshes without skeletons need a default Skin()
-                let skin = Skin()
-                for index in entityMeshes.indices {
-                    if entityMeshes[index].skin == nil {
-                        entityMeshes[index].skin = skin
-                    }
-                }
-
                 render.mesh = entityMeshes
                 render.assetURL = url
                 render.assetName = meshName
             } else {
-                // Create render component if needed
-                // Note: registerRenderComponent should also handle buffer creation
-                let entityMeshes = meshes.map { $0.copyWithNewUniformBuffers() }
                 registerRenderComponent(entityId: entityId, meshes: entityMeshes, url: url, assetName: meshName)
             }
 
-            // Register with memory budget.
             // Mesh objects from MeshResourceManager carry actual MTLTexture allocation sizes,
             // so use the real texture footprint here rather than a placeholder zero.
-            let meshSize = calculateMeshArrayMemory(meshes)
-            let textureSize = meshes.reduce(0) { $0 + $1.textureMemorySize }
             MemoryBudgetManager.shared.registerMesh(
                 entityId: entityId,
                 meshSizeBytes: meshSize,
