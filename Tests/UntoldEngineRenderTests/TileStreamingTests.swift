@@ -166,6 +166,37 @@ final class TileComponentUnitTests: XCTestCase {
         tc.prefetchRadius = 0
         XCTAssertEqual(tc.effectivePrefetchRadius, 100.0, accuracy: 0.001)
     }
+
+    func testTileUnloadDwell_requiresGraceAndMinimumResidency() {
+        let system = GeometryStreamingSystem.shared
+        let oldGrace = system.unloadGracePeriod
+        let oldMinimum = system.minimumParsedTileResidentSeconds
+        defer {
+            system.unloadGracePeriod = oldGrace
+            system.minimumParsedTileResidentSeconds = oldMinimum
+        }
+
+        system.unloadGracePeriod = 3.0
+        system.minimumParsedTileResidentSeconds = 8.0
+
+        let tc = TileComponent()
+        tc.state = .parsed
+        tc.pendingUnloadSince = 100.0
+        tc.parsedResidentSince = 100.0
+
+        XCTAssertFalse(
+            system.tileUnloadDwellSatisfied(tc, now: 102.9),
+            "Unload must wait for the grace period."
+        )
+        XCTAssertFalse(
+            system.tileUnloadDwellSatisfied(tc, now: 106.0),
+            "Unload must also wait for the minimum parsed residency."
+        )
+        XCTAssertTrue(
+            system.tileUnloadDwellSatisfied(tc, now: 108.0),
+            "Unload is allowed once both grace and minimum residency are satisfied."
+        )
+    }
 }
 
 // MARK: - TripleCPUBuffer data-structure tests

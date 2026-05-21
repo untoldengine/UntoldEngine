@@ -542,6 +542,12 @@ public class TileComponent: Component {
     /// re-dispatched, preventing tight load-cancel cycles at the boundary.
     public var pendingUnloadSince: CFAbsoluteTime = 0
 
+    /// CFAbsoluteTime at which this tile most recently became `.parsed`.
+    /// Used by the streaming system to enforce a minimum resident dwell so a
+    /// newly visible full tile cannot be immediately torn down when the camera
+    /// hovers near an unload boundary.
+    public var parsedResidentSince: CFAbsoluteTime = 0
+
     // MARK: - Visual Readiness (OCC sub-mesh tracking)
 
     /// Total number of OCC (out-of-core) streaming stubs created during tile parse.
