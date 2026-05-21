@@ -649,9 +649,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // coarser than mesh stubs — a single tile pop-in is far more noticeable.
         let tileStreamingFrustum: Frustum? = enableFrustumGate ? buildStreamingFrustum(sidePad: tileFrustumGatePadding) : nil
 
-        // Extract camera forward from the view matrix for tile importance scoring.
-        // Uses the same camera component that buildStreamingFrustum reads, so no
-        // extra ECS lookup is needed beyond what is already paid this tick.
+        // Extract camera forward and view-projection matrix for tile importance scoring.
+        // viewProjMatrixValid is tick-local: it resets to false every update so a
+        // missing or unavailable camera cannot leave a stale VP matrix active.
+        // Occlusion scoring is disabled for the tick when the flag is false.
+        var viewProjMatrixValid = false
         if let cameraId = CameraSystem.shared.activeCamera,
            let cc = scene.get(component: CameraComponent.self, for: cameraId)
         {
@@ -660,8 +662,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             let fwd = simd_float3(-ev.columns.0.z, -ev.columns.1.z, -ev.columns.2.z)
             let len = simd_length(fwd)
             if len > 1e-6 { lastCameraForward = fwd / len }
-            // Cache for occlusion projection — reused by projectAABBToScreen this tick.
             lastViewProjMatrix = simd_mul(renderInfo.perspectiveSpace, ev)
+            viewProjMatrixValid = true
         }
 
         var loadCandidates: [(EntityID, Float, Int, Float)] = [] // (entity, distance, priority, importance)
@@ -819,7 +821,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         // no chicken-and-egg problem.  Sorted ascending by distance so the coverage
         // accumulation loop can exit early once it passes the candidate's distance.
         var tileOccluders: [TileOccluder] = []
-        if enableOcclusionSort {
+        if enableOcclusionSort, viewProjMatrixValid {
             for eid in loadedTileEntitiesSnapshot() {
                 guard scene.exists(eid),
                       let tc = scene.get(component: TileComponent.self, for: eid),
