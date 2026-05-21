@@ -474,9 +474,15 @@ public class BatchingSystem: @unchecked Sendable {
     /// withWorldMutationGate stall that occurred when all N entities of a large
     /// fullLoad tile were registered in one shot at parse-completion time.
     private var pendingTileResidentQueue: [EntityID] = []
+    /// Logical start of pendingTileResidentQueue.  Advancing this instead of calling
+    /// removeFirst(k) avoids O(remaining) element-shift cost on every drain.
+    /// The array is compacted (old head entries freed) once the head passes the midpoint.
+    private var pendingTileResidentQueueHead: Int = 0
     /// Maximum entities drained from pendingTileResidentQueue per batch tick.
     /// Higher values register tile geometry faster but may spike batch-tick cost.
     /// Default 16: a 32-entity tile registers over 2 ticks (~33 ms at 60 fps).
+    /// Values < 1 are clamped to 1 at the drain site — 0 or negative would either
+    /// silently stall the queue or crash on Array.removeFirst with a negative count.
     public var maxTileResidentDrainPerTick: Int = 16
     private var isSubscribed: Bool = false
     private var batchCellSize: Float = 32.0
@@ -575,7 +581,15 @@ public class BatchingSystem: @unchecked Sendable {
         pendingEntityRemovals.subtract(entityIds)
         newlyResidentEntities.subtract(entityIds)
         tileParsedEntityIds.subtract(entityIds)
-        pendingTileResidentQueue.removeAll { entityIds.contains($0) }
+        // Rebuild from the unprocessed tail only; already-drained entries (before
+        // head) don't need to be scanned and the rebuild resets the head to 0.
+        if pendingTileResidentQueueHead < pendingTileResidentQueue.count {
+            let tail = pendingTileResidentQueue[pendingTileResidentQueueHead...]
+            pendingTileResidentQueue = tail.filter { !entityIds.contains($0) }
+        } else {
+            pendingTileResidentQueue.removeAll(keepingCapacity: true)
+        }
+        pendingTileResidentQueueHead = 0
     }
 
     /// Full batching cleanup for tile entities that are about to be destroyed.
@@ -594,8 +608,15 @@ public class BatchingSystem: @unchecked Sendable {
         pendingEntityAdditions.subtract(entityIds)
         newlyResidentEntities.subtract(entityIds)
         tileParsedEntityIds.subtract(entityIds)
-        // Flush from the drain queue so destroyed entity IDs are never processed.
-        pendingTileResidentQueue.removeAll { entityIds.contains($0) }
+        // Flush unprocessed entries from the drain queue so destroyed entity IDs
+        // are never drained.  Rebuild from the unprocessed tail and reset the head.
+        if pendingTileResidentQueueHead < pendingTileResidentQueue.count {
+            let tail = pendingTileResidentQueue[pendingTileResidentQueueHead...]
+            pendingTileResidentQueue = tail.filter { !entityIds.contains($0) }
+        } else {
+            pendingTileResidentQueue.removeAll(keepingCapacity: true)
+        }
+        pendingTileResidentQueueHead = 0
         // Queue removal from committed state.  removeEntityFromBatchingTracking is called
         // by the batch tick; it only manipulates BatchingSystem-internal dictionaries and
         // does not access ECS data, so it is safe to call after destroyEntity.
@@ -607,7 +628,7 @@ public class BatchingSystem: @unchecked Sendable {
     /// registered entity count, dirty cells, and last rebuild cost.
     public func diagnosticSummary() -> String {
         let d = lastTickDiagnostics
-        let q = pendingTileResidentQueue.count
+        let q = pendingTileResidentQueue.count - pendingTileResidentQueueHead
         let qStr = q > 0 ? " residentQueue=\(q)" : ""
         return "batch: registered=\(entityToCellMembership.count) dirty=\(d.dirtyCellsBeforePrune) rebuildMs=\(String(format: "%.1f", d.rebuildWorkMs)) groups=\(batchGroups.count)\(qStr)"
     }
@@ -753,11 +774,14 @@ public class BatchingSystem: @unchecked Sendable {
         // them immediately inside withWorldMutationGate.  Each tick we take at most
         // maxTileResidentDrainPerTick entries, do the per-entity ECS and cell work,
         // and insert them into pendingEntityAdditions for the normal processing below.
-        if !pendingTileResidentQueue.isEmpty {
-            let drainCount = min(maxTileResidentDrainPerTick, pendingTileResidentQueue.count)
-            let batch = pendingTileResidentQueue.prefix(drainCount)
-            pendingTileResidentQueue.removeFirst(drainCount)
-            for entityId in batch {
+        if pendingTileResidentQueueHead < pendingTileResidentQueue.count {
+            // Clamp to >= 1: 0 stalls the queue; negatives crash removeFirst.
+            let safeDrain = max(1, maxTileResidentDrainPerTick)
+            let available = pendingTileResidentQueue.count - pendingTileResidentQueueHead
+            let drainEnd = pendingTileResidentQueueHead + min(safeDrain, available)
+
+            for i in pendingTileResidentQueueHead ..< drainEnd {
+                let entityId = pendingTileResidentQueue[i]
                 guard scene.exists(entityId) else { continue }
                 guard scene.get(component: StaticBatchComponent.self, for: entityId) != nil else { continue }
                 pendingEntityAdditions.insert(entityId)
@@ -765,6 +789,19 @@ public class BatchingSystem: @unchecked Sendable {
                 if let cellId = resolveCellIdForEntity(entityId: entityId) {
                     markCellStreaming(cellId)
                 }
+            }
+
+            pendingTileResidentQueueHead = drainEnd
+
+            // Compact: free dead-head entries when fully drained or head is past
+            // the midpoint.  Both paths are at most O(remaining), but the midpoint
+            // trigger means each element causes at most one copy — amortised O(1).
+            if pendingTileResidentQueueHead >= pendingTileResidentQueue.count {
+                pendingTileResidentQueue.removeAll(keepingCapacity: true)
+                pendingTileResidentQueueHead = 0
+            } else if pendingTileResidentQueueHead > pendingTileResidentQueue.count / 2 {
+                pendingTileResidentQueue = Array(pendingTileResidentQueue[pendingTileResidentQueueHead...])
+                pendingTileResidentQueueHead = 0
             }
         }
 
@@ -1991,6 +2028,7 @@ public class BatchingSystem: @unchecked Sendable {
         newlyResidentEntities.removeAll()
         tileParsedEntityIds.removeAll()
         pendingTileResidentQueue.removeAll()
+        pendingTileResidentQueueHead = 0
         cellLastVisibleFrame.removeAll()
         cellBuildGeneration.removeAll()
         runtimeBatchIneligibleCells.removeAll()
@@ -2048,6 +2086,9 @@ public class BatchingSystem: @unchecked Sendable {
             pendingEntityRemovals.removeAll()
             pendingEntityAdditions.removeAll()
             newlyResidentEntities.removeAll()
+            tileParsedEntityIds.removeAll()
+            pendingTileResidentQueue.removeAll()
+            pendingTileResidentQueueHead = 0
             runtimeBatchIneligibleCells.removeAll()
             clearPendingBuildArtifacts()
             for cellId in cellToEntities.keys {
