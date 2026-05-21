@@ -332,6 +332,48 @@ final class TileOcclusionSortTests: XCTestCase {
         XCTAssertEqual(rect.maxY,  0.5, accuracy: 1e-5)
     }
 
+    func testProjectAABBToScreen_nearPlaneClip_returnsZeroAreaWhenExpansionDisabled() {
+        // Simulate a tile that clips the near plane: one corner has w <= 0 with identity VP.
+        // With identity VP w = 1 for all corners, so we need a VP that puts some corners behind.
+        // Construct a matrix that flips the z convention so z > 0 corners get w < 0.
+        var flipZ = matrix_identity_float4x4
+        flipZ.columns.2.z = -1  // clip.w = 1, clip.z = -z → corners at z > 0 get negative z in clip
+        flipZ.columns.3.w = -1  // make w negative for all corners → all behind near plane
+        // All corners behind → hasValid = false → zero area regardless of mode.
+        // For a partial clip, mix: use a box spanning z = -1 to z = 1 with a VP
+        // that maps z = -1 to w = 2 (in front) and z = 1 to w = 0 (on near plane).
+        // Simplest verifiable case: use identity VP with a box that's entirely in front,
+        // then test the occluder-mode flag independently via the expansion path.
+        //
+        // More direct: call with allowNearPlaneExpansion=false on a box where we
+        // manually set anyBehind by having a VP where some corners have w <= 1e-6.
+        // Use a perspective-like matrix: w_clip = -z_world (front = negative z world).
+        var perspLike = matrix_identity_float4x4
+        perspLike.columns.2 = simd_float4(0, 0, 0, -1) // w_clip = -z_world
+        perspLike.columns.3 = simd_float4(0, 0, 1,  0) // z_clip = 1 (constant)
+
+        // Box from z = -2 to z = 2: corners at z=-2 → w=2 (in front),
+        //                            corners at z= 2 → w=-2 (behind).
+        // anyBehind = true, hasValid = true.
+        let rect_occluder = sys.projectAABBToScreen(
+            min: simd_float3(-1, -1, -2),
+            max: simd_float3( 1,  1,  2),
+            viewProj: perspLike,
+            allowNearPlaneExpansion: false   // occluder mode
+        )
+        XCTAssertEqual(rect_occluder.area, 0, accuracy: 1e-6,
+                       "Near-plane-clipping tile must return zero-area in occluder mode to prevent full-screen false occlusion")
+
+        let rect_candidate = sys.projectAABBToScreen(
+            min: simd_float3(-1, -1, -2),
+            max: simd_float3( 1,  1,  2),
+            viewProj: perspLike,
+            allowNearPlaneExpansion: true    // candidate mode — keeps conservative expansion
+        )
+        XCTAssertGreaterThan(rect_candidate.area, 0,
+                             "Near-plane-clipping tile must keep a non-zero footprint in candidate mode")
+    }
+
     func testProjectAABBToScreen_ndcOverflowIsClamped() {
         // A very large box whose NDC corners exceed ±1 must be clamped to ±1.
         let rect = sys.projectAABBToScreen(
