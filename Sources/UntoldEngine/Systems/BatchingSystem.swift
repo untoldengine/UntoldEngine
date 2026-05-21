@@ -468,6 +468,16 @@ public class BatchingSystem: @unchecked Sendable {
     /// These are processed with deferBatchBuild = false and their cells are
     /// promoted to batchPending immediately, bypassing the quiescence delay.
     private var tileParsedEntityIds: Set<EntityID> = []
+    /// FIFO queue of tile-resident entities waiting for per-entity cell registration.
+    /// Populated by notifyTileEntitiesResident; drained at maxTileResidentDrainPerTick
+    /// entities per batch tick.  Spreading this work across frames prevents the
+    /// withWorldMutationGate stall that occurred when all N entities of a large
+    /// fullLoad tile were registered in one shot at parse-completion time.
+    private var pendingTileResidentQueue: [EntityID] = []
+    /// Maximum entities drained from pendingTileResidentQueue per batch tick.
+    /// Higher values register tile geometry faster but may spike batch-tick cost.
+    /// Default 16: a 32-entity tile registers over 2 ticks (~33 ms at 60 fps).
+    public var maxTileResidentDrainPerTick: Int = 16
     private var isSubscribed: Bool = false
     private var batchCellSize: Float = 32.0
     private var cellLifecycle: [BatchCellID: BatchCellLifecycleRecord] = [:]
@@ -535,28 +545,20 @@ public class BatchingSystem: @unchecked Sendable {
     }
 
     /// Batch-notifies the batching system that all entities in `entityIds` are now
-    /// resident, combining what was previously a per-entity `AssetResidencyChangedEvent`
-    /// storm + a separate `notifyTileParsedEntities` call into a single synchronous batch.
-    ///
-    /// This replaces the `queueResidencyEventsForRenderDescendants` +
-    /// `notifyTileParsedEntities` pairing at tile/LOD/HLOD load completion sites.
+    /// resident.  Per-entity cell registration is deferred to the batch tick drain
+    /// (pendingTileResidentQueue) so the withWorldMutationGate hold at tile
+    /// parse-completion time is reduced to a cheap Set union + Array append, removing
+    /// the O(N) cell-resolution spike that caused visible frame stalls on large tiles.
     public func notifyTileEntitiesResident(_ entityIds: Set<EntityID>) {
         guard batchingEnabled else { return }
         guard !entityIds.isEmpty else { return }
 
-        // Mark all IDs as tile-parsed so the quiescence delay is bypassed.
+        // Pre-mark as tile-parsed so the quiescence bypass is already set when the
+        // drain processes each entity in a future tick.
         tileParsedEntityIds.formUnion(entityIds)
 
-        for entityId in entityIds {
-            guard scene.exists(entityId) else { continue }
-            let hasStaticBatch = scene.get(component: StaticBatchComponent.self, for: entityId) != nil
-            guard hasStaticBatch else { continue }
-            pendingEntityAdditions.insert(entityId)
-            newlyResidentEntities.insert(entityId)
-            if let cellId = resolveCellIdForEntity(entityId: entityId) {
-                markCellStreaming(cellId)
-            }
-        }
+        // Enqueue for deferred per-entity registration — O(N) appends, no ECS work.
+        pendingTileResidentQueue.append(contentsOf: entityIds)
     }
 
     /// Removes the given entities from all pending batching queues immediately.
@@ -573,6 +575,7 @@ public class BatchingSystem: @unchecked Sendable {
         pendingEntityRemovals.subtract(entityIds)
         newlyResidentEntities.subtract(entityIds)
         tileParsedEntityIds.subtract(entityIds)
+        pendingTileResidentQueue.removeAll { entityIds.contains($0) }
     }
 
     /// Full batching cleanup for tile entities that are about to be destroyed.
@@ -591,6 +594,8 @@ public class BatchingSystem: @unchecked Sendable {
         pendingEntityAdditions.subtract(entityIds)
         newlyResidentEntities.subtract(entityIds)
         tileParsedEntityIds.subtract(entityIds)
+        // Flush from the drain queue so destroyed entity IDs are never processed.
+        pendingTileResidentQueue.removeAll { entityIds.contains($0) }
         // Queue removal from committed state.  removeEntityFromBatchingTracking is called
         // by the batch tick; it only manipulates BatchingSystem-internal dictionaries and
         // does not access ECS data, so it is safe to call after destroyEntity.
@@ -602,7 +607,9 @@ public class BatchingSystem: @unchecked Sendable {
     /// registered entity count, dirty cells, and last rebuild cost.
     public func diagnosticSummary() -> String {
         let d = lastTickDiagnostics
-        return "batch: registered=\(entityToCellMembership.count) dirty=\(d.dirtyCellsBeforePrune) rebuildMs=\(String(format: "%.1f", d.rebuildWorkMs)) groups=\(batchGroups.count)"
+        let q = pendingTileResidentQueue.count
+        let qStr = q > 0 ? " residentQueue=\(q)" : ""
+        return "batch: registered=\(entityToCellMembership.count) dirty=\(d.dirtyCellsBeforePrune) rebuildMs=\(String(format: "%.1f", d.rebuildWorkMs)) groups=\(batchGroups.count)\(qStr)"
     }
 
     private func handleLODChange(_ event: EntityLODChangedEvent) {
@@ -740,6 +747,27 @@ public class BatchingSystem: @unchecked Sendable {
             lastTickDiagnostics = diagnostics
             return
         }
+
+        // Drain deferred tile-resident entities at a controlled rate.
+        // notifyTileEntitiesResident enqueues entity IDs here instead of processing
+        // them immediately inside withWorldMutationGate.  Each tick we take at most
+        // maxTileResidentDrainPerTick entries, do the per-entity ECS and cell work,
+        // and insert them into pendingEntityAdditions for the normal processing below.
+        if !pendingTileResidentQueue.isEmpty {
+            let drainCount = min(maxTileResidentDrainPerTick, pendingTileResidentQueue.count)
+            let batch = pendingTileResidentQueue.prefix(drainCount)
+            pendingTileResidentQueue.removeFirst(drainCount)
+            for entityId in batch {
+                guard scene.exists(entityId) else { continue }
+                guard scene.get(component: StaticBatchComponent.self, for: entityId) != nil else { continue }
+                pendingEntityAdditions.insert(entityId)
+                newlyResidentEntities.insert(entityId)
+                if let cellId = resolveCellIdForEntity(entityId: entityId) {
+                    markCellStreaming(cellId)
+                }
+            }
+        }
+
         guard !pendingEntityRemovals.isEmpty ||
             !pendingEntityAdditions.isEmpty ||
             !dirtyCells.isEmpty ||
@@ -1962,6 +1990,7 @@ public class BatchingSystem: @unchecked Sendable {
         pendingEntityAdditions.removeAll()
         newlyResidentEntities.removeAll()
         tileParsedEntityIds.removeAll()
+        pendingTileResidentQueue.removeAll()
         cellLastVisibleFrame.removeAll()
         cellBuildGeneration.removeAll()
         runtimeBatchIneligibleCells.removeAll()
