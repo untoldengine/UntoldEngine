@@ -108,7 +108,8 @@ final class StreamingGateTests: BaseRenderSetup {
         streamingRadius: Float,
         unloadRadius: Float,
         hasFloorMetadata: Bool = false,
-        worldYCenter: Float? = nil
+        worldYCenter: Float? = nil,
+        isInterior: Bool = true
     ) -> EntityID {
         let entityId = createEntity()
         registerTransformComponent(entityId: entityId)
@@ -128,6 +129,7 @@ final class StreamingGateTests: BaseRenderSetup {
             tc.unloadRadius = unloadRadius
             tc.hasFloorMetadata = hasFloorMetadata
             tc.worldYCenter = worldYCenter ?? center.y
+            tc.isInterior = isInterior
             tc.state = .unloaded
         }
 
@@ -300,6 +302,23 @@ final class StreamingGateTests: BaseRenderSetup {
         let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tile))
         XCTAssertEqual(tc.state, .unloaded,
                        "Floor-aware tiles outside floorProximityGateY must remain unloaded")
+    }
+
+    func testFloorProximityGate_doesNotBlockExteriorShellTile() throws {
+        let tile = makeTileStub(
+            center: .zero,
+            streamingRadius: 1000.0,
+            unloadRadius: 2000.0,
+            hasFloorMetadata: true,
+            worldYCenter: 5000.0,
+            isInterior: false
+        )
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: tile))
+        XCTAssertEqual(tc.state, .parsing,
+                       "Exterior shell tiles must not be floor-gated; upper facade floors need to stream from outside")
     }
 
     // MARK: - Velocity predictor
