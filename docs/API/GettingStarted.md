@@ -111,21 +111,17 @@ The `.untold` format is a binary container optimised for fast runtime parsing wi
 no ModelIO dependency. It supports runtime mesh data, PBR materials, texture references,
 transforms, bounds, and exported animation clips.
 
-> **Note:** The exporter requires [Blender](https://www.blender.org).
+You can convert assets with either the Untold Engine Blender addon or the CLI.
 
-You can convert assets with either Untold Engine Studio or the CLI. If you are
-new to Untold Engine, start with the Editor. If you prefer terminal workflows or
-need repeatable asset export commands, use the CLI.
+### Option 1: Blender add-on
 
-### Option 1: Editor
+To convert a USDZ file into the `.untold` format using the add-on, follow the directions in [Using Blender Addon](UsingBlenderAddon.md).
 
-To convert a USDZ file into the `.untold` format using the editor:
+After the model has been converted to `.untold` format:
 
-1. Click on "Import" in the Asset Browser View.
+1. Click on "Import" in the Asset Browser View in the Editor.
 2. Click on "Import Models"
-3. Find a USDZ file you want to convert
-4. Click on Export
-5. When the export has completed, you will see your new `.untold` model under the Model Category
+3. When the import has completed, you will see your new `.untold` model under the Model Category.
 
 At this point, head over to your Xcode project. You will also notice that your `.untold` model is under `Sources/<ProjectName>/GameData/Models`.
 
@@ -166,7 +162,7 @@ partition the scene and generate a manifest JSON:
 ```
 
 For the full list of options, validation flags, and expected output layout see
-[Using The Exporter](UsingTheExporter). For optional asset optimization
+[Using The Exporter](UsingTheExporter.md). For optional asset optimization
 workflows, see [Optimizations](Optimizations.md).
 
 ---
