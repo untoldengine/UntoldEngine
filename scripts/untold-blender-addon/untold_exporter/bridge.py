@@ -49,6 +49,12 @@ def exporter_module() -> Any:
     return importlib.reload(module)
 
 
+def texbake_module() -> Any:
+    _ensure_exporter_on_path()
+    module = importlib.import_module("texbake")
+    return importlib.reload(module)
+
+
 def source_asset_path_for_export(output_path: Path) -> Path:
     blend_path = getattr(bpy.data, "filepath", "") or ""
     if blend_path:
@@ -80,6 +86,9 @@ def export_asset(
     source_orientation: str,
     validate: bool,
     compress_geometry: bool,
+    bake_textures: bool,
+    texture_quality: str,
+    keep_texture_temp: bool,
     progress_callback: ProgressCallback | None = None,
 ) -> dict[str, object]:
     module = exporter_module()
@@ -88,7 +97,7 @@ def export_asset(
         raise RuntimeError("No exportable objects were found for the selected scope")
 
     export_objects = module.prepare_export_objects_from_blender_objects(objects)
-    return module.export_objects_to_untold(
+    result = module.export_objects_to_untold(
         export_objects,
         source_asset_path=source_asset_path_for_export(output_path),
         output_path=output_path,
@@ -99,6 +108,31 @@ def export_asset(
         compress_geometry=compress_geometry,
         progress_callback=progress_callback,
     )
+    result["texture_bake_status"] = "skipped"
+
+    if bake_textures:
+        textures_dir = output_path.parent / "Textures"
+        if not textures_dir.is_dir():
+            result["texture_bake_status"] = "no textures"
+            if progress_callback is not None:
+                progress_callback("Bake textures", 0, 1, "No Textures directory was generated")
+            return result
+
+        texbake = texbake_module()
+        if progress_callback is not None:
+            progress_callback("Bake textures", 0, 1, textures_dir.name)
+        try:
+            texbake.bake_directory(textures_dir, texture_quality, keep_texture_temp)
+            texbake.patch_refs(output_path)
+        except SystemExit as exc:
+            code = exc.code if isinstance(exc.code, int) else 1
+            if code != 0:
+                raise RuntimeError(f"Texture bake failed with exit code {code}") from exc
+        result["texture_bake_status"] = "baked"
+        if progress_callback is not None:
+            progress_callback("Bake textures", 1, 1, "Baked .utex files and patched .untold references")
+
+    return result
 
 
 def animation_armature_candidates(context: Any, scope: str) -> list[object]:

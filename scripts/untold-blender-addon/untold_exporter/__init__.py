@@ -84,6 +84,31 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         default=False,
     )
 
+    bake_textures: BoolProperty(
+        name="Bake Textures To .utex",
+        description="After export, bake staged textures to engine-native .utex files and patch the .untold references",
+        default=False,
+    )
+
+    texture_quality: EnumProperty(
+        name="Texture Quality",
+        description="astcenc quality level for .utex baking",
+        items=[
+            ("fastest", "Fastest", "Lowest ASTC encode time"),
+            ("fast", "Fast", "Fast ASTC encode"),
+            ("medium", "Medium", "Balanced ASTC encode"),
+            ("thorough", "Thorough", "Higher quality ASTC encode"),
+            ("exhaustive", "Exhaustive", "Slowest ASTC encode"),
+        ],
+        default="thorough",
+    )
+
+    keep_texture_temp: BoolProperty(
+        name="Keep Texture Temp Files",
+        description="Keep intermediate mip PNG and ASTC files produced by texture baking",
+        default=False,
+    )
+
     @staticmethod
     def _asset_output_path(filepath: str) -> Path:
         selected_path = Path(filepath).expanduser().resolve()
@@ -112,6 +137,9 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
                 source_orientation=self.source_orientation,
                 validate=self.validate,
                 compress_geometry=self.compress_geometry,
+                bake_textures=self.bake_textures,
+                texture_quality=self.texture_quality,
+                keep_texture_temp=self.keep_texture_temp,
                 progress_callback=progress,
             )
         except Exception as exc:
@@ -125,6 +153,10 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         )
         if compression_summary["detail"]:
             message += f" | Geometry: {compression_summary['detail']}"
+        if result.get("texture_bake_status") == "baked":
+            message += " | Textures: baked to .utex"
+        elif result.get("texture_bake_status") == "no textures":
+            message += " | Textures: none to bake"
         self.report({"INFO"}, message)
         print(f"[Untold Exporter] {message}", flush=True)
         return {"FINISHED"}
