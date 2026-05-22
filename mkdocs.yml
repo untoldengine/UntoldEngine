@@ -69,6 +69,7 @@ nav:
     - Spatial Debugger: API/SpatialDebugger.md
     - Logger: API/UsingTheLogger.md
     - Exporter: API/UsingTheExporter.md
+    - Blender Add-on: API/UsingBlenderAddon.md
     - Untold Engine CLI: API/UsingUntoldEngineCLI.md
     - Optimizations: API/Optimizations.md
   - Architecture:

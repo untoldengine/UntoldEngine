@@ -41,14 +41,37 @@ jobs:
             echo "This will build the engine and launch the demo using Swift Package Manager."
             echo ""
             echo "--------------------------------------------------"
-            echo "Using Untold Engine in Your Project"
+            echo "Blender Add-on"
             echo "--------------------------------------------------"
             echo ""
-            echo "Untold Engine can be added to your own projects as a Swift Package dependency:"
+            echo "This release includes the Untold Engine Blender add-on as a downloadable release asset:"
             echo ""
-            echo "https://github.com/untoldengine/UntoldEngine"
+            echo "untold_exporter.zip"
             echo ""
-            echo "Refer to the README for setup instructions and examples."
+            echo "Install it in Blender:"
+            echo ""
+            echo "1. Download untold_exporter.zip from this release."
+            echo "2. Open Blender."
+            echo "3. Go to Edit > Preferences > Add-ons."
+            echo "4. Click Install... and select untold_exporter.zip."
+            echo "5. Enable Untold Engine Exporter."
+            echo ""
+            echo "The add-on adds:"
+            echo ""
+            echo "- File > Export > Untold (.untold)"
+            echo "- File > Export > Untold Animation (.untold)"
+            echo "- File > Export > Untold Tiled Scene"
+            echo ""
+            echo "For texture baking and compression dependencies, see:"
+            echo "https://github.com/untoldengine/UntoldEngine/blob/develop/docs/API/UsingBlenderAddon.md"
+            echo ""
+            echo "--------------------------------------------------"
+            echo "Getting Started"
+            echo "--------------------------------------------------"
+            echo ""
+            echo "To create your own project/game using the Untold Engine, see:"
+            echo ""
+            echo "https://untoldengine.github.io/UntoldEngine/API/GettingStarted/"
             echo ""
             echo "--------------------------------------------------"
             echo "Documentation & Resources"
@@ -71,11 +94,15 @@ jobs:
             echo EOF
           } >> $GITHUB_OUTPUT
 
+      - name: Package Blender add-on
+        run: scripts/untold-blender-addon/package.sh
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.version }}
           name: "Release ${{ steps.tag.outputs.version }}"
           body: ${{ steps.changelog.outputs.notes }}
+          files: scripts/untold-blender-addon/build/untold_exporter.zip
           draft: false
           prerelease: false

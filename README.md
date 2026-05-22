@@ -88,11 +88,11 @@ The demo UI lets you see the engine in action right away. Using the `Remote Scen
 
 Untold Engine uses its own native asset format: `.untold`.
 
-To try your own `USDZ` file, first convert it to `.untold` using the `Tools` section in the demo UI.
+To try your own `USDZ` file, first convert it to `.untold`. The recommended workflow is to use the Untold Engine Blender add-on: import or open your model in Blender, then export it with `File > Export > Untold (.untold)`.
 
-After the export is complete, open the Local Scene `Browse` drop-down menu, choose `.untold`, then browse for and select your exported `.untold` file.
+The add-on can export models already loaded in Blender, so it also works with other Blender-supported source formats such as `.fbx`, `.glb`, and `.obj`.
 
-> **Note:** The exporter requires [Blender](https://www.blender.org).
+For installation and export details, see [Using The Blender Plugin](docs/API/UsingBlenderAddon.md).
  
 ---
 
