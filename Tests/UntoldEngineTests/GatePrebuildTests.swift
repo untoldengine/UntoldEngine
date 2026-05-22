@@ -19,7 +19,6 @@ import XCTest
 
 @MainActor
 final class GatePrebuildTests: XCTestCase {
-
     // MARK: - prebuildNodeMeshes edge cases
 
     func testPrebuildEmptyNodesReturnsEmptyDict() {
@@ -71,7 +70,7 @@ final class GatePrebuildTests: XCTestCase {
         // The nil case falls back to makeMeshes() — this test verifies the lookup
         // semantics are correct.
         let emptyMap: [UInt32: [Mesh]] = [:]
-        let lookup = emptyMap[42]   // any nodeID not in the map
+        let lookup = emptyMap[42] // any nodeID not in the map
         XCTAssertNil(lookup,
                      "Missing nodeID in prebuilt map must return nil to trigger makeMeshes() fallback")
     }
@@ -79,7 +78,7 @@ final class GatePrebuildTests: XCTestCase {
     func testPrebuiltMapLookupWithPresentKeyReturnsMeshes() {
         // Simulate a pre-built map entry — verifies the lookup returns the stored
         // value when the nodeID is present (i.e., the gate-external path is taken).
-        let fakeMeshes: [Mesh] = []   // empty but non-nil — signals "pre-built, skip makeMeshes"
+        let fakeMeshes: [Mesh] = [] // empty but non-nil — signals "pre-built, skip makeMeshes"
         let map: [UInt32: [Mesh]] = [99: fakeMeshes]
         let lookup = map[99]
         XCTAssertNotNil(lookup,
