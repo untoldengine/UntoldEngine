@@ -166,9 +166,6 @@
             ) { result in
                 handleLocalImport(result)
             }
-            .sheet(isPresented: $state.showExportPanel) {
-                DemoExportSheet(state: state)
-            }
         }
 
         private var controlsPanel: some View {
@@ -397,13 +394,6 @@
                         StatsPanel(stats: state.stats)
                             .frame(width: Constants.sidePanelWidth)
                     }
-
-                    DemoToolsPanel(
-                        isBusy: state.isLoading || state.isExporting,
-                        isExporting: state.isExporting,
-                        openExportSheet: { state.showExportPanel = true }
-                    )
-                    .frame(width: Constants.sidePanelWidth)
                 }
             }
         }
@@ -424,11 +414,6 @@
                     .buttonStyle(.bordered)
                     .disabled(!state.showStats)
 
-                    Button("Export") {
-                        state.showExportPanel = true
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(state.isLoading || state.isExporting)
                 }
                 .padding(8)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Constants.panelCornerRadius))
