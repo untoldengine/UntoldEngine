@@ -1,4 +1,18 @@
 # Changelog
+## v0.12.14 - 2026-05-22
+### 🐞 Fixes
+- [Patch] Fix transparency bug (6a51e40…)
+- [Patch] Exposed mesh properties as public (f9dc13e…)
+- [Patch] LOD Throttle Fix (b9d35ba…)
+- [Patch] Add camera-distance culling for shadow casters (80ea02c…)
+- [Patch] Move Metal buffer creation outside world mutation gate in loadMeshAsync (da82f34…)
+- [Patch] Skip redundant batch removal and dirty for unbatched LOD entities (b133eea…)
+- [Patch] initial plugin export (ea700d3…)
+- [Patch] Added animation blender pluging (20d1b15…)
+- [Patch] Texture compression in add-on plugin enabled (0b080b9…)
+- [Patch] Added tile scene export to plugin (ecc13f2…)
+### 📚 Docs
+- [Docs] Added blender plugin documenation (828c932…)
 ## v0.12.13 - 2026-05-21
 ### 🐞 Fixes
 - [Patch] Added AA parameters to serializer (3d81b55…)
