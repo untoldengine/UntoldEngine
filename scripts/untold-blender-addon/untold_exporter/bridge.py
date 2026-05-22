@@ -55,6 +55,12 @@ def texbake_module() -> Any:
     return importlib.reload(module)
 
 
+def tile_exporter_module() -> Any:
+    _ensure_exporter_on_path()
+    module = importlib.import_module("tilestreamingpartition")
+    return importlib.reload(module)
+
+
 def source_asset_path_for_export(output_path: Path) -> Path:
     blend_path = getattr(bpy.data, "filepath", "") or ""
     if blend_path:
@@ -217,3 +223,80 @@ def export_animation(
         output_path,
         progress_callback=progress_callback,
     )
+
+
+def export_tiled_scene(
+    *,
+    scene_dir: Path,
+    visible_only: bool,
+    partitioning_mode: str,
+    tile_size_x: float,
+    tile_size_y: float,
+    tile_size_z: float,
+    auto_tile_size: bool,
+    floor_count: int,
+    floor_band_height: float,
+    scene_profile: str,
+    generate_hlod: bool,
+    generate_lod: bool,
+    compress_geometry: bool,
+    dry_run: bool,
+    write_manifest_in_dry_run: bool,
+) -> dict[str, object]:
+    module = tile_exporter_module()
+    output_dir = scene_dir / "tile_exports"
+
+    # The plugin operates on the currently open Blender scene. Allow unsaved
+    # scenes instead of requiring a source USD/.blend path. Keep worker count at
+    # 1 so the export stays in-process and does not need a reopenable source.
+    # Also suppress recent-USD import detection: re-importing and clearing the
+    # scene from inside the add-on can destabilize Blender and is not the plugin
+    # workflow anyway.
+    module.ERROR_IF_UNSAVED_SOURCE_NOT_FOUND = False
+    module.SOURCE_SCENE_PATH_OVERRIDE = ""
+    module.resolve_source_scene_path = lambda: ""
+
+    argv = [
+        "tilestreamingpartition.py",
+        "--output-dir", str(output_dir),
+        "--parallel-workers", "1",
+        "--scene-profile", scene_profile,
+        "--tile-size-x", str(tile_size_x),
+        "--tile-size-y", str(tile_size_y),
+        "--tile-size-z", str(tile_size_z),
+    ]
+
+    argv.append("--visible-only" if visible_only else "--all-meshes")
+
+    if partitioning_mode == "UNIFORM" and auto_tile_size:
+        argv.append("--auto-tile-size")
+    if partitioning_mode == "QUADTREE":
+        argv.append("--quadtree")
+        if floor_count > 0:
+            argv.extend(["--floor-count", str(floor_count)])
+        if floor_band_height > 0.0:
+            argv.extend(["--floor-band-height", str(floor_band_height)])
+    if generate_hlod:
+        argv.append("--generate-hlod")
+    if generate_lod:
+        argv.append("--generate-lod")
+    if compress_geometry:
+        argv.append("--compress-geometry")
+    if dry_run:
+        argv.append("--dry-run")
+    if write_manifest_in_dry_run:
+        argv.append("--write-manifest-in-dry-run")
+
+    result_code = module.main(argv)
+    if result_code != 0:
+        raise RuntimeError(f"Tiled scene export failed with exit code {result_code}")
+
+    manifest_files = sorted(scene_dir.glob("*.json")) if scene_dir.exists() else []
+    untold_files = sorted(output_dir.rglob("*.untold")) if output_dir.exists() else []
+    return {
+        "scene_dir": scene_dir,
+        "output_dir": output_dir,
+        "manifest_count": len(manifest_files),
+        "asset_count": len(untold_files),
+        "dry_run": dry_run,
+    }

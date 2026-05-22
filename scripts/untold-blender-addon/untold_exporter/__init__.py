@@ -2,7 +2,7 @@ from pathlib import Path
 import importlib
 
 import bpy
-from bpy.props import BoolProperty, EnumProperty
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, StringProperty
 from bpy_extras.io_utils import ExportHelper
 
 from . import bridge
@@ -248,14 +248,170 @@ class UNTOLD_OT_export_animation(bpy.types.Operator, ExportHelper):
         return {"FINISHED"}
 
 
+class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
+    bl_idname = "untold.export_tiled_scene"
+    bl_label = "Export Untold Tiled Scene"
+    bl_options = {"REGISTER"}
+
+    directory: StringProperty(
+        name="Scene Folder",
+        description="Folder where the scene manifest will be written. Tile payloads go in a tile_exports subfolder",
+        subtype="DIR_PATH",
+    )
+
+    visible_only: BoolProperty(
+        name="Visible Objects Only",
+        description="Export visible mesh objects only",
+        default=True,
+    )
+
+    partitioning_mode: EnumProperty(
+        name="Partitioning",
+        description="Tile partitioning algorithm",
+        items=[
+            ("UNIFORM", "Uniform Grid", "Use regular X/Y/Z tile dimensions"),
+            ("QUADTREE", "Quadtree", "Use floor/quadtree partitioning with semantic tiers"),
+        ],
+        default="QUADTREE",
+    )
+
+    auto_tile_size: BoolProperty(
+        name="Uniform Grid: Auto Tile Size",
+        description="Let the uniform-grid exporter choose tile dimensions from scene complexity",
+        default=True,
+    )
+
+    tile_size_x: FloatProperty(
+        name="Uniform Grid: Tile Size X",
+        description="Manual uniform-grid tile width in Blender/world units. Ignored when Auto Tile Size is enabled",
+        default=25.0,
+        min=0.001,
+    )
+
+    tile_size_y: FloatProperty(
+        name="Uniform Grid: Tile Size Y",
+        description="Manual uniform-grid tile height in Blender/world units. Usually large to avoid vertical splitting",
+        default=10000.0,
+        min=0.001,
+    )
+
+    tile_size_z: FloatProperty(
+        name="Uniform Grid: Tile Size Z",
+        description="Manual uniform-grid tile depth in Blender/world units. Ignored when Auto Tile Size is enabled",
+        default=25.0,
+        min=0.001,
+    )
+
+    floor_count: IntProperty(
+        name="Quadtree: Floor Count",
+        description="Optional floor count override for quadtree partitioning. Use 0 for auto-detect",
+        default=0,
+        min=0,
+    )
+
+    floor_band_height: FloatProperty(
+        name="Quadtree: Floor Band Height",
+        description="Optional per-floor band height override. Use 0 for auto-detect",
+        default=0.0,
+        min=0.0,
+    )
+
+    scene_profile: EnumProperty(
+        name="Scene Profile",
+        description="Streaming radius profile for semantic tiers",
+        items=[
+            ("auto", "Auto", "Infer indoor/outdoor streaming bands from the scene"),
+            ("indoor", "Indoor", "Use tighter room-scale streaming bands"),
+            ("outdoor", "Outdoor", "Use wider city/open-world streaming bands"),
+        ],
+        default="auto",
+    )
+
+    generate_hlod: BoolProperty(
+        name="Generate HLOD",
+        description="Generate simplified coarse HLOD assets for eligible tiles",
+        default=False,
+    )
+
+    generate_lod: BoolProperty(
+        name="Generate LOD",
+        description="Generate per-tile LOD assets for eligible tiles",
+        default=False,
+    )
+
+    compress_geometry: BoolProperty(
+        name="Compress Geometry",
+        description="Compress vertex and index chunks with LZ4 in tile payloads",
+        default=False,
+    )
+
+    dry_run: BoolProperty(
+        name="Dry Run",
+        description="Plan the tile partition without writing payload files",
+        default=False,
+    )
+
+    write_manifest_in_dry_run: BoolProperty(
+        name="Write Manifest In Dry Run",
+        description="Write the manifest JSON even when Dry Run is enabled",
+        default=False,
+    )
+
+    def invoke(self, context: bpy.types.Context, event: bpy.types.Event) -> set[str]:
+        if not self.directory:
+            blend_path = getattr(bpy.data, "filepath", "") or ""
+            if blend_path:
+                self.directory = str(Path(blend_path).resolve().parent / "TiledScene")
+            else:
+                self.directory = str(Path.home() / "UntoldTileExport")
+        context.window_manager.fileselect_add(self)
+        return {"RUNNING_MODAL"}
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        scene_dir = Path(bpy.path.abspath(self.directory)).expanduser().resolve()
+        try:
+            result = exporter_bridge().export_tiled_scene(
+                scene_dir=scene_dir,
+                visible_only=self.visible_only,
+                partitioning_mode=self.partitioning_mode,
+                tile_size_x=self.tile_size_x,
+                tile_size_y=self.tile_size_y,
+                tile_size_z=self.tile_size_z,
+                auto_tile_size=self.auto_tile_size,
+                floor_count=self.floor_count,
+                floor_band_height=self.floor_band_height,
+                scene_profile=self.scene_profile,
+                generate_hlod=self.generate_hlod,
+                generate_lod=self.generate_lod,
+                compress_geometry=self.compress_geometry,
+                dry_run=self.dry_run,
+                write_manifest_in_dry_run=self.write_manifest_in_dry_run,
+            )
+        except Exception as exc:
+            self.report({"ERROR"}, str(exc))
+            print(f"[Untold Exporter] Error: {exc}", flush=True)
+            return {"CANCELLED"}
+
+        mode = "planned" if result["dry_run"] else "exported"
+        message = (
+            f"Tiled scene {mode}: {result['asset_count']} .untold asset(s), "
+            f"{result['manifest_count']} manifest file(s) in {scene_dir.name}"
+        )
+        self.report({"INFO"}, message)
+        print(f"[Untold Exporter] {message}", flush=True)
+        return {"FINISHED"}
+
+
 def menu_func_export(self: bpy.types.Menu, context: bpy.types.Context) -> None:
     self.layout.operator(UNTOLD_OT_export_asset.bl_idname, text="Untold (.untold)")
     self.layout.operator(UNTOLD_OT_export_animation.bl_idname, text="Untold Animation (.untold)")
+    self.layout.operator(UNTOLD_OT_export_tiled_scene.bl_idname, text="Untold Tiled Scene")
 
 
 classes = (
     UNTOLD_OT_export_asset,
     UNTOLD_OT_export_animation,
+    UNTOLD_OT_export_tiled_scene,
 )
 
 

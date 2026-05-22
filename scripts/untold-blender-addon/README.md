@@ -51,11 +51,52 @@ Animation options:
 - `Actions`: export the current action or all Blender actions.
 - `Convert Orientation`: convert Blender native coordinates into engine space.
 
+Use `File > Export > Untold Tiled Scene` for streaming scene exports.
+
+Tiled scene options:
+
+- `Output Directory`: scene folder for the manifest. Tile `.untold` payloads
+  are written to a `tile_exports` subfolder.
+- `Visible Objects Only`: export only visible meshes.
+- `Partitioning`: choose exactly one partitioning algorithm.
+- `Uniform Grid: Auto Tile Size`: let the uniform-grid exporter choose tile
+  dimensions from scene complexity.
+- `Uniform Grid: Tile Size X/Y/Z`: manual uniform-grid tile dimensions.
+- `Quadtree: Floor Count`: optional floor count override. Use `0` for auto.
+- `Quadtree: Floor Band Height`: optional per-floor height override. Use `0`
+  for auto.
+- `Scene Profile`: auto, indoor, or outdoor streaming radius profile.
+- `Generate HLOD` / `Generate LOD`: create simplified distance assets.
+- `Compress Geometry`: LZ4-compress tile vertex/index chunks.
+- `Dry Run`: plan the partition without writing payload files.
+
+The plugin runs tiled export in sequential mode. Use
+`scripts/export-untold-tiles` for parallel worker exports.
+
+Partitioning rules:
+
+- `Uniform Grid` uses the auto/manual tile-size controls.
+- `Quadtree` uses the floor controls and ignores uniform-grid tile sizing.
+- Only one partitioning algorithm is active for a given export.
+
+Example tiled scene layout:
+
+```text
+CityBlender/
+  CityBlender.json
+  tile_exports/
+    tile_0_0_0.untold
+    tile_0_0_1.untold
+    Textures/
+```
+
+In the plugin file picker, select `CityBlender`. The plugin creates
+`tile_exports` automatically.
+
 ## Current Scope
 
-This add-on currently exports single `.untold` model assets and animation
-assets from Blender scene objects. Tiled scene export is intentionally left to
-`scripts/export-untold-tiles` for now.
+This add-on currently exports single `.untold` model assets, animation assets,
+and tiled streaming scenes from Blender scene objects.
 
 ## Packaging
 
@@ -66,5 +107,5 @@ scripts/untold-blender-addon/package.sh
 ```
 
 The package script creates an installable zip with bundled copies of
-`scripts/untoldexplorer.py` and `scripts/texbake.py` under
-`untold_exporter/vendor/`.
+`scripts/untoldexplorer.py`, `scripts/texbake.py`, and
+`scripts/tilestreamingpartition.py` under `untold_exporter/vendor/`.
