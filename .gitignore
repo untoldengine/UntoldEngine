@@ -88,5 +88,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 scripts/__pycache__/
+scripts/untold-blender-addon/**/__pycache__/
+scripts/untold-blender-addon/build/
+*.pyc
 
 scripts/tests/__pycache__/
