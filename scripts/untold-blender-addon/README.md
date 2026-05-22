@@ -31,6 +31,16 @@ Options:
 - `Convert Orientation`: convert Blender native coordinates into engine space.
 - `Write Validation JSON`: write a companion validation file.
 - `Compress Geometry`: use LZ4 compression for geometry chunks.
+- `Bake Textures To .utex`: convert staged textures to engine-native `.utex`
+  files and patch the exported `.untold` references.
+
+Texture baking requires Pillow in Blender's Python and the `astcenc` binary:
+
+```sh
+brew install astc-encoder
+```
+
+or set `ASTCENC_BIN=/full/path/to/astcenc` before launching Blender.
 
 Use `File > Export > Untold Animation (.untold)` for animation clips.
 
@@ -55,5 +65,6 @@ Run:
 scripts/untold-blender-addon/package.sh
 ```
 
-The package script creates an installable zip with a bundled copy of
-`scripts/untoldexplorer.py` under `untold_exporter/vendor/`.
+The package script creates an installable zip with bundled copies of
+`scripts/untoldexplorer.py` and `scripts/texbake.py` under
+`untold_exporter/vendor/`.
