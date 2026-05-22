@@ -1349,6 +1349,21 @@ def include_linked_armatures(export_objects: list[object]) -> list[object]:
     return selected_objects
 
 
+def prepare_export_objects_from_blender_objects(
+    objects: list[object],
+    mesh_name: Optional[str] = None,
+) -> list[object]:
+    """Apply the common Blender-object export preparation path.
+
+    Used by both the CLI importer path and the Blender add-on path so object
+    selection, linked armatures, and material splitting stay consistent.
+    """
+    export_objects = choose_export_objects(objects, mesh_name)
+    export_objects = include_linked_armatures(export_objects)
+    export_objects = split_blender_objects_by_material(export_objects)
+    return export_objects
+
+
 def triangulate_mesh(mesh_data: object) -> None:
     blender_required()
     bm = bmesh.new()
@@ -2503,9 +2518,7 @@ def extract_nodes(
     imported_objects = import_usd_asset(asset_path)
     if progress_callback is not None:
         progress_callback("Select objects", 0, 1, f"{len(imported_objects)} imported object(s)")
-    export_objects = choose_export_objects(imported_objects, mesh_name)
-    export_objects = include_linked_armatures(export_objects)
-    export_objects = split_blender_objects_by_material(export_objects)
+    export_objects = prepare_export_objects_from_blender_objects(imported_objects, mesh_name)
     return extract_nodes_from_objects(
         export_objects,
         asset_path,
@@ -2645,6 +2658,14 @@ def _compress_geometry_chunks(vertex_raw: bytes, index_raw: bytes) -> tuple[byte
     vertex_compressed: bytes = lz4_block.compress(vertex_raw, store_size=False)
     index_compressed: bytes = lz4_block.compress(index_raw, store_size=False)
     return vertex_compressed, index_compressed
+
+
+def _format_byte_count(size: int) -> str:
+    if size < 1024:
+        return f"{size} B"
+    if size < 1024 * 1024:
+        return f"{size / 1024.0:.1f} KB"
+    return f"{size / (1024.0 * 1024.0):.1f} MB"
 
 
 def build_untold_file(
@@ -2912,8 +2933,32 @@ def build_untold_file(
     if compress_geometry:
         if progress_callback is not None:
             progress_callback("Compress geometry", 0, 1, output_path.name)
-        vertex_payload, index_payload = _compress_geometry_chunks(vertex_raw, index_raw)
-        geo_compression = COMPRESSION_LZ4
+        vertex_compressed, index_compressed = _compress_geometry_chunks(vertex_raw, index_raw)
+        compressed_size = len(vertex_compressed) + len(index_compressed)
+        raw_size = len(vertex_raw) + len(index_raw)
+        if compressed_size < raw_size:
+            vertex_payload, index_payload = vertex_compressed, index_compressed
+            geo_compression = COMPRESSION_LZ4
+            if progress_callback is not None:
+                saved = raw_size - compressed_size
+                progress_callback(
+                    "Compress geometry",
+                    1,
+                    1,
+                    f"{_format_byte_count(raw_size)} -> {_format_byte_count(compressed_size)} "
+                    f"(saved {_format_byte_count(saved)})",
+                )
+        else:
+            vertex_payload, index_payload = vertex_raw, index_raw
+            geo_compression = COMPRESSION_NONE
+            if progress_callback is not None:
+                progress_callback(
+                    "Compress geometry",
+                    1,
+                    1,
+                    f"kept uncompressed; LZ4 would be {_format_byte_count(compressed_size)} "
+                    f"for {_format_byte_count(raw_size)} raw geometry",
+                )
     else:
         vertex_payload, index_payload = vertex_raw, index_raw
         geo_compression = COMPRESSION_NONE
