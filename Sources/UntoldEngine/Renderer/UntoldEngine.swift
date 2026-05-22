@@ -175,7 +175,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         CameraSystem.shared.activeCamera = gameCamera
 
-        Logger.log(message: "Untold Engine Starting. Version 0.12.13")
+        Logger.log(message: "Untold Engine Starting. Version 0.12.14")
     }
 
     public func initSizeableResources() {
