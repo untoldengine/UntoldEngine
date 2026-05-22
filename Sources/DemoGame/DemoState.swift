@@ -64,38 +64,10 @@
             let manifestURL: URL?
         }
 
-        enum ExportSourceOrientation: String, CaseIterable, Identifiable {
-            case blenderNative = "blender-native"
-            case engineOriented = "engine-oriented"
-
-            var id: String {
-                rawValue
-            }
-
-            var title: String {
-                switch self {
-                case .blenderNative:
-                    "Blender Native"
-                case .engineOriented:
-                    "Engine Oriented"
-                }
-            }
-        }
-
-        enum ExportMode: String, CaseIterable, Identifiable {
-            case untoldAsset = "Untold Asset"
-            case tiledScene = "Tiled Scene"
-
-            var id: String {
-                rawValue
-            }
-        }
-
         // MARK: - File Loading
 
         var hasLoadedEntity: Bool = false
         var isLoading: Bool = false
-        var showExportPanel: Bool = false
         let remoteScenes: [RemoteSceneOption] = [
             .init(
                 id: "dungeon",
@@ -128,25 +100,6 @@
         var selectedRemoteScene: RemoteSceneOption? {
             remoteScenes.first { $0.id == selectedRemoteSceneID }
         }
-
-        // MARK: - Export
-
-        var exportSourceURL: URL?
-        var exportOutputURL: URL?
-        var exportMode: ExportMode = .untoldAsset
-        var exportConvertOrientation: Bool = true
-        var exportValidateOutput: Bool = false
-        var exportSourceOrientation: ExportSourceOrientation = .blenderNative
-        var exportTileOutputDirectoryURL: URL?
-        var exportTileSizeX: Double = 25.0
-        var exportTileSizeY: Double = 10000.0
-        var exportTileSizeZ: Double = 25.0
-        var exportAutoTileSize: Bool = false
-        var exportGenerateHLOD: Bool = false
-        var exportGenerateLOD: Bool = false
-        var isExporting: Bool = false
-        var exportStatusMessage: String?
-        var exportDidSucceed: Bool = false
 
         // MARK: - Features
 
@@ -253,8 +206,6 @@
 
         var onLoadFile: ((String, @escaping @Sendable (Bool) -> Void) -> Void)?
         var onLoadTiledScene: ((String, URL, @escaping @Sendable (Bool) -> Void) -> Void)?
-        var onExportUntoldAsset: ((URL, URL, Bool, Bool, ExportSourceOrientation, @escaping @MainActor (Result<String, Error>) -> Void) -> Void)?
-        var onExportTiledScene: ((URL, URL, Double, Double, Double, Bool, Bool, Bool, @escaping @MainActor (Result<String, Error>) -> Void) -> Void)?
         var onBatchingChanged: ((Bool) -> Void)?
         var onStreamingChanged: ((Bool, Double, Double) -> Void)?
         var onLodDebugChanged: ((Bool) -> Void)?
@@ -301,84 +252,5 @@
             }
         }
 
-        func beginUntoldExport() {
-            switch exportMode {
-            case .untoldAsset:
-                beginUntoldAssetExport()
-            case .tiledScene:
-                beginTiledSceneExport()
-            }
-        }
-
-        private func beginUntoldAssetExport() {
-            guard let inputURL = exportSourceURL,
-                  let outputURL = exportOutputURL,
-                  let onExportUntoldAsset
-            else {
-                exportDidSucceed = false
-                exportStatusMessage = "Select both a source asset and an output .untold path."
-                return
-            }
-
-            isExporting = true
-            exportDidSucceed = false
-            exportStatusMessage = nil
-
-            onExportUntoldAsset(
-                inputURL,
-                outputURL,
-                exportConvertOrientation,
-                exportValidateOutput,
-                exportSourceOrientation
-            ) { result in
-                self.isExporting = false
-
-                switch result {
-                case let .success(message):
-                    self.exportDidSucceed = true
-                    self.exportStatusMessage = message
-                case let .failure(error):
-                    self.exportDidSucceed = false
-                    self.exportStatusMessage = error.localizedDescription
-                }
-            }
-        }
-
-        private func beginTiledSceneExport() {
-            guard let inputURL = exportSourceURL,
-                  let outputDirectoryURL = exportTileOutputDirectoryURL,
-                  let onExportTiledScene
-            else {
-                exportDidSucceed = false
-                exportStatusMessage = "Select both a source asset and an output folder for tiled export."
-                return
-            }
-
-            isExporting = true
-            exportDidSucceed = false
-            exportStatusMessage = nil
-
-            onExportTiledScene(
-                inputURL,
-                outputDirectoryURL,
-                exportTileSizeX,
-                exportTileSizeY,
-                exportTileSizeZ,
-                exportAutoTileSize,
-                exportGenerateHLOD,
-                exportGenerateLOD
-            ) { result in
-                self.isExporting = false
-
-                switch result {
-                case let .success(message):
-                    self.exportDidSucceed = true
-                    self.exportStatusMessage = message
-                case let .failure(error):
-                    self.exportDidSucceed = false
-                    self.exportStatusMessage = error.localizedDescription
-                }
-            }
-        }
     }
 #endif
