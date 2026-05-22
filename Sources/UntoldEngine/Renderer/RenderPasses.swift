@@ -350,7 +350,8 @@ public enum RenderPasses {
 
         let cameraPosition: simd_float3
         if let cam = CameraSystem.shared.activeCamera,
-           let camComp = scene.get(component: CameraComponent.self, for: cam) {
+           let camComp = scene.get(component: CameraComponent.self, for: cam)
+        {
             cameraPosition = SceneRootTransform.shared.effectiveCameraPosition(camComp.localPosition)
         } else {
             cameraPosition = .zero

@@ -413,7 +413,6 @@
                     }
                     .buttonStyle(.bordered)
                     .disabled(!state.showStats)
-
                 }
                 .padding(8)
                 .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Constants.panelCornerRadius))

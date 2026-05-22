@@ -16,7 +16,6 @@ import XCTest
 /// All tests exercise shadowEntityBeyondMaxDistance() directly — no Metal or scene state required.
 @MainActor
 final class ShadowDistanceCullingTests: XCTestCase {
-
     // MARK: - Basic inclusion / exclusion
 
     func testEntityWithinMaxDistanceIsIncluded() {
@@ -76,7 +75,7 @@ final class ShadowDistanceCullingTests: XCTestCase {
     func testLargeEntityStraddlingCameraIsAlwaysIncluded() {
         // Camera is inside the AABB → closest point is the camera itself → distance = 0
         let worldMin = simd_float3(-10, -10, -10)
-        let worldMax = simd_float3(100, 10, 10)  // center ~45m away
+        let worldMax = simd_float3(100, 10, 10) // center ~45m away
         XCTAssertFalse(shadowEntityBeyondMaxDistance(
             worldMin: worldMin, worldMax: worldMax,
             cameraPosition: .zero, maxDistance: 40.0

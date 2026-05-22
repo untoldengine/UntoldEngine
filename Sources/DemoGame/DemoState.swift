@@ -251,6 +251,5 @@
                 onSSAOChanged?(false, ssaoRadius, ssaoBias, ssaoIntensity)
             }
         }
-
     }
 #endif

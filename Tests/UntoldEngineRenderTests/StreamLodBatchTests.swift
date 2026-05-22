@@ -555,6 +555,7 @@ final class StreamLodBatchLODAwareStreamingTests: BaseRenderSetup {
     }
 
     // MARK: - Gate-external buffer precomputation tests
+
     // Validates the pattern used in loadMeshAsync: Metal buffer copies are built
     // BEFORE the world mutation gate, then only pointer assignments happen inside.
 
@@ -585,7 +586,7 @@ final class StreamLodBatchLODAwareStreamingTests: BaseRenderSetup {
                        "Entity should have non-empty mesh array after pre-gate assignment")
     }
 
-    func testPrecomputedMeshesAreIndependentFromSource() throws {
+    func testPrecomputedMeshesAreIndependentFromSource() {
         // Verifies that pre-building outside the gate doesn't create aliasing —
         // mutations to the source should not affect the prebuilt copy.
         let sourceMeshes = BasicPrimitives.createSphere()
@@ -741,7 +742,7 @@ final class StreamLodBatchCoalescingTests: XCTestCase {
         for newLOD in 1 ... 3 {
             SystemEventBus.shared.queueLODChange(
                 EntityLODChangedEvent(entityId: 42, previousLODIndex: newLOD - 1,
-                                     newLODIndex: newLOD, meshAssetID: "mesh_LOD\(newLOD)")
+                                      newLODIndex: newLOD, meshAssetID: "mesh_LOD\(newLOD)")
             )
         }
         SystemEventBus.shared.flushEvents()
@@ -760,8 +761,8 @@ final class StreamLodBatchCoalescingTests: XCTestCase {
         XCTAssertNoThrow(
             SystemEventBus.shared.queueLODChange(
                 EntityLODChangedEvent(entityId: invalidEntityId,
-                                     previousLODIndex: 0, newLODIndex: 1,
-                                     meshAssetID: "ghost_LOD1")
+                                      previousLODIndex: 0, newLODIndex: 1,
+                                      meshAssetID: "ghost_LOD1")
             )
         )
         XCTAssertNoThrow(SystemEventBus.shared.flushEvents())
@@ -793,7 +794,7 @@ final class StreamLodBatchCoalescingTests: XCTestCase {
         for id in EntityID(1) ... EntityID(5) {
             SystemEventBus.shared.queueLODChange(
                 EntityLODChangedEvent(entityId: id, previousLODIndex: 0,
-                                     newLODIndex: 1, meshAssetID: "mesh\(id)_LOD1")
+                                      newLODIndex: 1, meshAssetID: "mesh\(id)_LOD1")
             )
         }
         SystemEventBus.shared.flushEvents()
