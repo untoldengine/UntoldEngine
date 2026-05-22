@@ -22,7 +22,7 @@ file.
 
 ## Usage
 
-Use `File > Export > Untold (.untold)`.
+Use `File > Export > Untold (.untold)` for model assets.
 
 Options:
 
@@ -32,11 +32,20 @@ Options:
 - `Write Validation JSON`: write a companion validation file.
 - `Compress Geometry`: use LZ4 compression for geometry chunks.
 
+Use `File > Export > Untold Animation (.untold)` for animation clips.
+
+Animation options:
+
+- `Armature`: export the selected armature, the armature linked to a selected mesh,
+  or the only visible armature in the scene.
+- `Actions`: export the current action or all Blender actions.
+- `Convert Orientation`: convert Blender native coordinates into engine space.
+
 ## Current Scope
 
-This first milestone exports a single `.untold` asset from Blender scene
-objects. Tiled scene export is intentionally left to `scripts/export-untold-tiles`
-for now.
+This add-on currently exports single `.untold` model assets and animation
+assets from Blender scene objects. Tiled scene export is intentionally left to
+`scripts/export-untold-tiles` for now.
 
 ## Packaging
 

@@ -3049,33 +3049,48 @@ def extract_animation_clips(asset_path: Path, convert_orientation: bool = False,
     actions = list(getattr(bpy.data, "actions", []))
     if not actions and getattr(armature, "animation_data", None) is not None and armature.animation_data.action is not None:
         actions = [armature.animation_data.action]
+    return extract_animation_clips_from_armature(
+        armature,
+        actions,
+        conversion_matrix=conversion_matrix,
+    )
+
+
+def iter_action_fcurves(action: object) -> list[object]:
+    legacy = getattr(action, "fcurves", None)
+    if legacy is not None:
+        try:
+            return list(legacy)
+        except TypeError:
+            pass
+
+    collected: list[object] = []
+    for layer in getattr(action, "layers", []):
+        for strip in getattr(layer, "strips", []):
+            for channelbag in getattr(strip, "channelbags", []):
+                collected.extend(list(getattr(channelbag, "fcurves", [])))
+    return collected
+
+
+def extract_animation_clips_from_armature(
+    armature: object,
+    actions: list[object],
+    *,
+    conversion_matrix: Optional[object] = None,
+) -> list[ExportedAnimationClip]:
+    blender_required()
     if not actions:
-        raise RuntimeError("No animation actions were found in the imported asset")
+        raise RuntimeError("No animation actions were provided for export")
 
     bones = list(getattr(armature.data, "bones", []))
     if not bones:
-        raise RuntimeError("The imported armature has no bones")
+        raise RuntimeError("The selected armature has no bones")
     pose_bones = armature.pose.bones
     armature_world_matrix = armature.matrix_world.copy()
     fps = float(bpy.context.scene.render.fps) / float(getattr(bpy.context.scene.render, "fps_base", 1.0) or 1.0)
 
     clips: list[ExportedAnimationClip] = []
     previous_action = armature.animation_data.action if getattr(armature, "animation_data", None) is not None else None
-
-    def iter_action_fcurves(action: object) -> list[object]:
-        legacy = getattr(action, "fcurves", None)
-        if legacy is not None:
-            try:
-                return list(legacy)
-            except TypeError:
-                pass
-
-        collected: list[object] = []
-        for layer in getattr(action, "layers", []):
-            for strip in getattr(layer, "strips", []):
-                for channelbag in getattr(strip, "channelbags", []):
-                    collected.extend(list(getattr(channelbag, "fcurves", [])))
-        return collected
 
     try:
         if getattr(armature, "animation_data", None) is None:
@@ -3127,8 +3142,29 @@ def extract_animation_clips(asset_path: Path, convert_orientation: bool = False,
             armature.animation_data.action = previous_action
 
     if not clips:
-        raise RuntimeError("No animation clips were extracted from the imported asset")
+        raise RuntimeError("No animation clips were extracted from the selected armature")
     return clips
+
+
+def export_animation_clips_to_untold(
+    exported_clips: list[ExportedAnimationClip],
+    output_path: Path,
+    progress_callback: Optional[ProgressCallback] = None,
+) -> dict[str, object]:
+    if progress_callback is not None:
+        progress_callback("Build animation", 0, 1, output_path.name)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    untold_bytes = build_animation_untold_file(exported_clips, output_path)
+    if progress_callback is not None:
+        progress_callback("Write animation", 0, 1, output_path.name)
+    output_path.write_bytes(untold_bytes)
+    return {
+        "output_path": output_path,
+        "bytes_written": len(untold_bytes),
+        "clip_count": len(exported_clips),
+        "channel_count": sum(len(clip.channels) for clip in exported_clips),
+        "duration": max((clip.duration for clip in exported_clips), default=0.0),
+    }
 
 
 def build_animation_untold_file(exported_clips: list[ExportedAnimationClip], output_path: Path) -> bytes:

@@ -1,10 +1,15 @@
 from pathlib import Path
+import importlib
 
 import bpy
 from bpy.props import BoolProperty, EnumProperty
 from bpy_extras.io_utils import ExportHelper
 
 from . import bridge
+
+
+def exporter_bridge():
+    return importlib.reload(bridge)
 
 
 bl_info = {
@@ -98,7 +103,7 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
                 print(f"[Untold Exporter] {stage} - {detail}", flush=True)
 
         try:
-            result = bridge.export_asset(
+            result = exporter_bridge().export_asset(
                 context=context,
                 output_path=output_path,
                 scope=self.scope,
@@ -125,12 +130,100 @@ class UNTOLD_OT_export_asset(bpy.types.Operator, ExportHelper):
         return {"FINISHED"}
 
 
+class UNTOLD_OT_export_animation(bpy.types.Operator, ExportHelper):
+    bl_idname = "untold.export_animation"
+    bl_label = "Export Untold Animation"
+    bl_options = {"REGISTER"}
+
+    filename_ext = ".untold"
+    filter_glob: bpy.props.StringProperty(
+        default="*.untold",
+        options={"HIDDEN"},
+    )
+
+    scope: EnumProperty(
+        name="Armature",
+        description="Armature to export animation from",
+        items=[
+            ("SELECTED", "Selected Armature", "Export the selected armature, or the armature linked to a selected mesh"),
+            ("SCENE", "Visible Scene Armature", "Export the only visible armature in the scene"),
+        ],
+        default="SELECTED",
+    )
+
+    action_mode: EnumProperty(
+        name="Actions",
+        description="Animation actions to export",
+        items=[
+            ("CURRENT", "Current Action", "Export the selected armature's active action"),
+            ("ALL", "All Actions", "Export all Blender actions as clips"),
+        ],
+        default="CURRENT",
+    )
+
+    convert_orientation: BoolProperty(
+        name="Convert Orientation",
+        description="Convert from the selected source orientation into Untold Engine space (+Z forward, +Y up)",
+        default=True,
+    )
+
+    source_orientation: EnumProperty(
+        name="Source Orientation",
+        description="Coordinate convention of the Blender scene data",
+        items=[
+            ("blender-native", "Blender Native", "Blender default: -Y forward, +Z up"),
+            ("engine-oriented", "Engine Oriented", "Already in Untold Engine space: +Z forward, +Y up"),
+        ],
+        default="blender-native",
+    )
+
+    @staticmethod
+    def _animation_output_path(filepath: str) -> Path:
+        selected_path = Path(filepath).expanduser().resolve()
+        clip_name = selected_path.stem or "animation"
+        return selected_path.parent / clip_name / f"{clip_name}.untold"
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        output_path = self._animation_output_path(self.filepath)
+
+        def progress(stage: str, done: int, total: int, detail: str) -> None:
+            if total > 1:
+                print(f"[Untold Exporter] {stage} {done}/{total} - {detail}", flush=True)
+            else:
+                print(f"[Untold Exporter] {stage} - {detail}", flush=True)
+
+        try:
+            result = exporter_bridge().export_animation(
+                context=context,
+                output_path=output_path,
+                scope=self.scope,
+                action_mode=self.action_mode,
+                convert_orientation=self.convert_orientation,
+                source_orientation=self.source_orientation,
+                progress_callback=progress,
+            )
+        except Exception as exc:
+            self.report({"ERROR"}, str(exc))
+            print(f"[Untold Exporter] Error: {exc}", flush=True)
+            return {"CANCELLED"}
+
+        message = (
+            f"Exported {result['clip_count']} clip(s), "
+            f"{result['channel_count']} channel(s) to {output_path.name}"
+        )
+        self.report({"INFO"}, message)
+        print(f"[Untold Exporter] {message}", flush=True)
+        return {"FINISHED"}
+
+
 def menu_func_export(self: bpy.types.Menu, context: bpy.types.Context) -> None:
     self.layout.operator(UNTOLD_OT_export_asset.bl_idname, text="Untold (.untold)")
+    self.layout.operator(UNTOLD_OT_export_animation.bl_idname, text="Untold Animation (.untold)")
 
 
 classes = (
     UNTOLD_OT_export_asset,
+    UNTOLD_OT_export_animation,
 )
 
 
