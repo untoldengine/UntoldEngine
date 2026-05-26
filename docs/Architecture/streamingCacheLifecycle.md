@@ -70,6 +70,7 @@ When geometry leaves range or memory pressure rises:
 - `unloadMesh(...)` clears the entity's live mesh reference
 - `MeshResourceManager.release(entityId:)` decrements shared cache refs when applicable
 - OCC stubs keep their CPU source warm until tile/root teardown
+- if OCC eviction cannot clear geometry pressure, `evictTileGeometry(...)` can unload full-load tile geometry, HLODs, and per-tile LODs outside their protected streaming band
 
 ### 6. Cache cleanup
 
@@ -92,3 +93,4 @@ When reviewing a streamed tile today, think of residency in this order:
 3. If OOC, does the child stub have a `CPURuntimeEntry`?
 4. Is the GPU copy currently resident?
 5. Is batching representing the entity directly or via a cell artifact?
+6. If geometry pressure is high, is the candidate an OCC stub handled by `evictLRU`, or tile-owned full/LOD/HLOD geometry handled by `evictTileGeometry`?

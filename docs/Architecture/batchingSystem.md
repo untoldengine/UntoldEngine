@@ -6,7 +6,7 @@ The goal is simple: instead of issuing 100 separate draw calls (one per entity),
 
 ## Step 0: The World is Divided into Cells
 
-The 3D world is partitioned into a 3D grid of **cells**. The cell size is calibrated at scene load time: when a tile manifest is present, the cell size is set to `2 × tileSize` so that cell boundaries align with tile boundaries. When no manifest is present, the default of 32 world units is used.
+The 3D world is partitioned into a 3D grid of **cells**. The cell size is calibrated at scene load time: when a tile manifest is present, the cell size is set to `1 × tileSize` so that cell boundaries align with tile boundaries without producing oversized batch cells. When no manifest is present, the default of 32 world units is used.
 
 Every entity is assigned to a cell based on the world-space center of its bounding box:
 
@@ -37,7 +37,7 @@ Any entities that changed (LOD switch, mesh evicted/streamed in) are removed fro
 
 **Tile-loaded entities bypass the quiescence delay.** When a fullLoad tile (or LOD/HLOD load) finishes, `GeometryStreamingSystem` calls `BatchingSystem.notifyTileEntitiesResident(_:)` with the set of render-ready entity IDs. This single call directly registers the entities in `pendingEntityAdditions`, marks them as tile-parsed (for quiescence bypass), and resolves their cell membership — replacing the former two-step `queueResidencyEventsForRenderDescendants` + `notifyTileParsedEntities` pairing and avoiding the per-entity event storm through `SystemEventBus`. Their cells are immediately promoted to `batchPending` in the same tick. See [Tile-Local Batch Promotion](#tile-local-batch-promotion) below.
 
-**Stale entity purge on LOD/HLOD teardown.** When `unloadLODLevel` or `unloadHLOD` destroys child entities, it first calls `BatchingSystem.cancelPendingEntities(_:)` with the render descendant IDs. This removes them from `pendingEntityAdditions`, `pendingEntityRemovals`, `newlyResidentEntities`, and `tileParsedEntityIds` before the entities are destroyed — preventing "entity is missing" errors on the next `tick()` and avoiding wasted batch rebuilds for entities that no longer exist.
+**Stale entity purge on tile/LOD/HLOD teardown.** When `unloadTile`, `unloadLODLevel`, or `unloadHLOD` destroys child entities, it first calls `BatchingSystem.notifyTileEntitiesUnloading(_:)` with the render descendant IDs. This removes pending additions/removals and committed cell membership before the entities are destroyed, preventing recycled entity IDs from remaining attached to stale batch state.
 
 ### 2b. Update Visibility History
 The system checks which cells currently contain visible entities and records `cellLastVisibleFrame[cellId]`. This drives **visibility gating** — the system won't waste CPU rebuilding cells you can't see.

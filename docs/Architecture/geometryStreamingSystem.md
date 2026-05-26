@@ -29,7 +29,7 @@ Instead of checking every OCC child stub in the scene, it asks the `OctreeSystem
 
 This is the key performance trick — only nearby entities are evaluated.
 
-### 3. Classify Each Nearby Entity (lines 129–157)
+### 3. Classify Each Nearby Entity
 
 For each entity the octree returns, the system calculates the **distance from camera to the entity's bounding box center**, then:
 
@@ -40,12 +40,12 @@ For each entity the octree returns, the system calculates the **distance from ca
 | `.loaded` | still in range | → stamp `lastVisibleFrame` (keep alive) |
 | `.loading` / `.unloading` | — | skip, already in progress |
 
-### 4. Out-of-Range Loaded Entities (lines 164–183)
+### 4. Out-of-Range Loaded Entities
 The octree query only covers nearby space. But what if `building_Z` was loaded and the player sprinted far away — it might not be in the octree result anymore. So the system also checks its `loadedStreamingEntities` tracking set for any loaded entity **not** in the octree result, and adds those to unload candidates if they're too far.
 
 ---
 
-## Unloading First: Free Memory Before Loading New Things (lines 191–197)
+## Unloading First: Free Memory Before Loading New Things
 
 Unload candidates are **sorted farthest-first** (most wasteful memory first). Up to `maxUnloadsPerUpdate = 12` are processed per tick to avoid frame spikes.
 
@@ -119,7 +119,7 @@ isTileOwned(entityId:) — private helper in GeometryStreamingSystem+MeshStreami
 
 ---
 
-## LOD Path: `reloadLODEntity()` (lines 313–415)
+## LOD Path: `reloadLODEntity()`
 
 For LOD entities (e.g., a skyscraper with 3 detail levels), it:
 1. Loads **all LOD levels** concurrently from cache/disk
@@ -171,7 +171,9 @@ if geometry pressure is high:
 5. Skips entities that are both visible and within `visibleEvictionProtectionRadius` (30 m default)
 6. Accepts an optional `maxEvictions` cap (default `Int.max`). The OS pressure path passes `16` per call — this bounds single-frame work during a burst. Any remaining candidates spill to subsequent ticks.
 
-> **`evictLRU` does not reach full-load tile geometry.** `loadedStreamingEntities` tracks OCC mesh stubs (`StreamingComponent` entities). Full-load tiles use the `fullLoad` path of `setEntityMeshAsync`, which creates `RenderComponent` entities that are **not** in `loadedStreamingEntities`. `evictLRU` therefore cannot free their GPU buffers. The tile unload pass (via `unloadTile()`) is the only mechanism that frees full-load tile geometry, but it has a 3-second grace period and a 2-per-tick cap. For explicit session transitions, call `GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()` instead — see [`tilebasedstreaming.md`](tilebasedstreaming.md#forceunloadallparsedtiles----explicit-session-transition).
+If `evictLRU` cannot clear geometry pressure, the system runs `evictTileGeometry(...)` as a second-stage pass. This reaches representations that do not live in `loadedStreamingEntities`: full-load tiles, HLODs, and per-tile LODs. It evicts farthest first, protects tiles inside their own `streamingRadius`, and does not evict parsed full tiles until `minimumParsedTileResidentSeconds` has elapsed.
+
+For explicit session transitions, call `GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()` instead — see [`tilebasedstreaming.md`](tilebasedstreaming.md#forceunloadallparsedtiles----explicit-session-transition).
 
 The `sizeFactor` in the eviction score is normalized against `geometryBudget` (not the combined budget), so a mesh consuming 80% of the geometry pool scores correctly rather than appearing to consume only ~48% of a combined total.
 
@@ -240,8 +242,8 @@ The tile-level streaming layer sits **above** the mesh-level OOC streaming. For 
 
 ### Per-frame passes in `update()` (tile layer, in order)
 
-1. **Tile load pass** — dispatches `.unloaded` stubs within `effectivePrefetchRadius` (frustum-gated, budget-gated, up to `maxConcurrentTileLoads`). Tiles with LOD levels are gated: the full tile only loads when the camera is within the finest LOD switch distance.
-2. **Tile unload pass** — three sub-passes (nearby beyond `unloadRadius`, `.parsed` outside query radius, `.parsing` outside query radius).
+1. **Tile load pass** — dispatches `.unloaded` stubs within `effectivePrefetchRadius` (frustum-gated, floor/interior-gated, budget-gated, up to `maxConcurrentTileLoads`). Tiles with LOD levels are gated: the full tile only loads when the camera is within the finest LOD switch distance. Within each priority tier, candidates are sorted by screen-space importance and optional loaded-tile occlusion score before falling back to distance.
+2. **Tile unload pass** — three sub-passes (nearby beyond `unloadRadius`, `.parsed` outside query radius, `.parsing` outside query radius). Nearby parsed/parsing tiles use the unload grace period; parsed full tiles also honor `minimumParsedTileResidentSeconds`.
 3. **HLOD streaming pass** — for each tile stub, loads or unloads the HLOD proxy based on camera distance vs `hlodSwitchDistance` and `tileComp.state`. Uses `hlodHysteresisFactor` (default 0.90) to prevent thrashing at boundaries. Capped by `maxConcurrentHLODLoads` (default 4).
 4. **HLOD out-of-range cleanup** — unloads HLOD entities for tiles that drifted entirely outside `maxQueryRadius`.
 5. **Per-tile LOD streaming pass** — for each tile stub, finds the target LOD level for the current distance with hysteresis (`lodHysteresisFactor`, default 0.90). Skips when HLOD is resident (avoids dual representation). Loads target; unloads others; unloads all when tile is `.parsed`. Capped by `maxConcurrentLODLoads` (default 4).
@@ -262,6 +264,10 @@ Tile stubs carry a `TileComponent` (no `StreamingComponent`, no `RenderComponent
 | `tileId` | Debug identifier matching the manifest `tile_id` |
 | `state` | `.unloaded → .parsing → .parsed → .unloading` |
 | `pendingUnloadSince` | CFAbsoluteTime when tile first exceeded `unloadRadius`; 0 = in range |
+| `parsedResidentSince` | CFAbsoluteTime when the tile became `.parsed`; used by the minimum parsed-tile dwell guard |
+| `totalOCCStubs` / `uploadedOCCStubs` | Visual readiness counters for out-of-core child uploads |
+| `visualState` | `.empty`, `.partial`, `.usable`, or `.complete` based on OCC upload progress |
+| `failureCount` / `lastFailureTime` / `retryDelaySeconds` | Exponential-backoff retry state after parse failures |
 | `loadTask` | The in-flight Swift `Task` (cancelled on teardown) |
 | `meshEntityId` | The dedicated mesh-child entity ID; stored so the parse-timeout watchdog can force-close `AssetLoadingGate` if the parse Task becomes stuck |
 | `hlodURL` | URL of the HLOD proxy `.untold` asset, if present in the manifest |
@@ -303,7 +309,7 @@ Three sub-passes each tick, capped at `maxTileUnloadsPerUpdate` (default **2**) 
 - **`maxConcurrentTileLoads = 2`** — two concurrent parses balance throughput for large scenes against RAM spike risk. Each parse runs `UntoldReader` on a full `.untold` file; the `tileParseMemoryBudgetMB` gate serialises naturally when a large tile saturates the budget.
 - **`blockRenderLoop: false` on all tile/LOD/HLOD loads** — `setEntityMeshAsync` is called with `blockRenderLoop: false` so that `AssetLoadingGate.isLoadingAny` is not held `true` during the (potentially multi-second) parse. Without this, concurrent parses freeze `visibleEntityIds` updates and stall the render loop.
 - **Hysteresis on LOD/HLOD transitions** — `lodHysteresisFactor` (default 0.90) and `hlodHysteresisFactor` (default 0.90) add a 10% inner band so the camera must move meaningfully past a switch boundary before the current representation is unloaded. Without hysteresis, frame-to-frame distance jitter causes rapid load/unload cycles that freeze the engine.
-- **`cancelPendingEntities` before entity destruction** — when `unloadLODLevel` or `unloadHLOD` tears down child entities, it first calls `BatchingSystem.shared.cancelPendingEntities(_:)` with the render descendant IDs, purging them from all pending batching queues. This prevents "entity is missing" errors when the batching tick tries to process additions for entities that were destroyed between event queuing and tick processing.
+- **`notifyTileEntitiesUnloading` before entity destruction** — when `unloadTile`, `unloadLODLevel`, or `unloadHLOD` tears down child entities, it first calls `BatchingSystem.shared.notifyTileEntitiesUnloading(_:)` with the render descendant IDs, purging pending additions and committed cell membership. This prevents destroyed or recycled entity IDs from staying in batching state.
 - **`notifyTileEntitiesResident` replaces the event storm** — tile/LOD/HLOD load completions call `BatchingSystem.shared.notifyTileEntitiesResident(_:)` instead of the former two-step `queueResidencyEventsForRenderDescendants` + `notifyTileParsedEntities` pairing. The single call directly registers entities in the batching system's pending additions and marks them for quiescence bypass, avoiding hundreds of individual `AssetResidencyChangedEvent` objects through `SystemEventBus`.
 - **Identity world transform on stubs** — tile geometry is exported in world space; no runtime coordinate conversion needed.
 - **`.auto` streaming policy** — tile loads use native `.untold` admission to choose immediate full-tile upload or OCC child-stub registration.
