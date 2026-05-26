@@ -309,6 +309,15 @@ TextureStreamingSystem.shared.apply(.detailed)
 TextureStreamingSystem.shared.upgradeRadius = 3.0  // widen full-res zone
 ```
 
+For tiled scenes, `setEntityStreamScene(...)` calls `TextureStreamingSystem.shared.alignToManifest(streamingRadius:unloadRadius:)` automatically after decoding the manifest. That applies the `.tiled` profile and derives:
+
+```swift
+upgradeRadius = max(streamingRadius * 0.70, 2.5)
+downgradeRadius = max(unloadRadius, upgradeRadius + 1.0, upgradeRadius * 2.0)
+```
+
+The floors keep small scenes usable, while large scenes still align texture tiers to their authored tile streaming bands.
+
 | Profile | `upgradeRadius` | `downgradeRadius` | `minDim` | `maxConcurrentOps` | Best for |
 |---|---|---|---|---|---|
 | `.detailed` | 2.5 m | 6.0 m | 512 px | 6 | Vehicles, products, characters, props, interiors |
@@ -345,13 +354,13 @@ TextureStreamingSystem.shared.alignToManifest(
 This applies the `.tiled` profile (concurrency, dimensions) then derives the texture tier radii from the manifest geometry streaming bands:
 
 ```
-upgradeRadius   = streamingRadius × 0.70
-downgradeRadius = max(unloadRadius, upgradeRadius + 1.0)
+upgradeRadius   = max(streamingRadius × 0.70, 2.5)
+downgradeRadius = max(unloadRadius, upgradeRadius + 1.0, upgradeRadius × 2.0)
 ```
 
-**Why 0.70 × streamingRadius?** The streaming radius is the distance at which tile geometry *loads*. Upgrading to full-res at 70% of that radius means the camera has already moved well inside the loaded zone before the texture upgrade fires — reducing the chance of a visible resolution pop the moment a tile appears.
+**Why max(streamingRadius × 0.70, 2.5)?** The streaming radius is the distance at which tile geometry *loads*. Upgrading to full-res at 70% of that radius means the camera has already moved well inside the loaded zone before the texture upgrade fires. The 2.5 m floor keeps small scenes from requiring centimetre-level camera distances before full-resolution textures appear.
 
-**Why downgradeRadius = unloadRadius?** Tile geometry unloads at `unloadRadius`. Degrading textures to minimum at the same distance means the GPU texture memory is already at minimum cost exactly when the geometry is about to be evicted, preventing a spike of full/medium-res textures on geometry that is about to disappear.
+**Why the downgrade radius floors?** Tile geometry unloads at `unloadRadius`, so large scenes use that as the minimum-tier boundary. For small scenes, `upgradeRadius + 1.0` and `upgradeRadius × 2.0` guarantee a usable medium-quality band instead of dropping directly from full to minimum.
 
 **Example** (city.json: `streaming_radius = 38.5m`, `unload_radius = 57.8m`):
 - `upgradeRadius   = 38.5 × 0.70 = 26.97m` — full res within ~one tile diagonal

@@ -76,7 +76,7 @@ If `prefetch_radius` is omitted, the engine computes it automatically from the g
 Each update tick, `GeometryStreamingSystem`:
 
 1. Queries the octree within `maxQueryRadius`.
-2. Chooses tile parse candidates using predictive camera motion (velocity look-ahead), a frustum gate, and an optional interior zone gate.
+2. Chooses tile parse candidates using predictive camera motion, frustum gating, floor/interior gates, screen-space importance, and loaded-tile occlusion weighting.
 3. Parses up to `maxConcurrentTileLoads` tiles, subject to `tileParseMemoryBudgetMB`.
 4. Streams OCC child meshes inside loaded tiles using `maxConcurrentLoads`.
 5. Unloads tiles, LODs, HLODs, and OCC meshes when they leave range or memory pressure requires eviction.
@@ -89,6 +89,8 @@ Important defaults:
 - `maxConcurrentHLODLoads = 4`
 - `updateInterval = 0.1`
 - `burstTickInterval = 0.016`
+- `floorProximityGateY = 5.0`
+- `minimumParsedTileResidentSeconds = 8.0`
 
 ## Useful Runtime Knobs
 
@@ -119,8 +121,20 @@ GeometryStreamingSystem.shared.interiorZone = AABB(
     max: simd_float3(10, 5, 10)
 )
 
+// Floor-aware gating for v4 quadtree-floor manifests.
+// Interior tiles with floor metadata only dispatch when their Y center is near the camera.
+GeometryStreamingSystem.shared.floorProximityGateY = 5.0
+
+// Tile candidate ordering
+GeometryStreamingSystem.shared.enableImportanceSort = true
+GeometryStreamingSystem.shared.enableOcclusionSort = true
+
+// Tile unload stability
+GeometryStreamingSystem.shared.minimumParsedTileResidentSeconds = 8.0
+
 // Parse safety
 GeometryStreamingSystem.shared.tileParseTimeoutSeconds = 60.0  // watchdog deadline per tile
+GeometryStreamingSystem.shared.meshLoadTimeoutSeconds = 60.0   // watchdog deadline per OCC mesh load
 ```
 
 Use `maxQueryRadius` large enough to cover the farthest `unload_radius` in the scene, or out-of-range tiles may not be discovered for teardown.
@@ -184,6 +198,7 @@ The rule of thumb: **call it whenever you know a new tile-streaming session is a
 - **Texture streaming**: `setEntityStreamScene(...)` automatically aligns texture distance bands to the manifest radii.
 - **Batching**: full-load tiles, per-tile LODs, and HLODs notify `BatchingSystem` automatically. OCC sub-mesh uploads join batching incrementally through normal residency events.
 - **Memory pressure**: texture quality is shed first; geometry eviction follows only when geometry pressure remains high.
+- **Tile geometry eviction**: if OCC eviction cannot clear geometry pressure, the system can evict full-load tiles, HLODs, and per-tile LODs through `evictTileGeometry`, while protecting tiles inside their own `streamingRadius` and respecting the parsed-tile minimum dwell.
 
 ## Common Problems
 

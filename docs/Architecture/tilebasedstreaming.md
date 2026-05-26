@@ -132,6 +132,8 @@ The manifest schema has evolved across two versions:
 
 **Interior zone gating** — the manifest's `interior_zone` is the union AABB of all `ExteriorShell` tiles. On each streaming tick, the engine checks whether the camera is inside this volume. Tiles with `"interior": true` are only dispatched for loading while the camera is inside. This prevents the engine from loading room-level geometry when the player is outside the building, regardless of distance.
 
+**Floor proximity gating** — for v4 `quadtree_floor` manifests, interior tiles that carry `floor_id` are also checked against `GeometryStreamingSystem.shared.floorProximityGateY` (default 5 m). The gate compares the camera's Y position to the tile's manifest center Y and suppresses new load dispatches for vertically distant floors. It does not unload already parsed tiles; normal `unloadRadius`, grace, and dwell rules still control teardown.
+
 > The quadtree partitioning is a content-pipeline and manifest-level concept. At runtime the engine uses an **octree** for spatial range queries (finding tile stubs near the camera). The manifest's `quadtree_node_id` is used for debug logging only and has no effect on streaming logic.
 
 ---
@@ -178,7 +180,8 @@ No geometry is parsed or uploaded at this stage. The whole function completes in
 2. Tests against `effectivePrefetchRadius` (see [Prefetch Radius](#prefetch-radius)).
 3. Applies the **frustum gate** (padded AABB vs camera frustum, `tileFrustumGatePadding = 20 m`). Tiles fully outside the frustum are skipped this tick.
 4. Eligible tiles are sorted by priority (descending) then distance (ascending).
-5. Up to `maxConcurrentTileLoads` (default 2) are dispatched via `loadTile()`, subject to the **memory budget gate**: the total parse memory in flight must stay under `tileParseMemoryBudgetMB` (200 MB), with a guarantee that at least one tile always loads even if it alone exceeds the budget.
+5. Within each priority tier, candidates are sorted by screen-space importance. The score uses projected tile footprint, view alignment, and optionally an occlusion weight derived from closer loaded tile AABBs. Occlusion never hard-blocks a tile; `occlusionMinWeight` leaves a nonzero floor so sparse or glassy geometry does not permanently hide work.
+6. Up to `maxConcurrentTileLoads` (default 2) are dispatched via `loadTile()`, subject to the **memory budget gate**: the total parse memory in flight must stay under `tileParseMemoryBudgetMB` (200 MB), with a guarantee that at least one tile always loads even if it alone exceeds the budget.
 
 **Tile unload pass** — three sub-passes each tick. All passes use `min(actual, predictive)` distance, matching the load pass, so a tile the camera is approaching is not torn down mid-parse:
 
@@ -186,7 +189,7 @@ No geometry is parsed or uploaded at this stage. The whole function completes in
 2. **Loaded tiles** that drifted entirely outside `maxQueryRadius`.
 3. **Parsing tiles** that drifted outside `maxQueryRadius` (fast movement or teleport).
 
-Both `.parsing` and `.parsed` tiles go through the **grace period** (see [Unload Grace Period](#unload-grace-period)) before actual teardown (passes 1 and 2). Pass 3 tiles are genuinely beyond the 500 m query radius and are cancelled without a grace period — boundary oscillation cannot occur at that range. At most `maxTileUnloadsPerUpdate` (default 2) tiles are torn down per tick to spread GPU buffer releases across frames.
+Both `.parsing` and `.parsed` tiles go through the **grace period** (see [Unload Grace Period](#unload-grace-period)) before actual teardown when they are still inside the octree query radius. Parsed tiles also honor `minimumParsedTileResidentSeconds` (default 8 s), so a newly visible tile cannot be immediately evicted or unloaded while the camera settles near a boundary. Pass 3 tiles are genuinely beyond the 500 m query radius and are cancelled without a grace period — boundary oscillation cannot occur at that range. At most `maxTileUnloadsPerUpdate` (default 2) tiles are torn down per tick to spread GPU buffer releases across frames.
 
 ### 3. `loadTile(entityId:)`
 
@@ -267,24 +270,22 @@ Both `.parsing` and `.parsed` tiles honour the grace period. `.parsing` tiles ha
 
 - **`MemoryBudgetManager`** tracks geometry and texture GPU bytes against per-platform budgets (probed at startup).
 - Before dispatching any tile load, the system checks `shouldEvictGeometry()`. If true, it runs `TextureStreamingSystem.shedTextureMemory` and `evictLRU` (capped at 8 evictions) before attempting a tile parse. This prevents a tile's multi-MB commit from pushing RAM over budget.
-- **LRU eviction** scores loaded streaming entities by camera distance × `evictionDistanceWeight` + GPU size × `evictionSizeWeight`. Entities within `visibleEvictionProtectionRadius` (30 m) are protected.
+- **LRU eviction** scores loaded OCC streaming entities by camera distance × `evictionDistanceWeight` + GPU size × `evictionSizeWeight`. Entities within `visibleEvictionProtectionRadius` (30 m) are protected.
+- **Tile geometry eviction** (`evictTileGeometry`) runs after OCC eviction if geometry pressure remains high. It can evict full-load tiles, HLODs, and per-tile LODs that are outside their tile `streamingRadius`; parsed full tiles are protected until `minimumParsedTileResidentSeconds` elapses.
 - **OS memory pressure** callbacks (`DispatchSource.makeMemoryPressureSource`) set a flag; eviction is deferred to the next `update()` tick to stay single-threaded.
 - **`tripleVisibleEntities.clearAll()`** — called in `finalizePendingDestroys()` to clear all triple-buffer slots so the renderer does not read stale entity IDs after a scene reload.
 
-### `evictLRU` limitation with full-load tile geometry
+### Full-load tile geometry eviction
 
-`evictLRU` targets `loadedStreamingEntities` — the set of OCC mesh stubs (entities with `StreamingComponent`). Full-load tile geometry lives on `RenderComponent` entities created by the `fullLoad` path of `setEntityMeshAsync` and is **not** in `loadedStreamingEntities`. This means:
+`evictLRU` targets `loadedStreamingEntities` — the set of OCC mesh stubs (entities with `StreamingComponent`). Full-load tile geometry lives on `RenderComponent` entities created by the `fullLoad` path of `setEntityMeshAsync` and is **not** in `loadedStreamingEntities`.
 
-- `MemoryBudgetManager.shouldEvictGeometry()` correctly reports that memory is in use.
-- `evictLRU` runs but frees nothing from those tiles.
-- `shouldEvictGeometry()` stays true.
-- The tile load loop's `guard !shouldEvictGeometry() else { break }` fires and **no new tiles load**.
+The current runtime follows `evictLRU` with `evictTileGeometry(...)` when geometry pressure remains high. This second-stage pass reaches full-load tiles, HLODs, and per-tile LODs, sorted farthest first. It protects a tile while the camera is inside that tile's own `streamingRadius`, because that tile would otherwise be re-dispatched immediately on the next streaming tick.
 
-The only mechanism that can free full-load tile GPU memory is the **tile unload pass** calling `unloadTile()`. That pass has a 3-second grace period and a `maxTileUnloadsPerUpdate = 2` cap. For a 200-tile scene, full cleanup takes 10+ seconds after the camera moves away.
+Parsed full tiles also use `minimumParsedTileResidentSeconds` (default 8 s) as a dwell floor before memory-pressure eviction can tear them down. This prevents large floor or facade tiles from appearing briefly and disappearing again while the camera settles near a streaming boundary.
 
 ### `forceUnloadAllParsedTiles()` — explicit session transition
 
-When an app transitions between "active" and "inspection/calibration" modes (e.g. scaling a tiled scene down to miniature for placement), the previous session's tiles must be explicitly freed before the next full-scale session loads new tiles. Without an explicit unload, the memory budget deadlock described above stalls the new session for 10+ seconds.
+When an app transitions between "active" and "inspection/calibration" modes (e.g. scaling a tiled scene down to miniature for placement), explicitly freeing the previous session's tiles avoids waiting for distance-based unloads, grace periods, per-tick caps, and dwell guards before the next full-scale session loads new tiles.
 
 ```swift
 GeometryStreamingSystem.shared.forceUnloadAllParsedTiles()
@@ -415,7 +416,7 @@ When `tileComp.state == .parsed` (full tile is resident), all LOD levels are unl
 ### `unloadLODLevel(entityId:levelIndex:)`
 
 1. Sets `level.state = .unloading` **before** `level.loadTask?.cancel()` (same race fix as HLOD).
-2. Calls `BatchingSystem.shared.cancelPendingEntities(_:)` with the render descendant IDs — removes them from all pending batching queues before the entities are destroyed, preventing "entity is missing" errors on the next batching tick.
+2. Calls `BatchingSystem.shared.notifyTileEntitiesUnloading(_:)` with the render descendant IDs — removes pending additions and committed cell membership before the entities are destroyed, preventing stale or recycled IDs from remaining in batch state.
 3. Destroys the child entity.
 4. Force-releases `AssetLoadingGate` for the destroyed entity (idempotent no-op if the Task already closed it).
 5. Removes from `loadedLODEntities` when all levels are clear.
@@ -496,5 +497,10 @@ if CFAbsoluteTimeGetCurrent() - tc.parseStartTime > tileParseTimeoutSeconds (def
 | `visibleEvictionProtectionRadius` | 30 m | Distance inside which eviction is blocked |
 | `hlodSwitchDistance` | manifest `switch_distance` | Camera distance beyond which HLOD is shown |
 | LOD `switchDistance` | manifest `switch_distance` per entry | Camera distance beyond which this LOD is preferred |
-| `tileParseTimeoutSeconds` | 60 s | Watchdog deadline for an entire tile parse Task; forces tile to `.failed` and frees concurrency slot |
+| `tileParseTimeoutSeconds` | 60 s | Watchdog deadline for an entire tile parse Task after remote download completes; forces tile to `.failed` and frees concurrency slot |
+| `meshLoadTimeoutSeconds` | 60 s | Watchdog deadline for OCC mesh uploads and cache-backed mesh loads; resets stuck mesh loads to `.unloaded` |
 | `secondaryRepresentationMinDwellSeconds` | 1.0 s | Minimum time a HLOD or per-tile LOD level must dwell before the next transition is allowed; prevents flip-flopping between representations faster than once per second |
+| `minimumParsedTileResidentSeconds` | 8.0 s | Minimum time a parsed full tile remains resident before normal unload or tile-geometry eviction may tear it down |
+| `floorProximityGateY` | 5 m | Maximum Y distance for dispatching floor-aware interior tiles; set to `Float.greatestFiniteMagnitude` to disable |
+| `enableImportanceSort` | true | Sort tile candidates by screen-space importance within priority tiers |
+| `enableOcclusionSort` | true | Deprioritize tile candidates whose screen footprint is covered by closer loaded tile AABBs |

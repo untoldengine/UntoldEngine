@@ -110,6 +110,7 @@ Eviction calls `mesh.cleanUp()` on cached meshes to release Metal resources.
 | Tile-owned OCC stubs | `ProgressiveAssetLoader.CPURuntimeEntry` uploaded on demand |
 
 Full-load tile geometry is not tracked in `loadedStreamingEntities`, so ordinary
-OCC LRU eviction does not free it. Tile unload or
-`GeometryStreamingSystem.forceUnloadAllParsedTiles()` is responsible for
-tearing down full-load tile geometry.
+OCC LRU eviction does not free it. The streaming system now follows OCC eviction
+with `evictTileGeometry(...)` when geometry pressure remains high; normal tile
+unload and `GeometryStreamingSystem.forceUnloadAllParsedTiles()` are the other
+paths that tear down full-load tile geometry.
