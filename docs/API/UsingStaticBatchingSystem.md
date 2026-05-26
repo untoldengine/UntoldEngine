@@ -148,5 +148,6 @@ clearSceneBatches()
 - The batching system is now cell-based and visibility-gated.
 - Tile streaming and batching are tightly integrated; residency events are no longer the old per-entity event storm for full-load tiles.
 - `TileLODTagComponent` lets batching treat per-tile LODs and HLODs as distinct LOD groups even though they are not entity-level `LODComponent` assets.
+- Scene channels separate context geometry from selectable geometry. Entities marked `.preserveIdentity` are excluded from batching, and batch groups are separated by channel mask so channel visibility can be toggled without rebuilding batches.
 
 For architectural details, see [Batching System](../Architecture/batchingSystem).

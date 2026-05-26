@@ -40,6 +40,7 @@ private struct BatchBuildKey: Hashable {
     let cellId: BatchCellID
     let materialHash: String
     let lodIndex: Int
+    let sceneChannelsRawValue: UInt64
 
     var materialLODHash: String {
         "\(materialHash)_LOD\(lodIndex)"
@@ -60,6 +61,7 @@ private struct BatchCandidate {
     let worldTransform: WorldTransformComponent
     let lodIndex: Int
     let cellId: BatchCellID
+    let sceneChannels: SceneChannel
 }
 
 private struct BatchCellLifecycleRecord {
@@ -422,6 +424,7 @@ public struct BatchGroup {
     var entityIds: [EntityID] // Original entities in this batch
     var meshIndices: [(entityId: EntityID, meshIndex: Int)] // Track source meshes
     var boundingBox: (min: simd_float3, max: simd_float3)
+    var sceneChannels: SceneChannel
 
     /// Incremented each time `updateBatchMaterialInPlace` patches this group's textures.
     /// Used to detect whether a batch artifact is stale relative to the live streaming state.
@@ -1413,7 +1416,8 @@ public class BatchingSystem: @unchecked Sendable {
                     let key = BatchBuildKey(
                         cellId: candidate.cellId,
                         materialHash: matHash,
-                        lodIndex: candidate.lodIndex
+                        lodIndex: candidate.lodIndex,
+                        sceneChannelsRawValue: candidate.sceneChannels.rawValue
                     )
                     groupCounts[key, default: 0] += 1
                     groupVertices[key, default: 0] += vertexCount
@@ -1504,6 +1508,9 @@ public class BatchingSystem: @unchecked Sendable {
         // Skip entities with empty meshes (not yet loaded by streaming)
         if renderComponent.mesh.isEmpty { return nil }
 
+        // Identity-preserved streamed objects must stay individually renderable/selectable.
+        if shouldPreserveSceneEntityIdentity(entityId: entityId) { return nil }
+
         // Skip entities with animations
         if scene.get(component: SkeletonComponent.self, for: entityId) != nil { return nil }
         if scene.get(component: AnimationComponent.self, for: entityId) != nil { return nil }
@@ -1531,7 +1538,8 @@ public class BatchingSystem: @unchecked Sendable {
             renderComponent: renderComponent,
             worldTransform: worldTransform,
             lodIndex: lodIndex,
-            cellId: cellId
+            cellId: cellId,
+            sceneChannels: getEntitySceneChannels(entityId: entityId)
         )
     }
 
@@ -1550,7 +1558,8 @@ public class BatchingSystem: @unchecked Sendable {
                 let batchKey = BatchBuildKey(
                     cellId: candidate.cellId,
                     materialHash: matHash,
-                    lodIndex: candidate.lodIndex
+                    lodIndex: candidate.lodIndex,
+                    sceneChannelsRawValue: candidate.sceneChannels.rawValue
                 )
                 let finalTransform = simd_mul(candidate.worldTransform.space, mesh.localSpace)
 
@@ -1907,6 +1916,7 @@ public class BatchingSystem: @unchecked Sendable {
         var allIndices: [UInt32] = []
         var entityIds: [EntityID] = []
         var meshIndices: [(EntityID, Int)] = []
+        var sceneChannels: SceneChannel = []
 
         var minBounds = simd_float3(Float.infinity, Float.infinity, Float.infinity)
         var maxBounds = simd_float3(-Float.infinity, -Float.infinity, -Float.infinity)
@@ -1936,6 +1946,7 @@ public class BatchingSystem: @unchecked Sendable {
 
             entityIds.append(item.entityId)
             meshIndices.append((item.entityId, item.meshIndex))
+            sceneChannels.formUnion(getEntitySceneChannels(entityId: item.entityId))
         }
 
         guard !allPositions.isEmpty, !allIndices.isEmpty else {
@@ -2022,6 +2033,7 @@ public class BatchingSystem: @unchecked Sendable {
             entityIds: entityIds,
             meshIndices: meshIndices,
             boundingBox: (min: minBounds, max: maxBounds),
+            sceneChannels: sceneChannels,
             isLODBatch: isLODBatch
         )
     }

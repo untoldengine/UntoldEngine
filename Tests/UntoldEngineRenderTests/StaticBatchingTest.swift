@@ -60,7 +60,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         try await super.tearDown()
     }
 
-    private func createStaticCubeEntity(position: simd_float3, lodIndex: Int = 0) -> EntityID {
+    private func createStaticCubeEntity(position: simd_float3, lodIndex: Int = 0, markStatic: Bool = true) -> EntityID {
         let entity = createEntity()
 
         if let renderComponent = scene.assign(to: entity, component: RenderComponent.self) {
@@ -73,12 +73,15 @@ final class StaticBatchingTest: BaseRenderSetup {
         }
 
         _ = scene.assign(to: entity, component: WorldTransformComponent.self)
+        _ = scene.assign(to: entity, component: ScenegraphComponent.self)
 
         if let lodComponent = scene.assign(to: entity, component: LODComponent.self) {
             lodComponent.currentLOD = lodIndex
         }
 
-        setEntityStaticBatchComponent(entityId: entity)
+        if markStatic {
+            setEntityStaticBatchComponent(entityId: entity)
+        }
         return entity
     }
 
@@ -209,6 +212,58 @@ final class StaticBatchingTest: BaseRenderSetup {
         }
 
         print("✅ Created \(BatchingSystem.shared.batchGroups.count) batch group(s) from \(entities.count) entities")
+    }
+
+    func testNMNamedStaticEntityIsExcludedFromBatching() {
+        let wallA = createStaticCubeEntity(position: simd_float3(0, 0, 0))
+        let wallB = createStaticCubeEntity(position: simd_float3(2, 0, 0))
+        let pipe = createStaticCubeEntity(position: simd_float3(4, 0, 0), markStatic: false)
+
+        setEntityName(entityId: wallA, name: "Wall_A")
+        setEntityName(entityId: wallB, name: "Wall_B")
+        setEntityName(entityId: pipe, name: "NM_Pipe_001")
+        setEntityStaticBatchComponent(entityId: pipe)
+
+        generateBatches()
+
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: wallA), "Context entity should still be batchable")
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: wallB), "Context entity should still be batchable")
+        XCTAssertNil(scene.get(component: StaticBatchComponent.self, for: pipe), "Selectable NM_ entity should not be tagged for static batching")
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: pipe), "Selectable NM_ entity must remain individually renderable")
+    }
+
+    func testStreamedTileHierarchyHidesOnlyNonSelectableRenderChildren() {
+        let tileRoot = createEntity()
+        registerTransformComponent(entityId: tileRoot)
+        registerSceneGraphComponent(entityId: tileRoot)
+        setEntityName(entityId: tileRoot, name: "F04_Q_1_2_SI")
+
+        let wallA = createStaticCubeEntity(position: simd_float3(0, 0, 0), markStatic: false)
+        let wallB = createStaticCubeEntity(position: simd_float3(2, 0, 0), markStatic: false)
+        let selectablePipe = createStaticCubeEntity(position: simd_float3(4, 0, 0), markStatic: false)
+
+        setEntityName(entityId: wallA, name: "Wall_A")
+        setEntityName(entityId: wallB, name: "Wall_B")
+        setEntityName(entityId: selectablePipe, name: "NM_Pipe_001")
+        setParent(childId: wallA, parentId: tileRoot)
+        setParent(childId: wallB, parentId: tileRoot)
+        setParent(childId: selectablePipe, parentId: tileRoot)
+
+        setEntityStaticBatchComponent(entityId: tileRoot)
+        setSceneChannelVisible(.contextGeometry, false)
+        generateBatches()
+
+        XCTAssertTrue(shouldHideSceneEntity(entityId: wallA))
+        XCTAssertTrue(shouldHideSceneEntity(entityId: wallB))
+        XCTAssertFalse(shouldHideSceneEntity(entityId: selectablePipe))
+        XCTAssertTrue(isSelectableSceneEntity(entityId: selectablePipe))
+
+        XCTAssertNotNil(scene.get(component: StaticBatchComponent.self, for: wallA))
+        XCTAssertNotNil(scene.get(component: StaticBatchComponent.self, for: wallB))
+        XCTAssertNil(scene.get(component: StaticBatchComponent.self, for: selectablePipe))
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: wallA))
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: wallB))
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: selectablePipe))
     }
 
     func testBatchGroupBufferCreation() {

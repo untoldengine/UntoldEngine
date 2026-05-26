@@ -271,15 +271,17 @@ public enum RenderPasses {
     private static func collectVisibleBatchGroupsDirect() -> [BatchGroup] {
         let groups = BatchingSystem.shared.batchGroups
         guard !groups.isEmpty else { return [] }
+        let channelVisibleGroups = groups.filter { areSceneChannelsVisible($0.sceneChannels) }
+        guard !channelVisibleGroups.isEmpty else { return [] }
 
         guard let frustum = currentFrameFrustum else {
             // Frustum not yet available — derive from visible entities (safe fallback).
             let ids = collectVisibleBatchIds(from: visibleEntityIds)
-            return groups.filter { ids.contains($0.id) }
+            return channelVisibleGroups.filter { ids.contains($0.id) }
         }
 
         // Phase 1: frustum cull — drop groups whose AABB is outside the view frustum.
-        let frustumPassed = groups.filter {
+        let frustumPassed = channelVisibleGroups.filter {
             isAABBInFrustum(frustum, min: $0.boundingBox.min, max: $0.boundingBox.max)
         }
 
@@ -367,6 +369,7 @@ public enum RenderPasses {
 
         for entityId in entities {
             if shouldSkipShadowEntity(entityId) { continue }
+            if shouldHideSceneEntity(entityId: entityId) { continue }
             if BatchingSystem.shared.isEnabled() {
                 // Batch-eligible entities (StaticBatchComponent present) are always drawn
                 // via shadowCasterBatchGroups — whether or not the batch rebuild has landed
@@ -404,7 +407,7 @@ public enum RenderPasses {
     }
 
     private static func shadowCasterBatchGroups(for cascadeIdx: Int) -> [BatchGroup] {
-        let groups = BatchingSystem.shared.batchGroups
+        let groups = BatchingSystem.shared.batchGroups.filter { areSceneChannelsVisible($0.sceneChannels) }
         guard !groups.isEmpty, let frustum = shadowFrustum(for: cascadeIdx) else { return [] }
 
         return groups.filter {
@@ -994,6 +997,7 @@ public enum RenderPasses {
         for entityId in visibleEntityIds {
             // Skip entities that are pending destroy
             if scene.mask(for: entityId) == nil { continue }
+            if shouldHideSceneEntity(entityId: entityId) { continue }
 
             // Skip batched entities if batching is enabled
             if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) {
@@ -2435,6 +2439,7 @@ public enum RenderPasses {
 
         for entityId in visibleEntityIds {
             if scene.mask(for: entityId) == nil { continue }
+            if shouldHideSceneEntity(entityId: entityId) { continue }
 
             if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) {
                 continue
