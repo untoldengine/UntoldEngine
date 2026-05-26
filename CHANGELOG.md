@@ -1,4 +1,9 @@
 # Changelog
+## v0.12.15 - 2026-05-26
+### 🐞 Fixes
+- [Patch] Add scene channels for selectable and context geometry visibility (2c9217d…)
+### 📚 Docs
+- [Docs] Updated documentation (cbade44…)
 ## v0.12.14 - 2026-05-22
 ### 🐞 Fixes
 - [Patch] Fix transparency bug (6a51e40…)
