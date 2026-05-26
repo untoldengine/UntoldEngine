@@ -562,6 +562,9 @@ extension GeometryStreamingSystem {
                         // The completion already holds the world-mutation gate.
                         setEntityStaticBatchComponentUngated(entityId: capturedMeshEntityId)
 
+                        let tileRenderIds = self.collectRenderDescendantIds(capturedMeshEntityId)
+                        let selectableRenderIds = tileRenderIds.filter { hasEntitySceneChannel(entityId: $0, channel: .selectableGeometry) }
+
                         // For fullLoad tiles (occCount == 0) the RenderComponent is
                         // already present on capturedMeshEntityId and its children —
                         // they bypass the OCC upload path that normally queues the
@@ -573,7 +576,6 @@ extension GeometryStreamingSystem {
                             // Also enqueue into the texture streaming burst queue so
                             // freshly loaded tile geometry gets its first texture upgrade
                             // before the regular visible-entity pass.
-                            let tileRenderIds = self.collectRenderDescendantIds(capturedMeshEntityId)
                             if !tileRenderIds.isEmpty {
                                 BatchingSystem.shared.notifyTileEntitiesResident(tileRenderIds)
                                 TextureStreamingSystem.shared.notifyEntitiesReady(tileRenderIds)
@@ -582,7 +584,16 @@ extension GeometryStreamingSystem {
 
                         let budgetStats = MemoryBudgetManager.shared.getStats()
                         let geomPct = Int((budgetStats.geometryUtilization * 100).rounded())
-                        Logger.log(message: "[TileStreaming] Tile '\(tileId)' parsed (\(occCount) OCC stubs pending GPU upload). geom=\(budgetStats.meshMemoryUsed / (1024 * 1024))MB/\(budgetStats.geometryBudget / (1024 * 1024))MB (\(geomPct)%)")
+                        let selectableNames = selectableRenderIds
+                            .map { getEntityName(entityId: $0) }
+                            .filter { !$0.isEmpty }
+                            .sorted()
+                            .prefix(8)
+                            .joined(separator: ", ")
+                        let selectableSuffix = selectableRenderIds.isEmpty
+                            ? ""
+                            : " selectable=[\(selectableNames)]"
+                        Logger.log(message: "[TileStreaming] Tile '\(tileId)' parsed (\(occCount) OCC stubs pending GPU upload, render=\(tileRenderIds.count), selectable=\(selectableRenderIds.count)). geom=\(budgetStats.meshMemoryUsed / (1024 * 1024))MB/\(budgetStats.geometryBudget / (1024 * 1024))MB (\(geomPct)%)\(selectableSuffix)")
                     } else {
                         // Destroy the pre-created child entity on failure so it
                         // doesn't leak as an empty, invisible stub.

@@ -33,5 +33,6 @@
     scenePickingGPUAvailable = false
     activeEntity = .invalid
     OctreeSystem.shared.clear()
+    resetSceneChannelVisibility()
     setSceneReady(true)
 }

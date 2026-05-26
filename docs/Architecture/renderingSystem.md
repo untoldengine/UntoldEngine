@@ -147,7 +147,9 @@ This is the core of the deferred rendering pipeline. Entities do not produce a s
 - Uploads the model matrix, normal matrix, and camera uniforms into the current in-flight frame slot
 - Issues a draw call per mesh submesh
 
-`batchedModelExecution` uses **cluster-level frustum culling**: it calls `visibleBatchGroupsSnapshot()` which tests each `BatchGroup`'s precomputed world-space AABB against `currentFrameFrustum` using `isAABBInFrustum`. The result — groups whose AABB intersects the frustum — is cached for the frame and shared with `batchedShadowExecution`. Each surviving group is then submitted as a single draw call with its merged vertex and index buffers.
+Before encoding each draw, the renderer checks scene-channel visibility. Individual entities use `shouldHideSceneEntity(entityId:)`; batch groups use their stored channel mask. Hidden channels are skipped entirely rather than rendered transparently.
+
+`batchedModelExecution` uses **cluster-level frustum culling**: it calls `visibleBatchGroupsSnapshot()` which tests each `BatchGroup`'s precomputed world-space AABB against `currentFrameFrustum` using `isAABBInFrustum`, then filters by scene-channel visibility. The result — groups whose AABB intersects the frustum and whose channels are visible — is cached for the frame and shared with `batchedShadowExecution`. Each surviving group is then submitted as a single draw call with its merged vertex and index buffers.
 
 `ssaoOptimizedExecution` reads the G-Buffer normals and depth and produces a screen-space ambient occlusion texture. Blurring is handled internally — no separate blur nodes appear in the graph.
 

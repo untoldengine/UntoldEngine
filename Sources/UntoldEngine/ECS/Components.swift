@@ -75,6 +75,13 @@ public class PickInteractionComponent: Component {
     public required init() {}
 }
 
+public class EntitySceneChannelsComponent: Component {
+    public var channels: SceneChannel = []
+    public var usesDefaultChannels: Bool = false
+
+    public required init() {}
+}
+
 public class GaussianComponent: Component {
     var splatData: MTLBuffer?
     var gaussianSortedIndices: MTLBuffer?

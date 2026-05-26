@@ -22,7 +22,7 @@ cellId(x, y, z) = floor(worldCenter / cellSize)
 
 When your 100 entities load, each one that has a `StaticBatchComponent` gets registered:
 
-- **Eligibility check** (`resolveBatchCandidate`): the entity must have a `RenderComponent`, `WorldTransformComponent`, no skeleton/animation, no transparency, no gizmo/light component, and its mesh must already be resident in memory. The LOD index is derived from `LODComponent.currentLOD` (entity-level LOD), then `TileLODTagComponent.levelIndex` (per-tile LOD/HLOD children), defaulting to 0. `isLODBatch` on the resulting `BatchGroup` is true if any member entity has either component.
+- **Eligibility check** (`resolveBatchCandidate`): the entity must have a `RenderComponent`, `WorldTransformComponent`, no skeleton/animation, no transparency, no gizmo/light component, no `.preserveIdentity` scene channel, and its mesh must already be resident in memory. The LOD index is derived from `LODComponent.currentLOD` (entity-level LOD), then `TileLODTagComponent.levelIndex` (per-tile LOD/HLOD children), defaulting to 0. `isLODBatch` on the resulting `BatchGroup` is true if any member entity has either component.
 - If eligible → it gets assigned to a cell and added to `cellToEntities[cellId]`.
 - The cell is marked **dirty** and its state becomes `renderableUnbatched`.
 
@@ -69,7 +69,7 @@ This is the core build loop:
 
 4. **Apply per-tick budgets**: up to 8 cells, 120K verts, 220K indices, 6MB total per tick. Once budgets are exhausted, remaining cells defer to next frame.
 
-5. **Snapshot build inputs** under a world mutation gate: for each selected cell, group its entities' meshes by `BatchBuildKey = (cellId, materialHash, lodIndex)`. This produces `CellBuildInput`.
+5. **Snapshot build inputs** under a world mutation gate: for each selected cell, group its entities' meshes by `BatchBuildKey = (cellId, materialHash, lodIndex, sceneChannelsRawValue)`. This produces `CellBuildInput`.
 
 6. **Dispatch background builds** on `artifactBuildQueue` (a `.utility` DispatchQueue). The heavy work — actually merging vertex data — happens off the main thread.
 
@@ -115,7 +115,7 @@ Back on the main thread (next frame or same frame if sync mode):
 
 The renderer uses **cluster-level frustum culling** to determine which batch groups to submit. Each `BatchGroup` carries a precomputed world-space AABB (`boundingBox`) covering all geometry in the group. The render passes test each group's AABB directly against the current-frame frustum — **one AABB test per batch group, not one per entity**. Groups whose AABB is fully outside the frustum are skipped without any entity-level traversal.
 
-For batch groups that survive the AABB test, each `BatchGroup` is one draw call with its merged buffer. 100 entities sharing one material = **1 draw call**, submitted only when the group's spatial bounds are within the frustum.
+For batch groups that survive the AABB test and scene-channel visibility filter, each `BatchGroup` is one draw call with its merged buffer. 100 entities sharing one material and channel mask = **1 draw call**, submitted only when the group's spatial bounds are within the frustum and its channels are visible.
 
 Per-entity batching membership (`entityToBatch`) is still maintained and used by non-batched rendering paths and by tests.
 

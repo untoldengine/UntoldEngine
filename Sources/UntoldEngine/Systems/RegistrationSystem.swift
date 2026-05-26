@@ -218,6 +218,10 @@ private func registerComponentCleanupHandlers() {
         removeEntityPickInteraction(entityId: entityId)
     }
 
+    ComponentRegistry.register(componentType: EntitySceneChannelsComponent.self, handlerId: "sceneChannels", priority: 30) { entityId in
+        removeEntitySceneChannels(entityId: entityId)
+    }
+
     ComponentRegistry.register(componentType: LocalTransformComponent.self, handlerId: "transforms", priority: 90) { entityId in
         removeEntityTransforms(entityId: entityId)
     }
@@ -639,6 +643,7 @@ private func registerUntoldProgressiveStubEntity(
         sc.streamingRadius = Float.greatestFiniteMagnitude
         sc.unloadRadius = Float.greatestFiniteMagnitude
     }
+    setDefaultEntitySceneChannels(entityId: childEntityId, channels: defaultSceneChannels(forName: uniqueAssetName))
 
     return childEntityId
 }
@@ -2168,6 +2173,9 @@ func registerRenderComponent(entityId: EntityID, meshes: [Mesh], url: URL, asset
     renderComponent.assetName = assetName
     renderComponent.assetURL = url
     entityMeshMap[entityId] = resolvedMeshes
+    let entityName = getEntityName(entityId: entityId)
+    let channelSourceName = entityName.isEmpty ? assetName : entityName
+    setDefaultEntitySceneChannels(entityId: entityId, channels: defaultSceneChannels(forName: channelSourceName))
 
     let boundingBox = Mesh.computeMeshBoundingBox(for: resolvedMeshes)
 
@@ -2213,6 +2221,15 @@ public func setEntityName(entityId: EntityID, name: String) {
         list.append(entityId)
     }
     reverseEntityNameMap[name] = list
+
+    let hasRenderableSceneComponent = scene.get(component: RenderComponent.self, for: entityId) != nil ||
+        scene.get(component: StreamingComponent.self, for: entityId) != nil
+    if let component = scene.get(component: EntitySceneChannelsComponent.self, for: entityId),
+       component.usesDefaultChannels,
+       hasRenderableSceneComponent
+    {
+        component.channels = defaultSceneChannels(forName: name)
+    }
 }
 
 public func getEntityName(entityId: EntityID) -> String {
@@ -2501,7 +2518,7 @@ private func setEntityStaticBatchComponentRecursive(entityId: EntityID) {
     // becomes GPU-resident, so it must be tagged before the RenderComponent arrives.
     let hasRender = scene.get(component: RenderComponent.self, for: entityId) != nil
     let hasStreaming = scene.get(component: StreamingComponent.self, for: entityId) != nil
-    if hasRender || hasStreaming {
+    if hasRender || hasStreaming, !shouldPreserveSceneEntityIdentity(entityId: entityId) {
         if !hasComponent(entityId: entityId, componentType: StaticBatchComponent.self) {
             registerComponent(entityId: entityId, componentType: StaticBatchComponent.self)
         } else {
@@ -2637,6 +2654,12 @@ func removeEntityPickInteraction(entityId: EntityID) {
     if scene.get(component: PickInteractionComponent.self, for: entityId) != nil {
         scene.remove(component: PickInteractionComponent.self, from: entityId)
         scenePickingMarkEntityDirty(entityId)
+    }
+}
+
+func removeEntitySceneChannels(entityId: EntityID) {
+    if scene.get(component: EntitySceneChannelsComponent.self, for: entityId) != nil {
+        scene.remove(component: EntitySceneChannelsComponent.self, from: entityId)
     }
 }
 
