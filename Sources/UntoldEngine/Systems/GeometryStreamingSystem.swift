@@ -295,6 +295,16 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     // Screen-space rectangle in NDC [-1, 1] × [-1, 1].
     // Used to represent the projected AABB footprint of a tile for occlusion scoring.
     struct TileOccluder { let rect: ScreenRect; let distance: Float }
+    struct TileRepresentationCandidate {
+        let entityId: EntityID
+        let distance: Float
+        let priority: Int
+        let solidAngle: Float
+        let viewAlignment: Float
+        let occlusionScore: Float
+        let levelIndex: Int
+    }
+
     struct ScreenRect {
         var minX: Float
         var minY: Float
@@ -911,15 +921,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 // local AABB equals their world AABB.  Uses tileStreamingFrustum which
                 // applies tileFrustumGatePadding (wider than the mesh-level pad) to
                 // prevent tile pop-in during fast rotation on coarse tile boundaries.
-                if let f = tileStreamingFrustum,
-                   let local = scene.get(component: LocalTransformComponent.self, for: entityId)
-                {
-                    let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
-                    let halfExtent = (local.boundingBox.max - local.boundingBox.min) * 0.5
-                    if !isAABBInFrustum(center: center, halfExtent: halfExtent, frustum: f) {
-                        continue
-                    }
-                }
+                if !tilePassesStreamingFrustum(entityId: entityId, frustum: tileStreamingFrustum) { continue }
                 let (sa, va) = tileImportanceComponents(
                     entityId: entityId,
                     distance: effectiveDist,
@@ -998,54 +1000,11 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
         }
 
-        // ── HLOD streaming pass ────────────────────────────────────────────────
-        // For tiles that have an HLOD mesh configured: load the coarse mesh when the
-        // camera is beyond hlodSwitchDistance and the tile is not yet loading/loaded.
-        // Unload the HLOD when the full tile becomes .parsed (smooth hand-off).
-        // During .parsing the HLOD stays visible so there is no blank frame while the
-        // full geometry is uploading.
-        for entityId in nearbyEntities {
-            guard scene.exists(entityId) else { continue }
-            guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
-                  tileComp.hlodURL != nil,
-                  tileComp.hlodSwitchDistance > 0 else { continue }
-
-            let dist = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
-            let canTransitionHLOD = tileComp.lastHLODTransitionTime == 0 ||
-                timeoutNow - tileComp.lastHLODTransitionTime >= secondaryRepresentationMinDwellSeconds
-
-            switch tileComp.state {
-            case .unloaded, .failed:
-                if dist > tileComp.hlodSwitchDistance {
-                    if tileComp.hlodState == .unloaded {
-                        guard activeHLODLoadCount() < maxConcurrentHLODLoads else { continue }
-                        loadHLOD(entityId: entityId)
-                    }
-                } else if dist < tileComp.hlodSwitchDistance * hlodHysteresisFactor {
-                    // Camera has moved meaningfully inside the switch distance —
-                    // HLOD is no longer needed.  The hysteresis band
-                    // [switchDistance * factor, switchDistance) keeps the HLOD
-                    // resident while the camera lingers at the boundary.
-                    if canTransitionHLOD, tileComp.hlodState != .unloaded { unloadHLOD(entityId: entityId) }
-                }
-            // else: inside hysteresis band — keep current HLOD state.
-            case .parsed:
-                // Full geometry is resident — HLOD hand-off complete.
-                // No dwell here: unload promptly so HLOD and full tile are not
-                // both resident simultaneously consuming GPU memory.
-                if tileComp.hlodState != .unloaded { unloadHLOD(entityId: entityId) }
-            case .parsing, .unloading:
-                // Keep HLOD visible during full-tile load for a seamless transition.
-                break
-            }
-        }
-
         // ── Per-tile LOD streaming pass ────────────────────────────────────────
-        // For tiles that have LOD levels: show the appropriate coarser mesh when
-        // the tile is unloaded and the camera is between the LOD switch distances.
-        // Levels are sorted ascending by switchDistance (finest first), so the
-        // active index is the last one whose switchDistance ≤ current distance.
-        // Only one level is active at a time; all others are unloaded.
+        // LOD load work is admitted before HLOD work because LOD covers mid/near-field
+        // tiles where empty red bounds are most visible. Candidate sorting mirrors the
+        // full tile path so nearby, screen-dominant tiles win load slots first.
+        var lodLoadCandidates: [TileRepresentationCandidate] = []
         for entityId in nearbyEntities {
             guard scene.exists(entityId) else { continue }
             guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
@@ -1053,16 +1012,18 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
             let dist = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
 
-            // LOD levels are only active while HLOD is not resident.
-            // If HLOD is loaded or loading (including the hysteresis band where dist is
-            // slightly below hlodSwitchDistance), keep LOD levels clear to avoid showing
-            // both representations simultaneously.  Only when HLOD is unloaded (or
-            // unloading) do we let the LOD pass activate.
+            // LOD levels are only cleared for HLOD when the HLOD is actually renderable.
+            // If an HLOD is merely loading, keep the previous LOD as coverage until the
+            // replacement is resident.
             if tileComp.hlodSwitchDistance > 0 {
-                let hlodResident = tileComp.hlodState == .loaded || tileComp.hlodState == .loading
+                let hlodLoaded = tileComp.hlodState == .loaded
+                let hlodLoading = tileComp.hlodState == .loading
                 let beyondHLOD = dist >= tileComp.hlodSwitchDistance
-                if beyondHLOD || hlodResident {
-                    unloadAllLODLevels(entityId: entityId)
+                let inHLODHysteresisBand = dist >= tileComp.hlodSwitchDistance * hlodHysteresisFactor
+                if beyondHLOD || hlodLoading || (hlodLoaded && inHLODHysteresisBand) {
+                    if hlodLoaded {
+                        unloadAllLODLevels(entityId: entityId)
+                    }
                     continue
                 }
             }
@@ -1087,38 +1048,130 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             let canTransitionLOD = tileComp.lastLODTransitionTime == 0 ||
                 timeoutNow - tileComp.lastLODTransitionTime >= secondaryRepresentationMinDwellSeconds
 
+            let fallbackTargetIndex = targetIndex ?? (!tileHasUsableFullGeometry(tileComp) ? tileComp.lodLevels.indices.first : nil)
+
             switch tileComp.state {
-            case .unloaded, .failed:
-                if let target = targetIndex {
-                    for i in tileComp.lodLevels.indices {
-                        if i == target {
-                            if tileComp.lodLevels[i].state == .unloaded, currentlyActiveIndex == nil || canTransitionLOD {
-                                // Hard cap: never exceed maxConcurrentLODLoads.
-                                // Without this, every tile in LOD range is dispatched
-                                // simultaneously on initial load, triggering an OOM kill.
-                                guard activeLODLoadCount() < maxConcurrentLODLoads else { break }
-                                loadLODLevel(entityId: entityId, levelIndex: i)
-                            }
-                        } else {
-                            if canTransitionLOD, tileComp.lodLevels[i].state != .unloaded {
-                                unloadLODLevel(entityId: entityId, levelIndex: i)
-                            }
-                        }
-                    }
+            case .unloaded, .failed, .parsing:
+                if let target = fallbackTargetIndex {
+                    lodLoadCandidates.append(makeTileRepresentationCandidate(
+                        entityId: entityId,
+                        distance: dist,
+                        priority: tileComp.priority,
+                        levelIndex: target,
+                        cameraPosition: effectiveCameraPosition,
+                        tileOccluders: tileOccluders
+                    ))
                 } else if canTransitionLOD {
-                    // Camera is inside the finest LOD's switch distance — full tile
-                    // will load via the tile load pass; drop any active LOD level.
                     unloadAllLODLevels(entityId: entityId)
                 }
             case .parsed:
-                // Full geometry resident — all LOD levels can be dropped.
-                // No dwell: unload immediately so LOD proxies don't stay resident
-                // alongside the full tile geometry.
-                unloadAllLODLevels(entityId: entityId)
-            case .parsing, .unloading:
+                if tileHasUsableFullGeometry(tileComp) {
+                    unloadAllLODLevels(entityId: entityId)
+                } else if let target = fallbackTargetIndex {
+                    lodLoadCandidates.append(makeTileRepresentationCandidate(
+                        entityId: entityId,
+                        distance: dist,
+                        priority: tileComp.priority,
+                        levelIndex: target,
+                        cameraPosition: effectiveCameraPosition,
+                        tileOccluders: tileOccluders
+                    ))
+                }
+            case .unloading:
                 // Keep active LOD visible during the full-tile load for continuity.
                 break
             }
+        }
+        sortTileRepresentationCandidates(&lodLoadCandidates)
+        for candidate in lodLoadCandidates {
+            guard scene.exists(candidate.entityId),
+                  let tileComp = scene.get(component: TileComponent.self, for: candidate.entityId),
+                  candidate.levelIndex < tileComp.lodLevels.count
+            else { continue }
+
+            let currentlyActiveIndex = tileComp.lodLevels.indices.first(where: {
+                let s = tileComp.lodLevels[$0].state
+                return s == .loaded || s == .loading
+            })
+            let canTransitionLOD = tileComp.lastLODTransitionTime == 0 ||
+                timeoutNow - tileComp.lastLODTransitionTime >= secondaryRepresentationMinDwellSeconds
+
+            if tileComp.lodLevels[candidate.levelIndex].state == .unloaded,
+               currentlyActiveIndex == nil || canTransitionLOD
+            {
+                guard activeLODLoadCount() < maxConcurrentLODLoads else { break }
+                loadLODLevel(entityId: candidate.entityId, levelIndex: candidate.levelIndex)
+            }
+
+            for i in tileComp.lodLevels.indices where i != candidate.levelIndex {
+                if canTransitionLOD,
+                   tileComp.lodLevels[candidate.levelIndex].state == .loaded,
+                   tileComp.lodLevels[i].state != .unloaded
+                {
+                    unloadLODLevel(entityId: candidate.entityId, levelIndex: i)
+                }
+            }
+        }
+
+        // ── HLOD streaming pass ────────────────────────────────────────────────
+        // HLODs are sorted too, but are admitted after full-tile and LOD candidates.
+        // This gives nearby/mid-field coverage first chance at load slots while still
+        // allowing far-field proxies to fill their own cap during cold scene startup.
+        var hlodLoadCandidates: [TileRepresentationCandidate] = []
+        for entityId in nearbyEntities {
+            guard scene.exists(entityId) else { continue }
+            guard let tileComp = scene.get(component: TileComponent.self, for: entityId),
+                  tileComp.hlodURL != nil,
+                  tileComp.hlodSwitchDistance > 0 else { continue }
+
+            let dist = calculateDistance(entityId: entityId, cameraPosition: effectiveCameraPosition)
+            let canTransitionHLOD = tileComp.lastHLODTransitionTime == 0 ||
+                timeoutNow - tileComp.lastHLODTransitionTime >= secondaryRepresentationMinDwellSeconds
+
+            switch tileComp.state {
+            case .unloaded, .failed:
+                if dist > tileComp.hlodSwitchDistance {
+                    if tileComp.hlodState == .unloaded {
+                        hlodLoadCandidates.append(makeTileRepresentationCandidate(
+                            entityId: entityId,
+                            distance: dist,
+                            priority: tileComp.priority,
+                            levelIndex: -1,
+                            cameraPosition: effectiveCameraPosition,
+                            tileOccluders: tileOccluders
+                        ))
+                    }
+                } else if dist < tileComp.hlodSwitchDistance * hlodHysteresisFactor {
+                    // Camera has moved meaningfully inside the switch distance —
+                    // HLOD is no longer needed.  The hysteresis band
+                    // [switchDistance * factor, switchDistance) keeps the HLOD
+                    // resident while the camera lingers at the boundary.
+                    if canTransitionHLOD,
+                       tileComp.hlodState != .unloaded,
+                       tileHasLoadedLOD(tileComp) || tileHasUsableFullGeometry(tileComp)
+                    {
+                        unloadHLOD(entityId: entityId)
+                    }
+                }
+            // else: inside hysteresis band — keep current HLOD state.
+            case .parsed:
+                // Full geometry must be renderable before HLOD coverage is dropped.
+                if tileHasUsableFullGeometry(tileComp), tileComp.hlodState != .unloaded {
+                    unloadHLOD(entityId: entityId)
+                }
+            case .parsing, .unloading:
+                // Keep HLOD visible during full-tile load for a seamless transition.
+                break
+            }
+        }
+        sortTileRepresentationCandidates(&hlodLoadCandidates)
+        for candidate in hlodLoadCandidates {
+            guard activeHLODLoadCount() < maxConcurrentHLODLoads else { break }
+            guard scene.exists(candidate.entityId),
+                  let tileComp = scene.get(component: TileComponent.self, for: candidate.entityId),
+                  tileComp.hlodState == .unloaded
+            else { continue }
+            loadHLOD(entityId: candidate.entityId)
         }
 
         // Also check loaded entities that might now be out of range
@@ -1705,6 +1758,82 @@ public class GeometryStreamingSystem: @unchecked Sendable {
 
         let coveredCells = (unionMask & candidateMask).nonzeroBitCount
         return max(occlusionMinWeight, 1.0 - Float(coveredCells) / Float(candidateCells))
+    }
+
+    func tilePassesStreamingFrustum(entityId: EntityID, frustum: Frustum?) -> Bool {
+        guard CameraSystem.shared.activeCamera != nil else { return true }
+        guard let f = frustum,
+              let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+        else { return true }
+        let center = (local.boundingBox.min + local.boundingBox.max) * 0.5
+        let halfExtent = (local.boundingBox.max - local.boundingBox.min) * 0.5
+        return isAABBInFrustum(center: center, halfExtent: halfExtent, frustum: f)
+    }
+
+    func makeTileRepresentationCandidate(
+        entityId: EntityID,
+        distance: Float,
+        priority: Int,
+        levelIndex: Int,
+        cameraPosition: simd_float3,
+        tileOccluders: [TileOccluder]
+    ) -> TileRepresentationCandidate {
+        let (solidAngle, viewAlignment) = tileImportanceComponents(
+            entityId: entityId,
+            distance: distance,
+            cameraPosition: cameraPosition,
+            cameraForward: lastCameraForward
+        )
+
+        let occlusionScore: Float
+        if enableOcclusionSort, !tileOccluders.isEmpty,
+           let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+        {
+            let rect = projectAABBToScreen(
+                min: local.boundingBox.min, max: local.boundingBox.max,
+                viewProj: lastViewProjMatrix
+            )
+            occlusionScore = tileOcclusionScore(
+                candidateRect: rect,
+                distance: distance,
+                occluders: tileOccluders
+            )
+        } else {
+            occlusionScore = 1.0
+        }
+
+        return TileRepresentationCandidate(
+            entityId: entityId,
+            distance: distance,
+            priority: priority,
+            solidAngle: solidAngle,
+            viewAlignment: viewAlignment,
+            occlusionScore: occlusionScore,
+            levelIndex: levelIndex
+        )
+    }
+
+    func sortTileRepresentationCandidates(_ candidates: inout [TileRepresentationCandidate]) {
+        let maxSA = candidates.max(by: { $0.solidAngle < $1.solidAngle })?.solidAngle ?? 1.0
+        let saFloor = max(maxSA, 1e-6)
+        candidates.sort { lhs, rhs in
+            if lhs.priority != rhs.priority { return lhs.priority > rhs.priority }
+            if enableImportanceSort {
+                let lScore = (lhs.solidAngle / saFloor) * lhs.viewAlignment * lhs.occlusionScore
+                let rScore = (rhs.solidAngle / saFloor) * rhs.viewAlignment * rhs.occlusionScore
+                if abs(lScore - rScore) > 0.001 { return lScore > rScore }
+            }
+            return lhs.distance < rhs.distance
+        }
+    }
+
+    func tileHasUsableFullGeometry(_ tileComp: TileComponent) -> Bool {
+        guard tileComp.state == .parsed else { return false }
+        return tileComp.visualState == .usable || tileComp.visualState == .complete
+    }
+
+    func tileHasLoadedLOD(_ tileComp: TileComponent) -> Bool {
+        tileComp.lodLevels.contains { $0.state == .loaded }
     }
 
     func calculateDistance(entityId: EntityID, cameraPosition: simd_float3) -> Float {
