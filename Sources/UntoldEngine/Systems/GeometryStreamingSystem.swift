@@ -657,7 +657,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             let bSys = BatchingSystem.shared.diagnosticSummary()
             let capturedPeak = peakTickMs
             peakTickMs = 0.0
-            Logger.log(message: "[StreamingHB] t=\(Int(wallNow - sessionStartWallTime))s cam=(\(String(format: "%.1f", effectiveCameraPosition.x)),\(String(format: "%.1f", effectiveCameraPosition.y)),\(String(format: "%.1f", effectiveCameraPosition.z))) geom=\(bStats.meshMemoryUsed / (1024 * 1024))MB(\(bPct)%) tiles=\(tilesLoaded)loaded/\(tilesLoading)loading peakTickMs=\(String(format: "%.1f", capturedPeak)) shadowCasters=\(RenderPasses.lastShadowCasterCount) \(bSys)")
+            Logger.log(
+                message: "[StreamingHB] t=\(Int(wallNow - sessionStartWallTime))s cam=(\(String(format: "%.1f", effectiveCameraPosition.x)),\(String(format: "%.1f", effectiveCameraPosition.y)),\(String(format: "%.1f", effectiveCameraPosition.z))) geom=\(bStats.meshMemoryUsed / (1024 * 1024))MB(\(bPct)%) tiles=\(tilesLoaded)loaded/\(tilesLoading)loading peakTickMs=\(String(format: "%.1f", capturedPeak)) shadowCasters=\(RenderPasses.lastShadowCasterCount) \(bSys)",
+                category: LogCategory.streamingHeartbeat.rawValue
+            )
         }
 
         let nearbyEntities = OctreeSystem.shared.queryNear(point: effectiveCameraPosition, radius: maxQueryRadius)
@@ -769,7 +772,8 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             else { continue }
 
             Logger.logWarning(
-                message: "[TileStreaming] Tile '\(tc.tileId)' parse timed out after \(Int(tileParseTimeoutSeconds))s while state=\(String(describing: tc.state)) — forcing teardown."
+                message: "[TileStreaming] Tile '\(tc.tileId)' parse timed out after \(Int(tileParseTimeoutSeconds))s while state=\(String(describing: tc.state)) — forcing teardown.",
+                category: LogCategory.tileStreaming.rawValue
             )
             tc.loadTask?.cancel()
             tc.loadTask = nil
@@ -965,7 +969,10 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 if MemoryBudgetManager.shared.shouldEvictGeometry() {
                     let tileEvicted = evictTileGeometry(cameraPosition: effectiveCameraPosition, maxEvictions: 2)
                     if lruEvicted == 0, tileEvicted == 0 {
-                        Logger.logWarning(message: "[TileStreaming] Geometry budget over threshold but no eviction candidates found — consider reducing scene size or shared bucket memory.")
+                        Logger.logWarning(
+                            message: "[TileStreaming] Geometry budget over threshold but no eviction candidates found — consider reducing scene size or shared bucket memory.",
+                            category: LogCategory.tileStreaming.rawValue
+                        )
                     }
                 }
             }
@@ -2147,7 +2154,8 @@ extension GeometryStreamingSystem {
         tileSwapWindow[entityId] = updated
         if updated.swaps == warningThreshold {
             Logger.logWarning(
-                message: "[TileStreaming] Swap thrash detected for tile '\(tileId)' — \(updated.swaps) representation changes in \(Int(windowSeconds))s (latest=\(representation))."
+                message: "[TileStreaming] Swap thrash detected for tile '\(tileId)' — \(updated.swaps) representation changes in \(Int(windowSeconds))s (latest=\(representation)).",
+                category: LogCategory.tileStreaming.rawValue
             )
             withStateLock {
                 diagnostics.tileSwapWarnings += 1

@@ -130,7 +130,10 @@ extension GeometryStreamingSystem {
                             }
                         }
 
-                        Logger.log(message: "[HLOD] Tile '\(tileId)' HLOD loaded.")
+                        Logger.log(
+                            message: "[TileStreaming][HLOD] Tile '\(tileId)' HLOD loaded.",
+                            category: LogCategory.tileStreaming.rawValue
+                        )
                     } else {
                         self.decrementHLODLoadCount()
                         if scene.exists(capturedHlodId) {
@@ -200,7 +203,10 @@ extension GeometryStreamingSystem {
 
         unmarkLoadedHLODEntity(entityId)
         recordTileRepresentationSwap(entityId: entityId, tileId: tileComp.tileId, representation: "hlod:unloaded")
-        Logger.log(message: "[HLOD] Tile '\(tileComp.tileId)' HLOD unloaded.")
+        Logger.log(
+            message: "[TileStreaming][HLOD] Tile '\(tileComp.tileId)' HLOD unloaded.",
+            category: LogCategory.tileStreaming.rawValue
+        )
     }
 
     // MARK: - Per-tile LOD level load / unload
@@ -309,7 +315,10 @@ extension GeometryStreamingSystem {
                                 BatchingSystem.shared.notifyTileEntitiesResident(renderIds)
                             }
                         }
-                        Logger.log(message: "[LOD] Tile '\(tileId)' LOD level \(capturedIndex + 1) loaded.")
+                        Logger.log(
+                            message: "[TileStreaming][LOD] Tile '\(tileId)' LOD level \(capturedIndex + 1) loaded.",
+                            category: LogCategory.tileStreaming.rawValue
+                        )
                     } else {
                         if scene.exists(capturedLodId) {
                             destroyEntity(entityId: capturedLodId)
@@ -390,7 +399,10 @@ extension GeometryStreamingSystem {
         }
 
         recordTileRepresentationSwap(entityId: entityId, tileId: tileComp.tileId, representation: "lod\(levelIndex + 1):unloaded")
-        Logger.log(message: "[LOD] Tile '\(tileComp.tileId)' LOD level \(levelIndex + 1) unloaded.")
+        Logger.log(
+            message: "[TileStreaming][LOD] Tile '\(tileComp.tileId)' LOD level \(levelIndex + 1) unloaded.",
+            category: LogCategory.tileStreaming.rawValue
+        )
     }
 
     /// Unload every LOD level for a tile stub.  Called when the full tile reaches
@@ -426,7 +438,10 @@ extension GeometryStreamingSystem {
         let tileURL = tileComp.tileURL
         let tileId = tileComp.tileId
 
-        Logger.log(message: "[TileStreaming] Dispatching load for tile '\(tileId)'")
+        Logger.log(
+            message: "[TileStreaming] Dispatching load for tile '\(tileId)'",
+            category: LogCategory.tileStreaming.rawValue
+        )
 
         // Create a dedicated mesh entity as a child of the tile stub before
         // spawning the load Task.  setEntityMeshAsync will attach all geometry
@@ -526,7 +541,10 @@ extension GeometryStreamingSystem {
                         }
                         unmarkLoadingTileEntity(entityId)
                         unmarkLoadedTileEntity(entityId)
-                        Logger.log(message: "[TileStreaming] Tile '\(tileId)' cancelled load cleaned up.")
+                        Logger.log(
+                            message: "[TileStreaming] Tile '\(tileId)' cancelled load cleaned up.",
+                            category: LogCategory.tileStreaming.rawValue
+                        )
                         return
                     }
 
@@ -595,7 +613,10 @@ extension GeometryStreamingSystem {
                         let selectableSuffix = selectableRenderIds.isEmpty
                             ? ""
                             : " selectable=[\(selectableNames)]"
-                        Logger.log(message: "[TileStreaming] Tile '\(tileId)' parsed (\(occCount) OCC stubs pending GPU upload, render=\(tileRenderIds.count), selectable=\(selectableRenderIds.count)). geom=\(budgetStats.meshMemoryUsed / (1024 * 1024))MB/\(budgetStats.geometryBudget / (1024 * 1024))MB (\(geomPct)%)\(selectableSuffix)")
+                        Logger.log(
+                            message: "[TileStreaming] Tile '\(tileId)' parsed (\(occCount) OCC stubs pending GPU upload, render=\(tileRenderIds.count), selectable=\(selectableRenderIds.count)). geom=\(budgetStats.meshMemoryUsed / (1024 * 1024))MB/\(budgetStats.geometryBudget / (1024 * 1024))MB (\(geomPct)%)\(selectableSuffix)",
+                            category: LogCategory.tileStreaming.rawValue
+                        )
                     } else {
                         // Destroy the pre-created child entity on failure so it
                         // doesn't leak as an empty, invisible stub.
@@ -791,7 +812,10 @@ extension GeometryStreamingSystem {
 
             let unloadMs = (CFAbsoluteTimeGetCurrent() - unloadStart) * 1000.0
             let unloadSuffix = unloadMs > 50 ? " ⚠️ slow=\(String(format: "%.0f", unloadMs))ms" : ""
-            Logger.log(message: "[TileStreaming] Tile '\(tileId)' unloaded (\(descendants.count) child entities destroyed).\(unloadSuffix)")
+            Logger.log(
+                message: "[TileStreaming] Tile '\(tileId)' unloaded (\(descendants.count) child entities destroyed).\(unloadSuffix)",
+                category: LogCategory.tileStreaming.rawValue
+            )
         }
     }
 

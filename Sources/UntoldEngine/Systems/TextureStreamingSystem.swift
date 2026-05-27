@@ -825,7 +825,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
             } else {
                 reservedUpgradeBytes = 0
                 budgetedWorkItems = workItems.filter { $0.direction == .downgrade }
-                Logger.log(message: "[TextureStreaming] entity=\(entityId) skipped \(workItems.filter { $0.direction == .upgrade }.count) upgrade(s) — budget full (need \(upgradeBytes.formattedAsMemory))")
+                Logger.log(
+                    message: "[TextureStreaming] entity=\(entityId) skipped \(workItems.filter { $0.direction == .upgrade }.count) upgrade(s) — budget full (need \(upgradeBytes.formattedAsMemory))",
+                    category: LogCategory.textureStreaming.rawValue
+                )
             }
         } else {
             reservedUpgradeBytes = 0
@@ -1020,7 +1023,10 @@ public class TextureStreamingSystem: @unchecked Sendable {
                         let dir = didUpgrade ? "↑" : "↓"
                         let dim = targetMaxDimension.map { "\($0)px" } ?? "full"
                         let distStr = distance >= 0 ? String(format: "%.1f", distance) : "offscreen"
-                        print("[TextureStreaming] entity=\(entityId) \(dir) → \(dim) dist=\(distStr) visible=\(isVisible)")
+                        Logger.log(
+                            message: "[TextureStreaming] entity=\(entityId) \(dir) → \(dim) dist=\(distStr) visible=\(isVisible)",
+                            category: LogCategory.textureStreaming.rawValue
+                        )
                     }
                 }
             }
@@ -1127,14 +1133,20 @@ public class TextureStreamingSystem: @unchecked Sendable {
 
         guard let target = renderInfo.device.makeTexture(descriptor: desc) else {
             if verboseLogging {
-                print("[TextureStreaming] GPU resample failed: makeTexture returned nil (size: \(targetWidth)x\(targetHeight))")
+                Logger.log(
+                    message: "[TextureStreaming] GPU resample failed: makeTexture returned nil (size: \(targetWidth)x\(targetHeight))",
+                    category: LogCategory.textureStreaming.rawValue
+                )
             }
             return nil
         }
 
         guard let commandBuffer = commandQueue.makeCommandBuffer() else {
             if verboseLogging {
-                print("[TextureStreaming] GPU resample failed: makeCommandBuffer returned nil")
+                Logger.log(
+                    message: "[TextureStreaming] GPU resample failed: makeCommandBuffer returned nil",
+                    category: LogCategory.textureStreaming.rawValue
+                )
             }
             return nil
         }

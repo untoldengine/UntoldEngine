@@ -666,7 +666,10 @@ public struct Material {
         func loadRuntimeTexture(_ label: String, reference: RuntimeTextureReference?, isSRGB: Bool) -> MTLTexture? {
             guard let reference, let url = reference.sourceURL else { return nil }
             let fileExists = fileManager.fileExists(atPath: url.path)
-            Logger.log(message: "[UntoldTexture] \(label) '\(runtimeMaterial.name ?? "<unnamed material>")' -> \(url.path) | exists=\(fileExists)")
+            Logger.log(
+                message: "[UntoldTexture] \(label) '\(runtimeMaterial.name ?? "<unnamed material>")' -> \(url.path) | exists=\(fileExists)",
+                category: LogCategory.textureLoading.rawValue
+            )
 
             // ASTC textures stored in the engine-native .utex container bypass
             // MTKTextureLoader entirely and are uploaded directly to the GPU.
@@ -705,7 +708,10 @@ public struct Material {
                     if let rgbaImage = ctx.makeImage(),
                        let texture = try? textureLoader.newTexture(cgImage: rgbaImage, options: options)
                     {
-                        Logger.log(message: "[UntoldTexture] Expanded grayscale \(label.lowercased()) to RGBA '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)")
+                        Logger.log(
+                            message: "[UntoldTexture] Expanded grayscale \(label.lowercased()) to RGBA '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)",
+                            category: LogCategory.textureLoading.rawValue
+                        )
                         return texture
                     }
                 }
@@ -713,7 +719,10 @@ public struct Material {
 
             do {
                 let texture = try textureLoader.newTexture(URL: url, options: options)
-                Logger.log(message: "[UntoldTexture] Loaded \(label.lowercased()) texture '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)")
+                Logger.log(
+                    message: "[UntoldTexture] Loaded \(label.lowercased()) texture '\(runtimeMaterial.name ?? "<unnamed material>")' \(texture.width)x\(texture.height)",
+                    category: LogCategory.textureLoading.rawValue
+                )
                 return texture
             } catch {
                 handleError(.textureFailedLoading, "\(label) \(error.localizedDescription)", runtimeMaterial.name ?? "<unnamed material>")
@@ -1229,7 +1238,10 @@ final class TextureLoader {
                     keySource = "obj-identity(named-no-bracket)"
                 }
                 let isHit = textureCache[cacheKey] != nil
-                Logger.log(message: "[TextureCache] \(isHit ? "HIT " : "MISS") key=\(cacheKeyURL.absoluteString) source=\(keySource) mdlTex=0x\(String(UInt(bitPattern: ObjectIdentifier(mdlTex)), radix: 16)) name='\(textureName)' map=\(mapType) isSRGB=\(isSRGB)")
+                Logger.log(
+                    message: "[TextureCache] \(isHit ? "HIT " : "MISS") key=\(cacheKeyURL.absoluteString) source=\(keySource) mdlTex=0x\(String(UInt(bitPattern: ObjectIdentifier(mdlTex)), radix: 16)) name='\(textureName)' map=\(mapType) isSRGB=\(isSRGB)",
+                    category: LogCategory.textureLoading.rawValue
+                )
             }
 
             if let cached = textureCache[cacheKey] {
@@ -1259,7 +1271,10 @@ final class TextureLoader {
                 // skipped for large assets and the MDLTexture has no pixel data yet.
                 // Ask the MDLTexture to lazily fetch its own data from the USDZ package and retry.
                 // This loads only this one texture, not the entire asset.
-                Logger.log(message: "[TextureLoad] MDL path failed for '\(textureName)' — retrying with lazy hydration (\(initialError.localizedDescription))")
+                Logger.log(
+                    message: "[TextureLoad] MDL path failed for '\(textureName)' — retrying with lazy hydration (\(initialError.localizedDescription))",
+                    category: LogCategory.textureLoading.rawValue
+                )
                 if mdlTex.texelDataWithTopLeftOrigin(atMipLevel: 0, create: true) != nil,
                    let retryTex = try? mtkLoader.newTexture(texture: mdlTex, options: options)
                 {
@@ -1275,7 +1290,10 @@ final class TextureLoader {
                         outputSourceDimensions: &outputSourceDimensions
                     )
                 }
-                Logger.log(message: "[TextureLoad] Lazy hydration also failed for '\(textureName)' — falling through to URL paths")
+                Logger.log(
+                    message: "[TextureLoad] Lazy hydration also failed for '\(textureName)' — falling through to URL paths",
+                    category: LogCategory.textureLoading.rawValue
+                )
                 handleError(.textureFailedLoading)
             }
         }
@@ -1327,7 +1345,10 @@ final class TextureLoader {
                         outputSourceDimensions: &outputSourceDimensions
                     )
                 }
-                Logger.log(message: "[TextureLoad] USDZ package URL failed for '\(parsed.innerPath)' — falling through to remaining paths")
+                Logger.log(
+                    message: "[TextureLoad] USDZ package URL failed for '\(parsed.innerPath)' — falling through to remaining paths",
+                    category: LogCategory.textureLoading.rawValue
+                )
             }
 
             // 1) Try as-is (absolute or already-resolved)
