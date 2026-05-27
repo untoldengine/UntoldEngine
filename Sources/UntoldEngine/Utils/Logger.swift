@@ -26,6 +26,10 @@ public enum LogCategory: String, CaseIterable, Sendable {
     case oocTiming = "OOCTiming"
     case oocStatus = "OOCStatus"
     case assetLoader = "AssetLoader"
+    case tileStreaming = "TileStreaming"
+    case streamingHeartbeat = "StreamingHeartbeat"
+    case textureStreaming = "TextureStreaming"
+    case textureLoading = "TextureLoading"
     case engineStats = "EngineStats"
     case integration = "Integration"
     case xrCamera = "XRCamera"
@@ -187,6 +191,10 @@ public enum Logger {
             LogCategory.oocTiming.rawValue,
             LogCategory.oocStatus.rawValue,
             LogCategory.assetLoader.rawValue,
+            LogCategory.tileStreaming.rawValue,
+            LogCategory.streamingHeartbeat.rawValue,
+            LogCategory.textureStreaming.rawValue,
+            LogCategory.textureLoading.rawValue,
             LogCategory.xrCamera.rawValue,
         ]
         private var categoryOverrides: [String: Bool] = [:]

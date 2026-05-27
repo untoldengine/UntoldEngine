@@ -35,6 +35,8 @@ Logger.log(message: "Scene loaded successfully", category: LogCategory.general.r
 
 Requires `logLevel >= .info`. Suppressed if the category is disabled.
 
+Console output is prefixed with `Log:`.
+
 ### Warnings
 
 ```swift
@@ -42,6 +44,8 @@ Logger.logWarning(message: "Mesh has no UV channel", category: LogCategory.gener
 ```
 
 Requires `logLevel >= .warning`. Always emits regardless of category state.
+
+Console output is prefixed with `Warning:`.
 
 ### Errors
 
@@ -51,24 +55,39 @@ Logger.logError(message: "Failed to load texture: \(name)", category: LogCategor
 
 Requires `logLevel >= .error`. Always emits regardless of category state.
 
+Console output is prefixed with `Error:`.
+
+### Debug vectors
+
+```swift
+Logger.log(vector: simd_float3(1, 2, 3), category: LogCategory.general.rawValue)
+Logger.log(message: "Camera position", vector: position, category: LogCategory.xrCamera.rawValue)
+```
+
+Vector helpers require `logLevel >= .debug` and are suppressed if the category is disabled.
+
 > **Note:** Messages are lazily evaluated (`@autoclosure`), so string interpolation cost is skipped when the log would be suppressed.
 
 ## Log Categories
 
 Categories let you silence or focus specific subsystems without changing the global log level.
 
-| Category        | Raw value      | Default state |
-|-----------------|----------------|---------------|
-| `.general`      | `"General"`    | enabled       |
-| `.ecs`          | `"ECS"`        | enabled       |
-| `.engineStats`  | `"EngineStats"`| enabled       |
-| `.integration`  | `"Integration"`| enabled       |
-| `.xrCamera`     | `"XRCamera"`   | disabled      |
-| `.oocTiming`    | `"OOCTiming"`  | disabled      |
-| `.oocStatus`    | `"OOCStatus"`  | disabled      |
-| `.assetLoader`  | `"AssetLoader"`| disabled      |
+| Category              | Raw value              | Default state |
+|-----------------------|------------------------|---------------|
+| `.general`            | `"General"`            | enabled       |
+| `.ecs`                | `"ECS"`                | enabled       |
+| `.engineStats`        | `"EngineStats"`        | enabled       |
+| `.integration`        | `"Integration"`        | enabled       |
+| `.xrCamera`           | `"XRCamera"`           | disabled      |
+| `.oocTiming`          | `"OOCTiming"`          | disabled      |
+| `.oocStatus`          | `"OOCStatus"`          | disabled      |
+| `.assetLoader`        | `"AssetLoader"`        | disabled      |
+| `.tileStreaming`      | `"TileStreaming"`      | disabled      |
+| `.streamingHeartbeat` | `"StreamingHeartbeat"` | disabled      |
+| `.textureStreaming`   | `"TextureStreaming"`   | disabled      |
+| `.textureLoading`     | `"TextureLoading"`     | disabled      |
 
-High-volume categories (`xrCamera`, `oocTiming`, `oocStatus`, `assetLoader`) are off by default to avoid log spam during normal operation.
+High-volume categories (`xrCamera`, `oocTiming`, `oocStatus`, `assetLoader`, `tileStreaming`, `streamingHeartbeat`, `textureStreaming`, `textureLoading`) are off by default to avoid log spam during normal operation.
 
 ## Enabling and Disabling Categories
 
@@ -92,7 +111,9 @@ Logger.resetCategoryToggles()
 ### Typical debug session
 
 ```swift
-// Turn on verbose streaming traces for a debug session
+// Turn on verbose geometry streaming traces for a debug session
+Logger.enable(category: .tileStreaming)
+Logger.enable(category: .streamingHeartbeat)
 Logger.enable(category: .oocStatus)
 Logger.enable(category: .oocTiming)
 Logger.enable(category: .assetLoader)
@@ -100,9 +121,18 @@ Logger.enable(category: .assetLoader)
 // ... reproduce the issue ...
 
 // Clean up after capture
+Logger.disable(category: .tileStreaming)
+Logger.disable(category: .streamingHeartbeat)
 Logger.disable(category: .oocStatus)
 Logger.disable(category: .oocTiming)
 Logger.disable(category: .assetLoader)
+```
+
+Texture diagnostics can be enabled separately:
+
+```swift
+Logger.enable(category: .textureStreaming)
+Logger.enable(category: .textureLoading)
 ```
 
 ## Adding a Custom Sink
