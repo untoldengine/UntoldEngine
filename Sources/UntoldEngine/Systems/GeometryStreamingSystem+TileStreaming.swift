@@ -547,10 +547,12 @@ extension GeometryStreamingSystem {
                         self.markLoadedTileEntity(entityId)
                         self.recordTileRepresentationSwap(entityId: entityId, tileId: tileId, representation: "tile:parsed")
 
-                        // Full geometry is now resident — unload the coarse HLOD mesh
-                        // and any per-tile LOD levels that were showing while loading.
-                        self.unloadHLOD(entityId: entityId)
-                        self.unloadAllLODLevels(entityId: entityId)
+                        // Only drop fallback coverage once full geometry is renderable.
+                        // OCC tiles may be parsed before enough child stubs have uploaded.
+                        if self.tileHasUsableFullGeometry(tc) {
+                            self.unloadHLOD(entityId: entityId)
+                            self.unloadAllLODLevels(entityId: entityId)
+                        }
 
                         // Tag the tile's mesh hierarchy for cell-based static batching.
                         // setEntityStaticBatchComponent walks the full child tree and

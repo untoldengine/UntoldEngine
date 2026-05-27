@@ -672,6 +672,7 @@ final class TileStreamingHysteresisTests: BaseRenderSetup {
         GeometryStreamingSystem.shared.updateInterval = 0.0 // no throttle
         GeometryStreamingSystem.shared.lodHysteresisFactor = hysteresisFactor
         GeometryStreamingSystem.shared.maxConcurrentLODLoads = 4
+        GeometryStreamingSystem.shared.maxConcurrentTileLoads = 0
         GeometryStreamingSystem.shared.maxQueryRadius = 500.0
 
         OctreeSystem.shared.clear()
@@ -685,6 +686,7 @@ final class TileStreamingHysteresisTests: BaseRenderSetup {
         GeometryStreamingSystem.shared.reset()
         GeometryStreamingSystem.shared.enabled = false
         GeometryStreamingSystem.shared.updateInterval = 0.1
+        GeometryStreamingSystem.shared.maxConcurrentTileLoads = 2
         OctreeSystem.shared.clear()
         MemoryBudgetManager.shared.clear()
         try await super.tearDown()
@@ -702,7 +704,9 @@ final class TileStreamingHysteresisTests: BaseRenderSetup {
     private func makeTileEntity(
         distance: Float,
         lodSwitchDistance: Float,
-        initialLODState: HLODAssetState = .unloaded
+        initialLODState: HLODAssetState = .unloaded,
+        hlodSwitchDistance: Float = 0,
+        initialHLODState: HLODAssetState = .unloaded
     ) -> (EntityID, TileComponent) {
         let entityId = createEntity()
 
@@ -734,9 +738,11 @@ final class TileStreamingHysteresisTests: BaseRenderSetup {
         tileComp.tileId = "test_tile_\(entityId)"
         tileComp.streamingRadius = 50.0
         tileComp.unloadRadius = 200.0
-        // No HLOD — ensures the LOD pass is not gated by hlodSwitchDistance.
-        tileComp.hlodSwitchDistance = 0
-        tileComp.hlodState = .unloaded
+        tileComp.hlodSwitchDistance = hlodSwitchDistance
+        tileComp.hlodState = initialHLODState
+        if hlodSwitchDistance > 0 {
+            tileComp.hlodURL = URL(fileURLWithPath: "/dev/null")
+        }
 
         // One LOD level at the requested switchDistance.
         // entityId = .invalid so unloadLODLevel skips the GPU destroy path.
@@ -801,10 +807,12 @@ final class TileStreamingHysteresisTests: BaseRenderSetup {
         )
     }
 
-    /// Camera below the hysteresis band:
-    /// the active LOD level must be torn down.
-    func testLODHysteresis_activeLevel_unloadedBelowBand() {
-        // Near face at 89 → dist=89 < threshold=90 → targetIndex nil → unloadAllLODLevels.
+    /// Camera below the hysteresis band but full geometry is not ready:
+    /// the active LOD level remains as visual coverage.
+    func testLODHysteresis_activeLevel_preservedBelowBandUntilFullGeometryUsable() {
+        // Near face at 89 → dist=89 < threshold=90 → targetIndex nil. The old
+        // behavior unloaded the LOD immediately; the handoff rule keeps it until
+        // full tile geometry is parsed and visually usable.
         let distBelowBand: Float = hysteresisThreshold - 1 // 89
 
         let (_, tileComp) = makeTileEntity(
@@ -819,9 +827,206 @@ final class TileStreamingHysteresisTests: BaseRenderSetup {
         )
 
         XCTAssertEqual(
-            tileComp.lodLevels[0].state, .unloaded,
-            "LOD should be unloaded when camera drops below hysteresis band (dist=\(distBelowBand), threshold=\(hysteresisThreshold))"
+            tileComp.lodLevels[0].state, .loaded,
+            "LOD should remain loaded until full geometry is usable (dist=\(distBelowBand), threshold=\(hysteresisThreshold))"
         )
+    }
+
+    /// Once the full tile is parsed and visually usable, the fallback LOD can be dropped.
+    func testLODHysteresis_activeLevel_unloadedBelowBandWhenFullGeometryUsable() {
+        let distBelowBand: Float = hysteresisThreshold - 1
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distBelowBand,
+            lodSwitchDistance: lodSwitchDistance,
+            initialLODState: .loaded
+        )
+        tileComp.state = .parsed
+        tileComp.totalOCCStubs = 0
+        tileComp.uploadedOCCStubs = 0
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertEqual(
+            tileComp.lodLevels[0].state, .unloaded,
+            "LOD should unload after full geometry becomes visually usable"
+        )
+    }
+
+    /// A cold-start camera inside the full-detail zone should still get temporary
+    /// LOD coverage while the full tile is waiting to parse.
+    func testFullZoneFallback_inactiveFinestLODLoadsUntilFullGeometryUsable() {
+        let distanceInsideFullZone: Float = 10
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distanceInsideFullZone,
+            lodSwitchDistance: lodSwitchDistance,
+            initialLODState: .unloaded
+        )
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertNotEqual(
+            tileComp.lodLevels[0].state, .unloaded,
+            "Finest LOD should be requested as fallback coverage inside the full-detail zone"
+        )
+    }
+
+    func testFullZoneFallback_parsingTileRequestsFinestLOD() {
+        let distanceInsideFullZone: Float = 10
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distanceInsideFullZone,
+            lodSwitchDistance: lodSwitchDistance,
+            initialLODState: .unloaded
+        )
+        tileComp.state = .parsing
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertNotEqual(
+            tileComp.lodLevels[0].state, .unloaded,
+            "Finest LOD should cover the tile while full geometry is parsing"
+        )
+    }
+
+    func testFullZoneFallback_partialParsedTileRequestsFinestLOD() {
+        let distanceInsideFullZone: Float = 10
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distanceInsideFullZone,
+            lodSwitchDistance: lodSwitchDistance,
+            initialLODState: .unloaded
+        )
+        tileComp.state = .parsed
+        tileComp.totalOCCStubs = 10
+        tileComp.uploadedOCCStubs = 4
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertNotEqual(
+            tileComp.lodLevels[0].state, .unloaded,
+            "Finest LOD should remain available until parsed full geometry is visually usable"
+        )
+    }
+
+    /// Moving inward from HLOD range should first start the LOD replacement and keep
+    /// the HLOD visible. The HLOD is dropped only after a LOD is actually loaded.
+    func testHLODHandoff_preservesHLODUntilLODLoaded() {
+        let distanceInsideHLODBand: Float = 85
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distanceInsideHLODBand,
+            lodSwitchDistance: 50,
+            initialLODState: .unloaded,
+            hlodSwitchDistance: 100,
+            initialHLODState: .loaded
+        )
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertEqual(tileComp.hlodState, .loaded, "HLOD should remain visible while replacement LOD is loading")
+        XCTAssertNotEqual(tileComp.lodLevels[0].state, .unloaded, "LOD replacement should be requested")
+    }
+
+    func testHLODHandoff_unloadsHLODAfterLODLoaded() {
+        let distanceInsideHLODBand: Float = 85
+
+        let (_, tileComp) = makeTileEntity(
+            distance: distanceInsideHLODBand,
+            lodSwitchDistance: 50,
+            initialLODState: .loaded,
+            hlodSwitchDistance: 100,
+            initialHLODState: .loaded
+        )
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertEqual(tileComp.hlodState, .unloaded, "HLOD can unload once LOD coverage is loaded")
+        XCTAssertEqual(tileComp.lodLevels[0].state, .loaded, "Loaded LOD should remain as coverage")
+    }
+
+    func testLODSwap_preservesOldLODWhileTargetLODLoads() {
+        let (_, tileComp) = makeTileEntity(
+            distance: 75,
+            lodSwitchDistance: 50,
+            initialLODState: .unloaded
+        )
+        let coarser = TileLODLevel(url: URL(fileURLWithPath: "/dev/null"), switchDistance: 100)
+        coarser.state = .loaded
+        coarser.entityId = .invalid
+        tileComp.lodLevels.append(coarser)
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertNotEqual(tileComp.lodLevels[0].state, .unloaded, "Target finer LOD should be requested")
+        XCTAssertEqual(tileComp.lodLevels[1].state, .loaded, "Old coarser LOD should remain visible while target loads")
+    }
+
+    func testLODSwap_unloadsOldLODAfterTargetLODLoaded() {
+        let (_, tileComp) = makeTileEntity(
+            distance: 75,
+            lodSwitchDistance: 50,
+            initialLODState: .loaded
+        )
+        let coarser = TileLODLevel(url: URL(fileURLWithPath: "/dev/null"), switchDistance: 100)
+        coarser.state = .loaded
+        coarser.entityId = .invalid
+        tileComp.lodLevels.append(coarser)
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertEqual(tileComp.lodLevels[0].state, .loaded, "Target finer LOD should remain loaded")
+        XCTAssertEqual(tileComp.lodLevels[1].state, .unloaded, "Old coarser LOD can unload after target is loaded")
+    }
+
+    func testHLODAdmission_allowsFarCoverageAfterLODAdmission() {
+        let (_, lodTileComp) = makeTileEntity(
+            distance: 75,
+            lodSwitchDistance: 50,
+            initialLODState: .unloaded
+        )
+
+        let (_, hlodTileComp) = makeTileEntity(
+            distance: 150,
+            lodSwitchDistance: 50,
+            initialLODState: .unloaded,
+            hlodSwitchDistance: 100,
+            initialHLODState: .unloaded
+        )
+        hlodTileComp.lodLevels = []
+
+        GeometryStreamingSystem.shared.update(
+            cameraPosition: simd_float3(0, 0, 0),
+            deltaTime: 0.016
+        )
+
+        XCTAssertNotEqual(lodTileComp.lodLevels[0].state, .unloaded, "Nearby LOD coverage should be admitted first")
+        XCTAssertNotEqual(hlodTileComp.hlodState, .unloaded, "Far HLOD coverage should still be admitted when HLOD capacity is free")
     }
 
     /// Inactive LOD level (state = .unloaded) at dist inside the hysteresis band:
