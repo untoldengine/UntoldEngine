@@ -83,6 +83,40 @@ You do **not** call `generateBatches()` per tile. The runtime hands new resident
 - you need prefetch, HLOD, per-tile LOD, and eviction
 - you want local or remote manifest-driven world streaming
 
+## Runtime Batching Tuning
+
+The engine automatically applies a platform-appropriate batching preset at startup. You do not need to call anything for sensible defaults.
+
+- **macOS** → `.macOSBalanced` (standard per-tick budgets, 160K vertex per-cell guard)
+- **visionOS** → `.visionOSBalanced` (relaxed per-cell guards to batch dense architecture, conservative apply rate to protect frame pacing)
+
+### Inspecting the Active Tuning
+
+```swift
+let tuning = BatchingSystem.shared.getRuntimeBatchingTuning()
+print(tuning.maxRuntimeCellVertices)    // e.g. 1_200_000 on visionOS
+print(tuning.cellSize)                  // world-space cell side length
+```
+
+### Scene-Specific Overrides
+
+If your scene has unusually dense geometry or strict frame-time requirements, start from the active preset and override only the fields you need:
+
+```swift
+var tuning = BatchingSystem.shared.getRuntimeBatchingTuning()
+tuning.quiescenceFramesBeforeBatchBuild = 4  // wait longer before rebuilding during streaming churn
+tuning.maxArtifactAppliesPerTick = 1         // spread swap-ins to avoid frame spikes
+BatchingSystem.shared.applyRuntimeBatchingTuning(tuning)
+```
+
+Call this **after** the engine has started (e.g., in your scene's `init` block), since the engine applies the platform preset during its own init. Your override will replace it.
+
+> **Changing `cellSize`** invalidates all existing batches and triggers a full rebuild. Change it before entities are loaded whenever possible.
+
+For a full description of every tuning parameter, see [Batching System Architecture](../Architecture/batchingSystem.md#runtime-batching-tuning).
+
+---
+
 ## Practical Rules
 
 - Keep dynamic or animated entities out of static batching.

@@ -175,6 +175,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         CameraSystem.shared.activeCamera = gameCamera
 
+        #if os(visionOS)
+            BatchingSystem.shared.applyRuntimeBatchingTuning(.visionOSBalanced)
+        #else
+            BatchingSystem.shared.applyRuntimeBatchingTuning(.macOSBalanced)
+        #endif
+
         Logger.log(message: "Untold Engine Starting. Version 0.12.15")
     }
 

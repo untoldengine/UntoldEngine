@@ -185,6 +185,64 @@ The AABB serves two purposes:
 
 ---
 
+## Runtime Batching Tuning
+
+All of the per-tick budgets and per-cell complexity guards described above are controlled at runtime through `RuntimeBatchingTuning`. The engine applies a platform-appropriate preset automatically at startup — you do not need to call anything for sensible defaults.
+
+### Platform Presets
+
+```swift
+// Applied automatically by the engine at init — no action needed
+#if os(visionOS)
+BatchingSystem.shared.applyRuntimeBatchingTuning(.visionOSBalanced)
+#else
+BatchingSystem.shared.applyRuntimeBatchingTuning(.macOSBalanced)
+#endif
+```
+
+| Parameter | macOSBalanced | visionOSBalanced | Controls |
+|---|---|---|---|
+| `maxDirtyCellsPerTick` | 8 | 8 | Max cells considered for rebuild scheduling per tick |
+| `maxBuildDispatchesPerTick` | 4 | 4 | Max background artifact builds dispatched per tick |
+| `maxArtifactAppliesPerTick` | 4 | 2 | Max completed artifacts swapped in per tick |
+| `maxRebuildVerticesPerTick` | 120K | 100K | Per-tick vertex work budget |
+| `maxRebuildIndicesPerTick` | 220K | 180K | Per-tick index work budget |
+| `maxRebuildBufferBytesPerTick` | 6MB | 6MB | Per-tick combined buffer byte budget |
+| `maxRuntimeCellVertices` | 160K | 1.2M | Per-cell complexity guard (vertices) |
+| `maxRuntimeCellIndices` | 300K | 2.2M | Per-cell complexity guard (indices) |
+| `maxRuntimeCellBufferBytes` | 8MB | 70MB | Per-cell complexity guard (bytes) |
+| `quiescenceFramesBeforeBatchBuild` | 1 | 2 | Stable frames required before a dirty cell may rebuild |
+| `recentVisibilityWindowFrames` | 120 | 90 | Frames a cell remains "recently visible" for scheduling |
+| `maxRetirementsPerTick` | 8 | 4 | Retired batch artifacts released per tick |
+| `batchRetireDelayFrames` | 3 | 3 | Safety delay before GPU resources are released |
+| `cellSize` | 32.0 | 32.0 | World-space cell side length |
+
+**Why visionOS uses relaxed per-cell complexity guards:** background artifact builds run on a `.utility` DispatchQueue, completely off the render thread. Dense architecture cells (1M+ vertices) add ~50–100 ms to the background queue without touching frame pacing. The stricter macOS guards exist because macOS scenes are less likely to have tile-streamed dense geometry where this pattern is common.
+
+**Why visionOS applies artifacts more conservatively:** `maxArtifactAppliesPerTick = 2` instead of 4 smooths the swap-in burst when many background builds finish in the same frame, preventing frame-time spikes on Vision Pro's strict compositor deadline.
+
+### Overriding After Init
+
+To override specific fields after the engine applies its default preset:
+
+```swift
+// Start from the platform preset, then override specific fields
+var tuning = BatchingSystem.shared.getRuntimeBatchingTuning()
+tuning.quiescenceFramesBeforeBatchBuild = 4   // more conservative for a dense streaming scene
+tuning.maxArtifactAppliesPerTick = 1           // spread swap-ins further
+BatchingSystem.shared.applyRuntimeBatchingTuning(tuning)
+```
+
+Or apply a full preset override:
+
+```swift
+BatchingSystem.shared.applyRuntimeBatchingTuning(.visionOSBalanced)
+```
+
+`applyRuntimeBatchingTuning` applies all fields atomically. It sets `cellSize` first — if the cell size changes, all existing batches are invalidated before the remaining parameters land, so the rebuild starts from a clean state.
+
+---
+
 ## With 100 Entities — Concrete Example
 
 Suppose your 100 entities break down as:
