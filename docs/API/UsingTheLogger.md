@@ -86,8 +86,9 @@ Categories let you silence or focus specific subsystems without changing the glo
 | `.streamingHeartbeat` | `"StreamingHeartbeat"` | disabled      |
 | `.textureStreaming`   | `"TextureStreaming"`   | disabled      |
 | `.textureLoading`     | `"TextureLoading"`     | disabled      |
+| `.batching`           | `"Batching"`           | disabled      |
 
-High-volume categories (`xrCamera`, `oocTiming`, `oocStatus`, `assetLoader`, `tileStreaming`, `streamingHeartbeat`, `textureStreaming`, `textureLoading`) are off by default to avoid log spam during normal operation.
+High-volume categories are off by default to avoid log spam during normal operation.
 
 ## Enabling and Disabling Categories
 
@@ -134,6 +135,55 @@ Texture diagnostics can be enabled separately:
 Logger.enable(category: .textureStreaming)
 Logger.enable(category: .textureLoading)
 ```
+
+### Static batching diagnostics
+
+The `.batching` category drives `BatchingSystem`'s material-diversity report. It tells you why batch coverage is low — too few `StaticBatchComponent` entities, material variety that prevents grouping, cells blocked by the complexity guard, and so on.
+
+**One-shot snapshot** (most common):
+
+```swift
+Logger.enable(category: .batching)
+BatchingSystem.shared.logMaterialDiagnosticsNow()  // immediate scan and emit
+Logger.disable(category: .batching)
+```
+
+**Periodic auto-logging** (fires at most once every 30 s while enabled):
+
+```swift
+// Call once at startup to arm it; the engine loop calls logMaterialDiagnosticsIfDue() each frame.
+Logger.enable(category: .batching)
+
+// When done:
+Logger.disable(category: .batching)
+```
+
+Sample output:
+
+```
+[BatchMaterial] staticBatch=916 registered=916 resolved=916 batchable=87%
+  | singletons=119 groupable=797 | cellsBlocked=2
+  | uniqueMatLOD=80 singletonKeys=119 groupableKeys=132
+
+[BatchMaterial] cell(0,-1,0)  ents=224 uniqueKeys=49 singletons=22 groupable=27 groups=0  ratio=0.45
+[BatchMaterial] cell(-1,-1,0) ents=238 uniqueKeys=42 singletons=16 groupable=26 groups=0  ratio=0.38
+```
+
+| Field | Meaning |
+|-------|---------|
+| `staticBatch` | Entities in the scene that carry `StaticBatchComponent` |
+| `registered` | Entities resident in the batching system |
+| `resolved` | Passed all eligibility checks (no animation, no transparency, etc.) |
+| `batchable` | Percentage of resolved entities that share a material key with a peer |
+| `singletons` | Entities that are the only one with their material in their cell — can never batch |
+| `groupable` | Entities that can form a batch group |
+| `cellsBlocked` | Cells rejected by the runtime complexity guard |
+| `uniqueMatLOD` | Distinct (material × LOD) keys across the whole scene |
+| `ratio` | Per-cell singleton fraction — close to 1.0 means high material diversity |
+
+A low `batchable` percentage with a small `uniqueMatLOD` count points to a cell-size or complexity-guard problem. A high `uniqueMatLOD` count with a high `ratio` per cell points to material diversity in the asset.
+
+See `UsingProfiler.md → Static Batching Triage` for a full diagnostic workflow.
 
 ## Adding a Custom Sink
 

@@ -33,6 +33,7 @@ public enum LogCategory: String, CaseIterable, Sendable {
     case engineStats = "EngineStats"
     case integration = "Integration"
     case xrCamera = "XRCamera"
+    case batching = "Batching"
 }
 
 public struct LogEvent: Identifiable, Sendable {
@@ -196,6 +197,7 @@ public enum Logger {
             LogCategory.textureStreaming.rawValue,
             LogCategory.textureLoading.rawValue,
             LogCategory.xrCamera.rawValue,
+            LogCategory.batching.rawValue,
         ]
         private var categoryOverrides: [String: Bool] = [:]
 
