@@ -170,6 +170,14 @@ public struct RuntimeBatchingTuning: Sendable {
     /// Increase when testing for GPU in-flight safety issues.
     public var batchRetireDelayFrames: Int
 
+    /// World-space side length of each batch cell (in all three axes).
+    /// Smaller values produce more cells with fewer entities each, reducing the
+    /// chance that a cell exceeds the runtime complexity guard.  Larger values
+    /// reduce cell count and bookkeeping overhead but increase per-cell density.
+    /// Changing this at runtime invalidates all existing batches and triggers a
+    /// full rebuild.
+    public var cellSize: Float
+
     public init(
         maxDirtyCellsPerTick: Int = 8,
         maxBuildDispatchesPerTick: Int = 4,
@@ -184,7 +192,8 @@ public struct RuntimeBatchingTuning: Sendable {
         recentVisibilityWindowFrames: Int = 120,
         visibilityGatedBatchBuildEnabled: Bool = true,
         maxRetirementsPerTick: Int = 8,
-        batchRetireDelayFrames: Int = 3
+        batchRetireDelayFrames: Int = 3,
+        cellSize: Float = 32.0
     ) {
         self.maxDirtyCellsPerTick = maxDirtyCellsPerTick
         self.maxBuildDispatchesPerTick = maxBuildDispatchesPerTick
@@ -200,6 +209,7 @@ public struct RuntimeBatchingTuning: Sendable {
         self.visibilityGatedBatchBuildEnabled = visibilityGatedBatchBuildEnabled
         self.maxRetirementsPerTick = maxRetirementsPerTick
         self.batchRetireDelayFrames = batchRetireDelayFrames
+        self.cellSize = cellSize
     }
 
     /// Balanced defaults for desktop-class hardware.
@@ -218,27 +228,32 @@ public struct RuntimeBatchingTuning: Sendable {
             recentVisibilityWindowFrames: 120,
             visibilityGatedBatchBuildEnabled: true,
             maxRetirementsPerTick: 8,
-            batchRetireDelayFrames: 3
+            batchRetireDelayFrames: 3,
+            cellSize: 32.0
         )
     }
 
-    /// Conservative defaults for thermal-constrained mixed-reality devices.
+    /// Defaults tuned for Vision Pro: smaller cells and higher dispatch rate for
+    /// fast convergence. The runtime complexity guard is set high because background
+    /// artifact builds are async — large cells (dense architecture) add ~50–100 ms
+    /// to the background queue, never stalling the render thread.
     public static var visionOSBalanced: RuntimeBatchingTuning {
         RuntimeBatchingTuning(
-            maxDirtyCellsPerTick: 4,
-            maxBuildDispatchesPerTick: 1,
-            maxArtifactAppliesPerTick: 1,
-            maxRebuildVerticesPerTick: 60000,
-            maxRebuildIndicesPerTick: 110_000,
-            maxRebuildBufferBytesPerTick: 3 * 1024 * 1024,
-            maxRuntimeCellVertices: 90000,
-            maxRuntimeCellIndices: 170_000,
-            maxRuntimeCellBufferBytes: 5 * 1024 * 1024,
+            maxDirtyCellsPerTick: 8,
+            maxBuildDispatchesPerTick: 4,
+            maxArtifactAppliesPerTick: 2,
+            maxRebuildVerticesPerTick: 100_000,
+            maxRebuildIndicesPerTick: 180_000,
+            maxRebuildBufferBytesPerTick: 6 * 1024 * 1024,
+            maxRuntimeCellVertices: 1_200_000,
+            maxRuntimeCellIndices: 2_200_000,
+            maxRuntimeCellBufferBytes: 70 * 1024 * 1024,
             quiescenceFramesBeforeBatchBuild: 2,
             recentVisibilityWindowFrames: 90,
             visibilityGatedBatchBuildEnabled: true,
             maxRetirementsPerTick: 4,
-            batchRetireDelayFrames: 3
+            batchRetireDelayFrames: 3,
+            cellSize: 16.0
         )
     }
 }
@@ -548,6 +563,10 @@ public class BatchingSystem: @unchecked Sendable {
     public var maxTileResidentDrainPerTick: Int = 16
     private var isSubscribed: Bool = false
     private var batchCellSize: Float = 32.0
+    /// Maps each cell to the UUIDs of its current batch groups.
+    /// Kept in sync with batchGroups so removeBatchesForCell can locate
+    /// groups in O(groups-in-cell) instead of scanning the entire array.
+    private var cellToGroupIds: [BatchCellID: [UUID]] = [:]
     private var cellLifecycle: [BatchCellID: BatchCellLifecycleRecord] = [:]
     private var retiringBatchArtifacts: [RetiringBatchArtifact] = []
     private var retiringCellRefCounts: [BatchCellID: Int] = [:] // O(1) pending-retirement checks
@@ -1370,12 +1389,18 @@ public class BatchingSystem: @unchecked Sendable {
             entityToBatch[entityId] = info
         }
 
+        // Maintain batchIdToIndex and cellToGroupIds for the newly inserted groups so
+        // removeBatchesForCell can find them in O(groups-in-cell) on the next rebuild.
+        for i in insertedStart ..< batchGroups.count {
+            let group = batchGroups[i]
+            batchIdToIndex[group.id] = i
+            cellToGroupIds[group.cellId, default: []].append(group.id)
+        }
+
         // The artifact was built from a material snapshot that may predate one or more
         // texture streaming patches. Re-apply the live streaming state from each group's
         // representative entity so the freshly-installed batch reflects current resolution.
         reconcileStreamingTexturesAfterArtifact(insertedStart: insertedStart)
-
-        batchIndexNeedsRebuild = true
         setCellState(cellId, .renderableBatched)
 
         metrics.appliedArtifacts += 1
@@ -1659,7 +1684,9 @@ public class BatchingSystem: @unchecked Sendable {
                 lodIndex: batchKey.lodIndex
             ) {
                 batchGroups.append(batchGroup)
-                batchIdToIndex[batchGroup.id] = batchGroups.count - 1
+                let newIndex = batchGroups.count - 1
+                batchIdToIndex[batchGroup.id] = newIndex
+                cellToGroupIds[batchGroup.cellId, default: []].append(batchGroup.id)
                 batchedCells.insert(batchGroup.cellId)
                 createdGroups += 1
                 batchedMeshes += batchGroup.entityIds.count
@@ -1681,33 +1708,54 @@ public class BatchingSystem: @unchecked Sendable {
 
     @discardableResult
     private func removeBatchesForCell(_ cellId: BatchCellID, queueForRetirement: Bool) -> Bool {
-        guard batchedCells.contains(cellId) else {
-            return false
-        }
-
-        var removedGroups: [BatchGroup] = []
-        removedGroups.reserveCapacity(4)
-        var removedEntityIds: Set<EntityID> = []
-        batchGroups.removeAll { group in
-            guard group.cellId == cellId else { return false }
-            removedGroups.append(group)
-            for entityId in group.entityIds {
-                removedEntityIds.insert(entityId)
-            }
-            return true
-        }
-
-        guard !removedGroups.isEmpty else {
+        guard batchedCells.contains(cellId) else { return false }
+        guard let groupIds = cellToGroupIds[cellId], !groupIds.isEmpty else {
             batchedCells.remove(cellId)
             return false
         }
 
+        // Collect the groups and their positions from the cell index — O(groups-in-cell).
+        var removedGroups: [BatchGroup] = []
+        removedGroups.reserveCapacity(groupIds.count)
+        var removedEntityIds: Set<EntityID> = []
+        var indicesToRemove: [Int] = []
+        indicesToRemove.reserveCapacity(groupIds.count)
+
+        for uuid in groupIds {
+            guard let index = batchIdToIndex[uuid] else { continue }
+            indicesToRemove.append(index)
+            removedGroups.append(batchGroups[index])
+            for entityId in batchGroups[index].entityIds {
+                removedEntityIds.insert(entityId)
+            }
+        }
+
+        guard !removedGroups.isEmpty else {
+            cellToGroupIds.removeValue(forKey: cellId)
+            batchedCells.remove(cellId)
+            return false
+        }
+
+        // Swap-remove: process indices high-to-low so earlier positions stay valid.
+        indicesToRemove.sort(by: >)
+        for index in indicesToRemove {
+            let lastIndex = batchGroups.count - 1
+            if index < lastIndex {
+                batchGroups.swapAt(index, lastIndex)
+                batchIdToIndex[batchGroups[index].id] = index
+            }
+            batchGroups.removeLast()
+        }
+
+        for uuid in groupIds {
+            batchIdToIndex.removeValue(forKey: uuid)
+        }
         for entityId in removedEntityIds {
             entityToBatch.removeValue(forKey: entityId)
         }
 
+        cellToGroupIds.removeValue(forKey: cellId)
         batchedCells.remove(cellId)
-        batchIndexNeedsRebuild = true
 
         if queueForRetirement {
             enqueueRetiringBatchGroups(cellId: cellId, groups: removedGroups)
@@ -1718,8 +1766,10 @@ public class BatchingSystem: @unchecked Sendable {
     private func rebuildBatchIndex() {
         batchIdToIndex.removeAll(keepingCapacity: true)
         batchIdToIndex.reserveCapacity(batchGroups.count)
+        cellToGroupIds.removeAll(keepingCapacity: true)
         for (index, group) in batchGroups.enumerated() {
             batchIdToIndex[group.id] = index
+            cellToGroupIds[group.cellId, default: []].append(group.id)
         }
     }
 
@@ -2101,6 +2151,7 @@ public class BatchingSystem: @unchecked Sendable {
         batchGroups.removeAll()
         entityToBatch.removeAll()
         batchIdToIndex.removeAll()
+        cellToGroupIds.removeAll()
         batchedCells.removeAll()
         entityToCellMembership.removeAll()
         cellToEntities.removeAll()
@@ -2593,6 +2644,9 @@ public class BatchingSystem: @unchecked Sendable {
     /// - `RuntimeBatchingTuning.macOSBalanced` for desktop defaults
     /// - then override specific fields for scene-specific behavior.
     public func applyRuntimeBatchingTuning(_ tuning: RuntimeBatchingTuning) {
+        // Cell size first: changing it invalidates existing batches, so all other
+        // tuning changes land on the already-invalidated state.
+        setBatchCellSize(tuning.cellSize)
         setMaxDirtyCellsPerTick(tuning.maxDirtyCellsPerTick)
         setMaxBuildDispatchesPerTick(tuning.maxBuildDispatchesPerTick)
         setMaxArtifactAppliesPerTick(tuning.maxArtifactAppliesPerTick)
@@ -2625,7 +2679,8 @@ public class BatchingSystem: @unchecked Sendable {
             recentVisibilityWindowFrames: recentVisibilityWindowFrames,
             visibilityGatedBatchBuildEnabled: visibilityGatedBatchBuildEnabled,
             maxRetirementsPerTick: maxRetirementsPerTick,
-            batchRetireDelayFrames: batchRetireDelayFrames
+            batchRetireDelayFrames: batchRetireDelayFrames,
+            cellSize: batchCellSize
         )
     }
 

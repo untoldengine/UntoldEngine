@@ -100,6 +100,8 @@ relative to the manifest location.
 - `Partitioning`: choose the tiling algorithm. Only one algorithm is active per
   export.
 - `Scene Profile`: choose `auto`, `indoor`, or `outdoor` streaming radius bands.
+  For CLI exports, use `--tier-radius Tier=stream,unload[,priority]` to override
+  the profile's quadtree semantic-tier bands. See [Using The Exporter](UsingTheExporter.md#quadtree-tier-radius-overrides).
 - `Generate HLOD`: create simplified coarse HLOD assets for eligible tiles.
 - `Generate LOD`: create per-tile LOD assets for eligible tiles.
 - `Compress Geometry`: LZ4-compress vertex and index chunks in tile payloads.
