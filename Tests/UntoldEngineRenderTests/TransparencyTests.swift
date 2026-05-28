@@ -207,6 +207,13 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
         XCTAssertTrue(pipeline?.success ?? false, "Transparency pipeline should be successfully initialized")
     }
 
+    func testWireframePipeline_isRegistered() {
+        let pipeline = PipelineManager.shared.renderPipelinesByType[.wireframe]
+
+        XCTAssertNotNil(pipeline, "Wireframe pipeline should be registered in PipelineManager")
+        XCTAssertTrue(pipeline?.success ?? false, "Wireframe pipeline should be successfully initialized")
+    }
+
     func testTransparencyPass_existsInGameModeGraph() {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
@@ -252,12 +259,16 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
 
             XCTAssertNotNil(graph["transparency"],
                             "Transparency pass should exist in \(description) mode")
+            XCTAssertNotNil(graph["wireframe"],
+                            "Wireframe pass should exist in \(description) mode")
             XCTAssertEqual(graph["transparency"]?.dependencies, ["lightPass"],
                            "Transparency should depend on lightPass in \(description) mode")
+            XCTAssertEqual(graph["wireframe"]?.dependencies, ["transparency"],
+                           "Wireframe should depend on transparency in \(description) mode")
         }
     }
 
-    func testTransparencyPass_topologicalPositionAfterLightBeforePostProcess() throws {
+    func testTransparencyAndWireframePasses_topologicalPositionAfterLightBeforePostProcess() throws {
         renderInfo.immersionStyle = .none
         renderEnvironment = true
         bypassPostProcessing = false
@@ -269,22 +280,25 @@ final class TransparencyRenderGraphTests: BaseRenderSetup {
         let order = sorted.map(\.id)
 
         guard let transparencyIndex = order.firstIndex(of: "transparency"),
+              let wireframeIndex = order.firstIndex(of: "wireframe"),
               let lightIndex = order.firstIndex(of: "lightPass")
         else {
-            XCTFail("Both transparency and lightPass should exist in the graph")
+            XCTFail("Transparency, wireframe, and lightPass should exist in the graph")
             return
         }
 
         XCTAssertTrue(lightIndex < transparencyIndex,
                       "Light pass must come before transparency pass")
+        XCTAssertTrue(transparencyIndex < wireframeIndex,
+                      "Transparency pass must come before wireframe pass")
 
         guard let dofIndex = order.firstIndex(of: "depthOfField") else {
             XCTFail("depthOfField pass should exist")
             return
         }
 
-        XCTAssertTrue(transparencyIndex < dofIndex,
-                      "Transparency pass must come before post-processing (depthOfField)")
+        XCTAssertTrue(wireframeIndex < dofIndex,
+                      "Wireframe pass must come before post-processing (depthOfField)")
     }
 
     func testTransparencyPass_bypassModeDepends() {

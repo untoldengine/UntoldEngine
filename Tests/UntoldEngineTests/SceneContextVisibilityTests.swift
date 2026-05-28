@@ -24,9 +24,25 @@ final class SceneContextVisibilityTests: XCTestCase {
     func testContextSceneChannelVisibilityCanToggle() {
         setSceneChannelVisible(.contextGeometry, false)
         XCTAssertFalse(getSceneChannelVisible(.contextGeometry))
+        XCTAssertEqual(getSceneChannelRenderMode(.contextGeometry), .hidden)
 
         setSceneChannelVisible(.contextGeometry, true)
         XCTAssertTrue(getSceneChannelVisible(.contextGeometry))
+        XCTAssertEqual(getSceneChannelRenderMode(.contextGeometry), .normal)
+    }
+
+    func testContextSceneChannelCanUseWireframeRenderMode() {
+        let entityId = createEntity()
+        setEntitySceneChannels(entityId: entityId, channels: .contextGeometry)
+
+        setSceneChannelRenderMode(.contextGeometry, .wireframe)
+
+        XCTAssertTrue(getSceneChannelVisible(.contextGeometry))
+        XCTAssertEqual(getSceneChannelRenderMode(.contextGeometry), .wireframe)
+        XCTAssertFalse(shouldHideSceneEntity(entityId: entityId))
+        XCTAssertTrue(shouldRenderSceneEntityAsWireframe(entityId: entityId))
+        XCTAssertTrue(shouldRenderSceneChannelsAsWireframe(.contextGeometry))
+        XCTAssertFalse(shouldRenderSceneChannelsOpaque(.contextGeometry))
     }
 
     func testNMNamedEntityIsSelectableSceneEntity() {

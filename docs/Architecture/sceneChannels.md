@@ -31,15 +31,28 @@ Explicit calls to `setEntitySceneChannels(entityId:channels:)` override the defa
 
 ## Rendering
 
-Channel visibility is controlled globally:
+Channel rendering is controlled globally. The compatibility visibility API maps to render modes:
 
 ```swift
-setSceneChannelVisible(.contextGeometry, false)
+setSceneChannelVisible(.contextGeometry, false) // .hidden
+setSceneChannelVisible(.contextGeometry, true)  // .normal
+```
+
+New code can set the render mode directly:
+
+```swift
+setSceneChannelRenderMode(.contextGeometry, .normal)
+setSceneChannelRenderMode(.contextGeometry, .hidden)
+setSceneChannelRenderMode(.contextGeometry, .wireframe)
 ```
 
 The render passes call `shouldHideSceneEntity(entityId:)` for individual entities. Hidden entities are skipped before draw encoding. This is different from opacity: no transparent draw is submitted, so the feature avoids transparency sorting issues.
 
-Batched rendering filters `BatchGroup`s through `areSceneChannelsVisible(_:)`. If a group's channel mask intersects a hidden channel, the whole group is skipped.
+Batched rendering filters `BatchGroup`s through channel render-mode helpers. Hidden groups are skipped. Wireframe groups are skipped from solid opaque and shadow passes, then redrawn in the wireframe pass after transparency and before spatial debug overlays.
+
+For `.untold` assets, the exporter writes optional architectural edge index buffers for boundary and hard-angle edges. The runtime loader stores these on `RuntimeMeshPrimitive`, `Mesh`, and `BatchGroup`, and the wireframe pass draws them as line primitives when available. Meshes without edge buffers fall back to existing mesh and batch index buffers with Metal triangle line fill mode, which can display dense internal triangulation.
+
+`WireframeRenderParams` controls visual density. `distanceFadeEnabled`, `fadeStartDistance`, `fadeEndDistance`, and `minimumAlpha` reduce line opacity for distant geometry without changing the scene-channel API. The fragment shader uses `color.a` as the near opacity and fades to `color.a * minimumAlpha` between `fadeStartDistance` and `fadeEndDistance`.
 
 ## Batching
 
@@ -48,7 +61,7 @@ Scene channels affect batching in two ways:
 1. Entities with `.preserveIdentity` are excluded as batch candidates.
 2. `BatchBuildKey` includes the channel mask, so entities in different channels do not merge into the same batch group.
 
-This lets the renderer hide `.contextGeometry` batches without rebuilding batch artifacts and without affecting `.selectableGeometry` entities.
+This lets the renderer hide or wireframe-render `.contextGeometry` batches without rebuilding batch artifacts and without affecting `.selectableGeometry` entities.
 
 ## Exporter Compatibility
 

@@ -22,33 +22,68 @@ public struct SceneChannel: OptionSet, Sendable {
     public static let preserveIdentity = SceneChannel(rawValue: 1 << 2)
 }
 
+public enum SceneChannelRenderMode: Equatable, Sendable {
+    case normal
+    case hidden
+    case wireframe
+}
+
 private final class SceneChannelVisibilityState: @unchecked Sendable {
     static let shared = SceneChannelVisibilityState()
 
     private let lock = NSLock()
-    private var hiddenChannels: SceneChannel = []
+    private var renderModesByChannelRawValue: [UInt64: SceneChannelRenderMode] = [:]
 
     func setVisible(_ channel: SceneChannel, visible: Bool) {
+        setRenderMode(channel, visible ? .normal : .hidden)
+    }
+
+    func setRenderMode(_ channel: SceneChannel, _ mode: SceneChannelRenderMode) {
         lock.lock()
-        if visible {
-            hiddenChannels.remove(channel)
-        } else {
-            hiddenChannels.insert(channel)
+        for rawValue in rawChannelValues(in: channel) {
+            if mode == .normal {
+                renderModesByChannelRawValue.removeValue(forKey: rawValue)
+            } else {
+                renderModesByChannelRawValue[rawValue] = mode
+            }
         }
         lock.unlock()
     }
 
     func isVisible(_ channels: SceneChannel) -> Bool {
+        renderMode(for: channels) != .hidden
+    }
+
+    func renderMode(for channels: SceneChannel) -> SceneChannelRenderMode {
         lock.lock()
-        let visible = hiddenChannels.intersection(channels).isEmpty
+        let rawValues = rawChannelValues(in: channels)
+        let modes = rawValues.compactMap { renderModesByChannelRawValue[$0] }
         lock.unlock()
-        return visible
+
+        if modes.contains(.hidden) {
+            return .hidden
+        }
+        if modes.contains(.wireframe) {
+            return .wireframe
+        }
+        return .normal
     }
 
     func reset() {
         lock.lock()
-        hiddenChannels = []
+        renderModesByChannelRawValue = [:]
         lock.unlock()
+    }
+
+    private func rawChannelValues(in channels: SceneChannel) -> [UInt64] {
+        var values: [UInt64] = []
+        var remaining = channels.rawValue
+        while remaining != 0 {
+            let rawValue = remaining & (~remaining &+ 1)
+            values.append(rawValue)
+            remaining &= ~rawValue
+        }
+        return values
     }
 }
 
@@ -122,16 +157,36 @@ public func getSceneChannelVisible(_ channel: SceneChannel) -> Bool {
     SceneChannelVisibilityState.shared.isVisible(channel)
 }
 
+public func setSceneChannelRenderMode(_ channel: SceneChannel, _ mode: SceneChannelRenderMode) {
+    SceneChannelVisibilityState.shared.setRenderMode(channel, mode)
+}
+
+public func getSceneChannelRenderMode(_ channel: SceneChannel) -> SceneChannelRenderMode {
+    SceneChannelVisibilityState.shared.renderMode(for: channel)
+}
+
 public func resetSceneChannelVisibility() {
     SceneChannelVisibilityState.shared.reset()
 }
 
 public func shouldHideSceneEntity(entityId: EntityID) -> Bool {
-    !SceneChannelVisibilityState.shared.isVisible(getEntitySceneChannels(entityId: entityId))
+    getSceneChannelRenderMode(getEntitySceneChannels(entityId: entityId)) == .hidden
+}
+
+public func shouldRenderSceneEntityAsWireframe(entityId: EntityID) -> Bool {
+    getSceneChannelRenderMode(getEntitySceneChannels(entityId: entityId)) == .wireframe
 }
 
 public func areSceneChannelsVisible(_ channels: SceneChannel) -> Bool {
     SceneChannelVisibilityState.shared.isVisible(channels)
+}
+
+public func shouldRenderSceneChannelsAsWireframe(_ channels: SceneChannel) -> Bool {
+    getSceneChannelRenderMode(channels) == .wireframe
+}
+
+public func shouldRenderSceneChannelsOpaque(_ channels: SceneChannel) -> Bool {
+    getSceneChannelRenderMode(channels) == .normal
 }
 
 public func shouldPreserveSceneEntityIdentity(entityId: EntityID) -> Bool {

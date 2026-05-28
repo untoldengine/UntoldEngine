@@ -77,11 +77,14 @@ CHUNK_TYPES = {
     "rotation_keyframe_table": 15,
     "joint_index_data": 16,
     "joint_weight_data": 17,
+    "edge_index_data": 18,
 }
 
 VERTEX_LAYOUT_PBR_STATIC_V1 = 1
 INDEX_TYPE_UINT16 = 1
 INDEX_TYPE_UINT32 = 2
+ARCHITECTURAL_EDGE_ANGLE_DEGREES = 30.0
+ARCHITECTURAL_EDGE_POSITION_EPSILON = 1.0e-5
 TEXTURE_FORMAT_UNKNOWN = 0
 TEXTURE_FLAG_SRGB = 1 << 0
 TEXTURE_FLAG_NORMAL_MAP = 1 << 1
@@ -129,6 +132,96 @@ def normalize3(vector: tuple[float, float, float], fallback: tuple[float, float,
     if length <= 1.0e-8:
         return fallback
     return (x / length, y / length, z / length)
+
+
+def _sub3(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+
+def _cross3(a: tuple[float, float, float], b: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (
+        (a[1] * b[2]) - (a[2] * b[1]),
+        (a[2] * b[0]) - (a[0] * b[2]),
+        (a[0] * b[1]) - (a[1] * b[0]),
+    )
+
+
+def _dot3(a: tuple[float, float, float], b: tuple[float, float, float]) -> float:
+    return (a[0] * b[0]) + (a[1] * b[1]) + (a[2] * b[2])
+
+
+def build_architectural_edge_indices(
+    positions: list[tuple[float, float, float]],
+    indices: list[int],
+    angle_degrees: float = ARCHITECTURAL_EDGE_ANGLE_DEGREES,
+    position_epsilon: float = ARCHITECTURAL_EDGE_POSITION_EPSILON,
+) -> list[int]:
+    """Return boundary and hard-angle edges from an already indexed triangle mesh."""
+    if len(indices) < 3:
+        return []
+
+    quant_scale = 1.0 / max(position_epsilon, 1.0e-12)
+
+    def quantized_position(index: int) -> tuple[int, int, int]:
+        position = positions[index]
+        return (
+            int(round(position[0] * quant_scale)),
+            int(round(position[1] * quant_scale)),
+            int(round(position[2] * quant_scale)),
+        )
+
+    cos_threshold = math.cos(math.radians(max(0.0, min(180.0, angle_degrees))))
+    edge_faces: dict[
+        tuple[tuple[int, int, int], tuple[int, int, int]],
+        list[tuple[tuple[float, float, float], tuple[int, int]]],
+    ] = {}
+
+    for triangle_start in range(0, len(indices) - 2, 3):
+        tri = (indices[triangle_start], indices[triangle_start + 1], indices[triangle_start + 2])
+        if tri[0] >= len(positions) or tri[1] >= len(positions) or tri[2] >= len(positions):
+            continue
+
+        p0 = positions[tri[0]]
+        p1 = positions[tri[1]]
+        p2 = positions[tri[2]]
+        normal = normalize3(_cross3(_sub3(p1, p0), _sub3(p2, p0)), (0.0, 0.0, 0.0))
+        if normal == (0.0, 0.0, 0.0):
+            continue
+
+        for a, b in ((tri[0], tri[1]), (tri[1], tri[2]), (tri[2], tri[0])):
+            qa = quantized_position(a)
+            qb = quantized_position(b)
+            key = (qa, qb) if qa <= qb else (qb, qa)
+            edge_faces.setdefault(key, []).append((normal, (a, b)))
+
+    edge_indices: list[int] = []
+    for faces in edge_faces.values():
+        if len(faces) == 1:
+            edge_indices.extend(faces[0][1])
+            continue
+
+        keep = False
+        for i in range(len(faces)):
+            for j in range(i + 1, len(faces)):
+                if _dot3(faces[i][0], faces[j][0]) <= cos_threshold:
+                    keep = True
+                    break
+            if keep:
+                break
+        if keep:
+            edge_indices.extend(faces[0][1])
+
+    return edge_indices
+
+
+def pack_index_data(indices: list[int], index_type: int) -> bytes:
+    writer = BinaryWriter()
+    for index in indices:
+        if index_type == INDEX_TYPE_UINT16:
+            writer.write_u16(index)
+        else:
+            writer.write_u32(index)
+    return writer.data
 
 
 def pack_snorm10(value: float) -> int:
@@ -339,6 +432,8 @@ class MeshRecord:
     vertex_data_size_bytes: int
     index_data_size_bytes: int
     estimated_gpu_bytes: int
+    edge_index_data_offset: int
+    edge_index_count: int
     local_bounds: AABB
 
 
@@ -452,6 +547,7 @@ class ValidationMesh:
     tangents: list[ValidationTangent]
     uv0: list[tuple[float, float]]
     indices: list[int]
+    edge_indices: list[int]
 
 
 @dataclass(frozen=True)
@@ -464,8 +560,10 @@ class ExportedMesh:
     world_bounds: AABB
     vertices: bytes
     indices: bytes
+    edge_indices: bytes
     vertex_count: int
     index_count: int
+    edge_index_count: int
     index_type: int
     material: ExportedMaterial
     skin_binding: Optional["ExportedSkinBinding"]
@@ -880,7 +978,7 @@ def write_mesh_record(writer: BinaryWriter, mesh: MeshRecord) -> None:
     writer.write_u64(mesh.vertex_data_size_bytes)
     writer.write_u64(mesh.index_data_size_bytes)
     writer.write_u64(mesh.estimated_gpu_bytes)
-    writer.write_u64(0)
+    writer.write_u64((mesh.edge_index_count << 32) | mesh.edge_index_data_offset)
     write_aabb(writer, mesh.local_bounds)
 
 
@@ -1040,6 +1138,7 @@ def build_validation_payload(asset_name: str, validation_meshes: list[Validation
                 ],
                 "uv0": [list(uv) for uv in mesh.uv0],
                 "indices": mesh.indices,
+                "edge_indices": mesh.edge_indices,
             }
             for mesh in validation_meshes
         ],
@@ -2169,6 +2268,11 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
     index_type = INDEX_TYPE_UINT16 if n_unique <= 65535 else INDEX_TYPE_UINT32
     idx_arr = inverse.astype(np.uint16 if index_type == INDEX_TYPE_UINT16 else np.uint32)
     index_bytes = idx_arr.tobytes()
+    edge_indices = build_architectural_edge_indices(
+        [tuple(float(v) for v in u_pos[i]) for i in range(n_unique)],
+        inverse.tolist(),
+    )
+    edge_index_bytes = pack_index_data(edge_indices, index_type)
 
     # ── bounds ─────────────────────────────────────────────────────────────
 
@@ -2213,6 +2317,7 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
             ],
             uv0=[tuple(float(v) for v in u_uv0[i]) for i in range(n_unique)],
             indices=inverse.tolist(),
+            edge_indices=edge_indices,
         )
 
     return ExportedMesh(
@@ -2224,8 +2329,10 @@ def _extract_mesh_numpy(mesh_object: object, mesh_data: object, asset_path: Path
         world_bounds=world_bounds,
         vertices=vertex_bytes,
         indices=index_bytes,
+        edge_indices=edge_index_bytes,
         vertex_count=n_unique,
         index_count=int(inverse.size),
+        edge_index_count=len(edge_indices),
         index_type=index_type,
         material=extract_material(mesh_object, asset_path),
         skin_binding=(
@@ -2302,7 +2409,7 @@ def extract_mesh_object(
         vertex_skin_weights: list[tuple[float, float, float, float]] = []
         if skin_binding_source is not None:
             skeleton_entity_name, skin_to_skeleton_map, vertex_skin_indices, vertex_skin_weights = skin_binding_source
-        exported_positions: list[tuple[float, float, float]] = [] if _validate else None
+        exported_positions: list[tuple[float, float, float]] = []
         exported_normals: list[tuple[float, float, float]] = [] if _validate else None
         exported_tangents: list[ValidationTangent] = [] if _validate else None
         exported_uv0: list[tuple[float, float]] = [] if _validate else None
@@ -2352,8 +2459,8 @@ def extract_mesh_object(
                 if vertex_index is None:
                     vertex_index = len(unique_vertices)
                     unique_vertices[key] = vertex_index
+                    exported_positions.append(position)
                     if _validate:
-                        exported_positions.append(position)
                         exported_normals.append(normal)
                         exported_tangents.append(ValidationTangent(xyz=tangent, handedness=handedness))
                         exported_uv0.append(uv0_pair)
@@ -2370,12 +2477,9 @@ def extract_mesh_object(
         if len(unique_vertices) > 65535:
             index_type = INDEX_TYPE_UINT32
 
-        index_writer = BinaryWriter()
-        for index in indices:
-            if index_type == INDEX_TYPE_UINT16:
-                index_writer.write_u16(index)
-            else:
-                index_writer.write_u32(index)
+        index_bytes = pack_index_data(indices, index_type)
+        edge_indices = build_architectural_edge_indices(exported_positions, indices)
+        edge_index_bytes = pack_index_data(edge_indices, index_type)
 
         local_points = [vector3(vertex.co) for vertex in mesh_data.vertices]
         if not local_points:
@@ -2396,6 +2500,7 @@ def extract_mesh_object(
             tangents=exported_tangents,
             uv0=exported_uv0,
             indices=indices,
+            edge_indices=edge_indices,
         ) if _validate else None
 
         return ExportedMesh(
@@ -2406,9 +2511,11 @@ def extract_mesh_object(
             local_bounds=aabb_from_points(local_points),
             world_bounds=aabb_from_points(world_points),
             vertices=vertex_writer.data,
-            indices=index_writer.data,
+            indices=index_bytes,
+            edge_indices=edge_index_bytes,
             vertex_count=len(unique_vertices),
             index_count=len(indices),
+            edge_index_count=len(edge_indices),
             index_type=index_type,
             material=extract_material(mesh_object, asset_path),
             skin_binding=(
@@ -2692,6 +2799,7 @@ def build_untold_file(
     skin_joint_mappings: list[SkinJointMappingRecord] = []
     vertex_writer = BinaryWriter()
     index_writer = BinaryWriter()
+    edge_index_writer = BinaryWriter()
     joint_index_writer = BinaryWriter()
     joint_weight_writer = BinaryWriter()
 
@@ -2817,8 +2925,10 @@ def build_untold_file(
             material_index = add_material(exported_mesh.material)
             vertex_data_offset = vertex_writer.count
             index_data_offset = index_writer.count
+            edge_index_data_offset = edge_index_writer.count
             vertex_writer.write_bytes(exported_mesh.vertices)
             index_writer.write_bytes(exported_mesh.indices)
+            edge_index_writer.write_bytes(exported_mesh.edge_indices)
 
             meshes.append(
                 MeshRecord(
@@ -2837,7 +2947,10 @@ def build_untold_file(
                     estimated_gpu_bytes=(
                         exported_mesh.vertex_count * VERTEX_STRIDE
                         + exported_mesh.index_count * (2 if exported_mesh.index_type == INDEX_TYPE_UINT16 else 4)
+                        + exported_mesh.edge_index_count * (2 if exported_mesh.index_type == INDEX_TYPE_UINT16 else 4)
                     ),
+                    edge_index_data_offset=edge_index_data_offset,
+                    edge_index_count=exported_mesh.edge_index_count,
                     local_bounds=exported_mesh.local_bounds,
                 )
             )
@@ -2927,6 +3040,7 @@ def build_untold_file(
 
     vertex_raw = vertex_writer.data
     index_raw = index_writer.data
+    edge_index_raw = edge_index_writer.data
     joint_index_raw = joint_index_writer.data
     joint_weight_raw = joint_weight_writer.data
 
@@ -2976,6 +3090,7 @@ def build_untold_file(
         (CHUNK_TYPES["skin_joint_mapping_table"], skin_mapping_chunk, len(skin_mapping_chunk), len(skin_joint_mappings), COMPRESSION_NONE),
         (CHUNK_TYPES["vertex_data"], vertex_payload, len(vertex_raw), 0, geo_compression),
         (CHUNK_TYPES["index_data"], index_payload, len(index_raw), 0, geo_compression),
+        (CHUNK_TYPES["edge_index_data"], edge_index_raw, len(edge_index_raw), 0, COMPRESSION_NONE),
         (CHUNK_TYPES["joint_index_data"], joint_index_raw, len(joint_index_raw), 0, COMPRESSION_NONE),
         (CHUNK_TYPES["joint_weight_data"], joint_weight_raw, len(joint_weight_raw), 0, COMPRESSION_NONE),
     ]

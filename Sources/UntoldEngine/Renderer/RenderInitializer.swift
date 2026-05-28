@@ -508,19 +508,17 @@ func initTextureResources() {
         storageMode: .private
     )
 
-    // XR mixed mode needs an opaque-only depth snapshot for HZB so transparent
-    // glass depth does not occlusion-cull virtual meshes behind the glass.
-    if renderInfo.isXRStereoMode {
-        textureResources.hzbSourceDepthMap = createTexture(
-            device: renderInfo.device,
-            label: "HZB Source Depth Texture",
-            pixelFormat: renderInfo.depthPixelFormat,
-            width: viewportWidth,
-            height: viewportHeight,
-            usage: [.shaderRead, .renderTarget],
-            storageMode: .private
-        )
-    }
+    // HZB uses a dedicated source depth so wireframe channels can contribute
+    // filled occluder depth without changing visible scene color.
+    textureResources.hzbSourceDepthMap = createTexture(
+        device: renderInfo.device,
+        label: "HZB Source Depth Texture",
+        pixelFormat: renderInfo.depthPixelFormat,
+        width: viewportWidth,
+        height: viewportHeight,
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .private
+    )
 
     // Deferred Depth Texture
     textureResources.deferredDepthMap = createTexture(

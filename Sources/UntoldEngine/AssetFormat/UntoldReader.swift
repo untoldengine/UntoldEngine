@@ -215,6 +215,7 @@ public final class UntoldReader: @unchecked Sendable {
 
         let jointIndexChunk = asset.chunks.first(where: { $0.chunkType == .jointIndexData })
         let jointWeightChunk = asset.chunks.first(where: { $0.chunkType == .jointWeightData })
+        let edgeIndexChunk = asset.chunks.first(where: { $0.chunkType == .edgeIndexData })
 
         let expectedVertexStride: UInt32 = switch asset.header.vertexLayout {
         case .pbrStaticV1: 32
@@ -255,6 +256,21 @@ public final class UntoldReader: @unchecked Sendable {
                     size: mesh.indexDataSizeBytes,
                     chunkSize: indexChunk.uncompressedSize
                 )
+            }
+
+            if mesh.edgeIndexCount > 0 {
+                guard let edgeIndexChunk else {
+                    throw UntoldValidationError.missingRequiredChunk(.edgeIndexData)
+                }
+                let edgeIndexDataSize = UInt64(mesh.edgeIndexCount) * indexElementSize(for: mesh.indexType)
+                let edgeIndexEnd = UInt64(mesh.edgeIndexDataOffset) + edgeIndexDataSize
+                guard edgeIndexEnd <= edgeIndexChunk.uncompressedSize else {
+                    throw UntoldValidationError.invalidIndexDataRange(
+                        offset: UInt64(mesh.edgeIndexDataOffset),
+                        size: edgeIndexDataSize,
+                        chunkSize: edgeIndexChunk.uncompressedSize
+                    )
+                }
             }
         }
 

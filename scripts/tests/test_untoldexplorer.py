@@ -112,6 +112,7 @@ class UntoldExplorerTests(unittest.TestCase):
             tangents=[u.ValidationTangent((1.0, 0.0, 0.0), 1.0)] * 3,
             uv0=[(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)],
             indices=[0, 1, 2],
+            edge_indices=[0, 1, 1, 2, 2, 0],
         )
 
         payload = u.build_validation_payload("cube_asset", [mesh])
@@ -127,6 +128,33 @@ class UntoldExplorerTests(unittest.TestCase):
             written = json.loads(validation_path.read_text(encoding="utf-8"))
             self.assertEqual(written["asset_name"], "cube_asset")
             self.assertEqual(written["meshes"][0]["indices"], [0, 1, 2])
+            self.assertEqual(written["meshes"][0]["edge_indices"], [0, 1, 1, 2, 2, 0])
+
+    def test_build_architectural_edge_indices_skips_internal_diagonal(self) -> None:
+        positions = [
+            (0.0, 0.0, 0.0),
+            (1.0, 0.0, 0.0),
+            (1.0, 1.0, 0.0),
+            (0.0, 1.0, 0.0),
+        ]
+        indices = [0, 1, 2, 0, 2, 3]
+
+        edges = u.build_architectural_edge_indices(positions, indices)
+
+        self.assertEqual(set(zip(edges[0::2], edges[1::2])), {(0, 1), (1, 2), (2, 3), (3, 0)})
+
+    def test_build_architectural_edge_indices_keeps_hard_angle(self) -> None:
+        positions = [
+            (0.0, 0.0, 0.0),
+            (1.0, 0.0, 0.0),
+            (0.0, 1.0, 0.0),
+            (0.0, 0.0, 1.0),
+        ]
+        indices = [0, 1, 2, 0, 3, 1]
+
+        edges = u.build_architectural_edge_indices(positions, indices)
+
+        self.assertIn((0, 1), set(zip(edges[0::2], edges[1::2])))
 
     def test_parse_args_handles_blender_style_separator(self) -> None:
         args = u.parse_args([

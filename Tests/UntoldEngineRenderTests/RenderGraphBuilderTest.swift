@@ -80,11 +80,13 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         // Verify dependencies
         XCTAssertEqual(graph["model"]?.dependencies, ["shadow"], "Model pass should depend on shadow pass")
         XCTAssertEqual(graph["batchedModel"]?.dependencies, ["model"], "Batched model pass should depend on model pass")
+        XCTAssertEqual(graph["hzbDepthSource"]?.dependencies, ["batchedModel"], "HZB source pass should depend on batched model pass")
+        XCTAssertNil(graph["wireframeOcclusionDepth"], "Wireframe occlusion depth pass should not exist in the graph")
         XCTAssertEqual(graph["ssao"]?.dependencies, ["batchedModel"], "SSAO pass should depend on batched model pass")
 
         let lightDeps = graph["lightPass"]?.dependencies.sorted()
-        let expectedLightDeps = ["batchedModel", "model", "shadow", "ssao"].sorted()
-        XCTAssertEqual(lightDeps, expectedLightDeps, "Light pass should depend on batchedModel, model, shadow, and ssao")
+        let expectedLightDeps = ["model", "shadow", "ssao", "hzbDepthSource"].sorted()
+        XCTAssertEqual(lightDeps, expectedLightDeps, "Light pass should depend on model, shadow, ssao, and hzbDepthSource")
     }
 
     func testGBufferPass_TopologicalOrder() throws {
@@ -101,10 +103,11 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         assertTopologicalConstraints(order: order, constraints: [
             ("shadow", "model"),
             ("model", "batchedModel"),
+            ("batchedModel", "hzbDepthSource"),
             ("batchedModel", "ssao"),
             ("shadow", "lightPass"),
             ("model", "lightPass"),
-            ("batchedModel", "lightPass"),
+            ("hzbDepthSource", "lightPass"),
             ("ssao", "lightPass"),
         ])
     }
@@ -190,6 +193,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertNotNil(graph["model"], "Model pass should exist")
         XCTAssertNotNil(graph["lightPass"], "Light pass should exist")
         XCTAssertNotNil(graph["transparency"], "Transparency pass should exist")
+        XCTAssertNotNil(graph["wireframe"], "Wireframe pass should exist")
         XCTAssertNotNil(graph["spatialDebug"], "Spatial debug pass should exist")
         XCTAssertNotNil(graph["gaussian"], "Gaussian pass should exist")
         XCTAssertNotNil(graph["precomp"], "Pre-composite pass should exist")
@@ -258,7 +262,8 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             ("model", "gaussian"),
             ("model", "lightPass"),
             ("lightPass", "transparency"),
-            ("transparency", "spatialDebug"),
+            ("transparency", "wireframe"),
+            ("wireframe", "spatialDebug"),
             ("spatialDebug", "depthOfField"),
             ("depthOfField", "chromatic"),
             ("chromatic", "bloomThreshold"),
@@ -278,9 +283,12 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         let (graph, finalPassID) = buildGameModeGraph()
 
         XCTAssertEqual(finalPassID, "outputTransform", "Final pass should be outputTransform")
+        XCTAssertNotNil(graph["wireframe"], "Wireframe pass should exist")
         XCTAssertNotNil(graph["spatialDebug"], "Spatial debug pass should exist")
-        XCTAssertEqual(graph["spatialDebug"]?.dependencies, ["transparency"],
-                       "Spatial debug pass should depend on transparency")
+        XCTAssertEqual(graph["wireframe"]?.dependencies, ["transparency"],
+                       "Wireframe pass should depend on transparency")
+        XCTAssertEqual(graph["spatialDebug"]?.dependencies, ["wireframe"],
+                       "Spatial debug pass should depend on wireframe")
         XCTAssertNotNil(graph["postProcessBypass"], "Bypass pass should exist when bypassPostProcessing is enabled")
         XCTAssertEqual(graph["postProcessBypass"]?.dependencies, ["spatialDebug"],
                        "Bypass pass should depend on spatialDebug")

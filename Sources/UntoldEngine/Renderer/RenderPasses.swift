@@ -43,7 +43,7 @@ public enum RenderPasses {
         simd_float3(1.0, 0.2, 0.1), // [2] minimum   = red
         simd_float3(1.0, 0.85, 0.0), // [3] in-flight = yellow
     ]
-
+    private static let defaultWireframeColor = simd_float4(0.2, 0.85, 1.0, 1.0)
     private struct SpatialDebugColorKey: Hashable {
         let r: UInt32
         let g: UInt32
@@ -60,6 +60,7 @@ public enum RenderPasses {
     private final class RuntimeState: @unchecked Sendable {
         let lock = NSLock()
         var transparencyXRDepthWriteState: MTLDepthStencilState?
+        var wireframeXRDepthWriteState: MTLDepthStencilState?
         var spatialDebugLineBuffer: MTLBuffer?
         var spatialDebugLineBufferCapacityVertices: Int = 0
         var spatialDebugLastLogTime: TimeInterval = 0
@@ -117,6 +118,29 @@ public enum RenderPasses {
     }
 
     @inline(__always)
+    private static func getOrCreateWireframeXRDepthWriteState(device: MTLDevice) -> MTLDepthStencilState? {
+        runtimeState.lock.lock()
+        if let cached = runtimeState.wireframeXRDepthWriteState {
+            runtimeState.lock.unlock()
+            return cached
+        }
+        runtimeState.lock.unlock()
+
+        let depthStateDescriptor = MTLDepthStencilDescriptor()
+        depthStateDescriptor.depthCompareFunction = sceneDepthCompareFunction(.lessEqual)
+        depthStateDescriptor.isDepthWriteEnabled = true
+        let created = device.makeDepthStencilState(descriptor: depthStateDescriptor)
+
+        runtimeState.lock.lock()
+        if runtimeState.wireframeXRDepthWriteState == nil {
+            runtimeState.wireframeXRDepthWriteState = created
+        }
+        let result = runtimeState.wireframeXRDepthWriteState
+        runtimeState.lock.unlock()
+        return result
+    }
+
+    @inline(__always)
     private static func ensureSpatialDebugLineBuffer(
         device: MTLDevice,
         requiredVertexCount: Int,
@@ -166,6 +190,21 @@ public enum RenderPasses {
             SIMD4(max.x, min.y, max.z, 1.0), SIMD4(max.x, max.y, max.z, 1.0),
             SIMD4(min.x, min.y, max.z, 1.0), SIMD4(min.x, max.y, max.z, 1.0),
         ])
+    }
+
+    @inline(__always)
+    private static func shouldCullWireframeByDistanceFade(
+        bounds: AABB,
+        cameraPosition: simd_float3,
+        settings: WireframeRenderState
+    ) -> Bool {
+        guard settings.distanceFadeEnabled else { return false }
+
+        let fadeEnd = max(settings.fadeEndDistance, settings.fadeStartDistance + 0.001)
+        // Closest-point AABB distance: camera inside the AABB gives distance 0
+        // (always renders), so a room the user is standing in is never culled.
+        let closest = simd_clamp(cameraPosition, bounds.min, bounds.max)
+        return simd_length(cameraPosition - closest) > fadeEnd
     }
 
     @inline(__always)
@@ -276,7 +315,7 @@ public enum RenderPasses {
     private static func collectVisibleBatchGroupsDirect() -> [BatchGroup] {
         let groups = BatchingSystem.shared.batchGroups
         guard !groups.isEmpty else { return [] }
-        let channelVisibleGroups = groups.filter { areSceneChannelsVisible($0.sceneChannels) }
+        let channelVisibleGroups = groups.filter { shouldRenderSceneChannelsOpaque($0.sceneChannels) }
         guard !channelVisibleGroups.isEmpty else { return [] }
 
         guard let frustum = currentFrameFrustum else {
@@ -328,9 +367,7 @@ public enum RenderPasses {
     }
 
     public static let copyOpaqueDepthForHZBExecution: RenderPassExecution = { commandBuffer in
-        guard renderInfo.isXRStereoMode,
-              renderInfo.immersionStyle == .mixed,
-              let sourceDepth = textureResources.depthMap,
+        guard let sourceDepth = textureResources.depthMap,
               let hzbSourceDepth = textureResources.hzbSourceDepthMap
         else { return }
 
@@ -339,7 +376,7 @@ public enum RenderPasses {
         guard width > 0, height > 0 else { return }
 
         guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else { return }
-        blitEncoder.label = "Copy Opaque Depth for XR HZB"
+        blitEncoder.label = "Copy Opaque Depth for HZB"
         blitEncoder.copy(
             from: sourceDepth,
             sourceSlice: 0, sourceLevel: 0,
@@ -443,6 +480,17 @@ public enum RenderPasses {
 
         for entityId in candidates {
             if shouldHideSceneEntity(entityId: entityId) { continue }
+            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
+            if BatchingSystem.shared.isEnabled() {
+                // Batch-eligible entities (StaticBatchComponent present) are always drawn
+                // via shadowCasterBatchGroups — whether or not the batch rebuild has landed
+                // yet.  Skipping them here prevents O(n_loaded_tiles) shadow draw calls that
+                // scale with the scene and eventually overflow the GPU command buffer budget.
+                // During the brief batch-rebuild window their shadow is absent; this is
+                // preferable to the alternative of the app freezing at ~300+ loaded tiles.
+                if scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
+                if BatchingSystem.shared.isBatched(entityId: entityId) { continue }
+            }
 
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
                   renderComponent.isVisible,
@@ -470,7 +518,7 @@ public enum RenderPasses {
     }
 
     private static func shadowCasterBatchGroups(for cascadeIdx: Int) -> [BatchGroup] {
-        let groups = BatchingSystem.shared.batchGroups.filter { areSceneChannelsVisible($0.sceneChannels) }
+        let groups = BatchingSystem.shared.batchGroups.filter { shouldRenderSceneChannelsOpaque($0.sceneChannels) }
         guard !groups.isEmpty, let frustum = shadowFrustum(for: cascadeIdx) else { return [] }
 
         return groups.filter {
@@ -1061,6 +1109,7 @@ public enum RenderPasses {
             // Skip entities that are pending destroy
             if scene.mask(for: entityId) == nil { continue }
             if shouldHideSceneEntity(entityId: entityId) { continue }
+            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
 
             // Skip batched entities if batching is enabled
             if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) {
@@ -1368,6 +1417,10 @@ public enum RenderPasses {
             // Use the material captured when this batch was built.
             // This guarantees batched shading matches the grouped submesh material.
             let material = batchGroup.material
+
+            if shouldRenderSceneChannelsAsWireframe(batchGroup.sceneChannels) {
+                continue
+            }
 
             // Blend-mode materials are rendered in the transparency pass.
             if material.hasTransparency {
@@ -2503,6 +2556,7 @@ public enum RenderPasses {
         for entityId in visibleEntityIds {
             if scene.mask(for: entityId) == nil { continue }
             if shouldHideSceneEntity(entityId: entityId) { continue }
+            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
 
             if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) {
                 continue
@@ -2724,6 +2778,491 @@ public enum RenderPasses {
                         indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
                         indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
                         category: .transparent
+                    )
+                }
+            }
+        }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
+    public static let wireframeOcclusionDepthExecution: RenderPassExecution = { commandBuffer in
+        guard let depthTexture = textureResources.hzbSourceDepthMap else { return }
+        guard let pipeline = PipelineManager.shared.renderPipelinesByType[.wireframeOcclusionDepth] else {
+            handleError(.pipelineStateNulled, "wireframeOcclusionDepthPipeline is nil")
+            return
+        }
+        guard pipeline.success, let pipelineState = pipeline.pipelineState else {
+            handleError(.pipelineStateNulled, pipeline.name ?? "Wireframe Occlusion Depth Pipeline")
+            return
+        }
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else {
+            handleError(.noActiveCamera)
+            return
+        }
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+        wireframeRenderStateLock.lock()
+        let wireframeSettings = wireframeRenderState
+        wireframeRenderStateLock.unlock()
+
+        let renderId = getComponentId(for: RenderComponent.self)
+        let transformId = getComponentId(for: WorldTransformComponent.self)
+        let localTransformId = getComponentId(for: LocalTransformComponent.self)
+        let wireframeEntityIds = queryEntitiesWithComponentIds([renderId, transformId, localTransformId], in: scene).filter { entityId in
+            if scene.mask(for: entityId) == nil { return false }
+            if shouldHideSceneEntity(entityId: entityId) { return false }
+            if !shouldRenderSceneEntityAsWireframe(entityId: entityId) { return false }
+            if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) { return false }
+            if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { return false }
+            if scene.get(component: CameraComponent.self, for: entityId) != nil { return false }
+            if hasComponent(entityId: entityId, componentType: GizmoComponent.self) { return false }
+            if hasComponent(entityId: entityId, componentType: LightComponent.self) { return false }
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  renderComponent.isVisible,
+                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
+                  let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
+            else { return false }
+
+            let (worldMin, worldMax) = worldAABB_MinMax(
+                localMin: localTransformComponent.boundingBox.min,
+                localMax: localTransformComponent.boundingBox.max,
+                worldMatrix: worldTransformComponent.space
+            )
+            if shouldCullWireframeByDistanceFade(
+                bounds: AABB(min: worldMin, max: worldMax),
+                cameraPosition: effectiveCameraPosition,
+                settings: wireframeSettings
+            ) { return false }
+            guard let frustum = currentFrameFrustum else { return true }
+            return isAABBInFrustum(frustum, min: worldMin, max: worldMax)
+        }
+        let wireframeBatchGroups = BatchingSystem.shared.isEnabled()
+            ? BatchingSystem.shared.batchGroups.filter { batchGroup in
+                guard shouldRenderSceneChannelsAsWireframe(batchGroup.sceneChannels) else { return false }
+                if shouldCullWireframeByDistanceFade(
+                    bounds: AABB(min: batchGroup.boundingBox.min, max: batchGroup.boundingBox.max),
+                    cameraPosition: effectiveCameraPosition,
+                    settings: wireframeSettings
+                ) { return false }
+                guard let frustum = currentFrameFrustum else { return true }
+                return isAABBInFrustum(frustum, min: batchGroup.boundingBox.min, max: batchGroup.boundingBox.max)
+            }
+            : []
+        guard !wireframeEntityIds.isEmpty || !wireframeBatchGroups.isEmpty else { return }
+
+        let descriptor = MTLRenderPassDescriptor()
+        descriptor.renderTargetWidth = depthTexture.width
+        descriptor.renderTargetHeight = depthTexture.height
+        descriptor.depthAttachment.texture = depthTexture
+        descriptor.depthAttachment.loadAction = .load
+        descriptor.depthAttachment.storeAction = .store
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: descriptor) else {
+            handleError(.renderPassCreationFailed, "Wireframe Occlusion Depth Pass")
+            return
+        }
+
+        defer {
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "Wireframe Occlusion Depth Pass"
+        renderEncoder.pushDebugGroup("Wireframe Occlusion Depth Pass")
+        renderEncoder.setRenderPipelineState(pipelineState)
+        renderEncoder.setDepthStencilState(pipeline.depthState)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+        renderEncoder.setCullMode(.none)
+        renderEncoder.setTriangleFillMode(.fill)
+
+        for entityId in wireframeEntityIds {
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId)
+            else { continue }
+
+            for mesh in renderComponent.mesh {
+                var modelUniforms = Uniforms()
+                let modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
+                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+                let upperModelMatrix = matrix3x3_upper_left(modelMatrix)
+                let normalMatrix = upperModelMatrix.inverse.transpose
+
+                modelUniforms.modelViewMatrix = modelViewMatrix
+                modelUniforms.normalMatrix = normalMatrix
+                modelUniforms.viewMatrix = viewMatrix
+                modelUniforms.modelMatrix = modelMatrix
+                modelUniforms.cameraPosition = effectiveCameraPosition
+                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+                renderEncoder.setVertexBytes(
+                    &modelUniforms,
+                    length: MemoryLayout<Uniforms>.stride,
+                    index: Int(modelPassUniformIndex.rawValue)
+                )
+
+                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
+                renderEncoder.setVertexBytes(
+                    &hasArmature,
+                    length: MemoryLayout<Bool>.stride,
+                    index: Int(modelPassHasArmature.rawValue)
+                )
+
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer, offset: 0, index: Int(modelPassNormalIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0, index: Int(modelPassUVIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer, offset: 0, index: Int(modelPassTangentIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
+                if let jointTransformBuffer {
+                    renderEncoder.setVertexBuffer(jointTransformBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
+                } else {
+                    var identityMatrix = matrix_identity_float4x4
+                    renderEncoder.setVertexBytes(
+                        &identityMatrix,
+                        length: MemoryLayout<simd_float4x4>.stride,
+                        index: Int(modelPassJointTransformIndex.rawValue)
+                    )
+                }
+
+                for subMesh in mesh.submeshes {
+                    renderEncoder.drawIndexedPrimitives(
+                        type: subMesh.metalKitSubmesh.primitiveType,
+                        indexCount: subMesh.metalKitSubmesh.indexCount,
+                        indexType: subMesh.metalKitSubmesh.indexType,
+                        indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset
+                    )
+                }
+            }
+        }
+
+        if BatchingSystem.shared.isEnabled() {
+            var batchUniforms = Uniforms()
+            let modelMatrix = matrix_identity_float4x4
+            let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+            let upperModelMatrix = matrix3x3_upper_left(modelMatrix)
+            let normalMatrix = upperModelMatrix.inverse.transpose
+
+            batchUniforms.modelMatrix = modelMatrix
+            batchUniforms.viewMatrix = viewMatrix
+            batchUniforms.modelViewMatrix = modelViewMatrix
+            batchUniforms.normalMatrix = normalMatrix
+            batchUniforms.cameraPosition = effectiveCameraPosition
+            batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+            for batchGroup in wireframeBatchGroups {
+                guard let positionBuffer = batchGroup.positionBuffer,
+                      let normalBuffer = batchGroup.normalBuffer,
+                      let uvBuffer = batchGroup.uvBuffer,
+                      let tangentBuffer = batchGroup.tangentBuffer,
+                      let indexBuffer = batchGroup.indexBuffer
+                else { continue }
+
+                renderEncoder.setVertexBytes(
+                    &batchUniforms,
+                    length: MemoryLayout<Uniforms>.stride,
+                    index: Int(modelPassUniformIndex.rawValue)
+                )
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
+                renderEncoder.setVertexBuffer(normalBuffer, offset: 0, index: Int(modelPassNormalIndex.rawValue))
+                renderEncoder.setVertexBuffer(uvBuffer, offset: 0, index: Int(modelPassUVIndex.rawValue))
+                renderEncoder.setVertexBuffer(tangentBuffer, offset: 0, index: Int(modelPassTangentIndex.rawValue))
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue))
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
+
+                var identityMatrix = matrix_identity_float4x4
+                renderEncoder.setVertexBytes(
+                    &identityMatrix,
+                    length: MemoryLayout<simd_float4x4>.stride,
+                    index: Int(modelPassJointTransformIndex.rawValue)
+                )
+                var hasArmature = false
+                renderEncoder.setVertexBytes(
+                    &hasArmature,
+                    length: MemoryLayout<Bool>.stride,
+                    index: Int(modelPassHasArmature.rawValue)
+                )
+
+                renderEncoder.drawIndexedPrimitives(
+                    type: .triangle,
+                    indexCount: batchGroup.indexCount,
+                    indexType: .uint32,
+                    indexBuffer: indexBuffer,
+                    indexBufferOffset: 0
+                )
+            }
+        }
+    }
+
+    public static let wireframeExecution: RenderPassExecution = { commandBuffer in
+        guard let wireframePipeline = PipelineManager.shared.renderPipelinesByType[.wireframe] else {
+            handleError(.pipelineStateNulled, "wireframePipeline is nil")
+            return
+        }
+
+        guard wireframePipeline.success, let wireframePipelineState = wireframePipeline.pipelineState else {
+            handleError(.pipelineStateNulled, wireframePipeline.name ?? "Wireframe Pipeline")
+            return
+        }
+        wireframeRenderStateLock.lock()
+        let wireframeSettings = wireframeRenderState
+        wireframeRenderStateLock.unlock()
+
+        guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
+            handleError(.noActiveCamera)
+            return
+        }
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+        let effectiveCameraPosition = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+
+        let wireframeEntityIds = visibleEntityIds.filter { entityId in
+            if scene.mask(for: entityId) == nil { return false }
+            if shouldHideSceneEntity(entityId: entityId) { return false }
+            if !shouldRenderSceneEntityAsWireframe(entityId: entityId) { return false }
+            if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) { return false }
+            if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { return false }
+            if scene.get(component: CameraComponent.self, for: entityId) != nil { return false }
+            if hasComponent(entityId: entityId, componentType: GizmoComponent.self) { return false }
+            if hasComponent(entityId: entityId, componentType: LightComponent.self) { return false }
+            guard scene.get(component: RenderComponent.self, for: entityId) != nil,
+                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId),
+                  let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId)
+            else { return false }
+
+            let (worldMin, worldMax) = worldAABB_MinMax(
+                localMin: localTransformComponent.boundingBox.min,
+                localMax: localTransformComponent.boundingBox.max,
+                worldMatrix: worldTransformComponent.space
+            )
+            return !shouldCullWireframeByDistanceFade(
+                bounds: AABB(min: worldMin, max: worldMax),
+                cameraPosition: effectiveCameraPosition,
+                settings: wireframeSettings
+            )
+        }
+        let wireframeBatchGroups = BatchingSystem.shared.isEnabled()
+            ? visibleBatchGroupsSnapshot().filter { batchGroup in
+                guard shouldRenderSceneChannelsAsWireframe(batchGroup.sceneChannels) else { return false }
+                return !shouldCullWireframeByDistanceFade(
+                    bounds: AABB(min: batchGroup.boundingBox.min, max: batchGroup.boundingBox.max),
+                    cameraPosition: effectiveCameraPosition,
+                    settings: wireframeSettings
+                )
+            }
+            : []
+        guard !wireframeEntityIds.isEmpty || !wireframeBatchGroups.isEmpty else {
+            return
+        }
+
+        guard let encoderDescriptor = renderInfo.deferredRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Deferred render pass descriptor not initialized")
+            return
+        }
+
+        encoderDescriptor.colorAttachments[0].loadAction = .load
+        encoderDescriptor.colorAttachments[0].storeAction = .store
+        encoderDescriptor.depthAttachment.loadAction = .load
+        encoderDescriptor.depthAttachment.storeAction = .store
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor)
+        else {
+            handleError(.renderPassCreationFailed, "Wireframe Pass")
+            return
+        }
+
+        defer {
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "Wireframe Pass"
+        renderEncoder.pushDebugGroup("Wireframe Pass")
+
+        renderEncoder.setRenderPipelineState(wireframePipelineState)
+        // In visionOS mixed mode the compositor consumes the drawable depth written
+        // by the output transform pass. Wireframe-only context geometry skips the
+        // opaque pass, so it must contribute scene depth here or the final drawable
+        // depth remains at the cleared far value for line pixels.
+        if renderInfo.immersionStyle == .mixed {
+            if let xrDepthWriteState = getOrCreateWireframeXRDepthWriteState(device: renderInfo.device) {
+                renderEncoder.setDepthStencilState(xrDepthWriteState)
+            } else {
+                renderEncoder.setDepthStencilState(wireframePipeline.depthState)
+            }
+        } else {
+            renderEncoder.setDepthStencilState(wireframePipeline.depthState)
+        }
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+        renderEncoder.setCullMode(.none)
+
+        var wireframeColor = wireframeSettings.color
+        var fadeParams = simd_float4(
+            wireframeSettings.fadeStartDistance,
+            wireframeSettings.fadeEndDistance,
+            wireframeSettings.minimumAlpha,
+            wireframeSettings.distanceFadeEnabled ? 1.0 : 0.0
+        )
+        renderEncoder.setFragmentBytes(
+            &wireframeColor,
+            length: MemoryLayout<simd_float4>.stride,
+            index: 0
+        )
+        renderEncoder.setFragmentBytes(
+            &fadeParams,
+            length: MemoryLayout<simd_float4>.stride,
+            index: 1
+        )
+
+        for entityId in wireframeEntityIds {
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
+                  let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId)
+            else { continue }
+
+            for mesh in renderComponent.mesh {
+                var modelUniforms = Uniforms()
+                let modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
+                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+                let upperModelMatrix = matrix3x3_upper_left(modelMatrix)
+                let normalMatrix = upperModelMatrix.inverse.transpose
+
+                modelUniforms.modelViewMatrix = modelViewMatrix
+                modelUniforms.normalMatrix = normalMatrix
+                modelUniforms.viewMatrix = viewMatrix
+                modelUniforms.modelMatrix = modelMatrix
+                modelUniforms.cameraPosition = effectiveCameraPosition
+                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+                renderEncoder.setVertexBytes(
+                    &modelUniforms,
+                    length: MemoryLayout<Uniforms>.stride,
+                    index: Int(modelPassUniformIndex.rawValue)
+                )
+
+                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
+                renderEncoder.setVertexBytes(
+                    &hasArmature,
+                    length: MemoryLayout<Bool>.stride,
+                    index: Int(modelPassHasArmature.rawValue)
+                )
+
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer, offset: 0, index: Int(modelPassNormalIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0, index: Int(modelPassUVIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer, offset: 0, index: Int(modelPassTangentIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
+                if let jointTransformBuffer {
+                    renderEncoder.setVertexBuffer(jointTransformBuffer, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
+                } else {
+                    var identityMatrix = matrix_identity_float4x4
+                    renderEncoder.setVertexBytes(
+                        &identityMatrix,
+                        length: MemoryLayout<simd_float4x4>.stride,
+                        index: Int(modelPassJointTransformIndex.rawValue)
+                    )
+                }
+
+                if let edgeIndexBuffer = mesh.featureEdgeIndexBuffer, mesh.featureEdgeIndexCount > 0 {
+                    renderEncoder.setTriangleFillMode(.fill)
+                    renderEncoder.drawIndexedPrimitivesTracked(
+                        type: .line,
+                        indexCount: mesh.featureEdgeIndexCount,
+                        indexType: mesh.featureEdgeIndexType,
+                        indexBuffer: edgeIndexBuffer,
+                        indexBufferOffset: 0,
+                        category: .other
+                    )
+                } else {
+                    renderEncoder.setTriangleFillMode(.lines)
+                    for subMesh in mesh.submeshes {
+                        renderEncoder.drawIndexedPrimitivesTracked(
+                            type: subMesh.metalKitSubmesh.primitiveType,
+                            indexCount: subMesh.metalKitSubmesh.indexCount,
+                            indexType: subMesh.metalKitSubmesh.indexType,
+                            indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                            indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                            category: .other
+                        )
+                    }
+                }
+            }
+        }
+
+        if BatchingSystem.shared.isEnabled() {
+            var batchUniforms = Uniforms()
+            let modelMatrix = matrix_identity_float4x4
+            let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+            let upperModelMatrix = matrix3x3_upper_left(modelMatrix)
+            let normalMatrix = upperModelMatrix.inverse.transpose
+
+            batchUniforms.modelMatrix = modelMatrix
+            batchUniforms.viewMatrix = viewMatrix
+            batchUniforms.modelViewMatrix = modelViewMatrix
+            batchUniforms.normalMatrix = normalMatrix
+            batchUniforms.cameraPosition = effectiveCameraPosition
+            batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+            for batchGroup in wireframeBatchGroups {
+                guard let positionBuffer = batchGroup.positionBuffer,
+                      let normalBuffer = batchGroup.normalBuffer,
+                      let uvBuffer = batchGroup.uvBuffer,
+                      let tangentBuffer = batchGroup.tangentBuffer
+                else { continue }
+
+                renderEncoder.setVertexBytes(
+                    &batchUniforms,
+                    length: MemoryLayout<Uniforms>.stride,
+                    index: Int(modelPassUniformIndex.rawValue)
+                )
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
+                renderEncoder.setVertexBuffer(normalBuffer, offset: 0, index: Int(modelPassNormalIndex.rawValue))
+                renderEncoder.setVertexBuffer(uvBuffer, offset: 0, index: Int(modelPassUVIndex.rawValue))
+                renderEncoder.setVertexBuffer(tangentBuffer, offset: 0, index: Int(modelPassTangentIndex.rawValue))
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue))
+                renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
+
+                var identityMatrix = matrix_identity_float4x4
+                renderEncoder.setVertexBytes(
+                    &identityMatrix,
+                    length: MemoryLayout<simd_float4x4>.stride,
+                    index: Int(modelPassJointTransformIndex.rawValue)
+                )
+                var hasArmature = false
+                renderEncoder.setVertexBytes(
+                    &hasArmature,
+                    length: MemoryLayout<Bool>.stride,
+                    index: Int(modelPassHasArmature.rawValue)
+                )
+
+                if let edgeIndexBuffer = batchGroup.featureEdgeIndexBuffer,
+                   batchGroup.featureEdgeIndexCount > 0
+                {
+                    renderEncoder.setTriangleFillMode(.fill)
+                    renderEncoder.drawIndexedPrimitivesTracked(
+                        type: .line,
+                        indexCount: batchGroup.featureEdgeIndexCount,
+                        indexType: .uint32,
+                        indexBuffer: edgeIndexBuffer,
+                        indexBufferOffset: 0,
+                        category: .other,
+                        batched: true
+                    )
+                } else if let indexBuffer = batchGroup.indexBuffer {
+                    renderEncoder.setTriangleFillMode(.lines)
+                    renderEncoder.drawIndexedPrimitivesTracked(
+                        type: .triangle,
+                        indexCount: batchGroup.indexCount,
+                        indexType: .uint32,
+                        indexBuffer: indexBuffer,
+                        indexBufferOffset: 0,
+                        category: .other,
+                        batched: true
                     )
                 }
             }

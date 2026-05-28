@@ -691,6 +691,33 @@ public func InitTransparencyPipeline() -> RenderPipeline? {
     )
 }
 
+public func InitWireframePipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexWireframeShader",
+        fragmentShader: "fragmentWireframeShader",
+        vertexDescriptor: createModelVertexDescriptor(),
+        colorFormats: [wf.sceneColor],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .lessEqual,
+        depthEnabled: false,
+        blendMode: .alphaStraight,
+        name: "Wireframe Pipeline"
+    )
+}
+
+public func InitWireframeOcclusionDepthPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexModelShader",
+        fragmentShader: nil,
+        vertexDescriptor: createModelVertexDescriptor(),
+        colorFormats: [.invalid],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .lessEqual,
+        depthEnabled: true,
+        name: "Wireframe Occlusion Depth Pipeline"
+    )
+}
+
 public func InitSpatialDebugPipeline() -> RenderPipeline? {
     CreatePipeline(
         vertexShader: "vertexSpatialDebugShader",
@@ -742,6 +769,7 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.outputTransform, InitOutputTransformPipeline),
         (.debug, InitDebugPipeline),
         (.transparency, InitTransparencyPipeline),
+        (.wireframe, InitWireframePipeline),
     ]
 }
 

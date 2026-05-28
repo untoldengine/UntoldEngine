@@ -141,6 +141,31 @@ final class NativeFormatTests: XCTestCase {
         }
     }
 
+    func testOptionalArchitecturalEdgeIndexDataRoundtrip() throws {
+        let edgeWriter = UntoldBinaryWriter()
+        edgeWriter.writeUInt16LE(0)
+        edgeWriter.writeUInt16LE(1)
+        edgeWriter.writeUInt16LE(1)
+        edgeWriter.writeUInt16LE(2)
+        let edgeIndexData = edgeWriter.data
+
+        let fixture = makeTinyFixture(
+            edgeIndexData: edgeIndexData,
+            meshMutator: { mesh in
+                mesh.reserved0 = UInt64(4) << 32
+            }
+        )
+
+        let decoded = try UntoldReader().readAsset(from: fixture.fileData)
+        XCTAssertEqual(decoded.meshes[0].edgeIndexDataOffset, 0)
+        XCTAssertEqual(decoded.meshes[0].edgeIndexCount, 4)
+
+        let loaded = try NativeFormatLoader().loadAssetSync(from: writeFixtureToTemporaryFile(fixture.fileData))
+        let primitive = try XCTUnwrap(loaded.nodes.first?.primitives.first)
+        XCTAssertEqual(primitive.edgeIndexData, edgeIndexData)
+        XCTAssertEqual(primitive.edgeIndexCount, 4)
+    }
+
     func testMultipleEntitiesAndMeshesRoundtrip() throws {
         let fixture = makeTwoEntityFixture()
         let decoded = try UntoldReader().readAsset(from: fixture.fileData)
@@ -189,6 +214,7 @@ final class NativeFormatTests: XCTestCase {
     private func makeTinyFixture(
         removedChunkTypes: Set<UntoldChunkType> = [],
         computeHash: Bool = false,
+        edgeIndexData: Data = Data(),
         mutator: ((inout UntoldFileHeaderV1, inout UntoldEntityRecordV1, inout UntoldMeshRecordV1, inout UntoldMaterialRecordV1, inout UntoldTextureRefRecordV1, inout UntoldPBRStaticVertexV1, inout Data) -> Void)? = nil,
         meshMutator: ((inout UntoldMeshRecordV1) -> Void)? = nil,
         chunkEntryMutator: ((inout [UntoldChunkEntryV1]) -> Void)? = nil
@@ -296,6 +322,7 @@ final class NativeFormatTests: XCTestCase {
             textures: [texture],
             vertexData: vertexData,
             indexData: indexData,
+            edgeIndexData: edgeIndexData,
             removedChunkTypes: removedChunkTypes
         )
 
@@ -426,9 +453,10 @@ final class NativeFormatTests: XCTestCase {
         textures: [UntoldTextureRefRecordV1],
         vertexData: Data,
         indexData: Data,
+        edgeIndexData: Data = Data(),
         removedChunkTypes: Set<UntoldChunkType> = []
     ) -> [(type: UntoldChunkType, data: Data, elementCount: UInt32)] {
-        let all: [(type: UntoldChunkType, data: Data, elementCount: UInt32)] = [
+        var all: [(type: UntoldChunkType, data: Data, elementCount: UInt32)] = [
             (.stringTable, stringTableData, 0),
             (.entityTable, encodeChunk(entities), UInt32(entities.count)),
             (.meshTable, encodeChunk(meshes), UInt32(meshes.count)),
@@ -437,6 +465,9 @@ final class NativeFormatTests: XCTestCase {
             (.vertexData, vertexData, 0),
             (.indexData, indexData, 0),
         ]
+        if !edgeIndexData.isEmpty {
+            all.append((.edgeIndexData, edgeIndexData, 0))
+        }
         return all.filter { !removedChunkTypes.contains($0.type) }
     }
 
@@ -872,5 +903,13 @@ extension NativeFormatTests {
             translationKeyframes: translationKeyframes,
             rotationKeyframes: rotationKeyframes
         )
+    }
+
+    private func writeFixtureToTemporaryFile(_ fileData: Data) throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("untold")
+        try fileData.write(to: url)
+        return url
     }
 }

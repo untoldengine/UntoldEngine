@@ -50,6 +50,7 @@ public enum UntoldChunkType: UInt32, Sendable {
     case rotationKeyframeTable = 15
     case jointIndexData = 16
     case jointWeightData = 17
+    case edgeIndexData = 18
 }
 
 public enum UntoldCompressionType: UInt32, Sendable {
@@ -225,6 +226,14 @@ public struct UntoldMeshRecordV1: Sendable, Equatable {
     public var estimatedGPUBytes: UInt64
     public var reserved0: UInt64
     public var localBounds: UntoldAABB
+
+    public var edgeIndexDataOffset: UInt32 {
+        UInt32(reserved0 & 0xFFFF_FFFF)
+    }
+
+    public var edgeIndexCount: UInt32 {
+        UInt32((reserved0 >> 32) & 0xFFFF_FFFF)
+    }
 
     public init(
         entityId: UInt32,
