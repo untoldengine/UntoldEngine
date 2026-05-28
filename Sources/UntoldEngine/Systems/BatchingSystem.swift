@@ -404,6 +404,63 @@ public struct RuntimeBatchingSummaryDiagnostic: Sendable {
     }
 }
 
+/// Per-cell breakdown of material key diversity. Used to diagnose why batch coverage is low.
+public struct BatchCellMaterialBreakdown: Sendable {
+    /// Cell coordinates.
+    public var cellId: BatchCellID
+    /// Entities currently registered in this cell.
+    public var registeredEntities: Int
+    /// Distinct (materialHash × LOD) combinations across all entities in this cell.
+    public var uniqueMaterialLODKeys: Int
+    /// Keys held by exactly one entity — these cannot form a batch group.
+    public var singletonKeys: Int
+    /// Keys shared by two or more entities — these will produce a batch group.
+    public var groupableKeys: Int
+    /// Batch groups currently built for this cell.
+    public var builtBatchGroups: Int
+    /// singletonKeys / uniqueMaterialLODKeys. 1.0 = nothing batches; 0.0 = everything batches.
+    public var singletonRatio: Float
+
+    public init(
+        cellId: BatchCellID = .zero, registeredEntities: Int = 0,
+        uniqueMaterialLODKeys: Int = 0, singletonKeys: Int = 0,
+        groupableKeys: Int = 0, builtBatchGroups: Int = 0, singletonRatio: Float = 0
+    ) {
+        self.cellId = cellId; self.registeredEntities = registeredEntities
+        self.uniqueMaterialLODKeys = uniqueMaterialLODKeys; self.singletonKeys = singletonKeys
+        self.groupableKeys = groupableKeys; self.builtBatchGroups = builtBatchGroups
+        self.singletonRatio = singletonRatio
+    }
+}
+
+/// Scene-wide material diversity diagnostics. Expensive to collect — use
+/// logMaterialDiagnosticsIfDue for rate-limited periodic logging.
+public struct BatchMaterialDiagnostics: Sendable {
+    /// Entities in the scene that carry StaticBatchComponent (resident or not).
+    public var staticBatchComponentCount: Int = 0
+    /// Entities currently registered in the batching system (resident + passed eligibility).
+    public var registeredCandidates: Int = 0
+    /// Registered entities that resolved cleanly through resolveBatchCandidate.
+    public var resolvedCandidates: Int = 0
+    /// Resolved entities that are the only entity for their material key in their cell.
+    /// These cannot batch regardless of other settings.
+    public var entitiesAsSingletons: Int = 0
+    /// Resolved entities that share a material key with at least one peer in their cell.
+    public var entitiesGroupable: Int = 0
+    /// Cells permanently excluded by the runtime complexity guard.
+    public var cellsBlockedByComplexity: Int = 0
+    /// Distinct (materialHash × LOD) keys across all registered cells.
+    public var uniqueMaterialLODKeys: Int = 0
+    /// Material keys held by exactly one entity — will never produce a batch group.
+    public var singletonMaterialKeys: Int = 0
+    /// Material keys shared by two or more entities — will produce a batch group.
+    public var groupableMaterialKeys: Int = 0
+    /// Top cells ranked by unique material key count (highest diversity first).
+    public var topCellsByMaterialDiversity: [BatchCellMaterialBreakdown] = []
+
+    public init() {}
+}
+
 /// Represents a group of meshes batched together
 public struct BatchGroup {
     var id: UUID
@@ -516,6 +573,7 @@ public class BatchingSystem: @unchecked Sendable {
     private var runtimeBatchIneligibleCells: Set<BatchCellID> = []
     private var runtimeCellStats: [BatchCellID: BatchCellRuntimeStats] = [:]
     private var cellBuildGeneration: [BatchCellID: Int] = [:]
+    private var lastMaterialDiagLogTime: Double = 0
 
     private let artifactBuildQueue = DispatchQueue(
         label: "UntoldEngine.BatchingSystem.ArtifactBuild",
@@ -2343,6 +2401,137 @@ public class BatchingSystem: @unchecked Sendable {
             totalBudgetSkips: totalBudgetSkips,
             totalQuiescenceDeferrals: totalQuiescenceDeferrals
         )
+    }
+
+    // MARK: - Material diversity diagnostics
+
+    /// Scans all registered cells and returns a scene-wide breakdown of material key diversity.
+    ///
+    /// This is O(registered entities × submeshes per entity) and should not be called every frame.
+    /// Use logMaterialDiagnosticsIfDue for rate-limited periodic emission.
+    ///
+    /// - Parameter topCellCount: How many cells to include in the per-cell breakdown, ranked by
+    ///   unique material key count (highest diversity — worst for batching — first).
+    public func collectMaterialDiagnostics(topCellCount: Int = 10) -> BatchMaterialDiagnostics {
+        var diag = BatchMaterialDiagnostics()
+
+        // Count scene entities that carry StaticBatchComponent regardless of residency.
+        let sbcId = getComponentId(for: StaticBatchComponent.self)
+        diag.staticBatchComponentCount = queryEntitiesWithComponentIds([sbcId], in: scene).count
+
+        diag.registeredCandidates = entityToCellMembership.count
+        diag.cellsBlockedByComplexity = runtimeBatchIneligibleCells.count
+
+        var cellReports: [BatchCellMaterialBreakdown] = []
+        cellReports.reserveCapacity(cellToEntities.count)
+        var globalKeys: Set<String> = []
+
+        for (cellId, members) in cellToEntities {
+            var keyCounts: [String: Int] = [:]
+
+            for entityId in members {
+                guard let candidate = resolveBatchCandidate(entityId: entityId) else { continue }
+                diag.resolvedCandidates += 1
+                let assetURL = candidate.renderComponent.assetURL
+                for mesh in candidate.renderComponent.mesh {
+                    for submesh in mesh.submeshes {
+                        guard let material = submesh.material, !material.hasTransparency else { continue }
+                        let key = getMaterialHash(material: material, assetURL: assetURL)
+                            + "_LOD\(candidate.lodIndex)"
+                        keyCounts[key, default: 0] += 1
+                        globalKeys.insert(key)
+                    }
+                }
+            }
+
+            var singletonKeys = 0
+            var groupableKeys = 0
+            var singletonEntities = 0
+            var groupableEntities = 0
+            for (_, count) in keyCounts {
+                if count == 1 {
+                    singletonKeys += 1
+                    singletonEntities += 1
+                } else {
+                    groupableKeys += 1
+                    groupableEntities += count
+                }
+            }
+
+            diag.singletonMaterialKeys += singletonKeys
+            diag.groupableMaterialKeys += groupableKeys
+            diag.entitiesAsSingletons += singletonEntities
+            diag.entitiesGroupable += groupableEntities
+
+            let totalKeys = keyCounts.count
+            let ratio: Float = totalKeys > 0 ? Float(singletonKeys) / Float(totalKeys) : 0
+            let builtGroups = batchGroups.filter { $0.cellId == cellId }.count
+            cellReports.append(BatchCellMaterialBreakdown(
+                cellId: cellId,
+                registeredEntities: members.count,
+                uniqueMaterialLODKeys: totalKeys,
+                singletonKeys: singletonKeys,
+                groupableKeys: groupableKeys,
+                builtBatchGroups: builtGroups,
+                singletonRatio: ratio
+            ))
+        }
+
+        diag.uniqueMaterialLODKeys = globalKeys.count
+        diag.topCellsByMaterialDiversity = Array(
+            cellReports
+                .sorted { $0.uniqueMaterialLODKeys > $1.uniqueMaterialLODKeys }
+                .prefix(max(1, topCellCount))
+        )
+        return diag
+    }
+
+    /// Logs material diversity diagnostics at most once per `interval` seconds.
+    ///
+    /// No-op when the Batching log category is disabled — the scan is never run.
+    /// Enable with `Logger.enable(category: .batching)` before calling.
+    public func logMaterialDiagnosticsIfDue(interval: Double = 30.0) {
+        guard Logger.isEnabled(category: .batching) else { return }
+        let now = CFAbsoluteTimeGetCurrent()
+        guard now - lastMaterialDiagLogTime >= interval else { return }
+        lastMaterialDiagLogTime = now
+        emitMaterialDiagnostics(collectMaterialDiagnostics())
+    }
+
+    /// Emits material diversity diagnostics immediately, bypassing the rate-limit timer.
+    ///
+    /// Use this for a one-shot snapshot after enabling the category:
+    /// ```swift
+    /// Logger.enable(category: .batching)
+    /// BatchingSystem.shared.logMaterialDiagnosticsNow()
+    /// ```
+    /// No-op when the Batching log category is disabled.
+    public func logMaterialDiagnosticsNow() {
+        guard Logger.isEnabled(category: .batching) else { return }
+        lastMaterialDiagLogTime = CFAbsoluteTimeGetCurrent()
+        emitMaterialDiagnostics(collectMaterialDiagnostics())
+    }
+
+    private func emitMaterialDiagnostics(_ diag: BatchMaterialDiagnostics) {
+        let batchRatio = diag.resolvedCandidates > 0
+            ? Int(100.0 * Double(diag.entitiesGroupable) / Double(diag.resolvedCandidates))
+            : 0
+        Logger.log(
+            message: "[BatchMaterial] staticBatch=\(diag.staticBatchComponentCount) registered=\(diag.registeredCandidates) resolved=\(diag.resolvedCandidates) batchable=\(batchRatio)%"
+                + " | singletons=\(diag.entitiesAsSingletons) groupable=\(diag.entitiesGroupable)"
+                + " | cellsBlocked=\(diag.cellsBlockedByComplexity)"
+                + " | uniqueMatLOD=\(diag.uniqueMaterialLODKeys) singletonKeys=\(diag.singletonMaterialKeys) groupableKeys=\(diag.groupableMaterialKeys)",
+            category: LogCategory.batching.rawValue
+        )
+        for cell in diag.topCellsByMaterialDiversity.prefix(5) {
+            Logger.log(
+                message: "[BatchMaterial] cell(\(cell.cellId.x),\(cell.cellId.y),\(cell.cellId.z))"
+                    + " ents=\(cell.registeredEntities) uniqueKeys=\(cell.uniqueMaterialLODKeys)"
+                    + " singletons=\(cell.singletonKeys) groupable=\(cell.groupableKeys)"
+                    + " groups=\(cell.builtBatchGroups) ratio=\(String(format: "%.2f", cell.singletonRatio))",
+                category: LogCategory.batching.rawValue
+            )
+        }
     }
 
     /// Snapshot of the most recent tick's internal rebuild work.

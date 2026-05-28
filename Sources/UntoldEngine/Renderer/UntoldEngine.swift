@@ -441,6 +441,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         #endif
         EngineProfiler.shared.beginScope(.batchingTick)
         BatchingSystem.shared.tick()
+        BatchingSystem.shared.logMaterialDiagnosticsIfDue()
         EngineProfiler.shared.endScope(.batchingTick)
         #if ENGINE_STATS_ENABLED
             let batchingTickMs = (CACurrentMediaTime() - batchingTickStart) * 1000.0
