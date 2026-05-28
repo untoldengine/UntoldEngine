@@ -94,6 +94,7 @@ Common options:
 - `--debug-aabb-only`: optional emit debug AABB payloads instead of geometry
 - `--quadtree`: optional partition tiles using a quad-tree instead of a uniform grid
 - `--scene-profile <auto|indoor|outdoor>`: optional streaming radius profile, defaults to `auto`. Radii are always proportional to scene size — no fixed distances to hand-tune. Use `outdoor` for cities, terrain, and large exterior scenes if auto-detection misses.
+- `--tier-radius <Tier=stream,unload[,priority]>`: optional quadtree semantic-tier radius override in world units. May be repeated.
 - `--floor-count <number>`: optional number of vertical floors to split each tile into (for quadtree mode)
 - `--floor-band-height <number>`: optional per-floor height in world units (overrides auto-detection from scene Z extent)
 - `--parallel-workers <number>`: optional number of parallel Blender worker processes (`0` = auto-detect CPU count, `1` = sequential)
@@ -125,6 +126,51 @@ Dry-run example:
   --dry-run \
   --write-manifest-in-dry-run
 ```
+
+### Quadtree Tier Radius Overrides
+
+Quadtree exports assign each tile group to a semantic tier:
+
+- `ExteriorShell`
+- `StructuralInterior`
+- `RoomContents`
+- `FineProps`
+
+`--scene-profile` chooses default stream/unload bands for these tiers. Use
+`--tier-radius` when a scene needs tighter or wider bands than the selected
+profile.
+
+Syntax:
+
+```bash
+--tier-radius TierName=streaming_radius,unload_radius[,priority]
+```
+
+Example:
+
+```bash
+./scripts/export-untold-tiles \
+  --input GameData/Models/building/building.usdz \
+  --output-dir GameData/Models/building/tile_exports \
+  --quadtree \
+  --scene-profile indoor \
+  --tier-radius ExteriorShell=55,80,15 \
+  --tier-radius StructuralInterior=10,18,12 \
+  --tier-radius RoomContents=4,7,8 \
+  --tier-radius FineProps=1.5,3,5
+```
+
+`ExteriorShell=55,80,15` means:
+
+- `55`: `streaming_radius` in world units. The tile becomes eligible to load
+  when the camera enters this distance band.
+- `80`: `unload_radius` in world units. Once loaded, the tile stays resident
+  until the camera moves beyond this distance.
+- `15`: optional load priority. Higher values are considered more important
+  when multiple tile candidates compete for load slots.
+
+`unload_radius` must be greater than `streaming_radius`. The gap is the
+hysteresis band that prevents rapid load/unload oscillation near the boundary.
 
 Expected output layout:
 
