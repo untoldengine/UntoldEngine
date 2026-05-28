@@ -72,6 +72,11 @@ public enum RenderPasses {
         /// Cached Set<EntityID> built from visibleEntityIds — avoids O(n) rebuild on each use.
         var visibleEntitySetFrame: Int = -1
         var visibleEntitySetCache: Set<EntityID> = []
+        /// Pre-screened shadow-caster candidates. Excludes cameras, lights, gizmos, and
+        /// batch-eligible entities. Rebuilt only when dirty (residency/LOD events),
+        /// not on every cascade call.
+        var shadowEntityCandidates: [EntityID] = []
+        var shadowCacheDirty: Bool = true
     }
 
     @inline(__always)
@@ -347,7 +352,68 @@ public enum RenderPasses {
         blitEncoder.endEncoding()
     }
 
+    // MARK: - Shadow entity cache
+
+    /// Guards one-time subscription setup for the shadow entity cache.
+    private nonisolated(unsafe) static var shadowCacheConfigured = false
+
+    /// Registers residency and LOD event subscribers that mark the shadow entity cache dirty.
+    /// Called once, lazily, on the first shadow pass invocation.
+    private static func ensureShadowCacheConfigured() {
+        guard !shadowCacheConfigured else { return }
+        shadowCacheConfigured = true
+        SystemEventBus.shared.subscribeToResidencyChanges { _ in
+            runtimeState.lock.lock()
+            runtimeState.shadowCacheDirty = true
+            runtimeState.lock.unlock()
+        }
+        SystemEventBus.shared.subscribeToLODChanges { _ in
+            runtimeState.lock.lock()
+            runtimeState.shadowCacheDirty = true
+            runtimeState.lock.unlock()
+        }
+    }
+
+    /// Rebuilds the shadow entity candidate list from the current ECS state.
+    ///
+    /// Only filters by stable properties (component presence). Per-frame culls — isVisible,
+    /// scene-channel visibility, distance, cascade frustum — are applied per-cascade in
+    /// shadowCasterEntityIds so this scan runs at most once per dirty event, not every frame.
+    private static func rebuildShadowEntityCache() {
+        let transformId = getComponentId(for: WorldTransformComponent.self)
+        let localTransformId = getComponentId(for: LocalTransformComponent.self)
+        let renderId = getComponentId(for: RenderComponent.self)
+        let entities = queryEntitiesWithComponentIds([transformId, localTransformId, renderId], in: scene)
+
+        var candidates: [EntityID] = []
+        candidates.reserveCapacity(entities.count / 4)
+
+        let batchingEnabled = BatchingSystem.shared.isEnabled()
+        for entityId in entities {
+            if shouldSkipShadowEntity(entityId) { continue }
+            // Batch-eligible entities always cast shadows via shadowCasterBatchGroups.
+            // Excluding them here prevents O(n_loaded_tiles) individual shadow draw calls.
+            if batchingEnabled, scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
+            candidates.append(entityId)
+        }
+
+        runtimeState.lock.lock()
+        runtimeState.shadowEntityCandidates = candidates
+        runtimeState.shadowCacheDirty = false
+        runtimeState.lock.unlock()
+    }
+
+    /// Marks the shadow entity candidate cache dirty so it is rebuilt on the next shadow pass.
+    /// Call this after creating or destroying non-streamed renderable entities; streamed entities
+    /// are handled automatically via residency events.
+    public static func invalidateShadowEntityCache() {
+        runtimeState.lock.lock()
+        runtimeState.shadowCacheDirty = true
+        runtimeState.lock.unlock()
+    }
+
     private static func shadowCasterEntityIds(for cascadeIdx: Int) -> [EntityID] {
+        ensureShadowCacheConfigured()
         guard let frustum = shadowFrustum(for: cascadeIdx) else { return [] }
 
         let cameraPosition: simd_float3
@@ -359,27 +425,24 @@ public enum RenderPasses {
             cameraPosition = .zero
         }
 
-        let transformId = getComponentId(for: WorldTransformComponent.self)
-        let localTransformId = getComponentId(for: LocalTransformComponent.self)
-        let renderId = getComponentId(for: RenderComponent.self)
-        let entities = queryEntitiesWithComponentIds([transformId, localTransformId, renderId], in: scene)
+        // Rebuild candidate list if dirty. At most one rebuild per dirty event, shared
+        // across all cascade invocations in the same frame.
+        runtimeState.lock.lock()
+        let dirty = runtimeState.shadowCacheDirty
+        runtimeState.lock.unlock()
+        if dirty {
+            rebuildShadowEntityCache()
+        }
+
+        runtimeState.lock.lock()
+        let candidates = runtimeState.shadowEntityCandidates
+        runtimeState.lock.unlock()
 
         var result: [EntityID] = []
-        result.reserveCapacity(entities.count)
+        result.reserveCapacity(candidates.count / 4)
 
-        for entityId in entities {
-            if shouldSkipShadowEntity(entityId) { continue }
+        for entityId in candidates {
             if shouldHideSceneEntity(entityId: entityId) { continue }
-            if BatchingSystem.shared.isEnabled() {
-                // Batch-eligible entities (StaticBatchComponent present) are always drawn
-                // via shadowCasterBatchGroups — whether or not the batch rebuild has landed
-                // yet.  Skipping them here prevents O(n_loaded_tiles) shadow draw calls that
-                // scale with the scene and eventually overflow the GPU command buffer budget.
-                // During the brief batch-rebuild window their shadow is absent; this is
-                // preferable to the alternative of the app freezing at ~300+ loaded tiles.
-                if scene.get(component: StaticBatchComponent.self, for: entityId) != nil { continue }
-                if BatchingSystem.shared.isBatched(entityId: entityId) { continue }
-            }
 
             guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId),
                   renderComponent.isVisible,
