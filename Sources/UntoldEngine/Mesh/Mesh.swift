@@ -46,6 +46,9 @@ public struct Mesh {
     var assetName: String
     var boundingBox: (min: simd_float3, max: simd_float3)
     var skin: Skin?
+    var featureEdgeIndexBuffer: MTLBuffer?
+    var featureEdgeIndexCount: Int = 0
+    var featureEdgeIndexType: MTLIndexType = .uint32
 
     public var name: String {
         assetName
@@ -99,6 +102,8 @@ public struct Mesh {
         submeshes.removeAll()
         skin?.cleanUp()
         skin = nil
+        featureEdgeIndexBuffer = nil
+        featureEdgeIndexCount = 0
     }
 
     /// Returns a copy of this mesh. Uniform data is written per-draw via setVertexBytes,
@@ -297,6 +302,16 @@ public struct Mesh {
             mesh.worldSpace = primitive.worldTransform
             mesh.boundingBox = (min: primitive.localBounds.min, max: primitive.localBounds.max)
             mesh.assetName = primitive.name
+            if primitive.edgeIndexCount > 0, !primitive.edgeIndexData.isEmpty {
+                mesh.featureEdgeIndexBuffer = device.makeBuffer(
+                    bytes: [UInt8](primitive.edgeIndexData),
+                    length: primitive.edgeIndexData.count,
+                    options: .storageModeShared
+                )
+                mesh.featureEdgeIndexBuffer?.label = "Feature Edge Index Buffer"
+                mesh.featureEdgeIndexCount = primitive.edgeIndexCount
+                mesh.featureEdgeIndexType = primitive.indexFormat == .uint16 ? .uint16 : .uint32
+            }
 
             if let runtimeMaterial = primitive.material, !mesh.submeshes.isEmpty {
                 var submesh = mesh.submeshes[0]

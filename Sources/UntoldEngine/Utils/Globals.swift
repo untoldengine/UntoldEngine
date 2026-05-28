@@ -1501,6 +1501,33 @@ public final class DepthOfFieldParams: ObservableObject, @unchecked Sendable {
     @Published public var enabled: Bool = false
 }
 
+struct WireframeRenderState {
+    var color: simd_float4 = .init(0.2, 0.85, 1.0, 0.65)
+    var distanceFadeEnabled: Bool = false
+    var fadeStartDistance: Float = 8.0
+    var fadeEndDistance: Float = 40.0
+    var minimumAlpha: Float = 0.08
+}
+
+let wireframeRenderStateLock = NSLock()
+nonisolated(unsafe) var wireframeRenderState = WireframeRenderState()
+
+public func setWireframeParams(
+    color: simd_float4,
+    fadeEnabled: Bool = false,
+    fadeStart: Float = 8.0,
+    fadeEnd: Float = 40.0,
+    minimumAlpha: Float = 0.08
+) {
+    wireframeRenderStateLock.lock()
+    wireframeRenderState.color = color
+    wireframeRenderState.distanceFadeEnabled = fadeEnabled
+    wireframeRenderState.fadeStartDistance = fadeStart
+    wireframeRenderState.fadeEndDistance = fadeEnd
+    wireframeRenderState.minimumAlpha = minimumAlpha
+    wireframeRenderStateLock.unlock()
+}
+
 public final class FXAAParams: ObservableObject, @unchecked Sendable {
     public static let shared = FXAAParams()
 

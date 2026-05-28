@@ -94,12 +94,13 @@ environment/grid
                                     ├── ssao                    │
                                     └── lightPass               │
                                             └── transparency    │
-                                                    └── spatialDebug
-                                                            └── [post-processing chain]
-                                                                        └── precomp ◄── (gaussian joins here)
-                                                                                └── look
-                                                                                        └── [aa: fxaa / smaa×3 / none]
-                                                                                                    └── outputTransform
+                                                    └── wireframe
+                                                            └── spatialDebug
+                                                                    └── [post-processing chain]
+                                                                                └── precomp ◄── (gaussian joins here)
+                                                                                        └── look
+                                                                                                └── [aa: fxaa / smaa×3 / none]
+                                                                                                            └── outputTransform
 ```
 
 ### Base Pass (environment or grid)
@@ -149,7 +150,7 @@ This is the core of the deferred rendering pipeline. Entities do not produce a s
 
 Before encoding each draw, the renderer checks scene-channel visibility. Individual entities use `shouldHideSceneEntity(entityId:)`; batch groups use their stored channel mask. Hidden channels are skipped entirely rather than rendered transparently.
 
-`batchedModelExecution` uses **cluster-level frustum culling**: it calls `visibleBatchGroupsSnapshot()` which tests each `BatchGroup`'s precomputed world-space AABB against `currentFrameFrustum` using `isAABBInFrustum`, then filters by scene-channel visibility. The result — groups whose AABB intersects the frustum and whose channels are visible — is cached for the frame and shared with `batchedShadowExecution`. Each surviving group is then submitted as a single draw call with its merged vertex and index buffers.
+`batchedModelExecution` uses **cluster-level frustum culling**: it calls `visibleBatchGroupsSnapshot()` which tests each `BatchGroup`'s precomputed world-space AABB against `currentFrameFrustum` using `isAABBInFrustum`, then filters by scene-channel visibility. The result — groups whose AABB intersects the frustum and whose channels are visible — is cached for the frame and shared with later batch-aware passes. Opaque groups are submitted as a single draw call with their merged vertex and index buffers.
 
 `ssaoOptimizedExecution` reads the G-Buffer normals and depth and produces a screen-space ambient occlusion texture. Blurring is handled internally — no separate blur nodes appear in the graph.
 
@@ -165,10 +166,20 @@ RenderPass(id: "transparency", dependencies: ["lightPass"])
 
 Transparent materials cannot go through the G-Buffer — they require alpha blending which deferred rendering cannot express per-fragment. These entities are rendered **forward** in a separate pass on top of the deferred lit scene color. They depend on `lightPass` being complete so they composite correctly against the opaque scene.
 
+### Wireframe Pass
+
+```swift
+RenderPass(id: "wireframe", dependencies: ["transparency"])
+```
+
+Scene channels using `.wireframe` are skipped by the solid opaque and shadow passes, then redrawn here. Exported `.untold` meshes can carry architectural edge index buffers; the pass draws those as line primitives for a cleaner outline-style result. If a mesh or batch group does not have architectural edge data, the pass falls back to Metal triangle line fill mode using the normal mesh or batch index buffers.
+
+The line shader supports distance fade through `WireframeRenderParams`, which reduces distant line opacity for large architectural scenes.
+
 ### Spatial Debug Pass
 
 ```swift
-RenderPass(id: "spatialDebug", dependencies: ["transparency"])
+RenderPass(id: "spatialDebug", dependencies: ["wireframe"])
 ```
 
 Draws wireframe AABB overlays for debug purposes. Runs last in the geometry chain so it draws on top of everything.

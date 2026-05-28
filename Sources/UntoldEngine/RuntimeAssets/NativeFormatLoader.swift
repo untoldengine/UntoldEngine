@@ -30,16 +30,19 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
 
         let vertexChunkData: Data
         let indexChunkData: Data
+        let edgeIndexChunkData: Data?
         let jointIndexChunkData: Data?
         let jointWeightChunkData: Data?
         if decoded.header.fileType == .animation {
             vertexChunkData = Data()
             indexChunkData = Data()
+            edgeIndexChunkData = nil
             jointIndexChunkData = nil
             jointWeightChunkData = nil
         } else {
             vertexChunkData = try reader.readChunkData(.vertexData, from: fileData, entries: decoded.chunks)
             indexChunkData = try reader.readChunkData(.indexData, from: fileData, entries: decoded.chunks)
+            edgeIndexChunkData = try? reader.readChunkData(.edgeIndexData, from: fileData, entries: decoded.chunks)
             jointIndexChunkData = try? reader.readChunkData(.jointIndexData, from: fileData, entries: decoded.chunks)
             jointWeightChunkData = try? reader.readChunkData(.jointWeightData, from: fileData, entries: decoded.chunks)
         }
@@ -51,6 +54,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             runtimeMaterials: runtimeMaterials,
             vertexChunkData: vertexChunkData,
             indexChunkData: indexChunkData,
+            edgeIndexChunkData: edgeIndexChunkData,
             jointIndexChunkData: jointIndexChunkData,
             jointWeightChunkData: jointWeightChunkData
         )
@@ -82,6 +86,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         runtimeMaterials: [RuntimeMaterialSource],
         vertexChunkData: Data,
         indexChunkData: Data,
+        edgeIndexChunkData: Data?,
         jointIndexChunkData: Data?,
         jointWeightChunkData: Data?
     ) throws -> [RuntimeAssetNode] {
@@ -123,6 +128,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
                 runtimeMaterials: runtimeMaterials,
                 vertexChunkData: vertexChunkData,
                 indexChunkData: indexChunkData,
+                edgeIndexChunkData: edgeIndexChunkData,
                 jointIndexChunkData: jointIndexChunkData,
                 jointWeightChunkData: jointWeightChunkData,
                 runtimeSkeletonsByEntity: runtimeSkeletonsByEntity
@@ -137,6 +143,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         runtimeMaterials: [RuntimeMaterialSource],
         vertexChunkData: Data,
         indexChunkData: Data,
+        edgeIndexChunkData: Data?,
         jointIndexChunkData: Data?,
         jointWeightChunkData: Data?,
         runtimeSkeletonsByEntity: [UInt32: RuntimeSkeleton]
@@ -155,6 +162,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
                     runtimeMaterials: runtimeMaterials,
                     vertexChunkData: vertexChunkData,
                     indexChunkData: indexChunkData,
+                    edgeIndexChunkData: edgeIndexChunkData,
                     jointIndexChunkData: jointIndexChunkData,
                     jointWeightChunkData: jointWeightChunkData
                 )
@@ -184,6 +192,7 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
         runtimeMaterials: [RuntimeMaterialSource],
         vertexChunkData: Data,
         indexChunkData: Data,
+        edgeIndexChunkData: Data?,
         jointIndexChunkData: Data?,
         jointWeightChunkData: Data?
     ) throws -> RuntimeMeshPrimitive {
@@ -210,6 +219,17 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             offset: Int(mesh.indexDataOffset),
             size: Int(mesh.indexDataSizeBytes)
         )
+        let edgeIndexCount = Int(mesh.edgeIndexCount)
+        let edgeIndexData: Data
+        if edgeIndexCount > 0, let edgeIndexChunkData {
+            edgeIndexData = try slice(
+                from: edgeIndexChunkData,
+                offset: Int(mesh.edgeIndexDataOffset),
+                size: edgeIndexCount * indexFormat.byteSize
+            )
+        } else {
+            edgeIndexData = Data()
+        }
 
         let material: RuntimeMaterialSource?
         if mesh.materialIndex != UntoldFormat.invalidIndex {
@@ -253,9 +273,11 @@ public struct NativeFormatLoader: NamedRuntimeAssetLoading {
             vertexLayout: vertexLayout,
             vertexData: vertexData,
             indexData: indexData,
+            edgeIndexData: edgeIndexData,
             indexFormat: indexFormat,
             vertexCount: Int(mesh.vertexCount),
             indexCount: Int(mesh.indexCount),
+            edgeIndexCount: edgeIndexCount,
             material: material,
             skin: skin,
             estimatedGPUBytes: Int(mesh.estimatedGPUBytes)

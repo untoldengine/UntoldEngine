@@ -68,15 +68,16 @@ Recommended chunk payload order for **mesh files**:
 5. `TEXTURE_TABLE`
 6. `VERTEX_DATA`
 7. `INDEX_DATA`
+8. `EDGE_INDEX_DATA` (optional architectural edge indices)
 
 Optional additional chunks for **skeletal / animated files**:
 
-8. `SKELETON_TABLE`
-9. `SKELETON_JOINT_TABLE`
-10. `SKIN_TABLE`
-11. `SKIN_JOINT_MAPPING_TABLE`
-12. `JOINT_INDEX_DATA`
-13. `JOINT_WEIGHT_DATA`
+9. `SKELETON_TABLE`
+10. `SKELETON_JOINT_TABLE`
+11. `SKIN_TABLE`
+12. `SKIN_JOINT_MAPPING_TABLE`
+13. `JOINT_INDEX_DATA`
+14. `JOINT_WEIGHT_DATA`
 
 Chunk payload order for **animation-only files** (`fileType = animation`):
 
@@ -199,6 +200,13 @@ reserved0                    UInt64
 localBounds.min              Float32 x 3
 localBounds.max              Float32 x 3
 ```
+
+For mesh files that include `EDGE_INDEX_DATA`, `reserved0` stores optional edge metadata:
+
+- low 32 bits: byte offset into the uncompressed `EDGE_INDEX_DATA` chunk
+- high 32 bits: architectural edge index count
+
+The edge index type matches `indexType`. Edges are emitted as index pairs and are intended for clean wireframe/outline rendering; they contain boundary and hard-angle edges, not every triangle edge.
 
 Rules:
 
@@ -439,6 +447,7 @@ Rules:
 - offsets stored in metadata reference the **uncompressed** chunk payload layout
 - metadata chunks may remain uncompressed for simpler startup
 - geometry chunks (`VERTEX_DATA`, `INDEX_DATA`) may be compressed; pass `--compress-geometry` to the exporter to enable LZ4
+- `EDGE_INDEX_DATA` is optional and currently stored uncompressed
 
 ## Validation Rules
 
@@ -451,7 +460,7 @@ The loader must reject files when:
 - chunk offsets are not 16-byte aligned
 - string offsets fall outside the string table
 - mesh/entity/material/texture indices are out of range
-- vertex or index ranges exceed their chunk bounds
+- vertex, index, or edge-index ranges exceed their chunk bounds
 - `vertexStrideBytes` does not match the declared vertex layout
 - `indexDataSizeBytes` does not match `indexCount * indexElementSize`
 

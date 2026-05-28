@@ -490,8 +490,10 @@ public struct BatchGroup {
     var uvBuffer: MTLBuffer?
     var tangentBuffer: MTLBuffer?
     var indexBuffer: MTLBuffer?
+    var featureEdgeIndexBuffer: MTLBuffer?
 
     var indexCount: Int
+    var featureEdgeIndexCount: Int
     var vertexCount: Int
     var entityIds: [EntityID] // Original entities in this batch
     var meshIndices: [(entityId: EntityID, meshIndex: Int)] // Track source meshes
@@ -2022,6 +2024,7 @@ public class BatchingSystem: @unchecked Sendable {
         var allUVs: [simd_float2] = []
         var allTangents: [simd_float4] = [] // Changed to float4 to match vertex descriptor
         var allIndices: [UInt32] = []
+        var allFeatureEdgeIndices: [UInt32] = []
         var entityIds: [EntityID] = []
         var meshIndices: [(EntityID, Int)] = []
         var sceneChannels: SceneChannel = []
@@ -2051,6 +2054,8 @@ public class BatchingSystem: @unchecked Sendable {
             // Extract indices with offset
             let indices = extractIndices(from: item.mesh, submeshIndex: item.meshIndex, indexOffset: currentVertexOffset)
             allIndices.append(contentsOf: indices)
+            let edgeIndices = extractFeatureEdgeIndices(from: item.mesh, indexOffset: currentVertexOffset)
+            allFeatureEdgeIndices.append(contentsOf: edgeIndices)
 
             entityIds.append(item.entityId)
             meshIndices.append((item.entityId, item.meshIndex))
@@ -2068,6 +2073,7 @@ public class BatchingSystem: @unchecked Sendable {
         let uvBufferSize = allUVs.count * MemoryLayout<simd_float2>.stride
         let tangentBufferSize = allTangents.count * MemoryLayout<simd_float4>.stride
         let indexBufferSize = allIndices.count * MemoryLayout<UInt32>.stride
+        let featureEdgeIndexBufferSize = allFeatureEdgeIndices.count * MemoryLayout<UInt32>.stride
 
         guard let positionBuffer = renderInfo.device.makeBuffer(
             bytes: allPositions,
@@ -2119,6 +2125,12 @@ public class BatchingSystem: @unchecked Sendable {
         uvBuffer.label = "Batch UV Buffer"
         tangentBuffer.label = "Batch Tangent Buffer"
         indexBuffer.label = "Batch Index Buffer"
+        let featureEdgeIndexBuffer = allFeatureEdgeIndices.isEmpty ? nil : renderInfo.device.makeBuffer(
+            bytes: allFeatureEdgeIndices,
+            length: featureEdgeIndexBufferSize,
+            options: .storageModeShared
+        )
+        featureEdgeIndexBuffer?.label = "Batch Feature Edge Index Buffer"
 
         let isLODBatch = meshGroup.contains {
             scene.get(component: LODComponent.self, for: $0.entityId) != nil
@@ -2136,7 +2148,9 @@ public class BatchingSystem: @unchecked Sendable {
             uvBuffer: uvBuffer,
             tangentBuffer: tangentBuffer,
             indexBuffer: indexBuffer,
+            featureEdgeIndexBuffer: featureEdgeIndexBuffer,
             indexCount: allIndices.count,
+            featureEdgeIndexCount: allFeatureEdgeIndices.count,
             vertexCount: allPositions.count,
             entityIds: entityIds,
             meshIndices: meshIndices,
@@ -2902,6 +2916,29 @@ public class BatchingSystem: @unchecked Sendable {
                 .advanced(by: indexBufferOffset)
                 .bindMemory(to: UInt32.self, capacity: indexCount)
             for i in 0 ..< indexCount {
+                indices.append(rawIndices[i] + indexOffset)
+            }
+        }
+
+        return indices
+    }
+
+    private func extractFeatureEdgeIndices(from mesh: Mesh, indexOffset: UInt32) -> [UInt32] {
+        guard let indexBuffer = mesh.featureEdgeIndexBuffer,
+              mesh.featureEdgeIndexCount > 0
+        else { return [] }
+
+        var indices: [UInt32] = []
+        indices.reserveCapacity(mesh.featureEdgeIndexCount)
+
+        if mesh.featureEdgeIndexType == .uint16 {
+            let rawIndices = indexBuffer.contents().bindMemory(to: UInt16.self, capacity: mesh.featureEdgeIndexCount)
+            for i in 0 ..< mesh.featureEdgeIndexCount {
+                indices.append(UInt32(rawIndices[i]) + indexOffset)
+            }
+        } else {
+            let rawIndices = indexBuffer.contents().bindMemory(to: UInt32.self, capacity: mesh.featureEdgeIndexCount)
+            for i in 0 ..< mesh.featureEdgeIndexCount {
                 indices.append(rawIndices[i] + indexOffset)
             }
         }

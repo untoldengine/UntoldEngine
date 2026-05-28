@@ -263,9 +263,11 @@ public struct RuntimeMeshPrimitive: Sendable, Equatable {
     public var vertexLayout: RuntimeVertexLayout
     public var vertexData: Data
     public var indexData: Data
+    public var edgeIndexData: Data
     public var indexFormat: RuntimeIndexFormat
     public var vertexCount: Int
     public var indexCount: Int
+    public var edgeIndexCount: Int
     public var material: RuntimeMaterialSource?
     public var skin: RuntimeSkinBinding?
     public var estimatedGPUBytes: Int
@@ -279,9 +281,11 @@ public struct RuntimeMeshPrimitive: Sendable, Equatable {
         vertexLayout: RuntimeVertexLayout,
         vertexData: Data,
         indexData: Data,
+        edgeIndexData: Data = Data(),
         indexFormat: RuntimeIndexFormat,
         vertexCount: Int,
         indexCount: Int,
+        edgeIndexCount: Int = 0,
         material: RuntimeMaterialSource? = nil,
         skin: RuntimeSkinBinding? = nil,
         estimatedGPUBytes: Int = 0
@@ -294,9 +298,11 @@ public struct RuntimeMeshPrimitive: Sendable, Equatable {
         self.vertexLayout = vertexLayout
         self.vertexData = vertexData
         self.indexData = indexData
+        self.edgeIndexData = edgeIndexData
         self.indexFormat = indexFormat
         self.vertexCount = vertexCount
         self.indexCount = indexCount
+        self.edgeIndexCount = edgeIndexCount
         self.material = material
         self.skin = skin
         self.estimatedGPUBytes = estimatedGPUBytes

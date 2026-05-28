@@ -35,6 +35,7 @@ using namespace metal;
 #include "../Shaders/SSAOShader.metal"
 #include "../Shaders/LightShader.metal"
 #include "../Shaders/TransparencyShader.metal"
+#include "../Shaders/WireframeShader.metal"
 #include "../Shaders/SSAOBlurShader.metal"
 #include "../Shaders/FrustumCullingCompute.metal"
 #include "../Shaders/HZBCompute.metal"

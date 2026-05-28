@@ -281,10 +281,17 @@ public func buildGameModeGraph() -> RenderGraphResult {
     )
     graph[transparencyPass.id] = transparencyPass
 
+    let wireframePass = RenderPass(
+        id: "wireframe",
+        dependencies: [transparencyPass.id],
+        execute: RenderPasses.wireframeExecution
+    )
+    graph[wireframePass.id] = wireframePass
+
     // Spatial debug overlays are rendered on top of lit scene color.
     let spatialDebugPass = RenderPass(
         id: "spatialDebug",
-        dependencies: [transparencyPass.id],
+        dependencies: [wireframePass.id],
         execute: RenderPasses.spatialDebugBoundsExecution
     )
     graph[spatialDebugPass.id] = spatialDebugPass
@@ -425,20 +432,15 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
     graph[batchedModelPass.id] = batchedModelPass
 
     // HZB is temporal: the depth captured during this frame is consumed by
-    // next-frame culling. In XR mixed mode, capture opaque depth before the
-    // transparency pass writes glass depth for compositor edges.
-    let opaqueDepthAnchorId: String
-    if renderInfo.isXRStereoMode, renderInfo.immersionStyle == .mixed {
-        let hzbDepthSourcePass = RenderPass(
-            id: "hzbDepthSource",
-            dependencies: [batchedModelPass.id],
-            execute: RenderPasses.copyOpaqueDepthForHZBExecution
-        )
-        graph[hzbDepthSourcePass.id] = hzbDepthSourcePass
-        opaqueDepthAnchorId = hzbDepthSourcePass.id
-    } else {
-        opaqueDepthAnchorId = batchedModelPass.id
-    }
+    // next-frame culling. Copy opaque depth before transparency or wireframe
+    // draws can modify the depth buffer.
+    let hzbDepthSourcePass = RenderPass(
+        id: "hzbDepthSource",
+        dependencies: [batchedModelPass.id],
+        execute: RenderPasses.copyOpaqueDepthForHZBExecution
+    )
+    graph[hzbDepthSourcePass.id] = hzbDepthSourcePass
+    let opaqueDepthAnchorId = hzbDepthSourcePass.id
 
     // Update SSAO to depend on batched pass
     let ssaoPass = RenderPass(

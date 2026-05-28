@@ -95,6 +95,11 @@ typedef struct{
 
   }VertexOutModel;
 
+typedef struct {
+    float4 position [[position]];
+    float wireDistance;
+} VertexOutWireframe;
+
 typedef struct{
     float4 position [[attribute(0)]];
 }GeometryInModel;
