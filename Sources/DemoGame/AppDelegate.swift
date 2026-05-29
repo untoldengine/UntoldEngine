@@ -11,7 +11,7 @@
     @MainActor
     final class AppDelegate: NSObject, NSApplicationDelegate {
         private enum Constants {
-            static let appVersion = "0.12.15"
+            static let appVersion = "0.12.16"
             static let defaultWindowSize = NSSize(width: 1920, height: 1080)
             static let minimumWindowSize = NSSize(width: 640, height: 480)
         }

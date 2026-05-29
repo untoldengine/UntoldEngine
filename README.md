@@ -76,7 +76,7 @@ Clone the repository and launch the demo:
 ```bash
 git clone https://github.com/untoldengine/UntoldEngine.git
 cd UntoldEngine
-git checkout v0.12.15
+git checkout v0.12.16
 swift run untolddemo
 ```
 
