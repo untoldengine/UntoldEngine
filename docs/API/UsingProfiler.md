@@ -139,6 +139,136 @@ The scene entities were not tagged with `StaticBatchComponent` during export or 
 **`resolved` much lower than `registered`**  
 Entities are failing `resolveBatchCandidate`. Common causes: transparent submeshes, skeleton/animation components, or `preserveIdentity` scene channels. Check the entity setup.
 
+## Geometry Streaming Diagnostics
+
+### Per-tick operational snapshot
+
+`GeometryStreamingSystem` maintains a rich per-tick diagnostics struct that is updated every streaming update. Pull it at any point:
+
+```swift
+let diag = GeometryStreamingSystem.shared.getDiagnosticsSnapshot()
+print("update triggered: \(diag.updateTriggered)  workMs: \(diag.updateWorkMs)")
+print("nearby queried: \(diag.nearbyEntitiesQueried)  candidates: \(diag.loadCandidates)")
+print("slots available: \(diag.availableLoadSlots)  started: \(diag.startedLoads)")
+print("evictions: \(diag.evictionsPerformed)  tileSwapWarnings: \(diag.tileSwapWarnings)")
+print("avg async load: \(diag.averageAsyncLoadMs) ms")
+```
+
+| Field | What it tells you |
+|---|---|
+| `updateTriggered` | Whether the streaming tick ran this frame. `false` means the throttle interval hasn't elapsed yet. |
+| `updateWorkMs` | CPU time spent inside the streaming update. Spikes here cause frame hitches. |
+| `nearbyEntitiesQueried` | How many entities the frustum/radius gate evaluated. |
+| `loadCandidates` / `startedLoads` | How many entities were eligible vs actually kicked off. A gap means slots were full. |
+| `availableLoadSlots` | Concurrency slots free at the start of the tick. `0` = slot-starved. |
+| `evictionTriggered` / `evictionsPerformed` | Whether memory pressure forced an eviction pass. Frequent evictions indicate the budget is too tight for the scene. |
+| `lastAsyncLoadMs` / `averageAsyncLoadMs` | I/O + parse time per mesh. High values mean the bottleneck is I/O, not slot count. |
+| `lastApplyLoadedMeshMs` | Main-thread GPU upload cost when a mesh completes loading. |
+| `tileSwapWarnings` | Count of tile representation thrash events (≥ 6 swaps in 5 s). Nonzero means a tile is oscillating between LOD levels. |
+
+### Streaming summary to console
+
+For a one-shot console dump of streaming counts, cache state, and memory budget together:
+
+```swift
+GeometryStreamingSystem.shared.printStats()
+```
+
+Output includes: loaded / loading / unloaded entity counts, active load slot usage, cached file count, total cache memory, and mesh budget utilization.
+
+### Tile streaming category log
+
+Enable the `.tileStreaming` category for event-level traces (tile parse timeouts, eviction warnings, swap-thrash alerts):
+
+```swift
+Logger.enable(category: .tileStreaming)
+// ... reproduce the issue ...
+Logger.disable(category: .tileStreaming)
+```
+
+---
+
+## Memory Budget Diagnostics
+
+`MemoryBudgetManager` tracks mesh and texture GPU memory against configured budgets. It logs automatically when pressure thresholds are crossed, and can be queried manually.
+
+### Automatic pressure logging
+
+`logStatus()` fires automatically whenever memory crosses the high-water or low-water mark. No setup required — watch the log for:
+
+```
+MemoryBudgetManager Status:
+- Mesh Memory:    312 MB / 512 MB (60.9%)
+- Texture Memory: 198 MB / 512 MB (38.7%)
+- Total GPU Memory: 510 MB / 1024 MB (49.8%)
+- Tracked Entities: 847
+- Under Pressure: false
+```
+
+### Manual snapshot
+
+Call at any point to log the current state regardless of pressure:
+
+```swift
+MemoryBudgetManager.shared.logStatus()
+```
+
+### Programmatic access
+
+```swift
+let stats = MemoryBudgetManager.shared.getStats()
+print("mesh: \(stats.meshMemoryUsed) / \(stats.geometryBudget)  util: \(stats.geometryUtilization)")
+print("texture: \(stats.textureMemoryUsed) / \(stats.textureBudget)  util: \(stats.textureUtilization)")
+print("pressure: \(stats.isUnderPressure)")
+```
+
+---
+
+## Batching Tick Diagnostics
+
+In addition to the material-diversity report above, `BatchingSystem` exposes a per-tick rebuild snapshot. Use it when the batch group count or frame time is unstable and you need to see inside the rebuild scheduler:
+
+```swift
+let diag = BatchingSystem.shared.getTickDiagnosticsSnapshot()
+print("dirty cells: \(diag.dirtyCellsBeforePrune) → \(diag.dirtyCellsAfterPrune) after prune")
+print("dispatched builds: \(diag.dispatchedBuilds)  applied: \(diag.appliedArtifacts)")
+print("deferred by quiescence: \(diag.deferredByQuiescence)")
+print("deferred by work budget: \(diag.deferredByWorkBudget)")
+print("rebuild work: \(diag.rebuildWorkMs) ms  max cell: \(diag.maxCellRebuildMs) ms")
+```
+
+| Field | What it tells you |
+|---|---|
+| `dirtyCellsBeforePrune` / `AfterPrune` | How many cells needed rebuild vs how many survived the work-budget prune. A large prune gap means the scheduler is throttling. |
+| `deferredByQuiescence` | Cells skipped because entities were still arriving. Normal during initial scene load. |
+| `deferredByVisibility` | Cells skipped because they were outside the camera frustum. |
+| `deferredByWorkBudget` | Cells skipped to stay within the per-tick CPU budget. Persistent nonzero values mean rebuild is falling behind. |
+| `skippedByComplexityGuard` | Cells with too many vertices for the runtime budget — they will never batch until the budget is raised or cell size is reduced. |
+| `rebuildWorkMs` / `maxCellRebuildMs` | Total and worst-case rebuild time for this tick. |
+| `rebuiltVertices` / `rebuiltBufferBytes` | Output size of the rebuild work — useful for estimating GPU buffer pressure. |
+
+For a one-line summary suitable for frame logging:
+
+```swift
+print(BatchingSystem.shared.diagnosticSummary())
+// batch: registered=916 dirty=3 rebuildMs=0.4 groups=132
+```
+
+---
+
+## Debug-only Console Helpers
+
+The following helpers use `print()` rather than the Logger and are intended for quick local inspection. They are not gated by log categories and have no throttle.
+
+| Call | What it prints | Platform |
+|---|---|---|
+| `GeometryStreamingSystem.shared.printStats()` | Streaming counts + cache stats + memory budget in one block | All |
+| `RealSurfacePlaneStore.shared.logAllPlanes()` | All ARKit-detected planes: alignment, classification, Y height, extent | AR only |
+
+These are best used with a breakpoint or a temporary `onUpdate` call. Do not leave them in shipped code.
+
+---
+
 ## Instruments Workflow
 
 When metrics are enabled, the engine emits signpost scopes:
