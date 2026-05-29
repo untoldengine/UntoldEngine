@@ -22,6 +22,7 @@ final class SceneGraphTests: XCTestCase {
 
     override func setUp() async throws {
         resetEngineTestState()
+        anyTransformDirty = false
 
         // Create root, child, and grandchild entities
         rootEntity = createEntity()
@@ -180,6 +181,90 @@ final class SceneGraphTests: XCTestCase {
         XCTAssertEqual(grandchildWorld?.columns.3.x, 0.0)
         XCTAssertEqual(grandchildWorld?.columns.3.y, 1.0)
         XCTAssertEqual(grandchildWorld?.columns.3.z, 1.0)
+    }
+
+    // MARK: - Transform Dirty Optimization Tests
+
+    /// After a traversal clears both dirty flags, a second traversal must be a
+    /// complete no-op — it must not recompute world transforms for clean entities.
+    func testTraverseSceneGraphSkipsCleanEntities() throws {
+        let entity = createEntity()
+        registerTransformComponent(entityId: entity) // sets anyTransformDirty = true
+        registerSceneGraphComponent(entityId: entity)
+
+        let local = try XCTUnwrap(scene.get(component: LocalTransformComponent.self, for: entity))
+        local.position = simd_float3(5, 0, 0)
+        local.transformDirty = true
+        anyTransformDirty = true
+
+        traverseSceneGraph() // first pass: computes world transform, clears dirty
+
+        let worldAfterFirst = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity)?.space)
+        XCTAssertEqual(worldAfterFirst.columns.3.x, 5.0, accuracy: 0.001, "First traversal should compute world transform")
+        XCTAssertFalse(anyTransformDirty, "anyTransformDirty should be false after traversal")
+
+        // Corrupt the world transform — a second traversal must not repair it
+        scene.get(component: WorldTransformComponent.self, for: entity)?.space = matrix_identity_float4x4
+
+        traverseSceneGraph() // second pass: anyTransformDirty = false → early exit
+
+        let worldAfterSecond = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity)?.space)
+        XCTAssertEqual(worldAfterSecond, matrix_identity_float4x4,
+                       "Static entity world transform must not be recomputed when transformDirty and anyTransformDirty are both false")
+
+        destroyEntity(entityId: entity)
+    }
+
+    /// A dirty parent must cause the child's world transform to be updated via
+    /// the cascade even when the child's own transformDirty is false.
+    func testTraverseSceneGraphCascadesDirtyToChild() throws {
+        let parent = createEntity()
+        let child = createEntity()
+        registerTransformComponent(entityId: parent)
+        registerSceneGraphComponent(entityId: parent)
+        registerTransformComponent(entityId: child)
+        registerSceneGraphComponent(entityId: child)
+        setParent(childId: child, parentId: parent)
+
+        traverseSceneGraph() // settle — clears all dirty flags
+        XCTAssertFalse(anyTransformDirty)
+
+        let parentLocal = try XCTUnwrap(scene.get(component: LocalTransformComponent.self, for: parent))
+        parentLocal.position = simd_float3(10, 0, 0)
+        parentLocal.transformDirty = true
+        anyTransformDirty = true
+
+        traverseSceneGraph()
+
+        let childWorld = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: child)?.space)
+        XCTAssertEqual(childWorld.columns.3.x, 10.0, accuracy: 0.001,
+                       "Child world transform must reflect parent movement via cascade")
+        XCTAssertFalse(anyTransformDirty, "anyTransformDirty must be cleared after traversal")
+
+        destroyEntity(entityId: parent)
+        destroyEntity(entityId: child)
+    }
+
+    /// registerTransformComponent must set anyTransformDirty so the new entity
+    /// is processed by the very next traversal.
+    func testRegisterTransformComponentPrimesTraversal() throws {
+        anyTransformDirty = false
+
+        let entity = createEntity()
+        registerTransformComponent(entityId: entity)
+        XCTAssertTrue(anyTransformDirty, "registerTransformComponent must prime anyTransformDirty")
+
+        registerSceneGraphComponent(entityId: entity)
+        let local = try XCTUnwrap(scene.get(component: LocalTransformComponent.self, for: entity))
+        local.position = simd_float3(7, 0, 0)
+
+        traverseSceneGraph()
+
+        let world = try XCTUnwrap(scene.get(component: WorldTransformComponent.self, for: entity)?.space)
+        XCTAssertEqual(world.columns.3.x, 7.0, accuracy: 0.001,
+                       "New entity must be processed on its first traversal after registerTransformComponent")
+
+        destroyEntity(entityId: entity)
     }
 
     func testRemoveEntityScenegraph() {
