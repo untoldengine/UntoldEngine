@@ -77,7 +77,7 @@
             applyIBL = true
             renderEnvironment = false
 
-            // setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
+            setEngineStatsLogging(enabled: true, profile: .verbose, intervalSeconds: 1.0)
         }
     }
 

@@ -1706,200 +1706,173 @@ private func registerTiledScene(
     BatchingSystem.shared.setBatchCellSize(manifestTileSize * 1.0)
     enableBatching(true)
 
-    // ── 4. Register tile stub entities ────────────────────────────────────
-    // All stubs are registered inside a single withWorldMutationGate to avoid
-    // repeated acquire/release overhead on large manifests.
+    // ── 4. Register tile stub entities in per-frame batches ──────────────
+    // Registering all stubs in one synchronous gate caused a multi-hundred ms
+    // main-thread stall on large manifests.  Instead, we drain batchSize stubs
+    // per main-thread turn so the render loop gets a window between each batch.
+    // The streaming system starts finding candidates as soon as the first batch
+    // lands; later batches fill in the rest of the scene without blocking frames.
+    let tiles = tileManifest.tiles
     let defaults = tileManifest.streamingDefaults
-    var registeredCount = 0
-    var skippedCount = 0
 
-    withWorldMutationGate {
-        for tile in tileManifest.tiles {
-            // Build the tile URL from the path relative to the manifest.
-            // For local manifests this produces a file:// URL; for remote manifests
-            // it produces an http(s):// URL that is downloaded on demand during streaming.
-            let tileURL = manifestDir.appendingPathComponent(tile.pathRelativeToManifest)
+    // Holds mutable state shared across async batch closures.
+    // @unchecked Sendable is safe here: all accesses happen on the main queue.
+    final class RegistrationState: @unchecked Sendable {
+        var nextIndex = 0
+        var registeredCount = 0
+        var skippedCount = 0
+        var completion: ((Bool) -> Void)?
+    }
+    let regState = RegistrationState()
+    regState.completion = completion
 
-            guard tile.bounds.min.count >= 3, tile.bounds.max.count >= 3,
-                  tile.center.count >= 3
-            else {
-                Logger.logWarning(message: "[loadTiledScene] Tile '\(tile.tileId)' has malformed bounds or center — skipping.")
-                skippedCount += 1
-                continue
-            }
-
-            let entityId = createEntity()
-            setEntityName(entityId: entityId, name: tile.tileId)
-
-            // Transform + bounds.
-            // The entity's world transform is identity (tile geometry is already in
-            // world space in the exported USDC).  The local bounding box is set to
-            // the tile's world-space AABB — valid because identity world transform
-            // means local space == world space.
-            //
-            // OctreeSystem.calculateWorldBounds multiplies localBounds by the world
-            // matrix (identity here) → correct world-space AABB in the octree.
-            //
-            // GeometryStreamingSystem.calculateDistance transforms the camera into
-            // entity-local space using inv(identity) = identity, then measures to
-            // the local AABB → correct world-space distance to the tile surface.
-            registerTransformComponent(entityId: entityId)
-            if let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
-                local.boundingBox = (
-                    min: simd_float3(tile.bounds.min[0], tile.bounds.min[1], tile.bounds.min[2]),
-                    max: simd_float3(tile.bounds.max[0], tile.bounds.max[1], tile.bounds.max[2])
-                )
-            }
-
-            registerSceneGraphComponent(entityId: entityId)
-
-            // TileComponent carries everything the streaming bootstrap needs:
-            // the tile file URL, the file size for the pre-parse admission gate,
-            // and the streaming radii that control when the tile loads/unloads.
-            registerComponent(entityId: entityId, componentType: TileComponent.self)
-            if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
-                let configuredStreamingRadius = tile.streamingRadius ?? defaults.streamingRadius
-                let configuredUnloadRadius = tile.unloadRadius ?? defaults.unloadRadius
-                let configuredPrefetch = tile.prefetchRadius ?? defaults.prefetchRadius ?? 0
-                let configuredHLOD = tile.hlodLevels?.first?.switchDistance
-                let configuredLODs = (tile.lodLevels ?? []).map(\.switchDistance)
-                let normalizedBands = normalizeTileStreamingBands(
-                    tileId: tile.tileId,
-                    streamingRadius: configuredStreamingRadius,
-                    unloadRadius: configuredUnloadRadius,
-                    prefetchRadius: configuredPrefetch,
-                    hlodSwitchDistance: configuredHLOD,
-                    lodSwitchDistances: configuredLODs
-                )
-
-                tileComp.tileURL = tileURL
-                tileComp.fileSizeBytes = tile.fileSizeBytes
-                tileComp.streamingRadius = configuredStreamingRadius
-                tileComp.unloadRadius = max(configuredUnloadRadius, configuredStreamingRadius + 4.0)
-                tileComp.priority = tile.priority ?? defaults.priority
-                // prefetchRadius = 0 means auto (midpoint of stream/unload gap).
-                // Resolved from: per-tile override → manifest default → auto (0).
-                tileComp.prefetchRadius = normalizedBands.prefetchRadius
-                tileComp.tileId = tile.tileId
-                tileComp.isInterior = tile.isInterior ?? false
-                tileComp.hasFloorMetadata = tileManifest.partitioningMode == "quadtree_floor" && tile.floorId != nil
-                tileComp.floorId = tile.floorId ?? 0
-                tileComp.worldYCenter = tile.center.count >= 2
-                    ? Float(tile.center[1]) // manifest center[1] = Y (engine up-axis)
-                    : 0
-                tileComp.state = .unloaded
-
-                // Log semantic-tier info when present (v4 quadtree manifests).
-                if let tier = tile.semanticTier {
-                    let floorTag = tile.floorId.map { "floor=\($0) " } ?? ""
-                    Logger.log(message: "[loadTiledScene] \(tile.tileId): \(floorTag)tier=\(tier) stream=\(String(format: "%.1f", configuredStreamingRadius))m")
-                }
-
-                // HLOD: use the first level if present. Existence is validated at
-                // load time so remote URLs are accepted without a local file check.
-                if let hlodLevels = tile.hlodLevels, let first = hlodLevels.first,
-                   let normalizedHLOD = normalizedBands.hlodSwitchDistance
-                {
-                    tileComp.hlodURL = manifestDir.appendingPathComponent(first.path)
-                    tileComp.hlodSwitchDistance = normalizedHLOD
-                }
-
-                // LOD levels: sort ascending by switchDistance (finest first) so the
-                // streaming pass can binary-search for the active level by distance.
-                if let lodEntries = tile.lodLevels {
-                    let sorted = lodEntries.sorted { $0.switchDistance < $1.switchDistance }
-                    for (index, entry) in sorted.enumerated() {
-                        guard index < normalizedBands.lodSwitchDistances.count else { break }
-                        // Existence is validated at load time; remote URLs are accepted
-                        // without a local file check.
-                        let lodURL = manifestDir.appendingPathComponent(entry.path)
-                        tileComp.lodLevels.append(TileLODLevel(url: lodURL, switchDistance: normalizedBands.lodSwitchDistances[index]))
+    // ── 5 + finish: shared bucket, interior zone, completion ─────────────
+    // Runs after the last tile batch completes.
+    func finishRegistration() {
+        var hasSharedBucket = false
+        if let shared = tileManifest.sharedBucket {
+            let sharedURL = manifestDir.appendingPathComponent(shared.pathRelativeToManifest)
+            if !FileManager.default.fileExists(atPath: sharedURL.path) {
+                Logger.logWarning(message: "[loadTiledScene] Shared bucket file missing: '\(shared.pathRelativeToManifest)' — skipping.")
+            } else if shared.bounds.min.count < 3 || shared.bounds.max.count < 3 || shared.center.count < 3 {
+                Logger.logWarning(message: "[loadTiledScene] Shared bucket has malformed bounds — skipping.")
+            } else {
+                withWorldMutationGate {
+                    let entityId = createEntity()
+                    setEntityName(entityId: entityId, name: shared.tileId)
+                    registerTransformComponent(entityId: entityId)
+                    if let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
+                        local.boundingBox = (
+                            min: simd_float3(shared.bounds.min[0], shared.bounds.min[1], shared.bounds.min[2]),
+                            max: simd_float3(shared.bounds.max[0], shared.bounds.max[1], shared.bounds.max[2])
+                        )
                     }
+                    registerSceneGraphComponent(entityId: entityId)
+                    registerComponent(entityId: entityId, componentType: TileComponent.self)
+                    if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
+                        tileComp.tileURL = sharedURL
+                        tileComp.fileSizeBytes = shared.fileSizeBytes
+                        tileComp.streamingRadius = shared.streamingRadius ?? Float.greatestFiniteMagnitude
+                        tileComp.unloadRadius = shared.unloadRadius ?? Float.greatestFiniteMagnitude
+                        tileComp.priority = shared.priority ?? defaults.priority
+                        tileComp.prefetchRadius = shared.prefetchRadius ?? defaults.prefetchRadius ?? 0
+                        tileComp.tileId = shared.tileId
+                        tileComp.state = .unloaded
+                    }
+                    setParent(childId: entityId, parentId: rootEntityId)
+                    OctreeSystem.shared.registerEntity(entityId)
                 }
+                hasSharedBucket = true
+                Logger.log(message: "[loadTiledScene] Shared bucket stub registered: '\(shared.tileId)'.")
             }
-
-            // Parent the stub under the tiled scene root so the entire scene
-            // can be referenced, inspected, or destroyed as a single object.
-            setParent(childId: entityId, parentId: rootEntityId)
-
-            // Register with the octree so the streaming system can find this tile
-            // via spatial queries.  The octree uses the world bounds computed above.
-            OctreeSystem.shared.registerEntity(entityId)
-            registeredCount += 1
         }
+
+        if let iz = tileManifest.interiorZone, iz.min.count >= 3, iz.max.count >= 3 {
+            let zone = AABB(
+                min: simd_float3(iz.min[0], iz.min[1], iz.min[2]),
+                max: simd_float3(iz.max[0], iz.max[1], iz.max[2])
+            )
+            GeometryStreamingSystem.shared.interiorZone = zone
+            Logger.log(message: "[loadTiledScene] Interior zone set: \(zone.min) → \(zone.max)")
+        }
+
+        let skipMsg = regState.skippedCount > 0 ? " (\(regState.skippedCount) skipped)" : ""
+        let bucketMsg = hasSharedBucket ? " + shared bucket" : ""
+        Logger.log(message: "[loadTiledScene] '\(label)': \(regState.registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).")
+        regState.completion?(true)
     }
 
-    // ── 5. Register shared-bucket stub (if present) ───────────────────────
-    // The shared bucket is a single USD file containing geometry that spans too
-    // many tiles to clip efficiently.  It is registered as a TileComponent stub
-    // with the large streaming/unload radii written by the export script so that
-    // GeometryStreamingSystem loads it as soon as the camera enters the scene.
-    var hasSharedBucket = false
-    if let shared = tileManifest.sharedBucket {
-        let sharedURL = manifestDir.appendingPathComponent(shared.pathRelativeToManifest)
-
-        if !FileManager.default.fileExists(atPath: sharedURL.path) {
-            Logger.logWarning(message: "[loadTiledScene] Shared bucket file missing: '\(shared.pathRelativeToManifest)' — skipping.")
-        } else if shared.bounds.min.count < 3 || shared.bounds.max.count < 3 || shared.center.count < 3 {
-            Logger.logWarning(message: "[loadTiledScene] Shared bucket has malformed bounds — skipping.")
-        } else {
-            withWorldMutationGate {
+    // Registers one batch of tile stubs, then schedules the next batch or
+    // calls finishRegistration when all tiles have been processed.
+    func drainBatch() {
+        let startIdx = regState.nextIndex
+        let endIdx = min(startIdx + 50, tiles.count)
+        withWorldMutationGate {
+            for i in startIdx..<endIdx {
+                let tile = tiles[i]
+                let tileURL = manifestDir.appendingPathComponent(tile.pathRelativeToManifest)
+                guard tile.bounds.min.count >= 3, tile.bounds.max.count >= 3,
+                      tile.center.count >= 3
+                else {
+                    Logger.logWarning(message: "[loadTiledScene] Tile '\(tile.tileId)' has malformed bounds or center — skipping.")
+                    regState.skippedCount += 1
+                    continue
+                }
                 let entityId = createEntity()
-                setEntityName(entityId: entityId, name: shared.tileId)
-
+                setEntityName(entityId: entityId, name: tile.tileId)
+                // Transform + bounds.
+                // The entity's world transform is identity (tile geometry is already in
+                // world space in the exported USDC).  The local bounding box is set to
+                // the tile's world-space AABB — valid because identity world transform
+                // means local space == world space.
                 registerTransformComponent(entityId: entityId)
                 if let local = scene.get(component: LocalTransformComponent.self, for: entityId) {
                     local.boundingBox = (
-                        min: simd_float3(shared.bounds.min[0], shared.bounds.min[1], shared.bounds.min[2]),
-                        max: simd_float3(shared.bounds.max[0], shared.bounds.max[1], shared.bounds.max[2])
+                        min: simd_float3(tile.bounds.min[0], tile.bounds.min[1], tile.bounds.min[2]),
+                        max: simd_float3(tile.bounds.max[0], tile.bounds.max[1], tile.bounds.max[2])
                     )
                 }
-
                 registerSceneGraphComponent(entityId: entityId)
-
                 registerComponent(entityId: entityId, componentType: TileComponent.self)
                 if let tileComp = scene.get(component: TileComponent.self, for: entityId) {
-                    tileComp.tileURL = sharedURL
-                    tileComp.fileSizeBytes = shared.fileSizeBytes
-                    // Shared bucket always carries explicit radii from the export script.
-                    // Fall back to Float.greatestFiniteMagnitude so the asset is always
-                    // loaded if the script somehow omits them.
-                    tileComp.streamingRadius = shared.streamingRadius ?? Float.greatestFiniteMagnitude
-                    tileComp.unloadRadius = shared.unloadRadius ?? Float.greatestFiniteMagnitude
-                    tileComp.priority = shared.priority ?? defaults.priority
-                    // Shared bucket: prefetchRadius mirrors streamingRadius (no prefetch
-                    // gap needed — it loads immediately when the scene starts).
-                    tileComp.prefetchRadius = shared.prefetchRadius ?? defaults.prefetchRadius ?? 0
-                    tileComp.tileId = shared.tileId
+                    let configuredStreamingRadius = tile.streamingRadius ?? defaults.streamingRadius
+                    let configuredUnloadRadius = tile.unloadRadius ?? defaults.unloadRadius
+                    let configuredPrefetch = tile.prefetchRadius ?? defaults.prefetchRadius ?? 0
+                    let configuredHLOD = tile.hlodLevels?.first?.switchDistance
+                    let configuredLODs = (tile.lodLevels ?? []).map(\.switchDistance)
+                    let normalizedBands = normalizeTileStreamingBands(
+                        tileId: tile.tileId,
+                        streamingRadius: configuredStreamingRadius,
+                        unloadRadius: configuredUnloadRadius,
+                        prefetchRadius: configuredPrefetch,
+                        hlodSwitchDistance: configuredHLOD,
+                        lodSwitchDistances: configuredLODs
+                    )
+                    tileComp.tileURL = tileURL
+                    tileComp.fileSizeBytes = tile.fileSizeBytes
+                    tileComp.streamingRadius = configuredStreamingRadius
+                    tileComp.unloadRadius = max(configuredUnloadRadius, configuredStreamingRadius + 4.0)
+                    tileComp.priority = tile.priority ?? defaults.priority
+                    tileComp.prefetchRadius = normalizedBands.prefetchRadius
+                    tileComp.tileId = tile.tileId
+                    tileComp.isInterior = tile.isInterior ?? false
+                    tileComp.hasFloorMetadata = tileManifest.partitioningMode == "quadtree_floor" && tile.floorId != nil
+                    tileComp.floorId = tile.floorId ?? 0
+                    tileComp.worldYCenter = tile.center.count >= 2 ? Float(tile.center[1]) : 0
                     tileComp.state = .unloaded
+                    if let tier = tile.semanticTier {
+                        let floorTag = tile.floorId.map { "floor=\($0) " } ?? ""
+                        Logger.log(message: "[loadTiledScene] \(tile.tileId): \(floorTag)tier=\(tier) stream=\(String(format: "%.1f", configuredStreamingRadius))m")
+                    }
+                    if let hlodLevels = tile.hlodLevels, let first = hlodLevels.first,
+                       let normalizedHLOD = normalizedBands.hlodSwitchDistance
+                    {
+                        tileComp.hlodURL = manifestDir.appendingPathComponent(first.path)
+                        tileComp.hlodSwitchDistance = normalizedHLOD
+                    }
+                    if let lodEntries = tile.lodLevels {
+                        let sorted = lodEntries.sorted { $0.switchDistance < $1.switchDistance }
+                        for (index, entry) in sorted.enumerated() {
+                            guard index < normalizedBands.lodSwitchDistances.count else { break }
+                            let lodURL = manifestDir.appendingPathComponent(entry.path)
+                            tileComp.lodLevels.append(TileLODLevel(url: lodURL, switchDistance: normalizedBands.lodSwitchDistances[index]))
+                        }
+                    }
                 }
-
-                // Parent the shared bucket under the same tiled scene root.
                 setParent(childId: entityId, parentId: rootEntityId)
-
                 OctreeSystem.shared.registerEntity(entityId)
+                regState.registeredCount += 1
             }
-            hasSharedBucket = true
-            Logger.log(message: "[loadTiledScene] Shared bucket stub registered: '\(shared.tileId)'.")
+        }
+        regState.nextIndex = endIdx
+        if regState.nextIndex < tiles.count {
+            DispatchQueue.main.async { drainBatch() }
+        } else {
+            finishRegistration()
         }
     }
 
-    // Push interior zone to the streaming system so it can gate interior tile loads.
-    if let iz = tileManifest.interiorZone,
-       iz.min.count >= 3, iz.max.count >= 3
-    {
-        let zone = AABB(
-            min: simd_float3(iz.min[0], iz.min[1], iz.min[2]),
-            max: simd_float3(iz.max[0], iz.max[1], iz.max[2])
-        )
-        GeometryStreamingSystem.shared.interiorZone = zone
-        Logger.log(message: "[loadTiledScene] Interior zone set: \(zone.min) → \(zone.max)")
-    }
-
-    let skipMsg = skippedCount > 0 ? " (\(skippedCount) skipped)" : ""
-    let bucketMsg = hasSharedBucket ? " + shared bucket" : ""
-    Logger.log(message: "[loadTiledScene] '\(label)': \(registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).")
-    completion?(true)
+    drainBatch()
 }
 
 private func normalizeTileStreamingBands(
