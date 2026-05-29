@@ -345,6 +345,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     var loadedStreamingEntities: Set<EntityID> = [] // Track loaded entities for efficient unload checks
     var currentFrame: Int = 0
     var lastLoadCandidateCount: Int = 0
+    var lastTileLoadCandidateCount: Int = 0
     var lastPendingLoadBacklog: Int = 0
     var diagnostics: GeometryStreamingDiagnosticsSnapshot = .init()
     var cumulativeAsyncLoadMs: Double = 0.0
@@ -952,6 +953,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 tileLoadCandidates.append((entityId, effectiveDist, tileComp.priority, sa, va, occ))
             }
         }
+        lastTileLoadCandidateCount = tileLoadCandidates.count
         if !tileLoadCandidates.isEmpty {
             // Geometry budget gate: if geometry memory is already under pressure, run
             // eviction before dispatching any new tile parses.  A tile load can consume
@@ -2060,6 +2062,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             timeSinceLastUpdate = 0
             currentFrame = 0
             lastLoadCandidateCount = 0
+            lastTileLoadCandidateCount = 0
             lastPendingLoadBacklog = 0
             diagnostics = .init()
             cumulativeAsyncLoadMs = 0
@@ -2094,13 +2097,20 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             }
         }
 
+        // Fold in tile entity counts — tiles use TileComponent, not StreamingComponent.
+        let tilesLoaded = loadedTileEntitiesSnapshot().count
+        let tilesLoading = loadingTileEntitiesSnapshot().count
+        let tileComponentId = getComponentId(for: TileComponent.self)
+        let totalTiles = queryEntitiesWithComponentIds([tileComponentId], in: scene).count
+        let tilesUnloaded = max(0, totalTiles - tilesLoaded - tilesLoading)
+
         return GeometryStreamingStats(
-            totalStreamingEntities: entities.count,
-            loadedCount: loaded,
-            loadingCount: loading,
-            unloadedCount: unloaded,
+            totalStreamingEntities: entities.count + totalTiles,
+            loadedCount: loaded + tilesLoaded,
+            loadingCount: loading + tilesLoading,
+            unloadedCount: unloaded + tilesUnloaded,
             activeLoads: activeLoadCountSnapshot(),
-            loadCandidates: lastLoadCandidateCount,
+            loadCandidates: lastLoadCandidateCount + lastTileLoadCandidateCount,
             pendingLoadBacklog: lastPendingLoadBacklog
         )
     }
