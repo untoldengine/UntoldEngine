@@ -250,7 +250,7 @@ final class StaticBatchingTest: BaseRenderSetup {
         setParent(childId: selectablePipe, parentId: tileRoot)
 
         setEntityStaticBatchComponent(entityId: tileRoot)
-        setSceneChannelVisible(.contextGeometry, false)
+        setSceneChannel(.contextGeometry, .renderMode(.hidden))
         generateBatches()
 
         XCTAssertTrue(shouldHideSceneEntity(entityId: wallA))

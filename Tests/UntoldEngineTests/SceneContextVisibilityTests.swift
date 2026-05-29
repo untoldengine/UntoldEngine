@@ -22,11 +22,11 @@ final class SceneContextVisibilityTests: XCTestCase {
     }
 
     func testContextSceneChannelVisibilityCanToggle() {
-        setSceneChannelVisible(.contextGeometry, false)
+        setSceneChannel(.contextGeometry, .renderMode(.hidden))
         XCTAssertFalse(getSceneChannelVisible(.contextGeometry))
         XCTAssertEqual(getSceneChannelRenderMode(.contextGeometry), .hidden)
 
-        setSceneChannelVisible(.contextGeometry, true)
+        setSceneChannel(.contextGeometry, .renderMode(.normal))
         XCTAssertTrue(getSceneChannelVisible(.contextGeometry))
         XCTAssertEqual(getSceneChannelRenderMode(.contextGeometry), .normal)
     }
@@ -35,7 +35,7 @@ final class SceneContextVisibilityTests: XCTestCase {
         let entityId = createEntity()
         setEntitySceneChannels(entityId: entityId, channels: .contextGeometry)
 
-        setSceneChannelRenderMode(.contextGeometry, .wireframe)
+        setSceneChannel(.contextGeometry, .renderMode(.wireframe))
 
         XCTAssertTrue(getSceneChannelVisible(.contextGeometry))
         XCTAssertEqual(getSceneChannelRenderMode(.contextGeometry), .wireframe)
@@ -61,7 +61,7 @@ final class SceneContextVisibilityTests: XCTestCase {
         setEntityName(entityId: entityId, name: "Wall_North")
         _ = scene.assign(to: entityId, component: RenderComponent.self)
 
-        setSceneChannelVisible(.contextGeometry, false)
+        setSceneChannel(.contextGeometry, .renderMode(.hidden))
 
         XCTAssertFalse(isSelectableSceneEntity(entityId: entityId))
         XCTAssertTrue(isNonSelectableSceneContextEntity(entityId: entityId))
@@ -73,7 +73,7 @@ final class SceneContextVisibilityTests: XCTestCase {
         setEntityName(entityId: entityId, name: "Wall_North")
         setEntitySceneChannels(entityId: entityId, channels: [.selectableGeometry, .preserveIdentity])
 
-        setSceneChannelVisible(.contextGeometry, false)
+        setSceneChannel(.contextGeometry, .renderMode(.hidden))
 
         XCTAssertTrue(isSelectableSceneEntity(entityId: entityId))
         XCTAssertTrue(shouldPreserveSceneEntityIdentity(entityId: entityId))
@@ -85,7 +85,7 @@ final class SceneContextVisibilityTests: XCTestCase {
         let entityId = createEntity()
         setEntitySceneChannels(entityId: entityId, channels: .contextGeometry)
 
-        setSceneChannelVisible(.contextGeometry, false)
+        setSceneChannel(.contextGeometry, .renderMode(.hidden))
 
         XCTAssertTrue(hasEntitySceneChannel(entityId: entityId, channel: .contextGeometry))
         XCTAssertTrue(shouldHideSceneEntity(entityId: entityId))

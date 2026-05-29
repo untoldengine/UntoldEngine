@@ -23,30 +23,52 @@ For exported tiled scenes, the engine assigns channels automatically:
 
 This preserves the existing `NM_` workflow. Objects whose names start with `NM_` remain selectable by default; you do not need to call a channel visibility function to make them selectable.
 
-## Hiding Context Geometry
+## Setting Channel Properties
 
-To hide non-selectable context geometry while keeping selectable objects visible:
+All channel properties are set through a single function:
 
 ```swift
-setSceneChannelVisible(.contextGeometry, false)
+setSceneChannel(_ channel: SceneChannel, _ property: SceneChannelProperty)
+```
+
+`SceneChannelProperty` is an enum whose cases carry their value, so the compiler enforces the correct type for each property:
+
+```swift
+setSceneChannel(.contextGeometry, .renderMode(.wireframe))
+setSceneChannel(.contextGeometry, .renderMode(.hidden))
+setSceneChannel(.contextGeometry, .renderMode(.normal))
+```
+
+New properties can be added to `SceneChannelProperty` in the future without introducing new top-level functions.
+
+## Render Modes
+
+The `.renderMode` property accepts a `SceneChannelRenderMode`:
+
+| Mode | Effect |
+|---|---|
+| `.normal` | Rendered normally (default) |
+| `.hidden` | Skipped by the renderer entirely |
+| `.wireframe` | Drawn as edges over the lit scene |
+
+### Hiding Context Geometry
+
+```swift
+setSceneChannel(.contextGeometry, .renderMode(.hidden))
 ```
 
 To show it again:
 
 ```swift
-setSceneChannelVisible(.contextGeometry, true)
+setSceneChannel(.contextGeometry, .renderMode(.normal))
 ```
 
 This is a visibility feature, not transparency. Hidden entities are skipped by the renderer instead of being rendered with opacity `0.0`.
 
-## Render Modes
-
-Scene channels can also be assigned a render mode:
+### Wireframe Mode
 
 ```swift
-setSceneChannelRenderMode(.contextGeometry, .normal)
-setSceneChannelRenderMode(.contextGeometry, .hidden)
-setSceneChannelRenderMode(.contextGeometry, .wireframe)
+setSceneChannel(.contextGeometry, .renderMode(.wireframe))
 ```
 
 `.wireframe` skips the channel from the solid opaque passes and redraws it later over the lit scene. Exported `.untold` meshes can provide feature edge buffers (pre-selected boundary and hard-angle edges exported by the content pipeline), in which case the pass draws only those edges. Meshes without feature edge buffers fall back to triangle wireframe. This is useful for AR or construction walkthroughs where context geometry should remain available as a spatial guide without becoming semi-transparent filled surfaces.
@@ -106,11 +128,11 @@ This means:
 
 To make distant lines more visible, increase `minimumAlpha` or `fadeEndDistance`. To reduce clutter sooner, lower `fadeStartDistance` or `fadeEndDistance`. To make all lines lighter, lower `color.a`.
 
-The older visibility helpers are compatibility wrappers:
+## Reading Channel State
 
 ```swift
-setSceneChannelVisible(.contextGeometry, false) // same as .hidden
-setSceneChannelVisible(.contextGeometry, true)  // same as .normal
+let mode = getSceneChannelRenderMode(.contextGeometry)  // SceneChannelRenderMode
+let visible = getSceneChannelVisible(.contextGeometry)  // Bool
 ```
 
 ## Explicit Entity Channels
@@ -149,13 +171,13 @@ For large construction-site or architectural scenes:
 3. At runtime, hide context geometry when the user needs a clear real-world view:
 
 ```swift
-setSceneChannelVisible(.contextGeometry, false)
+setSceneChannel(.contextGeometry, .renderMode(.hidden))
 ```
 
 Or render it as a lightweight guide:
 
 ```swift
-setSceneChannelRenderMode(.contextGeometry, .wireframe)
+setSceneChannel(.contextGeometry, .renderMode(.wireframe))
 ```
 
 Selectable objects remain visible and pickable.
