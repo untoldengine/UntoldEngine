@@ -145,6 +145,15 @@ public struct EngineStreamingStats {
     public var loadedStreamingEntities: Int = 0
     public var loadingStreamingEntities: Int = 0
     public var unloadedStreamingEntities: Int = 0
+    // per-tick operational detail (from GeometryStreamingDiagnosticsSnapshot)
+    public var updateTriggered: Bool = false
+    public var updateWorkMs: Double = 0.0
+    public var nearbyEntitiesQueried: Int = 0
+    public var availableLoadSlots: Int = 0
+    public var evictionsPerformed: Int = 0
+    public var averageAsyncLoadMs: Double = 0.0
+    public var lastApplyLoadedMeshMs: Double = 0.0
+    public var tileSwapWarnings: Int = 0
 
     public init(
         activeLoads: Int = 0,
@@ -156,7 +165,15 @@ public struct EngineStreamingStats {
         blockedByGateMs: Double = 0.0,
         loadedStreamingEntities: Int = 0,
         loadingStreamingEntities: Int = 0,
-        unloadedStreamingEntities: Int = 0
+        unloadedStreamingEntities: Int = 0,
+        updateTriggered: Bool = false,
+        updateWorkMs: Double = 0.0,
+        nearbyEntitiesQueried: Int = 0,
+        availableLoadSlots: Int = 0,
+        evictionsPerformed: Int = 0,
+        averageAsyncLoadMs: Double = 0.0,
+        lastApplyLoadedMeshMs: Double = 0.0,
+        tileSwapWarnings: Int = 0
     ) {
         self.activeLoads = activeLoads
         self.loadCandidates = loadCandidates
@@ -168,6 +185,14 @@ public struct EngineStreamingStats {
         self.loadedStreamingEntities = loadedStreamingEntities
         self.loadingStreamingEntities = loadingStreamingEntities
         self.unloadedStreamingEntities = unloadedStreamingEntities
+        self.updateTriggered = updateTriggered
+        self.updateWorkMs = updateWorkMs
+        self.nearbyEntitiesQueried = nearbyEntitiesQueried
+        self.availableLoadSlots = availableLoadSlots
+        self.evictionsPerformed = evictionsPerformed
+        self.averageAsyncLoadMs = averageAsyncLoadMs
+        self.lastApplyLoadedMeshMs = lastApplyLoadedMeshMs
+        self.tileSwapWarnings = tileSwapWarnings
     }
 }
 
@@ -178,6 +203,12 @@ public struct EngineBatchingStats {
     public var lastRebuildCostMs: Double = 0.0
     public var lastRebuildInputMeshCount: Int = 0
     public var lastRebuildOutputBatchCount: Int = 0
+    // per-tick scheduler detail (from BatchingTickDiagnostics)
+    public var dirtyCellsBeforePrune: Int = 0
+    public var dirtyCellsAfterPrune: Int = 0
+    public var deferredByWorkBudget: Int = 0
+    public var skippedByComplexityGuard: Int = 0
+    public var dispatchedBuilds: Int = 0
 
     public init(
         batchGroupCount: Int = 0,
@@ -185,7 +216,12 @@ public struct EngineBatchingStats {
         rebuildsThisSecond: Int = 0,
         lastRebuildCostMs: Double = 0.0,
         lastRebuildInputMeshCount: Int = 0,
-        lastRebuildOutputBatchCount: Int = 0
+        lastRebuildOutputBatchCount: Int = 0,
+        dirtyCellsBeforePrune: Int = 0,
+        dirtyCellsAfterPrune: Int = 0,
+        deferredByWorkBudget: Int = 0,
+        skippedByComplexityGuard: Int = 0,
+        dispatchedBuilds: Int = 0
     ) {
         self.batchGroupCount = batchGroupCount
         self.batchedMeshCount = batchedMeshCount
@@ -193,6 +229,39 @@ public struct EngineBatchingStats {
         self.lastRebuildCostMs = lastRebuildCostMs
         self.lastRebuildInputMeshCount = lastRebuildInputMeshCount
         self.lastRebuildOutputBatchCount = lastRebuildOutputBatchCount
+        self.dirtyCellsBeforePrune = dirtyCellsBeforePrune
+        self.dirtyCellsAfterPrune = dirtyCellsAfterPrune
+        self.deferredByWorkBudget = deferredByWorkBudget
+        self.skippedByComplexityGuard = skippedByComplexityGuard
+        self.dispatchedBuilds = dispatchedBuilds
+    }
+}
+
+public struct EngineMemoryStats {
+    public var meshMemoryBytes: Int = 0
+    public var textureMemoryBytes: Int = 0
+    public var geometryBudgetBytes: Int = 0
+    public var textureBudgetBytes: Int = 0
+    public var utilizationPercent: Double = 0.0
+    public var isUnderPressure: Bool = false
+    public var trackedEntityCount: Int = 0
+
+    public init(
+        meshMemoryBytes: Int = 0,
+        textureMemoryBytes: Int = 0,
+        geometryBudgetBytes: Int = 0,
+        textureBudgetBytes: Int = 0,
+        utilizationPercent: Double = 0.0,
+        isUnderPressure: Bool = false,
+        trackedEntityCount: Int = 0
+    ) {
+        self.meshMemoryBytes = meshMemoryBytes
+        self.textureMemoryBytes = textureMemoryBytes
+        self.geometryBudgetBytes = geometryBudgetBytes
+        self.textureBudgetBytes = textureBudgetBytes
+        self.utilizationPercent = utilizationPercent
+        self.isUnderPressure = isUnderPressure
+        self.trackedEntityCount = trackedEntityCount
     }
 }
 
@@ -204,6 +273,7 @@ public struct EngineStatsSnapshot {
     public var culling: EngineCullingStats = .init()
     public var streaming: EngineStreamingStats = .init()
     public var batching: EngineBatchingStats = .init()
+    public var memory: EngineMemoryStats = .init()
 
     public init(
         frameIndex: UInt64 = 0,
@@ -212,7 +282,8 @@ public struct EngineStatsSnapshot {
         render: EngineRenderStats = .init(),
         culling: EngineCullingStats = .init(),
         streaming: EngineStreamingStats = .init(),
-        batching: EngineBatchingStats = .init()
+        batching: EngineBatchingStats = .init(),
+        memory: EngineMemoryStats = .init()
     ) {
         self.frameIndex = frameIndex
         self.timestampSeconds = timestampSeconds
@@ -221,5 +292,6 @@ public struct EngineStatsSnapshot {
         self.culling = culling
         self.streaming = streaming
         self.batching = batching
+        self.memory = memory
     }
 }

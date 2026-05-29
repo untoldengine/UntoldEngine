@@ -32,6 +32,64 @@ setEngineStatsLogging(
 )
 ```
 
+### Verbose output format
+
+With `profile: .verbose`, the engine logs 8 lines every interval:
+
+```
+Frame 1234 | CPU 12.34ms (81.0 fps, smoothed)  GPU 8.45ms exec / 90.0 fps cadence  [GPU-bound]
+Timing: frame 12.34ms (raw CPU) | update 1.23ms | render 8.45ms | cull 0.45ms | stream 2.34ms | batchTick 0.12ms | batchRebuild 0.00ms
+Render: draws 45 (opaque 32, transparent 3, shadow 8, batched 28) | triangles 125000 | visible 89
+Culling: frustum 234/512 failed 278 | occlusion 198/234 failed 36 | usedHZB true validHZB true
+Streaming: loaded 847 loading 3 unloaded 12 | active 3 | nearby 124 candidates 5 slots 4 | backlog 0 | pendingUploads 3 | gateMs 0.00
+Streaming: tick=true workMs 1.23 | evictions 0 | avgLoadMs 45.67 | applyMs 0.89 | tileSwapWarn 0
+Batching: groups 132 | batchedMeshes 916 | dirty 0→0 | defWork 0 skipComplex 2 | dispatched 0→0 groups | rebuilds/s 0 | rebuildMs 0.00
+Memory: mesh 312/512mb | tex 198/512mb | total 50% | entities 847
+```
+
+**Streaming line 1** — entity counts and slot pressure:
+
+| Field | What it tells you |
+|---|---|
+| `loaded / loading / unloaded` | Entity residency state across the full scene. |
+| `active` | Concurrent async loads in flight. |
+| `nearby … candidates … slots` | Entities in range → eligible this tick → slots free. A gap between candidates and slots means the concurrency limit is the bottleneck. |
+| `backlog` | Candidates that couldn't start because all slots were taken. Persistent nonzero = slot-starved. |
+| `pendingUploads` | Meshes waiting on the GPU upload gate. |
+| `gateMs` | Time the frame spent blocked waiting for the upload gate. |
+
+**Streaming line 2** — per-tick operational detail:
+
+| Field | What it tells you |
+|---|---|
+| `tick=true/false` | Whether the streaming update ran this frame. `false` = throttle interval hasn't elapsed. |
+| `workMs` | CPU time inside the streaming tick. Spikes here cause frame hitches. |
+| `evictions` | Mesh evictions triggered by memory pressure this tick. Frequent nonzero = budget too tight. |
+| `avgLoadMs` | Mean I/O + parse time per mesh load. High values = I/O bound, not slot-starved. |
+| `applyMs` | Main-thread GPU upload cost when a completed load is applied. |
+| `tileSwapWarn` | Cumulative tile representation thrash events (≥ 6 swaps in 5 s). |
+
+**Batching line** — rebuild scheduler state:
+
+| Field | What it tells you |
+|---|---|
+| `dirty X→X` | Dirty cells before vs after the work-budget prune. A large reduction means the scheduler is throttling rebuilds. |
+| `defWork` | Cells deferred because they exceeded the per-tick CPU budget. Persistent nonzero = rebuild falling behind. |
+| `skipComplex` | Cells permanently skipped by the complexity guard. These will never batch until the budget is raised. |
+| `dispatched→groups` | Cells rebuilt this tick → batch groups produced. |
+| `rebuildMs` | Total CPU time spent on rebuild work this tick. |
+
+**Memory line:**
+
+| Field | What it tells you |
+|---|---|
+| `mesh X/Ymb` | Geometry memory used vs geometry budget. |
+| `tex X/Ymb` | Texture memory used vs texture budget. |
+| `total X%` | Combined utilization across both pools. |
+| `PRESSURE` | Appears when either pool hits ≥ 85 % utilization. |
+
+---
+
 Read profiler snapshots programmatically:
 
 ```swift
@@ -141,9 +199,11 @@ Entities are failing `resolveBatchCandidate`. Common causes: transparent submesh
 
 ## Geometry Streaming Diagnostics
 
-### Per-tick operational snapshot
+The key per-tick streaming fields (`updateTriggered`, `updateWorkMs`, `nearbyEntitiesQueried`, `availableLoadSlots`, `evictionsPerformed`, `averageAsyncLoadMs`, `lastApplyLoadedMeshMs`, `tileSwapWarnings`) are automatically included in the verbose stats output — see [Verbose output format](#verbose-output-format) above. No extra setup is needed for routine streaming triage.
 
-`GeometryStreamingSystem` maintains a rich per-tick diagnostics struct that is updated every streaming update. Pull it at any point:
+### Per-tick operational snapshot (programmatic access)
+
+When you need to read streaming state in code rather than from the log, pull the diagnostics struct directly:
 
 ```swift
 let diag = GeometryStreamingSystem.shared.getDiagnosticsSnapshot()
@@ -153,6 +213,8 @@ print("slots available: \(diag.availableLoadSlots)  started: \(diag.startedLoads
 print("evictions: \(diag.evictionsPerformed)  tileSwapWarnings: \(diag.tileSwapWarnings)")
 print("avg async load: \(diag.averageAsyncLoadMs) ms")
 ```
+
+This struct also contains fields not in the verbose snapshot: `startedLoads`, `activeLoadsAtUpdateStart/End`, `lastAsyncLoadMs`, `lastAsyncReloadLODMs`, `lastFailedAsyncLoadMs`, and `lastUnloadMeshMs`.
 
 | Field | What it tells you |
 |---|---|
@@ -190,7 +252,9 @@ Logger.disable(category: .tileStreaming)
 
 ## Memory Budget Diagnostics
 
-`MemoryBudgetManager` tracks mesh and texture GPU memory against configured budgets. It logs automatically when pressure thresholds are crossed, and can be queried manually.
+Memory usage (mesh mb, texture mb, combined utilization, entity count, and pressure flag) is included in the verbose stats output automatically — see the **Memory line** in [Verbose output format](#verbose-output-format) above.
+
+For more detail than the one-line summary, `MemoryBudgetManager` provides two additional paths.
 
 ### Automatic pressure logging
 
@@ -204,6 +268,8 @@ MemoryBudgetManager Status:
 - Tracked Entities: 847
 - Under Pressure: false
 ```
+
+This fires at both the high-water and low-water thresholds, so you get one log when pressure starts and another when it clears.
 
 ### Manual snapshot
 
@@ -226,7 +292,11 @@ print("pressure: \(stats.isUnderPressure)")
 
 ## Batching Tick Diagnostics
 
-In addition to the material-diversity report above, `BatchingSystem` exposes a per-tick rebuild snapshot. Use it when the batch group count or frame time is unstable and you need to see inside the rebuild scheduler:
+The key rebuild-scheduler fields (`dirty X→X`, `defWork`, `skipComplex`, `dispatched→groups`, `rebuildMs`) are included in the verbose stats output automatically — see the **Batching line** in [Verbose output format](#verbose-output-format) above.
+
+### Full tick snapshot (programmatic access)
+
+`getTickDiagnosticsSnapshot()` exposes the complete per-tick struct, including fields not in the verbose output (`deferredByQuiescence`, `deferredByVisibility`, `appliedArtifacts`, `inFlightBuildCells`, `maxCellRebuildMs`, `rebuiltVertices`, `rebuiltBufferBytes`):
 
 ```swift
 let diag = BatchingSystem.shared.getTickDiagnosticsSnapshot()
