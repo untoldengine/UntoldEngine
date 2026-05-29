@@ -205,16 +205,24 @@ func getEntitiesWithLevel(level: Int) -> [EntityID] {
 }
 
 public func traverseSceneGraph() {
-    // Determine the maximum level in the hierarchy
     let maxLevel = scene.getAllEntities().compactMap {
         scene.get(component: ScenegraphComponent.self, for: $0)?.level
     }.max() ?? 0
 
-    // Traverse level by level
     for level in 0 ... maxLevel {
         let entitiesAtLevel = getEntitiesWithLevel(level: level)
         for entityId in entitiesAtLevel {
+            guard let local = scene.get(component: LocalTransformComponent.self, for: entityId),
+                  local.transformDirty
+            else { continue }
+
             updateTransformSystem(entityId: entityId)
+            local.transformDirty = false
+
+            // Parent world transform changed — children must recompute theirs.
+            for childId in getEntityChildren(parentId: entityId) {
+                scene.get(component: LocalTransformComponent.self, for: childId)?.transformDirty = true
+            }
         }
     }
 }

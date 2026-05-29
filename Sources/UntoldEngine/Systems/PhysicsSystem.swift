@@ -453,6 +453,7 @@ private func rungeKuttaIntegration(entityId: EntityID, deltaTime: Float) {
     position = position + velocityDelta
 
     transform.position = simd_float3(position.x, position.y, position.z)
+    transform.transformDirty = true
 
     // update angular velocity and orientation
     let k1av: simd_float3 = (physics.angularAcceleration) * deltaTime
@@ -477,6 +478,7 @@ private func rungeKuttaIntegration(entityId: EntityID, deltaTime: Float) {
     mQuat = simd_normalize(mQuat)
 
     transform.rotation = mQuat
+    transform.transformDirty = true
 }
 
 private func eulerIntegration(deltaTime: Float) {
