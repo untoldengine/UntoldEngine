@@ -2109,7 +2109,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             loadedCount: loaded + tilesLoaded,
             loadingCount: loading + tilesLoading,
             unloadedCount: unloaded + tilesUnloaded,
-            activeLoads: activeLoadCountSnapshot(),
+            activeLoads: activeLoadCountSnapshot() + activeTileLoadCount(),
             loadCandidates: lastLoadCandidateCount + lastTileLoadCandidateCount,
             pendingLoadBacklog: lastPendingLoadBacklog
         )
