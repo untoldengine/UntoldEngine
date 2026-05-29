@@ -247,13 +247,16 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             }
             let hzbStats = getHZBDebugStats()
             let geometryStreamingStats = GeometryStreamingSystem.shared.getStats()
+            let streamingDiag = GeometryStreamingSystem.shared.getDiagnosticsSnapshot()
             let meshResourceStats = MeshResourceManager.shared.getStats()
             let integrationStats = SystemIntegrationMonitor.shared.stats
             let batchGroups = BatchingSystem.shared.batchGroups
             let batchedMeshCount = batchGroups.reduce(0) { $0 + $1.entityIds.count }
+            let batchingDiag = BatchingSystem.shared.getTickDiagnosticsSnapshot()
             let gateBlockedMs = AssetLoadingGate.shared.consumeBlockedMsSinceLastSample()
             let gateActiveLoads = AssetLoadingGate.shared.activeLoadCount
             let drawStats = RenderStatsCollector.shared.snapshot()
+            let memStats = MemoryBudgetManager.shared.getStats()
 
             EngineStatsMonitor.shared.update { snapshot in
                 snapshot.timing.frameTotalMs = frameTotalMs
@@ -295,10 +298,33 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 snapshot.streaming.loadedStreamingEntities = geometryStreamingStats.loadedCount
                 snapshot.streaming.loadingStreamingEntities = geometryStreamingStats.loadingCount
                 snapshot.streaming.unloadedStreamingEntities = geometryStreamingStats.unloadedCount
+                snapshot.streaming.updateTriggered = streamingDiag.updateTriggered
+                snapshot.streaming.updateWorkMs = streamingDiag.updateWorkMs
+                snapshot.streaming.nearbyEntitiesQueried = streamingDiag.nearbyEntitiesQueried
+                snapshot.streaming.availableLoadSlots = streamingDiag.availableLoadSlots
+                snapshot.streaming.evictionsPerformed = streamingDiag.evictionsPerformed
+                snapshot.streaming.averageAsyncLoadMs = streamingDiag.averageAsyncLoadMs
+                snapshot.streaming.lastApplyLoadedMeshMs = streamingDiag.lastApplyLoadedMeshMs
+                snapshot.streaming.tileSwapWarnings = streamingDiag.tileSwapWarnings
 
                 snapshot.batching.batchGroupCount = batchGroups.count
                 snapshot.batching.batchedMeshCount = batchedMeshCount
                 snapshot.batching.rebuildsThisSecond = integrationStats.batchRebuildsThisSecond
+                snapshot.batching.lastRebuildCostMs = batchingDiag.rebuildWorkMs
+                snapshot.batching.lastRebuildOutputBatchCount = batchingDiag.rebuiltBatchGroups
+                snapshot.batching.dirtyCellsBeforePrune = batchingDiag.dirtyCellsBeforePrune
+                snapshot.batching.dirtyCellsAfterPrune = batchingDiag.dirtyCellsAfterPrune
+                snapshot.batching.deferredByWorkBudget = batchingDiag.deferredByWorkBudget
+                snapshot.batching.skippedByComplexityGuard = batchingDiag.skippedByComplexityGuard
+                snapshot.batching.dispatchedBuilds = batchingDiag.dispatchedBuilds
+
+                snapshot.memory.meshMemoryBytes = memStats.meshMemoryUsed
+                snapshot.memory.textureMemoryBytes = memStats.textureMemoryUsed
+                snapshot.memory.geometryBudgetBytes = memStats.geometryBudget
+                snapshot.memory.textureBudgetBytes = memStats.textureBudget
+                snapshot.memory.utilizationPercent = Double(memStats.utilizationPercent)
+                snapshot.memory.isUnderPressure = memStats.isUnderPressure
+                snapshot.memory.trackedEntityCount = memStats.trackedEntityCount
             }
             EngineStatsMonitor.shared.completeFrame()
         }

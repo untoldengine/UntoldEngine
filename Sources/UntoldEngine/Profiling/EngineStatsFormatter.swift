@@ -50,14 +50,26 @@ private func expandedEngineStatsString(_ snapshot: EngineStatsSnapshot) -> Strin
     let cpuBound = snapshot.timing.gpuFrameCadenceMs <= 0
         || snapshot.timing.smoothedFrameMs >= snapshot.timing.gpuFrameCadenceMs * 0.9
     let bottleneck = cpuBound ? "CPU-bound" : "GPU-bound"
+    let meshMB = formatMB(snapshot.memory.meshMemoryBytes)
+    let meshBudgetMB = formatMB(snapshot.memory.geometryBudgetBytes)
+    let texMB = formatMB(snapshot.memory.textureMemoryBytes)
+    let texBudgetMB = formatMB(snapshot.memory.textureBudgetBytes)
+    let memPct = String(format: "%.0f%%", snapshot.memory.utilizationPercent * 100)
+    let pressure = snapshot.memory.isUnderPressure ? " PRESSURE" : ""
     return """
     Frame \(snapshot.frameIndex) | CPU \(formatMs(snapshot.timing.smoothedFrameMs))ms (\(formatFPS(frameMs: snapshot.timing.smoothedFrameMs)) fps, smoothed)  GPU \(formatMs(snapshot.timing.gpuExecutionMs))ms exec / \(formatFPS(frameMs: snapshot.timing.gpuFrameCadenceMs)) fps cadence  [\(bottleneck)]
     Timing: frame \(formatMs(snapshot.timing.frameTotalMs))ms (raw CPU) | update \(formatMs(snapshot.timing.updateMs))ms | render \(formatMs(snapshot.timing.renderTotalMs))ms | cull \(formatMs(snapshot.timing.cullingMs))ms | stream \(formatMs(snapshot.timing.streamingRegionMs + snapshot.timing.geometryStreamingMs))ms | batchTick \(formatMs(snapshot.timing.batchingTickMs))ms | batchRebuild \(formatMs(snapshot.timing.batchingRebuildMs))ms
     Render: draws \(snapshot.render.drawCallsTotal) (opaque \(snapshot.render.drawCallsOpaque), transparent \(snapshot.render.drawCallsTransparent), shadow \(snapshot.render.drawCallsShadow), batched \(snapshot.render.drawCallsBatched)) | triangles \(snapshot.render.trianglesTotal) | visible \(snapshot.render.visibleInstances)
     Culling: frustum \(snapshot.culling.frustumPassed)/\(snapshot.culling.frustumTested) failed \(snapshot.culling.frustumFailed) | occlusion \(snapshot.culling.occlusionPassed)/\(snapshot.culling.occlusionTested) failed \(snapshot.culling.occlusionFailed) | usedHZB \(snapshot.culling.usedHZB) validHZB \(snapshot.culling.hzbIsValid)
-    Streaming: activeLoads \(snapshot.streaming.activeLoads) | candidates \(snapshot.streaming.loadCandidates) | backlog \(snapshot.streaming.pendingLoadBacklog) | residentMeshes \(snapshot.streaming.residentMeshEntities) | cachedResources \(snapshot.streaming.cachedMeshResources) | pendingUploads \(snapshot.streaming.pendingUploadCount) | blockedByGate \(formatMs(snapshot.streaming.blockedByGateMs))ms
-    Batching: groups \(snapshot.batching.batchGroupCount) | batchedMeshes \(snapshot.batching.batchedMeshCount) | rebuilds/s \(snapshot.batching.rebuildsThisSecond) | lastRebuild \(formatMs(snapshot.batching.lastRebuildCostMs))ms (\(snapshot.batching.lastRebuildInputMeshCount)->\(snapshot.batching.lastRebuildOutputBatchCount))
+    Streaming: loaded \(snapshot.streaming.loadedStreamingEntities) loading \(snapshot.streaming.loadingStreamingEntities) unloaded \(snapshot.streaming.unloadedStreamingEntities) | active \(snapshot.streaming.activeLoads) | nearby \(snapshot.streaming.nearbyEntitiesQueried) candidates \(snapshot.streaming.loadCandidates) slots \(snapshot.streaming.availableLoadSlots) | backlog \(snapshot.streaming.pendingLoadBacklog) | pendingUploads \(snapshot.streaming.pendingUploadCount) | gateMs \(formatMs(snapshot.streaming.blockedByGateMs))
+    Streaming: tick=\(snapshot.streaming.updateTriggered) workMs \(formatMs(snapshot.streaming.updateWorkMs)) | evictions \(snapshot.streaming.evictionsPerformed) | avgLoadMs \(formatMs(snapshot.streaming.averageAsyncLoadMs)) | applyMs \(formatMs(snapshot.streaming.lastApplyLoadedMeshMs)) | tileSwapWarn \(snapshot.streaming.tileSwapWarnings)
+    Batching: groups \(snapshot.batching.batchGroupCount) | batchedMeshes \(snapshot.batching.batchedMeshCount) | dirty \(snapshot.batching.dirtyCellsBeforePrune)→\(snapshot.batching.dirtyCellsAfterPrune) | defWork \(snapshot.batching.deferredByWorkBudget) skipComplex \(snapshot.batching.skippedByComplexityGuard) | dispatched \(snapshot.batching.dispatchedBuilds)→\(snapshot.batching.lastRebuildOutputBatchCount) groups | rebuilds/s \(snapshot.batching.rebuildsThisSecond) | rebuildMs \(formatMs(snapshot.batching.lastRebuildCostMs))
+    Memory: mesh \(meshMB)/\(meshBudgetMB)mb | tex \(texMB)/\(texBudgetMB)mb | total \(memPct) | entities \(snapshot.memory.trackedEntityCount)\(pressure)
     """
+}
+
+private func formatMB(_ bytes: Int) -> String {
+    String(format: "%.0f", Double(bytes) / (1024 * 1024))
 }
 
 private func formatMs(_ value: Double) -> String {
