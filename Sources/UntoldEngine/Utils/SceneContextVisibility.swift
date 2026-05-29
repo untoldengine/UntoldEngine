@@ -28,6 +28,10 @@ public enum SceneChannelRenderMode: Equatable, Sendable {
     case wireframe
 }
 
+public enum SceneChannelProperty: Sendable {
+    case renderMode(SceneChannelRenderMode)
+}
+
 private final class SceneChannelVisibilityState: @unchecked Sendable {
     static let shared = SceneChannelVisibilityState()
 
@@ -149,20 +153,29 @@ public func hasEntitySceneChannel(entityId: EntityID, channel: SceneChannel) -> 
     getEntitySceneChannels(entityId: entityId).intersection(channel).isEmpty == false
 }
 
-public func setSceneChannelVisible(_ channel: SceneChannel, _ visible: Bool) {
-    SceneChannelVisibilityState.shared.setVisible(channel, visible: visible)
+public func setSceneChannel(_ channel: SceneChannel, _ property: SceneChannelProperty) {
+    switch property {
+    case let .renderMode(mode):
+        SceneChannelVisibilityState.shared.setRenderMode(channel, mode)
+    }
+}
+
+public func getSceneChannelRenderMode(_ channel: SceneChannel) -> SceneChannelRenderMode {
+    SceneChannelVisibilityState.shared.renderMode(for: channel)
 }
 
 public func getSceneChannelVisible(_ channel: SceneChannel) -> Bool {
     SceneChannelVisibilityState.shared.isVisible(channel)
 }
 
+@available(*, deprecated, message: "Use setSceneChannel(_:, .renderMode(_:)) instead")
 public func setSceneChannelRenderMode(_ channel: SceneChannel, _ mode: SceneChannelRenderMode) {
-    SceneChannelVisibilityState.shared.setRenderMode(channel, mode)
+    setSceneChannel(channel, .renderMode(mode))
 }
 
-public func getSceneChannelRenderMode(_ channel: SceneChannel) -> SceneChannelRenderMode {
-    SceneChannelVisibilityState.shared.renderMode(for: channel)
+@available(*, deprecated, message: "Use setSceneChannel(_:, .renderMode(.normal)) or setSceneChannel(_:, .renderMode(.hidden)) instead")
+public func setSceneChannelVisible(_ channel: SceneChannel, _ visible: Bool) {
+    setSceneChannel(channel, .renderMode(visible ? .normal : .hidden))
 }
 
 public func resetSceneChannelVisibility() {
