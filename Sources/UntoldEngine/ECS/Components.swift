@@ -30,10 +30,10 @@ public class LocalTransformComponent: Component {
     public var rotationY: Float = 0
     public var rotationZ: Float = 0
 
-    // Set to true when position/rotation/scale is mutated directly (camera, physics,
-    // or any path that bypasses the eager syncWorldTransformAndMarkOctreeDirty path).
-    // traverseSceneGraph skips entities where this is false, eliminating per-frame
-    // matrix recomputation for static tile stubs and other never-moving entities.
+    /// Set to true when position/rotation/scale is mutated directly (camera, physics,
+    /// or any path that bypasses the eager syncWorldTransformAndMarkOctreeDirty path).
+    /// traverseSceneGraph skips entities where this is false, eliminating per-frame
+    /// matrix recomputation for static tile stubs and other never-moving entities.
     public var transformDirty: Bool = true
 
     public required init() {}
