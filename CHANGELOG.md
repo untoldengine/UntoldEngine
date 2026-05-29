@@ -1,4 +1,13 @@
 # Changelog
+## v0.12.16 - 2026-05-29
+### 🐞 Fixes
+- [Patch] Fix tile streaming fallback coverage for LOD/HLOD scenes (275ee1d…)
+- [Patch] Added dedicated log categories (1cc3ffb…)
+- [Patch] Fix shadow caster selection (5c0abad…)
+- [Patch] Added a static batching logger (e141c63…)
+- [Patch] Improve XR static batching performance and diagnostics (7dde7e0…)
+- [Patch] Implemented wireframe render mode (5094934…)
+- [Patch] Apply platform-appropriate batching tuning preset automatically at engine init (04b3b49…)
 ## v0.12.15 - 2026-05-26
 ### 🐞 Fixes
 - [Patch] Add scene channels for selectable and context geometry visibility (2c9217d…)
