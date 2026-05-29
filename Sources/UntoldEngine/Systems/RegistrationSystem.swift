@@ -2080,6 +2080,7 @@ func removeEntityScenegraph(entityId: EntityID) {
 public func registerTransformComponent(entityId: EntityID) {
     registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
     registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
+    anyTransformDirty = true
 }
 
 public func registerSceneGraphComponent(entityId: EntityID) {

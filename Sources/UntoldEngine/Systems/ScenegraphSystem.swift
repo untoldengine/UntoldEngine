@@ -11,6 +11,11 @@
 import Foundation
 import simd
 
+// Set to true whenever any entity's transformDirty flag is raised.
+// traverseSceneGraph bails out immediately when false, eliminating the
+// O(n) entity scan on frames where nothing in the scene graph moved.
+nonisolated(unsafe) var anyTransformDirty: Bool = false
+
 func updateTransformSystem(entityId: EntityID) {
     guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noLocalTransformComponent, entityId)
@@ -205,6 +210,8 @@ func getEntitiesWithLevel(level: Int) -> [EntityID] {
 }
 
 public func traverseSceneGraph() {
+    guard anyTransformDirty else { return }
+
     let maxLevel = scene.getAllEntities().compactMap {
         scene.get(component: ScenegraphComponent.self, for: $0)?.level
     }.max() ?? 0
@@ -221,8 +228,13 @@ public func traverseSceneGraph() {
 
             // Parent world transform changed — children must recompute theirs.
             for childId in getEntityChildren(parentId: entityId) {
-                scene.get(component: LocalTransformComponent.self, for: childId)?.transformDirty = true
+                if let childLocal = scene.get(component: LocalTransformComponent.self, for: childId) {
+                    childLocal.transformDirty = true
+                    anyTransformDirty = true
+                }
             }
         }
     }
+
+    anyTransformDirty = false
 }
