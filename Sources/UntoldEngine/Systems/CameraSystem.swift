@@ -148,11 +148,13 @@ private func applyCameraLocalTransform(entityId: EntityID, position: simd_float3
     if let position {
         localTransformComponent.position = position
         localTransformComponent.transformDirty = true
+        anyTransformDirty = true
     }
 
     if let rotation {
         localTransformComponent.rotation = simd_normalize(rotation)
         localTransformComponent.transformDirty = true
+        anyTransformDirty = true
     }
 
     guard let cameraComponent = scene.get(component: CameraComponent.self, for: entityId) else {
