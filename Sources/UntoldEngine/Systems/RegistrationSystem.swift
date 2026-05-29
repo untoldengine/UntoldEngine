@@ -1726,8 +1726,8 @@ private func registerTiledScene(
     let regState = RegistrationState()
     regState.completion = completion
 
-    // ── 5 + finish: shared bucket, interior zone, completion ─────────────
-    // Runs after the last tile batch completes.
+    /// ── 5 + finish: shared bucket, interior zone, completion ─────────────
+    /// Runs after the last tile batch completes.
     func finishRegistration() {
         var hasSharedBucket = false
         if let shared = tileManifest.sharedBucket {
@@ -1782,13 +1782,13 @@ private func registerTiledScene(
         regState.completion?(true)
     }
 
-    // Registers one batch of tile stubs, then schedules the next batch or
-    // calls finishRegistration when all tiles have been processed.
+    /// Registers one batch of tile stubs, then schedules the next batch or
+    /// calls finishRegistration when all tiles have been processed.
     func drainBatch() {
         let startIdx = regState.nextIndex
         let endIdx = min(startIdx + 50, tiles.count)
         withWorldMutationGate {
-            for i in startIdx..<endIdx {
+            for i in startIdx ..< endIdx {
                 let tile = tiles[i]
                 let tileURL = manifestDir.appendingPathComponent(tile.pathRelativeToManifest)
                 guard tile.bounds.min.count >= 3, tile.bounds.max.count >= 3,

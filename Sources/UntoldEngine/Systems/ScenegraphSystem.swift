@@ -11,9 +11,9 @@
 import Foundation
 import simd
 
-// Set to true whenever any entity's transformDirty flag is raised.
-// traverseSceneGraph bails out immediately when false, eliminating the
-// O(n) entity scan on frames where nothing in the scene graph moved.
+/// Set to true whenever any entity's transformDirty flag is raised.
+/// traverseSceneGraph bails out immediately when false, eliminating the
+/// O(n) entity scan on frames where nothing in the scene graph moved.
 nonisolated(unsafe) var anyTransformDirty: Bool = false
 
 func updateTransformSystem(entityId: EntityID) {
