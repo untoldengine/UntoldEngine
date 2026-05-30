@@ -1,4 +1,14 @@
 # Changelog
+## v0.12.17 - 2026-05-30
+### 🐞 Fixes
+- [Patch] Fixed stream profiler (abd8e4b…)
+- [Patch] Fixe active count in profiler (bd52558…)
+- [Patch] Spread tile stub registration across frames to eliminate stall (9ff304f…)
+- [Patch] Skip transform recomp for static entities using a dirty flag (6bb82f4…)
+- [Patch] Skip traverseSceneGraph entirely when no transforms are dirty (a5b4d5b…)
+- [Patch] Updated scene channel funcion api (0b2abbf…)
+### 📚 Docs
+- [Docs] Update profiler documentation (087575c…)
 ## v0.12.16 - 2026-05-29
 ### 🐞 Fixes
 - [Patch] Fix tile streaming fallback coverage for LOD/HLOD scenes (275ee1d…)
