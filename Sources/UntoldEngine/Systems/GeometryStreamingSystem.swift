@@ -959,11 +959,16 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 // prevent tile pop-in during fast rotation on coarse tile boundaries.
                 if !tilePassesStreamingFrustum(entityId: entityId, frustum: tileStreamingFrustum) { continue }
 
-                // Hierarchy gate: skip child tiles whose parent region is fully occluded.
-                if let nodeId = tileComp.quadtreeNodeId,
-                   let lastUnder = nodeId.lastIndex(of: "_")
-                {
-                    if occludedParentRegions.contains(String(nodeId[..<lastUnder])) {
+                // Hierarchy gate: walk all ancestors — if any ancestor region is fully
+                // occluded the tile is behind it regardless of depth.
+                if let nodeId = tileComp.quadtreeNodeId {
+                    var ancestor = nodeId
+                    var blocked = false
+                    while let lastUnder = ancestor.lastIndex(of: "_") {
+                        ancestor = String(ancestor[..<lastUnder])
+                        if occludedParentRegions.contains(ancestor) { blocked = true; break }
+                    }
+                    if blocked {
                         hierarchyGateSkipCount += 1
                         continue
                     }
