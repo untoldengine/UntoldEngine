@@ -396,4 +396,32 @@ final class TileHierarchyGateTests: BaseRenderSetup {
         XCTAssertEqual(tc.state, .unloaded,
                        "Deep tile must be blocked when an ancestor region (not just immediate parent) is fully occluded")
     }
+
+    func testHierarchyGate_doesNotBlockWhenCameraInsideParentRegion() throws {
+        // The parent region AABB contains the camera position (closest-point distance = 0).
+        // No occluder can be "closer" than distance 0, so the region must never be
+        // classified as occluded — child tiles near the camera must load.
+        //
+        // With center-distance this would produce a large distance (AABB center is far
+        // from the camera even when the camera is right inside the region), causing the
+        // full-screen occluder to incorrectly block the candidate.
+        setUpCameraLookingNegativeZ()
+
+        _ = makeFullScreenOccluder(distance: 5.0)
+
+        // Candidate tile whose parent region AABB wraps the camera (origin).
+        // The AABB spans from (-100,-100,-100) to (100,100,100) — camera at origin is inside.
+        let candidate = makeCandidateTile(
+            center: simd_float3(0, 0, -10),
+            halfExtent: simd_float3(90, 90, 90),
+            nodeId: "F01_Q_0_0"
+        )
+        GeometryStreamingSystem.shared.buildTileHierarchyIndex()
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: candidate))
+        XCTAssertEqual(tc.state, .parsing,
+                       "Tile inside the parent region must load even when a full-screen occluder is present — closest-point distance is 0 so no occluder can be considered in front")
+    }
 }
