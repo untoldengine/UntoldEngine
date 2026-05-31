@@ -296,6 +296,12 @@ FORCE_QUADTREE = False
 INLINE_QUADTREE_MAX_DEPTH            = 6
 INLINE_SPANNING_CHILD_OVERLAP_THRESHOLD = 2
 
+# KD-tree partitioning constants (used when --kdtree is passed).
+INLINE_KDTREE_MAX_DEPTH   = 7    # One extra level vs quadtree; binary splits are shallower.
+INLINE_KDTREE_MIN_LEAF    = 4    # Stop subdividing when a node holds <= this many objects.
+# When True, the KD-tree path is always used (set via the --kdtree CLI flag).
+FORCE_KDTREE = False
+
 INLINE_AUTO_FLOOR_BAND_HEIGHT = None   # set to a float (metres) to override auto-detection
 INLINE_MIN_FLOOR_BAND_HEIGHT  = 2.5
 INLINE_MAX_FLOOR_BAND_HEIGHT  = 5.0
@@ -1175,8 +1181,9 @@ def build_quadtree_assignments(objects, object_bounds, inline_metadata=None):
             if tier == "ExteriorShell":
                 shared_objects.append(obj)
             else:
-                floor_id = meta.get("floor_id", 1)
-                floor_root_node = f"F{floor_id:02d}_Q"
+                # Use the node_id already stored in metadata — it is the floor root
+                # whether the annotation pass used quadtree ("F02_Q") or KD-tree ("F02_K").
+                floor_root_node = meta["node_id"]
                 floor_root_key  = (floor_root_node, tier)
                 node_tier_groups.setdefault(floor_root_key, []).append(obj)
             continue
@@ -1254,6 +1261,268 @@ def _qt_descend(node, rect, max_depth):
     if len(overlapping) != 1:
         return node, len(overlapping)
     return _qt_descend(overlapping[0], rect, max_depth)
+
+
+# ============================================================
+# SECTION 4.65: KD-TREE SPATIAL PARTITIONING
+# Alternative to the quadtree: at each node, splits on the
+# longer spatial axis at the median of object centers.
+# Produces more balanced tiles than the quadtree in scenes
+# where objects cluster in one region of the floor.
+#
+# Node IDs use the same underscore scheme as the quadtree
+# ("F02_K_0_1_0") so the engine's prefix-based hierarchy
+# gate works without modification.
+# ============================================================
+
+class _KDNode:
+    """Axis-aligned KD-tree node over the XY (Blender XY) plane."""
+    __slots__ = ("min_x", "min_y", "max_x", "max_y", "depth", "node_id",
+                 "split_axis", "split_pos", "left", "right")
+
+    def __init__(self, min_x, min_y, max_x, max_y, depth, node_id):
+        self.min_x      = min_x
+        self.min_y      = min_y
+        self.max_x      = max_x
+        self.max_y      = max_y
+        self.depth      = depth
+        self.node_id    = node_id
+        self.split_axis = None   # 0=X  1=Y  None=leaf
+        self.split_pos  = None
+        self.left       = None   # objects with center[axis] <= split_pos
+        self.right      = None   # objects with center[axis] >  split_pos
+
+
+def _kd_build(entries, min_x, min_y, max_x, max_y, depth, node_id, max_depth, min_leaf):
+    """Build a KD-tree top-down from a list of object-center entries.
+
+    Splits on the longer spatial axis at the median object center so the
+    resulting tiles reflect actual geometry density rather than equal-area
+    subdivisions.
+
+    Args:
+        entries   : list of dicts, each with a "center" key (x, y, z)
+        min/max_x/y : spatial bounds of this node in Blender XY
+        depth     : current recursion depth
+        node_id   : string prefix for child IDs ("F02_K", "F02_K_0", …)
+        max_depth : deepest allowed level
+        min_leaf  : stop subdividing when len(entries) <= this value
+
+    Returns a _KDNode with left/right populated if not a leaf.
+    """
+    node = _KDNode(min_x, min_y, max_x, max_y, depth, node_id)
+
+    if depth >= max_depth or len(entries) <= min_leaf:
+        return node
+
+    # Split on the longer axis so tiles stay roughly square.
+    x_span = max_x - min_x
+    y_span = max_y - min_y
+    axis   = 0 if x_span >= y_span else 1
+
+    sorted_entries = sorted(entries, key=lambda e: e["center"][axis])
+    mid            = len(sorted_entries) // 2
+    split_pos      = sorted_entries[mid]["center"][axis]
+
+    left_entries  = [e for e in sorted_entries if e["center"][axis] <= split_pos]
+    right_entries = [e for e in sorted_entries if e["center"][axis] >  split_pos]
+
+    # Guard: all centers identical on this axis — declare leaf to avoid
+    # infinite recursion.
+    if not left_entries or not right_entries:
+        return node
+
+    node.split_axis = axis
+    node.split_pos  = split_pos
+
+    if axis == 0:
+        node.left  = _kd_build(left_entries,  min_x,     min_y, split_pos, max_y,
+                                depth + 1, f"{node_id}_0", max_depth, min_leaf)
+        node.right = _kd_build(right_entries, split_pos, min_y, max_x,     max_y,
+                                depth + 1, f"{node_id}_1", max_depth, min_leaf)
+    else:
+        node.left  = _kd_build(left_entries,  min_x, min_y,     max_x, split_pos,
+                                depth + 1, f"{node_id}_0", max_depth, min_leaf)
+        node.right = _kd_build(right_entries, min_x, split_pos, max_x, max_y,
+                                depth + 1, f"{node_id}_1", max_depth, min_leaf)
+
+    return node
+
+
+def _kd_assign(node, cx, cy):
+    """Descend the pre-built KD-tree and return the leaf node for point (cx, cy)."""
+    if node.split_axis is None:   # leaf
+        return node
+    if node.split_axis == 0:
+        child = node.left if cx <= node.split_pos else node.right
+    else:
+        child = node.left if cy <= node.split_pos else node.right
+    return _kd_assign(child, cx, cy)
+
+
+def _kd_assign_rect(node, rect_min_x, rect_min_y, rect_max_x, rect_max_y, cx, cy):
+    """Assign an AABB rect to a KD node, detecting spanning objects.
+
+    Returns (node, spatial_class) where spatial_class is "local" or "spanning".
+
+    An object is "spanning" at the current level when its AABB crosses the node's
+    split plane — it belongs to both children and cannot be cleanly routed to one.
+    At depth 0 this mirrors the quadtree path's spanning → shared-bucket routing.
+    At deeper levels the object lands in the intermediate node's tile, which has a
+    wider spatial coverage and handles the extra geometry naturally.
+    """
+    if node.split_axis is None:   # leaf — fully fits here
+        return node, "local"
+
+    if node.split_axis == 0:
+        crosses = rect_min_x < node.split_pos < rect_max_x
+        child   = node.left if cx <= node.split_pos else node.right
+    else:
+        crosses = rect_min_y < node.split_pos < rect_max_y
+        child   = node.left if cy <= node.split_pos else node.right
+
+    if crosses:
+        return node, "spanning"
+
+    return _kd_assign_rect(child, rect_min_x, rect_min_y, rect_max_x, rect_max_y, cx, cy)
+
+
+def compute_inline_kdtree_metadata(objects, object_bounds):
+    """Run floor + KD-tree + semantic annotation inline on imported objects.
+
+    Builds one KD-tree per floor from all of that floor's object centers,
+    then assigns each object to the deepest node whose region contains its
+    center.  Compared to the quadtree, this places split planes where
+    objects actually are, producing more balanced tiles in clustered scenes.
+
+    Returns:
+        metadata_dict : {obj.name: meta_dict}  — same schema as read_untold_metadata()
+    """
+    import math as _math
+
+    if not objects:
+        return {}
+
+    # --- Pass 1: build object cache ---
+    object_cache = []
+    global_min   = [float("inf")]  * 3
+    global_max   = [float("-inf")] * 3
+
+    for obj in objects:
+        bounds = object_bounds.get(obj.name)
+        if bounds is None:
+            continue
+        mn     = bounds["min"]
+        mx     = bounds["max"]
+        dims   = (mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2])
+        center = ((mn[0] + mx[0]) * 0.5,
+                  (mn[1] + mx[1]) * 0.5,
+                  (mn[2] + mx[2]) * 0.5)
+        for i in range(3):
+            global_min[i] = min(global_min[i], mn[i])
+            global_max[i] = max(global_max[i], mx[i])
+        object_cache.append({"obj": obj, "mn": mn, "mx": mx,
+                              "dims": dims, "center": center})
+
+    if not object_cache:
+        return {}
+
+    # --- Resolve floor count and band height (identical logic to quadtree path) ---
+    scene_min_z  = global_min[2]
+    scene_max_z  = global_max[2]
+    scene_z_span = max(scene_max_z - scene_min_z, 0.001)
+
+    if INLINE_FLOOR_COUNT_OVERRIDE and INLINE_FLOOR_BAND_HEIGHT_OVERRIDE:
+        floor_count = max(1, int(INLINE_FLOOR_COUNT_OVERRIDE))
+        band_height = float(INLINE_FLOOR_BAND_HEIGHT_OVERRIDE)
+    elif INLINE_FLOOR_COUNT_OVERRIDE:
+        floor_count = max(1, int(INLINE_FLOOR_COUNT_OVERRIDE))
+        band_height = scene_z_span / floor_count
+    elif INLINE_FLOOR_BAND_HEIGHT_OVERRIDE:
+        band_height = float(INLINE_FLOOR_BAND_HEIGHT_OVERRIDE)
+        floor_count = max(1, int(_math.ceil(scene_z_span / band_height)))
+    else:
+        band_height = INLINE_AUTO_FLOOR_BAND_HEIGHT or _inline_estimate_floor_band_height(object_cache)
+        floor_count = max(1, int(_math.ceil(scene_z_span / band_height)))
+
+    print(f"  [inline kd-tree] floor band height: {band_height:.2f}m, floors: {floor_count}")
+
+    # --- Group objects by floor ---
+    floor_entries = {fid: [] for fid in range(floor_count)}
+    for entry in object_cache:
+        fid = _inline_assign_floor_id(entry["center"][2], scene_min_z, band_height)
+        fid = max(0, min(fid, floor_count - 1))
+        entry["floor_id"] = fid
+        floor_entries[fid].append(entry)
+
+    # --- Build one KD-tree per floor from that floor's object centers ---
+    floor_roots = {}
+    for fid, entries in floor_entries.items():
+        root_id = f"F{fid + 1:02d}_K"
+        floor_roots[fid] = _kd_build(
+            entries,
+            global_min[0], global_min[1],
+            global_max[0], global_max[1],
+            depth=0, node_id=root_id,
+            max_depth=INLINE_KDTREE_MAX_DEPTH,
+            min_leaf=INLINE_KDTREE_MIN_LEAF,
+        )
+
+    # --- Pass 2: assign each object to its KD-tree node + semantic tier ---
+    # Spanning detection: if an object's AABB crosses a KD split plane, it is
+    # assigned to the node at that level (not a deeper leaf).  At depth=0 this
+    # mirrors the quadtree's shared-bucket / floor-root routing in
+    # build_quadtree_assignments; at deeper depths the object lands in the
+    # intermediate tile whose spatial coverage is wide enough to hold it.
+    metadata_dict = {}
+    leaf_object_counts = {}   # node_id → object count (for heavy-leaf diagnostics)
+
+    for entry in object_cache:
+        obj    = entry["obj"]
+        mn     = entry["mn"]
+        mx     = entry["mx"]
+        dims   = entry["dims"]
+        center = entry["center"]
+        fid    = entry["floor_id"]
+
+        node, spatial_class = _kd_assign_rect(
+            floor_roots[fid],
+            mn[0], mn[1], mx[0], mx[1],
+            center[0], center[1],
+        )
+
+        volume    = max(dims[0], 0.0) * max(dims[1], 0.0) * max(dims[2], 0.0)
+        materials = _inline_get_material_names(obj)
+        semantic, confidence = _inline_semantic_guess(obj.name, materials, dims, volume)
+
+        metadata_dict[obj.name] = {
+            "floor_id":      fid + 1,
+            "node_id":       node.node_id,
+            "depth":         node.depth,
+            "spatial_class": spatial_class,
+            "semantic":      semantic,
+            "confidence":    confidence,
+            "source":        "inline_kdtree",
+        }
+        leaf_object_counts[node.node_id] = leaf_object_counts.get(node.node_id, 0) + 1
+
+    annotated   = len(metadata_dict)
+    span_count  = sum(1 for m in metadata_dict.values() if m["spatial_class"] == "spanning")
+    print(f"  [inline kd-tree] annotated {annotated}/{len(objects)} objects "
+          f"({span_count} spanning → shared/floor-root routing)")
+
+    # --- Heavy-leaf diagnostics ---
+    if leaf_object_counts:
+        max_objs   = max(leaf_object_counts.values())
+        avg_objs   = sum(leaf_object_counts.values()) / len(leaf_object_counts)
+        top_leaves = sorted(leaf_object_counts.items(), key=lambda x: -x[1])[:5]
+        print(f"  [inline kd-tree] leaves: {len(leaf_object_counts)}  "
+              f"max_objects={max_objs}  avg_objects={avg_objs:.1f}")
+        print(f"  [inline kd-tree] top-5 heaviest leaves (by object count):")
+        for nid, cnt in top_leaves:
+            print(f"    {nid}: {cnt} objects")
+
+    return metadata_dict
 
 
 def _inline_estimate_floor_band_height(object_cache):
@@ -3734,17 +4003,25 @@ def run():
     # Classify and assign
     # ------------------------------------------------------------------
     print_export_stage("Classify objects")
-    pre_annotated  = has_quadtree_metadata(objects)
-    use_quadtree   = pre_annotated or FORCE_QUADTREE
-    node_tier_groups = None  # populated only in quadtree path
+    pre_annotated    = has_quadtree_metadata(objects)
+    use_kdtree       = FORCE_KDTREE and not pre_annotated
+    use_quadtree     = pre_annotated or FORCE_QUADTREE or FORCE_KDTREE
+    node_tier_groups = None  # populated only in quadtree/kdtree path
     metadata_map     = {}
     inline_metadata  = {}
 
     if use_quadtree:
         if pre_annotated:
             print("Quadtree metadata detected — using floor+quadtree partitioning.")
+            if FORCE_KDTREE:
+                print("  WARNING: --kdtree was passed but pre-annotated quadtree metadata "
+                      "takes precedence. The manifest will contain partitioning_mode='quadtree_floor'. "
+                      "Re-export without pre-annotated metadata to use KD-tree partitioning.")
+        elif use_kdtree:
+            print("--kdtree flag set — running inline KD-tree annotation pass...")
+            inline_metadata = compute_inline_kdtree_metadata(objects, object_bounds)
         else:
-            print("--quadtree flag set — running inline annotation pass...")
+            print("--quadtree flag set — running inline quadtree annotation pass...")
             inline_metadata = compute_inline_quadtree_metadata(objects, object_bounds)
 
         node_tier_groups, shared_objects, metadata_map = build_quadtree_assignments(
@@ -3758,8 +4035,9 @@ def run():
         # dry-run diagnostics do not crash.  The real export uses node_tier_groups.
         tile_assignments  = {}
         classification_map = {}
+        mode_str = "KD-tree" if use_kdtree else "Quadtree"
         print(
-            f"Quadtree groups: {len(node_tier_groups)} tile-tier pairs, "
+            f"{mode_str} groups: {len(node_tier_groups)} tile-tier pairs, "
             f"{len(shared_objects)} shared-bucket objects"
         )
     else:
@@ -3830,7 +4108,7 @@ def run():
 
     manifest = {
         "version": 4 if use_quadtree else 3,
-        "partitioning_mode": "quadtree_floor" if use_quadtree else "uniform_grid",
+        "partitioning_mode": "kdtree_floor" if use_kdtree else ("quadtree_floor" if use_quadtree else "uniform_grid"),
         "dry_run": DRY_RUN,
         "debug_aabb_only": DEBUG_AABB_ONLY,
         "source_scene_name": os.path.basename(source_scene_path) if source_scene_path else None,
@@ -3894,8 +4172,9 @@ def run():
     if DRY_RUN:
         if use_quadtree and node_tier_groups is not None:
             # Quadtree dry-run: summarise groups and build manifest without exporting.
-            print(f"\n=== QUADTREE DRY-RUN SUMMARY ===")
-            print(f"  Partitioning mode : quadtree_floor")
+            mode_label = "kdtree_floor" if use_kdtree else "quadtree_floor"
+            print(f"\n=== {mode_label.upper()} DRY-RUN SUMMARY ===")
+            print(f"  Partitioning mode : {mode_label}")
             print(f"  Tile-tier pairs   : {len(node_tier_groups)}")
             print(f"  Shared-bucket objs: {len(shared_objects)}")
             by_tier = {}
@@ -3907,6 +4186,29 @@ def run():
                 print(f"    {tier:25s}: {count:5d} objects  "
                       f"stream={radii.get('streaming','?')}m  "
                       f"unload={radii.get('unload','?')}m")
+
+            if use_kdtree:
+                # KD-tree leaf balance report — shows whether the tree is producing
+                # evenly-sized tiles or whether a few leaves are disproportionately large.
+                leaf_sizes = {}   # node_id → (object_count, est_memory_bytes)
+                for (node_id, tier), tile_objs in node_tier_groups.items():
+                    est = sum(estimate_object_memory_bytes(o, mesh_size_cache)
+                              for o in tile_objs)
+                    prev = leaf_sizes.get(node_id, (0, 0))
+                    leaf_sizes[node_id] = (prev[0] + len(tile_objs), prev[1] + est)
+                if leaf_sizes:
+                    counts = [v[0] for v in leaf_sizes.values()]
+                    mems   = [v[1] for v in leaf_sizes.values()]
+                    print(f"\n  KD-tree leaf balance ({len(leaf_sizes)} leaves):")
+                    print(f"    objects/leaf  — max={max(counts)}  "
+                          f"avg={sum(counts)/len(counts):.1f}  min={min(counts)}")
+                    print(f"    memory/leaf   — max={max(mems)//1024//1024}mb  "
+                          f"avg={sum(mems)/len(mems)/1024/1024:.1f}mb")
+                    top = sorted(leaf_sizes.items(), key=lambda x: -x[1][0])[:5]
+                    print(f"  Top-5 heaviest leaves (by object count):")
+                    for nid, (cnt, mem) in top:
+                        print(f"    {nid}: {cnt} objects, "
+                              f"~{mem//1024//1024}mb")
             for (node_id, tier), tile_objs in sorted(node_tier_groups.items()):
                 if not tile_objs:
                     continue
@@ -4557,6 +4859,17 @@ def parse_args(argv):
         ),
     )
     parser.add_argument(
+        "--kdtree",
+        action="store_true",
+        help=(
+            "Use floor+KD-tree partitioning (inline annotation only). "
+            "Splits each floor's XY plane on the longer axis at the median object center, "
+            "producing more balanced tiles in scenes where objects cluster in one region. "
+            "Ignored when the input is pre-annotated (quadtree metadata takes precedence). "
+            "Produces partitioning_mode='kdtree_floor' in the manifest."
+        ),
+    )
+    parser.add_argument(
         "--scene-profile",
         choices=("auto", "indoor", "outdoor"),
         default="auto",
@@ -4628,6 +4941,7 @@ def apply_cli_overrides(args):
     global PERIMETER_MODE
     global PERIMETER_DEPTH
     global FORCE_QUADTREE
+    global FORCE_KDTREE
     global SCENE_STREAMING_PROFILE
     global TIER_RADIUS_OVERRIDES
     global INLINE_FLOOR_COUNT_OVERRIDE
@@ -4673,6 +4987,9 @@ def apply_cli_overrides(args):
         PERIMETER_DEPTH = args.perimeter_depth
     if getattr(args, "quadtree", False):
         FORCE_QUADTREE = True
+    if getattr(args, "kdtree", False):
+        FORCE_KDTREE   = True
+        FORCE_QUADTREE = True   # KD-tree uses the same quadtree export pipeline
     if getattr(args, "scene_profile", None):
         SCENE_STREAMING_PROFILE = args.scene_profile
     if getattr(args, "tier_radius", None):
