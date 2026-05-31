@@ -344,6 +344,7 @@
                     Text("SMAA Edges").tag(RenderDebugViewMode.smaaEdges)
                     Text("SMAA Blend").tag(RenderDebugViewMode.smaaBlend)
                     Text("SMAA Difference").tag(RenderDebugViewMode.smaaDifference)
+                    Text("Occlusion Debug").tag(RenderDebugViewMode.occlusionDebug)
                 }
                 .pickerStyle(.menu)
 
