@@ -1779,6 +1779,7 @@ private func registerTiledScene(
         let skipMsg = regState.skippedCount > 0 ? " (\(regState.skippedCount) skipped)" : ""
         let bucketMsg = hasSharedBucket ? " + shared bucket" : ""
         Logger.log(message: "[loadTiledScene] '\(label)': \(regState.registeredCount) tile stubs registered\(skipMsg)\(bucketMsg).")
+        GeometryStreamingSystem.shared.buildTileHierarchyIndex()
         regState.completion?(true)
     }
 
@@ -1835,6 +1836,7 @@ private func registerTiledScene(
                     tileComp.priority = tile.priority ?? defaults.priority
                     tileComp.prefetchRadius = normalizedBands.prefetchRadius
                     tileComp.tileId = tile.tileId
+                    tileComp.quadtreeNodeId = tile.quadtreeNodeId
                     tileComp.isInterior = tile.isInterior ?? false
                     tileComp.hasFloorMetadata = tileManifest.partitioningMode == "quadtree_floor" && tile.floorId != nil
                     tileComp.floorId = tile.floorId ?? 0

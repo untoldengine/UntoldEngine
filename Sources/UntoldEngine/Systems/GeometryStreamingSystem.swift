@@ -191,6 +191,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// can quickly update the parent tile's visual readiness counters (O(1) lookup).
     var meshEntityToTileEntity: [EntityID: EntityID] = [:]
 
+    /// Maps quadtreeNodeId parent prefix → union AABB of all child tile stubs.
+    /// Built once per loadTiledScene call from v4 quadtree manifests.
+    /// Used by the hierarchy-aware tile load gate: child tiles whose parent region
+    /// is fully occluded by loaded geometry are skipped without being queued.
+    /// Empty for v3 uniform-grid manifests (tiles have no quadtreeNodeId).
+    var tileHierarchyIndex: [String: (min: simd_float3, max: simd_float3)] = [:]
+
     /// Tile stub entities that currently have an HLOD mesh loaded.
     /// Used to find and unload HLOD meshes for tiles that drift outside the query radius.
     var loadedHLODEntities: Set<EntityID> = []
@@ -865,7 +872,31 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             tileOccluders.sort { $0.distance < $1.distance }
         }
 
+        // Hierarchy gate: compute which parent regions are fully occluded by loaded
+        // geometry.  One test per parent region instead of one per child tile.
+        var occludedParentRegions: Set<String> = []
+        if enableOcclusionSort, !tileOccluders.isEmpty, !tileHierarchyIndex.isEmpty,
+           viewProjMatrixValid
+        {
+            for (prefix, aabb) in tileHierarchyIndex {
+                let rect = projectAABBToScreen(
+                    min: aabb.min, max: aabb.max,
+                    viewProj: lastViewProjMatrix,
+                    allowNearPlaneExpansion: false
+                )
+                guard rect.area > 1e-6 else { continue }
+                let center = (aabb.min + aabb.max) * 0.5
+                let dist = simd_length(center - effectiveCameraPosition)
+                let score = tileOcclusionScore(candidateRect: rect, distance: dist,
+                                               occluders: tileOccluders)
+                if score <= occlusionMinWeight {
+                    occludedParentRegions.insert(prefix)
+                }
+            }
+        }
+
         var tileLoadCandidates: [(EntityID, Float, Int, Float, Float, Float)] = [] // (entity, effectiveDist, priority, solidAngle, viewAlignment, occlusionScore)
+        var hierarchyGateSkipCount = 0
         for entityId in nearbyEntities {
             guard scene.exists(entityId) else { continue }
             guard let tileComp = scene.get(component: TileComponent.self, for: entityId)
@@ -927,6 +958,17 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 // applies tileFrustumGatePadding (wider than the mesh-level pad) to
                 // prevent tile pop-in during fast rotation on coarse tile boundaries.
                 if !tilePassesStreamingFrustum(entityId: entityId, frustum: tileStreamingFrustum) { continue }
+
+                // Hierarchy gate: skip child tiles whose parent region is fully occluded.
+                if let nodeId = tileComp.quadtreeNodeId,
+                   let lastUnder = nodeId.lastIndex(of: "_")
+                {
+                    if occludedParentRegions.contains(String(nodeId[..<lastUnder])) {
+                        hierarchyGateSkipCount += 1
+                        continue
+                    }
+                }
+
                 let (sa, va) = tileImportanceComponents(
                     entityId: entityId,
                     distance: effectiveDist,
@@ -1545,6 +1587,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             diagnostics.activeLoadsAtUpdateEnd = activeLoadsAtEnd
             diagnostics.evictionTriggered = evictionTriggered
             diagnostics.evictionsPerformed = evictedByLRU
+            diagnostics.tilesSkippedByHierarchyGate = hierarchyGateSkipCount
         }
     }
 
@@ -1836,6 +1879,31 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
     }
 
+    /// Builds tileHierarchyIndex from all registered TileComponent entities.
+    /// Groups tiles by their quadtreeNodeId parent prefix and unions their AABBs.
+    /// Called once after loadTiledScene completes tile stub registration.
+    func buildTileHierarchyIndex() {
+        var index: [String: (min: simd_float3, max: simd_float3)] = [:]
+        let tileComponentId = getComponentId(for: TileComponent.self)
+        let entities = queryEntitiesWithComponentIds([tileComponentId], in: scene)
+        for entityId in entities {
+            guard let tc = scene.get(component: TileComponent.self, for: entityId),
+                  let nodeId = tc.quadtreeNodeId, nodeId.count > 1,
+                  let local = scene.get(component: LocalTransformComponent.self, for: entityId)
+            else { continue }
+            guard let lastUnder = nodeId.lastIndex(of: "_") else { continue }
+            let prefix = String(nodeId[..<lastUnder])
+            let bbMin = local.boundingBox.min
+            let bbMax = local.boundingBox.max
+            if let existing = index[prefix] {
+                index[prefix] = (simd_min(existing.min, bbMin), simd_max(existing.max, bbMax))
+            } else {
+                index[prefix] = (bbMin, bbMax)
+            }
+        }
+        tileHierarchyIndex = index
+    }
+
     func tileHasUsableFullGeometry(_ tileComp: TileComponent) -> Bool {
         guard tileComp.state == .parsed else { return false }
         return tileComp.visualState == .usable || tileComp.visualState == .complete
@@ -2072,6 +2140,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
             cameraVelocity = .zero
             firstRangeTimestamps.removeAll()
             interiorZone = nil
+            tileHierarchyIndex.removeAll()
         }
         NativeTextureLoader.purgeSharedCache()
     }
@@ -2141,6 +2210,7 @@ public struct GeometryStreamingDiagnosticsSnapshot: Sendable {
     public var lastUnloadMeshMs: Double = 0.0
     public var lastFailedAsyncLoadMs: Double = 0.0
     public var tileSwapWarnings: Int = 0
+    public var tilesSkippedByHierarchyGate: Int = 0
 
     public init() {}
 }

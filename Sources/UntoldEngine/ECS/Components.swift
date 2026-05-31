@@ -504,6 +504,11 @@ public class TileComponent: Component {
     /// Human-readable tile identifier from the manifest (e.g. "tile_3_2").
     public var tileId: String = ""
 
+    /// Quadtree node identifier from the manifest (e.g. "F02Q100").
+    /// Present only in v4 quadtree_floor manifests; nil for v3 uniform-grid tiles.
+    /// Used by the hierarchy-aware tile culling gate in GeometryStreamingSystem.
+    public var quadtreeNodeId: String?
+
     /// When true this tile contains interior-only geometry (StructuralInterior,
     /// RoomContents, FineProps).  The streaming system gates loading of these
     /// tiles on the camera being inside the scene's interior_zone.

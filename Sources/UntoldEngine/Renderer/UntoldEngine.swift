@@ -306,6 +306,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                 snapshot.streaming.averageAsyncLoadMs = streamingDiag.averageAsyncLoadMs
                 snapshot.streaming.lastApplyLoadedMeshMs = streamingDiag.lastApplyLoadedMeshMs
                 snapshot.streaming.tileSwapWarnings = streamingDiag.tileSwapWarnings
+                snapshot.streaming.tilesSkippedByHierarchyGate = streamingDiag.tilesSkippedByHierarchyGate
 
                 snapshot.batching.batchGroupCount = batchGroups.count
                 snapshot.batching.batchedMeshCount = batchedMeshCount

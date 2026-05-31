@@ -3302,7 +3302,7 @@ public enum RenderPasses {
         let shouldDrawStaticBatchCells = settings.showStaticBatchCellBounds
         let shouldDrawTileBounds = settings.showTileBounds
         let shouldDrawOccludedBounds = isOcclusionDebugMode
-        guard (settings.enabled || isOcclusionDebugMode),
+        guard settings.enabled || isOcclusionDebugMode,
               shouldDrawOctreeBounds || shouldDrawStaticBatchCells || shouldDrawTileBounds || shouldDrawOccludedBounds
         else {
             return
