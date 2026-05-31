@@ -154,6 +154,7 @@ public struct EngineStreamingStats {
     public var averageAsyncLoadMs: Double = 0.0
     public var lastApplyLoadedMeshMs: Double = 0.0
     public var tileSwapWarnings: Int = 0
+    public var tilesSkippedByHierarchyGate: Int = 0
 
     public init(
         activeLoads: Int = 0,
