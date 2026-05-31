@@ -352,4 +352,48 @@ final class TileHierarchyGateTests: BaseRenderSetup {
         XCTAssertEqual(tc.state, .unloaded,
                        "Tile must not be dispatched when its parent region is fully occluded")
     }
+
+    func testHierarchyGate_blocksDeepChildWhenAncestorIsOccluded() throws {
+        // A depth-4 tile ("F01_Q_0_0") whose grandparent region ("F01_Q") is fully
+        // occluded must be blocked even though the immediate parent ("F01_Q_0") is not
+        // independently in occludedParentRegions.
+        //
+        // Setup:
+        //   occluder    — large tile at depth 2 whose AABB covers the grandparent region
+        //   depth-2 tile "F01_Q_0"     — contributes to index key "F01_Q"
+        //   candidate   "F01_Q_0_0_0"  — depth 4; immediate parent "F01_Q_0_0" has no
+        //                                index entry (no tiles contribute to it), so the
+        //                                single-level check would miss it; the ancestor
+        //                                walk must catch "F01_Q" instead.
+        setUpCameraLookingNegativeZ()
+
+        _ = makeFullScreenOccluder(distance: 5.0)
+
+        // Register a depth-2 tile so the index gets an entry for grandparent "F01_Q".
+        let shallowTile = makeCandidateTile(
+            center: simd_float3(0, 0, -50),
+            halfExtent: simd_float3(20, 20, 5),
+            nodeId: "F01_Q_0"
+        )
+        // Force it into the loaded set so its AABB contributes to the occluder list
+        // on the next tick — but keep it parsed so the tile streaming pass skips it.
+        if let tc = scene.get(component: TileComponent.self, for: shallowTile) {
+            tc.state = .parsed
+        }
+        GeometryStreamingSystem.shared.markLoadedTileEntity(shallowTile)
+
+        // Deep candidate: immediate parent "F01_Q_0_0" has no index entry, but
+        // ancestor "F01_Q" will be in occludedParentRegions via the full-screen occluder.
+        let deepCandidate = makeCandidateTile(
+            center: simd_float3(0, 0, -50),
+            nodeId: "F01_Q_0_0_0"
+        )
+        GeometryStreamingSystem.shared.buildTileHierarchyIndex()
+
+        GeometryStreamingSystem.shared.update(cameraPosition: .zero, deltaTime: 0.016)
+
+        let tc = try XCTUnwrap(scene.get(component: TileComponent.self, for: deepCandidate))
+        XCTAssertEqual(tc.state, .unloaded,
+                       "Deep tile must be blocked when an ancestor region (not just immediate parent) is fully occluded")
+    }
 }
