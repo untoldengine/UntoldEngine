@@ -885,8 +885,13 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                     allowNearPlaneExpansion: false
                 )
                 guard rect.area > 1e-6 else { continue }
-                let center = (aabb.min + aabb.max) * 0.5
-                let dist = simd_length(center - effectiveCameraPosition)
+                // Use closest-point distance so a large parent region is not
+                // classified as occluded when the camera is near its near face.
+                // Center distance would pass the occluder depth gate for any
+                // occluder closer than the center, which can block child tiles
+                // that are right in front of the camera.
+                let clamped = simd_clamp(effectiveCameraPosition, aabb.min, aabb.max)
+                let dist = simd_length(clamped - effectiveCameraPosition)
                 let score = tileOcclusionScore(candidateRect: rect, distance: dist,
                                                occluders: tileOccluders)
                 if score <= occlusionMinWeight {
