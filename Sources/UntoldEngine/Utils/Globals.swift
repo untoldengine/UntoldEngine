@@ -1194,6 +1194,8 @@ public enum RenderDebugViewMode: Int, CaseIterable, Sendable {
     case smaaEdges = 6
     case smaaBlend = 7
     case smaaDifference = 8
+    /// Renders the lit scene with green wireframe AABBs around HZB-occluded entities.
+    case occlusionDebug = 9
 }
 
 // TODO: try to remove this var, because only make sense on the editor side

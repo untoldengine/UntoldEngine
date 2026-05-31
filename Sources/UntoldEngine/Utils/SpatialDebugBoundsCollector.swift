@@ -29,15 +29,20 @@ public struct SpatialDebugBoundsSnapshot {
     /// octree leaf placement (tile stubs span multiple octree children and are
     /// stored at internal nodes, not leaves).
     public var tileBounds: [SpatialDebugBound]
+    /// Per-entity AABBs for entities that passed frustum culling but were occluded
+    /// by the HZB pyramid. Populated only when renderDebugViewMode == .occlusionDebug.
+    public var occludedEntityBounds: [SpatialDebugBound]
 
     public init(
         octreeLeafBounds: [SpatialDebugBound] = [],
         staticBatchCellBounds: [SpatialDebugBound] = [],
-        tileBounds: [SpatialDebugBound] = []
+        tileBounds: [SpatialDebugBound] = [],
+        occludedEntityBounds: [SpatialDebugBound] = []
     ) {
         self.octreeLeafBounds = octreeLeafBounds
         self.staticBatchCellBounds = staticBatchCellBounds
         self.tileBounds = tileBounds
+        self.occludedEntityBounds = occludedEntityBounds
     }
 }
 
@@ -58,6 +63,7 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
     private let cullingCulledColor = simd_float4(0.30, 0.60, 1.00, 1.0)
     private let cullingHiddenColor = simd_float4(0.55, 0.55, 0.55, 1.0)
     private let cullingMixedColor = simd_float4(1.00, 0.55, 0.15, 1.0)
+    private let occlusionCulledEntityColor = simd_float4(0.20, 0.95, 0.20, 1.0)
     private let staticBatchCellPlainColor = simd_float4(0.95, 0.85, 0.30, 1.0)
     private let staticBatchCellLOD0Color = simd_float4(1.0, 0.0, 0.0, 1.0)
     private let staticBatchCellLOD1Color = simd_float4(0.0, 1.0, 0.0, 1.0)
@@ -68,9 +74,14 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
 
     public func collectSnapshot() -> SpatialDebugBoundsSnapshot {
         let settings = SpatialDebugVisualization.shared
-        guard settings.enabled else { return SpatialDebugBoundsSnapshot() }
+        let isOcclusionMode = renderDebugViewMode == .occlusionDebug
+        guard settings.enabled || isOcclusionMode else { return SpatialDebugBoundsSnapshot() }
 
         var snapshot = SpatialDebugBoundsSnapshot()
+
+        if isOcclusionMode {
+            snapshot.occludedEntityBounds = collectOccludedEntityBounds()
+        }
 
         if settings.showOctreeLeafBounds {
             let leafSnapshots = OctreeSystem.shared.getLeafNodeSnapshots(
@@ -367,5 +378,48 @@ public final class SpatialDebugBoundsCollector: @unchecked Sendable {
         )
         let maxPoint = minPoint + simd_float3(repeating: cellSize)
         return AABB(min: minPoint, max: maxPoint)
+    }
+
+    /// Returns world-space AABBs for entities that are inside the view frustum but
+    /// were rejected by the HZB occlusion pass — i.e. genuinely occluded by occluders.
+    private func collectOccludedEntityBounds() -> [SpatialDebugBound] {
+        let visibleSet = RenderPasses.visibleEntitySetSnapshot()
+        let frustum = currentFrameFrustum
+
+        let transformId = getComponentId(for: WorldTransformComponent.self)
+        let renderId = getComponentId(for: RenderComponent.self)
+        let localTransformId = getComponentId(for: LocalTransformComponent.self)
+        let entities = queryEntitiesWithComponentIds([transformId, renderId, localTransformId], in: scene)
+
+        var bounds: [SpatialDebugBound] = []
+        bounds.reserveCapacity(entities.count / 4)
+
+        for entityId in entities {
+            guard let renderComp = scene.get(component: RenderComponent.self, for: entityId),
+                  renderComp.isVisible,
+                  !visibleSet.contains(entityId),
+                  let worldTransform = scene.get(component: WorldTransformComponent.self, for: entityId),
+                  let localTransform = scene.get(component: LocalTransformComponent.self, for: entityId)
+            else { continue }
+
+            let (worldMin, worldMax) = worldAABB_MinMax(
+                localMin: localTransform.boundingBox.min,
+                localMax: localTransform.boundingBox.max,
+                worldMatrix: worldTransform.space
+            )
+
+            // Only show entities that are inside the frustum — those are HZB-occluded.
+            // Entities outside the frustum are frustum-culled, not occlusion-culled.
+            if let f = frustum {
+                guard isAABBInFrustum(f, min: worldMin, max: worldMax) else { continue }
+            }
+
+            bounds.append(SpatialDebugBound(
+                bounds: AABB(min: worldMin, max: worldMax),
+                color: occlusionCulledEntityColor
+            ))
+        }
+
+        return bounds
     }
 }

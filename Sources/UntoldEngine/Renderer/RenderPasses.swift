@@ -61,6 +61,7 @@ public enum RenderPasses {
         let lock = NSLock()
         var transparencyXRDepthWriteState: MTLDepthStencilState?
         var wireframeXRDepthWriteState: MTLDepthStencilState?
+        var alwaysDepthState: MTLDepthStencilState?
         var spatialDebugLineBuffer: MTLBuffer?
         var spatialDebugLineBufferCapacityVertices: Int = 0
         var spatialDebugLastLogTime: TimeInterval = 0
@@ -136,6 +137,29 @@ public enum RenderPasses {
             runtimeState.wireframeXRDepthWriteState = created
         }
         let result = runtimeState.wireframeXRDepthWriteState
+        runtimeState.lock.unlock()
+        return result
+    }
+
+    @inline(__always)
+    private static func getOrCreateAlwaysDepthState(device: MTLDevice) -> MTLDepthStencilState? {
+        runtimeState.lock.lock()
+        if let cached = runtimeState.alwaysDepthState {
+            runtimeState.lock.unlock()
+            return cached
+        }
+        runtimeState.lock.unlock()
+
+        let descriptor = MTLDepthStencilDescriptor()
+        descriptor.depthCompareFunction = .always
+        descriptor.isDepthWriteEnabled = false
+        let created = device.makeDepthStencilState(descriptor: descriptor)
+
+        runtimeState.lock.lock()
+        if runtimeState.alwaysDepthState == nil {
+            runtimeState.alwaysDepthState = created
+        }
+        let result = runtimeState.alwaysDepthState
         runtimeState.lock.unlock()
         return result
     }
@@ -3273,10 +3297,14 @@ public enum RenderPasses {
 
     public static let spatialDebugBoundsExecution: RenderPassExecution = { commandBuffer in
         let settings = SpatialDebugVisualization.shared
+        let isOcclusionDebugMode = renderDebugViewMode == .occlusionDebug
         let shouldDrawOctreeBounds = settings.showOctreeLeafBounds
         let shouldDrawStaticBatchCells = settings.showStaticBatchCellBounds
         let shouldDrawTileBounds = settings.showTileBounds
-        guard settings.enabled, shouldDrawOctreeBounds || shouldDrawStaticBatchCells || shouldDrawTileBounds else {
+        let shouldDrawOccludedBounds = isOcclusionDebugMode
+        guard (settings.enabled || isOcclusionDebugMode),
+              shouldDrawOctreeBounds || shouldDrawStaticBatchCells || shouldDrawTileBounds || shouldDrawOccludedBounds
+        else {
             return
         }
 
@@ -3304,6 +3332,7 @@ public enum RenderPasses {
         let leafBounds = shouldDrawOctreeBounds ? snapshot.octreeLeafBounds : []
         let staticBatchCellBounds = shouldDrawStaticBatchCells ? snapshot.staticBatchCellBounds : []
         let tileBounds = shouldDrawTileBounds ? snapshot.tileBounds : []
+        let occludedBounds = shouldDrawOccludedBounds ? snapshot.occludedEntityBounds : []
 
         let maxLeafNodeCount = settings.maxLeafNodeCount
         let drawLeafCount = maxLeafNodeCount > 0 ? min(maxLeafNodeCount, leafBounds.count) : leafBounds.count
@@ -3317,8 +3346,9 @@ public enum RenderPasses {
             : staticBatchCellBounds.count
         let maxTileNodeCount = settings.maxTileNodeCount
         let drawTileCount = maxTileNodeCount > 0 ? min(maxTileNodeCount, tileBounds.count) : tileBounds.count
+        let drawOccludedCount = occludedBounds.count
 
-        guard drawLeafCount > 0 || drawStaticBatchCellCount > 0 || drawTileCount > 0 else {
+        guard drawLeafCount > 0 || drawStaticBatchCellCount > 0 || drawTileCount > 0 || drawOccludedCount > 0 else {
             return
         }
 
@@ -3356,8 +3386,22 @@ public enum RenderPasses {
             groupedBounds[key]?.bounds.append(item.bounds)
         }
 
+        // Occluded entity bounds are kept separate — they need an always-pass depth
+        // state so the lines are visible even though the mesh is behind an occluder.
+        var occludedGroupedBounds: [SpatialDebugColorKey: (color: simd_float4, bounds: [AABB])] = [:]
+        var occludedGroupOrder: [SpatialDebugColorKey] = []
+        for i in 0 ..< drawOccludedCount {
+            let item = occludedBounds[i]
+            let key = spatialDebugColorKey(item.color)
+            if occludedGroupedBounds[key] == nil {
+                occludedGroupedBounds[key] = (color: item.color, bounds: [])
+                occludedGroupOrder.append(key)
+            }
+            occludedGroupedBounds[key]?.bounds.append(item.bounds)
+        }
+
         var lineVertices: [SIMD4<Float>] = []
-        let drawBoundsCount = drawLeafCount + drawStaticBatchCellCount + drawTileCount
+        let drawBoundsCount = drawLeafCount + drawStaticBatchCellCount + drawTileCount + drawOccludedCount
         lineVertices.reserveCapacity(drawBoundsCount * 24)
         var batches: [SpatialDebugLineBatch] = []
         batches.reserveCapacity(groupOrder.count)
@@ -3373,6 +3417,28 @@ public enum RenderPasses {
             let vertexCount = lineVertices.count - vertexStart
             if vertexCount > 0 {
                 batches.append(
+                    SpatialDebugLineBatch(
+                        color: group.color,
+                        vertexStart: vertexStart,
+                        vertexCount: vertexCount
+                    )
+                )
+            }
+        }
+
+        var occludedBatches: [SpatialDebugLineBatch] = []
+        occludedBatches.reserveCapacity(occludedGroupOrder.count)
+        for key in occludedGroupOrder {
+            guard let group = occludedGroupedBounds[key] else { continue }
+            let vertexStart = lineVertices.count
+
+            for bounds in group.bounds {
+                appendAABBLineVertices(bounds, to: &lineVertices)
+            }
+
+            let vertexCount = lineVertices.count - vertexStart
+            if vertexCount > 0 {
+                occludedBatches.append(
                     SpatialDebugLineBatch(
                         color: group.color,
                         vertexStart: vertexStart,
@@ -3454,6 +3520,29 @@ public enum RenderPasses {
                 vertexCount: batch.vertexCount,
                 category: .other
             )
+        }
+
+        // Occluded entity bounds must draw on top of occluding geometry, so switch to
+        // an always-pass depth state before drawing them.
+        if !occludedBatches.isEmpty {
+            let alwaysState = getOrCreateAlwaysDepthState(device: renderInfo.device)
+            if let alwaysState {
+                renderEncoder.setDepthStencilState(alwaysState)
+            }
+            for batch in occludedBatches {
+                var debugColor = batch.color
+                renderEncoder.setFragmentBytes(
+                    &debugColor,
+                    length: MemoryLayout<simd_float4>.stride,
+                    index: 0
+                )
+                renderEncoder.drawPrimitivesTracked(
+                    type: .line,
+                    vertexStart: batch.vertexStart,
+                    vertexCount: batch.vertexCount,
+                    category: .other
+                )
+            }
         }
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)

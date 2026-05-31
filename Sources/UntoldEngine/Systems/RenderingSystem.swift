@@ -1091,12 +1091,14 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
         return textureResources.smaaBlendTexture
     case .smaaDifference:
         return textureResources.smaaBlendTexture
+    case .occlusionDebug:
+        return textureResources.sceneCompositeTexture
     }
 }
 
 private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Bool {
     switch mode {
-    case .lit, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference:
+    case .lit, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference, .occlusionDebug:
         return true
     case .albedo, .normal, .depth, .ssaoBlurred:
         return false
