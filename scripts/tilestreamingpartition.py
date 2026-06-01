@@ -4098,6 +4098,49 @@ def run():
     shared_filepath    = os.path.join(output_dir, f"{shared_bucket_name}.{ext}")
 
     # ------------------------------------------------------------------
+    # Derive tile_size from actual tile extents (quadtree / KD-tree only)
+    # ------------------------------------------------------------------
+    # For quadtree and KD-tree exports the config constants TILE_SIZE_X/Z are
+    # only used for spanning classification — they are not the footprint of the
+    # produced tiles.  Actual tile sizes are determined by spatial partitioning
+    # and can be far smaller (often 1–10 m vs the 25 m constant).
+    #
+    # The engine reads tile_size to calibrate the static batch cell size.  A
+    # 25 m cell derived from the constant would contain hundreds of tiny tiles,
+    # routinely exceeding the per-cell complexity guard and leaving large regions
+    # permanently unbatched.
+    #
+    # Fix: measure the 90th-percentile XZ extent of the tiles that were actually
+    # produced and write that as tile_size.  The p90 excludes the top 10% of
+    # large coarse tiles (root-level ExteriorShell stubs that span whole floors)
+    # while still sizing the cell large enough to contain most leaf tiles fully.
+    # Uniform-grid tile_size_x/z are correct as-is and are left unchanged.
+    if use_quadtree and node_tier_groups:
+        extents = []
+        for tile_objs in node_tier_groups.values():
+            if not tile_objs:
+                continue
+            aabb = compute_objects_aabb_usd(tile_objs, object_bounds)
+            if aabb is None:
+                continue
+            # USD space: X=Blender X, Y=height, Z=depth.  Footprint = XZ.
+            dx = abs(aabb["max"][0] - aabb["min"][0])
+            dz = abs(aabb["max"][2] - aabb["min"][2])
+            extents.append(max(dx, dz))
+        if extents:
+            extents.sort()
+            p90_idx = min(int(len(extents) * 0.90), len(extents) - 1)
+            derived = max(extents[p90_idx], 1.0)   # floor at 1 m
+            tile_size_x = derived
+            tile_size_z = derived
+            print(
+                f"  [tile_size] Derived from {len(extents)} tiles: "
+                f"median={extents[len(extents)//2]:.1f}m  "
+                f"p90={derived:.1f}m  → tile_size={derived:.1f}m "
+                f"(was {TILE_SIZE_X:.1f}m)"
+            )
+
+    # ------------------------------------------------------------------
     # Build manifest skeleton
     # ------------------------------------------------------------------
     # scene_bounds stored in USD space (X, Y_up, -Z)
