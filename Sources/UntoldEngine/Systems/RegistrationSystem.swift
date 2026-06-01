@@ -1045,6 +1045,8 @@ public func setEntityMesh(
     if !didLoad {
         loadFallbackMesh(entityId: entityId, filename: filename)
     }
+
+    RenderPasses.invalidateShadowEntityCache()
 }
 
 /// Asynchronously load and set entity mesh without blocking the main thread
@@ -1167,6 +1169,12 @@ public func setEntityMeshAsync(
                     loadFallbackMesh(entityId: entityId, filename: filename)
                 }
 
+                // Non-streaming entities don't fire residency events, so the shadow
+                // entity candidate cache must be explicitly invalidated here.
+                // Without this, the entity is never added to shadow candidates after
+                // the initial (empty) cache rebuild on the first shadow-pass frame.
+                RenderPasses.invalidateShadowEntityCache()
+
                 return loaded
             }
 
@@ -1179,6 +1187,7 @@ public func setEntityMeshAsync(
         Logger.logWarning(message: "[RegistrationSystem] Only .untold format is supported. Ignoring '\(filename).\(withExtension)'.")
         withWorldMutationGate {
             loadFallbackMesh(entityId: entityId, filename: filename)
+            RenderPasses.invalidateShadowEntityCache()
         }
         await AssetLoadingState.shared.finishLoading(entityId: entityId)
         completionBox?.call(false)
@@ -1251,6 +1260,8 @@ public func setEntityMeshDirect(entityId: EntityID, meshes: [Mesh], assetName: S
         for index in renderComponent.mesh.indices {
             renderComponent.mesh[index].skin = skin
         }
+
+        RenderPasses.invalidateShadowEntityCache()
     }
 }
 
