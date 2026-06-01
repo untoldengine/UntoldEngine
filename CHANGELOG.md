@@ -1,4 +1,15 @@
 # Changelog
+## v0.12.18 - 2026-06-01
+### 🐞 Fixes
+- [Patch] Added occlusion debug viewer (36160da…)
+- [Patch] Hierarchy-aware tile culling (5a47bb2…)
+- [Patch] Added ancestor walk to hierarchy occlusion (49fd65b…)
+- [Patch] Use a closest-point to parent AABB (43a84b6…)
+- [Patch] Implemented kd-tree partitioning (06fcc75…)
+- [Patch] Improved per-cascade shadow distance (0645690…)
+- [Patch] [Patch] Fix hierarchy culling ID format and replace hard-skip with penalty (dcd21ba…)
+### 📚 Docs
+- [Docs] Updated the docs (07c55ed…)
 ## v0.12.17 - 2026-05-30
 ### 🐞 Fixes
 - [Patch] Fixed stream profiler (abd8e4b…)
