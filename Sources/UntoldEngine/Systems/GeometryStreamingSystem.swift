@@ -299,6 +299,14 @@ public class GeometryStreamingSystem: @unchecked Sendable {
     /// Range [0, 1).  Default 0.05.  Set to 0 to restore hard zero behaviour.
     public var occlusionMinWeight: Float = 0.05
 
+    /// Score multiplier applied to tiles whose parent region is fully covered by
+    /// loaded geometry (hierarchy gate).  A very small value ensures these tiles
+    /// sort far below unoccluded candidates and are effectively deferred, while
+    /// still allowing them to load when no better candidates exist — avoiding
+    /// permanent holes when the camera snaps toward previously-occluded geometry.
+    /// Range [0, 1).  Default 0.005.  Set to 0.0 to restore the old hard-skip.
+    public var hierarchyOcclusionPenalty: Float = 0.005
+
     // Screen-space rectangle in NDC [-1, 1] × [-1, 1].
     // Used to represent the projected AABB footprint of a tile for occlusion scoring.
     struct TileOccluder { let rect: ScreenRect; let distance: Float }
@@ -964,21 +972,6 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 // prevent tile pop-in during fast rotation on coarse tile boundaries.
                 if !tilePassesStreamingFrustum(entityId: entityId, frustum: tileStreamingFrustum) { continue }
 
-                // Hierarchy gate: walk all ancestors — if any ancestor region is fully
-                // occluded the tile is behind it regardless of depth.
-                if let nodeId = tileComp.quadtreeNodeId {
-                    var ancestor = nodeId
-                    var blocked = false
-                    while let lastUnder = ancestor.lastIndex(of: "_") {
-                        ancestor = String(ancestor[..<lastUnder])
-                        if occludedParentRegions.contains(ancestor) { blocked = true; break }
-                    }
-                    if blocked {
-                        hierarchyGateSkipCount += 1
-                        continue
-                    }
-                }
-
                 let (sa, va) = tileImportanceComponents(
                     entityId: entityId,
                     distance: effectiveDist,
@@ -989,7 +982,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 // covered by closer loaded tiles.  1.0 = fully visible, 0 = fully
                 // blocked.  Skipped when occluder list is empty (no loaded tiles yet)
                 // or when occlusion sort is disabled.
-                let occ: Float
+                var occ: Float
                 if enableOcclusionSort, !tileOccluders.isEmpty,
                    let local = scene.get(component: LocalTransformComponent.self, for: entityId)
                 {
@@ -1002,6 +995,24 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                 } else {
                     occ = 1.0
                 }
+
+                // Hierarchy penalty: if any ancestor region is fully covered by loaded
+                // geometry, apply a strong priority penalty instead of a hard skip.
+                // The tile remains in the candidate list so it can still load when all
+                // slots are free — preventing permanent holes when the camera snaps
+                // toward previously-occluded geometry.
+                if let nodeId = tileComp.quadtreeNodeId, !occludedParentRegions.isEmpty {
+                    var ancestor = nodeId
+                    while let parentPrefix = tileNodeParentPrefix(ancestor) {
+                        if occludedParentRegions.contains(parentPrefix) {
+                            occ *= hierarchyOcclusionPenalty
+                            hierarchyGateSkipCount += 1
+                            break
+                        }
+                        ancestor = parentPrefix
+                    }
+                }
+
                 tileLoadCandidates.append((entityId, effectiveDist, tileComp.priority, sa, va, occ))
             }
         }
@@ -1889,6 +1900,32 @@ public class GeometryStreamingSystem: @unchecked Sendable {
         }
     }
 
+    /// Returns the parent prefix for a spatial node ID, handling both manifest formats:
+    ///
+    /// - Underscore format (v4 inline annotation):
+    ///     `"F02_Q_0_0_0"` → `"F02_Q_0_0"`  (drop from last `_` onward)
+    /// - Compact format (pre-annotated phase12 quadtree):
+    ///     `"F02Q100"` → `"F02Q10"`           (drop last digit of the path)
+    ///
+    /// Returns nil when the node has no parent (root nodes like `"F02_Q"` or `"F02Q"`).
+    func tileNodeParentPrefix(_ nodeId: String) -> String? {
+        // Underscore format: separator is the last underscore.
+        if let lastUnder = nodeId.lastIndex(of: "_") {
+            let prefix = String(nodeId[..<lastUnder])
+            return prefix.isEmpty ? nil : prefix
+        }
+        // Compact format: F{floor}Q{digits} — the path begins after the first 'Q'.
+        if let qIdx = nodeId.firstIndex(of: "Q") {
+            let pathStart = nodeId.index(after: qIdx)
+            let path = String(nodeId[pathStart...])
+            guard !path.isEmpty, path.allSatisfy(\.isNumber) else { return nil }
+            // "F02Q" + path.dropLast() — root when path is one digit ("F02Q1" → "F02Q")
+            let parentPath = String(path.dropLast())
+            return String(nodeId[...qIdx]) + parentPath
+        }
+        return nil
+    }
+
     /// Builds tileHierarchyIndex from all registered TileComponent entities.
     /// Groups tiles by their quadtreeNodeId parent prefix and unions their AABBs.
     /// Called once after loadTiledScene completes tile stub registration.
@@ -1901,8 +1938,7 @@ public class GeometryStreamingSystem: @unchecked Sendable {
                   let nodeId = tc.quadtreeNodeId, nodeId.count > 1,
                   let local = scene.get(component: LocalTransformComponent.self, for: entityId)
             else { continue }
-            guard let lastUnder = nodeId.lastIndex(of: "_") else { continue }
-            let prefix = String(nodeId[..<lastUnder])
+            guard let prefix = tileNodeParentPrefix(nodeId) else { continue }
             let bbMin = local.boundingBox.min
             let bbMax = local.boundingBox.max
             if let existing = index[prefix] {
