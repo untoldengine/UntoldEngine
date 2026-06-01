@@ -46,7 +46,7 @@ A scene is described by a manifest file listing tiles.
 | Field | Description |
 |---|---|
 | `version` | Integer schema version (`3` = uniform grid, `4` = quadtree floor) |
-| `partitioning_mode` | *(v4 only)* `"uniform_grid"` or `"quadtree_floor"` — describes how tiles were partitioned by the export pipeline |
+| `partitioning_mode` | *(v4 only)* `"uniform_grid"`, `"quadtree_floor"`, or `"kdtree_floor"` — describes how tiles were partitioned by the export pipeline |
 | `streaming_defaults` | Scene-wide fallback radii and priority used when a tile omits its own values |
 | `tiles` | Array of tile entries (see below) |
 | `shared_bucket` | *(optional)* A single always-resident tile for geometry that spans many tiles |
@@ -71,7 +71,7 @@ The `streaming_defaults` block sets scene-wide fallback values for all per-tile 
 | `hlod_levels` | *(optional)* Array of HLOD proxy entries; see [HLOD](#hlod-hierarchical-level-of-detail) |
 | `lod_levels` | *(optional)* Array of per-tile intermediate LOD entries; see [Per-tile LOD Levels](#per-tile-lod-levels) |
 | `floor_id` | *(v4 only, optional)* Floor index within a building; `0` = ground floor |
-| `quadtree_node_id` | *(v4 only, optional)* Quadtree node identifier written by the export script (e.g. `"F02Q100"`); used for debug logging only, not required for streaming |
+| `quadtree_node_id` | *(v4 only, optional)* Spatial node identifier written by the export script. Underscore format (inline annotation): `"F02_Q_0_0_0"`. Compact format (pre-annotated phase12): `"F02Q100"`. **Runtime-significant**: the engine uses this field to build the [hierarchy-aware tile culling](#hierarchy-aware-tile-culling) index at scene load time |
 | `semantic_tier` | *(v4 only, optional)* One of `"ExteriorShell"`, `"StructuralInterior"`, `"RoomContents"`, `"FineProps"`. The `streaming_radius` already encodes the correct load distance for the tier; no additional runtime logic is required |
 | `interior` | *(v4 only, optional)* When `true`, this tile contains interior-only geometry and is gated on the camera being inside `interior_zone` |
 
@@ -119,7 +119,11 @@ The manifest schema has evolved across two versions:
 
 ### v4 — Quadtree Floor
 
-`"partitioning_mode": "quadtree_floor"` (or `version: 4`). Tiles are partitioned by a floor-level quadtree, typically for multi-storey indoor scenes. The export script assigns each tile a `quadtree_node_id` (e.g. `"F02Q100"`) and a `semantic_tier` label.
+`"partitioning_mode": "quadtree_floor"` (or `version: 4`). Tiles are partitioned by a floor-level quadtree, typically for multi-storey indoor scenes. The export script assigns each tile a `quadtree_node_id` (e.g. `"F02_Q_0_0"` for inline annotation, or compact `"F02Q100"` for pre-annotated phase12 scenes) and a `semantic_tier` label.
+
+### v4 — KD-tree Floor
+
+`"partitioning_mode": "kdtree_floor"`. Identical to `quadtree_floor` in structure, but tiles were partitioned using a KD-tree instead of a quadtree. The KD-tree splits each floor's XY plane on the longer axis at the median object center, producing tiles that reflect actual geometry density rather than equal-area subdivisions. Tile node IDs use underscore format with `_K_` as the tree marker (e.g. `"F02_K_0_1_0"`). Use `--kdtree` in the exporter to produce this format.
 
 **Semantic tiers** encode the expected load distance by naming convention — the export pipeline sets `streaming_radius` to the correct value for each tier, so the runtime treats them identically during streaming. The tiers are:
 
@@ -134,7 +138,7 @@ The manifest schema has evolved across two versions:
 
 **Floor proximity gating** — for v4 `quadtree_floor` manifests, interior tiles that carry `floor_id` are also checked against `GeometryStreamingSystem.shared.floorProximityGateY` (default 5 m). The gate compares the camera's Y position to the tile's manifest center Y and suppresses new load dispatches for vertically distant floors. It does not unload already parsed tiles; normal `unloadRadius`, grace, and dwell rules still control teardown.
 
-> The quadtree partitioning is a content-pipeline and manifest-level concept. At runtime the engine uses an **octree** for spatial range queries (finding tile stubs near the camera). The manifest's `quadtree_node_id` is used for debug logging only and has no effect on streaming logic.
+> The quadtree and KD-tree partitioning are content-pipeline and manifest-level concepts. At runtime the engine uses an **octree** for spatial range queries (finding tile stubs near the camera). The manifest's `quadtree_node_id` is used by the [hierarchy-aware tile culling](#hierarchy-aware-tile-culling) system to build a parent-region index and is therefore **runtime-significant** for v4 manifests.
 
 ---
 
@@ -179,9 +183,10 @@ No geometry is parsed or uploaded at this stage. The whole function completes in
 1. Computes effective distance using the predictive position.
 2. Tests against `effectivePrefetchRadius` (see [Prefetch Radius](#prefetch-radius)).
 3. Applies the **frustum gate** (padded AABB vs camera frustum, `tileFrustumGatePadding = 20 m`). Tiles fully outside the frustum are skipped this tick.
-4. Eligible tiles are sorted by priority (descending) then distance (ascending).
-5. Within each priority tier, candidates are sorted by screen-space importance. The score uses projected tile footprint, view alignment, and optionally an occlusion weight derived from closer loaded tile AABBs. Occlusion never hard-blocks a tile; `occlusionMinWeight` leaves a nonzero floor so sparse or glassy geometry does not permanently hide work.
-6. Up to `maxConcurrentTileLoads` (default 2) are dispatched via `loadTile()`, subject to the **memory budget gate**: the total parse memory in flight must stay under `tileParseMemoryBudgetMB` (200 MB), with a guarantee that at least one tile always loads even if it alone exceeds the budget.
+4. Applies the **hierarchy gate** (see [Hierarchy-Aware Tile Culling](#hierarchy-aware-tile-culling)). Tiles whose parent spatial region is fully covered by closer loaded tiles have their occlusion score multiplied by `hierarchyOcclusionPenalty` (default 0.005), sorting them far below unoccluded candidates. They can still load when no better candidates exist.
+5. Eligible tiles are sorted by priority (descending) then distance (ascending).
+6. Within each priority tier, candidates are sorted by screen-space importance. The score uses projected tile footprint, view alignment, and optionally an occlusion weight derived from closer loaded tile AABBs. Occlusion never hard-blocks a tile; `occlusionMinWeight` leaves a nonzero floor so sparse or glassy geometry does not permanently hide work.
+7. Up to `maxConcurrentTileLoads` (default 2) are dispatched via `loadTile()`, subject to the **memory budget gate**: the total parse memory in flight must stay under `tileParseMemoryBudgetMB` (200 MB), with a guarantee that at least one tile always loads even if it alone exceeds the budget.
 
 **Tile unload pass** — three sub-passes each tick. All passes use `min(actual, predictive)` distance, matching the load pass, so a tile the camera is approaching is not torn down mid-parse:
 
@@ -226,6 +231,45 @@ Each completed OCC upload calls `incrementParentTileOCCCount(for:)`, which incre
 7. Sets `tileComp.state = .unloaded`; removes from `loadedTileEntities`.
 
 The tile stub entity itself is **never destroyed**. It stays in the octree as a cheap placeholder so the streaming system reloads the tile on the next approach.
+
+---
+
+## Hierarchy-Aware Tile Culling
+
+For v4 (`quadtree_floor` or `kdtree_floor`) manifests, the engine builds a **tile hierarchy index** at scene load time from the `quadtree_node_id` field of every registered tile stub. This index maps each parent spatial prefix to the union AABB of all tiles beneath it.
+
+### How it works
+
+At scene load, `buildTileHierarchyIndex()` iterates all tile stubs and groups them by their immediate parent prefix:
+
+```
+"F02_Q_0_0_0"  →  parent "F02_Q_0_0"  →  union AABB of all F02_Q_0_0_* tiles
+"F02_Q_0_0_1"  →  parent "F02_Q_0_0"  →  (same entry, AABB grows to include this tile)
+"F02_Q_0_1_0"  →  parent "F02_Q_0_1"  →  separate entry
+```
+
+Both ID formats are supported:
+- **Underscore format** (v4 inline annotation): `"F02_Q_0_0_0"` → parent `"F02_Q_0_0"`
+- **Compact format** (pre-annotated phase12): `"F02Q100"` → parent `"F02Q10"` (last digit dropped)
+
+### Each streaming tick
+
+Before evaluating individual tile load candidates, the system tests each parent region's union AABB against the set of already-loaded tile occluders. If a parent region's screen projection is covered by closer loaded geometry (`occlusionFullThreshold`, default 85%), the prefix is added to `occludedParentRegions`.
+
+The ancestor walk then checks every candidate tile's full ancestor chain — not just its immediate parent — so a coarse parent region being occluded propagates down to all descendant tiles regardless of how many levels deep they are.
+
+### Priority penalty, not hard skip
+
+Tiles whose ancestor is in `occludedParentRegions` have their occlusion score multiplied by `hierarchyOcclusionPenalty` (default 0.005). This sorts them far below unoccluded candidates — effectively deferring them — while still allowing them to load when no better candidates compete for slots. This prevents permanent holes when the camera snaps toward previously-occluded geometry.
+
+The `hierGateSkip` counter in engine stats counts tiles penalized this way each tick.
+
+### When the gate is inactive
+
+- `enableOcclusionSort = false` — occlusion scoring disabled entirely
+- No loaded tiles yet — occluder list is empty
+- Camera inside the parent region's AABB — closest-point distance is 0, no occluder can be "closer"
+- v3 uniform-grid manifests — no `quadtree_node_id`, index stays empty
 
 ---
 
@@ -504,3 +548,4 @@ if CFAbsoluteTimeGetCurrent() - tc.parseStartTime > tileParseTimeoutSeconds (def
 | `floorProximityGateY` | 5 m | Maximum Y distance for dispatching floor-aware interior tiles; set to `Float.greatestFiniteMagnitude` to disable |
 | `enableImportanceSort` | true | Sort tile candidates by screen-space importance within priority tiers |
 | `enableOcclusionSort` | true | Deprioritize tile candidates whose screen footprint is covered by closer loaded tile AABBs |
+| `hierarchyOcclusionPenalty` | 0.005 | Occlusion score multiplier for tiles whose parent region is fully occluded. Near-zero value defers them without hard-blocking; set to 0.0 to restore old hard-skip behavior |
