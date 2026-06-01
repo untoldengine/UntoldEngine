@@ -92,7 +92,8 @@ Common options:
 - `--visible-only`: optional export only visible meshes
 - `--all-meshes`: optional include hidden meshes
 - `--debug-aabb-only`: optional emit debug AABB payloads instead of geometry
-- `--quadtree`: optional partition tiles using a quad-tree instead of a uniform grid
+- `--quadtree`: optional partition tiles using a quadtree instead of a uniform grid
+- `--kdtree`: optional partition tiles using a KD-tree instead of a quadtree (inline annotation only). Splits each floor's XY plane on the longer axis at the median object center, producing better-balanced tiles in scenes where geometry is unevenly distributed. Produces `partitioning_mode: "kdtree_floor"` in the manifest. Ignored if the input is pre-annotated (quadtree metadata takes precedence)
 - `--scene-profile <auto|indoor|outdoor>`: optional streaming radius profile, defaults to `auto`. Radii are always proportional to scene size — no fixed distances to hand-tune. Use `outdoor` for cities, terrain, and large exterior scenes if auto-detection misses.
 - `--tier-radius <Tier=stream,unload[,priority]>`: optional quadtree semantic-tier radius override in world units. May be repeated.
 - `--floor-count <number>`: optional number of vertical floors to split each tile into (for quadtree mode)
@@ -180,6 +181,30 @@ Expected output layout:
 - `tile_exports/Textures/...` for staged textures
 
 The manifest stores relative runtime paths so it remains portable across machines, repos, and app bundles.
+
+### KD-tree Partitioning
+
+Use `--kdtree` instead of `--quadtree` when geometry is unevenly distributed across the scene floor — for example, when most objects cluster in corridors or specific rooms while other areas are sparse. The KD-tree splits each floor on the longer axis at the median object center, producing tiles that reflect actual geometry density rather than equal-area subdivisions.
+
+```bash
+./scripts/export-untold-tiles \
+  --input GameData/Models/building/building.usdz \
+  --output-dir GameData/Models/building/tile_exports \
+  --kdtree \
+  --scene-profile indoor \
+  --floor-count 10
+```
+
+The `--tier-radius` and `--scene-profile` flags work identically for `--kdtree` and `--quadtree`. The manifest will contain `"partitioning_mode": "kdtree_floor"` and tile node IDs use the `F{nn}_K_...` naming convention (e.g. `"F02_K_0_1_0"`).
+
+**When to choose KD-tree vs. quadtree:**
+
+| | Quadtree | KD-tree |
+|---|---|---|
+| Geometry distribution | Uniform across floor | Clustered in sub-regions |
+| Tile balance | Equal-area (can produce empty tiles) | Object-count balanced |
+| Hierarchy culling | Yes | Yes |
+| Pre-annotated input (phase12) | Yes | No (inline annotation only) |
 
 ## Selective Merging With The NM_ Prefix
 

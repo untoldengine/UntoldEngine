@@ -128,6 +128,15 @@ Both passes render scene geometry from the **directional light's point of view**
 
 `batchedShadowExecution` uses **cluster-level frustum culling**: it calls `visibleBatchGroupsSnapshot()` which tests each `BatchGroup`'s precomputed world-space AABB against `currentFrameFrustum`. Only groups whose AABB intersects the frustum are submitted. This replaces the previous entity→batchId derivation and operates at batch-group granularity — one AABB test per group instead of one per entity.
 
+**Cascaded Shadow Maps (CSM):** The shadow pass runs once per cascade (`csmCascadeCount`, default **2** for indoor scenes). Each cascade covers a sub-frustum slice of the camera's view:
+
+- **Cascade 0** — near field (highest resolution)
+- **Cascade 1** — far field (lower resolution, wider coverage)
+
+The cascade count is 2 by default. Raise to 3 in `Globals.swift` for outdoor scenes that need a third far cascade beyond 40 m.
+
+**Per-cascade shadow distance:** Each cascade only receives shadow casters within its own split distance (`shadowCascadeMaxDistance`). The effective limit is `min(maxShadowCastingDistance, cascadeSplitDistances[cascadeIdx])`. This prevents the near cascade from rendering distant objects that are only relevant to the far cascade, significantly reducing shadow draw calls in dense scenes.
+
 The shadow map produced here is consumed later by `lightPass`.
 
 ### G-Buffer Passes (deferred rendering)
