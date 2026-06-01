@@ -527,10 +527,20 @@ public enum RenderPasses {
                 localMax: localTransformComponent.boundingBox.max,
                 worldMatrix: worldTransformComponent.space
             )
+            // Per-cascade distance limit: cap at the cascade's own split distance so
+            // objects beyond this cascade's far plane are not rendered into it.
+            // This prevents the near cascade from receiving shadow casters that are
+            // only relevant to farther cascades, cutting draw calls significantly for
+            // the near (most expensive) cascade.
+            let cascadeMaxDistance = shadowCascadeMaxDistance(
+                cascadeIdx: cascadeIdx,
+                splitDistances: shadowSystem.cascadeSplitDistances,
+                globalMax: RenderPasses.maxShadowCastingDistance
+            )
             if shadowEntityBeyondMaxDistance(
                 worldMin: worldMin, worldMax: worldMax,
                 cameraPosition: cameraPosition,
-                maxDistance: RenderPasses.maxShadowCastingDistance
+                maxDistance: cascadeMaxDistance
             ) { continue }
             if isAABBInFrustum(frustum, min: worldMin, max: worldMax) {
                 result.append(entityId)
@@ -3778,7 +3788,27 @@ private func uploadAndBindLights<T>(
     return true
 }
 
-// MARK: - Shadow distance culling helper (internal — exposed for testing via @testable import)
+// MARK: - Shadow cascade distance helpers (internal — exposed for testing via @testable import)
+
+/// Returns the effective maximum shadow-casting distance for a single CSM cascade.
+///
+/// Each cascade only needs shadow casters within its own split range.  Capping at the
+/// cascade's split distance prevents the near cascade from receiving distant casters
+/// that are only relevant to farther cascades, reducing shadow draw calls on cascade 0.
+///
+/// - Parameters:
+///   - cascadeIdx:    Index of the cascade (0 = nearest).
+///   - splitDistances: Per-cascade far-plane distances from the camera, as computed by ShadowSystem.
+///   - globalMax:     The scene-wide shadow distance cap (RenderPasses.maxShadowCastingDistance).
+/// - Returns: The tighter of globalMax and the cascade's own split distance.
+func shadowCascadeMaxDistance(
+    cascadeIdx: Int,
+    splitDistances: [Float],
+    globalMax: Float
+) -> Float {
+    guard cascadeIdx < splitDistances.count else { return globalMax }
+    return min(globalMax, splitDistances[cascadeIdx])
+}
 
 /// Returns true when the entity's AABB is farther than maxDistance from the camera.
 /// Uses closest-point-on-AABB distance so large meshes near the camera are never wrongly excluded.
