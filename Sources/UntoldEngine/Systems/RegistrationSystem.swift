@@ -1839,7 +1839,7 @@ private func registerTiledScene(
                     tileComp.quadtreeNodeId = tile.quadtreeNodeId
                     tileComp.isInterior = tile.isInterior ?? false
                     let isFloorPartitioned = tileManifest.partitioningMode == "quadtree_floor"
-                                          || tileManifest.partitioningMode == "kdtree_floor"
+                        || tileManifest.partitioningMode == "kdtree_floor"
                     tileComp.hasFloorMetadata = isFloorPartitioned && tile.floorId != nil
                     tileComp.floorId = tile.floorId ?? 0
                     tileComp.worldYCenter = tile.center.count >= 2 ? Float(tile.center[1]) : 0

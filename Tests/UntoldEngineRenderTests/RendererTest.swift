@@ -275,12 +275,20 @@ final class RendererTests: BaseRenderSetup {
 
         let uniforms = shadowSystem.makeUniforms()
         XCTAssertEqual(uniforms.cascadeCount, Int32(csmCascadeCount))
+        // Verify used cascade slots match what the system computed.
         XCTAssertEqual(uniforms.cascadeSplits.0, shadowSystem.cascadeSplitDistances[0], accuracy: 0.0001)
-        XCTAssertEqual(uniforms.cascadeSplits.1, shadowSystem.cascadeSplitDistances[1], accuracy: 0.0001)
-        XCTAssertEqual(uniforms.cascadeSplits.2, shadowSystem.cascadeSplitDistances[2], accuracy: 0.0001)
         XCTAssertTrue(compareMatrices(uniforms.lightSpaceMatrices.0, shadowSystem.cascadeLightSpaceMatrices[0]))
-        XCTAssertTrue(compareMatrices(uniforms.lightSpaceMatrices.1, shadowSystem.cascadeLightSpaceMatrices[1]))
-        XCTAssertTrue(compareMatrices(uniforms.lightSpaceMatrices.2, shadowSystem.cascadeLightSpaceMatrices[2]))
+        if csmCascadeCount > 1 {
+            XCTAssertEqual(uniforms.cascadeSplits.1, shadowSystem.cascadeSplitDistances[1], accuracy: 0.0001)
+            XCTAssertTrue(compareMatrices(uniforms.lightSpaceMatrices.1, shadowSystem.cascadeLightSpaceMatrices[1]))
+        }
+        // Verify unused slots are zeroed / identity so the shader doesn't read garbage.
+        if csmCascadeCount < 3 {
+            XCTAssertEqual(uniforms.cascadeSplits.2, 0.0, accuracy: 0.0001,
+                           "Unused split slot must be 0 when csmCascadeCount < 3")
+            XCTAssertTrue(compareMatrices(uniforms.lightSpaceMatrices.2, matrix_identity_float4x4),
+                          "Unused matrix slot must be identity when csmCascadeCount < 3")
+        }
     }
 
     func testTransparencyTarget() {

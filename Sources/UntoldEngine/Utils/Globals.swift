@@ -255,8 +255,10 @@ public let fov: Float = 65.0
 let shadowMaxWidth: Float = 300.0
 let shadowMaxHeight: Float = 300.0
 
-// CSM: per-cascade shadow map resolution and cascade count
-let csmCascadeCount: Int = 3
+// CSM: per-cascade shadow map resolution and cascade count.
+// 2 cascades is sufficient for indoor/room-scale scenes and cuts shadow draw calls by ~33%.
+// Raise to 3 for outdoor scenes that need a wide far cascade (> 40 m shadow range).
+let csmCascadeCount: Int = 2
 let shadowResolution: simd_int2 = .init(2048, 2048)
 
 var rayTracingPipeline: ComputePipeline {

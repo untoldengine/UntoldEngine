@@ -37,17 +37,19 @@ struct ShadowSystem {
     }
 
     /// Pack into the GPU-ready uniform struct.
+    /// CSMUniforms always carries 3 slots (GPU layout is fixed); unused slots are
+    /// left as identity/zero so the shader's cascadeCount field controls which are read.
     func makeUniforms() -> CSMUniforms {
         var u = CSMUniforms()
         u.lightSpaceMatrices = (
             cascadeLightSpaceMatrices[0],
-            cascadeLightSpaceMatrices[1],
-            cascadeLightSpaceMatrices[2]
+            csmCascadeCount > 1 ? cascadeLightSpaceMatrices[1] : matrix_identity_float4x4,
+            csmCascadeCount > 2 ? cascadeLightSpaceMatrices[2] : matrix_identity_float4x4
         )
         u.cascadeSplits = (
             cascadeSplitDistances[0],
-            cascadeSplitDistances[1],
-            cascadeSplitDistances[2]
+            csmCascadeCount > 1 ? cascadeSplitDistances[1] : 0,
+            csmCascadeCount > 2 ? cascadeSplitDistances[2] : 0
         )
         u.cascadeCount = Int32(csmCascadeCount)
         return u
