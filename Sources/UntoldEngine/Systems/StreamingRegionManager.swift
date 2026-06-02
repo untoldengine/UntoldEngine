@@ -109,13 +109,27 @@ public extension StreamingRegionManager {
             }
         }
 
-        // Load new regions (respect concurrent limit)
+        // Load new regions (respect concurrent limit). Reserve each slot before
+        // the task can run so a fast empty-region load cannot complete and remove
+        // its active entry before this method records the task.
         for regionId in toLoad.prefix(snapshot.availableSlots) {
+            let reserved = withStateLock { () -> Bool in
+                guard var region = regions[regionId], region.state == .unloaded else {
+                    return false
+                }
+                region.state = .loading
+                regions[regionId] = region
+                return true
+            }
+            guard reserved else { continue }
+
             let task = Task {
                 await loadRegion(id: regionId)
             }
             withStateLock {
-                activeLoadTasks[regionId] = task
+                if regions[regionId]?.state == .loading {
+                    activeLoadTasks[regionId] = task
+                }
             }
         }
     }
@@ -172,9 +186,8 @@ extension StreamingRegionManager {
             }
         }
 
-        // Mark as loading
         guard var region = withStateLock({ () -> StreamingRegion? in
-            guard var region = regions[id], region.state == .unloaded else {
+            guard var region = regions[id], region.state == .unloaded || region.state == .loading else {
                 return nil
             }
             region.state = .loading
