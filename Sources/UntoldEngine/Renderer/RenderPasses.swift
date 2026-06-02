@@ -1930,20 +1930,10 @@ public enum RenderPasses {
             return
         }
 
-        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-            .loadAction = .load
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-            .loadAction = .load
-
         // set the states for the pipeline
-        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.load
+        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
-
-        // clear it so that it doesn't have any effect on the final output
-        renderInfo.ssaoRenderPassDescriptor.depthAttachment.loadAction = .clear
-        renderInfo.ssaoRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].storeAction = .store
 
         // set your encoder here
         guard
@@ -1970,28 +1960,7 @@ public enum RenderPasses {
         renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
-        // pass gbufer resources
-        renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture, index: Int(ssaoNormalMapTextureIndex.rawValue))
-
-        renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture, index: Int(ssaoPositionMapTextureIndex.rawValue))
-
-        // pass ssao resources
-
-        if let kernelBuffer = bufferResources.ssaoKernelBuffer {
-            renderEncoder.setFragmentBuffer(kernelBuffer, offset: 0, index: Int(ssaoPassKernelIndex.rawValue))
-        }
-
-        renderEncoder.setFragmentTexture(textureResources.ssaoNoiseTexture, index: Int(ssaoNoiseMapTextureIndex.rawValue))
-
-        var kernelSize = ssaoKernelSize
-        renderEncoder.setFragmentBytes(&kernelSize, length: MemoryLayout<Int>.stride, index: Int(ssaoPassKernelSizeIndex.rawValue))
-
-        renderEncoder.setFragmentBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassViewPortIndex.rawValue))
-
-        renderEncoder.setFragmentBytes(&renderInfo.perspectiveSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassPerspectiveSpaceIndex.rawValue))
-
-        var ssaoViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-        renderEncoder.setFragmentBytes(&ssaoViewMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassViewSpaceIndex.rawValue))
+        renderEncoder.setFragmentTexture(textureResources.depthMap, index: Int(ssaoDepthTextureIndex.rawValue))
 
         // ssao properties
         renderEncoder.setFragmentBytes(
@@ -2017,6 +1986,14 @@ public enum RenderPasses {
             length: MemoryLayout<Bool>.stride,
             index: Int(ssaoPassEnabledIndex.rawValue)
         )
+
+        renderEncoder.setFragmentBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassViewPortIndex.rawValue))
+
+        var frustumPlanes = simd_float2(near, far)
+        renderEncoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassFrustumIndex.rawValue))
+
+        var reverseZ = renderInfo.reverseZEnabled
+        renderEncoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: Int(ssaoPassReverseZIndex.rawValue))
         // set the draw command
 
         renderEncoder.drawIndexedPrimitivesTracked(
@@ -2202,35 +2179,18 @@ public enum RenderPasses {
         renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
         renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
-        // G-buffer resources (full resolution)
-        renderEncoder.setFragmentTexture(
-            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture,
-            index: Int(ssaoNormalMapTextureIndex.rawValue)
-        )
-
-        renderEncoder.setFragmentTexture(
-            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture,
-            index: Int(ssaoPositionMapTextureIndex.rawValue)
-        )
-
-        // SSAO resources
-        if let kernelBuffer = bufferResources.ssaoKernelBuffer {
-            renderEncoder.setFragmentBuffer(kernelBuffer, offset: 0, index: Int(ssaoPassKernelIndex.rawValue))
-        }
-
-        renderEncoder.setFragmentTexture(textureResources.ssaoNoiseTexture, index: Int(ssaoNoiseMapTextureIndex.rawValue))
-
-        let quality = SSAOParams.shared.quality
-        var kernelSize = quality.sampleCount
-        renderEncoder.setFragmentBytes(&kernelSize, length: MemoryLayout<Int>.stride, index: Int(ssaoPassKernelSizeIndex.rawValue))
+        renderEncoder.setFragmentTexture(textureResources.depthMap, index: Int(ssaoDepthTextureIndex.rawValue))
 
         // Use low-res viewport for sampling calculations
+        let quality = SSAOParams.shared.quality
         var lowResViewPort = renderInfo.viewPort * quality.resolutionScale
         renderEncoder.setFragmentBytes(&lowResViewPort, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassViewPortIndex.rawValue))
 
-        renderEncoder.setFragmentBytes(&renderInfo.perspectiveSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassPerspectiveSpaceIndex.rawValue))
-        var ssaoViewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
-        renderEncoder.setFragmentBytes(&ssaoViewMatrix, length: MemoryLayout<simd_float4x4>.stride, index: Int(ssaoPassViewSpaceIndex.rawValue))
+        var frustumPlanes = simd_float2(near, far)
+        renderEncoder.setFragmentBytes(&frustumPlanes, length: MemoryLayout<simd_float2>.stride, index: Int(ssaoPassFrustumIndex.rawValue))
+
+        var reverseZ = renderInfo.reverseZEnabled
+        renderEncoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: Int(ssaoPassReverseZIndex.rawValue))
 
         // SSAO properties
         renderEncoder.setFragmentBytes(&SSAOParams.shared.radius, length: MemoryLayout<Float>.stride, index: Int(ssaoPassRadiusIndex.rawValue))
@@ -2758,12 +2718,20 @@ public enum RenderPasses {
             index: Int(prePassGaussianTextureIndex.rawValue)
         )
 
+        renderEncoder.setFragmentTexture(
+            textureResources.ssaoBlurTexture,
+            index: Int(prePassSSAOTextureIndex.rawValue)
+        )
+
         var isGameMode = gameMode
         renderEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.stride, index: Int(prePassGizmoBufferIndex.rawValue))
 
         var isPassthrough = (renderInfo.immersionStyle == UntoldImmersionMode.mixed) ? true : false
 
         renderEncoder.setFragmentBytes(&isPassthrough, length: MemoryLayout<Bool>.stride, index: Int(prePassPassthroughBufferIndex.rawValue))
+
+        var ssaoEnabled = SSAOParams.shared.enabled
+        renderEncoder.setFragmentBytes(&ssaoEnabled, length: MemoryLayout<Bool>.stride, index: Int(prePassSSAOEnabledIndex.rawValue))
 
         // set the draw command
 

@@ -116,7 +116,8 @@ typedef enum{
 
 typedef enum{
     prePassGizmoBufferIndex,
-    prePassPassthroughBufferIndex
+    prePassPassthroughBufferIndex,
+    prePassSSAOEnabledIndex
 }PrePassBufferIndices;
 
 typedef enum{
@@ -131,6 +132,7 @@ typedef enum{
     prePassDepthTextureIndex,
     prePassGizmoTextureIndex,
     prePassGaussianTextureIndex,
+    prePassSSAOTextureIndex,
 }PrePassTextureIndices;
 
 typedef enum{
@@ -243,21 +245,17 @@ typedef enum{
 }ChromaticAberrationBufferIndices;
 
 typedef enum{
-    ssaoPassKernelIndex,
-    ssaoPassPerspectiveSpaceIndex,
-    ssaoPassViewSpaceIndex,
-    ssaoPassKernelSizeIndex,
     ssaoPassRadiusIndex,
     ssaoPassBiasIndex,
     ssaoPassIntensityIndex,
     ssaoPassEnabledIndex,
     ssaoPassViewPortIndex,
+    ssaoPassFrustumIndex,
+    ssaoPassReverseZIndex,
 }SSAOBufferIndices;
 
 typedef enum{
-    ssaoNormalMapTextureIndex,
-    ssaoPositionMapTextureIndex,
-    ssaoNoiseMapTextureIndex
+    ssaoDepthTextureIndex
 }SSAOTextureIndices;
 
 typedef enum{

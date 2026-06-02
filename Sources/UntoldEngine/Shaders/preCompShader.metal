@@ -28,8 +28,10 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
                                         depth2d<float> depthTexture [[texture(prePassDepthTextureIndex)]],
                                         texture2d<float> gizmoTexture [[texture(prePassGizmoTextureIndex)]],
                                         texture2d<float> gaussianTexture [[texture(prePassGaussianTextureIndex)]],
+                                        texture2d<float> ssaoTexture [[texture(prePassSSAOTextureIndex)]],
                                         constant bool &isGameMode [[ buffer(prePassGizmoBufferIndex) ]],
-                                        constant bool &isPassthrough [[buffer(prePassPassthroughBufferIndex)]]){
+                                        constant bool &isPassthrough [[buffer(prePassPassthroughBufferIndex)]],
+                                        constant bool &ssaoEnabled [[buffer(prePassSSAOEnabledIndex)]]) {
 
     constexpr sampler s(min_filter::linear, mag_filter::linear);
 
@@ -37,6 +39,11 @@ fragment float4 fragmentPreCompositeShader(VertexCompositeOutput vertexOut [[sta
     float4 envColor = envTexture.sample(s, vertexOut.uvCoords);
     float4 modelColor = finalTexture.sample(s, vertexOut.uvCoords);
     float4 gaussianColor = gaussianTexture.sample(s, vertexOut.uvCoords);
+
+    if (ssaoEnabled) {
+        float ao = ssaoTexture.sample(s, vertexOut.uvCoords).r;
+        modelColor.rgb *= ao;
+    }
     
     // Composite scene color over environment using alpha.
     // This guarantees transparent pixels blend against environment instead of black.
