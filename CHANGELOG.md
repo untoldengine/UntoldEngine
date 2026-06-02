@@ -1,4 +1,17 @@
 # Changelog
+## v0.13.0 - 2026-06-02
+### 🐞 Fixes
+- [Patch] Derive batch cell size from actual tile extents in quadtree/KD-tree manifests (86c00bf…)
+- [Patch] Fix shadows for non-streaming models (777f203…)
+- [Patch] Implemented depth-only SSAO (531b573…)
+- [Patch] Updated tests for TBDR (9958ca2…)
+- [Patch] Add ghost mode channel (f73c5df…)
+- [Patch] plane detection for XR (1411624…)
+- [Patch] fixed render debug targets (4ea1251…)
+### 📚 Docs
+- [Docs] Updated documentation (c382a09…)
+### 🚀 Features
+- [Feature] Implemented TBDR into the engine. (ad52436…)
 ## v0.12.18 - 2026-06-01
 ### 🐞 Fixes
 - [Patch] Added occlusion debug viewer (36160da…)
