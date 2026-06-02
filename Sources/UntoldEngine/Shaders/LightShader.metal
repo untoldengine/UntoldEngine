@@ -235,6 +235,12 @@ LightContribution evaluateAreaLight(constant AreaLightUniform &light,
     
 }
 
+// Output struct for the TBDR light pass — writes to attachment 5 (deferredColorMap).
+// Attachments 0-4 are the G-buffer slots; the light quad does not write to them.
+struct TBDRLightOutput {
+    float4 litColor [[color(5)]];
+};
+
 vertex VertexCompositeOutput vertexLightShader(VertexCompositeIn in [[stage_in]]){
 
     VertexCompositeOutput vertexOut;
@@ -377,8 +383,117 @@ fragment float4 fragmentLightShader(VertexCompositeOutput vertexOut [[stage_in]]
     color.spec += areaLightColor.spec;
 
     float4 finalcolor = float4((float3)color.diff + color.spec + indirectLighting, albedo.a);
-    
+
     return finalcolor;
 
+}
+
+// TBDR light pass: reads G-buffer from tile memory via framebuffer fetch ([[color(N)]]).
+// The geometry and lighting sub-passes share one MTLRenderCommandEncoder, so the
+// G-buffer data never leaves the GPU tile. Outputs lit color to attachment 5.
+fragment TBDRLightOutput fragmentLightShaderTBDR(
+    VertexCompositeOutput vertexOut [[stage_in]],
+    // G-buffer — read directly from tile memory, no texture2d binding needed
+    half4  gbAlbedo   [[color(0)]],
+    half4  gbNormal   [[color(1)]],
+    float4 gbPosition [[color(2)]],
+    half4  gbMaterial [[color(3)]],
+    half4  gbEmissive [[color(4)]],
+    // Shadow and IBL textures (still come from main memory)
+    depth2d_array<float> csmShadowArray  [[texture(lightPassShadowTextureIndex)]],
+    texture2d<float>     irradianceTexture [[texture(lightPassIBLIrradianceTextureIndex)]],
+    texture2d<float>     specularTexture   [[texture(lightPassIBLSpecularTextureIndex)]],
+    texture2d<float>     iblBRDFTexture    [[texture(lightPassIBLBRDFMapTextureIndex)]],
+    texture2d<float>     ltcMagTexture     [[texture(lightPassAreaLTCMagTextureIndex)]],
+    texture2d<float>     ltcMatTexture     [[texture(lightPassAreaLTCMatTextureIndex)]],
+    // Uniform buffers
+    constant CSMUniforms      &csmUniforms      [[buffer(lightPassLightOrthoViewMatrixIndex)]],
+    constant simd_float3      &cameraPosition   [[buffer(lightPassCameraPositionIndex)]],
+    constant LightParameters  &lights           [[buffer(lightPassLightParamsIndex)]],
+    constant PointLightBlock  &plBlock          [[buffer(lightPassPointLightsIndex)]],
+    constant SpotLightBlock   &slBlock          [[buffer(lightPassSpotLightsIndex)]],
+    constant IBLParamsUniform &iblParam         [[buffer(lightPassIBLParamIndex)]],
+    constant AreaLightBlock   &alBlock          [[buffer(lightPassAreaLightsIndex)]],
+    constant float            &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
+    constant bool             &isGameMode       [[buffer(lightPassGameModeIndex)]]
+) {
+    // Background pixels were cleared to (0,0,0,0). Skip lighting entirely —
+    // normalize(float3(0)) is undefined, and the IBL/shadow paths would produce
+    // garbage that can corrupt the environment composite downstream.
+    if (gbAlbedo.a <= 0.0h) {
+        TBDRLightOutput out;
+        out.litColor = float4(0.0);
+        return out;
+    }
+
+    float3 lightRayDirection = normalize(lights.direction);
+
+    float4 albedo               = float4(gbAlbedo);
+    float4 verticesInWorldSpace = gbPosition;
+    float3 surfaceNormal        = normalize(float3(gbNormal.xyz));
+    float  roughness          = float(gbMaterial.r);
+    float  metallic           = float(gbMaterial.g);
+    float3 emissive           = float3(gbEmissive.rgb);
+
+    // SSAO is disabled in the TBDR path; will be revisited once SSAO is
+    // restructured as a tile kernel running inside this same encoder.
+    float ambientOcclusion = 1.0;
+
+    float3 viewVector = normalize(cameraPosition - verticesInWorldSpace.xyz);
+
+    float3 indirectLighting = computeIBLContribution(
+        irradianceTexture, specularTexture, iblBRDFTexture,
+        iblRotationAngle, iblParam,
+        albedo, surfaceNormal, viewVector, roughness, metallic
+    );
+    indirectLighting *= ambientOcclusion * iblParam.ambientIntensity;
+
+    LightContribution brdf = computeBRDF(lightRayDirection, viewVector, surfaceNormal, albedo.rgb, float3(1.0), roughness, metallic);
+
+    LightContribution color;
+    color.diff = brdf.diff * (half3)lights.color * (half)lights.intensity;
+    color.spec = brdf.spec * lights.color * lights.intensity;
+
+    float shadow = computeCSMShadow(csmShadowArray, csmUniforms, verticesInWorldSpace.xyz, cameraPosition, surfaceNormal, lightRayDirection);
+    color.diff *= (half)shadow;
+    color.spec *= shadow;
+
+    LightContribution pointColor;
+    uint lightCount = min(plBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i = 0; i < lightCount; ++i) {
+        LightContribution pl = computePointLightContribution(plBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic);
+        pointColor.diff += pl.diff;
+        pointColor.spec += pl.spec;
+    }
+    color.diff += pointColor.diff;
+    color.spec += pointColor.spec;
+
+    LightContribution spotLightColor;
+    uint spotLightCount = min(slBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i = 0; i < spotLightCount; ++i) {
+        LightContribution sl = computeSpotLightContribution(slBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, albedo.rgb, roughness, metallic);
+        spotLightColor.diff += sl.diff;
+        spotLightColor.spec += sl.spec;
+    }
+    color.diff += spotLightColor.diff;
+    color.spec += spotLightColor.spec;
+
+    LightContribution areaLightColor;
+    uint areaLightCount = min(alBlock.count.x, MAX_POINT_LIGHTS);
+    for (uint i = 0; i < areaLightCount; ++i) {
+        LightContribution al = evaluateAreaLight(alBlock.lights[i], verticesInWorldSpace, viewVector, surfaceNormal, ltcMatTexture, ltcMagTexture, albedo.rgb, roughness, metallic);
+        areaLightColor.diff += al.diff;
+        areaLightColor.spec += al.spec;
+    }
+    color.diff += areaLightColor.diff;
+    color.spec += areaLightColor.spec;
+
+    // set emissive to zero for now - need  to revisit this
+    emissive = 0.0;
+    float3 finalRGB = (float3)color.diff + color.spec + indirectLighting + emissive;
+
+    TBDRLightOutput out;
+    out.litColor = float4(finalRGB, albedo.a);
+    return out;
 }
 

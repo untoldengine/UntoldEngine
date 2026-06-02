@@ -351,18 +351,22 @@ func initRenderPassDescriptors() {
         renderInfo.csmRenderPassDescriptors.append(desc)
     }
 
-    // Offscreen Render Pass
+    // Combined G-buffer + lighting render pass (TBDR).
+    // Attachments 0-4 are memoryless G-buffer slots — cleared at the start and
+    // discarded at the end; data never leaves tile memory. Attachment 5 is the
+    // lit output (deferredColorMap) that is stored for downstream passes.
     renderInfo.offscreenRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         colorAttachments: [
-            (textureResources.colorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.normalMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.positionMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.materialMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.emissiveMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.colorMap,       .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.normalMap,      .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.positionMap,    .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.materialMap,    .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.emissiveMap,    .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.deferredColorMap, .clear, .store,  MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.depthMap, .dontCare, .store, sceneDepthClearValue())
+        depthAttachment: (textureResources.depthMap, .clear, .store, sceneDepthClearValue())
     )
 
     // Deferred Render Pass
@@ -453,37 +457,37 @@ func initTextureResources() {
     textureResources.csmShadowMap = renderInfo.device.makeTexture(descriptor: csmDesc)
     textureResources.csmShadowMap?.label = "CSM Shadow Cascade Array"
 
-    // Color Texture
+    // G-buffer textures: memoryless — data lives only in GPU tile memory within the
+    // combined geometry+lighting encoder. Never written to main memory, saving
+    // ~300+ MB/frame of bandwidth at typical resolutions.
     textureResources.colorMap = createTexture(
         device: renderInfo.device,
         label: "Color Texture",
         pixelFormat: wf.gBufferAlbedo,
         width: viewportWidth,
         height: viewportHeight,
-        usage: [.shaderRead, .renderTarget],
-        storageMode: .shared
+        usage: [.renderTarget],
+        storageMode: .memoryless
     )
 
-    // Normal Texture
     textureResources.normalMap = createTexture(
         device: renderInfo.device,
         label: "Normal Texture",
         pixelFormat: wf.gBufferNormal,
         width: viewportWidth,
         height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
+        usage: [.renderTarget],
+        storageMode: .memoryless
     )
 
-    // Position Texture
     textureResources.positionMap = createTexture(
         device: renderInfo.device,
         label: "Position Texture",
         pixelFormat: wf.gBufferPosition,
         width: viewportWidth,
         height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
+        usage: [.renderTarget],
+        storageMode: .memoryless
     )
 
     // Emissive Texture
@@ -493,8 +497,8 @@ func initTextureResources() {
         pixelFormat: wf.gBufferEmissive,
         width: viewportWidth,
         height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
+        usage: [.renderTarget],
+        storageMode: .memoryless
     )
 
     // Depth Texture
@@ -553,15 +557,15 @@ func initTextureResources() {
         storageMode: .private
     )
 
-    // Material Texture
+    // Material Texture (memoryless — G-buffer tile-based path)
     textureResources.materialMap = createTexture(
         device: renderInfo.device,
         label: "Material Texture",
         pixelFormat: wf.gBufferMaterial,
         width: viewportWidth,
         height: viewportHeight,
-        usage: [.shaderRead, .renderTarget, .shaderWrite],
-        storageMode: .shared
+        usage: [.renderTarget],
+        storageMode: .memoryless
     )
 
     // Deferred Color Texture

@@ -419,43 +419,38 @@ public func buildGameModeGraph() -> RenderGraphResult {
     return (graph, outputPass.id)
 }
 
-/// G-Buffer Pass
+/// G-Buffer Pass (TBDR)
+///
+/// All geometry and lighting run inside a single MTLRenderCommandEncoder via
+/// combinedModelLightExecution. G-buffer attachments are memoryless; lighting
+/// reads them from tile memory via framebuffer fetch. SSAO is disabled pending
+/// restructure as a tile kernel within the same encoder.
 func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
+    // Combined pass: fills G-buffer and runs the lighting quad in one encoder.
     let modelPass = RenderPass(
-        id: "model", dependencies: [shadowPass.id], execute: RenderPasses.modelExecution
+        id: "model",
+        dependencies: [shadowPass.id],
+        execute: RenderPasses.combinedModelLightExecution
     )
     graph[modelPass.id] = modelPass
-    // Add batched model pass (runs after regular model pass)
-    let batchedModelPass = RenderPass(
-        id: "batchedModel", dependencies: [modelPass.id], execute: RenderPasses.batchedModelExecution
-    )
+
+    // Stub: downstream nodes that depend on "batchedModel" still resolve correctly.
+    // Work is done inside modelPass (combinedModelLightExecution).
+    let batchedModelPass = RenderPass(id: "batchedModel", dependencies: [modelPass.id], execute: nil)
     graph[batchedModelPass.id] = batchedModelPass
 
-    // HZB is temporal: the depth captured during this frame is consumed by
-    // next-frame culling. Copy opaque depth before transparency or wireframe
-    // draws can modify the depth buffer.
+    // HZB depth copy must happen after all opaque geometry is drawn.
     let hzbDepthSourcePass = RenderPass(
         id: "hzbDepthSource",
         dependencies: [batchedModelPass.id],
         execute: RenderPasses.copyOpaqueDepthForHZBExecution
     )
     graph[hzbDepthSourcePass.id] = hzbDepthSourcePass
-    let opaqueDepthAnchorId = hzbDepthSourcePass.id
 
-    // Update SSAO to depend on batched pass
-    let ssaoPass = RenderPass(
-        id: "ssao",
-        dependencies: [batchedModelPass.id], // Changed from "model" to "batchedModel"
-        execute: RenderPasses.ssaoOptimizedExecution
-    )
-
-    graph[ssaoPass.id] = ssaoPass
-
-    // Note: ssaoOptimizedExecution handles all blur/upsample internally
-    // No need for separate ssaoBlur pass in the graph
-
-    let lightPass = RenderPass(id: "lightPass", dependencies: [opaqueDepthAnchorId, modelPass.id, shadowPass.id, ssaoPass.id], execute: RenderPasses.lightExecution)
-    graph[lightPass.id] = lightPass
+    // Stub: transparency and other downstream passes depend on "lightPass".
+    // Lighting is done inside modelPass; this node only exists to satisfy the dependency.
+    let lightPassStub = RenderPass(id: "lightPass", dependencies: [hzbDepthSourcePass.id], execute: nil)
+    graph[lightPassStub.id] = lightPassStub
 }
 
 /// Post process passes
@@ -1075,14 +1070,15 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
     switch mode {
     case .lit:
         return textureResources.sceneCompositeTexture
-    case .albedo:
-        return textureResources.colorMap
-    case .normal:
-        return textureResources.normalMap
+    case .albedo, .normal, .ssaoBlurred:
+        // G-buffer attachments (colorMap, normalMap) and the SSAO texture are no longer
+        // stored in the TBDR path. Redirect to the lit scene output so these debug modes
+        // show something valid rather than reading memoryless / empty textures.
+        return textureResources.sceneCompositeTexture
     case .depth:
-        return textureResources.colorMap ?? textureResources.sceneCompositeTexture
-    case .ssaoBlurred:
-        return textureResources.ssaoBlurTexture
+        // colorMap is memoryless in the TBDR path; use sceneCompositeTexture as the
+        // colour source. The debug shader samples depth separately via texture index 1.
+        return textureResources.sceneCompositeTexture
     case .fxaaEdgeDebug:
         return textureResources.lookTexture
     case .smaaEdges:
@@ -1100,7 +1096,10 @@ private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Boo
     switch mode {
     case .lit, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference, .occlusionDebug:
         return true
-    case .albedo, .normal, .depth, .ssaoBlurred:
+    case .albedo, .normal, .ssaoBlurred:
+        // G-buffer channels are memoryless in the TBDR path; fall through to the lit path.
+        return true
+    case .depth:
         return false
     }
 }

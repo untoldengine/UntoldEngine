@@ -37,7 +37,7 @@ public struct WorkingColorFormats: Sendable {
     public var ibl: MTLPixelFormat
 
     public static let standard = WorkingColorFormats(
-        gBufferAlbedo: .rgba8Unorm_srgb,
+        gBufferAlbedo: .rgba16Float,
         gBufferNormal: .rgba16Float,
         gBufferPosition: .rgba16Float,
         gBufferMaterial: .rgba8Unorm,
