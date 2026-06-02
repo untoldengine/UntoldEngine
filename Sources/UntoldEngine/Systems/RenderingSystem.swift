@@ -237,6 +237,8 @@ func addSceneBackgroundPass(
 }
 
 public func buildGameModeGraph() -> RenderGraphResult {
+    updateGBufferStorageForCurrentDebugMode()
+
     var graph = [String: RenderPass]()
 
     // Determine base pass mode based on immersion style
@@ -1077,11 +1079,10 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
     switch mode {
     case .lit:
         return textureResources.sceneCompositeTexture
-    case .albedo, .normal:
-        // G-buffer attachments (colorMap, normalMap) and the SSAO texture are no longer
-        // stored in the TBDR path. Redirect to the lit scene output so these debug modes
-        // show something valid rather than reading memoryless / empty textures.
-        return textureResources.sceneCompositeTexture
+    case .albedo:
+        return textureResources.colorMap
+    case .normal:
+        return textureResources.normalMap
     case .ssaoBlurred:
         return textureResources.ssaoBlurTexture
     case .depth:
@@ -1105,12 +1106,7 @@ private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Boo
     switch mode {
     case .lit, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference, .occlusionDebug:
         return true
-    case .albedo, .normal:
-        // G-buffer channels are memoryless in the TBDR path; fall through to the lit path.
-        return true
-    case .ssaoBlurred:
-        return false
-    case .depth:
+    case .albedo, .normal, .ssaoBlurred, .depth:
         return false
     }
 }

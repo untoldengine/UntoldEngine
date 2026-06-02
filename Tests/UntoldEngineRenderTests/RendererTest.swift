@@ -133,6 +133,55 @@ final class RendererTests: BaseRenderSetup {
         XCTAssertFalse(texture?.usage.contains(.shaderRead) == true)
     }
 
+    func testGBufferDebugViewStoresAlbedoAndNormalTargets() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")
+        guard let initialSSAOBlurTexture = textureResources.ssaoBlurTexture else {
+            XCTFail("Expected SSAO blur texture to exist")
+            return
+        }
+
+        renderDebugViewMode = .albedo
+        defer { renderDebugViewMode = .lit }
+
+        renderer.draw(in: renderer.metalView)
+
+        guard let colorAttachment = renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)],
+              let normalAttachment = renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+        else {
+            XCTFail("Expected G-buffer color and normal attachments")
+            return
+        }
+
+        XCTAssertTrue(renderInfo.gBufferDebugStorageEnabled)
+        XCTAssertEqual(colorAttachment.storeAction, .store)
+        XCTAssertEqual(normalAttachment.storeAction, .store)
+        XCTAssertEqual(colorAttachment.texture?.storageMode, .private)
+        XCTAssertEqual(normalAttachment.texture?.storageMode, .private)
+        XCTAssertTrue(colorAttachment.texture?.usage.contains(.shaderRead) == true)
+        XCTAssertTrue(normalAttachment.texture?.usage.contains(.shaderRead) == true)
+        XCTAssertTrue(textureResources.ssaoBlurTexture === initialSSAOBlurTexture)
+
+        renderDebugViewMode = .lit
+        renderer.draw(in: renderer.metalView)
+
+        guard let restoredColorAttachment = renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)],
+              let restoredNormalAttachment = renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+        else {
+            XCTFail("Expected restored G-buffer color and normal attachments")
+            return
+        }
+
+        XCTAssertFalse(renderInfo.gBufferDebugStorageEnabled)
+        XCTAssertEqual(restoredColorAttachment.storeAction, .dontCare)
+        XCTAssertEqual(restoredNormalAttachment.storeAction, .dontCare)
+        XCTAssertEqual(restoredColorAttachment.texture?.storageMode, .memoryless)
+        XCTAssertEqual(restoredNormalAttachment.texture?.storageMode, .memoryless)
+        XCTAssertFalse(restoredColorAttachment.texture?.usage.contains(.shaderRead) == true)
+        XCTAssertFalse(restoredNormalAttachment.texture?.usage.contains(.shaderRead) == true)
+        XCTAssertTrue(textureResources.ssaoBlurTexture === initialSSAOBlurTexture)
+    }
+
     func testPositionTarget() {
         XCTAssertNotNil(renderer, "Renderer should be initialized")
         XCTAssertNotNil(renderer.metalView, "MetalView should be initialized")

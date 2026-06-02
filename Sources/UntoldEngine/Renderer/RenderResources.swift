@@ -53,6 +53,7 @@ public struct RenderInfo {
     public var hzbMipCount: Int = 0
     public var hzbIsValid: Bool = false
     public var hzbDebugMipLevel: Int = 0
+    public var gBufferDebugStorageEnabled: Bool = false
 
     // XR stereo-aware HZB culling
     // When true, depth and HZB pyramids are maintained per eye and occlusion
