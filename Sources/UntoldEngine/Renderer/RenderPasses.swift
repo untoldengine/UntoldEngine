@@ -1567,6 +1567,348 @@ public enum RenderPasses {
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
     }
 
+    // MARK: - Combined G-buffer + lighting pass (TBDR)
+    //
+    // Merges model geometry, batched geometry, and the lighting quad into a single
+    // MTLRenderCommandEncoder. Because all three sub-passes share one encoder, the
+    // five G-buffer attachments (albedo, normal, position, material, emissive) live
+    // only in GPU tile memory and never hit main memory. The lit result is written
+    // to attachment 5 (deferredColorMap) which is stored for downstream passes.
+    public static let combinedModelLightExecution: RenderPassExecution = { commandBuffer in
+        guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[.model],
+              modelPipeline.success,
+              let lightPipeline = PipelineManager.shared.renderPipelinesByType[.light],
+              lightPipeline.success
+        else { return }
+
+        guard let camera = CameraSystem.shared.activeCamera,
+              let cameraComponent = scene.get(component: CameraComponent.self, for: camera)
+        else {
+            handleError(.noActiveCamera)
+            return
+        }
+
+        guard let encoderDescriptor = renderInfo.offscreenRenderPassDescriptor else {
+            handleError(.renderPassCreationFailed, "Combined G-buffer + Light Pass descriptor not initialized")
+            return
+        }
+
+        // G-buffer slots (0-4): cleared at start, discarded at end (memoryless).
+        // Lit output (5): cleared at start, stored for downstream passes.
+        for i in 0..<5 {
+            encoderDescriptor.colorAttachments[i].loadAction  = .clear
+            encoderDescriptor.colorAttachments[i].storeAction = .dontCare
+        }
+        encoderDescriptor.colorAttachments[5].loadAction  = .clear
+        encoderDescriptor.colorAttachments[5].storeAction = .store
+        encoderDescriptor.depthAttachment.loadAction  = .clear
+        encoderDescriptor.depthAttachment.storeAction = .store
+        encoderDescriptor.depthAttachment.clearDepth  = sceneDepthClearValue()
+
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor) else {
+            handleError(.renderPassCreationFailed, "Combined G-buffer + Light Pass")
+            return
+        }
+
+        defer {
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+
+        renderEncoder.label = "G-Buffer + Light Pass (TBDR)"
+        renderEncoder.pushDebugGroup("G-Buffer + Light Pass (TBDR)")
+
+        let viewMatrix = SceneRootTransform.shared.effectiveViewMatrix(cameraComponent.viewSpace)
+
+        // ── Sub-pass 1: Unbatched geometry ──────────────────────────────────────
+        renderEncoder.setRenderPipelineState(modelPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(modelPipeline.depthState)
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        for entityId in visibleEntityIds {
+            if scene.mask(for: entityId) == nil { continue }
+            if shouldHideSceneEntity(entityId: entityId) { continue }
+            if shouldRenderSceneEntityAsWireframe(entityId: entityId) { continue }
+            if BatchingSystem.shared.isEnabled(), BatchingSystem.shared.isBatched(entityId: entityId) { continue }
+            if scene.get(component: SceneCameraComponent.self, for: entityId) != nil { continue }
+            if scene.get(component: CameraComponent.self, for: entityId) != nil { continue }
+            if hasComponent(entityId: entityId, componentType: GizmoComponent.self) { continue }
+            if hasComponent(entityId: entityId, componentType: LightComponent.self) { continue }
+
+            guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else { continue }
+            guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else { continue }
+            guard scene.get(component: LocalTransformComponent.self, for: entityId) != nil else { continue }
+
+            for mesh in renderComponent.mesh {
+                var modelUniforms = Uniforms()
+                let modelMatrix = simd_mul(worldTransformComponent.space, mesh.localSpace)
+                let modelViewMatrix = simd_mul(viewMatrix, modelMatrix)
+                let normalMatrix = matrix3x3_upper_left(modelMatrix).inverse.transpose
+
+                modelUniforms.modelViewMatrix  = modelViewMatrix
+                modelUniforms.normalMatrix     = normalMatrix
+                modelUniforms.viewMatrix       = viewMatrix
+                modelUniforms.modelMatrix      = modelMatrix
+                modelUniforms.cameraPosition   = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+                modelUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+                renderEncoder.setVertexBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue))
+
+                let jointTransformBuffer = mesh.skin?.jointTransformsBuffer
+                var hasArmature = scene.get(component: SkeletonComponent.self, for: entityId) != nil && jointTransformBuffer != nil
+                renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(modelPassHasArmature.rawValue))
+
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,   offset: 0, index: Int(modelPassVerticesIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer,     offset: 0, index: Int(modelPassNormalIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer,         offset: 0, index: Int(modelPassUVIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer,    offset: 0, index: Int(modelPassTangentIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointIdIndex.rawValue)].buffer,    offset: 0, index: Int(modelPassJointIdIndex.rawValue))
+                renderEncoder.setVertexBuffer(mesh.metalKitMesh.vertexBuffers[Int(modelPassJointWeightsIndex.rawValue)].buffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
+
+                if let jtb = jointTransformBuffer {
+                    renderEncoder.setVertexBuffer(jtb, offset: 0, index: Int(modelPassJointTransformIndex.rawValue))
+                } else {
+                    var identity = matrix_identity_float4x4
+                    renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
+                }
+
+                renderEncoder.setFragmentBytes(&modelUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassFragmentUniformIndex.rawValue))
+
+                for subMesh in mesh.submeshes {
+                    guard let material = subMesh.material else { continue }
+                    if material.alphaMode == .blend { continue }
+
+                    var stScale: Float = material.stScale
+                    renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
+                    renderEncoder.setFragmentTexture(material.baseColor.texture,  index: Int(modelPassBaseTextureIndex.rawValue))
+                    renderEncoder.setFragmentSamplerState(material.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
+                    renderEncoder.setFragmentTexture(material.roughness.texture,  index: Int(modelPassRoughnessTextureIndex.rawValue))
+                    renderEncoder.setFragmentSamplerState(material.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
+                    renderEncoder.setFragmentTexture(material.metallic.texture,   index: Int(modelPassMetallicTextureIndex.rawValue))
+
+                    var hasNormal = (material.normal.texture != nil)
+                    renderEncoder.setFragmentBytes(&hasNormal, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentHasNormalTextureIndex.rawValue))
+
+                    var materialParameters = MaterialParametersUniform()
+                    materialParameters.specular       = material.specular
+                    materialParameters.specularTint   = material.specularTint
+                    materialParameters.subsurface     = material.subsurface
+                    materialParameters.anisotropic    = material.anisotropic
+                    materialParameters.sheen          = material.sheen
+                    materialParameters.sheenTint      = material.sheenTint
+                    materialParameters.clearCoat      = material.clearCoat
+                    materialParameters.clearCoatGloss = material.clearCoatGloss
+                    materialParameters.baseColor      = material.baseColorValue
+                    materialParameters.roughness      = material.roughnessValue
+                    materialParameters.metallic       = material.metallicValue
+                    materialParameters.ior            = material.ior
+                    materialParameters.edgeTint       = material.edgeTint
+                    materialParameters.alphaCutoff    = material.alphaCutoff
+                    materialParameters.alphaMode      = Int32(material.alphaMode.rawValue)
+                    materialParameters.interactWithLight = material.interactWithLight
+                    materialParameters.emmissive      = material.emissiveValue
+                    materialParameters.hasTexture = simd_int4(
+                        Int32(material.hasBaseMap  ? 1 : 0),
+                        Int32(material.hasRoughMap ? 1 : 0),
+                        Int32(material.hasMetalMap ? 1 : 0),
+                        0
+                    )
+                    applyLODDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
+                    applyStreamingTierDebugColorOverride(entityId: entityId, materialParameters: &materialParameters)
+
+                    renderEncoder.setFragmentBytes(&materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride, index: Int(modelPassFragmentMaterialParameterIndex.rawValue))
+                    renderEncoder.setFragmentTexture(material.normal.texture,  index: Int(modelPassNormalTextureIndex.rawValue))
+                    renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
+
+                    renderEncoder.drawIndexedPrimitivesTracked(
+                        type: subMesh.metalKitSubmesh.primitiveType,
+                        indexCount: subMesh.metalKitSubmesh.indexCount,
+                        indexType: subMesh.metalKitSubmesh.indexType,
+                        indexBuffer: subMesh.metalKitSubmesh.indexBuffer.buffer,
+                        indexBufferOffset: subMesh.metalKitSubmesh.indexBuffer.offset,
+                        category: .opaque
+                    )
+                }
+            }
+        }
+
+        // ── Sub-pass 1b: Batched geometry ───────────────────────────────────────
+        if BatchingSystem.shared.isEnabled() {
+            let visibleBatchGroups = visibleBatchGroupsSnapshot()
+            if !visibleBatchGroups.isEmpty {
+                var batchUniforms = Uniforms()
+                let modelMatrix = matrix_identity_float4x4
+                batchUniforms.modelMatrix      = modelMatrix
+                batchUniforms.viewMatrix       = viewMatrix
+                batchUniforms.modelViewMatrix  = simd_mul(viewMatrix, modelMatrix)
+                batchUniforms.normalMatrix     = matrix3x3_upper_left(modelMatrix).inverse.transpose
+                batchUniforms.cameraPosition   = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+                batchUniforms.projectionMatrix = renderInfo.perspectiveSpace
+
+                for batchGroup in visibleBatchGroups {
+                    guard let positionBuffer = batchGroup.positionBuffer,
+                          let normalBuffer   = batchGroup.normalBuffer,
+                          let uvBuffer       = batchGroup.uvBuffer,
+                          let tangentBuffer  = batchGroup.tangentBuffer,
+                          let indexBuffer    = batchGroup.indexBuffer
+                    else { continue }
+
+                    if shouldRenderSceneChannelsAsWireframe(batchGroup.sceneChannels) { continue }
+                    let material = batchGroup.material
+                    if material.hasTransparency { continue }
+
+                    renderEncoder.setVertexBytes(&batchUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassUniformIndex.rawValue))
+                    renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassVerticesIndex.rawValue))
+                    renderEncoder.setVertexBuffer(normalBuffer,   offset: 0, index: Int(modelPassNormalIndex.rawValue))
+                    renderEncoder.setVertexBuffer(uvBuffer,       offset: 0, index: Int(modelPassUVIndex.rawValue))
+                    renderEncoder.setVertexBuffer(tangentBuffer,  offset: 0, index: Int(modelPassTangentIndex.rawValue))
+                    renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassJointIdIndex.rawValue))
+                    renderEncoder.setVertexBuffer(positionBuffer, offset: 0, index: Int(modelPassJointWeightsIndex.rawValue))
+
+                    var hasArmature = false
+                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(modelPassHasArmature.rawValue))
+                    var identity = matrix_identity_float4x4
+                    renderEncoder.setVertexBytes(&identity, length: MemoryLayout<simd_float4x4>.stride, index: Int(modelPassJointTransformIndex.rawValue))
+
+                    renderEncoder.setFragmentBytes(&batchUniforms, length: MemoryLayout<Uniforms>.stride, index: Int(modelPassFragmentUniformIndex.rawValue))
+
+                    var stScale: Float = material.stScale
+                    renderEncoder.setFragmentBytes(&stScale, length: MemoryLayout<Float>.stride, index: Int(modelPassFragmentSTScaleIndex.rawValue))
+                    renderEncoder.setFragmentTexture(material.baseColor.texture,  index: Int(modelPassBaseTextureIndex.rawValue))
+                    renderEncoder.setFragmentSamplerState(material.baseColor.sampler, index: Int(modelPassBaseSamplerIndex.rawValue))
+                    renderEncoder.setFragmentTexture(material.roughness.texture,  index: Int(modelPassRoughnessTextureIndex.rawValue))
+                    renderEncoder.setFragmentSamplerState(material.roughness.sampler, index: Int(modelPassMaterialSamplerIndex.rawValue))
+                    renderEncoder.setFragmentTexture(material.metallic.texture,   index: Int(modelPassMetallicTextureIndex.rawValue))
+
+                    var hasNormal = (material.normal.texture != nil)
+                    renderEncoder.setFragmentBytes(&hasNormal, length: MemoryLayout<Bool>.stride, index: Int(modelPassFragmentHasNormalTextureIndex.rawValue))
+
+                    var materialParameters = MaterialParametersUniform()
+                    materialParameters.specular       = material.specular
+                    materialParameters.specularTint   = material.specularTint
+                    materialParameters.subsurface     = material.subsurface
+                    materialParameters.anisotropic    = material.anisotropic
+                    materialParameters.sheen          = material.sheen
+                    materialParameters.sheenTint      = material.sheenTint
+                    materialParameters.clearCoat      = material.clearCoat
+                    materialParameters.clearCoatGloss = material.clearCoatGloss
+                    materialParameters.baseColor      = material.baseColorValue
+                    materialParameters.roughness      = material.roughnessValue
+                    materialParameters.metallic       = material.metallicValue
+                    materialParameters.ior            = material.ior
+                    materialParameters.edgeTint       = material.edgeTint
+                    materialParameters.alphaCutoff    = material.alphaCutoff
+                    materialParameters.alphaMode      = Int32(material.alphaMode.rawValue)
+                    materialParameters.interactWithLight = material.interactWithLight
+                    materialParameters.emmissive      = material.emissiveValue
+                    materialParameters.hasTexture = simd_int4(
+                        Int32(material.hasBaseMap  ? 1 : 0),
+                        Int32(material.hasRoughMap ? 1 : 0),
+                        Int32(material.hasMetalMap ? 1 : 0),
+                        0
+                    )
+                    applyLODDebugColorOverride(batchGroup: batchGroup, materialParameters: &materialParameters)
+                    applyStreamingTierDebugColorOverride(batchMaterial: material, materialParameters: &materialParameters)
+
+                    renderEncoder.setFragmentBytes(&materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride, index: Int(modelPassFragmentMaterialParameterIndex.rawValue))
+                    renderEncoder.setFragmentTexture(material.normal.texture,  index: Int(modelPassNormalTextureIndex.rawValue))
+                    renderEncoder.setFragmentSamplerState(material.normal.sampler, index: Int(modelPassNormalSamplerIndex.rawValue))
+
+                    renderEncoder.drawIndexedPrimitivesTracked(
+                        type: .triangle,
+                        indexCount: batchGroup.indexCount,
+                        indexType: .uint32,
+                        indexBuffer: indexBuffer,
+                        indexBufferOffset: 0,
+                        category: .opaque,
+                        batched: true
+                    )
+                }
+            }
+        }
+
+        // ── Sub-pass 2: Lighting quad ────────────────────────────────────────────
+        // Reads G-buffer from tile memory via [[color(N)]] framebuffer fetch.
+        // No G-buffer textures are bound — they come from attachments 0-4 in tile memory.
+        renderEncoder.setRenderPipelineState(lightPipeline.pipelineState!)
+        if let depthState = lightPipeline.depthState {
+            renderEncoder.setDepthStencilState(depthState)
+        }
+
+        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer,  offset: 0, index: 0)
+        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+
+        var effectiveCamPos = SceneRootTransform.shared.effectiveCameraPosition(cameraComponent.localPosition)
+        renderEncoder.setFragmentBytes(&effectiveCamPos, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassCameraPositionIndex.rawValue))
+
+        var csmUniforms = shadowSystem.makeUniforms()
+        csmUniforms.cameraViewMatrix = viewMatrix
+        csmUniforms.lightSpaceMatrices.0 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.0)
+        csmUniforms.lightSpaceMatrices.1 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.1)
+        csmUniforms.lightSpaceMatrices.2 = SceneRootTransform.shared.effectiveLightMatrix(csmUniforms.lightSpaceMatrices.2)
+        renderEncoder.setFragmentBytes(&csmUniforms, length: MemoryLayout<CSMUniforms>.stride, index: Int(lightPassLightOrthoViewMatrixIndex.rawValue))
+
+        renderEncoder.setFragmentTexture(textureResources.csmShadowMap,      index: Int(lightPassShadowTextureIndex.rawValue))
+        renderEncoder.setFragmentTexture(textureResources.irradianceMap,      index: Int(lightPassIBLIrradianceTextureIndex.rawValue))
+        renderEncoder.setFragmentTexture(textureResources.specularMap,        index: Int(lightPassIBLSpecularTextureIndex.rawValue))
+        renderEncoder.setFragmentTexture(textureResources.iblBRDFMap,         index: Int(lightPassIBLBRDFMapTextureIndex.rawValue))
+        renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMag,  index: Int(lightPassAreaLTCMagTextureIndex.rawValue))
+        renderEncoder.setFragmentTexture(textureResources.areaTextureLTCMat,  index: Int(lightPassAreaLTCMatTextureIndex.rawValue))
+
+        var lightParams = getDirectionalLightParameters()
+        renderEncoder.setFragmentBytes(&lightParams, length: MemoryLayout<LightParameters>.stride, index: Int(lightPassLightParamsIndex.rawValue))
+
+        let headerSize = 16
+        _ = uploadAndBindLights(
+            buffer: bufferResources.pointLightBuffer,
+            lights: getPointLights(),
+            maxCount: 1024,
+            headerSize: headerSize,
+            encoder: renderEncoder,
+            bufferIndex: Int(lightPassPointLightsIndex.rawValue),
+            labelForErrors: "Point Lights"
+        )
+        _ = uploadAndBindLights(
+            buffer: bufferResources.spotLightBuffer,
+            lights: getSpotLights(),
+            maxCount: 1024,
+            headerSize: headerSize,
+            encoder: renderEncoder,
+            bufferIndex: Int(lightPassSpotLightsIndex.rawValue),
+            labelForErrors: "Spot Lights"
+        )
+        _ = uploadAndBindLights(
+            buffer: bufferResources.areaLightBuffer,
+            lights: getAreaLights(),
+            maxCount: 1024,
+            headerSize: headerSize,
+            encoder: renderEncoder,
+            bufferIndex: Int(lightPassAreaLightsIndex.rawValue),
+            labelForErrors: "Area Lights"
+        )
+
+        var brdfParameters = IBLParamsUniform()
+        brdfParameters.applyIBL = applyIBL
+        brdfParameters.ambientIntensity = ambientIntensity
+        renderEncoder.setFragmentBytes(&brdfParameters, length: MemoryLayout<IBLParamsUniform>.stride, index: Int(lightPassIBLParamIndex.rawValue))
+
+        var lightPassRotationAngle = envRotationAngle
+        renderEncoder.setFragmentBytes(&lightPassRotationAngle, length: MemoryLayout<Float>.stride, index: Int(lightPassIBLRotationAngleIndex.rawValue))
+
+        var isGameMode = gameMode
+        renderEncoder.setFragmentBytes(&isGameMode, length: MemoryLayout<Bool>.size, index: Int(lightPassGameModeIndex.rawValue))
+
+        renderEncoder.drawIndexedPrimitivesTracked(
+            type: .triangle,
+            indexCount: 6,
+            indexType: .uint16,
+            indexBuffer: bufferResources.quadIndexBuffer!,
+            indexBufferOffset: 0
+        )
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+    }
+
     static let ssaoExecution: RenderPassExecution = { commandBuffer in
         guard let camera = CameraSystem.shared.activeCamera, let cameraComponent = scene.get(component: CameraComponent.self, for: camera) else {
             handleError(.noActiveCamera)
@@ -2112,7 +2454,16 @@ public enum RenderPasses {
         ssaoBlurExecution(commandBuffer)
     }
 
-    public static let lightExecution: RenderPassExecution = { commandBuffer in
+    // lightExecution has been removed. Lighting now runs inside combinedModelLightExecution
+    // as the third sub-pass of the TBDR G-buffer + lighting encoder. The .light pipeline
+    // is the 6-attachment TBDR pipeline; using it with the old single-attachment
+    // deferredRenderPassDescriptor would fail Metal validation immediately.
+
+    @available(*, unavailable, renamed: "combinedModelLightExecution")
+    public static var lightExecution: RenderPassExecution { fatalError() }
+
+    // Kept below for reference during SSAO tile-kernel restructure — remove after.
+    private static let _legacyLightExecution_DEAD: RenderPassExecution = { commandBuffer in
         guard let lightPipeline = PipelineManager.shared.renderPipelinesByType[.light] else {
             handleError(.pipelineStateNulled, "lightPipeline is nil")
             return
@@ -2294,7 +2645,7 @@ public enum RenderPasses {
         )
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-    }
+    }  // end _legacyLightExecution_DEAD
 
     public static let preCompositeExecution: RenderPassExecution = { commandBuffer in
         guard let preCompositePipeline = PipelineManager.shared.renderPipelinesByType[.preComposite] else {

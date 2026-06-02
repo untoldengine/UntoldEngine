@@ -182,29 +182,112 @@ private var wf: WorkingColorFormats {
     renderInfo.colorPipeline.working
 }
 
+// The model pipeline shares the same 6-attachment descriptor as the TBDR light
+// pipeline. Attachments 0-4 are the G-buffer targets written by geometry draws.
+// Attachment 5 is the lit output (deferredColorMap) that only the light sub-pass
+// writes — geometry must not touch it, so writeMask is disabled for slot 5.
 public func InitModelPipeline() -> RenderPipeline? {
-    CreatePipeline(
-        vertexShader: "vertexModelShader",
-        fragmentShader: "fragmentModelShader",
-        vertexDescriptor: createModelVertexDescriptor(),
-        colorFormats: [wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition, wf.gBufferMaterial, wf.gBufferEmissive],
-        depthFormat: renderInfo.depthPixelFormat,
-        name: "Model Pipeline"
-    )
+    guard let library = renderInfo.library else {
+        handleError(.metalLibraryNotFound)
+        return nil
+    }
+    guard let vertexFunction = library.makeFunction(name: "vertexModelShader") else {
+        handleError(.shaderCreationFailed, "vertexModelShader")
+        return nil
+    }
+    guard let fragmentFunction = library.makeFunction(name: "fragmentModelShader") else {
+        handleError(.shaderCreationFailed, "fragmentModelShader")
+        return nil
+    }
+
+    let desc = MTLRenderPipelineDescriptor()
+    desc.label = "Model Pipeline"
+    desc.vertexFunction = vertexFunction
+    desc.fragmentFunction = fragmentFunction
+    desc.vertexDescriptor = createModelVertexDescriptor()
+    desc.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
+
+    // G-buffer outputs: geometry writes to these.
+    let gbufferFormats: [MTLPixelFormat] = [
+        wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
+        wf.gBufferMaterial, wf.gBufferEmissive
+    ]
+    for (i, fmt) in gbufferFormats.enumerated() {
+        desc.colorAttachments[i].pixelFormat = fmt
+        desc.colorAttachments[i].writeMask = .all
+    }
+
+    // Attachment 5: deferredColorMap — geometry must not write here.
+    desc.colorAttachments[5].pixelFormat = wf.sceneColor
+    desc.colorAttachments[5].writeMask = []
+
+    let depthDesc = MTLDepthStencilDescriptor()
+    depthDesc.depthCompareFunction = sceneDepthCompareFunction(.lessEqual)
+    depthDesc.isDepthWriteEnabled = true
+
+    do {
+        let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: desc)
+        let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthDesc)
+        return RenderPipeline(pipelineState: pipelineState, depthState: depthState, success: true, name: "Model Pipeline")
+    } catch {
+        handleError(.pipelineStateCreationFailed, "Model Pipeline")
+        return nil
+    }
 }
 
-// MARK: Light pipeline
-
+// MARK: Light pipeline (TBDR)
+//
+// The light pass runs inside the same MTLRenderCommandEncoder as the geometry
+// pass. The fragment shader reads G-buffer data from tile memory via [[color(N)]]
+// (framebuffer fetch) and writes the lit result to attachment 5 (deferredColorMap).
+// Attachments 0-4 carry G-buffer data; their writeMask is disabled so the light
+// quad does not overwrite geometry output that is still live in tile memory.
 public func InitLightPipeline() -> RenderPipeline? {
-    CreatePipeline(
-        vertexShader: "vertexLightShader",
-        fragmentShader: "fragmentLightShader",
-        vertexDescriptor: createLightVertexDescriptor(),
-        colorFormats: [wf.sceneColor],
-        depthFormat: renderInfo.depthPixelFormat,
-        depthEnabled: false,
-        name: "Light Pipeline"
-    )
+    guard let library = renderInfo.library else {
+        handleError(.metalLibraryNotFound)
+        return nil
+    }
+    guard let vertexFunction = library.makeFunction(name: "vertexLightShader") else {
+        handleError(.shaderCreationFailed, "vertexLightShader")
+        return nil
+    }
+    guard let fragmentFunction = library.makeFunction(name: "fragmentLightShaderTBDR") else {
+        handleError(.shaderCreationFailed, "fragmentLightShaderTBDR")
+        return nil
+    }
+
+    let desc = MTLRenderPipelineDescriptor()
+    desc.label = "Light Pipeline (TBDR)"
+    desc.vertexFunction = vertexFunction
+    desc.fragmentFunction = fragmentFunction
+    desc.vertexDescriptor = createLightVertexDescriptor()
+    desc.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
+
+    // G-buffer slots: readable via [[color(N)]] framebuffer fetch; light quad must not write them.
+    let gbufferFormats: [MTLPixelFormat] = [
+        wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
+        wf.gBufferMaterial, wf.gBufferEmissive
+    ]
+    for (i, fmt) in gbufferFormats.enumerated() {
+        desc.colorAttachments[i].pixelFormat = fmt
+        desc.colorAttachments[i].writeMask = []
+    }
+
+    // Attachment 5: deferredColorMap — the lit output.
+    desc.colorAttachments[5].pixelFormat = wf.sceneColor
+    desc.colorAttachments[5].writeMask = .all
+
+    do {
+        let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: desc)
+        let depthDesc = MTLDepthStencilDescriptor()
+        depthDesc.isDepthWriteEnabled = false
+        depthDesc.depthCompareFunction = .always
+        let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthDesc)
+        return RenderPipeline(pipelineState: pipelineState, depthState: depthState, success: true, name: "Light Pipeline (TBDR)")
+    } catch {
+        handleError(.pipelineStateCreationFailed, "Light Pipeline (TBDR)")
+        return nil
+    }
 }
 
 // MARK: Geometry pipeline
