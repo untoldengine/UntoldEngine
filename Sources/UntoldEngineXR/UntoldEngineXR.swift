@@ -138,7 +138,6 @@
             InputSystem.shared.clearXRSpatialSnapshots()
             InputSystem.shared.xrSpatialInputState = XRSpatialInputState()
             resetAllSpatialInteractionTracking()
-            RealSurfacePlaneStore.shared.clear()
         }
 
         private func configureSpatialEventBridge() {
