@@ -33,7 +33,7 @@ final class ColorPipelineConfigTests: XCTestCase {
     func testColorPipelineConfigStandard_keepsStableWorkingFormats() {
         let pipeline = ColorPipelineConfig.standard(presentFormat: .bgra8Unorm_srgb)
 
-        XCTAssertEqual(pipeline.working.gBufferAlbedo, .rgba8Unorm_srgb)
+        XCTAssertEqual(pipeline.working.gBufferAlbedo, .rgba16Float)
         XCTAssertEqual(pipeline.working.sceneColor, .rgba16Float)
         XCTAssertEqual(pipeline.working.postProcess, .rgba16Float)
         XCTAssertEqual(pipeline.working.lookOutput, .rgba16Float)

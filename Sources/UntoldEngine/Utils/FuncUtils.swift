@@ -287,6 +287,9 @@ public func generateHDR(_ hdrName: String, from directory: URL? = nil) {
 public func textureToCGImage(texture: MTLTexture) -> CGImage? {
     let width = texture.width
     let height = texture.height
+    guard width > 0, height > 0 else { return nil }
+    guard texture.storageMode != .memoryless else { return nil }
+
     let region = MTLRegionMake2D(0, 0, width, height)
 
     func makeRGBA8Image(from rgbaData: UnsafeMutableRawPointer, isSRGB: Bool) -> CGImage? {

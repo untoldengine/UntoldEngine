@@ -359,12 +359,12 @@ func initRenderPassDescriptors() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         colorAttachments: [
-            (textureResources.colorMap,       .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.normalMap,      .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.positionMap,    .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.materialMap,    .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.emissiveMap,    .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.deferredColorMap, .clear, .store,  MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.colorMap, .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.normalMap, .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.positionMap, .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.materialMap, .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.emissiveMap, .clear, .dontCare, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.deferredColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
         depthAttachment: (textureResources.depthMap, .clear, .store, sceneDepthClearValue())
     )
