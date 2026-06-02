@@ -142,6 +142,8 @@ let isActive = PostFX.isEnabled(.bloomThreshold)
 > ```
 > SSAO is also configured through `PostFXPreset` when you call `PostFX.apply(preset)`, but it is not accessible via `PostFX.setEnabled(...)` or `PostFX.isEnabled(...)`.
 
+The current SSAO renderer is depth-only. It samples the stored opaque depth buffer, runs the blur chain internally, and applies the result during pre-composite. This keeps SSAO compatible with the engine's tile-based deferred renderer without forcing normal or position G-Buffer attachments to be stored in memory.
+
 ---
 
 ## Adjusting Individual Effect Parameters
