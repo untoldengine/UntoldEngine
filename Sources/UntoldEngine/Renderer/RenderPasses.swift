@@ -260,6 +260,26 @@ public enum RenderPasses {
     }
 
     @inline(__always)
+    private static func passthroughGhostAlpha(for entityId: EntityID) -> Float {
+        guard renderInfo.immersionStyle == .mixed,
+              let opacity = passthroughGhostOpacity(for: getEntitySceneChannels(entityId: entityId))
+        else {
+            return 1.0
+        }
+        return opacity
+    }
+
+    @inline(__always)
+    private static func passthroughGhostAlpha(for batchGroup: BatchGroup) -> Float {
+        guard renderInfo.immersionStyle == .mixed,
+              let opacity = passthroughGhostOpacity(for: batchGroup.sceneChannels)
+        else {
+            return 1.0
+        }
+        return opacity
+    }
+
+    @inline(__always)
     private static func extractLODIndex(from batchKey: String) -> Int? {
         guard let markerRange = batchKey.range(of: "_LOD", options: .backwards) else {
             return nil
@@ -1310,6 +1330,7 @@ public enum RenderPasses {
                     materialParameters.ior = material.ior
                     materialParameters.edgeTint = material.edgeTint
                     materialParameters.alphaCutoff = material.alphaCutoff
+                    materialParameters.passthroughAlpha = passthroughGhostAlpha(for: entityId)
                     materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
                     materialParameters.interactWithLight = material.interactWithLight
                     materialParameters.emmissive = material.emissiveValue
@@ -1526,6 +1547,7 @@ public enum RenderPasses {
             materialParameters.ior = material.ior
             materialParameters.edgeTint = material.edgeTint
             materialParameters.alphaCutoff = material.alphaCutoff
+            materialParameters.passthroughAlpha = passthroughGhostAlpha(for: batchGroup)
             materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
             materialParameters.interactWithLight = material.interactWithLight
             materialParameters.emmissive = material.emissiveValue
@@ -1705,6 +1727,7 @@ public enum RenderPasses {
                     materialParameters.ior = material.ior
                     materialParameters.edgeTint = material.edgeTint
                     materialParameters.alphaCutoff = material.alphaCutoff
+                    materialParameters.passthroughAlpha = passthroughGhostAlpha(for: entityId)
                     materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
                     materialParameters.interactWithLight = material.interactWithLight
                     materialParameters.emmissive = material.emissiveValue
@@ -1799,6 +1822,7 @@ public enum RenderPasses {
                     materialParameters.ior = material.ior
                     materialParameters.edgeTint = material.edgeTint
                     materialParameters.alphaCutoff = material.alphaCutoff
+                    materialParameters.passthroughAlpha = passthroughGhostAlpha(for: batchGroup)
                     materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
                     materialParameters.interactWithLight = material.interactWithLight
                     materialParameters.emmissive = material.emissiveValue
@@ -3100,6 +3124,7 @@ public enum RenderPasses {
                     materialParameters.ior = material.ior
                     materialParameters.edgeTint = material.edgeTint
                     materialParameters.alphaCutoff = material.alphaCutoff
+                    materialParameters.passthroughAlpha = 1.0
                     materialParameters.alphaMode = Int32(material.alphaMode.rawValue)
                     materialParameters.interactWithLight = material.interactWithLight
                     materialParameters.emmissive = material.emissiveValue

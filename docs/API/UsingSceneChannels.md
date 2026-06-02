@@ -9,6 +9,7 @@ The current built-in channels are:
 | `.contextGeometry` | Non-selectable scene context such as walls, floors, ceilings, terrain, or merged background geometry |
 | `.selectableGeometry` | Entities that should remain visible and selectable as individual objects |
 | `.preserveIdentity` | Entities that should not be merged into static batches because their identity matters at runtime |
+| `.ghostGeometry` | Specific walls or structures selected for passthrough ghost rendering |
 
 ## Default Behavior
 
@@ -37,6 +38,7 @@ setSceneChannel(_ channel: SceneChannel, _ property: SceneChannelProperty)
 setSceneChannel(.contextGeometry, .renderMode(.wireframe))
 setSceneChannel(.contextGeometry, .renderMode(.hidden))
 setSceneChannel(.contextGeometry, .renderMode(.normal))
+setSceneChannel(.ghostGeometry, .renderMode(.passthroughGhost(opacity: 0.35)))
 ```
 
 New properties can be added to `SceneChannelProperty` in the future without introducing new top-level functions.
@@ -50,6 +52,7 @@ The `.renderMode` property accepts a `SceneChannelRenderMode`:
 | `.normal` | Rendered normally (default) |
 | `.hidden` | Skipped by the renderer entirely |
 | `.wireframe` | Drawn as edges over the lit scene |
+| `.passthroughGhost(opacity:)` | Rendered depth-opaque with reduced alpha only in mixed passthrough |
 
 ### Hiding Context Geometry
 
@@ -128,6 +131,19 @@ This means:
 
 To make distant lines more visible, increase `minimumAlpha` or `fadeEndDistance`. To reduce clutter sooner, lower `fadeStartDistance` or `fadeEndDistance`. To make all lines lighter, lower `color.a`.
 
+### Passthrough Ghost Mode
+
+```swift
+setEntitySceneChannels(entityId: wallEntity, channels: .ghostGeometry)
+setSceneChannel(.ghostGeometry, .renderMode(.passthroughGhost(opacity: 0.35)))
+```
+
+`.passthroughGhost(opacity:)` keeps the channel in the opaque render path, so it continues to write depth and occlude virtual objects behind it. In mixed passthrough mode, only the rendered scene-color alpha is reduced so the camera feed shows through the surface. Virtual objects in front of the ghosted geometry still render normally.
+
+Outside mixed passthrough mode, ghosted channels render as normal opaque geometry. The opacity value is clamped to `0.0...1.0`.
+
+Use `.ghostGeometry` when only selected walls or structures should ghost. Regular `.contextGeometry` can stay normal, hidden, or wireframe independently. If the entity is already static-batched, changing its scene channels queues a batch rebuild so it can split from its previous context batch.
+
 ## Reading Channel State
 
 ```swift
@@ -178,6 +194,13 @@ Or render it as a lightweight guide:
 
 ```swift
 setSceneChannel(.contextGeometry, .renderMode(.wireframe))
+```
+
+Or use it as a depth-opaque passthrough overlay in mixed mode:
+
+```swift
+setEntitySceneChannels(entityId: selectedWall, channels: .ghostGeometry)
+setSceneChannel(.ghostGeometry, .renderMode(.passthroughGhost(opacity: 0.35)))
 ```
 
 Selectable objects remain visible and pickable.

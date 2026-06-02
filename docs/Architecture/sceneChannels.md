@@ -13,6 +13,7 @@ Current built-in channels:
 | `.contextGeometry` | Background scene geometry that can be hidden as a group |
 | `.selectableGeometry` | Runtime entities intended for picking/interaction |
 | `.preserveIdentity` | Entities that should remain separate and should not be static-batched |
+| `.ghostGeometry` | Specific walls/structures selected for passthrough ghost rendering |
 
 The bitmask design allows future channels to be added without changing the storage model.
 
@@ -44,11 +45,16 @@ New code can set the render mode directly:
 setSceneChannelRenderMode(.contextGeometry, .normal)
 setSceneChannelRenderMode(.contextGeometry, .hidden)
 setSceneChannelRenderMode(.contextGeometry, .wireframe)
+setSceneChannel(.ghostGeometry, .renderMode(.passthroughGhost(opacity: 0.35)))
 ```
 
 The render passes call `shouldHideSceneEntity(entityId:)` for individual entities. Hidden entities are skipped before draw encoding. This is different from opacity: no transparent draw is submitted, so the feature avoids transparency sorting issues.
 
 Batched rendering filters `BatchGroup`s through channel render-mode helpers. Hidden groups are skipped. Wireframe groups are skipped from solid opaque and shadow passes, then redrawn in the wireframe pass after transparency and before spatial debug overlays.
+
+Passthrough ghost groups remain in the solid opaque path and continue to write depth. In mixed passthrough mode, the renderer lowers only the final scene-color alpha for those channels, allowing the real-world camera feed to show through while virtual geometry behind the ghosted surface remains occluded. Outside mixed passthrough mode, ghost channels render as normal opaque geometry.
+
+Use `.ghostGeometry` for specific walls/structures that should ghost independently from the rest of `.contextGeometry`. Assigning `.ghostGeometry` to an entity updates static batching state so selected geometry can split into its own batch group.
 
 For `.untold` assets, the exporter writes optional architectural edge index buffers for boundary and hard-angle edges. The runtime loader stores these on `RuntimeMeshPrimitive`, `Mesh`, and `BatchGroup`, and the wireframe pass draws them as line primitives when available. Meshes without edge buffers fall back to existing mesh and batch index buffers with Metal triangle line fill mode, which can display dense internal triangulation.
 
