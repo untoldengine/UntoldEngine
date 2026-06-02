@@ -430,4 +430,37 @@ final class PostFXTests: BaseRenderSetup {
         }
         wait(for: [exp], timeout: TimeInterval(timeoutFactor))
     }
+
+    func testDebugViewMode_SSAOBlurredAfterAlbedoAndNormal_ProducesLookTexture() {
+        XCTAssertNotNil(renderer, "Renderer should be initialized")
+        SSAO.setEnabled(true)
+        defer {
+            renderDebugViewMode = .lit
+            SSAO.setEnabled(false)
+        }
+
+        guard let initialSSAOBlurTexture = textureResources.ssaoBlurTexture else {
+            XCTFail("Expected SSAO blur texture to exist before debug mode switching")
+            return
+        }
+
+        renderDebugViewMode = .albedo
+        renderer.draw(in: renderer.metalView)
+
+        renderDebugViewMode = .normal
+        renderer.draw(in: renderer.metalView)
+
+        renderDebugViewMode = .ssaoBlurred
+        renderer.draw(in: renderer.metalView)
+
+        let exp = expectation(description: "SSAO blurred debug view after G-buffer debug views")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            XCTAssertNotNil(textureResources.lookTexture,
+                            "lookTexture must be non-nil after albedo -> normal -> ssaoBlurred debug sequence")
+            XCTAssertTrue(textureResources.ssaoBlurTexture === initialSSAOBlurTexture,
+                          "G-buffer debug mode switching must not replace the SSAO blur texture")
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: TimeInterval(timeoutFactor))
+    }
 }

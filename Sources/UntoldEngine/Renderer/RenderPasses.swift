@@ -1594,9 +1594,11 @@ public enum RenderPasses {
     ///
     /// Merges model geometry, batched geometry, and the lighting quad into a single
     /// MTLRenderCommandEncoder. Because all three sub-passes share one encoder, the
-    /// five G-buffer attachments (albedo, normal, position, material, emissive) live
-    /// only in GPU tile memory and never hit main memory. The lit result is written
-    /// to attachment 5 (deferredColorMap) which is stored for downstream passes.
+    /// five G-buffer attachments (albedo, normal, position, material, emissive)
+    /// normally live only in GPU tile memory and never hit main memory. G-buffer
+    /// debug views temporarily store them so a later fullscreen pass can sample
+    /// the selected channel. The lit result is written to attachment 5
+    /// (deferredColorMap), which is always stored for downstream passes.
     public static let combinedModelLightExecution: RenderPassExecution = { commandBuffer in
         guard let modelPipeline = PipelineManager.shared.renderPipelinesByType[.model],
               modelPipeline.success,
@@ -1616,11 +1618,12 @@ public enum RenderPasses {
             return
         }
 
-        // G-buffer slots (0-4): cleared at start, discarded at end (memoryless).
+        // G-buffer slots (0-4): cleared at start, normally discarded at end.
         // Lit output (5): cleared at start, stored for downstream passes.
+        let gBufferStoreAction: MTLStoreAction = renderInfo.gBufferDebugStorageEnabled ? .store : .dontCare
         for i in 0 ..< 5 {
             encoderDescriptor.colorAttachments[i].loadAction = .clear
-            encoderDescriptor.colorAttachments[i].storeAction = .dontCare
+            encoderDescriptor.colorAttachments[i].storeAction = gBufferStoreAction
         }
         encoderDescriptor.colorAttachments[5].loadAction = .clear
         encoderDescriptor.colorAttachments[5].storeAction = .store
