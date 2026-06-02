@@ -182,10 +182,10 @@ private var wf: WorkingColorFormats {
     renderInfo.colorPipeline.working
 }
 
-// The model pipeline shares the same 6-attachment descriptor as the TBDR light
-// pipeline. Attachments 0-4 are the G-buffer targets written by geometry draws.
-// Attachment 5 is the lit output (deferredColorMap) that only the light sub-pass
-// writes — geometry must not touch it, so writeMask is disabled for slot 5.
+/// The model pipeline shares the same 6-attachment descriptor as the TBDR light
+/// pipeline. Attachments 0-4 are the G-buffer targets written by geometry draws.
+/// Attachment 5 is the lit output (deferredColorMap) that only the light sub-pass
+/// writes — geometry must not touch it, so writeMask is disabled for slot 5.
 public func InitModelPipeline() -> RenderPipeline? {
     guard let library = renderInfo.library else {
         handleError(.metalLibraryNotFound)
@@ -210,7 +210,7 @@ public func InitModelPipeline() -> RenderPipeline? {
     // G-buffer outputs: geometry writes to these.
     let gbufferFormats: [MTLPixelFormat] = [
         wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
-        wf.gBufferMaterial, wf.gBufferEmissive
+        wf.gBufferMaterial, wf.gBufferEmissive,
     ]
     for (i, fmt) in gbufferFormats.enumerated() {
         desc.colorAttachments[i].pixelFormat = fmt
@@ -236,12 +236,13 @@ public func InitModelPipeline() -> RenderPipeline? {
 }
 
 // MARK: Light pipeline (TBDR)
-//
-// The light pass runs inside the same MTLRenderCommandEncoder as the geometry
-// pass. The fragment shader reads G-buffer data from tile memory via [[color(N)]]
-// (framebuffer fetch) and writes the lit result to attachment 5 (deferredColorMap).
-// Attachments 0-4 carry G-buffer data; their writeMask is disabled so the light
-// quad does not overwrite geometry output that is still live in tile memory.
+
+///
+/// The light pass runs inside the same MTLRenderCommandEncoder as the geometry
+/// pass. The fragment shader reads G-buffer data from tile memory via [[color(N)]]
+/// (framebuffer fetch) and writes the lit result to attachment 5 (deferredColorMap).
+/// Attachments 0-4 carry G-buffer data; their writeMask is disabled so the light
+/// quad does not overwrite geometry output that is still live in tile memory.
 public func InitLightPipeline() -> RenderPipeline? {
     guard let library = renderInfo.library else {
         handleError(.metalLibraryNotFound)
@@ -266,7 +267,7 @@ public func InitLightPipeline() -> RenderPipeline? {
     // G-buffer slots: readable via [[color(N)]] framebuffer fetch; light quad must not write them.
     let gbufferFormats: [MTLPixelFormat] = [
         wf.gBufferAlbedo, wf.gBufferNormal, wf.gBufferPosition,
-        wf.gBufferMaterial, wf.gBufferEmissive
+        wf.gBufferMaterial, wf.gBufferEmissive,
     ]
     for (i, fmt) in gbufferFormats.enumerated() {
         desc.colorAttachments[i].pixelFormat = fmt

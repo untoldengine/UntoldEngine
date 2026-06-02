@@ -90,11 +90,10 @@ final class AnimationTests: BaseRenderSetup {
             }
             cb.waitUntilCompleted()
 
-            guard let colorTex = renderInfo
-                .offscreenRenderPassDescriptor
-                .colorAttachments[Int(colorTarget.rawValue)]
-                .texture
-            else { XCTFail("No offscreen color target"); return }
+            guard let colorTex = textureResources.sceneCompositeTexture else {
+                XCTFail("No scene composite texture")
+                return
+            }
 
             save(colorTex, s.name)
             last = s.time
