@@ -266,6 +266,54 @@ final class StaticBatchingTest: BaseRenderSetup {
         XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: selectablePipe))
     }
 
+    func testGhostGeometryChannelCreatesSeparateBatchGroup() {
+        let normalWallA = createStaticCubeEntity(position: simd_float3(0, 0, 0), markStatic: true)
+        let normalWallB = createStaticCubeEntity(position: simd_float3(2, 0, 0), markStatic: true)
+        let ghostWallA = createStaticCubeEntity(position: simd_float3(4, 0, 0), markStatic: true)
+        let ghostWallB = createStaticCubeEntity(position: simd_float3(6, 0, 0), markStatic: true)
+
+        setEntitySceneChannels(entityId: normalWallA, channels: .contextGeometry)
+        setEntitySceneChannels(entityId: normalWallB, channels: .contextGeometry)
+        setEntitySceneChannels(entityId: ghostWallA, channels: .ghostGeometry)
+        setEntitySceneChannels(entityId: ghostWallB, channels: .ghostGeometry)
+        setSceneChannel(.ghostGeometry, .renderMode(.passthroughGhost(opacity: 0.35)))
+
+        generateBatches()
+
+        let normalGroup = BatchingSystem.shared.getBatchGroup(for: normalWallA)
+        let ghostGroup = BatchingSystem.shared.getBatchGroup(for: ghostWallA)
+
+        XCTAssertNotNil(normalGroup)
+        XCTAssertNotNil(ghostGroup)
+        XCTAssertNotEqual(normalGroup?.id, ghostGroup?.id, "Ghost geometry should not merge into normal context batches")
+        XCTAssertTrue(normalGroup?.sceneChannels.contains(.contextGeometry) ?? false)
+        XCTAssertTrue(ghostGroup?.sceneChannels.contains(.ghostGeometry) ?? false)
+        XCTAssertEqual(BatchingSystem.shared.getBatchGroup(for: normalWallB)?.id, normalGroup?.id)
+        XCTAssertEqual(BatchingSystem.shared.getBatchGroup(for: ghostWallB)?.id, ghostGroup?.id)
+        XCTAssertTrue(shouldRenderSceneChannelsOpaque(ghostGroup?.sceneChannels ?? []))
+    }
+
+    func testPreserveIdentityGhostGeometryIsExcludedFromBatching() {
+        let normalWallA = createStaticCubeEntity(position: simd_float3(0, 0, 0), markStatic: true)
+        let normalWallB = createStaticCubeEntity(position: simd_float3(2, 0, 0), markStatic: true)
+        let selectedWall = createStaticCubeEntity(position: simd_float3(4, 0, 0), markStatic: false)
+
+        setEntitySceneChannels(entityId: normalWallA, channels: .contextGeometry)
+        setEntitySceneChannels(entityId: normalWallB, channels: .contextGeometry)
+        setEntitySceneChannels(entityId: selectedWall, channels: [.ghostGeometry, .preserveIdentity])
+        setEntityStaticBatchComponent(entityId: selectedWall)
+        setSceneChannel(.ghostGeometry, .renderMode(.passthroughGhost(opacity: 0.35)))
+
+        generateBatches()
+
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: normalWallA))
+        XCTAssertTrue(BatchingSystem.shared.isBatched(entityId: normalWallB))
+        XCTAssertNil(scene.get(component: StaticBatchComponent.self, for: selectedWall), "Preserved ghost geometry should reject static batching")
+        XCTAssertFalse(BatchingSystem.shared.isBatched(entityId: selectedWall))
+        XCTAssertTrue(shouldRenderSceneEntityAsPassthroughGhost(entityId: selectedWall))
+        XCTAssertTrue(shouldPreserveSceneEntityIdentity(entityId: selectedWall))
+    }
+
     func testBatchGroupBufferCreation() {
         // Given: Load a model and create batched entities
         let meshes = BasicPrimitives.createSphere()

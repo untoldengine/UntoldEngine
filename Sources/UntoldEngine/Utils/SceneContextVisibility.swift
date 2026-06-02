@@ -20,12 +20,14 @@ public struct SceneChannel: OptionSet, Sendable {
     public static let contextGeometry = SceneChannel(rawValue: 1 << 0)
     public static let selectableGeometry = SceneChannel(rawValue: 1 << 1)
     public static let preserveIdentity = SceneChannel(rawValue: 1 << 2)
+    public static let ghostGeometry = SceneChannel(rawValue: 1 << 3)
 }
 
 public enum SceneChannelRenderMode: Equatable, Sendable {
     case normal
     case hidden
     case wireframe
+    case passthroughGhost(opacity: Float)
 }
 
 public enum SceneChannelProperty: Sendable {
@@ -48,7 +50,7 @@ private final class SceneChannelVisibilityState: @unchecked Sendable {
             if mode == .normal {
                 renderModesByChannelRawValue.removeValue(forKey: rawValue)
             } else {
-                renderModesByChannelRawValue[rawValue] = mode
+                renderModesByChannelRawValue[rawValue] = sanitizedRenderMode(mode)
             }
         }
         lock.unlock()
@@ -64,11 +66,29 @@ private final class SceneChannelVisibilityState: @unchecked Sendable {
         let modes = rawValues.compactMap { renderModesByChannelRawValue[$0] }
         lock.unlock()
 
-        if modes.contains(.hidden) {
+        var hasHidden = false
+        var hasWireframe = false
+        var ghostOpacity: Float?
+        for mode in modes {
+            switch mode {
+            case .hidden:
+                hasHidden = true
+            case .wireframe:
+                hasWireframe = true
+            case let .passthroughGhost(opacity):
+                ghostOpacity = min(ghostOpacity ?? opacity, opacity)
+            case .normal:
+                continue
+            }
+        }
+        if hasHidden {
             return .hidden
         }
-        if modes.contains(.wireframe) {
+        if hasWireframe {
             return .wireframe
+        }
+        if let ghostOpacity {
+            return .passthroughGhost(opacity: ghostOpacity)
         }
         return .normal
     }
@@ -88,6 +108,15 @@ private final class SceneChannelVisibilityState: @unchecked Sendable {
             remaining &= ~rawValue
         }
         return values
+    }
+
+    private func sanitizedRenderMode(_ mode: SceneChannelRenderMode) -> SceneChannelRenderMode {
+        switch mode {
+        case let .passthroughGhost(opacity):
+            return .passthroughGhost(opacity: min(max(opacity, 0.0), 1.0))
+        case .normal, .hidden, .wireframe:
+            return mode
+        }
     }
 }
 
@@ -113,6 +142,7 @@ private func setEntitySceneChannels(entityId: EntityID, channels: SceneChannel, 
     if channels.isEmpty {
         if scene.get(component: EntitySceneChannelsComponent.self, for: entityId) != nil {
             scene.remove(component: EntitySceneChannelsComponent.self, from: entityId)
+            refreshStaticBatchingForSceneChannelChange(entityId: entityId)
         }
         return
     }
@@ -122,8 +152,12 @@ private func setEntitySceneChannels(entityId: EntityID, channels: SceneChannel, 
     }
 
     if let component = scene.get(component: EntitySceneChannelsComponent.self, for: entityId) {
+        let oldChannels = component.channels
         component.channels = channels
         component.usesDefaultChannels = usesDefaultChannels
+        if oldChannels != channels {
+            refreshStaticBatchingForSceneChannelChange(entityId: entityId)
+        }
     }
 }
 
@@ -135,9 +169,13 @@ public func addEntitySceneChannels(entityId: EntityID, channels: SceneChannel) {
 
 public func removeEntitySceneChannels(entityId: EntityID, channels: SceneChannel) {
     guard let component = scene.get(component: EntitySceneChannelsComponent.self, for: entityId) else { return }
+    let oldChannels = component.channels
     component.channels.remove(channels)
     if component.channels.isEmpty {
         scene.remove(component: EntitySceneChannelsComponent.self, from: entityId)
+    }
+    if oldChannels != getEntitySceneChannels(entityId: entityId) {
+        refreshStaticBatchingForSceneChannelChange(entityId: entityId)
     }
 }
 
@@ -190,6 +228,10 @@ public func shouldRenderSceneEntityAsWireframe(entityId: EntityID) -> Bool {
     getSceneChannelRenderMode(getEntitySceneChannels(entityId: entityId)) == .wireframe
 }
 
+public func shouldRenderSceneEntityAsPassthroughGhost(entityId: EntityID) -> Bool {
+    passthroughGhostOpacity(for: getEntitySceneChannels(entityId: entityId)) != nil
+}
+
 public func areSceneChannelsVisible(_ channels: SceneChannel) -> Bool {
     SceneChannelVisibilityState.shared.isVisible(channels)
 }
@@ -199,7 +241,21 @@ public func shouldRenderSceneChannelsAsWireframe(_ channels: SceneChannel) -> Bo
 }
 
 public func shouldRenderSceneChannelsOpaque(_ channels: SceneChannel) -> Bool {
-    getSceneChannelRenderMode(channels) == .normal
+    switch getSceneChannelRenderMode(channels) {
+    case .normal, .passthroughGhost:
+        return true
+    case .hidden, .wireframe:
+        return false
+    }
+}
+
+public func passthroughGhostOpacity(for channels: SceneChannel) -> Float? {
+    switch getSceneChannelRenderMode(channels) {
+    case let .passthroughGhost(opacity):
+        return opacity
+    case .normal, .hidden, .wireframe:
+        return nil
+    }
 }
 
 public func shouldPreserveSceneEntityIdentity(entityId: EntityID) -> Bool {
@@ -212,6 +268,15 @@ public func isSelectableSceneEntity(entityId: EntityID) -> Bool {
 
 public func isNonSelectableSceneContextEntity(entityId: EntityID) -> Bool {
     hasEntitySceneChannel(entityId: entityId, channel: .contextGeometry)
+}
+
+private func refreshStaticBatchingForSceneChannelChange(entityId: EntityID) {
+    guard BatchingSystem.shared.isEnabled(),
+          scene.get(component: StaticBatchComponent.self, for: entityId) != nil
+    else {
+        return
+    }
+    BatchingSystem.shared.notifyEntitySceneChannelsChanged(entityId: entityId)
 }
 
 /// Compatibility path for entities created outside the normal registration flow.

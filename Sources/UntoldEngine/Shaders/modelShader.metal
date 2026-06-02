@@ -123,7 +123,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
         discard_fragment();
     }
 
-    gBufferOut.color = inBaseColor;
+    float passthroughAlpha = clamp(materialParameter.passthroughAlpha, 0.0, 1.0);
     
     //normal map is in Tangent space
     float3 normalMap=normalize(normalTexture.sample(normalSampler, st, bias(0.25f)).rgb);
@@ -151,7 +151,7 @@ fragment GBufferOut fragmentModelShader(VertexOutModel in [[stage_in]],
 
     float4 color=inBaseColor;
 
-    gBufferOut.color = float4(color.rgb, 1.0);
+    gBufferOut.color = float4(color.rgb, passthroughAlpha);
     gBufferOut.normals=float4(normalMap,0.0);
     gBufferOut.positions=verticesInWorldSpace;
     gBufferOut.material=float4(roughness, metallic, 0.0, 0.0);

@@ -313,6 +313,7 @@ typedef struct{
     float clearCoatGloss;
     float ior;
     float alphaCutoff;
+    float passthroughAlpha; // mixed passthrough color alpha; depth remains opaque
     int alphaMode; // 0=opaque, 1=mask, 2=blend
     bool interactWithLight;
 }MaterialParametersUniform;

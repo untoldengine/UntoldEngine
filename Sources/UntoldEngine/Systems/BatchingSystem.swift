@@ -2639,6 +2639,16 @@ public class BatchingSystem: @unchecked Sendable {
     /// Called when an entity's material/texture changes.
     /// Queues an incremental rebatch via the normal per-frame tick path.
     public func notifyEntityMaterialChanged(entityId: EntityID) {
+        notifyEntityBatchKeyChanged(entityId: entityId)
+    }
+
+    /// Called when an entity's scene-channel mask changes.
+    /// Queues an incremental rebatch because channel masks are part of the batch key.
+    public func notifyEntitySceneChannelsChanged(entityId: EntityID) {
+        notifyEntityBatchKeyChanged(entityId: entityId)
+    }
+
+    private func notifyEntityBatchKeyChanged(entityId: EntityID) {
         guard batchingEnabled else { return }
         guard scene.get(component: StaticBatchComponent.self, for: entityId) != nil else { return }
 
