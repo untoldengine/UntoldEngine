@@ -423,8 +423,8 @@ public func buildGameModeGraph() -> RenderGraphResult {
 ///
 /// All geometry and lighting run inside a single MTLRenderCommandEncoder via
 /// combinedModelLightExecution. G-buffer attachments are memoryless; lighting
-/// reads them from tile memory via framebuffer fetch. SSAO is disabled pending
-/// restructure as a tile kernel within the same encoder.
+/// reads them from tile memory via framebuffer fetch. SSAO runs afterward from
+/// the stored opaque depth texture and is applied during pre-composite.
 func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
     // Combined pass: fills G-buffer and runs the lighting quad in one encoder.
     let modelPass = RenderPass(
@@ -447,9 +447,16 @@ func gBufferPass(graph: inout [String: RenderPass], shadowPass: RenderPass) {
     )
     graph[hzbDepthSourcePass.id] = hzbDepthSourcePass
 
+    let ssaoPass = RenderPass(
+        id: "ssao",
+        dependencies: [hzbDepthSourcePass.id],
+        execute: RenderPasses.ssaoOptimizedExecution
+    )
+    graph[ssaoPass.id] = ssaoPass
+
     // Stub: transparency and other downstream passes depend on "lightPass".
     // Lighting is done inside modelPass; this node only exists to satisfy the dependency.
-    let lightPassStub = RenderPass(id: "lightPass", dependencies: [hzbDepthSourcePass.id], execute: nil)
+    let lightPassStub = RenderPass(id: "lightPass", dependencies: [ssaoPass.id], execute: nil)
     graph[lightPassStub.id] = lightPassStub
 }
 
@@ -1070,11 +1077,13 @@ private func debugSourceTexture(for mode: RenderDebugViewMode) -> MTLTexture? {
     switch mode {
     case .lit:
         return textureResources.sceneCompositeTexture
-    case .albedo, .normal, .ssaoBlurred:
+    case .albedo, .normal:
         // G-buffer attachments (colorMap, normalMap) and the SSAO texture are no longer
         // stored in the TBDR path. Redirect to the lit scene output so these debug modes
         // show something valid rather than reading memoryless / empty textures.
         return textureResources.sceneCompositeTexture
+    case .ssaoBlurred:
+        return textureResources.ssaoBlurTexture
     case .depth:
         // colorMap is memoryless in the TBDR path; use sceneCompositeTexture as the
         // colour source. The debug shader samples depth separately via texture index 1.
@@ -1096,9 +1105,11 @@ private func lookPassShouldRenderLitOutput(for mode: RenderDebugViewMode) -> Boo
     switch mode {
     case .lit, .fxaaEdgeDebug, .smaaEdges, .smaaBlend, .smaaDifference, .occlusionDebug:
         return true
-    case .albedo, .normal, .ssaoBlurred:
+    case .albedo, .normal:
         // G-buffer channels are memoryless in the TBDR path; fall through to the lit path.
         return true
+    case .ssaoBlurred:
+        return false
     case .depth:
         return false
     }

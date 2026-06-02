@@ -82,11 +82,10 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
         XCTAssertEqual(graph["batchedModel"]?.dependencies, ["model"], "Batched model pass should depend on model pass")
         XCTAssertEqual(graph["hzbDepthSource"]?.dependencies, ["batchedModel"], "HZB source pass should depend on batched model pass")
         XCTAssertNil(graph["wireframeOcclusionDepth"], "Wireframe occlusion depth pass should not exist in the graph")
-        XCTAssertEqual(graph["ssao"]?.dependencies, ["batchedModel"], "SSAO pass should depend on batched model pass")
+        XCTAssertEqual(graph["ssao"]?.dependencies, ["hzbDepthSource"], "SSAO pass should depend on the stored opaque depth source")
 
         let lightDeps = graph["lightPass"]?.dependencies.sorted()
-        let expectedLightDeps = ["model", "shadow", "ssao", "hzbDepthSource"].sorted()
-        XCTAssertEqual(lightDeps, expectedLightDeps, "Light pass should depend on model, shadow, ssao, and hzbDepthSource")
+        XCTAssertEqual(lightDeps, ["ssao"], "Light pass stub should wait for SSAO before downstream composition")
     }
 
     func testGBufferPass_TopologicalOrder() throws {
@@ -104,10 +103,7 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
             ("shadow", "model"),
             ("model", "batchedModel"),
             ("batchedModel", "hzbDepthSource"),
-            ("batchedModel", "ssao"),
-            ("shadow", "lightPass"),
-            ("model", "lightPass"),
-            ("hzbDepthSource", "lightPass"),
+            ("hzbDepthSource", "ssao"),
             ("ssao", "lightPass"),
         ])
     }
