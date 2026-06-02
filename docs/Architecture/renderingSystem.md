@@ -55,7 +55,7 @@ A compute shader tests every entity's axis-aligned bounding box (`EntityAABB`) a
 
 The result is written into `tripleVisibleEntities` — **for the next frame**. So culling is always one frame behind rendering. This is an intentional latency trade-off: GPU-driven culling is far faster than CPU culling, and one frame of lag is imperceptible.
 
-In addition to writing the GPU visibility result, `executeFrustumCulling` stores the current-frame frustum in the module-level variable `currentFrameFrustum`. This frustum is the padded, CPU-side version built from the view-projection matrix. It is read later in the same frame by the batched render passes for **cluster-level AABB culling** of `BatchGroup`s (see [G-Buffer Passes](#g-buffer-passes-deferred-rendering) and [Shadow Passes](#shadow-passes)).
+In addition to writing the GPU visibility result, `executeFrustumCulling` stores the current-frame frustum in the module-level variable `currentFrameFrustum`. This frustum is the padded, CPU-side version built from the view-projection matrix. It is read later in the same frame by the batched render passes for **cluster-level AABB culling** of `BatchGroup`s (see [G-Buffer Passes](#g-buffer-passes-tbdr) and [Shadow Passes](#shadow-passes)).
 
 For XR, a reduce-scan variant runs the test against both eyes simultaneously.
 
@@ -91,16 +91,17 @@ environment/grid
             └── batchedShadow
                     └── model ──────────────────────────── gaussian
                             └── batchedModel                    │
-                                    ├── ssao                    │
-                                    └── lightPass               │
-                                            └── transparency    │
-                                                    └── wireframe
-                                                            └── spatialDebug
-                                                                    └── [post-processing chain]
-                                                                                └── precomp ◄── (gaussian joins here)
-                                                                                        └── look
-                                                                                                └── [aa: fxaa / smaa×3 / none]
-                                                                                                            └── outputTransform
+                                    └── hzbDepthSource          │
+                                            └── ssao            │
+                                                    └── lightPass
+                                                            └── transparency
+                                                                    └── wireframe
+                                                                            └── spatialDebug
+                                                                                    └── [post-processing chain]
+                                                                                                └── precomp ◄── (gaussian joins here)
+                                                                                                        └── look
+                                                                                                                └── [aa: fxaa / smaa×3 / none]
+                                                                                                                            └── outputTransform
 ```
 
 ### Base Pass (environment or grid)
@@ -137,35 +138,44 @@ The cascade count is 2 by default. Raise to 3 in `Globals.swift` for outdoor sce
 
 **Per-cascade shadow distance:** Each cascade only receives shadow casters within its own split distance (`shadowCascadeMaxDistance`). The effective limit is `min(maxShadowCastingDistance, cascadeSplitDistances[cascadeIdx])`. This prevents the near cascade from rendering distant objects that are only relevant to the far cascade, significantly reducing shadow draw calls in dense scenes.
 
-The shadow map produced here is consumed later by `lightPass`.
+The shadow map produced here is consumed by the TBDR light sub-pass inside `model`.
 
-### G-Buffer Passes (deferred rendering)
+### G-Buffer Passes (TBDR)
 
 ```
-model → batchedModel → ssao → lightPass
+model → batchedModel → hzbDepthSource → ssao → lightPass
 ```
 
-This is the core of the deferred rendering pipeline. Entities do not produce a shaded color here — they write raw surface data into multiple render targets (the G-Buffer):
+This is the core of the tile-based deferred rendering (TBDR) pipeline. Opaque geometry and lighting are encoded inside one Metal render encoder through `combinedModelLightExecution`. Geometry first writes raw surface data into G-Buffer attachments:
 
 - **Albedo** — base color
 - **Normal** — world-space surface normal
-- **World position** — reconstructed from depth
+- **World position** — world-space fragment position
 - **Material** — roughness, metalness, emissive flags
+- **Emissive** — emissive contribution data
 
-`modelExecution` iterates `visibleEntityIds`. For each entity that is not batched:
+Attachments 0-4 are memoryless G-Buffer targets. They stay in tile memory and are not stored as full-screen textures during normal lit rendering. Attachment 5 is the lit scene-color target.
+
+Inside `combinedModelLightExecution`, the unbatched model phase iterates `visibleEntityIds`. For each entity that is not batched:
 - Binds vertex/index buffers
 - Uploads the model matrix, normal matrix, and camera uniforms into the current in-flight frame slot
 - Issues a draw call per mesh submesh
 
 Before encoding each draw, the renderer checks scene-channel visibility. Individual entities use `shouldHideSceneEntity(entityId:)`; batch groups use their stored channel mask. Hidden channels are skipped entirely rather than rendered transparently.
 
-`batchedModelExecution` uses **cluster-level frustum culling**: it calls `visibleBatchGroupsSnapshot()` which tests each `BatchGroup`'s precomputed world-space AABB against `currentFrameFrustum` using `isAABBInFrustum`, then filters by scene-channel visibility. The result — groups whose AABB intersects the frustum and whose channels are visible — is cached for the frame and shared with later batch-aware passes. Opaque groups are submitted as a single draw call with their merged vertex and index buffers.
+The batched opaque phase uses **cluster-level frustum culling**: it calls `visibleBatchGroupsSnapshot()` which tests each `BatchGroup`'s precomputed world-space AABB against `currentFrameFrustum` using `isAABBInFrustum`, then filters by scene-channel visibility. The result — groups whose AABB intersects the frustum and whose channels are visible — is cached for the frame and shared with later batch-aware passes. Opaque groups are submitted as a single draw call with their merged vertex and index buffers.
 
-`ssaoOptimizedExecution` reads the G-Buffer normals and depth and produces a screen-space ambient occlusion texture. Blurring is handled internally — no separate blur nodes appear in the graph.
+After the opaque draws finish, the light sub-pass runs a full-screen quad with `fragmentLightShaderTBDR`. The shader reads the G-Buffer attachments with framebuffer fetch (`[[color(N)]]`) and writes the lit result into attachment 5. Shadow maps and IBL lookup textures still come from normal Metal texture bindings, but albedo, normals, position, material, and emissive data are consumed directly from tile memory.
 
-`lightExecution` is where the entity **first appears fully lit**. It reads all four G-Buffer textures plus the shadow map and SSAO texture and combines them into a single HDR scene color texture using the deferred lighting algorithm. This is a full-screen quad pass — geometry is never touched again after the G-Buffer step.
+`hzbDepthSource` copies the opaque depth after all opaque geometry has been written. That stored depth texture feeds both the next-frame HZB build and the SSAO pass.
+
+`ssaoOptimizedExecution` is now depth-only. It samples the stored opaque depth texture, produces a screen-space ambient occlusion texture, and handles the blur chain internally — no separate blur nodes appear in the graph. Because the TBDR light sub-pass already ran while the G-Buffer was live in tile memory, SSAO is applied later during `precomp` instead of inside `fragmentLightShaderTBDR`.
+
+The graph still contains a `batchedModel` node and a `lightPass` node for dependency compatibility with transparency, post-processing, and tests. In the TBDR path both are ordering nodes: batched opaque geometry and lighting work already happened inside `model`, and `lightPass` waits for `ssao` so downstream passes see a stable ordering.
 
 > **Why deferred?** Deferred rendering means the lighting cost scales with the number of lit pixels, not the number of geometry draw calls × number of lights. Complex scenes with many overlapping objects benefit greatly because each pixel is only shaded once, regardless of how many triangles projected onto it.
+
+> **Why TBDR?** Keeping the G-Buffer in tile memory avoids storing and reloading several full-resolution render targets every frame. This is especially important on Apple GPUs, where framebuffer fetch and memoryless attachments let the renderer shade from G-Buffer data while it is still resident on the tile.
 
 ### Transparency Pass
 
@@ -234,7 +244,7 @@ So the graph topology literally changes based on whether bloom is enabled — fr
 RenderPass(id: "precomp", dependencies: [postProcessID, gaussianPass.id])
 ```
 
-This is the **convergence point** of the two parallel tracks. The post-processed scene color and the Gaussian splat render both arrive here and are composited into a single texture. Neither track can be finalized without the other.
+This is the **convergence point** of the two parallel tracks. The post-processed scene color and the Gaussian splat render both arrive here and are composited into a single texture. This pass also applies the blurred depth-only SSAO texture to the lit scene color when SSAO is enabled. Neither track can be finalized without the other.
 
 ### Look Pass (Color Grading / G-Buffer Debug)
 
@@ -244,7 +254,7 @@ RenderPass(id: "look", dependencies: ["precomp"])
 
 In normal rendering (`renderDebugViewMode == .lit`), applies exposure, lift/gamma/gain color correction, and optional color grading to the composited image.
 
-When `renderDebugViewMode` is set to a G-Buffer visualization mode, the look pass instead reads directly from a G-Buffer texture and bypasses color grading entirely:
+When `renderDebugViewMode` is set to a G-Buffer visualization mode, the renderer stores the requested debug target and the look pass reads from that texture instead of the color-graded composite:
 
 | `renderDebugViewMode` | Look pass source |
 |---|---|
@@ -312,7 +322,7 @@ executeGraph(graph, sortedPasses, commandBuffer)
 buildHZBDepthPyramid(commandBuffer)
 ```
 
-After the render graph finishes, the depth texture produced during the G-Buffer model pass is downsampled into a **hierarchical Z-buffer** mip pyramid. This feeds **next frame's** occlusion culling — a coarse depth mip level can quickly reject large occluded objects before the fine cull.
+After the render graph finishes, the stored opaque depth source captured by `hzbDepthSource` is downsampled into a **hierarchical Z-buffer** mip pyramid. This feeds **next frame's** occlusion culling — a coarse depth mip level can quickly reject large occluded objects before the fine cull.
 
 This is intentionally scheduled here, after the render graph and before `commit()`, so the HZB is built from the freshest depth available and ready for the next frame's culling compute dispatch.
 
@@ -352,9 +362,10 @@ The completion handler fires on the GPU thread when the command buffer finishes 
         ▼
 [GPU render] environment/grid
 [GPU render] shadow + batchedShadow   (depth from light POV)
-[GPU render] model + batchedModel     (entity → G-Buffer)
-[GPU render] ssao                     (occlusion from G-Buffer)
-[GPU render] lightPass                (entity appears fully lit)
+[GPU render] model                    (opaque + batched geometry → memoryless G-Buffer, then TBDR lighting)
+[GPU render] hzbDepthSource           (copy opaque depth for HZB/SSAO)
+[GPU render] ssao                     (depth-only occlusion)
+[GPU render] lightPass                (ordering stub; lighting already ran in model)
 [GPU render] transparency             (forward-rendered alphas)
 [GPU render] spatialDebug             (debug overlays)
 [GPU render] gaussian                 (sorted splats)

@@ -1,6 +1,6 @@
 # Enabling Rendering System in Untold Engine
 
-The Rendering System in the Untold Engine is responsible for displaying your models on the screen. It supports advanced features such as Physically Based Rendering (PBR) for realistic visuals and multiple types of lights to illuminate your scenes.
+The Rendering System in the Untold Engine is responsible for displaying your models on the screen. It supports advanced features such as Physically Based Rendering (PBR), tile-based deferred lighting, screen-space ambient occlusion, and multiple types of lights to illuminate your scenes.
 
 ## How to Enable the Rendering System
 
@@ -82,6 +82,23 @@ SMAA produces sharper results than FXAA and handles diagonal/corner patterns, at
 
 ---
 
+## Deferred Lighting and SSAO
+
+Opaque geometry uses a tile-based deferred rendering (TBDR) path. The model pass writes G-Buffer data into memoryless tile attachments, then the lighting shader reads those attachments through framebuffer fetch inside the same render encoder. This keeps the high-bandwidth G-Buffer data on the GPU tile instead of round-tripping it through full-screen textures.
+
+SSAO is still available through `SSAO.setEnabled(true)`, `SSAOParams.shared`, and `PostFX` presets, but the current implementation is **depth-only**. It samples the stored opaque depth buffer and applies the blurred occlusion during pre-composite. It no longer requires the normal or position G-Buffer textures to be stored in memory.
+
+```swift
+SSAO.setEnabled(true)
+SSAOParams.shared.radius = 0.8
+SSAOParams.shared.bias = 0.025
+SSAOParams.shared.intensity = 0.75
+```
+
+Use `.ssaoBlurred` in the debug view to inspect the final blurred occlusion texture.
+
+---
+
 ## Debug View Modes
 
 The engine can visualize individual G-Buffer layers and anti-aliasing internals in place of the final lit image:
@@ -101,4 +118,3 @@ renderDebugViewMode = .smaaDifference  // Original vs. SMAA-resolved difference
 Restore normal rendering with `renderDebugViewMode = .lit`.
 
 ---
-
