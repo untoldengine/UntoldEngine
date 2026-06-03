@@ -1423,6 +1423,16 @@ public enum AntiAliasingMode: Sendable {
     case none
     case fxaa
     case smaa
+    case msaa
+
+    var usesPostLookPass: Bool {
+        switch self {
+        case .fxaa, .smaa:
+            return true
+        case .none, .msaa:
+            return false
+        }
+    }
 }
 
 public var antiAliasingMode: AntiAliasingMode {

@@ -189,8 +189,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         initRTXAccumulationBuffer()
 
+        let previousOpaqueSampleCount = renderInfo.opaqueSampleCount
         initTextureResources()
         initRenderPassDescriptors()
+        if previousOpaqueSampleCount != renderInfo.opaqueSampleCount {
+            updateOpaquePipelinesForSampleCount()
+        }
         initIBLResources()
 
         // Initialize SSAO quality-based textures (must come after initTextureResources)

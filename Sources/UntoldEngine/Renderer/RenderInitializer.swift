@@ -88,16 +88,18 @@ func createTexture(
     height: Int,
     usage: MTLTextureUsage,
     storageMode: MTLStorageMode,
-    mipMapLevels: Int = 1
+    mipMapLevels: Int = 1,
+    sampleCount: Int = 1
 ) -> MTLTexture? {
     let descriptor = MTLTextureDescriptor()
-    descriptor.textureType = textureType
+    descriptor.textureType = sampleCount > 1 ? .type2DMultisample : textureType
     descriptor.pixelFormat = pixelFormat
     descriptor.width = width
     descriptor.height = height
     descriptor.usage = usage
     descriptor.storageMode = storageMode
-    descriptor.mipmapLevelCount = mipMapLevels
+    descriptor.mipmapLevelCount = sampleCount > 1 ? 1 : mipMapLevels
+    descriptor.sampleCount = max(1, sampleCount)
 
     let texture = device.makeTexture(descriptor: descriptor)
     texture?.label = label
@@ -106,6 +108,55 @@ func createTexture(
 //    DebugTextureRegistry.register(name: label, texture: texture!)
 
     return texture
+}
+
+@inline(__always)
+func requestedOpaqueSampleCount() -> Int {
+    switch antiAliasingMode {
+    case .msaa:
+        let preferredSampleCount = 4
+        guard let device = renderInfo.device else { return 1 }
+        return device.supportsTextureSampleCount(preferredSampleCount) ? preferredSampleCount : 1
+    case .none, .fxaa, .smaa:
+        return 1
+    }
+}
+
+@inline(__always)
+func effectiveOpaqueSampleCount() -> Int {
+    // G-buffer debug views sample stored albedo/normal as texture2d, so keep those
+    // modes single-sample until debug shaders get multisample variants.
+    renderInfo.gBufferDebugStorageEnabled ? 1 : requestedOpaqueSampleCount()
+}
+
+func updateOpaquePipelinesForSampleCount() {
+    guard renderInfo.device != nil, renderInfo.library != nil else { return }
+
+    if let modelPipeline = InitModelPipeline() {
+        PipelineManager.shared.update(rendererPipeLine: modelPipeline, forType: .model)
+    }
+    if let lightPipeline = InitLightPipeline() {
+        PipelineManager.shared.update(rendererPipeLine: lightPipeline, forType: .light)
+    }
+}
+
+func updateOpaqueSampleCountForCurrentState() {
+    guard renderInfo.device != nil,
+          renderInfo.viewPort != nil,
+          renderInfo.viewPort.x > 0,
+          renderInfo.viewPort.y > 0
+    else {
+        return
+    }
+
+    let newSampleCount = effectiveOpaqueSampleCount()
+    guard renderInfo.opaqueSampleCount != newSampleCount else { return }
+
+    renderInfo.opaqueSampleCount = newSampleCount
+    initTextureResources()
+    initRenderPassDescriptors()
+    reinitSSAOTextures()
+    updateOpaquePipelinesForSampleCount()
 }
 
 func createSMAALookupTexture(
@@ -327,6 +378,26 @@ func initRTXAccumulationBuffer() {
 }
 
 func initRenderPassDescriptors() {
+    let opaqueSampleCount = max(1, renderInfo.opaqueSampleCount)
+    let usesMSAA = opaqueSampleCount > 1
+    let gBufferColorTextures: [MTLTexture?] = usesMSAA
+        ? [
+            textureResources.msaaColorMap,
+            textureResources.msaaNormalMap,
+            textureResources.msaaPositionMap,
+            textureResources.msaaMaterialMap,
+            textureResources.msaaEmissiveMap,
+        ]
+        : [
+            textureResources.colorMap,
+            textureResources.normalMap,
+            textureResources.positionMap,
+            textureResources.materialMap,
+            textureResources.emissiveMap,
+        ]
+    let opaqueColorTexture = usesMSAA ? textureResources.msaaDeferredColorMap : textureResources.deferredColorMap
+    let opaqueDepthTexture = usesMSAA ? textureResources.msaaDepthMap : textureResources.depthMap
+
     // Environment Render Pass
     renderInfo.environmentRenderPassDescriptor = createRenderPassDescriptor(
         width: Int(renderInfo.viewPort.x),
@@ -360,15 +431,19 @@ func initRenderPassDescriptors() {
         width: Int(renderInfo.viewPort.x),
         height: Int(renderInfo.viewPort.y),
         colorAttachments: [
-            (textureResources.colorMap, .clear, gBufferStoreAction, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.normalMap, .clear, gBufferStoreAction, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.positionMap, .clear, gBufferStoreAction, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.materialMap, .clear, gBufferStoreAction, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.emissiveMap, .clear, gBufferStoreAction, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
-            (textureResources.deferredColorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (gBufferColorTextures[0], .clear, gBufferStoreAction, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (gBufferColorTextures[1], .clear, gBufferStoreAction, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (gBufferColorTextures[2], .clear, gBufferStoreAction, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (gBufferColorTextures[3], .clear, gBufferStoreAction, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (gBufferColorTextures[4], .clear, gBufferStoreAction, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (opaqueColorTexture, .clear, usesMSAA ? .multisampleResolve : .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
         ],
-        depthAttachment: (textureResources.depthMap, .clear, .store, sceneDepthClearValue())
+        depthAttachment: (opaqueDepthTexture, .clear, usesMSAA ? .multisampleResolve : .store, sceneDepthClearValue())
     )
+    if usesMSAA {
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[5].resolveTexture = textureResources.deferredColorMap
+        renderInfo.offscreenRenderPassDescriptor.depthAttachment.resolveTexture = textureResources.depthMap
+    }
 
     // Deferred Render Pass
     renderInfo.deferredRenderPassDescriptor = createRenderPassDescriptor(
@@ -458,15 +533,21 @@ func updateGBufferStorageForCurrentDebugMode() {
     let shouldStoreGBuffer = gBufferDebugModeNeedsStoredTargets(renderDebugViewMode)
     guard renderInfo.gBufferDebugStorageEnabled != shouldStoreGBuffer else { return }
 
+    let previousSampleCount = renderInfo.opaqueSampleCount
     renderInfo.gBufferDebugStorageEnabled = shouldStoreGBuffer
-    initGBufferTextureResources()
-    initRenderPassDescriptors()
+    if previousSampleCount != effectiveOpaqueSampleCount() {
+        updateOpaqueSampleCountForCurrentState()
+    } else {
+        initGBufferTextureResources()
+        initRenderPassDescriptors()
+    }
 }
 
 func initGBufferTextureResources() {
     let wf = renderInfo.colorPipeline.working
     let viewportWidth = max(1, Int(renderInfo.viewPort.x))
     let viewportHeight = max(1, Int(renderInfo.viewPort.y))
+    let opaqueSampleCount = max(1, renderInfo.opaqueSampleCount)
 
     // G-buffer textures: memoryless in normal rendering; persistent only when
     // a debug view needs to sample the G-buffer after the TBDR pass.
@@ -526,9 +607,70 @@ func initGBufferTextureResources() {
         usage: gBufferUsage,
         storageMode: gBufferStorageMode
     )
+
+    if opaqueSampleCount > 1 {
+        textureResources.msaaColorMap = createTexture(
+            device: renderInfo.device,
+            label: "MSAA Color Texture",
+            pixelFormat: wf.gBufferAlbedo,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.renderTarget],
+            storageMode: .memoryless,
+            sampleCount: opaqueSampleCount
+        )
+        textureResources.msaaNormalMap = createTexture(
+            device: renderInfo.device,
+            label: "MSAA Normal Texture",
+            pixelFormat: wf.gBufferNormal,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.renderTarget],
+            storageMode: .memoryless,
+            sampleCount: opaqueSampleCount
+        )
+        textureResources.msaaPositionMap = createTexture(
+            device: renderInfo.device,
+            label: "MSAA Position Texture",
+            pixelFormat: wf.gBufferPosition,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.renderTarget],
+            storageMode: .memoryless,
+            sampleCount: opaqueSampleCount
+        )
+        textureResources.msaaEmissiveMap = createTexture(
+            device: renderInfo.device,
+            label: "MSAA Emissive Texture",
+            pixelFormat: wf.gBufferEmissive,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.renderTarget],
+            storageMode: .memoryless,
+            sampleCount: opaqueSampleCount
+        )
+        textureResources.msaaMaterialMap = createTexture(
+            device: renderInfo.device,
+            label: "MSAA Material Texture",
+            pixelFormat: wf.gBufferMaterial,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.renderTarget],
+            storageMode: .memoryless,
+            sampleCount: opaqueSampleCount
+        )
+    } else {
+        textureResources.msaaColorMap = nil
+        textureResources.msaaNormalMap = nil
+        textureResources.msaaPositionMap = nil
+        textureResources.msaaMaterialMap = nil
+        textureResources.msaaEmissiveMap = nil
+    }
 }
 
 func initTextureResources() {
+    renderInfo.opaqueSampleCount = effectiveOpaqueSampleCount()
+
     let wf = renderInfo.colorPipeline.working
     let viewportWidth = max(1, Int(renderInfo.viewPort.x))
     let viewportHeight = max(1, Int(renderInfo.viewPort.y))
@@ -560,6 +702,21 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget],
         storageMode: .private
     )
+
+    if renderInfo.opaqueSampleCount > 1 {
+        textureResources.msaaDepthMap = createTexture(
+            device: renderInfo.device,
+            label: "MSAA Depth Texture",
+            pixelFormat: renderInfo.depthPixelFormat,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.renderTarget],
+            storageMode: .memoryless,
+            sampleCount: renderInfo.opaqueSampleCount
+        )
+    } else {
+        textureResources.msaaDepthMap = nil
+    }
 
     // HZB uses a dedicated source depth so wireframe channels can contribute
     // filled occluder depth without changing visible scene color.
@@ -616,6 +773,21 @@ func initTextureResources() {
         usage: [.shaderRead, .renderTarget, .shaderWrite],
         storageMode: .shared
     )
+
+    if renderInfo.opaqueSampleCount > 1 {
+        textureResources.msaaDeferredColorMap = createTexture(
+            device: renderInfo.device,
+            label: "MSAA Deferred Color Texture",
+            pixelFormat: wf.sceneColor,
+            width: viewportWidth,
+            height: viewportHeight,
+            usage: [.renderTarget],
+            storageMode: .memoryless,
+            sampleCount: renderInfo.opaqueSampleCount
+        )
+    } else {
+        textureResources.msaaDeferredColorMap = nil
+    }
 
     // Post-process textures: nil them out on init/resize.
     // They are lazy-allocated by ensurePostProcessTexturesExist() only when
