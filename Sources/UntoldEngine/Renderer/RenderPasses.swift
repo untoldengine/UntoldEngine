@@ -1374,6 +1374,11 @@ public enum RenderPasses {
         // Skip if batching is disabled
         guard BatchingSystem.shared.isEnabled() else { return }
 
+        // The standalone batched pass reopens the G-buffer with .load. MSAA G-buffer
+        // attachments are memoryless, so batched geometry must be drawn in the
+        // combined TBDR model/light pass when multisampling is active.
+        guard renderInfo.opaqueSampleCount == 1 else { return }
+
         // Cluster-level frustum cull: test each batch group's precomputed world-space
         // AABB against the current-frame frustum.  One AABB test per batch group instead
         // of one per entity — avoids the entity→batchId lookup entirely.
@@ -1626,9 +1631,9 @@ public enum RenderPasses {
             encoderDescriptor.colorAttachments[i].storeAction = gBufferStoreAction
         }
         encoderDescriptor.colorAttachments[5].loadAction = .clear
-        encoderDescriptor.colorAttachments[5].storeAction = .store
+        encoderDescriptor.colorAttachments[5].storeAction = renderInfo.opaqueSampleCount > 1 ? .multisampleResolve : .store
         encoderDescriptor.depthAttachment.loadAction = .clear
-        encoderDescriptor.depthAttachment.storeAction = .store
+        encoderDescriptor.depthAttachment.storeAction = renderInfo.opaqueSampleCount > 1 ? .multisampleResolve : .store
         encoderDescriptor.depthAttachment.clearDepth = sceneDepthClearValue()
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: encoderDescriptor) else {
@@ -2722,7 +2727,8 @@ public enum RenderPasses {
             )
 
             renderEncoder.setFragmentTexture(
-                renderInfo.offscreenRenderPassDescriptor?.depthAttachment.texture, index: Int(prePassDepthTextureIndex.rawValue)
+                textureResources.depthMap ?? renderInfo.offscreenRenderPassDescriptor?.depthAttachment.texture,
+                index: Int(prePassDepthTextureIndex.rawValue)
             )
         } else {
             let postProcessColorTexture = renderInfo.postProcessRenderPassDescriptor?.colorAttachments[0].texture

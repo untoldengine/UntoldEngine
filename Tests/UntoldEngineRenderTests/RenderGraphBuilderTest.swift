@@ -456,6 +456,37 @@ final class RenderGraphBuilderTest: BaseRenderSetup {
                        "outputTransform must depend directly on look when no AA is active")
     }
 
+    func testBuildGameModeGraph_MSAAMode_UsesOpaqueResolveAndNoPostAAPass() {
+        guard renderInfo.device.supportsTextureSampleCount(4) else {
+            return
+        }
+
+        renderInfo.immersionStyle = .none
+        renderEnvironment = true
+        antiAliasingMode = .msaa
+        renderDebugViewMode = .lit
+        defer {
+            antiAliasingMode = .fxaa
+            renderDebugViewMode = .lit
+            updateOpaqueSampleCountForCurrentState()
+        }
+
+        let (graph, finalPassID) = buildGameModeGraph()
+
+        XCTAssertEqual(renderInfo.opaqueSampleCount, 4,
+                       "buildGameModeGraph must reconcile MSAA mode changes from DemoHUD")
+        XCTAssertEqual(renderInfo.offscreenRenderPassDescriptor.colorAttachments[0].texture?.sampleCount, 4)
+        XCTAssertEqual(renderInfo.offscreenRenderPassDescriptor.colorAttachments[5].storeAction, .multisampleResolve)
+        XCTAssertEqual(renderInfo.offscreenRenderPassDescriptor.depthAttachment.storeAction, .multisampleResolve)
+        XCTAssertEqual(finalPassID, "outputTransform")
+        XCTAssertNil(graph["fxaa"], "MSAA is resolved during the opaque pass, so no FXAA pass should be inserted")
+        XCTAssertNil(graph["smaaEdges"], "MSAA is resolved during the opaque pass, so no SMAA edge pass should be inserted")
+        XCTAssertNil(graph["smaaBlendWeights"], "MSAA should not run the SMAA blend-weight pass")
+        XCTAssertNil(graph["smaaNeighborhood"], "MSAA should not run the SMAA neighborhood pass")
+        XCTAssertEqual(graph["outputTransform"]?.dependencies, ["look"],
+                       "outputTransform must depend directly on look when MSAA handles opaque edges")
+    }
+
     // MARK: - G-Buffer Debug View Modes
 
     /// Switching renderDebugViewMode to any G-Buffer visualization mode must not change the

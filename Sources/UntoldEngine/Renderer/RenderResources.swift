@@ -54,6 +54,7 @@ public struct RenderInfo {
     public var hzbIsValid: Bool = false
     public var hzbDebugMipLevel: Int = 0
     public var gBufferDebugStorageEnabled: Bool = false
+    public var opaqueSampleCount: Int = 1
 
     // XR stereo-aware HZB culling
     // When true, depth and HZB pyramids are maintained per eye and occlusion
@@ -158,6 +159,13 @@ public struct TextureResources {
     public var materialMap: MTLTexture?
     public var emissiveMap: MTLTexture?
     public var depthMap: MTLTexture?
+    public var msaaColorMap: MTLTexture?
+    public var msaaNormalMap: MTLTexture?
+    public var msaaPositionMap: MTLTexture?
+    public var msaaMaterialMap: MTLTexture?
+    public var msaaEmissiveMap: MTLTexture?
+    public var msaaDepthMap: MTLTexture?
+    public var msaaDeferredColorMap: MTLTexture?
     public var hzbSourceDepthMap: MTLTexture?
     public var environmentColorMap: MTLTexture?
 

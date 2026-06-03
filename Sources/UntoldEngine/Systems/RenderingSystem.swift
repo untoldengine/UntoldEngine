@@ -238,6 +238,7 @@ func addSceneBackgroundPass(
 
 public func buildGameModeGraph() -> RenderGraphResult {
     updateGBufferStorageForCurrentDebugMode()
+    updateOpaqueSampleCountForCurrentState()
 
     var graph = [String: RenderPass]()
 
@@ -406,7 +407,7 @@ public func buildGameModeGraph() -> RenderGraphResult {
             )
             graph[smaaNeighborhoodPass.id] = smaaNeighborhoodPass
             outputDependency = smaaNeighborhoodPass.id
-        case .none:
+        case .none, .msaa:
             outputDependency = lookPass.id
         }
     }
@@ -1145,7 +1146,7 @@ public let lookRenderPass: RenderPasses.RenderPassExecution = { commandBuffer in
         handleError(.renderPassCreationFailed, "Debug View Pass: source texture is nil")
         return
     }
-    guard let debugDepth = renderInfo.offscreenRenderPassDescriptor?.depthAttachment.texture ?? textureResources.depthMap else {
+    guard let debugDepth = textureResources.depthMap ?? renderInfo.offscreenRenderPassDescriptor?.depthAttachment.texture else {
         handleError(.renderPassCreationFailed, "Debug View Pass: depth texture is nil")
         return
     }
@@ -1201,7 +1202,7 @@ public let outputTransformRenderPass: RenderPasses.RenderPassExecution = { comma
     case .smaaDifference:
         sourceTexture = textureResources.smaaBlendTexture
     default:
-        sourceTexture = antiAliasingMode != .none
+        sourceTexture = antiAliasingMode.usesPostLookPass
             ? textureResources.antiAliasingTexture
             : textureResources.lookTexture
     }

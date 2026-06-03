@@ -415,8 +415,10 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     constant IBLParamsUniform &iblParam         [[buffer(lightPassIBLParamIndex)]],
     constant AreaLightBlock   &alBlock          [[buffer(lightPassAreaLightsIndex)]],
     constant float            &iblRotationAngle [[buffer(lightPassIBLRotationAngleIndex)]],
-    constant bool             &isGameMode       [[buffer(lightPassGameModeIndex)]]
+    constant bool             &isGameMode       [[buffer(lightPassGameModeIndex)]],
+    uint                      sampleID          [[sample_id]]
 ) {
+    (void)sampleID;
     // Background pixels were cleared to (0,0,0,0). Skip lighting entirely —
     // normalize(float3(0)) is undefined, and the IBL/shadow paths would produce
     // garbage that can corrupt the environment composite downstream.
@@ -496,4 +498,3 @@ fragment TBDRLightOutput fragmentLightShaderTBDR(
     out.litColor = float4(finalRGB, albedo.a);
     return out;
 }
-

@@ -14,12 +14,20 @@ public struct RenderPipeline {
     public var depthState: MTLDepthStencilState?
     public var success: Bool = false
     public var name: String?
+    public var rasterSampleCount: Int = 1
 
-    public init(pipelineState: MTLRenderPipelineState? = nil, depthState: MTLDepthStencilState? = nil, success: Bool = false, name: String? = nil) {
+    public init(
+        pipelineState: MTLRenderPipelineState? = nil,
+        depthState: MTLDepthStencilState? = nil,
+        success: Bool = false,
+        name: String? = nil,
+        rasterSampleCount: Int = 1
+    ) {
         self.pipelineState = pipelineState
         self.depthState = depthState
         self.success = success
         self.name = name
+        self.rasterSampleCount = rasterSampleCount
     }
 }
 
@@ -206,6 +214,7 @@ public func InitModelPipeline() -> RenderPipeline? {
     desc.fragmentFunction = fragmentFunction
     desc.vertexDescriptor = createModelVertexDescriptor()
     desc.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
+    desc.rasterSampleCount = max(1, renderInfo.opaqueSampleCount)
 
     // G-buffer outputs: geometry writes to these.
     let gbufferFormats: [MTLPixelFormat] = [
@@ -228,7 +237,13 @@ public func InitModelPipeline() -> RenderPipeline? {
     do {
         let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: desc)
         let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthDesc)
-        return RenderPipeline(pipelineState: pipelineState, depthState: depthState, success: true, name: "Model Pipeline")
+        return RenderPipeline(
+            pipelineState: pipelineState,
+            depthState: depthState,
+            success: true,
+            name: "Model Pipeline",
+            rasterSampleCount: desc.rasterSampleCount
+        )
     } catch {
         handleError(.pipelineStateCreationFailed, "Model Pipeline")
         return nil
@@ -263,6 +278,7 @@ public func InitLightPipeline() -> RenderPipeline? {
     desc.fragmentFunction = fragmentFunction
     desc.vertexDescriptor = createLightVertexDescriptor()
     desc.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
+    desc.rasterSampleCount = max(1, renderInfo.opaqueSampleCount)
 
     // G-buffer slots: readable via [[color(N)]] framebuffer fetch; light quad must not write them.
     let gbufferFormats: [MTLPixelFormat] = [
@@ -284,7 +300,13 @@ public func InitLightPipeline() -> RenderPipeline? {
         depthDesc.isDepthWriteEnabled = false
         depthDesc.depthCompareFunction = .always
         let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthDesc)
-        return RenderPipeline(pipelineState: pipelineState, depthState: depthState, success: true, name: "Light Pipeline (TBDR)")
+        return RenderPipeline(
+            pipelineState: pipelineState,
+            depthState: depthState,
+            success: true,
+            name: "Light Pipeline (TBDR)",
+            rasterSampleCount: desc.rasterSampleCount
+        )
     } catch {
         handleError(.pipelineStateCreationFailed, "Light Pipeline (TBDR)")
         return nil

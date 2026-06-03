@@ -42,6 +42,7 @@
             case none = "None"
             case fxaa = "FXAA"
             case smaa = "SMAA"
+            case msaa = "MSAA"
 
             var id: String {
                 rawValue
@@ -52,6 +53,7 @@
                 case .none: .none
                 case .fxaa: .fxaa
                 case .smaa: .smaa
+                case .msaa: .msaa
                 }
             }
         }
