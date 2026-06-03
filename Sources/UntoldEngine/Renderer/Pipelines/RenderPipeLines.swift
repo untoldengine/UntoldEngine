@@ -150,6 +150,51 @@ public func CreatePipeline(
     }
 }
 
+public func CreateTilePipeline(
+    tileShader: String,
+    colorFormats: [MTLPixelFormat],
+    name: String
+) -> RenderPipeline? {
+    let pipelineDescriptor = MTLTileRenderPipelineDescriptor()
+
+    guard renderInfo.library != nil else {
+        handleError(.metalLibraryNotFound)
+        return nil
+    }
+
+    do {
+        guard let tileFunction = renderInfo.library.makeFunction(name: tileShader) else {
+            handleError(.shaderCreationFailed, tileShader)
+            return nil
+        }
+
+        pipelineDescriptor.label = name
+        pipelineDescriptor.tileFunction = tileFunction
+        pipelineDescriptor.threadgroupSizeMatchesTileSize = true
+
+        for (index, format) in colorFormats.enumerated() {
+            pipelineDescriptor.colorAttachments[index].pixelFormat = format
+        }
+
+        let pipelineState = try renderInfo.device.makeRenderPipelineState(
+            tileDescriptor: pipelineDescriptor,
+            options: [],
+            reflection: nil
+        )
+
+        return RenderPipeline(
+            pipelineState: pipelineState,
+            depthState: nil,
+            success: true,
+            name: name
+        )
+
+    } catch {
+        handleError(.pipelineStateCreationFailed, name)
+        return nil
+    }
+}
+
 public typealias RenderPipelineInitBlock = () -> RenderPipeline?
 
 // MARK: Grid pipeline
@@ -590,6 +635,42 @@ public func InitGaussianPipeline() -> RenderPipeline? {
     )
 }
 
+public func InitGaussianTBDRInitializePipeline() -> RenderPipeline? {
+    CreateTilePipeline(
+        tileShader: "initializeGaussianFragmentStore",
+        colorFormats: [wf.gaussian],
+        name: "Gaussian TBDR Initialize Pipeline"
+    )
+}
+
+public func InitGaussianTBDRDrawPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexGaussianTBDRShader",
+        fragmentShader: "fragmentGaussianTBDRShader",
+        vertexDescriptor: createGaussianVertexDescriptor(),
+        colorFormats: [wf.gaussian],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .always,
+        depthEnabled: false,
+        blendMode: .none,
+        name: "Gaussian TBDR Draw Pipeline"
+    )
+}
+
+public func InitGaussianTBDRPostprocessPipeline() -> RenderPipeline? {
+    CreatePipeline(
+        vertexShader: "vertexGaussianTBDRPostprocessShader",
+        fragmentShader: "fragmentGaussianTBDRPostprocessShader",
+        vertexDescriptor: nil,
+        colorFormats: [wf.gaussian],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .always,
+        depthEnabled: true,
+        blendMode: .none,
+        name: "Gaussian TBDR Postprocess Pipeline"
+    )
+}
+
 // MARK: Environment pipeline
 
 public func InitEnvironmentPipeline() -> RenderPipeline? {
@@ -864,6 +945,9 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
         (.environment, InitEnvironmentPipeline),
         (.iblPreFilter, InitIBLPreFilterPipeline),
         (.gaussian, InitGaussianPipeline),
+        (.gaussianTBDRInitialize, InitGaussianTBDRInitializePipeline),
+        (.gaussianTBDRDraw, InitGaussianTBDRDrawPipeline),
+        (.gaussianTBDRPostprocess, InitGaussianTBDRPostprocessPipeline),
         (.spatialDebug, InitSpatialDebugPipeline),
         (.look, InitLookPipeline),
         (.fxaa, InitFXAAPipeline),
@@ -882,6 +966,9 @@ public func DefaultPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)
 public func GaussianSplatPipeLines() -> [(RenderPipelineType, RenderPipelineInitBlock)] {
     DefaultPipeLines() + [
         (.gaussian, InitGaussianPipeline),
+        (.gaussianTBDRInitialize, InitGaussianTBDRInitializePipeline),
+        (.gaussianTBDRDraw, InitGaussianTBDRDrawPipeline),
+        (.gaussianTBDRPostprocess, InitGaussianTBDRPostprocessPipeline),
         (.preComposite, InitPreCompositePipeline),
     ]
 }

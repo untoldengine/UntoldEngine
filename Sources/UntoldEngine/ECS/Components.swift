@@ -90,6 +90,7 @@ public class EntitySceneChannelsComponent: Component {
 
 public class GaussianComponent: Component {
     var splatData: MTLBuffer?
+    var encodedSplatData: MTLBuffer?
     var gaussianSortedIndices: MTLBuffer?
     public var spaceUniform: [MTLBuffer?] = Array(repeating: nil, count: totalPerMeshUniformBuffers())
     var splatCount: UInt = 0

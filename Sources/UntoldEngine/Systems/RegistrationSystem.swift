@@ -2418,13 +2418,24 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         return
     }
 
+    guard let encodedSplatBuffer = renderInfo.device.makeBuffer(length: MemoryLayout<EncodedGaussianSplat>.stride * Int(splatCount), options: .storageModeShared) else {
+        handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer is nil")
+        return
+    }
+
     let pointer = splatBuffer.contents().bindMemory(
         to: GaussianSplat.self,
         capacity: splats.count
     )
 
+    let encodedPointer = encodedSplatBuffer.contents().bindMemory(
+        to: EncodedGaussianSplat.self,
+        capacity: splats.count
+    )
+
     for (index, splat) in splats.enumerated() {
         pointer[index] = splat
+        encodedPointer[index] = encodeGaussianSplatForTBDR(splat)
     }
 
     let spaceUniform = (0 ..< totalPerMeshUniformBuffers()).compactMap { _ in
@@ -2443,8 +2454,32 @@ public func setEntityGaussian(entityId: EntityID, filename: String, withExtensio
         gaussianComponent.splatCount = splatCount
         gaussianComponent.gaussianSortedIndices = gaussianSortedIndices
         gaussianComponent.splatData = splatBuffer
+        gaussianComponent.encodedSplatData = encodedSplatBuffer
         gaussianComponent.spaceUniform = spaceUniform
     }
+}
+
+private func encodeGaussianSplatForTBDR(_ splat: GaussianSplat) -> EncodedGaussianSplat {
+    let scale = simd_float3(splat.scale.x, splat.scale.y, splat.scale.z)
+    let rotation = simd_quatf(
+        ix: splat.quat.y,
+        iy: splat.quat.z,
+        iz: splat.quat.w,
+        r: splat.quat.x
+    ).normalized
+    let transform = simd_float3x3(rotation) * simd_float3x3(diagonal: scale)
+    let covariance = transform * transform.transpose
+
+    return EncodedGaussianSplat(
+        position: simd_float3(splat.center.x, splat.center.y, splat.center.z),
+        opacity: splat.opacity,
+        color: simd_float3(splat.color.x, splat.color.y, splat.color.z),
+        _pad0: 0.0,
+        covA: simd_float3(covariance[0, 0], covariance[0, 1], covariance[0, 2]),
+        _pad1: 0.0,
+        covB: simd_float3(covariance[1, 1], covariance[1, 2], covariance[2, 2]),
+        _pad2: 0.0
+    )
 }
 
 // MARK: Static Batching
@@ -2578,6 +2613,7 @@ func removeEntityGaussian(entityId: EntityID) {
     if let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) {
         // Release Metal buffers
         gaussianComponent.splatData = nil
+        gaussianComponent.encodedSplatData = nil
         gaussianComponent.gaussianSortedIndices = nil
         gaussianComponent.spaceUniform.removeAll()
         scene.remove(component: GaussianComponent.self, from: entityId)

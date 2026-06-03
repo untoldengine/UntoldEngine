@@ -3916,13 +3916,17 @@ public enum RenderPasses {
     }
 
     public static let gaussianExecution: RenderPassExecution = { commandBuffer in
-        guard let gaussianPipeline = PipelineManager.shared.renderPipelinesByType[.gaussian] else {
-            handleError(.pipelineStateNulled, "Guassian Pipeline is nil")
+        let pipelines = PipelineManager.shared.renderPipelinesByType
+        guard let initializePipeline = pipelines[.gaussianTBDRInitialize],
+              let drawPipeline = pipelines[.gaussianTBDRDraw],
+              let postprocessPipeline = pipelines[.gaussianTBDRPostprocess]
+        else {
+            handleError(.pipelineStateNulled, "Gaussian TBDR pipelines are nil")
             return
         }
 
-        if !gaussianPipeline.success {
-            handleError(.pipelineStateNulled, gaussianPipeline.name!)
+        if !initializePipeline.success || !drawPipeline.success || !postprocessPipeline.success {
+            handleError(.pipelineStateNulled, "Gaussian TBDR pipeline creation failed")
             return
         }
 
@@ -3936,9 +3940,22 @@ public enum RenderPasses {
             return
         }
 
+        guard let initializePipelineState = initializePipeline.pipelineState,
+              let drawPipelineState = drawPipeline.pipelineState,
+              let postprocessPipelineState = postprocessPipeline.pipelineState
+        else {
+            handleError(.pipelineStateNulled, "Gaussian TBDR pipeline state is nil")
+            return
+        }
+
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
-        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = MTLLoadAction.load // Load existing depth from 3D models
+        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
+        renderPassDescriptor.depthAttachment.loadAction = MTLLoadAction.load
+        renderPassDescriptor.depthAttachment.storeAction = MTLStoreAction.store
+        renderPassDescriptor.tileWidth = 32
+        renderPassDescriptor.tileHeight = 32
+        renderPassDescriptor.imageblockSampleLength = initializePipelineState.imageblockSampleLength
 
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             handleError(.renderPassCreationFailed, "Gaussian Pass")
@@ -3949,8 +3966,14 @@ public enum RenderPasses {
 
         renderEncoder.pushDebugGroup("Gaussian Pass")
 
-        renderEncoder.setRenderPipelineState(gaussianPipeline.pipelineState!)
-        renderEncoder.setDepthStencilState(gaussianPipeline.depthState)
+        renderEncoder.pushDebugGroup("Initialize")
+        renderEncoder.setRenderPipelineState(initializePipelineState)
+        renderEncoder.dispatchThreadsPerTile(MTLSize(width: 32, height: 32, depth: 1))
+        renderEncoder.popDebugGroup()
+
+        renderEncoder.pushDebugGroup("Draw Splats")
+        renderEncoder.setRenderPipelineState(drawPipelineState)
+        renderEncoder.setDepthStencilState(drawPipeline.depthState)
 
         renderEncoder.setVertexBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianRenderViewPortIndex.rawValue))
         let transformId = getComponentId(for: WorldTransformComponent.self)
@@ -3962,6 +3985,11 @@ public enum RenderPasses {
         for entityId in entities {
             guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
                 handleError(.noGaussianComponent, entityId)
+                continue
+            }
+
+            guard gaussianComponent.encodedSplatData != nil else {
+                handleError(.bufferAllocationFailed, "Encoded Gaussian splat buffer")
                 continue
             }
 
@@ -4003,7 +4031,13 @@ public enum RenderPasses {
 
             gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
 
-            if let gaussianUniformBuffer = gaussianComponent.spaceUniform[currentUniformBufferIndex()] {
+            guard !gaussianComponent.spaceUniform.isEmpty else {
+                handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
+                return
+            }
+            let uniformBufferIndex = min(currentUniformBufferIndex(), gaussianComponent.spaceUniform.count - 1)
+
+            if let gaussianUniformBuffer = gaussianComponent.spaceUniform[uniformBufferIndex] {
                 gaussianUniformBuffer.contents().copyMemory(
                     from: &gaussianUniform, byteCount: MemoryLayout<Uniforms>.stride
                 )
@@ -4013,23 +4047,37 @@ public enum RenderPasses {
             }
 
             renderEncoder.setVertexBuffer(
-                gaussianComponent.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(gaussianRenderUniformIndex.rawValue)
+                gaussianComponent.spaceUniform[uniformBufferIndex], offset: 0, index: Int(gaussianRenderUniformIndex.rawValue)
             )
 
             // bind data here
             renderEncoder.setVertexBuffer(
                 gaussianComponent.gaussianSortedIndices,
                 offset: 0,
-                index: Int(gaussianRenderIndicesIndex.rawValue)
+                index: Int(gaussianTBDRRenderIndicesIndex.rawValue)
             )
 
-            renderEncoder.setVertexBuffer(gaussianComponent.splatData, offset: 0, index: Int(gaussianRenderSplatIndex.rawValue))
+            renderEncoder.setVertexBuffer(gaussianComponent.encodedSplatData, offset: 0, index: Int(gaussianTBDRRenderSplatIndex.rawValue))
+            renderEncoder.setVertexBuffer(
+                gaussianComponent.spaceUniform[uniformBufferIndex], offset: 0, index: Int(gaussianTBDRRenderUniformIndex.rawValue)
+            )
+            renderEncoder.setVertexBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianTBDRRenderViewPortIndex.rawValue))
 
             renderEncoder.drawPrimitivesTracked(type: .triangleStrip,
                                                 vertexStart: 0,
                                                 vertexCount: 4,
                                                 instanceCount: Int(gaussianComponent.splatCount))
         }
+
+        renderEncoder.popDebugGroup()
+
+        renderEncoder.pushDebugGroup("Postprocess")
+        renderEncoder.setRenderPipelineState(postprocessPipelineState)
+        renderEncoder.setDepthStencilState(postprocessPipeline.depthState)
+        var reverseZ = renderInfo.reverseZEnabled
+        renderEncoder.setFragmentBytes(&reverseZ, length: MemoryLayout<Bool>.stride, index: Int(gaussianTBDRRenderReverseZIndex.rawValue))
+        renderEncoder.drawPrimitivesTracked(type: .triangle, vertexStart: 0, vertexCount: 3)
+        renderEncoder.popDebugGroup()
 
         renderEncoder.updateFence(renderInfo.fence, after: .fragment)
         renderEncoder.popDebugGroup()
