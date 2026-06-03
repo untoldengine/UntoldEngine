@@ -455,6 +455,16 @@ typedef struct{
     float opacity;
 }GaussianSplat;
 
+typedef struct{
+    simd_float3 position;
+    float opacity;
+    simd_float3 color;
+    float _pad0;
+    simd_float3 covA;
+    float _pad1;
+    simd_float3 covB;
+    float _pad2;
+}EncodedGaussianSplat;
 
 typedef enum{
       gaussianRenderIndicesIndex = 0,
@@ -464,6 +474,14 @@ typedef enum{
       gaussianRenderFocalYIndex,
       gaussianRenderViewPortIndex,
   }GaussianRenderBufferIndices;
+
+typedef enum{
+      gaussianTBDRRenderIndicesIndex = 0,
+      gaussianTBDRRenderSplatIndex,
+      gaussianTBDRRenderUniformIndex,
+      gaussianTBDRRenderViewPortIndex,
+      gaussianTBDRRenderReverseZIndex,
+  }GaussianTBDRRenderBufferIndices;
 
 typedef enum{
       outputTransformPassEncodingModeIndex

@@ -260,3 +260,144 @@ fragment float4 fragmentGaussianShader(
     return float4(rgb, alpha);
 }
 
+typedef struct
+{
+    half4 color [[raster_order_group(0)]];
+    float weightedDepth [[raster_order_group(0)]];
+} GaussianTBDRFragmentValues;
+
+typedef struct
+{
+    GaussianTBDRFragmentValues values [[imageblock_data]];
+} GaussianTBDRFragmentStore;
+
+typedef struct
+{
+    float4 color [[color(0)]];
+    float depth [[depth(any)]];
+} GaussianTBDRPostOut;
+
+kernel void initializeGaussianFragmentStore(
+    imageblock<GaussianTBDRFragmentValues, imageblock_layout_explicit> blockData,
+    ushort2 localThreadID [[thread_position_in_threadgroup]])
+{
+    threadgroup_imageblock GaussianTBDRFragmentValues *values = blockData.data(localThreadID);
+    values->color = half4(0.0h);
+    values->weightedDepth = 0.0f;
+}
+
+vertex GaussianOutData vertexGaussianTBDRShader(
+    const device uint64_t             *packedKeys [[buffer(gaussianTBDRRenderIndicesIndex)]],
+    const device EncodedGaussianSplat *splats     [[buffer(gaussianTBDRRenderSplatIndex)]],
+    constant Uniforms                 &uniforms   [[buffer(gaussianTBDRRenderUniformIndex)]],
+    constant float2                   &viewport   [[buffer(gaussianTBDRRenderViewPortIndex)]],
+    uint                               vid        [[vertex_id]],
+    uint                               iid        [[instance_id]])
+{
+    GaussianOutData out;
+    out.valid = false;
+    out.position = float4(0.0, 0.0, 0.0, 1.0);
+
+    uint64_t packed = packedKeys[iid];
+    uint splatIndex = unpackIndex(packed);
+    const EncodedGaussianSplat splat = splats[splatIndex];
+
+    float2 quad = getCurrentQuadVertex(vid);
+    quad = quad * 2.0f - 1.0f;
+
+    float3 centerLocal = splat.position;
+    float4 centerClip = uniforms.projectionMatrix *
+                        uniforms.modelViewMatrix *
+                        float4(centerLocal, 1.0);
+
+    if (centerClip.w <= 0.0f) {
+        return out;
+    }
+
+    const float projYSign = -1.0f;
+    float2 centerNDC = centerClip.xy / centerClip.w;
+    float2 centerUV = centerNDC * float2(0.5f, 0.5f * projYSign) + 0.5f;
+    out.coordxy = centerUV * viewport;
+
+    float3x3 cov3D = float3x3(
+        splat.covA.x, splat.covA.y, splat.covA.z,
+        splat.covA.y, splat.covB.x, splat.covB.y,
+        splat.covA.z, splat.covB.y, splat.covB.z
+    );
+
+    float3 cov2D = computeCov2D(float4(centerLocal, 1.0),
+                                cov3D,
+                                uniforms.modelViewMatrix,
+                                uniforms.projectionMatrix,
+                                viewport);
+
+    float extent = 0.0f;
+    bool valid = true;
+    out.conic = computeInverseCovarianceConic(cov2D, extent, valid);
+
+    if (!valid || extent <= 0.0f) {
+        return out;
+    }
+
+    float2 ndcOffset = quad * extent * 2.0f / viewport;
+    out.position = centerClip;
+    out.position.xy += ndcOffset * centerClip.w;
+    out.color = splat.color;
+    out.alpha = splat.opacity;
+    out.valid = true;
+
+    return out;
+}
+
+fragment GaussianTBDRFragmentStore fragmentGaussianTBDRShader(
+    GaussianOutData in [[stage_in]],
+    GaussianTBDRFragmentValues previousValues [[imageblock_data]])
+{
+    GaussianTBDRFragmentStore out;
+
+    if (!in.valid) {
+        discard_fragment();
+    }
+
+    const float projYSign = 1.0f;
+    float2 d = calcScreenSpaceDelta(in.position.xy, in.coordxy, projYSign);
+    float power = calcPowerFromConic(in.conic, d);
+
+    half alpha = half(saturate(in.alpha * exp(power)));
+    if (alpha < half(1.0f / 255.0f)) {
+        discard_fragment();
+    }
+
+    half oneMinusAccumulatedAlpha = half(1.0h - previousValues.color.a);
+    half4 colorWithPremultipliedAlpha = half4(half3(in.color) * alpha, alpha);
+
+    out.values.color = previousValues.color + colorWithPremultipliedAlpha * oneMinusAccumulatedAlpha;
+    out.values.weightedDepth = previousValues.weightedDepth + in.position.z * float(alpha * oneMinusAccumulatedAlpha);
+
+    return out;
+}
+
+vertex GaussianOutData vertexGaussianTBDRPostprocessShader(uint vertexID [[vertex_id]])
+{
+    GaussianOutData out;
+    out.position.x = (vertexID == 2) ? 3.0 : -1.0;
+    out.position.y = (vertexID == 0) ? -3.0 : 1.0;
+    out.position.zw = 1.0;
+    out.valid = true;
+    return out;
+}
+
+fragment GaussianTBDRPostOut fragmentGaussianTBDRPostprocessShader(
+    GaussianTBDRFragmentValues fragmentValues [[imageblock_data]],
+    constant bool &reverseZ [[buffer(gaussianTBDRRenderReverseZIndex)]])
+{
+    (void)reverseZ;
+    GaussianTBDRPostOut out;
+    float alpha = float(fragmentValues.color.a);
+    if (alpha <= 0.0f) {
+        discard_fragment();
+    }
+    out.color = float4(fragmentValues.color);
+    out.depth = fragmentValues.weightedDepth / alpha;
+    return out;
+}

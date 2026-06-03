@@ -105,7 +105,13 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
 
         gaussianUniform.projectionMatrix = renderInfo.perspectiveSpace
 
-        if let gaussianUniformBuffer = gaussianComponent.spaceUniform[currentUniformBufferIndex()] {
+        guard !gaussianComponent.spaceUniform.isEmpty else {
+            handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
+            return
+        }
+        let uniformBufferIndex = min(currentUniformBufferIndex(), gaussianComponent.spaceUniform.count - 1)
+
+        if let gaussianUniformBuffer = gaussianComponent.spaceUniform[uniformBufferIndex] {
             gaussianUniformBuffer.contents().copyMemory(
                 from: &gaussianUniform, byteCount: MemoryLayout<Uniforms>.stride
             )
@@ -115,7 +121,7 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
         }
 
         computeEncoder.setBuffer(
-            gaussianComponent.spaceUniform[currentUniformBufferIndex()], offset: 0, index: Int(gaussianUniformIndex.rawValue)
+            gaussianComponent.spaceUniform[uniformBufferIndex], offset: 0, index: Int(gaussianUniformIndex.rawValue)
         )
 
         var localNumGaussians = UInt32(gaussianComponent.splatCount)
