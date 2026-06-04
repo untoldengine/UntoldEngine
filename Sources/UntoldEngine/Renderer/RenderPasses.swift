@@ -3975,7 +3975,6 @@ public enum RenderPasses {
         renderEncoder.setRenderPipelineState(drawPipelineState)
         renderEncoder.setDepthStencilState(drawPipeline.depthState)
 
-        renderEncoder.setVertexBytes(&renderInfo.viewPort, length: MemoryLayout<simd_float2>.stride, index: Int(gaussianRenderViewPortIndex.rawValue))
         let transformId = getComponentId(for: WorldTransformComponent.self)
         let gaussianId = getComponentId(for: GaussianComponent.self)
         let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
@@ -4045,10 +4044,6 @@ public enum RenderPasses {
                 handleError(.bufferAllocationFailed, "Gaussian Uniform buffer")
                 return
             }
-
-            renderEncoder.setVertexBuffer(
-                gaussianComponent.spaceUniform[uniformBufferIndex], offset: 0, index: Int(gaussianRenderUniformIndex.rawValue)
-            )
 
             // bind data here
             renderEncoder.setVertexBuffer(

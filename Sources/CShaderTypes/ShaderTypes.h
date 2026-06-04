@@ -465,15 +465,6 @@ typedef struct{
 }EncodedGaussianSplat;
 
 typedef enum{
-      gaussianRenderIndicesIndex = 0,
-      gaussianRenderSplatIndex,
-      gaussianRenderUniformIndex,
-      gaussianRenderFocalXIndex,
-      gaussianRenderFocalYIndex,
-      gaussianRenderViewPortIndex,
-  }GaussianRenderBufferIndices;
-
-typedef enum{
       gaussianTBDRRenderIndicesIndex = 0,
       gaussianTBDRRenderSplatIndex,
       gaussianTBDRRenderUniformIndex,
