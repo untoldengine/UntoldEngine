@@ -49,8 +49,15 @@ private final class CoreRuntimeGlobals: @unchecked Sendable {
     var reduceScanScatterCompactedPipeline = ComputePipeline()
     var hzbBuildPyramidPipeline = ComputePipeline()
     var hzbOcclusionCullingPipeline = ComputePipeline()
-    var bitonicSortPipeline = ComputePipeline()
     var gaussianDepthPipeline = ComputePipeline()
+    var radixClearHistogramPipeline = ComputePipeline()
+    var radixHistogramPipeline = ComputePipeline()
+    var radixScanPerTGPipeline = ComputePipeline()
+    var radixScanPipeline = ComputePipeline()
+    var radixScatterPipeline = ComputePipeline()
+    var radixHistogramBuffer: MTLBuffer? = nil
+    var radixPerTGHistBuffer: MTLBuffer? = nil
+    var radixSortTempBuffer: MTLBuffer? = nil
     var scenePickingAccelStructResources = AccelStructResources()
     var scenePickingPipeline = ComputePipeline()
     var environmentMesh: MTKMesh!
@@ -450,27 +457,6 @@ var hzbOcclusionCullingPipeline: ComputePipeline {
     }
 }
 
-var bitonicSortPipeline: ComputePipeline {
-    get {
-        let state = CoreRuntimeGlobals.shared
-        state.lock.lock()
-        defer { state.lock.unlock() }
-        return state.bitonicSortPipeline
-    }
-    set {
-        let state = CoreRuntimeGlobals.shared
-        state.lock.lock()
-        state.bitonicSortPipeline = newValue
-        state.lock.unlock()
-    }
-    _modify {
-        let state = CoreRuntimeGlobals.shared
-        state.lock.lock()
-        defer { state.lock.unlock() }
-        yield &state.bitonicSortPipeline
-    }
-}
-
 var gaussianDepthPipeline: ComputePipeline {
     get {
         let state = CoreRuntimeGlobals.shared
@@ -489,6 +475,156 @@ var gaussianDepthPipeline: ComputePipeline {
         state.lock.lock()
         defer { state.lock.unlock() }
         yield &state.gaussianDepthPipeline
+    }
+}
+
+var radixClearHistogramPipeline: ComputePipeline {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.radixClearHistogramPipeline
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.radixClearHistogramPipeline = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.radixClearHistogramPipeline
+    }
+}
+
+var radixHistogramPipeline: ComputePipeline {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.radixHistogramPipeline
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.radixHistogramPipeline = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.radixHistogramPipeline
+    }
+}
+
+var radixScanPerTGPipeline: ComputePipeline {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.radixScanPerTGPipeline
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.radixScanPerTGPipeline = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.radixScanPerTGPipeline
+    }
+}
+
+var radixPerTGHistBuffer: MTLBuffer? {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.radixPerTGHistBuffer
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.radixPerTGHistBuffer = newValue
+        state.lock.unlock()
+    }
+}
+
+var radixScanPipeline: ComputePipeline {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.radixScanPipeline
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.radixScanPipeline = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.radixScanPipeline
+    }
+}
+
+var radixScatterPipeline: ComputePipeline {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.radixScatterPipeline
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.radixScatterPipeline = newValue
+        state.lock.unlock()
+    }
+    _modify {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        yield &state.radixScatterPipeline
+    }
+}
+
+var radixHistogramBuffer: MTLBuffer? {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.radixHistogramBuffer
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.radixHistogramBuffer = newValue
+        state.lock.unlock()
+    }
+}
+
+var radixSortTempBuffer: MTLBuffer? {
+    get {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        defer { state.lock.unlock() }
+        return state.radixSortTempBuffer
+    }
+    set {
+        let state = CoreRuntimeGlobals.shared
+        state.lock.lock()
+        state.radixSortTempBuffer = newValue
+        state.lock.unlock()
     }
 }
 

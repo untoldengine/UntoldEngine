@@ -33,9 +33,17 @@ func initGuassianComputePipelines() {
         return
     }
 
-    createComputePipeline(into: &bitonicSortPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianBitonicSort", pipelineName: "Bitonic Sort")
-
     createComputePipeline(into: &gaussianDepthPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianDepthKeys", pipelineName: "Gaussian Depth")
+
+    createComputePipeline(into: &radixClearHistogramPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixClearHistogram", pipelineName: "Radix Clear")
+
+    createComputePipeline(into: &radixHistogramPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixHistogram", pipelineName: "Radix Histogram")
+
+    createComputePipeline(into: &radixScanPerTGPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixScanPerTG", pipelineName: "Radix ScanPerTG")
+
+    createComputePipeline(into: &radixScanPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixScan", pipelineName: "Radix Scan")
+
+    createComputePipeline(into: &radixScatterPipeline, device: renderInfo.device, library: renderInfo.library, functionName: "gaussianRadixScatter", pipelineName: "Radix Scatter")
 }
 
 public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
@@ -127,12 +135,12 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
         var localNumGaussians = UInt32(gaussianComponent.splatCount)
         computeEncoder.setBytes(&localNumGaussians, length: MemoryLayout<UInt32>.stride, index: Int(gaussianNumberOfSplatsIndex.rawValue))
 
-        let tew = bitonicSortPipeline.pipelineState?.threadExecutionWidth // e.g. 32/64
-        let maxT = bitonicSortPipeline.pipelineState?.maxTotalThreadsPerThreadgroup // device cap
+        let tew = gaussianDepthPipeline.pipelineState?.threadExecutionWidth ?? 32
+        let maxT = gaussianDepthPipeline.pipelineState?.maxTotalThreadsPerThreadgroup ?? 256
         let target = 256
-        var block = min(target, maxT!)
-        block = (block / tew!) * tew! // align down to multiple of tew
-        block = max(block, tew!) // never below tew
+        var block = min(target, maxT)
+        block = (block / tew) * tew
+        block = max(block, tew)
 
         let threadsPerThreadgroup: MTLSize = MTLSizeMake(block, 1, 1)
 
@@ -146,101 +154,137 @@ public func executeGaussianDepth(_ commandBuffer: MTLCommandBuffer) {
     computeEncoder.endEncoding()
 }
 
-public func executeBitonicSort(_ commandBuffer: MTLCommandBuffer) {
-    if bitonicSortPipeline.success == false {
-        handleError(.pipelineStateNulled, bitonicSortPipeline.name!)
-        return
+// MARK: - Device Radix Sort
+//
+// LSD radix sort over the upper 32 bits of the packed UInt64 key
+// [depthKey | splatIndex].  Four passes of 8 bits each (bits 32-63).
+//
+// Per pass (all encoded into ONE MTLComputeCommandEncoder per entity):
+//   0. gaussianRadixClearHistogram – zero histogram[256]          (256 threads)
+//   1. gaussianRadixHistogram      – count digits + per-TG counts (N threads)
+//   2. gaussianRadixScanPerTG      – exclusive scan per digit col  (256 threads)
+//   3. gaussianRadixScan           – global exclusive scan         (256 threads)
+//   4. gaussianRadixScatter        – stable reorder                (N threads)
+//
+// Using one encoder (20 dispatches, 0 blit encoders) eliminates the GPU
+// pipeline stalls that come from switching encoder types 20 times per frame.
+//
+// Block size is fixed at 256 for both histogram and scatter so that
+// histGroups == scatterGroups, which is required for correct perTGStart
+// indexing (perTGStart[groupId * 256 + digit]).
+
+public func executeRadixSort(_ commandBuffer: MTLCommandBuffer) {
+    guard radixClearHistogramPipeline.success else {
+        handleError(.pipelineStateNulled, radixClearHistogramPipeline.name!); return
+    }
+    guard radixHistogramPipeline.success else {
+        handleError(.pipelineStateNulled, radixHistogramPipeline.name!); return
+    }
+    guard radixScanPerTGPipeline.success else {
+        handleError(.pipelineStateNulled, radixScanPerTGPipeline.name!); return
+    }
+    guard radixScanPipeline.success else {
+        handleError(.pipelineStateNulled, radixScanPipeline.name!); return
+    }
+    guard radixScatterPipeline.success else {
+        handleError(.pipelineStateNulled, radixScatterPipeline.name!); return
     }
 
-    let computeEncoder: MTLComputeCommandEncoder = commandBuffer.makeComputeCommandEncoder()!
-
-    computeEncoder.label = "Bitonic Sort pass"
-
-    computeEncoder.setComputePipelineState(bitonicSortPipeline.pipelineState!)
+    if radixHistogramBuffer == nil {
+        radixHistogramBuffer = renderInfo.device.makeBuffer(
+            length: 256 * MemoryLayout<UInt32>.stride, options: .storageModeShared)
+    }
+    guard let histBuffer = radixHistogramBuffer else { return }
 
     let transformId = getComponentId(for: WorldTransformComponent.self)
-    let gaussianId = getComponentId(for: GaussianComponent.self)
-    let entities = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+    let gaussianId  = getComponentId(for: GaussianComponent.self)
+    let entities    = queryEntitiesWithComponentIds([transformId, gaussianId], in: scene)
+
+    // Single compute encoder for all entities and all passes.
+    // Dispatches within one encoder execute sequentially on the GPU,
+    // so no inter-encoder synchronisation is needed.
+    guard let enc = commandBuffer.makeComputeCommandEncoder() else { return }
+    enc.label = "Radix Sort"
 
     for entityId in entities {
-        guard let gaussianComponent = scene.get(component: GaussianComponent.self, for: entityId) else {
-            handleError(.noGaussianComponent, entityId)
-            continue
+        guard let gc = scene.get(component: GaussianComponent.self, for: entityId) else { continue }
+        guard let sortedIndices = gc.gaussianSortedIndices else { continue }
+
+        let n = Int(gc.splatCount)
+        guard n >= 2 else { continue }
+
+        // Ping-pong temp buffer (CPU alloc before encoding)
+        let keyBufLen = n * MemoryLayout<UInt64>.stride
+        if radixSortTempBuffer == nil || radixSortTempBuffer!.length < keyBufLen {
+            radixSortTempBuffer = renderInfo.device.makeBuffer(
+                length: keyBufLen, options: .storageModeShared)
         }
-        var splatCount = gaussianComponent.splatCount
-        // Make a local mutable copy to satisfy inout requirement
-        var powerOfTwoNumGaussian = UInt32(nextPowerOf2(x: &splatCount))
-        var subarraySize = 2
-        while subarraySize <= Int(gaussianComponent.splatCount) {
-            var comparisonDistance = subarraySize / 2
-            while comparisonDistance > 0 {
-                computeEncoder.setBytes(&powerOfTwoNumGaussian, length: MemoryLayout<UInt32>.stride, index: Int(gaussianNumberOfSplatsIndex.rawValue))
+        guard let tempBuffer = radixSortTempBuffer else { continue }
 
-                computeEncoder.setBytes(&subarraySize, length: MemoryLayout<Int>.stride, index: Int(gaussianSubArraySizeIndex.rawValue))
+        // Fixed block size: histogram and scatter MUST use the same value so
+        // that histGroups == scatterGroups and perTGStart indexing is correct.
+        let radixBlock = 256
+        let numGroups  = (n + radixBlock - 1) / radixBlock
 
-                computeEncoder.setBytes(&comparisonDistance, length: MemoryLayout<Int>.stride, index: Int(gaussianComparisonDistanceIndex.rawValue))
+        let perTGLen = numGroups * 256 * MemoryLayout<UInt32>.stride
+        if radixPerTGHistBuffer == nil || radixPerTGHistBuffer!.length < perTGLen {
+            radixPerTGHistBuffer = renderInfo.device.makeBuffer(
+                length: perTGLen, options: .storageModeShared)
+        }
+        guard let perTGBuf = radixPerTGHistBuffer else { continue }
 
-                computeEncoder.setBuffer(gaussianComponent.gaussianSortedIndices, offset: 0, index: Int(gaussianIndicesIndex.rawValue))
+        var numElems    = UInt32(n)
+        var numBuckets  = UInt32(256)
+        var numGroups32 = UInt32(numGroups)
 
-                let tew = bitonicSortPipeline.pipelineState?.threadExecutionWidth // e.g. 32/64
-                let maxT = bitonicSortPipeline.pipelineState?.maxTotalThreadsPerThreadgroup // device cap
-                let target = 256
-                var block = min(target, maxT!)
-                block = (block / tew!) * tew! // align down to multiple of tew
-                block = max(block, tew!) // never below tew
+        for pass in 0 ..< 4 {
+            let isEven  = (pass % 2 == 0)
+            let keysIn  = isEven ? sortedIndices : tempBuffer
+            let keysOut = isEven ? tempBuffer    : sortedIndices
+            var passIdx = UInt32(pass)
 
-                let threadsPerThreadgroup: MTLSize = MTLSizeMake(block, 1, 1)
+            // ── 0. Clear histogram ───────────────────────────────────────────
+            enc.setComputePipelineState(radixClearHistogramPipeline.pipelineState!)
+            enc.setBuffer(histBuffer, offset: 0, index: Int(radixClearHistogramBuffer.rawValue))
+            enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
 
-                // Use dispatchThreadgroups for broader device compatibility (including Vision Pro)
-                let numThreadgroups = (Int(powerOfTwoNumGaussian) + block - 1) / block
-                let threadgroupsPerGrid: MTLSize = MTLSizeMake(numThreadgroups, 1, 1)
+            // ── 1. Histogram + per-TG counts ─────────────────────────────────
+            enc.setComputePipelineState(radixHistogramPipeline.pipelineState!)
+            enc.setBuffer(keysIn,     offset: 0, index: Int(radixHistogramKeysIn.rawValue))
+            enc.setBuffer(histBuffer, offset: 0, index: Int(radixHistogramOutput.rawValue))
+            enc.setBuffer(perTGBuf,   offset: 0, index: Int(radixHistogramPerTGOut.rawValue))
+            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: Int(radixHistogramNumElems.rawValue))
+            enc.setBytes(&passIdx,  length: MemoryLayout<UInt32>.stride, index: Int(radixHistogramPassIndex.rawValue))
+            enc.dispatchThreadgroups(MTLSizeMake(numGroups, 1, 1), threadsPerThreadgroup: MTLSizeMake(radixBlock, 1, 1))
 
-                computeEncoder.dispatchThreadgroups(threadgroupsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
+            // ── 2. Per-TG column scan → per-TG starting offsets ─────────────
+            enc.setComputePipelineState(radixScanPerTGPipeline.pipelineState!)
+            enc.setBuffer(perTGBuf, offset: 0, index: Int(radixScanPerTGBuffer.rawValue))
+            enc.setBytes(&numGroups32, length: MemoryLayout<UInt32>.stride, index: Int(radixScanPerTGNumGroups.rawValue))
+            enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
 
-                comparisonDistance /= 2
-            }
+            // ── 3. Global exclusive scan ─────────────────────────────────────
+            enc.setComputePipelineState(radixScanPipeline.pipelineState!)
+            enc.setBuffer(histBuffer, offset: 0, index: Int(radixScanHistogram.rawValue))
+            enc.setBytes(&numBuckets, length: MemoryLayout<UInt32>.stride, index: Int(radixScanNumBuckets.rawValue))
+            enc.dispatchThreadgroups(MTLSizeMake(1, 1, 1), threadsPerThreadgroup: MTLSizeMake(256, 1, 1))
 
-            subarraySize *= 2
+            // ── 4. Stable scatter ────────────────────────────────────────────
+            enc.setComputePipelineState(radixScatterPipeline.pipelineState!)
+            enc.setBuffer(keysIn,     offset: 0, index: Int(radixScatterKeysIn.rawValue))
+            enc.setBuffer(keysOut,    offset: 0, index: Int(radixScatterKeysOut.rawValue))
+            enc.setBuffer(histBuffer, offset: 0, index: Int(radixScatterOffsets.rawValue))
+            enc.setBuffer(perTGBuf,   offset: 0, index: Int(radixScatterPerTGStart.rawValue))
+            enc.setBytes(&numElems, length: MemoryLayout<UInt32>.stride, index: Int(radixScatterNumElems.rawValue))
+            enc.setBytes(&passIdx,  length: MemoryLayout<UInt32>.stride, index: Int(radixScatterPassIdx.rawValue))
+            enc.dispatchThreadgroups(MTLSizeMake(numGroups, 1, 1), threadsPerThreadgroup: MTLSizeMake(radixBlock, 1, 1))
         }
     }
 
-    computeEncoder.endEncoding()
+    enc.endEncoding()
 }
 
 // MARK: - PLY Loading Helpers
-
-/*
- Usage Examples:
-
-   // Example 1: Load from absolute path
-   do {
-       let count = try loadGaussianSplatsFromPLY(path: "/path/to/gaussians.ply")
-       print("Loaded \(count) splats")
-
-       // Now render them
-       executeGaussianDepth(commandBuffer, numGaussians: count)
-       executeBitonicSort(commandBuffer, numGaussians: UInt(count))
-   } catch {
-       print("Error loading PLY: \(error)")
-   }
-
-   // Example 2: Load from app bundle
-   do {
-       let count = try loadGaussianSplatsFromBundle(filename: "scene")
-       // Uses currentNumOfGaussians automatically
-       executeGaussianDepth(commandBuffer, numGaussians: currentNumOfGaussians)
-   } catch {
-       print("Error: \(error)")
-   }
-
-   // Example 3: Load from URL
-   let url = URL(fileURLWithPath: "path/to/file.ply")
-   do {
-       let count = try loadGaussianSplatsFromPLY(url: url)
-   } catch {
-       print("Error: \(error)")
-   }
- */
 /*
  /// Loads Gaussian splats from a PLY file into the GPU buffer
  public func loadGaussianSplatsFromPLY(url: URL) throws -> Int {

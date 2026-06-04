@@ -553,7 +553,7 @@
                     }
                 #endif
                 executeGaussianDepth(commandBuffer)
-                executeBitonicSort(commandBuffer)
+                executeRadixSort(commandBuffer)
                 EngineProfiler.shared.endScope(.renderPrep)
                 #if ENGINE_STATS_ENABLED
                     let renderPrepMs = (CACurrentMediaTime() - renderPrepStart) * 1000.0

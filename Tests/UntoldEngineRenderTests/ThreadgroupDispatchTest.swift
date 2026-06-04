@@ -54,19 +54,6 @@ final class ThreadgroupDispatchTest: BaseRenderSetup {
         return (numThreadgroups, block)
     }
 
-    /// Calculate threadgroups for bitonic sort (same pattern)
-    func calculateBitonicSortThreadgroups(powerOfTwoCount: Int, pipeline: MTLComputePipelineState) -> (threadgroups: Int, threadsPerThreadgroup: Int) {
-        let tew = pipeline.threadExecutionWidth
-        let maxT = pipeline.maxTotalThreadsPerThreadgroup
-        let target = 256
-        var block = min(target, maxT)
-        block = (block / tew) * tew
-        block = max(block, tew)
-
-        let numThreadgroups = (powerOfTwoCount + block - 1) / block
-        return (numThreadgroups, block)
-    }
-
     /// Calculate threadgroups for reduce-scan mark visible pass
     func calculateMarkVisibleThreadgroups(count: Int, pipeline: MTLComputePipelineState) -> (threadgroups: Int, threadsPerThreadgroup: Int) {
         let w = min(pipeline.maxTotalThreadsPerThreadgroup, 256)
@@ -226,71 +213,6 @@ final class ThreadgroupDispatchTest: BaseRenderSetup {
         print("✅ executeGaussianDepth threadgroup dispatch test passed!")
     }
 
-    func test_executeBitonicSort_dispatches_correct_threadgroups() {
-        guard let pipeline = bitonicSortPipeline.pipelineState else {
-            XCTFail("Bitonic sort pipeline not initialized")
-            return
-        }
-
-        // Test power-of-2 counts (bitonic sort requirement)
-        let testCounts: [UInt] = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
-
-        for count in testCounts {
-            // Bitonic sort uses nextPowerOf2, but for these tests the input is already power of 2
-            var mutableCount = count
-            let powerOfTwo = nextPowerOf2(x: &mutableCount)
-
-            XCTAssertEqual(powerOfTwo, count, "Input should already be power of 2")
-
-            let (threadgroups, threadsPerThreadgroup) = calculateBitonicSortThreadgroups(powerOfTwoCount: Int(powerOfTwo), pipeline: pipeline)
-
-            // Verify threadgroup calculation
-            XCTAssertGreaterThan(threadgroups, 0, "Threadgroups should be positive for count \(count)")
-            XCTAssertGreaterThanOrEqual(threadsPerThreadgroup, pipeline.threadExecutionWidth,
-                                        "Threads per threadgroup should be at least thread execution width for count \(count)")
-            XCTAssertLessThanOrEqual(threadsPerThreadgroup, pipeline.maxTotalThreadsPerThreadgroup,
-                                     "Threads per threadgroup should not exceed device limit for count \(count)")
-
-            // Verify coverage
-            let totalThreads = threadgroups * threadsPerThreadgroup
-            XCTAssertGreaterThanOrEqual(totalThreads, Int(powerOfTwo),
-                                        "Total dispatched threads (\(totalThreads)) should cover all items (\(powerOfTwo))")
-
-            // Verify minimal over-dispatch
-            XCTAssertLessThan(totalThreads, Int(powerOfTwo) + threadsPerThreadgroup,
-                              "Should not over-dispatch by more than one threadgroup for count \(count)")
-
-            // Verify alignment
-            XCTAssertEqual(threadsPerThreadgroup % pipeline.threadExecutionWidth, 0,
-                           "Threads per threadgroup should be aligned to thread execution width for count \(count)")
-
-            print("✓ Bitonic Sort - Count \(count): \(threadgroups) threadgroups × \(threadsPerThreadgroup) threads = \(totalThreads) total")
-        }
-
-        // Also test non-power-of-2 inputs to verify nextPowerOf2 behavior
-        let nonPowerOfTwoTests: [(input: UInt, expected: UInt)] = [
-            (3, 4), (5, 8), (7, 8), (100, 128), (1000, 1024), (5000, 8192),
-        ]
-
-        for (input, expected) in nonPowerOfTwoTests {
-            var mutableInput = input
-            let powerOfTwo = nextPowerOf2(x: &mutableInput)
-
-            XCTAssertEqual(powerOfTwo, expected, "nextPowerOf2(\(input)) should equal \(expected)")
-
-            let (threadgroups, threadsPerThreadgroup) = calculateBitonicSortThreadgroups(powerOfTwoCount: Int(powerOfTwo), pipeline: pipeline)
-
-            // Verify coverage for rounded-up count
-            let totalThreads = threadgroups * threadsPerThreadgroup
-            XCTAssertGreaterThanOrEqual(totalThreads, Int(powerOfTwo),
-                                        "Total threads should cover power-of-2 padded count for input \(input)")
-
-            print("✓ Bitonic Sort - Input \(input) → Power-of-2 \(powerOfTwo): \(threadgroups) threadgroups × \(threadsPerThreadgroup) threads")
-        }
-
-        print("✅ executeBitonicSort threadgroup dispatch test passed!")
-    }
-
     // MARK: - Edge Cases
 
     func test_threadgroup_calculation_edge_cases() {
@@ -328,10 +250,8 @@ final class ThreadgroupDispatchTest: BaseRenderSetup {
     // MARK: - Integration Test
 
     func test_dispatch_calculation_consistency() {
-        // Verify all pipelines use consistent calculation patterns
         guard let frustumPipeline = frustumCullingPipeline.pipelineState,
               let gaussianDepthPipeline = gaussianDepthPipeline.pipelineState,
-              let bitonicPipeline = bitonicSortPipeline.pipelineState,
               let markVisiblePipeline = reduceScanMarkVisiblePipeline.pipelineState,
               let compactPipeline = reduceScanScatterCompactedPipeline.pipelineState
         else {
@@ -341,20 +261,11 @@ final class ThreadgroupDispatchTest: BaseRenderSetup {
 
         let testCount = 512
 
-        // Calculate for all pipelines
-        let frustumResult = calculateFrustumCullingThreadgroups(count: testCount, pipeline: frustumPipeline)
-        let gaussianResult = calculateGaussianDepthThreadgroups(splatCount: testCount, pipeline: gaussianDepthPipeline)
-        let bitonicResult = calculateBitonicSortThreadgroups(powerOfTwoCount: testCount, pipeline: bitonicPipeline)
-        let markVisibleResult = calculateMarkVisibleThreadgroups(count: testCount, pipeline: markVisiblePipeline)
-        let compactResult = calculateCompactThreadgroups(count: testCount, pipeline: compactPipeline)
-
-        // All should provide adequate coverage
         let results = [
-            ("Frustum Culling", frustumResult),
-            ("Gaussian Depth", gaussianResult),
-            ("Bitonic Sort", bitonicResult),
-            ("Mark Visible", markVisibleResult),
-            ("Compact", compactResult),
+            ("Frustum Culling", calculateFrustumCullingThreadgroups(count: testCount, pipeline: frustumPipeline)),
+            ("Gaussian Depth",  calculateGaussianDepthThreadgroups(splatCount: testCount, pipeline: gaussianDepthPipeline)),
+            ("Mark Visible",    calculateMarkVisibleThreadgroups(count: testCount, pipeline: markVisiblePipeline)),
+            ("Compact",         calculateCompactThreadgroups(count: testCount, pipeline: compactPipeline)),
         ]
 
         for (name, result) in results {
