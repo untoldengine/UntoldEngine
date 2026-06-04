@@ -1,0 +1,655 @@
+from __future__ import annotations
+
+import math
+
+import bpy
+import gpu
+from bpy.app.handlers import persistent
+from gpu_extras.batch import batch_for_shader
+from mathutils import Vector
+from bpy.props import FloatProperty, BoolProperty, EnumProperty, IntProperty
+
+
+# ── Global draw state ─────────────────────────────────────────────────────────
+
+_draw_handle = None
+_tile_boxes: list[tuple] = []   # [(mn_xyz, mx_xyz, rgba), ...]
+_draw_shader = None
+_fill_batches: list[tuple] = []  # [(batch, rgba), ...]
+_line_batches: list[tuple] = []  # [(batch, rgba), ...]
+_preview_object_names: set[str] = set()
+
+
+# ── Color helpers ─────────────────────────────────────────────────────────────
+
+def _heatmap_color(t: float, alpha: float = 0.9) -> tuple:
+    """Map t ∈ [0,1] to green → yellow → red."""
+    if t < 0.5:
+        r = t * 2.0
+        g = 0.8
+    else:
+        r = 1.0
+        g = 0.8 * (1.0 - (t - 0.5) * 2.0)
+    return (r, g, 0.05, alpha)
+
+
+def _shared_color() -> tuple:
+    return (0.20, 0.45, 0.95, 0.9)
+
+
+# ── Geometry helpers ──────────────────────────────────────────────────────────
+
+def _box_line_coords(mn: tuple, mx: tuple) -> list[tuple]:
+    x0, y0, z0 = mn
+    x1, y1, z1 = mx
+    return [
+        (x0, y0, z0), (x1, y0, z0),
+        (x1, y0, z0), (x1, y1, z0),
+        (x1, y1, z0), (x0, y1, z0),
+        (x0, y1, z0), (x0, y0, z0),
+        (x0, y0, z1), (x1, y0, z1),
+        (x1, y0, z1), (x1, y1, z1),
+        (x1, y1, z1), (x0, y1, z1),
+        (x0, y1, z1), (x0, y0, z1),
+        (x0, y0, z0), (x0, y0, z1),
+        (x1, y0, z0), (x1, y0, z1),
+        (x1, y1, z0), (x1, y1, z1),
+        (x0, y1, z0), (x0, y1, z1),
+    ]
+
+
+def _box_floor_tris(mn: tuple, mx: tuple) -> list[tuple]:
+    x0, y0, z = mn[0], mn[1], mn[2]
+    x1, y1 = mx[0], mx[1]
+    return [
+        (x0, y0, z), (x1, y0, z), (x1, y1, z),
+        (x0, y0, z), (x1, y1, z), (x0, y1, z),
+    ]
+
+
+# ── Quadtree node bound reconstruction ───────────────────────────────────────
+#
+# Node IDs encode the path from root as child indices separated by underscores.
+# Example: "F02_Q_0_3_1"  →  floor 2, child path SW → NE → SE
+#
+# _QuadNode.subdivide() child order (tilestreamingpartition.py):
+#   0 → (min_x, min_y, mid_x, mid_y)   SW
+#   1 → (mid_x, min_y, max_x, mid_y)   SE
+#   2 → (min_x, mid_y, mid_x, max_y)   NW
+#   3 → (mid_x, mid_y, max_x, max_y)   NE
+#
+# All floors share the same XY root (global scene XY bounds).
+
+def _quadtree_node_xy_bounds(
+    node_id: str,
+    scene_min_x: float, scene_min_y: float,
+    scene_max_x: float, scene_max_y: float,
+) -> tuple[float, float, float, float] | None:
+    parts = node_id.split('_')
+    try:
+        q_idx = next(i for i, p in enumerate(parts) if p == 'Q')
+    except StopIteration:
+        return None
+
+    min_x, min_y = scene_min_x, scene_min_y
+    max_x, max_y = scene_max_x, scene_max_y
+
+    for p in parts[q_idx + 1:]:
+        if not p.isdigit():
+            break
+        idx = int(p)
+        mid_x = (min_x + max_x) * 0.5
+        mid_y = (min_y + max_y) * 0.5
+        if idx == 0:
+            max_x, max_y = mid_x, mid_y
+        elif idx == 1:
+            min_x = mid_x; max_y = mid_y
+        elif idx == 2:
+            max_x = mid_x; min_y = mid_y
+        elif idx == 3:
+            min_x = mid_x; min_y = mid_y
+
+    return min_x, min_y, max_x, max_y
+
+
+# ── GPU draw callback ─────────────────────────────────────────────────────────
+
+def _draw_callback() -> None:
+    if not _fill_batches and not _line_batches:
+        return
+
+    shader = _ensure_draw_shader()
+    shader.bind()
+
+    gpu.state.blend_set('ALPHA')
+    gpu.state.depth_test_set('LESS_EQUAL')
+    gpu.state.depth_mask_set(False)
+
+    for batch, color in _fill_batches:
+        shader.uniform_float("color", color)
+        batch.draw(shader)
+
+    gpu.state.depth_mask_set(True)
+
+    for batch, color in _line_batches:
+        shader.uniform_float("color", color)
+        batch.draw(shader)
+
+    gpu.state.blend_set('NONE')
+    gpu.state.depth_test_set('NONE')
+
+
+def _ensure_draw_shader():
+    global _draw_shader
+    if _draw_shader is None:
+        _draw_shader = gpu.shader.from_builtin('UNIFORM_COLOR')
+    return _draw_shader
+
+
+def _rebuild_draw_batches() -> None:
+    global _fill_batches, _line_batches
+    shader = _ensure_draw_shader()
+    _fill_batches = []
+    _line_batches = []
+    for mn, mx, color in _tile_boxes:
+        fill = (color[0], color[1], color[2], color[3] * 0.20)
+        _fill_batches.append((
+            batch_for_shader(shader, 'TRIS', {"pos": _box_floor_tris(mn, mx)}),
+            fill,
+        ))
+        _line_batches.append((
+            batch_for_shader(shader, 'LINES', {"pos": _box_line_coords(mn, mx)}),
+            color,
+        ))
+
+
+def _clear_preview_state() -> None:
+    global _tile_boxes, _fill_batches, _line_batches, _preview_object_names
+    _tile_boxes = []
+    _fill_batches = []
+    _line_batches = []
+    _preview_object_names = set()
+    _unregister_draw_handler()
+
+
+def _register_draw_handler() -> None:
+    global _draw_handle
+    if _draw_handle is None:
+        _draw_handle = bpy.types.SpaceView3D.draw_handler_add(
+            _draw_callback, (), 'WINDOW', 'POST_VIEW'
+        )
+
+
+def _unregister_draw_handler() -> None:
+    global _draw_handle
+    if _draw_handle is not None:
+        bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
+        _draw_handle = None
+
+
+def _tag_viewports_redraw(context: bpy.types.Context) -> None:
+    for area in context.screen.areas:
+        if area.type == 'VIEW_3D':
+            area.tag_redraw()
+
+
+def _tag_all_viewports_redraw() -> None:
+    window_manager = getattr(bpy.context, "window_manager", None)
+    if window_manager is None:
+        return
+    for window in window_manager.windows:
+        screen = getattr(window, "screen", None)
+        if screen is None:
+            continue
+        for area in screen.areas:
+            if area.type == 'VIEW_3D':
+                area.tag_redraw()
+
+
+@persistent
+def _clear_preview_on_file_event(_dummy=None) -> None:
+    _clear_preview_state()
+    _tag_all_viewports_redraw()
+
+
+@persistent
+def _clear_preview_when_source_meshes_change(scene, _depsgraph=None) -> None:
+    if not _preview_object_names:
+        return
+    current_mesh_names = {obj.name for obj in scene.objects if obj.type == 'MESH'}
+    if not _preview_object_names.issubset(current_mesh_names):
+        _clear_preview_state()
+        _tag_all_viewports_redraw()
+
+
+def _register_app_handlers() -> None:
+    _unregister_app_handlers()
+    if _clear_preview_on_file_event not in bpy.app.handlers.load_pre:
+        bpy.app.handlers.load_pre.append(_clear_preview_on_file_event)
+    if _clear_preview_on_file_event not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(_clear_preview_on_file_event)
+    if _clear_preview_when_source_meshes_change not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(_clear_preview_when_source_meshes_change)
+
+
+def _unregister_app_handlers() -> None:
+    callbacks = (
+        (bpy.app.handlers.load_pre, _clear_preview_on_file_event),
+        (bpy.app.handlers.load_post, _clear_preview_on_file_event),
+        (bpy.app.handlers.depsgraph_update_post, _clear_preview_when_source_meshes_change),
+    )
+    for handlers, callback in callbacks:
+        callback_names = {callback.__name__}
+        for handler in list(handlers):
+            if (
+                handler is callback
+                or (
+                    getattr(handler, "__module__", None) == __name__
+                    and getattr(handler, "__name__", None) in callback_names
+                )
+            ):
+                handlers.remove(handler)
+
+
+# ── Scene property group ──────────────────────────────────────────────────────
+
+class UntoldTilePreviewSettings(bpy.types.PropertyGroup):
+    partitioning_mode: EnumProperty(
+        name="Mode",
+        description="Must match what you will use in File > Export > Untold Tiled Scene",
+        items=[
+            ('UNIFORM',  "Uniform Grid", "Regular XZ grid — fastest, best for open outdoor scenes"),
+            ('QUADTREE', "Quadtree",     "Floor + quadtree hierarchy — best for multi-floor buildings"),
+            ('KDTREE',   "KD-Tree",      "Floor + KD-tree hierarchy — better balance in clustered scenes"),
+        ],
+        default='QUADTREE',
+    )
+
+    # Uniform grid
+    auto_tile_size: BoolProperty(
+        name="Auto Tile Size",
+        description="Let the exporter choose tile dimensions from scene complexity — matches default export behaviour",
+        default=True,
+    )
+    tile_size_x: FloatProperty(
+        name="Tile Size X",
+        description="Tile width in world units (Blender X). Only used when Auto Tile Size is off",
+        default=25.0, min=0.1,
+    )
+    tile_size_z: FloatProperty(
+        name="Tile Size Z (Depth)",
+        description="Tile depth in world units (Blender Y). Only used when Auto Tile Size is off",
+        default=25.0, min=0.1,
+    )
+    spanning_threshold: FloatProperty(
+        name="Spanning Threshold",
+        description="Objects wider than this many tile-lengths go to the shared bucket (blue)",
+        default=4.0, min=1.0, max=32.0,
+    )
+
+    # Quadtree / KD-tree
+    floor_count: IntProperty(
+        name="Floor Count",
+        description="Number of floors (0 = auto-detect from object Z dimensions)",
+        default=0, min=0,
+    )
+    floor_band_height: FloatProperty(
+        name="Floor Band Height",
+        description="Per-floor Z band height in world units (0 = auto-detect)",
+        default=0.0, min=0.0,
+    )
+
+    visible_only: BoolProperty(
+        name="Visible Objects Only",
+        description="Preview only visible mesh objects, matching the default export behaviour",
+        default=True,
+    )
+
+
+# ── Object / AABB helpers ─────────────────────────────────────────────────────
+
+def _collect_objects(context: bpy.types.Context, visible_only: bool) -> list:
+    view_layer = context.view_layer
+    return [
+        obj for obj in context.scene.objects
+        if obj.type == 'MESH'
+        and (not visible_only or (
+            not obj.hide_viewport and not obj.hide_get(view_layer=view_layer)
+        ))
+    ]
+
+
+def _compute_aabbs(objects: list, context: bpy.types.Context) -> dict:
+    depsgraph = context.evaluated_depsgraph_get()
+    result = {}
+    for obj in objects:
+        eval_obj = obj.evaluated_get(depsgraph)
+        mw = eval_obj.matrix_world
+        corners = [mw @ Vector(c) for c in eval_obj.bound_box]
+        result[obj.name] = (
+            Vector((min(v.x for v in corners), min(v.y for v in corners), min(v.z for v in corners))),
+            Vector((max(v.x for v in corners), max(v.y for v in corners), max(v.z for v in corners))),
+        )
+    return result
+
+
+def _scene_z_range(aabbs: dict) -> tuple[float, float]:
+    return (
+        min(v[0].z for v in aabbs.values()),
+        max(v[1].z for v in aabbs.values()),
+    )
+
+
+def _aabbs_to_module_format(aabbs: dict) -> dict:
+    """Convert {name: (Vector_min, Vector_max)} to {name: {"min": tuple, "max": tuple}}."""
+    return {
+        name: {"min": (mn.x, mn.y, mn.z), "max": (mx.x, mx.y, mx.z)}
+        for name, (mn, mx) in aabbs.items()
+    }
+
+
+# ── Partition builders ────────────────────────────────────────────────────────
+
+def _build_uniform_boxes(objects: list, aabbs: dict, settings) -> tuple[list, dict]:
+    """Delegate classification to tilestreamingpartition.build_assignments so all
+    spanning rules (OVERLAP_THRESHOLD, SPLIT_MAX_TILES, SPLIT_SPANNING_OBJECTS)
+    and auto tile sizing match the actual exporter."""
+    from . import bridge as _bridge
+    module = _bridge.tile_exporter_module()
+
+    tile_x = settings.tile_size_x
+    tile_z = settings.tile_size_z
+
+    # Propagate preview settings to module globals so build_assignments
+    # uses the same classification thresholds as the UI exposes.
+    module.SPANNING_THRESHOLD_TILES = settings.spanning_threshold
+    module.TILE_SIZE_X = tile_x
+    module.TILE_SIZE_Z = tile_z
+
+    object_bounds = _aabbs_to_module_format(aabbs)
+    scene_bounds = {
+        "min": (
+            min(v[0].x for v in aabbs.values()),
+            min(v[0].y for v in aabbs.values()),
+            min(v[0].z for v in aabbs.values()),
+        ),
+        "max": (
+            max(v[1].x for v in aabbs.values()),
+            max(v[1].y for v in aabbs.values()),
+            max(v[1].z for v in aabbs.values()),
+        ),
+    }
+    origin_y = scene_bounds["min"][2]   # Blender Z height → tile Y
+
+    if settings.auto_tile_size:
+        tile_x, tile_z, _ = module.choose_auto_tile_size(
+            objects, object_bounds, scene_bounds, origin_y, module.TILE_SIZE_Y
+        )
+        module.TILE_SIZE_X = tile_x
+        module.TILE_SIZE_Z = tile_z
+
+    # Same world-aligned snap as tilestreamingpartition.py
+    origin_x = math.floor(scene_bounds["min"][0] / tile_x) * tile_x   # Blender X
+    origin_z = math.floor(scene_bounds["min"][1] / tile_z) * tile_z   # Blender Y depth → tile Z
+
+    tile_assignments, shared_objects, _ = module.build_assignments(
+        objects, object_bounds,
+        origin_x, origin_y, origin_z,
+        tile_x, module.TILE_SIZE_Y, tile_z,
+    )
+
+    scene_min_z, scene_max_z = _scene_z_range(aabbs)
+    max_count = max((len(v) for v in tile_assignments.values()), default=1)
+    boxes: list[tuple] = []
+
+    for (tx, ty, tz), objs in tile_assignments.items():
+        t  = (len(objs) - 1) / max(max_count - 1, 1)
+        tb = module.tile_bounds_from_coord(
+            tx, ty, tz, origin_x, origin_y, origin_z,
+            tile_x, module.TILE_SIZE_Y, tile_z,
+        )
+        # tile_bounds keys: min_x/max_x = Blender X, min_z/max_z = Blender Y depth
+        mn = (tb["min_x"], tb["min_z"], scene_min_z)
+        mx = (tb["max_x"], tb["max_z"], scene_max_z)
+        boxes.append((mn, mx, _heatmap_color(t)))
+
+    for obj in shared_objects:
+        mn_v, mx_v = aabbs[obj.name]
+        boxes.append(((mn_v.x, mn_v.y, mn_v.z), (mx_v.x, mx_v.y, mx_v.z), _shared_color()))
+
+    return boxes, {
+        "tiles":  len(tile_assignments),
+        "shared": len(shared_objects),
+        "max":    max_count,
+        "avg":    sum(len(v) for v in tile_assignments.values()) / max(len(tile_assignments), 1),
+        "tile_x": tile_x,
+        "tile_z": tile_z,
+    }
+
+
+def _build_tree_boxes(objects: list, aabbs: dict, settings, use_kdtree: bool) -> tuple[list, dict]:
+    """Use tilestreamingpartition's inline annotation then build_quadtree_assignments
+    so tier-based grouping and shared-bucket routing exactly match the exporter."""
+    from . import bridge as _bridge
+    module = _bridge.tile_exporter_module()
+
+    module.INLINE_FLOOR_COUNT_OVERRIDE       = settings.floor_count       if settings.floor_count > 0       else None
+    module.INLINE_FLOOR_BAND_HEIGHT_OVERRIDE = settings.floor_band_height if settings.floor_band_height > 0.0 else None
+
+    object_bounds = _aabbs_to_module_format(aabbs)
+
+    if use_kdtree:
+        metadata = module.compute_inline_kdtree_metadata(objects, object_bounds)
+    else:
+        metadata = module.compute_inline_quadtree_metadata(objects, object_bounds)
+
+    if not metadata:
+        return [], {}
+
+    # build_quadtree_assignments handles (node_id, tier) grouping and the
+    # ExteriorShell-only rule for shared-bucket routing, matching the exporter.
+    node_tier_groups, shared_objects, _ = module.build_quadtree_assignments(
+        objects, object_bounds, inline_metadata=metadata
+    )
+
+    scene_min_x = min(v[0].x for v in aabbs.values())
+    scene_min_y = min(v[0].y for v in aabbs.values())
+    scene_max_x = max(v[1].x for v in aabbs.values())
+    scene_max_y = max(v[1].y for v in aabbs.values())
+    scene_min_z, scene_max_z = _scene_z_range(aabbs)
+
+    max_count = max((len(v) for v in node_tier_groups.values()), default=1)
+    boxes: list[tuple] = []
+
+    for (node_id, _tier), objs in node_tier_groups.items():
+        t     = (len(objs) - 1) / max(max_count - 1, 1)
+        color = _heatmap_color(t)
+        z_min = min(aabbs[obj.name][0].z for obj in objs)
+        z_max = max(aabbs[obj.name][1].z for obj in objs)
+
+        if not use_kdtree:
+            bounds = _quadtree_node_xy_bounds(
+                node_id, scene_min_x, scene_min_y, scene_max_x, scene_max_y
+            )
+            if bounds:
+                nx0, ny0, nx1, ny1 = bounds
+                boxes.append(((nx0, ny0, z_min), (nx1, ny1, z_max), color))
+                continue
+
+        # KD-tree: use union AABB (split positions are data-driven, not reconstructable)
+        x_min = min(aabbs[obj.name][0].x for obj in objs)
+        y_min = min(aabbs[obj.name][0].y for obj in objs)
+        x_max = max(aabbs[obj.name][1].x for obj in objs)
+        y_max = max(aabbs[obj.name][1].y for obj in objs)
+        boxes.append(((x_min, y_min, z_min), (x_max, y_max, z_max), color))
+
+    for obj in shared_objects:
+        mn_v, mx_v = aabbs[obj.name]
+        boxes.append(((mn_v.x, mn_v.y, mn_v.z), (mx_v.x, mx_v.y, mx_v.z), _shared_color()))
+
+    return boxes, {
+        "tiles":  len(node_tier_groups),
+        "nodes":  len({node_id for node_id, _tier in node_tier_groups}),
+        "shared": len(shared_objects),
+        "max":    max_count,
+        "avg":    sum(len(v) for v in node_tier_groups.values()) / max(len(node_tier_groups), 1),
+    }
+
+
+# ── Operators ─────────────────────────────────────────────────────────────────
+
+class UNTOLD_OT_preview_tiles(bpy.types.Operator):
+    bl_idname  = "untold.preview_tiles"
+    bl_label   = "Preview Tiles"
+    bl_description = (
+        "Draw a colour-coded tile grid in the 3D viewport. "
+        "Green = low density, red = high density, blue = shared bucket"
+    )
+    bl_options = {"REGISTER"}
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        global _tile_boxes, _preview_object_names
+
+        # Always clear any existing overlay first so a failed or empty preview
+        # never leaves stale boxes from a previous run visible.
+        _clear_preview_state()
+        _tag_viewports_redraw(context)
+
+        settings = context.scene.untold_tile_preview
+        objects  = _collect_objects(context, settings.visible_only)
+
+        if not objects:
+            self.report({'WARNING'}, "No mesh objects found for the selected scope")
+            return {'CANCELLED'}
+
+        aabbs = _compute_aabbs(objects, context)
+        mode  = settings.partitioning_mode
+
+        try:
+            if mode == 'UNIFORM':
+                boxes, stats = _build_uniform_boxes(objects, aabbs, settings)
+            elif mode == 'QUADTREE':
+                boxes, stats = _build_tree_boxes(objects, aabbs, settings, use_kdtree=False)
+            else:  # KDTREE
+                boxes, stats = _build_tree_boxes(objects, aabbs, settings, use_kdtree=True)
+        except Exception as exc:
+            self.report({'ERROR'}, f"Preview failed: {exc}")
+            return {'CANCELLED'}
+
+        if not boxes:
+            self.report({'WARNING'}, "No tile assignments computed — check settings")
+            return {'CANCELLED'}
+
+        _tile_boxes = boxes
+        _preview_object_names = {obj.name for obj in objects}
+        _rebuild_draw_batches()
+        _register_draw_handler()
+        _tag_viewports_redraw(context)
+
+        mode_label = {"UNIFORM": "uniform grid", "QUADTREE": "quadtree", "KDTREE": "KD-tree"}[mode]
+        extra = ""
+        if mode == 'UNIFORM' and settings.auto_tile_size:
+            extra = f" | auto tile {stats['tile_x']:.1f}×{stats['tile_z']:.1f}"
+        elif mode != 'UNIFORM':
+            extra = f" | {stats['nodes']} spatial nodes"
+        unit_label = "tiles" if mode == 'UNIFORM' else "tile-tier pairs"
+        avg_label = "obj/tile" if mode == 'UNIFORM' else "obj/pair"
+        self.report(
+            {'INFO'},
+            f"Tile preview ({mode_label}): {stats['tiles']} {unit_label} | "
+            f"{stats['shared']} shared | avg {stats['avg']:.1f} {avg_label} | "
+            f"max {stats['max']}{extra}"
+        )
+        return {'FINISHED'}
+
+
+class UNTOLD_OT_clear_tile_preview(bpy.types.Operator):
+    bl_idname  = "untold.clear_tile_preview"
+    bl_label   = "Clear"
+    bl_description = "Remove the tile grid overlay from the viewport"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        _clear_preview_state()
+        _tag_viewports_redraw(context)
+        self.report({'INFO'}, "Tile preview cleared")
+        return {'FINISHED'}
+
+
+# ── Sidebar panel ─────────────────────────────────────────────────────────────
+
+class UNTOLD_PT_tile_preview(bpy.types.Panel):
+    bl_label      = "Tile Preview"
+    bl_idname     = "UNTOLD_PT_tile_preview"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category   = 'Untold'
+
+    def draw(self, context: bpy.types.Context) -> None:
+        layout   = self.layout
+        settings = context.scene.untold_tile_preview
+        mode     = settings.partitioning_mode
+
+        layout.prop(settings, "partitioning_mode")
+        layout.prop(settings, "visible_only")
+        layout.separator(factor=0.5)
+
+        if mode == 'UNIFORM':
+            col = layout.column(align=True)
+            col.label(text="Grid")
+            col.prop(settings, "auto_tile_size")
+            sub = col.column(align=True)
+            sub.enabled = not settings.auto_tile_size
+            sub.prop(settings, "tile_size_x")
+            sub.prop(settings, "tile_size_z")
+            col.prop(settings, "spanning_threshold")
+        else:
+            col = layout.column(align=True)
+            col.label(text="Floor detection")
+            col.prop(settings, "floor_count")
+            col.prop(settings, "floor_band_height")
+            col.label(text="(0 = auto-detect)", icon='INFO')
+
+        layout.separator()
+
+        row = layout.row(align=True)
+        row.operator("untold.preview_tiles", icon='OVERLAY', text="Preview Tiles")
+        row.operator("untold.clear_tile_preview", icon='X', text="")
+
+        if _tile_boxes:
+            layout.separator(factor=0.5)
+            box = layout.box()
+            col = box.column(align=True)
+            col.scale_y = 0.8
+            col.label(text="Density")
+            col.label(text="  Green  —  low")
+            col.label(text="  Yellow  —  medium")
+            col.label(text="  Red  —  high")
+            col.label(text="  Blue  —  shared bucket")
+
+
+# ── Registration ──────────────────────────────────────────────────────────────
+
+classes = (
+    UntoldTilePreviewSettings,
+    UNTOLD_PT_tile_preview,
+    UNTOLD_OT_preview_tiles,
+    UNTOLD_OT_clear_tile_preview,
+)
+
+
+def register() -> None:
+    for cls in classes:
+        bpy.utils.register_class(cls)
+    bpy.types.Scene.untold_tile_preview = bpy.props.PointerProperty(
+        type=UntoldTilePreviewSettings
+    )
+    _register_app_handlers()
+
+
+def unregister() -> None:
+    _unregister_app_handlers()
+    _clear_preview_state()
+    del bpy.types.Scene.untold_tile_preview
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
