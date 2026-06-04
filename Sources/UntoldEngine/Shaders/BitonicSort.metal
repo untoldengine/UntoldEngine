@@ -61,33 +61,3 @@ kernel void gaussianDepthKeys(device uint64_t *outKeys              [[buffer(gau
     outKeys[index] = packed;
 }
 
-kernel void gaussianBitonicSort(device uint64_t *splatIndices [[buffer(gaussianIndicesIndex)]],
-                                constant uint &numOfSplats [[buffer(gaussianNumberOfSplatsIndex)]],
-                                constant int &comparisonDistance [[buffer(gaussianComparisonDistanceIndex)]],
-                                constant int &subArraySize [[buffer(gaussianSubArraySizeIndex)]],
-                                uint threadIdx [[thread_position_in_grid]]){
-
-    if(threadIdx >= numOfSplats) return;
-    
-    uint i = threadIdx;
-    
-    // find the index to compare with
-    uint comparisonIndex = i ^ comparisonDistance;
-    
-    if(comparisonIndex > i && comparisonIndex < numOfSplats){
-        // access index for the current element
-        uint64_t currentElement=splatIndices[i];
-        uint64_t compareElement=splatIndices[comparisonIndex];
-        
-        // determine the correct order based on subarray size
-        bool ascending = ((i & subArraySize)==0);
-        
-        // perform the swap
-        if((ascending && currentElement > compareElement) || (!ascending && currentElement < compareElement)){
-            // swap the indices
-            uint64_t temp = currentElement;
-            splatIndices[i] = compareElement;
-            splatIndices[comparisonIndex] = temp;
-        }
-    }
-}

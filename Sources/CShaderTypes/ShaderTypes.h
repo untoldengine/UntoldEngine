@@ -443,9 +443,7 @@ typedef enum{
     gaussianUniformIndex,
     gaussianNumberOfSplatsIndex,
     gaussianIndicesIndex,
-    gaussianSubArraySizeIndex,
-    gaussianComparisonDistanceIndex,
-}BitonicSortBufferIndices;
+}GaussianDepthBufferIndices;
 
 typedef struct{
     simd_float4 center;
@@ -486,6 +484,37 @@ typedef enum{
 typedef enum{
       outputTransformPassEncodingModeIndex
   }OutputTransformBufferIndices;
+
+typedef enum{
+    radixClearHistogramBuffer = 0,
+}RadixClearHistogramBufferIndices;
+
+typedef enum{
+    radixHistogramKeysIn    = 0,
+    radixHistogramOutput    = 1,
+    radixHistogramNumElems  = 2,
+    radixHistogramPassIndex = 3,
+    radixHistogramPerTGOut  = 4,   // per-threadgroup local histogram output
+}RadixHistogramBufferIndices;
+
+typedef enum{
+    radixScanHistogram  = 0,
+    radixScanNumBuckets = 1,
+}RadixScanBufferIndices;
+
+typedef enum{
+    radixScanPerTGBuffer    = 0,   // in-place: local histogram → per-TG prefix sums
+    radixScanPerTGNumGroups = 1,
+}RadixScanPerTGBufferIndices;
+
+typedef enum{
+    radixScatterKeysIn      = 0,
+    radixScatterKeysOut     = 1,
+    radixScatterOffsets     = 2,
+    radixScatterNumElems    = 3,
+    radixScatterPassIdx     = 4,
+    radixScatterPerTGStart  = 5,   // per-TG starting offsets per digit
+}RadixScatterBufferIndices;
 
 typedef enum{
     fxaaPassTexelSizeIndex,
