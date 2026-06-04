@@ -13,6 +13,7 @@ mkdir -p "${STAGE_DIR}/vendor"
 
 cp "${ADDON_DIR}/untold_exporter/__init__.py" "${STAGE_DIR}/__init__.py"
 cp "${ADDON_DIR}/untold_exporter/bridge.py" "${STAGE_DIR}/bridge.py"
+cp "${ADDON_DIR}/untold_exporter/viewport_overlay.py" "${STAGE_DIR}/viewport_overlay.py"
 cp "${SCRIPTS_DIR}/untoldexplorer.py" "${STAGE_DIR}/vendor/untoldexplorer.py"
 cp "${SCRIPTS_DIR}/texbake.py" "${STAGE_DIR}/vendor/texbake.py"
 cp "${SCRIPTS_DIR}/tilestreamingpartition.py" "${STAGE_DIR}/vendor/tilestreamingpartition.py"

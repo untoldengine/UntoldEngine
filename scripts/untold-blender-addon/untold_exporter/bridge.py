@@ -276,6 +276,12 @@ def export_tiled_scene(
             argv.extend(["--floor-count", str(floor_count)])
         if floor_band_height > 0.0:
             argv.extend(["--floor-band-height", str(floor_band_height)])
+    if partitioning_mode == "KDTREE":
+        argv.append("--kdtree")
+        if floor_count > 0:
+            argv.extend(["--floor-count", str(floor_count)])
+        if floor_band_height > 0.0:
+            argv.extend(["--floor-band-height", str(floor_band_height)])
     if generate_hlod:
         argv.append("--generate-hlod")
     if generate_lod:

@@ -3013,8 +3013,6 @@ def centroid_assignments_for_sizing(objects, object_bounds,
 
 
 def choose_auto_tile_size(objects, object_bounds, scene_bounds, origin_y, tile_size_y):
-    origin_x   = scene_bounds["min"][0]
-    origin_z   = scene_bounds["min"][1]
     extent_x   = max(scene_bounds["max"][0] - scene_bounds["min"][0], 1e-9)
     extent_z   = max(scene_bounds["max"][1] - scene_bounds["min"][1], 1e-9)
     scene_area = extent_x * extent_z
@@ -3030,6 +3028,8 @@ def choose_auto_tile_size(objects, object_bounds, scene_bounds, origin_y, tile_s
     met_tiles = False; met_obj = False
 
     for it in range(1, max(1, int(AUTO_TILE_MAX_ITERATIONS)) + 1):
+        origin_x    = math.floor(scene_bounds["min"][0] / tile_size) * tile_size
+        origin_z    = math.floor(scene_bounds["min"][1] / tile_size) * tile_size
         asgn        = centroid_assignments_for_sizing(objects, object_bounds,
                                                       origin_x, origin_y, origin_z,
                                                       tile_size, tile_size_y, tile_size)
@@ -3938,10 +3938,12 @@ def run():
     object_bounds = compute_object_bounds(objects)
     scene_bounds  = scene_world_bounds(objects)   # Blender (X, Y_depth, Z_height)
 
-    # Origins for tile coordinate mapping
-    origin_x = scene_bounds["min"][0]   # Blender X
-    origin_y = scene_bounds["min"][2]   # Blender Z height → tile Y
-    origin_z = scene_bounds["min"][1]   # Blender Y depth  → tile Z
+    # Origins for tile coordinate mapping.
+    # Snap to the nearest world-aligned tile boundary so grid cells are always
+    # multiples of tile_size from the world origin.  Without this, the grid
+    # anchors at scene_min and objects near the origin end up in the corner of
+    # their tile rather than inside a stable, predictable cell.
+    origin_y = scene_bounds["min"][2]  # Blender Z height → tile Y
 
     # ------------------------------------------------------------------
     # Tile sizing (manual or auto)
@@ -3965,6 +3967,9 @@ def run():
     else:
         tile_size_x, tile_size_y, tile_size_z = TILE_SIZE_X, TILE_SIZE_Y, TILE_SIZE_Z
         auto_info = None
+
+    origin_x = math.floor(scene_bounds["min"][0] / tile_size_x) * tile_size_x  # Blender X
+    origin_z = math.floor(scene_bounds["min"][1] / tile_size_z) * tile_size_z  # Blender Y depth → tile Z
 
     base_tile = max(tile_size_x, tile_size_z)
 

@@ -6,6 +6,7 @@ from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, St
 from bpy_extras.io_utils import ExportHelper
 
 from . import bridge
+from . import viewport_overlay
 
 
 def exporter_bridge():
@@ -269,8 +270,9 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
         name="Partitioning",
         description="Tile partitioning algorithm",
         items=[
-            ("UNIFORM", "Uniform Grid", "Use regular X/Y/Z tile dimensions"),
-            ("QUADTREE", "Quadtree", "Use floor/quadtree partitioning with semantic tiers"),
+            ("UNIFORM",  "Uniform Grid", "Use regular X/Y/Z tile dimensions"),
+            ("QUADTREE", "Quadtree",     "Use floor/quadtree partitioning with semantic tiers"),
+            ("KDTREE",   "KD-Tree",      "Use floor/KD-tree partitioning — better balance in clustered scenes"),
         ],
         default="QUADTREE",
     )
@@ -303,14 +305,14 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
     )
 
     floor_count: IntProperty(
-        name="Quadtree: Floor Count",
-        description="Optional floor count override for quadtree partitioning. Use 0 for auto-detect",
+        name="Tree: Floor Count",
+        description="Optional floor count override for quadtree/KD-tree partitioning. Use 0 for auto-detect",
         default=0,
         min=0,
     )
 
     floor_band_height: FloatProperty(
-        name="Quadtree: Floor Band Height",
+        name="Tree: Floor Band Height",
         description="Optional per-floor band height override. Use 0 for auto-detect",
         default=0.0,
         min=0.0,
@@ -358,6 +360,15 @@ class UNTOLD_OT_export_tiled_scene(bpy.types.Operator):
     )
 
     def invoke(self, context: bpy.types.Context, event: bpy.types.Event) -> set[str]:
+        preview = getattr(context.scene, "untold_tile_preview", None)
+        if preview is not None:
+            self.visible_only = preview.visible_only
+            self.partitioning_mode = preview.partitioning_mode
+            self.auto_tile_size = preview.auto_tile_size
+            self.tile_size_x = preview.tile_size_x
+            self.tile_size_z = preview.tile_size_z
+            self.floor_count = preview.floor_count
+            self.floor_band_height = preview.floor_band_height
         if not self.directory:
             blend_path = getattr(bpy.data, "filepath", "") or ""
             if blend_path:
@@ -419,9 +430,11 @@ def register() -> None:
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+    viewport_overlay.register()
 
 
 def unregister() -> None:
+    viewport_overlay.unregister()
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
